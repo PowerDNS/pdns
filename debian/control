@@ -8,10 +8,18 @@ Build-Depends: automake1.5, autoconf, libtool, flex, bison, docbook-utils, libmy
 Package: pdns
 Architecture: any
 Depends: ${shlibs:Depends}, pdns-backend-bind | pdns-backend
+Recommends: pdns-doc
 Description: extremely powerful and versatile nameserver
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
  databases and load balancing/failover algorithms.
+
+Package: pdns-doc
+Architecture: all
+Description: PowerDNS manual
+ This is the complete manual for PowerDNS, documenting both
+ how to install and configure it as well as how to write
+ new backend modules.
 
 Package: pdns-backend-bind
 Architecture: any

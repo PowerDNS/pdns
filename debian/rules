@@ -3,16 +3,111 @@
 tmpdir		:= $(shell pwd)/debian/tmp
 backends	:= bind mysql
 
-clean:
-	rm -f debian/files debian/substvars stamp-build
-	rm -rf "$(tmpdir)" "$(tmpdir)"-*
-	-make distclean
-	-make -C pdns/docs clean
-
 configure:
 	./bootstrap
 
-stamp-build build: configure
+binary-doc:
+	-make -C pdns/docs html/index.html
+
+	rm -rf "$(tmpdir)"
+
+	install -d -m 755 -o root -g root \
+		"$(tmpdir)"/usr/share/doc/pdns/html
+	set -e ; for i in pdns/docs/html/* ; do \
+		install -p -m 644 -o root -g root "$$i" \
+			"$(tmpdir)"/usr/share/doc/pdns/html/ ; \
+		done
+
+	install -d -m 755 -o root -g root \
+		"$(tmpdir)"/usr/share/doc/pdns-doc
+	install -p -m 644 -o root -g root ChangeLog \
+			"$(tmpdir)"/usr/share/doc/pdns-doc/changelog
+	install -p -m 644 -o root -g root debian/changelog \
+			"$(tmpdir)"/usr/share/doc/pdns-doc/changelog.Debian
+	gzip -9 "$(tmpdir)"/usr/share/doc/pdns-doc/*
+	install -p -m 644 -o root -g root debian/copyright \
+			"$(tmpdir)"/usr/share/doc/pdns-doc/
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/usr/share/doc-base
+	install -p -m 644 -o root -g root debian/doc-base \
+			"$(tmpdir)"/usr/share/doc-base/pdns
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
+	install -p -m 755 -o root -g root debian/pdns-doc.prerm \
+			"$(tmpdir)"/DEBIAN/prerm
+	install -p -m 755 -o root -g root debian/pdns-doc.postinst \
+			"$(tmpdir)"/DEBIAN/postinst
+
+	dpkg-gencontrol -isp -ppdns-doc -P"$(tmpdir)"
+	dpkg --build "$(tmpdir)" ..
+
+
+build-main: configure
+	if [ -e build-backend ] ; then make distclean ; fi
+	rm -f build-backend
+
+	./configure \
+		--prefix=/usr \
+		--libexecdir='$${prefix}/lib' \
+		--sysconfdir=/etc \
+		--infodir='$${datadir}/info' \
+		--mandir='$${datadir}/man'
+	make
+	touch build-main
+
+
+binary-main: build-main
+	rm -f debian/files debian/substvars
+	rm -rf "$(tmpdir)" "$(tmpdir)"-*
+	install -d -m 755 -o root -g root "$(tmpdir)"
+	make DESTDIR="$(tmpdir)" install
+
+	rm -f "$(tmpdir)"/usr/bin/binpatch
+	rm -rf "$(tmpdir)"/usr/lib
+
+	strip --remove-section=.comment --remove-section=.note \
+		--strip-unneeded \
+		"$(tmpdir)"/usr/bin/zone2sql \
+		"$(tmpdir)"/usr/bin/pdns_server \
+		"$(tmpdir)"/usr/bin/pdns_control
+	mv "$(tmpdir)"/etc/pdns.conf-dist "$(tmpdir)"/etc/pdns.conf
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/etc/init.d
+	install -p -m 755 -o root -g root pdns/pdns \
+		"$(tmpdir)"/etc/init.d/pdns
+
+	install -d -m 755 -o root -g root \
+		"$(tmpdir)"/usr/share/doc/pdns
+	install -p -m 644 -o root -g root ChangeLog \
+			"$(tmpdir)"/usr/share/doc/pdns/changelog
+	install -p -m 644 -o root -g root debian/changelog \
+			"$(tmpdir)"/usr/share/doc/pdns/changelog.Debian
+	gzip -9 "$(tmpdir)"/usr/share/doc/pdns/c*
+	install -p -m 644 -o root -g root debian/copyright \
+			"$(tmpdir)"/usr/share/doc/pdns/
+	
+	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
+	install -p -m 755 -o root -g root debian/pdns.prerm \
+			"$(tmpdir)"/DEBIAN/prerm
+	install -p -m 755 -o root -g root debian/pdns.postrm \
+			"$(tmpdir)"/DEBIAN/postrm
+	install -p -m 755 -o root -g root debian/pdns.postinst \
+			"$(tmpdir)"/DEBIAN/postinst
+	install -p -m 644 -o root -g root debian/pdns.conffiles \
+			"$(tmpdir)"/DEBIAN/conffiles
+
+	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
+		"$(tmpdir)"/usr/bin/pdns_server \
+		"$(tmpdir)"/usr/bin/pdns_control
+
+	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
+	dpkg --build "$(tmpdir)" ..
+
+
+build-backend: configure
+	if [ -e build-main ] ; then make distclean ; fi
+	rm -f build-main
+
 	./configure \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
@@ -23,53 +118,20 @@ stamp-build build: configure
 		--enable-mysql \
 		--with-modules="mysql pgmysql"
 	make
-	make -C pdns/docs html/index.html
-	touch stamp-build
+	touch build-backend
 
-binary: binary-arch
 
-binary-indep:
-	@echo Nothing to do
-
-binary-arch: stamp-build
+binary-backend: build-backend
 	rm -f debian/files debian/substvars
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 
 	install -d -m 755 -o root -g root "$(tmpdir)"
 	make DESTDIR="$(tmpdir)" install
-	rm -f "$(tmpdir)"/usr/bin/binpatch
+
 	strip --remove-section=.comment --remove-section=.note \
-		--strip-unneeded \
-		"$(tmpdir)"/usr/bin/zone2sql \
-		"$(tmpdir)"/usr/bin/pdns_server \
-		"$(tmpdir)"/usr/bin/pdns_control \
-		"$(tmpdir)"/usr/lib/*.so
+		--strip-unneeded "$(tmpdir)"/usr/lib/*.so
 	chmod 644 "$(tmpdir)"/usr/lib/*
-	mv "$(tmpdir)"/etc/pdns.conf-dist "$(tmpdir)"/etc/pdns.conf
 
-	install -d -m 755 -o root -g root \
-		"$(tmpdir)"/usr/share/doc/pdns/html
-	set -e ; for i in pdns/docs/html/* ; do \
-		install -p -m 644 -o root -g root "$$i" \
-			"$(tmpdir)"/usr/share/doc/pdns/html/ ; \
-		done
-	
-	install -d -m 755 -o root -g root "$(tmpdir)"/etc/init.d
-	install -p -m 755 -o root -g root pdns/pdns \
-		"$(tmpdir)"/etc/init.d/pdns
-
-	install -d -m 755 -o root -g root "$(tmpdir)"/usr/share/doc-base
-	install -p -m 644 -o root -g root debian/doc-base \
-			"$(tmpdir)"/usr/share/doc-base/pdns
-
-	install -p -m 644 -o root -g root ChangeLog \
-			"$(tmpdir)"/usr/share/doc/pdns/changelog
-	install -p -m 644 -o root -g root debian/changelog \
-			"$(tmpdir)"/usr/share/doc/pdns/changelog.Debian
-	gzip -9 "$(tmpdir)"/usr/share/doc/pdns/c*
-	install -p -m 644 -o root -g root debian/copyright \
-			"$(tmpdir)"/usr/share/doc/pdns/
-	
 	set -e ; for be in $(backends) ; do \
 		rm -f debian/substvars ; \
 		pkg=pdns-backend-$$be ; \
@@ -92,17 +154,17 @@ binary-arch: stamp-build
 		dpkg --build "$(tmpdir)"-$$be .. ; \
 	done
 
-	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
-	install -p -m 755 -o root -g root debian/prerm "$(tmpdir)"/DEBIAN/
-	install -p -m 755 -o root -g root debian/postrm "$(tmpdir)"/DEBIAN/
-	install -p -m 755 -o root -g root debian/postinst "$(tmpdir)"/DEBIAN/
-	install -p -m 644 -o root -g root debian/conffiles "$(tmpdir)"/DEBIAN/
 
-	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
-		"$(tmpdir)"/usr/bin/pdns_server \
-		"$(tmpdir)"/usr/bin/pdns_control
+binary: binary-indep binary-arch
+binary-indep: binary-doc
+binary-arch: binary-main binary-backend
 
-	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
-	dpkg --build "$(tmpdir)" ..
+clean:
+	rm -f debian/files debian/substvars build-backend build-main
+	rm -rf "$(tmpdir)" "$(tmpdir)"-*
+	-make distclean
+	-make -C pdns/docs clean
 
 .PHONY: clean build binary binary-arch binary-indep
+.PHONY: binary-doc binary-main binary-backend
+
