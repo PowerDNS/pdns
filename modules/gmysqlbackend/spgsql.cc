@@ -1,11 +1,11 @@
 /* Copyright 200w Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: spgsql.cc,v 1.1 2002/11/27 15:23:16 ahu Exp $  */
+   $Id: spgsql.cc,v 1.2 2002/12/16 18:02:24 ahu Exp $  */
 #include "spgsql.hh"
 #include <string>
 #include <iostream>
-#include "logger.hh"
-#include "dns.hh"
+#include "pdns/logger.hh"
+#include "pdns/dns.hh"
 using namespace std;
 
 bool SPgSQL::s_dolog;
@@ -86,7 +86,7 @@ bool SPgSQL::getRow(row_t &row)
   if(d_count>=d_db->Tuples())
     return false;
   
-  for(unsigned int i=0;i<d_db->Fields();i++)
+  for(int i=0;i<d_db->Fields();i++)
     row.push_back(d_db->GetValue(d_count,i) ?: "");
   d_count++;
   return true;

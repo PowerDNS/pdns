@@ -1,11 +1,11 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.cc,v 1.1 2002/11/27 15:23:16 ahu Exp $  */
+   $Id: smysql.cc,v 1.2 2002/12/16 18:02:24 ahu Exp $  */
 #include "smysql.hh"
 #include <string>
 #include <iostream>
-#include "logger.hh"
-#include "dns.hh"
+#include "pdns/logger.hh"
+#include "pdns/dns.hh"
 using namespace std;
 
 bool SMySQL::s_dolog;
