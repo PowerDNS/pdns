@@ -646,7 +646,7 @@ bool operator<(const string &a, const Bind2DNSRecord &b)
 
 void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int zoneId )
 {
-  d_handle=new Bind2Backend::handle;
+  d_handle.reset(); // =new Bind2Backend::handle;
 
   string domain=toLower(qname);
 
@@ -656,37 +656,35 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   while(!s_name_id_map.count(domain) && chopOff(domain));
 
   if(!s_name_id_map.count(domain)) {
-    //    cout<<"no such domain: '"<<qname<<"'"<<endl;
-    d_handle->d_list=false;
-    d_handle->d_bbd=0;
+    d_handle.d_list=false;
+    d_handle.d_bbd=0;
     return;
   }
   unsigned int id=s_name_id_map[domain];
-  d_handle->id=id;
-  //  cout<<"domain: '"<<domain<<"', id="<<id<<endl;
 
+  d_handle.id=id;
+  
   DLOG(L<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
        qname<<endl);
-
   
   if(strcasecmp(qname.c_str(),domain.c_str()))
-    d_handle->qname=toLower(qname.substr(0,qname.size()-domain.length()-1)); // strip domain name
-  //  cout<<"Reduced to '"<<d_handle->qname<<"'"<<endl;
-  d_handle->parent=this;
-  d_handle->qtype=qtype;
-  d_handle->domain=domain;
-  d_handle->d_records=s_id_zone_map[id]->d_records; // give it a copy
-  d_handle->d_bbd=0;
-  if(!d_handle->d_records->empty()) {
+    d_handle.qname=toLower(qname.substr(0,qname.size()-domain.length()-1)); // strip domain name
+  
+  d_handle.parent=this;
+  d_handle.qtype=qtype;
+  d_handle.domain=domain;
+  d_handle.d_records=s_id_zone_map[id]->d_records; // give it a copy
+  d_handle.d_bbd=0;
+  if(!d_handle.d_records->empty()) {
     BB2DomainInfo& bbd=*s_id_zone_map[id];
     if(!bbd.d_loaded) {
-      delete d_handle;
+      d_handle.reset();
       throw DBException("Zone temporarily not available (file missing, or master dead)"); // fsck
     }
 
     if(!bbd.tryRLock()) {
       L<<Logger::Warning<<"Can't get read lock on zone '"<<bbd.d_name<<"'"<<endl;
-      delete d_handle;
+      d_handle.reset();
       throw DBException("Temporarily unavailable due to a zone lock"); // fsck
     }
     
@@ -694,7 +692,7 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
       L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
       queueReload(&bbd);
     }
-    d_handle->d_bbd=&bbd;
+    d_handle.d_bbd=&bbd;
   }
   else {
     DLOG(L<<"Query with no results"<<endl);
@@ -702,20 +700,20 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
 
   pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
 
-  //  cout<<"starting equal range for: '"<<d_handle->qname<<"'"<<endl;
-  range=equal_range(d_handle->d_records->begin(), d_handle->d_records->end(), d_handle->qname);
+  //  cout<<"starting equal range for: '"<<d_handle.qname<<"'"<<endl;
+  range=equal_range(d_handle.d_records->begin(), d_handle.d_records->end(), d_handle.qname);
   
   if(range.first==range.second) {
-    d_handle->d_bbd=0;
-    d_handle->d_list=false;
+    d_handle.d_bbd=0;
+    d_handle.d_list=false;
     return;
   }
   else {
-    d_handle->d_iter=range.first;
-    d_handle->d_end_iter=range.second;
+    d_handle.d_iter=range.first;
+    d_handle.d_end_iter=range.second;
   }
 
-  d_handle->d_list=false;
+  d_handle.d_list=false;
 }
 
 Bind2Backend::handle::handle()
@@ -727,12 +725,11 @@ Bind2Backend::handle::handle()
 
 bool Bind2Backend::get(DNSResourceRecord &r)
 {
-  if(!d_handle->d_records)
+  if(!d_handle.d_records)
     return false;
 
-  if(!d_handle->get(r)) {
-    delete d_handle;
-    d_handle=0;
+  if(!d_handle.get(r)) {
+    d_handle.reset();
 
     if(arg().mustDo("query-logging"))
       L<<"End of answers"<<endl;
@@ -792,19 +789,20 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
 
 bool Bind2Backend::list(const string &target, int id)
 {
-  // cout<<"List of id "<<id<<" requested"<<endl;
   if(!s_id_zone_map.count(id))
     return false;
 
-  d_handle=new Bind2Backend::handle;
+  d_handle.reset(); // new Bind2Backend::handle;
   DLOG(L<<"Bind2Backend constructing handle for list of "<<id<<endl);
 
-  d_handle->d_qname_iter=s_id_zone_map[id]->d_records->begin();
-  d_handle->d_qname_end=s_id_zone_map[id]->d_records->end();   // iter now points to a vector of pointers to vector<BBResourceRecords>
+  d_handle.d_qname_iter=s_id_zone_map[id]->d_records->begin();
+  d_handle.d_qname_end=s_id_zone_map[id]->d_records->end();   // iter now points to a vector of pointers to vector<BBResourceRecords>
 
-  d_handle->parent=this;
-  d_handle->id=id;
-  d_handle->d_list=true;
+  d_handle.d_records=s_id_zone_map[id]->d_records; // give it a copy --- WHY??? XXX FIXME
+
+  d_handle.parent=this;
+  d_handle.id=id;
+  d_handle.d_list=true;
   return true;
 
 }
@@ -812,7 +810,11 @@ bool Bind2Backend::list(const string &target, int id)
 bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 {
   if(d_qname_iter!=d_qname_end) {
-    //    r=*d_qname_iter;   // XXX FIXME WRONG WRONG WRONG
+    r.qname=d_qname_iter->qname.empty() ? domain : (d_qname_iter->qname+"."+domain);
+    r.domain_id=id;
+    r.content=(d_qname_iter)->content;
+    r.qtype=(d_qname_iter)->qtype;
+    r.ttl=(d_qname_iter)->ttl;
     d_qname_iter++;
     return true;
   }

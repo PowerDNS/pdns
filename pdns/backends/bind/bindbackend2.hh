@@ -34,7 +34,13 @@ struct Bind2DNSRecord
 
   bool operator<(const Bind2DNSRecord& rhs) const
   {
-    return qname < rhs.qname;
+    if(qname < rhs.qname)
+      return true;
+    if(qname > rhs.qname)
+      return false;
+    if(qtype==QType::SOA && rhs.qtype!=QType::SOA)
+      return true;
+    return false;
   }
 };
 
@@ -125,8 +131,18 @@ private:
   {
   public:
     bool get(DNSResourceRecord &);
+    void reset()
+    {
+      parent=0;
+      d_records=0;
+      qname.clear();
+      if(d_bbd) {
+	d_bbd->unlock();
+	d_bbd=0;
+      }
+    }
     ~handle() {
-      if(d_bbd)
+      if(d_bbd) 
 	d_bbd->unlock();
     }
     handle();
@@ -164,7 +180,7 @@ private:
   int d_transaction_id;
   string d_transaction_tmpname;
   ofstream *d_of;
-  handle *d_handle;
+  handle d_handle;
   void queueReload(BB2DomainInfo *bbd);
 
   void reload();
