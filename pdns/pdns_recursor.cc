@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2004  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -238,6 +238,8 @@ void makeClientSocket()
   }
   if(!tries)
     throw AhuException("Resolver binding to local socket: "+stringerror());
+
+  Utility::setNonBlocking(d_clientsock);
 }
 
 void makeTCPServerSocket()
