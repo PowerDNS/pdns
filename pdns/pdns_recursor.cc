@@ -346,8 +346,6 @@ int main(int argc, char **argv)
       }
       
       if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question?
-	cout<<"question on the serversock"<<endl;
-
 	d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
 	if(d_len<0) {
 	  cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
@@ -361,7 +359,7 @@ int main(int argc, char **argv)
 	  if(P.d.qr)
 	    cout<<"Ignoring answer on server socket!"<<endl;
 	  else {
-	    cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+	    cout<<nowTime()<<" new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
 	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
 	    if(!((counter++)%100)) {
 	      cout<<"stats: "<<counter<<" questions, "<<cache.size()<<" cache entries, "<<(cacheHits*100.0)/(cacheHits+cacheMisses)<<"% cache hits"<<endl;

@@ -64,6 +64,7 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type)
   d_domain=domain;
   d_type=type;
   d_inaxfr=false;
+  d_rcode=0;
 
   struct sockaddr_in toaddr;
   struct in_addr inp;

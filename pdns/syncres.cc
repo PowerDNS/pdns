@@ -141,15 +141,15 @@ template<class MultiPlexor>string SyncRes<MultiPlexor>::getBestNSNamesFromCache(
 
 template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
+  string prefix, tuple=toLower(qname)+"|CNAME";
+  prefix.assign(3*depth, ' ');
+
   if(depth>10) {
     cout<<prefix<<qname<<": CNAME loop too deep, depth="<<depth<<endl;
     res=RCode::ServFail;
     return true;
   }
-    
-  string prefix, tuple=toLower(qname)+"|CNAME";
-  prefix.assign(3*depth, ' ');
-
+  
   cout<<prefix<<qname<<": Looking for CNAME cache hit of '"<<tuple<<"'"<<endl;
   set<DNSResourceRecord> cset;
   if(getCache(qname,QType(QType::CNAME),&cset) > 0) {
@@ -285,11 +285,12 @@ template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nam
 	continue;
       }
 
+
+      result=d_lwr.result(aabit);
       if(d_lwr.d_rcode==RCode::ServFail) {
 	cout<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
 	continue;
       }
-      result=d_lwr.result(aabit);
       cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<endl;
 
       map<string,set<DNSResourceRecord> > tcache;
