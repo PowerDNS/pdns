@@ -50,7 +50,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib pthreadVCE.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /force
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib pthreadVCE.lib ws2_32.lib /nologo /subsystem:console /machine:I386
+# SUBTRACT LINK32 /force
 
 !ELSEIF  "$(CFG)" == "zone2sql - Win32 Debug"
 
@@ -74,8 +75,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib pthreadVCE.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /force /pdbtype:sept
-# SUBTRACT LINK32 /incremental:no
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib pthreadVCE.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+# SUBTRACT LINK32 /incremental:no /force
 
 !ENDIF 
 
@@ -150,13 +151,23 @@ ProjDir=.
 InputPath=.\backends\bind\bindlexer.l
 
 "bindlexer.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	flex -i -s -o$(ProjDir)/backends/bind/bindlexer.cc $(InputPath)
-
+	erase /Q bindlexer.cc 
+	flex -i -s -o$(ProjDir)/backends/bind/bindlexer.cc $(InputPath) 
+	
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "zone2sql - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
+# Begin Custom Build
+ProjDir=.
+InputPath=.\backends\bind\bindlexer.l
+
+"bindlexer.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	erase /Q bindlexer.cc 
+	flex -i -s -o$(ProjDir)/backends/bind/bindlexer.cc $(InputPath) 
+	
+# End Custom Build
 
 !ENDIF 
 
@@ -171,14 +182,36 @@ SOURCE=.\backends\bind\bindparser.yy
 ProjDir=.
 InputPath=.\backends\bind\bindparser.yy
 
-"bindparser.tab.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	bison -o$(ProjDir)/backends/bind/bindparser.tab.cc -d $(InputPath)
+BuildCmds= \
+	erase /Q bindparser.tab.* \
+	bison -o$(ProjDir)/backends/bind/bindparser.tab.cc -d $(InputPath) \
+	
 
+"bindparser.tab.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"bindparser.tab.hh" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "zone2sql - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
+# Begin Custom Build
+ProjDir=.
+InputPath=.\backends\bind\bindparser.yy
+
+BuildCmds= \
+	erase /Q bindparser.tab.* \
+	bison -o$(ProjDir)/backends/bind/bindparser.tab.cc -d $(InputPath) \
+	
+
+"bindparser.tab.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+
+"bindparser.tab.hh" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+   $(BuildCmds)
+# End Custom Build
 
 !ENDIF 
 

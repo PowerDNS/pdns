@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/31 12:42:28 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/02/01 13:18:22 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -6363,6 +6363,14 @@ GRANT ALL ON records_id_seq TO pdns;
                 <para>
                   Database host to connect to. WARNING: When specified as a hostname a chicken/egg situation might arise where the database
 		  is needed to resolve the IP address of the database. It is best to supply an IP address of the database here.
+                </para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>gmysql-host (only for MySQL!)</term>
+              <listitem>
+                <para>
+		  Filename where the MySQL connection socket resides. Often <filename>/tmp/mysql.sock</filename> or <filename>/var/run/mysqld/mysqld.sock</filename>. 
                 </para>
               </listitem>
             </varlistentry>

@@ -93,7 +93,39 @@ SOURCE=..\modules\odbcbackend\odbcbackend.cc
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\ahuexception.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\dns.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\dnsbackend.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\dnspacket.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\logger.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\misc.hh
+# End Source File
+# Begin Source File
+
 SOURCE=..\modules\odbcbackend\odbcbackend.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\qtype.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\utility.hh
 # End Source File
 # End Group
 # End Target
