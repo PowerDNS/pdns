@@ -71,7 +71,7 @@ private:
   int* d_udpanswers;
   int* d_resquestions;
   pthread_mutex_t d_lock;
-  u_int32_t d_xor;
+  u_int16_t d_xor;
   int getID_locked();
   struct ConntrackEntry
   {
