@@ -148,10 +148,9 @@ int Resolver::notify(int sock, const string &domain, const string &ip, u_int16_t
   return true;
 }
 
-
-int Resolver::resolve(const string &ip, const char *domain, int type)
+void Resolver::sendResolve(const string &ip, const char *domain, int type)
 {
-  makeUDPSocket();
+
   DNSPacket p;
 
   p.setQuestion(Opcode::Query,domain,type);
@@ -175,9 +174,10 @@ int Resolver::resolve(const string &ip, const char *domain, int type)
   if(sendto(d_sock, p.getData(), p.len, 0, (struct sockaddr*)(&toaddr), sizeof(toaddr))<0) {
     throw ResolverException("Unable to ask query of "+st.host+":"+itoa(st.port)+": "+stringerror());
   }
+}
 
-  Utility::socklen_t addrlen=sizeof(toaddr);
-
+int Resolver::receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrlen)
+{
   fd_set rd;
   FD_ZERO(&rd);
   FD_SET(d_sock, &rd);
@@ -189,15 +189,30 @@ int Resolver::resolve(const string &ip, const char *domain, int type)
   int res=select(d_sock+1,&rd,0,0,&timeout);
 
   if(!res)
-    throw ResolverException("Timeout waiting for answer from "+ip);
+    throw ResolverException("Timeout waiting for answer");
   if(res<0)
     throw ResolverException("Error waiting for answer: "+stringerror());
 
 
-  if((d_len=recvfrom(d_sock, reinterpret_cast< char * >( d_buf ), 512,0,(struct sockaddr*)(&toaddr), &addrlen))<0) 
+  if((d_len=recvfrom(d_sock, reinterpret_cast< char * >( d_buf ), 512,0,(struct sockaddr*)(fromaddr), &addrlen))<0) 
     throw ResolverException("recvfrom error waiting for answer: "+stringerror());
 
   return 1;
+}
+  
+int Resolver::resolve(const string &ip, const char *domain, int type)
+{
+  makeUDPSocket();
+  sendResolve(ip,domain,type);
+  try {
+    struct sockaddr_in from;
+    return receiveResolve((sockaddr*)&from, sizeof(from));
+  }
+  catch(ResolverException &re) {
+    throw ResolverException(re.reason+" from "+ip);
+  }
+  return 1;
+  
 }
 
 void Resolver::makeTCPSocket(const string &ip, u_int16_t port)
@@ -411,6 +426,34 @@ Resolver::res_t Resolver::result()
   catch(AhuException &ae) { // translate
     throw ResolverException(ae.reason);
   }
+}
+
+
+void Resolver::sendSoaSerialRequest(const string &ip, const string &domain)
+{
+  sendResolve(ip,domain.c_str(),QType::SOA);
+}
+
+int Resolver::getSoaSerialAnswer(string &master, string &zone, u_int32_t* serial)
+{
+  struct sockaddr_in fromaddr;
+  Utility::socklen_t addrlen=sizeof(fromaddr);
+
+  receiveResolve((struct sockaddr*)&fromaddr, addrlen);
+  res_t res=result();
+  if(res.empty())
+    return 0;
+  
+  vector<string>parts;
+  stringtok(parts,res[0].content);
+  if(parts.size()<3)
+    return 0;
+  
+  *serial=atoi(parts[2].c_str());
+  master=""; // fix this!!
+  zone=res[0].qname;
+
+  return 1;
 }
 
 

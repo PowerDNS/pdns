@@ -3,18 +3,32 @@
 
 #include <map>
 #include <vector>
-// #include <crypt.h>
 #include <exception>
 #include <stdexcept>
 #include <string>
 
-PowerLDAP::PowerLDAP(const string &host, u_int16_t port) : d_host(host), d_port(port), d_timeout(1)
+
+
+PowerLDAP::PowerLDAP( const string &host, u_int16_t port ) : d_host( host ), d_port( port ), d_timeout( 1 )
 {
-  if (( d_ld = ldap_init(d_host.c_str(), d_port )) == NULL ) {
-    throw LDAPException("Error initializing LDAP connection: "+string(strerror(errno)));
-  }
+	int protocol = LDAP_VERSION3;
+
+	if( ( d_ld = ldap_init( d_host.c_str(), d_port ) ) == NULL )
+	{
+		throw LDAPException( "Error initializing LDAP connection: " + string( strerror( errno ) ) );
+	}
+
+	if( ldap_set_option( d_ld, LDAP_OPT_PROTOCOL_VERSION, &protocol ) != LDAP_OPT_SUCCESS )
+	{
+		protocol = LDAP_VERSION2;
+		if( ldap_set_option( d_ld, LDAP_OPT_PROTOCOL_VERSION, &protocol ) != LDAP_OPT_SUCCESS )
+		{
+			throw LDAPException( "Couldn't set protocol version neiher to LDAPv3 nor to LDAPv2" );
+		}
+	}
 }
-  
+
+
 void PowerLDAP::simpleBind(const string &ldapbinddn, const string& ldapsecret)
 {
   int err;

@@ -38,6 +38,7 @@ extern "C" {
   int sem_trywait(sem_t*){return 0;}
   int sem_post(sem_t*){return 0;}
   int sem_getvalue(sem_t*, int*){return 0;}
+
 }
 
 StatBag S;

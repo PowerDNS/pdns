@@ -139,7 +139,7 @@ public:
 
   void drillHole(const string &domain, const string &ip);
   bool justNotified(const string &domain, const string &ip);
-  void addSuckRequest(const string &domain, const string &master);
+  void addSuckRequest(const string &domain, const string &master, bool priority=false);
   void notify(const string &domain, const string &ip);
   void mainloop();
   static void *launchhelper(void *p)
@@ -158,7 +158,8 @@ private:
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;
-  std::queue<SuckRequest> d_suckdomains;
+  std::deque<SuckRequest> d_suckdomains;
+  bool d_havepriosuckrequest;
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
   int d_tickinterval;

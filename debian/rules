@@ -54,8 +54,7 @@ build-static stamp-build-static:
 		--mandir='$${datadir}/man' \
 		--with-modules="mysql gmysql gpgsql pipe pdns xdb" \
 		--with-dynmodules="" \
-		--enable-static-binaries --enable-recursor \
-		--with-pgsql-lib=/opt/postgresql-with-3.2/lib/
+		--enable-static-binaries --enable-recursor 
 	make
 	touch stamp-build-static
 

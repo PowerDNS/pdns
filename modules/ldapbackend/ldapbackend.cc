@@ -44,6 +44,7 @@ LdapBackend::LdapBackend( const string &suffix )
 	}
 	catch( LDAPException &e )
 	{
+		delete( m_pldap );
 		L << Logger::Error << backendname << " Ldap connection failed: " << e.what() << endl;
 		throw( AhuException( "Unable to bind to ldap server" ) );
 	}
@@ -83,26 +84,36 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	{
 		len = qesc.length();
 
-		if( qesc.substr( len - 5, 5 ) == ".arpa" || qesc.substr( len - 4, 4 ) == ".int" )
+		if( qesc.length() > 4 && ( qesc.substr( len - 5, 5 ) == ".arpa" || qesc.substr( len - 4, 4 ) == ".int" ) )
 		{
 			stringtok( parts, qesc, "." );
-			if (parts[parts.size()-2] == "ip6" )  // EXPERIMENTAL
+			if( parts.size() < 4 )
 			{
-				filter = "(aaaaRecord=" + parts[parts.size()-3];
-				for( i = parts.size() - 4; i >= 0; i-- )   // reverse and cut .ip6.arpa or .ip6.int
-				{
-					filter += ":" + parts[i];
-				}
-				filter =  + ")";
+				L << Logger::Warning << backendname << " Invalid query string: " << qesc << endl;
+				filter = "(associatedDomain=" + qname + ")";
+				attributes = attrany;
 			}
 			else
 			{
-				filter = "(aRecord=" + parts[3] + "." + parts[2] + "." + parts[1] + "." + parts[0] + ")";
+				if( parts[parts.size()-2] == "ip6" )  // EXPERIMENTAL
+				{
+					filter = "(aaaaRecord=" + parts[parts.size()-3];
+					for( i = parts.size() - 4; i >= 0; i-- )   // reverse and cut .ip6.arpa or .ip6.int
+					{
+						filter += ":" + parts[i];
+					}
+					filter =  + ")";
+				}
+				else
+				{
+					filter = "(aRecord=" + parts[3] + "." + parts[2] + "." + parts[1] + "." + parts[0] + ")";
+				}
+
+				attronly[0] = "associatedDomain";
+				attributes = attronly;
 			}
 
 			filter = m_pldap->escape( filter );
-			attronly[0] = "associatedDomain";
-			attributes = attronly;
 		}
 		else
 		{
@@ -134,7 +145,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	}
 	catch( LDAPException &e )
 	{
-		L << Logger::Warning << backendname << " Unable to initiate search: " << e.what() << endl;
+		L << Logger::Warning << backendname << " Unable to search LDAP directory: " << e.what() << endl;
 		return;
 	}
 
@@ -174,7 +185,12 @@ Redo:
 
 				if( qt.getCode() == QType::MX )   // MX Record, e.g. 10 smtp.example.com
 				{
+					parts.clear();
 					stringtok( parts, content, " " );
+					if( parts.size() != 2) {
+						L << Logger::Warning << backendname << " Invalid MX record: " << content << endl;
+						goto Redo;
+					}
 					rr.priority = (u_int16_t) strtol( parts[0].c_str(), NULL, 10 );
 					content = parts[1];
 				}

@@ -1,1 +1,3 @@
--lpq++ -lpq -lssl -lcrypt -lcrypto
+-lpq -lpq++ -lpq -lssl -lcrypto -lkrb5 -lcrypt -lresolv -lnsl  
+
+

@@ -86,7 +86,7 @@ void Utility::dropPrivs( int uid, int gid )
       exit(1);
     }
     else
-      theL()<<Logger::Error<<"Set effective group id to "<<uid<<endl;
+      theL()<<Logger::Error<<"Set effective group id to "<<gid<<endl;
 
   }
 

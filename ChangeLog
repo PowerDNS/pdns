@@ -1,3 +1,10 @@
+Changes since 2.9.8:
+	- fixed a crash when adding additional records
+	- make Notifications jump in front of the queue, allowing for
+		speedier updates (suggested by Mark Jeftovic of EasyDNS)
+
+	- gid/uid logging confusion (Dean Mills)
+
 Changes since 2.9.7:
 	- NS queries for zones we are not authoritative about now get their NS
 	  records in the authority section

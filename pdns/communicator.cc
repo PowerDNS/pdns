@@ -16,6 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+
 #include "utility.hh"
 #include <errno.h>
 #include "communicator.hh"
@@ -31,7 +32,7 @@
 #include "session.hh"
 
 
-void CommunicatorClass::addSuckRequest(const string &domain, const string &master)
+void CommunicatorClass::addSuckRequest(const string &domain, const string &master, bool priority)
 {
   Lock l(&d_lock);
   
@@ -39,7 +40,12 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   sr.domain = domain;
   sr.master = master;
 
-  d_suckdomains.push(sr);
+  if(priority) {
+    d_suckdomains.push_front(sr);
+    d_havepriosuckrequest=true;
+  }
+  else 
+    d_suckdomains.push_back(sr);
   
   d_suck_sem.post();
   d_any_sem.post();
@@ -233,14 +239,23 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     L<<Logger::Warning<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
       " checking"<<endl;
-  
+
+  Resolver resolver;
+  resolver.makeUDPSocket();
   for(vector<DomainInfo>::const_iterator i=sdomains.begin();i!=sdomains.end();++i) {
     d_slaveschanged=true;
     u_int32_t ourserial=i->serial,theirserial=0;
 
     try {
-      Resolver resolver;
-      int res=resolver.getSoaSerial(i->master,i->zone, &theirserial);
+      if(d_havepriosuckrequest) {
+	d_havepriosuckrequest=false;
+	break;
+      }
+
+      resolver.sendSoaSerialRequest(i->master,i->zone);
+      string master, zone;
+      int res=resolver.getSoaSerialAnswer(master,zone,&theirserial);
+
       if(res<=0) {
 	L<<Logger::Error<<"Unable to determine SOA serial for "<<i->zone<<" at "<<i->master<<endl;
 	continue;
@@ -426,7 +441,7 @@ void CommunicatorClass::mainloop(void)
 	    {
 	      Lock l(&d_lock);
 	      sr=d_suckdomains.front();
-	      d_suckdomains.pop();
+	      d_suckdomains.pop_front();
 	    }
 	    suck(sr.domain,sr.master);
 	  }

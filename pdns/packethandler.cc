@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.15 2003/05/24 16:02:47 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.16 2003/06/21 09:59:08 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -170,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.15 2003/05/24 16:02:47 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.16 2003/06/21 09:59:08 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -495,6 +495,9 @@ int PacketHandler::doNotify(DNSPacket *p)
 
   u_int32_t theirserial=0;
 
+  /* to quote Rusty Russell - this code is so bad that you can actually hear it suck */
+  /* this is an instant DoS, just spoof notifications from the address of the master and we block  */
+
   Resolver resolver;
   int res=resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);
   if(res<=0) {
@@ -512,7 +515,7 @@ int PacketHandler::doNotify(DNSPacket *p)
     L<<Logger::Error<<"Received valid NOTIFY for "<<p->qdomain<<" (id="<<di.id<<") from master "<<p->getRemote()<<": "<<
       theirserial<<" > "<<di.serial<<endl;
 
-    Communicator.addSuckRequest(p->qdomain, p->getRemote());
+    Communicator.addSuckRequest(p->qdomain, p->getRemote(),true); // priority
   }
   return -1; 
 }
