@@ -313,10 +313,14 @@ void cleanSlashes(string &str)
   str=out;
 }
 
+
 const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t socklen) 
 {    
-  if(socklen==sizeof(struct sockaddr_in))
-     return inet_ntoa(((struct sockaddr_in *)remote)->sin_addr);
+  if(socklen==sizeof(struct sockaddr_in)) {
+    struct sockaddr_in sip;
+    memcpy(&sip,(struct sockaddr_in*)remote,sizeof(sip));
+    return inet_ntoa(sip.sin_addr);
+  }
 #ifdef HAVE_IPV6
   else {
     char tmp[128];

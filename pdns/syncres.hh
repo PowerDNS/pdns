@@ -14,7 +14,7 @@ void replaceCache(const string &qname, const QType &qt, const set<DNSResourceRec
 int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res=0);
 
 
-template<class MultiPlexor=LWRes> class SyncRes
+class SyncRes
 {
 public:
   SyncRes() : d_outqueries(0), d_cacheonly(false), d_nocache(false){}
@@ -60,7 +60,7 @@ private:
   static bool s_log;
   bool d_cacheonly;
   bool d_nocache;
-  MultiPlexor d_lwr;
+  LWRes d_lwr;
   static map<string,string> s_negcache;
   struct GetBestNSAnswer
   {
