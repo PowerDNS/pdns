@@ -80,7 +80,7 @@ public:
 
 
 private:
-  int doNotify(DNSPacket *);
+  int processNotify(DNSPacket *);
   int PacketHandler::trySuperMaster(DNSPacket *p);
   int makeCanonic(DNSPacket *p, DNSPacket *r, string &target);
   int doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target);
