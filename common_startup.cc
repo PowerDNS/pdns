@@ -65,7 +65,7 @@ void declareArguments()
   arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   arg().set("lazy-recursion","Only recurse if question cannot be answered locally")="yes";
-  arg().set("allow-recursion","List of netmasks that are allowed to recurse")=""; 
+  arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
   
   arg().set("disable-tcp","Do not listen to TCP queries")="no";
   arg().set("disable-axfr","Do not allow zone transfers")="no";
@@ -75,7 +75,7 @@ void declareArguments()
   arg().set("load-modules","Load this module - supply absolute or relative path")="";
   arg().set("launch","Which backends to launch and order to query them in")="";
   arg().setSwitch("disable-axfr","Disable zonetransfers but do allow TCP queries")="no";
-  arg().set("allow-axfr-ips","Allow zonetransfers only from these IP addresses")="";
+  arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="0.0.0.0/0";
   arg().set("slave-cycle-interval","Reschedule failed SOA serial checks once every .. seconds")="60";
   
   arg().setSwitch("slave","Act as a slave")="no";
@@ -257,7 +257,7 @@ void mainthread()
   pthread_t qtid;
   StatWebServer sws;
 
-  if(arg()["webserver"]!="no") 
+  if(arg().mustDo("webserver"))
     sws.go();
   
   if(arg().mustDo("slave") || arg().mustDo("master"))

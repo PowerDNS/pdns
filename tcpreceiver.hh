@@ -20,6 +20,7 @@
 #define PDNS_TCPRECEIVER_HH
 
 #include "dns.hh"
+#include "iputils.hh"
 #include "dnsbackend.hh"
 #include "packethandler.hh"
 #include <vector>
@@ -50,6 +51,7 @@ private:
   static int readLength(int fd, struct sockaddr_in *remote);
   static void getQuestion(int fd, char *mesg, int pktlen, const struct sockaddr_in &remote);
   static int doAXFR(const string &target, DNSPacket *q, int outsock);
+  static bool canDoAXFR(DNSPacket *q);
   static void *doConnection(void *data);
   static void *launcher(void *data);
   void thread(void);
@@ -57,6 +59,7 @@ private:
   static PacketHandler *s_P;
   pthread_t d_tid;
   static Semaphore *d_connectionroom_sem;
+  static NetmaskGroup d_ng;
 
   vector<int>d_sockets;
   int d_highfd;

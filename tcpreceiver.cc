@@ -53,6 +53,7 @@ pthread_mutex_t TCPNameserver::s_plock = PTHREAD_MUTEX_INITIALIZER;
 Semaphore *TCPNameserver::d_connectionroom_sem;
 PacketHandler *TCPNameserver::s_P; 
 int TCPNameserver::s_timeout;
+NetmaskGroup TCPNameserver::d_ng;
 
 
 int TCPNameserver::sendDelPacket(DNSPacket *p, int outsock)
@@ -244,21 +245,13 @@ void *TCPNameserver::doConnection(void *data)
   return 0;
 }
 
-static bool canDoAXFR(DNSPacket *q)
+bool TCPNameserver::canDoAXFR(DNSPacket *q)
 {
   if(arg().mustDo("disable-axfr"))
     return false;
 
-  if(arg()["allow-axfr-ips"].empty())
+  if( arg()["allow-axfr-ips"].empty() || d_ng.match( (struct sockaddr_in *) &q->remote ) )
     return true;
-
-
-  vector<string>parts;
-  stringtok(parts,arg()["allow-axfr-ips"],", "); // is this IP on the guestlist?
-  for(vector<string>::const_iterator i=parts.begin();i!=parts.end();++i) {
-    if(matchNetmask(q->getRemote().c_str(),i->c_str())==1)
-      return true;
-  }
 
   extern CommunicatorClass Communicator;
 
@@ -407,6 +400,12 @@ TCPNameserver::TCPNameserver()
     throw AhuException("No local address specified");
 
   d_highfd=0;
+
+  vector<string> parts;
+  stringtok( parts, arg()["allow-axfr-ips"], ", \t" ); // is this IP on the guestlist?
+  for( vector<string>::const_iterator i = parts.begin(); i != parts.end(); ++i ) {
+    d_ng.addMask( *i );
+  }
 
 #ifndef WIN32
   signal(SIGPIPE,SIG_IGN);
