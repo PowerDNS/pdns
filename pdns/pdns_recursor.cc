@@ -39,11 +39,16 @@
 #include <fstream>
 #include "recursor_cache.hh"
 
+#ifdef FreeBSD           // see cvstrac ticket #26
+#include <pthread.h>
+#include <semaphore.h>
+#endif
+
 MemRecursorCache RC;
 
 string s_programname="pdns_recursor";
 
-#ifndef WIN32
+#if !WIN32 && !FreeBSD
 extern "C" {
   int sem_init(sem_t*, int, unsigned int){return 0;}
   int sem_wait(sem_t*){return 0;}
