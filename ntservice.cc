@@ -132,7 +132,8 @@ bool NTService::registerService( const std::string & description, bool registerL
     char path[ MAX_PATH ];
     GetCurrentDirectory( sizeof( path ), path );
 
-    str << path << "\\" << getServiceName() << "msg.dll";
+    // FIXME: This really should be: str << path << "\\" << getServiceName() << "msg.dll";
+    str << path << "\\pdnsmsg.dll";
     if ( RegSetValueEx( pkey, "EventMessageFile", 0, REG_SZ, reinterpret_cast< const unsigned char * >( str.str().c_str()), str.str().length()) != ERROR_SUCCESS )
     {
       RegCloseKey( pkey );

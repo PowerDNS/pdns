@@ -109,7 +109,7 @@ ProjDir=.
 InputPath=".\release-scripts\pdns.nsi"
 
 "$(OutDir)\pdns-install.exe" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	makensis /DRelease /V2 /LICENSE /NOCONFIG $(ProjDir)\release-scripts\pdns.nsi
+	makensis /DRelease /V1 /LICENSE /NOCONFIG $(ProjDir)\release-scripts\pdns.nsi
 
 # End Custom Build
 
@@ -121,8 +121,8 @@ OutDir=.\Debug/
 ProjDir=.
 InputPath=".\release-scripts\pdns.nsi"
 
-"$(OutDir)\pdns-install.exe" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	makensis /DDebug /V2 /LICENSE /NOCONFIG $(ProjDir)\release-scripts\pdns.nsi
+"$(OutDir)\installer.exe" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	makensis /DDebug /V1 /LICENSE /NOCONFIG $(ProjDir)\release-scripts\pdns.nsi
 
 # End Custom Build
 

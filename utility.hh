@@ -58,10 +58,13 @@ typedef unsigned int u_int32_t;
 // For scope fix.
 # define for if ( false ) {} else for
 
+#ifndef ETIMEDOUT
 # define ETIMEDOUT    WSAETIMEDOUT
+#endif // ETIMEDOUT
+
 # define EINPROGRESS  WSAEWOULDBLOCK
 
-# define VERSION "2.9.5-WIN32"
+# define VERSION "2.9.13-WIN32"
 
 # define snprintf _snprintf
 

@@ -53,7 +53,7 @@ void PDNSService::ctrlHandler( DWORD controlCode )
 // Returns the service name.
 std::string PDNSService::getServiceName( void )
 {
-  return "PDNS";
+  return "PowerDNS";
 }
 
 
@@ -62,7 +62,7 @@ int PDNSService::main( int argc, char *argv[] )
 {
   try
   {
-    L<<Logger::Info<<Logger::NTLog<<"PowerDNS "<<VERSION<<" ("<<__DATE__<<", "<<__TIME__<<") starting up"<<endl;
+    L << Logger::Info << Logger::NTLog << "PowerDNS " << VERSION << " (C) 2001-2003 PowerDNS.COM BV (" << __DATE__ ", " __TIME__<< ") starting up" << endl;
     mainthread();
   }
   catch(AhuException &AE) {
