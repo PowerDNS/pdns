@@ -100,6 +100,8 @@ private:
   bool d_doCNAME;
   bool d_logDNSDetails;
   bool d_doIPv6AdditionalProcessing;
+  int* d_corrupt;
+  int* d_servfail;
 
   UeberBackend B; // every thread an own instance
 };

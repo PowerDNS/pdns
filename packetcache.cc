@@ -41,6 +41,8 @@ PacketCache::PacketCache()
   statnumhit=S.getPointer("packetcache-hit");
   statnummiss=S.getPointer("packetcache-miss");
   statnumentries=S.getPointer("packetcache-size");
+  d_deferred_lookups=S.getPointer("deferred-cache-lookup");
+  d_deferred_inserts=S.getPointer("deferred-cache-inserts");
 }
 
 
@@ -114,7 +116,7 @@ void PacketCache::insert(const string &key, const string &packet, unsigned int t
   if(l.gotIt())  
     d_map[key]=val;
   else 
-    S.inc("deferred-cache-inserts"); 
+    (*d_deferred_inserts)++;
 }
 
 /** purges entries from the packetcache. If prefix ends on a $, it is treated as a suffix */
@@ -170,7 +172,7 @@ bool PacketCache::getKey(const string &key, string &content)
 {
   TryReadLock l(&d_mut); // take a readlock here
   if(!l.gotIt()) {
-    S.inc("deferred-cache-lookup");
+    (*d_deferred_lookups)++;
     return false;
   }
 

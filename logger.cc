@@ -41,10 +41,11 @@ void Logger::log(const string &msg, Urgency u)
     strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
     clog<<buffer;
     clog <<msg <<endl;
+
+    extern StatBag S;
+    S.ringAccount("logmessages",msg);
+    syslog(u,"%s",msg.c_str());
   }
-  extern StatBag S;
-  S.ringAccount("logmessages",msg);
-  syslog(u,"%s",msg.c_str());
 }
 
 void Logger::toConsole(Urgency u)

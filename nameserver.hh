@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.hh,v 1.3 2003/01/13 15:39:17 ahu Exp $
+// $Id: nameserver.hh,v 1.4 2003/12/22 11:53:41 ahu Exp $
 #ifndef NAMESERVER_HH
 #define NAMESERVER_HH
 
@@ -83,6 +83,7 @@ private:
   void bindIPv6();
   fd_set d_rfds;
   int d_highfd;
+  int* d_num_corrupt;
 };
 
 inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
@@ -139,7 +140,7 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   packet->setSocket(sock);
   packet->setRemote((struct sockaddr *)remote, addrlen);
   if(packet->parse(mesg, len)<0) {
-    S.inc("corrupt-packets");
+    (*d_num_corrupt)++;
     S.ringAccount("remotes-corrupt", packet->getRemote());
 
     if(!prefilled)
