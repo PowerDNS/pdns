@@ -1,22 +1,5 @@
+This file is no longer maintained, its contents can now be found on:
 
-	betere compressie (. NS records passen er niet in!)
+http://wiki.powerdns.com/projects/trac/wiki/TodoList
 
-	zone includes absolute/relative paths
-
-	learn bindbackend to reload the configuration
-		'rediscover' method?
-		
-done	pdns_control notify interface
-		pdns_control mass-notify
-			notify fucking everybody of fucking everything
-
-		pdns_control rediscover
-
-	make guardian perform pings over the controlsocket, 'heartbeat'
-
-	
-	Solaris build
- 	Resurrect Windows build
-
-	autotuning number of backend threads
 
