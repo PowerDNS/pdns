@@ -43,7 +43,7 @@ distdir: $(DISTFILES)
 	done
 	
 deps:
-	g++ -M -g -c $(CXXFLAGS) $(CPPFLAGS) *.cc > deps
+	g++ -M -g -c $(CXXFLAGS) $(CPPFLAGS) gmysqlbackend.cc smysql.cc  > deps
 
 -include deps
 
