@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/09/13 19:10:28 $</PubDate>
+    <PubDate>v2.1 $Date: 2005/01/11 19:24:27 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,40 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-17"><title>Version 2.9.17</title>
+	<para>
+	  See <ulink url="http://ds9a.nl/cgi-bin/cvstrac/pdns/timeline">the new timeline</ulink> for progress reports.
+	</para>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		GMySQL now works on Solaris
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS could be confused by questions with a %-sign in them
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Duplicate MX records are now no longer considered duplicate if their priorities differ.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Reported version can be changed, or removed
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		An authentication bug in the webserver was possibly fixed, please report if you were suffering from this.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-16"><title>Version 2.9.16</title>
 	<para>
 	  The 'it must still be Friday somewhere' release. Massive number of fixes, portability improvements and
