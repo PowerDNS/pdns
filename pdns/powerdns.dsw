@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "installer"=.\installer.dsp - Package Owner=<4>
+Project: "installer"=".\installer.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,16 +15,19 @@ Package=<4>
     Project_Dep_Name pdns
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name pdnsmsg
+    Project_Dep_Name zone2sql
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name zone2sql
+    Project_Dep_Name pdns_recursor
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name pdns_control
     End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "odbcbackend"=.\odbcbackend.dsp - Package Owner=<4>
+Project: "odbcbackend"=".\odbcbackend.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -36,7 +39,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "pdns"=.\pdns.dsp - Package Owner=<4>
+Project: "pdns"=".\pdns.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -54,7 +57,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "pdnscontrol"=.\pdnscontrol.dsp - Package Owner=<4>
+Project: "pdns_control"=".\pdns_control.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -66,7 +69,22 @@ Package=<4>
 
 ###############################################################################
 
-Project: "pdnsmsg"=.\pdnsmsg.dsp - Package Owner=<4>
+Project: "pdns_recursor"=".\pdns_recursor.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name pdnsmsg
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "pdnsmsg"=".\pdnsmsg.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -78,7 +96,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "zone2sql"=.\zone2sql.dsp - Package Owner=<4>
+Project: "zone2sql"=".\zone2sql.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -86,6 +104,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name pdnsmsg
+    End Project Dependency
 }}}
 
 ###############################################################################

@@ -16,12 +16,15 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
- 
+
+#include "utility.hh" 
 #include <iostream>
 #include <errno.h>
 #include <map>
 #include <set>
+#ifndef WIN32
 #include <netdb.h>
+#endif // WIN32
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -33,6 +36,7 @@
 #include "arguments.hh"
 #include "syncres.hh"
 
+#ifndef WIN32
 extern "C" {
   int sem_init(sem_t*, int, unsigned int){return 0;}
   int sem_wait(sem_t*){return 0;}
@@ -40,6 +44,7 @@ extern "C" {
   int sem_post(sem_t*){return 0;}
   int sem_getvalue(sem_t*, int*){return 0;}
 }
+#endif // WIN32
 
 StatBag S;
 ArgvMap &arg()
@@ -80,7 +85,7 @@ int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int a
   return sendto(d_clientsock, data, len, flags, toaddr, addrlen);
 }
 
-int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t *addrlen, int *d_len, int id)
+int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id)
 {
   PacketID pident;
   pident.id=id;
@@ -120,10 +125,6 @@ void replaceCache(const string &qname, const QType& qt,  const set<DNSResourceRe
 
 void init(void)
 {
-  PacketID a, b;
-  a.remote=b.remote;
-  a.id=b.id;
-
   // prime root cache
   static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
 		     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
@@ -212,7 +213,7 @@ void makeClientSocket()
   
   int tries=10;
   while(--tries) {
-    u_int16_t port=10000+random()%10000;
+    u_int16_t port=10000+Utility::random()%10000;
     sin.sin_port = htons(port); 
     
     if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
@@ -253,6 +254,8 @@ void makeServerSocket()
     throw AhuException("Resolver binding to server socket: "+stringerror());
   L<<Logger::Error<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
 }
+
+#ifndef WIN32
 void daemonize(void)
 {
   if(fork())
@@ -266,6 +269,8 @@ void daemonize(void)
   close(2);
 
 }
+#endif
+
 int counter, qcounter;
 bool statsWanted;
 
@@ -308,8 +313,13 @@ void houseKeeping(void *)
 
 int main(int argc, char **argv) 
 {
+#ifdef WIN32
+    WSADATA wsaData;
+    WSAStartup( MAKEWORD( 2, 0 ), &wsaData );
+#endif // WIN32
+
   try {
-    srandom(time(0));
+    Utility::srandom(time(0));
     arg().set("soa-minimum-ttl","Don't change")="0";
     arg().set("soa-serial-offset","Don't change")="0";
     arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
@@ -331,7 +341,6 @@ int main(int argc, char **argv)
 
     arg().parse(argc,argv);
 
-
     if(arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
       cerr<<arg().helpstring(arg()["help"])<<endl;
@@ -352,12 +361,13 @@ int main(int argc, char **argv)
     PacketID pident;
     init();    
     L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
-
+#ifndef WIN32
     if(arg().mustDo("daemon")) {
       L.toConsole(Logger::Critical);
       daemonize();
     }
     signal(SIGUSR1,usr1Handler);
+#endif
 
     for(;;) {
       while(MT.schedule()); // housekeeping, let threads do their thing
@@ -367,7 +377,7 @@ int main(int argc, char **argv)
       if(statsWanted)
 	doStats();
 
-      socklen_t addrlen=sizeof(fromaddr);
+      Utility::socklen_t addrlen=sizeof(fromaddr);
       int d_len;
       DNSPacket P;
       
@@ -386,7 +396,6 @@ int main(int argc, char **argv)
 	else
 	  continue;
 
-      
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a question response?
 	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
 	if(d_len<0) 
@@ -439,4 +448,10 @@ int main(int argc, char **argv)
   catch(...) {
     L<<Logger::Error<<"any other exception in main: "<<endl;
   }
+  
+#ifdef WIN32
+  WSACleanup();
+#endif // WIN32
+
+  return 0;
 }

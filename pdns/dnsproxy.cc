@@ -168,20 +168,23 @@ void DNSProxy::mainloop(void)
       }
       (*d_resanswers)++;
       (*d_udpanswers)++;
-      DNSPacket::dnsheader *d=reinterpret_cast<DNSPacket::dnsheader *>(buffer);
+      DNSPacket::dnsheader d;
+      memcpy(&d,buffer,sizeof(d));
       {
 	Lock l(&d_lock);
-	map_t::iterator i=d_conntrack.find(d->id^d_xor);
+	map_t::iterator i=d_conntrack.find(d.id^d_xor);
 	if(i==d_conntrack.end()) {
-	  L<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d->id^d_xor)<<
+	  L<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d.id^d_xor)<<
 	    ". Contrack table size="<<d_conntrack.size()<<endl;
 	  continue;
 	}
 	else if(i->second.created==0) {
-	  L<<Logger::Error<<"Received packet from recursor backend with id "<<(d->id^d_xor)<<" which is a duplicate"<<endl;
+	  L<<Logger::Error<<"Received packet from recursor backend with id "<<(d.id^d_xor)<<" which is a duplicate"<<endl;
 	  continue;
 	}
-	d->id=i->second.id;
+	d.id=i->second.id;
+	memcpy(buffer,&d,sizeof(d));  // commit spoofed id
+
 	sendto(i->second.outsock,buffer,len,0,(struct sockaddr*)&i->second.remote,i->second.addrlen);
 
 	DNSPacket p,q;

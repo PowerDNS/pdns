@@ -49,6 +49,7 @@ typedef unsigned int u_int32_t;
 # pragma warning ( disable: 4503 )
 # pragma warning ( disable: 4101 )
 
+# define _WIN32_WINNT 0x0400
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>
 # include <signal.h>
@@ -60,9 +61,7 @@ typedef unsigned int u_int32_t;
 # define ETIMEDOUT    WSAETIMEDOUT
 # define EINPROGRESS  WSAEWOULDBLOCK
 
-# define AF_INET6 -1
-
-# define VERSION "2.9.2-WIN32"
+# define VERSION "2.9.5-WIN32"
 
 # define snprintf _snprintf
 

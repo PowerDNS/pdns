@@ -1,8 +1,5 @@
 %{
 
-#define DIRTY_HACK WORD
-#undef WORD
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -17,21 +14,24 @@ using namespace std;
 extern int yydebug;
 #include "bindparser.hh"
 
-#define WORD DIRTY_HACK 
-
 #define YYSTYPE char *
 
+
+#ifndef WIN32
 extern "C" 
 {
+#endif // WIN32
 	int yyparse(void);
 	int yylex(void);
+	void yyrestart(FILE *);
 	int yywrap()
 	{
 		return 1;
 	}
-	void yyrestart(FILE *);
-
+#ifndef WIN32
 }
+#endif // WIN32
+
 
 extern int yydebug;
 const char *bind_directory;
@@ -100,7 +100,7 @@ void BindParser::commit(BindDomainInfo DI)
 
 %}
 
-%token WORD QUOTEDWORD OBRACE EBRACE SEMICOLON ZONETOK FILETOK OPTIONSTOK
+%token AWORD QUOTEDWORD OBRACE EBRACE SEMICOLON ZONETOK FILETOK OPTIONSTOK
 %token DIRECTORYTOK ACLTOK LOGGINGTOK CLASSTOK TYPETOK MASTERTOK
 
 %%
@@ -130,7 +130,7 @@ zone_command:
 		s_di.clear();
 	}
 	|	
-	ZONETOK quotedname WORD zone_block
+	ZONETOK quotedname AWORD zone_block
 	{
 	        s_di.name=$2;
 		parent->commit(s_di);
@@ -158,7 +158,7 @@ acls:
 	;
 
 acl:
-	WORD
+	AWORD
 	;
 
 options_commands:
@@ -181,7 +181,7 @@ terms: /* empty */
 	terms term
 	;
 
-term: WORD | block | quotedname
+term: AWORD | block | quotedname
 	;
 block: 
 	OBRACE commands EBRACE 
@@ -207,7 +207,7 @@ masters: /* empty */
 	masters master SEMICOLON 
 	;
 
-master: WORD
+master: AWORD
 	{
 		s_di.master=$1;
 	}
@@ -222,7 +222,7 @@ zone_file_command:
 	;
 
 zone_type_command:
-TYPETOK WORD
+TYPETOK AWORD
 	{
 		s_di.type=$2;
 	}
@@ -236,5 +236,5 @@ quotedname:
 	}
 	;
 
-filename: WORD
+filename: AWORD
 	;

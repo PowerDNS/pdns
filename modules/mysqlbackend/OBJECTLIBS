@@ -1,1 +1,1 @@
--lmysqlclient
+-lmysqlclient -lz

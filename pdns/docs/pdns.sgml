@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/23 15:34:53 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/31 12:42:28 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -5739,7 +5739,110 @@ while(&lt;&gt;)
 	</table>
       </para>
       <para>
-	This is the driver that corresponds to the set of XML-RPC tools available from PowerDNS. For database schemas, see there.
+	This is the driver that corresponds to the set of XML-RPC tools available from PowerDNS. 
+      </para>
+      <para>
+	The schema:
+	<screen>
+CREATE TABLE MailForwards (
+  Id int(10) unsigned NOT NULL auto_increment,
+  ZoneId int(10) unsigned NOT NULL default '0',
+  Name varchar(255) NOT NULL default '',
+  Destination varchar(255) NOT NULL default '',
+  Flags int(11) NOT NULL default '0',
+  ChangeDate timestamp(14) NOT NULL,
+  CreateDate timestamp(14) NOT NULL,
+  Active tinyint(4) NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  KEY NameIndex (Name),
+  KEY ZoneIdIndex (ZoneId)
+);
+
+--
+-- Table structure for table 'Mailboxes'
+--
+
+CREATE TABLE Mailboxes (
+  Id int(10) unsigned NOT NULL auto_increment,
+  ZoneId int(10) unsigned NOT NULL default '0',
+  Name varchar(255) NOT NULL default '',
+  Password varchar(255) NOT NULL default '',
+  Quota int(10) unsigned NOT NULL default '0',
+  Flags int(11) NOT NULL default '0',
+  ChangeDate timestamp(14) NOT NULL,
+  CreateDate timestamp(14) NOT NULL,
+  Active tinyint(4) NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  UNIQUE KEY Name (Name),
+  KEY ZoneIdIndex (ZoneId),
+  KEY NameIndex (Name)
+);
+
+--
+-- Table structure for table 'Records'
+--
+
+CREATE TABLE Records (
+  Id int(10) unsigned NOT NULL auto_increment,
+  ZoneId int(10) unsigned NOT NULL default '0',
+  Name varchar(255) NOT NULL default '',
+  Type varchar(8) NOT NULL default '',
+  Content varchar(255) NOT NULL default '',
+  TimeToLive int(11) NOT NULL default '60',
+  Priority int(11) NOT NULL default '0',
+  Flags int(11) NOT NULL default '0',
+  ChangeDate timestamp(14) NOT NULL,
+  CreateDate timestamp(14) NOT NULL,
+  Active tinyint(4) NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  KEY NameIndex (Name)
+);
+
+--
+-- Table structure for table 'WebForwards'
+--
+
+CREATE TABLE WebForwards (
+  Id int(10) unsigned NOT NULL auto_increment,
+  ZoneId int(10) unsigned NOT NULL default '0',
+  Name varchar(255) NOT NULL default '',
+  Destination varchar(255) NOT NULL default '',
+  Type varchar(7) NOT NULL default 'NORMAL',
+  Title varchar(255) NOT NULL default '',
+  Description varchar(255) NOT NULL default '',
+  Keywords varchar(255) NOT NULL default '',
+  FavIcon varchar(255) NOT NULL default '',
+  Flags int(11) NOT NULL default '0',
+  ChangeDate timestamp(14) NOT NULL,
+  CreateDate timestamp(14) NOT NULL,
+  Active tinyint(4) NOT NULL default '0',
+  PRIMARY KEY  (Id),
+  KEY NameIndex (Name),
+  KEY ZoneIdIndex (ZoneId)
+);
+
+--
+-- Table structure for table 'Zones'
+--
+
+CREATE TABLE Zones (
+  Id int(10) unsigned NOT NULL auto_increment,
+  Name varchar(255) NOT NULL default '',
+  Hostmaster varchar(255) NOT NULL default '',
+  Serial int(10) unsigned NOT NULL default '0',
+  AutoSerial tinyint(4) NOT NULL default '0',
+  Flags int(11) NOT NULL default '0',
+  ChangeDate timestamp(14) NOT NULL,
+  CreateDate timestamp(14) NOT NULL,
+  Active tinyint(4) NOT NULL default '0',
+  TimeToLive int(11) NOT NULL default '0',
+  OwnerId varchar(255) NOT NULL default '',
+  PRIMARY KEY  (Id),
+  UNIQUE KEY Name (Name),
+  KEY NameIndex (Name)
+);
+
+	</screen>
       </para>
       <para>
 	It takes a number of parameters:
@@ -5892,7 +5995,7 @@ GRANT ALL ON records TO pdns;
       </sect2>
       <sect2><title>PostgresSQL specifics</title>
       <para>
-	The default setup conforms to the following schema:
+	The default setup conforms to the following schema, which you should add to a PostgreSQL database.
 	<programlisting>
 create table domains (
  id		 SERIAL PRIMARY KEY,
@@ -5942,7 +6045,11 @@ GRANT ALL ON records_id_seq TO pdns;
       </para>
       <para>
 	Zone2sql with the --gpgsql flag also assumes this layout is in place.
-      </para>
+	</para>
+	<para>
+	  With PostgreSQL, you may have to run 'createdb powerdns' first and then connect to that database with 'psql powerdns', and 
+	  feed it the schema above.
+	</para>
       </sect2>
       <sect2><title>Basic functionality</title>
 	<para>

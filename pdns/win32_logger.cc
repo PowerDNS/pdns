@@ -66,6 +66,12 @@ void Logger::log(const string &msg, Urgency u)
     }
   }
 
+  if ( !PDNSService::instance())
+  {
+    clog << msg << endl;
+    return;
+  }
+
   if ( !opened )
     return;
 
