@@ -31,6 +31,18 @@ Small things, great for coders new to PowerDNS:
 	- get the xdb backend building again
 	- make sure only Linux gets -D_GNU_SOURCE
 		doesn't hurt other architectures, but its ugly
+	- investigate if the following is better for the spgsql driver:
+int SPgSQL::doQuery(const string &query)
+{
+  ExecStatusType stat;
+  stat=d_db->Exec(query.c_str());
+  if(stat!=PGRES_COMMAND_OK && stat!=PGRES_TUPLES_OK)
+    throw sPerrorException("PostgreSQL failed to execute command");
+
+  d_count=0;
+  return 0;
+}
+
 
 
 Mostly polish on the build process:
