@@ -1,3 +1,6 @@
+pdns_record should have logging family setting
+
+bind2backend should eb documented somewhat
 
 THIS IS NOT UP TO DATE AND CONTAINS RANDOM RAMBLING
 ---------------------------------------------------
