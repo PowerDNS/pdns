@@ -1,3 +1,5 @@
+To compile from cvs, do:
+
 $ export CVSROOT=:pserver:anon@outpost.ds9a.nl:/var/cvsroot
 $ cvs login
 CVS password: [enter 'cvs' (without 's)]
@@ -5,7 +7,16 @@ $ cvs co pdns
 cvs server: Updating pdns
 ...
 
+And then:
+
+$ ./bootstrap
+
+you may need to do that twice. You also need libtool-1.4, 1.3 won't work.
+
 Send any patches you may have to the mailinglist:
                         pdns-dev@mailman.powerdns.com
+Preferred form is:
+
+$ cvs -z3 diff -uBb
 
 Thanks!

@@ -59,5 +59,7 @@ distclean: clean
 clean:
 	rm -f *.o *.so *~ *.d deps
 
-install: libgmysqlbackend.so
-	mv $< $(PDNS_LIBDIR)
+install:
+
+#install: libgmysqlbackend.so
+#	mv $< $(PDNS_LIBDIR)
