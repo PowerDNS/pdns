@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend2.cc,v 1.1 2003/03/09 15:39:18 ahu Exp $ 
+// $Id: bindbackend2.cc,v 1.2 2003/03/20 12:53:44 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -131,11 +131,11 @@ bool Bind2Backend::startTransaction(const string &qname, int id)
 
 bool Bind2Backend::commitTransaction()
 {
-
   delete d_of;
   d_of=0;
   if(rename(d_transaction_tmpname.c_str(),s_id_zone_map[d_transaction_id]->d_filename.c_str())<0)
     throw DBException("Unable to commit (rename to: '"+s_id_zone_map[d_transaction_id]->d_filename+"') AXFRed zone: "+stringerror());
+
 
   queueReload(s_id_zone_map[d_transaction_id]);
   s_id_zone_map[d_transaction_id]->unlock();
@@ -516,6 +516,7 @@ void Bind2Backend::loadConfig(string* status)
 	  catch(AhuException &ae) {
 	    ostringstream msg;
 	    msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
+
 	    if(status)
 	      *status+=msg.str();
 	    nbbds[bbd->d_id]->d_status=msg.str();
@@ -589,6 +590,8 @@ void Bind2Backend::nukeZoneRecords(BB2DomainInfo *bbd)
 
 void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 {
+  nbbds.clear();
+
   // we reload *now* for the time being
   //cout<<"unlock domain"<<endl;
   bbd->unlock();
@@ -601,7 +604,11 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZoneParser ZP;
     us=this;
     ZP.setCallback(&callback);  
+
+    nbbds[bbd->d_id]=s_id_zone_map[bbd->d_id];
     ZP.parse(bbd->d_filename,bbd->d_name,bbd->d_id);
+    s_id_zone_map[bbd->d_id]=nbbds[bbd->d_id];
+
     bbd->setCtime();
     // and raise d_loaded again!
     bbd->d_loaded=1;

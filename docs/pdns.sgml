@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/03/13 12:45:30 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/03/20 12:53:44 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -83,16 +83,21 @@
       </para>
       <sect2 id="changelog-2-9-7"><title>Version 2.9.7</title>	
 	<para>
+	  Released on 2003-03-20.
+	</para>
+	<para>
 	  This is a sweeping release in the sense of cleanup. There are some new features but mostly a lot of cleanup going on. Hiding inside is the 
-	  <filename>bind2backend</filename>, the next generation of the bind backend. Very much a work in progress. Those of you with overlapping zones,
-	  as mentioned in the changelog of 2.9.6, are invited to check it out. 
+	  <filename>bind2backend</filename>, the next generation of the bind backend. A work in progress. Those of you with overlapping zones,
+	  as mentioned in the changelog of 2.9.6, are invited to check it out by replacing <command>launch=bind</command>
+	  by <command>launch=bind2</command> and renaming all <command>bind-</command> parameters to
+	  <command>bind2-</command>. Be aware that if you run with many small zones, this backend is faster, but if you run with a few large ones, it is slower. This will improve.
 	</para>
 	<para>
 	  Features:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Mark Bergsma contributed <command>local-query-address</command> which allows the operator to select which source address to 
+		Mark Bergsma contributed <command>query-local-address</command> which allows the operator to select which source address to 
 		use. This is useful on servers with multiple source addresses and the operating system selecting an unintended one, leading to 
 		remotes denying access.
 	      </para>
@@ -101,6 +106,17 @@
 	      <para>
 		PowerDNS can now perform AAAA additional processing optionally, turned on by setting <command>do-ipv6-additional-processing</command>. 
 		Thanks to Stephane Bortzmeyer for pointing out the need. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bind2backend, which is almost in compliance with the new IETF AXFR-clarify (some would say 
+		'redefinition') draft.
+	      </para>
+	      <para>
+		This backend is not ready for primetime but you may want to try it if you currently have overlapping
+		zones and note problems. An overlapping zone would be having "ipv6.powerdns.com" and "powerdns.com" zones
+		on one server.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -194,6 +210,11 @@
 		PowerDNS set the 'aa' bit on serving NS records in a zone for which it was authoritative. Most implementations
 		drop the 'aa' bit in this case and Stephane Bortzmeyer informed us of this. PowerDNS now also drops the 'aa' 
 		bit in this case.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The webserver tended to fail after prolonged operation on FreeBSD, this was due to an uninitialised timeout, other platforms were lucky. Thanks to G.P. de Boer for helping debug this.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -5335,6 +5356,24 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem>
 	      <para>
 		A: Mark Bergsma contributed the query-local-address setting to tell PowerDNS which local IP address to use. 
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: I compiled PowerDNS myself and I see weird problems, especially on SMP</term>
+	    <listitem>
+	      <para>
+		A: There are known issues between gcc &lt;3.2 and PowerDNS on Linux SMP systems. The exact cause is not known but
+		moving to our precompiled version always fixes the problems. If you compile yourself, use a recent gcc!
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: PowerDNS does not answer queries on all my IP addresses and I've ignored the warning I got about that at startup</term>
+	    <listitem>
+	      <para>
+		A: Please don't ignore what PowerDNS says to you. Furthermore, read <xref linkend="all-settings"> about the <command>local-address</command>
+		setting, and use it to specify which IP addresses PowerDNS should listen on.
 	      </para>
 	    </listitem>
 	  </varlistentry>

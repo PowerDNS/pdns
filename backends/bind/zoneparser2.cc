@@ -67,7 +67,7 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
 
 
   while(!fds.empty()) {
-    while(fgets_unlocked(cline,sizeof(cline)-1,fds.top())) {
+    while(fgets(cline,sizeof(cline)-1,fds.top())) {
       line=cline;
       chomp(line," \x1a\r\n");
       cutOff(line,";");
@@ -127,7 +127,7 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
   fds.push(zonein);
 
   while(!fds.empty()) {
-    while(fgets_unlocked(cline,sizeof(cline)-1,fds.top())) {
+    while(fgets(cline,sizeof(cline)-1,fds.top())) {
       line=cline;
       chomp(line," \x1a\r\n");
       cutOff(line,";");
