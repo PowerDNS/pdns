@@ -32,6 +32,8 @@ AC_CHECK_FUNCS(gethostname gettimeofday mkdir mktime select socket strerror)
 
 # Check for libdl
 
+LIBS=-lz
+
 my_save_LIBS="$LIBS"
 LIBS=""
 AC_CHECK_LIB(dl,dlopen)

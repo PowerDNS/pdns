@@ -37,7 +37,6 @@ using namespace std;
 #include "bindparser.hh"
 #include "logger.hh"
 #include "arguments.hh"
-#include "huffman.hh"
 #include "qtype.hh"
 #include "misc.hh"
 #include "dynlistener.hh"
@@ -48,8 +47,7 @@ using namespace std;
     we have zone-id map
     a zone-id has a vector of DNSResourceRecords 
     on start of query, we find the best zone to answer from
-
-    handle::get walks this vector linearly... */
+*/
 
 map<string,int> Bind2Backend::s_name_id_map;
 map<u_int32_t,BB2DomainInfo* > Bind2Backend::s_id_zone_map;
@@ -219,7 +217,6 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     else
       if(soadata.serial!=i->second->d_lastnotified)
 	changedDomains->push_back(di);
-    
   }
 }
 
@@ -293,7 +290,8 @@ static string canonic(string ret)
 }
 
 
-set<shared_ptr<string> > contents;
+set<string> contents;
+
 map<unsigned int, BB2DomainInfo*> nbbds;
 /** This function adds a record to a domain with a certain id. */
 void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
@@ -301,22 +299,37 @@ void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, con
   Bind2DNSRecord bdr;
 
   //  rr.domain_id=id;
-  bdr.qname=canonic(qnameu);
+  BB2DomainInfo* bb2=nbbds[id];
 
-  if(bdr.qname==nbbds[id]->d_name)
+  vector<Bind2DNSRecord> &records=*bb2->d_records;
+
+  bdr.qname=toLower(canonic(qnameu));
+  if(bdr.qname==bb2->d_name)
     bdr.qname.clear();
-  else if(bdr.qname.length() > nbbds[id]->d_name.length())
-    bdr.qname.resize(bdr.qname.length() - (nbbds[id]->d_name.length() + 1));
+  else if(bdr.qname.length() > bb2->d_name.length())
+    bdr.qname.resize(bdr.qname.length() - (bb2->d_name.length() + 1));
   else
     throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', zone='"+nbbds[id]->d_name+"'");
 
   bdr.qname.swap(bdr.qname);
+
+  if(!records.empty() && bdr.qname==(records.end()-1)->qname)
+    bdr.qname=(records.end()-1)->qname;
+
   bdr.qtype=QType(qtype.c_str()).getCode();
-  //  rr.content=canonic(content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
+  bdr.content=canonic(content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
+  set<string>::const_iterator i=contents.find(bdr.content);
+  if(i!=contents.end())
+   bdr.content=*i;
+  else {
+    contents.insert(bdr.content);
+  }
+
   bdr.ttl=ttl;
 
-  //  cout<<"Adding rr.qname: '"<<rr.qname<<"'"<<endl;
-  nbbds[id]->d_records->push_back(bdr);
+  if(qtype=="SOA")
+    cout<<"Adding bdr.qname: '"<<bdr.qname<<"'"<<endl;
+  records.push_back(bdr);
 }
 
 
@@ -414,30 +427,6 @@ Bind2Backend::Bind2Backend(const string &suffix)
    
   s_first=0;
   
-  if(mustDo("example-zones")) {
-    insert(0,"www.example.com","A","1.2.3.4");
-    insert(0,"example.com","SOA","ns1.example.com hostmaster.example.com");
-    insert(0,"example.com","NS","ns1.example.com",86400);
-    insert(0,"example.com","NS","ns2.example.com",86400);
-    insert(0,"example.com","MX","mail.example.com",3600,25);
-    insert(0,"example.com","MX","mail1.example.com",3600,25);
-    insert(0,"mail.example.com","A","4.3.2.1");
-    insert(0,"mail1.example.com","A","5.4.3.2");
-    insert(0,"ns1.example.com","A","4.3.2.1");
-    insert(0,"ns2.example.com","A","5.4.3.2");
-      
-    for(int i=0;i<1000;i++)
-      insert(0,"host-"+itoa(i)+".example.com","A","2.3.4.5");
-
-    s_id_zone_map[0]=new BB2DomainInfo;
-    BB2DomainInfo &bbd=*s_id_zone_map[0];
-    bbd.d_name="example.com";
-    bbd.d_filename="";
-    bbd.d_id=0;
-    s_id_zone_map[0]->d_loaded=true;
-    s_id_zone_map[0]->d_status="parsed into memory at "+nowTime();
-  }
-  
   loadConfig();
 
   extern DynListener *dl;
@@ -469,7 +458,12 @@ void Bind2Backend::loadConfig(string* status)
       L<<Logger::Error<<"Error parsing bind configuration: "<<ae.reason<<endl;
       throw;
     }
-    
+    /*
+    cout<<"sizeof Bind2DNSRecord: "<<sizeof(Bind2DNSRecord)<<endl;
+    cout<<"sizeof string: "<<sizeof(string)<<endl;
+    cout<<"sizeof qtype: "<<sizeof(QType)<<endl;
+    */
+
     ZoneParser ZP;
       
     vector<BindDomainInfo> domains=BP.getDomains();
@@ -519,11 +513,15 @@ void Bind2Backend::loadConfig(string* status)
 	  
 	  try {
 	    ZP.parse(i->filename,i->name,bbd->d_id); // calls callback for us
-	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<endl;
+	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
 	    sort(nbbds[bbd->d_id]->d_records->begin(), nbbds[bbd->d_id]->d_records->end());
 	    nbbds[bbd->d_id]->setCtime();
 	    nbbds[bbd->d_id]->d_loaded=true;          // does this perform locking for us?
 	    nbbds[bbd->d_id]->d_status="parsed into memory at "+nowTime();
+	    //	    cout<<"Had "<<contents.size()<<" different content fields, "<<nbbds[bbd->d_id]->d_records->size()<<" records, capacity: "<<
+	    //	      nbbds[bbd->d_id]->d_records->capacity()<<endl;
+	    contents.clear();
+	    nbbds[bbd->d_id]->d_records->swap(*nbbds[bbd->d_id]->d_records);
 
 	  }
 	  catch(AhuException &ae) {
@@ -664,18 +662,19 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
     return;
   }
   unsigned int id=s_name_id_map[domain];
-
+  d_handle->id=id;
   //  cout<<"domain: '"<<domain<<"', id="<<id<<endl;
 
   DLOG(L<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
        qname<<endl);
 
   
-  d_handle->qname=qname.substr(0,qname.size()-domain.length()-1); // strip domain name
+  if(strcasecmp(qname.c_str(),domain.c_str()))
+    d_handle->qname=toLower(qname.substr(0,qname.size()-domain.length()-1)); // strip domain name
   //  cout<<"Reduced to '"<<d_handle->qname<<"'"<<endl;
   d_handle->parent=this;
   d_handle->qtype=qtype;
-
+  d_handle->domain=domain;
   d_handle->d_records=s_id_zone_map[id]->d_records; // give it a copy
   d_handle->d_bbd=0;
   if(!d_handle->d_records->empty()) {
@@ -700,7 +699,22 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   else {
     DLOG(L<<"Query with no results"<<endl);
   }
-  d_handle->d_iter=equal_range(d_handle->d_records->begin(), d_handle->d_records->end(), d_handle->qname).first;
+
+  pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
+
+  //  cout<<"starting equal range for: '"<<d_handle->qname<<"'"<<endl;
+  range=equal_range(d_handle->d_records->begin(), d_handle->d_records->end(), d_handle->qname);
+  
+  if(range.first==range.second) {
+    d_handle->d_bbd=0;
+    d_handle->d_list=false;
+    return;
+  }
+  else {
+    d_handle->d_iter=range.first;
+    d_handle->d_end_iter=range.second;
+  }
+
   d_handle->d_list=false;
 }
 
@@ -743,13 +757,19 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   DLOG(L << "Bind2Backend get() was called for "<<qtype.getName() << " record  for "<<
        qname<<"- "<<d_records->size()<<" available!"<<endl);
   
-  // this is a linear walk!!! XXX FIXME
+  if(d_iter==d_end_iter) {
+    if(d_bbd) {
+      d_bbd->unlock();
+      d_bbd=0;
+    }
+    return false;
+  }
 
-  while(d_iter!=d_records->end() && (strcasecmp(d_iter->qname.c_str(),qname.c_str()) || !(qtype.getCode()==QType::ANY || (d_iter)->qtype==qtype))) {
+  while(d_iter!=d_end_iter && !(qtype.getCode()==QType::ANY || (d_iter)->qtype==qtype.getCode())) {
     DLOG(L<<Logger::Warning<<"Skipped "<<qname<<"/"<<QType(d_iter->qtype).getName()<<": '"<<d_iter->content<<"'"<<endl);
     d_iter++;
   }
-  if(d_iter==d_records->end()) { // we've reached the end
+  if(d_iter==d_end_iter) {
     if(d_bbd) {
       d_bbd->unlock();
       d_bbd=0;
@@ -758,9 +778,9 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   }
   DLOG(L << "Bind2Backend get() returning a rr with a "<<QType(d_iter->qtype).getCode()<<endl);
 
-  r.qname=qname;
-  
-  //r.content=(d_iter)->content;
+  r.qname=qname.empty() ? domain : (qname+"."+domain);
+  r.domain_id=id;
+  r.content=(d_iter)->content;
   //  r.domain_id=(d_iter)->domain_id;
   r.qtype=(d_iter)->qtype;
   r.ttl=(d_iter)->ttl;

@@ -22,17 +22,15 @@
 #include <pthread.h>
 #include <time.h>
 #include <fstream>
-#include <boost/shared_ptr.hpp>
-#include "huffman.hh"
-using namespace boost;
+
 using namespace std;
 
 struct Bind2DNSRecord
 {
   string qname;
-  QType qtype;
   uint32_t ttl;
-  shared_ptr<string> content;
+  string content;
+  uint16_t qtype;
 
   bool operator<(const Bind2DNSRecord& rhs) const
   {
@@ -136,9 +134,7 @@ private:
     Bind2Backend *parent;
 
     vector<Bind2DNSRecord>* d_records;
-    vector<Bind2DNSRecord>::const_iterator d_iter;
-    
-    vector<Bind2DNSRecord>::const_iterator d_rend;
+    vector<Bind2DNSRecord>::const_iterator d_iter, d_end_iter;
 
     vector<Bind2DNSRecord>::const_iterator d_qname_iter;
     vector<Bind2DNSRecord>::const_iterator d_qname_end;
@@ -147,6 +143,7 @@ private:
     int id;
     BB2DomainInfo* d_bbd;  // appears to be only used for locking
     string qname;
+    string domain;
     QType qtype;
   private:
     int count;
