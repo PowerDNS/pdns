@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2002/12/01 15:19:10 ahu Exp $ 
+# $Id: Makefile,v 1.3 2003/06/28 16:46:01 ahu Exp $ 
 
 all: pdns.txt pdns.pdf html/index.html html.tar.gz
 
@@ -20,4 +20,4 @@ html.tar.gz: html/index.html
 
 publish:
 	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \
-	spoon.powerdns.com:/opt/websites/downloads.powerdns.com/www/documentation/
+	exit.powerdns.com:/opt/websites/downloads.powerdns.com/www/documentation/

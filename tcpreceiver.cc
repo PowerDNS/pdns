@@ -246,8 +246,12 @@ void *TCPNameserver::doConnection(void *data)
 
 static bool canDoAXFR(DNSPacket *q)
 {
-  if(!arg().mustDo("disable-axfr") || !arg()["allow-axfr-ips"].empty()) // default is 'everybody can do axfr'
+  if(!arg().mustDo("disable-axfr"))
+    return false;
+
+  if(arg()["allow-axfr-ips"].empty())
     return true;
+
 
   vector<string>parts;
   stringtok(parts,arg()["allow-axfr-ips"],", "); // is this IP on the guestlist?
