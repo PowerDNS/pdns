@@ -21,7 +21,10 @@
 #ifndef UTILITY_HH
 #define UTILITY_HH
 
-#include "config.h"
+#ifndef WIN32
+# include "config.h"
+#endif // WIN32
+
 #ifdef NEED_POSIX_TYPEDEF
 typedef unsigned short int u_int16_t;
 typedef unsigned int u_int32_t;
@@ -58,7 +61,7 @@ typedef unsigned int u_int32_t;
 
 # define AF_INET6 -1
 
-# define VERSION "2.9.0-WIN32"
+# define VERSION "2.9.2-WIN32"
 
 # define snprintf _snprintf
 
