@@ -72,7 +72,7 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
       cutOff(line,";");
 
       d_lineno++;
-      if(!line.find("$INCLUDE ")) {
+      if(!line.find("$INCLUDE ") || !line.find("$include ")) {
 	vector<string> parts;
 	stringtok(parts,line," \t\n"); 
 	if(parts.size()!=2)
@@ -122,7 +122,7 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
       cutOff(line,";");
 
       d_lineno++;
-      if(!line.find("$INCLUDE ")) {
+      if(!line.find("$INCLUDE ") || !line.find("$include ")) {
 	vector<string> parts;
 	stringtok(parts,line," \t\n");
 	if(parts.size()!=2)
