@@ -35,9 +35,9 @@ LdapBackend::LdapBackend( const string &suffix )
 	{
 		m_msgid = 0;
 		m_qname = "";
+		m_pldap = NULL;
 		m_default_ttl = arg().asNum( "default-ttl" );
 		m_myname = "[LdapBackend]";
-		m_pldap = NULL;
 
 		setArgPrefix( "ldap" + suffix );
 		hoststr = getArg( "host" );
@@ -87,6 +87,7 @@ LdapBackend::LdapBackend( const string &suffix )
 	}
 	catch( exception &e )
 	{
+		if( m_pldap != NULL ) { delete( m_pldap ); }
 		L << Logger::Error << m_myname << " Caught STL exception: " << e.what() << endl;
 		throw( AhuException( "Unable to connect to ldap server" ) );
 	}
@@ -98,7 +99,7 @@ LdapBackend::LdapBackend( const string &suffix )
 
 LdapBackend::~LdapBackend()
 {
-	delete( m_pldap );
+	if( m_pldap != NULL ) { delete( m_pldap ); }
 	L << Logger::Notice << m_myname << " Ldap connection closed" << endl;
 }
 

@@ -301,24 +301,17 @@ bool SyncRes::moreSpecificThan(const string& a, const string &b)
 
 static map<string,DecayingEwma> nsSpeeds;
 
-bool speedOrder(const string &a, const string &b)
+struct speedOrder
 {
-  return (nsSpeeds[toLower(a)].get() < nsSpeeds[toLower(b)].get());
-}
-
-struct speedOrder2
-{
-  speedOrder2(map<string,double> &speeds) : d_speeds(speeds) {}
+  speedOrder(map<string,double> &speeds) : d_speeds(speeds) {}
   bool operator()(const string &a, const string &b) const
   {
     return d_speeds[a] < d_speeds[b];
-
-     //    return (nsSpeeds[toLower(a)].get() < nsSpeeds[toLower(b)].get());
   }
   map<string,double>& d_speeds;
 };
 
-vector<string> SyncRes::shuffle(set<string> &nameservers)
+inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &prefix)
 {
   vector<string> rnameservers;
   rnameservers.reserve(nameservers.size());
@@ -328,12 +321,24 @@ vector<string> SyncRes::shuffle(set<string> &nameservers)
     rnameservers.push_back(*i);
     speeds[*i]=nsSpeeds[toLower(*i)].get();
   }
-  cout<<"size: "<<nsSpeeds.size()<<", "<<rnameservers.size()<<endl;  
   random_shuffle(rnameservers.begin(),rnameservers.end());
-
-  stable_sort(rnameservers.begin(),rnameservers.end(),speedOrder2(speeds));
-
+  stable_sort(rnameservers.begin(),rnameservers.end(),speedOrder(speeds));
   
+  if(s_log) {
+    L<<Logger::Warning<<prefix<<"Nameservers: ";
+    for(vector<string>::const_iterator i=rnameservers.begin();i!=rnameservers.end();++i) {
+      if(i!=rnameservers.begin()) {
+	L<<", ";
+	if(!((i-rnameservers.begin())%4))
+	  L<<endl<<Logger::Warning<<prefix<<"             ";
+      }
+      L<<*i<<"(" << speeds[*i]/1000.0 <<"ms)";
+    }
+    L<<endl;
+  }
+  
+      
+
   return rnameservers;
 }
 
@@ -351,9 +356,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
   for(;;) { // we may get more specific nameservers
     result.clear();
 
-    vector<string> rnameservers=shuffle(nameservers);
-
-    // what if we don't have an A for an NS anymore, but do have an NS for that NS?
+    vector<string> rnameservers=shuffle(nameservers, prefix+qname+": ");
 
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
@@ -537,7 +540,7 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
     if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
        ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
-      LOG<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs IP for additional processing"<<endl;
+      LOG<<d_prefix<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs IP for additional processing"<<endl;
       set<GetBestNSAnswer>beenthere;
       doResolve(k->content,QType(QType::A),addit,1,beenthere);
       if(arg().mustDo("aaaa-additional-processing"))

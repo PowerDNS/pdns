@@ -45,9 +45,7 @@ using std::vector;
 
 
 
-static string backendname="[LdapBackend]";
-
-static char* attrany[] = {
+static char* ldap_attrany[] = {
 	"associatedDomain",
 	"dNSTTL",
 	"aRecord",
@@ -75,13 +73,12 @@ static char* attrany[] = {
 
 class LdapBackend : public DNSBackend
 {
-
-private:
-
+	bool m_getdn;
 	int m_msgid;
 	int m_axfrqlen;
 	u_int32_t m_ttl;
 	u_int32_t m_default_ttl;
+	string m_myname;
 	string m_qname;
 	QType m_qtype;
 	PowerLDAP* m_pldap;
@@ -90,16 +87,29 @@ private:
 	vector<string>::iterator m_value, m_adomain;
 	vector<string> m_adomains;
 
-	bool prepareEntry();
+	bool (LdapBackend::*m_list_fcnt)( const string&, int );
+	void (LdapBackend::*m_lookup_fcnt)( const QType&, const string&, DNSPacket*, int );
+	bool (LdapBackend::*m_prepare_fcnt)();
+
+	bool list_simple( const string& target, int domain_id );
+	bool list_tree( const string& target, int domain_id );
+
+	void lookup_simple( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+	void lookup_strict( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+	void lookup_tree( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+
+	bool prepare();
+	bool prepare_simple();
+	bool prepare_strict();
 
 public:
 
 	LdapBackend( const string &suffix="" );
 	~LdapBackend();
 
-	void lookup( const QType &qtype, const string &qdomain, DNSPacket *p=0, int zoneid=-1 );
-	bool list( const string &target, int domain_id );
-	bool get( DNSResourceRecord &rr );
+	bool list( const string& target, int domain_id );
+	void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+	bool get( DNSResourceRecord& rr );
 };
 
 #endif /* LDAPBACKEND_HH */
