@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.27 2004/09/01 19:48:32 ahu Exp $
+// $Id: dnspacket.cc,v 1.28 2004/09/06 14:13:22 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1323,6 +1323,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
       rr.content=tmp;
       break;
+
     default:
       rr.qtype=rr.qtype.getCode()+1024;
       rr.content.assign((const char *)datapos,length);
