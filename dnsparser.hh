@@ -1,0 +1,118 @@
+#ifndef DNSPARSER_HH
+#define DNSPARSER_HH
+
+#include <map>
+#include <sstream>
+#include <stdexcept>
+#include <pcap.h>
+#include <iostream>
+#include <vector>
+#include <errno.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <boost/shared_ptr.hpp>
+
+namespace {
+  typedef HEADER dnsheader;
+}
+
+using namespace std;
+using namespace boost;
+typedef runtime_error MOADNSException;
+
+struct dnsrecordheader
+{
+  u_int16_t d_type;
+  u_int16_t d_class;
+  u_int32_t d_ttl;
+  u_int16_t d_clen;
+} __attribute__((packed));
+
+
+class MOADNSParser;
+
+class PacketReader
+{
+public:
+  PacketReader(const vector<u_int8_t>& content) 
+    : d_pos(0), d_content(content)
+  {}
+
+  u_int32_t get32BitInt();
+  u_int16_t get16BitInt();
+  static u_int16_t get16BitInt(const vector<unsigned char>&content, u_int16_t& pos);
+  static string getLabelFromContent(const vector<u_int8_t>& content, u_int16_t& frompos, int recurs);
+  u_int8_t get8BitInt();
+  void getDnsrecordheader(struct dnsrecordheader &ah);
+  void copyRecord(vector<unsigned char>& dest, u_int16_t len);
+  void copyRecord(unsigned char* dest, u_int16_t len);
+  string getLabel(unsigned int recurs=0);
+
+  u_int16_t d_pos;
+private:
+  const vector<u_int8_t>& d_content;
+
+};
+
+class DNSRecordContent
+{
+public:
+  static DNSRecordContent* mastermake(const struct dnsrecordheader& ah, PacketReader& pr);
+  virtual std::string getZoneRepresentation() const = 0;
+  virtual std::string getType() const=0;
+  virtual ~DNSRecordContent() {}
+
+  std::string label;
+  struct dnsrecordheader header;
+protected:
+  typedef DNSRecordContent* makerfunc_t(const struct dnsrecordheader& ah, PacketReader& pr);
+  typedef std::map<std::pair<u_int16_t, u_int16_t>, makerfunc_t* > typemap_t;
+  static typemap_t typemap;
+};
+
+struct DNSRecord
+{
+  std::string d_label;
+  u_int16_t d_type;
+  u_int16_t d_class;
+  u_int32_t d_ttl;
+  enum {Answer, Nameserver, Additional} d_place;
+  boost::shared_ptr<DNSRecordContent> d_content;
+  struct dnsrecordheader d_ah;
+};
+
+class MOADNSParser
+{
+public:
+  MOADNSParser(const string& buffer) 
+  {
+    init(buffer.c_str(), buffer.size());
+  }
+
+  MOADNSParser(const char *packet, unsigned int len)
+  {
+    init(packet, len);
+  }
+  dnsheader d_header;
+  string d_qname;
+  u_int16_t d_qclass, d_qtype;
+
+  typedef vector<pair<DNSRecord, uint16_t > > answers_t;
+  answers_t d_answers;
+
+  shared_ptr<PacketReader> getPacketReader(uint16_t offset)
+  {
+    shared_ptr<PacketReader> pr(new PacketReader(d_content));
+    pr->d_pos=offset;
+    return pr;
+  }
+private:
+  void getDnsrecordheader(struct dnsrecordheader &ah);
+  void init(const char *packet, unsigned int len);
+  vector<uint8_t> d_content;
+};
+
+
+
+
+#endif
