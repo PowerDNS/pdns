@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.8 2002/12/30 21:00:56 ahu Exp $
+// $Id: dnspacket.hh,v 1.9 2003/01/03 21:29:36 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -66,7 +66,7 @@ public:
   DNSPacket();
   DNSPacket(const DNSPacket &orig);
 
-  int expand(const char *begin, const char *end, string &expanded, int depth=0);
+  int expand(const unsigned char *begin, const unsigned char *end, string &expanded, int depth=0);
   inline int parse(const char *mesg, int len); //!< parse a raw UDP or TCP packet and suck the data inward
   string getString();
 

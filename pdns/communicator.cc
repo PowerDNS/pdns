@@ -53,7 +53,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
   DomainInfo di;
   di.backend=0;
-    
+  bool first=true;    
   try {
     Resolver resolver;
     resolver.axfr(remote,domain.c_str());
@@ -66,12 +66,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     }
     domain_id=di.id;
 
-    
-    L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
     Resolver::res_t recs;
-    bool first=true;
+
     while(resolver.axfrChunk(recs)) {
       if(first) {
+	L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
 	di.backend->startTransaction(domain, domain_id);
 	first=false;
       }
@@ -91,14 +90,14 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   }
   catch(DBException &re) {
     L<<Logger::Error<<"Unable to feed record during incoming AXFR of '"+domain+"': "<<re.reason<<endl;
-    if(di.backend) {
+    if(di.backend && !first) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(ResolverException &re) {
     L<<Logger::Error<<"Unable to AXFR zone '"+domain+"': "<<re.reason<<endl;
-    if(di.backend) {
+    if(di.backend && !first) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
