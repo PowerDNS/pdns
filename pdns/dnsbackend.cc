@@ -250,6 +250,7 @@ vector<DNSBackend *>BackendMakerClass::all()
   }
   catch(...) {
     // and cleanup
+    L<<Logger::Error<<"Caught an exception instantiating a backend, details should follow"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
     throw;

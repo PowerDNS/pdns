@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.2 2002/12/09 16:24:17 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.3 2002/12/17 16:50:31 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -105,6 +105,10 @@ void BindBackend::setFresh(u_int32_t domain_id)
 bool BindBackend::startTransaction(const string &qname, int id)
 {
   d_of=new ofstream("/tmp/juh");
+  if(!d_of)
+    throw AhuException("Unable to open temporary zonefile!");
+  
+  *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
   d_bbds[d_transaction_id=id].lock();
   return true;
 }
@@ -112,7 +116,9 @@ bool BindBackend::startTransaction(const string &qname, int id)
 bool BindBackend::commitTransaction()
 {
   delete d_of;
-  rename("/tmp/juh",d_bbds[d_transaction_id].d_filename.c_str());
+  if(rename("/tmp/juh",d_bbds[d_transaction_id].d_filename.c_str())<0)
+    throw AhuException("Unable to commit (rename to: '"+d_bbds[d_transaction_id].d_filename+"') AXFRed zone: "+stringerror());
+
   queueReload(&d_bbds[d_transaction_id]);
   d_bbds[d_transaction_id].unlock();
   return true;
@@ -121,10 +127,22 @@ bool BindBackend::commitTransaction()
 
 bool BindBackend::feedRecord(const DNSResourceRecord &r)
 {
-  if(r.qtype.getCode()!=QType::MX)
+  switch(r.qtype.getCode()) {
+  case QType::TXT:
+    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t\""<<r.content<<"\""<<endl;
+    break;
+  case QType::MX:
+    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<r.content<<"."<<endl;
+    break;
+  case QType::CNAME:
+  case QType::NS:
+    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<"."<<endl;
+    break;
+  default:
     *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<endl;
-  else
-    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.ttl<<"\t"<<r.priority<<"\t"<<r.content<<endl;
+    break;
+  }
+
   return true;
 }
 
@@ -146,6 +164,7 @@ void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     soadata.refresh=0;
     getSOA(i->second.d_name,soadata);
     sd.serial=soadata.serial;
+
     if(sd.last_check+soadata.refresh<(unsigned int)time(0))
       unfreshDomains->push_back(sd);    
   }
@@ -265,6 +284,7 @@ BindBackend::BindBackend(const string &suffix)
   if(!s_first)
     return;
    
+  d_logprefix="[bind"+suffix+"backend]";
   setArgPrefix("bind"+suffix);
 
   s_first=0;
@@ -308,8 +328,9 @@ BindBackend::BindBackend(const string &suffix)
     domain_id=1;
     ZP.setDirectory(BP.getDirectory());
     ZP.setCallback(&callback);  
-    L<<Logger::Warning<<"Parsing "<<domains.size()<<" domain(s)"<<endl;
+    L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
+    int rejected=0;
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
 	i!=domains.end();
 	++i)
@@ -323,17 +344,24 @@ BindBackend::BindBackend(const string &suffix)
 	bbd.setCheckInterval(getArgAsNum("check-interval"));
 	
 	d_bbds[domain_id]=bbd; 
+	L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
+	d_bbds[domain_id].d_loaded=false;
+	try {
+	  ZP.parse(i->filename,i->name); // calls callback for us
+	  d_bbds[domain_id].d_loaded=true;
+	}
+	catch(AhuException &ae) {
+	  L<<Logger::Warning<<d_logprefix<<" error parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason<<endl;
+	  rejected++;
+	}
 	
-	ZP.parse(i->filename,i->name); // calls callback for us
-
-	vector<vector<BBResourceRecord> *>&tmp=d_zone_id_map[domain_id];
+	vector<vector<BBResourceRecord> *>&tmp=d_zone_id_map[domain_id];  // shrink trick
 	vector<vector<BBResourceRecord> *>(tmp).swap(tmp);
-	d_bbds[domain_id].d_loaded=true;
-	
+
 	domain_id++;
       }
-    L<<Logger::Warning<<"Done"<<endl;
-    L<<Logger::Info<<"Number of buckets: "<<d_qnames.bucket_count()<<", number of entries: "<<d_qnames.size()<< endl;
+    L<<Logger::Error<<d_logprefix<<" Done parsing domains, "<<rejected<<" were rejected"<<endl; // XXX add how many were rejected
+    L<<Logger::Info<<d_logprefix<<" Number of hash buckets: "<<d_qnames.bucket_count()<<", number of entries: "<<d_qnames.size()<< endl;
   }
 }
 

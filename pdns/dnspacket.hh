@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.5 2002/12/12 19:53:19 ahu Exp $
+// $Id: dnspacket.hh,v 1.6 2002/12/17 16:50:30 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -150,12 +150,15 @@ private:
   void addRPRecord(const string &domain, const string &content, u_int32_t ttl); //!< add a RP record to the packet
   void addRPRecord(const DNSResourceRecord &); //!< add a RP record to the packet
 
-  void addNAPTRRecord(const string &domain, const string &content, u_int32_t ttl); //!< add a RP record to the packet
-  void addNAPTRRecord(const DNSResourceRecord &); //!< add a RP record to the packet
+  void addNAPTRRecord(const string &domain, const string &content, u_int32_t ttl); //!< add a NAPTR record to the packet
+  void addNAPTRRecord(const DNSResourceRecord &); //!< add a NAPTR record to the packet
 
 
   void addPTRRecord(const string &domain, const string &alias, u_int32_t ttl); //!< add a PTR record to the packet
   void addPTRRecord(const DNSResourceRecord &); //!< add a PTR record to the packet
+
+  void addLOCRecord(const string &domain, const string &content, u_int32_t ttl); 
+  void addLOCRecord(const DNSResourceRecord &); //!< add a LOC record to the packet
 
 
   /** Adds a SOA record to the packet. The SOA record is very special because we have a lot of default values, 
@@ -247,6 +250,7 @@ private:
   int toqname(const string &name, string &qname, bool compress = true);
   int toqname(const string &name, string *qname, bool compress = true); 
   const string makeSoaHostmasterPiece(const string &hostmaster);
+  static string parseLOC(const unsigned char *p, unsigned int length);
 
   int domprint();
   int getq();
@@ -293,6 +297,12 @@ int DNSPacket::parse(const char *mesg, int length)
       return -1;
     }
     d_qlen=offset+4; // this points to the start of any answers
+  }
+
+  if(15+offset>=stringbuffer.length()) {
+    L << Logger::Warning << "Ignoring packet: question too short from "
+      << getRemote() << endl;
+    return -1;
   }
 
   qtype=((unsigned char)stringbuffer[12+offset])*256+(unsigned char)stringbuffer[13+offset];

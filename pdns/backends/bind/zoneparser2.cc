@@ -67,7 +67,7 @@ void ZoneParser::parse(const string &fname, const string &origin)
       d_lineno++;
       if(strstr(line, "$INCLUDE ")==line) {
 	vector<string> parts;
-	stringtok(parts,line," \t\n");
+	stringtok(parts,line," \t\n"); 
 	if(parts.size()!=2)
 	  throw AhuException("Invalid $INCLUDE statement in zonefile '"+fname+"'");
 	
@@ -197,7 +197,7 @@ bool ZoneParser::eatLine(string line, vector<Record> &rec)
     tline=lastfirstword+"\t"+tline;
 
   vector<string> parts;
-  stringtok(parts,tline," \t");
+  stringtok(parts,tline," \t\"");  // THIS IS WRONG, THE " SHOULD BE TREATED! XXX FIXME
   if(parts[0][0]!='$' && !isspace(parts[0][0]))
     lastfirstword=parts[0];
 
@@ -422,14 +422,11 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
       return false;
 
     }
-  if(words.size()<3)
-    {
-      if(words.size()==1 && words[0]==";")
-	return false;
-      cerr<<"Short line: "<<words.size()<<" words. Probably due to repeated record without domainname"<<endl;
-      cerr<<"'"<<words[0]<<"'"<<endl;
+  if(words.size()<3) {
+    if(words.size()==1 && words[0]==";")
       return false;
-    }
+    throw AhuException("Short line "+itoa(d_lineno)+": "+itoa(words.size())+ " words. Probably due to repeated record without domainname");
+  }
 
   string qname=words[0];
   string qclass="IN";
@@ -486,10 +483,9 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
 	}
       
     }
-  if(!cpos)
-    {
-      cerr<<"Funky parse case!"<<endl;
-    }
+  if(!cpos) {
+    throw AhuException("Funky parse case on line  "+itoa(d_lineno));
+  }
 
   if(qname=="@")
     qname=d_origin;
@@ -503,43 +499,40 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
   int left=words.size()-cpos;
   string content;
 
-  if(qtype=="MX" && left==2)
-    {
-      int prio=atoi(words[cpos++].c_str());
-      content=words[cpos];
+  if(qtype=="MX" && left==2) {
+    int prio=atoi(words[cpos++].c_str());
+    content=words[cpos];
+    if(content=="@")
+      content=d_origin;
+    else
+      if(content[content.size()-1]!='.')
+	content+="."+d_origin;
+    
+    fillRec(qname, qtype, content, ttl, prio,rec);
+    return true;
+  }
+  else if(left) {
+    content=words[cpos++];left--;
+    
+    while(left--)
+      content+=" "+words[cpos++];
+    
+    if(qtype=="MX" || qtype=="CNAME" || qtype=="NS") {
       if(content=="@")
 	content=d_origin;
       else
 	if(content[content.size()-1]!='.')
 	  content+="."+d_origin;
-
-      fillRec(qname, qtype, content, ttl, prio,rec);
-      return true;
     }
-  else if(left)
-    {
-      content=words[cpos++];left--;
-
-      while(left--)
-	content+=" "+words[cpos++];
-
-      if(qtype=="MX" || qtype=="CNAME" || qtype=="NS") {
-	if(content=="@")
-	  content=d_origin;
-	else
-	  if(content[content.size()-1]!='.')
-	    content+="."+d_origin;
-      }
-      if(qtype=="SOA")
-	soaCanonic(content);
-
-      fillRec(qname, qtype, content,ttl, 0, rec);
-      return true;
-    }
-  else
-    {
-      cerr<<"NO CONTENT!"<<endl;
-    }
+    if(qtype=="SOA")
+      soaCanonic(content);
+    
+    fillRec(qname, qtype, content,ttl, 0, rec);
+    return true;
+  }
+  else {
+    throw AhuException("No content on line  "+itoa(d_lineno));
+  }
   return false;
 }
 

@@ -19,7 +19,7 @@
 #ifndef QTYPE_HH
 #define QTYPE_HH
 /* (C) 2002 POWERDNS.COM BV */
-// $Id: qtype.hh,v 1.1 2002/11/27 15:18:32 ahu Exp $
+// $Id: qtype.hh,v 1.2 2002/12/17 16:50:30 ahu Exp $
 #include <string>
 #include <vector>
 #include <utility>
@@ -59,7 +59,7 @@ public:
 
   static int chartocode(const char *p); //!< convert a character string to a code
   
-  enum {A=1,NS=2,CNAME=5,SOA=6,PTR=12,MX=15,TXT=16,AAAA=28,NAPTR=35,AXFR=252, ANY=255} types;
+  enum {A=1,NS=2,CNAME=5,SOA=6,PTR=12,MX=15,TXT=16,RP=17,AAAA=28,LOC=29,NAPTR=35,AXFR=252, ANY=255} types;
 private:
   short int code;
   typedef pair<string,int> namenum; 

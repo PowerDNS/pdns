@@ -39,12 +39,20 @@ Provides: pdns-backend
 Description: MySQL backend for pDNS
  This package contains a MySQL backend for the PowerDNS nameserver.
 
-Package: pdns-backend-pgmysql
+Package: pdns-backend-gmysql
 Architecture: any
 Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
 Provides: pdns-backend
-Description: Generic PostgreSQL and MySQL backend for pDNS
- This package contains a generic PostgreSQL and MySQL backend 
+Description: Generic MySQL backend for pDNS
+ This package contains a generic MySQL backend 
+ for the PowerDNS nameserver. It has configurable SQL statements.
+
+Package: pdns-backend-gpgsql
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: Generic PostgreSQL backend for pDNS
+ This package contains a generic PostgreSQL backend 
  for the PowerDNS nameserver. It has configurable SQL statements.
 
 Package: pdns-backend-xdb

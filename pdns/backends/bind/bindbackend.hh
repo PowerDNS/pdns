@@ -205,6 +205,7 @@ private:
   static map<unsigned int, BBDomainInfo>d_bbds;
   static int s_first;
 
+  string d_logprefix;
   int d_transaction_id;
   ofstream *d_of;
   handle *d_handle;

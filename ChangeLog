@@ -3,7 +3,12 @@ Changes since 2.9.2:
 	- tiny improvements in win98 error messages
 	- pgmysqlbackend may have been unable to launch
 		now called gpgsql and gpgsql2
-
+	- bind backend can now deal with broken and missing zones
+	- bind backend reports way more errors instead of just falling over
+	- can now understand incoming RP records in AXFR
+	- fixed potential crasher bug in shortened packet parsing
+	- now groks LOC records incoming/outgoing
+	
 Changes since 2.9.1:
 	- removed debugging output from the webserver (found by Paul Wouters)
 	- due to Solaris portability fixes, qtypes>127 were broken. 
