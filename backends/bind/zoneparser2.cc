@@ -420,7 +420,7 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
 	  step=atoi(parts[2].c_str());
 	vector<string>newwords;
 
-	for(int i=start;i<stop;++i) {
+	for(int i=start;i<=stop;++i) {
 	  newwords.clear();
 	  for(unsigned int j=2;j<words.size();++j) {
 	    newwords.push_back(expandWord(words[j],i));
