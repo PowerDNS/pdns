@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/12 19:53:20 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/13 13:24:34 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -87,9 +87,20 @@
       </para>
       <sect2 id="changelog-2-9-2"><title>Version 2.9.2</title>	
 	<para>
-	  Bugfixes galore. Solaris porting created some issues on all platforms. Bugs fixed:
+	  Bugfixes galore. Solaris porting created some issues on all platforms. 
 	</para>
+	<warning>
+	  <para>
+	    The Generic MySQL backend, part of the Generic MySQL &amp; PostgreSQL backend, is now the DEFAULT! The previous default, the 
+	    'mysql' backend (note the lack of 'g') is now DEPRECATED. This was the source of much confusion. The 'mysql' backend
+	    does not support MASTER or SLAVE operation. The Generic backends do.
+	  </para>
+	  <para>
+	    To get back the mysql backend, add --with-modules="mysql" or --with-dynmodules="mysql" if you prefer to load your modules at runtime.
+	  </para>
+	</warning>
 	<para>
+	  Bugs fixed:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
@@ -128,6 +139,26 @@
 	  </itemizedlist>
 	</para>
 	<para>
+	  Documentation:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Documented the 'random backend', see <xref linkend="randombackend">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Wichert Akkerman contributed three manpages.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Building PowerDNS on Unix is now documented somewhat more, see <xref linkend="on-unix">.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
 	  Features:
 	  <itemizedlist>
 	    <listitem>
@@ -137,7 +168,24 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Mysterious xdb backend added - see <xref linkend="xdbbackend">.
+		OpenBSD is on its way of becoming a supported platform! As of 2.9.2, PowerDNS compiles on OpenBSD but swiftly crashes.
+		Help is welcome.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		ODBC backend (for Windows only) was missing from the distribution, now added.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		xdb backend added - see <xref linkend="xdbbackend">. Designed for use by root-server operators.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Dynamic modules are back which is good news for distributors who want to make a pdns packages that does not
+		depend one every database under the sun. 
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -4413,6 +4461,8 @@ local0.err                        /var/log/pdns.err
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Case</entry><entry>Depends</entry></row>
+	      <row><entry>Module name</entry><entry>pipe</entry></row>
+	      <row><entry>Lauch name</entry><entry>pipe</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -4671,6 +4721,17 @@ while(&lt;&gt;)
     </sect1>
     <sect1 id="mysqlbackend"><Title>MySQL backend</title>
       <para>
+	<warning>
+	  <para>
+	    This backend is deprecated! Use the Generic MySQL backend which is better in <emphasis>all</emphasis> respects.
+	    It does support master/slave operation, this backend does not. See <xref linkend="generic-mypgsql-backends">.
+	  </para>
+	  <para>
+	    So stop reading here unless you already have a database filled with 'mysql' records.
+	  </para>
+	</warning>
+      </para>
+      <para>
 	<table>
 	  <title>MySQL backend capabilities</title>
 	  <tgroup cols=2>
@@ -4681,6 +4742,8 @@ while(&lt;&gt;)
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>Insensitive</entry></row>
+	      <row><entry>Module name</entry><entry>mysql</entry></row>
+	      <row><entry>Lauch name</entry><entry>mysql</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -4781,6 +4844,53 @@ while(&lt;&gt;)
       </sect2>
       
     </sect1>
+    <sect1 id="randombackend"><title>Random Backend</title>
+      <para>
+	<table>
+	  <title>Random Backend capabilities</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row><entry>Native</entry><entry>Yes</entry></row>
+	      <row><entry>Master</entry><entry>No</entry></row>
+	      <row><entry>Slave</entry><entry>No</entry></row>
+	      <row><entry>Superslave</entry><entry>No</entry></row>
+	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>Case</entry><entry>Depends</entry></row>
+	      <row><entry>Module name</entry><entry>built in</entry></row>
+	      <row><entry>Lauch name</entry><entry>random</entry></row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	This is a very silly backend which is discussed in <xref linkend="simple-backends"> as a demonstration on
+	how to write a PowerDNS backend.
+      </para>
+      <para>
+	This backend knows about only one hostname, and only about its IP address at that. With every query,
+	a new random IP address is generated.
+      </para>
+      <para>
+	It only makes sense to load the random backend in combination with a regular backend. This can be done by prepending
+	it to the <command>launch=</command> instruction, such as <command>launch=random,gmysql</command>.
+      </para>
+      <para>
+	Variables:
+      </para>
+      <para>
+	<variablelist>
+	  <varlistentry>
+	    <term>random-hostname</term>
+	    <listitem>
+	      <para>
+		Hostname for which to supply a random IP address.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
+    </sect1>
+
     <sect1 id="pdnsbackend"><Title>MySQL PDNS backend</title>
       <para>
 	<table>
@@ -4793,6 +4903,8 @@ while(&lt;&gt;)
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>Insensitive</entry></row>
+	      <row><entry>Module name</entry><entry>pdns</entry></row>
+	      <row><entry>Lauch name</entry><entry>pdns</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -4862,13 +4974,14 @@ while(&lt;&gt;)
 	  <title>Generic PgSQL and MySQL backend capabilities</title>
 	  <tgroup cols=2>
 	    <tbody>
-	      <row><entry>Module name</entry><entry>gpgsql / gmysql</entry></row>
 	      <row><entry>Native</entry><entry>Yes - but PostgreSQL does not replicate</entry></row>
 	      <row><entry>Master</entry><entry>Yes</entry></row>
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
+	      <row><entry>Module name</entry><entry>pgmysql</entry></row>
+	      <row><entry>Lauch name</entry><entry>gmysql and gpgsql2</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -4886,12 +4999,6 @@ while(&lt;&gt;)
       </para>
       <sect2><title>MySQL specifics</title>
 	<para>
-	  <warning>
-	    <para>
-	      As of 2.3, the Generic MySQL backend has not been tested a lot. Use the regular MySQL backend if unsure! Especially 'master' support is 
-	      very new.
-	    </para>
-	  </warning>
 	  <warning>
 	    <para>
 	      If using MySQL with 'slave' support enabled in PowerDNS you <emphasis>must</emphasis> run MySQL with a table engine that supports transactions.
@@ -5298,6 +5405,9 @@ GRANT ALL ON records_id_seq TO pdns;
 	      <row><entry>Slave</entry><entry>No</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
+	      <row><entry>Module name</entry><entry>oracle</entry></row>
+	      <row><entry>Launch name</entry><entry>oracle</entry></row>
+
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -5502,13 +5612,15 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Slave</entry><entry>No</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
+	      <row><entry>Module name</entry><entry>db2</entry></row>
+	      <row><entry>Launch name</entry><entry>db2</entry></row>
+
 	    </tbody>
 	  </tgroup>
 	</table>
       </para>
       <para>
-	PowerDNS is currently ascertaining if this backend can be distributed in binary form without violating IBM DB2 licensing. If you have a DB2 license, 
-	please contact pdns@powerdns.com so we can ship you a copy of this driver.
+	PowerDNS is currently ascertaining if this backend can be distributed in binary form without violating IBM DB2 licensing. 
       </para>
       <para>
 	The DB2 backend executes the following queries:
@@ -5590,6 +5702,8 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Slave</entry><entry>Experimental</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>Module name</entry><entry>none (built in)</entry></row>
+	      <row><entry>Launch</entry><entry>bind</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -6683,10 +6797,26 @@ static RandomLoader randomloader;
 
   </appendix>
   <appendix id="compiling-powerdns"><title>Compiling PowerDNS</title>
-    <para>
-      For now, see <ulink url="http://www.powerdns.org">the Open Source PowerDNS site</ulink>. 
-      <command>./configure --enable-mysql ; make ; make install</command> will do The Right Thing for most people.
-    </para>
+    <sect1 id="on-unix"><title>Compiling PowerDNS on Unix</title>
+      <para>
+	<note><para>
+	    For now, see <ulink url="http://www.powerdns.org">the Open Source PowerDNS site</ulink>. 
+	    <command>./configure ; make ; make install</command> will do The Right Thing for most people.
+	  </para></note>
+      </para>
+      <para>
+	PowerDNS can becompiled with modules built in, or with modules designed to be loaded at runtime. All that is configured
+	before compiling using the well known autoconf/automake system.
+      </para>
+      <para>
+	To compile in modules, specify them as <command>--with-modules="mod1 mod2 mod3"</command>, substituting the desired module names.
+	Each backend has a module name in the table at the beginning of its section.
+      </para>
+      <para>
+	To compile a module for inclusion at runtime, which is great if you are a unix vendor, use <command>--with-dynmodules="mod1 mod2 mod3"</command>.
+	These modules then end up as .so files in the compiled libdir. 
+      </para>
+    </sect1>
     <sect1 id="on-windows"><title>Compiling PowerDNS on Windows</title>
       <para>
 	By Michel Stol (<email>michel@powerdns.com</email>).

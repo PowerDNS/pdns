@@ -163,7 +163,7 @@ fi
 
 
 
-modules="mysql"
+modules="pgmysql"
 AC_ARG_WITH(modules, [  --with-modules Which userbases to compile with ], 
 [
         modules="$withval"  
@@ -184,19 +184,19 @@ AC_ARG_WITH(socketdir, [  --with-socketdir Where the controlsocket lives ],
         socketdir="$withval"  
 ])
 
-domysql=yes
 AC_MSG_CHECKING(whether we to include mysql support in the generic backend)
 AC_ARG_ENABLE(mysql, 
- [  --enable-mysql	Whether to include MySQL support in generic backend],domysql=yes,domysql=)
-
-AC_MSG_RESULT($domysql)
+ [  --enable-mysql	Whether to include MySQL support in generic backend],enable_mysql=$enableval,enable_mysql=yes)
+AC_MSG_RESULT($enable_mysql)
+domysql=$enable_mysql
 AC_SUBST(domysql)
 
-AC_MSG_CHECKING(whether we to include pgsql support in the generic backend)
-AC_ARG_ENABLE(pgsql, 
- [  --enable-pgsql	Whether to include PgSQL support in generic backend],dopgsql=yes,dopgsql=)
 
-AC_MSG_RESULT($dopgsql)
+AC_MSG_CHECKING(whether we to include PostgreSQL support in the generic backend)
+AC_ARG_ENABLE(pgsql, 
+ [  --enable-pgsql	Whether to include PostgreSQL support in generic backend],enable_pgsql=$enableval,enable_pgsql=no)
+AC_MSG_RESULT($enable_pgsql)
+dopgsql=$enable_pgsql
 AC_SUBST(dopgsql)
 
 
@@ -208,11 +208,11 @@ for a in $modules $dynmodules
 do
 	case "$a" in
 		pgmysql )
-			if test "$dopgsql" 
+			if test x"$dopgsql" = xyes
 				then 
 					needpgsql=yes
 			 fi
-			if test "$domysql" 
+			if test x"$domysql" = xyes
 				then 
 					needmysql=yes
 			 fi
@@ -347,6 +347,7 @@ then
 #	LIBS="$LIBS -lpq++ -lpq -lssl -lcrypt -lcrypto"
 fi
 
+rm -f $srcdir/modules/pgmysqlbackend/OBJECTFILES $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 
 for a in $modules
 do
@@ -354,19 +355,18 @@ do
 
 	case "$a" in
 		pgmysql)
-		rm -f $srcdir/modules/pgmysqlbackend/OBJECTFILES $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 
-		echo gmysqlbackend.o >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
+		echo -n "gmysqlbackend.o " >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
 		if test -n "$domysql"
 		then 
-			echo smysql.o >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
-			echo -lmysql >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
+			echo -n "smysql.o " >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
+			echo -n "-lmysql " >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 		fi 
 
 		if test -n "$dopgsql"
 		then 
-			echo spgsql.o >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
-			echo -lpq++ -lpq -lssl -lcrypt -lcrypto >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
+			echo -n "spgsql.o " >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
+			echo -n "-lpq++ -lpq -lssl -lcrypt -lcrypto " >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 		fi 
 		;;
 	esac

@@ -1,0 +1,5 @@
+#!/bin/sh
+fakeroot debian/rules clean
+rm -r debian/*~
+./configure --with-modules="mysql pdns pgmysql oracle db2 xdb odbc xdb pipe" --enable-pgsql
+make dist

@@ -1,21 +1,23 @@
 PowerDNS is copyright 2002 by PowerDNS.COM BV
 
-To compile a very basic version, use:
+To compile a very clean version, use:
 
 $ ./configure --with-modules=""
 $ make
 # make install
 
 This generates a PowerDNS binary with no modules, except the bind backend,
-built in. When ./configure is run without --with-modules, the mysql module
-is built by default.
+built in. When ./configure is run without --with-modules, the mysql and
+pgmysql modules is built by default, with the latter only supporting mysql.
 
 To add multiple modules, try:
 
-$ ./configure --with-modules="mysql pgmysql" --enable-mysql --enable-pgsql
+$ ./configure --with-modules="pipe pgmysql" --enable-mysql --enable-pgsql
 
 See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
 
+Please don't use the 'mysql' backend, it is deprecated. Use the 'gmysql' one
+that is in the pgmysql Generic PostgreSQL and MySQL module!
 
 SOLARIS NOTES
 -------------

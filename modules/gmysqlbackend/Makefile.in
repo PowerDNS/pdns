@@ -9,18 +9,20 @@ PGSQL_INCLUDES	= @PGSQL_incdir@
 PGSQL_LIB            = @PGSQL_lib@
 PGSQL_LIBS           = -Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
 
+CXXFLAGS=@CXXFLAGS@
+
 INCLUDES=-I$(PDNS_HOME) -I../..
 
 dopgsql=@dopgsql@
 domysql=@domysql@
 
-ifneq ($(dopgsql),)
+ifneq ($(dopgsql),no)
 	TARGETS:=spgsql.o
 	CXXFLAGS:=-DPDNS_DOPGSQL -I$(PGSQL_INCLUDES) $(CXXFLAGS)
 	ELIBS:=$(PGSQL_LIB) $(PGSQL_LIBS)
 endif
 
-ifneq ($(domysql),)
+ifneq ($(domysql),no)
 	TARGETS:=$(TARGETS) smysql.o
 	CXXFLAGS:=-DPDNS_DOMYSQL -I$(MYSQL_INCLUDES) $(CXXFLAGS)
 	ELIBS:=$(MYSQL_LIB) $(MYSQL_LIBS) $(ELIBS)

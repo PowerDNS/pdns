@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.4 2002/12/09 18:34:45 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.5 2002/12/13 13:24:34 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -392,7 +392,7 @@ bool gMySQLBackend::feedRecord(const DNSResourceRecord &r)
   catch (SSqlException &e) {
     throw AhuException(e.txtReason());
   }
-
+  return true; // XXX FIXME this API should not return 'true' I think -ahu 
 }
 
 bool gMySQLBackend::startTransaction(const string &domain, int domain_id)
