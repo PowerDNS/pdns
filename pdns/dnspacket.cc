@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.29 2004/09/13 19:00:40 ahu Exp $
+// $Id: dnspacket.cc,v 1.30 2005/01/11 19:54:33 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1287,7 +1287,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       break;
 
 
-    case QType::SRV: // rfc 2025
+    case QType::SRV: // rfc 2052
       // priority goes into mx-priority
       rr.priority=(datapos[0] << 8) + datapos[1];
       // rest glue together  
@@ -1298,6 +1298,50 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       rr.content+=" "+itoa(port)+" "+part;
       break;
 
+    case QType::NAPTR: // rfc 2915
+      {
+        const string quote="\"";
+        const string space=" ";
+
+        int order;
+        int pref;
+        string flags, services, regex, replacement, result;
+
+        order=(datapos[0] << 8) + datapos[1];
+
+        // "pref" should maybe be put into rr.priority, but that
+        // might have unintended side effects that I cannot
+        // evaluate at this time.
+        //
+        // Lorens Kockum 2004-10-12
+
+        pref=(datapos[2] << 8) + datapos[3];
+
+        // The following would be a good subject for a mini-
+        // function with boundary checking, which could be
+        // reused in a lot of places in this file (see FIXME
+        // at beginning of function).
+
+        offset = 4 ;
+        flags.assign((const char *)datapos+offset+1,(int)datapos[offset]);
+        offset+=flags.size()+1;
+        services.assign((const char *)datapos+offset+1,(int)datapos[offset]);
+        offset+=services.size()+1;
+        regex.assign((const char *)datapos+offset+1,(int)datapos[offset]);
+        offset+=regex.size()+1;
+
+        expand(datapos+offset,end,replacement);
+
+        if (!replacement.size()) replacement = "." ;
+
+        rr.content = itoa(order) \
+                     + " " + itoa(pref) \
+                     + " " + quote + flags + quote \
+                     + " " + quote + services + quote \
+                     + " " + quote + regex + quote \
+                     + " " + replacement;
+      }
+      break;
 
     case QType::RP:
       offset+=expand(datapos+offset,end,rr.content);
