@@ -76,7 +76,7 @@ private:
   struct ConntrackEntry
   {
     u_int16_t id;
-    char remote[28];
+    char remote[sizeof(sockaddr_in6)];
     Utility::socklen_t addrlen;
     int outsock;
     time_t created;
