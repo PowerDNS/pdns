@@ -147,20 +147,14 @@ void doPrune(void)
 	++k;
 
     if(j->second.empty()) { // everything is gone
-      //      L<<Logger::Error<<"Dropped name '"<<j->first<<"'"<<endl;
       cache.erase(j++);
       names++;
 
     }
     else {
-      //      L<<Logger::Error<<"Kept name '"<<j->first<<"'"<<endl;
       ++j;
     }
   }
-  /*
-  if(names || records)
-    L<<Logger::Warning<<"Pruned "<<names<<" names, "<< records<<" records"<<endl;
-  */
 }
 
 
@@ -300,12 +294,8 @@ void makeTCPServerSocket()
     sin.sin_addr.s_addr = INADDR_ANY;
   }
   else {
-    struct hostent *h=0;
-    h=gethostbyname(arg()["local-address"].c_str());
-    if(!h)
+    if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
       throw AhuException("Unable to resolve local address"); 
-    
-    sin.sin_addr.s_addr=*(int*)h->h_addr;
   }
 
   sin.sin_port = htons(arg().asNum("local-port")); 
@@ -338,12 +328,10 @@ void makeServerSocket()
     sin.sin_addr.s_addr = INADDR_ANY;
   }
   else {
-    struct hostent *h=0;
-    h=gethostbyname(arg()["local-address"].c_str());
-    if(!h)
-      throw AhuException("Unable to resolve local address"); 
     
-    sin.sin_addr.s_addr=*(int*)h->h_addr;
+    if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
+      throw AhuException("Unable to resolve local address"); 
+
   }
 
   sin.sin_port = htons(arg().asNum("local-port")); 
@@ -385,7 +373,8 @@ void doStats(void)
     L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<cache.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
      <<(int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits";
     L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
-    L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled"<<endl;
+    L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
+     <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
   }
   statsWanted=false;
 }

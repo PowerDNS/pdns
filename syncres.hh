@@ -83,6 +83,7 @@ public:
   static unsigned int s_queries;
   static unsigned int s_throttledqueries;
   static unsigned int s_outqueries;
+  static unsigned int s_nodelegated;
   unsigned int d_outqueries;
   unsigned int d_throttledqueries;
   static map<string,NegCacheEntry> s_negcache;    

@@ -37,6 +37,7 @@ map<string,NegCacheEntry> SyncRes::s_negcache;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outqueries;
 unsigned int SyncRes::s_throttledqueries;
+unsigned int SyncRes::s_nodelegated;
 bool SyncRes::s_log;
 
 #define LOG if(s_log)L<<Logger::Warning
@@ -365,6 +366,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	if(endsOn(i->qname, auth)) {
 	  if(aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && arg().contains("delegation-only",auth)) {
 	    LOG<<"NO! Is from delegation-only zone"<<endl;
+	    s_nodelegated++;
 	    return RCode::NXDomain;
 	  }
 	  else {
