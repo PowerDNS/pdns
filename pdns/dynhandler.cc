@@ -164,12 +164,12 @@ string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid)
   for(p=whitelist;*p;p++)
     if(*p==parts[1])
       break;
-  if(p) {
+  if(*p) {
     arg().set(parts[1])=parts[2];
     return "done";
   }
   else
-    return "This setting cannot be changed at runtime";
+    return "This setting cannot be changed at runtime, or no such setting";
 
 }
 

@@ -2,6 +2,7 @@ Mostly polish on the build process:
 
 	- make sure only Linux gets -D_GNU_SOURCE
 	- make PostgreSQL and MySQL include and library paths configurable
+	- make sure you can compile pgmysql without pg or my
 	- compilation on FreeBSD is probably broken right now
 	- add support for building dynamic modules again
 		.so files that can be loaded at runtime and distributed
