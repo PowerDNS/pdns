@@ -300,6 +300,18 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     soa.ttl=sd.default_ttl;
     soa.domain_id=sd.domain_id;
     soa.d_place=DNSResourceRecord::ANSWER;
+    
+    if(!sd.db) { // we got a cached answer
+      DomainInfo di;
+      if(!s_P->getBackend()->getDomainInfo(target, di) || !di.backend) {
+	L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
+	outpacket->setRcode(RCode::ServFail);
+	sendDelPacket(outpacket,outsock);
+	return 0;
+      }
+      sd.db=di.backend;
+    }
+
   }
  
   DLOG(L<<"Issuing list command - opening dedicated database connection"<<endl);

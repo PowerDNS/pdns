@@ -266,6 +266,10 @@ vector<DNSBackend *>BackendMakerClass::all()
     Returns false if there is definitely no SOA for the domain. May throw a DBException
     to indicate that the backend is currently unable to supply an answer.
 
+    WARNING: This function *may* fill out the db attribute of the SOAData, but then again,
+    it may not! If you find a zero in there, you may have been handed a non-live and cached
+    answer, in which case you need to perform a getDomainInfo call!
+
     \param domain Domain we want to get the SOA details of
     \param sd SOAData which is filled with the SOA details
 */

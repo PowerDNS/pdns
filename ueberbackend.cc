@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: ueberbackend.cc,v 1.8 2003/01/02 15:43:00 ahu Exp $ 
+// $Id: ueberbackend.cc,v 1.9 2003/01/03 23:51:54 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 
@@ -155,7 +155,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd)
     DNSPacket::fillSOAData(d_answer.content,sd);
     sd.domain_id=d_answer.domain_id;
     sd.ttl=d_answer.ttl;
-
+    sd.db=0;
     return true;
   }
     

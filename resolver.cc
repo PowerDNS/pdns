@@ -338,7 +338,7 @@ int Resolver::axfrChunk(Resolver::res_t &res)
   // d_sock is connected and is about to spit out a packet
   int len=getLength();
   if(len<0)
-    return 0;
+    throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
   
   timeoutReadn((char *)d_buf,len); 
   d_len=len;
