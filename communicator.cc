@@ -30,6 +30,8 @@
 #include "dns.hh"
 #include "arguments.hh"
 #include "session.hh"
+#include "packetcache.hh"
+
 
 
 void CommunicatorClass::addSuckRequest(const string &domain, const string &master, bool priority)
@@ -216,7 +218,8 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   // do this via the FindNS class, d_fns
   
   for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
-
+    extern PacketCache PC;
+    PC.purge(i->zone); // fixes cvstrac ticket #30
     queueNotifyDomain(i->zone,P->getBackend());
     i->backend->setNotified(i->id,i->serial); 
   }
