@@ -1,0 +1,682 @@
+PowerDNS geobackend setup notes
+===============================
+
+These are the steps I went through to set up geobackend for PowerDNS on FreeBSD
+-STABLE.  By the time you read this maybe geobackend is part of the PowerDNS
+main CVS so perhaps not much of this will apply.  In that case you should skip
+further down to the configuration part.
+
+Before I carry on I should probably point out that if you don't know how DNS
+works much, or if you have never installed PowerDNS ever before, then you
+probably won't understand any of this.  In that case you should probably go and
+do some reading/practicing before trying to set this up for yourself.  As a
+minimum of DNS knowledge I would say you need to understand:
+
+- Basically how DNS servers answer queries
+
+- What common DNS terms like "CNAME" "RR" and "SOA" mean
+
+- How to use diagnostic utilities such as "dig" to test your setup.
+
+So, how this should work on Linux or any general Unix system.  This didn't work
+for me so I ended up having to do it another way, but anyhow..
+
+1. Download PowerDNS source from http://www.powerdns.com/downloads/index.php -
+   you want the GPL sources.
+
+2. Edit configure.in in the main directory so that where it has the list of
+   backends at the bottom, you add:
+
+   modules/geobackend/Makefile
+
+3. $ cd modules
+
+   and get the geobackend:
+
+   $ cvs -d :pserver:anon@cvs.blitzed.org:/data/cvs login
+   (press <return> at password prompt)
+   $ cvs -d :pserver:anon@cvs.blitzed.org:/data/cvs co -d geobackend geo-dns
+   
+   $ cd ..
+
+   to return to top of build directory.
+
+4. Regenerate the autotools with:
+
+   $ aclocal
+   $ autoheader
+   $ automake --add-missing --copy --foreign
+   $ autoconf
+
+5. Do a ./configure with the flags you normally would use, but also
+   --with-dynmodules="geo"
+
+6. Install PowerDNS as normal for how you would normally use it.
+
+This did not work for me on FreeBSD: no matter what combination of autoconf,
+automake, libtool was installed I would always get one error or another at the
+stage where I was running those commands.  So, after a few hours of messing
+around I decided to just compile the geobackend outside of the PowerDNS source
+tree.  Probably if/when geobackend is made part of PowerDNS, this will "just
+work", but in the meantime here's what I did:
+
+1. Install PowerDNS from the port /usr/ports/dns/powerdns as normal.  Do not do
+   a "make clean" yet though!  Make sure your PowerDNS works as you'd expect
+   without any of this geobackend stuff before going further.
+
+2. Somewhere else, get the source of our geobackend as above in step 3.
+
+3. Compile geobackend:
+
+   $ c++ -I/usr/ports/dns/powerdns/work/pdns-2.9.15 -O2 -Wall -c geobackend.cc
+   $ c++ -I/usr/ports/dns/powerdns/work/pdns-2.9.15 -O2 -Wall -c ippreftree.cc
+   $ c++ ippreftree.o geobackend.o -Wl,-soname -Wl,libgeobackend.so.0 -shared -o libgeobackend.so
+
+   All of those should compile and link without error.
+
+4. Now you need to copy that shared library to the system library directory, as
+   root:
+
+   # cp libgeobackend.so /usr/local/lib/
+
+Now whichever way you managed to get libgeobackend.so compiled, you are now
+ready to configure PowerDNS.  This is what Blitzed's configuration looks like
+right now (but this is very much an experiment so things are bound to get out
+of date quickly).
+
+By the way, I could not find a SysV-style startup script installed by the
+FreeBSD port so I had to copy one from debian and put it in
+/usr/local/etc/rc.d/pdns.sh.  You can get that file here:
+http://nubian.blitzed.org/pdns.sh
+
+And another thing is that the FreeBSD port doesn't add any new users for
+PowerDNS's use.  You probably don't want to run it as root even without our
+code in it!  So be sure to add some sensible user and group like "pdns".
+
+PowerDNS Configuration
+======================
+
+Here is the relevant parts of my /usr/local/etc/pdns.conf file as running on
+FreeBSD -STABLE:
+
+# -------------------------------------------------------------------------
+
+# To make it run as user@group pdns:pdns instead of root:root
+setgid=pdns
+setuid=pdns
+
+# These totally disable query+packet caching for all zones.  This is necessary
+# because otherwise when the exact same question is asked twice in a short
+# period of time (by default, 10 seconds), the same response will be given
+# without any backends getting involved.
+#
+# This is bad for geobackend because obviously every question can potentially
+# require a new answer based only on the IP of the user's nameserver.  Now, it
+# should be noted that if you have other zones in PowerDNS then they will have
+# their query cache disabled as well.  That's not ideal, so you probably want
+# to run a separate instance of PowerDNS just for geobackend.  Maybe one day
+# there will be config options to set per-zone query caching time or something.
+query-cache-ttl=0
+cache-ttl=0
+
+# Log a lot of stuff.  Logging is slow.  We will disable this when we are happy
+# things are working. :)
+loglevel=7
+
+# But these logs are not interesting at the moment
+log-dns-details=no
+
+# This disables wildcards which is more efficient.  geobackend doesn't use
+# them, so if none of your backends need them, set this, otherwise comment it
+# out.
+wildcards=no
+
+# The geobackend
+launch=geo
+
+# The zone that your geo-balanced RR is inside of.  The whole zone has to be
+# delegated to the PowerDNS backend, so you will generally want to make up some
+# subzone of your main zone.  We chose "geo.blitzed.org".
+#
+geo-zone=geo.blitzed.org
+
+# The only parts of the SOA for "geo.blitzed.org" that apply here are the
+# master server name and the contact address.
+geo-soa-values=ns0.blitzed.org,hostmaster@blitzed.org
+
+# List of NS records of the PowerDNS servers that are authoritative for your
+# GLB zone.
+geo-ns-records=ns0.blitzed.org,ns1.blitzed.org
+
+# The TTL of the CNAME records that geobackend will return.  Since the same
+# resolver will always get the same CNAME (apart from if the director-map
+# changes) it is safe to return a reasonable TTL, so if you leave this
+# commented then a sane default will be chosen.
+#geo-ttl=3600
+
+# The TTL of the NS records that will be returned.  Leave this commented if you
+# don't understand.
+#geo-ns-ttl=86400
+
+# This is the real guts of the data that drives this backend.  This is a DNS
+# zone file for RBLDNSD, a nameserver specialised for running large DNS zones
+# typical of DNSBLs and such.  We choose it for our data because it is easier
+# to parse than the BIND-format one.
+#
+# Anyway, it comes from http://countries.nerd.dk/more.html - there are details
+# there for how to rsync your own copy.  You'll want to do that regularly,
+# every couple of days maybe.  We believe the nerd.dk guys take the netblock
+# info from Regional Internet Registries (RIRs) like RIPE, ARIN, APNIC.  From
+# that they build a big zonefile of IP/prefixlen -> ISO-country-code mappings.
+geo-ip-map-zonefile=/usr/local/etc/zz.countries.nerd.dk.rbldnsd
+
+# And finally this last directive tells the geobackend where to find the map
+# files that say a) which RR to answer for, and b) what actual resource record
+# to return for each ISO country code.  The setting here is a comma-separated
+# list of paths, each of which may either be a single map file or a directory
+# that will contain map files.  If you are only ever going to serve one RR then
+# a single file is probably better, but if you're going to serve many then a
+# directory would probably be better.  The rest of this documentation will
+# assume you chose a directory.
+geo-maps=/usr/local/etc/geo-maps
+
+# -------------------------------------------------------------------------
+
+Map configuration
+=================
+
+Above you defined a directory which should contain one file for each RR you are
+going to serve.  This section describes the format for those files.
+
+There is a perl script in the geo-dns module
+(http://cvs.blitzed.org/geo-dns/iso2region.pl) which will print out a useful
+template for starting with.  There are just two lines you MUST add for your own
+setup.  The one that Blitzed is using is here:
+http://nubian.blitzed.org/irc.geo.blitzed.org
+
+The first line you must add is the $RECORD line.  This tells the geobackend
+which RR within the geo-zone the file is for, so for example the file above
+gives:
+
+	$RECORD irc
+
+meaning it is for irc.geo.blitzed.org.
+
+The second line that must be present is the $ORIGIN line:
+
+	$ORIGIN iso.blitzed.org.
+
+The rest of this file is a list of mappings of ISO country to RR, and the
+$ORIGIN line tells the geobackend how to qualify the RRs.  Any relative RR with
+be qualified by adding a dot and then this $ORIGIN string onto it.  So all the
+relative RRs that follow are actually in the "iso.blitzed.org." zone.  If you want to refer to an RR outside the $ORIGIN, put a trailing dot.
+
+The final mandatory line is the 0 mapping:
+
+	0 pool.blitzed.org.
+
+This is the "default" mapping.  It's possible that you will get a query from an
+IP that is not represented in the nerd.dk zone.  Maybe it is a new allocation
+by a RIR, or maybe something unexpected happened like you got a query from IPv6
+or from an RFC1918 address.  Or, there could be some error elsewhere in the
+geobackend that makes it want to give up.  In any of these cases it needs to
+return a CNAME to a useful default.
+ 
+The default chosen for blitzed is "pool.blitzed.org." (note the trailing dot
+puts it outside the $ORIGIN!).  At the moment, pool.blitzed.org is a
+round-robin of A records of all our connected servers, but the best way to
+handle it is under debate.  Since it is in one of our regular zone files we
+can change it later how we want.
+
+The entire rest of the file is optional, and takes the format of an ISO country
+code (number) and an RR to map it to.  iso2region.pl will have helpfully added
+comments with the country name so you can see what is what:
+
+	# Belgium
+	56 eu
+
+Lines starting with # are comments.  That's mainly so you can tell what the ISO
+code corresponds to, and maybe later when you are tweaking where all these
+countries will go to you can add some documentation for why you did it.
+
+The "56" is the ISO country code (see
+http://www.iso.ch/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/index.html)
+for Belgium.  The "eu" tells the geobackend that if a query for
+irc.geo.blitzed.org should come in from someone in Belgium, then it should
+respond with a CNAME for "eu.iso.blitzed.org".  That's it.  That is the RR that
+gets sent back.  Every other line in this file is the same, just code->RR maps.
+
+At this point you might be wondering when the user gets the actual IP address
+sent to them.  The answer is that we have chosen to make our geobackend only
+respond with CNAMEs to other RRs that are assumed to be hosted elsewhere in
+DNS.  Our main blitzed.org zone is hosted in bind servers like it has been for
+years.  In that zone we have entries for every one of the RRs that appears on
+the right hand side in the director-map.  A list of those RRs is as follows:
+
+an.iso.blitzed.org.
+af.iso.blitzed.org.
+as.iso.blitzed.org.
+eu.iso.blitzed.org.
+na.iso.blitzed.org.
+oc.iso.blitzed.org.
+sa.iso.blitzed.org.
+
+These correspond to the ISO names for the regions/continents (Antarctica,
+Africa, Asia, Europe, North America, Oceania, South America) and are
+represented in our DNS at the moment by either a list of A records of servers
+"near" there, or else a CNAME to a "nearby" region.  For example we have no
+servers in Antarctica or Asia.  We just CNAME those to "na.iso.blitzed.org." to
+send those users to North American servers instead.  Doing it this way is just
+our first attempt, we are still experimenting and might decide to do it
+different.  All you need to know is that the geobackend gives the CNAMEs you
+tell it to give, it's your business what those CNAMEs are and what they end up
+resolving to.
+
+DNS configuration
+=================
+
+Time to configure the things that go into your existing DNS setup:
+
+1. The geographically load-balanced zone needs to be delegated to your PowerDNS
+   servers.  For Blitzed we chose "geo.blitzed.org.", so:
+
+   geo		NS	ns0.blitzed.org.
+   geo		NS	ns1.blitzed.org.
+   geo		NS	ns2.blitzed.org.
+
+2. The lists of servers that correspond to each CNAME that your director-map
+   can possibly come up with.  The above configuration can only answer one of:
+
+   pool.blitzed.org.
+   an.iso.blitzed.org.
+   af.iso.blitzed.org.
+   as.iso.blitzed.org.
+   eu.iso.blitzed.org.
+   na.iso.blitzed.org.
+   oc.iso.blitzed.org.
+   sa.iso.blitzed.org.
+
+   We have no servers in Antarctica so we just send that to North America:
+
+   an.iso	CNAME	na.iso.blitzed.org.
+
+   Other regions that actually have servers light look like:
+
+   na.iso	A	1.2.3.4	; Some server in North America
+   na.iso	A	2.3.4.1 ; Some other server in North America
+
+3. Eventually you probably will want to use a more friendly name than something
+   like "irc.geo.blitzed.org.".  At that point you could just do the equivalent
+   of:
+
+   irc	CNAME	irc.geo.blitzed.org.
+
+   BEAR IN MIND THAT THERE MIGHT BE BUGS IN THIS BACKEND AND IF YOU DO THIS TO
+   YOUR MAIN POOL AND IT STOPS RESPONDING, SENDS YOUR USERS TO THE WRONG SERVERS,
+   OR EVEN TO THE WRONG NETWORKS, OR ANYTHING ELSE UNFORTUNATE HAPPENS AT ALL,
+   THEN THAT'S JUST TOUGH LUCK AS THIS CODE COMES WITH NO WARRANTY, GUARANTEE
+   OR ASSURANCE OF ANY KIND!
+
+Testing
+=======
+ 
+OK!  If you're still awake after all that, it is ready to test.
+
+By the way, at the moment some of the logging from the geobackend is a severity
+"debug" (facility "daemon" if using FreeBSD port).  The default FreeBSD -STABLE
+install does not log daemon.debug to any file.  If you don't add daemon.debug
+to your /etc/syslog.conf then you might not see some of the logs I shall talk
+about later.  Most logging will be removed or made optional anyway as it slows
+things down.
+
+- Start PowerDNS
+
+  # /usr/local/etc/rc.d/pdns.sh start
+
+- Check your logs!  You should see something like this:
+
+  Feb 26 16:07:45 nubian pdns[4661]: PowerDNS 2.9.15 (C) 2001-2004 PowerDNS.COM BV (Feb  9 2004, 23:40:35) starting up
+  Feb 26 16:07:45 nubian pdns[4661]: PowerDNS comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2.
+  Feb 26 16:07:45 nubian pdns[4661]: Set effective group id to 1023
+  Feb 26 16:07:45 nubian pdns[4661]: Set effective user id to 1023
+  Feb 26 16:07:45 nubian pdns[4661]: Creating backend connection for TCP
+  Feb 26 16:07:45 nubian pdns[4661]: [geobackend] Parsing IP map zonefile
+  Feb 26 16:07:47 nubian pdns[4661]: [geobackend] Finished parsing IP map zonefile: added 53072 prefixes, stored in 132525 nodes using 1590300 bytes of memory
+  Feb 26 16:07:47 nubian pdns[4661]: [geobackend] Parsing director map /usr/local/etc/geo-maps/irc.geo.blitzed.org
+  Feb 26 16:07:47 nubian pdns[4661]: [geobackend] Finished parsing 2 director map files, 0 failures
+  Feb 26 16:07:47 nubian pdns[4661]: About to create 3 backend threads
+  Feb 26 16:07:47 nubian pdns[4661]: Done launching threads, ready to distribute questions
+
+  As long as there were no errors, the server is ready, geobackend is probably
+  working.  You should now test with a suitable diagnostic tool:
+
+  $ dig irc.geo.blitzed.org.
+
+  ; <<>> DiG 9.2.2 <<>> irc.geo.blitzed.org.
+  ;; global options:  printcmd
+  ;; Got answer:
+  ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59602
+  ;; flags: qr rd ra; QUERY: 1, ANSWER: 6, AUTHORITY: 5, ADDITIONAL: 5
+
+  ;; QUESTION SECTION:
+  ;irc.geo.blitzed.org.           IN      A
+
+  ;; ANSWER SECTION:
+  irc.geo.blitzed.org.    0       IN      CNAME   eu.iso.blitzed.org.
+  eu.iso.blitzed.org.     1       IN      A       195.92.253.3
+  eu.iso.blitzed.org.     1       IN      A       213.193.225.252
+  eu.iso.blitzed.org.     1       IN      A       62.80.124.155
+  eu.iso.blitzed.org.     1       IN      A       80.196.158.72
+  eu.iso.blitzed.org.     1       IN      A       195.22.74.199
+
+  ;; AUTHORITY SECTION:
+  blitzed.org.            3600    IN      NS      sou.nameserver.net.
+  blitzed.org.            3600    IN      NS      bos.nameserver.net.
+  blitzed.org.            3600    IN      NS      iad.nameserver.net.
+  blitzed.org.            3600    IN      NS      phl.nameserver.net.
+  blitzed.org.            3600    IN      NS      sjc.nameserver.net.
+
+  ;; ADDITIONAL SECTION:
+  bos.nameserver.net.     43200   IN      A       203.20.52.5
+  iad.nameserver.net.     43200   IN      A       192.148.252.171
+  phl.nameserver.net.     7200    IN      A       203.56.139.102
+  sjc.nameserver.net.     43200   IN      A       205.158.174.201
+  sou.nameserver.net.     34825   IN      A       194.196.163.7
+
+  ;; Query time: 389 msec
+  ;; SERVER: 192.168.0.5#53(192.168.0.5)
+  ;; WHEN: Tue Feb 10 03:10:14 2004
+  ;; MSG SIZE  rcvd: 322
+
+  What does this show?  Well first of all it tells us that we looked for the A
+  record of "irc.geo.blitzed.org." (A records are the default RR for dig).
+  What we actually got back was a CNAME to "eu.iso.blitzed.org."  At that point
+  the work of geobackend and our PowerDNS server as a whole is done.  All it is
+  designed to do is return a CNAME based on the location of the server doing
+  the query.  The server I did that from is in UK, so a response of
+  "eu.iso.blitzed.org." is correct.
+
+  The rest of the data comes from the normal BIND9 nameservers that are
+  authoritative for the "blitzed.org." zone, in this case a list of A records
+  corresponding to our EU servers.  Finally the list of authoritative servers
+  for "blitzed.org." is given, those same BIND9 boxes.
+
+  Meanwhile in the syslog of nubian, we have:
+
+  Feb 10 03:07:02 nubian pdns[32106]: [geobackend] Serving irc.geo.blitzed.org CNAME eu.iso.blitzed.org to 82.195.224.5 (756)
+
+  Here you can see that 82.195.224.5 asked for "irc.geo.blitzed.org." and was
+  served the mapping for ISO code 756: "eu.iso.blitzed.org.".  This log notice
+  will be useful for debugging and refining the director-map by hand, but
+  later it will probably be removed or made optional.
+
+Ongoing maintenance
+===================
+
+New IPs are regularly allocated, also there may end up being corrections to the
+nerd.dk zones, so you should arrange to rsync this file every so often.  I'm
+guessing once a week would be adequate.  You may not be satisfied with your
+first try at the director-map either, so from time to time you may make
+changes.  You might also add more map files to your geo-maps directory.
+Anytime those changes happen you will need to tell the geobackend to reread
+them.  At the moment the best way to do this is:
+
+# pdns_control rediscover
+
+Feb 26 16:10:57 nubian pdns[4661]: Rediscovery was requested
+Feb 26 16:10:57 nubian pdns[4661]: [geobackend] Parsing IP map zonefile
+Feb 26 16:10:58 nubian pdns[4661]: [geobackend] Finished parsing IP map zonefile: added 53072 prefixes, stored in 132525 nodes using 1590300 bytes of memory
+Feb 26 16:10:58 nubian pdns[4661]: [geobackend] Parsing director map /usr/local/etc/geo-maps/irc.geo.blitzed.org
+Feb 26 16:10:58 nubian pdns[4661]: [geobackend] Parsing director map /usr/local/etc/geo-maps/irc.strugglers.net
+Feb 26 16:10:58 nubian pdns[4661]: [geobackend] Finished parsing 2 director map files, 0 failures
+
+About recursive nameservers
+===========================
+
+There is a small but potentially confusing gotcha in all this regarding
+recursive nameservers.
+
+Normally the authoritative nameservers for your regular domain will not allow
+recursion, that is, they will return data only for the domains they are
+authoritative for, returning pointers to nameservers for everything else.
+
+Here's an example of an authoritative server for blitzed.org that does not
+allow recursion:
+
+$ dig www.bbc.co.uk @sou.nameserver.net
+
+; <<>> DiG 9.2.3 <<>> www.bbc.co.uk @sou.nameserver.net
+;; global options:  printcmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 38059
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 7, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;www.bbc.co.uk.                 IN      A
+
+;; AUTHORITY SECTION:
+uk.                     166680  IN      NS      NS1.NIC.uk.
+uk.                     166680  IN      NS      NS2.NIC.uk.
+uk.                     166680  IN      NS      NS3.NIC.uk.
+uk.                     166680  IN      NS      NS4.NIC.uk.
+uk.                     166680  IN      NS      NS5.NIC.uk.
+uk.                     166680  IN      NS      NSA.NIC.uk.
+uk.                     166680  IN      NS      NSB.NIC.uk.
+
+;; Query time: 56 msec
+;; SERVER: 194.196.163.7#53(sou.nameserver.net)
+;; WHEN: Mon Feb 23 02:22:16 2004
+;; MSG SIZE  rcvd: 161
+
+Note in the flags part the "rd", which means "recursion desired".  Since this
+server does not offer recursion to me, all it does is pass back the hostname of
+the nameservers that can further answer my question (in this case the list of
+nic.uk servers).  My own resolver would then carry on asking questions, which
+is how it should be.
+
+Look what happens if I pick a server that does allow recursion:
+
+$ dig www.bbc.co.uk @bos.nameserver.net
+
+; <<>> DiG 9.2.3 <<>> www.bbc.co.uk @bos.nameserver.net
+;; global options:  printcmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 51313
+;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 2, ADDITIONAL: 2
+
+;; QUESTION SECTION:
+;www.bbc.co.uk.                 IN      A
+
+;; ANSWER SECTION:
+www.bbc.co.uk.          899     IN      CNAME   www.bbc.net.uk.
+www.bbc.net.uk.         300     IN      A       212.58.240.121
+
+;; AUTHORITY SECTION:
+bbc.net.uk.             148544  IN      NS      ns0.thny.bbc.co.uk.
+bbc.net.uk.             148544  IN      NS      ns0.thdo.bbc.co.uk.
+
+;; ADDITIONAL SECTION:
+ns0.thny.bbc.co.uk.     62144   IN      A       38.160.150.20
+ns0.thdo.bbc.co.uk.     62144   IN      A       212.58.224.20
+
+;; Query time: 321 msec
+;; SERVER: 203.20.52.5#53(bos.nameserver.net)
+;; WHEN: Mon Feb 23 02:27:14 2004
+;; MSG SIZE  rcvd: 164
+
+Note the extra flag that appeared, "ra".  This is "recursion available", and
+the server true to its word has gone and got the information for us.
+
+Normally this probably would not be noticeable.  In most cases it does not
+matter if your own resolver does the work or if some other server does.  This
+geo-dns project is based totally on the IP address of the server that asks the
+question, however, so for this application it is critical.
+
+As far as geo-dns is concerned, you cannot have any nameserver that allows
+recursion be authoritative for your main domain.  If you do, then any query
+which hits this server will cause it to go out and get the answer itself.  It
+will hand back answers that are based on its own location, instead of the
+location of the client.  After wondering why too many people were getting
+answers based on the location of bos.nameserver.net instead of their own
+location, we finally worked out it had recursion enabled.  This note is to save
+you the same hassle.
+
+It is generally recommended anyway that nameservers which are meant to be
+authoritative for domains do not have recursion enabled
+(http://www.isc.org/pubs/tn/isc-tn-2002-2.txt), but in this case it is an
+absolute requirement if you wish to get any sensible results.  Check they are
+not allowing recursion by use of dig as above before setting up this backend.
+
+(The specific example of bos.nameserver.net has since been fixed (had recursion
+disabled) so you will not be able to repeat this example)
+
+Hosting multiple domains
+========================
+
+You may have noticed that all of the instructions so far have talked only of
+the single example domain, geo.blitzed.org, and may be wondering how to serve
+multiple zones.  The answer is, you don't need to.  The only thing you want to
+serve is individual RRs, and this geobackend does allow you to serve multiple
+of these just by adding files to the geo-maps directory.
+
+So, assume you now want to apply geo-dns to the RR irc.strugglers.net,  You might
+add a new director map to your geo-maps directory named "irc.strugglers.net"
+(name doesn't matter, just an example).  Inside this file you would have
+something like:
+
+	$RECORD irc.strugglers.net
+	$ORIGIN iso.strugglers.net.
+	0 bar.example.com.
+	# List of code->RR maps follow, unqualified RRs are inside
+	# iso.strugglers.net
+
+Once you now do a "pdns_control rediscover", your geobackend will be configured
+to answer for irc.strugglers.net.geo.blitzed.org.  Now the people who run
+strugglers.net's dns just need to add a handy CNAME in their example.com zone
+file:
+
+irc	CNAME	irc.strugglers.net.geo.blitzed.org.
+
+You can check it will work before they add the CNAME:
+
+	$ dig +norecurse irc.strugglers.net.geo.blitzed.org. @ns0.blitzed.org
+
+	; <<>> DiG 9.2.3 <<>> +norecurse irc.strugglers.net.geo.blitzed.org. @ns0.blitzed.org
+	;; global options:  printcmd
+	;; Got answer:
+	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 3592
+	;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+	;; QUESTION SECTION:
+	;irc.strugglers.net.geo.blitzed.org. IN A
+
+	;; ANSWER SECTION:
+	irc.strugglers.net.geo.blitzed.org. 3600 IN CNAME eu.iso.blitzed.org.
+
+	;; Query time: 234 msec
+	;; SERVER: 82.195.234.5#53(ns0.blitzed.org)
+	;; WHEN: Thu Feb 26 15:45:36 2004
+	;; MSG SIZE  rcvd: 73
+
+so that is how you can geo-dnsify RRs in multiple zones.
+
+Other questions, corrections, etc.?
+===================================
+
+Please subscribe to our "geo" list from http://lists.blitzed.org/listinfo/geo
+and tell us about it.  Tell us about how you use this stuff too, we're
+interested in people's experiences.
+
+All this is too much for you?
+=============================
+
+We're still beta-testing this ourselves.  As long as it doesn't place too much
+load on our servers we are open to the idea of doing the PowerDNS part of this
+for you as well.  We're not ready to do that yet; it will require more
+development and specification of how you would provide your own director-maps
+etc..  If you are interested then please subscribe to the geo list and help us
+work out the details.
+
+FAQ
+===
+
+Q1. My IRC network is based mostly in one country (e.g. Australia, Brazil, ...)
+    so all my users are from one ISO code and this isn't so useful to me, what
+    can I do?
+
+A1. Well, one of the assumptions made during the design of this backend is that
+    latency and geographical distance doesn't have a good relationship at small
+    scales, even within North America or Europe it probably does not *always*
+    follow that short distance == low latency.
+
+    To improve things further I think you will need to do actual measurements.
+    Or you could look at the amount of hops in the AS path from your client to
+    each of your servers.  Maybe you can come up with more ideas, if so we'd
+    like to hear.
+
+    However, if you are able to get more detailed geographic info from
+    somewhere then you could still feed it into this backend, you'd just have
+    to give up on the ISO country code model.  I can really only see this
+    working for very big countries like Australia and North America.
+
+    Remember also that your servers probably are not 100% reliable!  Say you
+    have 2 US servers; one in California and one in New York.  You find some
+    way to split the US up into two halves with one half going to California
+    and one to New York.  Now suppose the New York server dies.  Half your US
+    users are still being directed there because that's the nearest one!  Worse
+    still, those users probably think that what they are connecting to is a
+    *random* server, yet every single time they get will directed to a dead
+    server.  They may conclude your entire network is dead.
+
+    You would be better advised IMHO to just have one US pool with both servers
+    in.  If either dies, the irc clients will make a few more attempts and get
+    the other.  It might add a few more ms to the RTT, but it's better than not
+    being able to get on at all, and it's better than ending up on a non-US
+    server.  Maybe one day we'll do a high-availability backend too, though. :)
+
+
+Q2. Why is this tied to IRC?  Can I use it for other things?
+
+A2. Yes!  The code itself is not restricted in usefulness to only IRC, it's
+    just that IRC is a good example of a situation where you have a service
+    that is commonly split across many widely-separated servers, lots of widely
+    spread clients, and a serious lack of money for "real" solutions.
+
+    It wouldn't be any harder to use it for things like HTTP or many other
+    protocols.
+
+
+Q3. I don't want to run PowerDNS, will you make a custom backend for BIND9?
+
+A3. Probably not unless you're willing to pay or induce us in other ways!
+    PowerDNS is fun, you should try it, maybe you can make it work with only
+    one IP address by use of a forward zone in BIND and putting PowerDNS on a
+    strange port.
+
+
+Q4. I have some ideas for other metrics you could use instead of origin
+    country, like server load or user count, or ... will you implement that
+    too?
+
+A4: In another backend maybe.  Tell us about your ideas, if you can make them
+    sound interesting and useful then maybe we will.
+
+Q5. I serve lots of RRs out of my geobackend and with lots of nameservers I
+    find it hard to keep my geo-maps in sync between them all.  Any hints?
+
+A5. At the moment we use rsync like this:
+
+    07 04 * * 0     pdns    rsync -t rsync://calzone.hestdesign.com/countries/zz.countries.nerd.dk.rbldnsd /usr/local/etc/powerdns/zz.countries.nerd.dk.rbldnsd && /usr/local/bin/pdns_control rediscover > /dev/null
+    */15 * * * *    pdns    NR=$(rsync -rt --delete --stats rsync://rsync.blitzed.org/geo/ /usr/local/etc/powerdns/directormaps | awk '/Number of files transferred/ { print $5 }'); [ $NR != "0" ] && /usr/local/bin/pdns_control rediscover > /dev/null
+
+    Which will take care of getting a new nerd.dk zone weekly and will sync the
+    geo-maps every 15 minutes, doing a rediscover if files were transferred.
+
+Contact
+=======
+
+Author: Andy Smith <grifferz@blitzed.org> but please direct any questions to
+the geo list thanks!
+
+http://lists.blitzed.org/listinfo/geo
+
