@@ -3,7 +3,7 @@
 tmpdir		:= $(shell pwd)/debian/tmp
 
 clean:
-	rm -f debian/files debian/substvars
+	rm -f debian/files debian/substvars stamp-build
 	rm -rf "$(tmpdir)"
 	-make distclean
 	-make -C pdns/docs clean

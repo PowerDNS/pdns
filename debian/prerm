@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 set -e
 
 update_docbase() {
@@ -11,4 +10,5 @@ update_docbase() {
 
 if [ "$1" = "remove" ] ; then
 	update_docbase
+	/etc/init.d/pdns stop
 fi
