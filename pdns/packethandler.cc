@@ -69,7 +69,12 @@ int PacketHandler::findMboxFW(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
   bool wedoforward=false;
 
-  B.lookup("MBOXFW",string("%@")+target,p);
+  SOAData sd;
+  int zoneId;
+  if(!getAuth(p, &sd, target, &zoneId))
+    return false;
+
+  B.lookup("MBOXFW",string("%@")+target,p, zoneId);
       
   while(B.get(rr))
     wedoforward=true;
@@ -148,7 +153,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.8 2003/01/23 15:34:53 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.9 2003/02/04 16:33:47 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -164,7 +169,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.8 2003/01/23 15:34:53 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.9 2003/02/04 16:33:47 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -210,7 +215,7 @@ bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int
   
   unsigned int spos=0;
   string subdomain;
-
+  // easy FIXME: convert this to chopOff
   while(spos<=parts.size()) {
     if(spos<parts.size()) { // www.us.powerdns.com -> us.powerdns.com -> powerdns.com -> com ->
       subdomain=parts[spos++];
