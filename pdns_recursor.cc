@@ -200,7 +200,7 @@ void startDoResolve(void *p)
     if(!quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
       L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
-	sr.d_throttledqueries<<" throttled, rcode="<<res<<endl;
+	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, rcode="<<res<<endl;
     }
     
     sr.d_outqueries ? RC.cacheMisses++ : RC.cacheHits++; 
