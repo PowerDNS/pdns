@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2003  PowerDNS.COM BV
+    Copyright (C) 2002-2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend2.cc,v 1.6 2003/10/04 14:15:46 ahu Exp $ 
+
 #include <errno.h>
 #include <string>
 #include <map>
@@ -46,7 +46,10 @@ using namespace std;
 
 /** new scheme of things:
     we have zone-id map
-    a zone-id has a vector of DNSResourceRecords */
+    a zone-id has a vector of DNSResourceRecords 
+    on start of query, we find the best zone to answer from
+
+    handle::get walks this vector linearly... */
 
 map<string,int> Bind2Backend::s_name_id_map;
 map<u_int32_t,BB2DomainInfo* > Bind2Backend::s_id_zone_map;
@@ -114,7 +117,6 @@ void Bind2Backend::setFresh(u_int32_t domain_id)
 
 bool Bind2Backend::startTransaction(const string &qname, int id)
 {
-
   BB2DomainInfo &bbd=*s_id_zone_map[d_transaction_id=id];
   d_transaction_tmpname=bbd.d_filename+"."+itoa(random());
   d_of=new ofstream(d_transaction_tmpname.c_str());
@@ -170,7 +172,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
 
   string content=r.content;
 
-  // SOA needs stripping too! XXX FIXME
+  // SOA needs stripping too! XXX FIXME - also, this should not be here I think
   switch(r.qtype.getCode()) {
   case QType::TXT:
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t\""<<r.content<<"\""<<endl;
@@ -282,7 +284,7 @@ static string canonic(string ret)
   for(i=ret.begin();
       i!=ret.end();
       ++i)
-    ; // *i=*i; //tolower(*i);
+    *i=tolower(*i);
 
 
   if(*(i-1)=='.')
@@ -298,7 +300,7 @@ void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, con
   rr.domain_id=id;
   rr.qname=canonic(qnameu);
   rr.qtype=qtype;
-  rr.content=content;
+  rr.content=canonic(content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
   rr.ttl=ttl;
   rr.priority=prio;
   nbbds[id]->d_records->push_back(rr);
@@ -383,8 +385,6 @@ static void callback(unsigned int domain_id, const string &domain, const string 
   us->insert(domain_id,domain,qtype,content,ttl,prio);
 }
 
-
-
 Bind2Backend::Bind2Backend(const string &suffix)
 {
 #if __GNUC__ >= 3
@@ -426,7 +426,6 @@ Bind2Backend::Bind2Backend(const string &suffix)
   }
   
   loadConfig();
-  
 
   extern DynListener *dl;
   us=this;
@@ -586,7 +585,6 @@ void Bind2Backend::nukeZoneRecords(BB2DomainInfo *bbd)
 /** Must be called with bbd locked already. Will not be unlocked on return, is your own problem.
     Does not throw errors or anything, may update d_status however */
 
-
 void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 {
   nbbds.clear();
@@ -625,14 +623,16 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int zoneId )
 {
   d_handle=new Bind2Backend::handle;
-  d_handle->d_records=new vector<DNSResourceRecord>; // WRONG
-  //  cout<<"Lookup! for "<<qname<<endl;
-  string domain=qname;
+
+  string domain=toLower(qname);
+
+  if(arg().mustDo("query-logging"))
+    L<<"Lookup for '"<<qtype.getName()<<"' of '"<<domain<<"'"<<endl;
+
   while(!s_name_id_map.count(domain) && chopOff(domain));
 
   if(!s_name_id_map.count(domain)) {
     //    cout<<"no such domain: '"<<qname<<"'"<<endl;
-    d_handle->d_iter=d_handle->d_records->end();  // WRONG
     d_handle->d_list=false;
     d_handle->d_bbd=0;
     return;
@@ -640,7 +640,6 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   unsigned int id=s_name_id_map[domain];
 
   //  cout<<"domain: '"<<domain<<"', id="<<id<<endl;
-  
 
   DLOG(L<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
        qname<<endl);
@@ -648,23 +647,22 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   d_handle->qname=qname;
   d_handle->parent=this;
   d_handle->qtype=qtype;
-  string compressed=toLower(qname);
-  d_handle->d_records=s_id_zone_map[id]->d_records;
+
+  d_handle->d_records=s_id_zone_map[id]->d_records; // give it a copy
   d_handle->d_bbd=0;
   if(!d_handle->d_records->empty()) {
     BB2DomainInfo& bbd=*s_id_zone_map[id];
     if(!bbd.d_loaded) {
       delete d_handle;
-      throw DBException("Zone temporarily not available (file missing, or master dead)"); // fuck
+      throw DBException("Zone temporarily not available (file missing, or master dead)"); // fsck
     }
 
     if(!bbd.tryRLock()) {
       L<<Logger::Warning<<"Can't get read lock on zone '"<<bbd.d_name<<"'"<<endl;
       delete d_handle;
-      throw DBException("Temporarily unavailable due to a zone lock"); // fuck
+      throw DBException("Temporarily unavailable due to a zone lock"); // fsck
     }
-      
-
+    
     if(!bbd.current()) {
       L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
       queueReload(&bbd);
@@ -681,16 +679,26 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
 Bind2Backend::handle::handle()
 {
   d_bbd=0;
+  d_records=0;
   count=0;
 }
 
 bool Bind2Backend::get(DNSResourceRecord &r)
 {
+  if(!d_handle->d_records)
+    return false;
+
   if(!d_handle->get(r)) {
     delete d_handle;
     d_handle=0;
+
+    if(arg().mustDo("query-logging"))
+      L<<"End of answers"<<endl;
+
     return false;
   }
+  if(arg().mustDo("query-logging"))
+    L<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"'"<<endl;
   return true;
 }
 
@@ -707,7 +715,8 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   DLOG(L << "Bind2Backend get() was called for "<<qtype.getName() << " record  for "<<
        qname<<"- "<<d_records->size()<<" available!"<<endl);
   
-  while(d_iter!=d_records->end() && (d_iter->qname!=qname || !(qtype=="ANY" || (d_iter)->qtype==qtype))) {
+  // this is a linear walk!!! XXX FIXME
+  while(d_iter!=d_records->end() && (strcasecmp(d_iter->qname.c_str(),qname.c_str()) || !(qtype=="ANY" || (d_iter)->qtype==qtype))) {
     DLOG(L<<Logger::Warning<<"Skipped "<<qname<<"/"<<QType(d_iter->qtype).getName()<<": '"<<d_iter->content<<"'"<<endl);
     d_iter++;
   }
@@ -720,7 +729,7 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   }
   DLOG(L << "Bind2Backend get() returning a rr with a "<<QType(d_iter->qtype).getCode()<<endl);
 
-  r.qname=qname; // fill this in
+  r.qname=qname;
   
   r.content=(d_iter)->content;
   r.domain_id=(d_iter)->domain_id;
