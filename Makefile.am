@@ -4,7 +4,8 @@ AM_CPPFLAGS=-Ibackends/bind
 EXTRA_DIST = codedocs/Makefile codedocs/doxygen.conf docs/Makefile \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
 docs/powerdns-overview.sgml docs/powerdns-technical.sgml  \
- release-scripts/ docs/pdns.sgml mtasker.cc 
+ release-scripts/ docs/pdns.sgml mtasker.cc \
+docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
 
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
@@ -30,7 +31,7 @@ backends/bind/bindparser.cc backends/bind/bindlexer.c \
 backends/bind/huffman.cc
 
 #
-pdns_server_LDFLAGS=@DYNLINKFLAGS@ @LIBDL@ @moduleobjects@ @modulelibs@ 
+pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ 
 pdns_server_INCLUDES=
 
 
