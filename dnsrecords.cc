@@ -115,15 +115,7 @@ public:
 
   string getZoneRepresentation() const
   {
-    ostringstream str;
-   
-    /*
-    str<<"IN\t";
-
-    str<<"\t";
-    */
-
-    return str.str();
+    return d_nsname;
   }
 
 private:

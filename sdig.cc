@@ -61,7 +61,7 @@ try
 
   MOADNSParser mdp(reply);
   cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
-  cout<<"Rcode: "<<mdp.d_header.rcode<<", RA: "<<mdp.d_header.ra<<", RD: "<<mdp.d_header.rd;
+  cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd;
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
     shared_ptr<PacketReader> pr=mdp.getPacketReader(i->second);
