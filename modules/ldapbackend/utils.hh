@@ -39,28 +39,34 @@ inline string ptr2ip6( vector<string>& parts )
 	parts.pop_back();
 	parts.pop_back();
 
-	while( i < 3 && parts.size() > 1 )
+	while( i < 3 && parts.size() > 1 && parts.back() == "0" )
 	{
-		if( parts.back() != "0" ) { ip += parts.back(); }
 		parts.pop_back();
 		i++;
 	}
-	ip += parts.back();
-	parts.pop_back();
+
+	while( i++ < 4 && !parts.empty() )
+	{
+		ip += parts.back();
+		parts.pop_back();
+	}
 
 	while( !parts.empty() )
 	{
 		i = 0;
 		ip += ":";
 
-		while( i < 3 && parts.size() > 1 )
+		while( i < 3 && parts.size() > 1 && parts.back() == "0" )
 		{
-			if( parts.back() != "0" ) { ip += parts.back(); }
 			parts.pop_back();
 			i++;
 		}
-		ip += parts.back();
-		parts.pop_back();
+
+		while( i++ < 4 && !parts.empty() )
+		{
+			ip += parts.back();
+			parts.pop_back();
+		}
 	}
 
 	return ip;

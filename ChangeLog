@@ -12,6 +12,10 @@ changes since 2.9.15:
 		throttle well enough
 	- qgen tool
 	- updated b.root-servers.net address
+	- SOA serials & sundry are unsigned, itoa messed that op (Michel Stol)
+	- chroot now no longer needs so many files in the chroot
+	- cleanup the controlsocket when not in use anymore
+	- LDAP cleanup, better random shuffling of hosts
 
 changes since 2.9.14:
 	- you can now do this:
