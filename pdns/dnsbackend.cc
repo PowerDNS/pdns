@@ -25,7 +25,6 @@
 #include <sys/types.h>
 #include "dnspacket.hh"
 
-
 string DNSBackend::getRemote(DNSPacket *p)
 {
   return p->getRemote();
