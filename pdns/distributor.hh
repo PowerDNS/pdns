@@ -260,7 +260,20 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
   }
 
   DLOG(L<<"Distributor has "<<Backend::numRunning()<<" threads available"<<endl);
-  if(Backend::numRunning()<d_num_threads && time(0)-d_last_started>5) { // add one
+
+  /* the line below is a bit difficult.
+     What happens is that we have a goal for the number of running distributor threads. Furthermore, other
+     parts of PowerDNS also start backends, which get included in this cound.
+
+     If less than two threads now die, no new ones will be spawned.
+
+     The solutionis to add '+2' below, but it is not a pretty solution. Better solution is
+     to only account the number of threads within the Distributor, and not in the backend.
+
+     XXX FIXME
+  */
+
+  if(Backend::numRunning() < d_num_threads+2 && time(0)-d_last_started>5) { 
     d_last_started=time(0);
     L<<"Distributor misses a thread ("<<Backend::numRunning()<<"<"<<d_num_threads<<"), spawning new one"<<endl;
     pthread_t tid;
