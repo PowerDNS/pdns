@@ -103,7 +103,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
   if(!recurseFor(p))
     return false;
 
-  int id;
+  u_int16_t id;
   {
     Lock l(&d_lock);
     id=getID_locked();

@@ -111,7 +111,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	  if(!endsOn(k->content,subdomain) || getCache(k->content,QType(QType::A),&aset) > 5) {
 	    bestns.insert(*k);
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
-	    LOG<<prefix<<qname<<": endson: "<<endsOn(k->content,subdomain);
+	    LOG<<prefix<<qname<<": endson: "<<endsOn(k->content,subdomain)<<endl;
 	    if(!aset.empty())
 	      LOG<<", in cache, ttl="<<((time_t)aset.begin()->ttl-time(0))<<endl;
 	    else
