@@ -2,8 +2,8 @@
 
 tmpdir		:= $(shell pwd)/debian/tmp
 be_tmpdir	:= $(shell pwd)/debian/tmp-backend
-backends	:= ldap mysql pipe xdb gmysql gpgsql gsqlite
-debs		:= ldap mysql pipe xdb pgsql sqlite
+backends	:= ldap mysql pipe xdb gmysql gpgsql gsqlite 
+debs		:= ldap mysql pipe xdb pgsql sqlite 
 
 binary-doc:
 	-make -C pdns/docs html/index.html
@@ -67,7 +67,7 @@ build stamp-build: configure
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
 		--with-dynmodules="$(backends)" \
-		--with-modules="" \
+		--with-modules="geo" \
 		--enable-recursor
 	make
 	touch stamp-build
