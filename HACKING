@@ -10,8 +10,5 @@ Automake 1.6 is (almost) required.
 
 Send any patches you may have to the mailinglist:
                         pdns-dev@mailman.powerdns.com
-Preferred form is:
-
-$ cvs -z3 diff -uBb
 
 Thanks!
