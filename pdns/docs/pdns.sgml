@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/07 23:31:28 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/08 13:45:30 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3551,10 +3551,10 @@ local0.err                        /var/log/pdns.err
 	    </para>
 	  </listitem></varlistentry>
 	<varlistentry>
-	  <term>PDNS does not operate as a 'slave' server with all backends</term>
+	  <term>PDNS does not operate as a 'slave' or 'master' server with all backends</term>
 	  <listitem>
 	    <para>
-	      Only the PostgreSQL backend has, of version 1.99.9, the ability to act as a slave.
+	      Only the Generic PostgreSQL, Generic MySQL and BIND backends have the ability to act as master or slave.
 	    </para>
 	  </listitem>
 	</varlistentry>

@@ -42,6 +42,8 @@
 #include <string>
 #include <ctype.h>
 using namespace std;
+bool chopOff(string &domain);
+bool endsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
 int matchNetmask(const char *address, const char *omask);
