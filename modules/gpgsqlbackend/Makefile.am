@@ -1,5 +1,6 @@
 lib_LTLIBRARIES = libgpgsqlbackend.la
 
+EXTRA_DIST=OBJECTFILES OBJECTLIBS
 INCLUDES=-I@PGSQL_incdir@
 
 libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \

@@ -1,8 +1,9 @@
 /* Copyright 200w Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: spgsql.cc,v 1.1 2002/12/16 18:02:09 ahu Exp $  */
-#include "spgsql.hh"
+   $Id: spgsql.cc,v 1.2 2002/12/17 10:39:53 ahu Exp $  */
 #include <string>
+#include "spgsql.hh"
+
 #include <iostream>
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"

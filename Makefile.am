@@ -1,4 +1,4 @@
-SUBDIRS=modules pdns
+SUBDIRS=modules @programdescend@
 EXTRA_DIST=TODO WARNING README HACKING INSTALL ChangeLog debian pdns.spec
 
 man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdns_server.8 pdns/docs/zone2sql.8 

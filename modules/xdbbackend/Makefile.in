@@ -13,11 +13,6 @@
 
 @SET_MAKE@
 
-#if !ALLSTATIC
-#install-exec-local:
-#	install .lib/libpipebackend.so.0.0.0 @libdir@
-#endif
-
 SHELL = @SHELL@
 
 srcdir = @srcdir@
@@ -94,6 +89,7 @@ install_sh = @install_sh@
 moduledirs = @moduledirs@
 modulelibs = @modulelibs@
 moduleobjects = @moduleobjects@
+programdescend = @programdescend@
 socketdir = @socketdir@
 
 EXTRA_DIST = OBJECTFILES OBJECTLIBS 
@@ -101,7 +97,7 @@ bin_PROGRAMS = xdb-fill
 
 lib_LTLIBRARIES = libxdbbackend.la
 
-libxdbbackend_la_SOURCES = xdbbackend.cc xdbbackend.hh xtdb.cc xtdb.hh
+libxdbbackend_la_SOURCES = xdbbackend.cc xtdb.cc xtdb.hh xdb.hh xgdbm.hh
 libxdbbackend_la_LDFLAGS = -module -ltdb
 
 xdb_fill_SOURCES = xdb-fill.cc xtdb.cc xtdb.hh

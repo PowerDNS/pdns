@@ -188,6 +188,21 @@ AC_SUBST(moduledirs)
 AC_SUBST(moduleobjects)
 AC_SUBST(modulelibs)
 
+AC_MSG_CHECKING(whether we will be building the server)
+AC_ARG_ENABLE(pdns-server, 
+ [  --enable-pdns_server	If we should build the server],
+	enable_pdns_server=$enableval,
+	enable_pdns_server=yes)
+
+AC_MSG_RESULT($enable_pdns_server)
+
+if test x"$enable_pdns_server" = "xyes"
+then 
+	programdescend=pdns
+fi
+
+AC_SUBST(programdescend)
+
 for a in $modules $dynmodules
 do
 	case "$a" in
@@ -329,30 +344,10 @@ then
 #	LIBS="$LIBS -lpq++ -lpq -lssl -lcrypt -lcrypto"
 fi
 
-rm -f $srcdir/modules/pgmysqlbackend/OBJECTFILES $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 
 for a in $modules
 do
         moduledirs="$moduledirs ${a}backend"
-
-	case "$a" in
-		pgmysql)
-
-		echo -n "gmysqlbackend.o " >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
-		if test x"$domysql" = xyes
-		then 
-			echo -n "smysql.o " >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
-			echo -n "-lmysqlclient " >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
-		fi 
-
-		if test x"$dopgsql" = xyes
-		then 
-			echo -n "spgsql.o " >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
-			echo -n "-lpq++ -lpq -lssl -lcrypt -lcrypto " >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
-		fi 
-		;;
-	esac
-
 
 	for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`
 	do

@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 tmpdir		:= $(shell pwd)/debian/tmp
-backends	:= mysql pipe xdb pgmysql
+backends	:= mysql pipe xdb gmysql gpgsql
 
 configure:
 	./bootstrap
