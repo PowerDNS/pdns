@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.3 2002/12/09 16:24:17 ahu Exp $
+// $Id: dnspacket.cc,v 1.4 2002/12/11 11:03:01 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -815,8 +815,8 @@ void DNSPacket::addTXTRecord(string domain, string txt, u_int32_t ttl)
  piece3.append(1,txt.length());
  piece3.append(txt);
 
- p[8]=0;
- p[9]=piece3.length();
+ p[8]=piece3.length()/256;;
+ p[9]=piece3.length()%256;
 
  stringbuffer+=piece1;
  stringbuffer.append(p,10);
@@ -1248,6 +1248,11 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       rr.priority=(datapos[0] << 8) + datapos[1];
       expand(datapos+2,end,rr.content);
 
+      break;
+
+
+    case QType::TXT:
+      rr.content.assign(datapos+offset+2,(int)(256*datapos[offset] + datapos[offset+1]));
       break;
 
     case QType::CNAME:
