@@ -1,6 +1,6 @@
 // -*- sateh-c -*- 
 // File    : pdnsbackend.cc
-// Version : $Id: pipebackend.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $ 
+// Version : $Id: pipebackend.cc,v 1.3 2002/12/09 16:24:17 ahu Exp $ 
 //
 
 #include <string>
@@ -223,10 +223,10 @@ class PipeFactory : public BackendFactory
       }
 };
 
-class Loader
+class PipeLoader
 {
    public:
-      Loader()
+      PipeLoader()
       {
          BackendMakers().report(new PipeFactory);
          
@@ -234,5 +234,5 @@ class Loader
       }  
 };
 
-static Loader loader;
+static PipeLoader pipeloader;
 

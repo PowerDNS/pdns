@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <netdb.h>
 
 #ifndef WIN32
 # include <sys/time.h>
@@ -238,8 +239,7 @@ const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t soc
 {    
   if(socklen==sizeof(struct sockaddr_in))
      return inet_ntoa(((struct sockaddr_in *)remote)->sin_addr);
-
-  // TODO: Add ipv6 support here.
+#ifdef HAVE_IPV6
   else {
     char tmp[128];
     
@@ -248,6 +248,7 @@ const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t soc
 
     return tmp;
   }
+#endif
 
   return "untranslateable";
 }

@@ -436,7 +436,7 @@ TCPNameserver::TCPNameserver()
   }
 
   // TODO: Implement ipv6
-#ifndef WIN32
+#if !WIN32 && HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     struct sockaddr_in6 local;
     int s=socket(AF_INET6,SOCK_STREAM,0); 

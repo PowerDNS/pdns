@@ -15,7 +15,7 @@ PGSQL_INCLUDES	= @PGSQL_incdir@
 PGSQL_LIB            = @PGSQL_lib@
 PGSQL_LIBS           = -Wl,-Bstatic  -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
 
-CXXFLAGS:=-I$(PDNS_HOME) $(CXXFLAGS)
+INCLUDES=-I$(PDNS_HOME) -I../..
 
 dopgsql=@dopgsql@
 domysql=@domysql@
@@ -70,12 +70,12 @@ distdir: $(DISTFILES)
 
 	
 deps:
-	-g++ -MM -g -c $(CXXFLAGS) $(CPPFLAGS) gmysqlbackend.cc smysql.cc  > deps
+	-g++ -MM -g -c $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) gmysqlbackend.cc smysql.cc  > deps
 
 -include deps
 
 .cc.o:
-	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $<
+	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) $<
 
 
 install:

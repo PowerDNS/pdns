@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// Utility class win32 implementation.
+
 
 #include "utility.hh"
 #include <cstring>
@@ -29,6 +29,13 @@
 #include <pwd.h>
 #include <grp.h>
 #include <sys/types.h>
+
+#ifdef NEED_INET_NTOP_PROTO
+extern "C" {
+const char *inet_ntop(int af, const void *src, char *dst, size_t cnt);
+}
+#endif
+
 
 using namespace std;
 
@@ -56,7 +63,7 @@ bool Utility::setBlocking(sock_t sock)
 
 const char *Utility::inet_ntop(int af, const char *src, char *dst, size_t size)
 {
-  return const_cast<char *>(::inet_ntop(af,src,dst,size));
+  return ::inet_ntop(af,src,dst,size);
 }
 
 unsigned int Utility::sleep(unsigned int sec)

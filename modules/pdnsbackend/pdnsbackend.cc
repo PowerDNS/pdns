@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.cc,v 1.2 2002/11/28 12:30:45 ahu Exp $ 
+// $Id: pdnsbackend.cc,v 1.3 2002/12/09 16:24:17 ahu Exp $ 
 
 #include <string>
 #include <map>
@@ -248,15 +248,15 @@ class PDNSFactory : public BackendFactory
 
 
 //! Magic class that is activated when the dynamic library is loaded
-class Loader
+class PdnsBeLoader
 {
    public:
 
-      Loader()
+      PdnsBeLoader()
       {
 	 BackendMakers().report(new PDNSFactory);
 	 L<<Logger::Notice<<backendName<<" This is the pdns module version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
       }
 };
 
-static Loader loader;
+static PdnsBeLoader pdnsbeloader;

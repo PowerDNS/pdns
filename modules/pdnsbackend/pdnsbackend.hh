@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.hh,v 1.2 2002/11/28 12:30:45 ahu Exp $
+// $Id: pdnsbackend.hh,v 1.3 2002/12/09 16:24:17 ahu Exp $
 
 #ifndef PDNSBACKEND_HH
 #define PDNSBACKEND_HH
@@ -8,7 +8,7 @@
 
 using namespace std;
 
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 class PdnsBackend : public DNSBackend
 {

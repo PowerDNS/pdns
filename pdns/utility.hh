@@ -21,6 +21,13 @@
 #ifndef UTILITY_HH
 #define UTILITY_HH
 
+#include "config.h"
+#ifdef NEED_POSIX_TYPEDEF
+typedef unsigned short int u_int16_t;
+typedef unsigned int u_int32_t;
+#endif
+
+
 #ifndef WIN32
 # include <arpa/inet.h>
 # include <netinet/in.h>

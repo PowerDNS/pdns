@@ -1,3 +1,4 @@
+INCLUDES=-I@MYSQL_incdir@
 lib_LTLIBRARIES = libpdnsbackend.la 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 

@@ -1,10 +1,10 @@
-AM_CXXFLAGS=-D_GNU_SOURCE -DSYSCONFDIR=\"@sysconfdir@\" -DBINDIR=\"@bindir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DBINDIR=\"@bindir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind
 AM_CPPFLAGS=-Ibackends/bind
 
 EXTRA_DIST = codedocs/Makefile codedocs/doxygen.conf docs/Makefile \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
-docs/powerdns-overview.sgml docs/powerdns-technical.sgml extra/Makefile \
-extra/null.c pdns.spec release-scripts/ docs/pdns.sgml \
+docs/powerdns-overview.sgml docs/powerdns-technical.sgml  \
+pdns.spec release-scripts/ docs/pdns.sgml \
 choosepaths mtasker.cc 
 
 noinst_SCRIPTS = pdns
@@ -48,5 +48,5 @@ pdns_control_LDFLAGS=
 
 # binpatch_SOURCES=binpatch.cc 
 
-SUBDIRS= codedocs backends extra .
+SUBDIRS= codedocs backends .
 

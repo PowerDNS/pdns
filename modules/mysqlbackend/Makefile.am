@@ -1,4 +1,4 @@
-CXXFLAGS:=-I@MYSQL_incdir@ $(CXXFLAGS) 
+INCLUDES=-I@MYSQL_incdir@ 
 lib_LTLIBRARIES = libmysqlbackend.la 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 libmysqlbackend_la_SOURCES=mysqlcbackend.cc mysqlcbackend.hh 
