@@ -26,7 +26,7 @@ ifneq ($(domysql),)
 	ELIBS:=$(MYSQL_LIB) $(MYSQL_LIBS) $(ELIBS)
 endif
 
-all: libpgmysqlbackend.so gmysqlbackend.o $(TARGETS) OBJECTFILES
+all: libpgmysqlbackend.so gmysqlbackend.o $(TARGETS)
 
 distclean: 
 	rm -f *.o *.so *~ *.d deps Makefile
