@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $
+// $Id: receiver.cc,v 1.3 2002/12/12 19:53:19 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -314,7 +314,7 @@ static void UNIX_declareArguments()
   
   arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
-  arg().set("module-dir","Default directory for modules")=BINDIR+string("/../lib");
+  arg().set("module-dir","Default directory for modules")=LIBDIR;
   arg().set("chroot","If set, chroot to this directory for more security")="";
   arg().set("logging-facility","Log under a specific facility")="";
   arg().set("daemon","Operate as a daemon")="no";
@@ -340,7 +340,7 @@ static void loadModules()
 	res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
       
       if(res==false) {
-	L<<Logger::Error<<"Unable to load module "<<module<<endl;
+	L<<Logger::Error<<"receiver unable to load module "<<module<<endl;
 	exit(1);
       }
     }

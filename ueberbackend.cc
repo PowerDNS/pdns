@@ -16,9 +16,10 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: ueberbackend.cc,v 1.3 2002/12/09 18:34:45 ahu Exp $ 
+// $Id: ueberbackend.cc,v 1.4 2002/12/12 19:53:20 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
+#include "config.h"
 #include <string>
 #include <map>
 #include <sys/types.h>
@@ -52,6 +53,10 @@ pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t UeberBackend::d_cond = PTHREAD_COND_INITIALIZER;
 
 int UeberBackend::s_s=-1; // ?
+
+#ifdef NEED_RTLD_NOW
+#define RTLD_NOW RTLD_LAZY
+#endif
 
 //! Loads a module and reports it to all UeberBackend threads
 bool UeberBackend::loadmodule(const string &name)

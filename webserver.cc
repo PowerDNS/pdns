@@ -229,7 +229,6 @@ void *WebServer::serveConnection(void *p)
       else
 	varmap[parts[0]]="";
 
-      L<<"'"<<parts[0]<<"' = '"<<varmap[parts[0]]<<"'"<<endl;
     }
 
     bool authOK=0;

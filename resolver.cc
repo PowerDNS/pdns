@@ -73,6 +73,7 @@ Resolver::Resolver()
 {
   d_sock=-1;
   d_timeout=500000;
+  d_soacount=0;
   d_buf=new unsigned char[66000];
 }
 
@@ -328,6 +329,12 @@ int Resolver::getLength()
 
 int Resolver::axfrChunk(Resolver::res_t &res)
 {
+  if(d_soacount>1) {
+    Utility::closesocket(d_sock);
+    d_sock=-1;
+    return 0;
+  }
+
   // d_sock is connected and is about to spit out a packet
   int len=getLength();
   if(len<0)
@@ -335,16 +342,16 @@ int Resolver::axfrChunk(Resolver::res_t &res)
   
   timeoutReadn((char *)d_buf,len); 
   d_len=len;
-  res=result();
-  if(!res.empty())
-    if(res.begin()->qtype.getCode()==QType::SOA || res.end()->qtype.getCode()==QType::SOA)
-      d_soacount++;
 
-  if(d_soacount==2) {
-    Utility::closesocket(d_sock);
-    d_sock=-1;
-    return 0;
-  }
+  res=result();
+  for(res_t::const_iterator i=res.begin();i!=res.end();++i)
+    if(i->qtype.getCode()==QType::SOA) {
+      d_soacount++;
+    }
+
+  if(d_soacount>1 && !res.empty()) // chop off the last SOA
+    res.resize(res.size()-1);
+    
 
   return 1;
 }

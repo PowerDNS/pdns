@@ -1,5 +1,5 @@
 INCLUDES=-I../..
-lib_LTLIBRARIES = libbindbackend.la
+noinst_LTLIBRARIES = libbindbackend.la
 
 libbindbackend_la_SOURCES=bindbackend.cc bindbackend.hh bindparser.yy \
 bindlexer.l zoneparser2.cc ../../misc.cc huffman.cc huffman.hh zoneparser.hh \

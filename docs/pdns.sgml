@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/10 13:36:26 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/12 19:53:20 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -85,6 +85,66 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-2"><title>Version 2.9.2</title>	
+	<para>
+	  Bugfixes galore. Solaris porting created some issues on all platforms. Bugs fixed:
+	</para>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Silly debugging output removed from the webserver (found by Paul Wouters)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SEVERE: due to Solaris portability fixes, qtypes&lt;127 were broken. 
+		These include NAPTR, ANY and AXFR. The upshot is that powerdns
+		wasn't performing outgoing AXFRs nor ANY queries. These were the
+		'question for type -1' warnings in the log
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		incoming AXFR could theoretically miss some trailing records (not observed, but could happen)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		incoming AXFR did not support TXT records (spotted by Paul Wouters)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		with some remotes, an incoming AXFR would not terminate until a
+		timeout occured (observed by Paul Wouters)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Documentation bug, pgmysql != mypgsql
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Features:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		pdns init.d script is now +x by default
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Mysterious xdb backend added - see <xref linkend="xdbbackend">.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+		
+
       <sect2 id="changelog-2-9-1"><title>Version 2.9.1</title>	
 	<para>
 	  Thanks to the great enthusiasm from around the world, powerdns is now available for Solaris and FreeBSD users again! 
@@ -149,7 +209,7 @@
 	      <para>
 		Heap of Solaris work (with help from Edvard Tuinder, Stefan Van Steen, Koos van den Hout, Roel van der Made and 
 		especially Mark Bakker).
-		Now compiles in 2.7 and 2.8. May be a bit dysfunctional on 2.7 though - it won't do IPv6 and it won't serve AAAA. Patches
+		Now compiles in 2.7 and 2.8, haven't tried 2.9. May be a bit dysfunctional on 2.7 though - it won't do IPv6 and it won't serve AAAA. Patches
 		welcome!
 	      </para>
 	    </listitem>
@@ -175,8 +235,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Removal of bzero and other less portable constructs. Discovered that recent Linux glibc's need -D_GNU_SOURCE (Wichert Akkerman).
-	      </para>
+		Removal of bzero and other less portable constructs. Discovered that recent Linux glibc's need -D_GNU_SOURCE (Wichert Akkerman).	      </para>
 	    </listitem>
 	  </itemizedlist>
 	</para>
@@ -2231,46 +2290,10 @@ name         IN            A        1.2.3.4
   </Chapter>
 
 <Chapter id="installing-on-unix">
-<Title>Installing on Unix</Title>
-
-<Para>
-After unpacking the PDNS distribution the files need to be moved to
-appropriate locations.
-</Para>
-
-<Para>
-PDNS can be installed in a variety of directories, which can easily be
-customised to local policy. Two ways are available - manual and via a menu. 
-</Para>
-
-<Para>
-The menu is invoked by executing the './choosepaths' script and answering the
-questions. The manual way involves editing the 'pathconfig' file. The choice
-is up to you.
-</Para>
-
-<Para>
-After deciding paths, change to root and execute the 'installer' script. 
-This will:
-      <itemizedlist>
-	<listitem>
-	  <para>Configure the PowerDNS binary so it knows where the configuration directory is</para>
-	</listitem>
-	<listitem>
-	  <para>If necessary, create the configuration directory</para>
-	</listitem>
-	<listitem>
-	  <para>Write sample configuration file (not overwriting existing one)</para>
-	</listitem>
-	<listitem>
-	  <para>Write a SysV-style init.d script in the configured directory</para>
-	</listitem>
-	<listitem>
-	  <para>Move binaries and libraries to the configured places</para>
-	</listitem>
-      </itemizedlist>
-    </Para>
-    
+    <Title>Installing on Unix</Title>
+    <para>
+      You will typically install PDNS &gt; 2.9 via source or via a package. Earlier versions used a clumsy binary installer.
+    </para>
     <sect1 id="problems">
       <title>Possible problems at this point</title>
       <para>
@@ -2413,6 +2436,18 @@ This will:
 	      <listitem>
 		<para>
 		  PDNS did not find the <command>launch=bind</command> instruction in pdns.conf.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term><errortype>Multiple IP addresses on your server, PDNS sending out answers on the wrong one</errortype></term>
+	      <term><errortype>Massive amounts of 'recvfrom gave error, ignoring: Connection refused'</errortype></term>
+	      <listitem>
+		<para>
+		  If you have multiple IP addresses on the internet on one machine, UNIX often sends out answers over another interface
+		  than which the packet came in on. In such cases, use <command>local-address</command> to bind to specific IP addresses, which
+		  can be comma separated. The second error comes from remotes disregarding answers to questions it didn't ask to that IP address
+		  and sending back ICMP errors.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -3689,7 +3724,9 @@ local0.err                        /var/log/pdns.err
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>local-address=...</term>
 	    <listitem><para>
-		Local IP address to which we bind. You can specify multiple addresses separated by commas or whitespace.
+		Local IP address to which we bind. You can specify multiple addresses separated by commas or whitespace. It is highly 
+	      advised to bind to specific interfaces and not use the default 'bind to any'. This causes big problems if you have multiple
+	      IP addresses. Unix does not provide a way of figuring out what IP address a packet was sent to when binding to any.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>local-port=...</term>
 	    <listitem><para>
@@ -5728,9 +5765,17 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	The ODBC backend has been tested with Microsoft Access, MySQL (via MyODBC) and Microsoft SQLServer. As the SQL statements used are very basic,
 	it is expected to work with many ODBC drivers.
       </para>
-  </sect1>
-
-</appendix>
+    </sect1>
+    <sect1 id="xdbbackend"><Title>XDB Backend</title>
+      <para>
+	Special purpose backend for grandiose performance. Can talk to Tridge's Trivial Database, or to regular *db tables on disk. Currently only sparsely
+	documented. Very useful if you need to do &gt;50.000 queries/second, which we actually measured on the .ORG zone.
+      </para>
+      <para>
+	More documentation will follow.
+      </para>
+    </sect1>
+  </appendix>
 <appendix id="pdns-internals"><title>PDNS internals</title>
     <para>
       PDNS is normally launched by the init.d script but is actually a binary called <filename>pdns_server</filename>. This 
