@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/11/30 10:53:00 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/11/30 11:18:49 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -84,7 +84,48 @@
 
     <sect2 id="changelog-2-9-13"><title>Version 2.9.13</title>
 	<para>
-	  Some bugfixes, some small features. Only one big bugfix, it appears we are heading for stability!
+	  Big news! Windows is back! Our great friend Michel Stol found the time to update the PowerDNS code so it works 
+	  again under windows. 
+	</para>
+	<para>
+	  His changes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Generic SQLite support added
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Removed the ODBC backend, replaced it by the Generic ODBC Backend, which has all the cool configurability
+		of the Generic MySQL and PostgreSQL backends.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The PowerDNS Recursor now runs as a Service. It defaults to running on port 5300, PowerDNS itself is configured
+		to expect the Recursor on port 5300 now.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The PowerDNS Service is now known as 'PowerDNS' to Windows.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The Installer was redone, this time with <ulink url="http://nsis.sf.net">NSIS2</ulink>. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		General updates and fixes.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Other news:
 	</para>
 	<para>
 	  <note>
