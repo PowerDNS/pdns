@@ -44,6 +44,7 @@ void Resolver::makeUDPSocket()
 void Resolver::makeSocket(int type)
 {
   static u_int16_t port_counter=5000;
+  port_counter++; // this makes us use a new port for each query, fixes ticket #2
   if(d_sock>0)
     return;
 
