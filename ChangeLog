@@ -8,6 +8,12 @@ Changes since 2.9.3a:
 	- make IPv6 work again on FreeBSD (Peter van Dijk)
 	- neglected to properly initialize the socklen of accept of dynlistener ;-(
 	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
+	- multiple backende+axfr work again
+	- axfr backend transaction now only started after first actual
+	  record is in
+	- improve bindbackend abortTransaction
+	- huge improvement in performance of bind-domain-status
+		(spotted by Erik Bos)
 
 Changes since 2.9.2:
 	- windows compilation patches

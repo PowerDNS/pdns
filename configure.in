@@ -163,6 +163,17 @@ fi
 
 AC_SUBST(programdescend)
 
+
+AC_MSG_CHECKING(whether we will be building the recursor)
+AC_ARG_ENABLE(recursor, 
+ [  --enable-recursor	If we should build the server],
+	enable_recursor=$enableval,
+	enable_recursor=no)
+
+AC_MSG_RESULT($enable_recursor)
+
+AM_CONDITIONAL(RECURSOR,test x"$enable_recursor" = "xyes")
+
 for a in $modules $dynmodules
 do
 	case "$a" in

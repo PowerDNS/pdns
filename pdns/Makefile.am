@@ -10,10 +10,15 @@ docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
-bin_PROGRAMS = pdns_control syncres # binpatch # syncres #   resolver syncres 
+if RECURSOR
+bin_PROGRAMS = pdns_control syncres
+else
+bin_PROGRAMS = pdns_control 
+endif
+
 sbin_PROGRAMS = pdns_server 
-#pdns.conf-dist: pdns_server
-#	-./pdns_server --config > $@
+
+EXTRA_PROGRAMS=syncres pdns_control
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -49,7 +54,7 @@ syncres_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc misc.cc unix_utility.cc
 pdns_control_INCLUDES=path.hh
-pdns_control_LDFLAGS=
+pdns_control_LDFLAGS=@THREADFLAGS@
 
 # binpatch_SOURCES=binpatch.cc 
 

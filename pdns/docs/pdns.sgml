@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/02 16:11:43 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/03 18:00:12 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3781,6 +3781,65 @@ local0.err                        /var/log/pdns.err
 	To restore pre-2.1 behaviour, specify <command>lazy-recursion=off</command>.
       </para>
     </sect1>
+    <sect1 id="built-in-recursor"><title>Highly experimental internal resolver</title>
+      <para>
+	As of 2.9.4, a very silly recursor comes with PowerDNS. It is absolutely useless, but it is included anyhow to see if there is interest.
+	Here are its current faults, so nobody can accuse us of false advertising:
+	<itemizedlist>
+	  <listitem><para>
+	      Only operates on the foreground, it does not fork.
+	    </para></listitem>
+	  <listitem><para>
+	      Can only answer queries for types and classes it knows about - it is not transparent as it should be.
+	    </para></listitem>
+	  <listitem><para>
+	      Has a broken algorithm.
+	    </para></listitem>
+	  <listitem><para>
+	      Can get into a loop when resolving.
+	    </para></listitem>
+	  <listitem><para>
+	      Does not cache enough due to blatantly paranoid 'trust-rules', or more exactly 'no-trust' rules.
+	    </para></listitem>
+	  <listitem><para>
+	      Only compiles on Linux and possibly Solaris. FreeBSD decided not to support the POSIX get/set/swapcontext functions.
+	    </para></listitem>
+	  <listitem><para>
+	      Only listens on 1 port, which you can't even configure. Is 15000 by default.
+	    </para></listitem>
+	</itemizedlist>
+      </para>
+      <para>
+	Still here? Ok. To compile, add <command>--enable-recursor</command> to configure and the file <filename>syncres</filename> will be 
+	compiled. If you are lucky, that is. Send it queries like this: 
+	<command>dig ds9a.nl A @127.0.0.1 -p 15000</command>.
+      </para>
+      <para>
+	Good points:
+	<itemizedlist>
+	  <listitem><para>
+	      Uses MTasker (<ulink url="http://ds9a.nl/mtasker">homepage</ulink>)
+	    </para></listitem>
+	  <listitem><para>
+	      Can handle thousands of concurrent questions
+	    </para></listitem>
+	  <listitem><para>
+	      Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
+	    </para></listitem>
+	  <listitem><para>
+	      Relies heavily on Standard C++ Library infrastructure, which makes for little code (560 lines).
+	    </para></listitem>
+	  <listitem><para>
+	      Is very verbose in showing how recursion actually works.
+	    </para></listitem>
+	</itemizedlist>
+      </para>
+	  
+      <para>
+	We're unsure what to do with this. In theory, everything is there to make a great resolver out of this mess, except that it will (for now) 
+	not work on BSD and Windows. Let us know.
+      </para>
+    </sect1>
   </chapter>
   <chapter id="replication"><title>Master/Slave operation &amp; replication</title>
 
@@ -3815,6 +3874,10 @@ local0.err                        /var/log/pdns.err
 	All backends which implement this feature must make sure that they can handle transactions so as to not leave the zone in a half updated state. 
 	MySQL configured with either BerkeleyDB or InnoDB meets this requirement, as do PostgreSQL and Oracle. The Bindbackend implements transaction
 	semantics by renaming files if and only if they have been retrieved completely and parsed correctly.
+      </para>
+      <para>
+	Slave operation can also be programmed using several pdns_control commands, see <xref linkend="pdnscontrol">. The 'retrieve' command
+	is especially useful as it triggers an immediate retrieval of the zone from the configured master.
       </para>
       <sect2 id=supermaster><title>Supermaster automatic provisioning of slaves</title>
 	<para>
