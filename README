@@ -12,7 +12,7 @@ is built by default.
 
 To add multiple modules, try:
 
-$ ./configure --with-modules="mysql mypgsql" --enable-mysql --enable-pgsql
+$ ./configure --with-modules="mysql pgmysql" --enable-mysql --enable-pgsql
 
 See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
 

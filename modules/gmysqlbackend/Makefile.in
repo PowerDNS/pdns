@@ -1,11 +1,5 @@
-distclean: 
-	rm -f *.o *.so *~ *.d deps Makefile
-
-clean: 
-	rm -f *.o *.so *~ *.d deps
-
 PDNS_HOME		= ../../pdns
-PDNS_LIBDIR		= /usr/lib/powerdns
+PDNS_LIBDIR		= @libdir@
 
 MYSQL_INCLUDES	     = @MYSQL_incdir@
 MYSQL_LIB            = @MYSQL_lib@
@@ -13,7 +7,7 @@ MYSQL_LIBS           = -lmysqlclient
 
 PGSQL_INCLUDES	= @PGSQL_incdir@
 PGSQL_LIB            = @PGSQL_lib@
-PGSQL_LIBS           = -Wl,-Bstatic  -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
+PGSQL_LIBS           = -Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
 
 INCLUDES=-I$(PDNS_HOME) -I../..
 
@@ -29,17 +23,17 @@ endif
 ifneq ($(domysql),)
 	TARGETS:=$(TARGETS) smysql.o
 	CXXFLAGS:=-DPDNS_DOMYSQL -I$(MYSQL_INCLUDES) $(CXXFLAGS)
-	ELIBS:=$(MYGRES_LIB) $(MYGRES_LIBS) $(ELIBS)
+	ELIBS:=$(MYSQL_LIB) $(MYSQL_LIBS) $(ELIBS)
 endif
 
+all: libpgmysqlbackend.so gmysqlbackend.o $(TARGETS) OBJECTFILES
 
-all: gmysqlbackend.o $(TARGETS) OBJECTFILES
+distclean: 
+	rm -f *.o *.so *~ *.d deps Makefile
 
-OBJECTFILES:
-	echo $(TARGETS) > OBJECTFILES
+clean: 
+	rm -f *.o *.so *~ *.d deps
 
-OBJECTLIBS:
-	echo $(ELIBS) > OBJECTLIBS
 
 
 PACKAGE = @PACKAGE@
@@ -77,6 +71,12 @@ deps:
 .cc.o:
 	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) $<
 
+libpgmysqlbackend.so: $(TARGETS) gmysqlbackend.o
+	g++ -shared $^ $(ELIBS) -o $@
 
+mkinstalldirs = $(SHELL) @top_srcdir@/mkinstalldirs
+prefix=@prefix@
 install:
+	$(mkinstalldirs) $(DESTDIR)@libdir@
+	install -s libpgmysqlbackend.so $(DESTDIR)@libdir@
 

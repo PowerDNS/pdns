@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DBINDIR=\"@bindir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind
 AM_CPPFLAGS=-Ibackends/bind
 
 EXTRA_DIST = codedocs/Makefile codedocs/doxygen.conf docs/Makefile \

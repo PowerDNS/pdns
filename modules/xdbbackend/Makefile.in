@@ -1,23 +1,20 @@
-##
-## File    : Makefile
-## Author  : Stefan Arentz
-## Project : PowerDNS
-## Version : $Id: Makefile.in,v 1.2 2002/12/12 19:53:19 ahu Exp $
-##
+XDB_LIBS                = -ltdb
+PDNS_HOME		= ../../pdns
+INCLUDES                = -I$(PDNS_HOME) -I../..
+CXXFLAGS                = @CXXFLAGS@
 
-ORACLE_HOME	= /opt/oracle
-PDNS_HOME	= ../../pdns
+all: xdb-fill xdbbackend.o xtdb.o libxdbbackend.so
 
-INCLUDE		= -I$(ORACLE_HOME)/rdbms/demo \
-		  -I$(ORACLE_HOME)/rdbms/public \
-		  -I$(PDNS_HOME) -I../..
+xdb-fill: xdb-fill.o  xtdb.o
+	g++ $^ $(XDB_LIBS) -o xdb-fill
 
-ORACLE_DYN_LIBS = -L/opt/oracle/lib -lclntsh
-all: liboraclebackend.so oraclebackend.o
+distclean: clean
+
+clean:
+	rm -f *.o *.so *~ *.d
 
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
-
 DISTFILES=*.cc *.hh Makefile.in OBJECTFILES OBJECTLIBS
 
 top_distdir = ../..
@@ -40,22 +37,16 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 
-
 .cc.o:
-	g++ -g -c $(CXXFLAGS) $(INCLUDE) $<
+	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) $<
 
-clean:
-	rm -f *.o *.so *~
-
-
-
-liboraclebackend.so: oraclebackend.o
-	g++ -shared $^ -Wl,-rpath,$(ORACLE_HOME)/lib -L$(ORACLE_HOME)/lib $(ORACLE_DYN_LIBS) -o $@
+libxdbbackend.so: xdbbackend.o xtdb.o
+	g++ -shared $^ $(XDB_LIBS) -o $@
 
 mkinstalldirs = $(SHELL) @top_srcdir@/mkinstalldirs
 
 prefix=@prefix@
-install: liboraclebackend.so
+install:
 	$(mkinstalldirs) $(DESTDIR)@libdir@
-	install -s liboraclebackend.so $(DESTDIR)@libdir@
+	install -s libxdbbackend.so $(DESTDIR)@libdir@
 

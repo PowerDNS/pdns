@@ -1,5 +1,11 @@
 bugs:
-	bind backend ANY queries don't work
+fixed	bind backend ANY queries don't work
+fixed	records of unknown type are reported as -1?
+fixed	pdns/pdns should be +x
+	pdns.conf-dist contains old descriptions
+	redhat does not find postgresql includes by default
+	redhat does not find postgresql libraries by default
+
 
 immediate issues:
 	make install installs libraries with a static build which it should

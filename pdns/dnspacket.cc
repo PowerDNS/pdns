@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.4 2002/12/11 11:03:01 ahu Exp $
+// $Id: dnspacket.cc,v 1.5 2002/12/12 19:53:19 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1252,7 +1252,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
 
     case QType::TXT:
-      rr.content.assign(datapos+offset+2,(int)(256*datapos[offset] + datapos[offset+1]));
+      rr.content.assign(datapos+offset+1,(int)datapos[offset]);
       break;
 
     case QType::CNAME:

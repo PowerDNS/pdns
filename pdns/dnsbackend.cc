@@ -173,9 +173,8 @@ void BackendMakerClass::load_all()
   struct dirent *entry;
   while((entry=readdir(dir))) {
     if(!strncmp(entry->d_name,"lib",3) && 
-       entry->d_name[strlen(entry->d_name)-1]=='o' && 
-       entry->d_name[strlen(entry->d_name)-2]=='s' &&
-       entry->d_name[strlen(entry->d_name)-3]=='.')
+       strlen(entry->d_name)>13 &&
+       !strcmp(entry->d_name+strlen(entry->d_name)-10,"backend.so"))
       load(entry->d_name);
   }
   closedir(dir);
@@ -194,7 +193,7 @@ void BackendMakerClass::load(const string &module)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
   
   if(res==false) {
-    L<<Logger::Error<<"Unable to load module "<<module<<endl;
+    L<<Logger::Error<<"dnsbackend unable to load module in "<<module<<endl;
     exit(1);
   }
 }

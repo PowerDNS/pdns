@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.4 2002/12/09 16:24:17 ahu Exp $
+// $Id: dnspacket.hh,v 1.5 2002/12/12 19:53:19 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -295,8 +295,8 @@ int DNSPacket::parse(const char *mesg, int length)
     d_qlen=offset+4; // this points to the start of any answers
   }
 
-  qtype=stringbuffer[12+offset]*256+stringbuffer[13+offset];
-  qclass=stringbuffer[14+offset]*256+stringbuffer[15+offset];
+  qtype=((unsigned char)stringbuffer[12+offset])*256+(unsigned char)stringbuffer[13+offset];
+  qclass=((unsigned char)stringbuffer[14+offset]*256)+(unsigned char)stringbuffer[15+offset];
   return 0;
 }
 

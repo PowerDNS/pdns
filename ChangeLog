@@ -1,3 +1,29 @@
+Changes since 2.9.1:
+	- removed debugging output from the webserver (found by Paul Wouters)
+	- due to Solaris portability fixes, qtypes>127 were broken. 
+	  These include NAPTR, ANY and AXFR. The upshot is that powerdns
+	  wasn't performing outgoing AXFRs nor ANY queries. These were the
+          'question for type -1' warnings in the log
+	
+	- pdns/pdns now has a +x by default (suggested by Paul Wouters)
+        - bug in documentation (pgmysqlbackend != pgmysql backend) (Paul Wouters)
+
+	- Red Hat has weird location for pgsql includes (Paul Wouters)
+
+	- incoming AXFR could theoretically miss some trailing records
+          (not observed, but could happen)
+
+	- with some remotes, an incoming AXFR would not terminate until a
+	  timeout occured.
+
+	- incoming AXFR did not support TXT records (spotted by Paul Wouters)
+
+	- added xdb
+
+	- dynamic modules work again!
+
+	- openbsd compiles but crashes at startup
+	
 Changes since 2.9:
 	- 'set' no longer allows setting non-existent variables
 	- added db2 backend to distribution

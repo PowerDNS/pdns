@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 tmpdir		:= $(shell pwd)/debian/tmp
-backends	:= bind mysql
+backends	:= mysql pipe xdb pgmysql oracle
 
 configure:
 	./bootstrap
@@ -49,9 +49,12 @@ build-main: configure
 	./configure \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
-		--sysconfdir=/etc \
+		--libdir='$${prefix}/lib/powerdns' \
+		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
-		--mandir='$${datadir}/man'
+		--mandir='$${datadir}/man' \
+		--with-dynmodules="$(backends)" \
+		--with-modules=""
 	make
 	touch build-main
 
@@ -70,7 +73,7 @@ binary-main: build-main
 		"$(tmpdir)"/usr/bin/zone2sql \
 		"$(tmpdir)"/usr/sbin/pdns_server \
 		"$(tmpdir)"/usr/bin/pdns_control
-	mv "$(tmpdir)"/etc/pdns.conf-dist "$(tmpdir)"/etc/pdns.conf
+	mv "$(tmpdir)"/etc/powerdns/pdns.conf-dist "$(tmpdir)"/etc/powerdns/pdns.conf
 
 	install -d -m 755 -o root -g root "$(tmpdir)"/etc/init.d
 	install -p -m 755 -o root -g root pdns/pdns \
@@ -104,24 +107,7 @@ binary-main: build-main
 	dpkg --build "$(tmpdir)" ..
 
 
-build-backend: configure
-	if [ -e build-main ] ; then make distclean ; fi
-	rm -f build-main
-
-	./configure \
-		--prefix=/usr \
-		--libexecdir='$${prefix}/lib' \
-		--sysconfdir=/etc \
-		--infodir='$${datadir}/info' \
-		--mandir='$${datadir}/man' \
-		--enable-pgsql \
-		--enable-mysql \
-		--with-modules="mysql pgmysql"
-	make
-	touch build-backend
-
-
-binary-backend: build-backend
+binary-backend: build-main
 	rm -f debian/substvars
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 
@@ -129,14 +115,14 @@ binary-backend: build-backend
 	make DESTDIR="$(tmpdir)" install
 
 	strip --remove-section=.comment --remove-section=.note \
-		--strip-unneeded "$(tmpdir)"/usr/lib/*.so
-	chmod 644 "$(tmpdir)"/usr/lib/*
+		--strip-unneeded "$(tmpdir)"/usr/lib/powerdns/*.so
+	chmod 644 "$(tmpdir)"/usr/lib/powerdns/*
 
 	set -e ; for be in $(backends) ; do \
 		rm -f debian/substvars ; \
 		pkg=pdns-backend-$$be ; \
-		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/lib ; \
-		mv "$(tmpdir)"/usr/lib/*$$be* "$(tmpdir)"-$$be/usr/lib/ ; \
+		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/lib/powerdns ; \
+		mv "$(tmpdir)"/usr/lib/powerdns/lib$$be* "$(tmpdir)"-$$be/usr/lib/powerdns ; \
 		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/share/doc ; \
 		ln -s pdns "$(tmpdir)"-$$be/usr/share/doc/$$pkg ; \
 		\
@@ -149,7 +135,7 @@ binary-backend: build-backend
 			"$(tmpdir)"-$$be/DEBIAN/postinst ; \
 		install -p -m 755 -o root -g root debian/pdns-backend-general.postrm \
 			"$(tmpdir)"-$$be/DEBIAN/postrm ; \
-		dpkg-shlibdeps "$(tmpdir)"-$$be/usr/lib/*.so ; \
+		dpkg-shlibdeps "$(tmpdir)"-$$be/usr/lib/powerdns/*.so ; \
 		dpkg-gencontrol -isp -p$$pkg -P"$(tmpdir)"-$$be ; \
 		dpkg --build "$(tmpdir)"-$$be .. ; \
 	done

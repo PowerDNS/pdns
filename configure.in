@@ -1,6 +1,6 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
-AM_INIT_AUTOMAKE(pdns, 2.9.1)
+AM_INIT_AUTOMAKE(pdns, 2.9.2)
 AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 AC_C_BIGENDIAN 
@@ -30,17 +30,7 @@ dnl Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(gethostname gettimeofday mkdir mktime select socket strerror)
 
-#AC_CHECK_LIB(resolv, inet_ntop)
-
-#dnl AC_MSG_NOTICE([Looking in libraries: $LIBS])
-
-#AC_CHECK_FUNCS(inet_ntop, , AC_LIBOBJ(lib/inet_ntop)) 
-#AC_CHECK_FUNCS(inet_pton, , AC_LIBOBJ(lib/inet_pton))
-
-
-#
 # Check for libdl
-#
 
 my_save_LIBS="$LIBS"
 LIBS=""
@@ -48,6 +38,20 @@ AC_CHECK_LIB(dl,dlopen)
 LIBDL=$LIBS
 LIBS="$my_save_LIBS"
 AC_SUBST(LIBDL)
+
+AC_MSG_CHECKING([for RTLD_NOW]);
+ac_save_LIBS="$LIBS"
+LIBS="$LIBS $LIBDL"
+AC_TRY_LINK(
+[#include <dlfcn.h>],
+[ (void) dlopen("",RTLD_NOW); ],
+has_RTLD_NOW=yes, has_RTLD_NOW=no)
+AC_MSG_RESULT([$has_RTLD_NOW])
+if test "$has_RTLD_NOW" = "no"
+then
+	AC_DEFINE(NEED_RTLD_NOW,,[If host OS misses RTLD_NOW])
+fi
+LIBS=$ac_save_LIBS
 
 # pthread_create is in standard libraries (As in BSDI 3.0)
 AC_MSG_CHECKING("for pthread_create in -libc");
@@ -115,6 +119,12 @@ linux*)
 	LDFLAGS="-pthread $LDFLAGS"
 	CXXFLAGS="-pthread -D_GNU_SOURCE $CXXFLAGS"
 	;;
+openbsd*)
+	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+	DYNLINKFLAGS="-rdynamic"
+	LDFLAGS="-lc_r $LDFLAGS"
+	CXXFLAGS="-pthread $CXXFLAGS"
+	;;
 *)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
 	DYNLINKFLAGS="-rdynamic"
@@ -159,6 +169,13 @@ AC_ARG_WITH(modules, [  --with-modules Which userbases to compile with ],
         modules="$withval"  
 ])
 
+dynmodules="pipe"
+AC_ARG_WITH(dynmodules, [  --with-dynmodules Which userbases to build for dynamic loading ], 
+[
+        dynmodules="$withval"  
+])
+
+
 
 AC_SUBST(socketdir)
 socketdir="/var/run"
@@ -187,7 +204,7 @@ AC_SUBST(moduledirs)
 AC_SUBST(moduleobjects)
 AC_SUBST(modulelibs)
 
-for a in $modules
+for a in $modules $dynmodules
 do
 	case "$a" in
 		pgmysql )
@@ -238,12 +255,14 @@ then
 		if test -z "$MYSQL_libdir"; then
 	        AC_MSG_ERROR([Didn't find the mysql library dir in '$MYSQL_lib_check'])
 	fi
-		case "$MYSQL_libdir" in
+	case "$MYSQL_libdir" in
                  /usr/lib ) MYSQL_lib="" ;;
 	  /* ) MYSQL_lib=-L$MYSQL_libdir; LDFLAGS="$MYSQL_lib $LDFLAGS";;
 	  * )  AC_MSG_ERROR([The MySQL library directory ($MYSQL_libdir) must be an absolute path.]) ;;
 	esac
-		AC_SUBST(MYSQL_lib)
+	
+	AC_SUBST(MYSQL_lib)
+	
 	AC_MSG_RESULT([$MYSQL_libdir])
 		AC_MSG_CHECKING([for MySQL include directory])
 	MYSQL_incdir=
@@ -257,13 +276,15 @@ then
 		if test -z "$MYSQL_incdir"; then
 	        AC_MSG_ERROR([Didn't find the mysql include dir in '$MYSQL_inc_check'])
 	fi
-		case "$MYSQL_incdir" in
+	
+	case "$MYSQL_incdir" in
 	  /* ) ;;
 	  * )  AC_MSG_ERROR([The MySQL include directory ($MYSQL_incdir) must be an absolute path.]) ;;
 	esac
-		AC_SUBST(MYSQL_incdir)
+	
+	AC_SUBST(MYSQL_incdir)
 	AC_MSG_RESULT([$MYSQL_incdir])
-	LIBS="$LIBS -lmysqlclient"
+#	LIBS="$LIBS -lmysqlclient"
 fi
 
 
@@ -275,7 +296,7 @@ then
 	    [PGSQL_lib_check="$withval/lib/pgsql $with_pgsql/lib"
 	PGSQL_inc_check="$withval/include/pgsql"],
 	    [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib"
-	PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/postgresql"])
+	PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"])
 		AC_ARG_WITH(pgsql-lib,
 	    [  --with-pgsql-lib=<path> directory path of PgSQL library installation],
 	    [PGSQL_lib_check="$withval/lib/pgsql $withval/pgsql $withval"])
@@ -301,7 +322,8 @@ then
 	  /* ) PGSQL_lib=-L$PGSQL_libdir; LDFLAGS="$PGSQL_lib $LDFLAGS";;
 	  * )  AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.]) ;;
 	esac
-		AC_SUBST(PGSQL_lib)
+
+	AC_SUBST(PGSQL_lib)
 	AC_MSG_RESULT([$PGSQL_libdir])
 		AC_MSG_CHECKING([for PgSQL include directory])
 	PGSQL_incdir=
@@ -322,7 +344,7 @@ then
 	AC_SUBST(PGSQL_incdir)
 	AC_MSG_RESULT([$PGSQL_incdir])
 
-	LIBS="$LIBS -lpq++ -lpq -lssl -lcrypt -lcrypto"
+#	LIBS="$LIBS -lpq++ -lpq -lssl -lcrypt -lcrypto"
 fi
 
 
@@ -332,17 +354,19 @@ do
 
 	case "$a" in
 		pgmysql)
-		rm -f $srcdir/modules/pgmysqlbackend/OBJECTFILES 
-		cat /dev/null >  $srcdir/modules/pgmysqlbackend/OBJECTLIBS
+		rm -f $srcdir/modules/pgmysqlbackend/OBJECTFILES $srcdir/modules/pgmysqlbackend/OBJECTLIBS
+
 		echo gmysqlbackend.o >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
 		if test -n "$domysql"
 		then 
 			echo smysql.o >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
+			echo -lmysql >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 		fi 
 
 		if test -n "$dopgsql"
 		then 
 			echo spgsql.o >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
+			echo -lpq++ -lpq -lssl -lcrypt -lcrypto >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 		fi 
 		;;
 	esac
@@ -354,10 +378,17 @@ do
 	done
 	modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
 done
+
+for a in $dynmodules
+do
+        moduledirs="$moduledirs ${a}backend"
+done
+
 export moduledirs moduleobjects modulelibs
 
 AC_OUTPUT(Makefile modules/Makefile pdns/Makefile pdns/codedocs/Makefile \
 pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
 modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
 modules/pgmysqlbackend/Makefile modules/db2backend/Makefile \
-modules/pipebackend/Makefile modules/oraclebackend/Makefile)
+modules/pipebackend/Makefile modules/oraclebackend/Makefile \
+modules/xdbbackend/Makefile)

@@ -1,8 +1,9 @@
 #include "pdns/utility.hh"
-#include "pdns/xgdbm.hh"
-#include "pdns/xtdb.hh"
+#include "xgdbm.hh"
+#include "xtdb.hh"
 #include "pdns/ahuexception.hh"
 #include "pdns/logger.hh"
+#include <stdio.h>
 #include <sstream>
 #include <iostream>
 
