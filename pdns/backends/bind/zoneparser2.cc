@@ -22,6 +22,7 @@
 #endif // WIN32
 
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <string>
