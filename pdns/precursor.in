@@ -1,0 +1,68 @@
+#!/bin/sh
+# chkconfig: - 80 75
+# description: pdns_recursor is a versatile high performance recursing nameserver
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+BINARYPATH=@bindir@
+SBINARYPATH=@sbindir@
+SOCKETPATH=@socketdir@
+
+PIDFILE=@socketdir@/pdns_recursor.pid
+
+if [ "$1" != "restart" ]  
+then 
+	echo -n "pdns_recursor: "
+fi
+
+if [ -s $PIDFILE -a -d /proc/$(cat $PIDFILE) ] 
+then
+	RUNNING=1
+	PID=$(cat $PIDFILE)
+else
+	RUNNING=0
+fi
+
+
+case "$1" in
+	status)
+		if [ $RUNNING = "1" ]
+		then
+			echo running
+		else
+			echo not running
+		fi
+	;;
+	
+	stop)
+		if [ $RUNNING = "1" ]
+		then
+			kill -9  $PID
+			echo stopped
+		else
+			echo not running
+		fi
+	;;
+
+	start)
+		if [ $RUNNING = "1" ]
+		then
+			echo already running
+		else
+			$SBINARYPATH/pdns_recursor --daemon > /dev/null 2> /dev/null
+			echo started
+		fi
+	;;
+
+	restart)
+		$0 stop
+		$0 start
+	;;
+
+	*)
+		echo unknown instruction \'$1\'
+	;;
+
+esac
+		
+

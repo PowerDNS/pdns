@@ -290,6 +290,20 @@ void cleanSlashes(string &str)
 }
 
 
+bool IpToU32(const string &str, u_int32_t *ip)
+{
+  int a,b,c,d;
+  if(sscanf(str.c_str(),"%d.%d.%d.%d",&a, &b, &c, &d)!=4)
+    return false;
+  *ip++=a;
+  *ip++=b;
+  *ip++=c;
+  *ip++=d;
+  return true;
+
+
+}
+
 const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t socklen) 
 {    
   if(socklen==sizeof(struct sockaddr_in)) {

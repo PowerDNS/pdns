@@ -11,8 +11,9 @@ changes since 2.9.11:
 	- cleanups by Norbert (getAuth moved to chopOff, arguments 'contains' massive cleanup)
 	- improved reporting to which addresses we bind (now always mentions
 	  IP addresses)
-	- added delegation-only feature
+	- added delegation-only feature (thanks to ISC)
 	- some Debian fixes
+	- pdns_recursor does not try to resolve its own IP addresses anymore
 
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache
