@@ -217,7 +217,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream os;
   if(parts.size()!=2)
     return "syntax: notify domain";
-  L<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received"<<endl;
+  L<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
   if(!Communicator.notifyDomain(parts[1]))
     return "Failed to add to the queue - see log";
   return "Added to queue";
