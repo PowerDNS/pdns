@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2004  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.25 2004/04/01 19:59:21 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.26 2005/01/11 19:24:27 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -174,7 +174,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
   const string mode=arg()["version-string"];
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
     if(mode.empty() || mode=="full") 
-      rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.25 2004/04/01 19:59:21 ahu Exp $";
+      rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.26 2005/01/11 19:24:27 ahu Exp $";
     else if(mode=="anonymous") {
       r->setRcode(RCode::ServFail);
       return 1;

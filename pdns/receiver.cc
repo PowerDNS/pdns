@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.12 2004/10/24 12:08:01 ahu Exp $
+// $Id: receiver.cc,v 1.13 2005/01/11 19:24:27 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -98,9 +98,14 @@ void daemonize(void)
   setsid(); 
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
-  dup2(i,0); /* stdin */
-  dup2(i,1); /* stderr */
-  dup2(i,2); /* stderr */
+  if(i < 0) 
+    L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
+  else {
+    dup2(i,0); /* stdin */
+    dup2(i,1); /* stderr */
+    dup2(i,2); /* stderr */
+    close(i);
+  }
 }
 
 
