@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of the GNU General Public License version 2 as published
+    by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,8 +15,16 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.17 2004/12/13 15:53:32 ahu Exp $
 #ifndef DNSPACKET_HH
+
+#if __GNUC__ == 2
+#if __GNUC_MINOR__ < 95
+	#error Your compiler is too old! Try g++ 3.3 or higher
+#else
+	#warning There are known problems with PowerDNS binaries compiled by gcc version 2.95 and 2.96!
+#endif
+#endif
+
 #define DNSPACKET_HH
 
 #include <cstdio>
