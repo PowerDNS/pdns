@@ -1,1 +1,1 @@
--Wl,-rpath -Wl,/opt/postgresql-with-3.2/lib -L/opt/postgresql-with-3.2/lib -L./ -lmysqlclient -Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
+-lmysqlclient 

@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.1 2002/11/27 15:23:16 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.2 2002/11/29 15:14:24 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -13,7 +13,11 @@ using namespace std;
 #include "logger.hh"
 #include "arguments.hh"
 #include "smysql.hh"
-#include "spgsql.hh"
+
+#if 0
+	#include "spgsql.hh"
+#endif
+
 #include <sstream>
 
 
@@ -189,12 +193,14 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)
 		    getArg("socket"),
 		    getArg("user"),
 		    getArg("password"));
+#if 0
     else if(mode=="gpgsql2")
       d_db=new SPgSQL(getArg("dbname"),
 		      getArg("host"),
 		      getArg("socket"),
 		      getArg("user"),
 		      getArg("password"));
+#endif 
     else {
       L<<Logger::Error<<d_logprefix<<"Generic backend does not support database '"<<mode<<"'"<<endl;
       exit(1);

@@ -1,1 +1,1 @@
-gmysqlbackend.o  smysql.o  spgsql.o
+gmysqlbackend.o  smysql.o  
