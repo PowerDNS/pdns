@@ -11,6 +11,7 @@ Changes since 2.9.2:
 	- configparser now strips leading spaces in arguments
 	- improved chroot error reporting
 	- lots of bind backend work
+		- we now ignore 'hint' 'forward' whatever zones
 	
 Changes since 2.9.1:
 	- removed debugging output from the webserver (found by Paul Wouters)

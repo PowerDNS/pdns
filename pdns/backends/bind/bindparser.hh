@@ -29,11 +29,12 @@ class BindDomainInfo
 public:
   void clear() 
   {
-    name=filename=master="";
+    name=filename=master=type="";
   }
   string name;
   string filename;
   string master;
+  string type;
 };
 
 extern const char *bind_directory;

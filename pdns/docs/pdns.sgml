@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/13 15:22:33 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/18 16:22:20 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -85,6 +85,96 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-3"><title>Version 2.9.3</title>	
+	<para>
+	  Broad range of improvements. We now have an all-static .rpm and .deb for Linux users and a a link to an OpenBSD port.
+	  Major news is that work on the Bind backend has progressed to the point that we've just retired our last Bind server and 
+	  replaced it with PowerDNS in Bind mode! This server is operating a number of master and slave setups so it should stress the Bind backend 
+	  quite a bit.
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      Again some changes in compilation instructions. The hybrid pgmysql backend has been split up into 'gmysql' and 'gpgsql', sharing
+	      a common base within the PowerDNS server itself. This means that you can no longer compile 
+	      <command>--with-modules="pgmysql" --enable-mysql --enable-pgsql</command> but that you should now use:
+	      <command>--with-modules="gmysql gpgsql"</command>. The old launch-names remain available. 
+	    </para>
+	    <para>
+	      If you launch the Generic PgSQL backend as gpgsql2, all parameters will have gpsql2 as a prefix, for example 
+	      <command>pgsql2-dbname</command>. If launched as gpsql, the regular names are in effect.
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Bind backend can now deal with missing files and try to find them later.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		General robustness improvements in Bind backend - many errors are now non-fatal.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added support for retrieving RP (Responsible Person) records from remote masters. Serving them was already possible.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added support for LOC records, which encode the geographical location of a host, both serving and retrieving (thanks to Marco Davids
+		using them on our last Bind server, forcing us to implement this silly record).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Configuration file parser now strips leading spaces too, allowing "chroot= /tmp" to work, as well as "chroot=/tmp" 
+		(Thanks to Hub Dohmen for reporting this for months on end).
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Changes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		gpgsql and gmysql backends split out of the hybdid pgmysqlbackend. This again changed compilation instructions!
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Bugfixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Windows version did not compile without minor changes.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Confusing error reporting on Windows 98 (which does not support PowerDNS) fixed
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Potential crashes with shortened packets addressed. An upgrade is advised!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pgmysql backend had problems launching when not compiled in but available as a module. Workaround for 2.9.2 is 'load-modules=pgmysql', 
+		but even then gpgsql would not work! gmysql would then, however. These modules are now split out, removing such issues.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-2"><title>Version 2.9.2</title>	
 	<para>
 	  Bugfixes galore. Solaris porting created some issues on all platforms. Great news is that PowerDNS is now in Debian 'sid' (unstable). The 2.9.1
@@ -4981,8 +5071,9 @@ while(&lt;&gt;)
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
-	      <row><entry>Module name</entry><entry>pgmysql</entry></row>
-	      <row><entry>Lauch name</entry><entry>gmysql and gpgsql2</entry></row>
+	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
+	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>
+	      <row><entry>Lauch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -5787,6 +5878,36 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
       <sect2><title>Master/slave configuration</title>
 	<para>
 	  Currently disabled in prereleases. But see <xref linkend="slave">.
+	</para>
+      </sect2>
+      <sect2><title>Commands</title>
+	<para>
+	  <command>pdns_control</command> offers commands to communicate instructions to PowerDNS. These are detailed here.
+	  <variablelist>
+	    <varlistentry>
+	      <term>rediscover</term>
+	      <listitem>
+		<para>
+		  Reread the bind configuration file (<filename>named.conf</filename>). If parsing fails, the old configuration
+		  remains in force and pdns_control reports the error. Any newly discovered domains are read, discarded domains 
+		  are removed from memory.
+		  <note>
+		    <para>
+		      Except that with 2.9.3, they are not removed from memory.
+		    </para>
+		  </note>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>bind-reload</term>
+	      <listitem>
+		<para>
+		  All zones with a changed timestamp are reloaded at the next incoming query for them.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
 	</para>
       </sect2>
     </sect1>

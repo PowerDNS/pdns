@@ -38,10 +38,10 @@ class ZoneParser
   };
   ZoneParser() : d_ttl(3600) {}
   ~ZoneParser();
-  void parse(const string &fname,const string &origin);
+  void parse(const string &fname,const string &origin, unsigned int domain_id);
   void parse(const string &fname,const string &origin, vector<Record>&records);
   
-  typedef void callback_t(const string &domain, const string &qtype, const string &content, int ttl, int prio);
+  typedef void callback_t(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio);
   void setCallback(callback_t *callback);
   callback_t *d_callback;
   bool parseLine(const vector<string>&words, vector<Record> &);

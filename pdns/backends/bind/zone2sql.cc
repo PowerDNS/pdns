@@ -18,7 +18,7 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.3 2002/11/29 23:09:08 ahu Exp $ 
+// $Id: zone2sql.cc,v 1.4 2002/12/18 16:22:20 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 # include <unistd.h>
@@ -64,7 +64,7 @@ bool g_intransaction;
 
 static int num_records;
 static string lastsoa_qname;
-static void callback(const string &domain, const string &qtype, const string &content, int ttl, int prio)
+static void callback(unsigned int domain_id,const string &domain, const string &qtype, const string &content, int ttl, int prio)
 {
   static int lastsoa_domain_id=-1;
 
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 	      }
 	      lastsoa_qname=i->name;
 	    }
-	    ZP.parse(i->filename,i->name);
+	    ZP.parse(i->filename,i->name,0);
 	  }
 	  catch(AhuException &ae) {
 	    if(!arg().mustDo("on-error-resume-next"))
@@ -256,8 +256,9 @@ int main(int argc, char **argv)
       ZoneParser ZP;
       ZP.setDirectory(".");
       ZP.setCallback(&callback);  
-      ZP.parse(zonefile,arg()["zone-name"]);
+      ZP.parse(zonefile,arg()["zone-name"],0);
       dirty_hack_num++;
+
     }
     cerr<<"Parsed "<<num_records<<" records"<<endl;
     

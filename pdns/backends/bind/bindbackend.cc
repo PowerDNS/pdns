@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.4 2002/12/18 09:30:13 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.5 2002/12/18 16:22:20 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -73,7 +73,7 @@ bool BBDomainInfo::current()
   if(d_checknow)
     return false;
 
-  if(!d_checkinterval || (time(0)-d_lastcheck<d_checkinterval) || d_filename.empty())
+  if(!d_checknow && !d_checkinterval || (time(0)-d_lastcheck<d_checkinterval) || d_filename.empty())
     return true;
 
   return (getCtime()==d_ctime);
@@ -207,7 +207,7 @@ static string canonic(string ret)
   return ret;
 }
 
-
+/** This function adds a record to a domain with a certain id. */
 void BindBackend::insert(int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
 {
   static int s_count;
@@ -250,12 +250,10 @@ void BindBackend::insert(int id, const string &qnameu, const string &qtype, cons
   else {
     s_count--;
   }
-
-  
 }
 
 
-
+/** Helper function that creates a BBResourceRecord and does s_content housekeeping */
 BBResourceRecord BindBackend::resourceMaker(int id, const string &qtype, const string &content, int ttl, int prio)
 {
   BBResourceRecord make;
@@ -276,16 +274,15 @@ BBResourceRecord BindBackend::resourceMaker(int id, const string &qtype, const s
 }
 
 static BindBackend *us;
-static int domain_id;
-BindBackend *self;
+
 string BindBackend::DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  for(map<u_int32_t,BBDomainInfo>::iterator i=self->d_bbds.begin();i!=self->d_bbds.end();++i) 
+  for(map<u_int32_t,BBDomainInfo>::iterator i=us->d_bbds.begin();i!=us->d_bbds.end();++i) 
     i->second.d_checknow=true;
   return "queued";
 }
 
-static void callback(const string &domain, const string &qtype, const string &content, int ttl, int prio)
+static void callback(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
 {
   us->insert(domain_id,domain,qtype,content,ttl,prio);
 }
@@ -323,7 +320,6 @@ BindBackend::BindBackend(const string &suffix)
     bbd.d_filename="";
     bbd.d_id=0;
     d_bbds[0]=bbd; 
-    
     d_bbds[0].d_loaded=true;
   }
   
@@ -331,19 +327,19 @@ BindBackend::BindBackend(const string &suffix)
   
 
   extern DynListener *dl;
-  self=this;
+  us=this;
   dl->registerFunc("BIND-RELOAD", &DLReloadHandler);
 }
 
 
-void BindBackend::rediscover()
+void BindBackend::rediscover(string *status)
 {
-  loadConfig();
+  loadConfig(status);
 }
 
-void BindBackend::loadConfig()
+void BindBackend::loadConfig(string* status)
 {
-  static int s_confcount;
+  static int domain_id;
 
   if(!getArg("config").empty()) {
     BindParser BP;
@@ -367,7 +363,6 @@ void BindBackend::loadConfig()
     
     int rejected=0;
     int newdomains=0;
-    s_confcount++;
 
     map<unsigned int, BBDomainInfo> nbbds;
 
@@ -376,32 +371,44 @@ void BindBackend::loadConfig()
 	++i)
       {
 	BBDomainInfo bbd;
+	if(i->type!="master" && i->type!="slave") {
+	  L<<Logger::Warning<<d_logprefix<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+	  continue;
+	}
+	map<unsigned int, BBDomainInfo>::const_iterator j=d_bbds.begin();
+	for(;j!=d_bbds.end();++j)
+	  if(j->second.d_name==i->name) {
+	    bbd=j->second;
+	    break;
+	  }
+	if(j==d_bbds.end()) { // entirely new
+	  bbd.d_id=domain_id++;
+	  bbd.setCtime();
+	  bbd.setCheckInterval(getArgAsNum("check-interval"));
+	  nbbds[bbd.d_id].d_loaded=false;
+	}
+
 	bbd.d_name=i->name;
 	bbd.d_filename=i->filename;
 	bbd.d_master=i->master;
-
-	bbd.setCtime();
-	bbd.setCheckInterval(getArgAsNum("check-interval"));
-
-	map<unsigned int, BBDomainInfo>::const_iterator j=d_bbds.begin();
-	for(;j!=d_bbds.end();++j)
-	  if(j->second.d_name==bbd.d_name) {
-	    bbd.d_id=j->second.d_id;
-	    break;
-	  }
-	if(j==d_bbds.end())
-	  bbd.d_id=domain_id++;
 	
 	nbbds[bbd.d_id]=bbd; 
-	L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
-	nbbds[bbd.d_id].d_loaded=false;
-	try {
-	  ZP.parse(i->filename,i->name); // calls callback for us
-	  nbbds[bbd.d_id].d_loaded=true;
-	}
-	catch(AhuException &ae) {
-	  L<<Logger::Warning<<d_logprefix<<" error parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason<<endl;
-	  rejected++;
+	if(!bbd.d_loaded) {
+	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
+	  
+	  try {
+	    ZP.parse(i->filename,i->name,bbd.d_id); // calls callback for us
+	    nbbds[bbd.d_id].d_loaded=true;          // does this perform locking for us?
+	  }
+	  catch(AhuException &ae) {
+	    ostringstream msg;
+	    msg<<" error parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
+	    if(status)
+	      *status+=msg.str();
+
+	    L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
+	    rejected++;
+	  }
 	}
 	
 	vector<vector<BBResourceRecord> *>&tmp=d_zone_id_map[bbd.d_id];  // shrink trick
@@ -410,15 +417,29 @@ void BindBackend::loadConfig()
 
 
     int remdomains=0;
-    vector<string> oldnames, newnames;
-    for(map<unsigned int, BBDomainInfo>::const_iterator j=d_bbds.begin();j!=d_bbds.end();++j)
-      oldnames.push_back(j->second.d_name);
-    for(map<unsigned int, BBDomainInfo>::const_iterator j=nbbds.begin();j!=nbbds.end();++j)
-      newnames.push_back(j->second.d_name);
+    set<string> oldnames, newnames;
+    for(map<unsigned int, BBDomainInfo>::const_iterator j=d_bbds.begin();j!=d_bbds.end();++j) {
+      oldnames.insert(j->second.d_name);
+    }
+    for(map<unsigned int, BBDomainInfo>::const_iterator j=nbbds.begin();j!=nbbds.end();++j) {
+      newnames.insert(j->second.d_name);
+    }
+
+    vector<string> diff;
+    set_difference(oldnames.begin(), oldnames.end(), newnames.begin(), newnames.end(), back_inserter(diff));
+    remdomains=diff.size();
+
+    vector<string> diff2;
+    set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff2));
+    newdomains=diff2.size();
 
     d_bbds.swap(nbbds); // commit
+    ostringstream msg;
+    msg<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"; 
+    if(status)
+      *status=msg.str();
 
-    L<<Logger::Error<<d_logprefix<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"<<endl; // XXX add how many were rejected
+    L<<Logger::Error<<d_logprefix<<msg.str()<<endl;
     L<<Logger::Info<<d_logprefix<<" Number of hash buckets: "<<d_qnames.bucket_count()<<", number of entries: "<<d_qnames.size()<< endl;
   }
 }
@@ -433,23 +454,19 @@ void BindBackend::queueReload(BBDomainInfo *bbd)
   //cout<<"locked, start nuking records"<<endl;
   bbd->d_loaded=0; // block further access
   
-  // now nuke all records with our id
-  for(vector<vector<BBResourceRecord> *>::const_iterator i=d_zone_id_map[bbd->d_id].begin();
-      i!=d_zone_id_map[bbd->d_id].end();++i)
-    {
-      (*i)->clear();
-    }
-  //  cout<<"Now clearing the list of records"<<endl;
-  // now zonk the list with all records for our id
-  d_zone_id_map[bbd->d_id].clear();
-  // now reload
+  // this emtpies all d_qnames vectors belonging to this domain. We find these vectors via d_zone_id_map
+  for(vector<vector<BBResourceRecord> *>::iterator i=d_zone_id_map[bbd->d_id].begin();
+      i!=d_zone_id_map[bbd->d_id].end();++i) {
+    (*i)->clear();
+  }
 
+  // empty our d_zone_id_map of the references to the now empty vectors (which are not gone from d_qnames, btw)
+  d_zone_id_map[bbd->d_id].clear();
 
   ZoneParser ZP;
   us=this;
-  domain_id=bbd->d_id;
   ZP.setCallback(&callback);  
-  ZP.parse(bbd->d_filename,bbd->d_name);
+  ZP.parse(bbd->d_filename,bbd->d_name,bbd->d_id);
   bbd->setCtime();
   // and raise d_loaded again!
   bbd->d_loaded=1;

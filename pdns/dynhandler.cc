@@ -209,8 +209,9 @@ string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
   PacketHandler P;
   try {
     L<<Logger::Error<<"Rediscovery was requested"<<endl;
-    P.getBackend()->rediscover();
-    return "Ok";
+    string status="Ok";
+    P.getBackend()->rediscover(&status);
+    return status;
   }
   catch(AhuException &ae) {
     return ae.reason;

@@ -1,4 +1,4 @@
-reset yacc/lex in bindparser
+don't read 'hint' and 'forward' sections
 
 bugs:
 	pdns.conf-dist contains old descriptions
