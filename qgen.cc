@@ -55,6 +55,7 @@ class QGen
   unsigned int d_numqueries;
   unsigned int d_maxOutstanding;
   unsigned int d_maxToRead;
+  unsigned int d_timeout;
   unsigned int d_answeredOK;
   unsigned int d_delayed;
   unsigned int d_unmatched;
@@ -77,7 +78,7 @@ class QGen
 public:
   void sendQuestion(const string& qname, QType qtype);
   QGen(const string &server, unsigned int port, const string &fileName,
-       unsigned int maxOutstanding, unsigned int maxBurst, unsigned int maxToRead);
+       unsigned int maxOutstanding, unsigned int maxBurst, unsigned int maxToRead, unsigned int timeout);
   void start();
 
 };
@@ -94,7 +95,8 @@ QGen::QGen(const string &server,
 	   const string &fileName,
 	   unsigned int maxOutstanding,
 	   unsigned int maxBurst,
-	   unsigned int maxToRead) : d_in(fileName.c_str())
+	   unsigned int maxToRead,
+	   unsigned int timeout) : d_in(fileName.c_str())
 {
   d_answeredOK = d_numqueries = d_delayed = d_unmatched = d_servfail = d_nxdomain = 0;
 
@@ -104,6 +106,7 @@ QGen::QGen(const string &server,
   d_maxOutstanding = maxOutstanding;
   d_maxToRead = maxToRead;
   d_maxBurst=maxBurst;
+  d_timeout=timeout;
   struct in_addr inp;
   Utility::inet_aton(server.c_str(),&inp);
   d_toaddr.sin_addr.s_addr=inp.s_addr;
@@ -132,9 +135,9 @@ void QGen::pruneUnanswered()
   double now=getTime();
 
   for(multiset<OutstandingQuestion>::iterator i=d_questions.begin();i!=d_questions.end();) 
-    if(now-i->timeSent > 5) {
-      cout<<"No answer received to question for "<<i->qname<<endl;
-      cout<<i->qname<<" "<<i->qtype.getName()<<"NO ANSWER"<<endl;
+    if(now-i->timeSent > d_timeout) {
+      cerr<<"No answer received to question for "<<i->qname<<endl;
+      cout<<i->qname<<" "<<i->qtype.getName()<<" NO ANSWER"<<endl;
       d_unanswered.insert(*i);
       d_questions.erase(i++);
 
@@ -317,6 +320,7 @@ try
   at.add("max-burst",Numeric(),"50");
   at.add("max-outstanding",Numeric(),"200");
   at.add("max-questions",Numeric(),"0");
+  at.add("timeout",Numeric(),"30");
   at.parse(argc, argv);
   cout<<"hier 1"<<endl;
   at.constraints();
@@ -328,10 +332,11 @@ try
   unsigned int maxBurst=at.getInt("max-burst");
   unsigned int maxOutstanding=at.getInt("max-outstanding");
   unsigned int maxToRead=at.getInt("max-questions");
+  unsigned int timeout=at.getInt("timeout");
 
   // parse commandline here
 
-  QGen qg(server, port, fileName, maxOutstanding, maxBurst, maxToRead);
+  QGen qg(server, port, fileName, maxOutstanding, maxBurst, maxToRead, timeout);
   qg.start();
 
 }

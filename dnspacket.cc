@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.23 2003/11/23 15:14:57 ahu Exp $
+// $Id: dnspacket.cc,v 1.24 2004/02/04 22:41:17 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1240,11 +1240,11 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       // explicitly copy the SOA values out of the packet to avoid 
       // SPARC alignment issues.
       
-      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset    ));
-      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+4  ));
-      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+8  ));
-      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+12 ));
-      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+16 ));
+      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset    ));
+      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+4  ));
+      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+8  ));
+      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+12 ));
+      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+16 ));
 
       break;
 
