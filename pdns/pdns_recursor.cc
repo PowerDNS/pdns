@@ -17,7 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
  
-
 #include <iostream>
 #include <errno.h>
 #include <map>
@@ -100,14 +99,17 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t
 
 typedef map<string,set<DNSResourceRecord> > cache_t;
 cache_t cache;
+int cacheHits, cacheMisses;
 int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
   cache_t::const_iterator j=cache.find(toLower(qname)+"|"+qt.getName());
   if(j!=cache.end() && j->first==toLower(qname)+"|"+qt.getName() && j->second.begin()->ttl>(unsigned int)time(0)) {
     if(res)
       *res=j->second;
+    cacheHits++;
     return (unsigned int)j->second.begin()->ttl-time(0);
   }
+  cacheMisses++;
   return -1;
 }
 
@@ -295,6 +297,7 @@ int main(int argc, char **argv)
     
     PacketID pident;
     init();    
+    int counter=0;
     for(;;) {
       while(MT.schedule()); // housekeeping, let threads do their thing
       
@@ -360,6 +363,9 @@ int main(int argc, char **argv)
 	  else {
 	    cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
 	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+	    if(!((counter++)%100)) {
+	      cout<<"stats: "<<counter<<" questions, "<<cache.size()<<" cache entries, "<<(cacheHits*100.0)/(cacheHits+cacheMisses)<<"% cache hits"<<endl;
+	    }
 	  }
 	}
       }
