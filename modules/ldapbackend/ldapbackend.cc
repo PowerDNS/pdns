@@ -17,12 +17,17 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+
+
 #include "ldapbackend.hh"
+
+
 
 static int Toupper(int c)
 {
   return toupper(c);
 }
+
 
 LdapBackend::LdapBackend( const string &suffix )
 {
@@ -74,25 +79,14 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	m_qname = qname;
 	qesc = m_pldap->escape( qname );
 
-	if( mustDo( "enable-ptrrecord" ) )   // requires additional ldap objects for reverse lookups
-	{
-		filter = "(associatedDomain=" + qesc + ")";
-		if( qtype.getCode() != QType::ANY )
-		{
-			attr = qtype.getName() + "Record";
-			filter = "(&" + filter + "(" + attr + "=*))";
-			attronly[0] = (char*) attr.c_str();
-			attributes = attronly;
-		}
-	}
-	else  // PTRRecords will be derived from ARecords
+	if( mustDo( "disable-ptrrecord" ) )  // PTRRecords will be derived from ARecords
 	{
 		len = qesc.length();
 
 		if( qesc.substr( len - 5, 5 ) == ".arpa" || qesc.substr( len - 4, 4 ) == ".int" )
 		{
 			stringtok( parts, qesc, "." );
-			if (parts[parts.size()-2] == "ip6" )  // IPv6 is currently EXPERIMENTAL
+			if (parts[parts.size()-2] == "ip6" )  // EXPERIMENTAL
 			{
 				filter = "(aaaaRecord=" + parts[parts.size()-3];
 				for( i = parts.size() - 4; i >= 0; i-- )   // reverse and cut .ip6.arpa or .ip6.int
@@ -120,6 +114,17 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 				attronly[0] = (char*) attr.c_str();
 				attributes = attronly;
 			}
+		}
+	}
+	else   // requires additional ldap objects for reverse lookups
+	{
+		filter = "(associatedDomain=" + qesc + ")";
+		if( qtype.getCode() != QType::ANY )
+		{
+			attr = qtype.getName() + "Record";
+			filter = "(&" + filter + "(" + attr + "=*))";
+			attronly[0] = (char*) attr.c_str();
+			attributes = attronly;
 		}
 	}
 
@@ -218,7 +223,7 @@ public:
 		declare( suffix, "basedn", "search root in ldap tree (must be set)","" );
 		declare( suffix, "binddn", "user dn for non anonymous binds","" );
 		declare( suffix, "secret", "user password for non anonymous binds", "" );
-		declare( suffix, "enable-ptrrecord", "enable seperate PTR records (requires additional ldap objects)", "no" );
+		declare( suffix, "disable-ptrrecord", "disable necessity for seperate PTR records", "no" );
 	}
 
 
