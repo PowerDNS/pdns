@@ -74,7 +74,7 @@ public:
   void makeThread(tfunc_t *start, void* val);
   bool schedule();
   bool noProcesses();
-
+  int getTid(); 
 private:
   static void threadWrapper(MTasker *self, tfunc_t *tf, int tid, void* val);
 };

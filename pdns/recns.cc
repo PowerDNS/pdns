@@ -16,7 +16,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
- 
 
 #include <iostream>
 #include <errno.h>
@@ -72,7 +71,7 @@ bool operator<(const PacketID& a, const PacketID& b)
   return false;
 }
 
-MTasker<PacketID,string> MT(200000);
+MTasker<PacketID,string> MT(100000);
 
 /* these two functions are used by LWRes */
 int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id) 
@@ -202,6 +201,7 @@ void startDoResolve(void *p)
     R->setRA(true);
 
     SyncRes<LWRes> sr;
+
     int res=sr.beginResolve(P.qdomain, P.qtype, ret);
     if(res<0)
       R->setRcode(RCode::ServFail);

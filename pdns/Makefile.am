@@ -47,7 +47,7 @@ pdns_server_INCLUDES=
 
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
-mtasker.hh sillyrecords.cc
+mtasker.hh sillyrecords.cc 
 
 pdns_recursor_LDFLAGS=
 pdns_recursor_LDADD=

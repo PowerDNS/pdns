@@ -1,3 +1,10 @@
+Changes since 2.9.4:
+	- heap of work in shortening dnspacket.cc (factor out common operations)
+	- work on recursor
+	- recursor renamed 
+	- added unknown record type support (+1024)
+	- added names for SIG and KEY records
+	
 Changes since 2.9.3a:
 feat	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
 feat	- recursor

@@ -157,6 +157,11 @@ void startDoResolve(void *p)
     R->setRA(true);
 
     SyncRes<LWRes> sr;
+    L<<Logger::Error<<"["<<MT.getTid()<<"] new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+    sr.setId(MT.getTid());
+    if(!P.d.rd)
+      sr.setCacheOnly();
+
     int res=sr.beginResolve(P.qdomain, P.qtype, ret);
     if(res<0)
       R->setRcode(RCode::ServFail);
@@ -168,47 +173,15 @@ void startDoResolve(void *p)
 
     const char *buffer=R->getData();
     sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+    L<<Logger::Error<<"["<<MT.getTid()<<"] sent answer to "<<(P.d.rd?"":"non-rd ")<<"question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' to "<<P.getRemote();
+    L<<", "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets"<<endl;
     delete R;
   }
   catch(AhuException &ae) {
-    cerr<<"startDoResolve problem: "<<ae.reason<<endl;
+    L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
   }
   catch(...) {
-    cerr<<"Any other exception"<<endl;
-  }
-}
-
-void startDoResolveEmbed(void *p)
-{
-  try {
-    DNSPacket P=*(DNSPacket *)p;
-    delete (DNSPacket *)p;
-    
-    vector<DNSResourceRecord>ret;
-    SyncRes<LWRes> sr;
-    int res=sr.beginResolve(P.qdomain, P.qtype, ret);
-    P.setRA(true);
-    P.commitD();
-    string line="P: "+P.qdomain+" "+itoa(P.qtype.getCode())+" "+itoa(P.getSocket())+" "+itoa(P.d.id)+" ";
-    line+=itoa(*(((char*)&P.d)+2))+" "+P.getRemote()+" "+itoa(P.getRemotePort())+" ";
-    if(res<0)
-      line+=itoa(RCode::ServFail)+"\n\n";
-    else {
-      line+=itoa(res)+"\n";
-
-      for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
-	line.append(1,(char)(i->d_place+'0'));
-	line+=i->serialize()+"\n";
-      }
-      line+="\n";
-    }
-    write(d_serversock,line.c_str(),line.size());
-  }
-  catch(AhuException &ae) {
-    cerr<<"startDoResolve problem: "<<ae.reason<<endl;
-  }
-  catch(...) {
-    cerr<<"Any other exception"<<endl;
+    L<<Logger::Error<<"Any other exception in a resolver context"<<endl;
   }
 }
 
@@ -229,10 +202,8 @@ void makeClientSocket()
     u_int16_t port=10000+random()%10000;
     sin.sin_port = htons(port); 
     
-    if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) {
-      cout<<"Outging query source port: "<<port<<endl;
+    if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
       break;
-    }
     
   }
   if(!tries)
@@ -251,7 +222,7 @@ void makeServerSocket()
   sin.sin_family = AF_INET;
 
   if(arg()["local-address"]=="0.0.0.0") {
-    cerr<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
+    L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
     sin.sin_addr.s_addr = INADDR_ANY;
   }
   else {
@@ -267,27 +238,68 @@ void makeServerSocket()
     
   if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
     throw AhuException("Resolver binding to server socket: "+stringerror());
-  cout<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
+  L<<Logger::Error<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
 }
+void daemonize(void)
+{
+  if(fork())
+    exit(0); // bye bye
+  
+  setsid(); 
 
+  // cleanup open fds, but skip sockets 
+  close(0);
+  close(1);
+  close(2);
+
+}
+int counter, qcounter;
+
+void houseKeeping(void *)
+{
+  static time_t last_stat, last_rootupdate;
+
+  if(time(0)-last_stat>1800) {
+    if(qcounter) {
+      L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<cache.size()<<" cache entries, "
+       <<(int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits";
+      L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes<LWRes>::s_outqueries*100.0/SyncRes<LWRes>::s_queries)<<"%"<<endl;
+    }
+    last_stat=time(0);
+  }
+  if(time(0)-last_rootupdate>7200) {
+    SyncRes<LWRes> sr;
+    vector<DNSResourceRecord>ret;
+
+    sr.setNoCache();
+    int res=sr.beginResolve("", QType(QType::NS), ret);
+    if(!res) {
+      L<<Logger::Error<<"Refreshed . records"<<endl;
+      last_rootupdate=time(0);
+    }
+    else
+      L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+  }
+}
 
 int main(int argc, char **argv) 
 {
-#if __GNUC__ >= 3
-    ios_base::sync_with_stdio(false);
-#endif
-
   try {
-    cout<<"argc="<<argc<<endl;
     srandom(time(0));
     arg().set("soa-minimum-ttl","0")="0";
     arg().set("soa-serial-offset","0")="0";
     arg().set("local-port","port to listen on")="5300";
     arg().set("local-address","port to listen on")="0.0.0.0";
+    arg().set("trace","if we should output heaps of logging")="true";
+    arg().set("daemon","Operate as a daemon")="no";
+
     arg().parse(argc, argv);
 
-    cerr<<"Done priming cache with root hints"<<endl;
+    L.setName("pdns_recursor");
+    L.toConsole(Logger::Warning);
 
+    if(arg().mustDo("trace"))
+      SyncRes<LWRes>::setLog(true);
     
     makeClientSocket();
     makeServerSocket();
@@ -297,10 +309,18 @@ int main(int argc, char **argv)
     
     PacketID pident;
     init();    
-    int counter=0;
+    L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
+
+    if(arg().mustDo("daemon")) {
+      L.toConsole(Logger::Critical);
+      daemonize();
+    }
     for(;;) {
       while(MT.schedule()); // housekeeping, let threads do their thing
       
+      if(!((counter++)%1000)) 
+	MT.makeThread(houseKeeping,0);
+
       socklen_t addrlen=sizeof(fromaddr);
       int d_len;
       DNSPacket P;
@@ -321,61 +341,54 @@ int main(int argc, char **argv)
       
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a question response?
 	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-	if(d_len<0) {
-	  cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
+	if(d_len<0) 
 	  continue;
-	}
 	
 	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
 	if(P.parse(data,d_len)<0) {
-	  cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
+	  L<<Logger::Error<<"Unparseable packet from remote server "<<P.getRemote()<<endl;
 	}
 	else { 
 	  if(P.d.qr) {
-	    //	    cout<<"answer to a question received"<<endl;
-	    //      cout<<"Packet from "<<P.getRemote()<<" with id "<<P.d.id<<": "; cout.flush();
+
 	    pident.remote=fromaddr;
 	    pident.id=P.d.id;
-	    string *packet=new string;
-	    packet->assign(data,d_len);
-	    MT.sendEvent(pident,packet);
+	    string packet;
+	    packet.assign(data,d_len);
+	    MT.sendEvent(pident,&packet);
 	  }
 	  else 
-	    cout<<"Ignoring question on outgoing socket!"<<endl;
+	    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<P.getRemote()<<endl;
 	}
       }
       
       if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question?
 	d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-	if(d_len<0) {
-	  cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
+	if(d_len<0) 
 	  continue;
-	}
  	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
 	if(P.parse(data,d_len)<0) {
-	  cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
+	  L<<Logger::Error<<"Unparseable packet from remote client "<<P.getRemote()<<endl;
 	}
 	else { 
 	  if(P.d.qr)
-	    cout<<"Ignoring answer on server socket!"<<endl;
+	    L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
 	  else {
-	    cout<<nowTime()<<" new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+	    ++qcounter;
 	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
-	    if(!((counter++)%100)) {
-	      cout<<"stats: "<<counter<<" questions, "<<cache.size()<<" cache entries, "<<(cacheHits*100.0)/(cacheHits+cacheMisses)<<"% cache hits"<<endl;
-	    }
+
 	  }
 	}
       }
     }
   }
   catch(AhuException &ae) {
-    cerr<<"Exception: "<<ae.reason<<endl;
+    L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
   }
   catch(exception &e) {
-    cerr<<"STL Exception: "<<e.what()<<endl;
+    L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
   }
   catch(...) {
-    cerr<<"any other exception in main: "<<endl;
+    L<<Logger::Error<<"any other exception in main: "<<endl;
   }
 }
