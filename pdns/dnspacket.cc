@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.20 2003/03/27 10:40:40 ahu Exp $
+// $Id: dnspacket.cc,v 1.21 2003/10/04 14:15:45 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1324,7 +1324,6 @@ DNSPacket *DNSPacket::replyPacket() const
   DNSPacket *r=new DNSPacket;
   r->setSocket(d_socket);
 
-
   r->setRemote((struct sockaddr *)remote, d_socklen);
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative
@@ -1337,10 +1336,9 @@ DNSPacket *DNSPacket::replyPacket() const
   r->stringbuffer.reserve(d_qlen+12);
   // copy the question in
   r->pasteQ(stringbuffer.c_str()+12,d_qlen);
-  r->d.qdcount=1;
   
   r->d_dt=d_dt;
-
+  r->d.qdcount=1;
   return r;
 }
 

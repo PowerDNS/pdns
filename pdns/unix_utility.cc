@@ -181,7 +181,7 @@ int Utility::strcasecmp( const char *s1, const char *s2 )
 
 
 // Writes a vector.
-int Utility::writev(int socket, const struct iovec *vector, size_t count )
+int Utility::writev(int socket, const iovec *vector, size_t count )
 {
   return ::writev(socket,vector,count);
 }

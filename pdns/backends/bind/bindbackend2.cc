@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend2.cc,v 1.5 2003/09/28 18:34:07 ahu Exp $ 
+// $Id: bindbackend2.cc,v 1.6 2003/10/04 14:15:46 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -776,7 +776,7 @@ bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, co
   if (getArg("supermaster-config").empty())
     return false;
 
-  ifstream c_if(getArg("supermasters").c_str(), ios_base::in); // this was nocreate?
+  ifstream c_if(getArg("supermasters").c_str(), ios::in); // this was nocreate?
   if (!c_if) {
     L << Logger::Error << "Unable to open supermasters file for read: " << stringerror() << endl;
     return false;
@@ -817,7 +817,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
     << " Writing bind config zone statement for superslave zone '" << domain
     << "' from supermaster " << ip << endl;
         
-  ofstream c_of(getArg("supermaster-config").c_str(),  ios_base::app);
+  ofstream c_of(getArg("supermaster-config").c_str(),  ios::app);
   if (!c_of) {
     L << Logger::Error << "Unable to open supermaster configfile for append: " << stringerror() << endl;
     throw DBException("Unable to open supermaster configfile for append: "+stringerror());

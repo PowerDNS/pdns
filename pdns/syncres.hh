@@ -42,7 +42,9 @@ public:
   void throttle(const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
   {
     entry e;
-    e.ttd=time(0)+ (ttl ?: d_ttl) ; e.T=t; e.count=tries ?: d_limit;
+    e.ttd=time(0)+ (ttl ? ttl : d_ttl) ; 
+    e.T=t; 
+    e.count=tries ? tries : d_limit;
     d_dq.push_front(e);
 
   }

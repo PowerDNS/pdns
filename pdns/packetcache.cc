@@ -197,7 +197,7 @@ map<char,int> PacketCache::getCounts()
     key=i->first[offset+1];
     if((key=='Q' || key=='q') && !i->second.value.empty())
       key='!';
-    counts[key]++;
+    counts[(int)key]++;
   }
 
   map<char,int>ret;

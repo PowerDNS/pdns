@@ -16,7 +16,8 @@ changes since 2.9.11:
 	- pdns_recursor does not try to resolve its own IP addresses anymore
 	- pdns_recursor has gained an init.d script
 	- sqlite support from 
-
+	- bindbackend2 gains supermaster support (Mark Bergsma), untested
+	
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache
 	- pdns_recursor writes its pid to disk now (FreeBSD port maintainer)
