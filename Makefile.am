@@ -4,10 +4,8 @@ AM_CPPFLAGS=-Ibackends/bind
 EXTRA_DIST = codedocs/Makefile codedocs/doxygen.conf docs/Makefile \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
 docs/powerdns-overview.sgml docs/powerdns-technical.sgml extra/Makefile \
-extra/null.c pdns.spec release-scripts/ debian/changelog debian/conffiles \
-debian/control debian/postinst debian/postrm debian/preinst \
-debian/prerm debian/rules docs/pdns.sgml \
-LICENSE choosepaths mtasker.cc COPYING 
+extra/null.c pdns.spec release-scripts/ docs/pdns.sgml \
+choosepaths mtasker.cc 
 
 bin_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
