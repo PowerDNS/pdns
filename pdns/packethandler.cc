@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.16 2003/06/21 09:59:08 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.17 2003/09/16 21:02:35 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -170,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.16 2003/06/21 09:59:08 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.17 2003/09/16 21:02:35 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -182,60 +182,18 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 }
 
 /** Determines if we are authoritative for a zone, and at what level */
-bool PacketHandler::getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
-{
-  static string theSOA="."+arg()["only-soa"];
-  static SOAData cachedSD;
-  static bool haveIt;
-
-  if((target.size()-toLower(target).rfind(toLower(theSOA)))!=theSOA.size()) {
-    //    cerr<<"target '"<<target<<"' does not end on '"<<theSOA<<"'"<<endl;
-    return false;
-  }
-  if(!haveIt) {
-    if(B.getSOA(arg()["only-soa"], cachedSD)) {
-      cachedSD.qname=arg()["only-soa"];
-
-      haveIt=true;
-    }
-  }
-  if(haveIt) {
-    *zoneId=sd->domain_id;  
-    *sd=cachedSD;
-  }
-  return haveIt;
-}
-
-/** Determines if we are authoritative for a zone, and at what level */
 bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
 {
-  DNSResourceRecord rr;
-
-  vector<string>parts;
-  stringtok(parts,target,".");  // www.us.powerdns.com -> 'www' 'us' 'powerdns' 'com'
-  
-  unsigned int spos=0;
-  string subdomain;
-  // easy FIXME: convert this to chopOff
-  while(spos<=parts.size()) {
-    if(spos<parts.size()) { // www.us.powerdns.com -> us.powerdns.com -> powerdns.com -> com ->
-      subdomain=parts[spos++];
-      for(unsigned int i=spos;i<parts.size();++i) {
-	subdomain+=".";
-	subdomain+=parts[i];
-      }
-    }
-    else {
-      subdomain=""; // ROOT!
-      spos++;
-    }
-    if(B.getSOA(subdomain, *sd)) {
-      sd->qname=subdomain;
-      *zoneId=sd->domain_id;
+  string subdomain(target);
+  do {
+    cout<<"Trying: '"<<subdomain<<"'"<<endl;
+    if( B.getSOA( subdomain, *sd ) ) {
+      sd->qname = subdomain;
+      *zoneId = sd->domain_id;
       return true;
     }
   }
-
+  while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   return false;
 }
 

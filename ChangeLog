@@ -4,6 +4,11 @@ changes since 2.9.11:
 	- SRV fixes for zonefiles (Christof Meerwald)
 	- gpgsql no longer reports as gmysql (Sherwin Daganoto)
 	- we now understand 0.0.0.0/0
+	- report more exactly what we bind to (don't trust gethostbyname)
+	- removed only-soa hackery (noticed by Norbert Sendetzky)
+	- added --version
+	- clean up some parameter descriptions
+	- cleanups by Norbert (getAuth moved to chopOff, arguments 'contains' massive cleanup)
 
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache
