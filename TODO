@@ -1,10 +1,9 @@
-pdns_record should have logging family setting
-
-bind2backend should eb documented somewhat
-
 THIS IS NOT UP TO DATE AND CONTAINS RANDOM RAMBLING
 ---------------------------------------------------
 
+Also see http://wiki.powerdns.com/projects/trac/wiki/TodoList
+
+Older stuff below:
 
 * new zone is AXFRed, written to disk succesfully
 	probably? unsure
@@ -14,7 +13,6 @@ bugs:
 	pdns.conf-dist contains old descriptions
 
 	dynmessenger.cc unused variable warning
-
 
 Things we will not do but hope other people will:
 	- Ports to NetBSD, OpenBSD, AIX
@@ -35,19 +33,7 @@ TODO:
 
 	- Add support for TSIG
 
-Medium size things:
-	- get PDNS into FreeBSD ports
-	- and other architectures	
-	- test powerdns in a windows environment!
-
-
 Small things, great for coders new to PowerDNS:
-done	- add LOC record
-	- add KEY record
-	- add SIG record
-done	- get the xdb backend building again
-	- 'make distclean' tries to calculate dependencies in
-		modules/pgmysqlbackend, which is not needed
 	- remove 'handle' from UeberBackend and BindBackend
 
 

@@ -1,26 +1,18 @@
-PowerDNS is copyright 2004 by PowerDNS.COM BV
+PowerDNS is copyright 2005 by PowerDNS.COM BV
 
 This file may lag behind at times. For most recent updates, always check
-http://doc.powerdns.com/changelog.html !
+http://doc.powerdns.com/changelog.html and http://wiki.powerdns.com
 
 Another good place to look for information is:
 http://doc.powerdns.com/compiling-powerdns.html
 
 To file bugs, head towards:
 
-	http://ds9a.nl/cgi-bin/cvstrac/pdns/tktnew 
+	http://wiki.powerdns.com/projects/trac/newticket
 
 but first check existing ones:
 
-	http://ds9a.nl/cgi-bin/cvstrac/pdns/rptview?rn=4
-
-Or, try the new 'trac' experiment:
-
-	http://adsl-xs4all.ds9a.nl/projects/trac/timeline
-
-or its RSS feed:
-
-	http://adsl-xs4all.ds9a.nl/projects/trac/timeline?daysback=90&max=50&format=rss
+	http://wiki.powerdns.com/projects/trac/report/1
 
 COMPILING
 ---------
@@ -46,10 +38,10 @@ See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
 Please don't use the 'mysql' backend, it is deprecated. Use the 'gmysql'
 one! 
 
-CVS
----
+SUBVERSION / CVS
+----------------
 
-If you need code from CVS, read HACKING.
+If you need code from SVN read HACKING
 
 SOLARIS NOTES
 -------------

@@ -1,3 +1,9 @@
+For later versions, please see
+http://wiki.powerdns.com/projects/trac/timeline
+
+This file will not be updated anymore as this page automates what was
+previously here.
+
 changes since 2.9.16:
 	- moved to newer automake (1.6)
 	- BUG!! = in passwords
