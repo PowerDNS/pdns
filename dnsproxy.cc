@@ -189,11 +189,11 @@ void DNSProxy::mainloop(void)
 	memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
 	sendto(i->second.outsock,buffer,len,0,(struct sockaddr*)&i->second.remote,i->second.addrlen);
-
+	
 	DNSPacket p,q;
 	p.parse(buffer,len);
 	q.parse(buffer,len);
-
+	
 	PC.insert(&q, &p);
 	i->second.created=0;
       }
