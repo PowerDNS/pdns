@@ -6,6 +6,14 @@ http://doc.powerdns.com/changelog.html !
 Another good place to look for information is:
 http://doc.powerdns.com/compiling-powerdns.html
 
+To file bugs, head towards:
+
+	http://ds9a.nl/cgi-bin/cvstrac/pdns/tktnew 
+
+but first check existing ones:
+
+	http://ds9a.nl/cgi-bin/cvstrac/pdns/rptview?rn=4
+
 COMPILING
 ---------
 
