@@ -11,3 +11,5 @@ allow building of:
 	- separate rpm/deb for the binary
 	- one big module
 
+suggested mechanism:
+	

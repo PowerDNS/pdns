@@ -6,8 +6,7 @@
 
 using namespace std;
 
-#include <mysql.h>
-
+#include <mysql/mysql.h>
 
 
 /** The MySQLBackend is a DNSBackend that can answer DNS related questions. It looks up data

@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.cc,v 1.1 2002/11/27 15:34:15 ahu Exp $ 
+// $Id: pdnsbackend.cc,v 1.2 2002/11/28 12:30:45 ahu Exp $ 
 
 #include <string>
 #include <map>
@@ -8,13 +8,13 @@
 
 using namespace std;
 
-#include <dns.hh>
-#include <dnsbackend.hh>
-#include <dnspacket.hh>
-#include <ueberbackend.hh>
-#include <ahuexception.hh>
-#include <logger.hh>
-#include <arguments.hh>
+#include <pdns/dns.hh>
+#include <pdns/dnsbackend.hh>
+#include <pdns/dnspacket.hh>
+#include <pdns/ueberbackend.hh>
+#include <pdns/ahuexception.hh>
+#include <pdns/logger.hh>
+#include <pdns/arguments.hh>
 
 #include "pdnsbackend.hh"
 

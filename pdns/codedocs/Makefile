@@ -17,8 +17,8 @@
 SHELL = /bin/sh
 
 srcdir = .
-top_srcdir = ..
-prefix = /opt/pdns
+top_srcdir = ../..
+prefix = /usr/local
 exec_prefix = ${prefix}
 
 bindir = ${exec_prefix}/bin
@@ -36,12 +36,12 @@ oldincludedir = /usr/include
 pkgdatadir = $(datadir)/pdns
 pkglibdir = $(libdir)/pdns
 pkgincludedir = $(includedir)/pdns
-top_builddir = ..
+top_builddir = ../..
 
-ACLOCAL = ${SHELL} /home/ahu/programming/ahudns/missing --run aclocal
-AUTOCONF = ${SHELL} /home/ahu/programming/ahudns/missing --run autoconf
-AUTOMAKE = ${SHELL} /home/ahu/programming/ahudns/missing --run automake
-AUTOHEADER = ${SHELL} /home/ahu/programming/ahudns/missing --run autoheader
+ACLOCAL = ${SHELL} /home/ahu/programming/pdns/missing --run aclocal
+AUTOCONF = ${SHELL} /home/ahu/programming/pdns/missing --run autoconf
+AUTOMAKE = ${SHELL} /home/ahu/programming/pdns/missing --run automake
+AUTOHEADER = ${SHELL} /home/ahu/programming/pdns/missing --run autoheader
 
 INSTALL = /usr/bin/install -c
 INSTALL_PROGRAM = ${INSTALL}
@@ -55,13 +55,9 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_alias = i686-pc-linux-gnu
-build_triplet = i686-pc-linux-gnu
 host_alias = i686-pc-linux-gnu
 host_triplet = i686-pc-linux-gnu
-target_alias = i686-pc-linux-gnu
-target_triplet = i686-pc-linux-gnu
-AMTAR = ${SHELL} /home/ahu/programming/ahudns/missing --run tar
+AMTAR = ${SHELL} /home/ahu/programming/pdns/missing --run tar
 AS = @AS@
 AWK = mawk
 CC = gcc
@@ -73,7 +69,6 @@ EXEEXT =
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
 LEX = flex
 LIBDL = -ldl 
-LIBRESOLV = -lresolv 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LN_S = ln -s
 OBJDUMP = @OBJDUMP@
@@ -85,8 +80,12 @@ VERSION = 2.9
 YACC = bison -y
 am__include = include
 am__quote = 
-install_sh = /home/ahu/programming/ahudns/install-sh
-subdir = codedocs
+install_sh = /home/ahu/programming/pdns/install-sh
+moduledirs =  mysqlbackend pdnsbackend pgmysqlbackend
+modulelibs =  -lmysqlclient -lmysqlclient -Wl,-rpath -Wl,/opt/postgresql-with-3.2/lib -L/opt/postgresql-with-3.2/lib -L./ -lmysqlclient -Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
+moduleobjects =  ../modules/mysqlbackend/mysqlcbackend.o ../modules/pdnsbackend/pdnsbackend.o ../modules/pgmysqlbackend/gmysqlbackend.o ../modules/pgmysqlbackend/smysql.o ../modules/pgmysqlbackend/spgsql.o
+socketdir = /var/run
+subdir = pdns/codedocs
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
@@ -106,7 +105,7 @@ distclean-libtool:
 	-rm -f libtool
 $(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  codedocs/Makefile
+	  $(AUTOMAKE) --foreign  pdns/codedocs/Makefile
 Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && \
 	  CONFIG_HEADERS= CONFIG_LINKS= \
@@ -118,7 +117,7 @@ TAGS:
 
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 
-top_distdir = ..
+top_distdir = ../..
 distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
 
 distdir: $(DISTFILES)
