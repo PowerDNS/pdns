@@ -196,7 +196,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   
   if(cmdomains.empty()) {
     if(d_masterschanged)
-      L<<Logger::Error<<"No master domains need notifications"<<endl;
+      L<<Logger::Warning<<"No master domains need notifications"<<endl;
     d_masterschanged=false;
   }
   else {
@@ -225,12 +225,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   if(sdomains.empty())
   {
     if(d_slaveschanged)
-      L<<Logger::Error<<"All slave domains are fresh"<<endl;
+      L<<Logger::Warning<<"All slave domains are fresh"<<endl;
     d_slaveschanged=false;
     return;
   }
   else 
-    L<<Logger::Error<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
+    L<<Logger::Warning<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
       " checking"<<endl;
   
@@ -255,7 +255,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 	i->backend->setFresh(i->id);
       }
       else {
-	L<<Logger::Error<<"Domain "<<i->zone<<" is stale, master serial "<<theirserial<<", our serial "<<i->serial<<endl;
+	L<<Logger::Warning<<"Domain "<<i->zone<<" is stale, master serial "<<theirserial<<", our serial "<<i->serial<<endl;
 	addSuckRequest(i->zone,i->master);
       }
     }

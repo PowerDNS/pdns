@@ -8,8 +8,16 @@ Changes since 2.9.6:
 	- removed vestigal receiver-threads setting
 	- ldapbackend needs to include utility.hh (Remco Post)
 	- pdns_control could sometimes leave files behind in /tmp (dG)
-	- ldapbackend updates 	
-
+	- ldapbackend updates 
+	- TCP incoming AXFR fixes for Solaris and other big endian systems 
+	  (Willem de Groot helped debug)
+	- bogus error message about unparseable packets (Mark Bergsma)
+	- solved potential crash in recursor (Dan Faerch delivered coredump)
+	- when started via a path, pdns_server could not always find itself (Maurice Nonnekes)
+	- silly wuh debugging output in zone2sql/bindbackend (Ivo van der Wijk)
+	- pdns_recursor lived in the 'bin' and not the 'sbin' directory (Norbert Sendetzky)
+	- chatter from master/slave backend is not 'Error'-worthy (Willem)
+	
 Changes since 2.9.5:
 	- implemented isMaster in bindbackend (we now react to notifies)
 	- added zoneId to mboxfw stuff - massive speedup

@@ -303,7 +303,7 @@ int Resolver::axfr(const string &ip, const char *domain)
   p.setQuestion(Opcode::Query,domain,QType::AXFR);
   p.wrapup();
 
-  int replen=htons(p.len);
+  u_int16_t replen=htons(p.len);
   Utility::iovec iov[2];
   iov[0].iov_base=(char*)&replen;
   iov[0].iov_len=2;

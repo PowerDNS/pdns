@@ -157,11 +157,11 @@ void *TCPNameserver::doConnection(void *data)
       S.inc("tcp-queries");      
       DNSPacket *packet=new DNSPacket;
 
-      if(packet->parse(mesg, pktlen)<0)
-	break;
-
       packet->setRemote((struct sockaddr *)&remote,sizeof(remote));
 
+      if(packet->parse(mesg, pktlen)<0)
+	break;
+      
       if(packet->qtype.getCode()==QType::AXFR) {
 	if(doAXFR(packet->qdomain, packet, fd)) 
 	  S.inc("tcp-answers");  
