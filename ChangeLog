@@ -9,7 +9,7 @@ changes since 2.9.14:
 	- logging was off
 	- debian/rules forgot sqllite
 	- removed libpqpp from build-depends
-
+	- recursor accidentally linked in mysql (christopher meerwald)
 
 changes since 2.9.13:
 	- logging to syslog can now be restricted (norbert)
