@@ -16,6 +16,8 @@ changes since 2.9.15:
 	- chroot now no longer needs so many files in the chroot
 	- cleanup the controlsocket when not in use anymore
 	- LDAP cleanup, better random shuffling of hosts
+	- bigendian fixes for mips && solaris recursor proxy (Remco Post)
+	- included geobackend (Mark Bergsma)
 
 changes since 2.9.14:
 	- you can now do this:

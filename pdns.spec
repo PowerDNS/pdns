@@ -24,6 +24,7 @@ backend'.
 %files
 %defattr(-,root,root)
 "/usr/sbin/pdns_server"
+"/usr/sbin/pdns_recursor"
 "/usr/bin/pdns_control"
 "/usr/bin/zone2sql"
 "/usr/bin/xdb-fill"

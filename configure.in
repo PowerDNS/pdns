@@ -404,6 +404,7 @@ AC_OUTPUT(Makefile modules/Makefile pdns/Makefile codedocs/Makefile \
 pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns pdns/precursor \
 modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
 modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
+modules/geobackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/odbcbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile 
