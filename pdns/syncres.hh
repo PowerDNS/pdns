@@ -13,6 +13,11 @@
 void replaceCache(const string &qname, const QType &qt, const set<DNSResourceRecord>& content);
 int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res=0);
 
+struct NegCacheEntry
+{
+  string name;
+  time_t ttd;
+};
 
 template<class Thing> class Throttle
 {
@@ -80,7 +85,7 @@ public:
   static unsigned int s_outqueries;
   unsigned int d_outqueries;
   unsigned int d_throttledqueries;
-  static map<string,string> s_negcache;    
+  static map<string,NegCacheEntry> s_negcache;    
   static Throttle<string> s_throttle;
 private:
   struct GetBestNSAnswer;

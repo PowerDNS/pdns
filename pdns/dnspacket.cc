@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.19 2003/03/20 13:29:29 ahu Exp $
+// $Id: dnspacket.cc,v 1.20 2003/03/27 10:40:40 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -102,31 +102,34 @@ int DNSPacket::expand(const unsigned char *begin, const unsigned char *end, stri
 
   while((n=*(unsigned char *)p++)) {
     char tmp[256];
-      if((n & 0xc0) == 0xc0 ) { 
-	unsigned int labelOffset=(n&~0xc0)*256+ (int)*(unsigned char *)p;
-	expand((unsigned char *)stringbuffer.c_str()+labelOffset,end,expanded,depth++);
-	return 1+p-begin;
-      }
+    if(n==0x41)
+       throw AhuException("unable to expand binary label, generally caused by deprecated IPv6 reverse lookups");
 
-      if(p+n>=end) { // this is a bogus packet, references beyond the end of the buffer
-	throw AhuException("Label claims to be longer than packet");
-      }
-      strncpy((char *)tmp,(const char *)p,n);
-
-      if(*(p+n)) { // add a ., except at the end
-	  tmp[n]='.';
-	  tmp[n+1]=0;
-      }
-      else
-	tmp[n]=0;
-
-      expanded+=tmp;
-
-      p+=n;
+    if((n & 0xc0) == 0xc0 ) { 
+       unsigned int labelOffset=(n&~0xc0)*256+ (int)*(unsigned char *)p;
+       expand((unsigned char *)stringbuffer.c_str()+labelOffset,end,expanded,depth++);
+       return 1+p-begin;
     }
-    
-  // lowercase(qdomain); (why was this?)
 
+    if(p+n>=end) { // this is a bogus packet, references beyond the end of the buffer
+       throw AhuException("Label claims to be longer than packet");
+    }
+    strncpy((char *)tmp,(const char *)p,n);
+    
+    if(*(p+n)) { // add a ., except at the end
+       tmp[n]='.';
+       tmp[n+1]=0;
+    }
+    else
+       tmp[n]=0;
+    
+    expanded+=tmp;
+    
+    p+=n;
+  }
+  
+  // lowercase(qdomain); (why was this?)
+  
   return p-begin;
 
 }
@@ -143,7 +146,7 @@ int DNSPacket::getq()
     return expand(orig,end,qdomain);
   }
   catch(AhuException &ae) {
-    L<<Logger::Error<<"On retrieving question of packet, encountered error: "<<ae.reason<<endl;
+     L<<Logger::Error<<"On retrieving question of packet from "<<getRemote()<<", encountered error: "<<ae.reason<<endl;
   }
   return -1;
 }

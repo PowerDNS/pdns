@@ -2,7 +2,6 @@
 #define POWERLDAP_HH
 #include <map>
 #include <vector>
-#include <crypt.h>
 #include <exception>
 #include <stdexcept>
 #include <string>

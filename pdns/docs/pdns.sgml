@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/03/20 12:53:44 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/03/27 10:40:40 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -4380,6 +4380,14 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>config-dir</term>
+	    <listitem>
+	      <para>
+		Directory where the configuration file can be found.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>daemon</term>
 	    <listitem>
 	      <para>
@@ -4402,6 +4410,14 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		Local port (singular) to bind to. Defaults to 53.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>quiet</term>
+	    <listitem>
+	      <para>
+		Don't log queries.
 	      </para>
 	    </listitem>
 	  </varlistentry>

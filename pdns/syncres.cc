@@ -33,7 +33,7 @@
 #include "arguments.hh"
 #include "lwres.hh"
 
-map<string,string> SyncRes::s_negcache;
+map<string,NegCacheEntry> SyncRes::s_negcache;    
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outqueries;
 unsigned int SyncRes::s_throttledqueries;
@@ -188,6 +188,9 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   return false;
 }
 
+
+
+
 bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   bool giveNegative=false;
@@ -196,29 +199,45 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   string sqname(qname);
   QType sqt(qtype);
+  u_int32_t sttl=0;
 
   if(s_negcache.count(toLower(qname))) {
     res=0;
-    map<string,string>::const_iterator ni=s_negcache.find(toLower(qname));
+    map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(toLower(qname));
+    if(time(0) < ni->second.ttd) {
+      sttl=ni->second.ttd-time(0);
+      LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
+      res=RCode::NXDomain; 
+      giveNegative=true;
+      sqname=ni->second.name;
+      sqt="SOA";
 
-    LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached "<<endl;
-    res=RCode::NXDomain; 
-    giveNegative=true;
-    sqname=ni->second;
-    sqt="SOA";
+    }
+    else {
+      LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"' was negatively cached, but entry expired"<<endl;
+      s_negcache.erase(toLower(qname));
+    }
   }
-  else {
+
+  if(!giveNegative) { // let's try some more
     tuple=toLower(qname)+"|"+qtype.getName();
     LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', "<<s_negcache.count(tuple)<<endl;
 
     res=0;
-    map<string,string>::const_iterator ni=s_negcache.find(tuple);
+    map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(tuple);
     if(ni!=s_negcache.end()) {
-      LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached, will return immediately if we still have SOA ("<<ni->second<<") to prove it"<<endl;
-      res=RCode::NoError; // only this record doesn't exist
-      giveNegative=true;
-      sqname=ni->second;
-      sqt="SOA";
+      if(time(0) < ni->second.ttd) {
+	sttl=ni->second.ttd-time(0);
+	LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached for another "<<sttl<<" seconds"<<endl;
+	res=RCode::NoError; // only this record doesn't exist
+	giveNegative=true;
+	sqname=ni->second.name;
+	sqt="SOA";
+      }
+      else {
+	LOG<<prefix<<qname<<": "<<qtype.getName()<<" was negatively cached, but entry expired"<<endl;
+	s_negcache.erase(toLower(tuple));
+      }
     }
   }
 
@@ -231,8 +250,10 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
       if(j->ttl>(unsigned int)time(0)) {
 	DNSResourceRecord rr=*j;
 	rr.ttl-=time(0);
-	if(giveNegative)
+	if(giveNegative) {
 	  rr.d_place=DNSResourceRecord::AUTHORITY;
+	  rr.ttl=sttl;
+	}
 	ret.push_back(rr);
 	LOG<<"[ttl="<<rr.ttl<<"] ";
 	found=true;
@@ -379,7 +400,10 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<toLower(qname)+"'"<<endl;
 	  ret.push_back(*i);
 
-	  s_negcache[toLower(qname)]=i->qname;
+	  NegCacheEntry ne;
+	  ne.name=i->qname;
+	  ne.ttd=time(0)+i->ttl;
+	  s_negcache[toLower(qname)]=ne;
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -406,8 +430,11 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	   d_lwr.d_rcode==RCode::NoError) {
 	  LOG<<prefix<<qname<<": got negative caching indication for '"<<toLower(qname)+"|"+i->qtype.getName()+"'"<<endl;
 	  ret.push_back(*i);
-
-	  s_negcache[toLower(qname)+"|"+qtype.getName()]=i->qname;
+	  
+	  NegCacheEntry ne;
+	  ne.name=i->qname;
+	  ne.ttd=time(0)+i->ttl;
+	  s_negcache[toLower(qname)+"|"+qtype.getName()]=ne;
 	  negindic=true;
 	}
       }

@@ -1,3 +1,10 @@
+Changes since 2.9.7:
+	- NS queries for zones we are not authoritative about now get their NS
+	  records in the authority section
+	- powerldap.hh doesn't need crypt.h (Richard Arends)
+	- can't handle binary labels, print a warning about that
+	- recursor sometimes did very extended negative caching, sometimes for *days*
+
 Changes since 2.9.6:
 	* need to do work on ( and ) in zones!
 feat	- added local-query-address (Mark Bergsma)

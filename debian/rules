@@ -52,8 +52,10 @@ build-static stamp-build-static:
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
-		--with-modules="mysql gmysql gpgsql pipe pdns xdb" --with-dynmodules="" \
-		--enable-static-binaries --with-pgsql-lib=/opt/postgresql-with-3.2/lib/
+		--with-modules="mysql gmysql gpgsql pipe pdns xdb" \
+		--with-dynmodules="" \
+		--enable-static-binaries --enable-recursor \
+		--with-pgsql-lib=/opt/postgresql-with-3.2/lib/
 	make
 	touch stamp-build-static
 
@@ -67,7 +69,8 @@ build stamp-build: configure
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
 		--with-dynmodules="$(backends)" \
-		--with-modules=""
+		--with-modules="" \
+		--enable-recursor
 	make
 	touch stamp-build
 
@@ -86,6 +89,7 @@ binary-main-prepare:
 		--strip-unneeded \
 		"$(tmpdir)"/usr/bin/zone2sql \
 		"$(tmpdir)"/usr/sbin/pdns_server \
+		"$(tmpdir)"/usr/sbin/pdns_recursor \
 		"$(tmpdir)"/usr/bin/pdns_control
 	mv "$(tmpdir)"/etc/powerdns/pdns.conf-dist "$(tmpdir)"/etc/powerdns/pdns.conf
 
@@ -163,10 +167,10 @@ binary-indep: binary-doc
 binary-arch: binary-main binary-backend
 
 clean:
-	rm -f debian/files debian/substvars stamp-build stamp-build-static
-	rm -rf "$(tmpdir)" "$(be_tmpdir)"
 	-make distclean
 	-make -C pdns/docs clean
+	rm -f debian/files debian/substvars stamp-build stamp-build-static
+	rm -rf "$(tmpdir)" "$(be_tmpdir)"
 
 .PHONY: clean build binary binary-arch binary-indep
 .PHONY: binary-doc binary-main binary-backend
