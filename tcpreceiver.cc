@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2002-2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -55,7 +55,6 @@ PacketHandler *TCPNameserver::s_P;
 int TCPNameserver::s_timeout;
 NetmaskGroup TCPNameserver::d_ng;
 
-
 int TCPNameserver::sendDelPacket(DNSPacket *p, int outsock)
 {
   const char *buf=p->getData();
@@ -63,7 +62,6 @@ int TCPNameserver::sendDelPacket(DNSPacket *p, int outsock)
   delete p;
   return res;
 }
-
 
 void TCPNameserver::go()
 {
@@ -306,14 +304,17 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
       sendDelPacket(outpacket,outsock);
       return 0;
     }
+
   }
   PacketHandler P; // now open up a database connection, we'll need it
+
   sd.db=(DNSBackend *)-1; // force uncached answer
   if(!P.getBackend()->getSOA(target,sd)) {
     outpacket->setRcode(9); // 'NOTAUTH'
     sendDelPacket(outpacket,outsock);
     return 0;
   }
+
   soa.qname=target;
   soa.qtype=QType::SOA;
   soa.content=DNSPacket::serializeSOAData(sd);
@@ -339,7 +340,6 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     sendDelPacket(outpacket,outsock);
     return 0;
   }
-
   /* write first part of answer */
 
   DLOG(L<<"Sending out SOA"<<endl);

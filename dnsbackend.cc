@@ -208,7 +208,7 @@ vector<DNSBackend *>BackendMakerClass::all()
 bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 {
   this->lookup(QType(QType::SOA),domain,p);
-  
+
   DNSResourceRecord rr;
 
   int hits=0;
@@ -219,7 +219,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     sd.domain_id=rr.domain_id;
     sd.ttl=rr.ttl;
   }
-  
+
   if(!hits)
     return false;
 
