@@ -270,7 +270,7 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
      The solutionis to add '+2' below, but it is not a pretty solution. Better solution is
      to only account the number of threads within the Distributor, and not in the backend.
 
-     XXX FIXME
+     XXX FIXME 
   */
 
   if(Backend::numRunning() < d_num_threads+2 && time(0)-d_last_started>5) { 
