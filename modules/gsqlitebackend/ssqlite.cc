@@ -90,6 +90,8 @@ bool SSQLite::getRow( row_t & row )
   const char **ppData;
   const char **ppColumnNames;
 
+  row.clear();
+
   do
   {
     rc = sqlite_step( m_pVM, &numCols, &ppData, &ppColumnNames );
