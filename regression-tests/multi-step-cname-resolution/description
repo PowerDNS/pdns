@@ -1,0 +1,3 @@
+CNAMEs can be chained and an authoritative nameserver should follow an
+arbitrary number of CNAME chains internally. This test uses 3 chains for
+four records.

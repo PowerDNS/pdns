@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig A external.example.com @$nameserver

@@ -1,0 +1,43 @@
+
+;; res_nmkquery(QUERY, toomuchinfo-a.example.com, IN, A)
+;; res_send()
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	toomuchinfo-a.example.com, type = A, class = IN
+
+;; Querying server (# 1) address = NAMESERVER
+;; new DG socket
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 25, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	toomuchinfo-a.example.com, type = A, class = IN
+
+;; ANSWER SECTION:
+toomuchinfo-a.example.com.  2M IN A  192.168.99.1
+toomuchinfo-a.example.com.  2M IN A  192.168.99.2
+toomuchinfo-a.example.com.  2M IN A  192.168.99.3
+toomuchinfo-a.example.com.  2M IN A  192.168.99.4
+toomuchinfo-a.example.com.  2M IN A  192.168.99.5
+toomuchinfo-a.example.com.  2M IN A  192.168.99.6
+toomuchinfo-a.example.com.  2M IN A  192.168.99.7
+toomuchinfo-a.example.com.  2M IN A  192.168.99.8
+toomuchinfo-a.example.com.  2M IN A  192.168.99.9
+toomuchinfo-a.example.com.  2M IN A  192.168.99.10
+toomuchinfo-a.example.com.  2M IN A  192.168.99.11
+toomuchinfo-a.example.com.  2M IN A  192.168.99.12
+toomuchinfo-a.example.com.  2M IN A  192.168.99.13
+toomuchinfo-a.example.com.  2M IN A  192.168.99.14
+toomuchinfo-a.example.com.  2M IN A  192.168.99.15
+toomuchinfo-a.example.com.  2M IN A  192.168.99.16
+toomuchinfo-a.example.com.  2M IN A  192.168.99.17
+toomuchinfo-a.example.com.  2M IN A  192.168.99.18
+toomuchinfo-a.example.com.  2M IN A  192.168.99.19
+toomuchinfo-a.example.com.  2M IN A  192.168.99.20
+toomuchinfo-a.example.com.  2M IN A  192.168.99.21
+toomuchinfo-a.example.com.  2M IN A  192.168.99.22
+toomuchinfo-a.example.com.  2M IN A  192.168.99.23
+toomuchinfo-a.example.com.  2M IN A  192.168.99.24
+toomuchinfo-a.example.com.  2M IN A  192.168.99.25
+
+

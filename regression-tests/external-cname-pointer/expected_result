@@ -1,0 +1,10 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	external.example.com, type = A, class = IN
+
+;; ANSWER SECTION:
+external.example.com.	2M IN CNAME	somewhere.else.net.
+
+

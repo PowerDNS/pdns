@@ -1,0 +1,3 @@
+When something.example.com is delegated to NS records that reside *within*
+something.example.com, glue is needed. The IP addresses of the relevant NS
+records should then be provided in the additional section.

@@ -1,0 +1,27 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 5, AUTHORITY: 0, ADDITIONAL: 5
+;; QUERY SECTION:
+;;	example.com, type = ANY, class = IN
+
+;; ANSWER SECTION:
+example.com.		2M IN SOA	ns1.example.com. ahu.example.com. (
+					2000081501	; serial
+					8H		; refresh
+					2H		; retry
+					1W		; expiry
+					1D )		; minimum
+
+example.com.		2M IN NS	ns1.example.com.
+example.com.		2M IN NS	ns2.example.com.
+example.com.		2M IN MX	10 smtp-servers.example.com.
+example.com.		2M IN MX	15 smtp-servers.test.com.
+
+;; ADDITIONAL SECTION:
+ns1.example.com.	2M IN A		192.168.1.1
+ns2.example.com.	2M IN A		192.168.1.2
+smtp-servers.example.com.  2M IN A  192.168.0.2
+smtp-servers.example.com.  2M IN A  192.168.0.3
+smtp-servers.example.com.  2M IN A  192.168.0.4
+
+

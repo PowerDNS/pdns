@@ -1,0 +1,2 @@
+When asked for a domain for which a nameserver is not authoritative, it
+should return with an empty no-error packet, and drop the AA bit

@@ -1,0 +1,41 @@
+These tests can be used to verify standards compliance of PowerDNS and to
+spot regressions.
+
+Method of operation
+-------------------
+
+Each directory contains a command that, when executed, proces the 'cleandig'
+output for the answer the nameserver sent. This output is stored in the file
+'real_result', and compared to 'expected_result'. 
+
+Then, 'diff -u' is run on those two files, and the output sent to the file
+'diff'. If everything is as it should be, this diff file is empty, and
+PowerDNS passed the test.
+
+Caveats
+-------
+
+Optional features of the DNS standard can cause a difference to arrise. For
+example, 'Bind 8' appears to fail on nearly all our tests, whereas it is in
+compliance (except for one case).
+
+Study the diff output to be sure if there is a problem.
+
+How to run
+----------
+
+First make sure PowerDNS has access to the testing zone, which is in the
+file 'testzone'. Use the 'zone2sql' tool to create sql and feed it to your
+database. 
+
+Set the 'nameserver' variable to the IP address of the nameserver you want
+to test:
+
+$ nameserver=127.0.0.1 ./runtests
+
+Analysing results
+-----------------
+
+Failed tests appear in the file 'failed_tests', passed tests in
+'passed_tests'. A complete log is in the file 'log'. Examine the 'diff'
+files in all subdirectories to see what happened.

@@ -1,0 +1,10 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	mail.example.com, type = MX, class = IN
+
+;; ANSWER SECTION:
+mail.example.com.	2M IN MX	25 smtp1.example.com.
+
+

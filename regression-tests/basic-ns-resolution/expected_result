@@ -1,0 +1,15 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 2
+;; QUERY SECTION:
+;;	example.com, type = NS, class = IN
+
+;; ANSWER SECTION:
+example.com.		2M IN NS	ns1.example.com.
+example.com.		2M IN NS	ns2.example.com.
+
+;; ADDITIONAL SECTION:
+ns1.example.com.	2M IN A		192.168.1.1
+ns2.example.com.	2M IN A		192.168.1.2
+
+

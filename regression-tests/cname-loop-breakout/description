@@ -1,0 +1,1 @@
+A CNAME loop should return a SERVFAIL pretty rapidly, and terminate.

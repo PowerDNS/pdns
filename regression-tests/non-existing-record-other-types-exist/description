@@ -1,0 +1,3 @@
+When asking for a record/type combination which does not exist, but the
+record in question does have other types available, a nameserver should
+return an authoritative empty no-error packet, and NOT set NXDOMAIN.

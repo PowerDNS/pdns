@@ -1,0 +1,16 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	example.com, type = SOA, class = IN
+
+;; ANSWER SECTION:
+example.com.		2M IN SOA	ns1.example.com. ahu.example.com. (
+					2000081501	; serial
+					8H		; refresh
+					2H		; retry
+					1W		; expiry
+					1D )		; minimum
+
+
+

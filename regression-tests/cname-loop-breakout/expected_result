@@ -1,0 +1,9 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL
+;; flags: qr aa rd; QUERY: 1, ANSWER: 10, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	loop1.example.com, type = A, class = IN
+
+;; ANSWER SECTION:
+
+

@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig no-such-host.example.com A @$nameserver
+

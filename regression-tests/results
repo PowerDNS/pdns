@@ -1,0 +1,59 @@
+basic-a-resolution: 
+This test tries to resolve a straight A record that is directly available in
+the database.
+	Passed test basic-a-resolution
+
+multi-step-cname-resolution: 
+CNAMEs can be chained and an authoritative nameserver should follow an
+arbitrary number of CNAME chains internally. This test uses 3 chains for
+four records.
+	Passed test multi-step-cname-resolution
+
+one-step-cname-resolution: 
+Tries to resolve the A for www.example.com, which is a CNAME to
+outpost.example.com, which has an A record, and which should appear in the
+additional section.
+	Passed test one-step-cname-resolution
+
+non-existing-record-other-types-exist: 
+When asking for a record/type combination which does not exist, but the
+record in question does have other types available, a nameserver should
+return an authoritative empty no-error packet, and NOT set NXDOMAIN.
+	Passed test non-existing-record-other-types-exist
+
+nxdomain-for-unknown-record: 
+When authoritative for a domain and sure that the entire record does not
+exist, an no referral NS is available, send an empty packet with 'NXDOMAIN'
+in the flags ('data error').
+	Passed test nxdomain-for-unknown-record
+
+mx-with-simple-additional-processing: 
+Example.com has two MX records, one of which is out-of-bailiwick and should
+not receive additional processing. The other is internal to the zone and has
+three A records, which should all be in the additional section
+	Passed test mx-with-simple-additional-processing
+
+too-big-for-udp-query: 
+UDP dns packets can only be 512 bytes long - when they are longer, they need
+to get truncated, and have the 'TC' bit set, to inform the client that they
+need to requery over TCP. This query has debugging information from dig
+turned on so the script can check that the switch to TCP is happening.
+	Failed test too-big-for-udp-query
+
+pretty-big-packet: 
+DNS employs label compression to fit big answers in a small packet. This
+test performs a query that without proper compression would not fit. Runs
+dig in debug mode which makes proper operation very dependent on your
+version of dig.
+	Passed test pretty-big-packet
+
+any-query: 
+An ANY query should return in the answer section all records with a certain
+qname. All these queries should receive, if applicable, additional
+processing and further records in the additional section.
+	Passed test any-query
+
+cname-loop-breakout: 
+A CNAME loop should return a SERVFAIL pretty rapidly, and terminate.
+	Passed test cname-loop-breakout
+

@@ -1,0 +1,16 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 3
+;; QUERY SECTION:
+;;	example.com, type = MX, class = IN
+
+;; ANSWER SECTION:
+example.com.		2M IN MX	10 smtp-servers.example.com.
+example.com.		2M IN MX	15 smtp-servers.test.com.
+
+;; ADDITIONAL SECTION:
+smtp-servers.example.com.  2M IN A  192.168.0.2
+smtp-servers.example.com.  2M IN A  192.168.0.3
+smtp-servers.example.com.  2M IN A  192.168.0.4
+
+

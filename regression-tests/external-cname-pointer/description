@@ -1,0 +1,3 @@
+A series of CNAME pointers can lead to an outside reference, which should be
+passed in the Answer section. PowerDNS sends an unauthoritative NOERROR,
+bind sends a SERVFAIL. 

@@ -1,0 +1,10 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	outpost.example.com, type = A, class = IN
+
+;; ANSWER SECTION:
+outpost.example.com.	2M IN A		192.168.2.1
+
+

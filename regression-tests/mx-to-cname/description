@@ -1,0 +1,3 @@
+MX records cannot point to CNAMEs, according to the RFC. Yet when this
+happens, a nameserver should not fall over, but let the mailserver process
+the CNAME further (all do, even qmail).

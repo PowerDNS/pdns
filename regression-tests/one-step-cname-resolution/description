@@ -1,0 +1,3 @@
+Tries to resolve the A for www.example.com, which is a CNAME to
+outpost.example.com, which has an A record, and which should appear in the
+answer section.

@@ -1,0 +1,11 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 2, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	www.france.example.com, type = A, class = IN
+
+;; AUTHORITY SECTION:
+france.example.com.	2M IN NS	ns1.otherprovider.net.
+france.example.com.	2M IN NS	ns2.otherprovider.net.
+
+

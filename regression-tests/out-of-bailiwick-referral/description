@@ -1,0 +1,2 @@
+When something.example.com is delegated to NS records out of our bailiwick,
+just send NS records and drop the 'AA' bit.

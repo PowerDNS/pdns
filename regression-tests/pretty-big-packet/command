@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig toomuchinfo-a.example.com A @$nameserver +deb
+

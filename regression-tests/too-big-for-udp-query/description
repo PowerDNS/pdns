@@ -1,0 +1,4 @@
+UDP dns packets can only be 512 bytes long - when they are longer, they need
+to get truncated, and have the 'TC' bit set, to inform the client that they
+need to requery over TCP. This query has debugging information from dig
+turned on so the script can check that the switch to TCP is happening.

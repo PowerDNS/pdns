@@ -1,0 +1,7 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	this.domain.is.not.in.powerdns, type = A, class = IN
+
+

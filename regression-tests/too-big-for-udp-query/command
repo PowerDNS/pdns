@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig together-too-much.example.com MX @$nameserver +deb

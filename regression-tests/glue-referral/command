@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig www.usa.example.com a @$nameserver

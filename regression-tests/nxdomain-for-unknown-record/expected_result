@@ -1,0 +1,7 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN
+;; flags: qr aa rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	no-such-host.example.com, type = A, class = IN
+
+

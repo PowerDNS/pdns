@@ -1,0 +1,13 @@
+
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR
+;; flags: qr aa rd; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 0
+;; QUERY SECTION:
+;;	start1.example.com, type = A, class = IN
+
+;; ANSWER SECTION:
+start1.example.com.	2M IN CNAME	start2.example.com.
+start2.example.com.	2M IN CNAME	start3.example.com.
+start3.example.com.	2M IN CNAME	start4.example.com.
+start4.example.com.	2M IN A		192.168.2.2
+
+
