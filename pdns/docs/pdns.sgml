@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2005/01/11 21:01:08 $</PubDate>
+    <PubDate>v2.1 $Date$</PubDate>
     
     <Abstract>
 	<para>	
@@ -3810,13 +3810,13 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
-	As of the 8th of January 2003, no actual security problems with PowerDNS 2.9.4 or later are known about. This page 
+	As of the 5th of February 2005, no actual security problems with PowerDNS 2.9.17 or later are known about. This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailinglists and BUGTRAQ.
       </para>
       <para>
-	All versions of PowerDNS before 2.9 are known to suffer from remote denial of service problems which can disrupt operation. Please upgrade
-	to 2.9.4 as this page will only contain detailed security information from 2.9.4 onwards.
+	All versions of PowerDNS before 2.9.17 are known to suffer from remote denial of service problems which can disrupt operation. Please upgrade
+	to 2.9.17 as this page will only contain detailed security information from 2.9.17 onwards.
       </para>
       <para>
 	If you have a security problem to report, please email us at both <email>powerdns@powerdns.com</email> and at
@@ -6032,8 +6032,11 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	You may also help others (please do).
       </para>
       <para>
-	Some users may not have experience in interacting with developers or the open source community. This FAQ is to be considered MANDATORY READING
-	before asking us for help.
+	Some users may not have experience in interacting with developers or the open source community. This FAQ is to be considered 
+	MANDATORY READING before asking us for help.
+      </para>
+      <para>
+	You are also advised to look at <ulink url="http://wiki.powerdns.com">the Wiki</ulink> for more information.
       </para>
       <variablelist>
 	<varlistentry>
@@ -6094,6 +6097,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       <para>
 	In the course of compiling and using PowerDNS, many questions may arise. Here are some we've heard earlier or questions 
 	we expect people may have. Please read this list before mailing us!
+      </para>
+      <para>
+	If you don't see your question answered here, please check out <ulink url="http://wiki.powerdns.com/projects/trac/wiki/TodoList">
+	  the Wiki FAQ</ulink>, but do note that it is user-editable and not under our constant control.
       </para>
       <para>
 	<variablelist>
@@ -8804,8 +8811,7 @@ associateddomain: ns.example.dom
   <appendix id="backend-writers-guide"><title>Backend writers' guide</title>
     <para>
       PDNS backends are implemented via a simple yet powerful C++ interface. If your needs are not met by the PipeBackend, you 
-      may want to write your own. Doing so requires a copy of the PowerDNS Open Source Backend Development kit which can be found on <ulink 
-	url="http://downloads.powerdns.com/releases/dev">http://downloads.powerdns.com/releases/dev</ulink>.
+      may want to write your own. Before doing any PowerDNS development, please visit <ulink url="http://wiki.powerdns.com">the wiki</ulink>.
     </para>
     <para>
       A backend contains zero DNS logic. It need not look for CNAMES, it need not return NS records unless explicitly asked for, etcetera.
