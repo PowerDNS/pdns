@@ -1,0 +1,7 @@
+First run ./configure and point it at your powerdns sources. Furthermore,
+tell it where it should install the produced .so file so it can be found at
+runtime.
+
+Example and probable line:
+
+./configure --with-pdns-includes=../pdns-2.9 --libdir=/usr/lib/powerdns/
