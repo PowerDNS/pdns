@@ -1,15 +1,11 @@
 
 immediate issues:
-	make install does not strip
-
 	make install installs libraries with a static build which it should
 		not
 
-	pdns_server should be in sbin
 
 Things we will not do but hope other people will:
 	- Ports to NetBSD, OpenBSD, Solaris, AIX
-	- Michel Stol is already working on reviving his win32 port
 
 Projects we will be working on, but would like help for:
 
@@ -31,6 +27,7 @@ Medium size things:
 		Wichert Akkerman is working on this
 	- get PDNS into FreeBSD ports
 	- and other architectures	
+	- test powerdns in a windows environment!
 
 
 Small things, great for coders new to PowerDNS:
@@ -38,6 +35,9 @@ Small things, great for coders new to PowerDNS:
 	- add KEY record
 	- add SIG record
 	- get the xdb backend building again
+	- 'make distclean' tries to calculate dependencies in
+		modules/pgmysqlbackend, which is not needed
+
 	- make sure only Linux gets -D_GNU_SOURCE
 		doesn't hurt other architectures, but its ugly
 	- investigate if the following is better for the spgsql driver:

@@ -1,3 +1,9 @@
+distclean: 
+	rm -f *.o *.so *~ *.d deps Makefile
+
+clean: 
+	rm -f *.o *.so *~ *.d deps
+
 PDNS_HOME		= ../../pdns
 PDNS_LIBDIR		= /usr/lib/powerdns
 
@@ -59,19 +65,18 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+
+
+
 	
 deps:
-	g++ -M -g -c $(CXXFLAGS) $(CPPFLAGS) gmysqlbackend.cc smysql.cc  > deps
+	-g++ -MM -g -c $(CXXFLAGS) $(CPPFLAGS) gmysqlbackend.cc smysql.cc  > deps
 
 -include deps
 
 .cc.o:
 	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $<
 
-distclean: clean
-
-clean:
-	rm -f *.o *.so *~ *.d deps
 
 install:
 
