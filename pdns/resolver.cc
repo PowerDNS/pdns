@@ -455,7 +455,7 @@ int Resolver::getSoaSerialAnswer(string &master, string &zone, u_int32_t* serial
   if(parts.size()<3)
     return 0;
   
-  *serial=atoi(parts[2].c_str());
+  *serial=strtoul(parts[2].c_str(), NULL, 10);
   master=""; // fix this!!
   zone=res[0].qname;
 
