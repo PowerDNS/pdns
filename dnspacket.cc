@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.26 2004/04/01 19:59:21 ahu Exp $
+// $Id: dnspacket.cc,v 1.27 2004/09/01 19:48:32 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1272,10 +1272,13 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       rr.content.assign((const char *)datapos+offset+1,(int)datapos[offset]);
       break;
 
-    case QType::HINFO:
-      rr.content.assign((const char *)datapos+offset+1,(int)datapos[offset]);
-      rr.content+=" ";
-      rr.content.append((const char *)datapos+offset+rr.content.size(),(int)datapos[offset+rr.content.size()-1]);
+    case QType::HINFO:  // this code is way way way overdue for a redesign
+      rr.content="\"";
+      rr.content.append((const char *)datapos+offset+1,(int)datapos[offset]);
+      rr.content+="\" \"";
+      rr.content.append((const char *)datapos+offset+(int)datapos[offset]+2,
+			(int)datapos[offset+(int)datapos[offset]+1]);
+      rr.content+="\"";
       break;
 
 
