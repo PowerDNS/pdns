@@ -18,7 +18,7 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.4 2002/12/18 16:22:20 ahu Exp $ 
+// $Id: zone2sql.cc,v 1.5 2003/02/02 22:04:51 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 # include <unistd.h>
@@ -64,6 +64,7 @@ bool g_intransaction;
 
 static int num_records;
 static string lastsoa_qname;
+
 static void callback(unsigned int domain_id,const string &domain, const string &qtype, const string &content, int ttl, int prio)
 {
   static int lastsoa_domain_id=-1;
@@ -71,6 +72,7 @@ static void callback(unsigned int domain_id,const string &domain, const string &
   num_records++;
 
   if(qtype=="SOA") {
+    //    cout<<"Juh: "<<dirty_hack_num<<", "<<lastsoa_domain_id<<", "<<lastsoa_qname<<", "<<domain<<endl;
     if(dirty_hack_num==lastsoa_domain_id && lastsoa_qname!=domain) {
       dirty_hack_num++;
       cerr<<"Second SOA in zone, raised domain_id"<<endl;
@@ -85,14 +87,14 @@ static void callback(unsigned int domain_id,const string &domain, const string &
 	}
 	
 	if(mode==POSTGRES) {
-	  cout<<"insert into domains (name,type) values ("<<sqlstr(domain)<<",'NATIVE');"<<endl;
+	  cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(ZoneParser::canonic(domain)))<<",'NATIVE');"<<endl;
 	}
 	else if(mode==ORACLE) {
 	  cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(domain))<<",'NATIVE');"<<endl;
 	}
       }
     }
-    lastsoa_qname=domain;
+    lastsoa_qname=ZoneParser::canonic(domain);
   }
   
   lastsoa_domain_id=dirty_hack_num;
@@ -144,7 +146,7 @@ int main(int argc, char **argv)
 #if __GNUC__ >= 3
     ios_base::sync_with_stdio(false);
 #endif
-
+    lastsoa_qname=" ";
     arg().setSwitch("mysql","Output in format suitable for mysqlbackend")="yes";
     arg().setCmd("gpgsql","Output in format suitable for default gpgsqlbackend");
     arg().setCmd("gmysql","Output in format suitable for default gmysqlbackend");
@@ -253,12 +255,11 @@ int main(int argc, char **argv)
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
+      dirty_hack_num=-1; // trigger first SOA output
       ZoneParser ZP;
       ZP.setDirectory(".");
       ZP.setCallback(&callback);  
       ZP.parse(zonefile,arg()["zone-name"],0);
-      dirty_hack_num++;
-
     }
     cerr<<"Parsed "<<num_records<<" records"<<endl;
     
