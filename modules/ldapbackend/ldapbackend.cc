@@ -65,40 +65,18 @@ LdapBackend::~LdapBackend()
 
 bool LdapBackend::list( const string &target, int domain_id )
 {
-	string filter, dn;
-	char* attributes[] = { "associatedDomain", NULL };
+	string filter;
 
 
 	try
 	{
-		// search for DN of SOA record which is SOA for target zone
-
-		filter = "(&(associatedDomain=" + target + ")(SOARecord=*))";
-		m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
-
-		if( m_pldap->getSearchEntry( m_msgid, m_result, true ) == false )
-		{
-			L << Logger::Error << backendname << " Unable to get SOA record for " << target << endl;
-			return false;
-		}
-
-		if( m_result.empty() || !m_result.count( "dn" ) || m_result["dn"].empty() )
-		{
-			L << Logger::Error << backendname << " No SOA record for " << target << endl;
-			return false;
-		}
-
-		dn = m_result["dn"].front();
-		m_result.clear();
-
-		// list all records one level below but not entries containing SOA records (these are seperate zones)
-
-		DLOG( L << Logger::Debug << backendname << " List = target: " << target << ", basedn: = " << dn << endl );
-
-		m_qname = "";
+		m_qname = target;
+		m_axfrqlen = target.length();
 		m_adomain = m_adomains.end();   // skip loops in get() first time
-		filter = "(&(associatedDomain=*" + target + ")(!(SOARecord=*)))";
-		m_msgid = m_pldap->search( dn, LDAP_SCOPE_ONELEVEL, filter, (const char**) attrany );
+
+		DLOG( L << Logger::Debug << backendname << " List = target: " << target << endl );
+		filter = "(|(associatedDomain=" + target + ")(associatedDomain=*." + target + "))";
+		m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) attrany );
 	}
 	catch( LDAPTimeout &lt )
 	{
@@ -136,24 +114,25 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 
 	try
 	{
+		m_axfrqlen = 0;
 		m_qtype = qtype;
 		m_qname = qname;
 		qesc = toLower( m_pldap->escape( qname ) );
 
-		if( mustDo( "disable-ptrrecord" ) )  // PTRRecords will be derived from ARecords
+		if( mustDo( "disable-ptrrecord" ) )  // PTRRecords will be derived from aRecords or aAAARecords
 		{
 			stringtok( parts, qesc, "." );
 			len = qesc.length();
 
 			 if( parts.size() == 6 && len > 13 && qesc.substr( len - 13, 13 ) == ".in-addr.arpa" )   // IPv4 reverse lookups
 			{
-				filter = name2filter( parts, "aRecord", "." );
+				filter = "(aRecord=" + ptr2ip4( parts ) + ")";
 				attronly[0] = "associatedDomain";
 				attributes = attronly;
 			}
-			else if( parts.size() == 10 && len > 9 && ( qesc.substr( len - 8, 8 ) == ".ip6.int" ) )   // IPv6 reverse lookups
+			else if( parts.size() == 34 && len > 9 && ( qesc.substr( len - 9, 9 ) == ".ip6.arpa" ) )   // IPv6 reverse lookups
 			{
-				filter = name2filter( parts, "aAAARecord", ":" );
+				filter = "(aAAARecord=" + ptr2ip6( parts ) + ")";
 				attronly[0] = "associatedDomain";
 				attributes = attronly;
 			}
@@ -293,25 +272,6 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 }
 
 
-inline string LdapBackend::name2filter( vector<string>& parts, string record, string separator )
-{
-	string filter;
-	parts.pop_back();
-	parts.pop_back();
-
-	filter = "(" + record + "=" + parts.back();
-	parts.pop_back();
-	while( !parts.empty() )
-	{
-		filter += separator + parts.back();
-		parts.pop_back();
-	}
-	filter += ")";
-
-	return filter;
-}
-
-
 inline bool LdapBackend::prepareEntry()
 {
 	m_adomains.clear();
@@ -323,7 +283,7 @@ inline bool LdapBackend::prepareEntry()
 		m_result.erase( "dNSTTL" );
 	}
 
-	if( !m_qname.empty() )   // request was a normal lookup()
+	if( !m_axfrqlen )   // request was a normal lookup()
 	{
 		m_adomains.push_back( m_qname );
 		if( m_result.count( "associatedDomain" ) )
@@ -336,7 +296,12 @@ inline bool LdapBackend::prepareEntry()
 	{
 		if( m_result.count( "associatedDomain" ) )
 		{
-			m_adomains = m_result["associatedDomain"];
+			vector<string>::iterator i;
+			for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
+				if( i->substr( i->length() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
+					m_adomains.push_back( *i );
+				}
+			}
 			m_result.erase( "associatedDomain" );
 		}
 	}

@@ -1,5 +1,8 @@
 pdns (2.9.12-1) unstable; urgency=low
-  * release
+
+  * New upstream release
+  * Fix dependency generation. Closes: Bug#210256
+
  -- Wichert Akkerman <wakkerma@debian.org>  Sun,  21 Sep 2003 14:59:46 +0200
 
 pdns (2.9.11-2) unstable; urgency=low

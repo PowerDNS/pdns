@@ -20,6 +20,8 @@ changes since 2.9.11:
 	- slave communicator more robust against misconfiguration (empty
 	  master field)	
 	- postgresql backend gains error checking support
+//	- soa serial autocalculation now also honours soa-serial-offset (Steve Sobol)
+	- we now shuffle answers 
 
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache

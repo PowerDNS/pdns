@@ -23,10 +23,8 @@
 #include <sstream>
 #include <utility>
 #include <string>
-#include <ldap.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <unistd.h>
+#include <cstdlib>
+#include <cctype>
 #include <pdns/dns.hh>
 #include <pdns/utility.hh>
 #include <pdns/dnspacket.hh>
@@ -36,12 +34,14 @@
 #include <pdns/arguments.hh>
 #include <pdns/logger.hh>
 #include "powerldap.hh"
+#include "utils.hh"
 
 
 #ifndef LDAPBACKEND_HH
 #define LDAPBACKEND_HH
 
-using namespace std;
+using std::string;
+using std::vector;
 
 
 
@@ -72,6 +72,7 @@ class LdapBackend : public DNSBackend
 private:
 
 	int m_msgid;
+	int m_axfrqlen;
 	u_int32_t m_ttl;
 	u_int32_t m_default_ttl;
 	string m_qname;
@@ -83,7 +84,6 @@ private:
 	vector<string> m_adomains;
 
 	bool prepareEntry();
-	string name2filter( vector<string>& parts, string record, string separator );
 
 public:
 

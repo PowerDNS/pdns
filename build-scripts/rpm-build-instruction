@@ -1,7 +1,8 @@
 #!/bin/sh
-./configure --with-modules="mysql gmysql gpgsql pipe pdns xdb" --with-dynmodules="" \
-	--enable-static-binaries --enable-mysql --enable-pgsql \
-	--with-pgsql-lib=/opt/postgresql-with-3.2/lib/ --prefix=/usr \
+LIBS="-lkrb5 -lkrb -lcrypto -lroken -lcom_err -lasn1 -lresolv" \./configure --with-modules="mysql gmysql gpgsql gsqlite pipe pdns xdb" \
+	--with-dynmodules="" \
+	--enable-static-binaries --enable-recursor \
+	--prefix=/usr \
 	--sysconfdir=/etc/powerdns \
 && make clean && make && \
 sudo /bin/sh -c "rm -rf /tmp/pdns ; DESTDIR=/tmp/pdns make install-strip" &&
