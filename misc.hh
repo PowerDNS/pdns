@@ -112,7 +112,7 @@ stringtok (Container &container, string const &in,
     i = j + 1;
   }
 }
-string toLower(const string &upper);
+const string toLower(const string &upper);
 bool IpToU32(const string &str, u_int32_t *ip);
 string stringerror();
 string itoa(int i);
@@ -152,7 +152,7 @@ inline int DTime::udiff()
   return 1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
 }
 
-inline string toLower(const string &upper)
+inline const string toLower(const string &upper)
 {
   string reply(upper);
   for(unsigned int i = 0; i < reply.length(); i++)
