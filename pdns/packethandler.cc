@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.14 2003/04/05 19:31:52 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.15 2003/05/24 16:02:47 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -170,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.14 2003/04/05 19:31:52 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.15 2003/05/24 16:02:47 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -304,24 +304,32 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
     DLOG(L<<Logger::Warning<<"This packet needs additional processing!"<<endl);
 
     vector<DNSResourceRecord *> arrs=r->getAPRecords();
+    vector<DNSResourceRecord> crrs;
+
     for(vector<DNSResourceRecord *>::const_iterator i=arrs.begin();
-	i!=arrs.end();
+	i!=arrs.end();	++i) 
+      crrs.push_back(**i);
+
+    // we now have a copy, push_back on packet might reallocate!
+
+    for(vector<DNSResourceRecord>::const_iterator i=crrs.begin();
+	i!=crrs.end();
 	++i) {
       
-      if((*i)->qtype.getCode()==QType::NS && !B.getSOA((*i)->qname,sd)) { // drop AA in case of non-SOA-level NS answer
+      if(i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd)) { // drop AA in case of non-SOA-level NS answer
 	r->d.aa=false;
-	(*i)->d_place=DNSResourceRecord::AUTHORITY;
+	//	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
 
       QType qtypes[2];
       qtypes[0]="A"; qtypes[1]="AAAA";
       for(int n=0;n < d_doIPv6AdditionalProcessing + 1; ++n) {
-	B.lookup(qtypes[n],(*i)->content,p);  
+	B.lookup(qtypes[n],i->content,p);  
 	bool foundOne=false;
 	while(B.get(rr)) {
 	  foundOne=true;
-	  if(rr.domain_id!=(*i)->domain_id && arg()["out-of-zone-additional-processing"]=="no") {
-	    DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<(*i)->qname<<" ("<<rr.qname<<")"<<endl);
+	  if(rr.domain_id!=i->domain_id && arg()["out-of-zone-additional-processing"]=="no") {
+	    DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
 	    continue; // not adding out-of-zone additional data
 	  }
 	  
@@ -333,7 +341,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 	  if(d_doRecursion && DP->recurseFor(p)) {
 	    try {
 	      Resolver resolver;
-	      resolver.resolve(arg()["recursor"],(*i)->content.c_str(),QType::A);
+	      resolver.resolve(arg()["recursor"],i->content.c_str(),QType::A);
 	      Resolver::res_t res=resolver.result();
 	      for(Resolver::res_t::const_iterator j=res.begin();j!=res.end();++j) {
 		if(j->d_place==DNSResourceRecord::ANSWER) {
@@ -791,6 +799,9 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
     if(doAdditionalProcessingAndDropAA(p,r)<0)
       return 0;
+    
+
+    
     
 
     r->wrapup(); // needed for inserting in cache
