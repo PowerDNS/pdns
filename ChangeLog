@@ -1,6 +1,8 @@
 Changes since 2.9.2:
 	- windows compilation patches
 	- tiny improvements in win98 error messages
+	- pgmysqlbackend may have been unable to launch
+		now called gpgsql and gpgsql2
 
 Changes since 2.9.1:
 	- removed debugging output from the webserver (found by Paul Wouters)

@@ -1,6 +1,6 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
-AM_INIT_AUTOMAKE(pdns, 2.9.2)
+AM_INIT_AUTOMAKE(pdns, 2.9.3)
 AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 AC_C_BIGENDIAN 
@@ -163,7 +163,7 @@ fi
 
 
 
-modules="pgmysql"
+modules="gmysql"
 AC_ARG_WITH(modules, [  --with-modules Which userbases to compile with ], 
 [
         modules="$withval"  
@@ -184,22 +184,6 @@ AC_ARG_WITH(socketdir, [  --with-socketdir Where the controlsocket lives ],
         socketdir="$withval"  
 ])
 
-AC_MSG_CHECKING(whether we to include MySQL support in the generic backend)
-AC_ARG_ENABLE(mysql, 
- [  --enable-mysql	Whether to include MySQL support in generic backend],enable_mysql=$enableval,enable_mysql=yes)
-AC_MSG_RESULT($enable_mysql)
-domysql=$enable_mysql
-AC_SUBST(domysql)
-
-
-AC_MSG_CHECKING(whether we to include PostgreSQL support in the generic backend)
-AC_ARG_ENABLE(pgsql, 
- [  --enable-pgsql	Whether to include PostgreSQL support in generic backend],enable_pgsql=$enableval,enable_pgsql=no)
-AC_MSG_RESULT($enable_pgsql)
-dopgsql=$enable_pgsql
-AC_SUBST(dopgsql)
-
-
 AC_SUBST(moduledirs)
 AC_SUBST(moduleobjects)
 AC_SUBST(modulelibs)
@@ -207,18 +191,14 @@ AC_SUBST(modulelibs)
 for a in $modules $dynmodules
 do
 	case "$a" in
-		pgmysql )
-			if test x"$dopgsql" = xyes
-				then 
-					needpgsql=yes
-			 fi
-			if test x"$domysql" = xyes
-				then 
-					needmysql=yes
-			 fi
-		;;
 		mysql )
 			needmysql=yes
+		;;
+		gmysql )
+			needmysql=yes
+		;;
+		gpgsql )
+			needpgsql=yes
 		;;
 		pdns )
 			needmysql=yes
@@ -317,9 +297,11 @@ then
 		if test -z "$PGSQL_libdir"; then
 	        AC_MSG_ERROR([Didn't find the pgsql library dir in '$PGSQL_lib_check'])
 	fi
-		case "$PGSQL_libdir" in
-                 /usr/lib ) PGSQL_lib="" ;;
-	  /* ) PGSQL_lib=-L$PGSQL_libdir; LDFLAGS="$PGSQL_lib $LDFLAGS";;
+	case "$PGSQL_libdir" in
+           /usr/lib ) PGSQL_lib="" ;;
+	  /* ) PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir" 
+	       LDFLAGS="$PGSQL_lib $LDFLAGS"
+               ;;
 	  * )  AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.]) ;;
 	esac
 
@@ -337,7 +319,7 @@ then
 		if test -z "$PGSQL_incdir"; then
 	        AC_MSG_ERROR([Didn't find the PgSQL include dir in '$PGSQL_inc_check'])
 	fi
-		case "$PGSQL_incdir" in
+	case "$PGSQL_incdir" in
 	  /* ) ;;
 	  * )  AC_MSG_ERROR([The PgSQL include directory ($PGSQL_incdir) must be an absolute path.]) ;;
 	esac
@@ -389,6 +371,7 @@ export moduledirs moduleobjects modulelibs
 AC_OUTPUT(Makefile modules/Makefile pdns/Makefile pdns/codedocs/Makefile \
 pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
 modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
-modules/pgmysqlbackend/Makefile modules/db2backend/Makefile \
+modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
-modules/xdbbackend/Makefile modules/odbcbackend/Makefile )
+modules/xdbbackend/Makefile modules/odbcbackend/Makefile \
+modules/gpgsqlbackend/Makefile )
