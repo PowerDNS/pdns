@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/11/30 11:18:49 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/12/17 19:55:44 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -88,6 +88,9 @@
 	  again under windows. 
 	</para>
 	<para>
+	  Furthermore, big thanks go out to Dell who quickly repaired my trusty <ulink url="http://ds9a.nl/dell-d800">laptop</ulink>.
+	</para>
+	<para>
 	  His changes:
 	  <itemizedlist>
 	    <listitem>
@@ -141,6 +144,13 @@
 	      It is known that not compiling in MySQL support helps solve the problem, but then you don't have MySQL.
 	    </para>
 	  </note>
+	</para>
+	<para>
+	  There have been a number of reports on MySQL connections being dropped on FreeBSD 4.x, which sometimes causes PowerDNS to give up and reload itself. 
+	  To combat this, MySQL error messages have been improved in some places in hopes of figuring out what is up. The initial indication is 
+	  that MySQL itself sometimes terminates the connection and, amazingly, that switching to a Unix domain socket instead of TCP solves
+	  the problem.
+	</para>
 	<para>
 	  Bug fixes:
 	  <itemizedlist>
