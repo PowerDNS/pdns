@@ -1,6 +1,6 @@
 #include <string>
 #include <map>
-#include "ssql.hh"
+
 #include "pdns/backends/gsql/gsqlbackend.hh"
 
 using namespace std;

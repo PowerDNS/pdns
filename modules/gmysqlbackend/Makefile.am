@@ -1,5 +1,7 @@
 lib_LTLIBRARIES = libgmysqlbackend.la
 
+EXTRA_DIST=OBJECTFILES OBJECTLIBS
+
 INCLUDES=-I@MYSQL_incdir@
 
 libgmysqlbackend_la_SOURCES=gmysqlbackend.cc gmysqlbackend.hh \

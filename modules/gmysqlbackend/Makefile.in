@@ -85,15 +85,16 @@ VERSION = @VERSION@
 YACC = @YACC@
 am__include = @am__include@
 am__quote = @am__quote@
-domysql = @domysql@
-dopgsql = @dopgsql@
 install_sh = @install_sh@
 moduledirs = @moduledirs@
 modulelibs = @modulelibs@
 moduleobjects = @moduleobjects@
+programdescend = @programdescend@
 socketdir = @socketdir@
 
 lib_LTLIBRARIES = libgmysqlbackend.la
+
+EXTRA_DIST = OBJECTFILES OBJECTLIBS
 
 INCLUDES = -I@MYSQL_incdir@
 
