@@ -83,42 +83,45 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     d_qclass=pr.get16BitInt();
     //    cout<<"Question is for '"<<d_qname<<"', type "<<d_qtype<<endl;
   }
-  
-  struct dnsrecordheader ah;
-  vector<unsigned char> record;
-  
-  for(n=0;n < d_header.ancount + d_header.nscount + d_header.arcount; ++n) {
-    DNSRecord dr;
-    
-    if(n < d_header.ancount)
-      dr.d_place=DNSRecord::Answer;
-    else if(n < d_header.ancount + d_header.nscount)
-      dr.d_place=DNSRecord::Nameserver;
-    else 
-      dr.d_place=DNSRecord::Additional;
-    
-    string label=pr.getLabel();
-    
-    pr.getDnsrecordheader(ah);
-    dr.d_ttl=ah.d_ttl;
-    dr.d_type=ah.d_type;
-    dr.d_class=ah.d_class;
-    
-    dr.d_label=label;
-    dr.d_clen=ah.d_clen;
-    d_answers.push_back(make_pair(dr, pr.d_pos));
 
-    dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
-    if(dr.d_content) {
-      //      cout<<dr.d_label<<"\t"<<dr.d_content->getZoneRepresentation();
+  try {
+    struct dnsrecordheader ah;
+    vector<unsigned char> record;
+    
+    for(n=0;n < d_header.ancount + d_header.nscount + d_header.arcount; ++n) {
+      
+      DNSRecord dr;
+      
+      if(n < d_header.ancount)
+	dr.d_place=DNSRecord::Answer;
+      else if(n < d_header.ancount + d_header.nscount)
+	dr.d_place=DNSRecord::Nameserver;
+      else 
+	dr.d_place=DNSRecord::Additional;
+      
+      string label=pr.getLabel();
+      
+      pr.getDnsrecordheader(ah);
+      dr.d_ttl=ah.d_ttl;
+      dr.d_type=ah.d_type;
+      dr.d_class=ah.d_class;
+      
+      dr.d_label=label;
+      dr.d_clen=ah.d_clen;
+      d_answers.push_back(make_pair(dr, pr.d_pos));
+      
+      
+      dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
     }
+    
+    if(pr.d_pos!=contentlen) {
+      throw MOADNSException("Packet has trailing garbage");
+    }
+  }
+  catch(out_of_range &re) {
 
   }
   
-  if(pr.d_pos!=contentlen) {
-    //    cout<<pr.d_pos<<" != " <<contentlen<<endl;
-    throw MOADNSException("Packet has trailing garbage");
-  }
 }
 
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
