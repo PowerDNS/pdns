@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/02/28 20:06:43 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/02/28 20:47:28 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -108,7 +108,7 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		The most reported bug ever, zone2sql required the inclusion of unistd.h, except on Debian unstable.
+		The most reported bug ever was fixed. Zone2sql required the inclusion of unistd.h, except on Debian unstable.
 	      </para>
 	    </listitem>
 	    <listitem>
