@@ -242,6 +242,7 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
 
   static int negqueryttl=arg().asNum("negquery-cache-ttl");
   static int queryttl=arg().asNum("query-cache-ttl");
+
   if(!negqueryttl && !queryttl) {
     (*qcachemiss)++;
     return -1;
@@ -249,7 +250,10 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
 
   string content;
   //  L<<Logger::Warning<<"looking up: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
-  bool ret=PC.getKey(q.qname+"|Q|"+q.qtype.getName()+"|"+itoa(q.zoneId), content);   // think about lowercasing here
+
+  string key=q.qname+"|Q|"+q.qtype.getName()+"|"+itoa(q.zoneId); // perhaps work around g++ 2.95 bug
+
+  bool ret=PC.getKey(key, content);   // think about lowercasing here
 
   if(!ret) {
     (*qcachemiss)++;
