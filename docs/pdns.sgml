@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/11/27 15:18:37 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/11/28 14:38:00 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -85,6 +85,36 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9"><title>Version 2.9</title>	
+	<para>
+	Open source release. Do not deploy unless you know what you are
+doing. Stability is expected to return with 2.9.1, as are the binary builds.
+	</para>
+	<para>	
+	<itemizedlist>
+	<listitem>
+	<para>
+	License changed to the GNU General Public License version 2.
+	</para>
+	</listitem>
+	<listitem>
+	<para>
+		Cleanups by Erik Bos @ xs4all.
+	</para>
+	</listitem>
+	<listitem>
+	<para>
+		Build improvements by Wichert Akkerman
+	</para>
+	</listitem>
+	<listitem>
+	<para>
+		Lots of work on the build system, entirely revamped. By PowerDNS.
+	</para>
+	</listitem>
+	</itemizedlist>
+	</sect2>
+	
       <sect2 id="changelog-2-8"><title>Version 2.8</title>	
 	<para>
 	  From this release onwards, we'll concentrate on stabilising for the 3.0 release. So if you have any must-have features,
