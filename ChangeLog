@@ -5,6 +5,9 @@ Changes since 2.9:
 	- fixed very embarrassing bug in bind parser - would die on escaping a '
 	- pipebackend back
 	- freebsd fixes
+	- Solaris fixes (thanks Mark Bakker, Edvard Tuinder)
+	- removed silly debugging message ('sd.ttl from cache')
+
 
 Changes since 2.8:
 	- license

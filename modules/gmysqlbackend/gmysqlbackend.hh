@@ -1,6 +1,6 @@
 #include <string>
 #include <map>
-#include "smysql.hh"
+#include "ssql.hh"
 
 using namespace std;
 

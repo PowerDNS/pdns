@@ -1,6 +1,6 @@
 Buildroot: /tmp/pdns
 Name: pdns
-Version: 2.8
+Version: 2.9.1
 Release: 1
 Summary: extremely powerful and versatile nameserver
 Copyright: see /usr/doc/pdns/copyright
@@ -24,13 +24,8 @@ backend'.
 %files
 %defattr(-,root,root)
 "/usr/sbin/pdns_server"
-"/usr/sbin/pdns_control"
-"/usr/sbin/zone2sql"
-"/usr/doc/pdns/LICENSE"
-"/usr/doc/pdns/README"
-"/usr/doc/pdns/html/"
-"/usr/doc/pdns/pdns.txt"
-"/usr/doc/pdns/pdns.pdf"
+"/usr/bin/pdns_control"
+"/usr/bin/zone2sql"
 %dir "/etc/powerdns/"
 %config(noreplace) "/etc/powerdns/pdns.conf"
 %config "/etc/init.d/pdns"

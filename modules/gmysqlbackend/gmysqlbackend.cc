@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.3 2002/11/29 21:16:10 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.4 2002/12/09 18:34:45 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -355,7 +355,7 @@ bool gMySQLBackend::createSlaveDomain(const string &ip, const string &domain, co
 bool gMySQLBackend::get(DNSResourceRecord &r)
 {
   // L << "gMySQLBackend get() was called for "<<qtype.getName() << " record: ";
-  SMySQL::row_t row;
+  SSql::row_t row;
   if(d_db->getRow(row)) {
     r.content=row[0];
     r.ttl=atol(row[1].c_str());

@@ -14,8 +14,24 @@ To add multiple modules, try:
 
 $ ./configure --with-modules="mysql mypgsql"
 
-For postgresql, you will probably have to edit modules/mypgsql/Makefile.in -
-see the TODO file
+See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
+
+SOLARIS NOTES
+-------------
+You need gcc 3.x, preferably 3.2!
+If you encounter problems with the Solaris make, gmake is advised
+
+IPv6 is currently (2.9.1.) broken in Solaris, awaiting patches!
+
+FREEBSD NOTES
+-------------
+gcc 2.95.x works. You need to compile using gmake - regular make only appears to
+work, but doesn't in fact.
+
+
+LINUX NOTES
+-----------
+None really.
 
 ---
 

@@ -1,3 +1,5 @@
+bugs:
+	bind backend ANY queries don't work
 
 immediate issues:
 	make install installs libraries with a static build which it should
@@ -5,7 +7,7 @@ immediate issues:
 
 
 Things we will not do but hope other people will:
-	- Ports to NetBSD, OpenBSD, Solaris, AIX
+	- Ports to NetBSD, OpenBSD, AIX
 
 Projects we will be working on, but would like help for:
 
@@ -16,6 +18,7 @@ Big things:
 	- Add support for TSIG
 
 Medium size things:
+	- 64 bit cleanliness
 	- Improve bind 'workalike' mode so we are a drop-in replacement for
 	  non-resolving bind. We're 90% there.
 		Add support for being master/slave in bind mode
@@ -38,8 +41,6 @@ Small things, great for coders new to PowerDNS:
 	- 'make distclean' tries to calculate dependencies in
 		modules/pgmysqlbackend, which is not needed
 
-	- make sure only Linux gets -D_GNU_SOURCE
-		doesn't hurt other architectures, but its ugly
 	- investigate if the following is better for the spgsql driver:
 int SPgSQL::doQuery(const string &query)
 {
@@ -73,6 +74,5 @@ cvs server: Updating pdns
 
 	
 Real work:
-	- Solaris version
 	- Mac OS X version (has been done, partly)
 	- resurrect W2K version
