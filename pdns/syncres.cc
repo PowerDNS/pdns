@@ -405,9 +405,13 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       map<string,set<DNSResourceRecord> > tcache;
       // reap all answers from this packet that are acceptable
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
-	LOG<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
-
-
+	if(i->qtype.getCode() < 1024) {
+	  LOG<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
+	}
+	else {
+	  LOG<<prefix<<qname<<": accept opaque answer '"<<i->qname<<"|"<<QType(i->qtype.getCode()-1024).getName()<<" from '"<<auth<<"' nameservers? ";
+	}
+	
 	if(endsOn(i->qname, auth)) {
 	  if(d_lwr.d_aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && arg().contains("delegation-only",auth)) {
 	    LOG<<"NO! Is from delegation-only zone"<<endl;
@@ -465,9 +469,17 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  newtarget=i->content;
 	}
 	// for ANY answers we *must* have an authoritive answer
-	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && (i->qtype==qtype || ( qtype==QType(QType::ANY) && 
-														    d_lwr.d_aabit)))  {
-	  LOG<<prefix<<qname<<": answer is in: resolved to '"<<i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
+	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && 
+		(((i->qtype==qtype) || (i->qtype.getCode()>1024 && i->qtype.getCode()-1024==qtype.getCode())) || ( qtype==QType(QType::ANY) && 
+
+														   d_lwr.d_aabit)))  {
+	  if(i->qtype.getCode() < 1024) {
+	    LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
+	  }
+	  else {
+	    LOG<<prefix<<qname<<": answer is in: resolved to opaque record of type '"<<QType(i->qtype.getCode()-1024).getName()<<"'"<<endl;
+	  }
+
 	  done=true;
 	  ret.push_back(*i);
 	}
