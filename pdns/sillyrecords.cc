@@ -54,7 +54,7 @@ string DNSPacket::parseLOC(const unsigned char *p, unsigned int length)
     unsigned int vertpre:8;
   }rp;
 
-  rp=*(RP *)p;
+  memcpy(&rp,p,sizeof(rp));
   char ret[256];
 
   double latitude= (((p[4]<<24)  + (p[5]<<16)  +  (p[6]<<8) +  p[7])  - (1<<31))/3600000.0;
