@@ -1,6 +1,7 @@
 changes since 2.9.13:
 	- speed improvements (norbert)
 	- logging to syslog can now be restricted (norbert)
+	- SOA canonic
 
 changes since 2.9.12:
 	- pdns_recursor can now survive being disconnected from the net for long

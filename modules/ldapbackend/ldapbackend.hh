@@ -53,14 +53,21 @@ static char* attrany[] = {
 	"aRecord",
 	"nSRecord",
 	"cNAMERecord",
+	"sOARecord",
 	"pTRRecord",
+	"hInfoRecord",
 	"mXRecord",
 	"tXTRecord",
 	"rPRecord",
+//	"SigRecord",
+//	"KeyRecord",
 	"aAAARecord",
 	"lOCRecord",
+//	"nXTRecord",
+	"sRVRecord",
 	"nAPTRRecord",
-	"aXFRRecord",
+//	"kXRecord",
+//	"certRecord",
 	NULL
 };
 
