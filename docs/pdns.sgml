@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/06 16:13:59 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/07 13:05:02 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3786,13 +3786,26 @@ local0.err                        /var/log/pdns.err
 	      Only operates on the foreground, it does not fork.
 	    </para></listitem>
 	  <listitem><para>
+	      Does not do negative caching.
+	    </para></listitem>
+	  <listitem><para>
 	      Can only answer queries for types and classes it knows about - it is not transparent as it should be.
 	    </para></listitem>
 	  <listitem><para>
-	      Does not expire entries from its cache
+	      Only ignores stale cache entries, does not actually clean them up.
 	    </para></listitem>
 	  <listitem><para>
-	      Only compiles on Linux and possibly Solaris. FreeBSD decided not to support the POSIX get/set/swapcontext functions.
+	      Otherwise, leaks memory like a sieve too.
+	    </para></listitem>
+	  <listitem><para>
+	      Doesn't understand ANY records yet.
+	    </para></listitem>
+	  <listitem><para>
+	      Not very IPv6 aware - does no AAAA additional processing.
+	    </para></listitem>
+	  <listitem><para>
+	      Only compiles on Linux and possibly Solaris. FreeBSD 4.x decided not to support the 
+	      POSIX get/set/swapcontext functions.
 	    </para></listitem>
 	</itemizedlist>
       </para>
@@ -3800,6 +3813,13 @@ local0.err                        /var/log/pdns.err
 	Still here? Ok. To compile, add <command>--enable-recursor</command> to configure and the file <filename>syncres</filename> will be 
 	compiled. If you are lucky, that is. Send it queries like this: 
 	<command>dig ds9a.nl A @127.0.0.1 -p 5300</command>. To run on a different port, use <command>./syncres --local-port=53</command>.
+      </para>
+      <para>
+	<note>
+	  <para>
+	    PowerDNS author bert hubert has the pdns recursor in production and browsing with it works for him.
+	  </para>
+	</note>
       </para>
       <para>
 	Good points:
@@ -3818,6 +3838,9 @@ local0.err                        /var/log/pdns.err
 	    </para></listitem>
 	  <listitem><para>
 	      Is very verbose in showing how recursion actually works.
+	    </para></listitem>
+	  <listitem><para>
+	      The algorithm is simple and quite nifty.
 	    </para></listitem>
 	</itemizedlist>
       </para>
