@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.cc,v 1.8 2004/01/16 22:18:12 ahu Exp $ 
+// $Id$ 
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
@@ -122,7 +122,7 @@ void UDPNameserver::bindIPv4()
     }
     d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
-    L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin_addr)<<":"<<arg()["local-port"]<<endl;
+    L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
     FD_SET(s, &d_rfds);
   }
 }
@@ -173,7 +173,7 @@ void UDPNameserver::bindIPv6()
     }
     d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
-    L<<Logger::Error<<"UDPv6 server bound to "<<localname<<":"<<arg()["local-port"]<<endl;
+    L<<Logger::Error<<"UDPv6 server bound to "<<localname<<":"<<arg().asNum("local-port")<<endl;
     FD_SET(s, &d_rfds);
   }
 #endif // WIN32

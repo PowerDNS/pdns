@@ -462,7 +462,7 @@ TCPNameserver::TCPNameserver()
     }
     
     listen(s,128);
-    L<<Logger::Error<<"TCP server bound to "<<*laddr<<":"<<arg()["local-port"]<<endl;
+    L<<Logger::Error<<"TCP server bound to "<<*laddr<<":"<<arg().asNum("local-port")<<endl;
     d_sockets.push_back(s);
     FD_SET(s, &d_rfds);
     d_highfd=max(s,d_highfd);
