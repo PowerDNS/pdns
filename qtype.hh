@@ -47,7 +47,7 @@ class QType
 public:
   QType(); //!< Naked constructor
   explicit QType(int); //!< convert from an integer to a QType
-  QType(char *p);  //!< convert from a char* to a QType
+  QType(const char *p);  //!< convert from a char* to a QType
 
   QType &operator=(int);  //!< Assigns integers to us
   QType &operator=(const char *); //!< Assings strings to us
