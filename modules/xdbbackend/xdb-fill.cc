@@ -112,7 +112,6 @@ void walk(FILE *fp, insertFunc *ifp)
 
 int main(int argc, char **argv)
 {
-  char line[1024];
   if(argc!=2) {
     cerr<<"syntax: xdb-fill filename"<<endl;
     exit(1);
