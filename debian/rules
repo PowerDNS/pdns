@@ -2,7 +2,8 @@
 
 tmpdir		:= $(shell pwd)/debian/tmp
 be_tmpdir	:= $(shell pwd)/debian/tmp-backend
-backends	:= mysql pipe xdb pgsql
+backends	:= mysql pipe xdb gmysql gpgsql
+debs		:= mysql pipe xdb pgsql
 
 configure:
 	./bootstrap
@@ -137,7 +138,7 @@ binary-backend: stamp-build
 		"$(tmpdir)"/usr/bin/xdb-fill
 	chmod 644 "$(tmpdir)"/usr/lib/powerdns/*
 
-	set -e ; for be in $(backends) ; do \
+	set -e ; for be in $(debs) ; do \
 		rm -f debian/substvars ; \
 		rm -rf "$(be_tmpdir)" ; \
 		pkg=pdns-backend-$$be ; \
