@@ -20,17 +20,17 @@
 #include <vector>
 #include <sstream>
 #include <errno.h>
-#include <sys/param.h>
 #include <cstring>
 
 #include <iomanip>
-#include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <netdb.h>
+#include <sys/types.h>
 
 #ifndef WIN32
+# include <sys/param.h>
+# include <netdb.h>
 # include <sys/time.h>
 # include <time.h>
 # include <netinet/in.h>

@@ -32,7 +32,7 @@ DynMessenger::DynMessenger(const string &dname, const string &fname)
 
   m_pipeHandle = CreateFile( pipename.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL );
   if ( m_pipeHandle == INVALID_HANDLE_VALUE )
-    throw AhuException( "Could not create named pipe." );
+    throw AhuException( "Could not create named pipe (are you on Windows NT, 2000 or XP? 98 doesn't work!)" );
 }
 
 DynMessenger::~DynMessenger()
