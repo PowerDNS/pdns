@@ -7,6 +7,7 @@ Changes since 2.9.3a:
 	- solaris compilation fixes
 	- make IPv6 work again on FreeBSD (Peter van Dijk)
 	- neglected to properly initialize the socklen of accept of dynlistener ;-(
+	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
 
 Changes since 2.9.2:
 	- windows compilation patches
