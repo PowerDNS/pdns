@@ -1371,7 +1371,7 @@
 	<para>
 	  <note><para>2.9.3a is identical to 2.9.3 except that zone2sql does work</para></note></para>
 	<para>
-	  Broad range of huge improvements. We now have an all-static .rpm and .deb for Linux users and a a link to an OpenBSD port.
+	  Broad range of huge improvements. We now have an all-static .rpm and .deb for Linux users and a link to an OpenBSD port.
 	  Major news is that work on the Bind backend has progressed to the point that we've just retired our last Bind server and 
 	  replaced it with PowerDNS in Bind mode! This server is operating a number of master and slave setups so it should stress the Bind backend 
 	  somewhat.
@@ -5589,7 +5589,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>logging-facility=...</term>
 	    <listitem><para>
-	      If set to a a digit, logging is performed under this LOCAL facility. See <xref linkend="syslog">. Available from 1.99.9 and onwards.
+	      If set to a digit, logging is performed under this LOCAL facility. See <xref linkend="syslog">. Available from 1.99.9 and onwards. Do not pass names like 'local0'!
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>loglevel=...</term>
 	    <listitem><para>
