@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.13 2005/01/11 19:24:27 ahu Exp $
+
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -497,9 +497,14 @@ int main(int argc, char **argv)
 
       exit(99);
     }
+
+    if(!arg().asNum("local-port")) {
+      L<<Logger::Error<<"Unable to launch, binding to no port or port 0 makes no sense"<<endl;
+      exit(99); // this isn't going to fix itself either
+    }
     if(!BackendMakers().numLauncheable()) {
       L<<Logger::Error<<"Unable to launch, no backends configured for querying"<<endl;
-	exit(99); // this isn't going to fix itself either
+      exit(99); // this isn't going to fix itself either
     }    
     if(arg().mustDo("daemon")) {
       L.toConsole(Logger::None);
