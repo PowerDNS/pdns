@@ -1,4 +1,3 @@
-don't read 'hint' and 'forward' sections
 
 bugs:
 	pdns.conf-dist contains old descriptions
@@ -19,8 +18,13 @@ Medium size things:
 		compiles on 64 bit, but does it work?
 	- Improve bind 'workalike' mode so we are a drop-in replacement for
 	  non-resolving bind. We're 90% there.
-		Add support for being master/slave in bind mode
-			this basically is filling in the blanks
+		- improve atomic zone swapping
+			right now we are SOL if we try to reload a broken zone
+		- write out $ORIGIN statements on file that came in over AXFR
+		- make sure its name can be changed and that everything
+			changes with it
+		- right now, bindbackend accepts out of zone records!
+
 	- get PDNS into Red Hat 8.x 
 		needs very good RPMS 	
 		need to get Red Hat interested

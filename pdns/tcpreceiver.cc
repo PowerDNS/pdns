@@ -224,7 +224,7 @@ void *TCPNameserver::doConnection(void *data)
   catch(AhuException &ae) {
     L<<Logger::Error<<"TCP nameserver: "<<ae.reason<<endl;
   }
-  catch(PacketHandler::DBException &e) {
+  catch(DBException &e) {
     L<<Logger::Error<<"TCP Connection Thread unable to answer a question because of a backend error"<<endl;
   }
   catch(exception &e) {

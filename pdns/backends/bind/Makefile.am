@@ -9,7 +9,7 @@ bin_PROGRAMS = zone2sql
 
 zone2sql_SOURCES=bindparser.yy bindlexer.l zoneparser2.cc \
 ../../arguments.cc ../../logger.cc zone2sql.cc ../../statbag.cc ../../misc.cc \
-../../unix_utility.cc
+../../unix_utility.cc ../../qtype.cc
 
 zone2sql_LDFLAGS=
 

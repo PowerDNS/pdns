@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnsbackend.hh,v 1.2 2002/12/18 16:22:20 ahu Exp $
+// $Id: dnsbackend.hh,v 1.3 2002/12/19 16:20:14 ahu Exp $
 /* (C) 2002 POWERDNS.COM BV  */
    
 #ifndef DNSBACKEND_HH
@@ -29,6 +29,7 @@ class DNSPacket;
 #include <vector>
 #include <map>
 #include <sys/types.h>
+#include "ahuexception.hh"
 #include <set>
 
 #ifndef WIN32
@@ -185,7 +186,11 @@ private:
 
 extern BackendMakerClass &BackendMakers();
 
-class BackendException
-{};
+class DBException : public AhuException
+{
+public:
+  DBException(const string &reason) : AhuException(reason){}
+};
+
 
 #endif

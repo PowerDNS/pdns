@@ -45,6 +45,7 @@ public:
   bool current();
 
   bool d_loaded;
+  string d_status;
   bool d_checknow;
   time_t d_ctime;
   string d_name;
@@ -239,5 +240,9 @@ private:
   void queueReload(BBDomainInfo *bbd);
   BBResourceRecord resourceMaker(int id, const string &qtype, const string &content, int ttl, int prio);
   static string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
   void loadConfig(string *status=0);
+  void nukeZoneRecords(BBDomainInfo *bbd);
 };
