@@ -64,9 +64,9 @@ ArgvMap &arg()
   static ArgvMap theArg;
   return theArg;
 }
-int d_clientsock;
-int d_serversock;
-int d_tcpserversock;
+static int d_clientsock;
+static int d_serversock;
+static int d_tcpserversock;
 
 struct PacketID
 {
@@ -260,15 +260,18 @@ void makeTCPServerSocket()
   }
 
   sin.sin_port = htons(arg().asNum("local-port")); 
-    
-  if (bind(d_tcpserversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
-    throw AhuException("TCP Resolver binding to server socket: "+stringerror());
-  
+
   int tmp=1;
   if(setsockopt(d_tcpserversock,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
     L<<Logger::Error<<"Setsockopt failed"<<endl;
     exit(1);  
   }
+    
+  if (bind(d_tcpserversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    throw AhuException("TCP Resolver binding to server socket: "+stringerror());
+  
+
+  Utility::setNonBlocking(d_tcpserversock);
 
   listen(d_tcpserversock, 128);
 }
@@ -299,6 +302,9 @@ void makeServerSocket()
     
   if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
     throw AhuException("Resolver binding to server socket: "+stringerror());
+
+  Utility::setNonBlocking(d_serversock);
+
   L<<Logger::Error<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
 }
 
@@ -476,7 +482,6 @@ int main(int argc, char **argv)
 	fdmax=max(fdmax,i->fd);
       }
 
-
       /* this should listen on a TCP port as well for new connections,  */
       int selret = select(  fdmax + 1, &readfds, NULL, NULL, &tv );
       if(selret<=0) 
@@ -532,9 +537,9 @@ int main(int argc, char **argv)
 	struct sockaddr_in addr;
 	socklen_t addrlen=sizeof(addr);
 	int newsock=accept(d_tcpserversock, (struct sockaddr*)&addr, &addrlen);
-	Utility::setNonBlocking(newsock);
-	
+
 	if(newsock>0) {
+	  Utility::setNonBlocking(newsock);
 	  TCPConnection tc;
 	  tc.fd=newsock;
 	  tc.state=TCPConnection::BYTE0;
