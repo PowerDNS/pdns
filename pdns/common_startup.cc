@@ -46,6 +46,7 @@ void declareArguments()
   arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
   arg().set("local-address","Local IP address to which we bind")="0.0.0.0";
   arg().set("local-ipv6","Local IP address to which we bind")="";
+  arg().set("query-local-address","Source IP address for sending queries")="";
   arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
   arg().set("soa-serial-offset","Make sure that no SOA serial is less than this number")="0";
   arg().set("only-soa","Make sure that no SOA serial is less than this number")="org";

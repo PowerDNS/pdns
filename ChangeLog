@@ -1,4 +1,12 @@
 Changes since 2.9.6:
+	* need to do work on ( and ) in zones!
+	- added local-query-address (Mark Bergsma)
+	- zone2sql now removes dots in the SOA record
+	- zone2sql no longer silently tries to read directories
+	- improved error reporting if unable to figure out IP addresses for
+	  slaves
+
+Changes since 2.9.5:
 	- implemented isMaster in bindbackend (we now react to notifies)
 	- added zoneId to mboxfw stuff - massive speedup
 	- $GENERATE off by one bug (Christian Laursen)

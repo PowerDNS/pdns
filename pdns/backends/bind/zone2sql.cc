@@ -18,7 +18,7 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.5 2003/02/02 22:04:51 ahu Exp $ 
+// $Id: zone2sql.cc,v 1.6 2003/02/25 12:36:49 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 # include <unistd.h>
@@ -38,6 +38,7 @@ using namespace std;
 #include "bindparser.hh"
 #include "statbag.hh"
 #include "misc.hh"
+#include "dnspacket.hh"
 
 StatBag S;
 
@@ -65,9 +66,10 @@ bool g_intransaction;
 static int num_records;
 static string lastsoa_qname;
 
-static void callback(unsigned int domain_id,const string &domain, const string &qtype, const string &content, int ttl, int prio)
+static void callback(unsigned int domain_id,const string &domain, const string &qtype, const string &ocontent, int ttl, int prio)
 {
   static int lastsoa_domain_id=-1;
+  string content(ocontent);
 
   num_records++;
 
@@ -94,6 +96,13 @@ static void callback(unsigned int domain_id,const string &domain, const string &
 	}
       }
     }
+    SOAData soadata;
+    DNSPacket::fillSOAData(content, soadata);
+    soadata.hostmaster=ZoneParser::canonic(soadata.hostmaster);
+    soadata.nameserver=ZoneParser::canonic(soadata.nameserver);
+    content=DNSPacket::serializeSOAData(soadata);
+
+
     lastsoa_qname=ZoneParser::canonic(domain);
   }
   
@@ -160,6 +169,7 @@ int main(int argc, char **argv)
     arg().set("zone","Zonefile with $ORIGIN to parse")="";
     arg().set("zone-name","Specify an $ORIGIN in case it is not present")="";
     arg().set("named-conf","Bind 8 named.conf to parse")="";
+    arg().set("soa-minimum-ttl","Do not change")="0";
 
     arg().setCmd("help","Provide a helpful message");
 

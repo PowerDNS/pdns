@@ -93,6 +93,12 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
 	for(vector<Record>::const_iterator i=rec.begin();i!=rec.end();++i)
 	  d_callback(domain_id,i->name, i->qtype,i->content,i->ttl,i->prio);
     }
+
+    if(ferror(fds.top())) {
+      fclose(fds.top());
+      fds.pop();
+      throw AhuException("Error reading from file '"+fname+"': "+stringerror());
+    }
     fclose(fds.top());
     fds.pop();
   }
@@ -138,6 +144,12 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
       if(eatLine(line,rec))
 	for(vector<Record>::const_iterator i=rec.begin();i!=rec.end();++i)
 	  records.push_back(*i);
+    }
+
+    if(ferror(fds.top())) {
+      fclose(fds.top());
+      fds.pop();
+      throw AhuException("Error reading from file '"+fname+"': "+stringerror());
     }
     fclose(fds.top());
     fds.pop();

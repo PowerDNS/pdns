@@ -153,7 +153,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.9 2003/02/04 16:33:47 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.10 2003/02/25 12:36:49 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -169,7 +169,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.9 2003/02/04 16:33:47 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.10 2003/02/25 12:36:49 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -334,7 +334,7 @@ int PacketHandler::doAdditionalProcessing(DNSPacket *p, DNSPacket *r)
 	    }
 	  }
 	  catch(ResolverException& re) {
-	    L<<Logger::Error<<"Trying to do additional processing for answer to '"<<p->qdomain<<"' query: "<<re.reason<<endl;
+	    // L<<Logger::Error<<"Trying to do additional processing for answer to '"<<p->qdomain<<"' query: "<<re.reason<<endl;
 	  }
 	}
       }
