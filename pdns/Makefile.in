@@ -36,7 +36,7 @@ oldincludedir = /usr/include
 pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
-top_builddir = .
+top_builddir = ..
 
 ACLOCAL = @ACLOCAL@
 AUTOCONF = @AUTOCONF@
@@ -55,12 +55,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_alias = @build_alias@
-build_triplet = @build@
 host_alias = @host_alias@
 host_triplet = @host@
-target_alias = @target_alias@
-target_triplet = @target@
 AMTAR = @AMTAR@
 AS = @AS@
 AWK = @AWK@
@@ -73,7 +69,6 @@ EXEEXT = @EXEEXT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LEX = @LEX@
 LIBDL = @LIBDL@
-LIBRESOLV = @LIBRESOLV@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 OBJDUMP = @OBJDUMP@
@@ -86,24 +81,27 @@ YACC = @YACC@
 am__include = @am__include@
 am__quote = @am__quote@
 install_sh = @install_sh@
+moduledirs = @moduledirs@
+modulelibs = @modulelibs@
+moduleobjects = @moduleobjects@
+socketdir = @socketdir@
 
-AM_CXXFLAGS = -D_GNU_SOURCE -DSYSCONFDIR=\"@sysconfdir@\" -DBINDIR=\"@bindir@\" -DLOCALSTATEDIR=\"@localstatedir@\" -Ibackends/bind
+AM_CXXFLAGS = -D_GNU_SOURCE -DSYSCONFDIR=\"@sysconfdir@\" -DBINDIR=\"@bindir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind
 AM_CPPFLAGS = -Ibackends/bind
 
-EXTRA_DIST = codedocs/Makefile codedocs/doxygen.conf sample docs/Makefile \
+EXTRA_DIST = codedocs/Makefile codedocs/doxygen.conf docs/Makefile \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
 docs/powerdns-overview.sgml docs/powerdns-technical.sgml extra/Makefile \
 extra/null.c pdns.spec release-scripts/ debian/changelog debian/conffiles \
 debian/control debian/postinst debian/postrm debian/preinst \
-debian/prerm debian/rules installer \
-pathconfig.redhat pathconfig pathconfig.bsd pathconfig.debian docs/pdns.sgml \
+debian/prerm debian/rules docs/pdns.sgml \
 LICENSE choosepaths mtasker.cc COPYING 
 
 
 bin_SCRIPTS = pdns
-sysconf_DATA = pdns.conf-dist smtpredir.conf-dist 
+sysconf_DATA = pdns.conf-dist 
 
-bin_PROGRAMS = pdns_server pdns_control binpatch # syncres #   resolver syncres # smtpredir
+bin_PROGRAMS = pdns_server pdns_control binpatch # syncres #   resolver syncres 
 
 pdns_server_SOURCES = dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -122,7 +120,7 @@ backends/bind/huffman.cc
 
 
 #
-pdns_server_LDFLAGS = -rdynamic @LIBDL@ extra/*.o `cat extra/ld`  -ldl
+pdns_server_LDFLAGS = -rdynamic @LIBDL@ @moduleobjects@ @modulelibs@ 
 pdns_server_INCLUDES = 
 
 
@@ -139,11 +137,10 @@ pdns_control_LDFLAGS =
 binpatch_SOURCES = binpatch.cc 
 
 SUBDIRS = codedocs backends extra .
-subdir = .
-ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+subdir = pdns
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = pdns.conf-dist buildroot.sh showvar pdns mkbindist
+CONFIG_HEADER = $(top_builddir)/config.h
+CONFIG_CLEAN_FILES = pdns
 bin_PROGRAMS = pdns_server$(EXEEXT) pdns_control$(EXEEXT) \
 	binpatch$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
@@ -178,7 +175,7 @@ SCRIPTS = $(bin_SCRIPTS)
 
 
 DEFS = @DEFS@
-DEFAULT_INCLUDES =  -I. -I$(srcdir) -I.
+DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
@@ -225,16 +222,13 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive install-info-recursive \
 	uninstall-info-recursive all-recursive install-data-recursive \
 	install-exec-recursive installdirs-recursive install-recursive \
 	uninstall-recursive check-recursive installcheck-recursive
-DIST_COMMON = README ./stamp-h.in COPYING ChangeLog INSTALL Makefile.am \
-	Makefile.in TODO acconfig.h aclocal.m4 buildroot.sh.in \
-	config.guess config.h.in config.sub configure configure.in \
-	depcomp install-sh ltmain.sh missing mkbindist.in mkinstalldirs \
-	pdns.conf-dist.in pdns.in showvar.in ylwrap
+DIST_COMMON = README COPYING ChangeLog INSTALL Makefile.am Makefile.in \
+	TODO config.guess config.sub configure depcomp install-sh \
+	ltmain.sh missing mkinstalldirs pdns.in ylwrap
 DIST_SUBDIRS = $(SUBDIRS)
 SOURCES = $(binpatch_SOURCES) $(pdns_control_SOURCES) $(pdns_server_SOURCES)
 
-all: config.h
-	$(MAKE) $(AM_MAKEFLAGS) all-recursive
+all: all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .cc .lo .o .obj
@@ -249,54 +243,13 @@ distclean-libtool:
 	-rm -f libtool
 $(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  Makefile
+	  $(AUTOMAKE) --foreign  pdns/Makefile
 Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && \
 	  CONFIG_HEADERS= CONFIG_LINKS= \
-	  CONFIG_FILES=$@ $(SHELL) ./config.status
-
-$(top_builddir)/config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
-	$(SHELL) ./config.status --recheck
-$(srcdir)/configure:  $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
-	cd $(srcdir) && $(AUTOCONF)
-
-$(ACLOCAL_M4):  configure.in 
-	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
-config.h: stamp-h
-	@if test ! -f $@; then \
-		rm -f stamp-h; \
-		$(MAKE) stamp-h; \
-	else :; fi
-stamp-h: $(srcdir)/config.h.in $(top_builddir)/config.status
-	@rm -f stamp-h stamp-hT
-	@echo timestamp > stamp-hT 2> /dev/null
-	cd $(top_builddir) \
-	  && CONFIG_FILES= CONFIG_HEADERS=config.h \
-	     $(SHELL) ./config.status
-	@mv stamp-hT stamp-h
-$(srcdir)/config.h.in:  $(srcdir)/./stamp-h.in
-	@if test ! -f $@; then \
-		rm -f $(srcdir)/./stamp-h.in; \
-		$(MAKE) $(srcdir)/./stamp-h.in; \
-	else :; fi
-$(srcdir)/./stamp-h.in: $(top_srcdir)/configure.in $(ACLOCAL_M4) $(top_srcdir)/acconfig.h
-	@rm -f $(srcdir)/./stamp-h.in $(srcdir)/./stamp-h.inT
-	@echo timestamp > $(srcdir)/./stamp-h.inT 2> /dev/null
-	cd $(top_srcdir) && $(AUTOHEADER)
-	@mv $(srcdir)/./stamp-h.inT $(srcdir)/./stamp-h.in
-
-distclean-hdr:
-	-rm -f config.h
-pdns.conf-dist: $(top_builddir)/config.status pdns.conf-dist.in
-	cd $(top_builddir) && CONFIG_FILES=$@ CONFIG_HEADERS= CONFIG_LINKS= $(SHELL) ./config.status
-buildroot.sh: $(top_builddir)/config.status buildroot.sh.in
-	cd $(top_builddir) && CONFIG_FILES=$@ CONFIG_HEADERS= CONFIG_LINKS= $(SHELL) ./config.status
-showvar: $(top_builddir)/config.status showvar.in
-	cd $(top_builddir) && CONFIG_FILES=$@ CONFIG_HEADERS= CONFIG_LINKS= $(SHELL) ./config.status
+	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
 pdns: $(top_builddir)/config.status pdns.in
-	cd $(top_builddir) && CONFIG_FILES=$@ CONFIG_HEADERS= CONFIG_LINKS= $(SHELL) ./config.status
-mkbindist: $(top_builddir)/config.status mkbindist.in
-	cd $(top_builddir) && CONFIG_FILES=$@ CONFIG_HEADERS= CONFIG_LINKS= $(SHELL) ./config.status
+	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= CONFIG_LINKS= $(SHELL) ./config.status
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
@@ -611,7 +564,7 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	       END { for (i in files) print i; }'`; \
 	mkid -fID $$unique $(LISP)
 
-TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
+TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
@@ -626,8 +579,8 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 	  done | \
 	  $(AWK) '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
-	test -z "$(ETAGS_ARGS)config.h.in$$unique$(LISP)$$tags" \
-	  || etags $(ETAGS_ARGS) $$tags config.h.in $$unique $(LISP)
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || etags $(ETAGS_ARGS) $$tags  $$unique $(LISP)
 
 GTAGS:
 	here=`CDPATH=: && cd $(top_builddir) && pwd` \
@@ -639,16 +592,11 @@ distclean-tags:
 
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 
-top_distdir = .
-# Avoid unsightly `./'.
-distdir = $(PACKAGE)-$(VERSION)
-
-GZIP_ENV = --best
+top_distdir = ..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
 
 distdir: $(DISTFILES)
-	-chmod -R a+w $(distdir) >/dev/null 2>&1; rm -rf $(distdir)
-	mkdir $(distdir)
-	$(mkinstalldirs) $(distdir)/. $(distdir)/codedocs $(distdir)/debian $(distdir)/docs $(distdir)/extra
+	$(mkinstalldirs) $(distdir)/codedocs $(distdir)/debian $(distdir)/docs $(distdir)/extra
 	@for file in $(DISTFILES); do \
 	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
 	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
@@ -677,49 +625,9 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
-	-find $(distdir) -type d ! -perm -777 -exec chmod a+rwx {} \; -o \
-	  ! -type d ! -perm -444 -links 1 -exec chmod a+r {} \; -o \
-	  ! -type d ! -perm -400 -exec chmod a+r {} \; -o \
-	  ! -type d ! -perm -444 -exec $(SHELL) $(install_sh) -c -m a+r {} {} \; \
-	|| chmod -R a+r $(distdir)
-dist: distdir
-	$(AMTAR) chof - $(distdir) | GZIP=$(GZIP_ENV) gzip -c >$(distdir).tar.gz
-	-chmod -R a+w $(distdir) >/dev/null 2>&1; rm -rf $(distdir)
-
-# This target untars the dist file and tries a VPATH configuration.  Then
-# it guarantees that the distribution is self-contained by making another
-# tarfile.
-distcheck: dist
-	-chmod -R a+w $(distdir) > /dev/null 2>&1; rm -rf $(distdir)
-	GZIP=$(GZIP_ENV) gunzip -c $(distdir).tar.gz | $(AMTAR) xf -
-	chmod -R a-w $(distdir); chmod a+w $(distdir)
-	mkdir $(distdir)/=build
-	mkdir $(distdir)/=inst
-	chmod a-w $(distdir)
-	dc_install_base=`CDPATH=: && cd $(distdir)/=inst && pwd` \
-	  && cd $(distdir)/=build \
-	  && ../configure --srcdir=.. --prefix=$$dc_install_base \
-	  && $(MAKE) $(AM_MAKEFLAGS) \
-	  && $(MAKE) $(AM_MAKEFLAGS) dvi \
-	  && $(MAKE) $(AM_MAKEFLAGS) check \
-	  && $(MAKE) $(AM_MAKEFLAGS) install \
-	  && $(MAKE) $(AM_MAKEFLAGS) installcheck \
-	  && $(MAKE) $(AM_MAKEFLAGS) uninstall \
-	  && (test `find $$dc_install_base -type f -print | wc -l` -le 1 \
-	     || (echo "Error: files left after uninstall" 1>&2; \
-	         exit 1) ) \
-	  && $(MAKE) $(AM_MAKEFLAGS) dist \
-	  && $(MAKE) $(AM_MAKEFLAGS) distclean \
-	  && rm -f $(distdir).tar.gz \
-	  && (test `find . -type f -print | wc -l` -eq 0 \
-	     || (echo "Error: files left after distclean" 1>&2; \
-	         exit 1) )
-	-chmod -R a+w $(distdir) > /dev/null 2>&1; rm -rf $(distdir)
-	@echo "$(distdir).tar.gz is ready for distribution" | \
-	  sed 'h;s/./=/g;p;x;p;x'
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(DATA) config.h
+all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(DATA)
 installdirs: installdirs-recursive
 installdirs-am:
 	$(mkinstalldirs) $(DESTDIR)$(bindir) $(DESTDIR)$(bindir) $(DESTDIR)$(sysconfdir)
@@ -751,14 +659,10 @@ clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 
-dist-all: distdir
-	$(AMTAR) chof - $(distdir) | GZIP=$(GZIP_ENV) gzip -c >$(distdir).tar.gz
-	-chmod -R a+w $(distdir) >/dev/null 2>&1; rm -rf $(distdir)
 distclean: distclean-recursive
-	-rm -f config.status config.cache config.log
+
 distclean-am: clean-am distclean-compile distclean-depend \
-	distclean-generic distclean-hdr distclean-libtool \
-	distclean-tags
+	distclean-generic distclean-libtool distclean-tags
 
 dvi: dvi-recursive
 
@@ -795,8 +699,7 @@ uninstall-info: uninstall-info-recursive
 
 .PHONY: $(RECURSIVE_TARGETS) GTAGS all all-am check check-am clean \
 	clean-binPROGRAMS clean-generic clean-libtool clean-recursive \
-	dist dist-all distcheck distclean distclean-compile \
-	distclean-depend distclean-generic distclean-hdr \
+	distclean distclean-compile distclean-depend distclean-generic \
 	distclean-libtool distclean-recursive distclean-tags distdir \
 	dvi dvi-am dvi-recursive info info-am info-recursive install \
 	install-am install-binPROGRAMS install-binSCRIPTS install-data \
@@ -814,10 +717,8 @@ uninstall-info: uninstall-info-recursive
 	uninstall-sysconfDATA
 
 
-deb: ../ahudns_1.1-1_i386.deb
-
-../ahudns_1.1-1_i386.deb:
-	./debian/rules binary-arch
+pdns.conf-dist: pdns_server
+	-./pdns_server --config > $@
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -1,0 +1,6 @@
+lib_LTLIBRARIES = libpdnsbackend.la 
+EXTRA_DIST=OBJECTFILES OBJECTLIBS
+
+libpdnsbackend_la_SOURCES=pdnsbackend.cc pdnsbackend.hh 
+libpdnsbackend_la_LDFLAGS=-lmysqlclient
+

@@ -1,0 +1,28 @@
+Mostly polish on the build process:
+
+	- make sure only Linux gets -D_GNU_SOURCE
+	- make PostgreSQL and MySQL include and library paths configurable
+	- compilation on FreeBSD is probably broken right now
+	- add support for building dynamic modules again
+		.so files that can be loaded at runtime and distributed
+		separately
+
+	- in the CVS repository live far more backends:
+	- rebuild 'rpm' target, 'deb' target, FreeBSD 'port'
+
+$ export CVSROOT=:pserver:anon@outpost.ds9a.nl:/var/cvsroot
+$ cvs login
+CVS password: [enter 'cvs' (without 's)]
+$ cvs co pdns
+cvs server: Updating pdns
+...
+
+	- In ./modules you will find a number of exciting modules that need to
+	  be tought to add themselves to the 'distdir', so they appear in
+	  'make dist', the PowerDNS distribution.
+
+	
+Real work:
+	- Solaris version
+	- Mac OS X version (has been done, partly)
+	- resurrect W2K version

@@ -1,0 +1,45 @@
+Prerequisites
+-------------
+
+To compile this Oracle backend for PowerDNS, the following is needed:
+
+	PowerDNS Dynamic RPM/DEB Version 2.1 or higher
+		http://downloads.powerdns.com/releases/rpm-dynamic
+		http://downloads.powerdns.com/releases/deb/unstable
+	PowerDNS Backend Development Kit Version 2.1 or higher
+		http://downloads.powerdns.com/releases/dev
+	gcc 3.0 and gcc 3.0 libraries
+
+It may be necessary to install gcc 3.0 before installing PowerDNS to prevent
+unresolved dependencies. Also, make sure that you are using gcc 3.0 as a
+compiler.  You may need to edit the Makefile to make sure.
+
+RedHat
+------
+
+For RedHat 7.2, gcc 3.0 is available by default. For RedHat 7.3, please
+install the gcc 3.0 packages from RedHat 7.2 updates, they work just fine.
+For RedHat Advanced Server 2.1, gcc 3.0 packages are available by default.
+
+Debian
+------
+
+For Debian 'Woody', install gcc-3.0 and g++-3.0.
+
+Compiling
+---------
+
+It is best to place the Oracle backend and the PDNS Backend Development kit
+side by side in the same directory. The Oracle backend searches for the
+development kit in the parent directory by default.
+
+If all the requirements are met, run 'make' followed by 'make install', run
+as root. Edit the Makefile if your Oracle client installation does not
+reside in /opt/oracle or the development kit is not in ../
+
+If all proceeds as it should, PowerDNS should now have access to the
+'oracle' backend. Enable it by specifying 'launch=oracle' in the
+documentation.
+
+Further documentation is on http://doc.powerdns.com/oracle.html
+For questions, refer to pdns@powerdns.com
