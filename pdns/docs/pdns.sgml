@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/07/03 09:48:02 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/07/05 14:13:18 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,21 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-11"><title>Version 2.9.11</title>	
+	<para>
+	  Yet another iteration, hopefully this will be the last silly release. 
+	<para>
+	  <warning>
+	    <para>
+	      There has been a change in behaviour whereby <command>disable-axfr</command> does what it means now! From now
+	      on, setting <command>allow-axfr-ips</command> automatically disables AXFR from unmentioned subnets.
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  This release enables AXFR again, <command>disable-axfr</command> did the opposite of what it claimed. Furthermore, the pdns_recursor now cleans its cache, which should save some memory in the long run. Norbert contributed some small LDAP work which should come in useful in the future.
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-10"><title>Version 2.9.10</title>	
 	<para>
 	  Small bugfixes, LDAP update. Released 3rd of July 2003. Apologies for the long delay, real life keeps interfering.
