@@ -18,7 +18,7 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.1 2002/11/27 15:18:39 ahu Exp $ 
+// $Id: zone2sql.cc,v 1.2 2002/11/29 22:50:56 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 # include <unistd.h>
@@ -260,6 +260,10 @@ int main(int argc, char **argv)
   }
   catch(AhuException &ae) {
     cerr<<"Fatal error: "<<ae.reason<<endl;
+    return 0;
+  }
+  catch(...) {
+    cerr<<"An unknown error occured"<<endl;
     return 0;
   }
   
