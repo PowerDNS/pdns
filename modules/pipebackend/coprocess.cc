@@ -102,7 +102,7 @@ void CoProcess::send(const string &snd)
   string line(snd);
   line.append(1,'\n');
   
-  int sent=0;
+  unsigned int sent=0;
   int bytes;
 
   // writen routine - socket may not accept al data in one go

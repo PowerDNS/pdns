@@ -19,6 +19,7 @@ DISTFILES=*.cc *.hh Makefile.in OBJECTFILES OBJECTLIBS
 
 top_distdir = ../..
 distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+exec_prefix = @exec_prefix@
 
 distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
@@ -49,4 +50,6 @@ prefix=@prefix@
 install:
 	$(mkinstalldirs) $(DESTDIR)@libdir@
 	install -s libxdbbackend.so $(DESTDIR)@libdir@
+	$(mkinstalldirs) $(DESTDIR)@bindir@
+	install -s xdb-fill $(DESTDIR)@bindir@
 

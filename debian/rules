@@ -63,6 +63,7 @@ binary-main: stamp-build
 	make DESTDIR="$(tmpdir)" install
 
 	rm -f "$(tmpdir)"/usr/bin/binpatch
+	rm -f "$(tmpdir)"/usr/bin/xdb-fill
 	rm -rf "$(tmpdir)"/usr/lib
 
 	strip --remove-section=.comment --remove-section=.note \
@@ -111,13 +112,19 @@ binary-backend: stamp-build
 	make DESTDIR="$(tmpdir)" install
 
 	strip --remove-section=.comment --remove-section=.note \
-		--strip-unneeded "$(tmpdir)"/usr/lib/powerdns/*.so
+		--strip-unneeded "$(tmpdir)"/usr/lib/powerdns/*.so \
+		"$(tmpdir)"/usr/bin/xdb-fill
 	chmod 644 "$(tmpdir)"/usr/lib/powerdns/*
 
 	set -e ; for be in $(backends) ; do \
 		rm -f debian/substvars ; \
 		rm -rf "$(tmpdir)"-$$be ; \
 		pkg=pdns-backend-$$be ; \
+		if [ "$$be" = "xdb" ] ; then \
+			install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/bin ; \
+			mv "$(tmpdir)"/usr/bin/xdb-fill  "$(tmpdir)"-$$be/usr/bin/ ; \
+		fi ; \
+		\
 		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/lib/powerdns ; \
 		mv "$(tmpdir)"/usr/lib/powerdns/lib$$be* "$(tmpdir)"-$$be/usr/lib/powerdns ; \
 		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/share/doc ; \

@@ -1,6 +1,6 @@
 Buildroot: /tmp/pdns
 Name: pdns
-Version: 2.9.1
+Version: 2.9.2
 Release: 1
 Summary: extremely powerful and versatile nameserver
 Copyright: see /usr/doc/pdns/copyright

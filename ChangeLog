@@ -1,3 +1,7 @@
+Changes since 2.9.2:
+	- windows compilation patches
+	- tiny improvements in win98 error messages
+
 Changes since 2.9.1:
 	- removed debugging output from the webserver (found by Paul Wouters)
 	- due to Solaris portability fixes, qtypes>127 were broken. 

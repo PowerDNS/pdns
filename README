@@ -8,7 +8,7 @@ $ make
 
 This generates a PowerDNS binary with no modules, except the bind backend,
 built in. When ./configure is run without --with-modules, the mysql and
-pgmysql modules is built by default, with the latter only supporting mysql.
+pgmysql modules are built by default, with the latter only supporting mysql.
 
 To add multiple modules, try:
 
@@ -32,6 +32,9 @@ FREEBSD NOTES
 -------------
 gcc 2.95.x works. You need to compile using gmake - regular make only appears to
 work, but doesn't in fact. Use gmake, not make.
+
+pipebackend does not work due to bad interaction between fork and pthreads.
+Amazingly, running the Linux version under the linuxulator DOES work!
 
 LINUX NOTES
 -----------

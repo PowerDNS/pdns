@@ -1,6 +1,6 @@
 // -*- sateh-c -*- 
 // File    : pdnsbackend.cc
-// Version : $Id: pipebackend.cc,v 1.3 2002/12/09 16:24:17 ahu Exp $ 
+// Version : $Id: pipebackend.cc,v 1.4 2002/12/16 13:04:27 ahu Exp $ 
 //
 
 #include <string>
@@ -182,9 +182,8 @@ bool PipeBackend::get(DNSResourceRecord &r)
          continue;
       }
       else if(parts[0]=="DATA") { // yay
-
          if(parts.size()<7) {
-            L<<Logger::Error<<kBackendId<<" coprocess returned emtpy line in data section for query for "<<d_qname<<endl;
+            L<<Logger::Error<<kBackendId<<" coprocess returned incomplete or empty line in data section for query for "<<d_qname<<endl;
             throw AhuException("Format error communicating with coprocess in data section");
             // now what?
          }
@@ -192,7 +191,18 @@ bool PipeBackend::get(DNSResourceRecord &r)
          r.qtype=parts[3];
          r.ttl=atoi(parts[4].c_str());
          r.domain_id=atoi(parts[5].c_str());
-         r.content=parts[6];
+
+	 if(parts[3]!="MX")
+	   r.content=parts[6];
+	 else {
+	   if(parts.size()<8) {
+            L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX line in data section for query for "<<d_qname<<endl;
+            throw AhuException("Format error communicating with coprocess in data section of MX record");
+	   }
+	   
+	   r.priority=atoi(parts[6].c_str());
+	   r.content=parts[7];
+	 }
          break;
       }
       else

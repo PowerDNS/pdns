@@ -1,8 +1,10 @@
 pdns (2.9.2-1) unstable; urgency=low
 
-  * upstream updates
+  * New upstream release
+  * bind backend fully merged in the main pdns package now
+  * Add new pipe, pgmysql and xdb backends
 
- -- bert hubert <bert@powerdns.com>  Wed, 11 Dec 2002 15:04:52 +0100
+ -- Wichert Akkerman <wakkerma@debian.org>  Fri, 13 Dec 2002 16:39:29 +0100
 
 pdns (2.9-1) unstable; urgency=low
 
