@@ -292,18 +292,31 @@ static string canonic(string ret)
   return ret;
 }
 
+
+set<shared_ptr<string> > contents;
 map<unsigned int, BB2DomainInfo*> nbbds;
 /** This function adds a record to a domain with a certain id. */
 void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
 {
-  DNSResourceRecord rr;
-  rr.domain_id=id;
-  rr.qname=canonic(qnameu);
-  rr.qtype=qtype;
-  rr.content=canonic(content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
-  rr.ttl=ttl;
-  rr.priority=prio;
-  nbbds[id]->d_records->push_back(rr);
+  Bind2DNSRecord bdr;
+
+  //  rr.domain_id=id;
+  bdr.qname=canonic(qnameu);
+
+  if(bdr.qname==nbbds[id]->d_name)
+    bdr.qname.clear();
+  else if(bdr.qname.length() > nbbds[id]->d_name.length())
+    bdr.qname.resize(bdr.qname.length() - (nbbds[id]->d_name.length() + 1));
+  else
+    throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', zone='"+nbbds[id]->d_name+"'");
+
+  bdr.qname.swap(bdr.qname);
+  bdr.qtype=QType(qtype.c_str()).getCode();
+  //  rr.content=canonic(content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
+  bdr.ttl=ttl;
+
+  //  cout<<"Adding rr.qname: '"<<rr.qname<<"'"<<endl;
+  nbbds[id]->d_records->push_back(bdr);
 }
 
 
@@ -487,7 +500,7 @@ void Bind2Backend::loadConfig(string* status)
 	  }
 	if(j==s_id_zone_map.end()) { // entirely new
 	  bbd=new BB2DomainInfo;
-	  bbd->d_records=new vector<DNSResourceRecord>;
+	  bbd->d_records=new vector<Bind2DNSRecord>;
 	  
 	  bbd->d_id=domain_id++;
 	  s_name_id_map[i->name]=bbd->d_id;
@@ -506,10 +519,12 @@ void Bind2Backend::loadConfig(string* status)
 	  
 	  try {
 	    ZP.parse(i->filename,i->name,bbd->d_id); // calls callback for us
+	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<endl;
+	    sort(nbbds[bbd->d_id]->d_records->begin(), nbbds[bbd->d_id]->d_records->end());
 	    nbbds[bbd->d_id]->setCtime();
 	    nbbds[bbd->d_id]->d_loaded=true;          // does this perform locking for us?
 	    nbbds[bbd->d_id]->d_status="parsed into memory at "+nowTime();
-	    
+
 	  }
 	  catch(AhuException &ae) {
 	    ostringstream msg;
@@ -620,6 +635,17 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
   }
 }
 
+bool operator<(const Bind2DNSRecord &a, const string &b)
+{
+  return a.qname < b;
+}
+
+bool operator<(const string &a, const Bind2DNSRecord &b)
+{
+  return a < b.qname;
+}
+
+
 void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int zoneId )
 {
   d_handle=new Bind2Backend::handle;
@@ -644,7 +670,9 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   DLOG(L<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
        qname<<endl);
 
-  d_handle->qname=qname;
+  
+  d_handle->qname=qname.substr(0,qname.size()-domain.length()-1); // strip domain name
+  //  cout<<"Reduced to '"<<d_handle->qname<<"'"<<endl;
   d_handle->parent=this;
   d_handle->qtype=qtype;
 
@@ -672,7 +700,7 @@ void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   else {
     DLOG(L<<"Query with no results"<<endl);
   }
-  d_handle->d_iter=d_handle->d_records->begin();
+  d_handle->d_iter=equal_range(d_handle->d_records->begin(), d_handle->d_records->end(), d_handle->qname).first;
   d_handle->d_list=false;
 }
 
@@ -716,7 +744,8 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
        qname<<"- "<<d_records->size()<<" available!"<<endl);
   
   // this is a linear walk!!! XXX FIXME
-  while(d_iter!=d_records->end() && (strcasecmp(d_iter->qname.c_str(),qname.c_str()) || !(qtype=="ANY" || (d_iter)->qtype==qtype))) {
+
+  while(d_iter!=d_records->end() && (strcasecmp(d_iter->qname.c_str(),qname.c_str()) || !(qtype.getCode()==QType::ANY || (d_iter)->qtype==qtype))) {
     DLOG(L<<Logger::Warning<<"Skipped "<<qname<<"/"<<QType(d_iter->qtype).getName()<<": '"<<d_iter->content<<"'"<<endl);
     d_iter++;
   }
@@ -731,11 +760,11 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
 
   r.qname=qname;
   
-  r.content=(d_iter)->content;
-  r.domain_id=(d_iter)->domain_id;
+  //r.content=(d_iter)->content;
+  //  r.domain_id=(d_iter)->domain_id;
   r.qtype=(d_iter)->qtype;
   r.ttl=(d_iter)->ttl;
-  r.priority=(d_iter)->priority;
+  //  r.priority=(d_iter)->priority;
   d_iter++;
 
   return true;
@@ -763,7 +792,7 @@ bool Bind2Backend::list(const string &target, int id)
 bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 {
   if(d_qname_iter!=d_qname_end) {
-    r=*d_qname_iter;
+    //    r=*d_qname_iter;   // XXX FIXME WRONG WRONG WRONG
     d_qname_iter++;
     return true;
   }
@@ -843,7 +872,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   
   BB2DomainInfo *bbd = new BB2DomainInfo;
 
-  bbd->d_records = new vector<DNSResourceRecord>;
+  bbd->d_records = new vector<Bind2DNSRecord>;
   bbd->d_name = domain;
   bbd->setCheckInterval(getArgAsNum("check-interval"));
   bbd->d_master = ip;

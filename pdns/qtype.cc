@@ -120,7 +120,7 @@ QType::QType(int n)
   code=n;
 }
 
-QType::QType(char *p)
+QType::QType(const char *p)
 {
   QType();
   code=chartocode(p);
