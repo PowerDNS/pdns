@@ -14,8 +14,8 @@ sysconf_DATA = pdns.conf-dist
 
 bin_PROGRAMS = pdns_server pdns_control binpatch # syncres #   resolver syncres 
 
-pdns.conf-dist: pdns_server
-	-./pdns_server --config > $@
+#pdns.conf-dist: pdns_server
+#	-./pdns_server --config > $@
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
