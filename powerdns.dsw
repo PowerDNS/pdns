@@ -1,0 +1,110 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "installer"=.\installer.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name pdns
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name pdnsmsg
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name pdnscontrol
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name zone2sql
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "odbcbackend"=.\odbcbackend.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "pdns"=.\pdns.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name odbcbackend
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name pdnsmsg
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name pdnscontrol
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "pdnscontrol"=.\pdnscontrol.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "pdnsmsg"=.\pdnsmsg.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "zone2sql"=.\zone2sql.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+}}}
+
+###############################################################################
+
