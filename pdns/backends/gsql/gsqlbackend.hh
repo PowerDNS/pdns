@@ -55,4 +55,16 @@ private:
   string d_wildCardANYIDQuery;
   string d_listQuery;
   string d_logprefix;
+  
+  string d_MasterOfDomainsZoneQuery;
+  string d_InfoOfDomainsZoneQuery;
+  string d_InfoOfAllSlaveDomainsQuery;
+  string d_SuperMasterInfoQuery;
+  string d_InsertSlaveZoneQuery;
+  string d_InsertRecordQuery;
+  string d_UpdateSerialOfZoneQuery;
+  string d_UpdateLastCheckofZoneQuery;
+  string d_InfoOfAllMasterDomainsQuery;
+  string d_DeleteZoneQuery;		
+
 };

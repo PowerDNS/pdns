@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: ueberbackend.cc,v 1.7 2002/12/19 20:15:55 ahu Exp $ 
+// $Id: ueberbackend.cc,v 1.8 2003/01/02 15:43:00 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 
@@ -371,41 +371,11 @@ bool UeberBackend::get(DNSResourceRecord &rr)
 
 bool UeberBackend::list(int domain_id)
 {
-  d_cached=d_negcached=false;
-  d_ancount=0;
-  if(stale) {
-    L<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
-    throw AhuException("We are stale, please recycle");
-  }
-
-  DLOG(L<<"UeberBackend received list request for domain id "<<domain_id<<endl);
-
-  pthread_mutex_lock(&d_mut);
-  while (d_go==false) {
-    L<<Logger::Error<<"UeberBackend is blocked, waiting for 'go'"<<endl;
-    pthread_cond_wait(&d_cond, &d_mut);
-    L<<Logger::Error<<"Broadcast received, unblocked"<<endl;
-  }
-
-  pthread_mutex_unlock(&d_mut);
-
-  d_handle.i=0;
-  d_handle.pkt_p=0;
-  d_handle.qname="";
-  d_negcached=false;
-
-  if(!backends.size()) {
-    return 0; // we failed
-  }
-  else {
-    while(!(d_handle.d_hinterBackend=backends[d_handle.i++])->list(domain_id) && d_handle.i<backends.size())
-      ;
-  }
-  d_handle.parent=this;
-
-  return true;
+  L<<Logger::Error<<"UeberBackend::list called, should NEVER EVER HAPPEN"<<endl;
+  exit(1);
+  return false;
 }
- 
+
 
 int UeberBackend::handle::instances=0;
 
