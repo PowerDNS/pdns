@@ -74,16 +74,16 @@ private:
 	int m_msgid;
 	u_int32_t m_ttl;
 	u_int32_t m_default_ttl;
-	QType m_qtype;
 	string m_qname;
+	QType m_qtype;
 	PowerLDAP* m_pldap;
 	PowerLDAP::sentry_t m_result;
 	PowerLDAP::sentry_t::iterator m_attribute;
 	vector<string>::iterator m_value, m_adomain;
 	vector<string> m_adomains;
 
-	bool prepSearchEntry();
-	bool makePtrRecords();
+	bool prepareEntry();
+	string name2filter( vector<string>& parts, string record, string separator );
 
 public:
 
