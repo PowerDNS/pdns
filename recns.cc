@@ -86,8 +86,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t
   memcpy(&pident.remote,toaddr,sizeof(pident.remote));
   
   string packet;
-  if(!MT.waitEvent(pident,&packet,5)) {
-    cerr<<"TIMEOUT!!!"<<endl;
+  if(!MT.waitEvent(pident,&packet,1)) { // timeout
     return 0; 
   }
 
@@ -135,8 +134,6 @@ void startDoResolve(void *p)
 
 void makeClientSocket()
 {
-  static u_int16_t port_counter=5000;
-  
   d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
   if(d_clientsock<0) 
     throw AhuException("Making a socket for resolver: "+stringerror());
@@ -149,10 +146,11 @@ void makeClientSocket()
   
   int tries=10;
   while(--tries) {
-    sin.sin_port = htons(10000+(port_counter++)%10000); // should be random!
+    u_int16_t port=10000+random()%10000;
+    sin.sin_port = htons(port); 
     
     if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) {
-      cout<<"Bound to port "<<10000+port_counter-1<<endl;
+      cout<<"Outging query source port: "<<port<<endl;
       break;
     }
     
@@ -176,6 +174,7 @@ void makeServerSocket()
     
   if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
     throw AhuException("Resolver binding to server socket: "+stringerror());
+  cout<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
 }
 
 
@@ -186,12 +185,13 @@ int main(int argc, char **argv)
 #endif
 
   try {
+    srandom(time(0));
     arg().set("soa-minimum-ttl","0")="0";
     arg().set("soa-serial-offset","0")="0";
     arg().set("local-port","port to listen on")="5300";
     arg().parse(argc, argv);
     init();
-    cerr<<"Done priming"<<endl;
+    cerr<<"Done priming cache with root hints"<<endl;
 
     makeClientSocket();
     makeServerSocket();
@@ -209,8 +209,8 @@ int main(int argc, char **argv)
       DNSPacket P;
       
       struct timeval tv;
-      tv.tv_sec=1;
-      tv.tv_usec= 0;
+      tv.tv_sec=0;
+      tv.tv_usec=500000;
       
       fd_set readfds;
       FD_ZERO( &readfds );

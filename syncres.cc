@@ -30,55 +30,65 @@
 #include "arguments.hh"
 #include "lwres.hh"
 
-/** Issues:
-    - we need a cache pruning thing
-    - case issues
-    - transparency 
-      everything should be record=unknown except for A, MX, NS, AAAA
-    - negative caching
-    - compressions sucks [ortho]
-*/
 
 typedef map<string,set<DNSResourceRecord> > cache_t;
 cache_t cache;
 
-bool operator<(const DNSResourceRecord &a, const DNSResourceRecord &b)
-{
-  if(a.qname<b.qname)
-    return true;
-  if(a.qname==b.qname)
-    return(a.content<b.content);
-  return false;
-}
-
+/** dramatis personae */
 int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,int depth=0);
 int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth=0);
+bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
+bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
+void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth);
+void addCruft(const string &qname, vector<DNSResourceRecord>& ret);
+string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth);
+void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
+
+/** everything begins here - this is the entry point just after receiving a packet */
+int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
+{
+  int res=doResolve(qname, qtype, ret,0);
+  if(!res)
+    addCruft(qname, ret);
+  cout<<endl;
+  return res;
+}
+
+int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth)
+{
+  string prefix;
+  prefix.assign(3*depth, ' ');
+  
+  int res;
+  if(doCNAMECacheCheck(qname,qtype,ret,depth,res)) // will reroute us if needed
+    return res;
+
+  if(doCacheCheck(qname,qtype,ret,depth,res)) // we done
+    return res;
+
+  cout<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl;
+
+  string subdomain(qname);
+
+  set<string> nsset;
+  subdomain=getBestNSNamesFromCache(subdomain,nsset,depth);
+  if(!doResolveAt(nsset,subdomain,qname,qtype,ret,depth))
+    return 0;
+  
+  cout<<prefix<<qname<<": failed"<<endl;
+  return RCode::ServFail;
+}
 
 string getA(const string &qname, int depth=0)
 {
   vector<DNSResourceRecord> res;
   string ret;
 
-  if(!doResolve(qname,QType(QType::A), res,depth+1)) 
-    ret=res[0].content;
+  if(!doResolve(qname,QType(QType::A), res,depth+1) && !res.empty()) 
+    ret=res[res.size()-1].content; // last entry, in case of CNAME in between
 
   return ret;
 }
-
-bool chopOff(string &domain)
-{
-  if(domain.empty())
-    return false;
-
-  string::size_type fdot=domain.find('.');
-
-  if(fdot==string::npos) 
-    domain="";
-  else 
-    domain=domain.substr(fdot+1);
-  return true;
-}
-
 
 void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth)
 {
@@ -134,43 +144,7 @@ string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth
   return subdomain;
 }
 
-
-void addCruft(const string &qname, vector<DNSResourceRecord>& ret)
-{
-  for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k)  // don't add stuff to an NXDOMAIN!
-    if(k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::SOA))
-      return;
-
-  cout<<qname<<": Adding best authority records from cache"<<endl;
-  addAuthorityRecords(qname,ret,0);
-  cout<<qname<<": Done adding best authority records."<<endl;
-
-  cout<<qname<<": Starting additional processing"<<endl;
-  vector<DNSResourceRecord> addit;
-  for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
-    if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
-       (k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::NS))) {
-      cout<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs an IP address"<<endl;
-      doResolve(k->content,QType(QType::A),addit,1);
-    }
-
-  
-  for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
-    k->d_place=DNSResourceRecord::ADDITIONAL;
-    ret.push_back(*k);
-  }
-  cout<<qname<<": Done with additional processing"<<endl;
-}
-
-int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
-{
-  int res=doResolve(qname, qtype, ret,0);
-  if(!res)
-    addCruft(qname, ret);
-  return res;
-}
-
-bool doCNAMECheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
+bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   string prefix, tuple=toLower(qname)+"|CNAME";
   prefix.assign(3*depth, ' ');
@@ -184,7 +158,8 @@ bool doCNAMECheck(const string &qname, const QType &qtype, vector<DNSResourceRec
 	DNSResourceRecord rr=*j;
 	rr.ttl-=time(0);
 	ret.push_back(rr);
-	res=doResolve(i->second.begin()->content, qtype, ret, depth);
+	if(!(qtype==QType(QType::CNAME))) // perhaps they really wanted a CNAME!
+	  res=doResolve(i->second.begin()->content, qtype, ret, depth);
 	return true;
       }
     }
@@ -231,42 +206,27 @@ bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRec
   return false;
 }
 
-
-int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth)
+inline bool moreSpecificThan(const string& a, const string &b)
 {
-  string prefix;
-  prefix.assign(3*depth, ' ');
+  int counta=!a.empty(), countb=!b.empty();
   
-  int res;
-  if(doCNAMECheck(qname,qtype,ret,depth,res))
-    return res;
-
-  if(doCacheCheck(qname,qtype,ret,depth,res)) // we done
-    return res;
-
-  cout<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl;
-
-  string subdomain(qname);
-
-  do {
-    set<string> nsset;
-    subdomain=getBestNSNamesFromCache(subdomain,nsset,depth);
-    if(!doResolveAt(nsset,subdomain,qname,qtype,ret,depth))
-      return 0;
-    // failed, restart at a lower level of NS
-  }while(chopOff(subdomain));
-
-  cout<<prefix<<qname<<": FOUND NO NS FOR '"<<subdomain<<"'"<<endl;
-  return RCode::ServFail;
+  for(string::size_type n=0;n<a.size();++n)
+    if(a[n]=='.')
+      counta++;
+  for(string::size_type n=0;n<b.size();++n)
+    if(b[n]=='.')
+      countb++;
+  return counta>countb;
 }
 
-bool endsOn(const string &domain, const string &suffix) 
+inline vector<string>shuffle(set<string> &nameservers)
 {
-  if(domain==suffix || suffix.empty())
-    return true;
-  if(domain.size()<=suffix.size())
-    return false;
-  return (domain.substr(domain.size()-suffix.size()-1,suffix.size()+1)=="."+suffix);
+  vector<string> rnameservers;
+  for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i)
+    rnameservers.push_back(*i);
+  
+  random_shuffle(rnameservers.begin(),rnameservers.end());
+  return rnameservers;
 }
 
 /** returns -1 in case of no results, rcode otherwise */
@@ -277,130 +237,162 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
   
   LWRes r;
   LWRes::res_t result;
-  vector<DNSResourceRecord>usefulrrs;
-  set<string> nsset;  
-  cout<<prefix<<qname<<": Cache consultations done, going on the wire!"<<endl;
 
+  cout<<prefix<<qname<<": Cache consultations done, going on the wire!"<<endl;
 
   for(;;) { // we may get more specific nameservers
     bool aabit=false;
     result.clear();
 
-    vector<string>rnameservers;
-    for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i)
-      rnameservers.push_back(*i);
+    vector<string>rnameservers=shuffle(nameservers);
 
-    random_shuffle(rnameservers.begin(),rnameservers.end());
-    for(vector<string>::const_iterator i=rnameservers.begin();;++i){ 
-      if(i==rnameservers.end()) {
+    for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
+      if(tns==rnameservers.end()) {
 	cout<<prefix<<qname<<": Failed to resolve via any of the "<<rnameservers.size()<<" offered NS"<<endl;
 	return -1;
       }
-      cout<<prefix<<qname<<": Trying to resolve NS "<<*i<<endl;
-      string remoteIP=getA(*i, depth+1);
+      cout<<prefix<<qname<<": Trying to resolve NS "<<*tns<<endl;
+      string remoteIP=getA(*tns, depth+1);
       if(remoteIP.empty()) {
-	cout<<prefix<<qname<<": Failed to resolve NS "<<*i<<", trying next if available"<<endl;
+	cout<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
 	continue;
       }
-      cout<<prefix<<qname<<": Resolved NS "<<*i<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
+      cout<<prefix<<qname<<": Resolved NS "<<*tns<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 
       if(r.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
-	cout<<prefix<<qname<<": error resolving"<<endl;
+	cout<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
+	continue;
+      }
+      result=r.result(aabit);
+      cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<")"<<endl;
+
+      cache_t tcache;
+      // reap all answers from this packet that are acceptable
+      for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
+	cout<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
+	cout.flush();
+	if(endsOn(i->qname, auth)) {
+	  cout<<"YES!"<<endl;
+
+	  DNSResourceRecord rr=*i;
+	  rr.d_place=DNSResourceRecord::ANSWER;
+	  rr.ttl+=time(0);
+	  tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
+	}
+	else
+	  cout<<"NO!"<<endl;
+      }
+    
+      // supplant
+      for(cache_t::const_iterator i=tcache.begin();i!=tcache.end();++i)
+	cache[i->first]=i->second;
+      
+      set<string> nsset;  
+      cout<<prefix<<qname<<": determining status after receiving this packet"<<endl;
+
+      bool done=false, realreferral=false, negcache=false;
+      string newauth;
+
+      for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
+	if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA) {
+	  cout<<prefix<<qname<<": got negative caching indication"<<endl;
+	  ret.push_back(*i);
+	  negcache=true;
+	}
+	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
+	  cout<<prefix<<qname<<": got a CNAME referral, starting over with "<<i->content<<endl<<endl;
+	  ret.push_back(*i);
+	  return doResolve(i->content, qtype, ret,0);
+	}
+	// for ANY answers we *must* have an authoritive answer
+	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && (i->qtype==qtype || ( qtype==QType(QType::ANY) && aabit)))  {
+	  cout<<prefix<<qname<<": answer is in: resolved to '"<<i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
+	  done=true;
+	  ret.push_back(*i);
+	}
+	else if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::NS) { 
+	  if(moreSpecificThan(i->qname,auth)) {
+	    newauth=i->qname;
+	    cout<<prefix<<qname<<": got NS record '"<<i->qname<<"' -> '"<<i->content<<"'"<<endl;
+	    realreferral=true;
+	  }
+	  else {
+	    cout<<prefix<<qname<<": got upwards NS record '"<<i->qname<<"' -> '"<<i->content<<"', already had '"<<auth<<"'"<<endl;
+	  }
+	  nsset.insert(toLower(i->content));
+	}
+      }
+
+      if(done){ 
+	cout<<prefix<<qname<<": status=got results, this level of recursion done"<<endl;
+	return 0;
+      }
+      if(r.d_rcode==RCode::NXDomain) {
+	cout<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negcache ? "(have negative SOA)" : "")<<endl;
+	return RCode::NXDomain;
+      }
+      if(nsset.empty() && !r.d_rcode) {
+	cout<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negcache ? "(have negative SOA)" : "")<<endl;
+	return 0;
+      }
+      else if(realreferral) {
+	cout<<prefix<<qname<<": status=did not resolve, got "<<nsset.size()<<" NS, looping to them"<<endl;
+	auth=newauth;
+	nameservers=nsset;
+	break; 
       }
       else {
-	result=r.result(aabit);
-	
-	cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*i<<" ("<<remoteIP<<")"<<endl;
-	break;
+	cout<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibbling NS"<<endl;
       }
     }
-
-
-    cache_t tcache;
-    // reap all answers from this packet that are acceptable
-    for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
-      cout<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
-      cout.flush();
-      if(endsOn(i->qname, auth)) {
-	cout<<"YES!"<<endl;
-
-	DNSResourceRecord rr=*i;
-	rr.d_place=DNSResourceRecord::ANSWER;
-	rr.ttl+=time(0);
-	tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
-      }
-      else
-	cout<<"NO!"<<endl;
-
-    }
-    
-    // supplant
-    for(cache_t::const_iterator i=tcache.begin();i!=tcache.end();++i)
-      cache[i->first]=i->second;
-    
-    nsset.clear();
-    cout<<prefix<<qname<<": determining status after receiving this packet"<<endl;
-    bool done=false;
-    for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
-      if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA) {
-	cout<<prefix<<qname<<": got a NXDOMAIN"<<endl;
-	ret.push_back(*i);
-	return RCode::NXDomain; // NXDOMAIN
-      }
-      if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME) {
-	cout<<prefix<<qname<<": got a CNAME referral, starting over with "<<i->content<<endl<<endl;
-	ret.push_back(*i);
-	return doResolve(i->content, qtype, ret,0);
-      }
-      if(aabit && i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && (i->qtype==qtype || qtype==QType(QType::ANY)) ) {
-	cout<<prefix<<qname<<": answer is in: resolved to '"<<i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
-	done=true;
-	ret.push_back(*i);
-      }
-      if(i->d_place==DNSResourceRecord::AUTHORITY && i->qtype.getCode()==QType::NS) { // XXX FIXME check if suffix!
-	auth=i->qname;
-	cout<<prefix<<qname<<": got NS record "<<i->content<<endl;
-	nsset.insert(toLower(i->content));
-      }
-    }
-    if(done){ 
-      cout<<prefix<<qname<<": status=got results, this level of recursion done"<<endl;
-      return 0;
-    }
-    if(nsset.empty()) {
-      cout<<prefix<<qname<<": status=not resolved, did not get referral"<<endl;
-      return -1;
-    }
-    
-    cout<<prefix<<qname<<": status=did not resolve, got "<<nsset.size()<<" NS, looping to them"<<endl;
-    nameservers=nsset;
   }
   return -1;
+}
+
+void addCruft(const string &qname, vector<DNSResourceRecord>& ret)
+{
+  for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k)  // don't add stuff to an NXDOMAIN!
+    if(k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::SOA))
+      return;
+
+  cout<<qname<<": Adding best authority records from cache"<<endl;
+  addAuthorityRecords(qname,ret,0);
+  cout<<qname<<": Done adding best authority records."<<endl;
+
+  cout<<qname<<": Starting additional processing"<<endl;
+  vector<DNSResourceRecord> addit;
+  for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
+    if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
+       (k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::NS))) {
+      cout<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs an IP address"<<endl;
+      doResolve(k->content,QType(QType::A),addit,1);
+    }
+  
+  for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
+    k->d_place=DNSResourceRecord::ADDITIONAL;
+    ret.push_back(*k);
+  }
+  cout<<qname<<": Done with additional processing"<<endl;
 }
 
 void init(void)
 {
   // prime root cache
-  static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10",
-		     "192.5.5.241", "192.112.36.4", "128.63.2.53", "192.36.148.17",
-		     "198.41.0.10", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+  static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
+		     "192.36.148.17","198.41.0.10", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   DNSResourceRecord arr, nsrr;
   arr.qtype=QType::A;
   arr.ttl=time(0)+86400;
-
   nsrr.qtype=QType::NS;
   nsrr.ttl=time(0)+86400;
-  nsrr.qname="";
   
   for(char c='a';c<='m';++c) {
     static char templ[40];
     strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
     *templ=c;
-    arr.qname=templ;
+    arr.qname=nsrr.content=templ;
     arr.content=ips[c-'a'];
     cache[string(templ)+"|A"].insert(arr);
-
-    nsrr.content=templ;
     cache["|NS"].insert(nsrr);
   }
 }

@@ -67,6 +67,31 @@ bool stripDomainSuffix(string *qname, const string &domain)
   return true;
 }
 
+/** Chops off the start of a domain, so goes from 'www.ds9a.nl' to 'ds9a.nl' to ''. Return zero on the empty string */
+bool chopOff(string &domain)
+{
+  if(domain.empty())
+    return false;
+
+  string::size_type fdot=domain.find('.');
+
+  if(fdot==string::npos) 
+    domain="";
+  else 
+    domain=domain.substr(fdot+1);
+  return true;
+}
+
+/** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
+bool endsOn(const string &domain, const string &suffix) 
+{
+  if(domain==suffix || suffix.empty())
+    return true;
+  if(domain.size()<=suffix.size())
+    return false;
+  return (domain.substr(domain.size()-suffix.size()-1,suffix.size()+1)=="."+suffix);
+}
+
 
 int sendData(const char *buffer, int replen, int outsock)
 {

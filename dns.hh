@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dns.hh,v 1.1 2002/11/27 15:18:31 ahu Exp $ 
+// $Id: dns.hh,v 1.2 2003/01/08 13:45:30 ahu Exp $ 
 /* (C) 2002 POWERDNS.COM BV */
 #ifndef DNS_HH
 #define DNS_HH
@@ -77,6 +77,16 @@ public:
   time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
   enum Place {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket
   Place d_place; //!< This specifies where a record goes within the packet
+
+  bool operator<(const DNSResourceRecord &b) const
+  {
+    if(qname<b.qname)
+      return true;
+    if(qname==b.qname)
+      return(content<b.content);
+    return false;
+  }
+
 
 private:
   string escape(const string &str) const;
