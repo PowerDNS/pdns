@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/06/28 16:46:01 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/07/03 09:48:02 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,15 +81,30 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-9"><title>Version 2.9.9</title>	
+      <sect2 id="changelog-2-9-10"><title>Version 2.9.10</title>	
 	<para>
-	  Small bugfixes, LDAP update. Released 21th of June 2003. Apologies for the long delay, real life keeps interfering.
+	  Small bugfixes, LDAP update. Released 3rd of July 2003. Apologies for the long delay, real life keeps interfering.
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      Do not use or try to use 2.9.9, it was a botched release!
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      There has been a change in behaviour whereby <command>disable-axfr</command> does what it means now! From now
+	      on, setting <command>allow-axfr-ips</command> automatically disables AXFR from unmentioned subnets.
+	    </para>
+	  </warning>
 	</para>
 	<para>
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		2.9.8 was prone to crash on adding additional records. Thanks to excelent debugging by PowerDNS users worldwide, the bug was found
+		2.9.8 was prone to crash on adding additional records. Thanks to excellent debugging by PowerDNS users worldwide, the bug was found
 		quickly and is in fact present in all earlier PowerDNS releases, but for some reason doesn't cause crashes there.
 	      </para>
 	    </listitem>
@@ -107,12 +122,18 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		LDAP: DNS TTLs were random values (Norbert Sendetzky)
+		pdns_recursor may have logged empty lines for some users, fixed. Solution suggested by Norbert Sendetzky.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		LDAP: Now works with OpenLDAP 2.1(Norbert Sendetzky)
+		LDAP: DNS TTLs were random values (Norbert Sendetzky, Stefan Pfetzing). New <command>ldap-default-ttl</command>
+		option.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP: Now works with OpenLDAP 2.1 (Norbert Sendetzky)
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -128,6 +149,11 @@
 	    <listitem>
 	      <para>
 		LDAP: code cleanup of lookup() (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP: added support for scoped searches (Norbert Sendetzky)
 	      </para>
 	    </listitem>
 	</itemizedlist>
@@ -4784,7 +4810,9 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	<varlistentry>
 	  <term><anchor id="allow-axfr-ips">allow-axfr-ips=...</term>
 	  <listitem>
-	    <para>When not allowing AXFR (disable-axfr), DO allow from these IP addresses or netmasks.
+	    <para>Behaviour pre 2.9.10: When not allowing AXFR (disable-axfr), DO allow from these IP addresses or netmasks.
+	    </para>
+	    <para>Behaviour post 2.9.10: If set, only these IP addresses or netmasks will be able to perform AXFR.
 	    </para>
 	  </listitem></varlistentry>
 	<varlistentry>
@@ -4825,7 +4853,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      </para></listitem></varlistentry>
    	  <varlistentry><term>disable-axfr=...</term>
 	    <listitem><para>
-		Do not allow zone transfers
+		Do not allow zone transfers. Before 2.9.10, this could be overridden by allow-axfr-ips.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>disable-tcp=...</term>
 	    <listitem><para>
@@ -7606,6 +7634,14 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    <listitem>
 	      <para>
 		Secret to bind with to LDAP server. Defaults to the empty string for anonymous bind.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>ldap-default-ttl</term>
+	    <listitem>
+	      <para>
+		TTL for records with no dnsttl attribute. Defaults to 86400 seconds.
 	      </para>
 	    </listitem>
 	  </varlistentry>

@@ -43,8 +43,10 @@ extern "C" {
   int sem_trywait(sem_t*){return 0;}
   int sem_post(sem_t*){return 0;}
   int sem_getvalue(sem_t*, int*){return 0;}
-  pthread_t pthread_self(void){pthread_t tmp; return tmp;}
+  pthread_t pthread_self(void){return (pthread_t) 0;}
   int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr){ return 0; }
+  int pthread_mutex_lock(pthread_mutex_t *mutex){ return 0; }
+  int pthread_mutex_unlock(pthread_mutex_t *mutex) { return 0; }
 
 }
 #endif // WIN32

@@ -146,7 +146,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 		}
 
 		L << Logger::Info << backendname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
-		m_msgid = m_pldap->search( getArg("basedn"), filter, (const char**) attributes );
+		m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
 	}
 	catch( LDAPException &e )
 	{

@@ -33,7 +33,7 @@ public:
 
   PowerLDAP(const string &host="127.0.0.1", u_int16_t port=389);
   void simpleBind(const string &ldapbinddn="", const string& ldapsecret="");
-  int search(const string& base, const string& filter, const char **attr=0);
+  int search(const string& base, int scope, const string& filter, const char **attr=0);
   bool getSearchEntry(int msgid, sentry_t &entry);
   void getSearchResults(int msgid, sresult_t &result);
   ~PowerLDAP();

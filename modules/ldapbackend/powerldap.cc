@@ -72,11 +72,11 @@ int PowerLDAP::waitResult(int msgid,LDAPMessage **retresult)
 }
 
 
-int PowerLDAP::search(const string& base, const string& filter, const char **attr)
+int PowerLDAP::search(const string& base, int scope, const string& filter, const char **attr)
 {
   int msgid;
 
-  if( ( msgid = ldap_search( d_ld, base.c_str(), LDAP_SCOPE_SUBTREE, filter.c_str(),const_cast<char **>(attr),0 ) ) == -1 )
+  if( ( msgid = ldap_search( d_ld, base.c_str(), scope, filter.c_str(),const_cast<char **>(attr),0 ) ) == -1 )
     throw LDAPException("Starting LDAP search: "+getError());
 
   return msgid;
