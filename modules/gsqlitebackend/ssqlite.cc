@@ -4,7 +4,7 @@
 // Copyright (C) 2003, Michel Stol <michel@powerdns.com>
 //
 
-#include "utility.hh"
+#include "pdns/utility.hh"
 #include <string>
 #include "ssqlite.hh"
 #include <iostream>
