@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/02/08 10:43:50 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/02/28 20:06:43 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,122 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-16"><title>Version 2.9.16</title>
+	<para>
+	  The 'it must still be Friday somewhere' release. Massive number of fixes, portability improvements and
+	  the new Geobackend by Mark Bergsma &amp; friends. 
+	</para>
+	<para>
+	  New:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The Geobackend which makes it possible to send different answers to different IP ranges. Initial documentation
+		can be found in pdns/modules/geobackend/README.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		qgen query generation tool. Nearly completely undocumented and hard to build too, it requires Boost. But very
+		spiffy. Use <command>cd pdns; make qgen</command> to build it.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Bugfixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The most reported bug ever, zone2sql required the inclusion of unistd.h, except on Debian unstable.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS tried to listen on its control "pipe" which does not work. Probably harmless, but might have caused some 
+		oddities.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The Packet Cache did not always set its TTL immediately, causing some packets to be inserted, even when running
+		with the cache disabled (Mark Bergsma).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Valgrind found some unitialized reads, causing bogus values in the priority field when it was not needed
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Valgrind found a bug in MTasker where we used delete instead of delete[].
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SOA serials and other parameters are unsigned. 
+		This means that very large SOA serial numbers would be messed up (Michel Stol, Stefano Straus)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS left its controlsocket around after exit and reported confusing errors if a socket was
+		already in use.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The recursor proxy did not work on big endian systems like SPARC and some MIPS processors (Remco Post)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		We no longer dump core on processing LOC records on UltraSPARC (Andrew Mulholland supplied a testing machine)
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		MySQL can now connect to a specified port again (Chris Anderton)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		When running chroot()ed and with master or slave support active, PowerDNS needs to resolve domain names 
+		to find slaves. This in turn may require access to certain libraries. Previously, these needed to be available
+		in the chroot directory but by forcing an initial lookup, these libraries are now loaded before the chrooting.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_recursor was very slow after having done a larger number of queries because of the checks
+		to see if a query should be throttled. This is now done using a set which is a lot faster than the previous
+		full sequential scan.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The throttling code may not have throttled as much as was configured.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Yet another big LDAP update. The LDAP backend now loadbalances connections over several hosts (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Updated b.root-servers.net address in the recursor
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
 
       <sect2 id="changelog-2-9-15"><title>Version 2.9.15</title>
 	<para>

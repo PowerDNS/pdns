@@ -46,6 +46,8 @@ PacketCache::PacketCache()
 
 void PacketCache::insert(DNSPacket *q, DNSPacket *r)
 {
+  if(d_ttl < 0)
+    getTTLS();
   
   if(ntohs(q->d.qdcount)!=1) {
     L<<"Warning - tried to cache a packet with wrong number of questions: "<<ntohs(q->d.qdcount)<<endl;
