@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/13 13:24:34 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/13 15:22:33 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -87,7 +87,8 @@
       </para>
       <sect2 id="changelog-2-9-2"><title>Version 2.9.2</title>	
 	<para>
-	  Bugfixes galore. Solaris porting created some issues on all platforms. 
+	  Bugfixes galore. Solaris porting created some issues on all platforms. Great news is that PowerDNS is now in Debian 'sid' (unstable). The 2.9.1
+	  packages in there currently aren't very good but the 2.9.2 ones will be. Many thanks to Wichert Akkerman, our 'downstream' for making this possible.
 	</para>
 	<warning>
 	  <para>
@@ -5417,8 +5418,7 @@ GRANT ALL ON records_id_seq TO pdns;
       </para>
       <para>
 	PowerDNS is currently ascertaining if this backend can be distributed in binary form without violating Oracle licensing. In the meantime, 
-	the source code to the Oracle backend is available for runtime linking into dynamic versions of PowerDNS. See 
-	<ulink url="http://downloads.powerdns.com/backends">http://downloads.powerdns.com/backends</ulink> for sources.
+	the source code to the Oracle backend is available in the pdns distribution.
       </para>
       <para>
 	The following configuration settings are available:

@@ -23,6 +23,7 @@ SOLARIS NOTES
 -------------
 You need gcc 3.x, preferably 3.2! The 'Sunpro' compiler is currently not
 supported (patches are welcome if not too intrusive).
+
 If you encounter problems with the Solaris make, gmake is advised
 
 IPv6 is currently (2.9.1.) broken in Solaris, awaiting patches!
@@ -30,7 +31,7 @@ IPv6 is currently (2.9.1.) broken in Solaris, awaiting patches!
 FREEBSD NOTES
 -------------
 gcc 2.95.x works. You need to compile using gmake - regular make only appears to
-work, but doesn't in fact.
+work, but doesn't in fact. Use gmake, not make.
 
 LINUX NOTES
 -----------

@@ -5,7 +5,7 @@ AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 AC_C_BIGENDIAN 
 AC_PREREQ(2.52)
-CXXFLAGS="$CXXFLAGS -Wall"
+CXXFLAGS="$CXXFLAGS -Wall -O2"
 
 AC_PREFIX_DEFAULT(/usr/local)
 AC_PROG_CC
@@ -184,7 +184,7 @@ AC_ARG_WITH(socketdir, [  --with-socketdir Where the controlsocket lives ],
         socketdir="$withval"  
 ])
 
-AC_MSG_CHECKING(whether we to include mysql support in the generic backend)
+AC_MSG_CHECKING(whether we to include MySQL support in the generic backend)
 AC_ARG_ENABLE(mysql, 
  [  --enable-mysql	Whether to include MySQL support in generic backend],enable_mysql=$enableval,enable_mysql=yes)
 AC_MSG_RESULT($enable_mysql)
@@ -357,13 +357,13 @@ do
 		pgmysql)
 
 		echo -n "gmysqlbackend.o " >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
-		if test -n "$domysql"
+		if test x"$domysql" = xyes
 		then 
 			echo -n "smysql.o " >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
-			echo -n "-lmysql " >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
+			echo -n "-lmysqlclient " >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS
 		fi 
 
-		if test -n "$dopgsql"
+		if test x"$dopgsql" = xyes
 		then 
 			echo -n "spgsql.o " >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
 			echo -n "-lpq++ -lpq -lssl -lcrypt -lcrypto " >> $srcdir/modules/pgmysqlbackend/OBJECTLIBS

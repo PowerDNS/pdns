@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.5 2002/12/13 13:24:34 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.6 2002/12/13 15:22:33 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -122,7 +122,7 @@ void gMySQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     sdata.serial=0;
     sdata.refresh=0;
     getSOA(i->zone,sdata);
-    if(i->last_check+sdata.refresh<time(0)) {
+    if((time_t)(i->last_check+sdata.refresh) < time(0)) {
       i->serial=sdata.serial;
       unfreshDomains->push_back(*i);
     }

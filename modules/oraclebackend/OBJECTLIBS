@@ -1,1 +1,1 @@
--ldl -L/opt/oracle/lib -ldl -lclient8  -ldl -lclntst8
+-L/opt/oracle/lib -lclient8  -lclntst8 
