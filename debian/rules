@@ -51,7 +51,7 @@ build-static stamp-build-static:
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
-		--with-modules="mysql gmysql gpgsql pipe pdns xdb gsqlite" \
+		--with-modules="mysql gmysql gpgsql pipe pdns xdb gsqlite geo" \
 		--with-dynmodules="" \
 		--enable-static-binaries --enable-recursor 
 	make

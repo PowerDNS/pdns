@@ -123,7 +123,7 @@ fi
 
 
 
-modules="gmysql"
+modules="gmysql geo"
 AC_ARG_WITH(modules, [  --with-modules Which backends to compile with ], 
 [
         modules="$withval"  

@@ -1,5 +1,6 @@
+rm -f $(find . -name "*~") &&
 ./bootstrap && 
 ./configure \
---with-modules="mysql gmysql gpgsql xdb pipe oracle pipe pdns db2 odbc ldap gsqlite" \
+--with-modules="mysql gmysql gpgsql xdb pipe oracle pipe pdns db2 odbc ldap gsqlite geo" \
 --with-dynmodules="" &&
 make dist 
