@@ -88,13 +88,12 @@ private:
   int doVersionRequest(DNSPacket *p, DNSPacket *r, string &target);
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
-  int doAdditionalProcessing(DNSPacket *p, DNSPacket *r, bool &dangling);
+  int doAdditionalProcessing(DNSPacket *p, DNSPacket *r);
 
   
   static int s_count;
   bool d_doFancyRecords;
   bool d_doRecursion;
-  bool d_doLazyRecursion;
   bool d_doWildcards;
   bool d_doCNAME;
   bool d_logDNSDetails;

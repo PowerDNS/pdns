@@ -75,6 +75,7 @@ private:
   int d_timeout;
   u_int32_t d_ip;
   bool d_inaxfr;
+  int d_bufsize;
 };
 
 #endif // PDNS_LWRES_HH

@@ -92,10 +92,15 @@ void DNSProxy::onlyFrom(const string &ips)
   
 }
 
+bool DNSProxy::recurseFor(DNSPacket* p)
+{
+  return d_ng.empty() || d_ng.match((struct sockaddr_in *)&p->remote);
+}
+
 /** returns false if p->remote is not allowed to recurse via us */
 bool DNSProxy::sendPacket(DNSPacket *p)
 {
-  if(!d_ng.empty() && !d_ng.match((struct sockaddr_in *)&p->remote))
+  if(!recurseFor(p))
     return false;
 
   int id;

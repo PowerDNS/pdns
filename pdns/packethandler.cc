@@ -43,7 +43,6 @@ extern DNSProxy *DP;
 int PacketHandler::s_count;
 extern string s_programname;
 
-
 PacketHandler::PacketHandler():B(s_programname)
 {
   s_count++;
@@ -51,7 +50,6 @@ PacketHandler::PacketHandler():B(s_programname)
   d_doWildcards = (arg()["wildcards"]!="no");
   d_doCNAME = (arg()["skip-cname"]=="no");
   d_doRecursion= arg().mustDo("recursor");
-  d_doLazyRecursion= arg().mustDo("lazy-recursion");
   d_logDNSDetails= arg().mustDo("log-dns-details");
 }
 
@@ -151,7 +149,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.6 2003/01/13 23:36:50 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.7 2003/01/21 10:42:34 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -167,7 +165,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.6 2003/01/13 23:36:50 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.7 2003/01/21 10:42:34 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -292,10 +290,10 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 }
 
 /** dangling is declared true if we were unable to resolve everything */
-int PacketHandler::doAdditionalProcessing(DNSPacket *p, DNSPacket *r, bool &dangling)
+int PacketHandler::doAdditionalProcessing(DNSPacket *p, DNSPacket *r)
 {
   DNSResourceRecord rr;
-  dangling=false;
+
   if(p->qtype.getCode()!=QType::AXFR && r->needAP()) { // this packet needs additional processing
     DLOG(L<<Logger::Warning<<"This packet needs additional processing!"<<endl);
 
@@ -317,8 +315,25 @@ int PacketHandler::doAdditionalProcessing(DNSPacket *p, DNSPacket *r, bool &dang
 	r->addRecord(rr);
 
       }
-      if(!foundOne)
-	dangling=true;
+      if(!foundOne) {
+	if(d_doRecursion && DP->recurseFor(p)) {
+	  try {
+	    Resolver resolver;
+	    resolver.resolve(arg()["recursor"],i->content.c_str(),QType::A);
+	    Resolver::res_t res=resolver.result();
+	    for(Resolver::res_t::const_iterator j=res.begin();j!=res.end();++j) {
+	      if(j->d_place==DNSResourceRecord::ANSWER) {
+		rr=*j;
+		rr.d_place=DNSResourceRecord::ADDITIONAL;
+		r->addRecord(rr);
+	      }
+	    }
+	  }
+	  catch(ResolverException& re) {
+	    L<<Logger::Error<<"Trying to do additional processing for answer to '"<<p->qdomain<<"' query: "<<re.reason<<endl;
+	  }
+	}
+      }
     }
   }
   return 1;
@@ -547,14 +562,6 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
 
-
-    // now we start doing things
-    // if the packet wants to be recursed, and we do recursion (but not lazy recursion!), hand it off
-    if(p->d.rd && !d_doLazyRecursion && d_doRecursion && DP->sendPacket(p)) {
-      // handed off to our recursor friend and forget all about it
-      return 0;   // p will now be deleted, it is safe to answer 0 here
-    }
-    
     if(p->qclass==255) // any class query 
       r->setA(false);
     else if(p->qclass!=1) // we only know about IN, so we don't find anything
@@ -631,12 +638,11 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 	goto sendit;
     }
     
-    // not found yet, try wildcards (we only try here in case of recursion)
+    // not found yet, try wildcards (we only try here in case of recursion - we should check before we hand off)
 
-    if(p->d.rd && d_doRecursion && d_doLazyRecursion && d_doWildcards) { 
+    if(p->d.rd && d_doRecursion && d_doWildcards) { 
       int res=doWildcardRecords(p,r,target);
       if(res) { // had a result
-
 	// FIXME: wildCard may retarget us in the future
 	if(res==1)  // had a straight result
 	  goto sendit;  
@@ -646,9 +652,9 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       }
     }
 
-    // LAZY RECURSION CUT-OUT! 
+    // RECURSION CUT-OUT! 
 
-    if(p->d.rd && d_doRecursion && d_doLazyRecursion && DP->sendPacket(p)) {
+    if(p->d.rd && d_doRecursion && DP->sendPacket(p)) {
       delete r;
       return 0;
     }
@@ -665,7 +671,6 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       DLOG(L<<Logger::Warning<<"Soa found: "<<soa<<endl);
       ;
     }
-    
     if(!weAuth) {
       if(p->d.rd || target==p->qdomain) { // only servfail if we didn't follow a CNAME
 	if(d_logDNSDetails)
@@ -762,15 +767,10 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     // whatever we've built so far, do additional processing
     
   sendit:;
-    bool dangling=false;
-    if(doAdditionalProcessing(p,r, dangling)<0)
+
+    if(doAdditionalProcessing(p,r)<0)
       return 0;
     
-    /* we were unable to resolve everything, so give it away */
-    if(p->d.rd && dangling && d_doRecursion && d_doLazyRecursion && DP->sendPacket(p)) {
-      delete r;
-      return 0;
-    }
 
     r->wrapup(); // needed for inserting in cache
     PC.insert(p,r); // in the packet cache

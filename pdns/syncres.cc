@@ -421,7 +421,8 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
       LOG<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs an IP address"<<endl;
       set<GetBestNSAnswer>beenthere;
       doResolve(k->content,QType(QType::A),addit,1,beenthere);
-      doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
+      if(arg().mustDo("aaaa-additional-processing"))
+	doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
     }
   
   for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {

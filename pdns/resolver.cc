@@ -153,6 +153,7 @@ int Resolver::resolve(const string &ip, const char *domain, int type)
 {
   makeUDPSocket();
   DNSPacket p;
+
   p.setQuestion(Opcode::Query,domain,type);
   p.wrapup();
 
@@ -162,14 +163,17 @@ int Resolver::resolve(const string &ip, const char *domain, int type)
 
   struct sockaddr_in toaddr;
   struct in_addr inp;
-  Utility::inet_aton(ip.c_str(),&inp);
+  ServiceTuple st;
+  st.port=53;
+  parseService(ip, st);
+  Utility::inet_aton(st.host.c_str(),&inp);
   toaddr.sin_addr.s_addr=inp.s_addr;
 
-  toaddr.sin_port=htons(53);
+  toaddr.sin_port=htons(st.port);
   toaddr.sin_family=AF_INET;
 
   if(sendto(d_sock, p.getData(), p.len, 0, (struct sockaddr*)(&toaddr), sizeof(toaddr))<0) {
-    throw ResolverException("Unable to ask query of "+ip+": "+stringerror());
+    throw ResolverException("Unable to ask query of "+st.host+":"+itoa(st.port)+": "+stringerror());
   }
 
   Utility::socklen_t addrlen=sizeof(toaddr);

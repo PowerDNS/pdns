@@ -49,6 +49,18 @@ ArgvMap &arg()
 int d_clientsock;
 int d_serversock;
 
+
+/*
+Jan 20 00:21:40 [48570] new question arrived for 'idealx.com|MX' from 127.0.0.1
+Jan 20 00:21:40 [48571] new question arrived for 'idealx.com|MX' from 127.0.0.1
+Jan 20 00:21:40 [48572] new question arrived for 'idealx.com|MX' from 127.0.0.1
+Jan 20 00:21:40 [48573] new question arrived for 'idealx.com|MX' from 127.0.0.1
+Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
+Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
+Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
+Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
+*/
+
 struct PacketID
 {
   u_int16_t id;
@@ -84,7 +96,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t
   PacketID pident;
   pident.id=id;
   memcpy(&pident.remote,toaddr,sizeof(pident.remote));
-  
+
   string packet;
   if(!MT.waitEvent(pident,&packet,1)) { // timeout
     return 0; 
@@ -120,6 +132,10 @@ void replaceCache(const string &qname, const QType& qt,  const set<DNSResourceRe
 
 void init(void)
 {
+  PacketID a, b;
+  a.remote=b.remote;
+  a.id=b.id;
+
   // prime root cache
   static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
 		     "192.36.148.17","198.41.0.10", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
@@ -149,8 +165,9 @@ void startDoResolve(void *p)
 {
   try {
     DNSPacket P=*(DNSPacket *)p;
+
     delete (DNSPacket *)p;
-    
+
     vector<DNSResourceRecord>ret;
     DNSPacket *R=P.replyPacket();
     R->setA(false);
@@ -175,6 +192,7 @@ void startDoResolve(void *p)
     sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
     L<<Logger::Error<<"["<<MT.getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
     L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, rcode="<<res<<endl;
+
     delete R;
   }
   catch(AhuException &ae) {
@@ -286,14 +304,23 @@ int main(int argc, char **argv)
 {
   try {
     srandom(time(0));
-    arg().set("soa-minimum-ttl","0")="0";
-    arg().set("soa-serial-offset","0")="0";
+    arg().set("soa-minimum-ttl","Don't change")="0";
+    arg().set("soa-serial-offset","Don't change")="0";
+    arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     arg().set("local-port","port to listen on")="5300";
     arg().set("local-address","port to listen on")="0.0.0.0";
     arg().set("trace","if we should output heaps of logging")="off";
     arg().set("daemon","Operate as a daemon")="no";
+    arg().setCmd("help","Provide a helpful message");
 
     arg().parse(argc, argv);
+
+    if(arg().mustDo("help")) {
+      cerr<<"syntax:"<<endl<<endl;
+      cerr<<arg().helpstring(arg()["help"])<<endl;
+      exit(99);
+    }
+
 
     L.setName("pdns_recursor");
     L.toConsole(Logger::Warning);

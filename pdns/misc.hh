@@ -56,6 +56,9 @@ string urlEncode(const string &text);
 int waitForData(int fd, int seconds);
 u_int16_t getShort(const unsigned char *p);
 u_int16_t getShort(const char *p);
+u_int32_t getLong(const unsigned char *p);
+u_int32_t getLong(const char *p);
+
 inline void putLong(unsigned char* p, u_int32_t val)
 {
   *p++=(val>>24)&0xff;

@@ -1,4 +1,3 @@
-
 /*
     Copyright (C) 2002  PowerDNS.COM BV
 

@@ -238,6 +238,7 @@ void *WebServer::serveConnection(void *p)
       client->getLine(line);
       stripLine(line);
 
+      //      L<<Logger::Error<<"got line: '"<<line<<"'"<<endl;
       if(!toLower(line).find("authorization: basic ")) {
 	string cookie=line.substr(21);
 	string plain;
@@ -245,7 +246,7 @@ void *WebServer::serveConnection(void *p)
 	B64Decode(cookie,plain);
 	vector<string>cparts;
 	stringtok(cparts,plain,":");
-
+	//	L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
 	if(cparts.size()==2 && !strcmp(cparts[1].c_str(),d_password.c_str())) { // this gets rid of terminating zeros
 	  authOK=1;
 	}
