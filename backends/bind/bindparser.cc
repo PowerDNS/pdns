@@ -3,7 +3,7 @@
 
 #define YYBISON 1  /* Identify Bison output.  */
 
-# define	WORD	257
+# define	AWORD	257
 # define	QUOTEDWORD	258
 # define	OBRACE	259
 # define	EBRACE	260
@@ -21,9 +21,6 @@
 #line 1 "bindparser.yy"
 
 
-#define DIRTY_HACK WORD
-#undef WORD
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -38,21 +35,24 @@ using namespace std;
 extern int yydebug;
 #include "bindparser.hh"
 
-#define WORD DIRTY_HACK 
-
 #define YYSTYPE char *
 
+
+#ifndef WIN32
 extern "C" 
 {
+#endif // WIN32
 	int yyparse(void);
 	int yylex(void);
+	void yyrestart(FILE *);
 	int yywrap()
 	{
 		return 1;
 	}
-	void yyrestart(FILE *);
-
+#ifndef WIN32
 }
+#endif // WIN32
+
 
 extern int yydebug;
 const char *bind_directory;
@@ -215,7 +215,7 @@ static const short yyrline[] =
 /* YYTNAME[TOKEN_NUM] -- String name of the token TOKEN_NUM. */
 static const char *const yytname[] =
 {
-  "$", "error", "$undefined.", "WORD", "QUOTEDWORD", "OBRACE", "EBRACE", 
+  "$", "error", "$undefined.", "AWORD", "QUOTEDWORD", "OBRACE", "EBRACE", 
   "SEMICOLON", "ZONETOK", "FILETOK", "OPTIONSTOK", "DIRECTORYTOK", 
   "ACLTOK", "LOGGINGTOK", "CLASSTOK", "TYPETOK", "MASTERTOK", 
   "root_commands", "root_command", "commands", "command", "zone_command", 

@@ -5,7 +5,7 @@
 #  define YYSTYPE int
 #  define YYSTYPE_IS_TRIVIAL 1
 # endif
-# define	WORD	257
+# define	AWORD	257
 # define	QUOTEDWORD	258
 # define	OBRACE	259
 # define	EBRACE	260

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-// $Id: win32_receiver.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $
+// $Id: win32_receiver.cc,v 1.3 2003/01/31 12:42:28 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 #include <signal.h>
@@ -491,6 +491,10 @@ int main(int argc, char **argv)
     dl->registerFunc("RELOAD",&DLReloadHandler);
     dl->registerFunc("REDISCOVER",&DLRediscoverHandler);
     dl->registerFunc("VERSION",&DLVersionHandler);
+    dl->registerFunc("PURGE",&DLPurgeHandler);
+    dl->registerFunc("CCOUNTS",&DLCCHandler);
+    dl->registerFunc("SET",&DLSettingsHandler);
+    dl->registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
 
       
     // reparse, with error checking

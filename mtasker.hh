@@ -18,6 +18,11 @@
 */
 #ifndef MTASKER_HH
 #define MTASKER_HH
+
+#ifdef WIN32
+# include "win32_mtasker.hh"
+#else
+
 #include <signal.h>
 #include <ucontext.h>
 #include <queue>
@@ -79,4 +84,7 @@ private:
   static void threadWrapper(MTasker *self, tfunc_t *tf, int tid, void* val);
 };
 #include "mtasker.cc"
-#endif
+
+#endif // WIN32
+#endif // MTASKER_HH
+

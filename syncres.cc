@@ -16,6 +16,8 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+
+#include "utility.hh"
 #include "syncres.hh"
 #include <iostream>
 #include <map>
@@ -380,14 +382,14 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	LOG<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return RCode::NXDomain;
       }
-      if(nsset.empty() && !d_lwr.d_rcode) {
-	LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
-	return 0;
-      }
       if(!newtarget.empty()) {
 	LOG<<prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl;
 	set<GetBestNSAnswer>beenthere2;
 	return doResolve(newtarget, qtype, ret,0,beenthere2);
+      }
+      if(nsset.empty() && !d_lwr.d_rcode) {
+	LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
+	return 0;
       }
       else if(realreferral) {
 	LOG<<prefix<<qname<<": status=did not resolve, got "<<nsset.size()<<" NS, looping to them"<<endl;

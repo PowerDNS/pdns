@@ -159,10 +159,13 @@ string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr,
   ret<<"<html><head><title>PowerDNS Operational Monitor</title></head><body bgcolor=#ffffff>"<<endl;
 
 
+  ret<<"<h2>";
+  if(!arg()["config-name"].empty())
+    ret<<"["<<arg()["config-name"]<<"]";
   if(rvarmap["ring"].empty())
-    ret<<"<h2>PDNS "VERSION" Main Page</h2>"<<endl;
+    ret<<"PDNS "VERSION" Main Page</h2>"<<endl;
   else
-    ret<<"<h2>Details page</h2><a href=/>Back to main page</a><p>"<<endl;
+    ret<<"Details page</h2><a href=/>Back to main page</a><p>"<<endl;
 
   time_t passed=time(0)-s_starttime;
 

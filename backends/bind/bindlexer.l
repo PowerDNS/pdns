@@ -7,12 +7,18 @@
 #define YYSTYPE char *
 
 #ifdef WIN32
-#include "bindparser.tab.cc.h"
-#define isatty _isatty
-int isatty( int fd )
+#include "bindparser.tab.hh"
+
+extern "C"
 {
-  return _isatty( fd );
+  int isatty( int );
+  int yywrap()
+  {
+    return 1;
+  }
 }
+
+
 #else
 #include "bindparser.h"
 #endif // WIN32
@@ -111,7 +117,7 @@ type                    return TYPETOK;
 \"                      yy_push_state(quoted);
 <quoted>[^\"]*          yylval=strdup(yytext); return QUOTEDWORD;
 <quoted>\"              yy_pop_state();
-[^\" \t\n{};]*               yylval=strdup(yytext);return WORD;
+[^\" \t\n{};]*               yylval=strdup(yytext);return AWORD;
 \{                      return OBRACE;
 \}                      return EBRACE;
 ;                       return SEMICOLON;
