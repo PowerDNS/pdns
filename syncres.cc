@@ -141,6 +141,12 @@ template<class MultiPlexor>string SyncRes<MultiPlexor>::getBestNSNamesFromCache(
 
 template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
+  if(depth>10) {
+    cout<<prefix<<qname<<": CNAME loop too deep, depth="<<depth<<endl;
+    res=RCode::ServFail;
+    return true;
+  }
+    
   string prefix, tuple=toLower(qname)+"|CNAME";
   prefix.assign(3*depth, ' ');
 
@@ -322,7 +328,7 @@ template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nam
       cout<<prefix<<qname<<": determining status after receiving this packet"<<endl;
 
       bool done=false, realreferral=false, negindic=false;
-      string newauth, soaname;
+      string newauth, soaname, newtarget;
 
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
 	if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA) {
@@ -332,10 +338,8 @@ template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nam
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
-	  cout<<prefix<<qname<<": got a CNAME referral, starting over with "<<i->content<<endl<<endl;
 	  ret.push_back(*i);
-	  set<GetBestNSAnswer>beenthere2;
-	  return doResolve(i->content, qtype, ret,0,beenthere2);
+	  newtarget=i->content;
 	}
 	// for ANY answers we *must* have an authoritive answer
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && (i->qtype==qtype || ( qtype==QType(QType::ANY) && aabit)))  {
@@ -366,6 +370,11 @@ template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nam
       if(nsset.empty() && !d_lwr.d_rcode) {
 	cout<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return 0;
+      }
+      if(!newtarget.empty()) {
+	cout<<prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl<<endl;
+	set<GetBestNSAnswer>beenthere2;
+	return doResolve(newtarget, qtype, ret,0,beenthere2);
       }
       else if(realreferral) {
 	cout<<prefix<<qname<<": status=did not resolve, got "<<nsset.size()<<" NS, looping to them"<<endl;
