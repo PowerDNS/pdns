@@ -265,6 +265,8 @@ void QGen::processAnswers()
       }
     }
     else {
+      for(vector<DNSResourceRecord>::const_iterator j=answers.begin();j!=answers.end();++j)
+	cout<<p.qdomain<<"\t"<<j->content<<endl;
       d_answeredOK++;
       d_questions.erase(i);
     }
