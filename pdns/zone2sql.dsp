@@ -101,6 +101,10 @@ SOURCE=.\backends\bind\bindparser.tab.cc
 # End Source File
 # Begin Source File
 
+SOURCE=.\dnspacket.cc
+# End Source File
+# Begin Source File
+
 SOURCE=.\misc.cc
 # End Source File
 # Begin Source File
@@ -110,6 +114,10 @@ SOURCE=.\ntservice.cc
 # Begin Source File
 
 SOURCE=.\qtype.cc
+# End Source File
+# Begin Source File
+
+SOURCE=.\sillyrecords.cc
 # End Source File
 # Begin Source File
 

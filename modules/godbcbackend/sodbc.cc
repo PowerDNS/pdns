@@ -167,6 +167,28 @@ int SODBC::doQuery( const std::string & query, result_t & result )
 }
 
 
+// Executes a command.
+int SODBC::doCommand( const std::string & command )
+{
+  SQLRETURN   result;
+  char        *tmp;
+  
+  if ( m_busy )
+    throw SSqlException( "Tried to execute another query while being busy." );
+
+  tmp = _strdup( command.c_str());
+
+  // Execute query.
+  result = SQLExecDirect( m_statement, reinterpret_cast< SQLTCHAR * >( tmp ), command.length());
+  free( tmp );
+
+  testResult( result, "Could not execute query." );
+
+  SQLFreeStmt( m_statement, SQL_CLOSE );
+
+  return 0;
+}
+
 // Escapes a SQL string.
 std::string SODBC::escape( const std::string & name )
 {

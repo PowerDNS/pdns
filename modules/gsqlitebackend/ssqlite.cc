@@ -4,9 +4,16 @@
 // Copyright (C) 2003, Michel Stol <michel@powerdns.com>
 //
 
+#include "utility.hh"
 #include <string>
 #include "ssqlite.hh"
 #include <iostream>
+
+#ifdef WIN32
+# include <io.h>
+# define access _access
+# define F_OK 0
+#endif // WIN32
 
 // Constructor.
 SSQLite::SSQLite( const std::string & database )
@@ -88,7 +95,7 @@ bool SSQLite::getRow( row_t & row )
     rc = sqlite_step( m_pVM, &numCols, &ppData, &ppColumnNames );
     
     if ( rc == SQLITE_BUSY )
-      usleep( 250 ); // FIXME: Should this be increased, decreased, or is it Just Right? :)
+      Utility::usleep( 250 ); // FIXME: Should this be increased, decreased, or is it Just Right? :)
     else
       break;
 

@@ -1,8 +1,12 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: ssql.hh,v 1.2 2003/10/11 19:57:19 ahu Exp $  */
+   $Id: ssql.hh,v 1.3 2003/11/30 10:53:17 ahu Exp $  */
 #ifndef SSQL_HH
 #define SSQL_HH
+
+#ifdef WIN32
+# pragma warning ( disable: 4786 )
+#endif // WIN32
 
 #include <string>
 #include <vector>

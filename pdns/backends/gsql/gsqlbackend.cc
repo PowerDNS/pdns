@@ -1,4 +1,8 @@
-// $Id: gsqlbackend.cc,v 1.10 2003/10/11 19:57:19 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.11 2003/11/30 10:53:17 ahu Exp $ 
+#ifdef WIN32
+# pragma warning ( disable: 4786 )
+#endif // WIN32
+
 #include <string>
 #include <map>
 

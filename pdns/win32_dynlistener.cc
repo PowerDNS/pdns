@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: win32_dynlistener.cc,v 1.1 2002/11/29 22:09:59 ahu Exp $ 
+// $Id: win32_dynlistener.cc,v 1.2 2003/11/30 10:53:17 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 #include <string>
@@ -53,7 +53,7 @@ DynListener::DynListener(const string &pname)
   string programname=pname;
 
   if(!programname.empty()) {
-    string pipename = "\\\\.\\pipe\\" + PDNSService::instance()->getServiceName();
+    string pipename = "\\\\.\\pipe\\" + programname;
 
     m_pipeHandle = CreateNamedPipe( 
       pipename.c_str(),
@@ -148,7 +148,7 @@ void DynListener::theListener()
 	sendLine("Empty line");
 	continue;
       }
-      upperCase(parts[0]);
+      parts[0] = toUpper( parts[0] ); 
       if(!d_funcdb[parts[0]]) {
 	if(d_restfunc) 
 	  sendLine((*d_restfunc)(parts,d_ppid));

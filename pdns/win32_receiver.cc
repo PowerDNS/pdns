@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2003  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,8 +16,19 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+// $Id: win32_receiver.cc,v 1.4 2003/11/30 10:53:17 ahu Exp $
+#ifdef WIN32
+# define WINDOWS_LEAN_AND_MEAN
+# include <windows.h>
+#else
+# include <sys/socket.h>
+# include <netinet/in.h>
+# include <arpa/inet.h>
+# include <sys/time.h>
+# include <sys/wait.h>
+# include <sys/mman.h>
+#endif // WIN32
 
-// $Id: win32_receiver.cc,v 1.3 2003/01/31 12:42:28 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 #include <signal.h>
@@ -26,8 +37,13 @@
 #include <sys/types.h>
 #include <iostream>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <fstream>
 
 #include "dns.hh"
@@ -48,7 +64,7 @@
 #include "dynhandler.hh"
 #include "communicator.hh"
 #include "dnsproxy.hh"
-#include "pdnsservice.hh"
+#include "utility.hh"
 #include "common_startup.hh"
 
 time_t s_starttime;
@@ -81,229 +97,8 @@ This file is where it all happens - main is here, as are the two pivotal threads
 */
 
 
-void daemonize(void)
-{
-}
-
-
-static int cpid;
-
-static void takedown(int i)
-{
-  if(cpid) {
-    L<<Logger::Error<<"Guardian is killed, taking down children with us"<<endl;
-#ifndef WIN32
-    Utility::Signal::kill(cpid,SIGKILL);
-#endif // WIN32
-    exit(1);
-  }
-}
-
-
-static void writePid(void)
-{
-}
-
-int d_fd1[2], d_fd2[2];
-FILE *d_fp;
-
-static string DLRestHandler(const vector<string>&parts, Utility::pid_t ppid)
-{
-  // TODO: Implement this.
-#ifndef WIN32
-  string line;
-  
-  for(vector<string>::const_iterator i=parts.begin();i!=parts.end();++i) {
-    if(i!=parts.begin())
-      line.append(1,' ');
-    line.append(*i);
-  }
-  line.append(1,'\n');
-  
-  write(d_fd1[1],line.c_str(),line.size()+1);
-  char mesg[512];
-  fgets(mesg,511,d_fp);
-  line=mesg;
-  chomp(line,"\n");
-  return line;
-
-#else
-  return "";
-
-#endif // WIN32
-}
-
-static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
-{
-#ifndef WIN32
-  Utility::Signal::kill(cpid,SIGKILL);
-#endif // WIN32
-  return "ok";
-}
-
-static int guardian(int argc, char **argv)
-{
-  // TODO: Implement this?
-#ifdef WIN32
-  return 0;
-
-#else
-
-  if(isGuarded(argv))
-    return 0;
-
-  int infd=0, outfd=1;
-
-  DynListener dlg(s_programname);
-  dlg.registerFunc("QUIT",&DLQuitHandler);
-  dlg.registerFunc("CYCLE",&DLCycleHandler);
-  dlg.registerFunc("PING",&DLPingHandler);
-  dlg.registerFunc("STATUS",&DLStatusHandler);
-  dlg.registerRestFunc(&DLRestHandler);
-  dlg.go();
-  string progname=argv[0];
-
-  bool first=true;
-  cpid=0;
-
-  for(;;) {
-    int pid;
-    setStatus("Launching child");
-
-    if(pipe(d_fd1)<0 || pipe(d_fd2)<0) {
-      L<<Logger::Critical<<"Unable to open pipe for coprocess: "<<strerror(errno)<<endl;
-      exit(1);
-    }
-
-    if(!(pid=fork())) { // child
-      signal(SIGTERM, SIG_DFL);
-
-      signal(SIGHUP, SIG_DFL);
-      signal(SIGUSR1, SIG_DFL);
-      signal(SIGUSR2, SIG_DFL);
-
-      char **const newargv=new char*[argc+2];
-      int n;
-
-      if(arg()["config-name"]!="") {
-	progname+="-"+arg()["config-name"];
-	L<<Logger::Error<<"Virtual configuration name: "<<arg()["config-name"]<<endl;
-      }
-
-      newargv[0]=strdup(const_cast<char *>((progname+"-instance").c_str()));
-      for(n=1;n<argc;n++) {
-	newargv[n]=argv[n];
-      }
-      newargv[n]=0;
-      
-      L<<Logger::Error<<"Guardian is launching an instance"<<endl;
-      close(d_fd1[1]);
-      close(d_fd2[0]);
-
-      if(d_fd1[0]!= infd) {
-	dup2(d_fd1[0], infd);
-	close(d_fd1[0]);
-      }
-
-      if(d_fd2[1]!= outfd) {
-	dup2(d_fd2[1], outfd);
-	close(d_fd2[1]);
-      }
-      if(execv(argv[0], newargv)<0) {
-	L<<Logger::Error<<"Unable to execv '"<<argv[0]<<"': "<<strerror(errno)<<endl;
-	char **p=newargv;
-	while(*p)
-	  L<<Logger::Error<<*p++<<endl;
-
-	exit(1);
-      }
-      L<<Logger::Error<<"execve returned!!"<<endl;
-      // never reached
-    }
-    else if(pid>0) { // parent
-      close(d_fd1[0]);
-      close(d_fd2[1]);
-      if(!(d_fp=fdopen(d_fd2[0],"r"))) {
-	L<<Logger::Critical<<"Unable to associate a file pointer with pipe: "<<stringerror()<<endl;
-	exit(1);
-      }
-      setbuf(d_fp,0); // no buffering please, confuses select
-
-      if(first) {
-	first=false;
-	signal(SIGTERM, takedown);
-
-	signal(SIGHUP, SIG_IGN);
-	signal(SIGUSR1, SIG_IGN);
-	signal(SIGUSR2, SIG_IGN);
-
-	writePid();
-      }
-
-      int status;
-      cpid=pid;
-      for(;;) {
-	int ret=waitpid(pid,&status,WNOHANG);
-
-	if(ret<0) {
-	  L<<Logger::Error<<"In guardian loop, waitpid returned error: "<<strerror(errno)<<endl;
-	  L<<Logger::Error<<"Dying"<<endl;
-	  exit(1);
-	}
-	else if(ret) // something exited
-	  break;
-	else { // child is alive
-	  // execute some kind of ping here 
-	  if(DLQuitPlease())
-	    takedown(1);
-	  setStatus("Child running on pid "+itoa(pid));
-	  sleep(1);
-	}
-      }
-      close(d_fd1[1]);
-      fclose(d_fp);
-
-      if(WIFEXITED(status)) {
-	int ret=WEXITSTATUS(status);
-
-	if(ret==99) {
-	  L<<Logger::Error<<"Child requested a stop, exiting"<<endl;
-	  exit(1);
-	}
-	setStatus("Child died with code "+itoa(ret));
-	L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<endl;
-	L<<Logger::Error<<"Respawning"<<endl;
-
-	sleep(1);
-	continue;
-      }
-      if(WIFSIGNALED(status)) {
-	int sig=WTERMSIG(status);
-	setStatus("Child died because of signal "+itoa(sig));
-	L<<Logger::Error<<"Our pdns instance ("<<pid<<") exited after signal "<<sig<<endl;
-#ifdef WCOREDUMP
-	if(WCOREDUMP(status)) 
-	  L<<Logger::Error<<"Dumped core"<<endl;
-#endif
-
-	L<<Logger::Error<<"Respawning"<<endl;
-	sleep(1);
-	continue;
-      }
-      L<<Logger::Error<<"No clue what happened! Respawning"<<endl;
-    }
-    else {
-      L<<Logger::Error<<"Unable to fork: "<<strerror(errno)<<endl;
-      exit(1);
-    }
-  }
-
-#endif // WIN32
-}
-
 static void WIN32_declareArguments()
 {
-
   arg().set("config-dir","Location of configuration directory (pdns.conf)")="./";  
   //arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   arg().set("module-dir","Default directory for modules")="/../lib";
@@ -313,40 +108,19 @@ static void WIN32_declareArguments()
   arg().setSwitch( "ntservice", "Run as service" )= "no";
 
   arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes";
-
+  arg().setSwitch( "use-logfile", "Use a log file" )= "no"; 
+  arg().setSwitch( "logfile", "Filename of the log file" )= "powerdns.log"; 
 }
 
 static void loadModules()
 {
-  if(!arg()["load-modules"].empty()) { 
-    vector<string>modules;
-    
-    stringtok(modules,arg()["load-modules"],",");
-    
-    for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i) {
-      bool res;
-      const string &module=*i;
-      
-      if(module.find(".")==string::npos)
-	res=UeberBackend::loadmodule(arg()["module-dir"]+"/lib"+module+"backend.so");
-      else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
-	res=UeberBackend::loadmodule(module);
-      else
-	res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
-      
-      if(res==false) {
-	L<<Logger::Error<<"Unable to load module "<<module<<endl;
-	exit(1);
-      }
-    }
-  }
+  L << Logger::Warning << Logger::NTLog << "The Windows version doesn't support dll loading (yet), none of the specified modules loaded" << std::endl;
 }
-
 
 //! Console handler.
 BOOL WINAPI consoleHandler( DWORD ctrl )
 {
-  L << Logger::Error << "PDNS shutting down..." << endl;
+  L << Logger::Error << "PowerDNS shutting down..." << endl;
   exit( 0 );
 
   // This will never be reached.
@@ -378,9 +152,6 @@ int main(int argc, char **argv)
       
     arg().laxParse(argc,argv); // do a lax parse
     
-    if(arg()["config-name"]!="") 
-      s_programname+="-"+arg()["config-name"];
-
     // If we have to run as a nt service change the current directory to the executable directory.
     if ( arg().mustDo( "ntservice" ))
     {
@@ -395,12 +166,15 @@ int main(int argc, char **argv)
       SetCurrentDirectory( newdir.c_str());
     }
     
+    if(arg()["config-name"]!="") 
+      s_programname+="-"+arg()["config-name"];
+    
     (void)theL(s_programname);
     
     string configname=arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
 
-    if(!arg().mustDo("config") && !arg().mustDo("no-config"))
+    if(!arg().mustDo("config") && !arg().mustDo("no-config")) // "config" == print a configuration file
       arg().laxFile(configname.c_str());
     
     arg().laxParse(argc,argv); // reparse so the commandline still wins
@@ -411,14 +185,6 @@ int main(int argc, char **argv)
       arg().set("guardian")="no";
     }
 
-    if(arg().mustDo("guardian") && !isGuarded(argv)) {
-      //guardian(argc, argv);  
-      // never get here, guardian will reinvoke process
-      //cerr<<"Um, we did get here!"<<endl;
-      cerr << "Guardian mode isn't supported on Windows (yet)." << endl;
-      exit( 99 );
-    }
-    
 
     if ( arg().mustDo( "register-service" ))
     {
@@ -439,10 +205,14 @@ int main(int argc, char **argv)
     }
 
     // we really need to do work - either standalone or as an instance
-    
-    loadModules();
     BackendMakers().launch(arg()["launch"]); // vrooooom!
       
+    if(arg().mustDo("version")) {
+      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__<<endl;
+      exit(99);
+    }
+
+    
     if(arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
       cerr<<arg().helpstring(arg()["help"])<<endl;
@@ -463,25 +233,15 @@ int main(int argc, char **argv)
       exit(99);
     }
     if(!BackendMakers().numLauncheable()) {
-      L<<Logger::Error<<Logger::NTLog<<"Unable to launch, no backends configured for querying"<<endl;
+      L<<Logger::Error<<"Unable to launch, no backends configured for querying"<<endl;
 	exit(99); // this isn't going to fix itself either
     }
 
-    
-    if(isGuarded(argv)) {
-      L<<Logger::Warning<<"This is a guarded instance of pdns"<<endl;
-      dl=new DynListener; // listens on stdin 
-    }
-    else {
-      L<<Logger::Warning<<"This is a standalone pdns"<<endl; 
-      
       if(arg().mustDo("control-console"))
 	dl=new DynListener();
       else
 	dl=new DynListener(s_programname);
       
-      writePid();
-    }
     dl->registerFunc("SHOW",&DLShowHandler);
     dl->registerFunc("RPING",&DLPingHandler);
     dl->registerFunc("QUIT",&DLRQuitHandler);
@@ -521,8 +281,12 @@ int main(int argc, char **argv)
   if ( arg().mustDo( "use-logfile" ))
     L.toFile( arg()[ "logfile" ] );
   
-  L<<Logger::Error<<Logger::NTLog<<"PowerDNS "<<VERSION<<" ("<<__DATE__<<", "<<__TIME__<<") starting up"<<endl;
-  L<<Logger::Error<<"GENERAL PUBLIC LICENSE (GPL)"<<endl;
+  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2003 PowerDNS.COM BV ("<<__DATE__", "__TIME__<<") starting up"<<endl;
+
+  L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+    "This is free software, and you are welcome to redistribute it "
+    "according to the terms of the GPL version 2."<<endl;
+
   
   // Register console control hander.
   if ( !arg().mustDo( "ntservice" ))
@@ -530,9 +294,11 @@ int main(int argc, char **argv)
   
   PDNSService::instance()->start( argc, argv, arg().mustDo( "ntservice" ));
   
+  WSACleanup();
+
   exit(1);
   
-  return 1;
+  return 0;
 }
 
 

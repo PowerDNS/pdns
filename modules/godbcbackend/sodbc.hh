@@ -69,6 +69,9 @@ public:
   //! Executes a query and stores the result.
   int doQuery( const std::string & query, result_t & result );
 
+  //! Executes a command.
+  int doCommand( const std::string & command );
+
   //! Escapes a SQL string.
   std::string escape( const std::string & name );
 
