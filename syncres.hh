@@ -144,7 +144,7 @@ private:
   string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere);
   void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
 
-  vector<string> shuffle(set<string> &nameservers);
+  inline vector<string> shuffle(set<string> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
   string getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
 

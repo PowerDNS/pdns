@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/01/17 13:18:22 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/01/18 10:49:00 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -82,7 +82,75 @@
 	file.
       </para>
 
-    <sect2 id="changelog-2-9-14"><title>Version 2.9.14</title>
+      <sect2 id="changelog-2-9-15"><title>Version 2.9.15</title>
+	<para>
+	  This release fixes up some of the shortcomings in 2.9.14, and adds some new features too.
+	</para>
+	<para>
+	  Bugfixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		<command>allow-recursion-override</command> was on by default, it was meant to be off.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Logging was still off in daemon mode, fixed.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		debian/rules forgot to build an sqllite package 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor accidentally linked in MySQL - this was the result of an experiment with a persistent recursor cache.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The PowerDNS recursor had stability problems. It now sorts nameservers (roughly) by responsiveness. The 'roughly' part
+		upset the sorting algorithm used, the speeds being sorted on changed during sorting.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The recursor now outputs the nameserver average response times in trace mode
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP compiles again.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		zone2sql can now accept <filename>-</filename> as a filename which causes it to read stdin. This allows the following 
+		to work: <command>dig axfr ds9a.nl | zone2sql --gmysql --zone=- | mysql pdns</command>, which is a nice way to 
+		import a zone.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		zone2sql now ignores duplicate SOA records which are identical - which also makes the above possible.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Remove libpqpp dependencies - since we now use the native C API for PostgreSQL
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+	<sect2 id="changelog-2-9-14"><title>Version 2.9.14</title>
 	<para>
 	  Big release with the fix for the all important 2^30 seconds problem and a lot of other news.
 	</para>
@@ -5187,6 +5255,15 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <para>
 	      By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
 	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 1.2.3.4</command>.
+	    </para>
+	  </listitem></varlistentry>
+	<varlistentry>
+	  <term>allow-recursion-override=on|off</term>
+	  <listitem>
+	    <para>
+	      By specifying <command>allow-recursion-override</command>, local data even about hosts that don't exist will override
+	      the internet. This allows you to generate zones that don't really exist on the internet. Does increase the number of SQL queries for hosts that truly don't exist, also not in your database.
+
 	    </para>
 	  </listitem></varlistentry>
 	  <varlistentry><term>cache-ttl=...</term>
