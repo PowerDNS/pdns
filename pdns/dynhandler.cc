@@ -180,6 +180,22 @@ string DLVersionHandler(const vector<string>&parts, Utility::pid_t ppid)
   return VERSION;
 }
 
+string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  extern CommunicatorClass Communicator;
+  ostringstream os;
+  if(parts.size()!=2)
+    return "syntax: retrieve domain";
+
+  const string& domain=parts[1];
+  DomainInfo di;
+  PacketHandler P;
+  if(!P.getBackend()->getDomainInfo(domain, di))
+    return "Domain '"+domain+"' unknown";
+  
+  Communicator.addSuckRequest(domain,di.master);
+  return "Added retrieval request for '"+domain+"' from master "+di.master;
+}
 
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
 {

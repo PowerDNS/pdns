@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.3 2002/12/12 19:53:19 ahu Exp $
+// $Id: receiver.cc,v 1.4 2002/12/19 17:00:44 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -515,6 +515,7 @@ int main(int argc, char **argv)
     dl->registerFunc("PURGE",&DLPurgeHandler);
     dl->registerFunc("CCOUNTS",&DLCCHandler);
     dl->registerFunc("SET",&DLSettingsHandler);
+    dl->registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
 
     
     // reparse, with error checking

@@ -1,5 +1,5 @@
 #!/bin/sh
-./configure --with-modules="mysql pgmysql pipe pdns" --with-dynmodules="" \
+./configure --with-modules="mysql gmysql gpgsql pipe pdns xdb" --with-dynmodules="" \
 	--enable-static-binaries --enable-mysql --enable-pgsql \
 	--with-pgsql-lib=/opt/postgresql-with-3.2/lib/ --prefix=/usr \
 	--sysconfdir=/etc/powerdns \

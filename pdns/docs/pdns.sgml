@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/18 16:22:20 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/19 17:00:44 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -90,7 +90,7 @@
 	  Broad range of improvements. We now have an all-static .rpm and .deb for Linux users and a a link to an OpenBSD port.
 	  Major news is that work on the Bind backend has progressed to the point that we've just retired our last Bind server and 
 	  replaced it with PowerDNS in Bind mode! This server is operating a number of master and slave setups so it should stress the Bind backend 
-	  quite a bit.
+	  somewhat.
 	</para>
 	<para>
 	  <warning>
@@ -117,6 +117,13 @@
 	    <listitem>
 	      <para>
 		General robustness improvements in Bind backend - many errors are now non-fatal.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Accessability, Serviceability. New <command>pdns_server</command> commands like <command>bind-list-rejects</command>
+		(lists zones that could not be loaded, and the reason why), <command>bind-reload-now</command> (reload a zone from disk NOW),
+		<command>rediscover</command> (reread named.conf NOW). More is coming up.
 	      </para>
 	    </listitem>
 	    <listitem>

@@ -221,11 +221,11 @@ void *TCPNameserver::doConnection(void *data)
     
   out:;
   }
-  catch(AhuException &ae) {
-    L<<Logger::Error<<"TCP nameserver: "<<ae.reason<<endl;
-  }
   catch(DBException &e) {
     L<<Logger::Error<<"TCP Connection Thread unable to answer a question because of a backend error"<<endl;
+  }
+  catch(AhuException &ae) {
+    L<<Logger::Error<<"TCP nameserver: "<<ae.reason<<endl;
   }
   catch(exception &e) {
     L<<Logger::Error<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
