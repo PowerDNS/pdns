@@ -8,6 +8,8 @@ BINARYPATH=@bindir@
 SBINARYPATH=@sbindir@
 SOCKETPATH=@socketdir@
 
+[ -f "$SBINARYPATH/pdns_server" ] || exit 0
+
 cd $SOCKETPATH
 suffix=`basename $0 | awk -F- '{print $2}'`
 if [ $suffix ] 
@@ -26,11 +28,6 @@ doPC()
 }
 
 
-if [ "$1" != "mrtg" -a "$1" != "cricket" ] 
-then
-	echo -n "$PROGNAME: "
-fi
-
 doPC ping
 NOTRUNNING=$?
 
@@ -46,6 +43,7 @@ case "$1" in
 	;;	
 
 	stop)
+		echo -n "Stopping PowerDNS authorative nameserver: "
 		if test "$NOTRUNNING" = "0" 
 		then 
 			doPC quit
@@ -56,10 +54,13 @@ case "$1" in
 	;;		
 
 	force-stop)
+		echo -n "Stopping PowerDNS authorative nameserver: "
 		killall -v -9 pdns_server
+		echo "killed"
 	;;
 
 	start)
+		echo -n "Starting PowerDNS authorative nameserver: "
 		if test "$NOTRUNNING" = "0" 
 		then 
 			echo "already running"
@@ -73,14 +74,16 @@ case "$1" in
 	;;		
 
 	force-reload | restart)
-		echo -n stopping and waiting
+		echo -n "Restaring PowerDNS authorative nameserver: "
+		echo -n stopping and waiting.. 
 		doPC quit
 		sleep 3
-		echo 
+		echo done
 		$0 start
 	;;
 
 	reload) 
+		echo -n "Reloading PowerDNS authorative nameserver: "
 		if test "$NOTRUNNING" = "0" 
 		then 
 			doPC cycle

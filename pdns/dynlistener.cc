@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.7 2003/10/11 19:57:19 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.8 2004/01/16 22:18:12 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -220,11 +220,11 @@ void DynListener::theListener()
   }
   catch(AhuException &AE)
     {
-      L<<Logger::Error<<"Fatal: "<<AE.reason<<endl;
+      L<<Logger::Error<<"Fatal error in control listener: "<<AE.reason<<endl;
     }
   catch(string &E)
     {
-      L<<Logger::Error<<"Fatal: "<<E<<endl;
+      L<<Logger::Error<<"Fatal error 2 in control listener: "<<E<<endl;
     }
   catch(...)
     {

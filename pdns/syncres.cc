@@ -32,6 +32,9 @@
 #include "misc.hh"
 #include "arguments.hh"
 #include "lwres.hh"
+#include "recursor_cache.hh"
+
+extern MemRecursorCache RC;
 
 map<string,NegCacheEntry> SyncRes::s_negcache;    
 unsigned int SyncRes::s_queries;
@@ -114,11 +117,11 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
   do {
     LOG<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
     set<DNSResourceRecord>ns;
-    if(getCache(subdomain,QType(QType::NS),&ns)>0) {
+    if(RC.get(subdomain,QType(QType::NS),&ns)>0) {
       for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
 	if(k->ttl>(unsigned int)time(0)) { 
 	  set<DNSResourceRecord>aset;
-	  if(!endsOn(k->content,subdomain) || getCache(k->content,QType(QType::A),&aset) > 5) {
+	  if(!endsOn(k->content,subdomain) || RC.get(k->content,QType(QType::A),&aset) > 5) {
 	    bestns.insert(*k);
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(k->content,subdomain);
@@ -179,7 +182,7 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   
   LOG<<prefix<<qname<<": Looking for CNAME cache hit of '"<<tuple<<"'"<<endl;
   set<DNSResourceRecord> cset;
-  if(getCache(qname,QType(QType::CNAME),&cset) > 0) {
+  if(RC.get(qname,QType(QType::CNAME),&cset) > 0) {
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       if(j->ttl>(unsigned int)time(0)) {
 	LOG<<prefix<<qname<<": Found cache CNAME hit for '"<<tuple<<"' to '"<<j->content<<"'"<<endl;    
@@ -253,7 +256,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
-  if(getCache(sqname,sqt,&cset)>0) {
+  if(RC.get(sqname,sqt,&cset)>0) {
     LOG<<prefix<<qname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG<<j->content;
@@ -296,13 +299,24 @@ bool SyncRes::moreSpecificThan(const string& a, const string &b)
   return counta>countb;
 }
 
+map<string,DecayingEwma> nsSpeeds;
+
+bool speedOrder(const string &a, const string &b)
+{
+  return (nsSpeeds[toLower(a)].get() < nsSpeeds[toLower(b)].get());
+}
+
 vector<string> SyncRes::shuffle(set<string> &nameservers)
 {
   vector<string> rnameservers;
-  for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i)
+
+  for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
+  }
   
   random_shuffle(rnameservers.begin(),rnameservers.end());
+  stable_sort(rnameservers.begin(),rnameservers.end(),speedOrder);
+  
   return rnameservers;
 }
 
@@ -318,7 +332,6 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
   LOG<<prefix<<qname<<": Cache consultations done, have "<<nameservers.size()<<" NS to contact"<<endl;
 
   for(;;) { // we may get more specific nameservers
-    bool aabit=false;
     result.clear();
 
     vector<string> rnameservers=shuffle(nameservers);
@@ -353,18 +366,20 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	d_outqueries++;
 	if(d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
 	  LOG<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
+	  nsSpeeds[toLower(*tns)].submit(1000000); // 1 sec
 	  s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	  continue;
 	}
       }
 
-      result=d_lwr.result(aabit);
+      result=d_lwr.result();
       if(d_lwr.d_rcode==RCode::ServFail) {
 	LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
 	s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
 	continue;
       }
-      LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<endl;
+      LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
+      nsSpeeds[toLower(*tns)].submit(d_lwr.d_usec);
 
       map<string,set<DNSResourceRecord> > tcache;
       // reap all answers from this packet that are acceptable
@@ -373,7 +388,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
 
 	if(endsOn(i->qname, auth)) {
-	  if(aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && arg().contains("delegation-only",auth)) {
+	  if(d_lwr.d_aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && arg().contains("delegation-only",auth)) {
 	    LOG<<"NO! Is from delegation-only zone"<<endl;
 	    s_nodelegated++;
 	    return RCode::NXDomain;
@@ -399,11 +414,11 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	QType qt;
 	if(parts.size()==2) {
 	  qt=parts[1];
-	  replaceCache(parts[0],qt,i->second);
+	  RC.replace(parts[0],qt,i->second);
 	}
 	else {
 	  qt=parts[0];
-	  replaceCache("",qt,i->second);
+	  RC.replace("",qt,i->second);
 	}
       }
       set<string> nsset;  
@@ -429,7 +444,8 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  newtarget=i->content;
 	}
 	// for ANY answers we *must* have an authoritive answer
-	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && (i->qtype==qtype || ( qtype==QType(QType::ANY) && aabit)))  {
+	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && (i->qtype==qtype || ( qtype==QType(QType::ANY) && 
+														    d_lwr.d_aabit)))  {
 	  LOG<<prefix<<qname<<": answer is in: resolved to '"<<i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
 	  done=true;
 	  ret.push_back(*i);

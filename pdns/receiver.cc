@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.10 2003/09/16 21:02:35 ahu Exp $
+// $Id: receiver.cc,v 1.11 2004/01/16 22:18:12 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -445,6 +445,7 @@ int main(int argc, char **argv)
       }
     }
 
+    L.setLoglevel((Logger::Urgency)(arg().asNum("loglevel")));
     L.toConsole((Logger::Urgency)(arg().asNum("loglevel")));  
 
     if(arg().mustDo("help") || arg().mustDo("config")) {
@@ -549,7 +550,7 @@ int main(int argc, char **argv)
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
   
-  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2003 PowerDNS.COM BV ("<<__DATE__", "__TIME__<<") starting up"<<endl;
+  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2004 PowerDNS.COM BV ("<<__DATE__", "__TIME__<<") starting up"<<endl;
 
   L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "

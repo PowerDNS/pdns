@@ -10,12 +10,7 @@ SOCKETPATH=@socketdir@
 
 PIDFILE=@socketdir@/pdns_recursor.pid
 
-if [ "$1" != "restart" ]  
-then 
-	echo -n "pdns_recursor: "
-fi
-
-if [ -s $PIDFILE -a -d /proc/$(cat $PIDFILE) ] 
+if [ -s $PIDFILE -a -d /proc/$(cat $PIDFILE) 2>/dev/null ] 
 then
 	RUNNING=1
 	PID=$(cat $PIDFILE)
@@ -28,13 +23,14 @@ case "$1" in
 	status)
 		if [ $RUNNING = "1" ]
 		then
-			echo running
+			echo pdns_recursor is running
 		else
-			echo not running
+			echo pdns_recursor is not running
 		fi
 	;;
 	
 	stop)
+		echo -n "Stopping PowerDNS recursor: "
 		if [ $RUNNING = "1" ]
 		then
 			kill -9  $PID
@@ -45,6 +41,7 @@ case "$1" in
 	;;
 
 	start)
+		echo -n "Starting PowerDNS recursor: "
 		if [ $RUNNING = "1" ]
 		then
 			echo already running

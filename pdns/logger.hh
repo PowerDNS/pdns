@@ -95,6 +95,7 @@ public:
 
   //! set lower limit of urgency needed for console display. Messages of this urgency, and higher, will be displayed
   void toConsole(Urgency);
+  void setLoglevel( Urgency );
 
   //! Log to a file.
   void toFile( const string & filename );
@@ -126,6 +127,7 @@ private:
   int flags;
   int d_facility;
   bool opened;
+  Urgency d_loglevel;
   Urgency consoleUrgency;
   pthread_mutex_t lock;
 };

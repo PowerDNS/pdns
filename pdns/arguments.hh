@@ -22,7 +22,11 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <iostream>
+#include "misc.hh"
 #include "ahuexception.hh"
+
 
 using namespace std;
 

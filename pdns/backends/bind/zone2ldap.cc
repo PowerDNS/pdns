@@ -1,57 +1,65 @@
 /*
-    PowerDNS BIND Zone to LDAP converter
-    Copyright (C) 2003  Norbert Sendetzky
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  PowerDNS BIND Zone to LDAP converter
+ *  Copyright (C) 2003  Norbert Sendetzky
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-#include <string>
 #include <map>
+#include <string>
 #include <iostream>
 #include <stdio.h>
-
-using namespace std;
-
-#include "dns.hh"
 #include "arguments.hh"
 #include "zoneparser.hh"
 #include "bindparser.hh"
 #include "statbag.hh"
 #include "misc.hh"
+#include "dns.hh"
+
+
+using std::map;
+using std::string;
+using std::vector;
 
 
 
 StatBag S;
 ArgvMap args;
+bool g_dnsttl;
 string g_basedn;
 string g_zonename;
 map<string,bool> g_objects;
-map<string,bool> g_nodes;
 
 
-static void callback_list( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
+
+static void callback_simple( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
 {
 	string host;
+	string::size_type pos;
 	vector<string> parts;
 	string domain2 = ZoneParser::canonic( domain );
-	string content2 = ZoneParser::canonic( content );
 
 
-	host = domain2.substr( 0, domain2.rfind( g_zonename ) );
-	host = ZoneParser::canonic( host );
+	if( ( pos = domain2.rfind( g_zonename ) ) == string::npos )
+	{
+		cerr << "Domain " << domain2 << " not part of " << g_zonename << endl;
+		return;
+	}
+
+	host = ZoneParser::canonic( domain2.substr( 0, pos ) );
 
 	cout << "dn: dc=";
 	if( !host.empty() ) { cout << host << ",dc="; }
@@ -62,13 +70,14 @@ static void callback_list( unsigned int domain_id, const string &domain, const s
 	if( !g_objects[domain2] )
 	{
 		g_objects[domain2] = true;
+
 		cout << "changetype: add" << endl;
 		cout << "objectclass: top" << endl;
 		if( domain2 == g_zonename ) { cout << "objectclass: dcobject" << endl; }   // only necessary for phpgeneral
 		cout << "objectclass: dnsdomain2" << endl;
 		cout << "objectclass: domainrelatedobject" << endl;
 		cout << "dc: " << host << endl;
-		cout << "dnsttl: " << ttl << endl;
+		if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
 		cout << "associateddomain: " << domain2 << endl;
 	}
 	else
@@ -78,72 +87,55 @@ static void callback_list( unsigned int domain_id, const string &domain, const s
 
 	cout << qtype << "Record: ";
 	if( prio != 0 ) { cout << prio << " "; }
-	cout << content2 << endl << endl;
+	cout << ZoneParser::canonic( content ) << endl << endl;
 }
+
 
 
 static void callback_tree( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
 {
-	string subnet, net;
-	vector<string> parts, subparts;
-	vector<string>::const_iterator i, j;
+	unsigned int i;
+	string dn, net;
+	vector<string> parts;
 	string domain2 = ZoneParser::canonic( domain );
-	string content2 = ZoneParser::canonic( content );
 
+	stringtok( parts, domain2, "." );
+	if( parts.empty() ) { return; }
 
-	subnet = domain2.substr( 0, domain2.rfind( g_zonename ) );
-	subnet = ZoneParser::canonic( subnet );
-	stringtok( parts, g_zonename, "." );
-	stringtok( subparts, subnet, "." );
-	net = g_zonename;
-
-	j = subparts.end();
-	while( --j != subparts.begin() )
+	for( i = parts.size() - 1; i > 0; i-- )
 	{
-		net = *j + "." + net;
-		if( !g_nodes[net] )
-		{
-			g_nodes[net] = true;
-			cout << "dn: ";
-			for( i = j; i != subparts.end(); i++ )
-			{
-				cout << "dc=" << *i << ",";
-			}
-			for( i = parts.begin(); i != parts.end(); i++ )
-			{
-				cout << "dc=" << *i << ",";
-			}
-			cout << g_basedn << endl;
+		net = parts[i] + net;
+		dn = "dc=" + parts[i] + "," + dn;
 
+		if( !g_objects[net] )
+		{
+			g_objects[net] = true;
+
+			cout << "dn: " << dn << g_basedn << endl;
 			cout << "changetype: add" << endl;
 			cout << "objectclass: top" << endl;
 			cout << "objectclass: dcobject" << endl;
 			cout << "objectclass: domainrelatedobject" << endl;
-			cout << "dc: " << *j << endl;
+			cout << "dc: " << parts[i] << endl;
 			cout << "associateddomain: " << net << endl << endl;
 		}
+
+		net = "." + net;
 	}
 
-	parts.clear();
-	stringtok( parts, domain2, "." );
-
-	cout << "dn: ";
-	for( i = parts.begin(); i != parts.end(); i++ )
-	{
-		cout << "dc=" << *i << ",";
-	}
-	cout << g_basedn << endl;
+	cout << "dn: " << "dc=" << parts[0] << "," << dn << g_basedn << endl;
 
 	if( !g_objects[domain2] )
 	{
 		g_objects[domain2] = true;
+
 		cout << "changetype: add" << endl;
 		cout << "objectclass: top" << endl;
 		if( domain2 == g_zonename ) { cout << "objectclass: dcobject" << endl; }   // only necessary for phpgeneral
 		cout << "objectclass: dnsdomain2" << endl;
 		cout << "objectclass: domainrelatedobject" << endl;
 		cout << "dc: " << parts[0] << endl;
-		cout << "dnsttl: " << ttl << endl;
+		if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
 		cout << "associateddomain: " << domain2 << endl;
 	}
 	else
@@ -153,8 +145,9 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
 
 	cout << qtype << "Record: ";
 	if( prio != 0 ) { cout << prio << " "; }
-	cout << content2 << endl << endl;
+	cout << ZoneParser::canonic( content ) << endl << endl;
 }
+
 
 
 int main( int argc, char* argv[] )
@@ -173,11 +166,12 @@ int main( int argc, char* argv[] )
 		args.setCmd( "help", "Provide a helpful message" );
 		args.setSwitch( "verbose", "Verbose comments on operation" ) = "no";
 		args.setSwitch( "resume", "Continue after errors" ) = "no";
+		args.setSwitch( "dnsttl", "Add dnsttl attribute to every entry" ) = "no";
 		args.set( "named-conf", "Bind 8 named.conf to parse" ) = "";
 		args.set( "zone-file", "Zone file to parse" ) = "";
 		args.set( "zone-name", "Specify a zone name if zone is set" ) = "";
-		args.set( "basedn", "Base DN to store objects below" ) = "dc=example,dc=org";
-		args.set( "layout", "Arrange entries as list or tree" ) = "tree";
+		args.set( "basedn", "Base DN to store objects below" ) = "ou=hosts,o=mycompany,c=de";
+		args.set( "layout", "How to arrange entries in the directory (simple or as tree)" ) = "simple";
 
 		args.parse( argc, argv );
 
@@ -189,10 +183,12 @@ int main( int argc, char* argv[] )
 		}
 
 		g_basedn = args["basedn"];
-		ZP.setCallback( &callback_tree );
-		if( args["layout"] == "list" )
+		g_dnsttl = args.mustDo( "dnsttl" );
+
+		ZP.setCallback( &callback_simple );
+		if( args["layout"] == "tree" )
 		{
-			ZP.setCallback( &callback_list );
+			ZP.setCallback( &callback_tree );
 		}
 
 		if( !args["named-conf"].empty() )
@@ -210,8 +206,6 @@ int main( int argc, char* argv[] )
 					{
 						cerr << "Parsing file: " << i->filename << ", domain: " << i->name << endl;
 						g_zonename = i->name;
-						g_nodes.clear();
-						g_objects.clear();
 						ZP.parse( i->filename, i->name, 0 );
 					}
 				}
@@ -233,8 +227,6 @@ int main( int argc, char* argv[] )
 					return 1;
 			}
 
-			g_nodes.clear();
-			g_objects.clear();
 			g_zonename = args["zone-name"];
 			ZP.setDirectory( "." );
 			ZP.parse( args["zone-file"], args["zone-name"], 0 );

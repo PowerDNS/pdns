@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.cc,v 1.7 2003/12/22 11:53:41 ahu Exp $ 
+// $Id: nameserver.cc,v 1.8 2004/01/16 22:18:12 ahu Exp $ 
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
@@ -191,8 +191,6 @@ UDPNameserver::UDPNameserver()
   if(arg()["local-address"].empty() && arg()["local-ipv6"].empty()) 
     L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;
     
-  extern StatBag S;
-  d_num_corrupt = S.getPointer( "corrupt-packets" );
 }
 
 void UDPNameserver::send(DNSPacket *p)

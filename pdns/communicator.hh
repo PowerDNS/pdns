@@ -94,7 +94,7 @@ public:
   
   time_t earliest()
   {
-    time_t early=1<<31-1; // y2038 problem lurking here :-)
+    time_t early=(1<<31)-1; // y2038 problem lurking here :-)
     for(d_nqueue_t::const_iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
       early=min(early,i->next);
     return early-time(0);

@@ -23,7 +23,7 @@ using namespace std;
 
 Logger &theL(const string &pname)
 {
-  static Logger l("");
+  static Logger l("", LOG_DAEMON);
   if(!pname.empty())
     l.setName(pname);
   return l;
@@ -42,11 +42,20 @@ void Logger::log(const string &msg, Urgency u)
     clog<<buffer;
     clog <<msg <<endl;
 
-    extern StatBag S;
-    S.ringAccount("logmessages",msg);
-    syslog(u,"%s",msg.c_str());
+   if( u <= d_loglevel )
+   {
+     extern StatBag S;
+     S.ringAccount("logmessages",msg);
+     syslog(u,"%s",msg.c_str());
+   }
   }
 }
+
+void Logger::setLoglevel( Urgency u )
+{
+ 	d_loglevel = u;
+}
+  
 
 void Logger::toConsole(Urgency u)
 {
