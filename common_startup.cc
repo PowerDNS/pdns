@@ -44,14 +44,15 @@ void declareArguments()
   arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="";
   arg().set("urlredirector","Where we send hosts to that need to be url redirected")="127.0.0.1";
   arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
-  arg().set("local-address","Local IP address to which we bind")="0.0.0.0";
+  arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0";
   arg().set("local-ipv6","Local IP address to which we bind")="";
   arg().set("query-local-address","Source IP address for sending queries")="";
   arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
   arg().set("soa-serial-offset","Make sure that no SOA serial is less than this number")="0";
-  arg().set("only-soa","Make sure that no SOA serial is less than this number")="org";
+
   arg().setCmd("help","Provide a helpful message");
-  arg().setCmd("config","Provide a helpful message");
+  arg().setCmd("version","Output version and compilation date");
+  arg().setCmd("config","Provide configuration file on standard output");
   arg().setCmd("list-modules","Lists all modules available");
   arg().setCmd("no-config","Don't parse configuration file");
   

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.9 2003/08/22 13:33:31 ahu Exp $
+// $Id: receiver.cc,v 1.10 2003/09/16 21:02:35 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -466,7 +466,13 @@ int main(int argc, char **argv)
     
     loadModules();
     BackendMakers().launch(arg()["launch"]); // vrooooom!
-      
+
+    if(arg().mustDo("version")) {
+      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__<<endl;
+      exit(99);
+    }
+
+    
     if(arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
       cerr<<arg().helpstring(arg()["help"])<<endl;

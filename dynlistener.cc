@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.5 2002/12/30 22:53:41 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.6 2003/09/16 21:02:35 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -62,7 +62,7 @@ DynListener::DynListener(const string &pname)
     d_s=socket(AF_UNIX,SOCK_STREAM,0);
 
     if(d_s<0) {
-      L<<Logger::Error<<"creating socket for dynlistener: "<<strerror(errno)<<endl;;
+      L<<Logger::Error<<"Creating socket for dynlistener: "<<strerror(errno)<<endl;;
       exit(1);
     }
 
@@ -87,7 +87,7 @@ DynListener::DynListener(const string &pname)
     strcpy(local.sun_path,socketname.c_str());
     
     if(bind(d_s, (sockaddr*)&local,sizeof(local))<0) {
-      L<<Logger::Critical<<"binding to dynlistener '"<<socketname<<"': "<<strerror(errno)<<endl;
+      L<<Logger::Critical<<"Binding to dynlistener '"<<socketname<<"': "<<strerror(errno)<<endl;
       exit(1);
     }
  

@@ -81,33 +81,21 @@ string & ArgvMap::setSwitch(const string &var, const string &help)
 }
 
 
-// FIXME XXX this is pretty ugly
 bool ArgvMap::contains(const string &var, const string &val)
 {
-  const string content(params[var]);
+	vector<string> parts;
+	vector<string>::const_iterator i;
 
-  if(content==val) // easy as pie
-    return true;
 
-  string part;
-  for(string::const_iterator i=content.begin();
-      i!=content.end();
-      i++)
-    {
-      if((*i==' ' || *i==',' || *i=='\t' || (i+1)==content.end()) && !part.empty())
+	stringtok( parts, params[var], ", \t" );
+	for( i = parts.begin(); i != parts.end(); i++ )
 	{
-	  if(i+1==content.end())
-	    part+=*i;
-
-	  if(part==val)
-	      return true;
-	  part="";
+		if( *i == val ) {
+			return true;
+		}
 	}
-      else
-	part+=*i;
-	
-    }
-  return false;
+
+	return false;
 }
 
 
