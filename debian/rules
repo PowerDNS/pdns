@@ -83,6 +83,7 @@ binary-main-prepare:
 
 	rm -f "$(tmpdir)"/usr/bin/binpatch
 	rm -f "$(tmpdir)"/usr/bin/xdb-fill
+	rm -f "$(tmpdir)"/usr/bin/zone2ldap
 	rm -rf "$(tmpdir)"/usr/lib
 
 	strip --remove-section=.comment --remove-section=.note \

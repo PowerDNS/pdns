@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.cc,v 1.5 2003/03/13 12:45:30 ahu Exp $ 
+// $Id: pdnsbackend.cc,v 1.6 2003/08/22 13:33:31 ahu Exp $ 
 
 #include <string>
 #include <map>
@@ -128,7 +128,7 @@ void PdnsBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   this->Query(query);
 }
 
-bool PdnsBackend::list(int inZoneId)
+bool PdnsBackend::list(const string &target, int inZoneId)
 {
    //cout << "PdnsBackend::list" << endl;
 

@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.8 2003/06/21 09:59:08 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.9 2003/08/22 13:33:31 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -133,7 +133,6 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     DomainInfo sd;
     sd.id=atol(d_result[n][0].c_str());
     sd.zone=d_result[n][1];
-    cout<<"master='"<<d_result[n][2]<<"'"<<endl;
     sd.master=d_result[n][2];
     sd.last_check=atol(d_result[n][3].c_str());
     sd.backend=this;
@@ -300,7 +299,7 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   d_qtype=qtype;
   d_count=0;
 }
-bool GSQLBackend::list(int domain_id )
+bool GSQLBackend::list(const string &target, int domain_id )
 {
   DLOG(L<<"GSQLBackend constructing handle for list of domain id'"<<domain_id<<"'"<<endl);
 

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.8 2003/03/06 16:59:11 ahu Exp $
+// $Id: receiver.cc,v 1.9 2003/08/22 13:33:31 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -155,6 +155,9 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
 {
   kill(cpid,SIGKILL); // why?
+  kill(cpid,SIGKILL); // why?
+  
+  sleep(1);
   return "ok";
 }
 

@@ -1,4 +1,4 @@
-// $Id: mysqlcbackend.cc,v 1.3 2003/01/06 16:13:59 ahu Exp $ 
+// $Id: mysqlcbackend.cc,v 1.4 2003/08/22 13:33:31 ahu Exp $ 
 #include <string>
 #include <map>
 #include <unistd.h>
@@ -103,7 +103,7 @@ void MySQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   d_qtype=qtype;
 }
 
-bool MySQLBackend::list(int domain_id )
+bool MySQLBackend::list(const string &target, int domain_id )
 {
   DLOG(L<<backendName<<" MySQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 

@@ -1,39 +1,38 @@
 pdns (2.9.11-1) unstable; urgency=low
 
-  * fill in the blanks
+  * New upstream release
+  * Do not include zone2ldap in pdns package. Closes: Bug#198613
+  * The gdbm-dev seems to have changed its name, update Build-Depends
+    accordingly. Closes: Bug#199595
 
- -- Wichert Akkerman <wakkerma@debian.org>  Sat, 5 Jul 2003 20:16:16 +0100
-
-pdns (2.9.10-1) unstable; urgency=low
-
-  * fill in the blanks
-
- -- Wichert Akkerman <wakkerma@debian.org>  Thu, 3 Jul 2003 20:16:16 +0100
-
-pdns (2.9.9-1) unstable; urgency=low
-
-  * fill in the blanks
-
- -- Wichert Akkerman <wakkerma@debian.org>  Thu, 27 May 2003 20:16:16 +0100
-
+ -- Wichert Akkerman <wakkerma@debian.org>  Mon, 14 Jul 2003 13:52:47 +0200
 
 pdns (2.9.8-1) unstable; urgency=low
 
-  * fill in the blanks
+  * New upstream release. Closes: Bug#187781
 
- -- Wichert Akkerman <wakkerma@debian.org>  Thu, 30 Apr 2003 20:16:16 +0100
+ -- Wichert Akkerman <wakkerma@debian.org>  Mon,  5 May 2003 13:43:16 +0200
 
 pdns (2.9.7-1) unstable; urgency=low
 
-  * fill in the blanks
+  * New upstream release. Closes: Bug#185730
 
- -- Wichert Akkerman <wakkerma@debian.org>  Thu, 14 Mar 2003 20:16:16 +0100
+ -- Wichert Akkerman <wakkerma@debian.org>  Fri, 21 Mar 2003 12:53:00 +0100
+
+pdns (2.9.6-2) unstable; urgency=low
+
+  * Enable the recursing nameserver
+  * Change order of things in clean target so debian/files is properly
+    removed. Closes: Bug#181994
+
+ -- Wichert Akkerman <wakkerma@debian.org>  Sun, 23 Feb 2003 12:34:57 +0100
 
 pdns (2.9.6-1) unstable; urgency=low
 
-  * fill in the blanks
+  * New upstream release, adding a new LDAP backend
 
- -- Wichert Akkerman <wakkerma@debian.org>  Fri, 14 Feb 2003 20:16:16 +0100
+ -- Wichert Akkerman <wakkerma@debian.org>  Sun, 16 Feb 2003 14:49:08 +0100
+
 
 pdns (2.9.5-1) unstable; urgency=low
 
@@ -88,3 +87,4 @@ pdns (2.9-1) unstable; urgency=low
   * Initial packaging
 
  -- Wichert Akkerman <wakkerma@debian.org>  Sun,  1 Dec 2002 15:04:52 +0100
+

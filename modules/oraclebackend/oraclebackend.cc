@@ -1,4 +1,4 @@
-// $Id: oraclebackend.cc,v 1.1 2002/11/27 15:35:52 ahu Exp $
+// $Id: oraclebackend.cc,v 1.2 2003/08/22 13:33:31 ahu Exp $
 
 #include <string>
 #include <map>
@@ -375,7 +375,7 @@ void OracleBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pk
    }
 }
 
-bool OracleBackend::list(int domain_id)
+bool OracleBackend::list(const string &target, int domain_id)
 {
    mQueryId = domain_id;
 

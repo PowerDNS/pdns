@@ -1,6 +1,6 @@
 // -*- sateh-c -*- 
 // File    : pdnsbackend.cc
-// Version : $Id: pipebackend.cc,v 1.4 2002/12/16 13:04:27 ahu Exp $ 
+// Version : $Id: pipebackend.cc,v 1.5 2003/08/22 13:33:31 ahu Exp $ 
 //
 
 #include <string>
@@ -118,7 +118,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
    d_qname=qname;
 }
 
-bool PipeBackend::list(int inZoneId)
+bool PipeBackend::list(const string &target, int inZoneId)
 {
    try {
       d_disavow=false;

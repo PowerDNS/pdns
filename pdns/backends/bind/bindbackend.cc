@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.15 2003/02/10 11:09:09 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.16 2003/08/22 13:33:31 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -756,7 +756,7 @@ bool BindBackend::handle::get_normal(DNSResourceRecord &r)
   return true;
 }
 
-bool BindBackend::list(int id)
+bool BindBackend::list(const string &target, int id)
 {
   if(!d_zone_id_map.count(id))
     return false;

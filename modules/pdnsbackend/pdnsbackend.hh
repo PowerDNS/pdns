@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.hh,v 1.4 2003/03/13 12:45:30 ahu Exp $
+// $Id: pdnsbackend.hh,v 1.5 2003/08/22 13:33:31 ahu Exp $
 
 #ifndef PDNSBACKEND_HH
 #define PDNSBACKEND_HH
@@ -18,7 +18,7 @@ class PdnsBackend : public DNSBackend
       ~PdnsBackend();
 
       void lookup(const QType &, const string &qdomain, DNSPacket *p = 0, int zoneId = -1);
-      bool list(int inZoneId);
+      bool list(const string &target, int inZoneId);
       bool get(DNSResourceRecord& outRecord);
       bool getSOA(const string &name, SOAData &soadata);
 

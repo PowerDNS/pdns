@@ -48,6 +48,7 @@ using namespace std;
 static string backendname="[LdapBackend]";
 
 static char* attrany[] = {
+	"associatedDomain",
 	"dNSTTL",
 	"aRecord",
 	"nSRecord",
@@ -72,10 +73,17 @@ private:
 
 	int m_msgid;
 	u_int32_t m_ttl;
+	u_int32_t m_default_ttl;
 	QType m_qtype;
 	string m_qname;
 	PowerLDAP* m_pldap;
 	PowerLDAP::sentry_t m_result;
+	PowerLDAP::sentry_t::iterator m_attribute;
+	vector<string>::iterator m_value, m_adomain;
+	vector<string> m_adomains;
+
+	bool prepSearchEntry();
+	bool makePtrRecords();
 
 public:
 
@@ -83,7 +91,7 @@ public:
 	~LdapBackend();
 
 	void lookup( const QType &qtype, const string &qdomain, DNSPacket *p=0, int zoneid=-1 );
-	bool list( int domain_id );
+	bool list( const string &target, int domain_id );
 	bool get( DNSResourceRecord &rr );
 };
 

@@ -23,7 +23,7 @@ public:
   
   string sqlEscape(const string &name);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(int domain_id);
+  bool list(const string &target, int domain_id);
   bool get(DNSResourceRecord &r);
   bool isMaster(const string &domain, const string &ip);
 

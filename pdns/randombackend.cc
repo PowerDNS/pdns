@@ -34,7 +34,7 @@ public:
     d_ourname=getArg("hostname");
   }
 
-  bool list(int id) {
+  bool list(const string &target, int id) {
     return false; // we don't support AXFR
   }
     

@@ -1,7 +1,10 @@
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache
+	- pdns_recursor writes its pid to disk now (FreeBSD port maintainer)
 	- disable-axfr check was reversed (oops)
-	- LDAP now has infrastructure for AXFR (Norbert Sendetzky)
+	- LDAP now supports AXFR and a default TTL
+	- some debugging output messed up the working of pdns_control (Mark Bergsma)
+	- updates to axfr --help output (Norbert Sendetzky)
 	
 Changes since 2.9.8:
 	- fixed a crash when adding additional records
