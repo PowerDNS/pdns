@@ -3,12 +3,29 @@ Section: net
 Priority: extra
 Standards-Version: 3.5.8
 Maintainer: Wichert Akkerman <wakkerma@debian.org>
-Build-Depends: automake1.5, autoconf, libtool, flex, bison, docbook-utils, libmysqlclient10-dev, libstdc++-dev
+Build-Depends: automake1.5, autoconf, libtool, flex, bison, docbook-utils, libmysqlclient10-dev, postgresql-dev, libstdc++-dev
 
 Package: pdns
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, pdns-backend-bind | pdns-backend
 Description: extremely powerful and versatile nameserver
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
  databases and load balancing/failover algorithms.
+
+Package: pdns-backend-bind
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: bind backend for pDNS
+ This package contains the bind backend for the PowerDNS nameserver. This
+ allows pDNS to use the configuration and zone files from the ISC bind
+ nameserver.
+
+Package: pdns-backend-mysql
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: MySQL backend for pDNS
+ This package contains a MySQL backend for the PowerDNS nameserver.
+

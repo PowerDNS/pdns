@@ -1,10 +1,11 @@
 #!/usr/bin/make -f
 
 tmpdir		:= $(shell pwd)/debian/tmp
+backends	:= bind mysql
 
 clean:
 	rm -f debian/files debian/substvars stamp-build
-	rm -rf "$(tmpdir)"
+	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 	-make distclean
 	-make -C pdns/docs clean
 
@@ -17,7 +18,10 @@ stamp-build build: configure
 		--libexecdir='$${prefix}/lib' \
 		--sysconfdir=/etc \
 		--infodir='$${datadir}/info' \
-		--mandir='$${datadir}/man'
+		--mandir='$${datadir}/man' \
+		--enable-pgsql \
+		--enable-mysql \
+		--with-modules="mysql pgmysql"
 	make
 	make -C pdns/docs html/index.html
 	touch stamp-build
@@ -29,7 +33,7 @@ binary-indep:
 
 binary-arch: stamp-build
 	rm -f debian/files debian/substvars
-	rm -rf "$(tmpdir)"
+	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 
 	install -d -m 755 -o root -g root "$(tmpdir)"
 	make DESTDIR="$(tmpdir)" install
@@ -66,9 +70,27 @@ binary-arch: stamp-build
 	install -p -m 644 -o root -g root debian/copyright \
 			"$(tmpdir)"/usr/share/doc/pdns/
 	
-	install -d -m 755 -o root -g root "$(tmpdir)"/usr/share/lintian/overrides
-	install -p -m 644 -o root -g root debian/lintian-overrides \
-			"$(tmpdir)"/usr/share/lintian/overrides/pdns
+	set -e ; for be in $(backends) ; do \
+		rm -f debian/substvars ; \
+		pkg=pdns-backend-$$be ; \
+		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/lib ; \
+		mv "$(tmpdir)"/usr/lib/*$$be* "$(tmpdir)"-$$be/usr/lib/ ; \
+		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/share/doc ; \
+		ln -s pdns "$(tmpdir)"-$$be/usr/share/doc/$$pkg ; \
+		\
+		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/share/lintian/overrides ; \
+		install -p -m 644 -o root -g root debian/$$pkg.lintian \
+				"$(tmpdir)"-$$be/usr/share/lintian/overrides/$$pkg ; \
+		\
+		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/DEBIAN ; \
+		install -p -m 755 -o root -g root debian/pdns-backend-general.postinst \
+			"$(tmpdir)"-$$be/DEBIAN/postinst ; \
+		install -p -m 755 -o root -g root debian/pdns-backend-general.postrm \
+			"$(tmpdir)"-$$be/DEBIAN/postrm ; \
+		dpkg-shlibdeps "$(tmpdir)"-$$be/usr/lib/*.so ; \
+		dpkg-gencontrol -isp -p$$pkg -P"$(tmpdir)"-$$be ; \
+		dpkg --build "$(tmpdir)"-$$be .. ; \
+	done
 
 	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
 	install -p -m 755 -o root -g root debian/prerm "$(tmpdir)"/DEBIAN/
@@ -78,10 +100,9 @@ binary-arch: stamp-build
 
 	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
 		"$(tmpdir)"/usr/bin/pdns_server \
-		"$(tmpdir)"/usr/bin/pdns_control \
-		"$(tmpdir)"/usr/lib/*.so
+		"$(tmpdir)"/usr/bin/pdns_control
 
-	dpkg-gencontrol -isp
+	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
 	dpkg --build "$(tmpdir)" ..
 
 .PHONY: clean build binary binary-arch binary-indep

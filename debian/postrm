@@ -7,9 +7,7 @@ update_init() {
 }
 
 
-if [ "$1" = "remove" ] ; then
-	ldconfig
-elif [ "$1" = "purge" ] ; then
+if [ "$1" = "purge" ] ; then
 	update_init
 fi
 
