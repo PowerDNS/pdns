@@ -472,6 +472,11 @@ int main(int argc, char **argv)
     loadModules();
     BackendMakers().launch(arg()["launch"]); // vrooooom!
 
+    if(!arg().getCommands().empty()) {
+      cerr<<"Fatal: non-option on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
+      exit(99);
+    }
+
     if(arg().mustDo("version")) {
       cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__<<endl;
       exit(99);
@@ -559,7 +564,7 @@ int main(int argc, char **argv)
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
   
-  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2004 PowerDNS.COM BV ("<<__DATE__", "__TIME__<<") starting up"<<endl;
+  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2005 PowerDNS.COM BV ("<<__DATE__", "__TIME__<<") starting up"<<endl;
 
   L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
