@@ -332,7 +332,7 @@ inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &p
 	if(!((i-rnameservers.begin())%4))
 	  L<<endl<<Logger::Warning<<prefix<<"             ";
       }
-      L<<*i<<"(" << speeds[*i]/1000.0 <<"ms)";
+      L<<*i<<"(" << (int)(speeds[*i]/1000.0) <<"ms)";
     }
     L<<endl;
   }

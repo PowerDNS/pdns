@@ -120,6 +120,7 @@ private:
 template<class Answer, class Question, class Backend>Distributor<Answer,Question,Backend>::Distributor(int n)
 {
   b=0;
+  nextid=0;
   d_idle_threads=0;
   d_last_started=time(0);
 //  sem_init(&numquestions,0,0);

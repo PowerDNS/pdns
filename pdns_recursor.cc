@@ -131,7 +131,8 @@ static void writePid(void)
 void primeHints(void)
 {
   // prime root cache
-  static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
+
+  static char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
 		     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   DNSResourceRecord arr, nsrr;
   arr.qtype=QType::A;
@@ -345,7 +346,7 @@ void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate, last_prune;
 
-  if(time(0)-last_stat>30) { 
+  if(time(0)-last_stat>60) { 
     RC.doPrune();
     last_prune=time(0);
   }
@@ -446,6 +447,7 @@ int main(int argc, char **argv)
 #endif
 
     vector<TCPConnection> tcpconnections;
+    counter=0;
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
       

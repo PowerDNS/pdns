@@ -254,7 +254,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
     return true;
   }
   if(!d_zombiesQueue.empty()) {
-    delete (char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp;
+    delete[] (char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp;
     delete d_threads[d_zombiesQueue.front()];
     d_threads.erase(d_zombiesQueue.front());
     d_zombiesQueue.pop();

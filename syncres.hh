@@ -23,6 +23,67 @@ struct NegCacheEntry
   time_t ttd;
 };
 
+
+template<class Thing> class Throttle
+{
+public:
+  Throttle()
+  {
+    d_limit=3;
+    d_ttl=60;
+    d_last_clean=time(0);
+  }
+  bool shouldThrottle(const Thing& t)
+  {
+    time_t now=time(0);
+    if(now > d_last_clean + 60 ) {
+      d_last_clean=now;
+      for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) 
+	if( i->second.ttd > now) {
+	  d_cont.erase(i++);
+	}
+	else
+	  ++i;
+    }
+
+      
+
+    typename cont_t::iterator i=d_cont.find(t);
+    if(i==d_cont.end())
+      return false;
+    if(time(0) > i->second.ttd || i->second.count-- < 0){
+      d_cont.erase(i);
+      return true;
+    }
+  }
+  void throttle(const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
+  {
+    typename cont_t::iterator i=d_cont.find(t);
+    entry e={ time_t(0)+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
+    if(i==d_cont.end()) {
+
+      d_cont[t]=e;
+    } else { 
+      if(i->ttd > e.ttd || i->count < e.count) // more restrictive
+	d_cont[t]=e;
+    }
+  }
+private:
+  int d_limit;
+  int d_ttl;
+  time_t d_last_clean;
+  struct entry 
+  {
+    time_t ttd;
+    int count;
+  };
+  typedef map<Thing,entry> cont_t;
+  cont_t d_cont;
+};
+
+
+#if 0
+
 template<class Thing> class Throttle
 {
 public:
@@ -64,7 +125,7 @@ private:
   typedef deque<entry> cont_t;
   cont_t d_dq;
 };
-
+#endif
 
 /** Class that implements a decaying EWMA.
     This class keeps an exponentially weigthed moving average which, additionally, decays over time.
@@ -73,7 +134,7 @@ private:
 class DecayingEwma
 {
 public:
-  DecayingEwma() : d_last(getTime()) , d_val(0.0) {}
+  DecayingEwma() : d_last(getTime()) , d_lastget(time(0)),  d_val(0.0) {}
   void submit(int val) 
   {
     double diff=d_last-getTime();
