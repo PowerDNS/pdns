@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.11 2004/01/16 22:18:12 ahu Exp $
+// $Id: receiver.cc,v 1.12 2004/10/24 12:08:01 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -97,11 +97,10 @@ void daemonize(void)
   
   setsid(); 
 
-  // cleanup open fds, but skip sockets 
-  close(0);
-  close(1);
-  close(2);
-
+  int i=open("/dev/null",O_RDWR); /* open stdin */
+  dup2(i,0); /* stdin */
+  dup2(i,1); /* stderr */
+  dup2(i,2); /* stderr */
 }
 
 
