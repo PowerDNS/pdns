@@ -23,6 +23,76 @@ void DNSPacket::addLOCRecord(const DNSResourceRecord &rr)
   addLOCRecord(rr.qname, rr.content, rr.ttl);
 }
 
+string DNSPacket::parseLOC(const unsigned char *p, unsigned int length)
+{
+  /*
+    MSB                                           LSB
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      0|        VERSION        |         SIZE          |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      2|       HORIZ PRE       |       VERT PRE        |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      4|                   LATITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      6|                   LATITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      8|                   LONGITUDE                   |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     10|                   LONGITUDE                   |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     12|                   ALTITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     14|                   ALTITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  */
+
+  struct RP
+  {
+    unsigned int version:8;
+    unsigned int size:8;
+    unsigned int horizpre:8;
+    unsigned int vertpre:8;
+  }rp;
+
+  rp=*(RP *)p;
+  char ret[256];
+
+  double latitude= (((p[4]<<24)  + (p[5]<<16)  +  (p[6]<<8) +  p[7])  - (1<<31))/3600000.0;
+  double longitude=(((p[8]<<24)  + (p[9]<<16)  + (p[10]<<8) + p[11])  - (1<<31))/3600000.0;
+  double altitude= (((p[12]<<24) + (p[13]<<16) + (p[14]<<8) + p[15])           )/100 - 100000;
+  
+  double size=0.01*((rp.size>>4)&0xf);
+  int count=rp.size&0xf;
+  while(count--)
+    size*=10;
+
+  double horizpre=0.01*((rp.horizpre>>4)&0xf);
+  count=rp.horizpre&0xf;
+  while(count--)
+    horizpre*=10;
+
+  double vertpre=0.01*((rp.vertpre>>4)&0xf);
+  count=rp.vertpre&0xf;
+  while(count--)
+    vertpre*=10;
+
+
+  double remlat=60.0*(latitude-(int)latitude);
+  double remlong=60.0*(longitude-(int)longitude);
+  snprintf(ret,sizeof(ret)-1,"%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm",
+	   abs((int)latitude), (int) ((latitude-(int)latitude)*60),
+	   (double)((remlat-(int)remlat)*60.0),
+	   latitude>0 ? 'N' : 'S',
+	   abs((int)longitude), (int) ((longitude-(int)longitude)*60),
+	   (double)((remlong-(int)remlong)*60.0),
+	   longitude>0 ? 'E' : 'W',
+	   altitude, size, horizpre, vertpre);
+
+
+  return ret;
+}
+
+
 static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
                                  1000000,10000000,100000000,1000000000};
 

@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/08 13:45:30 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/08 21:31:06 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,153 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-4"><title>Version 2.9.4</title>	
+	<para>
+	  Yet another grand release. Big news is the addition of a recursing nameserver which has sprung into existence
+	  over the past week. It is in use on several computers already but it is not ready for prime time. Complete integration
+	  with PowerDNS is expected around 2.9.5, for now the recursor is a separate program. 
+	</para>
+	<para>
+	  In preliminary tests, the recursor appears to be four times faster than BIND 9 on a naive benchmark starting from a cold cache. BIND 9
+	  managed to get through to some slower nameservers however, which were given up on by PowerDNS. We will continue to tune the recursor.
+	  See <xref linkend="built-in-recursor"> for further details.
+	</para>
+	<para>
+	  The BIND Backend has also been tested (see the <command>bind-domain-status</command> item below) rather heavily by several parties. After some
+	  discussion online, one of the BIND authors ventured that the newsgroup comp.protocols.dns.bind may now in fact be an appropriate venue
+	  for discussing PowerDNS. Since this discussion, traffic to the PowerDNS pages has increased sixfold and shows no signs of slowing down.
+	</para>
+	<para>
+	  From this, it is apparent that far more people are interested in PowerDNS than yet know about it. So spread the word!
+	</para>
+	<para>
+	  In other news, we now have a security page at <xref linkend="security-policy">.
+	</para>
+	<para>
+	  New features and improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		All SQL queries in the generic backends are now available for configuration. (Martin Klebermass/bert hubert).
+		See <xref linkend="generic-mypgsql-backends">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A recursing nameserver! See <xref linkend="built-in-recursor">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		An incoming AXFR now only starts a backend zone replacement transaction after the first record arrived successfully, thus making 
+		sure no work is done when a remote nameserver is unable/unwilling to AXFR a zone to us.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Zoneparser error messages were improved slightly (thanks to Stef van Dessel for spotting this shortcoming)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		XS4ALL's Erik Bos checked how PowerDNS reacted to a BIND installation with almost 60.000 domains, some of which
+		with >100.000 records, and he discovered the pdns_control <command>bind-domain-status</command> command
+		became very slow with larger numbers of domains. Fixed, 60.000 domains are now listed in under one second.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		If a remote nameserver disconnects during an incoming AXFR, the update is now rolled back, unless the AXFR was
+		properly terminated.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The migration chapter mentioned the use of deprecated backends.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  A tremendous number of bugs were discovered and fixed:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Zone parser would only accept $include and not $INCLUDE
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Zone parser had problems with $lines with comments on the end
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Wildcard ANY queries were broken (thanks Colemarcus for spotting this)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A connection failure with the Generic backends would lead to a powerdns reload (cast of many)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generic backends had some semantic problems with slave support. Symptoms were oft-repeated notifications
+		and transfers (thanks to Mark Bergsma for helping resolve this).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Solaris version compiles again. Thanks to Mohamed Lrhazi for reporting that it didn't.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some UltraSPARC alignment fixes. Thanks to Mohamed Lrhazi for being helpful in spotting these. 
+		One problem is still outstanding, Mohamed sent a core dump that tells us where the problem is. Expect the
+		fix to be in 2.9.5. Volunteers can grep the source for 'UltraSPARC' to find where the problem is.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Our support of IPv6 on FreeBSD had phase of moon dependent bugs, fixed by Peter van Dijk.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some crashes of and by pdns_control were fixed, thanks to Mark Bergsma for helping resolve these.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Outgoing AXFR in pdns installations with multiple loaded backends was broken (thanks to Stuart Walsh for reporting this).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A failed BIND Backend incoming AXFR would block the zone until it succeeded again.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generic PostgreSQL backend wouldn't compile with newer libpq++, fixed by Julien Lemoine/SpeedBlue.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Potential bug (not observed) when listening on multiple interfaces fixed.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some typos in manpages fixed (reported by Marco Davids).
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	</sect2>
+
       <sect2 id="changelog-2-9-3"><title>Version 2.9.3a</title>	
 	<para>
 	  <note><para>2.9.3a is identical to 2.9.3 except that zone2sql does work</para></note></para>
@@ -2522,6 +2669,27 @@ name         IN            A        1.2.3.4
 	</sect3>
       </sect2>
     </sect1>
+    <sect1 id="security-policy"><title>Security</title>
+      <para>
+	As of the 8th of January 2003, no actual security problems with PowerDNS 2.9.4 or later are known about. This page 
+	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
+	will also be sent to all PowerDNS mailinglists and BUGTRAQ.
+      </para>
+      <para>
+	All versions of PowerDNS before 2.9 are known to suffer from remote denial of service problems which can disrupt operation. Please upgrade
+	to 2.9.4 as this page will only contain detailed security information from 2.9.4 onwards.
+      </para>
+      <para>
+	If you have a security problem to report, please email us at both <email>powerdns@powerdns.com</email> and at
+	<email>ahu@ds9a.nl</email>. We adhere to the <ulink url="http://www.wiretrip.net/rfp/policy.html">Rain Forest Puppy
+	  Full Disclosure Policy (RFPolicy) v2.0</ulink> and we ask you to do the same.
+      </para>
+      <para>
+	We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. 
+	This license is included in the distribution and in this documentation, see <xref linkend="license">.
+      </para>
+    </sect1>
+      
     <sect1 id="thanks-to"><title>Acknowledgements</title>
       <para>
 	PowerDNS is grateful for the help of the following people or institutions:
@@ -3777,44 +3945,41 @@ local0.err                        /var/log/pdns.err
 	To restore pre-2.1 behaviour, specify <command>lazy-recursion=off</command>.
       </para>
     </sect1>
-    <sect1 id="built-in-recursor"><title>Highly experimental internal resolver</title>
+    <sect1 id="built-in-recursor"><title>Highly experimental internal resolver/recursing nameserver</title>
       <para>
-	As of 2.9.4, a very silly recursor comes with PowerDNS. It is absolutely useless, but it is included anyhow to see if there is interest.
-	Here are its current faults, so nobody can accuse us of false advertising:
+	As of 2.9.4, a small recursor comes with PowerDNS. The algorithm is influenced by the works of Dan J. Bernstein although
+	all mistakes are ours. Here are the current faults, so nobody can accuse us of false advertising:
 	<itemizedlist>
 	  <listitem><para>
 	      Only operates on the foreground, it does not fork.
 	    </para></listitem>
 	  <listitem><para>
-	      Does not do negative caching.
-	    </para></listitem>
-	  <listitem><para>
 	      Can only answer queries for types and classes it knows about - it is not transparent as it should be.
 	    </para></listitem>
 	  <listitem><para>
-	      Only ignores stale cache entries, does not actually clean them up.
-	    </para></listitem>
-	  <listitem><para>
-	      Otherwise, leaks memory like a sieve too.
+	      Only ignores stale cache entries, does not actually clean them up. May replace them with newer data, however.
 	    </para></listitem>
 	  <listitem><para>
 	      Not very IPv6 aware - does no AAAA additional processing.
 	    </para></listitem>
 	  <listitem><para>
 	      Only compiles on Linux and possibly Solaris. FreeBSD 4.x decided not to support the 
-	      POSIX get/set/swapcontext functions.
+	      POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
+	      or ask him to port MTasker (see below) to your operating system.
 	    </para></listitem>
 	</itemizedlist>
       </para>
       <para>
-	Still here? Ok. To compile, add <command>--enable-recursor</command> to configure and the file <filename>syncres</filename> will be 
+	To compile, add <command>--enable-recursor</command> to configure and the file <filename>syncres</filename> will be 
 	compiled. If you are lucky, that is. Send it queries like this: 
 	<command>dig ds9a.nl A @127.0.0.1 -p 5300</command>. To run on a different port, use <command>./syncres --local-port=53</command>.
+	To bind to another address, use the <command>local-address</command> setting.
       </para>
       <para>
 	<note>
 	  <para>
-	    PowerDNS author bert hubert has the pdns recursor in production and browsing with it works for him.
+	    PowerDNS author bert hubert has the pdns recursor in production and browsing with it works for him. Furthermore, the LARTC
+	    mailinglist (2000 subscribers) is using the pdns recursing nameserver.
 	  </para>
 	</note>
       </para>
@@ -3831,7 +3996,7 @@ local0.err                        /var/log/pdns.err
 	      Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
 	    </para></listitem>
 	  <listitem><para>
-	      Relies heavily on Standard C++ Library infrastructure, which makes for little code (560 lines).
+	      Relies heavily on Standard C++ Library infrastructure, which makes for little code (406 core lines).
 	    </para></listitem>
 	  <listitem><para>
 	      Is very verbose in showing how recursion actually works.
@@ -3843,8 +4008,7 @@ local0.err                        /var/log/pdns.err
       </para>
 	  
       <para>
-	We're unsure what to do with this. In theory, everything is there to make a great resolver out of this mess, except that it will (for now) 
-	not work on BSD and Windows. Let us know.
+	We've figured out how to integrate this progam into PowerDNS, which will happen around 2.9.5.
       </para>
     </sect1>
   </chapter>
@@ -7992,5 +8156,237 @@ static RandomLoader randomloader;
       
       </sect2>
     </sect1>
+  <appendix id="license"><title>PowerDNS license (GNU General Public License version 2)</title>
+    <para>
+      GNU GENERAL PUBLIC LICENSE
+      TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+    </para>
+    <para>
+
+  0. This License applies to any program or other work which contains
+a notice placed by the copyright holder saying it may be distributed
+under the terms of this General Public License.  The "Program", below,
+refers to any such program or work, and a "work based on the Program"
+means either the Program or any derivative work under copyright law:
+that is to say, a work containing the Program or a portion of it,
+either verbatim or with modifications and/or translated into another
+language.  (Hereinafter, translation is included without limitation in
+the term "modification".)  Each licensee is addressed as "you".
+</para><para>
+Activities other than copying, distribution and modification are not
+covered by this License; they are outside its scope.  The act of
+running the Program is not restricted, and the output from the Program
+is covered only if its contents constitute a work based on the
+Program (independent of having been made by running the Program).
+Whether that is true depends on what the Program does.
+</para><para>
+  1. You may copy and distribute verbatim copies of the Program's
+source code as you receive it, in any medium, provided that you
+conspicuously and appropriately publish on each copy an appropriate
+copyright notice and disclaimer of warranty; keep intact all the
+notices that refer to this License and to the absence of any warranty;
+and give any other recipients of the Program a copy of this License
+along with the Program.
+</para><para>
+You may charge a fee for the physical act of transferring a copy, and
+you may at your option offer warranty protection in exchange for a fee.
+</para><para>
+  2. You may modify your copy or copies of the Program or any portion
+of it, thus forming a work based on the Program, and copy and
+distribute such modifications or work under the terms of Section 1
+above, provided that you also meet all of these conditions:
+</para><para>
+    a) You must cause the modified files to carry prominent notices
+    stating that you changed the files and the date of any change.
+</para><para>
+    b) You must cause any work that you distribute or publish, that in
+    whole or in part contains or is derived from the Program or any
+    part thereof, to be licensed as a whole at no charge to all third
+    parties under the terms of this License.
+
+</para><para>
+    c) If the modified program normally reads commands interactively
+    when run, you must cause it, when started running for such
+    interactive use in the most ordinary way, to print or display an
+    announcement including an appropriate copyright notice and a
+    notice that there is no warranty (or else, saying that you provide
+    a warranty) and that users may redistribute the program under
+    these conditions, and telling the user how to view a copy of this
+    License.  (Exception: if the Program itself is interactive but
+    does not normally print such an announcement, your work based on
+    the Program is not required to print an announcement.)
+
+These requirements apply to the modified work as a whole.  If
+identifiable sections of that work are not derived from the Program,
+and can be reasonably considered independent and separate works in
+themselves, then this License, and its terms, do not apply to those
+sections when you distribute them as separate works.  But when you
+distribute the same sections as part of a whole which is a work based
+on the Program, the distribution of the whole must be on the terms of
+this License, whose permissions for other licensees extend to the
+entire whole, and thus to each and every part regardless of who wrote it.
+</para><para>
+Thus, it is not the intent of this section to claim rights or contest
+your rights to work written entirely by you; rather, the intent is to
+exercise the right to control the distribution of derivative or
+collective works based on the Program.
+</para><para>
+In addition, mere aggregation of another work not based on the Program
+with the Program (or with a work based on the Program) on a volume of
+a storage or distribution medium does not bring the other work under
+the scope of this License.
+</para><para>
+  3. You may copy and distribute the Program (or a work based on it,
+under Section 2) in object code or executable form under the terms of
+Sections 1 and 2 above provided that you also do one of the following:
+</para><para>
+    a) Accompany it with the complete corresponding machine-readable
+    source code, which must be distributed under the terms of Sections
+    1 and 2 above on a medium customarily used for software interchange; or,
+</para><para>
+    b) Accompany it with a written offer, valid for at least three
+    years, to give any third party, for a charge no more than your
+    cost of physically performing source distribution, a complete
+    machine-readable copy of the corresponding source code, to be
+    distributed under the terms of Sections 1 and 2 above on a medium
+    customarily used for software interchange; or,
+</para><para>
+
+    c) Accompany it with the information you received as to the offer
+    to distribute corresponding source code.  (This alternative is
+    allowed only for noncommercial distribution and only if you
+    received the program in object code or executable form with such
+    an offer, in accord with Subsection b above.)
+</para><para>
+The source code for a work means the preferred form of the work for
+making modifications to it.  For an executable work, complete source
+code means all the source code for all modules it contains, plus any
+associated interface definition files, plus the scripts used to
+control compilation and installation of the executable.  However, as a
+special exception, the source code distributed need not include
+anything that is normally distributed (in either source or binary
+form) with the major components (compiler, kernel, and so on) of the
+operating system on which the executable runs, unless that component
+itself accompanies the executable.
+</para><para>
+If distribution of executable or object code is made by offering
+access to copy from a designated place, then offering equivalent
+access to copy the source code from the same place counts as
+distribution of the source code, even though third parties are not
+compelled to copy the source along with the object code.
+
+  4. You may not copy, modify, sublicense, or distribute the Program
+except as expressly provided under this License.  Any attempt
+otherwise to copy, modify, sublicense or distribute the Program is
+void, and will automatically terminate your rights under this License.
+However, parties who have received copies, or rights, from you under
+this License will not have their licenses terminated so long as such
+parties remain in full compliance.
+</para><para>
+  5. You are not required to accept this License, since you have not
+signed it.  However, nothing else grants you permission to modify or
+distribute the Program or its derivative works.  These actions are
+prohibited by law if you do not accept this License.  Therefore, by
+modifying or distributing the Program (or any work based on the
+Program), you indicate your acceptance of this License to do so, and
+all its terms and conditions for copying, distributing or modifying
+the Program or works based on it.
+</para><para>
+  6. Each time you redistribute the Program (or any work based on the
+Program), the recipient automatically receives a license from the
+original licensor to copy, distribute or modify the Program subject to
+these terms and conditions.  You may not impose any further
+restrictions on the recipients' exercise of the rights granted herein.
+You are not responsible for enforcing compliance by third parties to
+this License.
+</para><para>
+  7. If, as a consequence of a court judgment or allegation of patent
+infringement or for any other reason (not limited to patent issues),
+conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot
+distribute so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you
+may not distribute the Program at all.  For example, if a patent
+license would not permit royalty-free redistribution of the Program by
+all those who receive copies directly or indirectly through you, then
+the only way you could satisfy both it and this License would be to
+refrain entirely from distribution of the Program.
+</para><para>
+If any portion of this section is held invalid or unenforceable under
+any particular circumstance, the balance of the section is intended to
+apply and the section as a whole is intended to apply in other
+circumstances.
+
+</para><para>
+It is not the purpose of this section to induce you to infringe any
+patents or other property right claims or to contest validity of any
+such claims; this section has the sole purpose of protecting the
+integrity of the free software distribution system, which is
+implemented by public license practices.  Many people have made
+generous contributions to the wide range of software distributed
+through that system in reliance on consistent application of that
+system; it is up to the author/donor to decide if he or she is willing
+to distribute software through any other system and a licensee cannot
+impose that choice.
+</para><para>
+This section is intended to make thoroughly clear what is believed to
+be a consequence of the rest of this License.
+
+  8. If the distribution and/or use of the Program is restricted in
+certain countries either by patents or by copyrighted interfaces, the
+original copyright holder who places the Program under this License
+may add an explicit geographical distribution limitation excluding
+those countries, so that distribution is permitted only in or among
+countries not thus excluded.  In such case, this License incorporates
+the limitation as if written in the body of this License.
+</para><para>
+  9. The Free Software Foundation may publish revised and/or new versions
+of the General Public License from time to time.  Such new versions will
+be similar in spirit to the present version, but may differ in detail to
+address new problems or concerns.
+</para><para>
+Each version is given a distinguishing version number.  If the Program
+specifies a version number of this License which applies to it and "any
+later version", you have the option of following the terms and conditions
+either of that version or of any later version published by the Free
+Software Foundation.  If the Program does not specify a version number of
+this License, you may choose any version ever published by the Free Software
+Foundation.
+</para><para>
+  10. If you wish to incorporate parts of the Program into other free
+programs whose distribution conditions are different, write to the author
+to ask for permission.  For software which is copyrighted by the Free
+Software Foundation, write to the Free Software Foundation; we sometimes
+make exceptions for this.  Our decision will be guided by the two goals
+of preserving the free status of all derivatives of our free software and
+of promoting the sharing and reuse of software generally.
+</para><para>
+			    NO WARRANTY
+</para><para>
+  11. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED
+OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE RISK AS
+TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE
+PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING,
+REPAIR OR CORRECTION.
+
+</para><para>
+  12. IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES,
+INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING
+OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
+TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
+YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+</para><para>
+		     END OF TERMS AND CONDITIONS
+      </para>
+  </appendix>
 
   </book>

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2003  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,19 +20,17 @@
 #include <map>
 #include <algorithm>
 #include <set>
-
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
-
 #include <utility>
-#include "statbag.hh"
+#include "misc.hh"
 #include "arguments.hh"
 #include "lwres.hh"
 
-
 typedef map<string,set<DNSResourceRecord> > cache_t;
 cache_t cache;
+map<string,string> negcache;
 
 /** dramatis personae */
 int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,int depth=0);
@@ -72,11 +70,11 @@ int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>
 
   set<string> nsset;
   subdomain=getBestNSNamesFromCache(subdomain,nsset,depth);
-  if(!doResolveAt(nsset,subdomain,qname,qtype,ret,depth))
+  if(!(res=doResolveAt(nsset,subdomain,qname,qtype,ret,depth)))
     return 0;
   
   cout<<prefix<<qname<<": failed"<<endl;
-  return RCode::ServFail;
+  return res<0 ? RCode::ServFail : res;
 }
 
 string getA(const string &qname, int depth=0)
@@ -92,22 +90,21 @@ string getA(const string &qname, int depth=0)
 
 void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth)
 {
-  string prefix;
+  string prefix, subdomain(qname);
   prefix.assign(3*depth, ' ');
-
   bestns.clear();
-
-  string subdomain(qname);
 
   do {
     cout<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
 
     cache_t::const_iterator j=cache.find(toLower(subdomain)+"|NS");
     if(j!=cache.end() && j->first==toLower(subdomain)+"|NS") {
-
       for(set<DNSResourceRecord>::const_iterator k=j->second.begin();k!=j->second.end();++k) {
-	if(k->ttl>(unsigned int)time(0)) {
-	  bestns.insert(*k);
+	if(k->ttl>(unsigned int)time(0)) { // the below is fugly
+	  if(!endsOn(k->content,qname) || (cache.find(toLower(k->content)+"|A")!=cache.end() && cache[toLower(k->content)+"|A"].begin()->ttl>time(0))) // glue risk
+	    bestns.insert(*k);
+	  else
+	    cout<<prefix<<qname<<": NS in cache for '"<<subdomain<<"' , but needs glue ("<<k->content<<") which we miss or is expired"<<endl;
 	}
       }
       if(!bestns.empty()) {
@@ -176,6 +173,14 @@ bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRec
   tuple=toLower(qname)+"|"+qtype.getName();
   cout<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"'"<<endl;
 
+  res=0;
+  map<string,string>::const_iterator ni=negcache.find(tuple);
+  if(ni!=negcache.end()) {
+    cout<<prefix<<qname<<": is negatively cached, will return immediately if we still have SOA to prove it"<<endl;
+    res=RCode::NXDomain;
+    tuple=ni->second+"|SOA";
+  }
+
   cache_t::const_iterator i=cache.find(tuple);
   bool found=false, expired=false;
   if(i!=cache.end() && i->first==tuple) { // found it
@@ -185,6 +190,8 @@ bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRec
       if(j->ttl>(unsigned int)time(0)) {
 	DNSResourceRecord rr=*j;
 	rr.ttl-=time(0);
+	if(res==RCode::NXDomain)
+	  rr.d_place=DNSResourceRecord::AUTHORITY;
 	ret.push_back(rr);
 	cout<<"[fresh] ";
 	found=true;
@@ -196,12 +203,10 @@ bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRec
     }
   
     cout<<endl;
-    if(found && !expired) {
-      res=0;
+    if(found && !expired) 
       return true;
-    }
     else
-      cout<<prefix<<qname<<": cache had no or only stale entries"<<endl;
+      cout<<prefix<<qname<<": cache had only stale entries"<<endl;
   }
   return false;
 }
@@ -246,10 +251,16 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 
     vector<string>rnameservers=shuffle(nameservers);
 
+    // what if we don't have an A for an NS anymore, but do have an NS for that NS?
+
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
 	cout<<prefix<<qname<<": Failed to resolve via any of the "<<rnameservers.size()<<" offered NS"<<endl;
 	return -1;
+      }
+      if(qname==*tns) {
+	cout<<prefix<<qname<<": Not using NS to resolve itself!"<<endl;
+	continue;
       }
       cout<<prefix<<qname<<": Trying to resolve NS "<<*tns<<endl;
       string remoteIP=getA(*tns, depth+1);
@@ -263,8 +274,14 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	cout<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
 	continue;
       }
+
+      if(r.d_rcode==RCode::ServFail) {
+	cout<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
+	continue;
+      }
       result=r.result(aabit);
-      cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<")"<<endl;
+      cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<r.d_rcode<<endl;
+
 
       cache_t tcache;
       // reap all answers from this packet that are acceptable
@@ -290,14 +307,15 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
       set<string> nsset;  
       cout<<prefix<<qname<<": determining status after receiving this packet"<<endl;
 
-      bool done=false, realreferral=false, negcache=false;
+      bool done=false, realreferral=false, negindic=false;
       string newauth;
 
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
 	if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA) {
 	  cout<<prefix<<qname<<": got negative caching indication"<<endl;
 	  ret.push_back(*i);
-	  negcache=true;
+	  negcache[toLower(qname)+"|"+qtype.getName()]=i->qname;
+	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
 	  cout<<prefix<<qname<<": got a CNAME referral, starting over with "<<i->content<<endl<<endl;
@@ -328,11 +346,11 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	return 0;
       }
       if(r.d_rcode==RCode::NXDomain) {
-	cout<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negcache ? "(have negative SOA)" : "")<<endl;
+	cout<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return RCode::NXDomain;
       }
       if(nsset.empty() && !r.d_rcode) {
-	cout<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negcache ? "(have negative SOA)" : "")<<endl;
+	cout<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return 0;
       }
       else if(realreferral) {

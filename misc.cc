@@ -85,11 +85,11 @@ bool chopOff(string &domain)
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
 bool endsOn(const string &domain, const string &suffix) 
 {
-  if(domain==suffix || suffix.empty())
+  if(toLower(domain)==toLower(suffix) || suffix.empty())
     return true;
   if(domain.size()<=suffix.size())
     return false;
-  return (domain.substr(domain.size()-suffix.size()-1,suffix.size()+1)=="."+suffix);
+  return (toLower(domain.substr(domain.size()-suffix.size()-1,suffix.size()+1))=="."+toLower(suffix));
 }
 
 
