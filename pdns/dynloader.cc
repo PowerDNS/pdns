@@ -127,6 +127,7 @@ int main(int argc, char **argv)
   }
   catch(AhuException &ae) {
     cerr<<"Fatal error: "<<ae.reason<<endl;
+    return 1;
   }
   return 0;
 }

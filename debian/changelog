@@ -1,3 +1,9 @@
+pdns (2.9.3-2) unstable; urgency=low
+
+  * blah
+
+ -- Wichert Akkerman <wakkerma@debian.org>  Fri, 13 Dec 2002 16:39:29 +0100
+
 pdns (2.9.2-1) unstable; urgency=low
 
   * New upstream release

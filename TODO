@@ -24,6 +24,7 @@ Medium size things:
 		- make sure its name can be changed and that everything
 			changes with it
 		- right now, bindbackend accepts out of zone records!
+		- bind backend does not do proper notifications!
 
 	- get PDNS into Red Hat 8.x 
 		needs very good RPMS 	

@@ -1,8 +1,9 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: spgsql.hh,v 1.1 2002/12/16 18:02:09 ahu Exp $  */
+   $Id: spgsql.hh,v 1.2 2002/12/19 20:15:55 ahu Exp $  */
 #ifndef SPGSQL_HH
 #define SPGSQL_HH
+#include <pg_config.h>
 #include <libpq++.h>
 #include "pdns/backends/gsql/ssql.hh"
 

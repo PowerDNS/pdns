@@ -42,6 +42,20 @@ binary-doc:
 	dpkg --build "$(tmpdir)" ..
 
 
+build-static stamp-build-static:
+	./configure \
+		--prefix=/usr \
+		--libexecdir='$${prefix}/lib' \
+		--libdir='$${prefix}/lib/powerdns' \
+		--sysconfdir=/etc/powerdns \
+		--infodir='$${datadir}/info' \
+		--mandir='$${datadir}/man' \
+		--with-modules="mysql gmysql gpgsql pipe pdns xdb" --with-dynmodules="" \
+		--enable-static-binaries --with-pgsql-lib=/opt/postgresql-with-3.2/lib/
+	make
+	touch stamp-build-static
+
+
 build stamp-build: configure
 	./configure \
 		--prefix=/usr \
@@ -56,7 +70,7 @@ build stamp-build: configure
 	touch stamp-build
 
 
-binary-main: stamp-build
+binary-main-prepare: 
 	rm -f debian/substvars
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 	install -d -m 755 -o root -g root "$(tmpdir)"
@@ -97,11 +111,17 @@ binary-main: stamp-build
 	install -p -m 644 -o root -g root debian/pdns.conffiles \
 			"$(tmpdir)"/DEBIAN/conffiles
 
+
+binary-main: stamp-build binary-main-prepare
+	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
+	dpkg --build "$(tmpdir)" ..
 	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
 		"$(tmpdir)"/usr/sbin/pdns_server \
 		"$(tmpdir)"/usr/bin/pdns_control
 
-	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
+
+binary-static: stamp-build-static binary-main-prepare
+	dpkg-gencontrol -isp -ppdns-static -P"$(tmpdir)"
 	dpkg --build "$(tmpdir)" ..
 
 
@@ -142,7 +162,7 @@ binary-indep: binary-doc
 binary-arch: binary-main binary-backend
 
 clean:
-	rm -f debian/files debian/substvars stamp-build
+	rm -f debian/files debian/substvars stamp-build stamp-build-static
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 	-make distclean
 	-make -C pdns/docs clean

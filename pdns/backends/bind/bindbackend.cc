@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.6 2002/12/19 16:20:14 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.7 2002/12/19 20:15:55 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -129,23 +129,36 @@ bool BindBackend::commitTransaction()
 
 bool BindBackend::feedRecord(const DNSResourceRecord &r)
 {
+  string qname=r.qname;
+  string domain=d_bbds[d_transaction_id].d_name;
+  if((r.qname.size()-toLower(r.qname).rfind(toLower(domain)))!=domain.size()) {   // XXX THIS CHECK IS WRONG! ds9a.nl != wuhds9a.nl!
+    throw DBException("out-of-zone data '"+r.qname+"' during AXFR of zone '"+domain+"'");
+  }
+  if(qname==domain)
+    qname="@";
+  else
+    qname.resize(qname.size()-domain.size()-1);
   switch(r.qtype.getCode()) {
   case QType::TXT:
-    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t\""<<r.content<<"\""<<endl;
+    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t\""<<r.content<<"\""<<endl;
     break;
   case QType::MX:
-    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<r.content<<"."<<endl;
+    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<r.content<<"."<<endl;
     break;
   case QType::CNAME:
   case QType::NS:
-    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<"."<<endl;
+    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<"."<<endl;
     break;
   default:
-    *d_of<<r.qname<<".\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<endl;
+    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<endl;
     break;
   }
 
   return true;
+}
+
+void BindBackend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
+{
 }
 
 void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)

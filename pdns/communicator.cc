@@ -85,6 +85,13 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     di.backend->setFresh(domain_id);
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed"<<endl;
   }
+  catch(DBException &re) {
+    L<<Logger::Error<<"Unable to feed record during incoming AXFR of '"+domain+"': "<<re.reason<<endl;
+    if(di.backend) {
+      L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      di.backend->abortTransaction();
+    }
+  }
   catch(ResolverException &re) {
     L<<Logger::Error<<"Unable to AXFR zone '"+domain+"': "<<re.reason<<endl;
     if(di.backend) {

@@ -170,6 +170,7 @@ class BindBackend : public DNSBackend
 public:
   BindBackend(const string &suffix=""); //!< Makes our connection to the database. Calls exit(1) if it fails.
   void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains);
+  void getUpdatedMasters(vector<DomainInfo> *changedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
   
