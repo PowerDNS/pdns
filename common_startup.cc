@@ -265,7 +265,7 @@ void mainthread()
   if(arg().mustDo("slave") || arg().mustDo("master"))
     Communicator.go(); 
 
-  //SRC=new SyncresCommunicator();
+  SRC=new SyncresCommunicator();
 
   if(TN)
     TN->go(); // tcp nameserver launch

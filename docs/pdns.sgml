@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/11 21:09:57 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/13 15:39:17 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3739,11 +3739,12 @@ local0.err                        /var/log/pdns.err
 	Zone2sql understands the Bind master file extension '$GENERATE' and will also honour '$ORIGIN' and '$TTL'.
       </para>
       <para>
-	For backends supporting slave operation (currently only the PostgreSQL backend), there is also an option to keep slave zones as slaves,
-	and not convert them to native operation. 
+	For backends supporting slave operation (currently only the Generic PostgreSQL, Generic MySQL and BIND backend), there is also an option to 
+	keep slave zones as slaves, and not convert them to native operation. 
       </para>
       <para>
-	By default, zone2sql outputs code suitable for the mysqlbackend, but it can also generate SQL for the Generic PostgreSQL and Oracle backends. 
+	By default, zone2sql outputs code suitable for the mysqlbackend, but it can also generate SQL for the Generic PostgreSQL, Generic MySQL and 
+	Oracle backends. 
 	The following commands are available:
       </para>
 
@@ -4676,6 +4677,70 @@ local0.err                        /var/log/pdns.err
     <para>
       This chapter contains a number of FAQs and HOWTOs.
     </para>
+    <sect1 id="pdns-help-faq"><title>Getting support, free and paid FAQ</title>
+      <para>
+	PowerDNS is an open source program so you may get help from the PowerDNS users' community or from its authors.
+	You may also help others (please do).
+      </para>
+      <para>
+	Some users may not have experience in interacting with developers or the open source community. This FAQ is to be considered MANDATORY READING
+	before asking us for help.
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term>Q: Help!</term>
+	  <listitem>
+	    <para>
+	      A: Please try harder. Specifically, before people will be able to help you, they need to know a lot about your system.
+	      Things you may find irrelevant. But, as you have a problem, you are not in a good position to know what is relevant and what not.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>Q: I have a question, what details should I supply?</term>
+	  <listitem>
+	    <para>
+	      A: Start out with stating what you think should be happening. Quite often, wrong expectations are the actual proble. 
+	      Furthermore, which database backend you use, your operating system, which version of PowerDNS you use and where you 
+	      got it from (RPM, .DEB, tar.gz). If you compiled it yourself, what were the ./configure parameters.
+	    </para>
+	    <para>
+	      In the Open Source community, not supplying vital details is interpreted as a lack of respect for those willing to take 
+	      time to answer your questions!
+	    </para>
+	    <para>
+	      If at *all* possible, supply the actual name of your domain and the IP address of your server(s).
+	    </para>
+	  </listitem>
+
+	</varlistentry>
+	<varlistentry>
+	  <term>Q: Where should I send my question?</term>
+	  <listitem>
+	    <para>
+	      A: To a mailinglist. Do not mail the authors directly unless you previously entered a support contract with them!
+	      For subscription details, see <ulink url="http://mailman.powerdns.com/mailman/admin/">the mailinglists page</ulink>.
+	    </para>
+	    <para>
+	      Questions about using PowerDNS should be sent to the pdns-users list, questions about compiler errors or feature requests
+	      to pdns-dev.
+	    </para>
+	    <para>
+	      Before posting, read all FAQs and tell people you did.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>Q: I'm special, I don't email to mailinglists!</term>
+	  <listitem>
+	    <para>
+	      We're special too, and we ask you to mail the mailinglists. If you need privacy, consider entering a support 
+	      relationship with us, in which case you can email <email>support@powerdns.com</email>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect1>
     <sect1 id="pdns-users-faq"><title>Using and Compiling PowerDNS FAQ</title>
       <para>
 	In the course of compiling and using PowerDNS, many questions may arise. Here are some we've heard earlier or questions 
@@ -4720,7 +4785,8 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		A: Reasons behind this are somewhat unclear but we hear they go away if you use a more recent compiler. Let us know
-		on <email>pdns-dev@mailman.powerdns.com</email>
+		on <email>pdns-dev@mailman.powerdns.com</email>. See also 
+		<ulink url="http://www.codeninja.nl/openbsd/powerdns/">here</ulink>.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -4769,6 +4835,24 @@ local0.err                        /var/log/pdns.err
 		A: As of 7.3, libpq++ has been split out of the main PostgreSQL distribution. See <ulink url="http://gborg.postgresql.org/">here</ulink>.
 		It would in fact be a great idea to move the gpgsql backend to the C interface instead of the C++ one. On Debian 'Sid', libpq++.so
 		hides in the libpqpp-dev package.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: PowerDNS crashes when I install the pdns-static .deb on Debian SID</term>
+	    <listitem>
+	      <para>
+		A: Indeed. Install the .debs that come with Debian or recompile PowerDNS yourself. If not using MySQL, the crashes
+		will go away if you remove setuid and setgid statements from the configuration.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: Why don't my slaves act on notifications and transfer my updated zone?</term>
+	    <listitem>
+	      <para>
+		A: Raise the serial number of your zone. In most backends, this is the first digit of the SOA contents field. If this number
+		is lower to equal to that on a slave, it will not consider your zone updated.
 	      </para>
 	    </listitem>
 	  </varlistentry>

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.hh,v 1.2 2003/01/07 23:31:28 ahu Exp $
+// $Id: nameserver.hh,v 1.3 2003/01/13 15:39:17 ahu Exp $
 #ifndef NAMESERVER_HH
 #define NAMESERVER_HH
 
@@ -75,7 +75,7 @@ class UDPNameserver
 public:
   UDPNameserver();  //!< Opens the socket
   inline DNSPacket *receive(DNSPacket *prefilled=0); //!< call this in a while or for(;;) loop to get packets
-  void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
+  static void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   
 private:
   vector<int> d_sockets;
