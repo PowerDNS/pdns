@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/04/30 18:18:32 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/06/28 16:46:01 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,57 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-9"><title>Version 2.9.9</title>	
+	<para>
+	  Small bugfixes, LDAP update. Released 21th of June 2003. Apologies for the long delay, real life keeps interfering.
+	</para>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		2.9.8 was prone to crash on adding additional records. Thanks to excelent debugging by PowerDNS users worldwide, the bug was found
+		quickly and is in fact present in all earlier PowerDNS releases, but for some reason doesn't cause crashes there.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Notifications now jump in front of the queue of domains that need to be checked for changes, giving much greater perceived performance.
+		This is needed if you have tens of thousands of slave domains and your master server is on a high latency link. Thanks to Mark Jeftovic
+		of EasyDNS for suggesting this change and testing it on their platform.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Dean Mills reported that PowerDNS does confusing logging about changing GIDs and UIDs, fixed. Cosmetic only.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP: DNS TTLs were random values (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP: Now works with OpenLDAP 2.1(Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP: error handling for invalid MX records implemented (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP: better exception handling (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP: code cleanup of lookup() (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	</itemizedlist>
+	</sect2>		
       <sect2 id="changelog-2-9-8"><title>Version 2.9.8</title>	
 	<para>
 	  Queen's day release! 30th of April 2003.

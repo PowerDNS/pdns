@@ -4,6 +4,11 @@ Changes since 2.9.8:
 		speedier updates (suggested by Mark Jeftovic of EasyDNS)
 
 	- gid/uid logging confusion (Dean Mills)
+	- DNS TTLs were random values
+	- OpenLDAP 2.1 fix
+	- Error handling for invalid MX records
+	- Better exception handling
+	- Rewritten lookup() code                                                     
 
 Changes since 2.9.7:
 	- NS queries for zones we are not authoritative about now get their NS

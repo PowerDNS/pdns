@@ -48,17 +48,18 @@ using namespace std;
 static string backendname="[LdapBackend]";
 
 static char* attrany[] = {
-	"ARecord",
-	"NSRecord",
-	"CNAMERecord",
-	"PTRRecord",
-	"MXRecord",
-	"TXTRecord",
-	"RPRecord",
-	"AAAARecord",
-	"LOCRecord",
-	"NAPTRRecord",
-	"AXFRRecord",
+	"dNSTTL",
+	"aRecord",
+	"nSRecord",
+	"cNAMERecord",
+	"pTRRecord",
+	"mXRecord",
+	"tXTRecord",
+	"rPRecord",
+	"aAAARecord",
+	"lOCRecord",
+	"nAPTRRecord",
+	"aXFRRecord",
 	NULL
 };
 
@@ -70,6 +71,7 @@ class LdapBackend : public DNSBackend
 private:
 
 	int m_msgid;
+	u_int32_t m_ttl;
 	QType m_qtype;
 	string m_qname;
 	PowerLDAP* m_pldap;
