@@ -218,7 +218,7 @@ const string unquotify(const string &item)
   if(item[epos-1]=='"')
     epos-=1;
 
-  return item.substr(bpos,epos);
+  return item.substr(bpos,epos-1);
 }
 
 void stripLine(string &line)
