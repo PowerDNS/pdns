@@ -6620,6 +6620,18 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>pipebackend-abi-version</term>
+	    <listitem>
+	      <para>
+		This is the version of the question format that is sent to the co-process (pipe-command) for the pipe backend.
+	      </para>
+	      <para>
+		If not set the default pipebackend-abi-version is 1. When set to 2, the local-ip-address field is added
+		after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on)
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	</variablelist>
       </para>
       
@@ -6669,11 +6681,20 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </varlistentry>
         </variablelist>
 The question format:
+
+pipebackend-abi-version = 1 [default]
 <screen>
-type	qname		qclass	qtype	id	ip-address
+type	qname		qclass	qtype	id	remote-ip-address
 </screen>
 
-Fields are tab separated, and terminated with a single \n. 
+pipebackend-abi-version = 2
+<screen>
+type	qname		qclass	qtype	id	remote-ip-address	local-ip-address
+</screen>
+
+Fields are tab separated, and terminated with a single \n. The remote-ip-address is the IP address
+of the nameserver asking the question; the local-ip-address is the IP address on which the question
+was received.
 
 Type is the tag above, qname is the domain the question is about. qclass is
 always 'IN' currently, denoting an INternet question. qtype is the kind of
@@ -6681,7 +6702,8 @@ information desired, the record type, like A, CNAME or AAAA. id can be
 specified to help your backend find an answer if the id is already known
 from an earlier query. You can ignore it.
 
-ip-address is the ip-address of the nameserver asking the question.
+remote-ip-address is the ip-address of the nameserver asking the question.
+local-ip-address is the ip-address that was querried locally.
       </para></sect3>
     <sect3><title>Answers</title>
       <para>
