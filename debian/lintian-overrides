@@ -1,0 +1,5 @@
+pdns: non-dev-pkg-with-shlib-symlink usr/lib/libmysqlbackend.so.0.0.0 usr/lib/libmysqlbackend.so
+pdns: non-dev-pkg-with-shlib-symlink usr/lib/libbindbackend.so.0.0.0 usr/lib/libbindbackend.so
+pdns: no-shlibs-control-file usr/lib/libmysqlbackend.so.0.0.0
+pdns: no-shlibs-control-file usr/lib/libbindbackend.so.0.0.0
+pdns: postrm-unsafe-ldconfig

@@ -1,0 +1,87 @@
+#!/usr/bin/make -f
+
+tmpdir		:= $(shell pwd)/debian/tmp
+
+clean:
+	rm -f debian/files debian/substvars
+	rm -rf "$(tmpdir)"
+	-make distclean
+	-make -C pdns/docs clean
+
+configure:
+	./bootstrap
+
+stamp-build build: configure
+	./configure \
+		--prefix=/usr \
+		--libexecdir='$${prefix}/lib' \
+		--sysconfdir=/etc \
+		--infodir='$${datadir}/info' \
+		--mandir='$${datadir}/man'
+	make
+	make -C pdns/docs html/index.html
+	touch stamp-build
+
+binary: binary-arch
+
+binary-indep:
+	@echo Nothing to do
+
+binary-arch: stamp-build
+	rm -f debian/files debian/substvars
+	rm -rf "$(tmpdir)"
+
+	install -d -m 755 -o root -g root "$(tmpdir)"
+	make DESTDIR="$(tmpdir)" install
+	rm -f "$(tmpdir)"/usr/bin/binpatch
+	strip --remove-section=.comment --remove-section=.note \
+		--strip-unneeded \
+		"$(tmpdir)"/usr/bin/zone2sql \
+		"$(tmpdir)"/usr/bin/pdns_server \
+		"$(tmpdir)"/usr/bin/pdns_control \
+		"$(tmpdir)"/usr/lib/*.so
+	chmod 644 "$(tmpdir)"/usr/lib/*
+	mv "$(tmpdir)"/etc/pdns.conf-dist "$(tmpdir)"/etc/pdns.conf
+
+	install -d -m 755 -o root -g root \
+		"$(tmpdir)"/usr/share/doc/pdns/html
+	set -e ; for i in pdns/docs/html/* ; do \
+		install -p -m 644 -o root -g root "$$i" \
+			"$(tmpdir)"/usr/share/doc/pdns/html/ ; \
+		done
+	
+	install -d -m 755 -o root -g root "$(tmpdir)"/etc/init.d
+	install -p -m 755 -o root -g root pdns/pdns \
+		"$(tmpdir)"/etc/init.d/pdns
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/usr/share/doc-base
+	install -p -m 644 -o root -g root debian/doc-base \
+			"$(tmpdir)"/usr/share/doc-base/pdns
+
+	install -p -m 644 -o root -g root ChangeLog \
+			"$(tmpdir)"/usr/share/doc/pdns/changelog
+	install -p -m 644 -o root -g root debian/changelog \
+			"$(tmpdir)"/usr/share/doc/pdns/changelog.Debian
+	gzip -9 "$(tmpdir)"/usr/share/doc/pdns/c*
+	install -p -m 644 -o root -g root debian/copyright \
+			"$(tmpdir)"/usr/share/doc/pdns/
+	
+	install -d -m 755 -o root -g root "$(tmpdir)"/usr/share/lintian/overrides
+	install -p -m 644 -o root -g root debian/lintian-overrides \
+			"$(tmpdir)"/usr/share/lintian/overrides/pdns
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
+	install -p -m 755 -o root -g root debian/prerm "$(tmpdir)"/DEBIAN/
+	install -p -m 755 -o root -g root debian/postrm "$(tmpdir)"/DEBIAN/
+	install -p -m 755 -o root -g root debian/postinst "$(tmpdir)"/DEBIAN/
+	install -p -m 644 -o root -g root debian/conffiles "$(tmpdir)"/DEBIAN/
+
+	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
+		"$(tmpdir)"/usr/bin/pdns_server \
+		"$(tmpdir)"/usr/bin/pdns_control \
+		"$(tmpdir)"/usr/lib/*.so
+
+	dpkg-gencontrol -isp
+	dpkg --build "$(tmpdir)" ..
+
+.PHONY: clean build binary binary-arch binary-indep

@@ -1,0 +1,5 @@
+pdns (2.9-1) unstable; urgency=low
+
+  * Initial packaging
+
+ -- Wichert Akkerman <wakkerma@debian.org>  Sun,  1 Dec 2002 15:04:52 +0100

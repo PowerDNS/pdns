@@ -1,0 +1,10 @@
+This is the Debian prepackaged version of pDNS, the PowerDNS
+nameserver.
+
+pDNS is copyright 2002 PowerDNS.COM BV and licensed under version
+2, or (at your option) any later version, of the GNU General Public
+License. On Debian systems you can find a copy of the GNU GPL in
+/usr/share/common-licenses/GPL.
+
+pDNS can be downloaded from http://www.powerdns.com/
+
