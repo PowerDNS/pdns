@@ -1,3 +1,5 @@
+PowerDNS is copyright 2002 by PowerDNS.COM BV
+
 To compile a very basic version, use:
 
 $ ./configure --with-modules=""
