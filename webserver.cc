@@ -185,6 +185,7 @@ void *WebServer::serveConnection(void *p)
   Session *client=static_cast<Session *>(p);
   try {
     string line;
+    client->setTimeout(5);
     client->getLine(line);
     stripLine(line);
     //    L<<"page: "<<line<<endl;
