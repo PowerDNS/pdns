@@ -74,7 +74,7 @@ public:
  
   void soaMagic(DNSResourceRecord *rr);
   DNSBackend *getBackend();
-  class DBException{};
+
 
 private:
   int doNotify(DNSPacket *);

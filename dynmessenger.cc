@@ -26,7 +26,7 @@
 
 DynMessenger::DynMessenger(const string &localdir, const string &fname)
 {
-  d_s=socket(AF_UNIX,SOCK_DGRAM,0);
+  d_s=socket(AF_UNIX,SOCK_STREAM,0);
   
   if(d_s<0) {
     throw AhuException(string("socket")+strerror(errno));
@@ -57,6 +57,9 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   
   d_remote.sun_family=AF_UNIX;
   strcpy(d_remote.sun_path,fname.c_str());
+  if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0) 
+    throw AhuException("Unable to connect to remote '"+fname+"': "+string(strerror(errno)));
+  
 }
 
 DynMessenger::~DynMessenger()
@@ -68,15 +71,11 @@ DynMessenger::~DynMessenger()
 
 int DynMessenger::send(const string &msg) const
 {
-  if(sendto(d_s,msg.c_str(),strlen(msg.c_str())+1,
-	    0,(struct sockaddr *)&(d_remote),
-	    sizeof(d_remote))<0)
-    {
-      perror("sendto");
-      return -1;
-    }
+  if(::send(d_s,msg.c_str(),msg.size()+1,0)<0) {
+    perror("sendto");
+    return -1;
+  }
   return 0;
-
 }
 
 /*
@@ -86,14 +85,18 @@ int DynMessenger::send(const string &msg) const
 
 string DynMessenger::receive() const 
 {
-  char buffer[512];
+  char buffer[1500];
   struct sockaddr_un dontcare;
   unsigned int len=sizeof(dontcare);
   int retlen;
-  retlen=recvfrom(d_s,buffer,sizeof(buffer),0,(struct sockaddr *)&dontcare,&len);
-  // FIXME XXX error checking!
-  buffer[retlen]=0;
-  string answer=buffer;
+  string answer;
+  for(;;) {
+    retlen=recv(d_s,buffer,sizeof(buffer),0);
+    answer.append(buffer,retlen);
+    if(retlen!=sizeof(buffer))
+      break;
+  }
+
   return answer;
 }
 

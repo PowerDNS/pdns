@@ -34,6 +34,7 @@
 #include "utility.hh"
 #include "misc.hh"
 #include "ahuexception.hh"
+#include "qtype.hh"
 #include <algorithm>
 using namespace std;
 
@@ -97,6 +98,8 @@ void ZoneParser::fillRec(const string &qname, const string &qtype, const string 
   Record rec;
   rec.name=qname;
   rec.qtype=qtype;
+  if(!QType::chartocode(qtype.c_str()))
+    throw AhuException("Unknown qtype '"+qtype+"' on line "+itoa(d_lineno));
   rec.content=content;
   rec.ttl=ttl;
   rec.prio=prio;

@@ -64,6 +64,7 @@ private:
   Utility::socklen_t d_addrlen;
 
   int d_s;
+  int d_client;
   pthread_t d_tid;
   bool d_udp;
   pid_t d_ppid;

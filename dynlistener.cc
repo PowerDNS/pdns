@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.1 2002/11/27 15:18:33 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.2 2002/12/19 16:20:14 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -59,7 +59,7 @@ DynListener::DynListener(const string &pname)
 
   if(!programname.empty()) {
     struct sockaddr_un local;
-    d_s=socket(AF_UNIX,SOCK_DGRAM,0);
+    d_s=socket(AF_UNIX,SOCK_STREAM,0);
 
     if(d_s<0) {
       L<<Logger::Error<<"creating socket for dynlistener: "<<strerror(errno)<<endl;;
@@ -104,7 +104,7 @@ DynListener::DynListener(const string &pname)
   }
   else
     d_udp=false;
-  
+  listen(d_s,10);
 
 }
 
@@ -127,12 +127,19 @@ string DynListener::getLine()
   memset(mesg,0,sizeof(mesg));
   int len;
     
-  if(d_udp) {
-    d_addrlen=sizeof(d_remote);
+  sockaddr_un remote;
+  socklen_t remlen;
 
-    if((len=recvfrom(d_s,mesg,512,0,(sockaddr*) &d_remote, &d_addrlen))<0) {
-      L<<Logger::Error<<"Unable to receive packet from controlsocket ("<<d_s<<") - exiting: "<<strerror(errno)<<endl;
+  if(d_udp) {
+    d_client=accept(d_s,(sockaddr*)&remote,&remlen);
+    if(d_client<0) {
+      L<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<") - exiting: "<<strerror(errno)<<endl;
       exit(1);
+    }
+    
+    if((len=recv(d_client,mesg,512,0))<0) {
+      L<<Logger::Error<<"Unable to receive packet from controlsocket ("<<d_s<<") - exiting: "<<strerror(errno)<<endl;
+      
     }
   }
   else {
@@ -149,8 +156,19 @@ string DynListener::getLine()
 
 void DynListener::sendLine(const string &l)
 {
-  if(d_udp)
-    sendto(d_s,l.c_str(),l.length()+1,0,(struct sockaddr *)&d_remote,d_addrlen);	
+  if(d_udp) {
+    unsigned int sent=0;
+    int ret;
+    while(sent<l.length()) {
+      ret=send(d_client,l.c_str()+sent,l.length()-sent,0); 
+      if(ret<0 || !ret) {
+	L<<Logger::Error<<"Error sending data to pdns_control: "<<stringerror()<<endl;
+	break;
+      }
+      sent+=ret;
+    }
+    close(d_client);
+  }
   else {
     string line=l;
     line.append("\n");

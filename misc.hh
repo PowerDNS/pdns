@@ -42,6 +42,7 @@
 #include <string>
 #include <ctype.h>
 using namespace std;
+string nowTime();
 int matchNetmask(const char *address, const char *omask);
 string humanDuration(time_t passed);
 void chomp(string &line, const string &delim);

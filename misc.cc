@@ -39,7 +39,13 @@
 
 #include "utility.hh"
 
-
+string nowTime()
+{
+  time_t now=time(0);
+  string t=ctime(&now);
+  chomp(t,"\n");
+  return t;
+}
 
 int sendData(const char *buffer, int replen, int outsock)
 {
