@@ -224,7 +224,11 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   uc->uc_stack.ss_sp = new char[d_stacksize];
   
   uc->uc_stack.ss_size = d_stacksize;
+#ifdef SOLARIS
+  makecontext (uc, (void (*)(...))threadWrapper, 4, this, start, d_maxtid, val);
+#else
   makecontext (uc, (void (*)(void))threadWrapper, 4, this, start, d_maxtid, val);
+#endif
   d_threads[d_maxtid]=uc;
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
 }

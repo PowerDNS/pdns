@@ -4,6 +4,8 @@ Changes since 2.9.7:
 	- powerldap.hh doesn't need crypt.h (Richard Arends)
 	- can't handle binary labels, print a warning about that
 	- recursor sometimes did very extended negative caching, sometimes for *days*
+	- allow-axfr-ips setting now leads to disabling AXFR for non-listed addresses.
+	- added Solaris init.d script
 
 Changes since 2.9.6:
 	* need to do work on ( and ) in zones!
