@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/04/12 09:17:01 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/04/30 18:18:32 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,12 +81,80 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-8"><title>Version 2.9.8 [in progress]</title>	
+      <sect2 id="changelog-2-9-8"><title>Version 2.9.8</title>	
 	<para>
-	  [Unreleased, work in progress]
+	  Queen's day release! 30th of April 2003.
 	</para>
 	<para>
-	  Added support for AIX, fixed negative SOA caching. [ more ]
+	  Added support for AIX, fixed negative SOA caching. Some other cleanups. Not a major release but enough reasons to upgrade.
+	</para>
+	<para>
+	  Bugs fixed:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Recursor had problems expiring negatively cached entries, which wasted memory and also led to the continued non-existence of 
+		hosts that since had come into existence.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The Generic SQL backends did not lowercase the names of records, which led to new records not being found by case sensitive 
+		databases (notably PostgreSQL). Found by Volker Goetz.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		NS queries for zones for which we did not carry authority, but only had delegation information, had their NS records in the
+		wrong section. Minor detail, but a standards violation on etheless. Spotted by Stephane Bortzmeyer.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Removed crypt.h dependency from powerldap.hh, which was a problem on some platforms (Richard Arends)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS can't parse so called binary labels which we now detect and ignore, after printing a warning.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Specifying allow-axfr-ips now automatically disables AXFR for all non-mentioned addresses.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A Solaris ready init.d script is now part of the tar.gz (contributed, but I lost by whom).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added some fixes to PowerDNS can work on AIX (spotted by Markus Heimhilcher).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Norbert Sendetzky contributed <filename>zone2ldap</filename>.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Everybody's favorite compiler warning from <filename>zone2sql.cc</filename> was removed!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor now listens on TCP!
+	      </para>
+	    </listitem>
+	  </itemizedlist>
 	</para>
       </sect2>
 

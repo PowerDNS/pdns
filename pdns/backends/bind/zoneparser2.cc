@@ -170,7 +170,7 @@ void ZoneParser::fillRec(const string &qname, const string &qtype, const string 
   Record rec;
   rec.name=qname;
   rec.qtype=qtype;
-  QType qt;
+
   if(!QType::chartocode(qtype.c_str()))
     throw AhuException("Unknown qtype '"+qtype+"' on line "+itoa(d_lineno));
   rec.content=content;
