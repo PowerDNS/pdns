@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.21 2003/10/04 14:15:45 ahu Exp $
+// $Id: dnspacket.cc,v 1.22 2003/10/27 14:58:22 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -968,6 +968,29 @@ void DNSPacket::wrapup(void)
   // we want a stable sort, based on the d_place field
 
   stable_sort(rrs.begin(),rrs.end(),rrcomp);
+
+  // now shuffle! start out with the ANSWER records  
+  vector<DNSResourceRecord>::iterator first, second;
+  for(first=rrs.begin();first!=rrs.end();++first) 
+    if(first->d_place==DNSResourceRecord::ANSWER && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+      break;
+  for(second=first;second!=rrs.end();++second)
+    if(second->d_place!=DNSResourceRecord::ANSWER)
+      break;
+
+  if(second-first>1)
+    random_shuffle(first,second);
+
+  // now shuffle the additional records
+  for(first=second;first!=rrs.end();++first) 
+    if(first->d_place==DNSResourceRecord::ADDITIONAL && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+      break;
+  for(second=first;second!=rrs.end();++second)
+    if(second->d_place!=DNSResourceRecord::ADDITIONAL)
+      break;
+
+  if(second-first>1)
+    random_shuffle(first,second);
 
   d_wrapped=true;
 

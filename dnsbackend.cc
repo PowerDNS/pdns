@@ -247,7 +247,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd)
 	newest=i.last_modified;
     }
 
-    sd.serial=newest;
+    sd.serial=newest; // +arg().asNum("soa-serial-offset");
     DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
 
   }

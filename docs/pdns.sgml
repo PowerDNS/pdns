@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/09/21 16:06:45 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/10/27 14:58:22 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -114,6 +114,21 @@
 		Recursor now actually purges its cache, saving memory.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		Slave configuration now no longer falls over when presented with a NULL master
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bindbackend2 now has supermaster support (Mark Bergsma, untested)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Answers are now shuffled! It turns out a few recursors don't do shuffling (pdns_recursor, djbdns), so we do it now. Requested by Jorn of ISP-Services.
+	      </para>
+	    </listitem>
 	  </itemizedlist>
 	</para>
 	<para>
@@ -143,6 +158,11 @@
 	    <listitem>
 	      <para>
 		An AXFR from a zone hosted on the LDAP backend no longer transmits all the reverse entries too (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PostgreSQL backend now does error checking. It would be a bit too trusting before.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
