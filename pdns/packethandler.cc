@@ -151,7 +151,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.1 2002/11/27 15:18:31 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -167,7 +167,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.1 2002/11/27 15:18:31 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -496,11 +496,14 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
   try {    
     DLOG(L << Logger::Notice<<"Remote "<<inet_ntoa( reinterpret_cast< struct sockaddr_in * >( &( p->remote ))->sin_addr )<<" wants a type " << p->qtype.getName() << " ("<<p->qtype.getCode()<<") about '"<<p->qdomain << "'" << endl);
 
+// XXX FIXME Find out why this isn't working!
+#ifndef WIN32
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
       S.inc("corrupt-packets");
       return 0;
     }
+#endif // WIN32
 
     // XXX FIXME do this in DNSPacket::parse ?
 

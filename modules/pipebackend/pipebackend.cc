@@ -1,6 +1,6 @@
 // -*- sateh-c -*- 
 // File    : pdnsbackend.cc
-// Version : $Id: pipebackend.cc,v 1.1 2002/11/27 15:31:59 ahu Exp $ 
+// Version : $Id: pipebackend.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $ 
 //
 
 #include <string>
@@ -12,13 +12,13 @@
 
 using namespace std;
 
-#include <dns.hh>
-#include <dnsbackend.hh>
-#include <dnspacket.hh>
-#include <ueberbackend.hh>
-#include <ahuexception.hh>
-#include <logger.hh>
-#include <arguments.hh>
+#include <pdns/dns.hh>
+#include <pdns/dnsbackend.hh>
+#include <pdns/dnspacket.hh>
+#include <pdns/ueberbackend.hh>
+#include <pdns/ahuexception.hh>
+#include <pdns/logger.hh>
+#include <pdns/arguments.hh>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

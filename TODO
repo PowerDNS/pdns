@@ -1,3 +1,12 @@
+
+immediate issues:
+	make install does not strip
+
+	make install installs libraries with a static build which it should
+		not
+
+	pdns_server should be in sbin
+
 Things we will not do but hope other people will:
 	- Ports to NetBSD, OpenBSD, Solaris, AIX
 	- Michel Stol is already working on reviving his win32 port

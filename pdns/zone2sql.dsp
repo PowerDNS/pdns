@@ -74,8 +74,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib pthreadVCE.lib ws2_32.lib /nologo /subsystem:console /incremental:no /debug /machine:I386 /force /pdbtype:sept
-# SUBTRACT LINK32 /profile
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib pthreadVCE.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /force /pdbtype:sept
+# SUBTRACT LINK32 /incremental:no
 
 !ENDIF 
 
@@ -141,6 +141,15 @@ SOURCE=.\backends\bind\bindlexer.l
 
 !IF  "$(CFG)" == "zone2sql - Win32 Release"
 
+# Begin Custom Build
+ProjDir=.
+InputPath=.\backends\bind\bindlexer.l
+
+"bindlexer.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	flex -i -s -o$(ProjDir)/backends/bind/bindlexer.cc $(InputPath)
+
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "zone2sql - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -162,14 +171,24 @@ SOURCE=.\backends\bind\bindparser.yy
 
 !IF  "$(CFG)" == "zone2sql - Win32 Release"
 
+# Begin Custom Build
+ProjDir=.
+InputPath=.\backends\bind\bindparser.yy
+
+"bindparser.tab.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	bison -o$(ProjDir)/backends/bind/bindparser.tab.cc -d $(InputPath)
+
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "zone2sql - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
 # Begin Custom Build
+ProjDir=.
 InputPath=.\backends\bind\bindparser.yy
 
 "bindparser.tab.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	bison -d $(InputPath)
+	bison -o$(ProjDir)/backends/bind/bindparser.tab.cc -d $(InputPath)
 
 # End Custom Build
 

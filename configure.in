@@ -104,14 +104,23 @@ fi
 AC_MSG_RESULT($enable_verbose_logging)
 
 AC_MSG_CHECKING(whether we should build static binaries)
-AC_ARG_ENABLE(static-binaries, 
- [  --enable-static-binaries	Build static binaries],enable_static_binaries=yes ,enable_static_binaries=no)
 
-if test $enable_static_binaries = yes; 
+AC_ARG_ENABLE(static-binaries, 
+	[  --enable-static-binaries	Build static binaries],
+     [case "${enableval}" in
+       yes) static=true ;;
+       no)  static=false ;;
+       *) AC_MSG_ERROR(bad value ${enableval} for --enable-static-binaries) ;;
+     esac],[debug=false])
+AC_MSG_RESULT($static)
+
+AM_CONDITIONAL(ALLSTATIC, test x$static = xtrue)
+
+if test x$static = xtrue; 
 then 
 	LDFLAGS="-all-static $LDFLAGS"
 fi
-AC_MSG_RESULT($enable_static_binaries)
+
 
 
 modules="mysql"
@@ -320,4 +329,5 @@ export moduledirs moduleobjects modulelibs
 AC_OUTPUT(Makefile modules/Makefile pdns/Makefile pdns/codedocs/Makefile \
 pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
 modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
-modules/pgmysqlbackend/Makefile modules/db2backend/Makefile)
+modules/pgmysqlbackend/Makefile modules/db2backend/Makefile \
+modules/pipebackend/Makefile )

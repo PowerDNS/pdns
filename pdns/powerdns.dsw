@@ -18,9 +18,6 @@ Package=<4>
     Project_Dep_Name pdnsmsg
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name pdnscontrol
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name zone2sql
     End Project Dependency
 }}}
@@ -52,9 +49,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name pdnsmsg
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name pdnscontrol
     End Project Dependency
 }}}
 

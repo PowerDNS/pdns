@@ -1,8 +1,6 @@
 #ifndef PDNS_COPROCESS_HH
 #define PDNS_COPROCESS_HH
 
-
-#include <ahuexception.hh>
 #include <iostream>
 #include <stdio.h>
 

@@ -7,7 +7,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <misc.hh>
+#include <pdns/misc.hh>
+#include <pdns/ahuexception.hh>
 
 CoProcess::CoProcess(const string &command,int timeout, int infd, int outfd)
 {

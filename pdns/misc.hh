@@ -110,7 +110,7 @@ public:
 private:
   struct timeval d_set;
 };
-const string sockAddrToString(struct sockaddr_in *remote, socklen_t socklen);
+const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t socklen);
 int sendData(const char *buffer, int replen, int outsock);
 
 

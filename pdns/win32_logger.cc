@@ -35,10 +35,10 @@ Logger &theL(const string &pname)
 
 void Logger::log(const string &msg, Urgency u)
 {
-  const char *heheDirtyAndNastyHack[ 2 ];
+  const char *tmp[ 2 ];
 
-  heheDirtyAndNastyHack[ 0 ] = msg.c_str();
-  heheDirtyAndNastyHack[ 1 ] = NULL;
+  tmp[ 0 ] = msg.c_str();
+  tmp[ 1 ] = NULL;
 
   extern StatBag S;
   S.ringAccount("logmessages",msg);
@@ -97,7 +97,7 @@ void Logger::log(const string &msg, Urgency u)
     eventId = MSG_INFO;
   }
   
-  ReportEvent( m_eventLogHandle, u, 0, eventId, NULL, 1, 0, heheDirtyAndNastyHack, NULL );
+  ReportEvent( m_eventLogHandle, u, 0, eventId, NULL, 1, 0, tmp, NULL );
 }
 
 void Logger::toConsole(Urgency u)

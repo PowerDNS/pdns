@@ -103,7 +103,8 @@ void declareArguments()
 
   arg().setSwitch( "use-logfile", "Use a log file" )= "no";
   arg().set( "logfile", "Logfile to use" )= "pdns.log";
-
+  arg().set("setuid","If set, change user id to this uid for more security")="";
+  arg().set("setgid","If set, change group id to this gid for more security")="";
 }
 
 
@@ -232,6 +233,7 @@ void mainthread()
    int newuid=0;      
    if(!arg()["setuid"].empty())        
      newuid=Utility::makeUidNumeric(arg()["setuid"]); 
+#ifndef WIN32
    if(!arg()["chroot"].empty()) {  
      if(chroot(arg()["chroot"].c_str())<0) {
        L<<Logger::Error<<"Unable to chroot: "<<strerror(errno)<<", exiting"<<endl; 
@@ -240,6 +242,8 @@ void mainthread()
      else
        L<<Logger::Error<<"Chrooted to '"<<arg()["chroot"]<<"'"<<endl;      
    }  
+#endif
+
    Utility::dropPrivs(newuid, newgid);
 
   if(arg().mustDo("recursor")){

@@ -85,7 +85,7 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\backends\odbc\odbcbackend.cc
+SOURCE=..\modules\odbcbackend\odbcbackend.cc
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -93,7 +93,7 @@ SOURCE=.\backends\odbc\odbcbackend.cc
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\backends\odbc\odbcbackend.hh
+SOURCE=..\modules\odbcbackend\odbcbackend.hh
 # End Source File
 # End Group
 # End Target

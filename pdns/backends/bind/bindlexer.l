@@ -7,7 +7,7 @@
 #define YYSTYPE char *
 
 #ifdef WIN32
-#include "bindparser.tab.hh"
+#include "bindparser.tab.cc.h"
 #define isatty _isatty
 int isatty( int fd )
 {

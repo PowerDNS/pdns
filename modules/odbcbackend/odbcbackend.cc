@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-// ODBC backend by Michel Stol (michel@physos.info)
+// ODBC backend by Michel Stol (michel@powerdns.com)
 // For use with PowerDNS - The powerfull and versatile nameserver.
 
 #include "odbcbackend.hh"

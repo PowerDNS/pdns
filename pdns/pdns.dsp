@@ -129,7 +129,7 @@ SOURCE=.\ntservice.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\backends\odbc\odbcbackend.cc
+SOURCE=..\modules\odbcbackend\odbcbackend.cc
 # End Source File
 # Begin Source File
 
@@ -277,7 +277,7 @@ SOURCE=.\ntservice.hh
 # End Source File
 # Begin Source File
 
-SOURCE=.\backends\odbc\odbcbackend.hh
+SOURCE=..\modules\odbcbackend\odbcbackend.hh
 # End Source File
 # Begin Source File
 
@@ -336,17 +336,5 @@ SOURCE=.\ws.hh
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
-# Begin Source File
-
-SOURCE=.\ChangeLog
-# End Source File
-# Begin Source File
-
-SOURCE=.\docs\pdns.db
-# End Source File
-# Begin Source File
-
-SOURCE=.\TODO.WIN32
-# End Source File
 # End Target
 # End Project
