@@ -1,6 +1,6 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: ssql.hh,v 1.1 2002/12/16 20:34:29 ahu Exp $  */
+   $Id: ssql.hh,v 1.2 2003/10/11 19:57:19 ahu Exp $  */
 #ifndef SSQL_HH
 #define SSQL_HH
 
@@ -33,6 +33,7 @@ public:
   virtual SSqlException sPerrorException(const string &reason)=0;
   virtual int doQuery(const string &query, result_t &result)=0;
   virtual int doQuery(const string &query)=0;
+  virtual int doCommand(const string &query)=0;
   virtual bool getRow(row_t &row)=0;
   virtual string escape(const string &name)=0;
   virtual void setLog(bool state){}

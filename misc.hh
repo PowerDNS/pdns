@@ -76,7 +76,6 @@ inline u_int32_t getLong(unsigned char *p)
   return (p[0]<<24)+(p[1]<<16)+(p[2]<<8)+p[3];
 }
 
-void upperCase(string& s);
 
 struct ServiceTuple
 {
@@ -159,6 +158,17 @@ inline string toLower(const string &upper)
   for(unsigned int i = 0; i < reply.length(); i++)
     reply[i] = tolower(reply[i]);
   return reply;
+}
+
+
+// Make s uppercase:
+inline string toUpper( const string& s )
+{
+	string r(s);
+	for( unsigned int i = 0; i < s.length(); i++ ) {
+		r[i] = toupper( r[i] );
+	}
+	return r;
 }
 
 

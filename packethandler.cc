@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.17 2003/09/16 21:02:35 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.18 2003/10/11 19:57:19 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -170,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.17 2003/09/16 21:02:35 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.18 2003/10/11 19:57:19 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -186,7 +186,6 @@ bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int
 {
   string subdomain(target);
   do {
-    cout<<"Trying: '"<<subdomain<<"'"<<endl;
     if( B.getSOA( subdomain, *sd ) ) {
       sd->qname = subdomain;
       *zoneId = sd->domain_id;

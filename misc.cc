@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "ahuexception.hh"
 #include <sys/types.h>
 
 #ifndef WIN32
@@ -138,8 +139,11 @@ int sendData(const char *buffer, int replen, int outsock)
 
 void parseService(const string &descr, ServiceTuple &st)
 {
+
   vector<string>parts;
   stringtok(parts,descr,":");
+  if(parts.empty())
+    throw AhuException("Unable to parse '"+descr+"' as a service");
   st.host=parts[0];
   if(parts.size()>1)
     st.port=atoi(parts[1].c_str());
@@ -199,12 +203,6 @@ DTime::DTime(const DTime &dt)
 time_t DTime::time()
 {
   return d_set.tv_sec;
-}
-
-// Make s uppercase:
-void upperCase(string& s) {
-  for(unsigned int i = 0; i < s.length(); i++)
-    s[i] = toupper(s[i]);
 }
 
 

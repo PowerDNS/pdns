@@ -100,6 +100,7 @@ void declareArguments()
   arg().set("negquery-cache-ttl","Seconds to store packets in the PacketCache")="60";
   arg().set("query-cache-ttl","Seconds to store packets in the PacketCache")="20";
   arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";
+  arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
 
   arg().setSwitch( "use-logfile", "Use a log file" )= "no";
