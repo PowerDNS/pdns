@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/09 16:24:17 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/10 13:36:26 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -85,6 +85,102 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-1"><title>Version 2.9.1</title>	
+	<para>
+	  Thanks to the great enthusiasm from around the world, powerdns is now available for Solaris and FreeBSD users again! 
+	  Furthermore, the Windows build is back. We are very grateful for the help of:
+	</para>
+	<para>	
+	  <itemizedlist>
+	    <listitem><para>Michel Stol</para></listitem>
+	    <listitem><para>Wichert Akkerman</para></listitem>
+	    <listitem><para>Edvard Tuinder</para></listitem>
+	    <listitem><para>Koos van den Hout</para></listitem>
+	    <listitem><para>Niels Bakker</para></listitem>
+	    <listitem><para>Erik Bos</para></listitem>
+	    <listitem><para>Alex Bleker</para></listitem>
+	    <listitem><para>steven stillaway</para></listitem>
+	    <listitem><para>Roel van der Made</para></listitem>
+	    <listitem><para>Steven Van Steen</para></listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  We are happy to have been able to work with the open source community to improve PowerDNS!
+	</para>
+	<para>
+	  Changes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The monitor command <command>set</command> no longer allows the changing of non-existant variables.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		IBM Universal Database DB2 backend now included in source distribution (untested!)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Oracle backend now included in source distribution (sligthly tested!)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		configure script now searches for postgresql and mysql includes
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bind parser now no longer dies on records with a ' in them (Erik Bos)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The pipebackend was accidentally left out of 2.9
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		FreeBSD fixes (with help from Erik Bos, Alex Bleeker, Niels Bakker)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Heap of Solaris work (with help from Edvard Tuinder, Stefan Van Steen, Koos van den Hout, Roel van der Made and 
+		especially Mark Bakker).
+		Now compiles in 2.7 and 2.8. May be a bit dysfunctional on 2.7 though - it won't do IPv6 and it won't serve AAAA. Patches
+		welcome!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Windows 32 build is back! Michel Stol updated his earlier work to the current version.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		S/Linux (Linux on Sparc) build works now (with help from steven stillaway).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Silly debugging message ('sd.ttl from cache') removed
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		.debs are back, hopefully in 'sid' soon! (Wichert Akkerman)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Removal of bzero and other less portable constructs. Discovered that recent Linux glibc's need -D_GNU_SOURCE (Wichert Akkerman).
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9"><title>Version 2.9</title>	
 	<para>
 	Open source release. Do not deploy unless you know what you are
@@ -6548,7 +6644,7 @@ static RandomLoader randomloader;
     </para>
     <sect1 id="on-windows"><title>Compiling PowerDNS on Windows</title>
       <para>
-	By Michael Stol (<email>michael@physos.info</email>).
+	By Michel Stol (<email>michel@powerdns.com</email>).
       <sect2><title>Assumptions</title>
         <para>
 	  I will assume these things from you:      
@@ -6915,7 +7011,7 @@ static RandomLoader randomloader;
 	
 	<para>
 	  If you are pretty sure that it's a bug, either in the PowerDNS sources, the build
-	  system or in this article, then please send an e-mail to <email>powerdns-dev@mailman.powerdns.com</email> describing your
+	  system or in this article, then please send an e-mail to <email>pdns-dev@mailman.powerdns.com</email> describing your
 	  problem. We will then try to fix it.
 	</para>
 	
@@ -6991,7 +7087,7 @@ static RandomLoader randomloader;
 	
 	<para>
 	  If you have a comment, or a bug report concerning either this document or the PowerDNS sources
-	  you can contact <email>powerdns-dev@mailman.powerdns.com</email>
+	  you can contact <email>pdns-dev@mailman.powerdns.com</email>
 	</para>
 	
 	<para>
@@ -7006,7 +7102,7 @@ static RandomLoader randomloader;
 	
 	<para>
 	  If you want to praise my work, ask me to marry you, deposit $1.000.000 on my bank account or flame me to death, then 
-	  you can mail me at <email>michel@physos.info</email> :)
+	  you can mail me at <email>michel@powerdns.com</email> :)
 	</para>
 	
       </sect3>
