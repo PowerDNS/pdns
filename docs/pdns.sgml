@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/05 22:09:24 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/06 16:13:59 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3792,20 +3792,14 @@ local0.err                        /var/log/pdns.err
 	      Does not expire entries from its cache
 	    </para></listitem>
 	  <listitem><para>
-	      Fakes the TTL of NS records in the additional section
-	    </para></listitem>
-	  <listitem><para>
 	      Only compiles on Linux and possibly Solaris. FreeBSD decided not to support the POSIX get/set/swapcontext functions.
-	    </para></listitem>
-	  <listitem><para>
-	      Only listens on 1 port, which you can't even configure. Is 15000 by default.
 	    </para></listitem>
 	</itemizedlist>
       </para>
       <para>
 	Still here? Ok. To compile, add <command>--enable-recursor</command> to configure and the file <filename>syncres</filename> will be 
 	compiled. If you are lucky, that is. Send it queries like this: 
-	<command>dig ds9a.nl A @127.0.0.1 -p 15000</command>.
+	<command>dig ds9a.nl A @127.0.0.1 -p 5300</command>. To run on a different port, use <command>./syncres --local-port=53</command>.
       </para>
       <para>
 	Good points:
