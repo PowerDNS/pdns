@@ -1,0 +1,4 @@
+pdns-backend-mysql: non-dev-pkg-with-shlib-symlink usr/lib/libmysqlbackend.so.0.0.0 usr/lib/libmysqlbackend.so
+pdns-backend-mysql: no-shlibs-control-file usr/lib/libmysqlbackend.so.0.0.0
+pdns-backend-mysql: no-copyright-file
+pdns-backend-mysql: postrm-unsafe-ldconfig

@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+
+update_init() {
+	if [ -z "$2" ] ; then
+		update-rc.d pdns defaults 15 85 > /dev/null
+	fi
+}
+
+
+update_pdns() {
+	if [ -n "$2" ] ; then
+		/etc/init.d/pdns start
+	fi
+}
+
+if [ "$1" = "configure" -o "$1" = "abort-upgrade" ] ; then
+	update_init "$@"
+	restart_pdns "$@"
+fi
