@@ -110,6 +110,7 @@ public:
   */
   Logger& operator<<(const string &s);   //!< log a string
   Logger& operator<<(int);   //!< log an int
+  Logger& operator<<(unsigned int);   //!< log an unsigned int
   Logger& operator<<(Urgency);    //!< set the urgency, << style
 
 #ifndef WIN32

@@ -121,6 +121,17 @@ Logger& Logger::operator<<(int i)
   return *this;
 }
 
+Logger& Logger::operator<<(unsigned int i)
+{
+  ostringstream tmp;
+  tmp<<i;
+
+  *this<<tmp.str();
+
+  return *this;
+}
+
+
 Logger& Logger::operator<<(ostream & (&)(ostream &))
 {
   // *this<<" ("<<(int)d_outputurgencies[pthread_self()]<<", "<<(int)consoleUrgency<<")";
