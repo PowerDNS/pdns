@@ -37,11 +37,11 @@
 extern StatBag S;
 
 /** \mainpage 
-    ahudns is a very versatile nameserver that can answer questions from different backends. To implement your
+    PowerDNS is a very versatile nameserver that can answer questions from different backends. To implement your
     own backend, see the documentation for the DNSBackend class.
 
     \section copyright Copyright and License
-    AhuDNS is (C) 2002 PowerDNS BV. It is distributed according to the terms of the General Public License version 2.
+    PowerDNS is (C) 2005 PowerDNS.COM BV. It is distributed according to the terms of the General Public License version 2.
 
     \section overview High level overview
 
@@ -67,16 +67,12 @@ extern StatBag S;
     each taking many miliseconds to complete. This is why the qthread() first checks the PacketCache to see if an answer is known to a packet
     asking this question. If so, the entire Distributor is shunted, and the answer is sent back *directly*, within a few microseconds.
 
-    In turn, the athread() offers each outgoing packet to the PacketCache for possible inclusion.
-
     \section misc Miscellaneous
     Configuration details are available via the ArgvMap instance arg. Statistics are created by making calls to the StatBag object called S. 
     These statistics are made available via the UeberBackend on the same socket that is used for dynamic module commands.
 
     \section Main Main 
     The main() of PowerDNS can be found in receiver.cc - start reading there for further insights into the operation of the nameserver
-
-
 */
 
 void UDPNameserver::bindIPv4()
