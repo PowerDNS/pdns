@@ -1,5 +1,5 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind
-AM_CPPFLAGS=-Ibackends/bind
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind 
+AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
 
 EXTRA_DIST = docs/Makefile \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
@@ -10,7 +10,7 @@ docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
-bin_PROGRAMS = pdns_control # binpatch # syncres #   resolver syncres 
+bin_PROGRAMS = pdns_control syncres # binpatch # syncres #   resolver syncres 
 sbin_PROGRAMS = pdns_server 
 #pdns.conf-dist: pdns_server
 #	-./pdns_server --config > $@
@@ -33,16 +33,19 @@ backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
 sillyrecords.cc
 
 #
-pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ 
+pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
 pdns_server_INCLUDES=
 
 
 #resolver_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 #logger.cc statbag.cc dnspacket.cc arguments.cc  tres.cc
 
-#syncres_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
-#logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc recns.cc lwres.hh \
-#mtasker.hh 
+syncres_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
+logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc recns.cc lwres.hh \
+mtasker.hh sillyrecords.cc
+
+syncres_LDFLAGS=
+syncres_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc misc.cc unix_utility.cc
 pdns_control_INCLUDES=path.hh
