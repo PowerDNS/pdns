@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.25 2004/02/29 12:57:11 ahu Exp $
+// $Id: dnspacket.cc,v 1.26 2004/04/01 19:59:21 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -231,7 +231,8 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
   if(d_compress)
     for(vector<DNSResourceRecord>::const_iterator i=rrs.begin();i!=rrs.end();++i) 
       if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content)
-	return;
+	if(rr.qtype.getCode()!=QType::MX || rr.priority==i->priority)
+	  return;
 
   rrs.push_back(rr);
 }

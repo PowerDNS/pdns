@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.15 2003/03/20 13:29:29 ahu Exp $
+// $Id: dnspacket.hh,v 1.16 2004/04/01 19:59:21 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -229,7 +229,7 @@ public:
 
   //////// DATA !
 
-  char remote[28];
+  char remote[sizeof(sockaddr_in6)];
   Utility::socklen_t d_socklen; // 4
   u_int16_t len; //!< length of the raw binary packet 2
   u_int16_t qclass;  //!< class of the question - should always be INternet 2

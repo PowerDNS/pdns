@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.hh,v 1.5 2004/01/16 22:18:12 ahu Exp $
+// $Id: nameserver.hh,v 1.6 2004/04/01 19:59:21 ahu Exp $
 #ifndef NAMESERVER_HH
 #define NAMESERVER_HH
 
@@ -87,7 +87,7 @@ private:
 
 inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 {
-  char remote[ 30 ];
+  char remote[ sizeof(sockaddr_in6) ];
   extern StatBag S;
 
   Utility::socklen_t addrlen;
@@ -108,7 +108,7 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 	addrlen=sizeof(remote);
 	
 	len=0;
-	if((len=recvfrom(sock,mesg,512,0,(sockaddr*) remote, &addrlen))<0) {
+	if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) remote, &addrlen))<0) {
 	  L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
 	  return 0;
 	}

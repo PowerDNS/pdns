@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.24 2004/02/08 10:43:50 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.25 2004/04/01 19:59:21 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -174,7 +174,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
   const string mode=arg()["version-string"];
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
     if(mode.empty() || mode=="full") 
-      rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.24 2004/02/08 10:43:50 ahu Exp $";
+      rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.25 2004/04/01 19:59:21 ahu Exp $";
     else if(mode=="anonymous") {
       r->setRcode(RCode::ServFail);
       return 1;
@@ -518,7 +518,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
     // XXX FIXME do this in DNSPacket::parse ?
 
-    if(!p->qdomain.empty() && (p->qdomain[0]=='%' || p->qdomain.find('|')!=string::npos) ) {
+    if(!p->qdomain.empty() && p->qdomain.find_first_of("%|")!=string::npos) {
       L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': dropping"<<endl;
       S.inc("corrupt-packets");
       return 0;

@@ -1,11 +1,12 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.hh,v 1.5 2004/02/01 18:20:16 ahu Exp $  */
+   $Id: smysql.hh,v 1.6 2004/04/01 19:59:21 ahu Exp $  */
 #ifndef SMYSQL_HH
 #define SMYSQL_HH
 
 #include <mysql.h>
 #include "pdns/backends/gsql/ssql.hh"
+#include "pdns/utility.hh" 
 
 class SMySQL : public SSql
 {
