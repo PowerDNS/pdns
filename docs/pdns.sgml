@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/03/04 18:33:39 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/03/12 16:06:35 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -4624,6 +4624,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 		Maximum number of miliseconds to queue a query. See <xref linkend="performance">.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>query-local-address=...</term>
+	    <listitem><para>
+	      The IP address to use as a source address for sending queries. Useful if you have multiple IPs and pdns is not bound to the IP address your operating system uses by default for outgoing packets.
+	    </para></listitem></varlistentry>
 	  <varlistentry><term>query-logging | query-logging=yes | query-logging=no</term>
 	    <listitem><para>
 	      Hints to a backend that it should log a textual representation of queries it performs. Can be set at runtime.
@@ -5202,6 +5206,14 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>Q: My masters won't allow PowerDNS to access zones as it is using the wrong local IP address</term>
+	    <listitem>
+	      <para>
+		A: Mark Bergsma contributed the query-local-address setting to tell PowerDNS which local IP address to use. 
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>Q: Can I use a MySQL database with the Windows version of PowerDNS?</term>
 	    <listitem>
 	      <para>
@@ -5443,11 +5455,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>Q: Will <ulink url="http://express.powerdns.com">PowerDNS Express</ulink> be open sourced? 
-	      <ulink url="http://www.powerdns.com/powermail/">PowerMail?</ulink></term>
+	    <term>Q: Will <ulink url="http://express.powerdns.com">PowerDNS Express</ulink> be open sourced?</term>
 	    <listitem>
 	      <para>
-		Perhaps, we're not yet sure. PowerMail most probably.
+		Perhaps, we're not yet sure. 
 	      </para>
 	    </listitem>
 	  </varlistentry>

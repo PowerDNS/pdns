@@ -50,6 +50,7 @@ PacketHandler::PacketHandler():B(s_programname)
   d_doCNAME = (arg()["skip-cname"]=="no");
   d_doRecursion= arg().mustDo("recursor");
   d_logDNSDetails= arg().mustDo("log-dns-details");
+  d_doIPv6AdditionalProcessing = arg().mustDo("do-ipv6-additional-processing");
 }
 
 DNSBackend *PacketHandler::getBackend()
@@ -153,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.10 2003/02/25 12:36:49 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.11 2003/03/12 16:06:35 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -169,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.10 2003/02/25 12:36:49 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.11 2003/03/12 16:06:35 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -294,47 +295,55 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 }
 
 /** dangling is declared true if we were unable to resolve everything */
-int PacketHandler::doAdditionalProcessing(DNSPacket *p, DNSPacket *r)
+int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 {
   DNSResourceRecord rr;
+  SOAData sd;
 
   if(p->qtype.getCode()!=QType::AXFR && r->needAP()) { // this packet needs additional processing
     DLOG(L<<Logger::Warning<<"This packet needs additional processing!"<<endl);
 
     vector<DNSResourceRecord> arrs=r->getAPRecords();
-    
     for(vector<DNSResourceRecord>::const_iterator i=arrs.begin();
 	i!=arrs.end();
 	++i) {
-      B.lookup("A",i->content,p);  
-      bool foundOne=false;
-      while(B.get(rr)) {
-	foundOne=true;
-	if(rr.domain_id!=i->domain_id && arg()["out-of-zone-additional-processing"]=="no") {
-	  DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
-	  continue; // not adding out-of-zone additional data
-	}
-	
-	rr.d_place=DNSResourceRecord::ADDITIONAL;
-	r->addRecord(rr);
+      
+      if(r->d.aa && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd)) // drop AA in case of non-SOA-level NS answer
+	r->d.aa=false;
 
-      }
-      if(!foundOne) {
-	if(d_doRecursion && DP->recurseFor(p)) {
-	  try {
-	    Resolver resolver;
-	    resolver.resolve(arg()["recursor"],i->content.c_str(),QType::A);
-	    Resolver::res_t res=resolver.result();
-	    for(Resolver::res_t::const_iterator j=res.begin();j!=res.end();++j) {
-	      if(j->d_place==DNSResourceRecord::ANSWER) {
-		rr=*j;
-		rr.d_place=DNSResourceRecord::ADDITIONAL;
-		r->addRecord(rr);
+      QType qtypes[2];
+      qtypes[0]="A"; qtypes[1]="AAAA";
+      for(int n=0;n < d_doIPv6AdditionalProcessing + 1; ++n) {
+	B.lookup(qtypes[n],i->content,p);  
+	bool foundOne=false;
+	while(B.get(rr)) {
+	  foundOne=true;
+	  if(rr.domain_id!=i->domain_id && arg()["out-of-zone-additional-processing"]=="no") {
+	    DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
+	    continue; // not adding out-of-zone additional data
+	  }
+	  
+	  rr.d_place=DNSResourceRecord::ADDITIONAL;
+	  r->addRecord(rr);
+	  
+	}
+	if(!foundOne) {
+	  if(d_doRecursion && DP->recurseFor(p)) {
+	    try {
+	      Resolver resolver;
+	      resolver.resolve(arg()["recursor"],i->content.c_str(),QType::A);
+	      Resolver::res_t res=resolver.result();
+	      for(Resolver::res_t::const_iterator j=res.begin();j!=res.end();++j) {
+		if(j->d_place==DNSResourceRecord::ANSWER) {
+		  rr=*j;
+		  rr.d_place=DNSResourceRecord::ADDITIONAL;
+		  r->addRecord(rr);
+		}
 	      }
 	    }
-	  }
-	  catch(ResolverException& re) {
-	    // L<<Logger::Error<<"Trying to do additional processing for answer to '"<<p->qdomain<<"' query: "<<re.reason<<endl;
+	    catch(ResolverException& re) {
+	      // L<<Logger::Error<<"Trying to do additional processing for answer to '"<<p->qdomain<<"' query: "<<re.reason<<endl;
+	    }
 	  }
 	}
       }
@@ -637,9 +646,9 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 	  }
 	}
       }
-
       if(found) 
 	goto sendit;
+      
     }
     
     // not found yet, try wildcards (we only try here in case of recursion - we should check before we hand off)
@@ -772,7 +781,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     
   sendit:;
 
-    if(doAdditionalProcessing(p,r)<0)
+    if(doAdditionalProcessingAndDropAA(p,r)<0)
       return 0;
     
 
