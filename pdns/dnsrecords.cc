@@ -48,7 +48,7 @@ class AAAARecordContent : public DNSRecordContent
 public:
   static void report(void)
   {
-    typemap[make_pair(1,ns_t_aaaa)]=&make;
+    regist(1,ns_t_aaaa,&make,"AAAA");
   }
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
