@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/04/01 19:59:21 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/09/13 19:10:28 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -7277,7 +7277,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	      <term>basic-query</term>
 	      <listitem>
 		<para>
-		  Default: <command>select content,ttl,prio,type,domain_id,name from records where qtype='%s' and name='%s'</command>
+		  Default: <command>select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'</command>
 		  This is the most used query, needed for doing 1:1 lookups of qtype/name values. First %s is replaced by the ASCII representation
 		  of the qtype of the question, the second by the name.
 		</para>
@@ -7287,7 +7287,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	      <term>id-query</term>
 	      <listitem>
 		<para>
-		  Default: <command>select content,ttl,prio,type,domain_id,name from records where qtype='%s' and name='%s' and domain_id=%d</command>
+		  Default: <command>select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d</command>
 		  Used for doing lookups within a domain. First %s is replaced by the qtype, the %d which should appear after the %s by the numeric 
 		  domain_id.
 		</para>
@@ -7451,7 +7451,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	      <listitem>
 		<para>
 		  Can be left blank. See above for an explanation.
-		  Default: <command>select content,ttl,prio,type,domain_id,name from records where qtype='%s' and name like '%s'</command>
+		  Default: <command>select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s'</command>
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -7460,7 +7460,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	      <listitem>
 		<para>
 		  Can be left blank. See above for an explanation.
-		  Default: <command>select content,ttl,prio,type,domain_id,name from records where qtype='%s' and name like '%s' and domain_id=%d</command>
+		  Default: <command>select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s' and domain_id=%d</command>
 		  Used for doing lookups within a domain.
 		</para>
 	      </listitem>
@@ -7491,7 +7491,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	<para>
 	  The queries above are specified in pdns.conf. For example, the basic-query would appear as:
 	  <screen>
-	    gpgsql-basic-query=select content,ttl,prio,type,domain_id,name from records where qtype='%s' and name='%s'
+	    gpgsql-basic-query=select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'
 	  </screen>
 	  When using the Generic PostgreSQL backend, they appear as above. When using the generic MySQL backend, change the
 	  "gpgsql-" prefix to "gmysql-".
@@ -7500,7 +7500,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	  Queries can span multiple lines, like this:
 	  <screen>
 	    gpgsql-basic-query=select content,ttl,prio,type,domain_id,name from records \
-	    where qtype='%s' and name='%s'
+	    where type='%s' and name='%s'
 	  </screen>
 	  Do not wrap statements in quotes as this will not work.
 	  Besides the query related settings, the following configuration options are available:
