@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/21 10:42:34 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/21 15:04:02 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -98,7 +98,8 @@
 	</para>
 	<para>
 	  The 'Contributor of the Month' award goes to Mark Bergsma who has responded to our plea for help with the label compressor and contributed
-	  a wonderfully simple and right fix that allows PDNS to compress just as well as Other namerervers out there.
+	  a wonderfully simple and right fix that allows PDNS to compress just as well as Other namerervers out there. An honorary mention goes to
+	  Ueli Heuer who, despite having no C++ experience, submitted an excellent SRV record implementation.
 	</para>
 	<para>
 	  Other changes:
@@ -138,6 +139,17 @@
 	    <listitem>
 	      <para>
 		Yet more UltraSPARC alignment issues fixed (Chris Andrews).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Label compression was improved so we can now fit all . records in 436 bytes, this used to be 460! (Code &amp; formal 
+		proof of correctness by Mark Bergsma).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SRV support (incoming and outgoing), submitted by Ueli Heuer.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -4759,6 +4771,16 @@ local0.err                        /var/log/pdns.err
 	      PDNS will perform an internal list of the domain to determine highest change_date field of all records within the zone, and use
 	      that as the zone serial number. This means that the serial number is always raised when changes are made to the zone, as long
 	      as the change_date field is being set.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
+	  <term>SRV</term>
+	  <listitem>
+	    <para>
+	      SRV records can be used to encode the location and port of services on a domain name. When encoding, the priority field
+	      is used to encode the priority. For example, '_ldap._tcp.dc._msdcs.conaxis.ch SRV     0 100 389 mars.conaxis.ch' would be 
+	      encoded with 0 in the priorit field and '100 389 mars.conaxis.ch' in the tontent field.
 	    </para>
 	  </listitem>      
 	</varlistentry>

@@ -239,7 +239,6 @@ latlon2ul(const char **latlonstrptr, int *which)
 void DNSPacket::addLOCRecord(const string &domain, const string & content, u_int32_t ttl)
 {
   const char *cp, *maxcp;
-  unsigned char *bcp;
   
   u_int32_t latit = 0, longit = 0, alt = 0;
   u_int32_t lltemp1 = 0, lltemp2 = 0;
