@@ -1,10 +1,10 @@
-# $Id: Makefile,v 1.1 2002/11/27 15:18:34 ahu Exp $ 
+# $Id: Makefile,v 1.2 2002/12/01 15:19:10 ahu Exp $ 
 
 all: pdns.txt pdns.pdf html/index.html html.tar.gz
 
 
 clean:
-	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.txt *.ps *.bak *.tmp *~ *.log html
+	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.txt *.ps *.bak *.tmp *~ *.log html.tar.gz html pdns
 
 html/index.html: pdns.sgml
 	db2html -o html $<
