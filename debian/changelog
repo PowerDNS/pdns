@@ -1,3 +1,9 @@
+pdns (2.9.3a-1) unstable; urgency=low
+
+  * New upstream release; fixes a problem in zone2sql
+
+ -- Wichert Akkerman <wakkerma@debian.org>  Sat, 21 Dec 2002 20:16:16 +0100
+
 pdns (2.9.3-1) unstable; urgency=low
 
   * New upstream release. Yes, the packaging changes yet again to

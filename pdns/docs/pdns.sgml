@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/21 15:38:41 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/21 20:49:59 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -85,7 +85,9 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-3"><title>Version 2.9.3</title>	
+      <sect2 id="changelog-2-9-3"><title>Version 2.9.3a</title>	
+	<para>
+	  <note><para>2.9.3a is identical to 2.9.3 except that zone2sql does work</para></note></para>
 	<para>
 	  Broad range of huge improvements. We now have an all-static .rpm and .deb for Linux users and a a link to an OpenBSD port.
 	  Major news is that work on the Bind backend has progressed to the point that we've just retired our last Bind server and 
