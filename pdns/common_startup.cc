@@ -31,7 +31,6 @@ CommunicatorClass Communicator;
 UDPNameserver *N;
 int avg_latency;
 TCPNameserver *TN;
-SyncresCommunicator* SRC;
 
 ArgvMap &arg()
 {
@@ -264,8 +263,6 @@ void mainthread()
   
   if(arg().mustDo("slave") || arg().mustDo("master"))
     Communicator.go(); 
-
-  SRC=new SyncresCommunicator();
 
   if(TN)
     TN->go(); // tcp nameserver launch
