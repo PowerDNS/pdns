@@ -1,6 +1,6 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.cc,v 1.4 2003/10/11 19:57:19 ahu Exp $  */
+   $Id: smysql.cc,v 1.5 2003/12/17 18:05:10 ahu Exp $  */
 #include "smysql.hh"
 #include <string>
 #include <iostream>
@@ -56,7 +56,7 @@ int SMySQL::doQuery(const string &query)
 
   int err;
   if((err=mysql_query(&d_db,query.c_str()))) 
-    throw SSqlException("Failed to execute mysql_query, perhaps connection died? Err="+itoa(err));
+    throw sPerrorException("Failed to execute mysql_query, perhaps connection died? Err="+itoa(err));
 
 
   return 0;
