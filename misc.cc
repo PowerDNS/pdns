@@ -206,7 +206,20 @@ void chomp(string &line, const string &delim)
 }
 
 
+const string unquotify(const string &item)
+{
+  if(item.size()<2)
+    return item;
 
+  string::size_type bpos=0, epos=item.size();
+
+  if(item[0]=='"')
+    bpos=1;
+  if(item[epos-1]=='"')
+    epos-=1;
+
+  return item.substr(bpos,epos);
+}
 
 void stripLine(string &line)
 {

@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/21 20:49:59 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/29 00:50:34 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -2957,8 +2957,18 @@ name         IN            A        1.2.3.4
       statement as the <command>bind</command> module is no longer launched.
     </para>
     <para>
-      WARNING! Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply
-      an IP address here to prevent chicken/egg problems!
+      <warning>
+	<para>
+	  Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply
+	  an IP address here to prevent chicken/egg problems!
+	</para>
+      </warning>
+      <warning>
+	<para>
+	  This section describes the deprecated MySQL backend, which should no longer be used! Use the Generic MySQL backend! See
+	  <xref linkend="generic-mypgsql-backends">.
+	</para>
+      </warning>
     </para>
     <para>
       Now start PDNS using the monitor command:
@@ -4431,6 +4441,104 @@ local0.err                        /var/log/pdns.err
     <para>
       This chapter contains a number of FAQs and HOWTOs.
     </para>
+    <sect1 id="pdns-users-faq"><title>Using and Compiling PowerDNS FAQ</title>
+      <para>
+	In the course of compiling and using PowerDNS, many questions may arise. Here are some we've heard earlier or questions 
+	we expect people may have. Please read this list before mailing us!
+      </para>
+      <para>
+	<variablelist>
+	  <varlistentry>
+	    <term>Q: Can I launch multiple backends simultaneously?</term>
+	    <listitem>
+	      <para>
+		A: You can. This might for example be useful to keep an existing BIND configuration around but to store new zones in, say
+		MySQL. The syntax to use is 'launch=bind,gmysql'.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: Which backend should I use? There are so many!</term>
+	    <listitem>
+	      <para>
+		A: If you have no external constraints, the Generic MySQL (gmysql) and Generic PostgreSQL (gpgsql) ones are probably the
+		most used and complete. By all means do not use the non-generic MySQL backend, which is deprecated and only available for older
+		installations.
+	      </para>
+	      <para>
+		The Oracle backend also has happy users, we know of no deployments of the DB2 backend. The BIND backend is pretty capable
+		too in fact, but many prefer a relational database.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: I try to launch the pgmysqlbackend and it can't find it!</term>
+	    <listitem>
+	      <para>
+		A: You did not read the changelog, nor the README. The 'pgmysql' backend is no more and has been split
+		into the gmysql and gpgsql backends, with the common code residing within PowerDNS itself.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: PowerDNS compiles under OpenBSD, but crashes immediately, now what?</term>
+	    <listitem>
+	      <para>
+		A: Reasons behind this are somewhat unclear but we hear they go away if you use a more recent compiler. Let us know
+		on <email>pdns-dev@mailman.powerdns.com</email>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: I'm trying to build from CVS but I get lots of weird errors!</term>
+	    <listitem>
+	      <para>
+		A: Read the 'HACKING' file, it lists the build requirements (mostly autoconf, automake, libtool). In many cases, 
+		it may be easier to build from the source distribution though.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: I'm on Solaris 7 and AAAA records do not work</term>
+	    <listitem>
+	      <para>
+		A: Indeed, and this is pretty sad. Either upgrade to Solaris 8 or convince people to write the replacement functions
+		needed to encode AAAA if the host operating system does not offer them.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: When compiling I get errors about 'sstream' and 'ostringstream', or BITSPERCHAR</term>
+	    <listitem>
+	      <para>
+		A: Your gcc is too old. Versions 2.95.2 and older are not supported. Many distributions have improved gcc 2.95.2 
+		with an ostringstream implementation, in which case their 2.95.2 is also supported. We like gcc 3.2.1 best.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: Ok, I've installed gcc 3.2.1 but now the gpgsql backend won't link</term>
+	    <listitem>
+	      <para>
+		A: Sadly, the gcc C++ on-disk object format has changed a few times since the 2.95 days. This means that
+		gcc 3.2.1 cannot link against libpq++.so compiled with 2.95. The trick is to recompile PostgreSQL with 3.2.1
+		too and have it install in a separate location. Then reconfigure the pdns compile to look there, with
+		<command>./configure --with-pgsql-lib=/opt/postgresql-with-3.2.1/lib</command>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: I've installed PostgreSQL 7.3 but it has no libpq++.so</term>
+	    <listitem>
+	      <para>
+		A: As of 7.3, libpq++ has been split out of the main PostgreSQL distribution. See <ulink url="http://gborg.postgresql.org/">here</ulink>.
+		It would in fact be a great idea to move the gpgsql backend to the C interface instead of the C++ one. On Debian 'Sid', libpq++.so
+		hides in the libpqpp-dev package.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
     <sect1 id="pdns-devel-faq"><title>Backend developer HOWTO</title>
       <para>
 	Writing backends without access to the full PDNS source means that you need to write code that can be loaded by PDNS at runtime. 
@@ -7197,6 +7305,32 @@ static RandomLoader randomloader;
 	To compile a module for inclusion at runtime, which is great if you are a unix vendor, use <command>--with-dynmodules="mod1 mod2 mod3"</command>.
 	These modules then end up as .so files in the compiled libdir. 
       </para>
+
+      <sect2 id="unix-freebsd"><title>FreeBSD</title>
+	<para>
+	  Works fine, but use gmake. Pipe backend is currently broken, for reasons, see <xref linkend="pipebackend">. Due to the threading model
+	  of FreeBSD, PowerDNS does not benefit from additional CPUs on the system.
+	</para>
+      </sect2>
+      <sect2 id="unix-linux"><title>Linux</title>
+	<para>
+	  Linux is probably the best supported platform as most of the main coders are Linux users. The static DEB distribution is known to have 
+	  problems on Debian 'Sid', but that doesn't matter as PowerDNS is a native part of Debian 'Sid'. Just apt-get!
+	</para>
+      </sect2>
+      <sect2 id="unix-openbsd"><title>OpenBSD</title>
+	<para>
+	  Compiles but then does not work. We hear that it may work with more recent versions of gcc, please let us know on 
+	  <email>pdns-dev@mailman.powerdns.com</email>.
+	</para>
+      </sect2>
+      <sect2 id="unix-solaris"><title>Solaris</title>
+	<para>
+	  Solaris 7 is supported, but only just. AAAA records do not work on Solaris 7. Solaris 8 and 9 work fine. The 'Sunpro' compiler
+	  has not been tried but is reported to be lacking large parts of the Standard Template Library, which PowerDNS relies on heavily. 
+	  Use gcc and gmake (if available). Regular Solaris make has some issues with some PowerDNS Makefile constructs.
+	</para>
+      </sect2>
     </sect1>
     <sect1 id="on-windows"><title>Compiling PowerDNS on Windows</title>
       <para>
