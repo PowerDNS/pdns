@@ -418,6 +418,9 @@ int main(int argc, char **argv)
     arg().set("local-address","single address to listen on")="0.0.0.0";
     arg().set("trace","if we should output heaps of logging")="off";
     arg().set("daemon","Operate as a daemon")="yes";
+    arg().set("chroot","switch to chroot jail")="";
+    arg().set("setgid","If set, change group id to this gid for more security")="";
+    arg().set("setuid","If set, change user id to this uid for more security")="";
     arg().set("quiet","Suppress logging of questions and answers")="off";
     arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
@@ -468,6 +471,23 @@ int main(int argc, char **argv)
 
     writePid();
 #endif
+
+    int newgid=0;
+    if(!arg()["setgid"].empty())
+      newgid=Utility::makeGidNumeric(arg()["setgid"]);
+    int newuid=0;
+    if(!arg()["setuid"].empty())
+      newuid=Utility::makeUidNumeric(arg()["setuid"]);
+
+
+    if (!arg()["chroot"].empty()) {
+        if (chroot(arg()["chroot"].c_str())<0) {
+            L<<Logger::Error<<"Unable to chroot to '"+arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
+	    exit(1);
+	}
+    }
+
+    Utility::dropPrivs(newuid, newgid);
 
     vector<TCPConnection> tcpconnections;
     counter=0;
