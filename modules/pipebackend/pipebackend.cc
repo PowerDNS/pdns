@@ -1,6 +1,6 @@
 // -*- sateh-c -*- 
 // File    : pdnsbackend.cc
-// Version : $Id: pipebackend.cc,v 1.5 2003/08/22 13:33:31 ahu Exp $ 
+// Version : $Id$ 
 //
 
 #include <string>
@@ -78,7 +78,7 @@ void CoWrapper::receive(string &line)
 
 PipeBackend::PipeBackend(const string &suffix)
 {
-  setArgPrefix("pipe"+suffix);
+   setArgPrefix("pipe"+suffix);
    try {
       d_coproc=new CoWrapper(getArg("command"), getArgAsNum("timeout"));
       d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
@@ -103,8 +103,22 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
          d_disavow=true; // don't pass to backend
       } else {
          ostringstream query;
-         // type    qname           qclass  qtype   id      ip-address
-         query<<"Q\t"<<qname<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<(pkt_p ? pkt_p->getRemote() : "0.0.0.0");
+         string localIP="0.0.0.0";
+         string remoteIP="0.0.0.0";
+         
+         if (pkt_p) {
+            localIP=pkt_p->getLocal();
+	    remoteIP=pkt_p->getRemote();
+         }
+
+         // pipebackend-abi-version = 1
+         // type    qname           qclass  qtype   id      remote-ip-address
+         query<<"Q\t"<<qname<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<remoteIP;
+
+         // add the local-ip-address if pipebackend-abi-version is set to 2
+         if (arg().asNum("pipebackend-abi-version") == 2) 
+            query<<"\t"<<localIP;
+
          if(arg().mustDo("query-logging"))
             L<<Logger::Error<<"Query: '"<<query.str()<<"'"<<endl;
          d_coproc->send(query.str());

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnsbackend.hh,v 1.6 2003/08/22 13:33:31 ahu Exp $
+// $Id$
 /* (C) 2002 POWERDNS.COM BV  */
    
 #ifndef DNSBACKEND_HH
@@ -85,7 +85,7 @@ public:
   virtual ~DNSBackend(){};
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const string &name, SOAData &soadata);
+  virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
 
   //! returns true if master ip is master for domain name.
   virtual bool isMaster(const string &name, const string &ip)

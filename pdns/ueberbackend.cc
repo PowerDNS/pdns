@@ -138,7 +138,7 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 }
 
 /** special trick - if sd.db is set to -1, the cache is ignored */
-bool UeberBackend::getSOA(const string &domain, SOAData &sd)
+bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 {
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
@@ -161,7 +161,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd)
     
 
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->getSOA(domain, sd)) {
+    if((*i)->getSOA(domain, sd, p)) {
       DNSResourceRecord rr;
       rr.qname=domain;
       rr.qtype=QType::SOA;

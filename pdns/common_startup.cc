@@ -69,6 +69,7 @@ void declareArguments()
   arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   arg().set("lazy-recursion","Only recurse if question cannot be answered locally")="yes";
   arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
+  arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
   
   arg().set("disable-tcp","Do not listen to TCP queries")="no";
   arg().set("disable-axfr","Do not allow zone transfers")="no";

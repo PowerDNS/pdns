@@ -199,7 +199,7 @@ bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int
 {
   string subdomain(target);
   do {
-    if( B.getSOA( subdomain, *sd ) ) {
+    if( B.getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
       *zoneId = sd->domain_id;
       return true;
@@ -286,7 +286,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 	i!=crrs.end();
 	++i) {
       
-      if(i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd)) { // drop AA in case of non-SOA-level NS answer
+      if(i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer
 	r->d.aa=false;
 	//	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
@@ -594,7 +594,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
     if(p->qtype.getCode()==QType::SOA || p->qtype.getCode()==QType::ANY) { // this is special
 
-      if(B.getSOA(target,sd)) {
+      if(B.getSOA(target,sd,p)) {
 	rr.qname=target;
 	rr.qtype=QType::SOA;
 	rr.content=DNSPacket::serializeSOAData(sd);
@@ -762,7 +762,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 	
 	if(!found) {
 	  SOAData sd2;
-	  if(B.getSOA(target,sd2)) // is there a SOA perhaps? (which may not appear in an ANY query)
+	  if(B.getSOA(target,sd2,p)) // is there a SOA perhaps? (which may not appear in an ANY query)
 	    found=true;
 	}
 
