@@ -18,12 +18,12 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.8 2004/01/17 13:18:22 ahu Exp $ 
+// $Id: zone2sql.cc,v 1.9 2004/01/22 07:52:32 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
-# include <unistd.h>
-#endif // WIN32
 
+#endif // WIN32
+#include <unistd.h>
 #include <string>
 #include <map>
 

@@ -16,7 +16,7 @@ else
 sbin_PROGRAMS = pdns_server
 endif
 
-bin_PROGRAMS = pdns_control
+bin_PROGRAMS = pdns_control qgen
 
 EXTRA_PROGRAMS=pdns_recursor pdns_control
 
@@ -42,8 +42,11 @@ pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREAD
 pdns_server_INCLUDES=
 
 
-#resolver_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
-#logger.cc statbag.cc dnspacket.cc arguments.cc  tres.cc
+qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
+	logger.cc statbag.cc dnspacket.cc arguments.cc  qgen.cc \
+	 sillyrecords.cc
+
+qgen_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
 
 # INCLUDES=-I/usr/include/mysql
 

@@ -164,10 +164,7 @@ int waitForData(int fd, int seconds)
 
   ret = select( fd + 1, &readfds, NULL, NULL, &tv );
   if ( ret == -1 )
-  {
-    ret = -1;
     errno = ETIMEDOUT;
-  }
 
   return ret;
 }
