@@ -207,9 +207,15 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   PacketHandler P;
-  P.getBackend()->rediscover();
-  L<<Logger::Error<<"Rediscovery was requested"<<endl;
-  return "Ok";
+  try {
+    L<<Logger::Error<<"Rediscovery was requested"<<endl;
+    P.getBackend()->rediscover();
+    return "Ok";
+  }
+  catch(AhuException &ae) {
+    return ae.reason;
+  }
+
 }
 
 string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)

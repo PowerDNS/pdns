@@ -236,7 +236,7 @@ void mainthread()
 #ifndef WIN32
    if(!arg()["chroot"].empty()) {  
      if(chroot(arg()["chroot"].c_str())<0) {
-       L<<Logger::Error<<"Unable to chroot: "<<strerror(errno)<<", exiting"<<endl; 
+       L<<Logger::Error<<"Unable to chroot to '"+arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);
      }   
      else

@@ -67,6 +67,7 @@ public:
   unsigned int d_id;
   time_t d_last_check;
   string d_master;
+  int d_confcount;
 
   bool tryRLock()
   {
@@ -211,4 +212,6 @@ private:
   handle *d_handle;
   void queueReload(BBDomainInfo *bbd);
   BBResourceRecord resourceMaker(int id, const string &qtype, const string &content, int ttl, int prio);
+  static string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid);
+  void loadConfig();
 };

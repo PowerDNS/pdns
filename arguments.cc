@@ -232,6 +232,11 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   }
 
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
+
+    pos=val.find_first_not_of(" \t");  // strip leading whitespace
+    if(pos && pos!=string::npos) 
+      val=val.substr(pos);
+
     if(parmIsset(var))
       params[var]=val;
     else
