@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.11 2003/01/13 15:39:16 ahu Exp $
+// $Id: dnspacket.cc,v 1.12 2003/01/13 23:05:15 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -246,13 +246,7 @@ void DNSPacket::addARecord(const string &name, u_int32_t ip, u_int32_t ttl, DNSR
   toqname(name, &piece1);
 
   char p[14];
-
-  p[0]=0;  
-  p[1]=1; // A
-  p[2]=0;
-  p[3]=1; // IN
-
-  putLong(p+4, ttl);
+  makeHeader(p,QType::A,ttl);
   p[8]=0;
   p[9]=4; // length of data
 
@@ -273,7 +267,7 @@ void DNSPacket::addAAAARecord(const DNSResourceRecord &rr)
 
 #ifdef HAVE_IPV6
   if( Utility::inet_pton( AF_INET6, rr.content.c_str(), static_cast< void * >( addr )))
-    addAAAARecord(rr.qname, addr, rr.ttl);
+    addAAAARecord(rr.qname, addr, rr.ttl,rr.d_place);
   else
 #endif
     L<<Logger::Error<<"Unable to convert IPv6 TEXT '"<<rr.content<<"' into binary for record '"<<rr.qname<<"': "
@@ -282,19 +276,13 @@ void DNSPacket::addAAAARecord(const DNSResourceRecord &rr)
 
 
 
-void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], u_int32_t ttl)
+void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], u_int32_t ttl,DNSResourceRecord::Place place)
 {
   string piece1;
   toqname(name.c_str(),&piece1);
 
   char p[26];
-
-  p[0]=0;  
-  p[1]=28; // AAAA
-  p[2]=0;
-  p[3]=1; // IN
-
-  putLong(p+4,ttl);
+  makeHeader(p,QType::AAAA,ttl);
   p[8]=0;
   p[9]=16; // length of data
 
@@ -303,8 +291,10 @@ void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], u_int3
 
   stringbuffer.append(piece1);
   stringbuffer.append(p,26);
-
-  d.ancount++;
+  if(place==DNSResourceRecord::ADDITIONAL)
+    d.arcount++;
+  else
+    d.ancount++;
 }
 
 

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.12 2003/01/13 15:39:17 ahu Exp $
+// $Id: dnspacket.hh,v 1.13 2003/01/13 23:05:15 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -138,7 +138,7 @@ private:
   void addARecord(const string&, u_int32_t, u_int32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
   void addARecord(const DNSResourceRecord &); //!< add an A record to the packet
 
-  void addAAAARecord(const string &, unsigned char addr[16], u_int32_t ttl); //!< add an A record to the packet
+  void addAAAARecord(const string &, unsigned char addr[16], u_int32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
   void addAAAARecord(const DNSResourceRecord &); //!< add an A record to the packet
 
 
