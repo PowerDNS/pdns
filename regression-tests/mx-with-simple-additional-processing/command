@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig exAmplE.com MX
+cleandig example.com MX
