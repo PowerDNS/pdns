@@ -5,9 +5,6 @@ be_tmpdir	:= $(shell pwd)/debian/tmp-backend
 backends	:= ldap mysql pipe xdb gmysql gpgsql
 debs		:= ldap mysql pipe xdb pgsql
 
-configure:
-	./bootstrap
-
 binary-doc:
 	-make -C pdns/docs html/index.html
 
@@ -120,11 +117,11 @@ binary-main-prepare:
 
 
 binary-main: stamp-build binary-main-prepare
-	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
-	dpkg --build "$(tmpdir)" ..
 	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
 		"$(tmpdir)"/usr/sbin/pdns_server \
 		"$(tmpdir)"/usr/bin/pdns_control
+	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
+	dpkg --build "$(tmpdir)" ..
 
 
 binary-static: stamp-build-static binary-main-prepare

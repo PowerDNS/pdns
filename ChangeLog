@@ -9,6 +9,10 @@ changes since 2.9.11:
 	- added --version
 	- clean up some parameter descriptions
 	- cleanups by Norbert (getAuth moved to chopOff, arguments 'contains' massive cleanup)
+	- improved reporting to which addresses we bind (now always mentions
+	  IP addresses)
+	- added delegation-only feature
+	- some Debian fixes
 
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache

@@ -9,5 +9,6 @@ update_init() {
 
 if [ "$1" = "purge" ] ; then
 	update_init
+	rmdir /etc/powerdns || true
 fi
 

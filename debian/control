@@ -3,7 +3,7 @@ Section: net
 Priority: extra
 Standards-Version: 3.5.8
 Maintainer: Wichert Akkerman <wakkerma@debian.org>
-Build-Depends: automake1.5, autoconf, libtool, flex, bison, docbook-utils, libmysqlclient10-dev, postgresql-dev, tdb-dev, libgdbm-dev, libpqpp-dev, libldap2-dev
+Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev, tdb-dev, libgdbm-dev, libpqpp-dev, libldap2-dev
 
 Package: pdns
 Architecture: any

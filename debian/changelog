@@ -1,3 +1,13 @@
+pdns (2.9.11-2) unstable; urgency=low
+
+  * Remove automake build-depends and bootstrap rule from debian/rules.
+    This makes pdns a bit more portable across Debian releases.
+    Closes: Bug#205990
+  * Try to remove the /etc/powerdns directory on purge. Closes: Bug#209051
+  * Use libmysqlclient-dev instead of libmysqlclient10-dev
+
+ -- Wichert Akkerman <wakkerma@debian.org>  Tue,  9 Sep 2003 14:59:46 +0200
+
 pdns (2.9.11-1) unstable; urgency=low
 
   * New upstream release
