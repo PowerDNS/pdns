@@ -5,18 +5,36 @@ MYSQL_INCLUDES	     = @MYSQL_incdir@
 MYSQL_LIB            = @MYSQL_lib@
 MYSQL_LIBS           = -lmysqlclient 
 
-#POSTGRES_INCLUDES	= /opt/postgresql/include
-#POSTGRES_LIBDIR         = /opt/postgresql-with-3.2/lib
-#POSTGRES_LIBS           = -Wl,-Bstatic  -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
+PGSQL_INCLUDES	= @PGSQL_incdir@
+PGSQL_LIB            = @PGSQL_lib@
+PGSQL_LIBS           = -Wl,-Bstatic  -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
 
-VERSION			= 2.9
+CXXFLAGS:=-I$(PDNS_HOME) $(CXXFLAGS)
 
-all: gmysqlbackend.o smysql.o
+dopgsql=@dopgsql@
+domysql=@domysql@
 
-CPPFLAGS=-I$(PDNS_HOME) -I$(MYSQL_INCLUDES) # -I$(POSTGRES_INCLUDES)
+ifneq ($(dopgsql),)
+	TARGETS:=spgsql.o
+	CXXFLAGS:=-DPDNS_DOPGSQL -I$(PGSQL_INCLUDES) $(CXXFLAGS)
+	ELIBS:=$(PGSQL_LIB) $(PGSQL_LIBS)
+endif
 
-LIBS=  $(MYSQL_LIB)  $(MYSQL_LIBS) # -L$(POSTGRES_LIBDIR)  $(POSTGRES_LIBS)
-DIRNAME=pdns-gmypgsqlbackend-$(VERSION)
+ifneq ($(domysql),)
+	TARGETS:=$(TARGETS) smysql.o
+	CXXFLAGS:=-DPDNS_DOMYSQL -I$(MYSQL_INCLUDES) $(CXXFLAGS)
+	ELIBS:=$(MYGRES_LIB) $(MYGRES_LIBS) $(ELIBS)
+endif
+
+
+all: gmysqlbackend.o $(TARGETS) OBJECTFILES
+
+OBJECTFILES:
+	echo $(TARGETS) > OBJECTFILES
+
+OBJECTLIBS:
+	echo $(ELIBS) > OBJECTLIBS
+
 
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
@@ -47,10 +65,6 @@ deps:
 
 -include deps
 
-
-#libgmysqlbackend.so: gmysqlbackend.o smysql.o spgsql.o 
-#	g++ gmysqlbackend.o -Wl,-rpath -Wl,$(POSTGRES_LIBDIR) smysql.o spgsql.o $(LIBS) -Wl,-soname -Wl,libgmysqlbackend.so.0 -shared  -o libgmysqlbackend.so 
-
 .cc.o:
 	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $<
 
@@ -61,5 +75,3 @@ clean:
 
 install:
 
-#install: libgmysqlbackend.so
-#	mv $< $(PDNS_LIBDIR)

@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.2 2002/11/29 15:14:24 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.3 2002/11/29 21:16:10 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -12,10 +12,13 @@ using namespace std;
 #include "ahuexception.hh"
 #include "logger.hh"
 #include "arguments.hh"
-#include "smysql.hh"
 
-#if 0
-	#include "spgsql.hh"
+#ifdef PDNS_DOMYSQL
+#include "smysql.hh"
+#endif
+
+#ifdef PDNS_DOPGSQL
+#include "spgsql.hh"
 #endif
 
 #include <sstream>
@@ -187,14 +190,17 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)
   d_logprefix="["+mode+"Backend"+suffix+"] ";
   d_db=0;
   try {
-    if(mode=="gmysql")
+    if(0) {}
+#ifdef PDNS_DOMYSQL
+    else if(mode=="gmysql")
       d_db=new SMySQL(getArg("dbname"),
 		    getArg("host"),
 		    getArg("socket"),
 		    getArg("user"),
 		    getArg("password"));
-#if 0
-    else if(mode=="gpgsql2")
+#endif
+#ifdef PDNS_DOPGSQL
+    else if(mode=="gpgsql")
       d_db=new SPgSQL(getArg("dbname"),
 		      getArg("host"),
 		      getArg("socket"),
