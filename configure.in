@@ -124,13 +124,13 @@ fi
 
 
 modules="gmysql"
-AC_ARG_WITH(modules, [  --with-modules Which userbases to compile with ], 
+AC_ARG_WITH(modules, [  --with-modules Which backends to compile with ], 
 [
         modules="$withval"  
 ])
 
 dynmodules="pipe"
-AC_ARG_WITH(dynmodules, [  --with-dynmodules Which userbases to build for dynamic loading ], 
+AC_ARG_WITH(dynmodules, [  --with-dynmodules Which backends to build for dynamic loading ], 
 [
         dynmodules="$withval"  
 ])
