@@ -6,12 +6,12 @@
       <affiliation>
         <orgname>PowerDNS BV</orgname>
         <address>
-          <email>pdns@powerdns.com</email>
+          <email>pdns.bd@powerdns.com</email>
         </address>
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date$</PubDate>
+    <PubDate>v2.9.18 $Date$</PubDate>
     
     <Abstract>
 	<para>	
@@ -4279,7 +4279,6 @@ name         IN            A        1.2.3.4
       <screen>
 	# /etc/init.d/pdns monitor
 	(...)
-	15:31:30 PowerDNS 1.99.0 (Mar 12 2002, 15:00:28) starting up
 	15:31:30 About to create 3 backend threads
 	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
 	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
@@ -4712,6 +4711,10 @@ local0.err                        /var/log/pdns.err
       <para>
 	For performance reasons, be especially certain that no large amounts of synchronous logging take place. Under Linux, this 
 	is indicated by filenames not starting with a '-' - indicating a synchronous log, which hurts performance.
+      </para>
+      <para>
+	Be aware that syslog by default logs messages at the configured priority and higher! To log only info messages, use
+	<command>local0.=info</command>.
       </para>
     </sect1>
   </chapter>
