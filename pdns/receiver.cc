@@ -481,7 +481,11 @@ int main(int argc, char **argv)
     }
 
     if(arg().mustDo("version")) {
-      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__<<endl;
+      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__;
+#ifdef __GNUC__ 
+      cerr<<" with gcc version "<<__GNUC__<<"."<<__GNUC_MINOR__<<"."<<__GNUC_PATCHLEVEL__;
+#endif
+      cout<<endl;
       exit(99);
     }
 
