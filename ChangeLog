@@ -4,7 +4,8 @@ changes since 2.9.16:
 	- better check for % in queries
 	- make gmysql compile on Solaris
 	- be more precise in detecting duplicate MX records
-	- allow version override
+	- allow version override (reported with version.bind)
+	- for more changes, see http://ds9a.nl/cgi-bin/cvstrac/pdns/timeline
 
 changes since 2.9.15:
 	- zone2sql now compiles again (error on STDIN_FILENO) (Derrik Pates)

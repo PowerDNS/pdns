@@ -1,3 +1,9 @@
+pdns (2.9.17-1) unstable; urgency=medium
+
+  * fill in the blanks
+
+ -- Wichert Akkerman <wichert@wiggy.net>  Sat, 13 Sep 2004 23:23:33 +0100
+
 pdns (2.9.16-1) unstable; urgency=medium
 
   * fill in the blanks
