@@ -3,9 +3,8 @@
     Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License versionm 2 as 
+    published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -80,6 +79,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_dt=orig.d_dt;
   d_socklen=orig.d_socklen;
   d_compress=orig.d_compress;
+  d_tcp=orig.d_tcp;
   qtype=orig.qtype;
   qclass=orig.qclass;
   qdomain=orig.qdomain;
@@ -1412,6 +1412,7 @@ DNSPacket *DNSPacket::replyPacket() const
   
   r->d_dt=d_dt;
   r->d.qdcount=1;
+  r->d_tcp = d_tcp;
   return r;
 }
 

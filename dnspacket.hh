@@ -132,7 +132,6 @@ public:
       DNSResourceRecord d_place field */
   void addRecord(const DNSResourceRecord &); 
 
-
   /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
   static void fillSOAData(const string &content, SOAData &data);
 
@@ -245,14 +244,14 @@ public:
   QType qtype;  //!< type of the question 8
 
   string qdomain;  //!< qname of the question 4
-
-
+  bool d_tcp;
 private:
   bool d_wrapped; // 1
   bool d_compress; // 1
   u_int16_t d_qlen; // length of the question (including class & type) in this packet 2
-
+  
   int d_socket; // 4
+  
   int findlabel(string &label);
   int toqname(const char *name, string &qname, bool compress = true);
   int toqname(const string &name, string &qname, bool compress = true);

@@ -3,9 +3,8 @@
     Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 
+    as published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -72,8 +71,8 @@ ArgvMap &arg()
   return theArg;
 }
 static int d_clientsock;
-static int d_serversock;
-static int d_tcpserversock;
+static vector<int> d_udpserversocks;
+static vector<int> d_tcpserversocks;
 
 struct PacketID
 {
@@ -121,8 +120,6 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
 
   return 1;
 }
-
-
 
 
 static void writePid(void)
@@ -194,8 +191,9 @@ void startDoResolve(void *p)
     }
 
     const char *buffer=R->getData();
-    if(!R->getSocket())
-      sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+
+    if(!R->d_tcp)
+      sendto(R->getSocket(),buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
     else {
       char buf[2];
       buf[0]=R->len/256;
@@ -249,72 +247,82 @@ void makeClientSocket()
   Utility::setNonBlocking(d_clientsock);
 }
 
-void makeTCPServerSocket()
+void makeTCPServerSockets()
 {
-  d_tcpserversock=socket(AF_INET, SOCK_STREAM,0);
-  if(d_tcpserversock<0) 
-    throw AhuException("Making a server socket for resolver: "+stringerror());
+  vector<string>locals;
+  stringtok(locals,arg()["local-address"]," ,");
+
+  if(locals.empty())
+    throw AhuException("No local address specified");
   
-  struct sockaddr_in sin;
-  memset((char *)&sin,0, sizeof(sin));
-  
-  sin.sin_family = AF_INET;
-
-  if(arg()["local-address"]=="0.0.0.0") {
-    sin.sin_addr.s_addr = INADDR_ANY;
-  }
-  else {
-    if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address"); 
-  }
-
-  sin.sin_port = htons(arg().asNum("local-port")); 
-
-  int tmp=1;
-  if(setsockopt(d_tcpserversock,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
-    L<<Logger::Error<<"Setsockopt failed"<<endl;
-    exit(1);  
-  }
-    
-  if (bind(d_tcpserversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
-    throw AhuException("TCP Resolver binding to server socket: "+stringerror());
-  
-
-  Utility::setNonBlocking(d_tcpserversock);
-
-  listen(d_tcpserversock, 128);
-}
-
-void makeServerSocket()
-{
-  d_serversock=socket(AF_INET, SOCK_DGRAM,0);
-  if(d_serversock<0) 
-    throw AhuException("Making a server socket for resolver: "+stringerror());
-  
-  struct sockaddr_in sin;
-  memset((char *)&sin,0, sizeof(sin));
-  
-  sin.sin_family = AF_INET;
-
   if(arg()["local-address"]=="0.0.0.0") {
     L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
-    sin.sin_addr.s_addr = INADDR_ANY;
-  }
-  else {
-    
-    if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address"); 
-
   }
 
-  sin.sin_port = htons(arg().asNum("local-port")); 
+  for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
+    int fd=socket(AF_INET, SOCK_STREAM,0);
+    if(fd<0) 
+      throw AhuException("Making a server socket for resolver: "+stringerror());
+  
+    struct sockaddr_in sin;
+    memset((char *)&sin,0, sizeof(sin));
     
-  if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
-    throw AhuException("Resolver binding to server socket: "+stringerror());
+    sin.sin_family = AF_INET;
+    if(!IpToU32(*i, &sin.sin_addr.s_addr))
+      throw AhuException("Unable to resolve local address '"+ *i +"'"); 
 
-  Utility::setNonBlocking(d_serversock);
+    int tmp=1;
+    if(setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
+      L<<Logger::Error<<"Setsockopt failed for TCP listening socket"<<endl;
+      exit(1);  
+    }
+    
+    sin.sin_port = htons(arg().asNum("local-port")); 
+    
+    if (bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
+      throw AhuException("Binding TCP server socket for "+*i+": "+stringerror());
+    
+    Utility::setNonBlocking(fd);
+    listen(fd, 128);
+    d_tcpserversocks.push_back(fd);
+    L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
+  }
+}
 
-  L<<Logger::Error<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
+
+void makeUDPServerSockets()
+{
+  vector<string>locals;
+  stringtok(locals,arg()["local-address"]," ,");
+
+  if(locals.empty())
+    throw AhuException("No local address specified");
+  
+  if(arg()["local-address"]=="0.0.0.0") {
+    L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
+  }
+
+  for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
+    int fd=socket(AF_INET, SOCK_DGRAM,0);
+    if(fd<0) 
+      throw AhuException("Making a server socket for resolver: "+stringerror());
+  
+    struct sockaddr_in sin;
+    memset((char *)&sin,0, sizeof(sin));
+    
+    sin.sin_family = AF_INET;
+    if(!IpToU32(*i, &sin.sin_addr.s_addr))
+      throw AhuException("Unable to resolve local address '"+ *i +"'"); 
+    
+    sin.sin_port = htons(arg().asNum("local-port")); 
+    
+    if (bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
+      throw AhuException("Resolver binding to server socket for "+*i+": "+stringerror());
+    
+    Utility::setNonBlocking(fd);
+    d_udpserversocks.push_back(fd);
+    L<<Logger::Error<<"Listening for UDP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
+  }
 }
 
 
@@ -346,14 +354,12 @@ void usr1Handler(int)
 void doStats(void)
 {
   if(qcounter) {
-    
     L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
      <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits";
     L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
     L<<Logger::Error<<"queries running: "<<MT->numProcesses()<<endl;
-    
   }
   statsWanted=false;
 }
@@ -442,8 +448,8 @@ int main(int argc, char **argv)
       SyncRes::setLog(true);
     
     makeClientSocket();
-    makeServerSocket();
-    makeTCPServerSocket();
+    makeUDPServerSockets();
+    makeTCPServerSockets();
         
     MT=new MTasker<PacketID,string>(100000);
 
@@ -484,15 +490,21 @@ int main(int argc, char **argv)
       fd_set readfds;
       FD_ZERO( &readfds );
       FD_SET( d_clientsock, &readfds );
-      FD_SET( d_serversock, &readfds );
-      FD_SET( d_tcpserversock, &readfds );
-      int fdmax=max(d_tcpserversock,max(d_clientsock,d_serversock));
+      int fdmax=d_clientsock;
+
       for(vector<TCPConnection>::const_iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
 	FD_SET(i->fd, &readfds);
 	fdmax=max(fdmax,i->fd);
       }
+      for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
+	FD_SET( *i, &readfds );
+	fdmax=max(fdmax,*i);
+      }
+      for(vector<int>::const_iterator i=d_tcpserversocks.begin(); i!=d_tcpserversocks.end(); ++i) {
+	FD_SET( *i, &readfds );
+	fdmax=max(fdmax,*i);
+      }
 
-      /* this should listen on a TCP port as well for new connections,  */
       int selret = select(  fdmax + 1, &readfds, NULL, NULL, &tv );
       if(selret<=0) 
 	if (selret == -1 && errno!=EINTR) 
@@ -523,38 +535,43 @@ int main(int argc, char **argv)
 	}
       }
       
-      if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question on udp?
-	d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-	if(d_len<0) 
-	  continue;
- 	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
-	if(P.parse(data,d_len)<0) {
-	  L<<Logger::Error<<"Unparseable packet from remote client "<<P.getRemote()<<endl;
-	}
-	else { 
-	  if(P.d.qr)
-	    L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-	  else {
-	    ++qcounter;
-	    P.setSocket(0);
-	    MT->makeThread(startDoResolve,(void*)new DNSPacket(P));
 
+      for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
+	if(FD_ISSET(*i,&readfds)) { // do we have a new question on udp?
+	  d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
+	  if(d_len<0) 
+	    continue;
+	  P.setRemote((struct sockaddr *)&fromaddr, addrlen);
+	  if(P.parse(data,d_len)<0) {
+	    L<<Logger::Error<<"Unparseable packet from remote client "<<P.getRemote()<<endl;
+	  }
+	  else { 
+	    if(P.d.qr)
+	      L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+	    else {
+	      ++qcounter;
+	      P.setSocket(*i);
+	      P.d_tcp=false;
+	      MT->makeThread(startDoResolve,(void*)new DNSPacket(P));
+	    }
 	  }
 	}
       }
 
-      if(FD_ISSET(d_tcpserversock,&readfds)) { // do we have a new TCP connection
-	struct sockaddr_in addr;
-	socklen_t addrlen=sizeof(addr);
-	int newsock=accept(d_tcpserversock, (struct sockaddr*)&addr, &addrlen);
-
-	if(newsock>0) {
-	  Utility::setNonBlocking(newsock);
-	  TCPConnection tc;
-	  tc.fd=newsock;
-	  tc.state=TCPConnection::BYTE0;
-	  tc.remote=addr;
-	  tcpconnections.push_back(tc);
+      for(vector<int>::const_iterator i=d_tcpserversocks.begin(); i!=d_tcpserversocks.end(); ++i) { 
+	if(FD_ISSET(*i ,&readfds)) { // do we have a new TCP connection
+	  struct sockaddr_in addr;
+	  socklen_t addrlen=sizeof(addr);
+	  int newsock=accept(*i, (struct sockaddr*)&addr, &addrlen);
+	  
+	  if(newsock>0) {
+	    Utility::setNonBlocking(newsock);
+	    TCPConnection tc;
+	    tc.fd=newsock;
+	    tc.state=TCPConnection::BYTE0;
+	    tc.remote=addr;
+	    tcpconnections.push_back(tc);
+	  }
 	}
       }
 
@@ -610,6 +627,7 @@ int main(int argc, char **argv)
 	      }
 	      else { 
 		P.setSocket(i->fd);
+		P.d_tcp=true;
 		P.setRemote((struct sockaddr *)&i->remote,sizeof(i->remote));
 		if(P.d.qr)
 		  L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
