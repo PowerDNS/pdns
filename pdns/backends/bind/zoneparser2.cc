@@ -322,13 +322,14 @@ void ZoneParser::soaCanonic(string &content)
   int pos=0;
 
   // 'ns.naamserver.net. hostmaster.naamserver.net 2001102501 8H 2H 1W 1D'
+  // FIXME: what about 'ns hostmaster.naamserver.net 2001102501 8H 2H 1W 1D'?
 
   string newcontent;
   for(vector<string>::const_iterator i=parts.begin();i!=parts.end();++i,++pos) {
     if(pos<3) {
       if(pos)
 	newcontent.append(1,' ');
-      newcontent.append(*i);
+      newcontent.append( canonic( *i ) );
     }
     else {
       unsigned int val=zoneNumber(*i);
