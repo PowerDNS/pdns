@@ -255,6 +255,14 @@ string itoa(int i)
   return o.str();
 }
 
+string uitoa(unsigned int i) // MSVC 6 doesn't grok overloading (un)signed
+{
+  ostringstream o;
+  o<<i;
+  return o.str();
+}
+
+
 string stringerror()
 {
   return strerror(errno);

@@ -116,6 +116,7 @@ const string toLower(const string &upper);
 bool IpToU32(const string &str, u_int32_t *ip);
 string stringerror();
 string itoa(int i);
+string uitoa(unsigned int i);
 
 void dropPrivs(int uid, int gid);
 int makeGidNumeric(const string &group);
