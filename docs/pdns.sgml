@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/09/21 15:48:16 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/09/21 16:06:45 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -101,7 +101,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Generic SQLite support, by Michel 'Who da man?' Stol. 
+		Generic <ulink url="http://www.sqlite.org">SQLite</ulink> support, by Michel 'Who da man?' Stol. See <xref linkend="gsqlite">.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -5976,7 +5976,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Case</entry><entry>Depends</entry></row>
 	      <row><entry>Module name</entry><entry>pipe</entry></row>
-	      <row><entry>Lauch name</entry><entry>pipe</entry></row>
+	      <row><entry>Launch name</entry><entry>pipe</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -6268,7 +6268,7 @@ while(&lt;&gt;)
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>Insensitive</entry></row>
 	      <row><entry>Module name</entry><entry>mysql</entry></row>
-	      <row><entry>Lauch name</entry><entry>mysql</entry></row>
+	      <row><entry>Launch name</entry><entry>mysql</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -7353,6 +7353,113 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
       </sect2>
     </sect1>
 
+    <sect1 id="gsqlite">
+      <title>Generic SQLite backend</title>
+      <para>
+      	<table>
+	        <title>Generic SQLite backend capabilities</title>
+	        <tgroup cols=2>
+	          <tbody>
+	            <row><entry>Native</entry><entry>Yes</entry></row>
+	            <row><entry>Master</entry><entry>Yes</entry></row>
+	            <row><entry>Slave</entry><entry>Yes</entry></row>
+	            <row><entry>Superslave</entry><entry>Yes</entry></row>
+	            <row><entry>Module name</entry><entry>gsqlite</entry></row>
+	            <row><entry>Launch name</entry><entry>gsqlite</entry></row>
+	          </tbody>
+	        </tgroup>
+	      </table>
+      </para>
+      <para>
+        This backend retrieves all data from a SQLite database, which is a RDBMS that's embedded into the application itself, so you won't need to be running a seperate server process.
+        It also reduces overhead, and simplifies installation.
+        At <ulink url="http://www.sqlite.org">http://www.sqlite.org</ulink> you can find more information about SQLite.
+      </para>
+      <para>
+        As this is a generic backend, built on top of the gSql framework, you can specify all queries as documented in <link linkend="generic-mypgsql-backends">Generic MySQL and PgSQL backends</link>.
+      </para>
+      <sect2>
+        <title>Compiling the SQLite backend</title>
+        <para>
+          Before you can begin compiling PowerDNS with the SQLite backend you need to have the SQLite utility and library installed on your system.
+          You can download these from <ulink url="http://www.sqlite.org/download.html">http://www.sqlite.org/download.html</ulink>, or you can use packages (if your distribution provides those).
+        </para>
+        <para>
+          When you've installed the library you can use: <command>./configure --with-modules="gsqlite"</command> to configure PowerDNS to use the SQLite backend.
+          Compilation can then proceed as usual.
+        </para>
+	<para>
+	  SQLite is included in most PowerDNS binary releases.
+	</para>
+      </sect2>
+      <sect2>
+        <title>Setting up the database</title>
+	      <para>
+	        Before you can use this backend you first have to set it up and fill it with data.	        
+	        The default setup conforms to the following schema:
+	        
+	        <programlisting>
+            create table domains (
+              id		INTEGER PRIMARY KEY,
+              name		VARCHAR(255) NOT NULL,
+              master		VARCHAR(20) DEFAULT NULL,
+              last_check	INTEGER DEFAULT NULL,
+              type		VARCHAR(6) NOT NULL,
+              notified_serial   INTEGER DEFAULT NULL, 
+              account           VARCHAR(40) DEFAULT NULL
+            );
+
+            CREATE UNIQUE INDEX name_index ON domains(name);
+
+            CREATE TABLE records (
+              id              INTEGER PRIMARY KEY,
+              domain_id       INTEGER DEFAULT NULL,
+              name            VARCHAR(255) DEFAULT NULL,
+              type            VARCHAR(6) DEFAULT NULL,
+              content         VARCHAR(255) DEFAULT NULL,
+              ttl             INTEGER DEFAULT NULL,
+              prio            INTEGER DEFAULT NULL,
+              change_date     INTEGER DEFAULT NULL
+            );
+              
+            CREATE INDEX rec_name_index ON records(name);
+            CREATE INDEX nametype_index ON records(name,type);
+            CREATE INDEX domain_id ON records(domain_id);
+
+            create table supermasters (
+              ip          VARCHAR(25) NOT NULL, 
+              nameserver  VARCHAR(255) NOT NULL, 
+              account     VARCHAR(40) DEFAULT NULL
+            );
+	        </programlisting>
+	      </para>
+	      <para>
+	        This schema contains all elements needed for master, slave and superslave operation.	  
+	      </para>
+      	<para>
+	        After you have created the database you probably want to fill it with data. 
+	        If you have a BIND zonefile it's as easy as: <command>zone2sql --zone=myzonefile --gmysql | sqlite powerdns.sqlite</command>, but
+	        you can also use AXFR (or insert data manually if you have too much time ;)).
+	      </para>
+      </sect2>
+      <sect2>
+        <title>Using the SQLite backend</title>
+        <para>
+          The last thing you need to do is telling PowerDNS to use the SQLite backend. 
+        </para>
+        <para>
+          <programlisting>
+            # in pdns.conf
+            launch=gsqlite
+            gsqlite-database=&lt;path to your SQLite database&gt;
+          </programlisting>
+        </para>
+        <para>
+          Then you can start PowerDNS and it should notify you that a connection to the database was made.
+        </para>
+      </sect2>      
+    </sect1>
+    
     <sect1 id="db2"><Title>DB2 backend</title>
       <para>
 	<table>
@@ -9593,3 +9700,20 @@ POSSIBILITY OF SUCH DAMAGES.
   </appendix>
 
   </book>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-namecase-general:t
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->

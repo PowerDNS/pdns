@@ -129,7 +129,6 @@ int Utility::inet_pton( int af, const char *src, void *dst )
   return ::inet_pton(af, src, dst);
 }
 
-
 // Retrieves a gid using a groupname.
 int Utility::makeGidNumeric(const string &group)
 {
@@ -160,7 +159,6 @@ int Utility::makeUidNumeric(const string &username)
   }
   return newuid;
 }
-
 
 // Returns a random number.
 long int Utility::random( void )

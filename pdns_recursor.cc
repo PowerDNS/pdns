@@ -87,7 +87,7 @@ bool operator<(const PacketID& a, const PacketID& b)
   return false;
 }
 
-MTasker<PacketID,string> MT(100000); // could probably be way lower
+MTasker<PacketID,string>* MT;
 
 /* these two functions are used by LWRes */
 int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id) 
@@ -102,7 +102,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   memcpy(&pident.remote,toaddr,sizeof(pident.remote));
 
   string packet;
-  if(!MT.waitEvent(pident,&packet,1)) { // timeout
+  if(!MT->waitEvent(pident,&packet,1)) { // timeout
     return 0; 
   }
 
@@ -210,9 +210,9 @@ void startDoResolve(void *p)
 
     SyncRes sr;
     if(!quiet)
-      L<<Logger::Error<<"["<<MT.getTid()<<"] question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+      L<<Logger::Error<<"["<<MT->getTid()<<"] question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
 
-    sr.setId(MT.getTid());
+    sr.setId(MT->getTid());
     if(!P.d.rd)
       sr.setCacheOnly();
 
@@ -237,7 +237,7 @@ void startDoResolve(void *p)
     }
 
     if(!quiet) {
-      L<<Logger::Error<<"["<<MT.getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
+      L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
       L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_throttledqueries<<" throttled, rcode="<<res<<endl;
     }
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
     makeServerSocket();
     makeTCPServerSocket();
         
-
+    MT=new MTasker<PacketID,string>(100000);
 
     char data[1500];
     struct sockaddr_in fromaddr;
@@ -485,10 +485,10 @@ int main(int argc, char **argv)
 
     vector<TCPConnection> tcpconnections;
     for(;;) {
-      while(MT.schedule()); // housekeeping, let threads do their thing
+      while(MT->schedule()); // housekeeping, let threads do their thing
       
       if(!((counter++)%100)) 
-	MT.makeThread(houseKeeping,0);
+	MT->makeThread(houseKeeping,0);
       if(statsWanted)
 	doStats();
 
@@ -536,7 +536,7 @@ int main(int argc, char **argv)
 	    pident.id=P.d.id;
 	    string packet;
 	    packet.assign(data,d_len);
-	    MT.sendEvent(pident,&packet);
+	    MT->sendEvent(pident,&packet);
 	  }
 	  else 
 	    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<P.getRemote()<<endl;
@@ -557,7 +557,7 @@ int main(int argc, char **argv)
 	  else {
 	    ++qcounter;
 	    P.setSocket(0);
-	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+	    MT->makeThread(startDoResolve,(void*)new DNSPacket(P));
 
 	  }
 	}
@@ -637,7 +637,7 @@ int main(int argc, char **argv)
 		  L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
 		else {
 		  ++qcounter;
-		  MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+		  MT->makeThread(startDoResolve,(void*)new DNSPacket(P));
 		}
 	      }
 	    }
