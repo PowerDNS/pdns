@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.28 2004/09/06 14:13:22 ahu Exp $
+// $Id: dnspacket.cc,v 1.29 2004/09/13 19:00:40 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -438,7 +438,7 @@ void DNSPacket::fillSOAData(const string &content, SOAData &data)
     data.hostmaster=attodot(parts[1]); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
 
   if(pleft>2)
-    data.serial=atoi(parts[2].c_str());
+    data.serial=strtoul(parts[2].c_str(), NULL, 10);
 
   if(pleft>3)
     data.refresh=atoi(parts[3].c_str());
