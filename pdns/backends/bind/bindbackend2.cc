@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend2.cc,v 1.2 2003/03/20 12:53:44 ahu Exp $ 
+// $Id: bindbackend2.cc,v 1.3 2003/03/20 13:29:29 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -291,13 +291,6 @@ map<unsigned int, BB2DomainInfo*> nbbds;
 /** This function adds a record to a domain with a certain id. */
 void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
 {
-  static int s_count;
-  DLOG(  
-  if(!((s_count++)%10000))
-    cerr<<"\r"<<s_count-1<<", "<<s_contents.size()<<" different contents, "<<d_qnames.size()<<" different qnames, "<<len/1000000<<"MB, saved: "<<
-      (ulen-len)/1000;
-  );
-
   DNSResourceRecord rr;
   rr.domain_id=id;
   rr.qname=canonic(qnameu);

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.18 2003/03/12 16:06:35 ahu Exp $
+// $Id: dnspacket.cc,v 1.19 2003/03/20 13:29:29 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -901,11 +901,11 @@ bool DNSPacket::needAP()
   return false;
 }
 
-vector<DNSResourceRecord> DNSPacket::getAPRecords()
+vector<DNSResourceRecord*> DNSPacket::getAPRecords()
 {
-  vector<DNSResourceRecord> arrs;
+  vector<DNSResourceRecord*> arrs;
 
-  for(vector<DNSResourceRecord>::const_iterator i=rrs.begin();
+  for(vector<DNSResourceRecord>::iterator i=rrs.begin();
       i!=rrs.end();
       ++i)
     {
@@ -913,7 +913,7 @@ vector<DNSResourceRecord> DNSPacket::getAPRecords()
 	 (i->qtype.getCode()==15 || 
 	  i->qtype.getCode()==2 )) // CNAME or MX or NS
 	{
-	  arrs.push_back(*i);
+	  arrs.push_back(&*i);
 	}
     }
 

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.14 2003/01/21 15:04:02 ahu Exp $
+// $Id: dnspacket.hh,v 1.15 2003/03/20 13:29:29 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -212,7 +212,7 @@ public:
   void truncate(int new_length); // has documentation in source
 
   bool needAP(); //!< query this to find out if this packet needs additional processing
-  vector<DNSResourceRecord> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
+  vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
   void setCompress(bool compress);
 
   DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
