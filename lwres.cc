@@ -75,25 +75,34 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type)
   toaddr.sin_port=htons(53);
   toaddr.sin_family=AF_INET;
 
+
+  int ret;
+
+  DTime dt;
+  dt.set();
   if(asendto(p.getData(), p.len, 0, (struct sockaddr*)(&toaddr), sizeof(toaddr),p.d.id)<0) {
     return -1;
   }
-
+    
   Utility::socklen_t addrlen=sizeof(toaddr);
+  
+  // sleep until we see an answer to this, interface to mtasker
+  
+  ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
+  d_usec=dt.udiff();
 
-  // sleep until we see an answer to this
-  return arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
+  return ret;
 }
 
 
-LWRes::res_t LWRes::result(bool &aabit)
+LWRes::res_t LWRes::result()
 {
   DNSPacket p;
 
   try {
     if(p.parse((char *)d_buf, d_len)<0)
       throw LWResException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
-    aabit=p.d.aa;
+    d_aabit=p.d.aa;
     d_rcode=p.d.rcode;
     return p.getAnswers();
   }

@@ -62,8 +62,10 @@ public:
   typedef vector<DNSResourceRecord> res_t;
 
   int asyncresolve(const string &ip, const char *domain, int type);
-  vector<DNSResourceRecord> result(bool &aabit);
+  vector<DNSResourceRecord> result();
   int d_rcode;
+  bool d_aabit;
+  u_int32_t d_usec;
 private:
   int d_sock;
   unsigned char *d_buf;
@@ -76,6 +78,8 @@ private:
   u_int32_t d_ip;
   bool d_inaxfr;
   int d_bufsize;
+
+
 };
 
 #endif // PDNS_LWRES_HH

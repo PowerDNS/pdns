@@ -122,12 +122,11 @@ private:
   int *statnumhit;
   int *statnummiss;
   int *statnumentries;
-  int *d_deferred_inserts;
-  int *d_deferred_lookups;
 };
 
 inline int PacketCache::get(DNSPacket *p, DNSPacket *cached)
 {
+  extern StatBag S;
   if(!((d_hit+d_miss)%5000)) {
     cleanup();
   }
@@ -170,7 +169,7 @@ inline int PacketCache::get(DNSPacket *p, DNSPacket *cached)
   {
     TryReadLock l(&d_mut); // take a readlock here
     if(!l.gotIt()) {
-      (*d_deferred_lookups)++;
+      S.inc("deferred-cache-lookup");
       return 0;
     }
 

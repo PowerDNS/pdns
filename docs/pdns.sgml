@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/12/17 19:55:44 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/01/16 22:18:12 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -82,7 +82,77 @@
 	file.
       </para>
 
-    <sect2 id="changelog-2-9-13"><title>Version 2.9.13</title>
+    <sect2 id="changelog-2-9-14"><title>Version 2.9.14</title>
+	<para>
+	  Big release with the fix for the all important 2^30 seconds problem and a lot of other news.
+	</para>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		errno problems would cause compilation problems when using LDAP (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The Generic SQL backend could cause crashes on PostgreSQL when using pdns_control notify (Georg Bauer)
+	      </para>
+	    <listitem>
+	      <para>
+		If using the master or slave features, pdns had the notion of eternity ending in 2038, except that due
+		to a thinko, eternity ended out to be the 10th of January 2004. This caused a loop to timeout immediately.
+		Many thanks to Jasper Spaans for spotting the bug within five minutes.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Parts of the SOA field were not connonicalized
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The loglevel could in fact cause nothing to be logged (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The recursor now chooses the fastest nameserver, which causes a big speedup!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP now has different lookup models
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Cleanups, better load distribution, better exception handling, zone2ldap improvements
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The recursor was somewhat chatty about TCP connections
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PostgreSQL now only depends on the C API and not on the deprecated C++ one
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS can now fully overrule external zones when doing recursion. See <xref linkend="recursion">.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+      <sect2 id="changelog-2-9-13"><title>Version 2.9.13</title>
 	<para>
 	  Big news! Windows is back! Our great friend Michel Stol found the time to update the PowerDNS code so it works 
 	  again under windows. 
@@ -4358,8 +4428,16 @@ local0.err                        /var/log/pdns.err
 	  Even though this will hamper hackers a lot, chroot jails have been known to be broken. 
 	</para>
 	<para>
-	  When chrooting PDNS, take care that backends will be able to get to their files. Many databases need access to a UNIX 
-	  domain socket which should live within the chroot. It is often possible to hardlink such a socket into the chroot dir.
+	  <warning>
+	    <para>
+	      When chrooting PDNS, take care that backends will be able to get to their files. Many databases need access to a UNIX 
+	      domain socket which should live within the chroot. It is often possible to hardlink such a socket into the chroot dir.
+	    </para>
+	    <para>
+	      When running with master or slave support, be aware that many operating systems need access to specific libraries
+	      (ofen <filename>/lib/libnss*</filename>) in order to support resolution of domain names! You can also hardlink these.
+	    </para>
+	  </warning>
 	</para><para>
 	  The default PDNS configuration is best chrooted to <filename>./</filename>, which boils down to the configured location
 	  of the controlsocket. 
@@ -4698,7 +4776,10 @@ local0.err                        /var/log/pdns.err
       </para>
       <para>
 	To make sure that the local authoritative database overrides recursive information, PowerDNS first tries to answer a question from its own database.
-	If that succeeds, the answer packet is sent back immediately without involving the recursor in any way.
+	If that succeeds, the answer packet is sent back immediately without involving the recursor in any way. This means that for questions for which there is no answer, PowerDNS will consult the recursor for an recursive query, even if PowerDNS is authoritative for a domain! This will only cause problems if you 'fake' domains which don't really exist.
+      </para>
+      <para>
+	If you want to create such fake domains or override existing domains, please set the <command>allow-recursion-override</command> feature (available as of 2.9.14).
       </para>
       <para>
 	Some packets, like those asking for MX records which are needed for SMTP transport of email, can be subject to 'additional processing'. This means

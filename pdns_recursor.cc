@@ -37,6 +37,9 @@
 #include "syncres.hh"
 #include <fcntl.h>
 #include <fstream>
+#include "recursor_cache.hh"
+
+MemRecursorCache RC;
 
 string s_programname="pdns_recursor";
 
@@ -112,65 +115,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   return 1;
 }
 
-typedef map<string,set<DNSResourceRecord> > cache_t;
-static cache_t cache;
-int cacheHits, cacheMisses;
-int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res)
-{
-  cache_t::const_iterator j=cache.find(toLower(qname)+"|"+qt.getName());
-  if(j!=cache.end() && j->first==toLower(qname)+"|"+qt.getName() && j->second.begin()->ttl>(unsigned int)time(0)) {
-    if(res)
-      *res=j->second;
 
-    return (unsigned int)j->second.begin()->ttl-time(0);
-  }
-
-  return -1;
-}
-
-void replaceCache(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
-{
-
-  // bogus code to generate root with very low ttl
-  /*  
-  if((0 && qname.empty()) || qname.rfind(".root-servers.net")==1) {
-    cout<<"qname: '"<<qname<<"'"<<endl;
-    set<DNSResourceRecord> changed;
-    for(set<DNSResourceRecord>::const_iterator i=content.begin();i!=content.end();++i) {
-      DNSResourceRecord j=*i;
-      j.ttl=time(0)+20;
-      changed.insert(j);
-    }
-    cache[qname+"|"+qt.getName()]=changed;
-  }
-  else
-  */
-    cache[toLower(qname)+"|"+qt.getName()]=content;
-}
-
-void doPrune(void)
-{
-  unsigned int names=0, records=0;
-
-  for(cache_t::iterator j=cache.begin();j!=cache.end();){
-    for(set<DNSResourceRecord>::iterator k=j->second.begin();k!=j->second.end();) 
-      if((unsigned int)k->ttl < (unsigned int)time(0)) {
-	j->second.erase(k++);
-	records++;
-      }
-      else
-	++k;
-
-    if(j->second.empty()) { // everything is gone
-      cache.erase(j++);
-      names++;
-
-    }
-    else {
-      ++j;
-    }
-  }
-}
 
 
 static void writePid(void)
@@ -203,11 +148,11 @@ void primeHints(void)
     arr.content=ips[c-'a'];
     set<DNSResourceRecord>aset;
     aset.insert(arr);
-    replaceCache(string(templ),QType(QType::A),aset);
+    RC.replace(string(templ),QType(QType::A),aset);
 
     nsset.insert(nsrr);
   }
-  replaceCache("",QType(QType::NS),nsset);
+  RC.replace("",QType(QType::NS),nsset);
 }
 
 void startDoResolve(void *p)
@@ -257,7 +202,7 @@ void startDoResolve(void *p)
 	sr.d_throttledqueries<<" throttled, rcode="<<res<<endl;
     }
     
-    sr.d_outqueries ? cacheMisses++ : cacheHits++;
+    sr.d_outqueries ? RC.cacheMisses++ : RC.cacheHits++; 
 
     delete R;
   }
@@ -385,11 +330,13 @@ void usr1Handler(int)
 void doStats(void)
 {
   if(qcounter) {
-    L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<cache.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
-     <<(int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits";
+    
+    L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
+     <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits";
     L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
+    
   }
   statsWanted=false;
 }
@@ -399,7 +346,7 @@ void houseKeeping(void *)
   static time_t last_stat, last_rootupdate, last_prune;
 
   if(time(0)-last_stat>30) { 
-    doPrune();
+    RC.doPrune();
     last_prune=time(0);
   }
   if(time(0)-last_stat>1800) { 
@@ -589,7 +536,6 @@ int main(int argc, char **argv)
 	  tc.fd=newsock;
 	  tc.state=TCPConnection::BYTE0;
 	  tc.remote=addr;
-	  L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&tc.remote,sizeof(tc.remote))<<" connected"<<endl;
 	  tcpconnections.push_back(tc);
 	}
       }
@@ -606,7 +552,6 @@ int main(int argc, char **argv)
 	      i->state=TCPConnection::GETQUESTION;
 	    }
 	    if(!bytes || bytes < 0) {
-	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected"<<endl;
 	      close(i->fd);
 	      tcpconnections.erase(i);
 	      break;

@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.11 2003/11/30 10:53:17 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.12 2004/01/16 22:18:12 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 #endif // WIN32
@@ -27,7 +27,7 @@ void GSQLBackend::setNotified(u_int32_t domain_id, u_int32_t serial)
 	   serial, domain_id);
 
   try {
-    d_db->doQuery(output);
+    d_db->doCommand(output);
   }
   catch(SSqlException &e) {
     throw AhuException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());

@@ -16,15 +16,12 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-#include "utility.hh"
-#include <fstream>
-#include <iostream>
-#include "logger.hh"
-#include "arguments.hh"
-#include "misc.hh"
 
-#define L theL("pdns")
-extern Logger &theL(const string &prefix);
+
+
+#include "arguments.hh"
+
+
 
 const ArgvMap::param_t::const_iterator ArgvMap::begin()
 {
@@ -255,40 +252,40 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
 bool ArgvMap::preParseFile(const char *fname, const string &arg)
 {
   ifstream f(fname);
-  if(!f) 
+  if(!f)
     return false;
-  
+
   string line;
   string pline;
   string::size_type pos;
 
   while(getline(f,pline)) {
-    chomp(pline,"\t\r\n");
+    chomp(pline," \t\r\n");   // strip trailing white spaces
+
     if(pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
       continue;
     }
-    else 
+    else
       line+=pline;
-    
 
     // strip everything after a #
     if((pos=line.find("#"))!=string::npos)
       line=line.substr(0,pos);
 
     // strip trailing spaces
-    chomp(line," ");
-    
+    chomp(line," \t");
+
     // strip leading spaces
     if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
       line=line.substr(pos);
-    
+
     // gpgsql-basic-query=sdfsdfs dfsdfsdf sdfsdfsfd
 
-    parseOne(string("--")+line, arg);      
+    parseOne( string("--") + line, arg );
     line="";
   }
-  
+
   return true;
 }
 
@@ -297,24 +294,22 @@ bool ArgvMap::file(const char *fname, bool lax)
 {
   ifstream f(fname);
   if(!f) {
-    //    L<<"Tried file '"<<fname<<"' for configuration"<<endl;
     return false;
   }
-  if(!lax)
-    L<<"Opened file '"<<fname<<"' for configuration"<<endl;
-  
+
   string line;
   string pline;
   string::size_type pos;
+
   while(getline(f,pline)) {
-    chomp(pline,"\t\r\n");
+    chomp(pline," \t\r\n");   // strip trailing white spaces
 
     if(pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
 
       continue;
     }
-    else 
+    else
       line+=pline;
 
     // strip everything after a #
@@ -322,17 +317,15 @@ bool ArgvMap::file(const char *fname, bool lax)
       line=line.substr(0,pos);
 
     // strip trailing spaces
-    chomp(line," ");
+    chomp(line," \t");
 
-    
     // strip leading spaces
     if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
       line=line.substr(pos);
-    
-    
-    parseOne(string("--")+line,"",lax);      
+
+    parseOne(string("--")+line,"",lax);
     line="";
   }
-  
+
   return true;
 }

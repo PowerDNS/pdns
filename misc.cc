@@ -192,7 +192,7 @@ string humanDuration(time_t passed)
 
 DTime::DTime()
 {
-//  set();
+//  set(); // saves lots of gettimeofday calls
 }
 
 DTime::DTime(const DTime &dt)
@@ -204,18 +204,6 @@ time_t DTime::time()
 {
   return d_set.tv_sec;
 }
-
-
-void chomp(string &line, const string &delim)
-{
-  string::reverse_iterator i;
-  for( i=line.rbegin();i!=line.rend();++i) 
-    if(delim.find(*i)==string::npos) 
-      break;
-  
-  line.resize(line.rend()-i);
-}
-
 
 const string unquotify(const string &item)
 {

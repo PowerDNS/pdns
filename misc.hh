@@ -127,7 +127,7 @@ On 32 bits systems this means that 2147 seconds is the longest time that can be 
 class DTime 
 {
 public:
-  DTime(); //!< This constructor calls set() for you so the timer is set on construction
+  DTime(); //!< Does not set the timer for you! Saves lots of gettimeofday() calls
   DTime(const DTime &dt);
   time_t time();
   inline void set();  //!< Reset the timer
@@ -169,6 +169,17 @@ inline string toUpper( const string& s )
 		r[i] = toupper( r[i] );
 	}
 	return r;
+}
+
+
+inline void chomp( string& line, const string& delim )
+{
+	string::size_type pos;
+
+	if( ( pos = line.find_last_not_of( delim ) ) != string::npos )
+	{
+		line.resize( pos + 1 );
+	}
 }
 
 

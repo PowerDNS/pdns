@@ -51,8 +51,6 @@ PacketHandler::PacketHandler():B(s_programname)
   d_doRecursion= arg().mustDo("recursor");
   d_logDNSDetails= arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = arg().mustDo("do-ipv6-additional-processing");
-  d_corrupt = S.getPointer( "corrupt-packets" );
-  d_servfail = S.getPointer( "servfail-packets" );
 }
 
 DNSBackend *PacketHandler::getBackend()
@@ -156,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.20 2003/12/22 11:53:41 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.21 2004/01/16 22:18:12 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -172,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.20 2003/12/22 11:53:41 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.21 2004/01/16 22:18:12 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -499,7 +497,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 #ifndef WIN32
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
-      (*d_corrupt)++;
+      S.inc("corrupt-packets");
       return 0;
     }
 #endif // WIN32
@@ -508,7 +506,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
     if(!p->qdomain.empty() && (p->qdomain[0]=='%' || p->qdomain.find('|')!=string::npos) ) {
       L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': dropping"<<endl;
-      (*d_corrupt)++;
+      S.inc("corrupt-packets");
       return 0;
     }
     if(p->d.opcode) { // non-zero opcode (again thanks RA!)
@@ -645,7 +643,16 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
     // RECURSION CUT-OUT! 
 
-    if(p->d.rd && d_doRecursion && DP->sendPacket(p)) {
+
+    bool weAuth;
+    int zoneId;
+    zoneId=-1;
+    if(p->d.rd && d_doRecursion && arg().mustDo("allow-recursion-override"))
+      weAuth=getAuth(p, &sd, target, &zoneId);
+    else
+      weAuth=false;
+
+    if(p->d.rd && d_doRecursion && !weAuth && DP->sendPacket(p)) {
       delete r;
       return 0;
     }
@@ -653,11 +660,10 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     string::size_type pos;
     
     DLOG(L<<"Nothing found so far for '"<<target<<"', do we even have authority over this domain?"<<endl);
-    
-    bool weAuth;
-    int zoneId;
 
-    weAuth=getAuth(p, &sd, target, &zoneId); // TLDAuth perhaps
+    if(zoneId==-1)
+      weAuth=getAuth(p, &sd, target, &zoneId); // TLDAuth perhaps
+
     if(weAuth) {
       DLOG(L<<Logger::Warning<<"Soa found: "<<soa<<endl);
       ;
@@ -772,8 +778,8 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
   catch(DBException &e) {
     L<<Logger::Error<<"Database module reported condition which prevented lookup - sending out servfail"<<endl;
     r->setRcode(RCode::ServFail);
+    S.inc("servfail-packets");
     S.ringAccount("servfail-queries",p->qdomain);
-    (*d_servfail)++;
   }
   return r; 
 

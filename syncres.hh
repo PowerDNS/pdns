@@ -6,12 +6,15 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <cmath>
+#include <iostream>
+#include <utility>
 #include "misc.hh"
 #include "lwres.hh"
 
+
 /* external functions, opaque to us */
-void replaceCache(const string &qname, const QType &qt, const set<DNSResourceRecord>& content);
-int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res=0);
+
 void primeHints(void);
 
 struct NegCacheEntry
@@ -61,6 +64,44 @@ private:
   typedef deque<entry> cont_t;
   cont_t d_dq;
 };
+
+
+/** Class that implements a decaying EWMA.
+    This class keeps an exponentially weigthed moving average which, additionally, decays over time.
+    The decaying is only done on get.
+*/
+class DecayingEwma
+{
+public:
+  DecayingEwma() : d_last(getTime()) , d_val(0.0) {}
+  void submit(int val) 
+  {
+    double diff=d_last-getTime();
+    d_last=getTime();
+    double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
+    d_val=(1-factor)*val+ factor*d_val; 
+  }
+  double get()
+  {
+    double diff=d_lastget-getTime();
+    d_lastget=getTime();
+    double factor=exp(diff/60.0); // is 1.0 or less
+    return d_val*=factor;
+  }
+
+private:
+  double getTime()
+  {
+    struct timeval now;
+    Utility::gettimeofday(&now,0);
+    
+    return now.tv_sec+now.tv_usec/1000000.0;
+  }
+  double d_last;
+  double d_lastget;
+  double d_val;
+};
+
 
 class SyncRes
 {
