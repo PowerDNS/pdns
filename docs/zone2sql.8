@@ -1,0 +1,81 @@
+.TH ZONE2SQL 8 "December 2002" "PowerDNS"
+.SH NAME
+zone2sql \- Convert ISC Bind zones to SQL
+.SH SYNOPSIS
+.B zone2sql [OPTIONS]
+.SH DESCRIPTION
+\fBZone2sql\fR parses Bind \fInamed.conf\fR files and zonefiles and outputs SQL
+on standard out, which can then be fed to your database.
+.PP
+\fBzone2sql\fR understands the Bind master file extension '$GENERATE' and will
+also honour '$ORIGIN' and '$TTL'.
+.PP
+For backends supporting slave operation (currently only the PostgreSQL
+backend), there is also an option to keep slave zones as slaves, and not
+convert them to native operation.
+.PP
+By default, zone2sql outputs code suitable for the mysqlbackend, but it can
+also generate SQL for the Generic PostgreSQL and Oracle backends.
+.SH OPTIONS
+Input options:
+.TP
+.B \-\-named-conf=\fI<filename>\fR
+Read \fI<filename>\fR to get the bind configuration
+.TP
+.B \-\-zone=\fI<zone\-file>\fR
+Parse only this zone file. Conflicts with \fB\-\-named-conf\fR parameter.
+.TP
+.B \-\-zone-name=\fI<name>\fR
+When parsing a single zone without $ORIGIN statement, set this as the zone
+name. 
+.PP
+Output options:
+.TP
+.B \-\-bare
+Output in a bare format, suitable for further parsing. The output is formatted
+as follows:
+.RS
+.nf
+domain_id<TAB>'qname'<TAB>'qtype'<TAB>'content'<TAB>prio<TAB>ttl
+.fi
+.RE
+.TP
+.B \-\-gmysql
+Output in format suitable for the default configuration of the Generic MySQL
+backend. 
+.TP
+.B \-\-gpgsql
+Output in format suitable for the default configuration of the Generic
+PostgreSQL backend.
+.TP
+.B \-\-mysql
+Output in format suitable for the default configuration of the MySQL backend
+(the default output format).
+.TP
+.B \-\-oracle
+Output in format suitable for the default configuration of the Generic Oracle
+backend. 
+.TP
+.B \-\-startid=\fI<id>\fR
+Use \fI<id>\fR as the forst domain_id generated (defaults to 0).
+.TP
+.B \-\-transactions
+For Oracle and PostgreSQL output, wrap each domain in a transaction for higher
+speed and integrity. 
+.PP
+Other options:
+.TP
+.B \-\-slave
+Maintain slave status of zones listed in named.conf as being slaves. The
+default behaviour is to convert all zones to native operation. 
+.TP
+.B \-\-on\-error\-resume\-next
+Ignore missing files during parsing. Dangerous.
+.TP
+.B \-\-help
+List all options
+.TP
+.B \-\-verbose
+Be verbose during conversion. 
+.SH SEE ALSO
+.BR pdns_server (8)

@@ -1,0 +1,30 @@
+.TH PDNS_SERVER 8 "December 2002" "PowerDNS"
+.SH NAME
+pdns_control \- The PowerDNS nameserver
+.SH SYNOPSIS
+.B pdns_server [options]
+.SH DESCRIPTION
+\fB
+.SH OPTIONS
+.TP
+.B \-\-daemon=\fIyes|no\fR
+Indicate if the server should run in the background as a real daemon,
+or in the foregroun.
+.TP
+.B \-\-guardion=\fIyes|no\fR
+Run \fBpdns_server\fR inside a guardian. This guardian monitors the performance
+of the inner \fBpdns_server\fR instance. It is also this guardian that
+\fBpdns_control\fR talks to.
+.TP
+.B \-\-control\-console
+Run the server in a special monitor mode. This enables detailed logging
+and exposes the raw control socket.
+.TP
+.B \-\-loglevel=\fI<level>\fR
+Set the logging level.
+.SH FILES
+.TP
+.I <socket>
+Control socket used to communicate with \fBpdns_server\fR.
+.SH SEE ALSO
+.BR pdns_control (8)
