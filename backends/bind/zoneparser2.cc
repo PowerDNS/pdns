@@ -66,7 +66,7 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
   while(!fds.empty()) {
     while(fgets(line,2047,fds.top())) {
       d_lineno++;
-      if(strstr(line, "$INCLUDE ")==line) {
+      if(strcasestr(line, "$INCLUDE ")==line) {
 	vector<string> parts;
 	stringtok(parts,line," \t\n"); 
 	if(parts.size()!=2)
@@ -127,7 +127,7 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
   while(!fds.empty()) {
     while(fgets(line,2047,fds.top())) {
       d_lineno++;
-      if(strstr(line, "$INCLUDE ")==line) {
+      if(strcasestr(line, "$INCLUDE ")==line) {
 	vector<string> parts;
 	stringtok(parts,line," \t\n");
 	if(parts.size()!=2)
