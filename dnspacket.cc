@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.30 2005/01/11 19:54:33 ahu Exp $
+// $Id: dnspacket.cc,v 1.31 2005/01/11 19:57:20 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -107,7 +107,7 @@ int DNSPacket::expand(const unsigned char *begin, const unsigned char *end, stri
 
     if((n & 0xc0) == 0xc0 ) { 
        unsigned int labelOffset=(n&~0xc0)*256+ (int)*(unsigned char *)p;
-       expand((unsigned char *)stringbuffer.c_str()+labelOffset,end,expanded,depth++);
+       expand((unsigned char *)stringbuffer.c_str()+labelOffset,end,expanded,++depth);
        return 1+p-begin;
     }
 
