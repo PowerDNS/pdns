@@ -14,6 +14,14 @@ but first check existing ones:
 
 	http://ds9a.nl/cgi-bin/cvstrac/pdns/rptview?rn=4
 
+Or, try the new 'trac' experiment:
+
+	http://adsl-xs4all.ds9a.nl/projects/trac/timeline
+
+or its RSS feed:
+
+	http://adsl-xs4all.ds9a.nl/projects/trac/timeline?daysback=90&max=50&format=rss
+
 COMPILING
 ---------
 
