@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.21 2004/01/16 22:18:12 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.22 2004/01/17 13:18:22 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -170,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.21 2004/01/16 22:18:12 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.22 2004/01/17 13:18:22 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -647,6 +647,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     bool weAuth;
     int zoneId;
     zoneId=-1;
+    
     if(p->d.rd && d_doRecursion && arg().mustDo("allow-recursion-override"))
       weAuth=getAuth(p, &sd, target, &zoneId);
     else

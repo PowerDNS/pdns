@@ -45,14 +45,14 @@ pdns_server_INCLUDES=
 #resolver_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 #logger.cc statbag.cc dnspacket.cc arguments.cc  tres.cc
 
-INCLUDES=-I/usr/include/mysql
+# INCLUDES=-I/usr/include/mysql
 
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh \
 ../modules/gmysqlbackend/smysql.cc 
 
-pdns_recursor_LDFLAGS=-lmysqlclient
+pdns_recursor_LDFLAGS=
 pdns_recursor_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc misc.cc unix_utility.cc

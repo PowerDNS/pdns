@@ -41,25 +41,23 @@ void Logger::log(const string &msg, Urgency u)
     strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
     clog<<buffer;
     clog <<msg <<endl;
-
-   if( u <= d_loglevel )
-   {
-     extern StatBag S;
-     S.ringAccount("logmessages",msg);
-     syslog(u,"%s",msg.c_str());
-   }
   }
+  if( u <= d_loglevel ) {
+    extern StatBag S;
+    S.ringAccount("logmessages",msg);
+    syslog(u,"%s",msg.c_str());
+  }
+
 }
 
 void Logger::setLoglevel( Urgency u )
 {
- 	d_loglevel = u;
+  d_loglevel = u;
 }
   
 
 void Logger::toConsole(Urgency u)
 {
-
   consoleUrgency=u;
 }
 
