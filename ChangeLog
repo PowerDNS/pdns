@@ -14,6 +14,8 @@ changes since 2.9.11:
 	- added delegation-only feature (thanks to ISC)
 	- some Debian fixes
 	- pdns_recursor does not try to resolve its own IP addresses anymore
+	- pdns_recursor has gained an init.d script
+	- sqlite support from 
 
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache

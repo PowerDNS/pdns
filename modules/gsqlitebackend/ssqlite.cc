@@ -12,9 +12,12 @@
 SSQLite::SSQLite( const std::string & database )
 {
   // Open the database connection.
-  if(access(database.c_str(),F_OK) == -1 || !(m_pDB = sqlite_open( database.c_str(), 0, NULL )))
-    throw sPerrorException( "Could not connect to the SQLite database '"+database+"'" );
+  if ( access( database.c_str(), F_OK ) == -1 )
+    throw sPerrorException( "SQLite database does not exist yet" );
 
+  m_pDB = sqlite_open( database.c_str(), 0, NULL );
+  if ( !m_pDB )
+    throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
 }
 
 
@@ -53,17 +56,20 @@ int SSQLite::doQuery( const std::string & query )
   const char *pOut;
 
   // Execute the query.
-  char *error=0;
-  if ( sqlite_compile( m_pDB, query.c_str(), &pOut, &m_pVM, &error ) != SQLITE_OK )
+  char *pError = NULL;
+  if ( sqlite_compile( m_pDB, query.c_str(), &pOut, &m_pVM, &pError ) != SQLITE_OK )
     sPerrorException( "Could not create SQLite VM for query" );
   
-  if(!m_pVM) {
-    string report("Unable to compile SQLite statement");
-    if(error) {
-      report+=string(": ")+error;
-      sqlite_freemem(error);
+  if ( !m_pVM ) {
+    std::string report( "Unable to compile SQLite statement" );
+
+    if( pError ) 
+    {
+      report += string( ": " ) + pError;
+      sqlite_freemem( pError );
     }
-    sPerrorException(report);
+
+    sPerrorException( report );
   }
   return 0;
 }

@@ -160,6 +160,7 @@ int Utility::makeUidNumeric(const string &username)
   return newuid;
 }
 
+
 // Returns a random number.
 long int Utility::random( void )
 {

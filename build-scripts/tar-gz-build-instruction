@@ -1,5 +1,5 @@
 ./bootstrap && 
 ./configure \
---with-modules="mysql gmysql gpgsql xdb pipe oracle pipe pdns db2 odbc ldap" \
+--with-modules="mysql gmysql gpgsql xdb pipe oracle pipe pdns db2 odbc ldap gsqlite" \
 --with-dynmodules="" &&
 make dist 

@@ -396,6 +396,8 @@ do
         moduledirs="$moduledirs ${a}backend"
 done
 
+AC_SUBST(LIBS)
+
 export moduledirs moduleobjects modulelibs
 
 AC_OUTPUT(Makefile modules/Makefile pdns/Makefile codedocs/Makefile \

@@ -2,7 +2,7 @@
 
 tmpdir		:= $(shell pwd)/debian/tmp
 be_tmpdir	:= $(shell pwd)/debian/tmp-backend
-backends	:= ldap mysql pipe xdb gmysql gpgsql
+backends	:= ldap mysql pipe xdb gmysql gpgsql gsqlite
 debs		:= ldap mysql pipe xdb pgsql
 
 binary-doc:
@@ -42,17 +42,17 @@ binary-doc:
 
 
 build-static stamp-build-static:
-	./configure \
+	LIBS="-lkrb5 -lkrb -lcrypto -lroken -lcom_err -lasn1 -lresolv" \
+		./configure \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
 		--libdir='$${prefix}/lib/powerdns' \
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
-		--with-modules="mysql gmysql gpgsql pipe pdns xdb ldap" \
+		--with-modules="mysql gmysql gpgsql pipe pdns xdb gsqlite" \
 		--with-dynmodules="" \
-		--enable-static-binaries --enable-recursor \
-		--with-pgsql-lib=/opt/postgresql-with-3.2/lib/
+		--enable-static-binaries --enable-recursor 
 	make
 	touch stamp-build-static
 

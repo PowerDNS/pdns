@@ -1,9 +1,10 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.cc,v 1.2 2002/12/16 18:02:24 ahu Exp $  */
+   $Id: smysql.cc,v 1.3 2003/09/28 17:37:43 ahu Exp $  */
 #include "smysql.hh"
 #include <string>
 #include <iostream>
+#include "pdns/misc.hh"
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"
 using namespace std;
@@ -48,8 +49,9 @@ int SMySQL::doQuery(const string &query)
   if(s_dolog)
     L<<Logger::Warning<<"Query: "<<query<<endl;
 
-  if(mysql_query(&d_db,query.c_str())) 
-    throw sPerrorException("Failed to execute mysql_query");
+  int err;
+  if((err=mysql_query(&d_db,query.c_str()))) 
+    throw SSqlException("Failed to execute mysql_query, perhaps connection died? Err="+itoa(err));
 
 
   return 0;
