@@ -1,3 +1,9 @@
+pdns (2.9.6-1) unstable; urgency=low
+
+  * fill in the blanks
+
+ -- Wichert Akkerman <wakkerma@debian.org>  Fri, 14 Feb 2003 20:16:16 +0100
+
 pdns (2.9.5-1) unstable; urgency=low
 
   * fill in the blanks

@@ -124,7 +124,7 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
       d_lineno++;
       if(!line.find("$INCLUDE ") || !line.find("$include ")) {
 	vector<string> parts;
-	stringtok(parts,line," \t\n");
+	stringtok(parts,line," \t\r\n");
 	if(parts.size()!=2)
 	  throw AhuException("Invalid $INCLUDE statement in zonefile '"+fname+"'");
 
@@ -258,7 +258,7 @@ bool ZoneParser::isType(const string &s)
 
 bool ZoneParser::isClass(const string &s)
 {
-  return (s=="IN" || s=="CH" || s=="HS");
+  return (s=="IN" || s=="CH" || s=="HS" || s=="in" || s=="ch" || s=="hs");
 }
 
 unsigned int ZoneParser::zoneNumber(const string &str)

@@ -1,3 +1,15 @@
+Changes since 2.9.6:
+	- implemented isMaster in bindbackend (we now react to notifies)
+	- added zoneId to mboxfw stuff - massive speedup
+	- $GENERATE off by one bug (Christian Laursen)
+	- Outgoing AXFR crashes with certain backends or frequent AXFRs
+		(thanks to ISP Services for testing this in production)
+	- GODBC
+	- LDAP
+	- possible issue resolved with case differences in domain names and incoming AXFR
+	- now also accept 'in' as 'IN' (noted by Joris Vandalon)
+	- $include fixed, sometimes lost a " or the last character (noted by Joris Vandalon)
+
 Changes since 2.9.4:
 	- heap of work in shortening dnspacket.cc (factor out common operations)
 	- work on recursor

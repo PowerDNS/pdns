@@ -1,4 +1,8 @@
 
+* new zone is AXFRed, written to disk succesfully
+	probably? unsure
+* the old SOA record remains in place
+
 bugs:
 	pdns.conf-dist contains old descriptions
 

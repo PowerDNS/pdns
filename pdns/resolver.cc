@@ -356,7 +356,6 @@ int Resolver::axfrChunk(Resolver::res_t &res)
 
   if(d_soacount>1 && !res.empty()) // chop off the last SOA
     res.resize(res.size()-1);
-    
 
   return 1;
 }
