@@ -57,7 +57,7 @@ build-main: configure
 
 
 binary-main: build-main
-	rm -f debian/files debian/substvars
+	rm -f debian/substvars
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 	install -d -m 755 -o root -g root "$(tmpdir)"
 	make DESTDIR="$(tmpdir)" install
@@ -122,7 +122,7 @@ build-backend: configure
 
 
 binary-backend: build-backend
-	rm -f debian/files debian/substvars
+	rm -f debian/substvars
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 
 	install -d -m 755 -o root -g root "$(tmpdir)"
