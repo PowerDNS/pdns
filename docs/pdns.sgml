@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/02/03 10:35:36 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/02/03 14:51:46 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,7 +81,10 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-5"><title>Version 2.9.5 [not released yet]</title>	
+      <sect2 id="changelog-2-9-5"><title>Version 2.9.5</title>	
+	<para>
+	  Released on 2002-02-03.
+	</para>
 	<para>
 	  This version is almost entirely about recursion with major changes to both the pdns recursor, which is renamed to 
 	  '<filename>pdns_recursor</filename>' and to the main PowerDNS binary to make it interact better with the recursing component.
@@ -152,7 +155,9 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Dropped non-lazy recursion, nobody was using it.
+		Dropped non-lazy recursion, nobody was using it. Lazy recursion became even more lazy after Dan Bernstein pointed out that additional
+		processing is not vital, so PowerDNS does its best to do additional processing on recursive queries, but does not scream murder if it does
+		not succeed. Due to caching, the next identical query will be successfully additionally processed.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -180,7 +185,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		SIGUSR1 now forces the recursor to print out statistics to the log now.
+		SIGUSR1 now forces the recursor to print out statistics to the log.
 	      </para>
 	    </listitem>
 	    <listitem>
