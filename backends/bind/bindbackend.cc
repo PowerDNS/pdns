@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.10 2002/12/30 21:00:56 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.11 2003/01/02 15:43:00 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -748,6 +748,9 @@ bool BindBackend::handle::get_normal(DNSResourceRecord &r)
 
 bool BindBackend::list(int id)
 {
+  if(!d_zone_id_map.count(id))
+    return false;
+
   d_handle=new BindBackend::handle;
   DLOG(L<<"BindBackend constructing handle for list of "<<id<<endl);
 

@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.3 2002/12/30 21:00:56 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.4 2003/01/02 15:43:00 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -19,8 +19,13 @@ using namespace std;
 
 void GSQLBackend::setNotified(u_int32_t domain_id, u_int32_t serial)
 {
+  char output[1024];
+  snprintf(output,sizeof(output)-1,
+	   d_UpdateSerialOfZoneQuery.c_str(),
+	   serial, domain_id);
+
   try {
-    d_db->doQuery("update domains set notified_serial="+itoa(serial)+" where id="+itoa(domain_id));
+    d_db->doQuery(output);
   }
   catch(SSqlException &e) {
     throw AhuException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());
@@ -29,8 +34,13 @@ void GSQLBackend::setNotified(u_int32_t domain_id, u_int32_t serial)
 
 void GSQLBackend::setFresh(u_int32_t domain_id)
 {
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_UpdateLastCheckofZoneQuery.c_str(),
+	   time(0),
+	   domain_id);
+
   try {
-    d_db->doQuery("update domains set last_check="+itoa(time(0))+" where id="+itoa(domain_id));
+    d_db->doQuery(output);
   }
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());
@@ -39,11 +49,15 @@ void GSQLBackend::setFresh(u_int32_t domain_id)
 
 bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
+  char output[1024];
+  snprintf(output,sizeof(output)-1,
+	   d_MasterOfDomainsZoneQuery.c_str(),
+	   sqlEscape(domain).c_str());
   try {
-    d_db->doQuery("select master from domains where name='"+sqlEscape(domain)+"' and type='SLAVE'", d_result);
+    d_db->doQuery(output, d_result);
   }
   catch (SSqlException &e) {
-    throw AhuException("GSQLBackend unable to retrieve list of slave domains: "+e.txtReason());
+    throw AhuException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
   }
 
   if(d_result.empty())
@@ -56,9 +70,11 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
      id,name,master IP,serial */
-  
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
+	   sqlEscape(domain).c_str());
   try {
-    d_db->doQuery("select id,name,master,last_check,notified_serial,type from domains where name='"+sqlEscape(domain)+"'",d_result);
+    d_db->doQuery(output,d_result);
   }
   catch(SSqlException &e) {
     throw AhuException("GSQLBackend unable to retrieve information about a domain: "+e.txtReason());
@@ -80,7 +96,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     try {
       SOAData sd;
       if(!getSOA(domain,sd))
-	L<<Logger::Error<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+	L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
       di.serial=sd.serial;
     }
     catch(AhuException &ae){
@@ -101,9 +117,11 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
   /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
      id,name,master IP,serial */
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_InfoOfAllSlaveDomainsQuery.c_str());
 
   try {
-    d_db->doQuery("select id,name,master,last_check,type from domains where type='SLAVE'",d_result);
+    d_db->doQuery(output,d_result);
   }
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to retrieve list of slave domains: "+e.txtReason());
@@ -138,9 +156,11 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
 {
   /* list all domains that need notifications for which we are master, and insert into updatedDomains
      id,name,master IP,serial */
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_InfoOfAllMasterDomainsQuery.c_str());
 
   try {
-    d_db->doQuery("select id,name,master,last_check,notified_serial,type from domains where type='MASTER'",d_result);
+    d_db->doQuery(output,d_result);
   }
   catch(SSqlException &e) {
     throw AhuException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
@@ -205,6 +225,17 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_wildCardANYIDQuery=getArg("wildcard-any-id-query");
   
   d_listQuery=getArg("list-query");
+
+  d_MasterOfDomainsZoneQuery=getArg("master-zone-query");
+  d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
+  d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
+  d_SuperMasterInfoQuery=getArg("supermaster-query");
+  d_InsertSlaveZoneQuery=getArg("insert-slave-query");
+  d_InsertRecordQuery=getArg("insert-record-query");
+  d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
+  d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
+  d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
+  d_DeleteZoneQuery=getArg("delete-zone-query");
 }
 
 
@@ -225,14 +256,14 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
       else
 	format=d_noWildCardNoIDQuery;
 
-      snprintf(output,1023, format.c_str(),sqlEscape(qtype.getName()).c_str(), sqlEscape(lcqname).c_str());
+      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(), sqlEscape(lcqname).c_str());
     }
     else {
       if(qname[0]!='%')
 	format=d_noWildCardIDQuery;
       else
 	format=d_wildCardIDQuery;
-      snprintf(output,1023, format.c_str(),sqlEscape(qtype.getName()).c_str(),sqlEscape(lcqname).c_str(),domain_id);
+      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(),sqlEscape(lcqname).c_str(),domain_id);
     }
   }
   else {
@@ -244,14 +275,14 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
       else
 	format=d_noWildCardANYNoIDQuery;
 
-      snprintf(output,1023, format.c_str(),sqlEscape(lcqname).c_str());
+      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str());
     }
     else {
       if(qname[0]!='%')
 	format=d_noWildCardANYIDQuery;
       else
 	format=d_wildCardANYIDQuery;
-      snprintf(output,1023, format.c_str(),sqlEscape(lcqname).c_str(),domain_id);
+      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str(),domain_id);
     }
   }
   DLOG(L<< "Query: '" << output << "'"<<endl);
@@ -273,7 +304,7 @@ bool GSQLBackend::list(int domain_id )
   DLOG(L<<"GSQLBackend constructing handle for list of domain id'"<<domain_id<<"'"<<endl);
 
   char output[1024];
-  snprintf(output,1023,d_listQuery.c_str(),domain_id);
+  snprintf(output,sizeof(output)-1,d_listQuery.c_str(),domain_id);
   try {
     d_db->doQuery(output);
   }
@@ -288,11 +319,14 @@ bool GSQLBackend::list(int domain_id )
 
 bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb)
 {
+  string format;
+  char output[1024];
+  format = d_SuperMasterInfoQuery;
   // check if we know the ip/ns couple in the database
   for(vector<DNSResourceRecord>::const_iterator i=nsset.begin();i!=nsset.end();++i) {
     try {
-      d_db->doQuery(("select account from supermasters where ip='"+sqlEscape(ip)+"' and nameserver='"+sqlEscape(i->content)+"'"),
-		    d_result);
+      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(ip).c_str(),sqlEscape(i->content).c_str());
+      d_db->doQuery(output, d_result);
     }
     catch (SSqlException &e) {
       throw AhuException("GSQLBackend unable to search for a domain: "+e.txtReason());
@@ -309,10 +343,12 @@ bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, con
 
 bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
+  string format;
+  char output[1024];
+  format = d_InsertSlaveZoneQuery;
+  snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(domain).c_str(),sqlEscape(ip).c_str(),sqlEscape(account).c_str());
   try {
-    d_db->doQuery(("insert into domains (type,name,master,account) values('SLAVE','"+
-		   sqlEscape(domain)+"','"+
-		   sqlEscape(ip)+"','"+sqlEscape(account)+"')"));
+    d_db->doQuery(output);
   }
   catch(SSqlException &e) {
     throw AhuException("Database error trying to insert new slave '"+domain+"': "+ e.txtReason());
@@ -344,19 +380,14 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 {
-  ostringstream os;
-  
-  os<<"insert into records (content,ttl,prio,type,domain_id,name) values ('"<<
-    sqlEscape(r.content)<<"', "<<
-    r.ttl<<", "<<
-    r.priority<<", '"<<sqlEscape(r.qtype.getName())<<"', "<<
-    r.domain_id<<
-    ", '"<<sqlEscape(r.qname)<<"')";
-  
-  //  L<<Logger::Error<<"Trying: '"<<os.str()<<"'"<<endl;
-
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
+	   sqlEscape(r.content).c_str(),
+	   r.ttl, r.priority,
+	   sqlEscape(r.qtype.getName()).c_str(),
+	   r.domain_id, sqlEscape(r.qname).c_str()); 
   try {
-    d_db->doQuery(os.str());
+    d_db->doQuery(output);
   }
   catch (SSqlException &e) {
     throw AhuException(e.txtReason());
@@ -366,9 +397,11 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 
 bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 {
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_DeleteZoneQuery.c_str(),domain_id);
   try {
     d_db->doQuery("begin");
-    d_db->doQuery("delete from records where domain_id="+itoa(domain_id));
+    d_db->doQuery(output);
   }
   catch (SSqlException &e) {
     throw AhuException("Database failed to start transaction: "+e.txtReason());
@@ -425,6 +458,7 @@ public:
 
     declare(suffix,"list-query","AXFR query", "select content,ttl,prio,type,domain_id,name from records where domain_id='%d'");
 
+    
   }
   
   DNSBackend *make(const string &suffix="")
