@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.1 2002/11/27 15:18:31 ahu Exp $
+// $Id: dnspacket.cc,v 1.2 2002/11/29 22:02:33 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -490,7 +490,6 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, u_int
   
   
   u_int32_t *ttlp=(u_int32_t *)(p+4);
-  cout<<"adding ttl: "<<ttl<<endl;
   *ttlp=htonl(ttl); // 4, 5, 6, 7
   
   p[8]=0;

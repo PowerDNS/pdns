@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: ueberbackend.cc,v 1.1 2002/11/27 15:18:33 ahu Exp $ 
+// $Id: ueberbackend.cc,v 1.2 2002/11/29 22:02:33 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 #include <string>
@@ -154,7 +154,6 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd)
       rr.qtype=QType::SOA;
       rr.content=DNSPacket::serializeSOAData(sd);
       rr.ttl=sd.ttl;
-      cout<<"Set rr.ttl to "<<sd.ttl<<endl;
       rr.domain_id=sd.domain_id;
       addOneCache(d_question,rr);
       return true;

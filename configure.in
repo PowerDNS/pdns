@@ -148,7 +148,30 @@ AC_SUBST(moduledirs)
 AC_SUBST(moduleobjects)
 AC_SUBST(modulelibs)
 
-if echo $modules | grep -q "mysql"
+for a in $modules
+do
+	case "$a" in
+		pgmysql )
+			if test "$dopgsql" 
+				then 
+					needpgsql=yes
+			 fi
+			if test "$domysql" 
+				then 
+					needmysql=yes
+			 fi
+		;;
+		mysql )
+			needmysql=yes
+		;;
+		pdns )
+			needmysql=yes
+		;;
+	esac
+done
+
+
+if test "$needmysql"
 then
 	AC_ARG_WITH(mysql,
 	    [  --with-mysql=<path>     root directory path of MySQL installation],
@@ -204,17 +227,6 @@ then
 	LIBS="$LIBS -lmysqlclient"
 fi
 
-for a in $modules
-do
-	case "$a" in
-		pgmysql )
-			if test "$dopgsql" 
-				then 
-					needpgsql=yes
-			 fi
-		;;
-	esac
-done
 
 
 if test "$needpgsql" 
