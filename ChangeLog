@@ -18,6 +18,8 @@ Changes since 2.9.3a:
 	- further alignment fixes (should help on UltraSparc)
 	- AXFR terminated with an EOF is now an error, unless a second SOA
 		was seen
+	- fixes for more recent libpq++ (Julien LEMOINE / SpeedBlue)
+
 
 Changes since 2.9.2:
 	- windows compilation patches

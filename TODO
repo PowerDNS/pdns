@@ -23,8 +23,6 @@ Medium size things:
 	  non-resolving bind. We're 90% there.
 		- improve atomic zone swapping
 			right now we are SOL if we try to reload a broken zone
-		- bind backend does not do proper notifications!
-		- writes tmp file to /tmp/wuh!
 
 	- get PDNS into Red Hat 8.x 
 		needs very good RPMS 	

@@ -46,7 +46,8 @@ ArgvMap &arg()
   static ArgvMap theArg;
   return theArg;
 }
-int d_sock;
+int d_clientsock;
+int d_serversock;
 
 struct PacketID
 {
@@ -74,8 +75,7 @@ MTasker<PacketID,string> MT(200000);
 
 int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id) 
 {
-
-  return sendto(d_sock, data, len, flags, toaddr, addrlen);
+  return sendto(d_clientsock, data, len, flags, toaddr, addrlen);
 }
 
 int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t *addrlen, int *d_len, int id)
@@ -88,7 +88,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t
   string packet;
   if(!MT.waitEvent(pident,&packet,5)) {
     cerr<<"TIMEOUT!!!"<<endl;
-    throw AhuException("Timeout!");
+    return 0; 
   }
 
   *d_len=packet.size();
@@ -100,7 +100,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t
 
 extern void init(void);
 
-bool beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
+int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
 
 void startDoResolve(void *p)
 {
@@ -110,14 +110,19 @@ void startDoResolve(void *p)
     
     vector<DNSResourceRecord>ret;
     DNSPacket *R=P.replyPacket();
-    if(!beginResolve(P.qdomain, P.qtype, ret))
+    R->setA(false);
+    R->setRA(true);
+    int res=beginResolve(P.qdomain, P.qtype, ret);
+    if(res<0)
       R->setRcode(RCode::ServFail);
-    else
+    else {
+      R->setRcode(res);
       for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i)
 	R->addRecord(*i);
+    }
 
     const char *buffer=R->getData();
-    sendto(d_sock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+    sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
     delete R;
   }
   catch(AhuException &ae) {
@@ -128,6 +133,52 @@ void startDoResolve(void *p)
   }
 }
 
+void makeClientSocket()
+{
+  static u_int16_t port_counter=5000;
+  
+  d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
+  if(d_clientsock<0) 
+    throw AhuException("Making a socket for resolver: "+stringerror());
+  
+  struct sockaddr_in sin;
+  memset((char *)&sin,0, sizeof(sin));
+  
+  sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
+  
+  int tries=10;
+  while(--tries) {
+    sin.sin_port = htons(10000+(port_counter++)%10000); // should be random!
+    
+    if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) {
+      cout<<"Bound to port "<<10000+port_counter-1<<endl;
+      break;
+    }
+    
+  }
+  if(!tries)
+    throw AhuException("Resolver binding to local socket: "+stringerror());
+}
+
+void makeServerSocket()
+{
+  d_serversock=socket(AF_INET, SOCK_DGRAM,0);
+  if(d_serversock<0) 
+    throw AhuException("Making a server socket for resolver: "+stringerror());
+  
+  struct sockaddr_in sin;
+  memset((char *)&sin,0, sizeof(sin));
+  
+  sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
+  sin.sin_port = htons(arg().asNum("local-port")); 
+    
+  if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    throw AhuException("Resolver binding to server socket: "+stringerror());
+}
+
+
 int main(int argc, char **argv) 
 {
 #if __GNUC__ >= 3
@@ -135,33 +186,15 @@ int main(int argc, char **argv)
 #endif
 
   try {
+    arg().set("soa-minimum-ttl","0")="0";
+    arg().set("soa-serial-offset","0")="0";
+    arg().set("local-port","port to listen on")="5300";
+    arg().parse(argc, argv);
     init();
     cerr<<"Done priming"<<endl;
 
-    static u_int16_t port_counter=5000;
-    
-    d_sock=socket(AF_INET, SOCK_DGRAM,0);
-    if(d_sock<0) 
-      throw AhuException("Making a socket for resolver: "+stringerror());
-    
-    struct sockaddr_in sin;
-    memset((char *)&sin,0, sizeof(sin));
-    
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
-    
-    int tries=10;
-    while(--tries) {
-      sin.sin_port = htons(10000+(port_counter++)%10000); // should be random!
-      
-      if (bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) {
-	cout<<"Bound to port "<<10000+port_counter-1<<endl;
-	break;
-      }
-      
-    }
-    if(!tries)
-      throw AhuException("Resolver binding to local socket: "+stringerror());
+    makeClientSocket();
+    makeServerSocket();
     
     char data[1500];
     struct sockaddr_in fromaddr;
@@ -169,14 +202,28 @@ int main(int argc, char **argv)
     PacketID pident;
     
     for(;;) {
-      while(MT.schedule()); // housekeeping, let threads do their thang
+      while(MT.schedule()); // housekeeping, let threads do their thing
       
       socklen_t addrlen=sizeof(fromaddr);
       int d_len;
       DNSPacket P;
       
-      for(;;) {
-	d_len=recvfrom(d_sock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
+      struct timeval tv;
+      tv.tv_sec=1;
+      tv.tv_usec= 0;
+      
+      fd_set readfds;
+      FD_ZERO( &readfds );
+      FD_SET( d_clientsock, &readfds );
+      FD_SET( d_serversock, &readfds );
+      int selret = select( max(d_clientsock,d_serversock) + 1, &readfds, NULL, NULL, &tv );
+      if (selret == -1) 
+	  throw AhuException("Select returned: "+stringerror());
+      if(!selret) // nothing happened
+	continue;
+      
+      if(FD_ISSET(d_clientsock,&readfds)) { // do we have a question response?
+	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
 	if(d_len<0) {
 	  cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
 	  continue;
@@ -185,29 +232,51 @@ int main(int argc, char **argv)
 	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
 	if(P.parse(data,d_len)<0) {
 	  cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
+	}
+	else { 
+	  if(P.d.qr) {
+	    //	    cout<<"answer to a question received"<<endl;
+	    //      cout<<"Packet from "<<P.getRemote()<<" with id "<<P.d.id<<": "; cout.flush();
+	    pident.remote=fromaddr;
+	    pident.id=P.d.id;
+	    string *packet=new string;
+	    packet->assign(data,d_len);
+	    MT.sendEvent(pident,packet);
+	  }
+	  else 
+	    cout<<"Ignoring question on outgoing socket!"<<endl;
+	}
+      }
+      
+      if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question?
+	d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
+	if(d_len<0) {
+	  cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
 	  continue;
 	}
-	break;
-      }
-      cout<<"Packet from "<<P.getRemote()<<" with id "<<P.d.id<<": "; cout.flush();
-      if(P.d.qr) {
-	cout<<"answer to a question"<<endl;
-	pident.remote=fromaddr;
-	pident.id=P.d.id;
-	string *packet=new string;
-	packet->assign(data,d_len);
-	MT.sendEvent(pident,packet);
-      }
-      else {
-	cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"'"<<endl;
-	MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+	
+	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
+	if(P.parse(data,d_len)<0) {
+	  cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
+	}
+	else { 
+	  if(P.d.qr)
+	    cout<<"Ignoring answer on server socket!"<<endl;
+	  else {
+	    cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"'"<<endl;
+	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+	  }
+	}
       }
     }
   }
   catch(AhuException &ae) {
     cerr<<"Exception: "<<ae.reason<<endl;
   }
+  catch(exception &e) {
+    cerr<<"STL Exception: "<<e.what()<<endl;
+  }
   catch(...) {
-    cerr<<"any other exception in main"<<endl;
+    cerr<<"any other exception in main: "<<endl;
   }
 }

@@ -1,4 +1,4 @@
-// $Id: mysqlcbackend.cc,v 1.2 2002/11/28 12:30:45 ahu Exp $ 
+// $Id: mysqlcbackend.cc,v 1.3 2003/01/06 16:13:59 ahu Exp $ 
 #include <string>
 #include <map>
 #include <unistd.h>
@@ -37,6 +37,7 @@ string MySQLBackend::sqlEscape(const string &name)
 MySQLBackend::MySQLBackend(const string &suffix)
 {
   mysql_init(&db);
+  L<<Logger::Error<<backendName<<" *** THIS BACKEND IS DEPRECATED - USE GMYSQL! ***"<<endl;
   setArgPrefix("mysql"+suffix);
   if (!mysql_real_connect(&db,getArg("host").c_str(),
 			  getArg("user").c_str(),
@@ -189,6 +190,7 @@ public:
   {
     BackendMakers().report(new MySQLFactory);
     L<<Logger::Notice<<backendName<<" This is the mysql module version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+
   }
 };
 static Loader loader;
