@@ -1,11 +1,12 @@
 # General info:
 !ifdef Debug
 OutFile      "Debug\pdns-install.exe"
+Name         "PowerDNS 2.9.5 (DEBUG)"
 !else
 OutFile      "Release\pdns-install.exe"
+Name         "PowerDNS 2.9.5"
 !endif
 
-Name         "PowerDNS 2.9.3"
 BrandingText " "
 Icon         "release-scripts\pdns.ico"
 WindowIcon   "on"
@@ -57,11 +58,15 @@ SetOverwrite on
 File /oname=$INSTDIR\pdns.exe "Debug\pdns.exe"
 File /oname=$INSTDIR\pdnsmsg.dll "Debug\pdnsmsg.dll"
 File /oname=$INSTDIR\zone2sql.exe "Debug\zone2sql.exe"
+File /oname=$INSTDIR\pdns_control.exe "Debug\pdns_control.exe"
+File /oname=$INSTDIR\pdns_recursor.exe "Debug\pdns_recursor.exe"
 
 !else
 File /oname=$INSTDIR\pdns.exe "Release\pdns.exe"
 File /oname=$INSTDIR\pdnsmsg.dll "Release\pdnsmsg.dll"
 File /oname=$INSTDIR\zone2sql.exe "Release\zone2sql.exe"
+File /oname=$INSTDIR\pdns_control.exe "Release\pdns_control.exe"
+File /oname=$INSTDIR\pdns_recursor.exe "Release\pdns_recursor.exe"
 
 !endif
 
@@ -69,10 +74,19 @@ File /oname=$INSTDIR\pdns.ico "release-scripts\pdns.ico"
 
 WriteUninstaller $INSTDIR\uninst-pdns.exe
 
+FileOpen $R2 "$INSTDIR\pdns.exe.local" "w"
+FileClose $R2
+FileOpen $R2 "$INSTDIR\zone2sql.exe.local" "w"
+FileClose $R2
+FileOpen $R2 "$INSTDIR\pdns_control.exe.local" "w"
+FileClose $R2
+FileOpen $R2 "$INSTDIR\pdns_recursor.exe.local" "w"
+FileClose $R2
+
 
 SetOverwrite ifnewer
-File /oname=$INSTDIR\pthreadVCE.dll C:\WIN2000\System32\pthreadVCE.dll
-File /oname=$INSTDIR\msvcrt.dll C:\WIN2000\System32\msvcrt.dll
+File /oname=$INSTDIR\pthreadVCE.dll C:\WINNT\System32\pthreadVCE.dll
+File /oname=$INSTDIR\msvcrt.dll C:\WINNT\System32\msvcrt.dll
 
 
 WriteRegStr HKLM SOFTWARE\PowerDNS "" $INSTDIR
@@ -107,9 +121,6 @@ IfFileExists "$INSTDIR\pdns.conf" NoConfWrite
 
   FileClose $R1
 
-  FileOpen $R2 "$INSTDIR\pdns.exe.local" "w"
-  FileClose $R2
-
 NoConfWrite:
 
 SectionEnd
@@ -121,8 +132,6 @@ Section "Start menu + shortcuts"
 
   CreateDirectory "$SMPROGRAMS\PowerDNS"
 
-  SetOutPath $SMPROGRAMS\PowerDNS
-
   WriteINIStr "$SMPROGRAMS\PowerDNS\PowerDNS Homepage.url" \
               "InternetShortcut" "URL" "http://www.powerdns.com/"
 
@@ -130,15 +139,11 @@ Section "Start menu + shortcuts"
               "InternetShortcut" "URL" "http://downloads.powerdns.com/documentation/html/"
 
   CreateShortCut "$SMPROGRAMS\PowerDNS\PowerDNS.lnk" \
-                 "$INSTDIR\pdns.exe" "--launch=odbc --odbc-datasource=powerdns --odbc-user=powerdns --odbc-pass=powerdns --webserver" \
+                 "$INSTDIR\pdns.exe" "" \
                  "$INSTDIR\pdns.ico"
 
   CreateShortCut "$SMPROGRAMS\PowerDNS\Uninstall PowerDNS.lnk" \
                  "$INSTDIR\uninst-pdns.exe"
-
-
-
-  SetOutPath $INSTDIR
   
 SectionEnd
 
@@ -183,13 +188,19 @@ FSkip:
 
   RMDir /r $SMPROGRAMS\PowerDNS
 
+  Delete $INSTDIR\pthreadVCE.dll
+  Delete $INSTDIR\msvcrt.dll
+  Delete $INSTDIR\pdnsmsg.dll
   Delete $INSTDIR\uninst-pdns.exe
   Delete $INSTDIR\pdns.ico
   Delete $INSTDIR\pdns.exe
   Delete $INSTDIR\pdns.exe.local
-  Delete $INSTDIR\pthreadVCE.dll
-  Delete $INSTDIR\msvcrt.dll
-  Delete $INSTDIR\pdnsmsg.dll
+  Delete $INSTDIR\zone2sql.exe
+  Delete $INSTDIR\zone2sql.exe.local
+  Delete $INSTDIR\pdns_control.exe
+  Delete $INSTDIR\pdns_control.exe.local
+  Delete $INSTDIR\pdns_recursor.exe
+  Delete $INSTDIR\pdns_recursor.exe.local
 
   RMDir $INSTDIR
 

@@ -104,6 +104,10 @@ SOURCE=.\pdnsmsg.cc
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\pdnsmsg.rc
+# End Source File
 # End Group
 # Begin Source File
 

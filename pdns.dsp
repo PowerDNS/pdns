@@ -149,10 +149,6 @@ SOURCE=.\qtype.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\randombackend.cc
-# End Source File
-# Begin Source File
-
 SOURCE=.\resolver.cc
 # End Source File
 # Begin Source File
@@ -293,11 +289,19 @@ SOURCE=.\packethandler.hh
 # End Source File
 # Begin Source File
 
+SOURCE=.\pdnsmsg.hh
+# End Source File
+# Begin Source File
+
 SOURCE=.\pdnsservice.hh
 # End Source File
 # Begin Source File
 
 SOURCE=.\qtype.hh
+# End Source File
+# Begin Source File
+
+SOURCE=.\recbcomm.hh
 # End Source File
 # Begin Source File
 
