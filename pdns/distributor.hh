@@ -198,7 +198,7 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
         return 0;
       }
       catch(...) {
-        L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
+        L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned int)pthread_self()<<endl;
 	delete b;
         return 0;
       }
