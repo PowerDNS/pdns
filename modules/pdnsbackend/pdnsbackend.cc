@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.cc,v 1.4 2003/02/10 12:08:06 ahu Exp $ 
+// $Id: pdnsbackend.cc,v 1.5 2003/03/13 12:45:30 ahu Exp $ 
 
 #include <string>
 #include <map>
@@ -39,7 +39,7 @@ PdnsBackend::PdnsBackend(const string &suffix)
    : d_result(NULL)
 {
    mysql_init(&d_database);
-  
+   d_suffix=suffix;
    MYSQL* theDatabase = mysql_real_connect
       (
 	 &d_database,
@@ -162,7 +162,7 @@ bool PdnsBackend::getSOA(const string& inZoneName, SOAData& outSoaData)
       outSoaData.hostmaster = theRow[1];
       outSoaData.serial = atoi(theRow[2]);
       
-      outSoaData.refresh = 10800;
+      outSoaData.refresh = arg()["pdns-"+d_suffix+"soa-refresh"].empty() ? 10800 : atoi(arg()["pdns-"+d_suffix+"soa-refresh"].c_str());
       outSoaData.retry = 3600;
       outSoaData.expire = 604800;
       outSoaData.default_ttl = 40000;
@@ -239,6 +239,7 @@ class PDNSFactory : public BackendFactory
 	 declare(suffix,"host","Pdns backend host to connect to","");
 	 declare(suffix,"password","Pdns backend password to connect with","");
 	 declare(suffix,"socket","Pdns backend socket to connect to","");
+	 declare(suffix,"soa-refresh","Pdns SOA refresh in seconds","");
       }
       
       DNSBackend *make(const string &suffix="")

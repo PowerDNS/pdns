@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.hh,v 1.3 2002/12/09 16:24:17 ahu Exp $
+// $Id: pdnsbackend.hh,v 1.4 2003/03/13 12:45:30 ahu Exp $
 
 #ifndef PDNSBACKEND_HH
 #define PDNSBACKEND_HH
@@ -28,6 +28,7 @@ class PdnsBackend : public DNSBackend
 
       MYSQL        d_database;
       MYSQL_RES*   d_result;
+  string       d_suffix;
       
       void Query(const string& inQuery);
       string sqlEscape(const string &nanme);

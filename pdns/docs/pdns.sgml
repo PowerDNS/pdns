@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/03/12 16:06:35 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/03/13 12:45:30 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,131 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-7"><title>Version 2.9.7</title>	
+	<para>
+	  This is a sweeping release in the sense of cleanup. There are some new features but mostly a lot of cleanup going on. Hiding inside is the 
+	  <filename>bind2backend</filename>, the next generation of the bind backend. Very much a work in progress. Those of you with overlapping zones,
+	  as mentioned in the changelog of 2.9.6, are invited to check it out. 
+	</para>
+	<para>
+	  Features:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Mark Bergsma contributed <command>local-query-address</command> which allows the operator to select which source address to 
+		use. This is useful on servers with multiple source addresses and the operating system selecting an unintended one, leading to 
+		remotes denying access.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS can now perform AAAA additional processing optionally, turned on by setting <command>do-ipv6-additional-processing</command>. 
+		Thanks to Stephane Bortzmeyer for pointing out the need. 
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Zone2sql would happily try to read from a directory and not give a useful error about this.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS now reports the case where it can't figure out any IP address of slave nameservers for a zone
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Removed <command>receiver-threads</command> setting which was experimental and in fact only made things worse.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP backend updates from its author Norbert Sendetzky. Reverse lookups should work now too.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		An error message about unparseable packets did not include the originating IP address (fixed by Mark Bergsma)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS can now be started via path resolution while running with a guardian. Suggested by Maurice Nonnekes.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<filename>pdns_recursor</filename> moved to <filename>sbin</filename> (reported by Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Retuned some logger errorlevels, a lot of master/slave chatter was logged as 'Error'. Reported by Willem de Groot.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Bugs fixed:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		<filename>zone2sql</filename> did not remove trailing dots in SOA records.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		ldapbackend did not include <filename>utility.hh</filename> which caused compilation problems on Solaris (reported by Remco Post)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<filename>pdns_control</filename> could leave behind remnants in case PowerDNS was not running (reported by dG)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Incoming AXFR did not work on Solaris and other big-endian systems (Willem de Groot helped debugging this long standing problem).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor could crash on convoluted CNAME loops. Thanks to Dan Faerch for delivering coredumps.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Silly 'wuh' debugging output in zone2sql and bindbackend removed (spotted by Ivo van der Wijk)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor neglected to differentiate between negative cache of NXDOMAIN and NOERROR, leading to problems
+		with IPv6 enabled Windows clients. Thanks to Stuart Walsh for reporting this and testing the fix.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS set the 'aa' bit on serving NS records in a zone for which it was authoritative. Most implementations
+		drop the 'aa' bit in this case and Stephane Bortzmeyer informed us of this. PowerDNS now also drops the 'aa' 
+		bit in this case.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		getAnswers() in dnspacket.cc could be forced to read bytes beyond the end of the packet, leading to crashes in the
+		PowerDNS recursor. This is an ongoing project that needs more work. Reported by Dan Faerch, with a coredump proving the problem.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+
       <sect2 id="changelog-2-9-6"><title>Version 2.9.6</title>	
 	<para>
 	  Two new backends - Generic ODBC (windows only) and LDAP. Furthermore, a few important bugs have been fixed which may have hampered sites seeing a lot of 
