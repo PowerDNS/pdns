@@ -1,9 +1,5 @@
 0	example.com.	IN	MX	120	10 smtp-servers.example.com.
 0	example.com.	IN	MX	120	15 smtp-servers.test.com.
-1	example.com.	IN	NS	120	ns1.example.com.
-1	example.com.	IN	NS	120	ns2.example.com.
-2	ns1.example.com.	IN	A	120	192.168.1.1
-2	ns2.example.com.	IN	A	120	192.168.1.2
 2	smtp-servers.example.com.	IN	A	120	192.168.0.2
 2	smtp-servers.example.com.	IN	A	120	192.168.0.3
 2	smtp-servers.example.com.	IN	A	120	192.168.0.4
