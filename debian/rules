@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 tmpdir		:= $(shell pwd)/debian/tmp
-backends	:= mysql pipe xdb pgmysql oracle
+backends	:= mysql pipe xdb pgmysql
 
 configure:
 	./bootstrap
@@ -42,10 +42,7 @@ binary-doc:
 	dpkg --build "$(tmpdir)" ..
 
 
-build-main: configure
-	if [ -e build-backend ] ; then make distclean ; fi
-	rm -f build-backend
-
+build stamp-build: configure
 	./configure \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
@@ -56,10 +53,10 @@ build-main: configure
 		--with-dynmodules="$(backends)" \
 		--with-modules=""
 	make
-	touch build-main
+	touch stamp-build
 
 
-binary-main: build-main
+binary-main: stamp-build
 	rm -f debian/substvars
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 	install -d -m 755 -o root -g root "$(tmpdir)"
@@ -107,9 +104,8 @@ binary-main: build-main
 	dpkg --build "$(tmpdir)" ..
 
 
-binary-backend: build-main
-	rm -f debian/substvars
-	rm -rf "$(tmpdir)" "$(tmpdir)"-*
+binary-backend: stamp-build
+	rm -rf "$(tmpdir)"
 
 	install -d -m 755 -o root -g root "$(tmpdir)"
 	make DESTDIR="$(tmpdir)" install
@@ -120,21 +116,14 @@ binary-backend: build-main
 
 	set -e ; for be in $(backends) ; do \
 		rm -f debian/substvars ; \
+		rm -rf "$(tmpdir)"-$$be ; \
 		pkg=pdns-backend-$$be ; \
 		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/lib/powerdns ; \
 		mv "$(tmpdir)"/usr/lib/powerdns/lib$$be* "$(tmpdir)"-$$be/usr/lib/powerdns ; \
 		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/share/doc ; \
 		ln -s pdns "$(tmpdir)"-$$be/usr/share/doc/$$pkg ; \
 		\
-		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/share/lintian/overrides ; \
-		install -p -m 644 -o root -g root debian/$$pkg.lintian \
-				"$(tmpdir)"-$$be/usr/share/lintian/overrides/$$pkg ; \
-		\
 		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/DEBIAN ; \
-		install -p -m 755 -o root -g root debian/pdns-backend-general.postinst \
-			"$(tmpdir)"-$$be/DEBIAN/postinst ; \
-		install -p -m 755 -o root -g root debian/pdns-backend-general.postrm \
-			"$(tmpdir)"-$$be/DEBIAN/postrm ; \
 		dpkg-shlibdeps "$(tmpdir)"-$$be/usr/lib/powerdns/*.so ; \
 		dpkg-gencontrol -isp -p$$pkg -P"$(tmpdir)"-$$be ; \
 		dpkg --build "$(tmpdir)"-$$be .. ; \
@@ -146,7 +135,7 @@ binary-indep: binary-doc
 binary-arch: binary-main binary-backend
 
 clean:
-	rm -f debian/files debian/substvars build-backend build-main
+	rm -f debian/files debian/substvars stamp-build
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 	-make distclean
 	-make -C pdns/docs clean

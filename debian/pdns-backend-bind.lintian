@@ -1,4 +1,0 @@
-pdns-backend-bind: non-dev-pkg-with-shlib-symlink usr/lib/libbindbackend.so.0.0.0 usr/lib/libbindbackend.so
-pdns-backend-bind: no-shlibs-control-file usr/lib/libbindbackend.so.0.0.0
-pdns-backend-bind: no-copyright-file
-pdns-backend-bind: postrm-unsafe-ldconfig
