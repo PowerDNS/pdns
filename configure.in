@@ -391,4 +391,4 @@ pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
 modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
 modules/pgmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
-modules/xdbbackend/Makefile)
+modules/xdbbackend/Makefile modules/odbcbackend/Makefile )

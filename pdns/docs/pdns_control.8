@@ -1,0 +1,47 @@
+.TH PDNS_CONTROL 8 "December 2002" "PowerDNS"
+.SH NAME
+pdns_control \- Control the pDNS nameserver
+.SH SYNOPSIS
+.B pdns_control command
+.SH DESCRIPTION
+\fBpdns_control\fR is used to send commands to a running pDNS nameserver.
+.SH COMMANDS
+.TP
+.B ccounts
+Show the content of the cache
+.TP
+.B cycle
+Restart the nameserver so it reloads its configuration.
+.TP
+.B list
+????
+.TP
+.B purge \fI[<record>]\fR
+Purge entries from the packet cache. If the record name ends with a
+dollar ($) all entries that end with that name are removed. If no record is
+specified the entire cache is purged.
+.TP
+.B quit
+Tell a running \fBpdns_server\fR to to quit.
+.TP
+.B set \fI<variable> <value>\fR
+Set the configuration parameter \fI<variable>\fR to \fI<value>\fR. Currently
+only the \fIquery\-logging\fR can be set.
+.TP
+.B show \fI<variable>\fR
+Print the value of a specific configuration variable.
+.TP
+.B status
+Show usage statistics.
+.TP
+.B uptime
+Show the uptime of the running server.
+.TP
+.B version
+Print the version of the running pdns daemon.
+.SH FILES
+.TP
+.I <socket>
+Control socket used to communicate with \fBpdns_server\fR.
+.SH SEE ALSO
+.BR pdns_server (8)
