@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.24 2004/02/04 22:41:17 ahu Exp $
+// $Id: dnspacket.cc,v 1.25 2004/02/29 12:57:11 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1205,7 +1205,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
   int numanswers=ntohs(d.ancount) + ntohs(d.nscount) + ntohs(d.arcount);
   int length;
-  int pos=0;
+  u_int16_t pos=0;
   while(numanswers--) {
     string name;  
     int offset=0;
