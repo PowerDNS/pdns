@@ -244,7 +244,7 @@ private:
   handle *d_handle;
   void queueReload(BBDomainInfo *bbd);
   BBResourceRecord resourceMaker(int id, const string &qtype, const string &content, int ttl, int prio);
-  static string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid);
+  void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);

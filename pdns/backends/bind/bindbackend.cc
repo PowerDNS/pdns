@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.8 2002/12/20 14:25:29 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.9 2002/12/20 16:12:06 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -347,11 +347,10 @@ BBResourceRecord BindBackend::resourceMaker(int id, const string &qtype, const s
 
 static BindBackend *us;
 
-string BindBackend::DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
+void BindBackend::reload()
 {
   for(map<u_int32_t,BBDomainInfo>::iterator i=us->d_bbds.begin();i!=us->d_bbds.end();++i) 
     i->second.d_checknow=true;
-  return "queued";
 }
 
 string BindBackend::DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid)
@@ -467,7 +466,6 @@ BindBackend::BindBackend(const string &suffix)
 
   extern DynListener *dl;
   us=this;
-  dl->registerFunc("BIND-RELOAD", &DLReloadHandler);
   dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler);
   dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler);
   dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler);

@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/19 17:00:44 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/20 16:12:06 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -87,10 +87,55 @@
       </para>
       <sect2 id="changelog-2-9-3"><title>Version 2.9.3</title>	
 	<para>
-	  Broad range of improvements. We now have an all-static .rpm and .deb for Linux users and a a link to an OpenBSD port.
+	  Broad range of huge improvements. We now have an all-static .rpm and .deb for Linux users and a a link to an OpenBSD port.
 	  Major news is that work on the Bind backend has progressed to the point that we've just retired our last Bind server and 
 	  replaced it with PowerDNS in Bind mode! This server is operating a number of master and slave setups so it should stress the Bind backend 
 	  somewhat.
+	</para>
+	<para>
+	  This version is rapidly approaching the point where it is a better-Bind-than-Bind and nearly a drop-in replacement for authoritative 
+	  setups. PowerDNS is now equipped with a powerful 
+	  master/slave apparatus that offers a lot of insight and control to the user, even when operating from Bind zonefiles and a 
+	  Bind configuration. Observe.
+	</para>
+	<para>
+	  After the SOA of ds9a.nl was raised:
+	  <screen>
+pdns[17495]: All slave domains are fresh
+pdns[17495]: 1 domain for which we are master needs notifications
+pdns[17495]: Queued notification of domain 'ds9a.nl' to 195.193.163.3
+pdns[17495]: Queued notification of domain 'ds9a.nl' to 213.156.2.1
+pdns[17520]: AXFR of domain 'ds9a.nl' initiated by 195.193.163.3
+pdns[17520]: AXFR of domain 'ds9a.nl' to 195.193.163.3 finished
+pdns[17521]: AXFR of domain 'ds9a.nl' initiated by 213.156.2.1
+pdns[17521]: AXFR of domain 'ds9a.nl' to 213.156.2.1 finished
+pdns[17495]: Removed from notification list: 'ds9a.nl' to 195.193.163.3 (was acknowledged)
+pdns[17495]: Removed from notification list: 'ds9a.nl' to 213.156.2.1 (was acknowledged)
+pdns[17495]: No master domains need notifications
+	  </screen>
+	  If however our slaves would ignore us, as some are prone to do, we can send some additional notifications:
+	  <screen>
+$ sudo pdns_control notify ds9a.nl         
+Added to queue
+pdns[17492]: Notification request for domain 'ds9a.nl' received
+pdns[17492]: Queued notification of domain 'ds9a.nl' to 195.193.163.3
+pdns[17492]: Queued notification of domain 'ds9a.nl' to 213.156.2.1
+pdns[17495]: Removed from notification list: 'ds9a.nl' to 195.193.163.3 (was acknowledged)
+pdns[17495]: Removed from notification list: 'ds9a.nl' to 213.156.2.1 (was acknowledged)
+	    </screen>
+	  Conversely, if PowerDNS needs to be reminded to retrieve a zone from a master, a command is provided:
+           <screen>
+$ sudo pdns_control retrieve forfun.net
+Added retrieval request for 'forfun.net' from master 212.187.98.67
+pdns[17495]: AXFR started for 'forfun.net', transaction started
+pdns[17495]: Zone 'forfun.net' (/var/cache/bind/forfun.net) reloaded 
+pdns[17495]: AXFR done for 'forfun.net', zone committed
+	  </screen>
+	  Also, you can force PowerDNS to reload a zone from disk immediately with <command>pdns_control bind-reload-now</command>.
+	  All this happens 'live', per your instructions. Without instructions, the right things also happen, but the operator is in charge.
+	</para>
+	<para>
+	  A lot of the above is not yet documented here, that is expected to follow shortly.
 	</para>
 	<para>
 	  <warning>
@@ -143,6 +188,29 @@
 		(Thanks to Hub Dohmen for reporting this for months on end).
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		Added <command>bind-domain-status</command> command that shows the status of all domains (when/if they were parsed, any errors
+		encountered while parsing them).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added <command>bind-reload-now</command> command that tries to reload a zone from disk NOW, and reports back errors to the operator
+		immediatly.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added <command>retrieve</command> command that queues a request to retrieve a zone from its master. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Zones retrieved from masters are now stored way smaller on disk because the domain is stripped from records, which is derived
+		from the configuration file. Retrieved zones are now prefixed with some information on where they came from.
+	      </para>
+	    </listitem>
 	  </itemizedlist>
 	</para>
 	<para>
@@ -150,7 +218,23 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		gpgsql and gmysql backends split out of the hybdid pgmysqlbackend. This again changed compilation instructions!
+		gpgsql and gmysql backends split out of the hybrid pgmysqlbackend. This again changed compilation instructions!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bind backend now ignores 'hint' and 'forward' and other unsupported zone types.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		AXFRs are now logged more heavily by default. An AXFR is a heavy operation anyhow, some more logging does not further 
+		increase the load materially. Does help in clearing up what slaves are doing.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A lot of master/slave chatter has been silenced, making output more relevant. No more repetitive 'No master domains need notifications' etc, only changes are reported now.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -171,6 +255,11 @@
 	    <listitem>
 	      <para>
 		Potential crashes with shortened packets addressed. An upgrade is advised!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>notify</command> (which was already there, just badly documented) no longer prints out debugging garbage.
 	      </para>
 	    </listitem>
 	    <listitem>
