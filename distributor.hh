@@ -99,7 +99,7 @@ public:
   typedef pair<QuestionData, AnswerData> tuple_t;
   
 private:
-  queue<QuestionData> questions;
+  std::queue<QuestionData> questions;
   pthread_mutex_t q_lock;
 
   

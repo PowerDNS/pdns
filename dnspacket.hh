@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.3 2002/12/06 09:58:03 ahu Exp $
+// $Id: dnspacket.hh,v 1.4 2002/12/09 16:24:17 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -47,14 +47,8 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif // HAVE_CONFIG_H
+ #endif // HAVE_CONFIG_H
 
-
-
-#ifdef NEED_POSIX_TYPEDEF
-typedef unsigned short int u_int16_t;
-typedef unsigned int u_int32_t;
-#endif
 
 #ifdef WIN32
 # ifdef BYTE_ORDER
@@ -80,7 +74,7 @@ public:
   struct dnsheader 
   {
     unsigned int id:16;  //!< id of this query/response
-#if BYTE_ORDER == BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN     // ultrasparc
     unsigned int qr:1;      //!< 1 if this is a query, 0 if response
     unsigned int opcode:4;  //!< the opcode
     unsigned int aa:1;   //!< packet contains authoritative data
@@ -301,13 +295,8 @@ int DNSPacket::parse(const char *mesg, int length)
     d_qlen=offset+4; // this points to the start of any answers
   }
 
-
-  const char *p=(stringbuffer.c_str()+12+offset);
-  const unsigned short int *i=(const unsigned short int *)p;
-  qtype=ntohs(*i++);
-  qclass=ntohs(*i);
-
-
+  qtype=stringbuffer[12+offset]*256+stringbuffer[13+offset];
+  qclass=stringbuffer[14+offset]*256+stringbuffer[15+offset];
   return 0;
 }
 

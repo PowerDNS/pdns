@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.1 2002/11/27 15:18:37 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.2 2002/12/09 16:24:17 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -540,13 +540,13 @@ class BindFactory : public BackendFactory
 
 
 //! Magic class that is activated when the dynamic library is loaded
-class Loader
+class BindLoader
 {
 public:
-  Loader()
+  BindLoader()
   {
     BackendMakers().report(new BindFactory);
-    theL()<<Logger::Notice<<"[BindBackend] This is the bind backend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+    L<<Logger::Notice<<"[BindBackend] This is the bind backend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
   }
 };
-static Loader loader;
+static BindLoader bindloader;

@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-D_GNU_SOURCE -I../..
+INCLUDES=-I../..
 lib_LTLIBRARIES = libbindbackend.la
 
 libbindbackend_la_SOURCES=bindbackend.cc bindbackend.hh bindparser.yy \

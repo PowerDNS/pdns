@@ -157,7 +157,7 @@ private:
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;
-  queue<SuckRequest> d_suckdomains;
+  std::queue<SuckRequest> d_suckdomains;
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
   int d_tickinterval;

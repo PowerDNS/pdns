@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/11/28 14:38:00 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/09 16:24:17 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -6543,23 +6543,489 @@ static RandomLoader randomloader;
   </appendix>
   <appendix id="compiling-powerdns"><title>Compiling PowerDNS</title>
     <para>
-      The PowerDNS source is separated from many of its modules. The main PowerDNS source tree however is able
-      to pull in certain files for creating packaged releases.
+      For now, see <ulink url="http://www.powerdns.org">the Open Source PowerDNS site</ulink>. 
+      <command>./configure --enable-mysql ; make ; make install</command> will do The Right Thing for most people.
     </para>
-    <para>
-      First download the source or retrieve from anoncvs.powerdns.com (module 'powerdns'). If from cvs, you need to execute 
-      <filename>./bootstrap</filename> to have the GNU autotools build the configure script and the Makefiles.
-    </para>
-    <para>
-      The run ./configure, followed by 'make'. PowerDNS prefers being compiled with GCC 3.2 but 2.95.4 and 3.0.4 will also work on most systems.
-      It will not compile on Debian Potato because that lacks the <filename>sstream</filename> include file.
-    </para>
-    <para>
-      After compiling, the <filename>./installer</filename> script can be used to install. 
-    </para>
-    <sect1><title>Configuring external modules with PowerDNS</title>
-	<para>
-	A module needs to see the PowerDNS sources. See the INSTALL file of a module on how to configure this.
+    <sect1 id="on-windows"><title>Compiling PowerDNS on Windows</title>
+      <para>
+	By Michael Stol (<email>michael@physos.info</email>).
+      <sect2><title>Assumptions</title>
+        <para>
+	  I will assume these things from you:      
 	</para>
+	<variablelist>
+          <varlistentry>
+	    <term>
+	      You have the PowerDNS sources.
+	    </term>
+	    <listitem>        
+	      <para>
+		There's not much to compile without the source files, eh? :)
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>      
+	    <term>
+	      You are using Microsoft Visual C++. If you get it to compile using a free compiler, please let us know!
+	    </term>
+	    <listitem>        
+	      <para>
+		From the day that we began porting the <acronym>UNIX</acronym> PowerDNS sources to Microsoft Windows
+		we used Microsoft Visual C++ as our development environment of choice.            
+	      </para>
+	      
+	      <para>
+		We used Visual C++ 6.0 to compile all sources (both standard version and SP5). Other versions
+		(including Visual C++ .NET) are untested.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  
+	  <varlistentry>
+	    <term>
+	      You are using Microsoft Windows NT, 2000 or XP
+	    </term>
+	    <listitem>        
+	      <para>
+		I will assume that the system where you want to compile the sources on is running
+		Microsoft Windows NT, 2000 or XP. These are the operating systems that where found
+		running PowerDNS for Windows.
+		
+	      </para>          
+	      
+	      <note>
+		<para>
+		  You probably can compile the sources on other Windows versions too, but that is currently untested.
+		</para>
+	      </note>
+	    </listitem>
+	  </varlistentry>
+	  
+	  <varlistentry>      
+	    <term>
+	      You are using an English Windows version.
+	    </term>
+	    <listitem>        
+	      <para>
+		Troughout this document I will use the English names for menu items, names etc., so if you are
+		running a non-English Windows or <acronym>MSVC</acronym> version you have to translate those things yourself. But 
+		I don't think that would be a big problem.
+	      </para>          
+	    </listitem>
+	  </varlistentry>
+	  
+	</variablelist>
+	
+      </sect2>
+      
+      <sect2>
+	<title>Prequisites</title>
+	
+	<para>
+	  Although we tried to keep PowerDNS for Windows' dependencies down to a minimum, you will still need some
+	  programs and libraries to be able to compile the sources.
+	</para>
+	
+      <sect3>
+	<title>pthreads for Windows</title>
+	
+	<para>
+	  The pthreads for Windows library is a Windows implementation of the <acronym>POSIX</acronym> threads
+	  specification, which is used a lot in <acronym>UNIX</acronym> programs.
+	</para>
+	
+	<para>
+	  PowerDNS uses pthreads too, and to ease the porting process we decided not to reinvent the wheel,
+	  but to use pthreads for Windows instead.
+	</para>
+	
+	<sect4>
+	  <title>Getting pthreads for Windows</title>
+	  
+	  <para>
+	    Pthreads for Windows is available from anonymous ftp at <ulink url="ftp://sources.redhat.com/pub/pthreads-win32/">ftp://sources.redhat.com/pub/pthreads-win32/</ulink>.
+	    You should download the latest <filename>pthreads-YYYY-MM-DD.exe</filename> file.
+	  </para>
+	  
+	  <note>
+	    <para>
+	      PowerDNS for Windows was tested with the snapshot of 2002-03-02 of the library.
+	    </para>
+	  </note>
+	  
+	  <para>
+	    For more information you can visit the pthreads for Windows homepage at <ulink url="http://sources.redhat.com/pthreads-win32/">http://sources.redhat.com/pthreads-win32/</ulink>
+	  </para>          
+	</sect4>
+	
+	<sect3>
+	  <title>Installing pthreads for Windows</title>
+	  
+	  <para>
+	    To install the pthreads for Windows library you have to locate your <filename>pthreads-YYYY-MM-DD.exe</filename> 
+	    file and start it.
+	  </para>
+	  
+	  <para>
+	    After starting the executable a self-extractor dialog will show up where you can specify where to extract
+	    the contents of the file. When you selected a location you can press the <guibutton>Extract</guibutton> button
+	    to extract all content to the target directory.
+	  </para>
+	  
+	  <para>
+	    The library is now installed, we still have to tell Visual C++ where it's located though, more
+	    on that later.
+	  </para>        
+	</sect3>
+	
+      </sect2>
+      
+      <sect2>
+	<title>Nullsoft Installer</title>
+	
+	<para>
+	  For our installation program we used Nullsoft's Installer System (<acronym>NSIS</acronym>). We used 
+	  <acronym>NSIS</acronym> because it's easy to use, versatile and free (and it uses <acronym><trademark>SuperPiMP</trademark></acronym> technology, but
+	  they refuse to tell us what it is ;)). If the name Nullsoft rings a bell, it's because they're the guys who made
+	  <ulink url="http://www.winamp.com/">winamp</ulink>.
+	</para>
+	
+	<sect3>
+	  <title>Getting the Nullsoft Installer</title>
+	  
+	  <para>
+	    The Nullsoft Installer can be downloaded at their website, which is
+	    located at <ulink url="http://www.nullsoft.com/free/nsis/">http://www.nullsoft.com/free/nsis/</ulink>.
+	    The file that you should download is called <filename>nsisXXX.exe</filename> (where XXX is the latest version).
+	  </para>
+	  
+	  <note>
+	    <para>
+	      You can find the <acronym>NSIS</acronym> documentation at that website too.
+	    </para>
+	  </note>
+	</sect3>
+	
+	<sect3>
+	  <title> Installing the Nullsoft Installer</title>
+	  
+	  <para>
+	    Installing <acronym>NSIS</acronym> is easy. All there is to it is locating the installer and execute it.
+	    Then just follow the installation steps.
+	  </para>
+	</sect3>
+	
+      </sect2>
+      
+    <sect2>
+      <title>Setting up the build-environment</title>
+      
+      <para>
+	Before starting Microsoft Visual C++ and compile PowerDNS for Windows, you first
+	have to set up your build environment.
+      </para>
+      
+      <sect3>
+	<title>Make Microsoft Visual C++ recognize <filename>*.cc</filename> and <filename>*.hh</filename> (optional)</title>
+	
+        <para>
+          All PowerDNS source files are in the form <filename>name.cc</filename>, and all header files in the form
+          <filename>name.hh</filename>. These extensions aren't recognized by <acronym>MSVC</acronym> by default, so
+          you might want to change that first.
+        </para>
+        
+        <note>
+          <para>
+            Only perform this step if you want to be able to edit the <filename>*.cc</filename> 
+            and <filename>*.hh</filename> files in <acronym>MSVC</acronym>.
+          </para>
+        </note>
+        
+        <caution>
+          <para>
+            If you decide to perform this step, remember that it requires modification of the Windows registry, 
+            always make a backup before modifying!
+          </para>
+        </caution>
+        
+        <para>
+          Ok, after that word of caution we can now proceed. You have to follow these steps:
+        </para>
+
+        <orderedlist>
+	  
+          <listitem>
+            <para>
+              Start the registry editor by entering <filename>regedit.exe</filename> in the run prompt
+              (<guimenu>Start-&gt;Run...</guimenu>).
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              Right click on <filename>HKEY_CLASSES_ROOT</filename> and select <guimenu>New-&gt;Key</guimenu>. 
+              A new key will appear, change that key to <quote><filename>.cc</filename></quote>, then change the default
+              value to <quote>cppfile</quote>
+            </para>
+
+            <para>
+              Then perform the same step for <quote><filename>.hh</filename></quote> (use <quote>hfile</quote> instead of <quote>cppfile</quote>).
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              Go to <filename>HKEY_CURRENT_USER\Software\Microsoft\DevStudio\6.0\Build System\Components\Platforms\Win32 (x86)\Tools\32-bit C/C++ Compiler for 80x86</filename>. And
+              add <quote>;*.cc</quote> to the <filename>Input_Spec</filename> value (so that it becomes <quote>*.c;*.cpp;*.cxx;*.cc</quote>).
+            </para>
+
+            <note>
+              <para>
+                If you happen to use another platform (like alpha) to compile the sources, you have to do the step above for that platform.
+              </para>
+            </note>
+          </listitem>
+
+          <listitem>
+            <para>
+              Go to <filename>HKEY_CURRENT_USER\Software\Microsoft\DevStudio\6.0\Search</filename>. And
+              add <quote>;*.cc;*.hh</quote> to the <filename>FIF_Filter</filename> value (so that it becomes <quote>*.c;*.cpp;*.cxx;*.tli;*.h;*.tlh;*.inl;*.rc;*.cc;*.hh</quote>).
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              Finally change <filename>HKEY_CURRENT_USER\Software\Microsoft\DevStudio\6.0\Text Editor\Tabs/Language Settings\C/C++</filename>. And
+              add <quote>;cc;hh</quote> to the <filename>FileExtensions</filename> value (so that it becomes <quote>cpp;cxx;c;h;hxx;hpp;inl;tlh;tli;rc;rc2;hh;cc</quote>).
+            </para>
+          </listitem>
+          
+          <listitem>
+            <para>
+              Close the registry editor.
+            </para>
+          </listitem>
+          
+        </orderedlist>       
+        
+        <para>
+          Now should <acronym>MSVC</acronym> properly recognize the files as being C++.
+        </para>
+	
+      </sect3>
+      
+      <sect3>
+	<title>Setting Microsoft Visual C++'s directories</title>
+	
+	<para>
+	  <acronym>MSVC</acronym> needs to locate some include files, libraries and executables
+	  when it has to build PowerDNS for Windows. We are now going to tell <acronym>MSVC</acronym> where
+	  to find those.
+	</para>
+	
+	<para>
+	  To enter the directory dialog you have to go to <guimenu>Tools-&gt;Options...-&gt;Directories</guimenu>.
+	</para>
+	
+	<sect4>
+	  <title>Setting the pthreads directories</title>
+	  
+	  <para>
+	    When you are in the directory dialog you can add the pthreads for Windows directory.
+	  </para>
+	  
+	  <para>
+	    First add the include directory, to do this you have to select <guilabel>Include files</guilabel>
+	    from the <guilabel>Show directories for:</guilabel> combobox. Then press the <guibutton>New</guibutton>
+	    button and browse to the <emphasis>include</emphasis> directory of pthreads (ie. <filename>C:\pthreads\include</filename>).
+	  </para>
+	  
+	  <para>
+	    Then switch to <guilabel>Library files</guilabel> and add the <emphasis>library</emphasis> directory
+	    (ie. <filename>C:\pthreads\lib</filename>) using the same method as above.
+	  </para>        
+	</sect4>
+	
+	<sect4>
+	  <title>Setting the Nullsoft Installer directory</title>
+	  
+	  <para>
+	    While still being in the directory dialog, switch to <guilabel>Executable files</guilabel>
+	    and add the Nullsoft Installer directory (ie. <filename>C:\Program Files\NSIS</filename>) to the list.
+	  </para>
+	</sect4>
+	
+      
+    </sect3>
+      </sect2>
+    
+    <sect2>
+      <title>Compilation</title>
+      
+      <para>
+	Finally, after all the reading, installing and configuring we are ready to start compiling
+	PowerDNS for Windows.
+      </para>
+      
+      <sect3>
+	<title>Starting the compilation</title>  
+	
+	<para>
+	  To start the compilation you first have to open the PowerDNS workspace (<filename>powerdns.dsw</filename>) using explorer or
+	  from the <guimenu>File-&gt;Open Workspace...</guimenu> menu in <acronym>MSVC</acronym>.
+	</para>
+	
+	<para>
+	  After you opened the workspace you can start compiling. Check all the checkboxes in the
+	  <guimenu>Build-&gt;Batch Build...</guimenu> menu and press the <guibutton>Build</guibutton> button.
+	</para>
+	
+	<para>
+	  Now cross your fingers and go make some coffee or tea while compiling PowerDNS for Windows. :)
+	</para>
+	
+      </sect3>
+      
+      <sect3>
+	<title>Yay! It compiled</title>
+	
+	<para>
+	  Congratulations, you have now compiled PowerDNS for Windows!
+	</para>
+	
+	<para>
+	  All the release builds of the binaries are in the <filename>Release</filename> directory (including the
+	  generated installer). The debug builds are in the, guess what, <filename>Debug</filename> directory.
+	</para>
+	
+	<para>
+	  Now you can start installing PowerDNS, but that's beyond the scope of this document. See
+	  the <ulink url="http://downloads.powerdns.com/documentation/html/">online documentation</ulink> for
+	  more information about that.
+	</para>
+      </sect3>
+      
+      <sect3>
+	<title>What if it went wrong?</title>
+	
+	<para>
+	  If the compilation fails, then try reading this article again, and again to see if you did something wrong.
+	</para>
+	
+	<para>
+	  If you are pretty sure that it's a bug, either in the PowerDNS sources, the build
+	  system or in this article, then please send an e-mail to <email>powerdns-dev@mailman.powerdns.com</email> describing your
+	  problem. We will then try to fix it.
+	</para>
+	
+      </sect3>
+      
+    </sect2>
+    
+    <sect2>
+      <title>Miscellaneous</title>
+
+      <para>
+	Some miscellaneous information.
+      </para>
+      
+      <sect3>
+	<title>Credits</title>
+
+	<variablelist>
+	  <title>Michel Stol would like to thank these people:</title>
+	  
+	  <varlistentry>
+	    <term>
+	      Bert Hubert
+	    </term>
+	    <listitem>
+	      <para>
+		For writing the wonderfull PowerDNS software and learning me stuff
+		that I'd otherwise never had learned.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term>
+	      PowerDNS B.V.
+	    </term>
+	    <listitem>
+	      <para>
+		For being great colleagues.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term>
+	      The pthreads-win32 crew (see the pthreads-win32 <filename>CONTRIBUTORS</filename> file).
+	    </term>
+	    <listitem>
+	      <para>
+		For easing our porting process by writing a great Windows implementation of pthreads.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term>
+	      The guys over at Nullsoft.
+	    </term>
+	    <listitem>
+	      <para>
+		For creating the Nullsoft Installer System (<acronym>NSIS</acronym>), and Winamp, the program we use every
+		day to make a lot of noise in the office.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  
+	</variablelist>
+	
+      </sect3>
+      
+      <sect3>
+	<title>Contact information</title>
+	
+	<para>
+	  If you have a comment, or a bug report concerning either this document or the PowerDNS sources
+	  you can contact <email>powerdns-dev@mailman.powerdns.com</email>
+	</para>
+	
+	<para>
+	  For general information about PowerDNS, the pdns server, express, documentation etc. I advice you to visit
+	  <ulink url="http://www.powerdns.com/">http://www.powerdns.com/</ulink>
+	</para>
+
+	<para>
+	  If you are interested in buying PowerDNS you can send a mail to <email>sales@powerdns.com</email>
+	  or you can visit the PowerDNS website at <ulink url="http://www.powerdns.com/pdns/">http://www.powerdns.com/pdns/</ulink>
+	</para>      
+	
+	<para>
+	  If you want to praise my work, ask me to marry you, deposit $1.000.000 on my bank account or flame me to death, then 
+	  you can mail me at <email>michel@physos.info</email> :)
+	</para>
+	
+      </sect3>
+      
+      <sect3>
+	<title>Legal information</title>
+	
+	<para>
+	  Microsoft, Visual C++, Windows, Windows NT, Windows 2000, Windows XP and Win32 are 
+	  either registered trademarks or trademarks of Microsoft Corporation in the U.S.A. and/or other countries.
+	</para>
+	
+	<para>
+	  Other product and company names mentioned herein may be the trademarks of their respective owners.
+	</para>
+	
+	</sect3>
+      
+      </sect2>
     </sect1>
+
   </book>

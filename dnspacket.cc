@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.2 2002/11/29 22:02:33 ahu Exp $
+// $Id: dnspacket.cc,v 1.3 2002/12/09 16:24:17 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -273,9 +273,11 @@ void DNSPacket::addAAAARecord(const DNSResourceRecord &rr)
   DLOG(L<<"Adding an AAAA record to the packet!"<<endl);
   unsigned char addr[16];
 
+#ifdef HAVE_IPV6
   if( Utility::inet_pton( AF_INET6, rr.content.c_str(), static_cast< void * >( addr )))
     addAAAARecord(rr.qname, addr, rr.ttl);
   else
+#endif
     L<<Logger::Error<<"Unable to convert IPv6 TEXT '"<<rr.content<<"' into binary for record '"<<rr.qname<<"': "
      <<endl;
 }
@@ -1258,8 +1260,9 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       if(length!=16)
 	throw AhuException("Wrong length AAAA record returned from remote");
       char tmp[128];
-	
+#ifdef AF_INET6	
       if(!Utility::inet_ntop(AF_INET6, datapos, tmp, sizeof(tmp)-1))
+#endif
 	throw AhuException("Unable to translate record of type AAAA in resolver");
 
       rr.content=tmp;

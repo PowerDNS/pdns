@@ -5,6 +5,7 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 BINARYPATH=@bindir@
+SBINARYPATH=@sbindir@
 SOCKETPATH=@socketdir@
 
 cd $SOCKETPATH
@@ -17,7 +18,7 @@ else
 	PROGNAME=pdns
 fi
 
-pdns_server="$BINARYPATH/pdns_server $EXTRAOPTS"
+pdns_server="$SBINARYPATH/pdns_server $EXTRAOPTS"
 
 doPC()
 {
