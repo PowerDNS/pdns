@@ -1,15 +1,6 @@
-
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR
-;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 2, ADDITIONAL: 2
-;; QUERY SECTION:
-;;	www.usa.example.com, type = A, class = IN
-
-;; AUTHORITY SECTION:
-usa.example.com.	2M IN NS	usa-ns1.usa.example.com.
-usa.example.com.	2M IN NS	usa-ns2.usa.example.com.
-
-;; ADDITIONAL SECTION:
-usa-ns1.usa.example.com.  2M IN A  192.168.4.1
-usa-ns2.usa.example.com.  2M IN A  192.168.4.2
-
-
+1	usa.example.com.	IN	NS	120	usa-ns1.usa.example.com.
+1	usa.example.com.	IN	NS	120	usa-ns2.usa.example.com.
+2	usa-ns1.usa.example.com.	IN	A	120	192.168.4.1
+2	usa-ns2.usa.example.com.	IN	A	120	192.168.4.2
+Rcode: 0, RD: 0, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='www.usa.example.com.', qtype=A

@@ -6,7 +6,7 @@ rm -f test-results failed_tests passed_tests
 passed=0
 failed=0
 
-for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v CVS) 
+for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn) 
 do
 	echo  "$a: "
 	cat $a/description 

@@ -1,2 +1,2 @@
-cleandig ipv6.example.com AAAA @$nameserver
+cleandig ipv6.example.com AAAA
 

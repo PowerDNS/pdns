@@ -1,3 +1,3 @@
 #/bin/sh
-cleandig mail.example.com MX @$nameserver
+cleandig mail.example.com MX
 

@@ -1,2 +1,2 @@
-cleandig example.com SOA @$nameserver
+cleandig example.com SOA
 

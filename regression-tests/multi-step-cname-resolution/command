@@ -1,1 +1,1 @@
-cleandig start1.example.com A @$nameserver
+cleandig start1.example.com A

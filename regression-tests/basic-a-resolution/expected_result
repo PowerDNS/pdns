@@ -1,10 +1,7 @@
-
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR
-;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
-;; QUERY SECTION:
-;;	outpost.example.com, type = A, class = IN
-
-;; ANSWER SECTION:
-outpost.example.com.	2M IN A		192.168.2.1
-
-
+0	outpost.example.com.	IN	A	120	192.168.2.1
+1	example.com.	IN	NS	120	ns1.example.com.
+1	example.com.	IN	NS	120	ns2.example.com.
+2	ns1.example.com.	IN	A	120	192.168.1.1
+2	ns2.example.com.	IN	A	120	192.168.1.2
+Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='outpost.example.com.', qtype=A

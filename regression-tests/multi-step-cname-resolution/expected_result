@@ -1,13 +1,10 @@
-
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR
-;; flags: qr aa rd; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 0
-;; QUERY SECTION:
-;;	start1.example.com, type = A, class = IN
-
-;; ANSWER SECTION:
-start1.example.com.	2M IN CNAME	start2.example.com.
-start2.example.com.	2M IN CNAME	start3.example.com.
-start3.example.com.	2M IN CNAME	start4.example.com.
-start4.example.com.	2M IN A		192.168.2.2
-
-
+0	start1.example.com.	IN	CNAME	120	start2.example.com.
+0	start2.example.com.	IN	CNAME	120	start3.example.com.
+0	start3.example.com.	IN	CNAME	120	start4.example.com.
+0	start4.example.com.	IN	A	120	192.168.2.2
+1	example.com.	IN	NS	120	ns1.example.com.
+1	example.com.	IN	NS	120	ns2.example.com.
+2	ns1.example.com.	IN	A	120	192.168.1.1
+2	ns2.example.com.	IN	A	120	192.168.1.2
+Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='start1.example.com.', qtype=A

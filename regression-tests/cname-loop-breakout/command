@@ -1,1 +1,1 @@
-cleandig loop1.example.com A @$nameserver | grep -v ^loop 
+cleandig loop1.example.com A

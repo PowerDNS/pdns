@@ -1,2 +1,2 @@
-cleandig text.example.com TXT @$nameserver
+cleandig text.example.com TXT
 

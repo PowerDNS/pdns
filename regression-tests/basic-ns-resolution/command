@@ -1,2 +1,2 @@
-cleandig example.com NS @$nameserver
+cleandig example.com NS
 

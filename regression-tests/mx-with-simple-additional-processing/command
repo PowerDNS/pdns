@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig example.com MX @$nameserver
+cleandig example.com MX

@@ -1,3 +1,3 @@
 #!/bin/sh
-cleandig outpost.example.com AAAA @$nameserver
+cleandig outpost.example.com AAAA
 

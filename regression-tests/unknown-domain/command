@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig A this.domain.is.not.in.powerdns @$nameserver
+cleandig this.domain.is.not.in.powerdns A

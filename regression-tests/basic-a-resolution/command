@@ -1,2 +1,2 @@
-cleandig outpost.example.com A @$nameserver
+cleandig outpost.example.com A
 

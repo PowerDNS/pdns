@@ -1,9 +1,11 @@
-
-;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL
-;; flags: qr aa rd; QUERY: 1, ANSWER: 10, AUTHORITY: 0, ADDITIONAL: 0
-;; QUERY SECTION:
-;;	loop1.example.com, type = A, class = IN
-
-;; ANSWER SECTION:
-
-
+0	loop1.example.com.	IN	CNAME	120	loop2.example.com.
+0	loop1.example.com.	IN	CNAME	120	loop2.example.com.
+0	loop1.example.com.	IN	CNAME	120	loop2.example.com.
+0	loop2.example.com.	IN	CNAME	120	loop3.example.com.
+0	loop2.example.com.	IN	CNAME	120	loop3.example.com.
+0	loop2.example.com.	IN	CNAME	120	loop3.example.com.
+0	loop3.example.com.	IN	CNAME	120	loop1.example.com.
+0	loop3.example.com.	IN	CNAME	120	loop1.example.com.
+0	loop3.example.com.	IN	CNAME	120	loop1.example.com.
+Rcode: 2, RD: 0, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='loop1.example.com.', qtype=A

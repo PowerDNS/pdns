@@ -1,3 +1,3 @@
 #!/bin/sh
-cleandig ANY example.com @$nameserver
+cleandig example.com ANY
 

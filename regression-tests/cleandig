@@ -1,28 +1,2 @@
 #!/bin/sh
-PATH=.:../:$PATH
-dig $@ -p 5300 | 
-	grep -v ";; global options" |
-	grep -v ";; Got answer:" |
-	grep -v "^;; Total query time:"  |
-	grep -v "^; " |
-	grep -v "^;; res options" |
-	grep -v "^;; got answer:" |
-	grep -v "^;; FROM:" |grep -v "^;; WHEN:"  | grep -v "^;; MSG SIZE" |
-	sed 's/, id: [0123456789]*//g' |
-	sed "s/$nameserver/NAMESERVER/g"
-
-
-#;; res options: init recurs defnam dnsrch
-#;; got answer:
-#;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 6
-#;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
-#;; QUERY SECTION:
-#;;	outpost.example.com, type = A, class = IN
-#
-#;; ANSWER SECTION:
-#outpost.example.com.	2M IN A		192.168.2.1
-#
-#;; FROM: ahu to SERVER: 127.0.0.1
-#;; WHEN: Fri Jul 27 12:59:28 2001
-#;; MSG SIZE  sent: 37  rcvd: 53
-
+../pdns/sdig $nameserver $port $1 $2 | sort 
