@@ -12,7 +12,7 @@ And then:
 $ ./bootstrap
 
 you may need to do that twice. You also need libtool-1.4, 1.3 won't work.
-Automake 1.5 is (almost) required.
+Automake 1.6 is (almost) required.
 
 Send any patches you may have to the mailinglist:
                         pdns-dev@mailman.powerdns.com
