@@ -9,7 +9,7 @@
 
 
 
-PowerLDAP::PowerLDAP( const string &host, u_int16_t port ) : d_host( host ), d_port( port ), d_timeout( 1 )
+PowerLDAP::PowerLDAP( const string &host, u_int16_t port ) : d_host( host ), d_port( port ), d_timeout( 5 )
 {
 	int protocol = LDAP_VERSION3;
 
@@ -82,7 +82,7 @@ int PowerLDAP::search(const string& base, int scope, const string& filter, const
   return msgid;
 }
 
-bool PowerLDAP::getSearchEntry(int msgid, sentry_t &entry)
+bool PowerLDAP::getSearchEntry(int msgid, sentry_t &entry, bool withdn)
 {
   entry.clear();
   int rc=waitResult(msgid,&d_searchresult);
@@ -98,6 +98,15 @@ bool PowerLDAP::getSearchEntry(int msgid, sentry_t &entry)
   d_searchentry=ldap_first_entry(d_ld, d_searchresult);
 
   // we now have an entry in d_searchentry
+
+  if( withdn == true )
+  {
+    vector<string> dnresult;
+    char* dn = ldap_get_dn( d_ld, d_searchentry );
+    dnresult.push_back( dn );
+    ldap_memfree( dn );
+    entry["dn"] = dnresult;
+  }
 
   BerElement *ber;
 
@@ -119,11 +128,11 @@ bool PowerLDAP::getSearchEntry(int msgid, sentry_t &entry)
   return true;
 }
 
-void PowerLDAP::getSearchResults(int msgid, sresult_t &result)
+void PowerLDAP::getSearchResults(int msgid, sresult_t &result, bool withdn)
 {
   result.clear();
   sentry_t entry;
-  while(getSearchEntry(msgid, entry))
+  while(getSearchEntry(msgid, entry, withdn))
     result.push_back(entry);
 }
 

@@ -246,7 +246,7 @@ void *TCPNameserver::doConnection(void *data)
 
 static bool canDoAXFR(DNSPacket *q)
 {
-  if(!arg().mustDo("disable-axfr"))
+  if(arg().mustDo("disable-axfr"))
     return false;
 
   if(arg()["allow-axfr-ips"].empty())
