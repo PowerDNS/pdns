@@ -171,7 +171,7 @@ static void writePid(void)
   if(of)
     of<<getpid()<<endl;
   else
-    L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<"failed: "<<strerror(errno)<<endl;
+    L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
 }
 
 void init(void)
@@ -446,6 +446,7 @@ int main(int argc, char **argv)
     arg().set("quiet","Suppress logging of questions and answers")="off";
     arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+    arg().set("delegation-only","Which domains we only accept delegations from")="";
     arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
     arg().laxParse(argc,argv); // do a lax parse
@@ -457,6 +458,8 @@ int main(int argc, char **argv)
       L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
 
     arg().parse(argc,argv);
+
+    arg().set("delegation-only")=toLower(arg()["delegation-only"]);
 
     if(arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
@@ -473,6 +476,8 @@ int main(int argc, char **argv)
     makeServerSocket();
     makeTCPServerSocket();
         
+
+
     char data[1500];
     struct sockaddr_in fromaddr;
     

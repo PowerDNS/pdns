@@ -83,19 +83,17 @@ string & ArgvMap::setSwitch(const string &var, const string &help)
 
 bool ArgvMap::contains(const string &var, const string &val)
 {
-	vector<string> parts;
-	vector<string>::const_iterator i;
+  vector<string> parts;
+  vector<string>::const_iterator i;
+  
+  stringtok( parts, params[var], ", \t" );
+  for( i = parts.begin(); i != parts.end(); i++ ) {
+    if( *i == val ) {
+      return true;
+    }
+  }
 
-
-	stringtok( parts, params[var], ", \t" );
-	for( i = parts.begin(); i != parts.end(); i++ )
-	{
-		if( *i == val ) {
-			return true;
-		}
-	}
-
-	return false;
+  return false;
 }
 
 

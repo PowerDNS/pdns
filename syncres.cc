@@ -361,15 +361,22 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
 	LOG<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
 
-	if(endsOn(i->qname, auth)) {
-	  LOG<<"YES!"<<endl;
 
-	  DNSResourceRecord rr=*i;
-	  rr.d_place=DNSResourceRecord::ANSWER;
-	  rr.ttl+=time(0);
-	  //	  rr.ttl=time(0)+10+10*rr.qtype.getCode();
-	  tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
-	}
+	if(endsOn(i->qname, auth)) {
+	  if(aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && arg().contains("delegation-only",auth)) {
+	    LOG<<"NO! Is from delegation-only zone"<<endl;
+	    return RCode::NXDomain;
+	  }
+	  else {
+	    LOG<<"YES!"<<endl;
+	    
+	    DNSResourceRecord rr=*i;
+	    rr.d_place=DNSResourceRecord::ANSWER;
+	    rr.ttl+=time(0);
+	    //	  rr.ttl=time(0)+10+10*rr.qtype.getCode();
+	    tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
+	  }
+	}	  
 	else
 	  LOG<<"NO!"<<endl;
       }
