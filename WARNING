@@ -1,9 +1,0 @@
-Warning!
-
-This version is a regression on 2.8 for almost everybody except open source
-developers. Please do not blindly install 2.9 over 2.8.
-
-2.9 is the first open source consolidation release, we expect things to
-clear up after 2.9 and to fully stabilise at 3.0.
-
-Currently, only static modules are supported in the build process!
