@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-D_GNU_SOURCE -DSYSCONFDIR=\"@sysconfdir@\" -DBINDIR=\"@bindir@\" -DLOCALSTATEDIR=\"@localstatedir@\" -Ibackends/bind
+AM_CXXFLAGS=-D_GNU_SOURCE -DSYSCONFDIR=\"@sysconfdir@\" -DBINDIR=\"@bindir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind
 AM_CPPFLAGS=-Ibackends/bind
 
 EXTRA_DIST = codedocs/Makefile codedocs/doxygen.conf sample docs/Makefile \
@@ -11,10 +11,12 @@ pathconfig.redhat pathconfig pathconfig.bsd pathconfig.debian docs/pdns.sgml \
 LICENSE choosepaths mtasker.cc COPYING 
 
 bin_SCRIPTS = pdns
-sysconf_DATA = pdns.conf-dist smtpredir.conf-dist 
+sysconf_DATA = pdns.conf-dist 
 
-bin_PROGRAMS = pdns_server pdns_control binpatch # syncres #   resolver syncres # smtpredir
+bin_PROGRAMS = pdns_server pdns_control binpatch # syncres #   resolver syncres 
 
+pdns.conf-dist: pdns_server
+	-./pdns_server --config > $@
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -32,7 +34,7 @@ backends/bind/bindparser.cc backends/bind/bindlexer.c \
 backends/bind/huffman.cc
 
 #
-pdns_server_LDFLAGS=-rdynamic @LIBDL@ extra/*.o `cat extra/ld`  -ldl
+pdns_server_LDFLAGS=-rdynamic @LIBDL@ @moduleobjects@ @modulelibs@ 
 pdns_server_INCLUDES=
 
 
@@ -51,7 +53,3 @@ binpatch_SOURCES=binpatch.cc
 
 SUBDIRS= codedocs backends extra .
 
-deb: ../ahudns_1.1-1_i386.deb
-
-../ahudns_1.1-1_i386.deb:
-	./debian/rules binary-arch

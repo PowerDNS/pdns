@@ -1,5 +1,11 @@
+#!/bin/sh
 # chkconfig: - 80 75
 # description: PDNS is a versatile high performance authoritative nameserver
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+BINARYPATH=@bindir@
+SOCKETPATH=@socketdir@
 
 cd $SOCKETPATH
 suffix=`basename $0 | awk -F- '{print $2}'`
@@ -159,7 +165,7 @@ case "$1" in
 
 
 	*)
-	echo pdns [start\|stop\|restart\|status\|dump\|show\|mrtg]
+	echo pdns [start\|stop\|restart\|status\|dump\|show\|mrtg\|cricket\|monitor]
 
 	;;
 esac
