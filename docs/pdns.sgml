@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/08/30 14:34:04 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/09/21 15:48:16 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,8 +81,104 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-11"><title>Version 2.9.11</title>	
+
+    <sect2 id="changelog-2-9-12"><title>Version 2.9.12</title>
+      <para> 
+	 Release rich in features. Work on Verisign oddities, addition of SQLite backend, pdns_recursor maturity.
+      </para>
+      <para>
+         New features:
+      <itemizedlist>
+	    <listitem>
+	      <para>
+		--version command (requested by Mike Benoit)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		delegation-only, a Verisign special. See <xref linkend="verisign">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generic SQLite support, by Michel 'Who da man?' Stol. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		init.d script for pdns_recursor
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor now actually purges its cache, saving memory.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
 	<para>
+	  Bugs:
+	</para>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		0.0.0.0/0 didn't use to work (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_recursor would try to resolve IP address which to bind to, potentially causing chicken/egg problem
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		gpgsql no longer reports as gmysql (Sherwin Daganoto)
+	      </para>
+	    <listitem>
+	      <para>
+		SRV would not be parsed right from disk (Christof Meerwald)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		An AXFR from a zone hosted on the LDAP backend no longer transmits all the reverse entries too (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements, cleanups:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		PowerDNS now reports the numerical IP addresses it binds to instead of the, possibly, alphanumeric names the operator passed.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Removed only-soa hackery (noticed by Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Debian packaging fixes (Wichert Akkerman)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some parameter descriptions were improved.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Cleanups by Norbert: getAuth moved to chopOff, arguments::contains massive cleanup, more.
+	    </listitem>
+	  </itemizedlist>
+      </sect2>
+      
+      <sect2 id="changelog-2-9-11"><title>Version 2.9.11</title>	
+      	<para>
 	  Yet another iteration, hopefully this will be the last silly release. 
 	<para>
 	  <warning>
@@ -4482,15 +4578,12 @@ local0.err                        /var/log/pdns.err
       all mistakes are ours. Here are the current faults, so nobody can accuse us of false advertising:
       <itemizedlist>
 	<listitem><para>
-	    Only ignores stale cache entries, does not actually clean them up. May replace them with newer data, however.
-	  </para></listitem>
-	<listitem><para>
-	    Only compiles on Linux and possibly Solaris. FreeBSD 4.x decided not to support the 
+	    Only compiles on Linux, Windows and possibly Solaris. FreeBSD 4.x decided not to support the 
 	    POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
 	    or ask him to port MTasker (see below) to your operating system.
 	  </para></listitem>
-	<listitem<para>
-	    It does not do TCP yet, and may have big problems with truncated packets.
+	<listitem><para>
+	    May have big problems with truncated packets.
 	  </para></listitem>
       </itemizedlist>
     </para>
@@ -4564,6 +4657,14 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>delegation-only</term>
+	    <listitem>
+	      <para>
+		A Verisign special, see <xref linkend="verisign">.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
 	  <varlistentry>
 	    <term>local-address</term>
@@ -4600,6 +4701,25 @@ local0.err                        /var/log/pdns.err
 	  </varlistentry>
 	</variablelist>
       <para>
+    <sect2 id="verisign"><title>Verisign weirdness</title>
+	<para>
+	  Verisign, the current operator of the COM and NET zones, decided to add a wildcard record so as to draw all queries for non-existing 
+	  domains to their own page, which lists domains you might want to visist instead. 
+	</para>
+	<para>
+	  To reinstate old behaviour, add <command>delegation-only=com,net</command> to your recursor configuration.
+	</para>
+	<para>
+	  What this does is reject all authoritative answers from the COM and NET servers. ISC, the current maintainers of BIND, have 
+	  implemented this feature first, PowerDNS has mostly copied their algorithm. Thanks!
+	</para>
+	<para>
+	  Verisign might decide to evade our tactic with wildcard NS records, by which time other measures will be needed to restore the 
+	  old behaviour.
+	</para>
+      </sect2>
+	  
+
     </sect1>
     <sect1><title>Details</title>
       <para>
@@ -5421,6 +5541,16 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       </para>
       <para>
 	<variablelist>
+	  <varlistentry>
+	    <term>Q: I get this entry a lot of times in my log file: Authoritative empty NO ERROR to 1.2.3.4 for 'powerdns.nl' (AAAA)..</term>
+	    <listitem>
+	      <para>
+		As the name implies, this is not an error. It tells you there are questions for a domain which exists in your database, but for
+		which no record of the requested type exists. To get rid of this error, add <command>log-dns-details=off</command> to your
+		configuration.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	  <varlistentry>
 	    <term>Q: Can I launch multiple backends simultaneously?</term>
 	    <listitem>
