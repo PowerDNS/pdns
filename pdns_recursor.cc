@@ -399,7 +399,7 @@ int main(int argc, char **argv)
     arg().set("soa-serial-offset","Don't change")="0";
     arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     arg().set("local-port","port to listen on")="53";
-    arg().set("local-address","port to listen on")="0.0.0.0";
+    arg().set("local-address","single address to listen on")="0.0.0.0";
     arg().set("trace","if we should output heaps of logging")="off";
     arg().set("daemon","Operate as a daemon")="yes";
     arg().set("quiet","Suppress logging of questions and answers")="off";
