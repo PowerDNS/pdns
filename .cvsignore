@@ -1,0 +1,16 @@
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+config.guess
+config.h
+config.h.in
+config.sub
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+mkinstalldirs
+stamp-h
+ylwrap

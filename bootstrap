@@ -6,6 +6,6 @@ echo
 
 aclocal
 autoheader
-automake --add-missing --foreign
+automake --add-missing --copy --foreign 
 autoconf
 

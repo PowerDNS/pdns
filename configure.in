@@ -293,31 +293,31 @@ do
 
 	case "$a" in
 		pgmysql)
-		rm -f modules/pgmysqlbackend/OBJECTFILES 
-		cat /dev/null >  modules/pgmysqlbackend/OBJECTLIBS
-		cat /dev/null >  modules/pgmysqlbackend/OBJECTFILES
+		rm -f $srcdir/modules/pgmysqlbackend/OBJECTFILES 
+		cat /dev/null >  $srcdir/modules/pgmysqlbackend/OBJECTLIBS
+		cat /dev/null >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
 		if test -n "$domysql"
 		then 
-			echo smysql.o > modules/pgmysqlbackend/OBJECTFILES
+			echo smysql.o > $srcdir/modules/pgmysqlbackend/OBJECTFILES
 		fi 
 
 		if test -n "$dopgsql"
 		then 
-			echo spgsql.o >> modules/pgmysqlbackend/OBJECTFILES
+			echo spgsql.o >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
 		fi 
 		;;
 	esac
 
 
-	for b in $(cat modules/${a}backend/OBJECTFILES)
+	for b in $(cat $srcdir/modules/${a}backend/OBJECTFILES)
 	do
 	        moduleobjects="$moduleobjects ../modules/${a}backend/$b"
 	done
-	modulelibs="$modulelibs $(cat modules/${a}backend/OBJECTLIBS)"
+	modulelibs="$modulelibs $(cat $srcdir/modules/${a}backend/OBJECTLIBS)"
 done
 export moduledirs moduleobjects modulelibs
 
 AC_OUTPUT(Makefile modules/Makefile pdns/Makefile pdns/codedocs/Makefile \
-pdns/backends/bind/Makefile pdns/backends/Makefile pdns/pdns \
+pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
 modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
 modules/pgmysqlbackend/Makefile modules/db2backend/Makefile)
