@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.15 2003/01/21 15:04:02 ahu Exp $
+// $Id: dnspacket.cc,v 1.16 2003/01/23 15:34:53 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -304,16 +304,7 @@ void DNSPacket::addMXRecord(const string &domain, const string &mx, int priority
   toqname(domain,&piece1);
 
   char piece2[12];
-
-  piece2[0]=0;
-
-  piece2[1]=15; // MX
-  piece2[2]=0;
-  piece2[3]=1; // IN
-
-  putLong(piece2+4,ttl);
-  piece2[8]=0;
-  piece2[9]=0;  // need to fill this in
+  makeHeader(piece2,QType::MX,ttl);
 
   // start of payload for which we need to specify the length in 8 & 9
 
@@ -526,15 +517,7 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, u_int
   toqname(domain, &piece1);
 
   char p[10];
-  
-  p[0]=0;
-  p[1]=6; // SOA
-  p[2]=0;
-  p[3]=1; // IN
-  
-  putLong(p+4,ttl);
-  p[8]=0;
-  p[9]=0;  // need to fill this in (length)
+  makeHeader(p,QType::SOA,ttl);
   
   string piece3;  
   toqname(soadata.nameserver,&piece3, false);
@@ -615,16 +598,7 @@ void DNSPacket::addRPRecord(const string &domain, const string &content, u_int32
 
  toqname(domain.c_str(),&piece1);
  char p[10];
- 
- p[0]=0;
- p[1]=17; // RP
- p[2]=0;
- p[3]=1; // IN
- 
- putLong(p+4,ttl);
-
- p[8]=0;
- p[9]=0;  // need to fill this in
+ makeHeader(p,17,ttl);
  
  // content contains: mailbox-name more-info-domain (Separated by a space)
  unsigned int pos;
@@ -835,9 +809,6 @@ void DNSPacket::addHINFORecord(string domain, string content, u_int32_t ttl)
   char p[10];
   makeHeader(p,QType::HINFO,ttl);
   
-  p[8]=0;
-  p[9]=0; // need to fill this in
-  
   unsigned int offset=content.find(" ");
   string cpu, host;
   if(offset==string::npos) {
@@ -879,15 +850,7 @@ void DNSPacket::addNSRecord(string domain, string server, u_int32_t ttl, DNSReso
   toqname(domain, &piece1);
 
   char p[10];
-
-  p[0]=0;
-  p[1]=2; // NS
-  p[2]=0;
-  p[3]=1; // IN
-  putLong(p+4,ttl);
-
-  p[8]=0;
-  p[9]=0;  // need to fill this in
+  makeHeader(p,QType::NS,ttl);
 
   string piece3;
   string::size_type pos=server.find('@'); // chop off @
