@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pdns/dns.hh>
+#include <pdns/utility.hh>
 #include <pdns/dnspacket.hh>
 #include <pdns/dnsbackend.hh>
 #include <pdns/ueberbackend.hh>
@@ -23,6 +24,7 @@ using namespace std;
 static string backendname="[LdapBackend]";
 
 static char* attrany[] = {
+	"associatedDomain",
 	"ARecord",
 	"NSRecord",
 	"CNAMERecord",
@@ -45,6 +47,8 @@ class LdapBackend : public DNSBackend
 private:
 
 	int m_msgid;
+        int m_revlookup;
+  
 	QType m_qtype;
 	string m_qname;
 	PowerLDAP* m_pldap;

@@ -391,6 +391,9 @@ int main(int argc, char **argv)
       FD_ZERO( &readfds );
       FD_SET( d_clientsock, &readfds );
       FD_SET( d_serversock, &readfds );
+
+
+      /* this should listen on a TCP port as well for new connections,  */
       int selret = select( max(d_clientsock,d_serversock) + 1, &readfds, NULL, NULL, &tv );
       if(selret<=0) 
 	if (selret == -1 && errno!=EINTR) 

@@ -1,12 +1,20 @@
 #include "ldapbackend.hh"
+
 #include <algorithm>
 #include <utility>
 #include <ctype.h> 
+
+static int Toupper(int c)
+{
+  return toupper(c);
+}
+
 
 LdapBackend::LdapBackend( const string &suffix )
 {
 	m_msgid = 0;
 	m_qname = "";
+	m_revlookup = 0;
 	setArgPrefix( "ldap" + suffix );
 
 	L << Logger::Notice << backendname << " Server = " << getArg( "host" ) << ":" << getArg( "port" ) << endl;
@@ -35,20 +43,35 @@ bool LdapBackend::list( int domain_id )
 
 void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
 {
-	string filter, attr;
+	int len = 0;
+	vector<string> parts;
+	string filter, attr, ipaddr;
 	char** attributes = attrany;
-	char* attronly[] = { NULL, NULL };
+	char* attronly[] = { "associatedDomain", NULL, NULL };
 
 
 	m_qtype = qtype;
-	m_qname = m_pldap->escape( qname );
-	filter = "(associatedDomain=" + m_qname + ")";
+	m_qname = qname;
+	len = qname.length();
 
-	if( qtype.getCode() != 255 )   // qtype != ANY
+	if( len > 20 && qname.substr( len - 13, 13 ) == ".in-addr.arpa" )
+	{
+		m_revlookup = 1;
+		stringtok( parts, qname.substr( 0, len - 13 ), "." );
+		filter = "(aRecord=" + parts[3] + "." + parts[2] + "." + parts[1] + "." + parts[0] + ")";
+		attributes = attronly;
+	}
+	else
+	{
+		m_revlookup = 0;
+		filter = "(associatedDomain=" + m_pldap->escape( m_qname ) + ")";
+	}
+
+	if( qtype.getCode() != QType::ANY )
 	{
 		attr = qtype.getName() + "Record";
 		filter = "(&" + filter + "(" + attr + "=*))";
-		attronly[0] = (char*) attr.c_str();
+		attronly[1] = (char*) attr.c_str();
 		attributes = attronly;
 	}
 
@@ -57,10 +80,6 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	L << Logger::Info << backendname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
 }
 
-static int Toupper(int c)
-{
-  return toupper(c);
-}
 
 bool LdapBackend::get( DNSResourceRecord &rr )
 {
@@ -75,13 +94,19 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 	{
 		while( !m_result.empty() )
 		{
+			if( m_revlookup == 1 && m_result.find( "associatedDomain" ) != m_result.end() )
+			{
+				m_result["PTRRecord"] = m_result["associatedDomain"];
+			}
+			m_result.erase( "associatedDomain" );
+
 			attribute = m_result.begin();
 			attrname = attribute->first;
 			qstr = attrname.substr( 0, attrname.length() - 6 );   // extract qtype string from ldap attribute name
 			transform( qstr.begin(), qstr.end(), qstr.begin(), &Toupper );
 			qt = QType( const_cast<char*>(qstr.c_str()) );
 
-			while( !attribute->second.empty() && ( m_qtype == "ANY" || qt.getCode() == m_qtype.getCode() ) )
+			while( !attribute->second.empty() && ( m_qtype.getCode() == QType::ANY ||  m_qtype.getCode() == qt.getCode() ) )
 			{
 				content = attribute->second.back();
 				attribute->second.pop_back();
@@ -90,9 +115,9 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 				rr.qname = m_qname;
 				rr.priority = 0;
 
-				if( qt.getCode() == 15 )   // MX Record, e.g. 10 smtp.example.com
+				if( qt.getCode() == QType::MX )   // MX Record, e.g. 10 smtp.example.com
   				{
-					stringtok( parts, content );
+					stringtok( parts, content, " " );
 					rr.priority = (u_int16_t) strtol( parts[0].c_str(), NULL, 10 );
 					content = parts[1];
 				}

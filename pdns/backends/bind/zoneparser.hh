@@ -45,7 +45,7 @@ class ZoneParser
   void setCallback(callback_t *callback);
   callback_t *d_callback;
   bool parseLine(const vector<string>&words, vector<Record> &);
-  bool eatLine(string line, vector<Record>&);
+  bool eatLine(const string& line, vector<Record>&);
   void setDirectory(const string &dir);
   static string canonic(const string& dom);
     

@@ -171,6 +171,8 @@ void *TCPNameserver::doConnection(void *data)
       if(packet->d.rd && arg().mustDo("recursor")) {
 	// now what
 	// this is a pretty rare event all in all, so we can afford to be slow
+
+	// this code SHOULD attempt to answer from the local cache first!
 	S.inc("recursing-questions");
 	Resolver res;
 	unsigned int len;

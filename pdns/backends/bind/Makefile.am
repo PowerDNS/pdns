@@ -1,7 +1,7 @@
 INCLUDES=-I../..
 noinst_LTLIBRARIES = libbindbackend.la
 
-libbindbackend_la_SOURCES=bindbackend.cc bindbackend.hh bindparser.yy \
+libbindbackend_la_SOURCES=bindbackend2.cc bindbackend2.hh bindparser.yy \
 bindlexer.l zoneparser2.cc ../../misc.cc huffman.cc huffman.hh zoneparser.hh \
 bindparser.hh ../../unix_utility.cc
 

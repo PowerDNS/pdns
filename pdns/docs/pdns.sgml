@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/02/15 11:30:17 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/03/04 18:33:39 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3308,15 +3308,16 @@ name         IN            A        1.2.3.4
   <Chapter id="configuring-db-connection">
     <title>Configure database connectivity</title>
     <para>
-      The default PDNS distribution comes with a simple MySQL backend built in, which we will now use for 
-      demonstrating database connectivity. This backend is called 'mysql', and needs to be configured
+      This chapter shows you how to configure the Generic MySQL backend, which we like a lot. But feel free to use any of the myriad
+      other backends.
+      This backend is called 'gmysql', and needs to be configured
       in <filename>pdns.conf</filename>. Add the following lines, adjusted for your local setup:
       
       <screen>
-	launch=mysql
-	mysql-host=127.0.0.1
-	mysql-user=root
-	mysql-dbname=pdnstest
+	launch=gmysql
+	gmysql-host=127.0.0.1
+	gmysql-user=root
+	gmysql-dbname=pdnstest
       </screen>
       
       Remove any earlier <command>launch</command> statements. Also remove the <command>bind-example-zones</command>
@@ -3331,8 +3332,8 @@ name         IN            A        1.2.3.4
       </warning>
       <warning>
 	<para>
-	  This section describes the deprecated MySQL backend, which should no longer be used! Use the Generic MySQL backend! See
-	  <xref linkend="generic-mypgsql-backends">.
+	  Be very very sure that you configure the *g*mysql backend and not the mysql backend. See
+	  <xref linkend="generic-mypgsql-backends">. If you use the 'mysql' backend things will only appear to work.
 	</para>
       </warning>
     </para>
@@ -3343,9 +3344,9 @@ name         IN            A        1.2.3.4
 	(...)
 	15:31:30 PowerDNS 1.99.0 (Mar 12 2002, 15:00:28) starting up
 	15:31:30 About to create 3 backend threads
-	15:31:30 [MySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
-	15:31:30 [MySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
-	15:31:30 [MySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
+	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
+	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
+	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
       </screen>
       
       This is as to be expected - we did not yet add anything to MySQL for PDNS to read from. At this point you may also see
@@ -3359,24 +3360,44 @@ name         IN            A        1.2.3.4
       <para>
 	Connect to MySQL as a user with sufficient privileges and issue the following commands:
 	<screen>
-	  # mysql 
-	  mysql> CREATE DATABASE pdnstest;
-	  mysql> use pdnstest;
+create table domains (
+ id		 INT auto_increment,
+ name		 VARCHAR(255) NOT NULL,
+ master		 VARCHAR(20) DEFAULT NULL,
+ last_check	 INT DEFAULT NULL,
+ type		 VARCHAR(6) NOT NULL,
+ notified_serial INT DEFAULT NULL, 
+ account         VARCHAR(40) DEFAULT NULL,
+ primary key (id)
+)type=InnoDB;
 
-	  mysql> CREATE TABLE records (
-	  id int(11) NOT NULL auto_increment,
-	  domain_id int(11) NOT NULL,
-	  name varchar(255) NOT NULL,
-	  type varchar(6) NOT NULL,
-	  content varchar(255) default NULL,
-	  ttl int(11) NOT NULL,
-	  prio int(11) default NULL,
-	  change_date int(11) default NULL,
-	  PRIMARY KEY (id),
-	  KEY name_index(name),
-	  KEY nametype_index(name,type),
-	  KEY domainid_index(domain_id)
-	  );
+CREATE UNIQUE INDEX name_index ON domains(name);
+
+CREATE TABLE records (
+  id              INT auto_increment,
+  domain_id       INT DEFAULT NULL,
+  name            VARCHAR(255) DEFAULT NULL,
+  type            VARCHAR(6) DEFAULT NULL,
+  content         VARCHAR(255) DEFAULT NULL,
+  ttl             INT DEFAULT NULL,
+  prio            INT DEFAULT NULL,
+  change_date     INT DEFAULT NULL,
+  primary key(id)
+)type=InnoDB;
+
+CREATE INDEX rec_name_index ON records(name);
+CREATE INDEX nametype_index ON records(name,type);
+CREATE INDEX domain_id ON records(domain_id);
+
+create table supermasters (
+  ip VARCHAR(25) NOT NULL, 
+  nameserver VARCHAR(255) NOT NULL, 
+  account VARCHAR(40) DEFAULT NULL
+);
+
+GRANT SELECT ON supermasters TO pdns;
+GRANT ALL ON domains TO pdns;
+GRANT ALL ON records TO pdns;
 	</screen>
 	
 	Now we have a database and an empty table. PDNS should now be able to launch in monitor mode and display no errors:
@@ -3386,9 +3407,9 @@ name         IN            A        1.2.3.4
 	  (...)
 	  15:31:30 PowerDNS 1.99.0 (Mar 12 2002, 15:00:28) starting up
 	  15:31:30 About to create 3 backend threads
-	  15:39:55 [MySQLbackend] MySQL connection succeeded
-	  15:39:55 [MySQLbackend] MySQL connection succeeded
-	  15:39:55 [MySQLbackend] MySQL connection succeeded
+	  15:39:55 [gMySQLbackend] MySQL connection succeeded
+	  15:39:55 [gMySQLbackend] MySQL connection succeeded
+	  15:39:55 [gMySQLbackend] MySQL connection succeeded
 	</screen>
 	
 	A sample query sent to the database should now return quickly without data:
@@ -3405,7 +3426,7 @@ name         IN            A        1.2.3.4
 	Now we need to add some records to our database:
 	<screen>
 	  # mysql pdnstest
-	  mysql>
+	  mysql> INSERT INTO domains (name, type) values ('test.com', 'NATIVE');
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio) 
 	  VALUES (1,'test.com','localhost ahu@ds9a.nl 1','SOA',86400,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
@@ -3473,11 +3494,11 @@ name         IN            A        1.2.3.4
 		<para>
 		  Your MySQL installation is probably defaulting to another location for its socket. Can be resolved
 		  by figuring out this location (often <filename>/var/run/mysqld.sock</filename>), and specifying it 
-		  in the configuration file with the <command>mysql-socket</command> parameter.
+		  in the configuration file with the <command>gmysql-socket</command> parameter.
 		</para>
 		<para>
 		  Another solution is to not connect to the socket, but to 127.0.0.1, which can be achieved by specifying
-		  <command>mysql-host=127.0.0.1</command>.
+		  <command>gmysql-host=127.0.0.1</command>.
 		</para>
 	      </listitem>
 	    </varlistentry>

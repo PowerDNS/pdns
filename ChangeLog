@@ -5,6 +5,10 @@ Changes since 2.9.6:
 	- zone2sql no longer silently tries to read directories
 	- improved error reporting if unable to figure out IP addresses for
 	  slaves
+	- removed vestigal receiver-threads setting
+	- ldapbackend needs to include utility.hh (Remco Post)
+	- pdns_control could sometimes leave files behind in /tmp (dG)
+	- ldapbackend updates 	
 
 Changes since 2.9.5:
 	- implemented isMaster in bindbackend (we now react to notifies)
