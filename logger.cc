@@ -140,6 +140,15 @@ Logger& Logger::operator<<(unsigned long i)
   return *this;
 }
 
+Logger& Logger::operator<<(long i)
+{
+  ostringstream tmp;
+  tmp<<i;
+
+  *this<<tmp.str();
+
+  return *this;
+}
 
 Logger& Logger::operator<<(ostream & (&)(ostream &))
 {
