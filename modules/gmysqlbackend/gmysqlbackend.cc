@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.9 2004/02/01 18:20:16 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.10 2004/09/13 19:07:00 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -59,7 +59,7 @@ public:
     declare(suffix,"any-query","Any query","select content,ttl,prio,type,domain_id,name from records where name='%s'");
     declare(suffix,"any-id-query","Any with ID query","select content,ttl,prio,type,domain_id,name from records where name='%s' and domain_id=%d");
     declare(suffix,"wildcard-any-query","Wildcard ANY query","select content,ttl,prio,type,domain_id,name from records where name like '%s'");
-    declare(suffix,"wildcard-any-id-query","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name from records where like '%s' and domain_id='%d'");
+    declare(suffix,"wildcard-any-id-query","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name from records where name like '%s' and domain_id='%d'");
 
     declare(suffix,"list-query","AXFR query", "select content,ttl,prio,type,domain_id,name from records where domain_id='%d'");
     declare(suffix,"master-zone-query","Data", "select master from domains where name='%s' and type='SLAVE'");
