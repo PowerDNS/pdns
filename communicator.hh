@@ -60,9 +60,9 @@ public:
   bool removeIf(const string &remote, u_int16_t id, const string &domain)
   {
     for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) {
-      cout<<i->id<<" "<<id<<endl;
-      cout<<i->ip<<" "<<remote<<endl;
-      cout<<i->domain<<" "<<domain<<endl;
+      //      cout<<i->id<<" "<<id<<endl;
+      //cout<<i->ip<<" "<<remote<<endl;
+      //cout<<i->domain<<" "<<domain<<endl;
 
       if(i->id==id && i->ip==remote && i->domain==domain) {
 	d_nqueue.erase(i);

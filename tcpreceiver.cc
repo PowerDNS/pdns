@@ -267,7 +267,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
 {
   DNSPacket *outpacket=0;
   if(!canDoAXFR(q)) {
-    DLOG(L<<"AXFR denied for "<<q->getRemote()<<endl);
+    L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
 
     outpacket=q->replyPacket();
     outpacket->setRcode(RCode::Refused); 
@@ -275,7 +275,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     sendDelPacket(outpacket,outsock);
     return 0;
   }
-
+  L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
   outpacket=q->replyPacket();
 
   DNSResourceRecord soa;  
@@ -357,6 +357,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   outpacket->addRecord(soa);
   sendDelPacket(outpacket, outsock);
   DLOG(L<<"last packet - close"<<endl);
+  L<<Logger::Error<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
   return 1;
 }

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.4 2002/12/19 17:00:44 ahu Exp $
+// $Id: receiver.cc,v 1.5 2002/12/19 20:15:55 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -142,10 +142,14 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
   
   write(d_fd1[1],line.c_str(),line.size()+1);
   char mesg[512];
-  fgets(mesg,sizeof(mesg),d_fp);
-  line=mesg;
-  chomp(line,"\n");
-  return line;
+  string response;
+  while(fgets(mesg,sizeof(mesg),d_fp)) {
+    if(*mesg=='\n')
+      break;
+    response+=mesg;
+  }
+  chomp(response,"\n");
+  return response;
 }
 
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.2 2002/12/19 16:20:14 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.3 2002/12/19 20:15:55 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -171,6 +171,8 @@ void DynListener::sendLine(const string &l)
   }
   else {
     string line=l;
+    if(!line.empty() && line[line.length()-1]!='\n')
+      line.append("\n");
     line.append("\n");
     write(1,line.c_str(),line.length());
   }
