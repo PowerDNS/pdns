@@ -57,6 +57,7 @@ void declareArguments()
   arg().setCmd("list-modules","Lists all modules available");
   arg().setCmd("no-config","Don't parse configuration file");
   
+  arg().set("version-string","PowerDNS version in packets - full, anonymous, powerdns or custom")="full"; 
   arg().set("control-console","Debugging switch - don't use")="no"; // but I know you will!
   arg().set("fancy-records","Process URL and MBOXFW records")="no";
   arg().set("wildcard-url","Process URL and MBOXFW records")="no";
@@ -237,6 +238,7 @@ void mainthread()
    if(!arg()["setuid"].empty())        
      newuid=Utility::makeUidNumeric(arg()["setuid"]); 
 #ifndef WIN32
+   gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
    if(!arg()["chroot"].empty()) {  
      if(chroot(arg()["chroot"].c_str())<0) {
        L<<Logger::Error<<"Unable to chroot to '"+arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 

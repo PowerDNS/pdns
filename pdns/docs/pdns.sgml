@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/02/01 18:20:16 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/02/08 10:43:50 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -5439,6 +5439,15 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 		Where we send hosts to that need to be url redirected. See <xref linkend="fancy-records">.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>version-string=anonymous|powerdns|full|custom</term>
+	    <listitem><para>
+	      When queried for its version over DNS (<command>dig chaos txt version.bind @pdns.ip.address</command>), PowerDNS normally
+	      resonds truthfully. With this setting you can overrule what will be returned. Set the <command>version-string</command>
+	      to 'full' to get the default behaviour, to 'powerdns' to just make it state 'served by PowerDNS - http://www.powerdns.com'. 
+	      The 'anonymous' setting will return a ServFail, much like Microsoft nameservers do.  You can set this response
+	      to a custom value as well.
+	      </para></listitem></varlistentry>
+
 	  <varlistentry><term>webserver | --webserver=yes | --webserver=no</term>
 	    <listitem><para>
 		Start a webserver for monitoring. See <xref linkend="monitoring">.
