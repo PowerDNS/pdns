@@ -1,4 +1,8 @@
 
+THIS IS NOT UP TO DATE AND CONTAINS RANDOM RAMBLING
+---------------------------------------------------
+
+
 * new zone is AXFRed, written to disk succesfully
 	probably? unsure
 * the old SOA record remains in place
@@ -29,16 +33,6 @@ TODO:
 	- Add support for TSIG
 
 Medium size things:
-	- 64 bit cleanliness
-		compiles on 64 bit, but does it work?
-	- Improve bind 'workalike' mode so we are a drop-in replacement for
-	  non-resolving bind. We're 90% there.
-		- improve atomic zone swapping
-			right now we are SOL if we try to reload a broken zone
-
-	- get PDNS into Red Hat 8.x 
-		needs very good RPMS 	
-		need to get Red Hat interested
 	- get PDNS into FreeBSD ports
 	- and other architectures	
 	- test powerdns in a windows environment!
@@ -54,14 +48,3 @@ done	- get the xdb backend building again
 	- remove 'handle' from UeberBackend and BindBackend
 
 
-	- investigate if the following is better for the spgsql driver:
-int SPgSQL::doQuery(const string &query)
-{
-  ExecStatusType stat;
-  stat=d_db->Exec(query.c_str());
-  if(stat!=PGRES_COMMAND_OK && stat!=PGRES_TUPLES_OK)
-    throw sPerrorException("PostgreSQL failed to execute command");
-
-  d_count=0;
-  return 0;
-}
