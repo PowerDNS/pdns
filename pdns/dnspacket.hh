@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.1 2002/11/27 15:18:32 ahu Exp $
+// $Id: dnspacket.hh,v 1.2 2002/12/04 15:13:02 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -53,6 +53,7 @@
 
 #ifdef NEED_POSIX_TYPEDEF
 typedef unsigned short int u_int16_t;
+typedef unsigned int u_int32_t;
 #endif
 
 class DNSBackend;

@@ -295,10 +295,10 @@ do
 		pgmysql)
 		rm -f $srcdir/modules/pgmysqlbackend/OBJECTFILES 
 		cat /dev/null >  $srcdir/modules/pgmysqlbackend/OBJECTLIBS
-		cat /dev/null >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
+		echo gmysqlbackend.o >  $srcdir/modules/pgmysqlbackend/OBJECTFILES
 		if test -n "$domysql"
 		then 
-			echo smysql.o > $srcdir/modules/pgmysqlbackend/OBJECTFILES
+			echo smysql.o >> $srcdir/modules/pgmysqlbackend/OBJECTFILES
 		fi 
 
 		if test -n "$dopgsql"
@@ -309,11 +309,11 @@ do
 	esac
 
 
-	for b in $(cat $srcdir/modules/${a}backend/OBJECTFILES)
+	for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`
 	do
 	        moduleobjects="$moduleobjects ../modules/${a}backend/$b"
 	done
-	modulelibs="$modulelibs $(cat $srcdir/modules/${a}backend/OBJECTLIBS)"
+	modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
 done
 export moduledirs moduleobjects modulelibs
 
