@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.cc,v 1.3 2002/12/09 16:24:17 ahu Exp $ 
+// $Id: pdnsbackend.cc,v 1.4 2003/02/10 12:08:06 ahu Exp $ 
 
 #include <string>
 #include <map>
@@ -166,6 +166,7 @@ bool PdnsBackend::getSOA(const string& inZoneName, SOAData& outSoaData)
       outSoaData.retry = 3600;
       outSoaData.expire = 604800;
       outSoaData.default_ttl = 40000;
+      outSoaData.db = this;
       
       theResult = true;
    }
