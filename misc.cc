@@ -21,6 +21,7 @@
 #include <sstream>
 #include <errno.h>
 #include <cstring>
+#include <iostream>
 
 #include <iomanip>
 #include <string.h>
@@ -75,11 +76,10 @@ u_int32_t getLong(const char* p)
 /** strips a domain suffix from a domain, returns true if it stripped */
 bool stripDomainSuffix(string *qname, const string &domain)
 {
-  if((qname->size()-toLower(*qname).rfind(toLower(domain)))!=domain.size()) {   
+  if(!endsOn(*qname, domain))
     return false;
 
-  }
-  if(*qname==domain)
+  if(toLower(*qname)==toLower(domain))
     *qname="@";
   else {
     if((*qname)[qname->size()-domain.size()-1]!='.')
@@ -261,12 +261,14 @@ const string unquotify(const string &item)
 
   string::size_type bpos=0, epos=item.size();
 
-  if(item[0]=='"')
+  if(item[0]=='"') 
     bpos=1;
+
+  cout<<"wuh: '"<<item[epos-1]<<"'"<<endl;
   if(item[epos-1]=='"')
     epos-=1;
 
-  return item.substr(bpos,epos-1);
+  return item.substr(bpos,epos-bpos);
 }
 
 void stripLine(string &line)

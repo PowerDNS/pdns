@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/02/10 11:09:09 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/02/14 19:55:02 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,73 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-6"><title>Version 2.9.6</title>	
+	<para>
+	  Two new backends - Generic ODBC and LDAP. Furthermore, a few important bugs have been fixed which may have hampered sites seeing a lot of 
+	  outgoing zonetransfers. Additionally, the pdns recursor now has 'query throttling' which is pretty cool. In short this makes sure that PowerDNS 
+	  does not send out heaps of queries if a nameserver is unable to provide an answer. Many operators of authoritative setups are all too aware of 
+	  recursing nameservers that hammer them for zones they don't have, PowerDNS won't do that anymore now, no matter what clients request of it.
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      There is an unresolved issue with the BIND backend and 'overlapping' slave zones. So if you have 'example.com' and also have a separate 
+	      slave zone called 'external.example.com', things may go wrong badly. Thanks to Christian Laursen for working with us a lot in finding
+	      this issue. We hope to resolve it soon.
+	    </para>
+	  </warning>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		BIND Backend now honours notifies, code to support this was accidentally left out. Thanks to Christian Laursen for noticing this.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Massive speedup for those of you using the slightly deprecated MBOXFW records. Thanks to Jorn of <ulink url="http://www.ISP-Services.nl">
+		  ISP Services</ulink> for helping and testing this improvement.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		$GENERATE had an off-by-one bug where it would omit the last record to be generated (Christian Laursen)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Simultaneous AXFRs may have been problematic on some backends. Thanks to Jorn of ISP-Services again for helping us resolve this issue.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added LDAP backend by Norbert Sendetzky, see <xref linkend="ldap">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added Generic ODBC backend by Michel Stol.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Simplified 'out of zone data' detection in incoming AXFR support, hopefully removing a case sensitivity bug there. Thanks again
+		to Christian Laursen for reporting this issue.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		$include in-zonefile was broken under some circumstances, losing the last character of a filename. Thanks to Joris Vandalon for noticing this.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The zoneparser was more case-sensitive than BIND, refusing to accept 'in' as well as 'IN'. Thanks to Joris Vandalon for noticing this.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-5"><title>Version 2.9.5</title>	
 	<para>
 	  Released on 2002-02-03.
@@ -4182,10 +4249,55 @@ local0.err                        /var/log/pdns.err
 	</variablelist>
       <para>
     </sect1>
+    <sect1><title>Details</title>
+      <para>
+	PowerDNS implements a very simple but effective nameserver. Care has been taken not to overload remote servers in case
+	of overly active clients.
+      </para>
+      <para>
+	This is implemented using the 'throttle'. This accounts all recent traffic and prevents queries that have been sent out
+	recently from going out again.
+      </para>
+      <para>
+	There are three levels of throttling.
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      If a remote server indicates that it is lame for a zone, the exact question won't
+	      be repeated in the next 60 seconds.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      After 4 ServFail responses in 60 seconds, the query gets throttled too.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      5 timeouts in 20 seconds also lead to query suppression.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </sect1>
     <sect1><title>Statistics</title>
       <para>
 	Every half our or so, the recursor outputs a line with statistics. More infrastructure is planned so as to allow
-	for Cricket or MRTG graphs.
+	for Cricket or MRTG graphs. To force the output of statistics, send the process a SIGUSR1. A line of statistics looks 
+	like this:
+<screen>
+Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entries, 84% cache hits, outpacket/query ratio 37%, 12% throttled
+</screen>
+	This means that there are 13791 different names cached, which each may have multiple records attached to them. There are 309 items
+	in the negative cache, items of which it is known that don't exist and won't do so for the near future. 84% of incoming questions
+	could be answered without any additional queries going out to the net.
+      </para>
+      <para>
+	The outpacket/query ratio means that on average, 0.37 packets were needed to answer a question. Initially this ratio may be well over 100%
+	as additional queries may be needed to actually recurse the DNS and figure out the addresses of nameservers.
+      </para>
+      <para>
+	Finally, 12% of queries were not performed because identical queries had gone out previously, saving load servers worldwide.
       </para>
     </sect1>
   </chapter>
@@ -7118,7 +7230,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    <term>ldap-host</term>
 	    <listitem>
 	      <para>
-		LDAP host to connect to.
+		LDAP host to connect to, defaults to localhost.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -7131,10 +7243,10 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>ldap-basdn</term>
+	    <term>ldap-basedn</term>
 	    <listitem>
 	      <para>
-		Root for DNS searches. Defaults to the empty string.
+		Root for DNS searches. Must be configured before the LDAP backend will work.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -7142,7 +7254,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    <term>ldap-binddn</term>
 	    <listitem>
 	      <para>
-		Distinguished Name to bind with to the LDAP server.
+		Distinguished Name to bind with to the LDAP server. Defaults to the empty string for anonymous bind.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -7150,22 +7262,19 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    <term>ldap-secret</term>
 	    <listitem>
 	      <para>
-		Secret to bind with to LDAP server.
+		Secret to bind with to LDAP server. Defaults to the empty string for anonymous bind.
 	      </para>
 	    </listitem>
 	  </varlistentry>
 	</variablelist>
       </para>
       <para>
-	The schema used is as follows:
+	The schema used is that defined by RFC 1279 and is present in OpenLDAP under the name 'cosine.schema'.
+	An example LDIF file:
 	<screen>
-	  objectclass: top
-objectclass: dnsdomain
-objectclass: domainrelatedobject
-dc: example
 # zone related things including SOA, NS and MX records
 
-dn: dc=snapcount
+dn: dc=example
 objectclass: top
 objectclass: dnsdomain
 objectclass: domainrelatedobject
@@ -7179,17 +7288,40 @@ associateddomain: example.dom
 
 # Simple record (mail.example.dom has address 172.168.0.2)
 
-dn: dc=mail,dc=snapcount
+dn: dc=mail,dc=example
 objectclass: top
 objectclass: dnsdomain
 objectclass: domainrelatedobject
 dc: mail
 arecord: 172.168.0.2
 associateddomain: mail.example.dom
+
+# There may more than one entry per record
+# This is also applicable to all other records including "associateddomain"
+# but not for a CNAME record
+
+dn: dc=server,dc=snapcount
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: server
+arecord: 10.1.0.1
+arecord: 172.168.0.1
+associateddomain: server.example.dom
+
+
+# domain alias ({mail2,ns}.example.dom is CNAME for server.example.dom)
+# cnamerecord must only contain one entry
+
+dn: dc=backup,dc=snapcount
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: server
+cnamerecord: server.example.dom
+associateddomain: mail2.example.dom
+associateddomain: ns.example.dom
 </screen>
-      </para>
-      <para>
-	More details are forthcoming.
       </para>
     </sect1>
   </appendix>

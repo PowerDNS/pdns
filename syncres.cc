@@ -308,7 +308,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	d_outqueries++;
 	if(d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
 	  LOG<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
-	  s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),20,20);
+	  s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	  continue;
 	}
       }

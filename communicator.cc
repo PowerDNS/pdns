@@ -75,7 +75,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 	first=false;
       }
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
-	if((i->qname.size()-toLower(i->qname).rfind(toLower(domain)))!=domain.size()) { // move this to endsOn FIXME XXX
+	if(!endsOn(i->qname, domain)) { 
 	  L<<Logger::Error<<"Remote "<<remote<<" sneaked in out-of-zone data '"<<i->qname<<"' during AXFR of zone '"<<domain<<"'"<<endl;
 	  di.backend->abortTransaction();
 	  return;
