@@ -45,10 +45,13 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   
   unlink(d_local.sun_path);
   
-  if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0) 
+  if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0) {
+    unlink(d_local.sun_path);
     throw AhuException("Unable to bind to local temporary file: "+string(strerror(errno)));
+  }
   
   if(chmod(d_local.sun_path,0666)<0) { // make sure that pdns can reply!
+    unlink(d_local.sun_path);
     perror("fchmod");
     exit(1);
   }
@@ -57,8 +60,10 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   
   d_remote.sun_family=AF_UNIX;
   strcpy(d_remote.sun_path,fname.c_str());
-  if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0) 
+  if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0) {
+    unlink(d_local.sun_path);
     throw AhuException("Unable to connect to remote '"+fname+"': "+string(strerror(errno)));
+  }
   
 }
 

@@ -65,14 +65,18 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
   stack<FILE *>fds;
   fds.push(zonein);
 
+
   while(!fds.empty()) {
-    while(fgets(cline,sizeof(cline)-1,fds.top())) {
+    while(fgets_unlocked(cline,sizeof(cline)-1,fds.top())) {
       line=cline;
       chomp(line," \x1a\r\n");
       cutOff(line,";");
 
       d_lineno++;
-      if(!line.find("$INCLUDE ") || !line.find("$include ")) {
+      if(line.empty())
+	continue;
+
+      if(line[0]=='$' && (!line.find("$INCLUDE ") || !line.find("$include "))) {
 	vector<string> parts;
 	stringtok(parts,line," \t\n"); 
 	if(parts.size()!=2)
@@ -121,14 +125,18 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
   vector<Record> rec;
   stack<FILE *>fds;
   fds.push(zonein);
+
   while(!fds.empty()) {
-    while(fgets(cline,sizeof(cline)-1,fds.top())) {
+    while(fgets_unlocked(cline,sizeof(cline)-1,fds.top())) {
       line=cline;
       chomp(line," \x1a\r\n");
       cutOff(line,";");
 
       d_lineno++;
-      if(!line.find("$INCLUDE ") || !line.find("$include ")) {
+      if(line.empty())
+	continue;
+
+      if(line[0]=='$' && (!line.find("$INCLUDE ") || !line.find("$include "))) {
 	vector<string> parts;
 	stringtok(parts,line," \t\r\n");
 	if(parts.size()!=2)
@@ -154,8 +162,6 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
     fclose(fds.top());
     fds.pop();
   }
-  
-
 }
 
 
@@ -171,7 +177,6 @@ void ZoneParser::fillRec(const string &qname, const string &qtype, const string 
   rec.ttl=ttl;
   rec.prio=prio;
   recs.push_back(rec);
-
 }
 
 
@@ -180,19 +185,18 @@ void ZoneParser::cutOff(string &line, const string &delim)
   unsigned int pos=line.find_first_of(delim);
   if(pos==string::npos)
     return;
-  line=line.substr(0,pos);
+  line.resize(pos);
 }
 
-bool ZoneParser::eatLine(string line, vector<Record> &rec)
+bool ZoneParser::eatLine(const string& line, vector<Record> &rec)
 {
-
   rec.clear();
   static string tline;
   static string lastfirstword;
   unsigned int pos=string::npos;
 
   if(tline.empty()) {
-    pos=line.find("(");
+    pos=line.find_first_of("(");
     if(pos!=string::npos) { // this is a line that continues
       tline=line.substr(0,pos);
       return false;
@@ -239,7 +243,7 @@ ZoneParser::~ZoneParser()
 
 void ZoneParser::setCallback(callback_t *callback)
 {
-	d_callback=callback;
+  d_callback=callback;
 }
 
 bool ZoneParser::isNumber(const string &s)
@@ -270,7 +274,7 @@ bool ZoneParser::isType(const string &s)
 
 bool ZoneParser::isClass(const string &s)
 {
-  return (s=="IN" || s=="CH" || s=="HS" || s=="in" || s=="ch" || s=="hs");
+  return (s.size()==2 && (s=="IN" || s=="CH" || s=="HS" || s=="in" || s=="ch" || s=="hs"));
 }
 
 unsigned int ZoneParser::zoneNumber(const string &str)

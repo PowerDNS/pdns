@@ -90,8 +90,6 @@ void declareArguments()
   arg().set("webserver-port","Port of webserver to listen on")="8081";
   arg().set("webserver-password","Password required for accessing the webserver")="";
 
-  arg().set("receiver-threads","Number of receiver threads to launch")="1";
-  
   arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="no";
   arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   
@@ -268,10 +266,8 @@ void mainthread()
     TN->go(); // tcp nameserver launch
     
   //  fork(); (this worked :-))
-  for(int n=0;n<arg().asNum("receiver-threads");++n) {
-    DNSDistributor *D= new DNSDistributor(arg().asNum("distributor-threads")); // the big dispatcher!
-    pthread_create(&qtid,0,qthread,static_cast<void *>(D)); // receives packets
-  }
+  DNSDistributor *D= new DNSDistributor(arg().asNum("distributor-threads")); // the big dispatcher!
+  pthread_create(&qtid,0,qthread,static_cast<void *>(D)); // receives packets
 
   void *p;
   pthread_join(qtid, &p);
