@@ -2,8 +2,8 @@
 
 tmpdir		:= $(shell pwd)/debian/tmp
 be_tmpdir	:= $(shell pwd)/debian/tmp-backend
-backends	:= mysql pipe xdb gmysql gpgsql
-debs		:= mysql pipe xdb pgsql
+backends	:= ldap mysql pipe xdb gmysql gpgsql
+debs		:= ldap mysql pipe xdb pgsql
 
 configure:
 	./bootstrap

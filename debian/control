@@ -3,7 +3,7 @@ Section: net
 Priority: extra
 Standards-Version: 3.5.8
 Maintainer: Wichert Akkerman <wakkerma@debian.org>
-Build-Depends: automake1.5, autoconf, libtool, flex, bison, docbook-utils, libmysqlclient10-dev, postgresql-dev, tdb-dev, libgdbmg1-dev, libpqpp-dev
+Build-Depends: automake1.5, autoconf, libtool, flex, bison, docbook-utils, libmysqlclient10-dev, postgresql-dev, tdb-dev, libgdbmg1-dev, libpqpp-dev, libldap2-dev
 
 Package: pdns
 Architecture: any
@@ -43,6 +43,13 @@ Description: pipe/coprocess backend for pDNS
  This package contains the pipe backend for the PowerDNS nameserver. This
  allows PowerDNS to retrieve domain info from a process that accepts
  questions on stdin and returns answers on stdout. 
+
+Package: pdns-backend-ldap
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: LDAP backend for pDNS
+ This package contains a LDAP backend for the PowerDNS nameserver.
 
 Package: pdns-backend-mysql
 Architecture: any
