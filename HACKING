@@ -1,13 +1,7 @@
-To compile from cvs, do:
+PowerDNS has moved to SVN, the repository is at svn://svn.powerdns.com/
+To check out the latest source, run svn co svn://svn.powerdns.com/trunk/pdns
 
-$ export CVSROOT=:pserver:anon@outpost.ds9a.nl:/var/cvsroot
-$ cvs login
-CVS password: [enter 'cvs' (without 's)]
-$ cvs co pdns
-cvs server: Updating pdns
-...
-
-And then:
+Then:
 
 $ ./bootstrap
 
