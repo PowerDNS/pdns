@@ -30,15 +30,15 @@
 #include "arguments.hh"
 #include "lwres.hh"
 
-template<class MultiPlexor>map<string,string> SyncRes<MultiPlexor>::s_negcache;
-template<class MultiPlexor>unsigned int SyncRes<MultiPlexor>::s_queries;
-template<class MultiPlexor>unsigned int SyncRes<MultiPlexor>::s_outqueries;
-template<class MultiPlexor>bool SyncRes<MultiPlexor>::s_log;
+map<string,string> SyncRes::s_negcache;
+unsigned int SyncRes::s_queries;
+unsigned int SyncRes::s_outqueries;
+bool SyncRes::s_log;
 
 #define LOG if(s_log)L<<Logger::Warning
 
 /** everything begins here - this is the entry point just after receiving a packet */
-template<>int SyncRes<>::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
+int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
 {
   set<GetBestNSAnswer> beenthere;
   s_queries++;
@@ -48,7 +48,7 @@ template<>int SyncRes<>::beginResolve(const string &qname, const QType &qtype, v
   return res;
 }
 
-template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
+int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix(d_prefix);
   prefix.append(depth, ' ');
@@ -78,7 +78,7 @@ template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolve(const string &qna
   return res<0 ? RCode::ServFail : res;
 }
 
-template<class MultiPlexor>string SyncRes<MultiPlexor>::getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
+string SyncRes::getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {
   vector<DNSResourceRecord> res;
   string ret;
@@ -89,7 +89,7 @@ template<class MultiPlexor>string SyncRes<MultiPlexor>::getA(const string &qname
   return ret;
 }
 
-template<class MultiPlexor>void SyncRes<MultiPlexor>::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix(d_prefix), subdomain(qname);
   prefix.append(depth, ' ');
@@ -120,7 +120,7 @@ template<class MultiPlexor>void SyncRes<MultiPlexor>::getBestNSFromCache(const s
 	answer.qname=toLower(qname); answer.bestns=bestns;
 	if(beenthere.count(answer)) {
 	  LOG<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP! Trying less specific NS"<<endl;
-	  for(typename set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
+	  for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
 	    LOG<<prefix<<qname<<": beenthere: "<<j->qname<<" ("<<j->bestns.size()<<")"<<endl;
 	  bestns.clear();
 	}
@@ -136,7 +136,7 @@ template<class MultiPlexor>void SyncRes<MultiPlexor>::getBestNSFromCache(const s
 
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-template<class MultiPlexor>string SyncRes<MultiPlexor>::getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere)
+string SyncRes::getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
 
@@ -150,7 +150,7 @@ template<class MultiPlexor>string SyncRes<MultiPlexor>::getBestNSNamesFromCache(
   return subdomain;
 }
 
-template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
+bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   string prefix(d_prefix), tuple=toLower(qname)+"|CNAME";
   prefix.append(depth, ' ');
@@ -182,7 +182,7 @@ template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCNAMECacheCheck(const st
   return false;
 }
 
-template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
+bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   string prefix(d_prefix), tuple;
   prefix.append(depth, ' ');
@@ -232,7 +232,7 @@ template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCacheCheck(const string 
   return false;
 }
 
-template<class MultiPlexor>bool SyncRes<MultiPlexor>::moreSpecificThan(const string& a, const string &b)
+bool SyncRes::moreSpecificThan(const string& a, const string &b)
 {
   int counta=!a.empty(), countb=!b.empty();
   
@@ -245,7 +245,7 @@ template<class MultiPlexor>bool SyncRes<MultiPlexor>::moreSpecificThan(const str
   return counta>countb;
 }
 
-template<class MultiPlexor>vector<string> SyncRes<MultiPlexor>::shuffle(set<string> &nameservers)
+vector<string> SyncRes::shuffle(set<string> &nameservers)
 {
   vector<string> rnameservers;
   for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i)
@@ -256,7 +256,7 @@ template<class MultiPlexor>vector<string> SyncRes<MultiPlexor>::shuffle(set<stri
 }
 
 /** returns -1 in case of no results, rcode otherwise */
-template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, 
+int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, 
 		int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix(d_prefix);
@@ -355,7 +355,7 @@ template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nam
 	  newtarget=i->content;
 	}
 	// for ANY answers we *must* have an authoritive answer
-	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && (i->qtype==qtype || ( qtype==QType(QType::ANY) && aabit)))  {
+	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && (i->qtype==qtype || ( qtype==QType(QType::ANY) && aabit)))  {
 	  LOG<<prefix<<qname<<": answer is in: resolved to '"<<i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
 	  done=true;
 	  ret.push_back(*i);
@@ -403,7 +403,7 @@ template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nam
   return -1;
 }
 
-template<class MultiPlexor>void SyncRes<MultiPlexor>::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
+void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 {
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k)  // don't add stuff to an NXDOMAIN!
     if(k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::SOA))
@@ -433,7 +433,7 @@ template<class MultiPlexor>void SyncRes<MultiPlexor>::addCruft(const string &qna
   LOG<<d_prefix<<qname<<": Done with additional processing"<<endl;
 }
 
-template<class MultiPlexor>void SyncRes<MultiPlexor>::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
+void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
 {
   set<DNSResourceRecord> bestns;
   set<GetBestNSAnswer>beenthere;

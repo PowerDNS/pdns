@@ -156,8 +156,8 @@ void startDoResolve(void *p)
     R->setA(false);
     R->setRA(true);
 
-    SyncRes<LWRes> sr;
-    L<<Logger::Error<<"["<<MT.getTid()<<"] new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+    SyncRes sr;
+    L<<Logger::Error<<"["<<MT.getTid()<<"] question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
     sr.setId(MT.getTid());
     if(!P.d.rd)
       sr.setCacheOnly();
@@ -173,8 +173,8 @@ void startDoResolve(void *p)
 
     const char *buffer=R->getData();
     sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
-    L<<Logger::Error<<"["<<MT.getTid()<<"] sent answer to "<<(P.d.rd?"":"non-rd ")<<"question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' to "<<P.getRemote();
-    L<<", "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets"<<endl;
+    L<<Logger::Error<<"["<<MT.getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
+    L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, rcode="<<res<<endl;
     delete R;
   }
   catch(AhuException &ae) {
@@ -263,12 +263,12 @@ void houseKeeping(void *)
     if(qcounter) {
       L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<cache.size()<<" cache entries, "
        <<(int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits";
-      L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes<LWRes>::s_outqueries*100.0/SyncRes<LWRes>::s_queries)<<"%"<<endl;
+      L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%"<<endl;
     }
     last_stat=time(0);
   }
   if(time(0)-last_rootupdate>7200) {
-    SyncRes<LWRes> sr;
+    SyncRes sr;
     vector<DNSResourceRecord>ret;
 
     sr.setNoCache();
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
     arg().set("soa-serial-offset","0")="0";
     arg().set("local-port","port to listen on")="5300";
     arg().set("local-address","port to listen on")="0.0.0.0";
-    arg().set("trace","if we should output heaps of logging")="true";
+    arg().set("trace","if we should output heaps of logging")="off";
     arg().set("daemon","Operate as a daemon")="no";
 
     arg().parse(argc, argv);
@@ -299,7 +299,7 @@ int main(int argc, char **argv)
     L.toConsole(Logger::Warning);
 
     if(arg().mustDo("trace"))
-      SyncRes<LWRes>::setLog(true);
+      SyncRes::setLog(true);
     
     makeClientSocket();
     makeServerSocket();
