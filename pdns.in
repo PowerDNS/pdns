@@ -53,6 +53,7 @@ case "$1" in
 		fi 
 	;;		
 
+
 	force-stop)
 		echo -n "Stopping PowerDNS authoritative nameserver: "
 		killall -v -9 pdns_server
