@@ -1,0 +1,67 @@
+#!/bin/sh
+IB="dialog --inputbox"
+MB="dialog --msgbox"
+YN="dialog --yesno"
+
+. ./pathconfig
+
+$MB "\nWelcome to the PowerDNS installation program!\n\nPlease select \
+locations for the different PowerDNS files." 11 60
+
+redo=1
+while [ "$redo" = "1" ]
+do
+echo $redo
+
+askPath()
+{
+	val=`eval echo \\$$2`
+	$IB "$1\n\n" 10 60 $val 2> ./dialog.tmp
+	if [ "$?" != "0" ] ; then exit ; fi
+	eval $2=`cat ./dialog.tmp`
+}
+
+askPath "Intended location of your init.d scripts" INITDPATH
+askPath "Intended location of your binaries" BINARYPATH 
+askPath "Intended location of your configuration files" CONFIGPATH  
+askPath "Intended location of the controlsocket directory" SOCKETPATH 
+askPath "Intended location of the PowerDNS plugins directory" LIBRARYPATH  
+askPath "Intended location of the PowerDNS documentation directory" DOCPATH  
+
+$MB "\nPowerDNS can be configured to run as an\n\
+unprivileged user.\n\
+This is highly recommended. You should\n\
+now create a user and a group for PDNS\n\
+to run as and then press enter, \n\
+after which you will be asked for\n\
+the identity." 15 60
+
+askPath "Intended user id for PDNS to run as" PDNSUID
+askPath "Intended group id for PDNS to run as" PDNSGID
+
+$YN "Do you accept these values?\n\ninit.d: $INITDPATH\n\
+binaries: $BINARYPATH\n\
+configuration: $CONFIGPATH\n\
+sockets: $SOCKETPATH\n\
+plugins: $LIBRARYPATH\n\
+documentation: $DOCPATH\n\
+uid: $PDNSUID\n\
+gid: $PDNSGID\n" 15 60
+redo=$?
+echo $ready
+done
+
+mv pathconfig pathconfig.old 2> /dev/null > /dev/null
+
+(echo INITDPATH=$INITDPATH
+echo BINARYPATH=$BINARYPATH
+echo CONFIGPATH=$CONFIGPATH
+echo SOCKETPATH=$SOCKETPATH
+echo LIBRARYPATH=$LIBRARYPATH
+echo PDNSUID=$PDNSUID
+echo DOCPATH=$DOCPATH
+echo PDNSGID=$PDNSGID) > pathconfig
+
+$MB "\nDone recording your directory preferences." 7 70
+
+

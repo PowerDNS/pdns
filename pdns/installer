@@ -1,0 +1,77 @@
+#!/bin/sh 
+#
+# The installer queries the user for right places to install the software.
+# It offers three standard possibilities:
+#
+# Overwriting strategy. Binaries are overwritten, configuration files not,
+# new files are placed suffixed by '.new'. Example:
+# /etc/powerdns/pdns.conf-new
+
+if [ "x$1" != "x" ] 
+then
+	. $1
+else
+	. ./pathconfig
+fi
+
+DESTDIR=${DESTDIR:-}   # debian interface
+
+BINARIES="pdns_server pdns_control backends/bind/zone2sql"
+
+if test -n "$LD_LIBRARY_PATH" 
+then
+	LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`pwd`/libs"
+else
+	LD_LIBRARY_PATH="`pwd`/libs"
+fi
+
+./binpatch ./pdns_server $CONFIGPATH
+./binpatch ./pdns_control $CONFIGPATH
+mkdir -p $DESTDIR$BINARYPATH > /dev/null 2> /dev/null
+strip $BINARIES
+cp $BINARIES $DESTDIR$BINARYPATH
+
+if test -n "$DOCPATH"
+then
+	mkdir -p $DESTDIR$DOCPATH > /dev/null 2> /dev/null
+	cp -r README LICENSE docs/pdns.txt docs/pdns.pdf docs/pdns.txt docs/html $DESTDIR$DOCPATH 2> /dev/null
+fi
+
+mkdir -p $DESTDIR$CONFIGPATH > /dev/null 2> /dev/null
+
+if test -d ./libs
+then
+	mkdir -p $DESTDIR$LIBRARYPATH > /dev/null 2> /dev/null
+	cp ./libs/* $DESTDIR$LIBRARYPATH
+fi
+
+if test -s $DESTDIR$CONFIGPATH/pdns.conf
+then
+	suf=".new"
+	echo $DESTDIR$CONFIGPATH/pdns.conf exists, making $DESTDIR$CONFIGPATH/pdns.conf$suf
+else
+	suf=""
+fi
+
+echo "# Added by install script" > $DESTDIR$CONFIGPATH/pdns.conf$suf
+echo "module-dir=$LIBRARYPATH" >> $DESTDIR$CONFIGPATH/pdns.conf$suf
+echo "socket-dir=$SOCKETPATH" >> $DESTDIR$CONFIGPATH/pdns.conf$suf
+echo "setuid=$PDNSUID" >> $DESTDIR$CONFIGPATH/pdns.conf$suf
+echo "setgid=$PDNSGID" >> $DESTDIR$CONFIGPATH/pdns.conf$suf
+echo "launch=bind" >> $DESTDIR$CONFIGPATH/pdns.conf$suf
+
+echo "# end " >> $DESTDIR$CONFIGPATH/pdns.conf$suf
+$DESTDIR$BINARYPATH/pdns_server --config >> $DESTDIR$CONFIGPATH/pdns.conf$suf
+
+
+mkdir -p $DESTDIR$INITDPATH/ > /dev/null 2> /dev/null
+mkdir -p $DESTDIR$SOCKETPATH/ > /dev/null 2> /dev/null
+
+echo "#!/bin/sh" > $DESTDIR$INITDPATH/pdns
+echo "BINARYPATH=$BINARYPATH" >> $DESTDIR$INITDPATH/pdns
+echo "SOCKETPATH=$SOCKETPATH" >> $DESTDIR$INITDPATH/pdns
+echo export LD_LIBRARY_PATH=$LIBRARYPATH:\$LD_LIBRARY_PATH >> $DESTDIR$INITDPATH/pdns
+
+cat pdns.in >> $DESTDIR$INITDPATH/pdns
+chmod +x $DESTDIR$INITDPATH/pdns
+

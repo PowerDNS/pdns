@@ -1,0 +1,99 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+<title>The case for PowerDNS</title>
+<author>PowerDNS BV (bert hubert &lt;bert@trilab.com&gt;) &nl;
+Trilab BV</author>
+<date>v1.0 $Date: 2002/11/27 15:18:34 $</date>
+<abstract>
+This document describes what Global Server Load Balancing is, and how
+PowerDNS can be employed in a GSLB configuration
+</abstract>
+<toc>
+<sect>GSLB
+<p>
+GSLB, short for Global Server Load Balancing, isr the act of distributing
+server traffic to different locations. Although not necessary, this is
+almost always done using a smart nameserver.
+<sect1>Typical GSLB implementation
+<p>
+A user enters the name of a site ('www.thesite.com') in his or her browser.
+This causes the operating system, often Windows, to send out a request to
+the ISP of the user, asking for the IP address of www.thesite.com. If the
+nameserver of the ISP doesn't know this address, it asks the nameserver of
+thesite.com.
+<p>
+This nameserver then contains the GSLB smartness. Based on the IP Address of
+the nameserver of the ISP, it determines which of the 'www.thesite.com'
+servers is closest.
+
+A multitude of algoritms is in use for determining which server is closest.
+Some of them employ the Border Gateway Protocol, BGP, which is used for
+global internet routing. Some use 'ICMP Ping' measurements, some use
+modified DNS Queries. The simplest algorithm is to use IP Netmasks, which
+are an easy rule of thumb for determining who assigned an IP Address, which
+also gives it probable location.
+
+<sect>IP Netmasks and Location
+<p>
+IP Addresses are asigned by only a few entities worldwide, the foremost
+being ARIN, RIPE and APNIC, who respectively manage North- and South
+America, Europe and surrounding areas, and the Asian Pacific Region.
+
+This allows for coarse grained identification of location. While not very
+precise, it is very robust and guaranteed to work. It can be likened to a
+very good rule-of-thumb. Other methods employ complicated and fragile
+techniques for determining the 'internet distance' to a site.
+
+For example, ICMP Ping measurements are becoming less and less valid. The
+advent of Distributed Denial of Service attacks has lead many internet
+providers to block or limit these packets. The aforementioned BGP router
+protocol gives distance in 'AS Hops' which are no longer a valid measure of
+distance, as many Autonomous Subsystems now spread the globe.
+
+<sect1>IP Netmasks Configuration
+<p>
+PowerDNS comes preconfigured with a reasonable set of IP Rules. These may
+need some maintainance over time. It is adviseable to get a Subscription with
+PowerDNS so as to receive updates.
+
+These rules come in several levels. The lowest level is based on who
+assigned the IP Addresses, ARIN, RIPE or APNIC. The second level contains
+exceptions to these major rules. Change is expected especially in this
+second level.
+
+<sect>GSLB Concepts
+<p>
+A number of concepts are used in the PowerDNS GSLB configuration:
+
+<descrip>
+<tag>Netblock</tag>
+A netblock is a range of IP Addresses. A number of Netblocks together are
+grouped in a Region.
+<tag>Region</tag>
+A Region might be called 'ARIN' or 'Surfnet', and consists of a limited
+number of Netmasks.
+<tag>Target</tag>
+A Target describes a set of servers in a single location. Target names might
+be 'UUnet Amsterdam', 'Level3 Amsterdam' or 'Genuity'.
+<tag>Route</tag>
+A Route assigns a certain Region to a Target. A sample Route might be:
+Assign all ARIN IP Addresses to Genuity.
+<tag>Schema</tag>
+A set of Routes, Regions, Netblocks and Targets is called a Schema. Many
+different domains may be assigned to this Schema, which then only needs to
+be defined once.
+</descrip>
+
+<sect>DNS Configuration
+<p>
+In order to Load Balance a domain it must be pointed at the GSLB Schema.
+This is typically done using a DNS CNAME on the nameserver of the domain
+that needs to be balanced.
+
+In order for this to work, the Schema name must resolve to the IP Address of
+PowerDNS.
+</article>
+

@@ -1,0 +1,46 @@
+#!/usr/local/bin/gmake -f
+
+all: compile package
+
+compile:  compilation
+
+precompile:
+	gmake clean
+	gmake -k distclean
+	./bootstrap
+	./configure --enable-static-binaries
+	cd ../pdns-pipebackend ; 	gmake clean;	gmake
+	cd ../ahudns-mysqlbackend ; gmake clean ;	gmake
+	cd ../pdns-gpgsqlbackend; gmake clean  ; 	gmake
+	cd ../pdns-gmysqlbackend; gmake clean  ; 	gmake
+	# cd backends/bind ; gmake
+
+extras:  precompile
+	-rm extra/*.o
+	cd extra ; ln -s ../backends/bind/bindbackend.o .
+	cd extra ; ln -s ../backends/bind/zoneparser2.o .
+	cd extra ; ln -s ../backends/bind/bindparser.o .
+	cd extra ; ln -s ../backends/bind/bindlexer.o .
+	cd extra ; ln -s ../backends/bind/huffman.o .
+	cd extra ; ln -s ../../pdns-pipebackend/*.o .
+	cd extra; ln -s ../../ahudns-mysqlbackend/*.o .
+	cd extra; ln -s ../../pdns-gpgsqlbackend/*.o .
+	cd extra; ln -s ../../pdns-gmysqlbackend/*.o .
+	echo "-L/usr/local/lib -lz -L/usr/local/lib/mysql -lmysqlclient -lz -lpq++ -lpq -lssl -lcrypt -lcrypto" > extra/ld
+	-rm libs/*
+
+compilation: extras
+	gmake 
+	gmake mkbindist
+
+
+package:
+	mkdir -p release-files/freebsd-static
+	cp backends/bind/zone2sql .
+	
+	-rm pdns*tar.gz
+	cp pathconfig.bsd pathconfig
+	. ./mkbindist
+	mv pdns*tar.gz release-files/freebsd-static
+			
+

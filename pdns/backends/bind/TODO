@@ -1,0 +1,10 @@
+Stuff not working yet in zone2sql/bindbackend:
+
+$TTL
+Symbol notations of SOA, with 1H standing for 3600 etc
+
+We can't handle filenames that are mentioned multiply in named.conf it
+appears
+
+Reading zones only 1 time per all threads and not every time
+

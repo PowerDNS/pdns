@@ -1,0 +1,183 @@
+<!doctype linuxdoc system>
+<article>
+
+<!-- Title information -->
+
+<title>PowerDNS 1.2 Install &amp; Usage guide
+<author>PowerDNS BV 
+Trilab BV
+<date>v1.1 $Date: 2002/11/27 15:18:35 $
+<abstract>
+This document provides information on how to install PowerDNS and on how
+to maintain it afterwards
+</abstract>
+
+<!-- Table of contents -->
+<toc>
+<!-- Begin the document -->
+<sect>Introduction
+<p>
+PowerDNS is a versatile high-performance modular nameserver that can answer
+questions based on a number of data sources, accessed via backend drivers.
+
+<sect>Compilation
+<p>
+See the INSTALL file that comes with the distribution.
+
+<sect>Syntax
+<p>
+The actual process is called 'ahudns' for historical reasons. It is expected
+that this will change in a future release.
+
+On startup, ahudns reads two files in the configuration directory
+(/usr/local/etc or /opt/ahudns/etc, or whatever was specified during
+compilation), ahudns.conf and ahudns.rc.
+
+<sect1>ahudns.conf
+<p>
+In the configuration directory, you will find ahudns.conf-dist which lists
+the small number of runtime configuration parameters available.
+
+These parameters can either be set via the commandline or via ahudns.conf.
+<descrip>
+<tag>cache-ttl=...</tag>
+Seconds to store packets in the PacketCache. Can be set to zero to
+disable the PacketCache entirely. This is non advised for busy sites. Values
+of in the order of 10 seconds already give appreciable hitrates (80%).
+<tag>default-soa-name=...</tag>
+Name to insert in the SOA record if none set in the backend. Either make
+sure that your backend data source contains complete SOA records, or set
+this to a useful value. This default to 'a.misconfigured.powerdns.server'!
+<tag>distributor-threads=...</tag>
+Default number of Distributor (backend) threads to start. This is very
+dependent on your needs and backend. Higher values are generally better, up
+to a point. MySQL performs very well with a value of 5, with tens of queries
+per second.
+<tag>fancy-records=...</tag>
+Process CURL, URL and MBOXFW records. These magic records are presently
+undocumented and should not be used.
+<tag>localaddress=...</tag>
+	Local IP address to which we bind. It can be important to set this -
+PowerDNS can get confused by machines with multiple NICs.
+<tag>localport=...</tag>
+	The port on which we listen. Should probably always be 53.
+<tag>loglevel=...</tag>
+	Amount of logging. Higher is more. Do not set below 3
+<tag>out-of-zone-additional-processing | out-of-zone-additional-processing=yes | out-of-zone-additional-processing=no </tag>
+	Do out of zone additional processing. Use this if all clients are
+trusted.
+<tag>smtpredirector=...</tag>
+	Our smtpredir MX host. Used for the MBOXFW record.
+<tag>urlredirector=...</tag>
+	Where we send hosts to that need to be url redirected. Used for URL
+and CURL.
+<tag>wildcards=...</tag>
+	Honor wildcards in the database. Switch this off for a significant
+performance gain. Off by default.
+</descrip>
+
+<sect1>ahudns.rc
+<p>
+Given the fact that PowerDNS is very modular, it can't expect to have all
+backend modules available at compile time. Therefore modules are loaded
+dynamically at runtime. This is done by executing the ahudns.rc script found
+in the configuration directory, where ahudns.conf also resides.
+
+You will find ahudns.rc-dist which you can rename to ahudns.rc, and edit at
+will to have PowerDNS load additional modules. 
+
+When no modules are loaded, the daemon responds to queries with a 'SERVFAIL'
+packet, indicating that client nameservers should query other servers.
+<sect>Controling ahudns
+<p>
+On startup, ahudns opens a 'controlsocket', which can be used to control the
+daemon. Use the provided 'dynloader' program to issue commands. The
+following commands can be useful:
+<descrip>
+<tag>list</tag>List all statistical variables available
+<tag>ping</tag>Ping the daemon - it will reply if all is well
+<tag>show</tag>Show the value of a specified variable
+<tag>quit</tag>Use this to shut ahudns down
+</descrip>
+
+Use like this: dynloader /opt/ahudns/var/ahudns.controlsocket [command]
+whereby the path refers to the controlsocket location. See the 'init.d'
+chapter for an easier way to control ahudns.
+
+<sect>Running ahudns
+<p>
+There are at least three ways of running ahudns &amp; smtpredir.
+
+<sect1>Directly
+<p>
+By default ahudns runs in the foreground, and can be run from any directory.
+The configuration directory to use is compiled in. In case of problems (out
+of memory, fatal errors), it will exit and not restart by default.
+
+Stop the daemon with the 'killall' or 'pkill command'
+<sect2>With the safe_ahudns wrapper
+<p>
+A better way of running ahudns is with the safe_ahudns wrapper, which is
+distributed with PowerDNS. 
+
+This approach is a lot like that taken by safe_mysql from the MySQL
+distribution, should ahudns ever fail for whatever reason, safe_ahudns will
+instantly restart it.
+
+To start ahudns, run '/opt/ahudns/bin/safe_ahudns &' and then check the log
+to see if the connection to the database succeeded.
+
+To stop, use the dynloader programm and pass the command 'quit', which will
+make the daemon exit with error code 99. safe_ahudns interprets 99 as a
+healthy exit with no need to restart the daemon.
+
+<sect1>Running controlled with init.d scripts 
+<p> 
+This is the preferred way of running ahudns. For easy control of both ahudns
+and smtpredir, use the init.d scripts provided in the 'sample' directory.
+They are usually placed in /etc/init.d, but because of unix variations, they
+are not installed there by default. 
+
+Available commands are 'stop', 'start', 'status' and 'restart'. The init.d
+scripts use the safe_* wrappers internally, which will take care of
+restarting the daemons if needed.
+
+<sect>Virtual configurations: running multiple nameservers on a single server
+<p>
+In order to have any number of separate ahudns and smtpredir installations
+there is the ability to specify different configuration files and
+configuration names. This allows you to stop and start the right daemon with
+ease.
+
+By default, all configuration lives in /opt/ahudns/etc, but this can be
+changed with the '--config-dir' commandline option. The recommended layout
+for virtual configurations is:
+
+<tscreen><verb>
+/opt/ahudns/etc				For default configuration
+/opt/ahudns/etc-customer1		Customer1 directory
+/opt/ahudns/etc-customer1/ahudns.conf	Customer1 configuration
+/opt/ahudns/etc-customer1/ahudns.rc	Customer1 backends
+/opt/ahudns/etc-customer2		Customer2 directory
+/opt/ahudns/etc-customer2/ahudns.conf	Customer2 configuration
+/opt/ahudns/etc-customer2/ahudns.rc	Customer2
+/opt/ahudns/var/ahudns.controlsocket	Default control socket (for dynloader)
+/opt/ahudns/var/ahudns-customer1.controlsocket	
+/opt/ahudns/var/ahudns-customer2.controlsocket	
+</verb></tscreen>
+
+The init.d scripts are aware of virtual configurations. If the 'CONFIGNAME'
+parameter is set, they will automatically start and stop the right instance
+of the daemon, and also pass the name of the virtual configuration file. 
+
+Be aware that your ahudns.rc script should refer to the right controlsocket!
+
+A typical virtual installation will have several ahudns- files in
+/etc/init.d, with each a differing CONFIGNAME in the first few lines.
+
+<sect>Logging
+<p>
+Logging is regular syslog, with facility DAEMON. 
+
+</article>
+ 

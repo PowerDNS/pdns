@@ -1,0 +1,167 @@
+# chkconfig: - 80 75
+# description: PDNS is a versatile high performance authoritative nameserver
+
+cd $SOCKETPATH
+suffix=`basename $0 | awk -F- '{print $2}'`
+if [ $suffix ] 
+then
+	EXTRAOPTS=--config-name=$suffix
+	PROGNAME=pdns-$suffix
+else
+	PROGNAME=pdns
+fi
+
+pdns_server="$BINARYPATH/pdns_server $EXTRAOPTS"
+
+doPC()
+{
+	ret=$($BINARYPATH/pdns_control $EXTRAOPTS $1 $2 2> /dev/null)
+}
+
+
+if [ "$1" != "mrtg" -a "$1" != "cricket" ] 
+then
+	echo -n "$PROGNAME: "
+fi
+
+doPC ping
+NOTRUNNING=$?
+
+case "$1" in
+	status)
+		if test "$NOTRUNNING" = "0" 
+		then 
+			doPC status
+			echo $ret
+		else
+			echo "not running"
+		fi 
+	;;	
+
+	stop)
+		if test "$NOTRUNNING" = "0" 
+		then 
+			doPC quit
+			echo $ret
+		else
+			echo "not running"
+		fi 
+	;;		
+
+	force-stop)
+		killall -v -9 pdns_server
+	;;
+
+	start)
+		if test "$NOTRUNNING" = "0" 
+		then 
+			echo "already running"
+		else
+			$pdns_server --daemon --guardian=yes
+			if test "$?" = "0"
+			then
+				echo "started"	
+			fi
+		fi 
+	;;		
+
+	force-reload | restart)
+		echo -n stopping and waiting
+		doPC quit
+		sleep 3
+		echo 
+		$0 start
+	;;
+
+	reload) 
+		if test "$NOTRUNNING" = "0" 
+		then 
+			doPC cycle
+			echo requested reload
+		else
+			echo not running yet
+			$0 start
+		fi 
+	;;		
+		
+	monitor)
+		if test "$NOTRUNNING" = "0" 
+		then 
+			echo "already running"
+		else
+			$pdns_server --daemon=no --guardian=no --control-console --loglevel=9
+		fi 
+	;;		
+
+	dump)
+		if test "$NOTRUNNING" = "0" 
+		then 
+			doPC list
+			echo $ret
+		else
+			echo "not running"
+		fi 
+	;;		
+
+	show)
+		if [ $# -lt 2 ]
+		then
+			echo Insufficient parameters
+			exit
+		fi 
+		if test "$NOTRUNNING" = "0" 
+		then 
+			echo -n "$2="
+			doPC show $2 ; echo $ret
+		else
+			echo "not running"
+		fi 
+	;;		
+
+	mrtg)
+		if [ $# -lt 2 ]
+		then
+			echo Insufficient parameters
+			exit
+		fi 
+		if test "$NOTRUNNING" = "0" 
+		then 
+			doPC show $2 ; echo $ret
+			if [ "$3x" != "x" ]
+			then
+				doPC show $3 ; echo $ret
+			else
+				echo 0
+			fi
+			doPC uptime ; echo $ret
+			echo PowerDNS daemon
+		else
+			echo "not running"
+		fi 
+	
+	;;		
+
+	cricket)
+		if [ $# -lt 2 ]
+		then
+			echo Insufficient parameters
+			exit
+		fi 
+		if test "$NOTRUNNING" = "0" 
+		then 
+			doPC show $2 ; echo $ret
+		else
+			echo "not running"
+		fi 
+	
+	;;		
+
+
+
+	*)
+	echo pdns [start\|stop\|restart\|status\|dump\|show\|mrtg]
+
+	;;
+esac
+
+

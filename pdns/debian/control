@@ -1,0 +1,17 @@
+Source: pdns
+Section: net
+Priority: extra
+Build-Depends: libmysqlclient10-dev
+Maintainer: PowerTeam <debian@powerdns.com>
+Bugs: mailto:debian@powerdns.com
+Origin: powerdns
+Build-Depends: file, flex, bison, docbook-utils, openjade, jade
+
+Package: pdns
+Architecture: i386
+Depends: ${shlibs:Depends}
+Description: extremely powerful and versatile nameserver
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+
