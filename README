@@ -1,23 +1,34 @@
 PowerDNS is copyright 2002 by PowerDNS.COM BV
 
+This file may lag behind at times. For most recent updates, always check
+http://doc.powerdns.com/changelog.html !
+
+Another good place to look for information is:
+http://doc.powerdns.com/compiling-powerdns.html
+
+COMPILING
+---------
+
 To compile a very clean version, use:
 
-$ ./configure --with-modules=""
+$ ./configure --with-modules="" 
 $ make
 # make install
 
 This generates a PowerDNS binary with no modules, except the bind backend,
-built in. When ./configure is run without --with-modules, the mysql and
-pgmysql modules are built by default, with the latter only supporting mysql.
+built in, and the pipe-backend available for runtime loading.
+
+When ./configure is run without --with-modules, the gmysql module is
+built-in by default and the pipe-backend is compiled for runtime loading.
 
 To add multiple modules, try:
 
-$ ./configure --with-modules="pipe pgmysql" --enable-mysql --enable-pgsql
+$ ./configure --with-modules="gmysql gpgsql"
 
 See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
 
-Please don't use the 'mysql' backend, it is deprecated. Use the 'gmysql' one
-that is in the pgmysql Generic PostgreSQL and MySQL module!
+Please don't use the 'mysql' backend, it is deprecated. Use the 'gmysql'
+one! 
 
 SOLARIS NOTES
 -------------
@@ -26,12 +37,13 @@ supported (patches are welcome if not too intrusive).
 
 If you encounter problems with the Solaris make, gmake is advised
 
-IPv6 is currently (2.9.1.) broken in Solaris, awaiting patches!
+IPv6 is broken in Solaris 2.7, use 2.8 or higher for that. PowerDNS on
+Solaris 2.7 won't even serve AAAA records.
 
 FREEBSD NOTES
 -------------
-gcc 2.95.x works. You need to compile using gmake - regular make only appears to
-work, but doesn't in fact. Use gmake, not make.
+gcc 2.95.x works. You need to compile using gmake - regular make only
+appears to work, but doesn't in fact. Use gmake, not make.
 
 pipebackend does not work due to bad interaction between fork and pthreads.
 Amazingly, running the Linux version under the linuxulator DOES work!
@@ -42,8 +54,7 @@ None really.
 
 WIN32 NOTES
 -----------
-For the brave! See
-http://rtfm.powerdns.com/compiling-powerdns.html#ON-WINDOWS 
+See http://rtfm.powerdns.com/compiling-powerdns.html#ON-WINDOWS 
 
 Needs Visual C++
 

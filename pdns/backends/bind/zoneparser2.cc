@@ -72,7 +72,7 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
 	if(parts.size()!=2)
 	  throw AhuException("Invalid $INCLUDE statement in zonefile '"+fname+"'");
 	
-	string filename=parts[1];
+	string filename=unquotify(parts[1]);
 	if(filename[0]!='/')
 	  filename=d_dir+"/"+filename;
 
@@ -90,22 +90,6 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
     fclose(fds.top());
     fds.pop();
   }
-}
-
-
-void ZoneParser::fillRec(const string &qname, const string &qtype, const string &content, int ttl, int prio, vector<Record>&recs)
-{
-  Record rec;
-  rec.name=qname;
-  rec.qtype=qtype;
-  QType qt;
-  if(!QType::chartocode(qtype.c_str()))
-    throw AhuException("Unknown qtype '"+qtype+"' on line "+itoa(d_lineno));
-  rec.content=content;
-  rec.ttl=ttl;
-  rec.prio=prio;
-  recs.push_back(rec);
-
 }
 
 void ZoneParser::parse(const string &fname, const string &origin, vector<Record>&records)
@@ -150,6 +134,23 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
   
 
 }
+
+
+void ZoneParser::fillRec(const string &qname, const string &qtype, const string &content, int ttl, int prio, vector<Record>&recs)
+{
+  Record rec;
+  rec.name=qname;
+  rec.qtype=qtype;
+  QType qt;
+  if(!QType::chartocode(qtype.c_str()))
+    throw AhuException("Unknown qtype '"+qtype+"' on line "+itoa(d_lineno));
+  rec.content=content;
+  rec.ttl=ttl;
+  rec.prio=prio;
+  recs.push_back(rec);
+
+}
+
 
 void ZoneParser::cutOff(string &line, const string &delim)
 {

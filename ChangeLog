@@ -1,5 +1,6 @@
 Changes since 2.9.3:
 	- improved zone parser error message about time specification
+	- zone parser now allows both $include and $INCLUDE
 
 Changes since 2.9.2:
 	- windows compilation patches
