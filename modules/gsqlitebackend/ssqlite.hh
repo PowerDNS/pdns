@@ -36,7 +36,8 @@ public:
   //! Performs a command that does not return rows
   int doCommand( const std::string & query )
   {
-    return doQuery(query);
+    result_t result;
+    return doQuery(query, result); // 'result' is necessary to force doQuery to do the work, closing Debian bug 280359
   }
 
   
