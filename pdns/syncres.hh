@@ -33,9 +33,8 @@ public:
     d_ttl=60;
     d_last_clean=time(0);
   }
-  bool shouldThrottle(const Thing& t)
+  bool shouldThrottle(time_t now, const Thing& t)
   {
-    time_t now=time(0);
     if(now > d_last_clean + 60 ) {
       d_last_clean=now;
       for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) 
@@ -46,8 +45,6 @@ public:
 	  ++i;
     }
 
-      
-
     typename cont_t::iterator i=d_cont.find(t);
     if(i==d_cont.end())
       return false;
@@ -56,10 +53,10 @@ public:
       return true;
     }
   }
-  void throttle(const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
+  void throttle(time_t now, const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
   {
     typename cont_t::iterator i=d_cont.find(t);
-    entry e={ time_t(0)+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
+    entry e={ now+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
 
     if(i==d_cont.end()) {
       d_cont[t]=e;
@@ -81,51 +78,6 @@ private:
   cont_t d_cont;
 };
 
-
-#if 0
-
-template<class Thing> class Throttle
-{
-public:
-  Throttle()
-  {
-    d_limit=3;
-    d_ttl=60;
-  }
-  bool shouldThrottle(const Thing& t)
-  {
-    time_t now=time(0);
-    while(!d_dq.empty() && d_dq.back().ttd < now) // remove expired entries from the end
-      d_dq.pop_back();
-
-    for(typename cont_t::iterator i=d_dq.begin();i!=d_dq.end();++i) 
-      if(i->T==t && i->count-- < 0)
-	return true; 
-    return false;
-  }
-
-  void throttle(const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
-  {
-    entry e;
-    e.ttd=time(0)+ (ttl ? ttl : d_ttl) ; 
-    e.T=t; 
-    e.count=tries ? tries : d_limit;
-    d_dq.push_front(e);
-
-  }
-private:
-  int d_limit;
-  int d_ttl;
-  struct entry 
-  {
-    time_t ttd;
-    Thing T;
-    int count;
-  };
-  typedef deque<entry> cont_t;
-  cont_t d_dq;
-};
-#endif
 
 /** Class that implements a decaying EWMA.
     This class keeps an exponentially weighted moving average which, additionally, decays over time.
