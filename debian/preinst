@@ -1,0 +1,7 @@
+#!/bin/sh
+
+id pdns > /dev/null 2> /dev/null
+if [ $? = 1 ]
+then
+	adduser --no-create-home --group --system pdns
+fi

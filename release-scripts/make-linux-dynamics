@@ -1,0 +1,49 @@
+#!/usr/bin/make -f
+
+all: compile package
+
+compile:
+	make clean
+	make -k distclean
+	./bootstrap
+	./configure 
+	cd ../pdns-pipebackend ; 	make clean;	make
+	cd ../ahudns-mysqlbackend ; make clean ;	make
+	cd  ../ahudns-pdnsbackend ; make clean ;	make
+	cd ../pdns-gpgsqlbackend; make clean  ; 	make
+	cd ../pdns-gmysqlbackend; make clean  ; 	make
+
+	cd extra ; make clean ; make
+	-rm libs/*
+	cd libs ; ln -s ../backends/bind/.libs/libbindbackend.so .
+	cd libs ; ln -s ../../pdns-pipebackend/.libs/libpipebackend.so .
+	cd libs; ln -s ../../ahudns-mysqlbackend/.libs/libmysqlbackend.so .
+	cd libs; ln -s ../../ahudns-pdnsbackend/.libs/libpdnsbackend.so .
+	cd libs; ln -s ../../pdns-gpgsqlbackend/*.so .
+	cd libs; ln -s ../../pdns-gmysqlbackend/*.so .
+	echo "" > extra/ld
+	make 
+	make mkbindist
+
+
+package:
+	mkdir -p release-files/deb/unstable
+	mkdir -p release-files/rpm-dynamic
+	mkdir -p release-files/linux-dynamic
+
+	rm -rf ../pdns_*deb
+	rm -rf ../pdns-*rpm
+
+	cp backends/bind/zone2sql .
+	
+	sudo debian/rules clean
+	sudo debian/rules binary
+
+	mv ../pdns_*deb release-files/deb/unstable
+	DESTDIR=/tmp/pdns sudo ./installer
+	sudo rpm -bb ./pdns-dynamic.spec
+	mv ../pdns-*rpm release-files/rpm-dynamic
+
+	. ./mkbindist
+	mv pdns*tar.gz release-files/linux-dynamic
+

@@ -1,0 +1,3 @@
+Read http://doc.powerdns.com/compiling-powerdns.html
+
+./configure ; make; ./installer should do the trick

@@ -1,0 +1,29 @@
+#!/bin/sh
+
+DIR=pdns-nameserver-$(uname -m -s | tr L l | tr ' ' '-')-@VERSION@
+rm -rf $DIR
+mkdir $DIR
+cp backends/bind/zone2sql pdns_server pdns_control binpatch $DIR
+strip $DIR/*
+cp choosepaths installer pdns.in pathconfig LICENSE README $DIR
+
+
+if file ./pdns_server | grep -q dynamic 
+then 
+	mkdir $DIR/libs
+	cp libs/* $DIR/libs	# backends
+	strip $DIR/libs/*.so
+#	ldd ./pdns_server | cut -f2 -d\> | cut -f1 -d\( | grep -v ld-linux.so | \
+#	grep -v libm.so | grep -v libc.so | grep -v libpthread.so | grep -v libdl.so \
+#	> libs.tmp
+#	cp $(cat libs.tmp) $DIR/libs
+#	rm libs.tmp
+fi
+
+
+mkdir $DIR/docs
+cp docs/pdns.pdf $DIR/docs
+cp docs/pdns.txt $DIR/docs
+cp docs/html.tar.gz $DIR/docs
+
+tar cvzf $DIR.tar.gz $DIR

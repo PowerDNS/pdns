@@ -1,0 +1,10 @@
+#!/bin/sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
+# unplug the nameserver: go
+for a in "$@";
+do
+	@bindir@/dynloader @localstatedir@/ahudns.controlsocket show "$a"
+done

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "remove" ] ; then
+	/etc/init.d/pdns stop
+fi
+
+exit 0
+

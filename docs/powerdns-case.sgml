@@ -1,0 +1,252 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+<title>The case for PowerDNS</title>
+<author>PowerDNS BV (bert hubert &lt;bert@trilab.com&gt;) &nl;
+Trilab BV</author>
+<date>v1.0 $Date: 2002/11/27 15:18:34 $</date>
+<abstract>
+This document describes what PowerDNS is, how it works and how it can be
+maintained and operated.
+</abstract>
+<toc>
+<sect>The PowerDNS modular system
+<p>
+PowerDNS consists of four distinct modules:
+<itemize>
+<item>Internet Nameserver
+<item>Logical Engine
+<item>Query Backend
+<item>Web-enabled configuration
+</itemize>
+
+Each of these modules can function on its own, and is therefore eminently
+testable and provably correct.
+
+When a DNS query comes in ('What is the IP Address of come.to'), it is
+received by the Internet Nameserver, which parses the packet and sends it to
+the Logical Engine. The Logical Engine then tries to find the best answer
+possible to the question.
+
+To do so, it applies certain rules. Is 'come.to' a globally redirected host?
+If it isn't, is it perhaps an alias for another host? Or do we simply need
+to look up the IP address, and return that. Each of these questions is
+fielded to the Query Backend.
+
+This query backend often just translates the question into SQL, and passes
+it to a relational database, like Oracle, MS SQLServer or PostgreSQL.
+
+A web-frontend is provided for configuring PowerDNS. This frontend is
+multi-user aware, so responsibilities can be delegated, whereby each
+operator can only manage his or her domains.
+
+More on the frontend the relevant chapter.
+
+<sect>PowerDNS Operation &amp; Operational Limits
+<p>
+PowerDNS has been designed to be easy to operate and to function robustly.
+For example, should an unexpected exception occur, the program is restarted
+automatically, within seconds.
+
+<sect1>Installation
+<p>
+PowerDNS can span multiple computers, which either all connect to the same
+database, or each have their own mirrored copy. Normally, PowerDNS is sold
+using an ASP model. However, our initial customer may choose to have a
+local, privately owned installation.
+
+We will assist or even perform the installation for such a customer.
+
+Engineered for simplicity, configuring the nameserver itself (not the
+domains, these are configured using the web-frontend) is done from one
+single point, with only a limited number of settings that need to be
+changed.
+
+<sect1>Operational Limits
+<p>
+Extensive benchmarking has convinced us that network capacity is more of a
+limiting factor than PowerDNS itself will ever be. In testing, the PowerDNS
+server sustained 1500 queries/s on a regular desktop PC for a prolonged
+period of time. It is assumed that this is more than even the biggest
+current nameservers need to handle.
+
+<sect1>Maintaining and configuring domains
+<p>
+Great care has been taken to make the maintenance and configuration of
+domains as easy as possible. Two modes are available, 'Wizard' 
+and 'Advanced'. This latest mode is 'vocabulary compatible' with the Bind
+nameserver, so existing administrators will feel right at home. The Wizard
+mode has been stripped of all jargon, and should be easy to follow for most
+Internet users.
+
+The Wizard mode also performs stringent tests on the information entered by
+the operator, so as to prevent misconfiguration.
+
+<sect>Features
+<p>
+PowerDNS has the following features:
+<descrip>
+<tag>Regular nameserving</tag>
+A better performing and robust nameserver. Feature set is limited to current
+and near-future internet practices. Other nameservers often support arcane
+and outdated Name Classes, like those used at MIT in the 1980s. Supporting
+these classes involves shipping more code, which might contain more security
+problems and bugs. More on security in the relevant chapter.
+<tag>Failover</tag>
+When multiple webservers are available, PowerDNS can be configured to only
+return IP Addresses of the servers which are actually functioning. This
+feature has been available for a long time from companies like Alteon or
+Arrowpoint (now both Cisco property).
+
+However, these machines can only function on local networks, as they
+function as a network-element. All your servers need to be in the same
+location for this to work. This is clearly not appropriate in case of
+maximum availability. 
+<tag>Global Redirection</tag>
+In combination with Failover support, it is possible to support smart global
+redirection, whereby American customers might get connected to a server in
+New York, whereas European customers might be served by a computer in
+Amsterdam.
+
+<tag>Mail forwarding</tag>
+Although not strictly a Nameserver function, PowerDNS supports very rapid
+and robust mail forwarding. This system has already been employed the past
+months to forward mail for the V3 domains. It is specially engineered to not
+fall over in case of database problems, should they occur, for example when
+the database is suffering from a Denial of Service, as recently happened.
+
+<tag>URL Aliasing</tag>
+Much of the same goes for this. Customers can use URL Aliasing to let them
+point their (sub)domain to other webpages.
+
+<tag>Mail hosting</tag>
+The entire concept of mail hosting was re-engineered because it was found
+that existing systems suffered from sub-optimal performance, with a large
+server able to handle only 50.000 mailboxes at a time.
+
+This support consists of SMTP, Pop and IMAP4, which makes it compatible with
+almost all webmail solutions available.
+
+</descrip>
+
+<sect>Security and Reliability
+<p>
+<sect1>Security
+<p>
+Nameserving is a complex business. Currently, it is evident that existing
+servers suffer from security and Denial of Service vulnerabilities. 
+
+There are several reasons for these problems:
+<descrip>
+<tag>Support for obsolete protocols</tag>
+Nameservers currently in use support ancient pre-Internet protocols like
+Hesiod and Chaosnet. Even if you are an Internet-only user, like everybody
+these days, your nameserver will still respond to packets containing
+questions for these protocols. The code supporting these features stems from
+the early 1980s and hasn't been audited in ages.
+
+The support for these protocols also causes other nameservers to be bigger
+than they need be.
+
+<tag>Support for undesirable features</tag>
+This is the cause of the most recent bout of Bind problems. Bind 
+supports 'inverse queries', also known as 'iqueries'. This is a Jeopardy like
+situation whereby you ask a nameserver 'Which question has this answer'.
+These questions are no longer appropriate in a time where the Internet can
+at best be considered a unfriendly place.
+
+<tag>Complete integration</tag> 
+Current nameservers are completely integrated solutions, carrying within
+their codebase a complete database and replication facility - which is
+exposed to the world.  By offloading this functionality to a separate
+Relational Database, complexity is vastly reduced. Furthermore, relational
+databases are very trusted systems - it is good to leave the hard work to
+them.
+
+<tag>Use of outdated languages</tag>
+With languages like C it is very easy to make programming mistakes which
+endanger system security. By using C++ with full typechecking and dynamic
+strings, a lot of problems are avoided. It is no longer possible 
+to 'overflow the buffer', as it is called.
+</descrip>
+
+<sect1>Reliability 
+<p> 
+PowerDNS can be operated from two or more completely independent locations.
+Failure of the one does not hamper the other. Each of these locations can
+easily be redundant in itself. UDP, the protocol over which DNS questions
+are asked and answered on the internet, lends itself very well to clustering
+solutions. It is advised that each location consists of two unconnected
+computers in a failover setup. The 'Virtual Router Redundancy Protocol'
+suffices, one of the easiest ways to set up a redundant group of computers.
+
+Regular nameservers can only run off their secondary for a limited period of
+time (often measured in days!). PowerDNS does not have this limitation.
+
+<sect>Statistics, Logging &amp; Monitoring 
+<p>
+PowerDNS can be configured to keep extensive details on its operation. From
+these details, which are available in an easily parseable ASCII form, it is
+possible to compile statistics.
+
+Of possible interest are:
+<itemize>
+<item>Number of questions for which PowerDNS had no answer
+<item>Average time needed to find answer to a question
+<item>Number of questions per second handled
+</itemize>
+
+Should there be a need, graphs can be compiled in realtime using the popular
+MRTG utility, which is easily interfaced onto PowerDNS.
+
+<sect>PowerDNS as a Registrar or domain-merchant Backend
+<p>
+The Web-frontend that comes with PowerDNS is engineered to support millions
+of users simultaneously. When stripped of advanced features, it makes a fine
+platform for any Registrar or domain-merchant.
+
+Everything in PowerDNS has been designed for incredibly high performance, so
+it is possible to support huge numbers of users on limited amounts of
+hardware.
+
+There is no point in the system which needs to be implemented as a single
+computer - all parts can be grown to span multiple servers.
+
+<sect>Competition
+<p>
+Besides the widely used Bind nameserver, there are other solutions
+available. Each of these solutions has its pros and cons.
+<sect1>F5 3DNS
+<p>
+
+Based on an expanded version of BIND, it offers a lot of interesting
+features, like global redirection and loadbalancing. It needs 
+several 'probes' at your datacenters, which attempt to measure network 
+connectivity.
+
+Unclear how it scales to larger number of domains, or even subdomains. Might
+conflict with plans of being a 'subdomain registrar'.
+
+Can combine with the 'Big-IP Controller' for local failover and
+loadbalancing. 
+<sect1>Cisco Distributed Director
+<p>
+Is a weird contraption, which has been reported to take up to an hour to
+process any configuration changes. Uses complicated BGP metrics to calculate
+the optimum server for a user. In our experience, BGP is no longer the right
+way to do so. BGP differentiates the internet into so called Autonomous
+Subsystems. These days however, most of the AS's out there spread the globe.
+
+The Cisco Distributed Director will not be able to differentiate via BGP
+between a server or user located in San Francisco or one in Moscow, if both
+are in the MCI Worldcom network.
+
+This machine also appears to require machines at each server location.
+
+Also unclear how it handles large numbers of domains, especially given the
+time it needs to process configuration changes. 
+
+</article>
+

@@ -1,0 +1,146 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+<title>PowerDNS Overview</title>
+<author>PowerDNS BV (bert hubert &lt;bert@trilab.com&gt;) &nl;
+Trilab BV</author>
+<date>v1.0 $Date: 2002/11/27 15:18:35 $</date>
+<abstract>
+This document describes what PowerDNS is and what it is for
+</abstract>
+<toc>
+<sect>What is PowerDNS
+<p>
+PowerDNS consists of:
+<itemize>
+<item>A Nameserver
+<item>A Mailserver
+<item>A Webserver
+</itemize>
+<sect1>What is a Nameserver?
+<p>
+A Nameserver is a device which translates a human-friendly name 
+like 'www.cnn.com' into an Internet Protocol (IP) Address that can be used to
+connect to the actual webserver. This functionality is vital as the
+numerical IP Addresses are unknown to end users so an inability to serve
+names means an inability to serve webpages, or to receive mail.
+
+Due to the complexity and arcane rules surrounding the Domain Name System,
+only a very limited number of Nameserver implementations exist, with the
+vast majority of sites running the antiquated Bind program, which can trace
+it roots to the creation days of the Internet.
+
+<sect1>Nameservers are crucial and tricky to maintain
+<p>
+Nameservers are at the very core of the Internet. All domain operators will
+have experienced often day-long outages due to misconfiguration or other
+operator mistakes. This makes Nameservers somewhat of a no-go zone, with the
+actual configuration and server itself often considered sacred. Domain
+maintenance takes experience operators and is hard to delegate to junior
+personnel.
+
+<sect1>Fixing up the existing Nameservers is not enough
+<p>
+The current Bind program has a long history of security incidents, the most
+recent ones affecting nearly all Internet providers. Currently, even major
+providers are still running vulnerable versions of Bind. Neither HP nor Sun
+have released fixes recently, forcing companies running Nameservers to
+download unsupported versions directly from the Internet Software Consortium.
+
+Any enhancements which affect ease of use will not help improve the security
+situation. Bind predates the large-scale use of relational databases and
+therefore comes with its own built in directory. A paradigm of secure design
+is to use modular programs with clear trust relations between them.
+Integrating everything, including a complete database and replications
+mechanism within the Nameserver itself makes security nearly impossible to
+achieve.
+
+There is a clear need to reinvent the Nameserver.
+
+<sect>The PowerDNS Modular System
+<p>
+PowerDNS Nameserver consists of four distinct modules:
+<itemize>
+<item>Internet Nameserver
+<item>Logical Engine
+<item>Query Backend
+<item>Web-enabled configuration
+</itemize>
+
+Each of these modules can function on its own, and is therefore eminently
+testable and provably correct.
+
+When a DNS query comes in ('What is the IP Address of www.cnn.com'), it is
+received by the Internet Nameserver, which parses the packet and sends it to
+the Logical Engine. The Logical Engine then tries to find the best answer
+possible to the question.
+
+To do so, it applies certain rules. Is 'come.to' a globally redirected host?
+If it isn't, is it perhaps an alias for another host? Or do we simply need
+to look up the IP address, and return that. Each of these questions is
+fielded to the Query Backend.
+
+This query backend often just translates the question into SQL, and passes
+it to a relational database, like Oracle, MySQL, MS SQLServer or PostgreSQL.
+
+An error checking web-frontend is provided for configuring PowerDNS. This
+frontend is multi-user aware, so responsibilities can be delegated, whereby
+each operator can only manage his or her domains.
+
+<sect>Benefits
+<sect1>Modular security, use of a trusted database
+<p>
+Because of the fact that all data comes from a central database, the actual
+Nameserver is very small, outsourcing a lot of the complexity to existing
+and very well trusted database products.
+<sect1>Complete ISP integration into a single data warehouse
+<p>
+Use of a central data repository also means that, for the first time ever, a
+complete self contained ISP solution is possible. When a domain is added to
+the Webserver, the PowerDNS Nameserver is aware of this. If an email address
+is added to a domain, PowerDNS automatically sends the Internet to the right
+place to deliver the message.
+
+Although not obvious for the layman, this is a quantum leap improvement over
+the current situation where Nameservers are an unconnected and often
+independently or externally maintained part of a complete ISP solution.
+
+When operators first experience the integrated operation of PowerDNS they
+are often enveloped by a strong 'this is how it is supposed to be' feeling,
+only then realizing the strangeness of the situation up to now.
+
+<sect1>Very high performance
+<p>
+Storing and retrieving data at high speed is a problem that has been well
+solved by cheaply available database servers. By building on these existing
+products, PowerDNS scales just as well as the database. As there are
+database solutions out there that achieve tens of thousands of transactions
+per second, there is no bottleneck in sight.
+<sect1>Instant updates
+<p>
+Because of this high performance, it is possible to lower the so 
+called 'Time To Live' of DNS answers. This in turn means that changes to the
+Nameservers configuration go live nearly instantaneously, instead of taking
+over 24 hours to propagate, as is usually the case.
+<sect1>Interoperability
+<p>
+PowerDNS is, by design, very open. By conforming to all Internet RFCs that
+apply, interoperation with everything currently in use is easily possible.
+The source is unencumbered and can easily be supplied to major customers,
+both for improvements or to diagnose operating problems.
+
+<sect>PowerDNS is a complete Nameserving ISP solution
+<p>
+For the first time, the creation of Internet services can be done from an
+integrated high-performance platform. By reinventing the Nameserver, all
+major ISP functionality can be offered from a single database of user and
+domain data.
+
+By allowing easy web-management of this solution, especially Nameserver
+configuration has become easier and more robust then ever, surpassing
+previous 'Bind front-end' solutions in both performance and reliability.
+
+</article>
+

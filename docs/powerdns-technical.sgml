@@ -1,0 +1,193 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+<title>PowerDNS technical overview</title>
+<author>PowerDNS BV (bert hubert &lt;bert@trilab.com&gt;) &nl;
+Trilab BV</author>
+<date>v1.1 $Date: 2002/11/27 15:18:35 $</date>
+<abstract>
+This document contains a technical description of PowerDNS. 
+</abstract>
+<toc>
+<sect>PowerDNS is a next generation authoritative nameserver
+<p>
+DNS is among the most mission-critical parts of the internet. While in
+essence very simple, current implementations are complicated applications
+with source code often spanning dozens of megabytes.
+
+The growth of the number of domains means that there is a growing need for a
+lean and mean nameserver that is capable of serving millions of users with
+millions of domains.
+
+The operation of PowerDNS consists of three different parts:
+<itemize>
+<item>Internet Interface
+<item>Logical Engine
+<item>Query Backend
+</itemize>
+
+The Internet Interface receives a question, and hands it to the Logical
+Engine. This Logical Engine then splits up the question into the
+sub-queries, which are handed to the Query Backend, which in turn sends
+queries to any number of data sources. The answer is then transferred back by
+the Logical Engine to the Internet Interface, which sends out the packet
+containing the requested data.
+
+<descrip>
+<tag>The Internet Interface</tag>
+PowerDNS supports receiving queries over UDP and TCP. When a question is
+received, relevant parts of the packet containing the question are compared
+to queries received earlier. 
+
+<tag>The Logical Engine</tag>
+A DNS query cannot be translated directly into a backend query. A question
+might be 'What is the IP Address of www.site.com'. In order to answer this
+question, some separate steps need to be performed:
+
+<itemize>
+<item>Is this nameserver Authoritative for this domain, or any of its parent
+domains?
+<item>Do we have a Canonical Name for www.site.com?
+<item>Does www.site.com exist?
+<item>Do we have an IP address for it?
+<item>If we don't, do we know who does?
+<item>Possibly send IP addresses for the nameservers who do know
+</itemize>
+
+This algorithm is described at length in RFC 1034.
+
+<tag>The Query Backend</tag>
+A real life nameserver may have many data sources. Several customer
+databases might exist, as well as standard Zone files. The Query Backend
+fields questions to any number of backends, in a prescribed order. This
+allows for maximum flexibility.
+</descrip>
+
+<sect>Simplicity brings reliability 
+<p> 
+
+By building on top of existing databases, PowerDNS is as trustworthy as your
+favorite database. Data storage and retrieval is a well solved problem. A
+nameserver should not reinvent it. We support almost all industry standard
+databases and also do custom backend development to graft PowerDNS on an
+existing database or schema.
+
+Due to the completely from scratch implementation without an existing
+installed base to appease, PowerDNS has remained very lean and mean.
+
+Monitoring is at the root of reliability, so the PowerDNS runtime can be
+queried by external scripts. This enables the operator to be informed of any
+problems at an early stage. Some sample scripts for the popular MRTG program
+are supplied.
+
+<sect>Incredible performance
+<p>
+Because of the many steps of the algorithm prescribed by RFC 1034, just
+hooking on a database to a nameserver is not a recipe for great performance.
+Steps need to be taken to streamline the process. 
+
+PowerDNS does so in two ways: 
+<descrip>
+<tag>Reordering the steps of the algorithm</tag>
+It is often possible to skip some of the steps in the algorithm initially,
+and only perform the other steps when it is really needed, which is often
+not the case.
+<tag>The PacketCache</tag>
+The PacketCache is quite revolutionary in that it caches entire query
+packets for short amounts of time. This PacketCache is consulted before
+running the RFC 1034 Algorithm in the Logical Engine. In production, it has
+been confirmed that even a 1 minute cache can achieve a 80% hitrate and
+thereby prevent 4 out of 5 database queries from ever happening.
+</descrip>
+
+Benchmarking has shown that PowerDNS should be able to reach in the order of
+20.000 queries/second on a reasonably fast database. When using direct
+tables like those supported by Berkeley DB, 50.000 should be achievable.
+
+The use of POSIX Threads also allows PowerDNS to use a large number of
+processors efficiently on architectures that support it.
+<sect>Complete security
+<p>
+PowerDNS is written in highly portable C++ using the ISO Standard C++
+Library (STL). This Library comes with dynamic string classes which all but
+erase the possibility of the much feared buffer overflows that have been
+hitting other nameservers.
+
+The very modular design of PowerDNS also makes for strict internal
+interfaces which can prevent any undesired action from having deleterious
+effects.
+
+Due to the use of modern tools and libraries, PowerDNS consists of only 7000
+lines of source. This is very well auditable in a reasonable period of time
+and can be regarded as a trusted computing base.
+
+Because the database is most often external, it is highly useful to grant
+PowerDNS read-only access to that database. Even a successful compromise can
+than not easily be exploited, because the database refuses to accept updates
+from the nameserver.
+
+<sect>Special Functions
+<p>
+Besides doing lookups in well known databases such as Oracle, Microsoft SQL
+Server, MySQL, PostgreSQL and Sybase, there are special purpose backends
+available.
+
+<sect1>Very Large Zone support
+<p>
+For customers with very large zones and a lots of secondaries, a special
+module has been developed to meet the following goals:
+<itemize>
+<item>Absolute 100% robustness
+<item>Incremental updates
+<item>Near realtime updates
+<item>Idempotent update packets
+<item>Instantaneous zone reloading
+</itemize>
+
+In short, this means that updates are broadcast from a central point. These
+updates can be broadcast as many times as desired because there is no harm
+in applying them more than once. Each of these updates is applied within
+seconds. 
+
+It does not use a relational database but instead relies on any of the
+well known table engines that are available, with a strong slant towards
+Berkeley DB.
+<sect1>Global Redirection
+<p>
+With the aid of a comprehensive map of IP addresses, it is possible to do
+smart routing of customers to servers geographically near them. While not
+providing pin-point accuracy, it is broadly effective and very fast.
+
+<sect1>DNS based loadbalancing and failover
+<p>
+Because of the efficiency of PowerDNS, it is feasible to use very low TTLs
+on answers. This in turn makes it possible to perform DNS based
+loadbalancing and failover. This can be very robust because the DNS
+infrastructure itself is redundant, whereas regular loadbalancing agents are
+themselves a single point of failure.
+
+<sect1>CORBA backend
+<p>
+By allowing questions to be asked over this industry standard protocol,
+it becomes trivially easy to integrate PowerDNS with existing middleware
+applications and/or customer databases.
+
+<sect>Standards compliance
+<p>
+PowerDNS is committed to being fully standards compliant. Current supported
+standards include RFC 1034, RFC 1035 and RFC 2181. 
+
+<sect>Availability
+<p>
+PowerDNS is available immediately for use. It comes with completely
+documented source and a license that allows the end-user to improve and or
+change the source.
+
+Licensing is possible on a per-CPU or on a per-Domain basis. 
+
+PowerDNS is a fully supported product with different levels of support
+available.
+</article>
+

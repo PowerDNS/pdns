@@ -1,0 +1,25 @@
+See http://pdns.powerdns.com and especially 
+http://pdns.powerdns.com/doc & http://pdns.powerdns.com/doc/pdns.pdf
+
+For those not reading documentation, and installing from the .tar.gz:
+
+	$ ./choosepaths 
+	   or
+	$ editor pathconfig
+
+	and then, as root
+
+	# ./installer
+
+If you installed the RPM or the .deb, you can skip the above.
+
+If this went ok:
+
+# /etc/init.d/pdns monitor
+
+Now add "bind-example-zones" to pds.conf, and query your nameserver:
+
+$ host www.example.com 127.0.0.1
+www.example.com		A	1.2.3.4
+
+and NOW read the documentation!

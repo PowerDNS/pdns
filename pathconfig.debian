@@ -1,0 +1,8 @@
+INITDPATH=/etc/init.d
+BINARYPATH=/usr/sbin
+CONFIGPATH=/etc/powerdns
+SOCKETPATH=/var/run/
+DOCPATH=""
+LIBRARYPATH=/usr/lib/powerdns
+PDNSUID=pdns
+PDNSGID=pdns
