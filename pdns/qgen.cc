@@ -205,6 +205,9 @@ void QGen::printStats(bool force)
   cerr.precision(2);
   cerr.setf(ios::fixed);
   cerr<<"Sent "<<d_numqueries<<", "<<d_answeredOK<<" OK, ";
+  cerr<<d_questions.size()<<" outstanding, ";
+  cerr<<d_servfail<<" failed, ";
+
   cerr<<d_nxdomain<<" NXDOMAIN, ";
   cerr<<d_unanswered.size()<<" unanswered, "<<d_delayed<<" delayed, "<<d_unmatched<<" unmatched, "<<d_ewma.get1()<<"/s"<<endl;
   d_ewma.submit(d_answeredOK + d_delayed + d_nxdomain + d_servfail);
@@ -263,7 +266,6 @@ void QGen::processAnswers()
     if(i==d_questions.end()) {
       if(d_unanswered.count(oq)) {
 	d_delayed++;
-	d_answeredOK++;
 	cerr<<"Delayed answer for "<<p.qdomain<<" came in anyhow"<<endl;
 	d_unanswered.erase(oq);
       }
@@ -322,9 +324,7 @@ try
   at.add("max-questions",Numeric(),"0");
   at.add("timeout",Numeric(),"30");
   at.parse(argc, argv);
-  cout<<"hier 1"<<endl;
   at.constraints();
-  cout<<"hier"<<endl;
 
   string fileName=at.get("questions");
   string server=at.get("server");
