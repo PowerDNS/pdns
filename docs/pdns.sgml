@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2005/01/11 19:24:27 $</PubDate>
+    <PubDate>v2.1 $Date: 2005/01/11 21:01:08 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -86,7 +86,48 @@
 	  See <ulink url="http://ds9a.nl/cgi-bin/cvstrac/pdns/timeline">the new timeline</ulink> for progress reports.
 	</para>
 	<para>
+	  The 'million domains' release - PowerDNS has now firmly established itself as a major player with the 
+	  unofficial count (ie, guesswork) now at over two million PowerDNS domains! Also, the GeoBackend has been tested
+	  by a big website and may soon see wider deployment. Thanks to Mark Bergsma for spreading the word!
+	</para>
+	<para>
+	  It is also a release with lots of changes and fixes. Take care when deploying!
+	</para>
+	<para>
+	  Security issues:
 	  <itemizedlist>
+	    <listitem>
+	      <para>
+		PowerDNS could be temporarily DoSed using a random stream of bytes. Reported cause of this has been fixed.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Enhancements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Reported version can be changed, or removed - see the "version-string" setting.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Duplicate MX records are now no longer considered duplicate if their priorities differ. Some people need this feature for
+		spam filtering.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	Bug fixes:
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		NAPTR records can now be slaved, patch by Lorens Kockum.
+	      </para>
+	    </listitem>
 	    <listitem>
 	      <para>
 		GMySQL now works on Solaris
@@ -94,22 +135,69 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		PowerDNS could be confused by questions with a %-sign in them
+		PowerDNS could be confused by questions with a %-sign in them - fixing cvstrac ticket #16 (reported by dilinger at voxel.net)
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		An authentication bug in the webserver was possibly fixed, please report if you were suffering from this. Being unable
+		to authenticate to the webserver was what you would've noticed.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Duplicate MX records are now no longer considered duplicate if their priorities differ.
+		Fix for cvstrac ticket #2, PowerDNS could lose sync when sending out a very large number of notifications. Excellent bug report
+		by Martin Hoffman, who also improved our original bugfix.
 	      </para>
 	    </listitem>
-	    <listitem>
+ 	    <listitem>
 	      <para>
-		Reported version can be changed, or removed
+		Fix the oldest PowerDNS bug in existence - under some circumstances, PowerDNS would log to syslog one character at a time. 
+		This was cvstrac ticket #4
 	      </para>
 	    </listitem>
-	    <listitem>
+ 	    <listitem>
 	      <para>
-		An authentication bug in the webserver was possibly fixed, please report if you were suffering from this.
+		HINFO records can now be slaved, fixing cvstrac ticket #8.
+	      </para>
+	    </listitem>
+ 	    <listitem>
+	      <para>
+		pdns_recursor could block under some circumstances, especially in case of corrupt UDP packets. Reported by Wichert Akkerman. Fix by 
+		Christopher Meer. This was cvstrac ticket #13.
+	      </para>
+	    </listitem>
+ 	    <listitem>
+	      <para>
+		Large SOA serial numbers would sometimes be logged as a signed integer, leading to negative numbers in the log.
+	      </para>
+	    </listitem>
+ 	    <listitem>
+	      <para>
+		PowerDNS now fully supports 32 bit SOA serial numbers (thanks to Mark Bergsma), closing cvstrac ticket #5.
+	      </para>
+	    </listitem>
+  	    <listitem>
+	      <para>
+		pdns_recursor --local-address help text was wrong.
+	      </para>
+	    </listitem>
+ 	    <listitem>
+	      <para>
+		Very devious bug - PowerDNS did not clear its cache before sending out update notifications, leading slaves
+		to conclude there was no update to AXFR. Excellent debugging by mkuchar at wproduction.cz.
+	      </para>
+	    </listitem>
+ 	    <listitem>
+	      <para>
+		Probably fixed cvstrac ticket #26, which caused pdns_recursor to fail on recent FreeBSD 5.3 systems. Please check, 
+		I have no such system to test on.
+	      </para>
+	    </listitem>
+ 	    <listitem>
+	      <para>
+		Geobackend did not get built for Debian. 
 	      </para>
 	    </listitem>
 	  </itemizedlist>
