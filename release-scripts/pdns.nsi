@@ -5,7 +5,7 @@ OutFile      "Debug\pdns-install.exe"
 OutFile      "Release\pdns-install.exe"
 !endif
 
-Name         "PowerDNS 2.9.2"
+Name         "PowerDNS 2.9.3"
 BrandingText " "
 Icon         "release-scripts\pdns.ico"
 WindowIcon   "on"

@@ -108,6 +108,10 @@ SOURCE=.\ntservice.cc
 # End Source File
 # Begin Source File
 
+SOURCE=.\qtype.cc
+# End Source File
+# Begin Source File
+
 SOURCE=.\statbag.cc
 # End Source File
 # Begin Source File
@@ -153,14 +157,6 @@ InputPath=.\backends\bind\bindlexer.l
 !ELSEIF  "$(CFG)" == "zone2sql - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
-# Begin Custom Build
-ProjDir=.
-InputPath=.\backends\bind\bindlexer.l
-
-"bindlexer.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	flex -i -s -o$(ProjDir)/backends/bind/bindlexer.cc $(InputPath)
-
-# End Custom Build
 
 !ENDIF 
 
@@ -183,14 +179,6 @@ InputPath=.\backends\bind\bindparser.yy
 !ELSEIF  "$(CFG)" == "zone2sql - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
-# Begin Custom Build
-ProjDir=.
-InputPath=.\backends\bind\bindparser.yy
-
-"bindparser.tab.cc" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	bison -o$(ProjDir)/backends/bind/bindparser.tab.cc -d $(InputPath)
-
-# End Custom Build
 
 !ENDIF 
 

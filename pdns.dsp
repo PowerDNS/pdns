@@ -161,6 +161,10 @@ SOURCE=.\session.cc
 # End Source File
 # Begin Source File
 
+SOURCE=.\sillyrecords.cc
+# End Source File
+# Begin Source File
+
 SOURCE=.\statbag.cc
 # End Source File
 # Begin Source File
