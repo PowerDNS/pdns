@@ -1,15 +1,43 @@
-Mostly polish on the build process:
+Things we will not do but hope other people will:
+	- Ports to NetBSD, OpenBSD, Solaris, AIX
+	- Michel Stol is already working on reviving his win32 port
 
+Projects we will be working on, but would like help for:
+
+Big things:
+	- Add recursion
+		bert hubert is working on this based on MTasker
+		http://ds9a.nl/mtasker
+	- Add support for TSIG
+
+Medium size things:
+	- Improve bind 'workalike' mode so we are a drop-in replacement for
+	  non-resolving bind. We're 90% there.
+		Add support for being master/slave in bind mode
+			this basically is filling in the blanks
+	- get PDNS into Red Hat 8.x 
+		needs very good RPMS 	
+		need to get Red Hat interested
+	- get PDNS into Debian Sid
+		Wichert Akkerman is working on this
+	- get PDNS into FreeBSD ports
+	- and other architectures	
+
+
+Small things, great for coders new to PowerDNS:
+	- add LOC record
+	- add KEY record
+	- add SIG record
+	- get the xdb backend building again
 	- make sure only Linux gets -D_GNU_SOURCE
-	- make PostgreSQL and MySQL include and library paths configurable
-	- make sure you can compile pgmysql without pg or my
-	- compilation on FreeBSD is probably broken right now
+		doesn't hurt other architectures, but its ugly
+
+
+Mostly polish on the build process:
 	- add support for building dynamic modules again
 		.so files that can be loaded at runtime and distributed
 		separately
 
-	- in the CVS repository live far more backends:
-	- rebuild 'rpm' target, 'deb' target, FreeBSD 'port'
 
 $ export CVSROOT=:pserver:anon@outpost.ds9a.nl:/var/cvsroot
 $ cvs login
