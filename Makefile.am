@@ -29,7 +29,7 @@ utility.hh iputils.hh common_startup.hh \
 backends/bind/bindbackend.cc backends/bind/zoneparser2.cc \
 backends/bind/bindparser.cc backends/bind/bindlexer.c \
 backends/bind/huffman.cc backends/gsql/gsqlbackend.cc \
-backends/gsql/gsqlbackend.hh
+backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh 
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ 
