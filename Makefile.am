@@ -4,7 +4,7 @@ AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
 EXTRA_DIST = docs/Makefile \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
 docs/powerdns-overview.sgml docs/powerdns-technical.sgml  \
- release-scripts/ docs/pdns.sgml mtasker.cc \
+docs/pdns.sgml mtasker.cc \
 docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
 
 noinst_SCRIPTS = pdns
