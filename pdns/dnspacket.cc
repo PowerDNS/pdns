@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.12 2003/01/13 23:05:15 ahu Exp $
+// $Id: dnspacket.cc,v 1.13 2003/01/16 14:41:26 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1325,9 +1325,7 @@ int DNSPacket::findlabel(string &label)
     p += 4;
   }
 
-  //
   // Look in the answer sections
-  //
 
   for (unsigned int i = 0; i < d.ancount + d.nscount + d.arcount; i++) {
     while (*p != 0x00) {
@@ -1354,8 +1352,8 @@ int DNSPacket::findlabel(string &label)
 
     // Skip the header and data
     
-    u_int16_t dataLength = getShort(p+8); // ntohs(*(short int*) (p + 8));  // XXX ULTRASPARC! 
-    u_int16_t type = getShort(p);         // ntohs(*(short int*) (p));            // XXX ULTRASPARC!
+    u_int16_t dataLength = getShort(p+8);
+    u_int16_t type = getShort(p);  
 
     p += 10;
     
@@ -1419,7 +1417,6 @@ int DNSPacket::toqname(const char *name, string &qname, bool comp)
       int offset = findlabel(s);
       
       if ( offset != -1) {
-
 	qname[i + 0] = (char) (((offset | 0xC000) & 0x0000FF00) >> 8);
 	qname[i + 1] = (char)  ((offset | 0xC000) & 0x000000FF);
 	qname = qname.substr(0, i + 2); // XX setlength() ?
@@ -1427,7 +1424,7 @@ int DNSPacket::toqname(const char *name, string &qname, bool comp)
 	break;
       }
       // Move to the next label
-      i += (qname[i] + 1); // doesn't quite handle very long labels
+      i += (qname[i] + 1); 
     }
   }
   
