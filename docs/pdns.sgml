@@ -1,9 +1,6 @@
 <!DOCTYPE Book PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
-
 <Book>
-  
   <BookInfo>
-    
     <Title>PowerDNS manual</Title>
     <AUTHOR>
       <affiliation>
@@ -11,11 +8,10 @@
         <address>
           <email>pdns@powerdns.com</email>
         </address>
-	
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/03 18:00:12 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/05 22:09:24 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3793,13 +3789,10 @@ local0.err                        /var/log/pdns.err
 	      Can only answer queries for types and classes it knows about - it is not transparent as it should be.
 	    </para></listitem>
 	  <listitem><para>
-	      Has a broken algorithm.
+	      Does not expire entries from its cache
 	    </para></listitem>
 	  <listitem><para>
-	      Can get into a loop when resolving.
-	    </para></listitem>
-	  <listitem><para>
-	      Does not cache enough due to blatantly paranoid 'trust-rules', or more exactly 'no-trust' rules.
+	      Fakes the TTL of NS records in the additional section
 	    </para></listitem>
 	  <listitem><para>
 	      Only compiles on Linux and possibly Solaris. FreeBSD decided not to support the POSIX get/set/swapcontext functions.

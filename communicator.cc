@@ -258,7 +258,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
     }
     catch(ResolverException &re) {
-      L<<Logger::Error<<"Trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
+      L<<Logger::Error<<"Error trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
     }
   }
 }  
