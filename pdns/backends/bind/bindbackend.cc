@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.13 2003/01/03 21:29:36 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.14 2003/02/03 14:51:46 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -805,6 +805,14 @@ bool BindBackend::handle::get_list(DNSResourceRecord &r)
   return true;
 }
 
+bool BindBackend::isMaster(const string &name, const string &ip)
+{
+  for(map<u_int32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) 
+    if(j->second.d_name==name)
+      return j->second.d_master==ip;
+  return false;
+}
+
 class BindFactory : public BackendFactory
 {
    public:
@@ -823,6 +831,8 @@ class BindFactory : public BackendFactory
          return new BindBackend(suffix);
       }
 };
+
+
 
 
 //! Magic class that is activated when the dynamic library is loaded

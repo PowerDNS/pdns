@@ -194,6 +194,8 @@ public:
   void insert(int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
   void rediscover(string *status=0);
   static HuffmanCodec s_hc;
+
+  bool isMaster(const string &name, const string &ip);
 private:
   class handle
   {

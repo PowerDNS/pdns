@@ -8,13 +8,14 @@ Changes since 2.9.4:
 	- UltraSparc alignment issues Chris Andrews
 	- compression (Mark Bergsma)
 	- SRV records (Ueli Heuer)
+
 	- updated J root-server IP address in the recursor
 	- added USR1 forced log output
 	- changed meaning of 'cache hits -> packets which could be answered
 		without sending packets out
 	- added -lz (James H. Cloos Jr) to MySQL
 	- added name to webserver (Daniel Meyer)
-	- fixed zone2sql root-zone issues
+	- fixed zone2sql root-zone issues (Brad Knowles)
 	
 Changes since 2.9.3a:
 feat	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
