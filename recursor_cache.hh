@@ -11,7 +11,7 @@ class RecursorCache
 {
 public:
   virtual unsigned int size()=0;
-  virtual int get(const string &qname, const QType& qt, set<DNSResourceRecord>* res)=0;
+  virtual int get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)=0;
   virtual void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)=0;
   virtual void doPrune(void)=0;
   int cacheHits, cacheMisses;
@@ -24,7 +24,7 @@ class MemRecursorCache : public RecursorCache
 public:
   virtual ~MemRecursorCache(){}
   virtual unsigned int size();
-  virtual int get(const string &qname, const QType& qt, set<DNSResourceRecord>* res);
+  virtual int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
   virtual void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
   virtual void doPrune(void);
 private:

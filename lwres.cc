@@ -89,8 +89,8 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type)
   // sleep until we see an answer to this, interface to mtasker
   
   ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
-  d_usec=dt.udiff();
-
+    d_usec=dt.udiff();
+    
   return ret;
 }
 

@@ -51,7 +51,7 @@ public:
     typename cont_t::iterator i=d_cont.find(t);
     if(i==d_cont.end())
       return false;
-    if(time(0) > i->second.ttd || i->second.count-- < 0){
+    if(now > i->second.ttd || i->second.count-- < 0){
       d_cont.erase(i);
       return true;
     }
@@ -128,24 +128,27 @@ private:
 #endif
 
 /** Class that implements a decaying EWMA.
-    This class keeps an exponentially weigthed moving average which, additionally, decays over time.
+    This class keeps an exponentially weighted moving average which, additionally, decays over time.
     The decaying is only done on get.
 */
 class DecayingEwma
 {
 public:
-  DecayingEwma() : d_last(getTime()) , d_lastget(time(0)),  d_val(0.0) {}
+  DecayingEwma() : d_last(getTime()) , d_lastget(time(0)),  d_val(0.0) {
+  }
   void submit(int val) 
   {
-    double diff=d_last-getTime();
-    d_last=getTime();
+    double now=getTime();
+    double diff=d_last-now;
+    d_last=now;
     double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
     d_val=(1-factor)*val+ factor*d_val; 
   }
   double get()
   {
-    double diff=d_lastget-getTime();
-    d_lastget=getTime();
+    double now=getTime();
+    double diff=d_lastget-now;
+    d_lastget=now;
     double factor=exp(diff/60.0); // is 1.0 or less
     return d_val*=factor;
   }
@@ -161,7 +164,7 @@ private:
 class SyncRes
 {
 public:
-  SyncRes() : d_outqueries(0), d_throttledqueries(0), d_timeouts(0), d_cacheonly(false), d_nocache(false){}
+  SyncRes() : d_outqueries(0), d_throttledqueries(0), d_timeouts(0), d_cacheonly(false), d_nocache(false), d_now(time(0)) {}
   int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -204,12 +207,15 @@ private:
   bool moreSpecificThan(const string& a, const string &b);
   string getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
 
+  SyncRes(const SyncRes&);
+  SyncRes& operator=(const SyncRes&);
 private:
   string d_prefix;
   static bool s_log;
   bool d_cacheonly;
   bool d_nocache;
   LWRes d_lwr;
+  time_t d_now;
 
   struct GetBestNSAnswer
   {
