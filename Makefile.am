@@ -11,12 +11,12 @@ noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
 if RECURSOR
-bin_PROGRAMS = pdns_control pdns_recursor
+sbin_PROGRAMS = pdns_server pdns_recursor
 else
-bin_PROGRAMS = pdns_control 
+sbin_PROGRAMS = pdns_server
 endif
 
-sbin_PROGRAMS = pdns_server 
+bin_PROGRAMS = pdns_control
 
 EXTRA_PROGRAMS=pdns_recursor pdns_control
 
@@ -35,7 +35,7 @@ backends/bind/bindbackend2.cc backends/bind/zoneparser2.cc \
 backends/bind/bindparser.cc backends/bind/bindlexer.c \
 backends/bind/huffman.cc backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
-sillyrecords.cc 
+sillyrecords.cc backends/bind/bindbackend.cc
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@

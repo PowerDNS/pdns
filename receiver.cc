@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.7 2003/03/04 18:33:39 ahu Exp $
+// $Id: receiver.cc,v 1.8 2003/03/06 16:59:11 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -220,15 +220,15 @@ static int guardian(int argc, char **argv)
 	dup2(d_fd2[1], outfd);
 	close(d_fd2[1]);
       }
-      if(execv(argv[0], newargv)<0) {
-	L<<Logger::Error<<"Unable to execv '"<<argv[0]<<"': "<<strerror(errno)<<endl;
+      if(execvp(argv[0], newargv)<0) {
+	L<<Logger::Error<<"Unable to execvp '"<<argv[0]<<"': "<<strerror(errno)<<endl;
 	char **p=newargv;
 	while(*p)
 	  L<<Logger::Error<<*p++<<endl;
 
 	exit(1);
       }
-      L<<Logger::Error<<"execve returned!!"<<endl;
+      L<<Logger::Error<<"execvp returned!!"<<endl;
       // never reached
     }
     else if(pid>0) { // parent

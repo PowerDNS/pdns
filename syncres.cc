@@ -178,7 +178,7 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
 	ret.push_back(rr);
 	if(!(qtype==QType(QType::CNAME))) {// perhaps they really wanted a CNAME!
 	  set<GetBestNSAnswer>beenthere;
-	  res=doResolve(j->content, qtype, ret, depth, beenthere);
+	  res=doResolve(j->content, qtype, ret, depth+1, beenthere);
 	}
 	return true;
       }

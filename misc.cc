@@ -264,7 +264,6 @@ const string unquotify(const string &item)
   if(item[0]=='"') 
     bpos=1;
 
-  cout<<"wuh: '"<<item[epos-1]<<"'"<<endl;
   if(item[epos-1]=='"')
     epos-=1;
 
