@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.8 2003/01/08 21:31:06 ahu Exp $
+// $Id: dnspacket.cc,v 1.9 2003/01/10 18:43:01 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1394,8 +1394,8 @@ int DNSPacket::findlabel(string &label)
 
     // Skip the header and data
     
-    short int dataLength = ntohs(*(short int*) (p + 8));  // XXX ULTRASPARC! 
-    short int type = ntohs(*(short int*) (p));            // XXX ULTRASPARC!
+    u_int16_t dataLength = getShort(p+8); // ntohs(*(short int*) (p + 8));  // XXX ULTRASPARC! 
+    u_int16_t type = getShort(p);         // ntohs(*(short int*) (p));            // XXX ULTRASPARC!
 
     p += 10;
     
