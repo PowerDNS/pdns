@@ -2,7 +2,7 @@
 
 
 
-PowerLDAP::PowerLDAP( const string& host, u_int16_t port, bool tls ) : d_timeout( 5 )
+PowerLDAP::PowerLDAP( const string& host, u_int16_t port, bool tls )
 {
 	int protocol = LDAP_VERSION3;
 
@@ -63,103 +63,129 @@ void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
 }
 
 
-/** Function waits for a result, returns its type and optionally stores the result
-    in retresult. If returned via retresult, the caller is responsible for freeing
-    it with ldap_msgfree! */
-int PowerLDAP::waitResult(int msgid,LDAPMessage **retresult)
+int PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
 {
-  struct timeval tv;
-  tv.tv_sec=d_timeout;
-  tv.tv_usec=0;
-  LDAPMessage *result;
+	int msgid;
+	if( ( msgid = ldap_search( d_ld, base.c_str(), scope, filter.c_str(), const_cast<char**> (attr), 0 ) ) == -1 )
+	{
+		throw LDAPException( "Starting LDAP search: " + getError() );
+	}
 
-  int rc=ldap_result(d_ld,msgid,0,&tv,&result);
-  if(rc==-1)
-    throw LDAPException("Error waiting for LDAP result: "+getError());
-  if(!rc)
-    throw LDAPTimeout();
-  
-  if(retresult)
-    *retresult=result;
-  
-  if(rc==LDAP_RES_SEARCH_ENTRY || LDAP_RES_SEARCH_RESULT) // no error in that case
-    return rc;
-  
-  int err;
-  if((err=ldap_result2error(d_ld, result,0))!=LDAP_SUCCESS) {
-    ldap_msgfree(result);
-    throw LDAPException("LDAP Server reported error: "+getError(err));
-  }
-  
-  if(!retresult)
-    ldap_msgfree(result);
-  
-  return rc;
+	return msgid;
 }
 
 
-int PowerLDAP::search(const string& base, int scope, const string& filter, const char **attr)
+/**
+ * Function waits for a result, returns its type and optionally stores the result.
+ * If the result is returned, the caller is responsible for freeing it with
+ * ldap_msgfree!
+ */
+
+int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
 {
-  int msgid;
+	int rc;
+	struct timeval tv;
+	LDAPMessage* res;
 
-  if( ( msgid = ldap_search( d_ld, base.c_str(), scope, filter.c_str(),const_cast<char **>(attr),0 ) ) == -1 )
-    throw LDAPException("Starting LDAP search: "+getError());
 
-  return msgid;
+	tv.tv_sec = timeout;
+	tv.tv_usec = 0;
+
+	if( ( rc = ldap_result( d_ld, msgid, LDAP_MSG_ONE, &tv, &res ) ) == -1 )
+	{
+		throw LDAPException( "Error waiting for LDAP result: " + getError() );
+	}
+	else if( rc == 0 )
+	{
+		throw LDAPTimeout();
+	}
+
+	if( result == NULL )
+	{
+		ldap_msgfree( res );
+		return rc;
+	}
+
+	*result = res;
+	return rc;
 }
 
-bool PowerLDAP::getSearchEntry(int msgid, sentry_t &entry, bool withdn)
+
+bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout )
 {
-  entry.clear();
-  int rc=waitResult(msgid,&d_searchresult);
+	int i;
+	char* attr;
+	BerElement* ber;
+	struct berval** berval;
+	vector<string> values;
+	LDAPMessage* result;
+	LDAPMessage* object;
 
-  if(rc==LDAP_RES_SEARCH_RESULT) {
-    ldap_msgfree(d_searchresult);
-    return false;
-  }
 
-  if(rc!=LDAP_RES_SEARCH_ENTRY)
-    throw LDAPException("Search returned non-answer result");
+	if( ( i = waitResult( msgid, timeout, &result ) ) == LDAP_RES_SEARCH_RESULT )
+	{
+		ldap_msgfree( result );
+		return false;
+	}
 
-  d_searchentry=ldap_first_entry(d_ld, d_searchresult);
+	if( i != LDAP_RES_SEARCH_ENTRY )
+	{
+		ldap_msgfree( result );
+		throw LDAPException( "Search returned an unexpected result" );
+	}
 
-  // we now have an entry in d_searchentry
+	if( ( object = ldap_first_entry( d_ld, result ) ) == NULL )
+	{
+		ldap_msgfree( result );
+		throw LDAPException( "Couldn't get first result entry: " + getError() );
+	}
 
-  if( withdn == true )
-  {
-    vector<string> dnresult;
-    char* dn = ldap_get_dn( d_ld, d_searchentry );
-    dnresult.push_back( dn );
-    ldap_memfree( dn );
-    entry["dn"] = dnresult;
-  }
+	entry.clear();
 
-  BerElement *ber;
+	if( dn )
+	{
+		attr = ldap_get_dn( d_ld, object );
+		values.push_back( attr );
+		ldap_memfree( attr );
+		entry["dn"] = values;
+	}
 
-  for(char *attr = ldap_first_attribute( d_ld, d_searchresult, &ber ); attr ; attr=ldap_next_attribute(d_ld, d_searchresult, ber)) {
-    struct berval **bvals=ldap_get_values_len(d_ld,d_searchentry,attr);
-    vector<string> rvalues;
-    if(bvals) {
-      for(struct berval** bval=bvals;*bval;++bval)
-        rvalues.push_back((*bval)->bv_val);
-    }
-    entry[attr]=rvalues;
-    ldap_value_free_len(bvals);
-    ldap_memfree(attr);
-  }
+	if( ( attr = ldap_first_attribute( d_ld, object, &ber ) ) != NULL )
+	{
+		do
+		{
+			if( ( berval = ldap_get_values_len( d_ld, object, attr ) ) != NULL )
+			{
+				values.clear();
+				for( i = 0; i < ldap_count_values_len( berval ); i++ )
+				{
+					values.push_back( berval[i]->bv_val );   // use berval[i]->bv_len for non string values?
+				}
 
-  ber_free(ber,0);
-  ldap_msgfree(d_searchresult);
-  
-  return true;
+				entry[attr] = values;
+				ldap_value_free_len( berval );
+			}
+			ldap_memfree( attr );
+		}
+		while( ( attr = ldap_next_attribute( d_ld, object, ber ) ) != NULL );
+
+		ber_free( ber, 0 );
+	}
+
+	ldap_msgfree( result );
+	return true;
 }
 
-void PowerLDAP::getSearchResults(int msgid, sresult_t &result, bool withdn)
+
+void PowerLDAP::getSearchResults( int msgid, sresult_t& result, bool dn, int timeout )
 {
-  result.clear();
-  sentry_t entry;
-  while(getSearchEntry(msgid, entry, withdn))
-    result.push_back(entry);
+	sentry_t entry;
+
+	result.clear();
+	while( getSearchEntry( msgid, entry, dn, timeout ) )
+	{
+		result.push_back( entry );
+	}
 }
 
 
@@ -176,14 +202,18 @@ const string PowerLDAP::getError( int rc )
 }
 
 
-const string PowerLDAP::escape(const string &name)
+const string PowerLDAP::escape( const string& str )
 {
-  string a;
+	string a;
+	string::const_iterator i;
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if(*i=='*' || *i=='\\')
-      a+='\\';
-    a+=*i;
-  }
-  return a;
+	for( i = str.begin(); i != str.end(); i++ )
+	{
+		if( *i == '*' || *i == '\\' ) {
+			a += '\\';
+		}
+		a += *i;
+	}
+
+	return a;
 }

@@ -6,7 +6,10 @@ changes since 2.9.12:
 	- big LDAP cleanup	
 	- LDAP now has TLS support
 	- Opteron support (opteron login by jeffdavey@submersion.com)
-
+	- fixed errors with disable-axfr (Norbert)
+	- improved error reporting in zone2sql (Thom May)
+	- Zone2LDAP updates:
+		Now it's possible to generate ldif files containing a tree or a list of entries.                                                                                                                                                                           
 
 changes since 2.9.11:
 	- ldap updates

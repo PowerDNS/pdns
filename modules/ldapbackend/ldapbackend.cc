@@ -54,7 +54,7 @@ LdapBackend::LdapBackend( const string &suffix )
 		throw( AhuException( "Unable to connect to ldap server" ) );
 	}
 
-	L << Logger::Info << backendname << " Ldap connection succeeded" << endl;
+	L << Logger::Notice << backendname << " Ldap connection succeeded" << endl;
 }
 
 
@@ -76,13 +76,12 @@ bool LdapBackend::list( const string &target, int domain_id )
 		m_axfrqlen = target.length();
 		m_adomain = m_adomains.end();   // skip loops in get() first time
 
-		DLOG( L << Logger::Debug << backendname << " List = target: " << target << endl );
 		filter = "(|(associatedDomain=" + target + ")(associatedDomain=*." + target + "))";
 		m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) attrany );
 	}
 	catch( LDAPTimeout &lt )
 	{
-		L << Logger::Error << backendname << " Unable to get zone " + target + " from LDAP directory: " << lt.what() << endl;
+		L << Logger::Warning << backendname << " Unable to get zone " + target + " from LDAP directory: " << lt.what() << endl;
 		return false;
 	}
 	catch( LDAPException &le )
@@ -92,12 +91,12 @@ bool LdapBackend::list( const string &target, int domain_id )
 	}
 	catch( exception &e )
 	{
-		L << Logger::Error << backendname << " Caught STL exception: " << e.what() << endl;
+		L << Logger::Error << backendname << " Caught STL exception for target " << target << ": " << e.what() << endl;
 		return false;
 	}
 	catch( ... )
 	{
-		L << Logger::Critical << backendname << " Caught unknown exception" << endl;
+		L << Logger::Critical << backendname << " Caught unknown exception for target " << target << endl;
 		return false;
 	}
 
@@ -169,7 +168,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	}
 	catch( LDAPTimeout &lt )
 	{
-		L << Logger::Error << backendname << " Unable to search LDAP directory: " << lt.what() << endl;
+		L << Logger::Warning << backendname << " Unable to search LDAP directory: " << lt.what() << endl;
 		return;
 	}
 	catch( LDAPException &le )
@@ -179,12 +178,12 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	}
 	catch( exception &e )
 	{
-		L << Logger::Error << backendname << " Caught STL exception: " << e.what() << endl;
+		L << Logger::Error << backendname << " Caught STL exception for qname " << qname << ": " << e.what() << endl;
 		return;
 	}
 	catch( ... )
 	{
-		L << Logger::Error << backendname << " Caught unknown exception" << endl;
+		L << Logger::Critical << backendname << " Caught unknown exception for qname " << qname << endl;
 		return;
 	}
 }
@@ -218,25 +217,33 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 						rr.priority = 0;
 						rr.ttl = m_ttl;
 
-						if( qt.getCode() == QType::MX )   // MX Record, e.g. 10 smtp.example.com
+						if( qt.getCode() == QType::MX || qt.getCode() == QType::SRV )   // Priority, e.g. 10 smtp.example.com
 						{
-							parts.clear();
-							stringtok( parts, content, " " );
+							char* endptr;
+							string::size_type first = content.find_first_of( " " );
 
-							if( parts.size() != 2)
+							if( first == string::npos )
 							{
-								L << Logger::Warning << backendname << " Invalid MX record without priority: " << content << endl;
+								L << Logger::Warning << backendname << " Invalid " << attrname << " without priority for " << m_qname << ": " << content << endl;
+								m_value++;
 								continue;
 							}
 
-							rr.priority = (u_int16_t) strtol( parts[0].c_str(), NULL, 10 );
-							content = parts[1];
+							rr.priority = (u_int16_t) strtoul( (content.substr( 0, first )).c_str(), &endptr, 10 );
+							if( *endptr != '\0' )
+							{
+								L << Logger::Warning << backendname << " Invalid " << attrname << " without priority for " << m_qname << ": " << content << endl;
+								m_value++;
+								continue;
+							}
+
+							content = content.substr( first + 1, content.length() - first - 1 );
 						}
 
 						rr.content = content;
 						m_value++;
 
-						DLOG( L << Logger::Debug << backendname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", priority: " << rr.priority << ", content: " << rr.content << endl );
+						DLOG( L << Logger::Debug << backendname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", priority: " << rr.priority << ", ttl: " << rr.ttl << ", content: " << rr.content << endl );
 						return true;
 					}
 
@@ -247,14 +254,13 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 				m_attribute = m_result.begin();
 				m_value = m_attribute->second.begin();
 			}
-			m_result.clear();
 		}
 		while( m_pldap->getSearchEntry( m_msgid, m_result, false ) && prepareEntry() );
 
 	}
 	catch( LDAPTimeout &lt )
 	{
-		L << Logger::Error << backendname << " Search failed: " << lt.what() << endl;
+		L << Logger::Warning << backendname << " Search failed: " << lt.what() << endl;
 	}
 	catch( LDAPException &le )
 	{
@@ -263,11 +269,11 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 	}
 	catch( exception &e )
 	{
-		L << Logger::Error << backendname << " Caught STL exception: " << e.what() << endl;
+		L << Logger::Error << backendname << " Caught STL exception for attribute " << attrname << ": " << e.what() << endl;
 	}
 	catch( ... )
 	{
-		L << Logger::Error << backendname << " Caught unknown exception" << endl;
+		L << Logger::Critical << backendname << " Caught unknown exception for attribute " << attrname << endl;
 	}
 
 	return false;
@@ -327,7 +333,7 @@ public:
 	{
 		declare( suffix, "host", "one or more ldap server","localhost:389" );
 		declare( suffix, "port", "ldap server port (depricated, use ldap-host)","389" );
-		declare( suffix, "starttls", "use STARTTLS to encrypt connection", "no" );
+		declare( suffix, "starttls", "use TLS to encrypt connection", "no" );
 		declare( suffix, "basedn", "search root in ldap tree (must be set)","" );
 		declare( suffix, "binddn", "user dn for non anonymous binds","" );
 		declare( suffix, "secret", "user password for non anonymous binds", "" );

@@ -36,12 +36,9 @@ public:
 class PowerLDAP
 {
 	LDAP* d_ld;
-	int d_timeout;
-	LDAPMessage* d_searchresult;
-	LDAPMessage* d_searchentry;
 
 	const string getError( int rc = -1 );
-	int waitResult( int msgid = LDAP_RES_ANY, LDAPMessage** retresult = 0 );
+	int waitResult( int msgid = LDAP_RES_ANY, int timeout = 0, LDAPMessage** result = NULL );
 
 public:
 	typedef map<string, vector<string> > sentry_t;
@@ -56,8 +53,8 @@ public:
 	void simpleBind( const string& ldapbinddn = "", const string& ldapsecret = "" );
 	int search( const string& base, int scope, const string& filter, const char** attr = 0 );
 
-	bool getSearchEntry( int msgid, sentry_t& entry, bool withdn = false );
-	void getSearchResults( int msgid, sresult_t& result, bool withdn = false );
+	bool getSearchEntry( int msgid, sentry_t& entry, bool dn = false, int timeout = 5 );
+	void getSearchResults( int msgid, sresult_t& result, bool dn = false, int timeout = 5 );
 
 	static const string escape( const string& tobe );
 };
