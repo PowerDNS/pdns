@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/03/27 10:40:40 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/03/28 11:29:43 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,15 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-8"><title>Version 2.9.8 [in progress]</title>	
+	<para>
+	  [Unreleased, work in progress]
+	</para>
+	<para>
+	  Added support for AIX, fixed negative SOA caching. [ more ]
+	</para>
+      </sect2>
+
       <sect2 id="changelog-2-9-7"><title>Version 2.9.7</title>	
 	<para>
 	  Released on 2003-03-20.
@@ -8530,7 +8539,11 @@ static RandomLoader randomloader;
 	To compile a module for inclusion at runtime, which is great if you are a unix vendor, use <command>--with-dynmodules="mod1 mod2 mod3"</command>.
 	These modules then end up as .so files in the compiled libdir. 
       </para>
-
+      <sect2 id="unix-aix"><title>AIX</title>
+	<para>
+	  Known to compile with gcc, but only since 2.9.8. AIX lacks POSIX semaphores so they need to be emulated, as with MacOS X.
+	</para>
+      </sect2>
       <sect2 id="unix-freebsd"><title>FreeBSD</title>
 	<para>
 	  Works fine, but use gmake. Pipe backend is currently broken, for reasons, see <xref linkend="pipebackend">. Due to the threading model
@@ -8541,6 +8554,11 @@ static RandomLoader randomloader;
 	<para>
 	  Linux is probably the best supported platform as most of the main coders are Linux users. The static DEB distribution is known to have 
 	  problems on Debian 'Sid', but that doesn't matter as PowerDNS is a native part of Debian 'Sid'. Just apt-get!
+	</para>
+      </sect2>
+      <sect2 id="unix-macosx"><title>MacOS X</title>
+	<para>
+	  Did compile at one point but maintenance has lapsed. Let us know if you can provide us with a login on MacOS X or if you want to help.
 	</para>
       </sect2>
       <sect2 id="unix-openbsd"><title>OpenBSD</title>

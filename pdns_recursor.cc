@@ -54,6 +54,7 @@ ArgvMap &arg()
 }
 int d_clientsock;
 int d_serversock;
+int d_tcpserversock;
 
 struct PacketID
 {
@@ -181,7 +182,16 @@ void startDoResolve(void *p)
     }
 
     const char *buffer=R->getData();
-    sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+    if(!R->getSocket())
+      sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+    else {
+      char buf[2];
+      buf[0]=R->len/256;
+      buf[1]=R->len%256;
+      if(write(R->getSocket(),buf,2)!=2 || write(R->getSocket(),buffer,R->len)!=R->len)
+	L<<Logger::Error<<"Oops, partial answer sent to "<<P.getRemote()<<" - probably would have trouble receiving our answer anyhow (size="<<R->len<<")"<<endl;
+    }
+
     if(!quiet) {
       L<<Logger::Error<<"["<<MT.getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
       L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
@@ -225,6 +235,43 @@ void makeClientSocket()
     throw AhuException("Resolver binding to local socket: "+stringerror());
 }
 
+void makeTCPServerSocket()
+{
+  d_tcpserversock=socket(AF_INET, SOCK_STREAM,0);
+  if(d_tcpserversock<0) 
+    throw AhuException("Making a server socket for resolver: "+stringerror());
+  
+  struct sockaddr_in sin;
+  memset((char *)&sin,0, sizeof(sin));
+  
+  sin.sin_family = AF_INET;
+
+  if(arg()["local-address"]=="0.0.0.0") {
+    sin.sin_addr.s_addr = INADDR_ANY;
+  }
+  else {
+    struct hostent *h=0;
+    h=gethostbyname(arg()["local-address"].c_str());
+    if(!h)
+      throw AhuException("Unable to resolve local address"); 
+    
+    sin.sin_addr.s_addr=*(int*)h->h_addr;
+  }
+
+  sin.sin_port = htons(arg().asNum("local-port")); 
+    
+  if (bind(d_tcpserversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    throw AhuException("TCP Resolver binding to server socket: "+stringerror());
+  
+  int tmp=1;
+  if(setsockopt(d_tcpserversock,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
+    L<<Logger::Error<<"Setsockopt failed"<<endl;
+    exit(1);  
+  }
+
+  listen(d_tcpserversock, 128);
+}
+
 void makeServerSocket()
 {
   d_serversock=socket(AF_INET, SOCK_DGRAM,0);
@@ -255,6 +302,7 @@ void makeServerSocket()
     throw AhuException("Resolver binding to server socket: "+stringerror());
   L<<Logger::Error<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
 }
+
 
 #ifndef WIN32
 void daemonize(void)
@@ -313,6 +361,16 @@ void houseKeeping(void *)
   }
 }
 
+struct TCPConnection
+{
+  int fd;
+  enum {BYTE0, BYTE1, GETQUESTION} state;
+  int qlen;
+  int bytesread;
+  struct sockaddr_in remote;
+  char data[65535];
+};
+
 int main(int argc, char **argv) 
 {
 #ifdef WIN32
@@ -356,6 +414,7 @@ int main(int argc, char **argv)
     
     makeClientSocket();
     makeServerSocket();
+    makeTCPServerSocket();
         
     char data[1500];
     struct sockaddr_in fromaddr;
@@ -371,6 +430,7 @@ int main(int argc, char **argv)
     signal(SIGUSR1,usr1Handler);
 #endif
 
+    vector<TCPConnection> tcpconnections;
     for(;;) {
       while(MT.schedule()); // housekeeping, let threads do their thing
       
@@ -391,10 +451,16 @@ int main(int argc, char **argv)
       FD_ZERO( &readfds );
       FD_SET( d_clientsock, &readfds );
       FD_SET( d_serversock, &readfds );
+      FD_SET( d_tcpserversock, &readfds );
+      int fdmax=max(d_tcpserversock,max(d_clientsock,d_serversock));
+      for(vector<TCPConnection>::const_iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
+	FD_SET(i->fd, &readfds);
+	fdmax=max(fdmax,i->fd);
+      }
 
 
       /* this should listen on a TCP port as well for new connections,  */
-      int selret = select( max(d_clientsock,d_serversock) + 1, &readfds, NULL, NULL, &tv );
+      int selret = select(  fdmax + 1, &readfds, NULL, NULL, &tv );
       if(selret<=0) 
 	if (selret == -1 && errno!=EINTR) 
 	  throw AhuException("Select returned: "+stringerror());
@@ -424,7 +490,7 @@ int main(int argc, char **argv)
 	}
       }
       
-      if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question?
+      if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question on udp?
 	d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
 	if(d_len<0) 
 	  continue;
@@ -437,8 +503,91 @@ int main(int argc, char **argv)
 	    L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
 	  else {
 	    ++qcounter;
+	    P.setSocket(0);
 	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
 
+	  }
+	}
+      }
+
+      if(FD_ISSET(d_tcpserversock,&readfds)) { // do we have a new TCP connection
+	struct sockaddr_in addr;
+	socklen_t addrlen=sizeof(addr);
+	int newsock=accept(d_tcpserversock, (struct sockaddr*)&addr, &addrlen);
+	Utility::setNonBlocking(newsock);
+	
+	if(newsock>0) {
+	  TCPConnection tc;
+	  tc.fd=newsock;
+	  tc.state=TCPConnection::BYTE0;
+	  tc.remote=addr;
+	  L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&tc.remote,sizeof(tc.remote))<<" connected"<<endl;
+	  tcpconnections.push_back(tc);
+	}
+      }
+
+      for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
+	if(FD_ISSET(i->fd, &readfds)) {
+	  if(i->state==TCPConnection::BYTE0) {
+	    int bytes=read(i->fd,i->data,2);
+	    if(bytes==1)
+	      i->state=TCPConnection::BYTE1;
+	    if(bytes==2) { 
+	      i->qlen=(i->data[0]<<8)+i->data[1];
+	      i->bytesread=0;
+	      i->state=TCPConnection::GETQUESTION;
+	    }
+	    if(!bytes || bytes < 0) {
+	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected"<<endl;
+	      close(i->fd);
+	      tcpconnections.erase(i);
+	      break;
+	    }
+	  }
+	  else if(i->state==TCPConnection::BYTE1) {
+	    int bytes=read(i->fd,i->data+1,1);
+	    if(bytes==1) {
+	      i->state=TCPConnection::GETQUESTION;
+	      i->qlen=(i->data[0]<<8)+i->data[1];
+	      i->bytesread=0;
+	    }
+	    if(!bytes || bytes < 0) {
+	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected after first byte"<<endl;
+	      close(i->fd);
+	      tcpconnections.erase(i);
+	      break;
+	    }
+	    
+	  }
+	  else if(i->state==TCPConnection::GETQUESTION) {
+	    int bytes=read(i->fd,i->data + i->bytesread,i->qlen - i->bytesread);
+	    if(!bytes || bytes < 0) {
+	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected while reading question body"<<endl;
+	      close(i->fd);
+	      tcpconnections.erase(i);
+	      break;
+	    }
+	    i->bytesread+=bytes;
+	    if(i->bytesread==i->qlen) {
+	      i->state=TCPConnection::BYTE0;
+
+	      if(P.parse(i->data,i->qlen)<0) {
+		L<<Logger::Error<<"Unparseable packet from remote client "<<P.getRemote()<<endl;
+		close(i->fd);
+		tcpconnections.erase(i);
+		break;
+	      }
+	      else { 
+		P.setSocket(i->fd);
+		P.setRemote((struct sockaddr *)&i->remote,sizeof(i->remote));
+		if(P.d.qr)
+		  L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+		else {
+		  ++qcounter;
+		  MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+		}
+	      }
+	    }
 	  }
 	}
       }

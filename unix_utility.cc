@@ -187,7 +187,7 @@ int Utility::writev(int socket, const struct iovec *vector, size_t count )
   return ::writev(socket,vector,count);
 }
 
-#ifdef DARWIN
+#if DARWIN || _AIX
 
 // Darwin 6.0 Compatible implementation, uses pthreads so it portable across more platforms.
 
