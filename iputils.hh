@@ -51,10 +51,13 @@ public:
   Netmask(const string &mask) 
   {
     char *p;
-    char bits=32;
-    if((p=strchr(mask.c_str(),'/')))
-      bits=atoi(p+1);
+    u_int8_t bits=32;
+    d_mask=0xFFFFFFFF;
 
+    if((p=strchr(mask.c_str(),'/')))
+      bits = (u_int8_t) atoi(p+1);
+
+    if( bits < 32 )
     d_mask=~(0xFFFFFFFF>>bits);
 
     struct in_addr a;

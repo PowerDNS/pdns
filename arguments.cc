@@ -196,7 +196,7 @@ bool ArgvMap::parmIsset(const string &var)
 void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
 {
   string var, val;
-  unsigned int pos;
+  string::size_type pos;
 
   if(!arg.find("--") &&(pos=arg.find("="))!=string::npos)  // this is a --port=25 case
     {
@@ -260,7 +260,7 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg)
   
   string line;
   string pline;
-  unsigned int pos;
+  string::size_type pos;
 
   while(getline(f,pline)) {
     chomp(pline,"\t\r\n");
@@ -305,7 +305,7 @@ bool ArgvMap::file(const char *fname, bool lax)
   
   string line;
   string pline;
-  unsigned int pos;
+  string::size_type pos;
   while(getline(f,pline)) {
     chomp(pline,"\t\r\n");
 

@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/10/27 15:01:49 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/11/23 15:14:57 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -7589,6 +7589,13 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	</table>
       </para>
       <para>
+	<note>
+	  <para>
+	    There is also the Bind2backend which works exactly like this backend but is far more experimental. In the future it supplant the bindbackend.
+	  </para>
+	</note>
+      </para>
+      <para>
 	The BindBackend started life as a demonstration of the versatility of PDNS but quickly gained in importance when there appeared to be demand
 	for a Bind 'workalike'.
       </para>
@@ -7736,7 +7743,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      </listitem>
 	    </varlistentry>
 	    <varlistentry>
-	      <term>bind-reload</term>
+	      <term>reload</term>
 	      <listitem>
 		<para>
 		  All zones with a changed timestamp are reloaded at the next incoming query for them.

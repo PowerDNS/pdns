@@ -118,7 +118,6 @@ Logger& Logger::operator<<(ostream & (&)(ostream &))
   // *this<<" ("<<(int)d_outputurgencies[pthread_self()]<<", "<<(int)consoleUrgency<<")";
   pthread_mutex_lock(&lock);
 
-
   log(d_strings[pthread_self()], d_outputurgencies[pthread_self()]);
   d_strings.erase(pthread_self());  
   d_outputurgencies.erase(pthread_self());

@@ -130,7 +130,22 @@ int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 
 void replaceCache(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
-  cache[toLower(qname)+"|"+qt.getName()]=content;
+
+  // bogus code to generate root with very low ttl
+  /*  
+  if((0 && qname.empty()) || qname.rfind(".root-servers.net")==1) {
+    cout<<"qname: '"<<qname<<"'"<<endl;
+    set<DNSResourceRecord> changed;
+    for(set<DNSResourceRecord>::const_iterator i=content.begin();i!=content.end();++i) {
+      DNSResourceRecord j=*i;
+      j.ttl=time(0)+20;
+      changed.insert(j);
+    }
+    cache[qname+"|"+qt.getName()]=changed;
+  }
+  else
+  */
+    cache[toLower(qname)+"|"+qt.getName()]=content;
 }
 
 void doPrune(void)
@@ -168,7 +183,7 @@ static void writePid(void)
     L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
 }
 
-void init(void)
+void primeHints(void)
 {
   // prime root cache
   static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
@@ -471,7 +486,7 @@ int main(int argc, char **argv)
     struct sockaddr_in fromaddr;
     
     PacketID pident;
-    init();    
+    primeHints();    
     L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 #ifndef WIN32
     if(arg().mustDo("daemon")) {

@@ -182,7 +182,7 @@ void ZoneParser::fillRec(const string &qname, const string &qtype, const string 
 
 void ZoneParser::cutOff(string &line, const string &delim)
 {
-  unsigned int pos=line.find_first_of(delim);
+  string::size_type pos=line.find_first_of(delim);
   if(pos==string::npos)
     return;
   line.resize(pos);
@@ -193,7 +193,7 @@ bool ZoneParser::eatLine(const string& line, vector<Record> &rec)
   rec.clear();
   static string tline;
   static string lastfirstword;
-  unsigned int pos=string::npos;
+  string::size_type pos=string::npos;
 
   if(tline.empty()) {
     pos=line.find_first_of("(");
