@@ -169,6 +169,7 @@ void *TCPNameserver::doConnection(void *data)
 	continue;
       }
 
+
       if(packet->d.rd && arg().mustDo("recursor")) {
 	// now what
 	// this is a pretty rare event all in all, so we can afford to be slow
@@ -245,7 +246,7 @@ void *TCPNameserver::doConnection(void *data)
 
 static bool canDoAXFR(DNSPacket *q)
 {
-  if(!arg().mustDo("disable-axfr")) // default is 'everybody can do axfr'
+  if(!arg().mustDo("disable-axfr") || !arg()["allow-axfr-ips"].empty()) // default is 'everybody can do axfr'
     return true;
 
   vector<string>parts;

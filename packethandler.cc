@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.13 2003/03/20 13:29:29 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.14 2003/04/05 19:31:52 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -170,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.13 2003/03/20 13:29:29 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.14 2003/04/05 19:31:52 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -567,6 +567,12 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     }
     
     r=p->replyPacket();  // generate an empty reply packet
+
+    if(p->qtype.getCode()==QType::IXFR) {
+      r->setRcode(RCode::NotImp);
+      return r;
+    }
+
     bool found=false;
     
     string target=p->qdomain;
