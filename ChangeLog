@@ -1,6 +1,9 @@
 changes since 2.9.11:
 	- ldap updates
 		no longer sends entire reverse zone with AXFR
+	- SRV fixes for zonefiles (Christof Meerwald)
+	- gpgsql no longer reports as gmysql (Sherwin Daganoto)
+	- we now understand 0.0.0.0/0
 
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache

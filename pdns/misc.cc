@@ -145,41 +145,6 @@ void parseService(const string &descr, ServiceTuple &st)
     st.port=atoi(parts[1].c_str());
 }
 
-int matchNetmask(const char *address, const char *omask)
-{
-  struct in_addr a,m;
-  int bits=32;
-  char *sep;
-
-  char *mask=strdup(omask);
-  sep=strchr(mask,'/');
-
-  if(sep) {
-    bits=atoi(sep+1);
-    *sep=0;
-  }
-
-  if(!Utility::inet_aton(address, &a) || !Utility::inet_aton(mask, &m))
-  {
-    free(mask);
-    return -1;
-  }
-
-  free(mask);
-
-  // bits==32 -> 0xffffffff
-  // bits==16 -> 0xffff0000
-  // bits==0 ->  0x00000000
-  unsigned int bmask=~((1<<(32-bits))-1);     // 1<<16 0000 0000  0000 0000  0000 0000  0000 0000
-
-  /*
-  fprintf(stderr,"%x\n",bmask);
-  fprintf(stderr,"%x\n",(htonl((unsigned int)a.s_addr) & bmask));
-  fprintf(stderr,"%x\n",(htonl((unsigned int)m.s_addr) & bmask));
-  */
-
-  return ((htonl((unsigned int)a.s_addr) & bmask) == (htonl((unsigned int)m.s_addr) & bmask));
-}
 
 int waitForData(int fd, int seconds)
 {

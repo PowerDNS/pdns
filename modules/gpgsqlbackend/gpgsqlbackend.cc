@@ -1,4 +1,4 @@
-// $Id: gpgsqlbackend.cc,v 1.2 2003/01/02 15:43:00 ahu Exp $ 
+// $Id: gpgsqlbackend.cc,v 1.3 2003/08/30 14:34:04 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -95,7 +95,7 @@ public:
   {
     BackendMakers().report(new gPgSQLFactory("gpgsql"));
     BackendMakers().report(new gPgSQLFactory("gpgsql2"));
-    L<<Logger::Warning<<"This is module gmysqlbackend.so reporting"<<endl;
+    L<<Logger::Warning<<"This is module gpgsqlbackend.so reporting"<<endl;
   }
 };
 static gPgSQLLoader gpgsqlloader;

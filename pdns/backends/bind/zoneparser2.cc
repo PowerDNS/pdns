@@ -529,9 +529,13 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
   int left=words.size()-cpos;
   string content;
 
-  if(qtype=="MX" && left==2) {
-    int prio=atoi(words[cpos++].c_str());
-    content=words[cpos];
+   if((qtype=="MX" && left==2) || (qtype=="SRV" && left==4)){
+     int prio=atoi(words[cpos++].c_str());left--;
+     content=words[cpos++];left--;
+     
+     while(left--)
+       content+=" "+words[cpos++];
+     
     if(content=="@")
       content=d_origin;
     else

@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/07/05 14:13:18 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/08/30 14:34:04 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -6933,7 +6933,7 @@ GRANT ALL ON records_id_seq TO pdns;
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>gmysql-host (only for MySQL!)</term>
+              <term>gmysql-socket (only for MySQL!)</term>
               <listitem>
                 <para>
 		  Filename where the MySQL connection socket resides. Often <filename>/tmp/mysql.sock</filename> or <filename>/var/run/mysqld/mysqld.sock</filename>. 

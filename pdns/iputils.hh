@@ -55,7 +55,7 @@ public:
     if((p=strchr(mask.c_str(),'/')))
       bits=atoi(p+1);
 
-    d_mask=~((1<<(32-bits))-1);     // 1<<16 0000 0000  0000 0000  0000 0000  0000 0000
+    d_mask=~(0xFFFFFFFF>>bits);
 
     struct in_addr a;
     if(!Utility::inet_aton(mask.substr(0,p-mask.c_str()).c_str(), &a))
