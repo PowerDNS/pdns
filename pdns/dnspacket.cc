@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.17 2003/02/25 12:36:49 ahu Exp $
+// $Id: dnspacket.cc,v 1.18 2003/03/12 16:06:35 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -1191,10 +1191,12 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
     rr.ttl=answerp[offset+7]+256*(answerp[offset+6]+256*(answerp[offset+5]+256*answerp[offset+4]));
     rr.content="";
     length=256*(unsigned char)answerp[offset+8]+(unsigned char)answerp[offset+8+1];
-    // was:  ntohs(*(u_int16_t*)(answerp+offset+8));
-    // XXX check if this 'length' extends beyond the end of the packet!
 
     const unsigned char *datapos=answerp+offset+10;
+
+    if(datapos+length  > end)
+      throw AhuException("Record extends beyond end of packet");
+
     string part;
     offset=0;
 

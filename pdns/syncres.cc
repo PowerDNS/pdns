@@ -190,22 +190,36 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
 
 bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
+  bool giveNegative=false;
   string prefix(d_prefix), tuple;
   prefix.append(depth, ' ');
-
-  tuple=toLower(qname)+"|"+qtype.getName();
-  LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', "<<s_negcache.count(tuple)<<endl;
 
   string sqname(qname);
   QType sqt(qtype);
 
-  res=0;
-  map<string,string>::const_iterator ni=s_negcache.find(tuple);
-  if(ni!=s_negcache.end()) {
-    LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached, will return immediately if we still have SOA ("<<ni->second<<") to prove it"<<endl;
-    res=RCode::NXDomain;
+  if(s_negcache.count(toLower(qname))) {
+    res=0;
+    map<string,string>::const_iterator ni=s_negcache.find(toLower(qname));
+
+    LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached "<<endl;
+    res=RCode::NXDomain; 
+    giveNegative=true;
     sqname=ni->second;
     sqt="SOA";
+  }
+  else {
+    tuple=toLower(qname)+"|"+qtype.getName();
+    LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', "<<s_negcache.count(tuple)<<endl;
+
+    res=0;
+    map<string,string>::const_iterator ni=s_negcache.find(tuple);
+    if(ni!=s_negcache.end()) {
+      LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached, will return immediately if we still have SOA ("<<ni->second<<") to prove it"<<endl;
+      res=RCode::NoError; // only this record doesn't exist
+      giveNegative=true;
+      sqname=ni->second;
+      sqt="SOA";
+    }
   }
 
   set<DNSResourceRecord> cset;
@@ -217,7 +231,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
       if(j->ttl>(unsigned int)time(0)) {
 	DNSResourceRecord rr=*j;
 	rr.ttl-=time(0);
-	if(res==RCode::NXDomain)
+	if(giveNegative)
 	  rr.d_place=DNSResourceRecord::AUTHORITY;
 	ret.push_back(rr);
 	LOG<<"[ttl="<<rr.ttl<<"] ";
@@ -360,10 +374,12 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       string newauth, soaname, newtarget;
 
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
-	if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA) {
-	  LOG<<prefix<<qname<<": got negative caching indication for '"<<toLower(qname)+"|"+qtype.getName()<<"'"<<endl;
+	if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
+	   d_lwr.d_rcode==RCode::NXDomain) {
+	  LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<toLower(qname)+"'"<<endl;
 	  ret.push_back(*i);
-	  s_negcache[toLower(qname)+"|"+qtype.getName()]=i->qname;
+
+	  s_negcache[toLower(qname)]=i->qname;
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -385,6 +401,14 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  else 
 	    LOG<<prefix<<qname<<": got upwards/level NS record '"<<i->qname<<"' -> '"<<i->content<<"', had '"<<auth<<"'"<<endl;
 	  nsset.insert(toLower(i->content));
+	}
+	else if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
+	   d_lwr.d_rcode==RCode::NoError) {
+	  LOG<<prefix<<qname<<": got negative caching indication for '"<<toLower(qname)+"|"+i->qtype.getName()+"'"<<endl;
+	  ret.push_back(*i);
+
+	  s_negcache[toLower(qname)+"|"+qtype.getName()]=i->qname;
+	  negindic=true;
 	}
       }
 

@@ -91,6 +91,7 @@ void declareArguments()
   arg().set("webserver-password","Password required for accessing the webserver")="";
 
   arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="no";
+  arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="no";
   arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   
   arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
@@ -162,7 +163,7 @@ void sendout(const DNSDistributor::AnswerData &AD)
   N->send(AD.A);
   numanswered++;
   int diff=AD.A->d_dt.udiff();
-  avg_latency=(int)(0.999*avg_latency+0.001*diff);
+  avg_latency=(int)(1023*avg_latency/1024+diff/1024);
 
   delete AD.A;  
 

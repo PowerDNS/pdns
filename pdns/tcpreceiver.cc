@@ -73,6 +73,7 @@ void TCPNameserver::go()
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<Logger::NTLog<<"TCP server is unable to launch backends - will try again when questions come in"<<endl;
+    L<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
   }
   pthread_create(&d_tid, 0, launcher, static_cast<void *>(this));
 }

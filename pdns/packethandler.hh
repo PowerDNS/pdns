@@ -88,8 +88,7 @@ private:
   int doVersionRequest(DNSPacket *p, DNSPacket *r, string &target);
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
-  int doAdditionalProcessing(DNSPacket *p, DNSPacket *r);
-
+  int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r);
   
   static int s_count;
   bool d_doFancyRecords;
@@ -97,6 +96,7 @@ private:
   bool d_doWildcards;
   bool d_doCNAME;
   bool d_logDNSDetails;
+  bool d_doIPv6AdditionalProcessing;
 
   UeberBackend B; // every thread an own instance
 };
