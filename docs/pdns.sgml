@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/10/27 14:58:22 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/10/27 15:01:49 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -126,7 +126,8 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Answers are now shuffled! It turns out a few recursors don't do shuffling (pdns_recursor, djbdns), so we do it now. Requested by Jorn of ISP-Services.
+		Answers are now shuffled! It turns out a few recursors don't do shuffling (pdns_recursor, djbdns), so we do it now. Requested by Jorn Ekkelenkamp of ISP-Services. This means that if you have
+		multiple IP addresses for one host, they will be returned in differing order every once in a while.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
