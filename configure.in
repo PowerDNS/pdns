@@ -53,52 +53,9 @@ then
 fi
 LIBS=$ac_save_LIBS
 
-# pthread_create is in standard libraries (As in BSDI 3.0)
-AC_MSG_CHECKING([for pthread_create in -libc]);
-AC_TRY_LINK(
-[#include <pthread.h>],
-[ (void) pthread_create((pthread_t*) 0,(pthread_attr_t*) 0, 0, 0); ],
-with_posix_threads=yes, with_posix_threads=no)
-AC_MSG_RESULT("$with_posix_threads")
-if test "$with_posix_threads" = "no"
-then
-  AC_MSG_CHECKING([for pthread_create in -lpthread]);
-  ac_save_LIBS="$LIBS"
-  LIBS="$LIBS -lpthread"
-  AC_TRY_LINK(
-  [#include <pthread.h>],
-  [ (void) pthread_create((pthread_t*) 0,(pthread_attr_t*) 0, 0, 0); ],
-  with_posix_threads=yes, with_posix_threads=no)
-  AC_MSG_RESULT("$with_posix_threads")
-  if test "$with_posix_threads" = "no"
-  then
-    LIBS=" $ac_save_LIBS -lpthreads"
-    AC_MSG_CHECKING([for pthread_create in -lpthreads]);
-    AC_TRY_LINK(
-    [#include <pthread.h>],
-    [ pthread_create((pthread_t*) 0,(pthread_attr_t*) 0, 0, 0); ],
-    with_posix_threads=yes, with_posix_threads=no)
-    AC_MSG_RESULT("$with_posix_threads")
-    if test "$with_posix_threads" = "no"
-    then
-	  # This is for FreeBSD
-	  LIBS="$ac_save_LIBS -pthread"
-	  AC_MSG_CHECKING([for pthread_create in -pthread]);
-	  AC_TRY_LINK(
-	  [#include <pthread.h>],
-	  [ pthread_create((pthread_t*) 0,(pthread_attr_t*) 0, 0, 0); ],
-	  with_posix_threads=yes, with_posix_threads=no)
-      AC_MSG_RESULT("$with_posix_threads")
-      if test "$with_posix_threads" = "no"
-	  then
-	    with_mit_threads="yes"
-	    LIBS="$ac_save_LIBS"
-	  fi
-	fi
-  fi
-fi
-
 DYNLINKFLAGS=""
+THREADFLAGS=""
+
 case "$host_os" in
 solaris2.8 | solaris2.9 ) 
 	AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
@@ -116,8 +73,9 @@ solaris2.6 | solaris2.7)
 linux*)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
 	DYNLINKFLAGS="-rdynamic"
-	LDFLAGS="-pthread $LDFLAGS"
-	CXXFLAGS="-pthread -D_GNU_SOURCE $CXXFLAGS"
+	LDFLAGS="$LDFLAGS"
+	THREADFLAGS="-pthread"
+	CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
 	;;
 openbsd*)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
@@ -132,6 +90,8 @@ openbsd*)
 	CXXFLAGS="-pthread $CXXFLAGS"
 	;;
 esac
+
+AC_SUBST(THREADFLAGS)
 
 AC_SUBST(DYNLINKFLAGS)
 

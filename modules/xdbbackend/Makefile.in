@@ -81,6 +81,7 @@ PGSQL_incdir = @PGSQL_incdir@
 PGSQL_lib = @PGSQL_lib@
 RANLIB = @RANLIB@
 STRIP = @STRIP@
+THREADFLAGS = @THREADFLAGS@
 VERSION = @VERSION@
 YACC = @YACC@
 am__include = @am__include@
