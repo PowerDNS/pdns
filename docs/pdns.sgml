@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/29 00:50:34 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/02 16:11:43 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -5582,6 +5582,115 @@ GRANT ALL ON records_id_seq TO pdns;
 	  </variablelist>
 	</para>
       </sect2>
+      <sect2 id="master-slave-queries"><title>Master/slave queries</title>
+	<para>
+	  Most installations will have zero need to change the following settings, but should the need arise, here they are:
+	  <variablelist>
+	    <varlistentry>
+	      <term>master-zone-query</term>
+	      <listitem>
+		<para>
+		  Called to determine the master of a zone.
+		  Default: <command>select master from domains where name='%s' and type='SLAVE'</command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>info-zone-query</term>
+	      <listitem>
+		<para>
+		  Called to retrieve (nearly) all information for a domain:
+		  Default: <command>select id,name,master,last_check,notified_serial,type from domains where name='%s'</command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>info-all-slaves-query</term>
+	      <listitem>
+		<para>
+		  Called to retrieve all slave domains
+		  Default: <command>select id,name,master,last_check,type from domains where type='SLAVE'</command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>supermaster-query</term>
+	      <listitem>
+		<para>
+		  Called to determine if a certain host is a supermaster for a certain domain naeme.
+		  Default: <command>
+		    select account from supermasters where ip='%s' and nameserver='%s'");
+		  </command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>insert-slave-query</term>
+	      <listitem>
+		<para>
+		  Called to add a domain as slave after a supermaster notification.
+		  Default: <command>
+		    insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')
+		  </command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>insert-record-query</term>
+	      <listitem>
+		<para>
+		  Called during incoming AXFR.
+		  Default: <command>
+		    insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')
+		  </command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>update-serial-query</term>
+	      <listitem>
+		<para>
+		  Called to update the last notified serial of a master domain.
+		  Default: <command>
+		    update domains set notified_serial=%d where id=%d
+		  </command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>update-lastcheck-query</term>
+	      <listitem>
+		<para>
+		  Called to update the last time a slave domain was checked for freshness.
+		  Default: <command>
+		    update domains set notified_serial=%d where id=%d
+		  </command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>info-all-master-query</term>
+	      <listitem>
+		<para>
+		  Called to get data on all domains for which the server is master.
+		  Default: <command>
+		    select id,name,master,last_check,notified_serial,type from domains where type='MASTER'
+		  </command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>delete-zone-query</term>
+	      <listitem>
+		<para>
+		  Called to delete all records of a zone. Used before an incoming AXFR.
+		  Default: <command>
+		    delete from records where domain_id=%d
+		  </command>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
       <sect2><title>Fancy records</title>
 	<para>
 	  If PDNS is used with so called 'Fancy Records', the 'MBOXFW' record exists which specifies an email address forwarding instruction, 
