@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.27 2005/01/11 19:41:11 ahu Exp $";
+    rr.content = "PowerDNS $Id$";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -174,7 +174,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
   const string mode=arg()["version-string"];
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
     if(mode.empty() || mode=="full") 
-      rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.27 2005/01/11 19:41:11 ahu Exp $";
+      rr.content="Served by POWERDNS "VERSION" $Id$";
     else if(mode=="anonymous") {
       r->setRcode(RCode::ServFail);
       return 1;
@@ -558,7 +558,8 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     bool found=false;
     
     string target=p->qdomain;
-    
+    bool noCache=false;
+
     if (doDNSCheckRequest(p, r, target))
       goto sendit;
     
@@ -667,11 +668,15 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     else
       weAuth=false;
 
-    if(p->d.rd && d_doRecursion && !weAuth && DP->sendPacket(p)) {
-      delete r;
-      return 0;
-    }
 
+    if(p->d.rd && d_doRecursion && !weAuth) {
+      if(DP->sendPacket(p)) {
+	delete r;
+	return 0;
+      }
+      else noCache=true;
+    }
+    
     string::size_type pos;
     
     DLOG(L<<"Nothing found so far for '"<<target<<"', do we even have authority over this domain?"<<endl);
@@ -779,16 +784,12 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     // whatever we've built so far, do additional processing
     
   sendit:;
-
     if(doAdditionalProcessingAndDropAA(p,r)<0)
       return 0;
     
-
-    
-    
-
     r->wrapup(); // needed for inserting in cache
-    PC.insert(p,r); // in the packet cache
+    if(!noCache)
+      PC.insert(p,r); // in the packet cache
   }
   catch(DBException &e) {
     L<<Logger::Error<<"Database module reported condition which prevented lookup - sending out servfail"<<endl;
