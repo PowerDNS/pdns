@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend2.cc,v 1.4 2003/08/22 13:33:31 ahu Exp $ 
+// $Id: bindbackend2.cc,v 1.5 2003/09/28 18:34:07 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -23,6 +23,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -50,6 +52,7 @@ map<string,int> Bind2Backend::s_name_id_map;
 map<u_int32_t,BB2DomainInfo* > Bind2Backend::s_id_zone_map;
 int Bind2Backend::s_first=1;
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t Bind2Backend::s_zonemap_lock=PTHREAD_MUTEX_INITIALIZER;
 
 /* when a query comes in, we find the most appropriate zone and answer from that */
 
@@ -440,6 +443,9 @@ void Bind2Backend::rediscover(string *status)
 
 void Bind2Backend::loadConfig(string* status)
 {
+  // Interference with createSlaveDomain()
+  Lock l(&s_zonemap_lock);
+  
   static int domain_id=1;
   nbbds.clear();
   if(!getArg("config").empty()) {
@@ -764,6 +770,90 @@ bool Bind2Backend::isMaster(const string &name, const string &ip)
   return false;
 }
 
+bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db)
+{
+  // Check whether we have a configfile available.
+  if (getArg("supermaster-config").empty())
+    return false;
+
+  ifstream c_if(getArg("supermasters").c_str(), ios_base::in); // this was nocreate?
+  if (!c_if) {
+    L << Logger::Error << "Unable to open supermasters file for read: " << stringerror() << endl;
+    return false;
+  }
+
+  // Format:
+  // <ip> <accountname>
+  string line, sip, saccount;
+  while (getline(c_if, line)) {
+    istringstream ii(line);
+    ii >> sip;
+    if (sip == ip) {
+      ii >> saccount;
+      break;
+    }
+  } 
+  c_if.close();
+
+  if (sip != ip)  // ip not found in authorization list - reject
+    return false;
+  
+  // ip authorized as supermaster - accept
+  *db = this;
+  if (saccount.length() > 0)
+      *account = saccount.c_str();
+
+  return true;
+}
+
+bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, const string &account)
+{
+  // Interference with loadConfig(), use locking
+  Lock l(&s_zonemap_lock);
+
+  string filename = getArg("supermaster-destdir")+'/'+domain;
+  
+  L << Logger::Warning << d_logprefix
+    << " Writing bind config zone statement for superslave zone '" << domain
+    << "' from supermaster " << ip << endl;
+        
+  ofstream c_of(getArg("supermaster-config").c_str(),  ios_base::app);
+  if (!c_of) {
+    L << Logger::Error << "Unable to open supermaster configfile for append: " << stringerror() << endl;
+    throw DBException("Unable to open supermaster configfile for append: "+stringerror());
+  }
+  
+  c_of << endl;
+  c_of << "# Superslave zone " << domain << " (added: " << nowTime() << ") (account: " << account << ')' << endl;
+  c_of << "zone \"" << domain << "\" {" << endl;
+  c_of << "\ttype slave;" << endl;
+  c_of << "\tfile \"" << filename << "\";" << endl;
+  c_of << "\tmasters { " << ip << "; };" << endl;
+  c_of << "};" << endl;
+  c_of.close();
+  
+  BB2DomainInfo *bbd = new BB2DomainInfo;
+
+  bbd->d_records = new vector<DNSResourceRecord>;
+  bbd->d_name = domain;
+  bbd->setCheckInterval(getArgAsNum("check-interval"));
+  bbd->d_master = ip;
+  bbd->d_filename = filename;
+
+  // Find a free zone id nr.    
+  if (!s_id_zone_map.empty()) {
+    map<unsigned int, BB2DomainInfo*>::reverse_iterator i = s_id_zone_map.rbegin();
+    bbd->d_id = i->second->d_id + 1;
+  }
+  else
+    bbd->d_id = 0;
+
+  s_id_zone_map[bbd->d_id] = bbd;
+  s_name_id_map[domain] = bbd->d_id;
+  
+  return true;
+}
+
 class Bind2Factory : public BackendFactory
 {
    public:
@@ -774,6 +864,9 @@ class Bind2Factory : public BackendFactory
          declare(suffix,"config","Location of named.conf","");
          declare(suffix,"example-zones","Install example zones","no");
          declare(suffix,"check-interval","Interval for zonefile changes","0");
+         declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
+         declare(suffix,"supermasters","List of IP-addresses of supermasters","");
+         declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",arg()["config-dir"]);
       }
 
       DNSBackend *make(const string &suffix="")
