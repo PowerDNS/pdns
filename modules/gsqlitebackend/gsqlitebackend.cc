@@ -29,11 +29,11 @@ gSQLiteBackend::gSQLiteBackend( const std::string & mode, const std::string & su
   }  
   catch( SSqlException & e ) 
   {
-    L << Logger::Error << mode << " Connection failed: " << e.txtReason() << std::endl;
+    L << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
     throw AhuException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Warning << mode << " Connection succesful" << std::endl;
+  L << Logger::Warning << mode << ": connection to '"<<getArg("database")<<"' succesful" << std::endl;
 }
 
 

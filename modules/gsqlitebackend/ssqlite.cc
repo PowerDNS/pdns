@@ -6,25 +6,22 @@
 
 #include <string>
 #include "ssqlite.hh"
-
+#include <iostream>
 
 // Constructor.
 SSQLite::SSQLite( const std::string & database )
 {
   // Open the database connection.
-  m_pDB = sqlite_open( database.c_str(), 0, NULL );
-  if ( m_pDB == NULL )
-    throw sPerrorException( "Could not connect to the SQLite database" );
+  if(access(database.c_str(),F_OK) == -1 || !(m_pDB = sqlite_open( database.c_str(), 0, NULL )))
+    throw sPerrorException( "Could not connect to the SQLite database '"+database+"'" );
 
-  m_pVM = NULL;
 }
 
 
 // Destructor.
 SSQLite::~SSQLite( void )
 {
-  if ( m_pDB )
-    sqlite_close( m_pDB );
+  sqlite_close( m_pDB );
 }
 
 
@@ -56,9 +53,18 @@ int SSQLite::doQuery( const std::string & query )
   const char *pOut;
 
   // Execute the query.
-  if ( sqlite_compile( m_pDB, query.c_str(), &pOut, &m_pVM, NULL ) != SQLITE_OK )
+  char *error=0;
+  if ( sqlite_compile( m_pDB, query.c_str(), &pOut, &m_pVM, &error ) != SQLITE_OK )
     sPerrorException( "Could not create SQLite VM for query" );
-    
+  
+  if(!m_pVM) {
+    string report("Unable to compile SQLite statement");
+    if(error) {
+      report+=string(": ")+error;
+      sqlite_freemem(error);
+    }
+    sPerrorException(report);
+  }
   return 0;
 }
 
@@ -76,11 +82,11 @@ bool SSQLite::getRow( row_t & row )
     rc = sqlite_step( m_pVM, &numCols, &ppData, &ppColumnNames );
     
     if ( rc == SQLITE_BUSY )
-    {
       usleep( 250 ); // FIXME: Should this be increased, decreased, or is it Just Right? :)
-      continue;
-    }   
-  } while ( false );
+    else
+      break;
+
+  } while ( true );
   
   if ( rc == SQLITE_ROW )
   {
