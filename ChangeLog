@@ -2,6 +2,7 @@ Changes since 2.9:
 	- 'set' no longer allows setting non-existent variables
 	- added db2 backend to distribution
 	- added beginnings of ./configure autoconfiscation of mysql location
+	- fixed very embarrassing bug in bind parser - would die on escaping a '
 
 Changes since 2.8:
 	- license

@@ -18,7 +18,7 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.2 2002/11/29 22:50:56 ahu Exp $ 
+// $Id: zone2sql.cc,v 1.3 2002/11/29 23:09:08 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 # include <unistd.h>
@@ -41,15 +41,19 @@ using namespace std;
 
 StatBag S;
 
-string sqlstr(const string &str)
+static const string sqlstr(const string &name)
 {
-  if(str.find("\'")!=string::npos)
-    throw 0;
+  string a="\'";
 
-  string ret="\'";
-  ret+=str;
-  ret+="\'";
-  return ret;
+  for(string::const_iterator i=name.begin();i!=name.end();++i)
+    if(*i=='\'' || *i=='\\'){
+      a+='\\';
+      a+=*i;
+    }
+    else
+      a+=*i;
+  a+="\'";
+  return a;
 }
 
 static int dirty_hack_num;
@@ -262,9 +266,13 @@ int main(int argc, char **argv)
     cerr<<"Fatal error: "<<ae.reason<<endl;
     return 0;
   }
+  catch(exception &e) {
+    cerr<<"died because of STL error: "<<e.what()<<endl;
+    exit(0);
+  }
   catch(...) {
-    cerr<<"An unknown error occured"<<endl;
-    return 0;
+    cerr<<"died because of unknown exception"<<endl;
+    exit(0);
   }
   
   if((mode==POSTGRES || mode==ORACLE) && arg().mustDo("transactions") && g_intransaction)
