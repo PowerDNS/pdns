@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.7 2003/04/30 18:18:32 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.8 2003/06/21 09:59:08 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -133,6 +133,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     DomainInfo sd;
     sd.id=atol(d_result[n][0].c_str());
     sd.zone=d_result[n][1];
+    cout<<"master='"<<d_result[n][2]<<"'"<<endl;
     sd.master=d_result[n][2];
     sd.last_check=atol(d_result[n][3].c_str());
     sd.backend=this;
