@@ -3,18 +3,17 @@
 using namespace std;
 using namespace boost;
 
-
 class ARecordContent : public DNSRecordContent
 {
 public:
   static void report(void)
   {
-    typemap[make_pair(1,1)]=&make;
-  }
+    regist(1,1,&make,"A");
+   }
 
-  static DNSRecordContent* make(const struct dnsrecordheader& ah, PacketReader& pr) 
+  static DNSRecordContent* make(const DNSRecord& dr, PacketReader& pr) 
   {
-    if(ah.d_clen!=4)
+    if(dr.d_clen!=4)
       throw MOADNSException("Wrong size for A record");
 
     ARecordContent* ret=new ARecordContent();
@@ -27,10 +26,6 @@ public:
     return d_ip;
   }
   
-  string getType() const
-  {
-    return "A";
-  }
 
   string getZoneRepresentation() const
   {
@@ -56,15 +51,9 @@ public:
     typemap[make_pair(1,ns_t_aaaa)]=&make;
   }
 
-  string getType() const
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
   {
-    return "AAAA";
-  }
-
-
-  static DNSRecordContent* make(const struct dnsrecordheader& ah, PacketReader& pr) 
-  {
-    if(ah.d_clen!=16)
+    if(dr.d_clen!=16)
       throw MOADNSException("Wrong size for AAAA record");
 
     AAAARecordContent* ret=new AAAARecordContent();
@@ -110,28 +99,18 @@ class OneLabelRecordContent : public DNSRecordContent
 {
 public:
 
-  OneLabelRecordContent(const struct dnsrecordheader& ah, const string& nsname) : d_type(ah.d_type), d_nsname(nsname) {}
+  OneLabelRecordContent(const DNSRecord &dr, const string& nsname) : d_type(dr.d_type), d_nsname(nsname) {}
 
   static void report(void)
   {
-    typemap[make_pair(1,ns_t_ns)]=&make;
-    typemap[make_pair(1,ns_t_cname)]=&make;
-    typemap[make_pair(1,ns_t_ptr)]=&make;
+    regist(1, ns_t_ns, &make, "NS");
+    regist(1, ns_t_cname, &make, "CNAME");
+    regist(1, ns_t_ptr, &make, "PTR");
   }
 
-  static DNSRecordContent* make(const struct dnsrecordheader& ah, PacketReader &pr) 
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader &pr) 
   {
-    return new OneLabelRecordContent(ah, pr.getLabel());
-  }
-
-  string getType() const 
-  {
-    if(d_type==ns_t_ns)
-      return "NS";
-    else if(d_type==ns_t_cname)
-      return "CNAME";
-    if(d_type==ns_t_ptr)
-      return "PTR";
+    return new OneLabelRecordContent(dr, pr.getLabel());
   }
 
   string getZoneRepresentation() const
@@ -165,22 +144,16 @@ public:
 
   static void report(void)
   {
-    typemap[make_pair(1,6)]=&make;
+    regist(1,ns_t_soa,&make,"SOA");
   }
 
-  string getType() const
-  {
-    return "SOA";
-  }
-
-
-  static DNSRecordContent* make(const struct dnsrecordheader& ah, PacketReader& pr) 
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
   {
     u_int16_t nowpos(pr.d_pos);
     string mname=pr.getLabel();
     string rname=pr.getLabel();
 
-    u_int16_t left=ah.d_clen - (pr.d_pos-nowpos);
+    u_int16_t left=dr.d_clen - (pr.d_pos-nowpos);
 
     if(left!=sizeof(struct soatimes))
       throw MOADNSException("SOA RDATA has wrong size: "+lexical_cast<string>(left)+ ", should be "+lexical_cast<string>(sizeof(struct soatimes)));
@@ -223,18 +196,12 @@ public:
   {
   }
 
-  string getType() const
-  {
-    return "MX";
-  }
-
-
   static void report(void)
   {
-    typemap[make_pair(1,ns_t_mx)]=&make;
+    regist(1,ns_t_mx,&make,"MX");
   }
 
-  static DNSRecordContent* make(const struct dnsrecordheader& ah, PacketReader& pr) 
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
   {
     u_int16_t preference=pr.get16BitInt();
     string mxname=pr.getLabel();
@@ -264,5 +231,6 @@ static struct Reporter
     OneLabelRecordContent::report();
     SOARecordContent::report();
     MXRecordContent::report();
+    MXRecordContent::regist(1,255,0,"ANY");
   }
 } reporter __attribute__((init_priority(65535)));
