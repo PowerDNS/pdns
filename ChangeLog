@@ -9,7 +9,22 @@ changes since 2.9.12:
 	- fixed errors with disable-axfr (Norbert)
 	- improved error reporting in zone2sql (Thom May)
 	- Zone2LDAP updates:
-		Now it's possible to generate ldif files containing a tree or a list of entries.                                                                                                                                                                           
+		Now it's possible to generate ldif files containing a tree or a list of entries.
+
+- (Windows) Ported 2.9.13 codebase to Windows.
+- (Windows) Added the Generic SQLite backend.
+- (Windows) Made the Generic ODBC backend conform to the SSql standard
+again.
+- (Windows) Removed the old ODBC backend.  
+- (Windows) The recursor was ported from scratch and now works as an NT
+service.
+- (Windows) Renamed the service to "PowerDNS" (recursor is called "PowerDNS
+Recursor").
+- (Windows) Rewrote the installer from scratch and upgraded to NSIS 2 
+(nsis.sf.net)
+- (Windows) Some other fixes and improvements.
+
+
 
 changes since 2.9.11:
 	- ldap updates
