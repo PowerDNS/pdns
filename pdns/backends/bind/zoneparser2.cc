@@ -58,15 +58,21 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
 
   d_origin=origin;
   
-  char line[2048];
+  char cline[2048];
+  string line;
   d_lineno=0;
   vector<Record> rec;
   stack<FILE *>fds;
   fds.push(zonein);
+
   while(!fds.empty()) {
-    while(fgets(line,2047,fds.top())) {
+    while(fgets(cline,sizeof(cline)-1,fds.top())) {
+      line=cline;
+      chomp(line," \x1a\r\n");
+      cutOff(line,";");
+
       d_lineno++;
-      if(strcasestr(line, "$INCLUDE ")==line) {
+      if(!line.find("$INCLUDE ")) {
 	vector<string> parts;
 	stringtok(parts,line," \t\n"); 
 	if(parts.size()!=2)
@@ -103,24 +109,29 @@ void ZoneParser::parse(const string &fname, const string &origin, vector<Record>
 
   d_origin=origin;
   
-  char line[2048];
+  char cline[2048];
+  string line;
   d_lineno=0;
   vector<Record> rec;
   stack<FILE *>fds;
   fds.push(zonein);
   while(!fds.empty()) {
-    while(fgets(line,2047,fds.top())) {
+    while(fgets(cline,sizeof(cline)-1,fds.top())) {
+      line=cline;
+      chomp(line," \x1a\r\n");
+      cutOff(line,";");
+
       d_lineno++;
-      if(strcasestr(line, "$INCLUDE ")==line) {
+      if(!line.find("$INCLUDE ")) {
 	vector<string> parts;
 	stringtok(parts,line," \t\n");
 	if(parts.size()!=2)
 	  throw AhuException("Invalid $INCLUDE statement in zonefile '"+fname+"'");
 
-
-	FILE *fp=fopen(parts[1].c_str(),"r");
+	string filename=unquotify(parts[1]);
+	FILE *fp=fopen(filename.c_str(),"r");
 	if(!fp)
-	  throw AhuException("Unable to open zonefile '"+parts[1]+"' included from '"+parts[1]+"': "+stringerror());
+	  throw AhuException("Unable to open zonefile '"+filename+"' included from '"+fname+"': "+stringerror());
 	fds.push(fp);
 	continue;
       }
@@ -166,8 +177,6 @@ bool ZoneParser::eatLine(string line, vector<Record> &rec)
   rec.clear();
   static string tline;
   static string lastfirstword;
-  chomp(line," \x1a\r\n");
-  cutOff(line,";");
   unsigned int pos=string::npos;
 
   if(tline.empty()) {
