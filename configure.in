@@ -1,6 +1,6 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
-AM_INIT_AUTOMAKE(pdns, 2.9)
+AM_INIT_AUTOMAKE(pdns, 2.9.1)
 AM_CONFIG_HEADER(config.h)
 CXXFLAGS="-Wall -pthread -O2"
 
@@ -174,8 +174,8 @@ do
 		fi
 
 		case "$MYSQL_libdir" in
-                  /usr/lib ) MYSQL_lib="";;
-		  /* ) MYSQL_lib=-L$MYSQL_libdir;;
+                  /usr/lib ) MYSQL_lib="" ;;
+		  /* ) MYSQL_lib=-L$MYSQL_libdir; LIBS="$MYSQL_lib $LIBS";;
 		  * )  AC_MSG_ERROR([The MySQL library directory ($MYSQL_libdir) must be an absolute path.]) ;;
 		esac
 

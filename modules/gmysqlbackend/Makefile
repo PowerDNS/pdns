@@ -19,7 +19,7 @@ LIBS= -L$(POSTGRES_LIBDIR) -L$(MYSQL_LIBDIR)  $(MYSQL_LIBS)  $(POSTGRES_LIBS)
 DIRNAME=pdns-gmypgsqlbackend-$(VERSION)
 
 PACKAGE = pdns
-VERSION = 2.9
+VERSION = 2.9.1
 DISTFILES=*.cc *.hh Makefile.in OBJECTFILES OBJECTLIBS
 
 top_distdir = ../..
