@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: ueberbackend.cc,v 1.5 2002/12/16 12:51:20 ahu Exp $ 
+// $Id: ueberbackend.cc,v 1.6 2002/12/18 16:22:20 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 
@@ -108,11 +108,14 @@ void UeberBackend::reload()
   }
 }
 
-void UeberBackend::rediscover()
+void UeberBackend::rediscover(string *status)
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
-    ( *i )->rediscover();
+    string tmpstr;
+    ( *i )->rediscover(&tmpstr);
+    if(status) 
+      *status+=tmpstr + (i!=backends.begin() ? "\n" : "");
   }
 }
 

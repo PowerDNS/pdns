@@ -222,10 +222,9 @@ zone_file_command:
 	;
 
 zone_type_command:
-	TYPETOK WORD
+TYPETOK WORD
 	{
-	  //		printf("Found a filename: '%s'\n",$2);
-	  //		ztype=$2;
+		s_di.type=$2;
 	}
 	;
 

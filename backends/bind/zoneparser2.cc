@@ -46,7 +46,7 @@ void ZoneParser::setDirectory(const string &dir)
 
 }
 
-void ZoneParser::parse(const string &fname, const string &origin)
+void ZoneParser::parse(const string &fname, const string &origin, unsigned int domain_id)
 {	
   d_filename=fname.c_str();
 
@@ -84,7 +84,7 @@ void ZoneParser::parse(const string &fname, const string &origin)
       }
       if(eatLine(line,rec))
 	for(vector<Record>::const_iterator i=rec.begin();i!=rec.end();++i)
-	  d_callback(i->name, i->qtype,i->content,i->ttl,i->prio);
+	  d_callback(domain_id,i->name, i->qtype,i->content,i->ttl,i->prio);
     }
     fclose(fds.top());
     fds.pop();

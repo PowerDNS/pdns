@@ -205,7 +205,7 @@ static const short yyrline[] =
      125,   132,   142,   144,   148,   149,   152,   155,   156,   160,
      164,   165,   169,   169,   172,   179,   180,   184,   184,   184,
      186,   190,   194,   195,   199,   199,   199,   199,   202,   205,
-     206,   210,   216,   224,   233,   240
+     206,   210,   216,   224,   232,   239
 };
 #endif
 
@@ -1058,12 +1058,11 @@ case 42:
 case 43:
 #line 226 "bindparser.yy"
 {
-	  //		printf("Found a filename: '%s'\n",$2);
-	  //		ztype=$2;
+		s_di.type=yyvsp[0];
 	}
     break;
 case 44:
-#line 235 "bindparser.yy"
+#line 234 "bindparser.yy"
 {
 		yyval=yyvsp[0];
 	}
@@ -1301,4 +1300,4 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 241 "bindparser.yy"
+#line 240 "bindparser.yy"

@@ -40,21 +40,6 @@ class BBDomainInfo
 public:
   BBDomainInfo();
 
-#if 0
-  BBDomainInfo(const BBDomainInfo &orig) {
-    d_name=orig.d_name;
-    d_loaded=orig.d_loaded;
-    d_rwlock=orig.d_rwlock;
-    cout<<"Copied "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
-  }
-  BBDomainInfo &operator=(const BBDomainInfo &orig) {
-    d_loaded=orig.d_loaded;
-    d_rwlock=orig.d_rwlock;
-    cout<<"Assigned "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
-    return *this;
-  }
-#endif 
-
   void setCtime();
 
   bool current();
@@ -137,7 +122,48 @@ typedef hash_map<string,vector<BBResourceRecord>, hash_string, compare_string> c
 
 
 /** The BindBackend is a DNSBackend that can answer DNS related questions. It looks up data
-    in a Bind-style zone file */
+    in a Bind-style zone file 
+
+    How this all works is quite complex and prone to change. There are a number of containers involved which,
+    together, contain everything we need to know about a domain or a record.
+
+    A domain consists of records. So, 'example.com' has 'www.example.com' as a record.
+
+    All record names are stored in the hash_map d_qnames, with their name as index. Attached to that index
+    is a vector of BBResourceRecords ('BindBackend') belonging to that qname. Each record contains a d_domainid,
+    which is the ID of the domain it belongs to.
+
+    Then there is the map called d_bbds which has as its key the Domain ID, and attached a BBDomainInfo object, which
+    tells us domain metadata (place on disk, if it is a master or a slave etc).
+
+    To allow for AXFRs, there is yet another container, the d_zone_id_map, which contains per domain_id a vector
+    of pointers to vectors of BBResourceRecords. When read in sequence, these deliver all records of a domain_id.
+
+    As there is huge repitition in the right hand side of records, many records point to the same thing (IP address, nameserver),
+    a list of these is kept in s_contents, and each BBResourceRecord only contains a pointer to a record in s_contents.
+
+    So, summarizing:
+    
+    class BBResourceRecord:
+    Everything you need to know about a record. In this context we call the name of a BBResourceRecord 'qname'
+
+    class BBDomainInfo:
+    Domain metadata, like location on disk, last time zone was checked
+
+    d_qnames<qname,vector<BBResourceRecord> >:
+    If you know the qname of a record, this gives you all records under that name. 
+
+    set<string>s_contents:
+    Set of all 'contents' of records, the right hand sides. 
+
+    map<int,vector<vector<BBResourceRecord>* > > d_zone_id_map:
+    If you know the zone_id, this has a vector of pointers to vectors in d_qnames, for AXFR
+
+    map<unsigned int, BBDomainInfo>d_bbds:
+    Map of all domains we know about and metadata about them.
+
+    
+*/
 class BindBackend : public DNSBackend
 {
 public:
@@ -161,7 +187,7 @@ public:
   bool feedRecord(const DNSResourceRecord &r);
   bool commitTransaction();
   void insert(int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
-  void rediscover();
+  void rediscover(string *status=0);
   static HuffmanCodec s_hc;
 private:
   class handle
@@ -213,5 +239,5 @@ private:
   void queueReload(BBDomainInfo *bbd);
   BBResourceRecord resourceMaker(int id, const string &qtype, const string &content, int ttl, int prio);
   static string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid);
-  void loadConfig();
+  void loadConfig(string *status=0);
 };

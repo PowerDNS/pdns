@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnsbackend.hh,v 1.1 2002/11/27 15:18:32 ahu Exp $
+// $Id: dnsbackend.hh,v 1.2 2002/12/18 16:22:20 ahu Exp $
 /* (C) 2002 POWERDNS.COM BV  */
    
 #ifndef DNSBACKEND_HH
@@ -95,7 +95,7 @@ public:
   {
   }
 
-  virtual void rediscover()
+  virtual void rediscover(string* status=0)
   {
   }
 
