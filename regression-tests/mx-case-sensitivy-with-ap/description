@@ -1,0 +1,5 @@
+Example.com has two MX records, one of which is out-of-bailiwick and should
+not receive additional processing. The other is internal to the zone and has
+three A records, which should all be in the additional section. For
+additional difficulty, the question contains an odd CaSe.
+
