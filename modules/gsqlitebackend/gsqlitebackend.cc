@@ -6,6 +6,7 @@
 
 #include "pdns/utility.hh"
 #include <map>
+#include <unistd.h>
 #include <sstream>
 #include <string>
 

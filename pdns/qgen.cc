@@ -200,7 +200,7 @@ void QGen::printStats(bool force)
   d_laststats=time(0);
   cerr<<"Sent "<<d_numqueries<<" questions, "<<d_answeredOK<<" OK answers, ";
   cerr<<d_unanswered.size()<<" unanswered, "<<d_delayed<<" delayed, "<<d_unmatched<<" unmatched, "<<d_ewma.get1()<<"/s"<<endl;
-  d_ewma.submit(d_answeredOK);
+  d_ewma.submit(d_answeredOK + d_delayed + d_nxdomain + d_servfail);
 
 }
 
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
   string server="127.0.0.1";
   unsigned int port=5300;
   unsigned int maxBurst=50;
-  unsigned int maxOutstanding=2000;
+  unsigned int maxOutstanding=200;
   unsigned int maxToRead=1000000;
 
   // parse commandline here

@@ -1,6 +1,6 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.cc,v 1.5 2003/12/17 18:05:10 ahu Exp $  */
+   $Id: smysql.cc,v 1.6 2004/02/01 18:20:16 ahu Exp $  */
 #include "smysql.hh"
 #include <string>
 #include <iostream>
@@ -11,18 +11,20 @@ using namespace std;
 
 bool SMySQL::s_dolog;
 
-SMySQL::SMySQL(const string &database, const string &host, const string &msocket, const string &user, 
+SMySQL::SMySQL(const string &database, const string &host, u_int16_t port, const string &msocket, const string &user, 
 	       const string &password)
 {
   mysql_init(&d_db);
   if (!mysql_real_connect(&d_db, host.empty() ? 0 : host.c_str(), 
 			  user.empty() ? 0 : user.c_str(), 
 			  password.empty() ? 0 : password.c_str(),
-			  database.c_str(), 0,
+			  database.c_str(), port,
 			  msocket.empty() ? 0 : msocket.c_str(),
 			  0)) {
+
     throw sPerrorException("Unable to connect to database");
   }
+
   d_rres=0;
 }
 

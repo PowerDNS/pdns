@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.8 2003/01/14 15:23:45 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.9 2004/02/01 18:20:16 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -22,10 +22,11 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
 {
   try {
     setDB(new SMySQL(getArg("dbname"),
-		  getArg("host"),
-		  getArg("socket"),
-		  getArg("user"),
-		  getArg("password")));
+		     getArg("host"),
+		     getArgAsNum("port"),
+		     getArg("socket"),
+		     getArg("user"),
+		     getArg("password")));
     
   }
   
@@ -44,8 +45,9 @@ public:
   void declareArguments(const string &suffix="")
   {
     declare(suffix,"dbname","Pdns backend database name to connect to","powerdns");
-    declare(suffix,"user","Pdns backend user to connect as","powerdns");
-    declare(suffix,"host","Pdns backend host to connect to","");
+    declare(suffix,"user","Database backend user to connect as","powerdns");
+    declare(suffix,"host","Database backend host to connect to","");
+    declare(suffix,"port","Database backend port to connect to","0");
     declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
 

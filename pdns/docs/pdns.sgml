@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/01/18 10:49:00 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/02/01 18:20:16 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -9308,7 +9308,7 @@ static RandomLoader randomloader;
       </sect2>
       <sect2 id="unix-openbsd"><title>OpenBSD</title>
 	<para>
-	  Compiles but then does not work. We hear that it may work with more recent versions of gcc, please let us know on 
+	  Compiles but then does not work very well. We hear that it may work with more recent versions of gcc, please let us know on 
 	  <email>pdns-dev@mailman.powerdns.com</email>.
 	</para>
       </sect2>
@@ -9317,6 +9317,10 @@ static RandomLoader randomloader;
 	  Solaris 7 is supported, but only just. AAAA records do not work on Solaris 7. Solaris 8 and 9 work fine. The 'Sunpro' compiler
 	  has not been tried but is reported to be lacking large parts of the Standard Template Library, which PowerDNS relies on heavily. 
 	  Use gcc and gmake (if available). Regular Solaris make has some issues with some PowerDNS Makefile constructs.
+	</para>
+	<para>
+	  When compiling, make sure that you have <filename>/usr/ccs/bin</filename> in your path. Furthermore, with some versions of MySQL,
+	  you may have to add "LDFLAGS=-lz" before <command>./configure</command>.
 	</para>
       </sect2>
     </sect1>

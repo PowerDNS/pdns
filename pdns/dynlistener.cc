@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.8 2004/01/16 22:18:12 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.9 2004/02/01 18:20:16 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -101,10 +101,11 @@ DynListener::DynListener(const string &pname)
 
     L<<Logger::Warning<<"Listening on controlsocket in '"<<socketname<<"'"<<endl;
     d_udp=true;
+    listen(d_s,10);
   }
   else
     d_udp=false;
-  listen(d_s,10);
+
 
 }
 

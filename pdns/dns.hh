@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dns.hh,v 1.2 2003/01/08 13:45:30 ahu Exp $ 
+// $Id: dns.hh,v 1.3 2004/02/01 18:20:16 ahu Exp $ 
 /* (C) 2002 POWERDNS.COM BV */
 #ifndef DNS_HH
 #define DNS_HH
@@ -60,7 +60,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : d_place(ANSWER){};
+  DNSResourceRecord() : priority(0), d_place(ANSWER) {};
   ~DNSResourceRecord(){};
 
   string serialize() const;

@@ -1,3 +1,18 @@
+changes since 2.9.15:
+	- zone2sql now compiles again (error on STDIN_FILENO) (Derrik Pates)
+	- fixed some uninitialized reads
+	- fixed a bogus listen call
+	- Solaris dumped core when parsing incoming LOC records (machine to
+	debug on provided by Andrew Mulholland)
+	- delete instead of delete[] in MTasker (thanks valgrind!)
+	- several uninitialized variables used (thanks valgrind!)
+	- MySQL can now be used on a different port again (Chris Anderton)
+	- big speedup in pdns_recursor
+	- I think, not sure, that pdns_recursor throttling did not always
+		throttle well enough
+	- qgen tool
+	- updated b.root-servers.net address
+
 changes since 2.9.14:
 	- you can now do this:
 		dig axfr ds9a.nl @213.244.168.210 |    \
@@ -13,6 +28,7 @@ changes since 2.9.14:
 	- fixed instability in pdns_recursor (had to do with the sorted nameserver stuff)
 	- improved output of stats
 	- LDAP compiles again!
+
 
 changes since 2.9.13:
 	- logging to syslog can now be restricted (norbert)
