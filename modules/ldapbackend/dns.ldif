@@ -1,0 +1,50 @@
+# zone related things including SOA, NS and MX records
+
+dn: dc=snapcount
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: example
+soarecord: ns.example.dom hostmaster@example.dom 2002010401 1800 3600 604800 84600
+nsrecord: ns.example.dom
+mxrecord: 10 mail.example.dom
+mxrecord: 20 mail2.example.dom
+associateddomain: example.dom
+
+
+# Simple record (mail.example.dom has address 172.168.0.2)
+
+dn: dc=mail,dc=snapcount
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: mail
+arecord: 172.168.0.2
+associateddomain: mail.example.dom
+
+
+# There may more than one entry per record
+# This is also applicable to all other records including "associateddomain"
+# but not for a CNAME record
+
+dn: dc=server,dc=snapcount
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: server
+arecord: 10.1.0.1
+arecord: 172.168.0.1
+associateddomain: server.example.dom
+
+
+# domain alias ({mail2,ns}.example.dom is CNAME for server.example.dom)
+# cnamerecord must only contain one entry
+
+dn: dc=backup,dc=snapcount
+objectclass: top
+objectclass: dnsdomain
+objectclass: domainrelatedobject
+dc: server
+cnamerecord: server.example.dom
+associateddomain: mail2.example.dom
+associateddomain: ns.example.dom
