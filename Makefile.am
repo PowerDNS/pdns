@@ -1,5 +1,5 @@
 SUBDIRS=modules pdns
-EXTRA_DIST=TODO WARNING README HACKING INSTALL ChangeLog debian
+EXTRA_DIST=TODO WARNING README HACKING INSTALL ChangeLog debian pdns.spec
 
 install-exec-local: 
 	@echo "***********************************************************"

@@ -19,7 +19,8 @@ See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
 
 SOLARIS NOTES
 -------------
-You need gcc 3.x, preferably 3.2!
+You need gcc 3.x, preferably 3.2! The 'Sunpro' compiler is currently not
+supported (patches are welcome if not too intrusive).
 If you encounter problems with the Solaris make, gmake is advised
 
 IPv6 is currently (2.9.1.) broken in Solaris, awaiting patches!

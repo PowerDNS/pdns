@@ -438,22 +438,26 @@ TCPNameserver::TCPNameserver()
   // TODO: Implement ipv6
 #if !WIN32 && HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
-    struct sockaddr_in6 local;
     int s=socket(AF_INET6,SOCK_STREAM,0); 
 
     if(s<0) 
       throw AhuException("Unable to acquire TCPv6 socket: "+stringerror());
-    
-    memset(&local,0,sizeof(local));
-    local.sin6_family=AF_INET6;
-    struct hostent *h;
-    h=gethostbyname2(laddr->c_str(),AF_INET6);
-  
-    if(!h)
-      throw AhuException("Unable to resolve local address '"+*laddr+"'");
+
+    sockaddr_in6 locala;
+    locala.sin6_port=ntohs(arg().asNum("local-port"));
+
+    if(!inet_pton(AF_INET6, laddr->c_str(), (void *)&locala.sin6_addr)) {
+      addrinfo *addrinfos;
+      addrinfo hints;
+      memset(&hints,0,sizeof(hints));
+      hints.ai_socktype=SOCK_STREAM;
+      hints.ai_family=AF_INET6;
       
-    memcpy(&local.sin6_addr.s6_addr,h->h_addr,16);
-    local.sin6_port=htons(arg().asNum("local-port"));
+      if(getaddrinfo(laddr->c_str(),arg()["local-port"].c_str(),&hints,&addrinfos)) 
+	throw AhuException("Unable to resolve local IPv6 address '"+*laddr+"'"); 
+
+      memcpy(&locala,addrinfos->ai_addr,addrinfos->ai_addrlen);
+    }
 
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -461,7 +465,7 @@ TCPNameserver::TCPNameserver()
       exit(1);  
     }
 
-    if(bind(s, (sockaddr*)&local,sizeof(local))<0) {
+    if(bind(s, (const sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to TCPv6 socket");
     }

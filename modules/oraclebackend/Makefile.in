@@ -1,0 +1,50 @@
+##
+## File    : Makefile
+## Author  : Stefan Arentz
+## Project : PowerDNS
+## Version : $Id: Makefile.in,v 1.1 2002/12/10 13:36:26 ahu Exp $
+##
+
+ORACLE_HOME	= /opt/oracle
+PDNS_HOME	= ../../pdns
+
+INCLUDE		= -I$(ORACLE_HOME)/rdbms/demo \
+		  -I$(ORACLE_HOME)/rdbms/public \
+		  -I$(PDNS_HOME) -I../..
+VERSION=2.1
+
+all: oraclebackend.o
+
+install: 
+
+PACKAGE = @PACKAGE@
+VERSION = @VERSION@
+DISTFILES=*.cc *.hh Makefile.in OBJECTFILES OBJECTLIBS
+
+top_distdir = ../..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+
+
+.cc.o:
+	g++ -g -c $(CXXFLAGS) $(INCLUDE) $<
+
+clean:
+	rm -f *.o *.so *~
+

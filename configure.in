@@ -30,12 +30,12 @@ dnl Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(gethostname gettimeofday mkdir mktime select socket strerror)
 
-AC_CHECK_LIB(resolv, inet_ntop)
+#AC_CHECK_LIB(resolv, inet_ntop)
 
-dnl AC_MSG_NOTICE([Looking in libraries: $LIBS])
+#dnl AC_MSG_NOTICE([Looking in libraries: $LIBS])
 
-AC_CHECK_FUNCS(inet_ntop, , AC_LIBOBJ(lib/inet_ntop)) 
-AC_CHECK_FUNCS(inet_pton, , AC_LIBOBJ(lib/inet_pton))
+#AC_CHECK_FUNCS(inet_ntop, , AC_LIBOBJ(lib/inet_ntop)) 
+#AC_CHECK_FUNCS(inet_pton, , AC_LIBOBJ(lib/inet_pton))
 
 
 #
@@ -94,24 +94,36 @@ then
   fi
 fi
 
+DYNLINKFLAGS=""
 case "$host_os" in
-solaris2*) 
+solaris2.8 | solaris2.9 ) 
 	AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
 	AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-	LIBS="-lposix4 -lnsl -lsocket -lpthread $LIBS"
+	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+	LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
+	CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+	;;
+solaris2.6 | solaris2.7) 
+	AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
+	AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
+	LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
 	CXXFLAGS="-D_REENTRANT $CXXFLAGS"
 	;;
 linux*)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+	DYNLINKFLAGS="-rdynamic"
 	LDFLAGS="-pthread $LDFLAGS"
 	CXXFLAGS="-pthread -D_GNU_SOURCE $CXXFLAGS"
 	;;
 *)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+	DYNLINKFLAGS="-rdynamic"
 	LDFLAGS="-pthread $LDFLAGS"
 	CXXFLAGS="-pthread $CXXFLAGS"
 	;;
 esac
+
+AC_SUBST(DYNLINKFLAGS)
 
 AC_MSG_CHECKING(whether we will be doing verbose logging)
 AC_ARG_ENABLE(verbose-logging, 
@@ -348,4 +360,4 @@ AC_OUTPUT(Makefile modules/Makefile pdns/Makefile pdns/codedocs/Makefile \
 pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
 modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
 modules/pgmysqlbackend/Makefile modules/db2backend/Makefile \
-modules/pipebackend/Makefile )
+modules/pipebackend/Makefile modules/oraclebackend/Makefile)

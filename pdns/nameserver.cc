@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.cc,v 1.2 2002/12/09 16:24:17 ahu Exp $ 
+// $Id: nameserver.cc,v 1.3 2002/12/10 13:36:26 ahu Exp $ 
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
@@ -148,31 +148,30 @@ void UDPNameserver::bindIPv6()
   int s;
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     string localname(*i);
-    struct sockaddr_in6 locala;
 
     s=socket(AF_INET6,SOCK_DGRAM,0);
     if(s<0)
       throw AhuException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
   
-    memset(&locala,0,sizeof(locala));
-    locala.sin6_family=AF_INET6;
-
     if(localname=="::0") {
       L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-ipv6 option"<<endl;
     }
 
-    struct hostent *h;
+    sockaddr_in6 locala;
+    locala.sin6_port=ntohs(arg().asNum("local-port"));
+    if(!inet_pton(AF_INET6, localname.c_str(), (void *)&locala.sin6_addr)) {
+      addrinfo *addrinfos;
+      addrinfo hints;
+      memset(&hints,0,sizeof(hints));
+      hints.ai_socktype=SOCK_DGRAM;
+      hints.ai_family=AF_INET6;
 
-    h=gethostbyname2(localname.c_str(),AF_INET6);
+      if(getaddrinfo(localname.c_str(),arg()["local-port"].c_str(),&hints,&addrinfos))
+	throw AhuException("Unable to resolve local IPv6 address '"+localname+"'"); 
+      memcpy(&locala,addrinfos->ai_addr,addrinfos->ai_addrlen);
+    }
 
-    if(!h)
-      throw AhuException("Unable to resolve local IPv6 address"); 
-    
-    memcpy(&locala.sin6_addr.s6_addr,h->h_addr,16);
-
-    locala.sin6_port=htons(arg().asNum("local-port"));
-    
-    if(bind(s, (sockaddr*)&locala,sizeof(locala))<0) {
+    if(bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to UDP ipv6 socket: "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to UDP ipv6 socket");
     }
