@@ -1,0 +1,13 @@
+#!/bin/sh
+./configure --with-modules="mysql pgmysql pdns pipe" \
+	--enable-static-binaries --enable-mysql --enable-pgsql \
+	--with-pgsql-lib=/opt/postgresql-with-3.2/lib/ --prefix=/usr \
+	--sysconfdir=/etc/powerdns \
+&& make && \
+sudo /bin/sh -c "rm -rf /tmp/pdns ; DESTDIR=/tmp/pdns make install-strip" &&
+sudo mkdir -p /tmp/pdns/etc/init.d &&
+sudo cp pdns/pdns /tmp/pdns/etc/init.d/pdns &&
+sudo mkdir -p /tmp/pdns/etc/powerdns &&
+sudo mv /tmp/pdns/etc/powerdns/pdns.conf-dist /tmp/pdns/etc/powerdns/pdns.conf &&
+sudo rpm -bb pdns.spec
+

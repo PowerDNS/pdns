@@ -12,9 +12,10 @@ is built by default.
 
 To add multiple modules, try:
 
-$ ./configure --with-modules="mysql mypgsql"
+$ ./configure --with-modules="mysql mypgsql" --enable-mysql --enable-pgsql
 
 See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
+
 
 SOLARIS NOTES
 -------------
@@ -28,10 +29,16 @@ FREEBSD NOTES
 gcc 2.95.x works. You need to compile using gmake - regular make only appears to
 work, but doesn't in fact.
 
-
 LINUX NOTES
 -----------
 None really.
+
+WIN32 NOTES
+-----------
+For the brave! See
+http://rtfm.powerdns.com/compiling-powerdns.html#ON-WINDOWS 
+
+Needs Visual C++
 
 ---
 
