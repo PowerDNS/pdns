@@ -455,7 +455,7 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
   if(words.size()<3) {
     if(words.size()==1 && words[0]==";")
       return false;
-    throw AhuException("Short line "+itoa(d_lineno)+": "+itoa(words.size())+ " words. Probably due to repeated record without domainname");
+    throw AhuException("Short line "+itoa(d_lineno)+" in '"+d_filename+"': "+itoa(words.size())+ " words. Probably due to repeated record without domainname");
   }
 
   string qname=words[0];
