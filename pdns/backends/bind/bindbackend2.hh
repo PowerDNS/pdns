@@ -213,7 +213,7 @@ private:
 
     Bind2Backend *parent;
 
-    vector<DNSResourceRecord>*d_records;
+    vector<DNSResourceRecord>* d_records;
     vector<DNSResourceRecord>::const_iterator d_iter;
     
     vector<DNSResourceRecord>::const_iterator d_rend;
@@ -223,7 +223,7 @@ private:
 
     bool d_list;
     int id;
-    BB2DomainInfo* d_bbd;
+    BB2DomainInfo* d_bbd;  // appears to be only used for locking
     string qname;
     QType qtype;
   private:
@@ -231,6 +231,9 @@ private:
     
     bool get_normal(DNSResourceRecord &);
     bool get_list(DNSResourceRecord &);
+
+    void operator=(const handle& ); // don't go copying this
+    handle(const handle &);
   };
 
   static map<string,int> s_name_id_map;
@@ -251,4 +254,6 @@ private:
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
   void loadConfig(string *status=0);
   void nukeZoneRecords(BB2DomainInfo *bbd);
+
+
 };

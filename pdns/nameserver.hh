@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of the GNU General Public License version 2 as published
+    by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +15,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.hh,v 1.6 2004/04/01 19:59:21 ahu Exp $
 #ifndef NAMESERVER_HH
 #define NAMESERVER_HH
 
@@ -108,6 +106,9 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 	addrlen=sizeof(remote);
 	
 	len=0;
+
+	// XXX FIXME this code could be using recvmsg + ip_pktinfo on platforms that support it
+	
 	if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) remote, &addrlen))<0) {
 	  L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
 	  return 0;
