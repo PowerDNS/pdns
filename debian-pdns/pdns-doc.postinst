@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+update_docbase() {
+	if command -v install-docs >/dev/null 2>&1 ; then
+		install-docs -i /usr/share/doc-base/pdns
+	fi
+}
+
+
+if [ "$1" = "configure" -o "$1" = "abort-upgrade" ] ; then
+	update_docbase
+fi
+

@@ -1,0 +1,176 @@
+#!/usr/bin/make -f
+
+tmpdir		:= $(shell pwd)/debian/tmp
+be_tmpdir	:= $(shell pwd)/debian/tmp-backend
+backends	:= ldap mysql pipe xdb gmysql gpgsql gsqlite 
+debs		:= ldap mysql pipe xdb pgsql sqlite 
+
+binary-doc:
+	-make -C pdns/docs html/index.html
+
+	rm -rf "$(tmpdir)"
+
+	install -d -m 755 -o root -g root \
+		"$(tmpdir)"/usr/share/doc/pdns/html
+	set -e ; for i in pdns/docs/html/* ; do \
+		install -p -m 644 -o root -g root "$$i" \
+			"$(tmpdir)"/usr/share/doc/pdns/html/ ; \
+		done
+
+	install -d -m 755 -o root -g root \
+		"$(tmpdir)"/usr/share/doc/pdns-doc
+	install -p -m 644 -o root -g root ChangeLog \
+			"$(tmpdir)"/usr/share/doc/pdns-doc/changelog
+	install -p -m 644 -o root -g root debian/changelog \
+			"$(tmpdir)"/usr/share/doc/pdns-doc/changelog.Debian
+	gzip -9 "$(tmpdir)"/usr/share/doc/pdns-doc/*
+	install -p -m 644 -o root -g root debian/copyright \
+			"$(tmpdir)"/usr/share/doc/pdns-doc/
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/usr/share/doc-base
+	install -p -m 644 -o root -g root debian/doc-base \
+			"$(tmpdir)"/usr/share/doc-base/pdns
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
+	install -p -m 755 -o root -g root debian/pdns-doc.prerm \
+			"$(tmpdir)"/DEBIAN/prerm
+	install -p -m 755 -o root -g root debian/pdns-doc.postinst \
+			"$(tmpdir)"/DEBIAN/postinst
+
+	dpkg-gencontrol -isp -ppdns-doc -P"$(tmpdir)"
+	dpkg --build "$(tmpdir)" ..
+
+
+build-static stamp-build-static:
+		./configure \
+                --with-pgsql-lib=/opt/postgresql/lib/ \
+                --with-pgsql-includes=/opt/postgresql/include/ \
+		--prefix=/usr \
+		--libexecdir='$${prefix}/lib' \
+		--libdir='$${prefix}/lib/powerdns' \
+		--sysconfdir=/etc/powerdns \
+		--infodir='$${datadir}/info' \
+		--mandir='$${datadir}/man' \
+		--with-modules="mysql gmysql gpgsql pipe pdns xdb gsqlite geo" \
+		--with-dynmodules="" \
+		--enable-static-binaries --enable-recursor 
+	make
+	touch stamp-build-static
+
+
+build stamp-build: configure
+	./configure \
+		--prefix=/usr \
+		--libexecdir='$${prefix}/lib' \
+		--libdir='$${prefix}/lib/powerdns' \
+		--sysconfdir=/etc/powerdns \
+		--infodir='$${datadir}/info' \
+		--mandir='$${datadir}/man' \
+		--with-dynmodules="$(backends)" \
+		--with-modules="geo" \
+		--enable-recursor
+	make
+	touch stamp-build
+
+
+binary-main-prepare: 
+	rm -f debian/substvars
+	rm -rf "$(tmpdir)" "$(tmpdir)"-*
+	install -d -m 755 -o root -g root "$(tmpdir)"
+	make DESTDIR="$(tmpdir)" install
+
+	rm -f "$(tmpdir)"/usr/bin/binpatch
+	rm -f "$(tmpdir)"/usr/bin/xdb-fill
+	rm -f "$(tmpdir)"/usr/bin/zone2ldap
+	rm -rf "$(tmpdir)"/usr/lib
+
+	strip --remove-section=.comment --remove-section=.note \
+		--strip-unneeded \
+		"$(tmpdir)"/usr/bin/zone2sql \
+		"$(tmpdir)"/usr/sbin/pdns_server \
+		"$(tmpdir)"/usr/sbin/pdns_recursor \
+		"$(tmpdir)"/usr/bin/pdns_control
+	mv "$(tmpdir)"/etc/powerdns/pdns.conf-dist "$(tmpdir)"/etc/powerdns/pdns.conf
+
+	install -d -m 755 -o root -g root "$(tmpdir)"/etc/init.d
+	install -p -m 755 -o root -g root pdns/pdns \
+		"$(tmpdir)"/etc/init.d/pdns
+
+	install -d -m 755 -o root -g root \
+		"$(tmpdir)"/usr/share/doc/pdns
+	install -p -m 644 -o root -g root ChangeLog \
+			"$(tmpdir)"/usr/share/doc/pdns/changelog
+	install -p -m 644 -o root -g root debian/changelog \
+			"$(tmpdir)"/usr/share/doc/pdns/changelog.Debian
+	gzip -9 "$(tmpdir)"/usr/share/doc/pdns/c*
+	install -p -m 644 -o root -g root debian/copyright \
+			"$(tmpdir)"/usr/share/doc/pdns/
+	
+	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
+	install -p -m 755 -o root -g root debian/pdns.prerm \
+			"$(tmpdir)"/DEBIAN/prerm
+	install -p -m 755 -o root -g root debian/pdns.postrm \
+			"$(tmpdir)"/DEBIAN/postrm
+	install -p -m 755 -o root -g root debian/pdns.postinst \
+			"$(tmpdir)"/DEBIAN/postinst
+	install -p -m 644 -o root -g root debian/pdns.conffiles \
+			"$(tmpdir)"/DEBIAN/conffiles
+
+
+binary-main: stamp-build binary-main-prepare
+	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
+		"$(tmpdir)"/usr/sbin/pdns_server \
+		"$(tmpdir)"/usr/bin/pdns_control
+	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
+	dpkg --build "$(tmpdir)" ..
+
+
+binary-static: stamp-build-static binary-main-prepare
+	dpkg-gencontrol -isp -ppdns-static -P"$(tmpdir)"
+	dpkg --build "$(tmpdir)" ..
+
+
+binary-backend: stamp-build
+	rm -rf "$(tmpdir)"
+
+	install -d -m 755 -o root -g root "$(tmpdir)"
+	make DESTDIR="$(tmpdir)" install
+
+	strip --remove-section=.comment --remove-section=.note \
+		--strip-unneeded "$(tmpdir)"/usr/lib/powerdns/*.so \
+		"$(tmpdir)"/usr/bin/xdb-fill
+	chmod 644 "$(tmpdir)"/usr/lib/powerdns/*
+
+	set -e ; for be in $(debs) ; do \
+		rm -f debian/substvars ; \
+		rm -rf "$(be_tmpdir)" ; \
+		pkg=pdns-backend-$$be ; \
+		\
+		for file in $$(cd "$(tmpdir)" ; find . -name "*$$be*") ; do \
+			install -d -m 755 -o root -g root "$(be_tmpdir)"/$$(dirname "$$file") ; \
+			mv "$(tmpdir)"/"$$file" "$(be_tmpdir)"/"$$file" ; \
+		done ; \
+		\
+		install -d -m 755 -o root -g root "$(be_tmpdir)"/usr/share/doc ; \
+		ln -s pdns "$(be_tmpdir)"/usr/share/doc/$$pkg ; \
+		\
+		install -d -m 755 -o root -g root "$(be_tmpdir)"/DEBIAN ; \
+		dpkg-shlibdeps "$(be_tmpdir)"/usr/lib/powerdns/*.so ; \
+		dpkg-gencontrol -isp -p$$pkg -P"$(be_tmpdir)" ; \
+		dpkg --build "$(be_tmpdir)" .. ; \
+	done
+
+
+binary: binary-indep binary-arch
+binary-indep: binary-doc
+binary-arch: binary-main binary-backend
+
+clean:
+	-make distclean
+	-make -C pdns/docs clean
+	rm -f debian/files debian/substvars stamp-build stamp-build-static
+	rm -rf "$(tmpdir)" "$(be_tmpdir)"
+
+.PHONY: clean build binary binary-arch binary-indep
+.PHONY: binary-doc binary-main binary-backend
+

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+update_init() {
+	update-rc.d pdns remove > /dev/null
+}
+
+
+if [ "$1" = "purge" ] ; then
+	update_init
+	rmdir /etc/powerdns || true
+fi
+
