@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/02/01 13:18:22 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/02/02 22:04:51 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -4172,6 +4172,15 @@ local0.err                        /var/log/pdns.err
 	any case, after the check the domain is declared 'fresh', and will only be checked again after '<command>refresh</command>' seconds have passed.
       </para>
       <para>
+	<warning>
+	  <para>
+	    Slave support is OFF by default, turn it on by adding <command>slave</command> to the configuration. The same 
+	    holds for master operation. Both can be on simultaneously.
+	  </para>
+	</warning>
+      </para>
+
+      <para>
 	PDNS also reacts to notifies by immediately checking if the zone has updated and if so, retransfering it.
       </para>
       <para>
@@ -4207,6 +4216,16 @@ local0.err                        /var/log/pdns.err
 	if the zone changed, and transferring its contents if it has. Notifications are a way to promptly propagate zone changes to slaves, as 
 	described in RFC 1996.
       </para>
+      <para>
+      <para>
+	<warning>
+	  <para>
+	    Master support is OFF by default, turn it on by adding <command>master</command> to the configuration. The same 
+	    holds for slave operation. Both can be on simultaneously.
+	  </para>
+	</warning>
+      </para>
+
       <para>
 	Left open by RFC 1996 is who is to be notified - which is harder to figure out than it sounds. All slaves for this domain must receive a notification
 	but the nameserver only knows the names of the slaves - not the IP addresses, which is where the problem lies. The nameserver itself might
@@ -4994,6 +5013,15 @@ local0.err                        /var/log/pdns.err
 	      <para>
 		A: Raise the serial number of your zone. In most backends, this is the first digit of the SOA contents field. If this number
 		is lower to equal to that on a slave, it will not consider your zone updated.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: Master or Slave support is not working, PDNS is not picking up changes</term>
+	    <listitem>
+	      <para>
+		A: The Master/Slave apparatus is off by default. Turn it on by adding a <command>slave</command> and/or
+		<command>master</command> statement to the configuration file. Also, check that the configured backend is master or slave capable.
 	      </para>
 	    </listitem>
 	  </varlistentry>
