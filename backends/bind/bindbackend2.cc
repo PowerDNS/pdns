@@ -327,8 +327,6 @@ void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, con
 
   bdr.ttl=ttl;
 
-  if(qtype=="SOA")
-    cout<<"Adding bdr.qname: '"<<bdr.qname<<"'"<<endl;
   records.push_back(bdr);
 }
 
