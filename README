@@ -14,3 +14,9 @@ $ ./configure --with-modules="mysql mypgsql"
 
 For postgresql, you will probably have to edit modules/mypgsql/Makefile.in -
 see the TODO file
+
+---
+
+After compiling, you may find the file 'pdns/pdns' helpful, we suggest you
+place it in /etc/init.d/ or your operating system's equivalent.
+
