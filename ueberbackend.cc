@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: ueberbackend.cc,v 1.10 2003/02/10 11:09:09 ahu Exp $ 
+// $Id: ueberbackend.cc,v 1.11 2003/08/22 13:33:31 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 
@@ -371,7 +371,7 @@ bool UeberBackend::get(DNSResourceRecord &rr)
   return true;
 }
 
-bool UeberBackend::list(int domain_id)
+bool UeberBackend::list(const string &target, int domain_id)
 {
   L<<Logger::Error<<"UeberBackend::list called, should NEVER EVER HAPPEN"<<endl;
   exit(1);

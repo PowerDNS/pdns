@@ -35,6 +35,10 @@
 #include "statbag.hh"
 #include "arguments.hh"
 #include "syncres.hh"
+#include <fcntl.h>
+#include <fstream>
+
+string s_programname="pdns_recursor";
 
 #ifndef WIN32
 extern "C" {
@@ -159,6 +163,16 @@ void doPrune(void)
   */
 }
 
+
+static void writePid(void)
+{
+  string fname=arg()["socket-dir"]+"/"+s_programname+".pid";
+  ofstream of(fname.c_str());
+  if(of)
+    of<<getpid()<<endl;
+  else
+    L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<"failed: "<<strerror(errno)<<endl;
+}
 
 void init(void)
 {
@@ -431,6 +445,7 @@ int main(int argc, char **argv)
     arg().set("daemon","Operate as a daemon")="yes";
     arg().set("quiet","Suppress logging of questions and answers")="off";
     arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
+    arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
     arg().laxParse(argc,argv); // do a lax parse
@@ -470,6 +485,8 @@ int main(int argc, char **argv)
       daemonize();
     }
     signal(SIGUSR1,usr1Handler);
+
+    writePid();
 #endif
 
     vector<TCPConnection> tcpconnections;

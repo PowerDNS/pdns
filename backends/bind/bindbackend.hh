@@ -177,7 +177,7 @@ public:
   
 
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(int id);
+  bool list(const string &target, int id);
   bool get(DNSResourceRecord &);
 
   static DNSBackend *maker();

@@ -75,7 +75,7 @@ void declareArguments()
   arg().set("load-modules","Load this module - supply absolute or relative path")="";
   arg().set("launch","Which backends to launch and order to query them in")="";
   arg().setSwitch("disable-axfr","Disable zonetransfers but do allow TCP queries")="no";
-  arg().set("allow-axfr-ips","If disabled, DO allow zonetransfers from these IP addresses")="";
+  arg().set("allow-axfr-ips","Allow zonetransfers only from these IP addresses")="";
   arg().set("slave-cycle-interval","Reschedule failed SOA serial checks once every .. seconds")="60";
   
   arg().setSwitch("slave","Act as a slave")="no";

@@ -31,6 +31,9 @@
 
 using namespace std;
 
+// silly Solaris people define PC
+#undef PC
+
 /** Central DNS logic according to RFC1034. Ask this class a question in the form of a DNSPacket
     and it will return, synchronously, a DNSPacket answer, suitable for 
     sending out over the network. 

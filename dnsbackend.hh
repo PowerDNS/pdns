@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnsbackend.hh,v 1.5 2002/12/30 21:00:56 ahu Exp $
+// $Id: dnsbackend.hh,v 1.6 2003/08/22 13:33:31 ahu Exp $
 /* (C) 2002 POWERDNS.COM BV  */
    
 #ifndef DNSBACKEND_HH
@@ -80,7 +80,7 @@ public:
       if the backend does not consider itself responsible for the id passed.
       \param domain_id ID of which a list is requested
   */
-  virtual bool list(int domain_id)=0;  
+  virtual bool list(const string &target, int domain_id)=0;  
 
   virtual ~DNSBackend(){};
 

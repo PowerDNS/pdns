@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend2.cc,v 1.3 2003/03/20 13:29:29 ahu Exp $ 
+// $Id: bindbackend2.cc,v 1.4 2003/08/22 13:33:31 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -726,9 +726,9 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   return true;
 }
 
-bool Bind2Backend::list(int id)
+bool Bind2Backend::list(const string &target, int id)
 {
-  cout<<"List of id "<<id<<" requested"<<endl;
+  // cout<<"List of id "<<id<<" requested"<<endl;
   if(!s_id_zone_map.count(id))
     return false;
 

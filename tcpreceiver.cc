@@ -330,7 +330,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   DNSBackend *B=sd.db; // get the RIGHT backend
 
   // now list zone
-  if(!(B->list(sd.domain_id))) {  
+  if(!(B->list(target, sd.domain_id))) {  
     L<<Logger::Error<<"Backend signals error condition"<<endl;
     outpacket->setRcode(2); // 'SERVFAIL'
     sendDelPacket(outpacket,outsock);
