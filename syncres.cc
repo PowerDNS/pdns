@@ -126,7 +126,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(k->content,subdomain);
 	    if(!aset.empty())
-	      L<<", in cache, ttl="<<((time_t)aset.begin()->ttl-time(0))<<endl;
+	      L<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl-time(0)))<<endl;
 	    else
 	      L<<", not in cache"<<endl;
 	  }
