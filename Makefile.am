@@ -7,11 +7,11 @@ docs/powerdns-overview.sgml docs/powerdns-technical.sgml extra/Makefile \
 extra/null.c pdns.spec release-scripts/ docs/pdns.sgml \
 choosepaths mtasker.cc 
 
-bin_SCRIPTS = pdns
+noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
-bin_PROGRAMS = pdns_server pdns_control binpatch # syncres #   resolver syncres 
-
+bin_PROGRAMS = pdns_control # binpatch # syncres #   resolver syncres 
+sbin_PROGRAMS = pdns_server 
 #pdns.conf-dist: pdns_server
 #	-./pdns_server --config > $@
 
@@ -46,7 +46,7 @@ pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statba
 pdns_control_INCLUDES=path.hh
 pdns_control_LDFLAGS=
 
-binpatch_SOURCES=binpatch.cc 
+# binpatch_SOURCES=binpatch.cc 
 
 SUBDIRS= codedocs backends extra .
 

@@ -199,6 +199,10 @@ string urlEncode(const string &text)
 
 string getHostname()
 {
+#ifdef WIN32
+# define MAXHOSTNAMELEN 1025
+#endif // WIN32
+
   char tmp[MAXHOSTNAMELEN];
   if(gethostname(tmp, MAXHOSTNAMELEN))
     return "UNKNOWN";
@@ -230,22 +234,20 @@ void cleanSlashes(string &str)
   str=out;
 }
 
-const string sockAddrToString(struct sockaddr_in *remote, socklen_t socklen) 
+const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t socklen) 
 {    
   if(socklen==sizeof(struct sockaddr_in))
      return inet_ntoa(((struct sockaddr_in *)remote)->sin_addr);
 
   // TODO: Add ipv6 support here.
-#ifndef WIN32
   else {
     char tmp[128];
     
-    if(!inet_ntop(AF_INET6, (void*)&((struct sockaddr_in6 *)remote)->sin6_addr, tmp, sizeof(tmp)))
+    if(!Utility::inet_ntop(AF_INET6, ( const char * ) &((struct sockaddr_in6 *)remote)->sin6_addr, tmp, sizeof(tmp)))
       return "IPv6 untranslateable";
 
     return tmp;
   }
-#endif // WIN32
 
   return "untranslateable";
 }

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: receiver.cc,v 1.1 2002/11/27 15:18:32 ahu Exp $
+// $Id: receiver.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $
 #include <cstdio>
 #include <signal.h>
 #include <cstring>
@@ -316,8 +316,6 @@ static void UNIX_declareArguments()
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
   arg().set("module-dir","Default directory for modules")=BINDIR+string("/../lib");
   arg().set("chroot","If set, chroot to this directory for more security")="";
-  arg().set("setuid","If set, change user id to this uid for more security")="";
-  arg().set("setgid","If set, change group id to this gid for more security")="";
   arg().set("logging-facility","Log under a specific facility")="";
   arg().set("daemon","Operate as a daemon")="no";
 

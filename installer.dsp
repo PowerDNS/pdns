@@ -105,10 +105,11 @@ SOURCE=".\release-scripts\pdns.nsi"
 # PROP Ignore_Default_Tool 1
 # Begin Custom Build - Creating installer using: $(InputName)...
 OutDir=.\Release/
+ProjDir=.
 InputPath=".\release-scripts\pdns.nsi"
 
-"$(OutDir)\powerdns-win32.exe" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	makensis /V1 /DRelease $(InputPath)
+"$(OutDir)\pdns-install.exe" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	makensis /DRelease /V2 /LICENSE /NOCONFIG $(ProjDir)\release-scripts\pdns.nsi
 
 # End Custom Build
 
@@ -117,10 +118,11 @@ InputPath=".\release-scripts\pdns.nsi"
 # PROP Ignore_Default_Tool 1
 # Begin Custom Build - Creating installer using: $(InputName)...
 OutDir=.\Debug/
+ProjDir=.
 InputPath=".\release-scripts\pdns.nsi"
 
-"$(OutDir)\powerdns-win32.exe" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	makensis /V1 /DDebug $(InputPath)
+"$(OutDir)\pdns-install.exe" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	makensis /DDebug /V2 /LICENSE /NOCONFIG $(ProjDir)\release-scripts\pdns.nsi
 
 # End Custom Build
 

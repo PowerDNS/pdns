@@ -51,7 +51,7 @@
 
 # define AF_INET6 -1
 
-# define VERSION "2.0rc1-WIN32"
+# define VERSION "2.9.0-WIN32"
 
 # define snprintf _snprintf
 
@@ -62,6 +62,17 @@ typedef unsigned long int32_t;
 typedef unsigned char u_int8_t;
 typedef unsigned int  u_int16_t;
 typedef unsigned long u_int32_t;
+
+struct in6_addr {
+	unsigned char s6_addr[16]; /* IPv6 address */
+};
+
+struct sockaddr_in6 {
+	unsigned short sin6_family; /* AF_INET6 */
+	unsigned short sin6_port; /* transport layer port # */
+	unsigned long sin6_flowinfo; /* IPv6 flow information */
+	struct in6_addr sin6_addr; /* IPv6 address */
+};
 
 #endif // WIN32
 

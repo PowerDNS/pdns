@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.2 2002/12/04 15:13:02 ahu Exp $
+// $Id: dnspacket.hh,v 1.3 2002/12/06 09:58:03 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -55,6 +55,13 @@
 typedef unsigned short int u_int16_t;
 typedef unsigned int u_int32_t;
 #endif
+
+#ifdef WIN32
+# ifdef BYTE_ORDER
+#   undef BYTE_ORDER
+# endif // BYTE_ORDER
+# define BYTE_ORDER LITTLE_ENDIAN
+#endif // WIN32
 
 class DNSBackend;
 

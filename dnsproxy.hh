@@ -77,7 +77,7 @@ private:
   {
     u_int16_t id;
     struct sockaddr_in6 remote;
-    socklen_t addrlen;
+    Utility::socklen_t addrlen;
     int outsock;
     time_t created;
   };

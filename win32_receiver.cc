@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-// $Id: win32_receiver.cc,v 1.1 2002/11/29 22:09:59 ahu Exp $
+// $Id: win32_receiver.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 #include <signal.h>
@@ -416,14 +416,17 @@ int main(int argc, char **argv)
       // never get here, guardian will reinvoke process
       //cerr<<"Um, we did get here!"<<endl;
       cerr << "Guardian mode isn't supported on Windows (yet)." << endl;
-      exit( 0 );
+      exit( 99 );
     }
     
 
     if ( arg().mustDo( "register-service" ))
     {
       if ( !pdns.registerService( "An advanced high performance authoritative nameserver.", true ))
+      {
         cerr << "Could not register service." << endl;
+        exit( 99 );
+      }
 
       // Exit.
       exit( 0 );
@@ -515,7 +518,7 @@ int main(int argc, char **argv)
     L.toFile( arg()[ "logfile" ] );
   
   L<<Logger::Error<<Logger::NTLog<<"PowerDNS "<<VERSION<<" ("<<__DATE__<<", "<<__TIME__<<") starting up"<<endl;
-  L<<Logger::Error<<"NOT-FOR-PROFIT LICENSE"<<endl;
+  L<<Logger::Error<<"GENERAL PUBLIC LICENSE (GPL)"<<endl;
   
   // Register console control hander.
   if ( !arg().mustDo( "ntservice" ))

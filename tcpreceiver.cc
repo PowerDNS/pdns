@@ -49,7 +49,7 @@ extern StatBag S;
 \brief This file implements the tcpreceiver that receives and answers questions over TCP/IP
 */
 
-pthread_mutex_t TCPNameserver::s_plock;
+pthread_mutex_t TCPNameserver::s_plock = PTHREAD_MUTEX_INITIALIZER;
 Semaphore *TCPNameserver::d_connectionroom_sem;
 PacketHandler *TCPNameserver::s_P; 
 int TCPNameserver::s_timeout;

@@ -400,7 +400,7 @@ void CommunicatorClass::mainloop(void)
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"Communicator thread died because of error: "<<ae.reason<<endl;
-    sleep(1);
+    Utility::sleep(1);
     exit(0);
   }
   catch(exception &e) {
