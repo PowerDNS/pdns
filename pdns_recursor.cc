@@ -406,7 +406,7 @@ int main(int argc, char **argv)
     Utility::srandom(time(0));
     arg().set("soa-minimum-ttl","Don't change")="0";
     arg().set("soa-serial-offset","Don't change")="0";
-    arg().set("no-shuffle","Don't change")="ogg";
+    arg().set("no-shuffle","Don't change")="off";
     arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     arg().set("local-port","port to listen on")="53";
     arg().set("local-address","single address to listen on")="0.0.0.0";

@@ -376,7 +376,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
       LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 
-      if(s_throttle.shouldThrottle(remoteIP+"|"+qname+"|"+qtype.getName())) {
+      if(s_throttle.shouldThrottle(d_now, remoteIP+"|"+qname+"|"+qtype.getName())) {
 	LOG<<prefix<<qname<<": query throttled "<<endl;
 	s_throttledqueries++;
 	d_throttledqueries++;
@@ -389,7 +389,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  LOG<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
 	  nsSpeeds[toLower(*tns)].submit(1000000); // 1 sec
 	  d_timeouts++;
-	  s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
+	  s_throttle.throttle(d_now, remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	  continue;
 	}
 	d_now=time(0);
@@ -398,7 +398,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       result=d_lwr.result();
       if(d_lwr.d_rcode==RCode::ServFail) {
 	LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
-	s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
+	s_throttle.throttle(d_now,remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
 	continue;
       }
       LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
@@ -533,7 +533,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
       else {
 	LOG<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibling NS"<<endl;
-	s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),60,0);
+	s_throttle.throttle(d_now, remoteIP+"|"+qname+"|"+qtype.getName(),60,0);
       }
     }
   }
