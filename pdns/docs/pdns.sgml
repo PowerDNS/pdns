@@ -15,7 +15,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2002/12/20 16:12:06 $</PubDate>
+    <PubDate>v2.1 $Date: 2002/12/21 15:38:41 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -135,7 +135,7 @@ pdns[17495]: AXFR done for 'forfun.net', zone committed
 	  All this happens 'live', per your instructions. Without instructions, the right things also happen, but the operator is in charge.
 	</para>
 	<para>
-	  A lot of the above is not yet documented here, that is expected to follow shortly.
+	  For more about all this coolness, see <xref linkend="pdnscontrol"> and <xref linkend="bind-control-commands">.
 	</para>
 	<para>
 	  <warning>
@@ -152,11 +152,27 @@ pdns[17495]: AXFR done for 'forfun.net', zone committed
 	  </warning>
 	</para>
 	<para>
+	  <warning>
+	    <para>
+	      The pdns_control protocol was changed which means that older pdns_controls cannot talk to 2.9.3. The other way around is
+	      broken too. This may lead to problems with automatic upgrade scripts, so pay attention if your daemon is truly restarted.
+	    </para>
+	    <para>
+	      Also make sure no old pdns_control command is around to confuse things.
+	    </para>
+	  </warning>
+	</para>
+	<para>
 	  Improvements:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
 		Bind backend can now deal with missing files and try to find them later.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bind backend is now explicitly master capable and triggers the sending of notifications.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -219,6 +235,13 @@ pdns[17495]: AXFR done for 'forfun.net', zone committed
 	    <listitem>
 	      <para>
 		gpgsql and gmysql backends split out of the hybrid pgmysqlbackend. This again changed compilation instructions!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>pdns_control</command> now uses the rarely seen SOCK_STREAM Unix Domain socket variety so it can transport
+		large amounts of text, which is needed for the <command>bind-domain-status</command> command, for which see
+		<xref linkend="bind-control-commands">. This breaks compatability with older pdns_control and pdns_server binaries!
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -3104,6 +3127,20 @@ name         IN            A        1.2.3.4
       The PipeBackend is also very well suited for dynamic resolution of queries. Example applications include
       DNS based loadbalancing, geo-direction, DNS based failover with low TTLs.
     </para>
+    <para>
+      The Pipe Backend also has a separate chapter in the backends appendix, see <xref linkend="pipebackend">.
+    </para>
+    <para>
+      <note>
+	<para>
+	  The Pipe Backend currently does not function under FreeBSD 4.x and 5.x, probably due to unfavorable interactions between
+	  its threading implementation and the fork system call.
+	</para>
+	<para>
+	  Interestingly, the Linux PowerDNS binary running under the Linuxulator on FreeBSD does work.
+	</para>
+      </note>
+    </para>
     <sect1 id="pipe-and-bind"><title>Deploying the PipeBackend with the BindBackend</title>
       <para>
         Included with the PDNS distribution is the example.pl backend which has knowledge of the example.com zone, just like
@@ -4658,6 +4695,17 @@ local0.err                        /var/log/pdns.err
 	The PipeBackend allows for easy dynamic resolution based on a 'Coprocess' which can be written in any
 	programming language that can read a question on standard input and answer on standard output. 
       </para>
+    <para>
+      <note>
+	<para>
+	  The Pipe Backend currently does not function under FreeBSD 4.x and 5.x, probably due to unfavorable interactions between
+	  its threading implementation and the fork system call.
+	</para>
+	<para>
+	  Interestingly, the Linux PowerDNS binary running under the Linuxulator on FreeBSD does work.
+	</para>
+      </note>
+    </para>
       <para>
 	To configure, the following settings are available:
 	<variablelist>
@@ -5885,8 +5933,8 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	  <tgroup cols=2>
 	    <tbody>
 	      <row><entry>Native</entry><entry>Yes</entry></row>
-	      <row><entry>Master</entry><entry>No</entry></row>
-	      <row><entry>Slave</entry><entry>Experimental</entry></row>
+	      <row><entry>Master</entry><entry>Yes</entry></row>
+	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>none (built in)</entry></row>
@@ -5962,8 +6010,40 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	  For regular zones, reloading is fast enough to answer the question which lead to the reload within the DNS timeout.
 	</para>
         <para>
-          If <command>bind-check-interval</command> is specified as zero, no checks will be performed.
+          If <command>bind-check-interval</command> is specified as zero, no checks will be performed until the <command>pdns_control reload</command>
+	  is given.
         </para>
+      <sect2 id="bind-control-commands"><title>Pdns_control commands</title>
+	<para>
+	  <variablelist>
+	    <varlistentry>
+	      <term>bind-domain-status <userinput>domain</userinput> [<userinput>domain</userinput>]</term>
+	      <listitem>
+		<para>
+		  Output status of domain or domains. Can be one of 'seen in named.conf, not parsed', 'parsed successfully at &lt;time;&gt;' or
+		  'error parsing at line ... at &lt;time&gt;'.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>bind-list-rejects</term>
+	      <listitem>
+		<para>
+		  Lists all zones that have problems, and what those problems are.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>bind-reload-now <userinput>domain</userinput></term>
+	      <listitem>
+		<para>
+		  Reloads a zone from disk NOW, reporting back results.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	</para>
+      </sect2>
       <sect2><title>Performance</title>
 	<para>
 	  The BindBackend does not benefit from the packet cache as it is fast enough on its own. Furthermore, on most systems, there will
@@ -5972,10 +6052,25 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	</para>
       </sect2>
       <sect2><title>Master/slave configuration</title>
-	<para>
-	  Currently disabled in prereleases. But see <xref linkend="slave">.
-	</para>
-      </sect2>
+	<sect3><title>Master</title>
+	  <para>
+	    Works as expected. At startup, no notification storm is performed as this is generally not useful. Perhaps in the future the Bind Backend
+	    will attempt to store zone metadata in the zone, allowing it to determine if a zone has changed its serial since the last time
+	    notifications were sent out.
+	  </para>
+	  <para>
+	    Changes which are discovered when reloading zones do lead to notifications however.
+	  </para>
+	</sect3>
+	<sect3><title>Slave</title>
+	  <para>
+	    Also works as expected. The Bind backend expects to be able to write to a directory where a slave domain lives. The incoming zone is stored
+	    as 'zonename.RANDOM' and atomically renamed if it is retrieved successfully, and parsed only then.
+	  </para>
+	  <para>
+	    In the future, this may be improved so the old zone remains available should parsing fail.
+	  </para>
+	</sect3>
       <sect2><title>Commands</title>
 	<para>
 	  <command>pdns_control</command> offers commands to communicate instructions to PowerDNS. These are detailed here.
@@ -6139,10 +6234,19 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      </listitem>
 	    </varlistentry>
 	    <varlistentry>
-	      <term>version</term>
+	      <term>notify <userinput>domain</userinput></term>
 	      <listitem>
 		<para>
-		  returns the version of a running pdns daemon.
+		  Adds a domain to the notification list, causing PDNS to send out notifications to the nameservers of a domain. Can be used if 
+		  a slave missed previous notifications or is generally hard of hearing.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>notify-host <userinput>domain</userinput> <userinput>host</userinput></term>
+	      <listitem>
+		<para>
+		  Same as above but with operator specified IP address as destination, to be used if you know better than PowerDNS.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -6162,11 +6266,53 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 		</para>
 	      </listitem>
 	    </varlistentry>
-	    <varlistentry>
+ 	    <varlistentry>
 	      <term>purge <userinput>record</userinput>$</term>
 	      <listitem>
 		<para>
-		  Purges all entries ending on this name, effectively purging an entire domain - see <xref linkend="performance">.
+		  Purges all cache entries ending on this name, effectively purging an entire domain - see <xref linkend="performance">.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>purge</term>
+	      <listitem>
+		<para>
+		  Purges the entire Packet Cache - see <xref linkend="performance">.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>purge <userinput>record</userinput></term>
+	      <listitem>
+		<para>
+		  Purges all entries for this exact record name - see <xref linkend="performance">.
+		</para>
+	      </listitem>
+	    </varlistentry>
+ 	    <varlistentry>
+	      <term>rediscover</term>
+	      <listitem>
+		<para>
+		  Instructs backends that new domains may have appeared in the database, or, in the case of the Bind backend, in
+		  named.conf.
+		</para>
+	      </listitem>
+	    </varlistentry>
+ 	    <varlistentry>
+	      <term>reload</term>
+	      <listitem>
+		<para>
+		  Instructs backends that the contents of domains may have changed. Many backends ignore this, the Bind backend will check
+		  timestamps for all zones (once queries come in for it) and reload if needed.
+		</para>
+	      </listitem>
+	    </varlistentry>
+ 	    <varlistentry>
+	      <term>retrieve <userinput>domain</userinput></term>
+	      <listitem>
+		<para>
+		  Retrieve a slave domain from its master. Done nearly immediatly.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -6175,6 +6321,22 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <listitem>
 		<para>
 		  Set a configuration parameter. Currently only the 'query-logging' parameter can be set. 
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>uptime</term>
+	      <listitem>
+		<para>
+		  Reports the uptime of the daemon in human readable form.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>version</term>
+	      <listitem>
+		<para>
+		  returns the version of a running pdns daemon.
 		</para>
 	      </listitem>
 	    </varlistentry>

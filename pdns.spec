@@ -1,7 +1,7 @@
 Buildroot: /tmp/pdns
-Name: pdns
-Version: 2.9.2
-Release: 1
+Name: pdns-static
+Version: 2.9.3
+Release: 2
 Summary: extremely powerful and versatile nameserver
 Copyright: see /usr/doc/pdns/copyright
 Distribution: Neutral
@@ -26,6 +26,7 @@ backend'.
 "/usr/sbin/pdns_server"
 "/usr/bin/pdns_control"
 "/usr/bin/zone2sql"
+"/usr/bin/xdb-fill"
 %dir "/etc/powerdns/"
 %config(noreplace) "/etc/powerdns/pdns.conf"
 %config "/etc/init.d/pdns"

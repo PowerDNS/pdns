@@ -10,6 +10,7 @@ Changes since 2.9.2:
 	- now groks LOC records incoming/outgoing
 	- configparser now strips leading spaces in arguments
 	- improved chroot error reporting
+
 	- lots of bind backend work
 		- we now ignore 'hint' 'forward' whatever zones
 	- added 'bind-domain-status', 'bind-reload-now'
