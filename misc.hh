@@ -46,6 +46,7 @@ string nowTime();
 int matchNetmask(const char *address, const char *omask);
 string humanDuration(time_t passed);
 void chomp(string &line, const string &delim);
+bool stripDomainSuffix(string *qname, const string &domain);
 void stripLine(string &line);
 string getHostname();
 string urlEncode(const string &text);

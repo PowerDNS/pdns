@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnsbackend.hh,v 1.3 2002/12/19 16:20:14 ahu Exp $
+// $Id: dnsbackend.hh,v 1.4 2002/12/20 14:25:29 ahu Exp $
 /* (C) 2002 POWERDNS.COM BV  */
    
 #ifndef DNSBACKEND_HH
@@ -51,8 +51,8 @@ struct DomainInfo
   u_int32_t id;
   string zone;
   string master;
-  u_int32_t serial;
   u_int32_t notified_serial;
+  u_int32_t serial;
   time_t last_check;
   enum {Master,Slave,Native} kind;
   DNSBackend *backend;
