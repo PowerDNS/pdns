@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -417,7 +417,10 @@ int main(int argc, char **argv)
     
     arg().laxParse(argc,argv); // reparse so the commandline still wins
     if(!arg()["logging-facility"].empty()) {
+      
       int facility=arg().asNum("logging-facility");
+      if(!isdigit(arg()["logging-facility"][0]))
+	facility=-1;
       switch(facility) {
       case 0:
 	theL().setFacility(LOG_LOCAL0);
@@ -444,7 +447,7 @@ int main(int argc, char **argv)
 	theL().setFacility(LOG_LOCAL7);
 	break;
       default:
-	L<<Logger::Error<<"Unknown logging facility level"<<facility<<endl;
+	L<<Logger::Error<<"Unknown logging facility level '"<<arg()["logging-facility"]<<"'"<<endl;
 	break;
       }
     }
