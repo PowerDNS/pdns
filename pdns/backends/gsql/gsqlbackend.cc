@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.4 2003/01/02 15:43:00 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.5 2003/01/02 20:15:26 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -432,41 +432,3 @@ bool GSQLBackend::abortTransaction()
   return true;
 }
 
-#if 0
-class GSQLFactory : public BackendFactory
-{
-public:
-  GSQLFactory(const string &mode) : BackendFactory(mode),d_mode(mode) {}
-  
-  void declareArguments(const string &suffix="")
-  {
-    declare(suffix,"dbname","Pdns backend database name to connect to","powerdns");
-    declare(suffix,"user","Pdns backend user to connect as","powerdns");
-    declare(suffix,"host","Pdns backend host to connect to","");
-    declare(suffix,"socket","Pdns backend socket to connect to","");
-    declare(suffix,"password","Pdns backend password to connect with","");
-
-    declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
-    declare(suffix,"id-query","Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d");
-    declare(suffix,"wildcard-query","Wildcard query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s'");
-    declare(suffix,"wildcard-id-query","Wildcard with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s' and domain_id='%d'");
-
-    declare(suffix,"any-query","Any query","select content,ttl,prio,type,domain_id,name from records where name='%s'");
-    declare(suffix,"any-id-query","Any with ID query","select content,ttl,prio,type,domain_id,name from records where name='%s' and domain_id=%d");
-    declare(suffix,"wildcard-any-query","Wildcard ANY query","select content,ttl,prio,type,domain_id,name from records where name like '%s'");
-    declare(suffix,"wildcard-any-id-query","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name from records where like '%s' and domain_id='%d'");
-
-    declare(suffix,"list-query","AXFR query", "select content,ttl,prio,type,domain_id,name from records where domain_id='%d'");
-
-    
-  }
-  
-  DNSBackend *make(const string &suffix="")
-  {
-    return new GSQLBackend(d_mode,suffix);
-  }
-private:
-  const string d_mode;
-};
-
-#endif
