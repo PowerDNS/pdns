@@ -70,7 +70,7 @@ public:
   DNSPacket *question(DNSPacket *); //!< hand us a DNS packet with a question, we give you an answer
   PacketHandler(); 
   ~PacketHandler(); // defined in packethandler.cc, and does --count
-  static int numRunning(){return s_count;}; //!< Returns the number of running PacketHandlers
+  static int numRunning(){return s_count;}; //!< Returns the number of running PacketHandlers. Called by Distributor
  
   void soaMagic(DNSResourceRecord *rr);
   DNSBackend *getBackend();

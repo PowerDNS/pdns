@@ -46,7 +46,10 @@ class BackendReporter;
 
 /** This is a very magic backend that allows us to load modules dynamically,
     and query them in order. This is persistent over all UeberBackend instantiations
-    across multiple threads. Very magic */
+    across multiple threads. 
+
+    The UeberBackend is transparent for exceptions, which should fall straight through.
+*/
 
 class UeberBackend : public DNSBackend
 {

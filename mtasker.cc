@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <iostream>
 
-/** \mainpage
+/** \page MTasker
     Simple system for implementing cooperative multitasking of functions, with 
     support for waiting on events which can return values.
 

@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.2 2002/12/29 19:47:25 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.3 2002/12/30 21:00:56 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -74,9 +74,21 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   di.last_check=atol(d_result[0][3].c_str());
   di.backend=this;
   
-  string type=d_result[0][4];
-  if(type=="SLAVE")
+  string type=d_result[0][5];
+  if(type=="SLAVE") {
+    di.serial=0;
+    try {
+      SOAData sd;
+      if(!getSOA(domain,sd))
+	L<<Logger::Error<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      di.serial=sd.serial;
+    }
+    catch(AhuException &ae){
+      L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+    }
+    
     di.kind=DomainInfo::Slave;
+  }
   else if(type=="MASTER")
     di.kind=DomainInfo::Slave;
   else 

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.7 2002/12/18 09:30:13 ahu Exp $
+// $Id: dnspacket.hh,v 1.8 2002/12/30 21:00:56 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -180,11 +180,8 @@ private:
       number of seconds since 1 jan 1970 (unix timestamp). The other values are substituted as indicated
 
   */
-
-
   void addSOARecord(const string &domain, const string &content, u_int32_t ttl, DNSResourceRecord::Place place); 
   void addSOARecord(const DNSResourceRecord &); //!< add a SOA record to the packet
-
 
   void addTXTRecord(string domain, string, u_int32_t ttl); //!< add a TXT record to the packet
   void addTXTRecord(const DNSResourceRecord &); //!< add a TXT record to the packet

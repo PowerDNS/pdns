@@ -250,7 +250,7 @@ vector<DNSBackend *>BackendMakerClass::all()
   }
   catch(...) {
     // and cleanup
-    L<<Logger::Error<<"Caught an exception instantiating a backend, details should follow"<<endl;
+    L<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
     throw;
@@ -259,6 +259,16 @@ vector<DNSBackend *>BackendMakerClass::all()
   return ret;
 }
 
+/** getSOA() is a function that is called to get the SOA of a domain. Callers should ONLY
+    use getSOA() and no perform a lookup() themselves as backends may decide to special case
+    the SOA record.
+    
+    Returns false if there is definitely no SOA for the domain. May throw a DBException
+    to indicate that the backend is currently unable to supply an answer.
+
+    \param domain Domain we want to get the SOA details of
+    \param sd SOAData which is filled with the SOA details
+*/
 bool DNSBackend::getSOA(const string &domain, SOAData &sd)
 {
   this->lookup(QType(QType::SOA),domain,0);
