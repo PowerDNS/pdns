@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.1 2002/12/16 20:34:29 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.2 2002/12/29 19:47:25 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -179,7 +179,7 @@ string GSQLBackend::sqlEscape(const string &name)
 GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 {
   setArgPrefix(mode+suffix);
-
+  d_db=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
 		  
   d_noWildCardNoIDQuery=getArg("basic-query");

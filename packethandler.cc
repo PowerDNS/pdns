@@ -151,7 +151,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.3 2002/12/29 19:47:25 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -167,7 +167,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.2 2002/12/06 09:58:03 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.3 2002/12/29 19:47:25 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -259,7 +259,7 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 
     while(B.get(rr)) { // read results
       found=true;
-      if(rr.qtype==p->qtype || rr.qtype.getCode()==QType::CNAME) {
+      if((p->qtype.getCode()==QType::ANY || rr.qtype==p->qtype) || rr.qtype.getCode()==QType::CNAME) {
 	rr.qname=target;
 	r->addRecord(rr);  // and add
 	if(rr.qtype.getCode()==QType::CNAME) {
