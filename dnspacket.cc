@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.5 2002/12/12 19:53:19 ahu Exp $
+// $Id: dnspacket.cc,v 1.6 2002/12/17 16:50:30 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -470,6 +470,7 @@ const string DNSPacket::makeSoaHostmasterPiece(const string &hostmaster)
   return ret+second;
 }
 
+
 void DNSPacket::addSOARecord(const DNSResourceRecord &rr)
 {
   addSOARecord(rr.qname, rr.content, rr.ttl, rr.d_place);
@@ -582,7 +583,6 @@ void DNSPacket::addRPRecord(const string &domain, const string &content, u_int32
 {
  string piece1;
 
- //xtoqname(domain.c_str(),&piece1);
  toqname(domain.c_str(),&piece1);
  char p[10];
  
@@ -600,21 +600,18 @@ void DNSPacket::addRPRecord(const string &domain, const string &content, u_int32
  
  // content contains: mailbox-name more-info-domain (Separated by a space)
  unsigned int pos;
- if((pos=content.find(" "))==string::npos)
-   {
-     L<<Logger::Warning<<"RP record for domain '"<<domain<<"' has malformed content field"<<endl;
-     return;
-   }
+ if((pos=content.find(" "))==string::npos) {
+   L<<Logger::Warning<<"RP record for domain '"<<domain<<"' has malformed content field"<<endl;
+   return;
+ }
 
  string mboxname=content.substr(0,pos);
  string moreinfo=content.substr(pos+1);
 
  string piece3;
- //xtoqname(mboxname,&piece3);
  toqname(mboxname,&piece3);
 
  string piece4;
- //xtoqname(moreinfo,&piece4);
  toqname(moreinfo,&piece4);
  
  p[9]=(piece3.length()+piece4.length())%256;
@@ -1071,6 +1068,10 @@ void DNSPacket::wrapup(void)
       addAAAARecord(rr);
       break;
 
+    case QType::LOC:
+      addLOCRecord(rr);
+      break;
+
     case QType::NAPTR:
       addNAPTRRecord(rr);
       break;
@@ -1187,8 +1188,79 @@ void DNSPacket::pasteQ(const char *question, int length)
   stringbuffer.replace(12,length,question,length);  // bytes 12 & onward need to become *question
 }
 
+string DNSPacket::parseLOC(const unsigned char *p, unsigned int length)
+{
+  /*
+    MSB                                           LSB
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      0|        VERSION        |         SIZE          |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      2|       HORIZ PRE       |       VERT PRE        |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      4|                   LATITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      6|                   LATITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+      8|                   LONGITUDE                   |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     10|                   LONGITUDE                   |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     12|                   ALTITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     14|                   ALTITUDE                    |
+       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  */
+
+  struct RP
+  {
+    unsigned int version:8;
+    unsigned int size:8;
+    unsigned int horizpre:8;
+    unsigned int vertpre:8;
+  }rp;
+
+  rp=*(RP *)p;
+  char ret[256];
+
+  double latitude= (((p[4]<<24)  + (p[5]<<16)  +  (p[6]<<8) +  p[7])  - (1<<31))/3600000.0;
+  double longitude=(((p[8]<<24)  + (p[9]<<16)  + (p[10]<<8) + p[11])  - (1<<31))/3600000.0;
+  double altitude= (((p[12]<<24) + (p[13]<<16) + (p[14]<<8) + p[15])           )/100 - 100000;
+  
+  double size=0.01*((rp.size>>4)&0xf);
+  int count=rp.size&0xf;
+  while(count--)
+    size*=10;
+
+  double horizpre=0.01*((rp.horizpre>>4)&0xf);
+  count=rp.horizpre&0xf;
+  while(count--)
+    horizpre*=10;
+
+  double vertpre=0.01*((rp.vertpre>>4)&0xf);
+  count=rp.vertpre&0xf;
+  while(count--)
+    vertpre*=10;
+
+
+  double remlat=60.0*(latitude-(int)latitude);
+  double remlong=60.0*(longitude-(int)longitude);
+  snprintf(ret,sizeof(ret)-1,"%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm",
+	   abs((int)latitude), (int) ((latitude-(int)latitude)*60),
+	   (double)((remlat-(int)remlat)*60.0),
+	   latitude>0 ? 'N' : 'S',
+	   abs((int)longitude), (int) ((longitude-(int)longitude)*60),
+	   (double)((remlong-(int)remlong)*60.0),
+	   longitude>0 ? 'E' : 'W',
+	   altitude, size, horizpre, vertpre);
+
+
+  return ret;
+}
+
 vector<DNSResourceRecord> DNSPacket::getAnswers()
 {
+  // XXX FIXME a lot of this code happily touches bytes beyond your packet! 
+
   vector<DNSResourceRecord> rrs;
   if(!(d.ancount|d.arcount|d.nscount))
     return rrs;
@@ -1210,6 +1282,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
     rr.ttl=ntohl(*(u_int32_t*)(answerp+offset+4)); // 4, 5, 6, 7
     rr.content="";
     length=ntohs(*(u_int16_t*)(answerp+offset+8));
+    // XXX check if this 'length' extends beyond the end of the packet!
 
     const char *datapos=answerp+offset+10;
     string part;
@@ -1254,6 +1327,18 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
     case QType::TXT:
       rr.content.assign(datapos+offset+1,(int)datapos[offset]);
       break;
+
+    case QType::LOC:
+      rr.content=parseLOC(reinterpret_cast<const unsigned char *>(datapos+offset),length);
+      break;
+
+
+    case QType::RP:
+      offset+=expand(datapos+offset,end,rr.content);
+      expand(datapos+offset,end,part);
+      rr.content+=" "+part;
+      break;
+
 
     case QType::CNAME:
     case QType::NS:
