@@ -19,7 +19,7 @@
 #ifndef QTYPE_HH
 #define QTYPE_HH
 /* (C) 2002 POWERDNS.COM BV */
-// $Id: qtype.hh,v 1.5 2003/04/05 19:31:52 ahu Exp $
+// $Id$
 #include <string>
 #include <vector>
 #include <utility>
@@ -54,7 +54,7 @@ public:
   QType &operator=(const string &); //!< Assings strings to us
   bool operator==(const QType &) const; //!< equality operator
 
-  string getName() const; //!< Get a string representation of this type
+  const string getName() const; //!< Get a string representation of this type
   int getCode() const; //!< Get the integer representation of this type
 
   static int chartocode(const char *p); //!< convert a character string to a code

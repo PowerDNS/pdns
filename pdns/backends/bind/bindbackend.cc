@@ -15,7 +15,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.16 2003/08/22 13:33:31 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -429,8 +428,6 @@ static void callback(unsigned int domain_id, const string &domain, const string 
 {
   us->insert(domain_id,domain,qtype,content,ttl,prio);
 }
-
-
 
 BindBackend::BindBackend(const string &suffix)
 {
