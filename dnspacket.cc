@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.6 2002/12/17 16:50:30 ahu Exp $
+// $Id: dnspacket.cc,v 1.7 2003/01/03 21:29:36 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -94,26 +94,26 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
 
 }
 
-int DNSPacket::expand(const char *begin, const char *end, string &expanded, int depth)
+int DNSPacket::expand(const unsigned char *begin, const unsigned char *end, string &expanded, int depth)
 {
   if(depth>10)
     throw AhuException("Looping label when parsing a packet");
 
   unsigned int n;
-  const char *p=begin;
+  const unsigned char *p=begin;
 
   while((n=*(unsigned char *)p++)) {
     char tmp[256];
       if((n & 0xc0) == 0xc0 ) { 
 	unsigned int labelOffset=(n&~0xc0)*256+ (int)*(unsigned char *)p;
-	expand(stringbuffer.c_str()+labelOffset,end,expanded,depth++);
+	expand((unsigned char *)stringbuffer.c_str()+labelOffset,end,expanded,depth++);
 	return 1+p-begin;
       }
 
       if(p+n>=end) { // this is a bogus packet, references beyond the end of the buffer
 	throw AhuException("Label claims to be longer than packet");
       }
-      strncpy(tmp,p,n);
+      strncpy((char *)tmp,(const char *)p,n);
 
       if(*(p+n)) { // add a ., except at the end
 	  tmp[n]='.';
@@ -138,8 +138,8 @@ int DNSPacket::expand(const char *begin, const char *end, string &expanded, int 
  */
 int DNSPacket::getq()
 {
-  const char *orig=stringbuffer.c_str()+12;
-  const char *end=orig+(stringbuffer.length()-12);
+  const unsigned char *orig=(const unsigned char *)stringbuffer.c_str()+12;
+  const unsigned char *end=orig+(stringbuffer.length()-12);
   qdomain="";
   try {
     return expand(orig,end,qdomain);
@@ -1265,8 +1265,8 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
   if(!(d.ancount|d.arcount|d.nscount))
     return rrs;
 
-  const char *answerp=stringbuffer.c_str()+d_qlen+12;
-  const char *end=stringbuffer.c_str()+len;
+  const unsigned char *answerp=(const unsigned char *)stringbuffer.c_str()+d_qlen+12;
+  const unsigned char *end=(const unsigned char *)stringbuffer.c_str()+len;
 
   int numanswers=ntohs(d.ancount) + ntohs(d.nscount) + ntohs(d.arcount);
   int length;
@@ -1278,13 +1278,14 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
     DNSResourceRecord rr;
     rr.qname=name;
-    rr.qtype=ntohs(*((short int *)(answerp+offset)));
-    rr.ttl=ntohl(*(u_int32_t*)(answerp+offset+4)); // 4, 5, 6, 7
+    rr.qtype=answerp[offset]*256+answerp[offset+1];
+    rr.ttl=answerp[offset+7]+256*(answerp[offset+6]+256*(answerp[offset+5]+256*answerp[offset+4]));
     rr.content="";
-    length=ntohs(*(u_int16_t*)(answerp+offset+8));
+    length=256*(unsigned char)answerp[offset+8]+(unsigned char)answerp[offset+8+1];
+    // was:  ntohs(*(u_int16_t*)(answerp+offset+8));
     // XXX check if this 'length' extends beyond the end of the packet!
 
-    const char *datapos=answerp+offset+10;
+    const unsigned char *datapos=answerp+offset+10;
     string part;
     offset=0;
 
@@ -1325,7 +1326,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
 
     case QType::TXT:
-      rr.content.assign(datapos+offset+1,(int)datapos[offset]);
+      rr.content.assign((const char *)datapos+offset+1,(int)datapos[offset]);
       break;
 
     case QType::LOC:
@@ -1351,7 +1352,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 	throw AhuException("Wrong length AAAA record returned from remote");
       char tmp[128];
 #ifdef AF_INET6	
-      if(!Utility::inet_ntop(AF_INET6, datapos, tmp, sizeof(tmp)-1))
+      if(!Utility::inet_ntop(AF_INET6, (const char *)datapos, tmp, sizeof(tmp)-1))
 #endif
 	throw AhuException("Unable to translate record of type AAAA in resolver");
 

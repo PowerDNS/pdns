@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.12 2003/01/03 18:00:12 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.13 2003/01/03 21:29:36 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -136,6 +136,7 @@ bool BindBackend::commitTransaction()
 
   queueReload(&d_bbds[d_transaction_id]);
   d_bbds[d_transaction_id].unlock();
+  d_transaction_id=0;
   return true;
 }
 
@@ -435,6 +436,7 @@ BindBackend::BindBackend(const string &suffix)
   setArgPrefix("bind"+suffix);
   Lock l(&s_startup_lock);
 
+  d_transaction_id=0;
   if(!s_first) {
     return;
   }
