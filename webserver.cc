@@ -238,7 +238,7 @@ void *WebServer::serveConnection(void *p)
       client->getLine(line);
       stripLine(line);
 
-      if(!line.find("Authorization: Basic ")) {
+      if(!toLower(line).find("authorization: basic ")) {
 	string cookie=line.substr(21);
 	string plain;
 
