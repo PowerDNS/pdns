@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 as published 
+    by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -117,16 +116,17 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
   do {
     LOG<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
     set<DNSResourceRecord>ns;
-    if(RC.get(subdomain,QType(QType::NS),&ns)>0) {
+    if(RC.get(d_now, subdomain,QType(QType::NS),&ns)>0) {
+
       for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
-	if(k->ttl>(unsigned int)time(0)) { 
+	if(k->ttl > (unsigned int)d_now ) { 
 	  set<DNSResourceRecord>aset;
-	  if(!endsOn(k->content,subdomain) || RC.get(k->content,QType(QType::A),&aset) > 5) {
+	  if(!endsOn(k->content,subdomain) || RC.get(d_now, k->content,QType(QType::A),&aset) > 5) {
 	    bestns.insert(*k);
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(k->content,subdomain);
 	    if(!aset.empty())
-	      L<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl-time(0)))<<endl;
+	      L<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now ))<<endl;
 	    else
 	      L<<", not in cache"<<endl;
 	  }
@@ -182,12 +182,13 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   
   LOG<<prefix<<qname<<": Looking for CNAME cache hit of '"<<tuple<<"'"<<endl;
   set<DNSResourceRecord> cset;
-  if(RC.get(qname,QType(QType::CNAME),&cset) > 0) {
+  if(RC.get(d_now, qname,QType(QType::CNAME),&cset) > 0) {
+
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
-      if(j->ttl>(unsigned int)time(0)) {
+      if(j->ttl>(unsigned int) d_now) {
 	LOG<<prefix<<qname<<": Found cache CNAME hit for '"<<tuple<<"' to '"<<j->content<<"'"<<endl;    
 	DNSResourceRecord rr=*j;
-	rr.ttl-=time(0);
+	rr.ttl-=d_now;
 	ret.push_back(rr);
 	if(!(qtype==QType(QType::CNAME))) {// perhaps they really wanted a CNAME!
 	  set<GetBestNSAnswer>beenthere;
@@ -217,8 +218,8 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   if(s_negcache.count(toLower(qname))) {
     res=0;
     map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(toLower(qname));
-    if(time(0) < ni->second.ttd) {
-      sttl=ni->second.ttd-time(0);
+    if(d_now < ni->second.ttd) {
+      sttl=ni->second.ttd - d_now;
       LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
       res=RCode::NXDomain; 
       giveNegative=true;
@@ -239,8 +240,8 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
     res=0;
     map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(tuple);
     if(ni!=s_negcache.end()) {
-      if(time(0) < ni->second.ttd) {
-	sttl=ni->second.ttd-time(0);
+      if(d_now < ni->second.ttd) {
+	sttl=ni->second.ttd - d_now;
 	LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached for another "<<sttl<<" seconds"<<endl;
 	res=RCode::NoError; // only this record doesn't exist
 	giveNegative=true;
@@ -256,13 +257,13 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
-  if(RC.get(sqname,sqt,&cset)>0) {
+  if(RC.get(d_now, sqname,sqt,&cset)>0) {
     LOG<<prefix<<qname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG<<j->content;
-      if(j->ttl>(unsigned int)time(0)) {
+      if(j->ttl>(unsigned int) d_now) {
 	DNSResourceRecord rr=*j;
-	rr.ttl-=time(0);
+	rr.ttl-=d_now;
 	if(giveNegative) {
 	  rr.d_place=DNSResourceRecord::AUTHORITY;
 	  rr.ttl=sttl;
@@ -391,6 +392,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	  continue;
 	}
+	d_now=time(0);
       }
 
       result=d_lwr.result();
@@ -423,7 +425,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	    
 	    DNSResourceRecord rr=*i;
 	    rr.d_place=DNSResourceRecord::ANSWER;
-	    rr.ttl+=time(0);
+	    rr.ttl+=d_now;
 	    //	  rr.ttl=time(0)+10+10*rr.qtype.getCode();
 	    tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
 	  }
@@ -460,7 +462,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
 	  NegCacheEntry ne;
 	  ne.name=i->qname;
-	  ne.ttd=time(0)+i->ttl;
+	  ne.ttd=d_now + i->ttl;
 	  s_negcache[toLower(qname)]=ne;
 	  negindic=true;
 	}
@@ -500,7 +502,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  
 	  NegCacheEntry ne;
 	  ne.name=i->qname;
-	  ne.ttd=time(0)+i->ttl;
+	  ne.ttd=d_now + i->ttl;
 	  s_negcache[toLower(qname)+"|"+qtype.getName()]=ne;
 	  negindic=true;
 	}
@@ -574,10 +576,11 @@ void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>
   set<DNSResourceRecord> bestns;
   set<GetBestNSAnswer>beenthere;
   getBestNSFromCache(qname, bestns, depth,beenthere);
+
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     DNSResourceRecord ns=*k;
     ns.d_place=DNSResourceRecord::AUTHORITY;
-    ns.ttl-=time(0);
+    ns.ttl-=d_now;
     ret.push_back(ns);
   }
 }

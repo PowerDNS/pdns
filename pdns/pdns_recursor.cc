@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2004  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -361,16 +361,16 @@ void doStats(void)
 void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate, last_prune;
-
-  if(time(0)-last_stat>60) { 
+  time_t now=time(0);
+  if(now - last_stat>60) { 
     RC.doPrune();
     last_prune=time(0);
   }
-  if(time(0)-last_stat>1800) { 
+  if(now - last_stat>1800) { 
     doStats();
     last_stat=time(0);
   }
-  if(time(0)-last_rootupdate>7200) {
+  if(now -last_rootupdate>7200) {
     SyncRes sr;
     vector<DNSResourceRecord>ret;
 
@@ -378,7 +378,7 @@ void houseKeeping(void *)
     int res=sr.beginResolve("", QType(QType::NS), ret);
     if(!res) {
       L<<Logger::Error<<"Refreshed . records"<<endl;
-      last_rootupdate=time(0);
+      last_rootupdate=now;
     }
     else
       L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
@@ -406,6 +406,7 @@ int main(int argc, char **argv)
     Utility::srandom(time(0));
     arg().set("soa-minimum-ttl","Don't change")="0";
     arg().set("soa-serial-offset","Don't change")="0";
+    arg().set("no-shuffle","Don't change")="ogg";
     arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     arg().set("local-port","port to listen on")="53";
     arg().set("local-address","single address to listen on")="0.0.0.0";
