@@ -41,7 +41,8 @@ LWRes::LWRes()
 {
   d_sock=-1;
   d_timeout=500000;
-  d_buf=new unsigned char[66000];
+  d_bufsize=1500;
+  d_buf=new unsigned char[d_bufsize];
 }
 
 LWRes::~LWRes()
@@ -81,7 +82,7 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type)
   Utility::socklen_t addrlen=sizeof(toaddr);
 
   // sleep until we see an answer to this
-  return arecvfrom(reinterpret_cast<char *>(d_buf), 512,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
+  return arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
 }
 
 

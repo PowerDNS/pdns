@@ -63,7 +63,7 @@ public:
     static_cast<DNSProxy *>(p)->mainloop();
     return 0;
   }
-
+  bool recurseFor(DNSPacket* p);
 private:
   NetmaskGroup d_ng;
   int d_sock;

@@ -167,6 +167,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   swapcontext(d_waiters[key].context,&d_kernel); // 'A' will return here when 'key' has arrived, hands over control to kernel first
   if(val && d_waitstatus==Answer) 
     *val=d_waitval;
+  d_tid=w.tid;
   return d_waitstatus;
 }
 

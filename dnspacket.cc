@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.13 2003/01/16 14:41:26 ahu Exp $
+// $Id: dnspacket.cc,v 1.14 2003/01/21 10:42:34 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -61,12 +61,6 @@ u_int16_t DNSPacket::getRemotePort() const
   if(d_socklen==sizeof(sockaddr_in))
     return ((struct sockaddr_in*)remote)->sin_port;
   return 0;
-}
-
-// Make s lowercase:
-static void lowercase(string& s) {
-  for(unsigned int i = 0; i < s.length(); i++)
-    s[i] = tolower(s[i]);
 }
 
 void DNSPacket::trim()
@@ -769,52 +763,43 @@ void DNSPacket::addHINFORecord(const DNSResourceRecord& rr)
 /** First word of content is the CPU */
 void DNSPacket::addHINFORecord(string domain, string content, u_int32_t ttl)
 {
- string piece1;
- toqname(domain, &piece1);
- char p[10];
- 
- p[0]=0;
- p[1]=13; // HINFO
- p[2]=0;
- p[3]=1; // IN
- putLong(p+4,ttl);
-
- p[8]=0;
- p[9]=0; // need to fill this in
-
- unsigned int offset=content.find(" ");
- string cpu, host;
- if(offset==string::npos) {
-   cpu=content;
- } else {
-   cpu=content.substr(0,offset);
-   host=content.substr(offset);
- }
- 
-
- string piece3;
- piece3.reserve(cpu.length()+1);
- piece3.append(1,cpu.length());
- piece3.append(cpu);
-
- string piece4;
- piece4.reserve(host.length()+1);
- piece4.append(1,host.length());
- piece4.append(host);
-
-
- p[8]=0;
- p[9]=piece3.length()+piece4.length();
-
- stringbuffer+=piece1;
- stringbuffer.append(p,10);
- stringbuffer+=piece3;
- stringbuffer+=piece4;
-
- d.ancount++;
+  string piece1;
+  toqname(domain, &piece1);
+  char p[10];
+  makeHeader(p,QType::HINFO,ttl);
+  
+  p[8]=0;
+  p[9]=0; // need to fill this in
+  
+  unsigned int offset=content.find(" ");
+  string cpu, host;
+  if(offset==string::npos) {
+    cpu=content;
+  } else {
+    cpu=content.substr(0,offset);
+    host=content.substr(offset);
+  }
+  
+  string piece3;
+  piece3.reserve(cpu.length()+1);
+  piece3.append(1,cpu.length());
+  piece3.append(cpu);
+  
+  string piece4;
+  piece4.reserve(host.length()+1);
+  piece4.append(1,host.length());
+  piece4.append(host);
+    
+  p[8]=0;
+  p[9]=piece3.length()+piece4.length();
+  
+  stringbuffer+=piece1;
+  stringbuffer.append(p,10);
+  stringbuffer+=piece3;
+  stringbuffer+=piece4;
+  
+  d.ancount++;
 }
-
-
 
 void DNSPacket::addNSRecord(const DNSResourceRecord &rr)
 {
@@ -1189,16 +1174,20 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       part=""; offset+=expand(datapos+offset,end,part); rr.content=part;      // mname
       part=""; offset+=expand(datapos+offset,end,part); rr.content+=" "+part;  // hostmaster
 
-      rr.content+=" ";rr.content+=itoa(ntohl(*(unsigned int *)(datapos+offset)));
-      rr.content+=" ";rr.content+=itoa(ntohl(*(unsigned int *)(datapos+offset+4)));
-      rr.content+=" ";rr.content+=itoa(ntohl(*(unsigned int *)(datapos+offset+8)));
-      rr.content+=" ";rr.content+=itoa(ntohl(*(unsigned int *)(datapos+offset+12)));
-      rr.content+=" ";rr.content+=itoa(ntohl(*(unsigned int *)(datapos+offset+16)));
+      // explicitly copy the SOA values out of the packet to avoid 
+      // SPARC alignment issues.
+      
+      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset    ));
+      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+4  ));
+      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+8  ));
+      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+12 ));
+      rr.content+=" ";rr.content+=itoa(getLong( datapos+offset+16 ));
 
       break;
 
     case QType::A:
-      ip = ntohl(*((int *)datapos));
+
+      ip = getLong(datapos);
 
       o.clear();
       o<<((ip>>24)&0xff)<<".";
@@ -1215,10 +1204,16 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
       break;
 
-
     case QType::TXT:
       rr.content.assign((const char *)datapos+offset+1,(int)datapos[offset]);
       break;
+
+    case QType::HINFO:
+      rr.content.assign((const char *)datapos+offset+1,(int)datapos[offset]);
+      rr.content+=" ";
+      rr.content.append((const char *)datapos+offset+rr.content.size(),(int)datapos[offset+rr.content.size()-1]);
+      break;
+
 
     case QType::LOC:
       rr.content=parseLOC(reinterpret_cast<const unsigned char *>(datapos+offset),length);

@@ -60,6 +60,16 @@ u_int16_t getShort(const char *p)
   return getShort((const unsigned char *)p);
 }
 
+u_int32_t getLong(const unsigned char* p)
+{
+  return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3];
+}
+
+u_int32_t getLong(const char* p)
+{
+  return getLong((unsigned char *)p);
+}
+
 
 
 /** strips a domain suffix from a domain, returns true if it stripped */

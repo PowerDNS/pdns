@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/14 21:39:38 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/21 10:42:34 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,6 +81,68 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-5"><title>Version 2.9.5 [not released yet]</title>	
+	<para>
+	  This version is almost entirely about recursion with major changes to both the pdns recursor, which is renamed to 
+	  '<filename>pdns_recursor</filename>' and to the main PowerDNS binary to make it interact better with the recursing component.
+	</para>
+	<para>
+	  Sadly, due to <ulink url="http://sources.redhat.com/ml/libc-alpha/2003-01/msg00245.html">technical reasons</ulink>, compiling
+	  the pdns recursor and pdns authoritative nameserver into one binary is not immediately possible. During the release of 2.9.4 we
+	  stated that the recursing nameserver would be integrated in the next release - this won't happen now.
+	</para>
+	<para>
+	  However, this turns out to not be that bad at all. The recursor can now be restarted without having to restart the rest of the nameserver,
+	  for example. Cooperation between the both halves of PDNS is also almost seamless. As a result, 'non-lazy recursion' has been dropped. See
+	  <xref linkend="recursion"> for more details.
+	</para>
+	<para>
+	  The 'Contributor of the Month' award goes to Mark Bergsma who has responded to our plea for help with the label compressor and contributed
+	  a wonderfully simple and right fix that allows PDNS to compress just as well as Other namerervers out there.
+	</para>
+	<para>
+	  Other changes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		dnspacket.cc was cleaned up by factoring out common operations
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Heaps of work on the recursing nameserver. Has now achieved *days* of uptime!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor renamed from syncres to <filename>pdns_recursor</filename>
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS can now serve records it does not know about. To benefit from this slightly undocumented feature, add
+		1024 to the numerical type of a record and include the record in binary form in your database. Used internally by the
+		recursing nameserver but you can use it too.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS now knows about SIG and KEY records *names*. It does not support them yet but can at least report so now.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		HINFO records can now be transferred from a master to PowerDNS (thanks to Ueli Heuer for noticing it didn't work).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Yet more UltraSPARC alignment issues fixed (Chris Andrews).
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-4"><title>Version 2.9.4</title>	
 	<para>
 	  Yet another grand release. Big news is the addition of a recursing nameserver which has sprung into existence
@@ -3872,16 +3934,18 @@ local0.err                        /var/log/pdns.err
   </chapter>
   
   <chapter id="recursion"><title>Recursion</title>
-
-    <para>(only available from 1.99.8 and onwards)</para>
+    <para>(only available from 1.99.8 and onwards, recursing component available since 2.9.5)</para>
     <para>
-      PDNS is an authoritative nameserver. It answers questions with data from its backends. Besides handing out authoritative
-      answers, DNS also needs so called 'recursion', where a nameserver gets a question for which it has no authoritative answer available, 
-      necessitating questions to other nameservers.
+      From 2.9.5 onwards, PowerDNS offers both authoritative nameserving capabilities and a recursive nameserver component. These two halves
+      are normally separate but many users insist on combining both recursion and authoritative service on one IP address. This can be likened 
+      to running Apache and Squid both on port 80.
     </para>
     <para>
-      Although PDNS is an authoritative nameserver, a provision has been made to cater for installations that require both authoritative DNS 
-      and recursion on one IP address. 
+      However, many sites want to do this anyhow and some with good reason. For example, a setup like this allows the creation of fake domains
+      which only exist for local users. Such domains often don't end on ".com" or ".org" but on ".intern" or ".name-of-isp".
+    </para>
+    <para>
+      PowerDNS can cooperate with either its own recursor or any other you have available to deliver recursive service on its port.
     </para>
     <para>
       By specifying the <command>recursor</command> option in the configuration file, questions requiring recursive treatment will be handed over
@@ -3889,7 +3953,8 @@ local0.err                        /var/log/pdns.err
       the nameserver to handle recursive queries.
     </para>
     <para>
-      Any recursing nameserver is suitable but we highly advise the use of the DJBDNS dnscache (<ULINK URL="http://cr.yp.to/djbdns/dnscache.html" TYPE="alternate">http://cr.yp.to/djbdns/dnscache.html</ULINK>).
+      As of 2.9.5, the recursing component of PowerDNS is a bit young and relatively untested but we hope people will want to use it anyhow. As an alternative,
+      we highly advise the use of the DJBDNS dnscache (<ULINK URL="http://cr.yp.to/djbdns/dnscache.html" TYPE="alternate">http://cr.yp.to/djbdns/dnscache.html</ULINK>).
     </para>
     <para>
       Take care not to point <command>recursor</command> to PDNS, which leads to a very tight packet loop!
@@ -3901,15 +3966,11 @@ local0.err                        /var/log/pdns.err
     <sect1 id="recursion-details"><title>Details</title>
       <para>
 	Questions carry a number of flags. One of these is called 'Recursion Desired'. If PDNS is configured to allow recursion, AND such a flag
-	is seen, AND the IP address of the client is allowed to recurse via PDNS, then the packet is handed to the recursing backend.
+	is seen, AND the IP address of the client is allowed to recurse via PDNS, then the packet may be handed to the recursing backend.
       </para>
       <para>
-	If a Recursion Desired packet PDNS is configured to allow recursion, but not to the IP address of the client, resolution will proceed 
+	If a Recursion Desired packet arrives and PDNS is configured to allow recursion, but not to the IP address of the client, resolution will proceed 
 	as if the RD flag were unset and the answer will indicate that recursion was not available.
-      </para>
-      <para>
-	Recursive questions and answers are not stored in the Packet Cache as recursing backends are generally well equipped to cache questions
-	themselves.
       </para>
       <para>
 	It is also possible to use a resolver living on a different port. To do so, specify a recursor like this: 
@@ -3917,44 +3978,33 @@ local0.err                        /var/log/pdns.err
       </para>
       <para>
 	If the backend does not answer a question within a large amount of time, this is logged as 'Recursive query for remote 10.96.0.2 with internal id 0 
-	was not answered by backend within timeout, reusing id'.
+	was not answered by backend within timeout, reusing id'. This may happen when using 'BIND' as a recursor as it is prone to drop queries which it can't 
+	answer immediately.
+      </para>
+      <para>
+	To make sure that the local authoritative database overrides recursive information, PowerDNS first tries to answer a question from its own database.
+	If that succeeds, the answer packet is sent back immediately without involving the recursor in any way.
+      </para>
+      <para>
+	Some packets, like those asking for MX records which are needed for SMTP transport of email, can be subject to 'additional processing'. This means
+	that a recursing nameserver is obliged to try to add A records (IP addresses) for any of the mailservers mentioned in the packet, should it have 
+	these addresses available.
+      </para>
+      <para>
+	If PowerDNS encounters records needing such processing and finds that it does not have the data in its authoritative database, it will send 
+	an opportunistic quick query to the recursing component to see if it perhaps has such data. This question is worded such that the recursing nameserver
+	should return immediately such as not to block the authoritative nameserver.
+      </para>
+      <para>
+	This marks a change from pre-2.9.5 behaviour where a packet was handed wholesale to the recursor in case it needed additional processing which could
+	not proceed from the authoritative database.
       </para>
     </sect1>
-    <sect1 id="lazy-recursion"><title>'Lazy recursion'</title>
-      <para>
-	PowerDNS is an authoritative nameserver. Up to version 2.1, a packet indication that recursion was desired, coming from a host from which
-	recursion was allowed, would be handed sight unseen to the recursing backend. This means that older installations do not have the ability to 'override' 
-	the internet with local data. Recursive queries would not be answered from the database.
-      </para>
-      <para>
-	This behaviour sufficed for many users but some installations have a pressing need to override the internet, for example to support recursive 
-	queries for fake domains like 'powerdns.office' or '.internal'. 
-      </para>
-      <para>
-	As of version 2.1, PowerDNS has a feature called 'lazy recursion' where a packet will only be handed to the recursing backend if it cannot be answered
-	completely from the database. 'Completely' in this case means that the original question has an answer in the local database and any additional processing
-	can also succeed from the database.
-      </para>
-      <para>
-	So for example, if you have the 'your.office' domain and a query comes in for its MX record, you should locally have the 'your.office' MX record
-	as well as the IP address of (for example) 'smtp.your.office'. 
-      </para>
-      <para>
-	If any of these conditions fail, your packet is handed to the recursor anyhow. So to benefit from lazy-recursion, be very sure that all 
-	data needed is present locally!.
-      </para>
-      <para>
-	To restore pre-2.1 behaviour, specify <command>lazy-recursion=off</command>.
-      </para>
-    </sect1>
-    <sect1 id="built-in-recursor"><title>Highly experimental internal resolver/recursing nameserver</title>
+    <sect1 id="built-in-recursor"><title>PowerDNS resolver/recursing nameserver</title>
       <para>
 	As of 2.9.4, a small recursor comes with PowerDNS. The algorithm is influenced by the works of Dan J. Bernstein although
 	all mistakes are ours. Here are the current faults, so nobody can accuse us of false advertising:
 	<itemizedlist>
-	  <listitem><para>
-	      Only operates on the foreground, it does not fork.
-	    </para></listitem>
 	  <listitem><para>
 	      Only ignores stale cache entries, does not actually clean them up. May replace them with newer data, however.
 	    </para></listitem>
@@ -3969,9 +4019,8 @@ local0.err                        /var/log/pdns.err
 	</itemizedlist>
       </para>
       <para>
-	To compile, add <command>--enable-recursor</command> to configure and the file <filename>syncres</filename> will be 
-	compiled. If you are lucky, that is. Send it queries like this: 
-	<command>dig ds9a.nl A @127.0.0.1 -p 5300</command>. To run on a different port, use <command>./syncres --local-port=53</command>.
+	To compile, add <command>--enable-recursor</command> to configure and the file <filename>pdns_recursor</filename> will be 
+	compiled. To run on a different port, use <command>./syncres --local-port=53</command>.
 	To bind to another address, use the <command>local-address</command> setting.
       </para>
       <para>
@@ -4005,10 +4054,64 @@ local0.err                        /var/log/pdns.err
 	    </para></listitem>
 	</itemizedlist>
       </para>
-	  
-      <para>
-	We've figured out how to integrate this progam into PowerDNS, which will happen around 2.9.5.
-      </para>
+      <sect2><title>pdns_recursor settings</title>
+	<para>
+	  <variablelist>
+	    <varlistentry>
+	      <term>aaaa-additional-processing</term>
+	      <listitem>
+		<para>
+		  If turned on, the recursor will attempt to add AAAA IPv6 records to questions for MX records and NS records.
+		  Can be quite slow as absence of these records in earlier answers does not guarantee their non-existance. Can double
+		  the amount of queries needed.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>daemon</term>
+	      <listitem>
+		<para>
+		  Operate in the background.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>local-address</term>
+	      <listitem>
+		<para>
+		  Local IP address (singular) to bind to.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>local-port</term>
+	      <listitem>
+		<para>
+		  Local port (singular) to bind to. Defaults to 5300!
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>local-port</term>
+	      <listitem>
+		<para>
+		  Local port (singular) to bind to. Defaults to 5300!
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>trace</term>
+	      <listitem>
+		<para>
+		  If turned on, output impressive heaps of logging. May destroy performance under load.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	<para>
+      </sect2>
     </sect1>
   </chapter>
   <chapter id="replication"><title>Master/Slave operation &amp; replication</title>
