@@ -10,6 +10,7 @@
 #include "statbag.hh"
 #include "arguments.hh"
 #include "ws.hh"
+#include "argtng.hh"
 using namespace std;
 Logger L;
 StatBag S;
@@ -133,7 +134,7 @@ void QGen::pruneUnanswered()
   for(multiset<OutstandingQuestion>::iterator i=d_questions.begin();i!=d_questions.end();) 
     if(now-i->timeSent > 5) {
       cout<<"No answer received to question for "<<i->qname<<endl;
-      cout<<i->qname<<"\tNO ANSWER"<<endl;
+      cout<<i->qname<<" "<<i->qtype.getName()<<"NO ANSWER"<<endl;
       d_unanswered.insert(*i);
       d_questions.erase(i++);
 
@@ -198,7 +199,10 @@ void QGen::printStats(bool force)
   if(!force && time(0)==d_laststats )
     return;
   d_laststats=time(0);
-  cerr<<"Sent "<<d_numqueries<<" questions, "<<d_answeredOK<<" OK answers, ";
+  cerr.precision(2);
+  cerr.setf(ios::fixed);
+  cerr<<"Sent "<<d_numqueries<<", "<<d_answeredOK<<" OK, ";
+  cerr<<d_nxdomain<<" NXDOMAIN, ";
   cerr<<d_unanswered.size()<<" unanswered, "<<d_delayed<<" delayed, "<<d_unmatched<<" unmatched, "<<d_ewma.get1()<<"/s"<<endl;
   d_ewma.submit(d_answeredOK + d_delayed + d_nxdomain + d_servfail);
 
@@ -247,12 +251,6 @@ void QGen::processAnswers()
     }
     
 
-    /*
-    cout<<"Packet: "<<p.d.id<<", "<<p.qdomain<<", rcode="<<p.d.rcode<<", ";
-    if(answers.empty())
-      cout<<"NO ANSWER"<<endl;
-    else cout<<answers[0].content<<endl;
-    */
 
     OutstandingQuestion oq;
     oq.qname=p.qdomain;
@@ -275,21 +273,33 @@ void QGen::processAnswers()
     else {
       if(p.d.rcode==RCode::ServFail) {
 	d_servfail++;
-	d_unanswered.erase(oq);
+	d_questions.erase(oq);
 	cout<<p.qdomain<<"\tSERVFAIL"<<endl;
 	continue;
       }
       
       if(p.d.rcode==RCode::NXDomain) {
 	d_nxdomain++;
-	d_unanswered.erase(oq);
-	cout<<p.qdomain<<"\tNXDOMAIN"<<endl;
+	d_questions.erase(oq);
+	cout<<p.qdomain<<" "<<p.qtype.getName()<<" NXDOMAIN"<<endl;
 	continue;
       }
 
+      bool gotOne(false);
       for(vector<DNSResourceRecord>::const_iterator j=answers.begin();j!=answers.end();++j)
-	if(j->d_place==DNSResourceRecord::ANSWER)
-	  cout<<p.qdomain<<"\t"<<j->content<<endl;
+	if(j->d_place==DNSResourceRecord::ANSWER) {
+	  gotOne=true;
+	  cout<<p.qdomain<<" "<<p.qtype.getName()<<" OK ";
+	  if(j->qtype.getCode()==QType::MX)
+	    cout<<j->priority<<"|"<<j->content;
+	  else
+	    cout<<j->content;
+	  cout<<"\n";
+	}
+
+      if(!gotOne)
+	cout<<p.qdomain<<" "<<p.qtype.getName()<<" NO RECORD"<<endl;
+
       d_answeredOK++;
       d_questions.erase(i);
     }
@@ -298,18 +308,42 @@ void QGen::processAnswers()
 }
 
 int main(int argc, char **argv)
+try
 {
-  string fileName="./questions";
-  string server="127.0.0.1";
-  unsigned int port=5300;
-  unsigned int maxBurst=50;
-  unsigned int maxOutstanding=200;
-  unsigned int maxToRead=1000000;
+  ArgTng at;
+  at.add("questions");
+  at.add("server",IpAddress(),"127.0.0.1");
+  at.add("port",Numeric(),"5300");
+  at.add("max-burst",Numeric(),"50");
+  at.add("max-outstanding",Numeric(),"200");
+  at.add("max-questions",Numeric(),"0");
+  at.parse(argc, argv);
+  cout<<"hier 1"<<endl;
+  at.constraints();
+  cout<<"hier"<<endl;
+
+  string fileName=at.get("questions");
+  string server=at.get("server");
+  unsigned int port=at.getInt("port");
+  unsigned int maxBurst=at.getInt("max-burst");
+  unsigned int maxOutstanding=at.getInt("max-outstanding");
+  unsigned int maxToRead=at.getInt("max-questions");
 
   // parse commandline here
 
   QGen qg(server, port, fileName, maxOutstanding, maxBurst, maxToRead);
-
-
   qg.start();
+
+}
+catch(runtime_error &re)
+{
+  cerr<<"Fatal: "<<re.what()<<endl;
+}
+catch(exception &e)
+{
+  cerr<<"Fatal: "<<e.what()<<endl;
+}
+catch(...)
+{
+  cerr<<"Caught something??"<<endl;
 }

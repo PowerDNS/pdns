@@ -60,13 +60,13 @@ public:
   {
     typename cont_t::iterator i=d_cont.find(t);
     entry e={ time_t(0)+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
-    if(i==d_cont.end()) {
 
+    if(i==d_cont.end()) {
       d_cont[t]=e;
-    } else { 
-      if(i->ttd > e.ttd || i->count < e.count) // more restrictive
-	d_cont[t]=e;
-    }
+    } 
+    else if(i->second.ttd > e.ttd || (i->second.count) < e.count) 
+      d_cont[t]=e;
+
   }
 private:
   int d_limit;
