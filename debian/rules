@@ -68,7 +68,7 @@ binary-main: build-main
 	strip --remove-section=.comment --remove-section=.note \
 		--strip-unneeded \
 		"$(tmpdir)"/usr/bin/zone2sql \
-		"$(tmpdir)"/usr/bin/pdns_server \
+		"$(tmpdir)"/usr/sbin/pdns_server \
 		"$(tmpdir)"/usr/bin/pdns_control
 	mv "$(tmpdir)"/etc/pdns.conf-dist "$(tmpdir)"/etc/pdns.conf
 
@@ -97,7 +97,7 @@ binary-main: build-main
 			"$(tmpdir)"/DEBIAN/conffiles
 
 	dpkg-shlibdeps "$(tmpdir)"/usr/bin/zone2sql \
-		"$(tmpdir)"/usr/bin/pdns_server \
+		"$(tmpdir)"/usr/sbin/pdns_server \
 		"$(tmpdir)"/usr/bin/pdns_control
 
 	dpkg-gencontrol -isp -ppdns -P"$(tmpdir)"
