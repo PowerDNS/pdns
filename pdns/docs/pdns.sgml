@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/02/14 19:55:02 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/02/15 11:30:17 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -83,7 +83,7 @@
       </para>
       <sect2 id="changelog-2-9-6"><title>Version 2.9.6</title>	
 	<para>
-	  Two new backends - Generic ODBC and LDAP. Furthermore, a few important bugs have been fixed which may have hampered sites seeing a lot of 
+	  Two new backends - Generic ODBC (windows only) and LDAP. Furthermore, a few important bugs have been fixed which may have hampered sites seeing a lot of 
 	  outgoing zonetransfers. Additionally, the pdns recursor now has 'query throttling' which is pretty cool. In short this makes sure that PowerDNS 
 	  does not send out heaps of queries if a nameserver is unable to provide an answer. Many operators of authoritative setups are all too aware of 
 	  recursing nameservers that hammer them for zones they don't have, PowerDNS won't do that anymore now, no matter what clients request of it.
@@ -126,7 +126,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Added Generic ODBC backend by Michel Stol.
+		Added Generic ODBC backend for Windows by Michel Stol.
 	      </para>
 	    </listitem>
 	    <listitem>
