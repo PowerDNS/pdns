@@ -1,2 +1,0 @@
-codedocs: .
-	doxygen doxygen.conf
