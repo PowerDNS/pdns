@@ -299,23 +299,40 @@ bool SyncRes::moreSpecificThan(const string& a, const string &b)
   return counta>countb;
 }
 
-map<string,DecayingEwma> nsSpeeds;
+static map<string,DecayingEwma> nsSpeeds;
 
 bool speedOrder(const string &a, const string &b)
 {
   return (nsSpeeds[toLower(a)].get() < nsSpeeds[toLower(b)].get());
 }
 
+struct speedOrder2
+{
+  speedOrder2(map<string,double> &speeds) : d_speeds(speeds) {}
+  bool operator()(const string &a, const string &b) const
+  {
+    return d_speeds[a] < d_speeds[b];
+
+     //    return (nsSpeeds[toLower(a)].get() < nsSpeeds[toLower(b)].get());
+  }
+  map<string,double>& d_speeds;
+};
+
 vector<string> SyncRes::shuffle(set<string> &nameservers)
 {
   vector<string> rnameservers;
+  rnameservers.reserve(nameservers.size());
+  map<string,double> speeds;
 
   for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
+    speeds[*i]=nsSpeeds[toLower(*i)].get();
   }
-  
+  cout<<"size: "<<nsSpeeds.size()<<", "<<rnameservers.size()<<endl;  
   random_shuffle(rnameservers.begin(),rnameservers.end());
-  stable_sort(rnameservers.begin(),rnameservers.end(),speedOrder);
+
+  stable_sort(rnameservers.begin(),rnameservers.end(),speedOrder2(speeds));
+
   
   return rnameservers;
 }
