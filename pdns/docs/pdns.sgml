@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/11/29 16:49:42 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/11/30 10:53:00 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -86,6 +86,20 @@
 	<para>
 	  Some bugfixes, some small features. Only one big bugfix, it appears we are heading for stability!
 	</para>
+	<para>
+	  <note>
+	    <para>
+	      There appears to be a problem with PowerDNS on Red Hat 7.3 with GCC 2.96 and self-compiled binaries. The symptoms are
+	      that PowerDNS works on the foreground but fails as a daemon. We're working on it.
+	    </para>
+	    <para>
+	      If you do note problems, let the list know, if you don't, please do so as well. Tell us if you use the RPM or
+	      compiled yourself.
+	    </para>
+	    <para>
+	      It is known that not compiling in MySQL support helps solve the problem, but then you don't have MySQL.
+	    </para>
+	  </note>
 	<para>
 	  Bug fixes:
 	  <itemizedlist>
