@@ -204,7 +204,7 @@ bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRec
   cache_t::const_iterator i=cache.find(tuple);
   bool found=false, expired=false;
   if(i!=cache.end() && i->first==tuple) { // found it
-    cout<<prefix<<"Found cache hit for '"<<tuple<<"': ";
+    cout<<prefix<<qname<<": Found cache hit for "<<qtype.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=i->second.begin();j!=i->second.end();++j) {
       cout<<j->content;
       if(j->ttl>(unsigned int)time(0)) {
