@@ -14,6 +14,7 @@ Changes since 2.9.4:
 		without sending packets out
 	- added -lz (James H. Cloos Jr) to MySQL
 	- added name to webserver (Daniel Meyer)
+	- fixed zone2sql root-zone issues
 	
 Changes since 2.9.3a:
 feat	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
