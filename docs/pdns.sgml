@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/10 18:43:01 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/11 21:09:57 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3955,18 +3955,18 @@ local0.err                        /var/log/pdns.err
 	      Only operates on the foreground, it does not fork.
 	    </para></listitem>
 	  <listitem><para>
-	      Can only answer queries for types and classes it knows about - it is not transparent as it should be.
-	    </para></listitem>
-	  <listitem><para>
 	      Only ignores stale cache entries, does not actually clean them up. May replace them with newer data, however.
 	    </para></listitem>
 	  <listitem><para>
-	      Not very IPv6 aware - does no AAAA additional processing.
+	      Not very IPv6 aware - does no AAAA additional processing. Should not actually break anything.
 	    </para></listitem>
 	  <listitem><para>
 	      Only compiles on Linux and possibly Solaris. FreeBSD 4.x decided not to support the 
 	      POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
 	      or ask him to port MTasker (see below) to your operating system.
+	    </para></listitem>
+	  <listitem<para>
+	      It does not do TCP yet, and may have big problems with truncated packets.
 	    </para></listitem>
 	</itemizedlist>
       </para>
@@ -3980,7 +3980,7 @@ local0.err                        /var/log/pdns.err
 	<note>
 	  <para>
 	    PowerDNS author bert hubert has the pdns recursor in production and browsing with it works for him. Furthermore, the LARTC
-	    mailinglist (2000 subscribers) is using the pdns recursing nameserver.
+	    mailinglist (2000 subscribers) is using the pdns recursing nameserver. 
 	  </para>
 	</note>
       </para>

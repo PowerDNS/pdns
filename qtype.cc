@@ -48,10 +48,10 @@ QType::QType()
       insert("MX",15);
       insert("TXT",16);
       insert("RP",17);
+      insert("AAAA",28);
       insert("LOC",29);
       insert("SRV",33);
       insert("A6",38);
-      insert("AAAA",28);
       insert("NAPTR",35);
       insert("AXFR",252);
       insert("ANY",255);
