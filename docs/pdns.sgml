@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/02/02 22:04:51 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/02/03 10:35:36 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -97,13 +97,18 @@
 	  <xref linkend="recursion"> for more details.
 	</para>
 	<para>
-	  Furthermore, the recursor only works on Linux and Solaris (probably, untested). FreeBSD does not support the required functions.
-	  If you know any important FreeBSD people, plea with them to support set/get/swapcontext!
+	  Furthermore, the recursor only works on Linux, Windows and Solaris (not entirely). FreeBSD does not support the required functions.
+	  If you know any important FreeBSD people, plea with them to support set/get/swapcontext! Alternatively, FreeBSD coders could read
+	  the solution presented here <ulink url="http://www.eng.uwaterloo.ca/~ejones/software/threading.html">in figure 5</ulink>.
 	</para>
 	<para>
 	  The 'Contributor of the Month' award goes to Mark Bergsma who has responded to our plea for help with the label compressor and contributed
 	  a wonderfully simple and right fix that allows PDNS to compress just as well as Other namerervers out there. An honorary mention goes to
 	  Ueli Heuer who, despite having no C++ experience, submitted an excellent SRV record implementation.
+	</para>
+	<para>
+	  Excellent work was also performed by Michel Stol, the Windows guy, in fixing all our non-portable stuff again. Christof Meerwald has also done 
+	  wonderful work in porting MTasker to Windows, which was then used by Michel to get the recursor functioning on Windows.
 	</para>
 	<para>
 	  Other changes:
@@ -168,6 +173,40 @@
 		Generic MySQL or Generic PostgreSQL!
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		J root-server address was updated to its new location.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SIGUSR1 now forces the recursor to print out statistics to the log now.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Meaning of recursor logging was changed a bit - a cache hit is now a question that was answered with 0 outgoing packets needed. Used to 
+		be a weighted average of internal cache hits.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		MySQL compilation did not include -lz which causes problems on some platforms. Thanks to James H. Cloos Jr for reporting this.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		After a suggestion by Daniel Meyer and Florus Both, the built in webserver now reports the configuration name when multiple PowerDNS 
+		instances are active.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Brad Knowles noticed that zone2sql had problems with the root.zone, fixed. This also closes some other zone2sql annoyances with converting
+		single zones.
+	      </para>
+	    </listitem>
+
 	  </itemizedlist>
 	</para>
       </sect2>
@@ -4686,8 +4725,7 @@ local0.err                        /var/log/pdns.err
 	  <term>AAAA</term>
 	  <listitem>
 	    <para>
-	      The AAAA record contains an IPv6 address. It is stored as a decimal dotted quad string,
-	      for example: '3ffe:8114:2000:bf0::1'. 
+	      The AAAA record contains an IPv6 address. An example: '3ffe:8114:2000:bf0::1'. 
 	    </para>
 	  </listitem>      
 	</varlistentry>
