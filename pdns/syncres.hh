@@ -12,6 +12,7 @@
 /* external functions, opaque to us */
 void replaceCache(const string &qname, const QType &qt, const set<DNSResourceRecord>& content);
 int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res=0);
+void primeHints(void);
 
 struct NegCacheEntry
 {

@@ -1,19 +1,12 @@
 #include "powerldap.hh"
-#include <iostream>
-
-#include <map>
-#include <vector>
-#include <exception>
-#include <stdexcept>
-#include <string>
 
 
 
-PowerLDAP::PowerLDAP( const string &host, u_int16_t port ) : d_host( host ), d_port( port ), d_timeout( 5 )
+PowerLDAP::PowerLDAP( const string& host, u_int16_t port, bool tls ) : d_timeout( 5 )
 {
 	int protocol = LDAP_VERSION3;
 
-	if( ( d_ld = ldap_init( d_host.c_str(), d_port ) ) == NULL )
+	if( ( d_ld = ldap_init( host.c_str(), port ) ) == NULL )
 	{
 		throw LDAPException( "Error initializing LDAP connection: " + string( strerror( errno ) ) );
 	}
@@ -23,30 +16,63 @@ PowerLDAP::PowerLDAP( const string &host, u_int16_t port ) : d_host( host ), d_p
 		protocol = LDAP_VERSION2;
 		if( ldap_set_option( d_ld, LDAP_OPT_PROTOCOL_VERSION, &protocol ) != LDAP_OPT_SUCCESS )
 		{
-			throw LDAPException( "Couldn't set protocol version neiher to LDAPv3 nor to LDAPv2" );
+			ldap_unbind( d_ld );
+			throw LDAPException( "Couldn't set protocol version to LDAPv3 or LDAPv2" );
 		}
+	}
+
+	if( tls && ldap_start_tls_s( d_ld, NULL, NULL ) != LDAP_SUCCESS )
+	{
+		ldap_unbind( d_ld );
+		throw( LDAPException( "Couldn't perform STARTTLS" ) );
 	}
 }
 
 
-void PowerLDAP::simpleBind(const string &ldapbinddn, const string& ldapsecret)
+PowerLDAP::~PowerLDAP()
 {
-  int err;
-  if( ( err = ldap_simple_bind_s( d_ld, ldapbinddn.c_str(), ldapsecret.c_str() ) ) != LDAP_SUCCESS ) {
-    throw LDAPException( "Failed to bind to LDAP server: " + getError( err ) );
-  }
+	ldap_unbind( d_ld );
 }
+
+
+void PowerLDAP::setOption( int option, int value )
+{
+	if( ldap_set_option( d_ld, option, (void*) &value ) != LDAP_OPT_SUCCESS )
+	{
+		throw( LDAPException( "Unable to set option" ) );
+	}
+}
+
+
+void PowerLDAP::getOption( int option, int *value )
+{
+	if( ldap_get_option( d_ld, option, (void*) value ) != LDAP_OPT_SUCCESS )
+	{
+		throw( LDAPException( "Unable to get option" ) );
+	}
+}
+
+
+void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
+{
+	int err;
+	if( ( err = ldap_simple_bind_s( d_ld, ldapbinddn.c_str(), ldapsecret.c_str() ) ) != LDAP_SUCCESS )
+	{
+		throw LDAPException( "Failed to bind to LDAP server: " + getError( err ) );
+	}
+}
+
 
 /** Function waits for a result, returns its type and optionally stores the result
     in retresult. If returned via retresult, the caller is responsible for freeing
     it with ldap_msgfree! */
-int PowerLDAP::waitResult(int msgid,LDAPMessage **retresult) 
+int PowerLDAP::waitResult(int msgid,LDAPMessage **retresult)
 {
   struct timeval tv;
   tv.tv_sec=d_timeout;
   tv.tv_usec=0;
   LDAPMessage *result;
-  
+
   int rc=ldap_result(d_ld,msgid,0,&tv,&result);
   if(rc==-1)
     throw LDAPException("Error waiting for LDAP result: "+getError());
@@ -136,18 +162,19 @@ void PowerLDAP::getSearchResults(int msgid, sresult_t &result, bool withdn)
     result.push_back(entry);
 }
 
-PowerLDAP::~PowerLDAP()
+
+const string PowerLDAP::getError( int rc )
 {
-  ldap_unbind( d_ld );
+	int ld_errno = rc;
+
+	if( ld_errno == -1 )
+	{
+		getOption( LDAP_OPT_ERROR_NUMBER, &ld_errno );
+	}
+
+	return ldap_err2string( ld_errno );
 }
 
-const string PowerLDAP::getError(int rc)
-{
-  int ld_errno=rc;
-  if(ld_errno==-1)
-    ldap_get_option(d_ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
-  return ldap_err2string(ld_errno);
-}
 
 const string PowerLDAP::escape(const string &name)
 {
@@ -160,50 +187,3 @@ const string PowerLDAP::escape(const string &name)
   }
   return a;
 }
-
-
-#ifdef TESTDRIVER
-int main(int argc, char **argv)
-{
-	int msgid, k, n;
-
-	try
-	{
-		for(int k=0;k<30;++k)
-		{
-    		PowerLDAP ldap;
-//			ldap.simpleBind("uid=ahu,ou=people,dc=snapcount","wuhwuh"); // anon
-			ldap.simpleBind("",""); // anon
-
-			for(int n=0;n<30;n++)
-			{
-				PowerLDAP::sresult_t ret;
-				const char *attr[]={"uid","userPassword",0};
-
-//				msgid = ldap.search("ou=people,dc=snapcount","uid=ahu",attr);
-				msgid = ldap.search("o=linuxnetworks,c=de","objectclass=*",0);
-
-				ldap.getSearchResults(msgid, ret);
-//				cout<<ret.size()<<" records"<<endl;
-
-				for(PowerLDAP::sresult_t::const_iterator h=ret.begin();h!=ret.end();++h)
-				{
-					for(PowerLDAP::sentry_t::const_iterator i=h->begin();i!=h->end();++i)
-					{
-//						cout<<"attr: "<<i->first<<endl;
-						for(vector<string>::const_iterator j=i->second.begin();j!=i->second.end();++j)
-						{
-//							cout<<"\t"<<*j<<endl;
-						}
-					}
-//					cout<<endl;
-				}
-			}
-		}
-	}
-	catch(exception &e)
-	{
-		cerr<<"Fatal: "<<e.what()<<endl;
-	}
-}
-#endif

@@ -32,24 +32,26 @@ LdapBackend::LdapBackend( const string &suffix )
 	m_msgid = 0;
 	m_qname = "";
 	m_default_ttl = arg().asNum( "default-ttl" );
+	m_pldap = NULL;
+
+	for( i = 0; i < hosts.length(); i++ )
+	{
+		if( hosts[i] == ',' ) { hosts[i] = ' '; }
+	}
+
+	L << Logger::Info << backendname << " LDAP servers = " << hosts << endl;
 
 	try
 	{
-		for( i = 0; i < hosts.length(); i++ )
-		{
-			if( hosts[i] == ',' ) { hosts[i] = ' '; }
-		}
-
-		L << Logger::Info << backendname << " LDAP servers = " << hosts << endl;
-
-		m_pldap = new PowerLDAP( hosts.c_str(), atoi( getArg( "port" ).c_str() ) );
+		m_pldap = new PowerLDAP( hosts.c_str(), atoi( getArg( "port" ).c_str() ), mustDo( "starttls" ) );
+		m_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
 		m_pldap->simpleBind( getArg( "binddn" ), getArg( "secret" ) );
 	}
 	catch( LDAPException &e )
 	{
-		delete( m_pldap );
-		L << Logger::Error << backendname << " Ldap connection failed: " << e.what() << endl;
-		throw( AhuException( "Unable to bind to ldap server" ) );
+		L << Logger::Error << backendname << " Initialization failed: " << e.what() << endl;
+		if( m_pldap != NULL ) { delete( m_pldap ); }
+		throw( AhuException( "Unable to connect to ldap server" ) );
 	}
 
 	L << Logger::Info << backendname << " Ldap connection succeeded" << endl;
@@ -325,6 +327,7 @@ public:
 	{
 		declare( suffix, "host", "one or more ldap server","localhost:389" );
 		declare( suffix, "port", "ldap server port (depricated, use ldap-host)","389" );
+		declare( suffix, "starttls", "use STARTTLS to encrypt connection", "no" );
 		declare( suffix, "basedn", "search root in ldap tree (must be set)","" );
 		declare( suffix, "binddn", "user dn for non anonymous binds","" );
 		declare( suffix, "secret", "user password for non anonymous binds", "" );

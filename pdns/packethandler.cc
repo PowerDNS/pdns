@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.18 2003/10/11 19:57:19 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.19 2003/11/23 15:14:57 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -170,7 +170,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.18 2003/10/11 19:57:19 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.19 2003/11/23 15:14:57 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -208,7 +208,7 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
   // pietje.nl should now NOT match, but www.pietje.nl should
 
   string subdomain=target;
-  unsigned int pos;
+  string::size_type pos;
   while((pos=subdomain.find("."))!=string::npos) {
     subdomain=subdomain.substr(pos+1);
     // DLOG();
@@ -648,7 +648,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       return 0;
     }
 
-    unsigned int pos;
+    string::size_type pos;
     
     DLOG(L<<"Nothing found so far for '"<<target<<"', do we even have authority over this domain?"<<endl);
     

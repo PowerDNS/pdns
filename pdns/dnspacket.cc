@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.22 2003/10/27 14:58:22 ahu Exp $
+// $Id: dnspacket.cc,v 1.23 2003/11/23 15:14:57 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -603,7 +603,7 @@ void DNSPacket::addRPRecord(const string &domain, const string &content, u_int32
  makeHeader(p,17,ttl);
  
  // content contains: mailbox-name more-info-domain (Separated by a space)
- unsigned int pos;
+ string::size_type pos;
  if((pos=content.find(" "))==string::npos) {
    L<<Logger::Warning<<"RP record for domain '"<<domain<<"' has malformed content field"<<endl;
    return;
@@ -811,7 +811,7 @@ void DNSPacket::addHINFORecord(string domain, string content, u_int32_t ttl)
   char p[10];
   makeHeader(p,QType::HINFO,ttl);
   
-  unsigned int offset=content.find(" ");
+  string::size_type offset=content.find(" ");
   string cpu, host;
   if(offset==string::npos) {
     cpu=content;
@@ -1059,7 +1059,7 @@ void DNSPacket::wrapup(void)
       break;
 
     case 257: // MBOXFW
-      unsigned int pos;
+      string::size_type pos;
       pos=rr.qname.find("@");
       DLOG(L<<Logger::Warning<<"Adding rr.qname: '"<<rr.qname<<"'"<<endl);
       if(pos!=string::npos)

@@ -187,7 +187,7 @@ map<char,int> PacketCache::getCounts()
 {
   ReadLock l(&d_mut);
   int counts[256];
-  unsigned int offset;
+  string::size_type offset;
   memset(counts,0,256*sizeof(counts[0]));
   char key;
   for(cmap_t::const_iterator i=d_map.begin();i!=d_map.end();++i) {

@@ -235,7 +235,7 @@ const string unquotify(const string &item)
 
 void stripLine(string &line)
 {
-  unsigned int pos=line.find_first_of("\r\n");
+  string::size_type pos=line.find_first_of("\r\n");
   if(pos!=string::npos) {
     line.resize(pos);
   }

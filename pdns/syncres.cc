@@ -77,7 +77,16 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   string subdomain(qname);
 
   set<string> nsset;
-  subdomain=getBestNSNamesFromCache(subdomain,nsset,depth, beenthere); //  pass beenthere to both occasions/
+  for(int tries=0;tries<2 && nsset.empty();++tries) {
+    subdomain=getBestNSNamesFromCache(subdomain,nsset,depth, beenthere); //  pass beenthere to both occasions
+
+    if(nsset.empty()) { // must've lost root records
+      LOG<<prefix<<qname<<": our root expired, repriming from hints and retrying"<<endl;
+      primeHints();
+    }
+  }
+
+
   if(!(res=doResolveAt(nsset,subdomain,qname,qtype,ret,depth, beenthere)))
     return 0;
   
@@ -112,11 +121,11 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	  if(!endsOn(k->content,subdomain) || getCache(k->content,QType(QType::A),&aset) > 5) {
 	    bestns.insert(*k);
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
-	    LOG<<prefix<<qname<<": endson: "<<endsOn(k->content,subdomain);
+	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(k->content,subdomain);
 	    if(!aset.empty())
-	      LOG<<", in cache, ttl="<<((time_t)aset.begin()->ttl-time(0))<<endl;
+	      L<<", in cache, ttl="<<((time_t)aset.begin()->ttl-time(0))<<endl;
 	    else
-	      LOG<<", not in cache"<<endl;
+	      L<<", not in cache"<<endl;
 	  }
 	  else
 	    LOG<<prefix<<qname<<": NS in cache for '"<<subdomain<<"', but needs glue ("<<k->content<<") which we miss or is expired"<<endl;
@@ -222,7 +231,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   if(!giveNegative) { // let's try some more
     tuple=toLower(qname)+"|"+qtype.getName();
-    LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', "<<s_negcache.count(tuple)<<endl;
+    LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', negative cached: "<<s_negcache.count(tuple)<<endl;
 
     res=0;
     map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(tuple);
@@ -312,7 +321,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
     bool aabit=false;
     result.clear();
 
-    vector<string>rnameservers=shuffle(nameservers);
+    vector<string> rnameservers=shuffle(nameservers);
 
     // what if we don't have an A for an NS anymore, but do have an NS for that NS?
 
@@ -331,7 +340,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	LOG<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
 	continue;
       }
-      LOG<<prefix<<qname<<": Resolved NS "<<*tns<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
+      LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 
       if(s_throttle.shouldThrottle(remoteIP+"|"+qname+"|"+qtype.getName())) {
 	LOG<<prefix<<qname<<": query throttled "<<endl;
@@ -495,7 +504,7 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
     if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
        ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
-      LOG<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs an IP address"<<endl;
+      LOG<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs IP for additional processing"<<endl;
       set<GetBestNSAnswer>beenthere;
       doResolve(k->content,QType(QType::A),addit,1,beenthere);
       if(arg().mustDo("aaaa-additional-processing"))
