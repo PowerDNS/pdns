@@ -18,10 +18,11 @@ bug	- silly wuh debugging output in zone2sql/bindbackend (Ivo van der Wijk)
 imp	- pdns_recursor lived in the 'bin' and not the 'sbin' directory (Norbert Sendetzky)
 imp	- chatter from master/slave backend is not 'Error'-worthy (Willem)
 bug	- recursor neglected the difference between negative cache of NXDOMAIN and NOERROR
-imp	- added ipv6 AAAAditional processing (noticed by Stephane Bortzmeyer)
-imp	- fixed incorrect AA bit on serving NS from non-top records (noticed by Stephane Bortzmeyer)
-imp	- added robustness fixed to dnspacket.cc getAnswers for incoming queries
-	
+feat	- added ipv6 AAAAditional processing (noticed by Stephane Bortzmeyer)
+bug	- fixed incorrect AA bit on serving NS from non-top records (noticed by Stephane Bortzmeyer)
+bug	- added robustness fixed to dnspacket.cc getAnswers for incoming queries
+
+bug	- freebsd webserver
 	
 Changes since 2.9.5:
 	- implemented isMaster in bindbackend (we now react to notifies)

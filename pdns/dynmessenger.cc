@@ -92,7 +92,7 @@ string DynMessenger::receive() const
 {
   char buffer[1500];
   struct sockaddr_un dontcare;
-  unsigned int len=sizeof(dontcare);
+
   int retlen;
   string answer;
   for(;;) {
