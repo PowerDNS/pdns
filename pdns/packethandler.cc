@@ -33,11 +33,13 @@
 #include "resolver.hh"
 #include "communicator.hh"
 #include "dnsproxy.hh"
+#include "recbcomm.hh"
 
 extern StatBag S;
 extern PacketCache PC;  
 extern CommunicatorClass Communicator;
 extern DNSProxy *DP;
+extern SyncresCommunicator* SRC;
 
 int PacketHandler::s_count;
 extern string s_programname;
@@ -150,7 +152,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.4 2002/12/30 21:00:56 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.5 2003/01/13 15:39:17 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -166,7 +168,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.4 2002/12/30 21:00:56 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.5 2003/01/13 15:39:17 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -545,6 +547,11 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
+
+    if(p->d.rd) {
+      SRC->giveQuestion(p);
+      return 0;
+    }
 
     // now we start doing things
     // if the packet wants to be recursed, and we do recursion (but not lazy recursion!), hand it off

@@ -1,7 +1,7 @@
 Buildroot: /tmp/pdns
 Name: pdns-static
-Version: 2.9.3a
-Release: 2
+Version: 2.9.4
+Release: 1
 Summary: extremely powerful and versatile nameserver
 Copyright: see /usr/doc/pdns/copyright
 Distribution: Neutral

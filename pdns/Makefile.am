@@ -11,14 +11,14 @@ noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
 if RECURSOR
-bin_PROGRAMS = pdns_control syncres
+bin_PROGRAMS = pdns_control pdns_recursor
 else
 bin_PROGRAMS = pdns_control 
 endif
 
 sbin_PROGRAMS = pdns_server 
 
-EXTRA_PROGRAMS=syncres pdns_control
+EXTRA_PROGRAMS=pdns_recursor pdns_control
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -45,12 +45,12 @@ pdns_server_INCLUDES=
 #resolver_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 #logger.cc statbag.cc dnspacket.cc arguments.cc  tres.cc
 
-syncres_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
-logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc recns.cc lwres.hh \
+pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
+logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh sillyrecords.cc
 
-syncres_LDFLAGS=
-syncres_LDADD=
+pdns_recursor_LDFLAGS=
+pdns_recursor_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc misc.cc unix_utility.cc
 pdns_control_INCLUDES=path.hh

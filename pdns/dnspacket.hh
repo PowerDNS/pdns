@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.11 2003/01/11 21:09:57 ahu Exp $
+// $Id: dnspacket.hh,v 1.12 2003/01/13 15:39:17 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -110,6 +110,7 @@ public:
 
   inline void setRemote(const struct sockaddr *a, Utility::socklen_t socklen);
   string getRemote() const;
+  u_int16_t getRemotePort() const;
   void setA(bool); //!< make this packet authoritative
   void setRA(bool); //!< set the Recursion Available flag
   void setRD(bool); //!< set the Recursion Desired flag

@@ -11,8 +11,78 @@ Projects we will be working on, but would like help for:
 
 Big things:
 	- Add recursion
-		bert hubert is working on this based on MTasker
-		http://ds9a.nl/mtasker
+
+	- new plan
+Like in the old days but with a twist - additional processing is done on a
+best-effort basis by a non-rd packet sent to syncres. This means we can stay
+lazy for far longer!
+
+TODO:
+	learn syncres not to expire its roots
+		put a watch on that
+	learn syncres to load its roots from disk too or at completime
+	be able to reduce logging
+	get a way to nuke the cache/parts of the cache
+	learn syncres that it should serve answers from its cache
+	   immediately on a non-rd query
+
+
+	
+		
+How will this work. Anything that has an RD bit goes to syncres. We need to
+send 5 things: "qname, qtype, socket on which to send the answer,id,flags".
+PowerDNS then forgets all about it.
+
+The recursor receives these questions and goes prowling for the right
+answers. In this, it uses the main PDNS query cache. So we need either a
+full socket to communicate with or two pipes.
+
+Communications can be a stream, but access must be strictly serialized!
+
+Each query 'upwards' consists of a marker and a tuple, PDNS replies with
+serialized DNSResourceRecords, ending with an empty line.
+
+typical communication might be:
+
+        qdomain    qt  socket    id   remote
+-> www.powerdns.com 1   10       123 5.4.3.2
+<- Q: www.powerdns.com CNAME
+-> .
+<- Q: www.powerdns.com A
+-> .
+<- Q: www.powerdns.com NS
+-> .
+<- Q: powerdns.com NS
+-> .
+<- Q: com NS
+-> COM|NS|A.GTLD-SERVERS.NET..
+-> COM|NS|B.GTLD-SERVERS.NET..
+-> .
+<- Q: A.GTLD-SERVERS.NET A
+-> A.GTLD-SERVERS.NET|A|1.2.3.4
+<- A: powerdns.com 5
+<- powerdns.com|NS|dns-eu1.powerdns.net
+<- powerdns.com|NS|dns-us1.powerdns.net
+<- .
+
+           qdomain   qtype socket    id remote   rcode
+<- P: www.powerdns.com 1   10       123 5.4.3.2    0     <- reply packet
+<- www.powerdns.com|A|1.2.3.4
+<- powerdns.com|NS|dns-eu1.powerdns.net
+<- powerdns.com|NS|dns-us1.powerdns.net
+<.
+
+ 
+
+	Answers pushed upwards are inserted in the query cache with a
+'unauth' flag.
+
+	so, we need a syncres communicator which is executed with as
+parameter the fd it will find a socket on for its perusal.
+
+
+
+
 	- Add support for TSIG
 
 Medium size things:

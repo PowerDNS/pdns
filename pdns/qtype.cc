@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "utility.hh"
+#include "dns.hh"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -48,6 +49,8 @@ QType::QType()
       insert("MX",15);
       insert("TXT",16);
       insert("RP",17);
+      insert("SIG",24);
+      insert("KEY",25);
       insert("AAAA",28);
       insert("LOC",29);
       insert("SRV",33);
@@ -121,6 +124,74 @@ QType::QType(char *p)
   QType();
   code=chartocode(p);
 }
+
+string DNSResourceRecord::serialize() const
+{
+  ostringstream ostr;
+  ostr<<escape(qname)<<"|"<<qtype.getName()<<"|"<<escape(content)<<"|"<<ttl<<"|"<<priority<<"|"<<domain_id
+     <<"|"<<last_modified;
+  return ostr.str();
+}
+
+string DNSResourceRecord::escape(const string &name) const
+{
+  string a;
+
+  for(string::const_iterator i=name.begin();i!=name.end();++i)
+    if(*i=='|' || *i=='\\'){
+      a+='\\';
+      a+=*i;
+    }
+    else
+      a+=*i;
+
+  return a;
+}
+
+int DNSResourceRecord::unSerialize(const string &source)
+{
+  // qname|qtype|content|ttl|priority|domain_id|last_modified;
+  string chunk;
+  unsigned int m=0;
+  for(int n=0;n<7;++n) {
+    chunk="";
+    for(;m<source.size();++m) {
+      if(source[m]=='\\' && m+1<source.size()) 
+	chunk.append(1,source[++m]);
+      else if(source[m]=='|') {
+	++m;
+	break;
+      }
+      else 
+	chunk.append(1,source[m]);
+    }
+    switch(n) {
+    case 0:
+      qname=chunk;
+      break;
+    case 1:
+      qtype=chunk;
+      break;
+    case 2:
+      content=chunk;
+      break;
+    case 3:
+      ttl=atoi(chunk.c_str());
+      break;
+    case 4:
+      priority=atoi(chunk.c_str());
+      break;
+    case 5:
+      domain_id=atoi(chunk.c_str());
+      break;
+    case 6:
+      last_modified=atoi(chunk.c_str());
+      break;
+    }
+  }
+  return m;
+}
+
 
 #if 0
 int main(int argc, char **argv)

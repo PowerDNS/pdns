@@ -16,6 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+#include "syncres.hh"
 #include <iostream>
 #include <map>
 #include <algorithm>
@@ -28,37 +29,10 @@
 #include "arguments.hh"
 #include "lwres.hh"
 
-typedef map<string,set<DNSResourceRecord> > cache_t;
-cache_t cache;
-map<string,string> negcache;
-
-struct GetBestNSAnswer
-{
-  string qname;
-  set<DNSResourceRecord> bestns;
-  bool operator<(const GetBestNSAnswer &b) const
-  {
-    if(qname<b.qname)
-      return true;
-    if(qname==b.qname)
-      return bestns<b.bestns;
-    return false;
-  }
-};
-
-/** dramatis personae */
-int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
-		int depth, set<GetBestNSAnswer>&beenthere);
-int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
-bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere);
-void addCruft(const string &qname, vector<DNSResourceRecord>& ret);
-string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere);
-void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
+template<class MultiPlexor>map<string,string> SyncRes<MultiPlexor>::s_negcache;
 
 /** everything begins here - this is the entry point just after receiving a packet */
-int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
+template<>int SyncRes<>::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
 {
   set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret,0,beenthere);
@@ -68,7 +42,7 @@ int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceReco
   return res;
 }
 
-int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
+template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
   prefix.assign(3*depth, ' ');
@@ -93,7 +67,7 @@ int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>
   return res<0 ? RCode::ServFail : res;
 }
 
-string getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
+template<class MultiPlexor>string SyncRes<MultiPlexor>::getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {
   vector<DNSResourceRecord> res;
   string ret;
@@ -104,24 +78,7 @@ string getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
   return ret;
 }
 
-int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res=0)
-{
-  cache_t::const_iterator j=cache.find(toLower(qname)+"|"+qt.getName());
-  if(j!=cache.end() && j->first==toLower(qname)+"|"+qt.getName() && j->second.begin()->ttl>(unsigned int)time(0)) {
-    if(res)
-      *res=j->second;
-    return (unsigned int)j->second.begin()->ttl-time(0);
-  }
-  return -1;
-}
-
-void replaceCache(const string &tuple, const set<DNSResourceRecord>& content)
-{
-  cache[tuple]=content;
-}
-
-
-void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere)
+template<class MultiPlexor>void SyncRes<MultiPlexor>::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix, subdomain(qname);
   prefix.assign(3*depth, ' ');
@@ -152,7 +109,7 @@ void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int 
 	answer.qname=toLower(qname); answer.bestns=bestns;
 	if(beenthere.count(answer)) {
 	  cout<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP! Trying less specific NS"<<endl;
-	  for(set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
+	  for(typename set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
 	    cout<<prefix<<qname<<": beenthere: "<<j->qname<<" ("<<j->bestns.size()<<")"<<endl;
 	  bestns.clear();
 	}
@@ -166,20 +123,9 @@ void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int 
   }while(chopOff(subdomain));
 }
 
-void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
-{
-  set<DNSResourceRecord> bestns;
-  set<GetBestNSAnswer>beenthere;
-  getBestNSFromCache(qname, bestns, depth,beenthere);
-  for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
-    DNSResourceRecord ns=*k;
-    ns.d_place=DNSResourceRecord::AUTHORITY;
-    ns.ttl-=time(0);
-    ret.push_back(ns);
-  }
-}
+
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere)
+template<class MultiPlexor>string SyncRes<MultiPlexor>::getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
 
@@ -193,7 +139,7 @@ string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth
   return subdomain;
 }
 
-bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
+template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   string prefix, tuple=toLower(qname)+"|CNAME";
   prefix.assign(3*depth, ' ');
@@ -219,26 +165,30 @@ bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResour
   return false;
 }
 
-bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
+template<class MultiPlexor>bool SyncRes<MultiPlexor>::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   string prefix, tuple;
   prefix.assign(3*depth, ' ');
 
   tuple=toLower(qname)+"|"+qtype.getName();
-  cout<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"'"<<endl;
+  cout<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', "<<s_negcache.count(tuple)<<endl;
+
+  string sqname(qname);
+  QType sqt(qtype);
 
   res=0;
-  map<string,string>::const_iterator ni=negcache.find(tuple);
-  if(ni!=negcache.end()) {
-    cout<<prefix<<qname<<": is negatively cached, will return immediately if we still have SOA to prove it"<<endl;
+  map<string,string>::const_iterator ni=s_negcache.find(tuple);
+  if(ni!=s_negcache.end()) {
+    cout<<prefix<<qname<<": is negatively cached, will return immediately if we still have SOA ("<<ni->second<<") to prove it"<<endl;
     res=RCode::NXDomain;
-    tuple=ni->second+"|SOA";
+    sqname=ni->second;
+    sqt="SOA";
   }
 
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
-  if(getCache(qname,qtype,&cset)>0) {
-    cout<<prefix<<qname<<": Found cache hit for "<<qtype.getName()<<": ";
+  if(getCache(sqname,sqt,&cset)>0) {
+    cout<<prefix<<qname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       cout<<j->content;
       if(j->ttl>(unsigned int)time(0)) {
@@ -265,7 +215,7 @@ bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRec
   return false;
 }
 
-inline bool moreSpecificThan(const string& a, const string &b)
+template<class MultiPlexor>bool SyncRes<MultiPlexor>::moreSpecificThan(const string& a, const string &b)
 {
   int counta=!a.empty(), countb=!b.empty();
   
@@ -278,7 +228,7 @@ inline bool moreSpecificThan(const string& a, const string &b)
   return counta>countb;
 }
 
-inline vector<string>shuffle(set<string> &nameservers)
+template<class MultiPlexor>vector<string> SyncRes<MultiPlexor>::shuffle(set<string> &nameservers)
 {
   vector<string> rnameservers;
   for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i)
@@ -289,13 +239,12 @@ inline vector<string>shuffle(set<string> &nameservers)
 }
 
 /** returns -1 in case of no results, rcode otherwise */
-int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, 
+template<class MultiPlexor>int SyncRes<MultiPlexor>::doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, 
 		int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix;
   prefix.assign(3*depth, ' ');
   
-  LWRes r;
   LWRes::res_t result;
 
   cout<<prefix<<qname<<": Cache consultations done, have "<<nameservers.size()<<" NS to contact"<<endl;
@@ -313,7 +262,7 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	cout<<prefix<<qname<<": Failed to resolve via any of the "<<rnameservers.size()<<" offered NS"<<endl;
 	return -1;
       }
-      if(qname==*tns) {
+      if(qname==*tns && qtype.getCode()==QType::A) {
 	cout<<prefix<<qname<<": Not using NS to resolve itself!"<<endl;
 	continue;
       }
@@ -325,19 +274,19 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
       }
       cout<<prefix<<qname<<": Resolved NS "<<*tns<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 
-      if(r.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
+      if(d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
 	cout<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
 	continue;
       }
 
-      if(r.d_rcode==RCode::ServFail) {
+      if(d_lwr.d_rcode==RCode::ServFail) {
 	cout<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
 	continue;
       }
-      result=r.result(aabit);
-      cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<r.d_rcode<<endl;
+      result=d_lwr.result(aabit);
+      cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<endl;
 
-      cache_t tcache;
+      map<string,set<DNSResourceRecord> > tcache;
       // reap all answers from this packet that are acceptable
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
 	cout<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
@@ -356,20 +305,30 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
       }
     
       // supplant
-      for(cache_t::const_iterator i=tcache.begin();i!=tcache.end();++i)
-	replaceCache(i->first,i->second);
-      
+      for(map<string,set<DNSResourceRecord> >::const_iterator i=tcache.begin();i!=tcache.end();++i) {
+	vector<string>parts;
+	stringtok(parts,i->first,"|");
+	QType qt;
+	if(parts.size()==2) {
+	  qt=parts[1];
+	  replaceCache(parts[0],qt,i->second);
+	}
+	else {
+	  qt=parts[0];
+	  replaceCache("",qt,i->second);
+	}
+      }
       set<string> nsset;  
       cout<<prefix<<qname<<": determining status after receiving this packet"<<endl;
 
       bool done=false, realreferral=false, negindic=false;
-      string newauth;
+      string newauth, soaname;
 
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
 	if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA) {
-	  cout<<prefix<<qname<<": got negative caching indication"<<endl;
+	  cout<<prefix<<qname<<": got negative caching indication for '"<<toLower(qname)+"|"+qtype.getName()<<"'"<<endl;
 	  ret.push_back(*i);
-	  negcache[toLower(qname)+"|"+qtype.getName()]=i->qname;
+	  s_negcache[toLower(qname)+"|"+qtype.getName()]=i->qname;
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -400,11 +359,11 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	cout<<prefix<<qname<<": status=got results, this level of recursion done"<<endl;
 	return 0;
       }
-      if(r.d_rcode==RCode::NXDomain) {
+      if(d_lwr.d_rcode==RCode::NXDomain) {
 	cout<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return RCode::NXDomain;
       }
-      if(nsset.empty() && !r.d_rcode) {
+      if(nsset.empty() && !d_lwr.d_rcode) {
 	cout<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return 0;
       }
@@ -422,51 +381,45 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
   return -1;
 }
 
-void addCruft(const string &qname, vector<DNSResourceRecord>& ret)
+template<class MultiPlexor>void SyncRes<MultiPlexor>::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 {
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k)  // don't add stuff to an NXDOMAIN!
     if(k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::SOA))
       return;
 
-  cout<<qname<<": Adding best authority records from cache"<<endl;
-  addAuthorityRecords(qname,ret,0);
-  cout<<qname<<": Done adding best authority records."<<endl;
+  //  cout<<qname<<": Adding best authority records from cache"<<endl;
+  // addAuthorityRecords(qname,ret,0);
+  // cout<<qname<<": Done adding best authority records."<<endl;
 
   cout<<qname<<": Starting additional processing"<<endl;
   vector<DNSResourceRecord> addit;
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
     if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
-       (k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::NS))) {
+       ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
       cout<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs an IP address"<<endl;
       set<GetBestNSAnswer>beenthere;
       doResolve(k->content,QType(QType::A),addit,1,beenthere);
+      doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
     }
   
   for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
-    k->d_place=DNSResourceRecord::ADDITIONAL;
-    ret.push_back(*k);
+    if(k->qtype.getCode()==QType::A || k->qtype.getCode()==QType::AAAA) {
+      k->d_place=DNSResourceRecord::ADDITIONAL;
+      ret.push_back(*k);
+    }
   }
   cout<<qname<<": Done with additional processing"<<endl;
 }
 
-void init(void)
+template<class MultiPlexor>void SyncRes<MultiPlexor>::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
 {
-  // prime root cache
-  static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
-		     "192.36.148.17","198.41.0.10", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
-  DNSResourceRecord arr, nsrr;
-  arr.qtype=QType::A;
-  arr.ttl=time(0)+86400;
-  nsrr.qtype=QType::NS;
-  nsrr.ttl=time(0)+86400;
-  
-  for(char c='a';c<='m';++c) {
-    static char templ[40];
-    strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
-    *templ=c;
-    arr.qname=nsrr.content=templ;
-    arr.content=ips[c-'a'];
-    cache[string(templ)+"|A"].insert(arr);
-    cache["|NS"].insert(nsrr);
+  set<DNSResourceRecord> bestns;
+  set<GetBestNSAnswer>beenthere;
+  getBestNSFromCache(qname, bestns, depth,beenthere);
+  for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
+    DNSResourceRecord ns=*k;
+    ns.d_place=DNSResourceRecord::AUTHORITY;
+    ns.ttl-=time(0);
+    ret.push_back(ns);
   }
 }

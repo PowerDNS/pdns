@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.10 2003/01/11 21:09:57 ahu Exp $
+// $Id: dnspacket.cc,v 1.11 2003/01/13 15:39:16 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -56,10 +56,15 @@ string DNSPacket::getRemote() const
   return sockAddrToString((struct sockaddr_in *)remote, d_socklen);
 }
 
-
+u_int16_t DNSPacket::getRemotePort() const
+{
+  if(d_socklen==sizeof(sockaddr_in))
+    return ((struct sockaddr_in*)remote)->sin_port;
+  return 0;
+}
 
 // Make s lowercase:
-void lowercase(string& s) {
+static void lowercase(string& s) {
   for(unsigned int i = 0; i < s.length(); i++)
     s[i] = tolower(s[i]);
 }
@@ -1124,7 +1129,7 @@ string DNSPacket::compress(const string &qd)
   return qname;
 }
 
-void DNSPacket::setQuestion(int op, const string &qd, int qtype)
+void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
 {
   memset(&d,0,sizeof(d));
   d.id=Utility::random();
@@ -1133,18 +1138,16 @@ void DNSPacket::setQuestion(int op, const string &qd, int qtype)
   d.qdcount=1; // is htons'ed later on
   d.ancount=d.arcount=d.nscount=0;
   d.opcode=op;
-
+  qdomain=qd;
+  qtype=newqtype;
   string label=compress(qd);
   stringbuffer.assign((char *)&d,sizeof(d));
   stringbuffer.append(label);
-  u_int16_t tmp=htons(qtype);
+  u_int16_t tmp=htons(newqtype);
   stringbuffer.append((char *)&tmp,2);
   tmp=htons(1);
   stringbuffer.append((char *)&tmp,2);
 }
-
-
-
 
 /** A DNS answer packets needs to include the original question. This function allows you to
     paste in a question */

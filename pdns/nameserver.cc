@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.cc,v 1.4 2002/12/30 21:00:56 ahu Exp $ 
+// $Id: nameserver.cc,v 1.5 2003/01/13 15:39:17 ahu Exp $ 
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
@@ -206,12 +206,8 @@ void UDPNameserver::send(DNSPacket *p)
     delete p;
   }
   else {
-
     if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(p->remote),p->d_socklen)<0)
       L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
-
-
-
   }
 }
 

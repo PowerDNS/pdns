@@ -102,65 +102,18 @@ typedef map<string,set<DNSResourceRecord> > cache_t;
 cache_t cache;
 int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
-  string line;
-  static FILE* fp;
-
-  line="Q: "+qname+". "+itoa(qt.getCode())+"\n";
-
-  write(d_serversock,line.c_str(),line.size());
-  if(!fp) {
-    fp=fdopen(d_serversock,"r");
-    setbuf(fp,0); // no buffering please, confuses select
-  }
-
-  char rline[1024];
-  u_int32_t lastttl=0;
-  while(fgets(rline,sizeof(rline)-1,fp)) {
-    line=rline;
-    stripLine(line);
-    cout<<"Got a line from pdns! '"<<line<<"'"<<endl;
-    if(line.empty()) {
-      cout<<"Cache answer done"<<endl;
-      break;
-    }
-    DNSResourceRecord rr;
-    rr.unSerialize(line);
-    if(res)
-      res->insert(rr);
-    lastttl=rr.ttl;
-  }
-  if(lastttl)
-    return (unsigned int)lastttl-time(0);
-
-
-  /*
   cache_t::const_iterator j=cache.find(toLower(qname)+"|"+qt.getName());
   if(j!=cache.end() && j->first==toLower(qname)+"|"+qt.getName() && j->second.begin()->ttl>(unsigned int)time(0)) {
     if(res)
       *res=j->second;
     return (unsigned int)j->second.begin()->ttl-time(0);
   }
-  */
   return -1;
 }
 
 void replaceCache(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
-  string line;
-  line="A: "+qname+". "+itoa(qt.getCode())+" ";
-  unsigned int minttl=1<<30;
-
-  for(set<DNSResourceRecord>::const_iterator i=content.begin();i!=content.end();++i)
-    minttl=min(minttl-time(0),i->ttl-time(0));
-  line+=itoa(minttl)+"\n";
-
-  for(set<DNSResourceRecord>::const_iterator i=content.begin();i!=content.end();++i)
-    line+=i->serialize()+"\n";
-  line+="\n";
-  write(d_serversock,line.c_str(),line.size());
-  /*
-  cache[tuple]=content;
-  */
+  cache[toLower(qname)+"|"+qt.getName()]=content;
 }
 
 void init(void)
@@ -170,9 +123,9 @@ void init(void)
 		     "192.36.148.17","198.41.0.10", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   DNSResourceRecord arr, nsrr;
   arr.qtype=QType::A;
-  arr.ttl=time(0)+86400;
+  arr.ttl=time(0)+3600000;
   nsrr.qtype=QType::NS;
-  nsrr.ttl=time(0)+86400;
+  nsrr.ttl=time(0)+3600000;
   
   set<DNSResourceRecord>nsset;
   for(char c='a';c<='m';++c) {
@@ -335,13 +288,8 @@ int main(int argc, char **argv)
 
     
     makeClientSocket();
-    if(argc==1)
-      makeServerSocket();
-    else {
-      cout<<"Launched within pdns! Socket="<<atoi(argv[1])<<endl;
-      d_serversock=atoi(argv[1]);
-    }
-    
+    makeServerSocket();
+        
     char data[1500];
     struct sockaddr_in fromaddr;
     
@@ -396,56 +344,23 @@ int main(int argc, char **argv)
       
       if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question?
 	cout<<"question on the serversock"<<endl;
-	if(argc==1) {
-	  d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-	  if(d_len<0) {
-	    cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
-	    continue;
-	  }
-	  cout<<"Read "<<d_len<<" bytes?!"<<endl;
-	  P.setRemote((struct sockaddr *)&fromaddr, addrlen);
-	  if(P.parse(data,d_len)<0) {
-	    cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
-	  }
-	  else { 
-	    if(P.d.qr)
-	      cout<<"Ignoring answer on server socket!"<<endl;
-	    else {
-	      cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
-	      MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
-	    }
-	  }
+
+	d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
+	if(d_len<0) {
+	  cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
+	  continue;
 	}
-	else {
-	  string line;
-	  cout<<"About to read"<<endl;
-	  int len=read(d_serversock,data,sizeof(data));
-	  cout<<"done reading, len="<<len<<endl;
-	  if(len<=0) {
-	    cout<<"shit on the pdns socket"<<endl;
-	    exit(1);
+ 	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
+	if(P.parse(data,d_len)<0) {
+	  cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
+	}
+	else { 
+	  if(P.d.qr)
+	    cout<<"Ignoring answer on server socket!"<<endl;
+	  else {
+	    cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
 	  }
-	  line.assign(data,len);
-	  stripLine(line);
-	  cout<<"pdns gave us a question: '"<<line<<"'"<<endl;
-	  vector<string>parts;
-	  stringtok(parts,line," ");
-	  P.setQuestion(0,parts[0],atoi(parts[1].c_str()));
-	  P.setSocket(atoi(parts[2].c_str()));
-	  P.d.id=atoi(parts[3].c_str());
-	  *((char *)&P.d+2)=atoi(parts[4].c_str()); // spoof in flags
-	  struct sockaddr_in fromaddr;
-	  socklen_t addrlen=sizeof(fromaddr);
-
-	  struct in_addr inp;
-	  Utility::inet_aton(parts[5].c_str(),&inp);
-	  fromaddr.sin_addr.s_addr=inp.s_addr;
-	  
-	  fromaddr.sin_port=htons(atoi(parts[6].c_str())); // hmf
-	  fromaddr.sin_family=AF_INET;
-
-	  P.setRemote((struct sockaddr *)&fromaddr, addrlen);
-	  MT.makeThread(startDoResolveEmbed,(void*)new DNSPacket(P));
 	}
       }
     }
