@@ -21,7 +21,7 @@
 #include <iostream>
 #include <errno.h>
 #include <map>
-
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -80,7 +80,6 @@ int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int a
 
 int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t *addrlen, int *d_len, int id)
 {
-  // don't do this, work via multiplexer
   PacketID pident;
   pident.id=id;
   memcpy(&pident.remote,toaddr,sizeof(pident.remote));
@@ -169,7 +168,20 @@ void makeServerSocket()
   memset((char *)&sin,0, sizeof(sin));
   
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
+
+  if(arg()["local-address"]=="0.0.0.0") {
+    cerr<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
+    sin.sin_addr.s_addr = INADDR_ANY;
+  }
+  else {
+    struct hostent *h=0;
+    h=gethostbyname(arg()["local-address"].c_str());
+    if(!h)
+      throw AhuException("Unable to resolve local address"); 
+    
+    sin.sin_addr.s_addr=*(int*)h->h_addr;
+  }
+
   sin.sin_port = htons(arg().asNum("local-port")); 
     
   if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
@@ -189,6 +201,7 @@ int main(int argc, char **argv)
     arg().set("soa-minimum-ttl","0")="0";
     arg().set("soa-serial-offset","0")="0";
     arg().set("local-port","port to listen on")="5300";
+    arg().set("local-address","port to listen on")="0.0.0.0";
     arg().parse(argc, argv);
     init();
     cerr<<"Done priming cache with root hints"<<endl;
@@ -263,7 +276,7 @@ int main(int argc, char **argv)
 	  if(P.d.qr)
 	    cout<<"Ignoring answer on server socket!"<<endl;
 	  else {
-	    cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"'"<<endl;
+	    cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
 	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
 	  }
 	}

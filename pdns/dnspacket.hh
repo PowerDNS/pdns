@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.9 2003/01/03 21:29:36 ahu Exp $
+// $Id: dnspacket.hh,v 1.10 2003/01/08 21:31:06 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -297,8 +297,8 @@ int DNSPacket::parse(const char *mesg, int length)
   }
 
   if((unsigned int)(15+offset)>=stringbuffer.length()) {
-    L << Logger::Warning << "Ignoring packet: question too short from "
-      << getRemote() << endl;
+    L << Logger::Warning << "Ignoring packet: question too short from "<< getRemote()<<", "<<
+      15+offset<<">="<<stringbuffer.length()<<endl;
     return -1;
   }
 

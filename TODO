@@ -1,12 +1,11 @@
 
-error accepting pdns_control connection should not lead to a crash
-pdns_control can crash
-
 bugs:
 	pdns.conf-dist contains old descriptions
 
 Things we will not do but hope other people will:
 	- Ports to NetBSD, OpenBSD, AIX
+
+	webserver has problems with 'top-100 queries' instead of top-10.
 
 Projects we will be working on, but would like help for:
 

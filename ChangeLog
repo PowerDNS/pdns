@@ -1,24 +1,34 @@
 Changes since 2.9.3a:
-	- improved zone parser error message about time specification
-	- zone parser now allows both $include and $INCLUDE
-	- wildcard ANY queries work again (colemarcus)
-	- resolved crashes after failed gmysql/gpgsql connections
-	- major brokenness in slave support in gmysql/gpgsql (mark)
-	- solaris compilation fixes
-	- make IPv6 work again on FreeBSD (Peter van Dijk)
-	- neglected to properly initialize the socklen of accept of dynlistener ;-(
-	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
-	- multiple backends+axfr work again
-	- axfr backend transaction now only started after first actual
+feat	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
+feat	- recursor
+impr	- axfr backend transaction now only started after first actual
 	  record is in
-	- improve bindbackend abortTransaction
-		should no longer block the zone
-	- huge improvement in performance of bind-domain-status
+impr	- improved zone parser error message about time specification
+impr	- huge improvement in performance of bind-domain-status
 		(spotted by Erik Bos)
-	- further alignment fixes (should help on UltraSparc)
-	- AXFR terminated with an EOF is now an error, unless a second SOA
+impr	- AXFR terminated with an EOF is now an error, unless a second SOA
 		was seen
-	- fixes for more recent libpq++ (Julien LEMOINE / SpeedBlue)
+impr	- 'migration' chapter was outdated	
+bug	- zone parser now allows both $include and $INCLUDE
+bug	- wildcard ANY queries work again (colemarcus)
+bug	- resolved crashes after failed gmysql/gpgsql connections
+bug	- major brokenness in slave support in gmysql/gpgsql (mark)
+bug	- solaris compilation fixes
+bug	- make IPv6 work again on FreeBSD (Peter van Dijk)
+bug	- neglected to properly initialize the socklen of accept of dynlistener ;-(
+
+bug	- multiple backends+axfr work again
+
+bug	- improve bindbackend abortTransaction
+		should no longer block the zone
+
+bug	- further alignment fixes (should help on UltraSparc)
+
+bug	- fixes for more recent libpq++ (Julien LEMOINE / SpeedBlue)
+bug	- socklen wasn't filled in with multiple listen addresses
+bug	- tyop in manpages resolved (Marco Davids)
+
+
 
 
 Changes since 2.9.2:
