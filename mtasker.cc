@@ -298,3 +298,11 @@ template<class Key, class Val>void MTasker<Key,Val>::threadWrapper(MTasker *self
   // we now jump to &kernel, automatically
 }
 
+//! Returns the current Thread ID (tid)
+/** Processes can call this to get a numerical representation of their current thread ID.
+    This can be useful for logging purposes.
+*/
+template<class Key, class Val>int MTasker<Key,Val>::getTid()
+{
+  return d_tid;
+}

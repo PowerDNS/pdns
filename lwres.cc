@@ -89,11 +89,17 @@ LWRes::res_t LWRes::result(bool &aabit)
 {
   DNSPacket p;
 
-  if(p.parse((char *)d_buf, d_len)<0)
-    throw LWResException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
-
-  aabit=p.d.aa;
-  d_rcode=p.d.rcode;
-  return p.getAnswers();
+  try {
+    if(p.parse((char *)d_buf, d_len)<0)
+      throw LWResException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
+    aabit=p.d.aa;
+    d_rcode=p.d.rcode;
+    return p.getAnswers();
+  }
+  catch(...) {
+    d_rcode=RCode::ServFail;
+    LWRes::res_t empty;
+    return empty;
+  }
 }
 

@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/13 15:39:17 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/14 21:39:38 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3957,9 +3957,6 @@ local0.err                        /var/log/pdns.err
 	    </para></listitem>
 	  <listitem><para>
 	      Only ignores stale cache entries, does not actually clean them up. May replace them with newer data, however.
-	    </para></listitem>
-	  <listitem><para>
-	      Not very IPv6 aware - does no AAAA additional processing. Should not actually break anything.
 	    </para></listitem>
 	  <listitem><para>
 	      Only compiles on Linux and possibly Solaris. FreeBSD 4.x decided not to support the 
