@@ -99,28 +99,26 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t
 
 
 extern void init(void);
-string doResolve(const string &qname, int depth=0);
-string doResolve(vector<string> nameservers, const string &qname, int depth=0);
 
+bool beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
 
 void startDoResolve(void *p)
 {
   try {
-    cout<<"Passed: "<<p<<endl;
     DNSPacket P=*(DNSPacket *)p;
     delete (DNSPacket *)p;
     
-    string ip=doResolve(P.qdomain);
-    cout<<"done: "<<ip<<endl;
+    vector<DNSResourceRecord>ret;
     DNSPacket *R=P.replyPacket();
-    DNSResourceRecord rr;
-    rr.qname=P.qdomain;
-    rr.qtype=QType::A;
-    rr.content=ip;
-    rr.ttl=3600;
-    R->addRecord(rr);
+    if(!beginResolve(P.qdomain, P.qtype, ret))
+      R->setRcode(RCode::ServFail);
+    else
+      for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i)
+	R->addRecord(*i);
+
     const char *buffer=R->getData();
     sendto(d_sock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+    delete R;
   }
   catch(AhuException &ae) {
     cerr<<"startDoResolve timeout: "<<ae.reason<<endl;
@@ -201,7 +199,7 @@ int main(int argc, char **argv)
 	MT.sendEvent(pident,packet);
       }
       else {
-	cout<<"new question for '"<<P.qdomain<<"'"<<endl;
+	cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"'"<<endl;
 	MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
       }
     }
