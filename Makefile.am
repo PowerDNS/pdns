@@ -16,9 +16,9 @@ else
 sbin_PROGRAMS = pdns_server 
 endif
 
-bin_PROGRAMS = pdns_control sdig 
+bin_PROGRAMS = pdns_control  
 
-EXTRA_PROGRAMS=pdns_recursor pdns_control qgen
+EXTRA_PROGRAMS=pdns_recursor sdig pdns_control qgen
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
