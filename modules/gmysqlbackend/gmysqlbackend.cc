@@ -1,4 +1,4 @@
-// $Id: gmysqlbackend.cc,v 1.7 2002/12/16 18:02:24 ahu Exp $ 
+// $Id: gmysqlbackend.cc,v 1.8 2003/01/14 15:23:45 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -60,6 +60,19 @@ public:
     declare(suffix,"wildcard-any-id-query","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name from records where like '%s' and domain_id='%d'");
 
     declare(suffix,"list-query","AXFR query", "select content,ttl,prio,type,domain_id,name from records where domain_id='%d'");
+    declare(suffix,"master-zone-query","Data", "select master from domains where name='%s' and type='SLAVE'");
+
+    declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type from domains where name='%s'");
+
+    declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
+    declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver='%s'");
+    declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')");
+    declare(suffix,"insert-record-query","", "insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')");
+    declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
+    declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");
+    declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
+    declare(suffix,"delete-zone-query","", "delete from records where domain_id=%d");
+
 
   }
   
