@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/21 15:04:02 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/23 15:34:53 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -97,6 +97,10 @@
 	  <xref linkend="recursion"> for more details.
 	</para>
 	<para>
+	  Furthermore, the recursor only works on Linux and Solaris (probably, untested). FreeBSD does not support the required functions.
+	  If you know any important FreeBSD people, plea with them to support set/get/swapcontext!
+	</para>
+	<para>
 	  The 'Contributor of the Month' award goes to Mark Bergsma who has responded to our plea for help with the label compressor and contributed
 	  a wonderfully simple and right fix that allows PDNS to compress just as well as Other namerervers out there. An honorary mention goes to
 	  Ueli Heuer who, despite having no C++ experience, submitted an excellent SRV record implementation.
@@ -143,6 +147,11 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		Dropped non-lazy recursion, nobody was using it.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		Label compression was improved so we can now fit all . records in 436 bytes, this used to be 460! (Code &amp; formal 
 		proof of correctness by Mark Bergsma).
 	      </para>
@@ -150,6 +159,13 @@
 	    <listitem>
 	      <para>
 		SRV support (incoming and outgoing), submitted by Ueli Heuer.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generic backends do not support SOA serial autocalculation, it appears. Could lead to random SOA serials in case 
+		of a serial of 0 in the database. Fixed so that 0 stays zero in that case. Don't set the SOA serial to 0 when using 
+		Generic MySQL or Generic PostgreSQL!
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -3238,11 +3254,11 @@ name         IN            A        1.2.3.4
 
 	  mysql> CREATE TABLE records (
 	  id int(11) NOT NULL auto_increment,
-	  domain_id int(11) default NULL,
-	  name varchar(255) default NULL,
-	  type varchar(6) default NULL,
+	  domain_id int(11) NOT NULL,
+	  name varchar(255) NOT NULL,
+	  type varchar(6) NOT NULL,
 	  content varchar(255) default NULL,
-	  ttl int(11) default NULL,
+	  ttl int(11) NOT NULL,
 	  prio int(11) default NULL,
 	  change_date int(11) default NULL,
 	  PRIMARY KEY (id),
@@ -4012,118 +4028,121 @@ local0.err                        /var/log/pdns.err
 	not proceed from the authoritative database.
       </para>
     </sect1>
-    <sect1 id="built-in-recursor"><title>PowerDNS resolver/recursing nameserver</title>
-      <para>
-	As of 2.9.4, a small recursor comes with PowerDNS. The algorithm is influenced by the works of Dan J. Bernstein although
-	all mistakes are ours. Here are the current faults, so nobody can accuse us of false advertising:
-	<itemizedlist>
-	  <listitem><para>
-	      Only ignores stale cache entries, does not actually clean them up. May replace them with newer data, however.
-	    </para></listitem>
-	  <listitem><para>
-	      Only compiles on Linux and possibly Solaris. FreeBSD 4.x decided not to support the 
-	      POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
-	      or ask him to port MTasker (see below) to your operating system.
-	    </para></listitem>
-	  <listitem<para>
-	      It does not do TCP yet, and may have big problems with truncated packets.
-	    </para></listitem>
-	</itemizedlist>
-      </para>
-      <para>
-	To compile, add <command>--enable-recursor</command> to configure and the file <filename>pdns_recursor</filename> will be 
-	compiled. To run on a different port, use <command>./syncres --local-port=53</command>.
-	To bind to another address, use the <command>local-address</command> setting.
-      </para>
-      <para>
-	<note>
-	  <para>
-	    PowerDNS author bert hubert has the pdns recursor in production and browsing with it works for him. Furthermore, the LARTC
-	    mailinglist (2000 subscribers) is using the pdns recursing nameserver. 
-	  </para>
-	</note>
-      </para>
-      <para>
-	Good points:
-	<itemizedlist>
-	  <listitem><para>
-	      Uses MTasker (<ulink url="http://ds9a.nl/mtasker">homepage</ulink>)
-	    </para></listitem>
-	  <listitem><para>
-	      Can handle thousands of concurrent questions
-	    </para></listitem>
-	  <listitem><para>
-	      Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
-	    </para></listitem>
-	  <listitem><para>
-	      Relies heavily on Standard C++ Library infrastructure, which makes for little code (406 core lines).
-	    </para></listitem>
-	  <listitem><para>
-	      Is very verbose in showing how recursion actually works.
-	    </para></listitem>
-	  <listitem><para>
-	      The algorithm is simple and quite nifty.
-	    </para></listitem>
-	</itemizedlist>
-      </para>
-      <sect2><title>pdns_recursor settings</title>
+  </chapter>
+  <chapter id="built-in-recursor"><title>PowerDNS resolver/recursing nameserver</title>
+    <para>
+      As of 2.9.4, a small recursor comes with PowerDNS. The algorithm is influenced by the works of Dan J. Bernstein although
+      all mistakes are ours. Here are the current faults, so nobody can accuse us of false advertising:
+      <itemizedlist>
+	<listitem><para>
+	    Only ignores stale cache entries, does not actually clean them up. May replace them with newer data, however.
+	  </para></listitem>
+	<listitem><para>
+	    Only compiles on Linux and possibly Solaris. FreeBSD 4.x decided not to support the 
+	    POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
+	    or ask him to port MTasker (see below) to your operating system.
+	  </para></listitem>
+	<listitem<para>
+	    It does not do TCP yet, and may have big problems with truncated packets.
+	  </para></listitem>
+      </itemizedlist>
+    </para>
+    <para>
+      To compile, add <command>--enable-recursor</command> to configure and the file <filename>pdns_recursor</filename> will be 
+      compiled. To run on a different port, use <command>./syncres --local-port=53</command>.
+      To bind to another address, use the <command>local-address</command> setting.
+    </para>
+    <para>
+      <note>
 	<para>
-	  <variablelist>
-	    <varlistentry>
-	      <term>aaaa-additional-processing</term>
-	      <listitem>
-		<para>
-		  If turned on, the recursor will attempt to add AAAA IPv6 records to questions for MX records and NS records.
-		  Can be quite slow as absence of these records in earlier answers does not guarantee their non-existance. Can double
-		  the amount of queries needed.
-		</para>
-	      </listitem>
-	    </varlistentry>
-	    <varlistentry>
-	      <term>daemon</term>
-	      <listitem>
-		<para>
-		  Operate in the background.
-		</para>
-	      </listitem>
-	    </varlistentry>
+	  PowerDNS author bert hubert has the pdns recursor in production and browsing with it works for him. Furthermore, the LARTC
+	  mailinglist (2000 subscribers) is using the pdns recursing nameserver. 
+	</para>
+      </note>
+    </para>
+    <para>
+      Good points:
+      <itemizedlist>
+	<listitem><para>
+	    Uses MTasker (<ulink url="http://ds9a.nl/mtasker">homepage</ulink>)
+	  </para></listitem>
+	<listitem><para>
+	    Can handle thousands of concurrent questions
+	  </para></listitem>
+	<listitem><para>
+	    Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
+	  </para></listitem>
+	<listitem><para>
+	    Relies heavily on Standard C++ Library infrastructure, which makes for little code (406 core lines).
+	  </para></listitem>
+	<listitem><para>
+	    Is very verbose in showing how recursion actually works.
+	  </para></listitem>
+	<listitem><para>
+	    The algorithm is simple and quite nifty.
+	  </para></listitem>
+      </itemizedlist>
+    </para>
+    <sect1><title>pdns_recursor settings</title>
+      <para>
+	At startup, the recursing nameserver reads the file <filename>recursor.conf</filename> from the configuration directory,
+	often <filename>/etc/powerdns</filename> or <filename>/usr/local/etc</filename>.
+      </para>
+      <para>
+	The following settings can be configured:
+	<variablelist>
+	  <varlistentry>
+	    <term>aaaa-additional-processing</term>
+	    <listitem>
+	      <para>
+		If turned on, the recursor will attempt to add AAAA IPv6 records to questions for MX records and NS records.
+		Can be quite slow as absence of these records in earlier answers does not guarantee their non-existance. Can double
+		the amount of queries needed. Off by default.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>daemon</term>
+	    <listitem>
+	      <para>
+		Operate in the background, which is the default.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
-	    <varlistentry>
-	      <term>local-address</term>
-	      <listitem>
-		<para>
-		  Local IP address (singular) to bind to.
-		</para>
-	      </listitem>
-	    </varlistentry>
+	  <varlistentry>
+	    <term>local-address</term>
+	    <listitem>
+	      <para>
+		Local IP address (singular) to bind to. Defaults to all addresses.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
-	    <varlistentry>
-	      <term>local-port</term>
-	      <listitem>
-		<para>
-		  Local port (singular) to bind to. Defaults to 5300!
-		</para>
-	      </listitem>
-	    </varlistentry>
-	    <varlistentry>
-	      <term>local-port</term>
-	      <listitem>
-		<para>
-		  Local port (singular) to bind to. Defaults to 5300!
-		</para>
-	      </listitem>
-	    </varlistentry>
-	    <varlistentry>
-	      <term>trace</term>
-	      <listitem>
-		<para>
-		  If turned on, output impressive heaps of logging. May destroy performance under load.
-		</para>
-	      </listitem>
-	    </varlistentry>
-	  </variablelist>
-	<para>
-      </sect2>
+	  <varlistentry>
+	    <term>local-port</term>
+	    <listitem>
+	      <para>
+		Local port (singular) to bind to. Defaults to 53.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>trace</term>
+	    <listitem>
+	      <para>
+		If turned on, output impressive heaps of logging. May destroy performance under load.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      <para>
+    </sect1>
+    <sect1><title>Statistics</title>
+      <para>
+	Every half our or so, the recursor outputs a line with statistics. More infrastructure is planned so as to allow
+	for Cricket or MRTG graphs.
+      </para>
     </sect1>
   </chapter>
   <chapter id="replication"><title>Master/Slave operation &amp; replication</title>
@@ -4978,6 +4997,30 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: Can I use a MySQL database with the Windows version of PowerDNS?</term>
+	    <listitem>
+	      <para>
+		A: You can. MySQL support is supplied through the ODBC backend, which is compiled into the main binary.
+		So if you want to use MySQL you can change the pdns.conf file, which is located in the PowerDNS for Windows directory, to use the 
+		correct ODBC data sources.
+
+		If you don't know how to use ODBC with MySQL:
+		<itemizedlist>
+		  <listitem><para>
+		      Download MyODBC from <ulink url="http://www.mysql.com/">http://www.mysql.com/</ulink>
+		    </para></listitem>
+		  <listitem><para>
+		      Install the MySQL ODBC driver.
+		    </para></listitem>
+		</itemizedlist>
+		Then you can follow the instructions located in <xref linkend="windows">.
+		But instead of selecting the Microsoft Access Driver you select the MySQL ODBC Driver and configure it to use your MySQL database.
+    
+		<note><para>For other databases for which an ODBC driver is available, the procedure is the same as this example.</para></note>
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	</variablelist>
       </para>
     <sect1 id="pdns-devel-faq"><title>Backend developer HOWTO</title>
@@ -5540,11 +5583,11 @@ while(&lt;&gt;)
         <screen>
           CREATE TABLE records (
 	  id int(11) NOT NULL auto_increment,
-	  domain_id int(11) default NULL,
-	  name varchar(255) default NULL,
-	  type varchar(6) default NULL,
-	  content varchar(255) default NULL,
-	  ttl int(11) default NULL,
+	  domain_id int(11) NOT NULL,
+	  name varchar(255) NOT NULL,
+	  type varchar(6) NOT NULL,
+	  content varchar(255) NOT NULL,
+	  ttl int(11) NOT NULL,
 	  prio int(11) default NULL,
 	  change_date int(11) default NULL,
 	  PRIMARY KEY (id),
@@ -5764,7 +5807,7 @@ while(&lt;&gt;)
 	      <row><entry>Master</entry><entry>Yes</entry></row>
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
-	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
+	      <row><entry>Autoserial</entry><entry>NO</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
 	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>

@@ -8,6 +8,7 @@ Changes since 2.9.4:
 	- UltraSparc alignment issues Chris Andrews
 	- compression (Mark Bergsma)
 	- SRV records (Ueli Heuer)
+	- updated J root-server IP address in the recursor
 	
 Changes since 2.9.3a:
 feat	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)

@@ -23,6 +23,7 @@
 #include <set>
 #include <netdb.h>
 #include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "mtasker.hh"
@@ -49,18 +50,6 @@ ArgvMap &arg()
 int d_clientsock;
 int d_serversock;
 
-
-/*
-Jan 20 00:21:40 [48570] new question arrived for 'idealx.com|MX' from 127.0.0.1
-Jan 20 00:21:40 [48571] new question arrived for 'idealx.com|MX' from 127.0.0.1
-Jan 20 00:21:40 [48572] new question arrived for 'idealx.com|MX' from 127.0.0.1
-Jan 20 00:21:40 [48573] new question arrived for 'idealx.com|MX' from 127.0.0.1
-Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
-Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
-Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
-Jan 20 00:21:44 [48573] sent answer to question for 'idealx.com|MX' to 127.0.0.1, 0 answers, 0 additional, sent 2 packets, rcode=2
-*/
-
 struct PacketID
 {
   u_int16_t id;
@@ -83,7 +72,7 @@ bool operator<(const PacketID& a, const PacketID& b)
   return false;
 }
 
-MTasker<PacketID,string> MT(200000);
+MTasker<PacketID,string> MT(100000); // could probably be way lower
 
 /* these two functions are used by LWRes */
 int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id) 
@@ -108,7 +97,6 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, socklen_t
   return 1;
 }
 
-
 typedef map<string,set<DNSResourceRecord> > cache_t;
 cache_t cache;
 int cacheHits, cacheMisses;
@@ -118,10 +106,10 @@ int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res)
   if(j!=cache.end() && j->first==toLower(qname)+"|"+qt.getName() && j->second.begin()->ttl>(unsigned int)time(0)) {
     if(res)
       *res=j->second;
-    cacheHits++;
+
     return (unsigned int)j->second.begin()->ttl-time(0);
   }
-  cacheMisses++;
+
   return -1;
 }
 
@@ -138,7 +126,7 @@ void init(void)
 
   // prime root cache
   static char*ips[]={"198.41.0.4", "128.9.0.107", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
-		     "192.36.148.17","198.41.0.10", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+		     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   DNSResourceRecord arr, nsrr;
   arr.qtype=QType::A;
   arr.ttl=time(0)+3600000;
@@ -164,6 +152,7 @@ void init(void)
 void startDoResolve(void *p)
 {
   try {
+    bool quiet=arg().mustDo("quiet");
     DNSPacket P=*(DNSPacket *)p;
 
     delete (DNSPacket *)p;
@@ -174,7 +163,9 @@ void startDoResolve(void *p)
     R->setRA(true);
 
     SyncRes sr;
-    L<<Logger::Error<<"["<<MT.getTid()<<"] question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+    if(!quiet)
+      L<<Logger::Error<<"["<<MT.getTid()<<"] question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+
     sr.setId(MT.getTid());
     if(!P.d.rd)
       sr.setCacheOnly();
@@ -190,8 +181,12 @@ void startDoResolve(void *p)
 
     const char *buffer=R->getData();
     sendto(d_serversock,buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
-    L<<Logger::Error<<"["<<MT.getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
-    L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, rcode="<<res<<endl;
+    if(!quiet) {
+      L<<Logger::Error<<"["<<MT.getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
+      L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, rcode="<<res<<endl;
+    }
+    
+    sr.d_outqueries ? cacheMisses++ : cacheHits++;
 
     delete R;
   }
@@ -272,17 +267,28 @@ void daemonize(void)
 
 }
 int counter, qcounter;
+bool statsWanted;
+
+void usr1Handler(int)
+{
+  statsWanted=true;
+}
+void doStats(void)
+{
+  if(qcounter) {
+    L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<cache.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
+     <<(int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits";
+    L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%"<<endl;
+  }
+  statsWanted=false;
+}
 
 void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate;
 
-  if(time(0)-last_stat>1800) {
-    if(qcounter) {
-      L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<cache.size()<<" cache entries, "
-       <<(int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits";
-      L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%"<<endl;
-    }
+  if(time(0)-last_stat>1800) { 
+    doStats();
     last_stat=time(0);
   }
   if(time(0)-last_rootupdate>7200) {
@@ -307,13 +313,24 @@ int main(int argc, char **argv)
     arg().set("soa-minimum-ttl","Don't change")="0";
     arg().set("soa-serial-offset","Don't change")="0";
     arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
-    arg().set("local-port","port to listen on")="5300";
+    arg().set("local-port","port to listen on")="53";
     arg().set("local-address","port to listen on")="0.0.0.0";
     arg().set("trace","if we should output heaps of logging")="off";
-    arg().set("daemon","Operate as a daemon")="no";
+    arg().set("daemon","Operate as a daemon")="yes";
+    arg().set("quiet","Suppress logging of questions and answers")="off";
+    arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     arg().setCmd("help","Provide a helpful message");
+    L.toConsole(Logger::Warning);
+    arg().laxParse(argc,argv); // do a lax parse
 
-    arg().parse(argc, argv);
+    string configname=arg()["config-dir"]+"/recursor.conf";
+    cleanSlashes(configname);
+
+    if(!arg().file(configname.c_str())) 
+      L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
+
+    arg().parse(argc,argv);
+
 
     if(arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
@@ -321,9 +338,7 @@ int main(int argc, char **argv)
       exit(99);
     }
 
-
     L.setName("pdns_recursor");
-    L.toConsole(Logger::Warning);
 
     if(arg().mustDo("trace"))
       SyncRes::setLog(true);
@@ -342,11 +357,15 @@ int main(int argc, char **argv)
       L.toConsole(Logger::Critical);
       daemonize();
     }
+    signal(SIGUSR1,usr1Handler);
+
     for(;;) {
       while(MT.schedule()); // housekeeping, let threads do their thing
       
-      if(!((counter++)%1000)) 
+      if(!((counter++)%100)) 
 	MT.makeThread(houseKeeping,0);
+      if(statsWanted)
+	doStats();
 
       socklen_t addrlen=sizeof(fromaddr);
       int d_len;
@@ -361,10 +380,12 @@ int main(int argc, char **argv)
       FD_SET( d_clientsock, &readfds );
       FD_SET( d_serversock, &readfds );
       int selret = select( max(d_clientsock,d_serversock) + 1, &readfds, NULL, NULL, &tv );
-      if (selret == -1) 
+      if(selret<=0) 
+	if (selret == -1 && errno!=EINTR) 
 	  throw AhuException("Select returned: "+stringerror());
-      if(!selret) // nothing happened
-	continue;
+	else
+	  continue;
+
       
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a question response?
 	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    

@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.5 2003/01/02 20:15:26 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.6 2003/01/23 15:34:53 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -370,6 +370,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
     else
       r.qname=row[5];
     r.qtype=row[3];
+    r.last_modified=0;
     
     r.domain_id=atoi(row[4].c_str());
     return true;
