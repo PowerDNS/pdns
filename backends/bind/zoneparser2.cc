@@ -172,7 +172,7 @@ void ZoneParser::fillRec(const string &qname, const string &qtype, const string 
   rec.qtype=qtype;
 
   if(!QType::chartocode(qtype.c_str()))
-    throw AhuException("Unknown qtype '"+qtype+"' on line "+itoa(d_lineno));
+    throw AhuException("Unknown qtype '"+qtype+"' on line "+itoa(d_lineno)+" of file '"+d_filename+"'");
   rec.content=content;
   rec.ttl=ttl;
   rec.prio=prio;
@@ -446,7 +446,7 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
 	return true;
       }
       else {
-	throw AhuException("Unhandled command '"+words[0]+"' on line "+itoa(d_lineno)+" of "+d_filename);
+	throw AhuException("Unhandled command '"+words[0]+"' on line "+itoa(d_lineno)+" of '"+d_filename+"'");
       }
       
       return false;

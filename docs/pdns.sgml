@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/11/23 15:14:57 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/11/29 16:49:42 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -82,8 +82,66 @@
 	file.
       </para>
 
+    <sect2 id="changelog-2-9-13"><title>Version 2.9.13</title>
+	<para>
+	  Some bugfixes, some small features. Only one big bugfix, it appears we are heading for stability!
+	</para>
+	<para>
+	  Bug fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		<command>allow-axfr-ips</command> did not work for individual IP addresses (bug &amp; fix by Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Opteron support! Thanks to Jeff Davey for providing a shell on an Opteron. The fixes should
+		also help PowerDNS on other platforms with a 64 bit userspace.
+	      </para>
+	      <para>
+		Btw, the PowerDNS team has a strong desire for an Opteron :-)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_recursor jumbles answers now. This means that you can do poor man's roundrobin
+		by supplying multiple A, MX or AAAA records for a service, and get a random one on top
+		each time. Interestingly, this feature appeared out of nowhere, this change was made to the 
+		authoritative code but due to the wonders of code-reuse had an effect on pdns_recursor too.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Big LDAP cleanup. Support for TLS was added. Zone2LDAP also gained the ability to
+		generate ldif files containing a tree or a list of entries. (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Zone2sql is now somewhat clearer when reporting malformed line errors - it did not always
+		include the name of the file causing a problem, especially for big installations. Problem noted
+		by Thom May.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_recursor now survives the expiration of all its root records, most often caused by prolonged
+		disconnection from the net.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+
     <sect2 id="changelog-2-9-12"><title>Version 2.9.12</title>
-      <para> 
+	<para> 
 	 Release rich in features. Work on Verisign oddities, addition of SQLite backend, pdns_recursor maturity.
       </para>
       <para>
@@ -5581,6 +5639,26 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>Q: PowerDNS does not give authoritative answers, how come?</term>
+	    <listitem>
+	      <para>
+		A: This is almost always not the case. An authoritative answer is recognized by the 'AA' bit being set. Many tools
+		prominently print the number of Authority records included in an answer, leading users to conclude that the 
+		absence or presence of these records indicates the authority of an answer. This is not the case.
+	      </para>
+	      <para>
+		Verily, many misguided country code domain operators have fallen into this trap and demand authority records, even though
+		these are fluff and quite often misleading. Invite such operators to look at section 6.2.1 of RFC 1034, which shows a correct
+		authoritative answer without authority records. In fact, none of the non-deprecated authoritative answers shown have authority 
+		records!
+	      </para>
+	      <para>
+		Sorry for sounding like DJB on this, but we get so many misguided questions about authority..
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
 	  <varlistentry>
 	    <term>Q: Which backend should I use? There are so many!</term>
 	    <listitem>
