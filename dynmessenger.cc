@@ -92,6 +92,9 @@ string DynMessenger::receive() const
   string answer;
   for(;;) {
     retlen=recv(d_s,buffer,sizeof(buffer),0);
+    if(retlen<0)
+      throw AhuException("Error from remote: "+string(strerror(errno)));
+
     answer.append(buffer,retlen);
     if(retlen!=sizeof(buffer))
       break;
