@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/07 13:05:02 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/07 23:31:28 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -3796,9 +3796,6 @@ local0.err                        /var/log/pdns.err
 	    </para></listitem>
 	  <listitem><para>
 	      Otherwise, leaks memory like a sieve too.
-	    </para></listitem>
-	  <listitem><para>
-	      Doesn't understand ANY records yet.
 	    </para></listitem>
 	  <listitem><para>
 	      Not very IPv6 aware - does no AAAA additional processing.
