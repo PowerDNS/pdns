@@ -39,7 +39,7 @@
 #include <fstream>
 #include "recursor_cache.hh"
 
-#ifdef FreeBSD           // see cvstrac ticket #26
+#ifdef __FreeBSD__           // see cvstrac ticket #26
 #include <pthread.h>
 #include <semaphore.h>
 #endif
@@ -48,7 +48,8 @@ MemRecursorCache RC;
 
 string s_programname="pdns_recursor";
 
-#if !WIN32 && !FreeBSD
+#ifndef WIN32
+#ifndef __FreeBSD__
 extern "C" {
   int sem_init(sem_t*, int, unsigned int){return 0;}
   int sem_wait(sem_t*){return 0;}
@@ -61,6 +62,7 @@ extern "C" {
   int pthread_mutex_unlock(pthread_mutex_t *mutex) { return 0; }
 
 }
+#endif // __FreeBSD__
 #endif // WIN32
 
 StatBag S;
