@@ -248,7 +248,7 @@ private:
     static const regex r("^--([a-z0-9-]*)=(.*)$");
     match_results<string::const_iterator> res;
     if(!regex_match(s,res,r))
-      throw argument_exception("does not match");
+      throw argument_exception("argument item does not match, should be --var=val");
 
     string var(res[1].first, res[1].second);
     string val(res[2].first, res[2].second);

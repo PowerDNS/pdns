@@ -216,6 +216,7 @@ void QGen::printStats(bool force)
 
 void QGen::start()
 {
+
   while(fillAndSendQuestions()) {
     printStats();
     processAnswers();
@@ -241,6 +242,7 @@ void QGen::processAnswers()
   while(waitForData(d_clientsock, first ? 1 : 0) > 0) {
     first=false;
     len=recvfrom(d_clientsock, reinterpret_cast<char *>(buf), sizeof(buf)-1,0,(struct sockaddr*)(&fromaddr), &addrlen);
+
     DNSPacket p;
     vector<DNSResourceRecord> answers;
     try {
@@ -256,8 +258,6 @@ void QGen::processAnswers()
       continue;
     }
     
-
-
     OutstandingQuestion oq;
     oq.qname=p.qdomain;
     oq.id=p.d.id;
@@ -302,8 +302,8 @@ void QGen::processAnswers()
 	  cout<<"\n";
 	}
 
-      if(!gotOne)
-	cout<<p.qdomain<<" "<<p.qtype.getName()<<" NO RECORD"<<endl;
+      //      if(!gotOne)
+      //	cout<<p.qdomain<<" "<<p.qtype.getName()<<" NO RECORD"<<endl;
 
       d_answeredOK++;
       d_questions.erase(i);
@@ -325,6 +325,7 @@ try
   at.add("timeout",Numeric(),"30");
   at.parse(argc, argv);
   at.constraints();
+  arg().set("no-shuffle","Don't change")="off";
 
   string fileName=at.get("questions");
   string server=at.get("server");
@@ -348,7 +349,9 @@ catch(exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
+/*
 catch(...)
 {
-  cerr<<"Caught something??"<<endl;
+  cerr<<"Unknown fatal exception"<<endl;
 }
+*/
