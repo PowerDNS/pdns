@@ -64,7 +64,7 @@ int DNSBackend::getArgAsNum(const string &key)
 
 void BackendFactory::declare(const string &suffix, const string &param, const string &help, const string &value)
 {
-  string fullname=d_name+"-"+suffix+param;
+  string fullname=d_name+suffix+"-"+param;
   arg().set(fullname,help)=value;
 }
 
@@ -148,7 +148,7 @@ void BackendMakerClass::launch(const string &instr)
     stringtok(pparts,part,": ");
     module=pparts[0];
     if(pparts.size()>1)
-      name=pparts[1]+"-";
+      name="-"+pparts[1];
       
     if(d_repository.find(module)==d_repository.end()) {
       // this is *so* userfriendly
@@ -156,7 +156,6 @@ void BackendMakerClass::launch(const string &instr)
       if(d_repository.find(module)==d_repository.end())
 	throw ArgException("Trying to launch unknown backend '"+module+"'");
     }
-    
     d_repository[module]->declareArguments(name);
     d_instances.push_back(make_pair(module,name));
   }
