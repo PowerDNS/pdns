@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -135,9 +135,12 @@ void *TCPNameserver::doConnection(void *data)
   pthread_detach(pthread_self());
 
   try {
-    if(!s_P) {
-      L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
-      s_P=new PacketHandler;
+    {
+      Lock l(&s_plock);
+      if(!s_P) {
+	L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
+	s_P=new PacketHandler;
+      }
     }
     char mesg[512];
     
@@ -227,10 +230,17 @@ void *TCPNameserver::doConnection(void *data)
   out:;
   }
   catch(DBException &e) {
-    L<<Logger::Error<<"TCP Connection Thread unable to answer a question because of a backend error"<<endl;
+    Lock l(&s_plock);
+    delete s_P;
+    s_P = 0;
+
+    L<<Logger::Error<<"TCP Connection Thread unable to answer a question because of a backend error, cycling"<<endl;
   }
   catch(AhuException &ae) {
-    L<<Logger::Error<<"TCP nameserver: "<<ae.reason<<endl;
+    Lock l(&s_plock);
+    delete s_P;
+    s_P = 0; // on next call, backend will be recycled
+    L<<Logger::Error<<"TCP nameserver had error, cycling backend:"<<ae.reason<<endl;
   }
   catch(exception &e) {
     L<<Logger::Error<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
