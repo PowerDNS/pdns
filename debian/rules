@@ -3,7 +3,7 @@
 tmpdir		:= $(shell pwd)/debian/tmp
 be_tmpdir	:= $(shell pwd)/debian/tmp-backend
 backends	:= ldap mysql pipe xdb gmysql gpgsql gsqlite
-debs		:= ldap mysql pipe xdb pgsql
+debs		:= ldap mysql pipe xdb pgsql sqlite
 
 binary-doc:
 	-make -C pdns/docs html/index.html
@@ -42,8 +42,9 @@ binary-doc:
 
 
 build-static stamp-build-static:
-	LIBS="-lkrb5 -lkrb -lcrypto -lroken -lcom_err -lasn1 -lresolv" \
 		./configure \
+                --with-pgsql-lib=/opt/postgresql/lib/ \
+                --with-pgsql-includes=/opt/postgresql/include/ \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
 		--libdir='$${prefix}/lib/powerdns' \

@@ -1,7 +1,34 @@
+changes since 2.9.14:
+	- you can now do this:
+		dig axfr ds9a.nl @213.244.168.210 |    \
+		/usr/bin/zone2sql --gmysql --zone=-  | \
+		mysql -u pdns pdns
+	- the '-' is new
+	- there is now better duplicate zone detection
+	- allow-recursion-override works but was on by default
+	- logging was off
+	- debian/rules forgot sqllite
+	- removed libpqpp from build-depends
+
+
 changes since 2.9.13:
-	- speed improvements (norbert)
 	- logging to syslog can now be restricted (norbert)
 	- SOA canonic
+	- zone2ldap cleanup
+	- LDAP:
+> A big patch for the ldapbackend:
+> - - Changes to support different lookup methods
+> - - Better exception handling
+> - - Better support for load distribution
+> - - Many cleanups
+	- errno compilation fixes in LDAP code (Norbert)
+	- pdns_recursor was too chatty with TCP (noticed by Mathew Walker)
+	- Generic SQL backend used doQuery where it meant doCommand on set notified (Georg Bauer)
+	- experimental feature 'recursion-check-nxdomain'
+	- 2^30 
+	- postgresql de-c++fiscation
+	- efficiency increases (chomp), reworking argumentparsing (spaces)
+	- loglevel fixes	
 
 changes since 2.9.12:
 	- pdns_recursor can now survive being disconnected from the net for long

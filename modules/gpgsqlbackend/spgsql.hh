@@ -1,13 +1,12 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: spgsql.hh,v 1.4 2003/10/11 19:57:19 ahu Exp $  */
+   $Id: spgsql.hh,v 1.5 2004/01/17 13:18:22 ahu Exp $  */
 #ifndef SPGSQL_HH
 #define SPGSQL_HH
 using namespace std;
-#include <pg_config.h>
-#include <libpq++.h>
 #include "pdns/backends/gsql/ssql.hh"
 
+#include <libpq-fe.h>
 class SPgSQL : public SSql
 {
 public:
@@ -25,7 +24,8 @@ public:
   string escape(const string &str);    
   void setLog(bool state);
 private:
-  PgDatabase *d_db; 
+  PGconn* d_db; 
+  PGresult* d_result;
   int d_count;
   static bool s_dolog;
 };

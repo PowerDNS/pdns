@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2004/01/16 22:18:12 $</PubDate>
+    <PubDate>v2.1 $Date: 2004/01/17 13:18:22 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -97,6 +97,12 @@
 	      <para>
 		The Generic SQL backend could cause crashes on PostgreSQL when using pdns_control notify (Georg Bauer)
 	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Debian compatible init.d script (Wichert Akkerman)
+	      </para>
+	    </listitem>
 	    <listitem>
 	      <para>
 		If using the master or slave features, pdns had the notion of eternity ending in 2038, except that due
@@ -106,7 +112,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Parts of the SOA field were not connonicalized
+		Parts of the SOA field were not cannonicalized
 	      </para>
 	    </listitem>
 	    <listitem>

@@ -1,5 +1,7 @@
 #!/bin/sh
-LIBS="-lkrb5 -lkrb -lcrypto -lroken -lcom_err -lasn1 -lresolv" \./configure --with-modules="mysql gmysql gpgsql gsqlite pipe pdns xdb" \
+./configure --with-modules="mysql gmysql gpgsql gsqlite pipe pdns xdb" \
+		--with-pgsql-lib=/opt/postgresql/lib/ \
+		--with-pgsql-includes=/opt/postgresql/include/ \
 	--with-dynmodules="" \
 	--enable-static-binaries --enable-recursor \
 	--prefix=/usr \

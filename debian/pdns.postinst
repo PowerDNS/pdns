@@ -12,6 +12,8 @@ update_init() {
 update_pdns() {
 	if [ -n "$2" ] ; then
 		/etc/init.d/pdns start
+	else
+		/etc/init.d/pdns restart
 	fi
 }
 

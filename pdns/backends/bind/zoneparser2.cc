@@ -50,8 +50,12 @@ void ZoneParser::setDirectory(const string &dir)
 void ZoneParser::parse(const string &fname, const string &origin, unsigned int domain_id)
 {	
   d_filename=fname.c_str();
-
-  FILE *zonein=fopen(fname.c_str(),"r");
+  
+  FILE *zonein;
+  if(fname!="-")
+    zonein=fopen(fname.c_str(),"r");
+  else
+    zonein=fdopen(STDIN_FILENO,"r");
 
   if(!zonein)
     throw AhuException("Unable to open zonefile '"+fname+"': "+stringerror());

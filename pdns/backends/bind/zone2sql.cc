@@ -18,7 +18,7 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.7 2003/11/29 13:14:40 ahu Exp $ 
+// $Id: zone2sql.cc,v 1.8 2004/01/17 13:18:22 ahu Exp $ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 # include <unistd.h>
@@ -74,8 +74,8 @@ static void callback(unsigned int domain_id,const string &domain, const string &
   num_records++;
 
   if(qtype=="SOA") {
-    //    cout<<"Juh: "<<dirty_hack_num<<", "<<lastsoa_domain_id<<", "<<lastsoa_qname<<", "<<domain<<endl;
-    if(dirty_hack_num==lastsoa_domain_id && lastsoa_qname!=domain) {
+    //    cerr<<"Juh: "<<dirty_hack_num<<", "<<lastsoa_domain_id<<", "<<lastsoa_qname<<", "<<domain<<endl;
+    if(dirty_hack_num==lastsoa_domain_id && lastsoa_qname!=ZoneParser::canonic(domain)) {
       dirty_hack_num++;
       cerr<<"Second SOA in zone, raised domain_id"<<endl;
       if(mode==POSTGRES || mode==ORACLE) {

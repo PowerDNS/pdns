@@ -1,6 +1,6 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
-AM_INIT_AUTOMAKE(pdns, 2.9.13)
+AM_INIT_AUTOMAKE(pdns, 2.9.15)
 AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 AC_C_BIGENDIAN 
@@ -277,7 +277,7 @@ then
 	PGSQL_libdir=
 	for m in $PGSQL_lib_check; do
 	        if test -d "$m" && \
-		   (test -f "$m/libpq++.so" || test -f "$m/libpq++.a")
+		   (test -f "$m/libpq.a" || test -f "$m/libpq++.a")
 	        then
 	                PGSQL_libdir=$m
 	                break
@@ -299,7 +299,7 @@ then
 		AC_MSG_CHECKING([for PgSQL include directory])
 	PGSQL_incdir=
 	for m in $PGSQL_inc_check; do
-	        if test -d "$m" && test -f "$m/libpq++.h"
+	        if test -d "$m" && test -f "$m/libpq-fe.h"
 	        then
 	                PGSQL_incdir=$m
 	                break

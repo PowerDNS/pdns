@@ -1,15 +1,41 @@
+pdns (2.9.14-1) unstable; urgency=medium
+
+  * New upstream version. Postgres support rewritten to use the C interface
+    instead of the deprectaed libpqpp
+
+ -- Wichert Akkerman <wichert@wiggy.net>  Fri, 16 Jan 2004 23:23:33 +0100
+
+pdns (2.9.13-3) unstable; urgency=medium
+
+  * Fix pdns postinst so pdns is properly restart on upgrade
+
+ -- Wichert Akkerman <wichert@wiggy.net>  Sat, 10 Jan 2004 17:21:18 +0100
+
+pdns (2.9.13-2) unstable; urgency=critical
+
+  * Fix a bug in calculation of early timestamps: 1<<31-1 is not the
+    same as (1<<31)-1. This made all pdns servers consume all possible
+    CPU when UNIX time went through 2^30 two hours ago.
+
+ -- Wichert Akkerman <wichert@wiggy.net>  Sat, 10 Jan 2004 16:53:09 +0100
+
 pdns (2.9.13-1) unstable; urgency=low
 
   * New upstream release
+  * Stop using my debian.org email address
+  * Change init scripts to conform to Debian policy 
 
- -- Wichert Akkerman <wakkerma@debian.org>  Sun,  21 Sep 2003 14:59:46 +0200
+ -- Wichert Akkerman <wichert@wiggy.net>  Thu, 25 Dec 2003 13:33:40 +0100
 
 pdns (2.9.12-1) unstable; urgency=low
 
   * New upstream release
   * Fix dependency generation. Closes: Bug#210256
+  * Check if pdns is installed in init script. Closes: Bug#217402
+  * Create a SQLite backend package
+  * Add versioned dpkg-dev Build-Depends so ${dpkg:Version} works properly
 
- -- Wichert Akkerman <wakkerma@debian.org>  Sun,  21 Sep 2003 14:59:46 +0200
+ -- Wichert Akkerman <wakkerma@debian.org>  Mon, 27 Oct 2003 18:52:53 +0100
 
 pdns (2.9.11-2) unstable; urgency=low
 

@@ -2,8 +2,8 @@ Source: pdns
 Section: net
 Priority: extra
 Standards-Version: 3.5.8
-Maintainer: Wichert Akkerman <wakkerma@debian.org>
-Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev, tdb-dev, libgdbm-dev, libpqpp-dev, libldap2-dev
+Maintainer: Wichert Akkerman <wichert@wiggy.net>
+Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev, tdb-dev, libgdbm-dev, libldap2-dev, libsqlite0-dev, dpkg-dev (> 1.10.17)
 
 Package: pdns
 Architecture: any
@@ -65,6 +65,13 @@ Provides: pdns-backend
 Description: Generic PostgreSQL backend for pDNS
  This package contains a generic PostgreSQL backend 
  for the PowerDNS nameserver. It has configurable SQL statements.
+
+Package: pdns-backend-sqlite
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: SQLite backend for pDNS
+ This package contains a generic SQLite backend for SQLite.
 
 Package: pdns-backend-xdb
 Architecture: any
