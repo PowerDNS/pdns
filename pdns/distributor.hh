@@ -136,7 +136,7 @@ template<class Answer, class Question, class Backend>Distributor<Answer,Question
   
   d_num_threads=n;
 
-  L<<Logger::Warning<<"About to create "<<n<<" backend threads"<<endl;
+  L<<Logger::Warning<<"About to create "<<n<<" backend threads for UDP"<<endl;
 
   for(int i=0;i<n;i++) {
     pthread_create(&tid,0,&makeThread,static_cast<void *>(this));

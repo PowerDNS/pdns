@@ -469,6 +469,15 @@ int main(int argc, char **argv)
       // never get here, guardian will reinvoke process
       cerr<<"Um, we did get here!"<<endl;
     }
+
+    if(arg().mustDo("version")) {
+      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__;
+#ifdef __GNUC__ 
+      cerr<<" with gcc version "<<__VERSION__;
+#endif
+      cout<<endl;
+      exit(99);
+    }
     
     // we really need to do work - either standalone or as an instance
     
@@ -480,14 +489,6 @@ int main(int argc, char **argv)
       exit(99);
     }
 
-    if(arg().mustDo("version")) {
-      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__;
-#ifdef __GNUC__ 
-      cerr<<" with gcc version "<<__GNUC__<<"."<<__GNUC_MINOR__<<"."<<__GNUC_PATCHLEVEL__;
-#endif
-      cout<<endl;
-      exit(99);
-    }
 
     
     if(arg().mustDo("help")) {
@@ -571,7 +572,11 @@ int main(int argc, char **argv)
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
   
-  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2005 PowerDNS.COM BV ("<<__DATE__", "__TIME__<<") starting up"<<endl;
+  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2005 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+#ifdef __GNUC__
+  L<<", gcc "__VERSION__;
+#endif // add other compilers here
+  L<<") starting up"<<endl;
 
   L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
