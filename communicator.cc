@@ -65,12 +65,16 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       return;
     }
     domain_id=di.id;
-    di.backend->startTransaction(domain, domain_id);
+
     
     L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
     Resolver::res_t recs;
-    
+    bool first=true;
     while(resolver.axfrChunk(recs)) {
+      if(first) {
+	di.backend->startTransaction(domain, domain_id);
+	first=false;
+      }
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
 	if((i->qname.size()-toLower(i->qname).rfind(toLower(domain)))!=domain.size()) {
 	  L<<Logger::Error<<"Remote "<<remote<<" sneaked in out-of-zone data '"<<i->qname<<"' during AXFR of zone '"<<domain<<"'"<<endl;

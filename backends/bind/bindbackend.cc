@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.11 2003/01/02 15:43:00 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.12 2003/01/03 18:00:12 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -141,9 +141,13 @@ bool BindBackend::commitTransaction()
 
 bool BindBackend::abortTransaction()
 {
-  delete d_of;
-  d_of=0;
-  unlink(d_transaction_tmpname.c_str());
+  if(d_transaction_id) {
+    d_bbds[d_transaction_id].unlock();
+    delete d_of;
+    d_of=0;
+    unlink(d_transaction_tmpname.c_str());
+    d_transaction_id=0;
+  }
   return true;
 }
 
@@ -384,9 +388,10 @@ string BindBackend::DLReloadNowHandler(const vector<string>&parts, Utility::pid_
 
 string BindBackend::DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  ostringstream ret;
+  string ret;
   bool doPrint=false;
   for(map<u_int32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) {
+    ostringstream line;
     doPrint=false;
     if(parts.size()==1)
       doPrint=true;
@@ -398,11 +403,12 @@ string BindBackend::DLDomStatusHandler(const vector<string>&parts, Utility::pid_
 	}
     
     if(doPrint)
-      ret<<j->second.d_name<< (j->second.d_loaded ? "": "[rejected]") <<"\t"<<j->second.d_status<<"\n";
+      line<<j->second.d_name<< (j->second.d_loaded ? "": "[rejected]") <<"\t"<<j->second.d_status<<"\n";
     doPrint=false;
+    ret+=line.str();
   }
 	
-  return ret.str();
+  return ret;
 }
 
 
