@@ -6,6 +6,8 @@ Changes since 2.9.4:
 	- added names for SIG and KEY records
 	- HINFO incoming
 	- UltraSparc alignment issues Chris Andrews
+	- compression (Mark Bergsma)
+	- SRV records (Ueli Heuer)
 	
 Changes since 2.9.3a:
 feat	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)

@@ -187,6 +187,7 @@ int Resolver::resolve(const string &ip, const char *domain, int type)
   timeout.tv_usec=500000;
 
   int res=select(d_sock+1,&rd,0,0,&timeout);
+
   if(!res)
     throw ResolverException("Timeout waiting for answer from "+ip);
   if(res<0)

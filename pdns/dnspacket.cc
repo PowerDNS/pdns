@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.14 2003/01/21 10:42:34 ahu Exp $
+// $Id: dnspacket.cc,v 1.15 2003/01/21 15:04:02 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -329,6 +329,73 @@ void DNSPacket::addMXRecord(const string &domain, const string &mx, int priority
   stringbuffer+=piece1;
   stringbuffer.append(piece2,12);
   stringbuffer+=piece3;
+
+  d.ancount++;
+}
+
+
+void DNSPacket::addSRVRecord(const DNSResourceRecord &rr)
+{
+  addSRVRecord(rr.qname, rr.content, rr.priority, rr.ttl);
+}
+
+void DNSPacket::addSRVRecord(const string &domain, const string &srv, int priority, u_int32_t ttl)
+{
+  string piece1;
+  toqname(domain,&piece1);
+	    
+  string target;
+  int weight=0;
+  int port=0;
+
+  vector<string>parts;
+  stringtok(parts,srv);
+  int pleft=parts.size();
+
+  // We need to have exactly 3 parts, so we have to check it!
+  if (pleft<2) {
+    throw AhuException("Missing data for type SRV "+domain);
+  }
+  
+  if(pleft) 
+    weight = atoi(parts[0].c_str());
+
+  if(pleft>1) 
+    port = atoi(parts[1].c_str());
+
+  if(pleft>2) 
+    toqname(parts[2],&target);
+
+  
+
+  char p[16];
+  makeHeader(p,QType::SRV,ttl);
+  
+  p[8]=0;
+  p[9]=0;  // need to fill this in
+
+  // start of payload for which we need to specify the length in 8 & 9
+
+  // priority aka preference
+  p[10]=(priority>>8)&0xff;
+  p[11]=priority&0xff;
+
+  // weight
+  p[12]=(weight>>8)&0xff;
+  p[13]=weight&0xff;
+  
+  // port
+  p[14]=(port>>8)&0xff;
+  p[15]=port&0xff;
+  
+  // target 
+  // end of payload
+
+  p[9]=target.length()+6; // fill in length
+
+  stringbuffer+=piece1;
+  stringbuffer.append(p,16);
+  stringbuffer+=target;
 
   d.ancount++;
 }
@@ -986,6 +1053,10 @@ void DNSPacket::wrapup(void)
       addAAAARecord(rr);
       break;
 
+    case QType::SRV: 
+      addSRVRecord(rr); 
+      break;
+
     case QType::LOC:
       addLOCRecord(rr);
       break;
@@ -1167,6 +1238,8 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
     ostringstream o;
     int ip;
+    int weight;
+    int port;
 
     switch(rr.qtype.getCode()) {
 
@@ -1217,6 +1290,18 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
     case QType::LOC:
       rr.content=parseLOC(reinterpret_cast<const unsigned char *>(datapos+offset),length);
+      break;
+
+
+    case QType::SRV: // rfc 2025
+      // priority goes into mx-priority
+      rr.priority=(datapos[0] << 8) + datapos[1];
+      // rest glue together  
+      weight = (datapos[2] << 8) + datapos[3];
+      port = (datapos[4] << 8) + datapos[5];
+      expand(datapos+offset+6,end,part);
+      rr.content.assign(itoa(weight));
+      rr.content+=" "+itoa(port)+" "+part;
       break;
 
 
@@ -1307,7 +1392,7 @@ int DNSPacket::findlabel(string &label)
 	break;
       }
       else {
-	if (strcmp(p, label.data()) == 0)
+	if (strncmp(p, label.data(), label.size()) == 0)
 	  return (p - data);
 	p += (*p + 1);
       }
@@ -1332,7 +1417,7 @@ int DNSPacket::findlabel(string &label)
 	}
       else
 	{
-	  if (strcmp(p, label.data()) == 0)
+	  if (strncmp(p, label.data(), label.size()) == 0)
 	    {
 	      return (p - data);
 	    }
@@ -1371,7 +1456,7 @@ int DNSPacket::findlabel(string &label)
 	}
 	else {
 
-	  if (strcmp(p, label.data()) == 0) {
+	  if (strncmp(p, label.data(), label.size()) == 0) {
 	    return (p - data);
 	  }
 		   
@@ -1402,11 +1487,17 @@ int DNSPacket::toqname(const char *name, string &qname, bool comp)
     //  org
     
     int i = 0;
+    bool containsptr=false;
     
-    while (qname[i] != 0x00) {
+    while (qname[i] != 0x00 &&	/* qname[i] == 0x00 => i == qname.length */
+	(qname[i] & 0xC0) != 0xC0) {	// no use to try to compress offsets
       // Get a portion of the name
       
-      string s = qname.substr(i);
+      // qname must include an extra trailing '\0' if it's prefix
+      // is not an offset ptr
+      string s = qname.substr(i);	/* s == qname[i..N) */
+      if (!containsptr) s = s + '\0';
+
 
       // Did we see this before?
       int offset = findlabel(s);
@@ -1415,11 +1506,16 @@ int DNSPacket::toqname(const char *name, string &qname, bool comp)
 	qname[i + 0] = (char) (((offset | 0xC000) & 0x0000FF00) >> 8);
 	qname[i + 1] = (char)  ((offset | 0xC000) & 0x000000FF);
 	qname = qname.substr(0, i + 2); // XX setlength() ?
+	containsptr=true;
 	// qname now consists of unique prefix+known suffix (on location 'offset')
-	break;
+	// we managed to make qname shorter, maybe we can do that again
+	i = 0;
+	
       }
-      // Move to the next label
-      i += (qname[i] + 1); 
+      else {				/* offset == -1 */
+      	// Move to the next label
+      	i += (qname[i] + 1); // doesn't quite handle very long labels
+      }
     }
   }
   

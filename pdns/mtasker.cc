@@ -41,6 +41,10 @@
     MTasker is designed to offer the performance of statemachines while maintaining simple thread semantics. It is not
     a replacement for a full threading system.
 
+    \section compatability Compatability
+    MTasker is only guaranteed to work on Linux with glibc 2.2.5 and higher. It does not work on FreeBSD and notably,
+    not on Red Hat 6.0. It may work on Solaris, please test.
+
     \section concepts Concepts
 
     There are two important concepts, the 'kernel' and the 'thread'. Each thread starts out as a function,

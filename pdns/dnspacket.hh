@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.13 2003/01/13 23:05:15 ahu Exp $
+// $Id: dnspacket.hh,v 1.14 2003/01/21 15:04:02 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -144,6 +144,9 @@ private:
 
   void addMXRecord(const string &domain, const string &mx, int priority, u_int32_t ttl); //!< add an MX record to the packet
   void addMXRecord(const DNSResourceRecord &); //!< add an MX record to the packet
+
+  void addSRVRecord(const string &domain, const string &srv, int priority, u_int32_t ttl); //!< add an SRVMX record to the packet
+  void addSRVRecord(const DNSResourceRecord &); //!< add an SRV record to the packet
 
   void addCNAMERecord(const string &domain, const string &alias, u_int32_t ttl); //!< add a CNAME record to the packet
   void addCNAMERecord(const DNSResourceRecord &); //!< add a CNAME record to the packet
