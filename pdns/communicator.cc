@@ -178,12 +178,17 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   vector<DomainInfo> cmdomains;
   B->getUpdatedMasters(&cmdomains);
   
-  if(cmdomains.empty())
-    L<<Logger::Error<<"No master domains need notifications"<<endl;
-  else
+  if(cmdomains.empty()) {
+    if(d_masterschanged)
+      L<<Logger::Error<<"No master domains need notifications"<<endl;
+    d_masterschanged=false;
+  }
+  else {
+    d_masterschanged=true;
     L<<Logger::Error<<cmdomains.size()<<" domain"<<(cmdomains.size()>1 ? "s" : "")<<" for which we are master need"<<
       (cmdomains.size()>1 ? "" : "s")<<
       " notifications"<<endl;
+  }
 
   // figure out A records of everybody needing notification
   // do this via the FindNS class, d_fns
@@ -209,15 +214,18 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   
   if(sdomains.empty())
   {
-    L<<Logger::Error<<"All slave domains are fresh"<<endl;
+    if(d_slaveschanged)
+      L<<Logger::Error<<"All slave domains are fresh"<<endl;
+    d_slaveschanged=false;
     return;
   }
-  else
+  else 
     L<<Logger::Error<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
       " checking"<<endl;
   
   for(vector<DomainInfo>::const_iterator i=sdomains.begin();i!=sdomains.end();++i) {
+    d_slaveschanged=true;
     u_int32_t theirserial=0;
     try {
       Resolver resolver;

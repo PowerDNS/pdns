@@ -1,3 +1,5 @@
+reset yacc/lex in bindparser
+
 bugs:
 	pdns.conf-dist contains old descriptions
 

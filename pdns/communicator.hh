@@ -128,6 +128,7 @@ public:
 //    sem_init(&d_suck_sem,0,0);
 //    sem_init(&d_any_sem,0,0);
     d_tickinterval=60;
+    d_masterschanged=d_slaveschanged=true;
   }
   int doNotifications();    
   void go()
@@ -162,6 +163,7 @@ private:
   Semaphore d_any_sem;
   int d_tickinterval;
   NotificationQueue d_nq;
+  bool d_masterschanged, d_slaveschanged;
 };
 
 #endif

@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.3 2002/12/17 16:50:31 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.4 2002/12/18 09:30:13 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -39,7 +39,7 @@ using namespace std;
 #include "huffman.hh"
 #include "qtype.hh"
 #include "misc.hh"
-
+#include "dynlistener.hh"
 using namespace std;
 
 
@@ -58,6 +58,7 @@ BBDomainInfo::BBDomainInfo()
   d_last_check=0;
   d_checknow=false;
   d_rwlock=new pthread_rwlock_t;
+  d_confcount=0;
   //cout<<"Generated a new bbdomaininfo: "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
   pthread_rwlock_init(d_rwlock,0);
 }
@@ -158,12 +159,15 @@ void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     sd.last_check=i->second.d_last_check;
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
-
     SOAData soadata;
     soadata.serial=0;
     soadata.refresh=0;
-    getSOA(i->second.d_name,soadata);
-    sd.serial=soadata.serial;
+    soadata.serial=0;
+    try {
+      getSOA(i->second.d_name,soadata); // we might not *have* a SOA yet
+      sd.serial=soadata.serial;
+    }
+    catch(...){}
 
     if(sd.last_check+soadata.refresh<(unsigned int)time(0))
       unfreshDomains->push_back(sd);    
@@ -191,10 +195,12 @@ bool BindBackend::getDomainInfo(const string &domain, DomainInfo &di)
 static string canonic(string ret)
 {
   string::iterator i;
+
   for(i=ret.begin();
       i!=ret.end();
       ++i)
-    *i=tolower(*i);
+    *i=*i; //tolower(*i);
+
 
   if(*(i-1)=='.')
     ret.resize(i-ret.begin()-1);
@@ -271,6 +277,13 @@ BBResourceRecord BindBackend::resourceMaker(int id, const string &qtype, const s
 
 static BindBackend *us;
 static int domain_id;
+BindBackend *self;
+string BindBackend::DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  for(map<u_int32_t,BBDomainInfo>::iterator i=self->d_bbds.begin();i!=self->d_bbds.end();++i) 
+    i->second.d_checknow=true;
+  return "queued";
+}
 
 static void callback(const string &domain, const string &qtype, const string &content, int ttl, int prio)
 {
@@ -281,12 +294,11 @@ static void callback(const string &domain, const string &qtype, const string &co
 
 BindBackend::BindBackend(const string &suffix)
 {
+  d_logprefix="[bind"+suffix+"backend]";
+  setArgPrefix("bind"+suffix);
   if(!s_first)
     return;
    
-  d_logprefix="[bind"+suffix+"backend]";
-  setArgPrefix("bind"+suffix);
-
   s_first=0;
   if(!mustDo("enable-huffman"))
     s_hc.passthrough(true);
@@ -315,10 +327,33 @@ BindBackend::BindBackend(const string &suffix)
     d_bbds[0].d_loaded=true;
   }
   
+  loadConfig();
+  
+
+  extern DynListener *dl;
+  self=this;
+  dl->registerFunc("BIND-RELOAD", &DLReloadHandler);
+}
+
+
+void BindBackend::rediscover()
+{
+  loadConfig();
+}
+
+void BindBackend::loadConfig()
+{
+  static int s_confcount;
 
   if(!getArg("config").empty()) {
     BindParser BP;
-    BP.parse(getArg("config"));
+    try {
+      BP.parse(getArg("config"));
+    }
+    catch(AhuException &ae) {
+      L<<Logger::Error<<"Error parsing bind configuration: "<<ae.reason<<endl;
+      throw;
+    }
     
     ZoneParser ZP;
       
@@ -331,6 +366,11 @@ BindBackend::BindBackend(const string &suffix)
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
     int rejected=0;
+    int newdomains=0;
+    s_confcount++;
+
+    map<unsigned int, BBDomainInfo> nbbds;
+
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
 	i!=domains.end();
 	++i)
@@ -339,35 +379,48 @@ BindBackend::BindBackend(const string &suffix)
 	bbd.d_name=i->name;
 	bbd.d_filename=i->filename;
 	bbd.d_master=i->master;
-	bbd.d_id=domain_id;
+
 	bbd.setCtime();
 	bbd.setCheckInterval(getArgAsNum("check-interval"));
+
+	map<unsigned int, BBDomainInfo>::const_iterator j=d_bbds.begin();
+	for(;j!=d_bbds.end();++j)
+	  if(j->second.d_name==bbd.d_name) {
+	    bbd.d_id=j->second.d_id;
+	    break;
+	  }
+	if(j==d_bbds.end())
+	  bbd.d_id=domain_id++;
 	
-	d_bbds[domain_id]=bbd; 
+	nbbds[bbd.d_id]=bbd; 
 	L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
-	d_bbds[domain_id].d_loaded=false;
+	nbbds[bbd.d_id].d_loaded=false;
 	try {
 	  ZP.parse(i->filename,i->name); // calls callback for us
-	  d_bbds[domain_id].d_loaded=true;
+	  nbbds[bbd.d_id].d_loaded=true;
 	}
 	catch(AhuException &ae) {
 	  L<<Logger::Warning<<d_logprefix<<" error parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason<<endl;
 	  rejected++;
 	}
 	
-	vector<vector<BBResourceRecord> *>&tmp=d_zone_id_map[domain_id];  // shrink trick
+	vector<vector<BBResourceRecord> *>&tmp=d_zone_id_map[bbd.d_id];  // shrink trick
 	vector<vector<BBResourceRecord> *>(tmp).swap(tmp);
-
-	domain_id++;
       }
-    L<<Logger::Error<<d_logprefix<<" Done parsing domains, "<<rejected<<" were rejected"<<endl; // XXX add how many were rejected
+
+
+    int remdomains=0;
+    vector<string> oldnames, newnames;
+    for(map<unsigned int, BBDomainInfo>::const_iterator j=d_bbds.begin();j!=d_bbds.end();++j)
+      oldnames.push_back(j->second.d_name);
+    for(map<unsigned int, BBDomainInfo>::const_iterator j=nbbds.begin();j!=nbbds.end();++j)
+      newnames.push_back(j->second.d_name);
+
+    d_bbds.swap(nbbds); // commit
+
+    L<<Logger::Error<<d_logprefix<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"<<endl; // XXX add how many were rejected
     L<<Logger::Info<<d_logprefix<<" Number of hash buckets: "<<d_qnames.bucket_count()<<", number of entries: "<<d_qnames.size()<< endl;
   }
-}
-
-void BindBackend::rediscover()
-{
-
 }
 
 void BindBackend::queueReload(BBDomainInfo *bbd)
@@ -427,7 +480,7 @@ void BindBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
       
     if(!bbd.d_loaded) {
       delete d_handle;
-      throw AhuException("Temporarily unavailable due to a zone lock"); // fuck
+      throw AhuException("Zone temporarily not available (file missing, or master dead)"); // fuck
     }
 
     if(!bbd.current()) {

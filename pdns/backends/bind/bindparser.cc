@@ -1,22 +1,4 @@
-/*
-    PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-/* A Bison parser, made from /home/ahu/programming/ahudns/backends/bind/bindparser.yy
+/* A Bison parser, made from /home/ahu/programming/pdns/pdns/backends/bind/bindparser.yy
    by GNU bison 1.35.  */
 
 #define YYBISON 1  /* Identify Bison output.  */
@@ -68,6 +50,7 @@ extern "C"
 	{
 		return 1;
 	}
+	void yyrestart(FILE *);
 
 }
 
@@ -88,7 +71,7 @@ void BindParser::parse(const string &fname)
 {	
 	yydebug=0;
 	yyin=fopen(fname.c_str(),"r");
-
+	yyrestart(yyin);
 	if(!yyin)
 		throw AhuException("Unable to open '"+fname+"': "+strerror(errno));
 
@@ -218,11 +201,11 @@ static const short yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined. */
 static const short yyrline[] =
 {
-       0,   107,   108,   112,   112,   112,   112,   115,   116,   120,
-     124,   131,   141,   143,   147,   148,   151,   154,   155,   159,
-     163,   164,   168,   168,   171,   178,   179,   183,   183,   183,
-     185,   189,   193,   194,   198,   198,   198,   198,   201,   204,
-     205,   209,   215,   223,   232,   239
+       0,   108,   109,   113,   113,   113,   113,   116,   117,   121,
+     125,   132,   142,   144,   148,   149,   152,   155,   156,   160,
+     164,   165,   169,   169,   172,   179,   180,   184,   184,   184,
+     186,   190,   194,   195,   199,   199,   199,   199,   202,   205,
+     206,   210,   216,   224,   233,   240
 };
 #endif
 
@@ -1038,7 +1021,7 @@ yyreduce:
   switch (yyn) {
 
 case 10:
-#line 126 "bindparser.yy"
+#line 127 "bindparser.yy"
 {
 		s_di.name=yyvsp[-1];
 		parent->commit(s_di);
@@ -1046,7 +1029,7 @@ case 10:
 	}
     break;
 case 11:
-#line 133 "bindparser.yy"
+#line 134 "bindparser.yy"
 {
 	        s_di.name=yyvsp[-2];
 		parent->commit(s_di);
@@ -1054,33 +1037,33 @@ case 11:
 	}
     break;
 case 24:
-#line 172 "bindparser.yy"
+#line 173 "bindparser.yy"
 {
 		parent->setDirectory(yyvsp[0]);
 	}
     break;
 case 41:
-#line 210 "bindparser.yy"
+#line 211 "bindparser.yy"
 {
 		s_di.master=yyvsp[0];
 	}
     break;
 case 42:
-#line 217 "bindparser.yy"
+#line 218 "bindparser.yy"
 {
 	  //		printf("Found a filename: '%s'\n",$2);
 		s_di.filename=yyvsp[0];
 	}
     break;
 case 43:
-#line 225 "bindparser.yy"
+#line 226 "bindparser.yy"
 {
 	  //		printf("Found a filename: '%s'\n",$2);
 	  //		ztype=$2;
 	}
     break;
 case 44:
-#line 234 "bindparser.yy"
+#line 235 "bindparser.yy"
 {
 		yyval=yyvsp[0];
 	}
@@ -1318,4 +1301,4 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 240 "bindparser.yy"
+#line 241 "bindparser.yy"

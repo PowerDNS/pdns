@@ -29,6 +29,7 @@ extern "C"
 	{
 		return 1;
 	}
+	void yyrestart(FILE *);
 
 }
 
@@ -49,7 +50,7 @@ void BindParser::parse(const string &fname)
 {	
 	yydebug=0;
 	yyin=fopen(fname.c_str(),"r");
-
+	yyrestart(yyin);
 	if(!yyin)
 		throw AhuException("Unable to open '"+fname+"': "+strerror(errno));
 
