@@ -109,7 +109,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
 }
 
 typedef map<string,set<DNSResourceRecord> > cache_t;
-cache_t cache;
+static cache_t cache;
 int cacheHits, cacheMisses;
 int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
@@ -128,6 +128,37 @@ void replaceCache(const string &qname, const QType& qt,  const set<DNSResourceRe
 {
   cache[toLower(qname)+"|"+qt.getName()]=content;
 }
+
+void doPrune(void)
+{
+  unsigned int names=0, records=0;
+
+  for(cache_t::iterator j=cache.begin();j!=cache.end();){
+    for(set<DNSResourceRecord>::iterator k=j->second.begin();k!=j->second.end();) 
+      if((unsigned int)k->ttl < (unsigned int)time(0)) {
+	j->second.erase(k++);
+	records++;
+      }
+      else
+	++k;
+
+    if(j->second.empty()) { // everything is gone
+      //      L<<Logger::Error<<"Dropped name '"<<j->first<<"'"<<endl;
+      cache.erase(j++);
+      names++;
+
+    }
+    else {
+      //      L<<Logger::Error<<"Kept name '"<<j->first<<"'"<<endl;
+      ++j;
+    }
+  }
+  /*
+  if(names || records)
+    L<<Logger::Warning<<"Pruned "<<names<<" names, "<< records<<" records"<<endl;
+  */
+}
+
 
 void init(void)
 {
@@ -332,6 +363,8 @@ void usr1Handler(int)
 {
   statsWanted=true;
 }
+
+
 void doStats(void)
 {
   if(qcounter) {
@@ -345,8 +378,12 @@ void doStats(void)
 
 void houseKeeping(void *)
 {
-  static time_t last_stat, last_rootupdate;
+  static time_t last_stat, last_rootupdate, last_prune;
 
+  if(time(0)-last_stat>30) { 
+    doPrune();
+    last_prune=time(0);
+  }
   if(time(0)-last_stat>1800) { 
     doStats();
     last_stat=time(0);
