@@ -72,8 +72,6 @@ static void callback_simple( unsigned int domain_id, const string &domain, const
 		g_objects[domain2] = true;
 
 		cout << "changetype: add" << endl;
-		cout << "objectclass: top" << endl;
-		if( domain2 == g_zonename ) { cout << "objectclass: dcobject" << endl; }   // only necessary for phpgeneral
 		cout << "objectclass: dnsdomain2" << endl;
 		cout << "objectclass: domainrelatedobject" << endl;
 		cout << "dc: " << host << endl;
@@ -83,6 +81,7 @@ static void callback_simple( unsigned int domain_id, const string &domain, const
 	else
 	{
 		cout << "changetype: modify" << endl;
+		cout << "add: " << qtype << "Record" << endl;
 	}
 
 	cout << qtype << "Record: ";
@@ -113,8 +112,7 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
 
 			cout << "dn: " << dn << g_basedn << endl;
 			cout << "changetype: add" << endl;
-			cout << "objectclass: top" << endl;
-			cout << "objectclass: dcobject" << endl;
+			cout << "objectclass: dnsdomain2" << endl;
 			cout << "objectclass: domainrelatedobject" << endl;
 			cout << "dc: " << parts[i] << endl;
 			cout << "associateddomain: " << net << endl << endl;
@@ -130,8 +128,6 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
 		g_objects[domain2] = true;
 
 		cout << "changetype: add" << endl;
-		cout << "objectclass: top" << endl;
-		if( domain2 == g_zonename ) { cout << "objectclass: dcobject" << endl; }   // only necessary for phpgeneral
 		cout << "objectclass: dnsdomain2" << endl;
 		cout << "objectclass: domainrelatedobject" << endl;
 		cout << "dc: " << parts[0] << endl;
@@ -141,6 +137,7 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
 	else
 	{
 		cout << "changetype: modify" << endl;
+		cout << "add: " << qtype << "Record" << endl;
 	}
 
 	cout << qtype << "Record: ";
