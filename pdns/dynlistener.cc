@@ -1,4 +1,4 @@
-/*
+ /*
     PowerDNS Versatile Database Driven Nameserver
     Copyright (C) 2002  PowerDNS.COM BV
 
@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.3 2002/12/19 20:15:55 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.4 2002/12/30 22:25:14 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -131,15 +131,18 @@ string DynListener::getLine()
   socklen_t remlen;
 
   if(d_udp) {
-    d_client=accept(d_s,(sockaddr*)&remote,&remlen);
-    if(d_client<0) {
-      L<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<") - exiting: "<<strerror(errno)<<endl;
-      exit(1);
-    }
-    
-    if((len=recv(d_client,mesg,512,0))<0) {
-      L<<Logger::Error<<"Unable to receive packet from controlsocket ("<<d_s<<") - exiting: "<<strerror(errno)<<endl;
-      
+    for(;;) {
+      d_client=accept(d_s,(sockaddr*)&remote,&remlen);
+      if(d_client<0) {
+	L<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<") - exiting: "<<strerror(errno)<<endl;
+	continue;
+      }
+      if((len=recv(d_client,mesg,512,0))<0) {
+	L<<Logger::Error<<"Unable to receive packet from controlsocket ("<<d_client<<") - exiting: "<<strerror(errno)<<endl;
+	close(d_client);
+	continue;
+      }
+      break;
     }
   }
   else {

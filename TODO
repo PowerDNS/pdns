@@ -1,4 +1,7 @@
 
+error accepting pdns_control connection should not lead to a crash
+pdns_control can crash
+
 bugs:
 	pdns.conf-dist contains old descriptions
 

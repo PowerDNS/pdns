@@ -1,5 +1,6 @@
-SUBDIRS=modules @programdescend@
-EXTRA_DIST=TODO WARNING README HACKING INSTALL ChangeLog debian pdns.spec
+SUBDIRS=modules codedocs @programdescend@
+EXTRA_DIST=TODO WARNING README HACKING INSTALL ChangeLog debian pdns.spec  \
+codedocs/Makefile codedocs/doxygen.conf
 
 man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdns_server.8 pdns/docs/zone2sql.8 
 
