@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -104,6 +104,7 @@ void declareArguments()
   arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";
   arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
+  arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
   arg().setSwitch( "use-logfile", "Use a log file" )= "no";
   arg().set( "logfile", "Logfile to use" )= "pdns.log";

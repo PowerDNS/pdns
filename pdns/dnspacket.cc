@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.32 2005/01/11 19:59:00 ahu Exp $
+
 #include "utility.hh"
 #include <cstdio>
 
@@ -970,29 +970,30 @@ void DNSPacket::wrapup(void)
 
   stable_sort(rrs.begin(),rrs.end(),rrcomp);
 
-  // now shuffle! start out with the ANSWER records  
-  vector<DNSResourceRecord>::iterator first, second;
-  for(first=rrs.begin();first!=rrs.end();++first) 
-    if(first->d_place==DNSResourceRecord::ANSWER && first->qtype.getCode() != QType::CNAME) // CNAME must come first
-      break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->d_place!=DNSResourceRecord::ANSWER)
-      break;
-
-  if(second-first>1)
-    random_shuffle(first,second);
-
-  // now shuffle the additional records
-  for(first=second;first!=rrs.end();++first) 
-    if(first->d_place==DNSResourceRecord::ADDITIONAL && first->qtype.getCode() != QType::CNAME) // CNAME must come first
-      break;
-  for(second=first;second!=rrs.end();++second)
-    if(second->d_place!=DNSResourceRecord::ADDITIONAL)
-      break;
-
-  if(second-first>1)
-    random_shuffle(first,second);
-
+  if(!arg().mustDo("no-shuffle")) {
+    // now shuffle! start out with the ANSWER records  
+    vector<DNSResourceRecord>::iterator first, second;
+    for(first=rrs.begin();first!=rrs.end();++first) 
+      if(first->d_place==DNSResourceRecord::ANSWER && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+	break;
+    for(second=first;second!=rrs.end();++second)
+      if(second->d_place!=DNSResourceRecord::ANSWER)
+	break;
+    
+    if(second-first>1)
+      random_shuffle(first,second);
+    
+    // now shuffle the additional records
+    for(first=second;first!=rrs.end();++first) 
+      if(first->d_place==DNSResourceRecord::ADDITIONAL && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+	break;
+    for(second=first;second!=rrs.end();++second)
+      if(second->d_place!=DNSResourceRecord::ADDITIONAL)
+	break;
+    
+    if(second-first>1)
+      random_shuffle(first,second);
+  }
   d_wrapped=true;
 
 

@@ -13,10 +13,10 @@ sysconf_DATA = pdns.conf-dist
 if RECURSOR
 sbin_PROGRAMS = pdns_server pdns_recursor
 else
-sbin_PROGRAMS = pdns_server
+sbin_PROGRAMS = pdns_server 
 endif
 
-bin_PROGRAMS = pdns_control 
+bin_PROGRAMS = pdns_control sdig 
 
 EXTRA_PROGRAMS=pdns_recursor pdns_control qgen
 
@@ -40,6 +40,8 @@ sillyrecords.cc backends/bind/bindbackend.cc
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
 pdns_server_INCLUDES=
+
+sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc
 
 
 qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
