@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: nameserver.cc,v 1.3 2002/12/10 13:36:26 ahu Exp $ 
+// $Id: nameserver.cc,v 1.4 2002/12/30 21:00:56 ahu Exp $ 
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
@@ -41,27 +41,19 @@ extern StatBag S;
     own backend, see the documentation for the DNSBackend class.
 
     \section copyright Copyright and License
-    AhuDNS is (C) 2002 PowerDNS BV.
-
-    AhuDNS is NOT open source (yet), so treat this code as a trade secret. If it has been supplied to you for evaluation,
-    this does not mean that you can deploy the code!
+    AhuDNS is (C) 2002 PowerDNS BV. It is distributed according to the terms of the General Public License version 2.
 
     \section overview High level overview
 
-    AhuDNS is highly threaded, which means that several tasks each have their own process thread. Two of the pivotal
-    threads are the qthread() and the athread().
-
-    - The qthread() receives questions over the network (via the Nameserver class, which returns DNSPacket objects), and gives them to the Distributor.
-    - The athread() waits on the Distributor to return answers, ready to send back over the network, again via UDPNameserver.
-
-    The Distributor contains a configurable number of PacketHandler instances, each in its own thread, for connection pooling
+    The Distributor contains a configurable number of PacketHandler instances, each in its own thread, for connection pooling. 
+    PacketHandler instances are recycled of they let escape an AhuException.
 
     The PacketHandler implements the RFC1034 algorithm and converts question packets into DNSBackend queries.
 
     A DNSBackend is an entity that returns DNSResourceRecord objects in return to explicit questions for domains with a specified QType
 
-    AhuDNS uses the UeberBackend as its DNSBackend. The UeberBackend by default has no DNSBackends within itself, those are loaded
-    using the dynloader tool. This way DNSBackend implementations can be kept completely separate.
+    PowerDNS uses the UeberBackend as its DNSBackend. The UeberBackend by default has no DNSBackends within itself, those are loaded
+    using the pdns_control tool. This way DNSBackend implementations can be kept completely separate (but they often aren't).s
 
     If one or more DNSBackends are loaded, the UeberBackend fields the queries to all of them until one answers.
 
@@ -82,7 +74,7 @@ extern StatBag S;
     These statistics are made available via the UeberBackend on the same socket that is used for dynamic module commands.
 
     \section Main Main 
-    The main() of AhuDNS can be found in receiver.cc - start reading there for further insights into the operation of the nameserver
+    The main() of PowerDNS can be found in receiver.cc - start reading there for further insights into the operation of the nameserver
 
 
 */
@@ -159,6 +151,9 @@ void UDPNameserver::bindIPv6()
 
     sockaddr_in6 locala;
     locala.sin6_port=ntohs(arg().asNum("local-port"));
+    locala.sin6_family=AF_INET6;
+    locala.sin6_flowinfo=0;
+
     if(!inet_pton(AF_INET6, localname.c_str(), (void *)&locala.sin6_addr)) {
       addrinfo *addrinfos;
       addrinfo hints;
@@ -170,6 +165,7 @@ void UDPNameserver::bindIPv6()
 	throw AhuException("Unable to resolve local IPv6 address '"+localname+"'"); 
       memcpy(&locala,addrinfos->ai_addr,addrinfos->ai_addrlen);
     }
+
 
     if(bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to UDP ipv6 socket: "<<strerror(errno)<<endl;

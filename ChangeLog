@@ -3,6 +3,10 @@ Changes since 2.9.3a:
 	- zone parser now allows both $include and $INCLUDE
 	- wildcard ANY queries work again (colemarcus)
 	- resolved crashes after failed gmysql/gpgsql connections
+	- major brokenness in slave support in gmysql/gpgsql (mark)
+	- solaris compilation fixes
+	- make IPv6 work again on FreeBSD (Peter van Dijk)
+
 
 Changes since 2.9.2:
 	- windows compilation patches

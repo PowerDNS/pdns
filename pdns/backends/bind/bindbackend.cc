@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.9 2002/12/20 16:12:06 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.10 2002/12/30 21:00:56 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -332,7 +332,7 @@ BBResourceRecord BindBackend::resourceMaker(int id, const string &qtype, const s
 
   make.qtype=QType::chartocode(qtype.c_str());
   if(!make.qtype)
-    throw AhuException("Unknown qtype '"+qtype+"'");
+    throw AhuException("Unknown qtype '"+qtype+"'"); // never leaves the BindBackend
 
   set<string>::const_iterator i=s_contents.find(content);
   if(i==s_contents.end()) {

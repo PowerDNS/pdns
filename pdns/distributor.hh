@@ -41,11 +41,18 @@
 /** the Distributor template class enables you to multithread slow question/answer 
     processes. 
     
-    Generally, you will run 2 threads. One that inserts questions and one that handles
-    the answers.
+    Questions are posed to the Distributor, which can either hand back the answer,
+    or give it directly to a callback. Only the latter mode of operation is used in 
+    PowerDNS. 
+
+    The Distributor takes care that there are enough Backends alive at any one
+    time and will try to spawn additional ones should they die.
+
+    The Backend needs to count the number of living instances and supply this number to
+    the Distributor using its numBackends() method. This is silly.
+
+    If an exception escapes a Backend, the distributor retires it.
 */
-
-
 template<class Answer, class Question, class Backend> class Distributor
 {
 public:
@@ -72,8 +79,8 @@ public:
 	sleep(1);
 	int qcount, acount;
 
-  us->numquestions.getvalue( &qcount );
-  us->numanswers.getvalue( &acount );
+	us->numquestions.getvalue( &qcount );
+	us->numanswers.getvalue( &acount );
 
 	L <<"queued questions: "<<qcount<<", pending answers: "<<acount<<endl;
       }

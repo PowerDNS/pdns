@@ -63,7 +63,6 @@ PacketHandler::~PacketHandler()
 {
   --s_count;
   DLOG(L<<Logger::Error<<"PacketHandler destructor called - "<<s_count<<" left"<<endl);
-
 }
 
 
@@ -151,7 +150,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.3 2002/12/29 19:47:25 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.4 2002/12/30 21:00:56 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -167,7 +166,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.3 2002/12/29 19:47:25 ahu Exp $";
+    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.4 2002/12/30 21:00:56 ahu Exp $";
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT
@@ -443,8 +442,6 @@ int PacketHandler::doNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::NotImp;
   }
-  SOAData sd;
-  sd.serial=0;
   DNSBackend *db=0;
   DomainInfo di;
   if(!B.getDomainInfo(p->qdomain,di) || !(db=di.backend)) {
@@ -466,14 +463,15 @@ int PacketHandler::doNotify(DNSPacket *p)
     return RCode::ServFail;
   }
 	
-  if(theirserial<=sd.serial) {
+
+  if(theirserial<=di.serial) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from master "<<p->getRemote()<<", we are up to date: "<<
-      theirserial<<"<="<<sd.serial<<endl;
+      theirserial<<"<="<<di.serial<<endl;
     return RCode::NoError;
   }
   else {
-    L<<Logger::Error<<"Received valid NOTIFY for "<<p->qdomain<<" (id="<<sd.domain_id<<") from master "<<p->getRemote()<<": "<<
-      theirserial<<" > "<<sd.serial<<endl;
+    L<<Logger::Error<<"Received valid NOTIFY for "<<p->qdomain<<" (id="<<di.id<<") from master "<<p->getRemote()<<": "<<
+      theirserial<<" > "<<di.serial<<endl;
 
     Communicator.addSuckRequest(p->qdomain, p->getRemote());
   }

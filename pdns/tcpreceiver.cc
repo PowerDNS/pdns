@@ -446,6 +446,9 @@ TCPNameserver::TCPNameserver()
 
     sockaddr_in6 locala;
     locala.sin6_port=ntohs(arg().asNum("local-port"));
+    locala.sin6_family=AF_INET6;
+    locala.sin6_flowinfo=0;
+
 
     if(!inet_pton(AF_INET6, laddr->c_str(), (void *)&locala.sin6_addr)) {
       addrinfo *addrinfos;
@@ -465,6 +468,7 @@ TCPNameserver::TCPNameserver()
       L<<Logger::Error<<"Setsockopt failed"<<endl;
       exit(1);  
     }
+
 
     if(bind(s, (const sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;

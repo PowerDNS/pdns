@@ -30,6 +30,11 @@ See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
 Please don't use the 'mysql' backend, it is deprecated. Use the 'gmysql'
 one! 
 
+CVS
+---
+
+If you need code from CVS, read HACKING.
+
 SOLARIS NOTES
 -------------
 You need gcc 3.x, preferably 3.2! The 'Sunpro' compiler is currently not

@@ -32,12 +32,14 @@ Medium size things:
 
 
 Small things, great for coders new to PowerDNS:
-	- add LOC record
+done	- add LOC record
 	- add KEY record
 	- add SIG record
-	- get the xdb backend building again
+done	- get the xdb backend building again
 	- 'make distclean' tries to calculate dependencies in
 		modules/pgmysqlbackend, which is not needed
+	- remove 'handle' from UeberBackend and BindBackend
+
 
 	- investigate if the following is better for the spgsql driver:
 int SPgSQL::doQuery(const string &query)
