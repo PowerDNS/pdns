@@ -205,9 +205,9 @@ vector<DNSBackend *>BackendMakerClass::all()
     \param domain Domain we want to get the SOA details of
     \param sd SOAData which is filled with the SOA details
 */
-bool DNSBackend::getSOA(const string &domain, SOAData &sd)
+bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 {
-  this->lookup(QType(QType::SOA),domain,0);
+  this->lookup(QType(QType::SOA),domain,p);
   
   DNSResourceRecord rr;
 

@@ -116,6 +116,7 @@ public:
   };
 
   inline void setRemote(const struct sockaddr *a, Utility::socklen_t socklen);
+  string getLocal() const;
   string getRemote() const;
   u_int16_t getRemotePort() const;
   void setA(bool); //!< make this packet authoritative

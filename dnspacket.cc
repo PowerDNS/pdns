@@ -49,6 +49,15 @@ string DNSPacket::getString()
   return stringbuffer;
 }
 
+string DNSPacket::getLocal() const
+{
+  struct sockaddr_in sa;
+  int addrlen=sizeof(struct sockaddr_in);
+
+  getsockname(d_socket, (struct sockaddr *)&sa, (socklen_t *)&addrlen);
+  return sockAddrToString(&sa, (socklen_t)addrlen);
+}
+
 
 string DNSPacket::getRemote() const
 {
