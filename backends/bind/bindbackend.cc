@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.14 2003/02/03 14:51:46 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.15 2003/02/10 11:09:09 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -231,7 +231,7 @@ void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     soadata.serial=0;
     soadata.refresh=0;
     soadata.serial=0;
-
+    soadata.db=(DNSBackend *)-1; // not sure if this is useful, inhibits any caches that might be around
     try {
       getSOA(i->second.d_name,soadata); // we might not *have* a SOA yet
     }
@@ -255,6 +255,8 @@ bool BindBackend::getDomainInfo(const string &domain, DomainInfo &di)
       di.serial=0;
       try {
 	SOAData sd;
+	sd.serial=0;
+	
 	getSOA(i->second.d_name,sd); // we might not *have* a SOA yet
 	di.serial=sd.serial;
       }

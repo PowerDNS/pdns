@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <utility>
+#include <deque>
 #include "logger.hh"
 #include "misc.hh"
 #include "arguments.hh"
@@ -35,9 +36,12 @@
 map<string,string> SyncRes::s_negcache;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outqueries;
+unsigned int SyncRes::s_throttledqueries;
 bool SyncRes::s_log;
 
 #define LOG if(s_log)L<<Logger::Warning
+
+Throttle<string> SyncRes::s_throttle;
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
@@ -293,16 +297,26 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
       LOG<<prefix<<qname<<": Resolved NS "<<*tns<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 
-      s_outqueries++;
-      d_outqueries++;
-      if(d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
-	LOG<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
+      if(s_throttle.shouldThrottle(remoteIP+"|"+qname+"|"+qtype.getName())) {
+	LOG<<prefix<<qname<<": query throttled "<<endl;
+	s_throttledqueries++;
+	d_throttledqueries++;
 	continue;
+      }
+      else {
+	s_outqueries++;
+	d_outqueries++;
+	if(d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
+	  LOG<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
+	  s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),20,20);
+	  continue;
+	}
       }
 
       result=d_lwr.result(aabit);
       if(d_lwr.d_rcode==RCode::ServFail) {
 	LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
+	s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
 	continue;
       }
       LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<endl;
@@ -399,6 +413,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
       else {
 	LOG<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibling NS"<<endl;
+	s_throttle.throttle(remoteIP+"|"+qname+"|"+qtype.getName(),60,0);
       }
     }
   }

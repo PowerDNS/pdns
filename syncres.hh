@@ -14,10 +14,50 @@ void replaceCache(const string &qname, const QType &qt, const set<DNSResourceRec
 int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res=0);
 
 
+template<class Thing> class Throttle
+{
+public:
+  Throttle()
+  {
+    d_limit=3;
+    d_ttl=60;
+  }
+  bool shouldThrottle(const Thing& t)
+  {
+    time_t now=time(0);
+    while(!d_dq.empty() && d_dq.back().ttd < now) // remove expired entries from the end
+      d_dq.pop_back();
+
+    for(typename cont_t::iterator i=d_dq.begin();i!=d_dq.end();++i) 
+      if(i->T==t && i->count-- < 0)
+	return true; 
+    return false;
+  }
+
+  void throttle(const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
+  {
+    entry e;
+    e.ttd=time(0)+ (ttl ?: d_ttl) ; e.T=t; e.count=tries ?: d_limit;
+    d_dq.push_front(e);
+
+  }
+private:
+  int d_limit;
+  int d_ttl;
+  struct entry 
+  {
+    time_t ttd;
+    Thing T;
+    int count;
+  };
+  typedef deque<entry> cont_t;
+  cont_t d_dq;
+};
+
 class SyncRes
 {
 public:
-  SyncRes() : d_outqueries(0), d_cacheonly(false), d_nocache(false){}
+  SyncRes() : d_outqueries(0), d_throttledqueries(0), d_cacheonly(false), d_nocache(false){}
   int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -36,9 +76,12 @@ public:
     d_nocache=state;
   }
   static unsigned int s_queries;
+  static unsigned int s_throttledqueries;
   static unsigned int s_outqueries;
   unsigned int d_outqueries;
+  unsigned int d_throttledqueries;
   static map<string,string> s_negcache;    
+  static Throttle<string> s_throttle;
 private:
   struct GetBestNSAnswer;
   int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
