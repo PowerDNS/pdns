@@ -1,6 +1,7 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
 AM_INIT_AUTOMAKE(pdns, 2.9.1)
+AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 CXXFLAGS="-Wall -pthread -O2"
 

@@ -3,19 +3,20 @@ PDNS_HOME		= ../../pdns
 PDNS_LIBDIR		= /usr/lib/powerdns
 
 MYSQL_INCLUDES	     = /usr/include/mysql
-MYSQL_LIBDIR         = ./
+MYSQL_LIB            = 
 MYSQL_LIBS           = -lmysqlclient 
 
-POSTGRES_INCLUDES	= /opt/postgresql/include
-POSTGRES_LIBDIR         = /opt/postgresql-with-3.2/lib
-POSTGRES_LIBS           = -Wl,-Bstatic  -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
+#POSTGRES_INCLUDES	= /opt/postgresql/include
+#POSTGRES_LIBDIR         = /opt/postgresql-with-3.2/lib
+#POSTGRES_LIBS           = -Wl,-Bstatic  -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
+
 VERSION			= 2.9
 
-all: libgmysqlbackend.so smysql.o
+all: gmysqlbackend.o smysql.o
 
-CPPFLAGS=-I$(PDNS_HOME) -I$(MYSQL_INCLUDES) -I$(POSTGRES_INCLUDES)
+CPPFLAGS=-I$(PDNS_HOME) -I$(MYSQL_INCLUDES) # -I$(POSTGRES_INCLUDES)
 
-LIBS= -L$(POSTGRES_LIBDIR) -L$(MYSQL_LIBDIR)  $(MYSQL_LIBS)  $(POSTGRES_LIBS)
+LIBS=  $(MYSQL_LIB)  $(MYSQL_LIBS) # -L$(POSTGRES_LIBDIR)  $(POSTGRES_LIBS)
 DIRNAME=pdns-gmypgsqlbackend-$(VERSION)
 
 PACKAGE = pdns
@@ -48,8 +49,8 @@ deps:
 -include deps
 
 
-libgmysqlbackend.so: gmysqlbackend.o smysql.o spgsql.o 
-	g++ gmysqlbackend.o -Wl,-rpath -Wl,$(POSTGRES_LIBDIR) smysql.o spgsql.o $(LIBS) -Wl,-soname -Wl,libgmysqlbackend.so.0 -shared  -o libgmysqlbackend.so 
+#libgmysqlbackend.so: gmysqlbackend.o smysql.o spgsql.o 
+#	g++ gmysqlbackend.o -Wl,-rpath -Wl,$(POSTGRES_LIBDIR) smysql.o spgsql.o $(LIBS) -Wl,-soname -Wl,libgmysqlbackend.so.0 -shared  -o libgmysqlbackend.so 
 
 .cc.o:
 	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $<
