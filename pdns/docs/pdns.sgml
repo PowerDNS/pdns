@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/03/28 11:29:43 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/04/12 09:17:01 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -4547,7 +4547,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  knows that it is a slave for a domain.
 	</para>
 	<para>
-	  However, a notification from a supermaster carries more persuasion. When PDNS determines that a notification comes from a supermaster and it is 
+	  However, a notification from a supermaster carries more persuasion. When PDNS determines that a notification comes from a supermaster and it 
 	  is bonafide, PDNS can provision the domain automatically, and configure itself as a slave for that zone.
 	</para>
 	<para>
@@ -6612,7 +6612,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	      <term>supermaster-query</term>
 	      <listitem>
 		<para>
-		  Called to determine if a certain host is a supermaster for a certain domain naeme.
+		  Called to determine if a certain host is a supermaster for a certain domain name.
 		  Default: <command>
 		    select account from supermasters where ip='%s' and nameserver='%s'");
 		  </command>
@@ -7427,6 +7427,9 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
       </para>
     </sect1>
     <sect1 id="ldap"><Title>LDAP backend</title>
+      <para>
+	The main author for this module is Norbert Sendetzky who also has his own <ulink url="http://www.linuxnetworks.de/pdnsldap/index.html">PowerDNS-LDAP page</ulink>.
+      </para>
       <para>
 	<table>
 	  <title>LDAP backend capabilities</title>

@@ -1,12 +1,28 @@
-#include "ldapbackend.hh"
+/*
+ *  PowerDNS LDAP Backend
+ *  Copyright (C) 2003 Norbert Sendetzky <norbert@linuxnetworks.de>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
-#include <utility>
+#include "ldapbackend.hh"
 
 static int Toupper(int c)
 {
   return toupper(c);
 }
-
 
 LdapBackend::LdapBackend( const string &suffix )
 {
@@ -14,12 +30,12 @@ LdapBackend::LdapBackend( const string &suffix )
 	m_qname = "";
 	setArgPrefix( "ldap" + suffix );
 
-	L << Logger::Notice << backendname << " Server = " << getArg( "host" ) << ":" << getArg( "port" ) << endl;
+	L << Logger::Notice << backendname << " LDAP Server = " << getArg( "host" ) << ":" << getArg( "port" ) << endl;
 
 	try
 	{
-	m_pldap = new PowerLDAP( getArg( "host" ), (u_int16_t) atoi( getArg( "port" ).c_str() ) );
-	m_pldap->simpleBind( getArg( "binddn" ), getArg( "secret" ) );
+		m_pldap = new PowerLDAP( getArg( "host" ), (u_int16_t) atoi( getArg( "port" ).c_str() ) );
+		m_pldap->simpleBind( getArg( "binddn" ), getArg( "secret" ) );
 	}
 	catch( LDAPException &e )
 	{
@@ -49,51 +65,67 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 {
 	int i, len;
 	vector<string> parts;
-	string filter, attr, ipaddr;
+	string filter, attr, qesc;
 	char** attributes = attrany;
 	char* attronly[] = { NULL, NULL };
 
 
 	m_qtype = qtype;
 	m_qname = qname;
-	len = qname.length();
+	qesc = m_pldap->escape( qname );
 
-	if( qname.substr( len - 5, 5 ) == ".arpa" || qname.substr( len - 4, 4 ) == ".int" )
+	if( mustDo( "enable-ptrrecord" ) )   // requires additional ldap objects for reverse lookups
 	{
-		stringtok( parts, qname, "." );
-		if (parts[parts.size()-2] == "ip6" )
+		filter = "(associatedDomain=" + qesc + ")";
+		if( qtype.getCode() != QType::ANY )
 		{
-			filter = "(aaaaRecord=" + parts[parts.size()-3];
-			for( i = parts.size() - 4; i >= 0; i-- )   // reverse and cut .ip6.arpa or .ip6.int
+			attr = qtype.getName() + "Record";
+			filter = "(&" + filter + "(" + attr + "=*))";
+			attronly[0] = (char*) attr.c_str();
+			attributes = attronly;
+		}
+	}
+	else  // PTRRecords will be derived from ARecords
+	{
+		len = qesc.length();
+
+		if( qesc.substr( len - 5, 5 ) == ".arpa" || qesc.substr( len - 4, 4 ) == ".int" )
+		{
+			stringtok( parts, qesc, "." );
+			if (parts[parts.size()-2] == "ip6" )  // IPv6 is currently EXPERIMENTAL
 			{
-				  filter += ":" + parts[i];
+				filter = "(aaaaRecord=" + parts[parts.size()-3];
+				for( i = parts.size() - 4; i >= 0; i-- )   // reverse and cut .ip6.arpa or .ip6.int
+				{
+					filter += ":" + parts[i];
+				}
+				filter =  + ")";
 			}
-			filter =  + ")";
+			else
+			{
+				filter = "(aRecord=" + parts[3] + "." + parts[2] + "." + parts[1] + "." + parts[0] + ")";
+			}
+
+			filter = m_pldap->escape( filter );
+			attronly[0] = "associatedDomain";
+			attributes = attronly;
 		}
 		else
-	{
-		filter = "(aRecord=" + parts[3] + "." + parts[2] + "." + parts[1] + "." + parts[0] + ")";
+		{
+			filter = "(associatedDomain=" + qesc + ")";
+			if( qtype.getCode() != QType::ANY )
+			{
+				attr = qtype.getName() + "Record";
+				filter = "(&" + filter + "(" + attr + "=*))";
+				attronly[0] = (char*) attr.c_str();
+				attributes = attronly;
+			}
 		}
-
-		filter = m_pldap->escape( filter );
-		attronly[0] = "associatedDomain";
-		attributes = attronly;
-	}
-	else
-	{
-		filter = "(associatedDomain=" + m_pldap->escape( m_qname ) + ")";
-	if( qtype.getCode() != QType::ANY )
-	{
-		attr = qtype.getName() + "Record";
-		filter = "(&" + filter + "(" + attr + "=*))";
-			attronly[0] = (char*) attr.c_str();
-		attributes = attronly;
-	}
 	}
 
 	try
 	{
-	m_msgid = m_pldap->search( getArg("basedn"), filter, (const char**) attributes );
+		m_msgid = m_pldap->search( getArg("basedn"), filter, (const char**) attributes );
 	}
 	catch( LDAPException &e )
 	{
@@ -116,9 +148,9 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
 Redo:
 
-		while( !m_result.empty() )
-		{
-			attribute = m_result.begin();
+	while( !m_result.empty() )
+	{
+		attribute = m_result.begin();
 		if( attribute != m_result.end() && !attribute->second.empty() )
 		{
 			attrname = attribute->first;
@@ -136,7 +168,7 @@ Redo:
 				rr.priority = 0;
 
 				if( qt.getCode() == QType::MX )   // MX Record, e.g. 10 smtp.example.com
-  				{
+				{
 					stringtok( parts, content, " " );
 					rr.priority = (u_int16_t) strtol( parts[0].c_str(), NULL, 10 );
 					content = parts[1];
@@ -147,8 +179,8 @@ Redo:
 				return true;
 			}
 		}
-			m_result.erase( attribute );
-		}
+		m_result.erase( attribute );
+	}
 
 	try
 	{
@@ -172,7 +204,6 @@ Redo:
 
 
 
-
 class LdapFactory : public BackendFactory
 {
 
@@ -182,11 +213,12 @@ public:
 
 	void declareArguments( const string &suffix="" )
 	{
-		declare( suffix, "host", "ldap server","localhost" );
-		declare( suffix, "port", "server port","389" );
-		declare( suffix, "basedn", "search root","" );
-		declare( suffix, "binddn", "user dn","" );
-		declare( suffix, "secret", "user password", "" );
+		declare( suffix, "host", "your ldap server","localhost" );
+		declare( suffix, "port", "ldap server port","389" );
+		declare( suffix, "basedn", "search root in ldap tree (must be set)","" );
+		declare( suffix, "binddn", "user dn for non anonymous binds","" );
+		declare( suffix, "secret", "user password for non anonymous binds", "" );
+		declare( suffix, "enable-ptrrecord", "enable seperate PTR records (requires additional ldap objects)", "no" );
 	}
 
 
