@@ -28,7 +28,6 @@
 # include <sys/types.h>
 # include <sys/socket.h>
 # include <time.h>
-
 #else
 # pragma warning ( disable: 4786 )
 # define WINDOWS_LEAN_AND_MEAN
@@ -38,7 +37,7 @@
 
 #endif // WIN32
 
-
+#include <deque>
 #include <string>
 #include <ctype.h>
 using namespace std;

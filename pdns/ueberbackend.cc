@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: ueberbackend.cc,v 1.9 2003/01/03 23:51:54 ahu Exp $ 
+// $Id: ueberbackend.cc,v 1.10 2003/02/10 11:09:09 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 
@@ -139,24 +139,26 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
-
+/** special trick - if sd.db is set to -1, the cache is ignored */
 bool UeberBackend::getSOA(const string &domain, SOAData &sd)
 {
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
   d_question.zoneId=-1;
     
-  int cstat=cacheHas(d_question,d_answer);
-  if(cstat==0) {
-    return false;
-  }
-  else if(cstat==1) {
-    // ehm 
-    DNSPacket::fillSOAData(d_answer.content,sd);
-    sd.domain_id=d_answer.domain_id;
-    sd.ttl=d_answer.ttl;
-    sd.db=0;
-    return true;
+  if(sd.db!=(DNSBackend *)-1) {
+    int cstat=cacheHas(d_question,d_answer);
+    if(cstat==0) {
+      return false;
+    }
+    else if(cstat==1) {
+      // ehm 
+      DNSPacket::fillSOAData(d_answer.content,sd);
+      sd.domain_id=d_answer.domain_id;
+      sd.ttl=d_answer.ttl;
+      sd.db=0;
+      return true;
+    }
   }
     
 

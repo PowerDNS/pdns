@@ -282,6 +282,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   DNSResourceRecord rr;
 
   SOAData sd;
+  sd.db=(DNSBackend *)-1; // force uncached answer
   {
     Lock l(&s_plock);
     
@@ -294,28 +295,30 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
       sendDelPacket(outpacket,outsock);
       return 0;
     }
-    soa.qname=target;
-    soa.qtype=QType::SOA;
-    soa.content=DNSPacket::serializeSOAData(sd);
-    soa.ttl=sd.default_ttl;
-    soa.domain_id=sd.domain_id;
-    soa.d_place=DNSResourceRecord::ANSWER;
+  }
+  PacketHandler P; // now open up a database connection, we'll need it
+  sd.db=(DNSBackend *)-1; // force uncached answer
+  if(!P.getBackend()->getSOA(target,sd)) {
+    outpacket->setRcode(9); // 'NOTAUTH'
+    sendDelPacket(outpacket,outsock);
+    return 0;
+  }
+  soa.qname=target;
+  soa.qtype=QType::SOA;
+  soa.content=DNSPacket::serializeSOAData(sd);
+  soa.ttl=sd.default_ttl;
+  soa.domain_id=sd.domain_id;
+  soa.d_place=DNSResourceRecord::ANSWER;
     
-    if(!sd.db) { // we got a cached answer
-      DomainInfo di;
-      if(!s_P->getBackend()->getDomainInfo(target, di) || !di.backend) {
-	L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
-	outpacket->setRcode(RCode::ServFail);
-	sendDelPacket(outpacket,outsock);
-	return 0;
-      }
-      sd.db=di.backend;
-    }
-
+  if(!sd.db || sd.db==(DNSBackend *)-1) {
+    L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
+    outpacket->setRcode(RCode::ServFail);
+    sendDelPacket(outpacket,outsock);
+    return 0;
   }
  
   DLOG(L<<"Issuing list command - opening dedicated database connection"<<endl);
-  PacketHandler P;
+
   DNSBackend *B=sd.db; // get the RIGHT backend
 
   // now list zone
