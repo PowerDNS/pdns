@@ -1,0 +1,11 @@
+$ export CVSROOT=:pserver:anon@outpost.ds9a.nl:/var/cvsroot
+$ cvs login
+CVS password: [enter 'cvs' (without 's)]
+$ cvs co pdns
+cvs server: Updating pdns
+...
+
+Send any patches you may have to the mailinglist:
+                        pdns-dev@mailman.powerdns.com
+
+Thanks!

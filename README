@@ -1,0 +1,16 @@
+To compile a very basic version, use:
+
+$ ./configure --with-modules=""
+$ make
+# make install
+
+This generates a PowerDNS binary with no modules, except the bind backend,
+built in. When ./configure is run without --with-modules, the mysql module
+is built by default.
+
+To add multiple modules, try:
+
+$ ./configure --with-modules="mysql mypgsql"
+
+For postgresql, you will probably have to edit modules/mypgsql/Makefile.in -
+see the TODO file

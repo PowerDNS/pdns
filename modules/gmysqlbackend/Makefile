@@ -1,3 +1,4 @@
+# Generated automatically from Makefile.in by configure.
 PDNS_HOME		= ../../pdns
 PDNS_LIBDIR		= /usr/lib/powerdns
 
@@ -17,11 +18,29 @@ CPPFLAGS=-I$(PDNS_HOME) -I$(MYSQL_INCLUDES) -I$(POSTGRES_INCLUDES)
 LIBS= -L$(POSTGRES_LIBDIR) -L$(MYSQL_LIBDIR)  $(MYSQL_LIBS)  $(POSTGRES_LIBS)
 DIRNAME=pdns-gmypgsqlbackend-$(VERSION)
 
-dist:
-	mkdir $(DIRNAME)
-	cp COPYING smysql.cc spgsql.cc gmysqlbackend.cc gmysqlbackend.hh smysql.hh ssql.hh spgsql.hh Makefile INSTALL $(DIRNAME)
-	tar cvzf $(DIRNAME).tar.gz $(DIRNAME)
-	rm -rf $(DIRNAME)
+PACKAGE = pdns
+VERSION = 2.9
+DISTFILES=*.cc *.hh Makefile.in OBJECTFILES OBJECTLIBS
+
+top_distdir = ../..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
 	
 deps:
 	g++ -M -g -c $(CXXFLAGS) $(CPPFLAGS) *.cc > deps
@@ -34,6 +53,8 @@ libgmysqlbackend.so: gmysqlbackend.o smysql.o spgsql.o
 
 .cc.o:
 	g++ -MD -g -c $(CXXFLAGS) $(CPPFLAGS) $<
+
+distclean: clean
 
 clean:
 	rm -f *.o *.so *~ *.d deps
