@@ -195,6 +195,11 @@ public:
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
+
+  // for supermaster support
+  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
+  bool createSlaveDomain(const string &ip, const string &domain, const string &account);
+  
 private:
   class handle
   {
@@ -231,6 +236,7 @@ private:
   static map<string,int> s_name_id_map;
   static map<u_int32_t,BB2DomainInfo* > s_id_zone_map;
   static int s_first;
+  static pthread_mutex_t s_zonemap_lock;
 
   string d_logprefix;
   int d_transaction_id;
