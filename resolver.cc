@@ -216,7 +216,31 @@ void Resolver::makeTCPSocket(const string &ip, u_int16_t port)
   d_sock=socket(AF_INET,SOCK_STREAM,0);
   if(d_sock<0)
     throw ResolverException("Unable to make a TCP socket for resolver: "+stringerror());
-  
+
+  // Use query-local-address as source IP for queries, if specified.
+  string querylocaladdress(arg()["query-local-address"]);
+  if (querylocaladdress!="") {
+    struct sockaddr_in fromaddr;
+    struct hostent *h=0;
+
+    h = gethostbyname(querylocaladdress.c_str());
+    if(!h) {
+      Utility::closesocket(d_sock);
+      d_sock=-1;
+      throw ResolverException("Unable to resolve query local address");
+    }
+
+    fromaddr.sin_family = AF_INET;
+    fromaddr.sin_addr.s_addr = *(int*)h->h_addr;
+    fromaddr.sin_port = 0;
+
+    if (bind(d_sock, (struct sockaddr *)&fromaddr, sizeof(fromaddr)) < 0) {
+      Utility::closesocket(d_sock);
+      d_sock=-1;
+      throw ResolverException("Binding to query-local-address: "+stringerror());
+    }
+  }  
+    
   Utility::setNonBlocking( d_sock );
 
   int err;

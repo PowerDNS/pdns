@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.16 2003/01/23 15:34:53 ahu Exp $
+// $Id: dnspacket.cc,v 1.17 2003/02/25 12:36:49 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -90,7 +90,6 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
 
   stringbuffer=orig.stringbuffer;
   d=orig.d;
-
 }
 
 int DNSPacket::expand(const unsigned char *begin, const unsigned char *end, string &expanded, int depth)

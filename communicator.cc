@@ -148,6 +148,8 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
     vector<string>nsips=d_fns.lookup(*j, B);
+    if(nsips.empty())
+      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
     for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k)
       ips.insert(*k);
   }
@@ -345,7 +347,25 @@ void CommunicatorClass::makeNotifySocket()
   memset((char *)&sin,0, sizeof(sin));
   
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
+
+  // Bind to a specific IP (query-local-address) if specified
+  string querylocaladdress(arg()["query-local-address"]);
+  if (querylocaladdress=="") {
+    sin.sin_addr.s_addr = INADDR_ANY;
+  }
+  else
+  {
+    struct hostent *h=0;
+    h=gethostbyname(querylocaladdress.c_str());
+    if(!h) {
+      Utility::closesocket(d_nsock);
+      d_nsock=-1;	
+      throw AhuException("Unable to resolve query local address");
+    }
+
+    sin.sin_addr.s_addr = *(int*)h->h_addr;
+  }
+  
   int n=0;
   for(;n<10;n++) {
     sin.sin_port = htons(10000+(Utility::random()%50000));
@@ -356,7 +376,7 @@ void CommunicatorClass::makeNotifySocket()
   if(n==10) {
     Utility::closesocket(d_nsock);
     d_nsock=-1;
-    throw AhuException(string("binding dnsproxy socket: ")+strerror(errno));
+    throw AhuException(string("binding notify socket: ")+strerror(errno));
   }
   if( !Utility::setNonBlocking( d_nsock ))
     throw AhuException(string("error getting or setting notify socket non-blocking: ")+strerror(errno));
