@@ -57,6 +57,9 @@ class QGen
   unsigned int d_answeredOK;
   unsigned int d_delayed;
   unsigned int d_unmatched;
+  unsigned int d_maxBurst;
+  unsigned int d_servfail;
+  unsigned int d_nxdomain;
   time_t d_laststats;
   int d_clientsock;
   string d_server;
@@ -66,13 +69,14 @@ class QGen
   int fillAndSendQuestions();
   void processAnswers();
   void pruneUnanswered();
-  void sendQuestion(const string& qname, QType qtype);
+
   static bool tooOld(const OutstandingQuestion &oq);
   void printStats(bool force=false);
 
 public:
+  void sendQuestion(const string& qname, QType qtype);
   QGen(const string &server, unsigned int port, const string &fileName,
-       unsigned int maxOutstanding, unsigned int maxToRead);
+       unsigned int maxOutstanding, unsigned int maxBurst, unsigned int maxToRead);
   void start();
 
 };
@@ -88,16 +92,17 @@ QGen::QGen(const string &server,
 	   unsigned int port,
 	   const string &fileName,
 	   unsigned int maxOutstanding,
+	   unsigned int maxBurst,
 	   unsigned int maxToRead) : d_in(fileName.c_str())
 {
-  d_answeredOK = d_numqueries = d_delayed = d_unmatched =0;
+  d_answeredOK = d_numqueries = d_delayed = d_unmatched = d_servfail = d_nxdomain = 0;
 
   if(!d_in)
     unixDie("unable to open '"+fileName+"'");
 
   d_maxOutstanding = maxOutstanding;
   d_maxToRead = maxToRead;
-
+  d_maxBurst=maxBurst;
   struct in_addr inp;
   Utility::inet_aton(server.c_str(),&inp);
   d_toaddr.sin_addr.s_addr=inp.s_addr;
@@ -128,6 +133,7 @@ void QGen::pruneUnanswered()
   for(multiset<OutstandingQuestion>::iterator i=d_questions.begin();i!=d_questions.end();) 
     if(now-i->timeSent > 5) {
       cout<<"No answer received to question for "<<i->qname<<endl;
+      cout<<i->qname<<"\tNO ANSWER"<<endl;
       d_unanswered.insert(*i);
       d_questions.erase(i++);
 
@@ -141,8 +147,7 @@ int QGen::fillAndSendQuestions()
 {
   unsigned int wantToRead=d_maxOutstanding-d_questions.size();
   string line;
-  int burst=50;
-
+  int burst(d_maxBurst);
   while(!d_in.eof() && wantToRead-- && burst--) {
     getline(d_in,line);
     chomp(line,"\r\n\t ");
@@ -171,6 +176,7 @@ void QGen::sendQuestion(const string& qname, QType qtype)
   p.setQuestion(Opcode::Query,qname,qtype.getCode());
   // set p.d.id here?
   p.setRD(true);
+
   p.wrapup();
 
   if(sendto(d_clientsock, p.getData(), p.len, 0, (struct sockaddr*)(&d_toaddr), sizeof(d_toaddr))<0) 
@@ -192,8 +198,8 @@ void QGen::printStats(bool force)
   if(!force && time(0)==d_laststats )
     return;
   d_laststats=time(0);
-  cout<<"Sent "<<d_numqueries<<" questions, "<<d_answeredOK<<" OK answers, ";
-  cout<<d_unanswered.size()<<" unanswered, "<<d_delayed<<" delayed, "<<d_unmatched<<" unmatched, "<<d_ewma.get1()<<"/s"<<endl;
+  cerr<<"Sent "<<d_numqueries<<" questions, "<<d_answeredOK<<" OK answers, ";
+  cerr<<d_unanswered.size()<<" unanswered, "<<d_delayed<<" delayed, "<<d_unmatched<<" unmatched, "<<d_ewma.get1()<<"/s"<<endl;
   d_ewma.submit(d_answeredOK);
 
 }
@@ -239,6 +245,7 @@ void QGen::processAnswers()
       cerr<<"Got an error parsing packet"<<endl;
       continue;
     }
+    
 
     /*
     cout<<"Packet: "<<p.d.id<<", "<<p.qdomain<<", rcode="<<p.d.rcode<<", ";
@@ -256,17 +263,33 @@ void QGen::processAnswers()
       if(d_unanswered.count(oq)) {
 	d_delayed++;
 	d_answeredOK++;
-	cout<<"Delayed answer for "<<p.qdomain<<" came in anyhow"<<endl;
+	cerr<<"Delayed answer for "<<p.qdomain<<" came in anyhow"<<endl;
 	d_unanswered.erase(oq);
       }
       else {
 	d_unmatched++;
-	cout<<"Unmatched answer, question: "<<p.qdomain<<endl;
+	cerr<<"Unmatched answer, question: "<<p.qdomain<<endl;
+	cout<<p.qdomain<<"\tMATCH_ERROR"<<endl;
       }
     }
     else {
+      if(p.d.rcode==RCode::ServFail) {
+	d_servfail++;
+	d_unanswered.erase(oq);
+	cout<<p.qdomain<<"\tSERVFAIL"<<endl;
+	continue;
+      }
+      
+      if(p.d.rcode==RCode::NXDomain) {
+	d_nxdomain++;
+	d_unanswered.erase(oq);
+	cout<<p.qdomain<<"\tNXDOMAIN"<<endl;
+	continue;
+      }
+
       for(vector<DNSResourceRecord>::const_iterator j=answers.begin();j!=answers.end();++j)
-	cout<<p.qdomain<<"\t"<<j->content<<endl;
+	if(j->d_place==DNSResourceRecord::ANSWER)
+	  cout<<p.qdomain<<"\t"<<j->content<<endl;
       d_answeredOK++;
       d_questions.erase(i);
     }
@@ -278,12 +301,15 @@ int main(int argc, char **argv)
 {
   string fileName="./questions";
   string server="127.0.0.1";
-  unsigned int port=53;
-  unsigned int maxOutstanding=500;
+  unsigned int port=5300;
+  unsigned int maxBurst=50;
+  unsigned int maxOutstanding=2000;
   unsigned int maxToRead=1000000;
 
   // parse commandline here
 
-  QGen qg(server, port, fileName, maxOutstanding, maxToRead);
+  QGen qg(server, port, fileName, maxOutstanding, maxBurst, maxToRead);
+
+
   qg.start();
 }
