@@ -215,7 +215,7 @@ string PacketReader::getLabelFromContent(const vector<u_int8_t>& content, u_int1
       break;
     }
     if((labellen & 0xc0) == 0xc0) {
-      u_int16_t offset=(labellen & ~0xc0) + content.at(frompos++) - sizeof(dnsheader);
+      u_int16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
       //	cout<<"This is an offset, need to go to: "<<offset<<endl;
       return ret+getLabelFromContent(content, offset, ++recurs);
     }
