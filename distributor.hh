@@ -36,7 +36,10 @@
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "ahuexception.hh"
+#include "arguments.hh"
+#include "statbag.hh"
 
+extern StatBag S;
 
 /** the Distributor template class enables you to multithread slow question/answer 
     processes. 
@@ -70,21 +73,6 @@ public:
   void getQueueSizes(int &questions, int &answers); //!< Returns length of question queue
 
 
-  //! This function can run in a separate thread to output statistics on the queues
-  static void* doStats(void *p)
-  {
-    Distributor *us=static_cast<Distributor *>(p);
-    for(;;)
-      {
-	sleep(1);
-	int qcount, acount;
-
-	us->numquestions.getvalue( &qcount );
-	us->numanswers.getvalue( &acount );
-
-	L <<"queued questions: "<<qcount<<", pending answers: "<<acount<<endl;
-      }
-  }
 
   int getNumBusy()
   {
@@ -340,114 +328,6 @@ template<class Answer, class Question,class Backend>void Distributor<Answer,Ques
   numquestions.getValue( &questions );
   numanswers.getValue( &answers );
 }
-
-//! Wait synchronously for the answer of the question just asked. For this to work, no answer() functions must be called
-template<class Answer, class Question,class Backend>int Distributor<Answer,Question,Backend>::timeoutWait(int id, Answer *a, int timeout)
-{
-  struct timeval now;
-  struct timespec then;
-
-  Utility::gettimeofday(&now,0);
-
-  then.tv_sec=now.tv_sec+timeout;  
-  then.tv_nsec=150*1000000+now.tv_usec*1000; // 150ms
-
-  int rc;
-
-  //  L<<"About to acquire to_mut - new broadcasts will then be corked"<<endl;
-  pthread_mutex_lock(&to_mut);  // start the lock to prevent races
-
-  for(;;)
-    {
-      //      L<<"Acquired the to_mut lock - checking to see if there are already answers"<<endl;
-
-      int val;
-      rc=numanswers.getvalue( &val); // are there answers?
-      //      L<<"Now "<<val<<" answers according to the semaphore"<<endl;
-
-      if(val)
-	{
-	  DLOG(L<<"There are some answers! Is the one we want among them?"<<endl);
-	  DLOG(L<<"numanswers: "<<val<<", rc="<<rc<<", errno="<<errno<<endl);
-
-	  pthread_mutex_lock(&a_lock);
-	  
-	  DLOG(L<<"deque contains: "<<answers.size()<<endl);
-	  // search if the answer is there
-	  
-	  bool found=false;
-	  int rc;
-	  
-	  for(typename deque<tuple_t>::iterator tuple=answers.begin();
-	      tuple!=answers.end();
-	      tuple++)
-	    {
-	      if(!found && tuple->first.id==id)
-		{
-		  numanswers.wait(); // remove from the semaphore
-		  DLOG(L<<"found the answer tuple ("<<tuple->first.id<<") - may be empty answer"<<endl);
-		  
-		  found=true;
-		  
-		  if(!tuple->second.A)
-		    rc=-1;
-		  else
-		    {
-		      *a=*tuple->second.A;
-		      rc=0;
-		    }
-		  
-		  answers.erase(tuple);
-		  tuple=answers.begin(); // restart
-		  if(tuple==answers.end())break;
-		  
-		}
-	      else  // an answer, but not the right one
-		{
-		  if(time(0)-tuple->second.created>5) // delete after 5 seconds
-		    {
-		      L<<"Deleted unclaimed answer "<<tuple->first.id<<" due to age"<<endl;
-		      answers.erase(tuple);
-		      tuple=answers.begin(); // restart
-		      if(tuple==answers.end())break;
-		      numanswers.wait();
-		    }
-		}
-	    }
-	  pthread_mutex_unlock(&a_lock);
-
-	  if(!found)
-	    L<<"Right answer was NOT found - we should now sleep and recheck whenever there are new answers"<<endl;
-	  else 
-	    {
-	      pthread_mutex_unlock(&to_mut);
-	      return 0;
-	    }
-	}
-      else
-	L<<"No answers!"<<endl;
-
-
-      DLOG(L<<"starting wait on condition, to see if there are new answers"<<endl);
-
-      // this first lets go of the to_mut lock, which will 'uncork' the pending pthread_cond_broadcasts
-      rc=pthread_cond_timedwait(&to_cond, &to_mut, &then);
-      // and then it atomically reacquires the lock
-
-      if(rc==ETIMEDOUT)
-	{
-	  L<<Logger::Error<<"Timeout waiting for data"<<endl;
-	  pthread_mutex_unlock(&to_mut);
-	  return -ETIMEDOUT;
-	}
-      L<<"We received a broadcast that there is new data, checking"<<endl;
-
-    }
-
-  return -1; // timeout or whatever
-  // FIXME: write this
-}
-
 
 #endif // DISTRIBUTOR_HH
 
