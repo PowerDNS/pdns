@@ -1,7 +1,8 @@
 #!/usr/bin/make -f
 
 tmpdir		:= $(shell pwd)/debian/tmp
-backends	:= mysql pipe xdb gmysql gpgsql
+be_tmpdir	:= $(shell pwd)/debian/tmp-backend
+backends	:= mysql pipe xdb pgsql
 
 configure:
 	./bootstrap
@@ -138,22 +139,21 @@ binary-backend: stamp-build
 
 	set -e ; for be in $(backends) ; do \
 		rm -f debian/substvars ; \
-		rm -rf "$(tmpdir)"-$$be ; \
+		rm -rf "$(be_tmpdir)" ; \
 		pkg=pdns-backend-$$be ; \
-		if [ "$$be" = "xdb" ] ; then \
-			install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/bin ; \
-			mv "$(tmpdir)"/usr/bin/xdb-fill  "$(tmpdir)"-$$be/usr/bin/ ; \
-		fi ; \
 		\
-		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/lib/powerdns ; \
-		mv "$(tmpdir)"/usr/lib/powerdns/lib$$be* "$(tmpdir)"-$$be/usr/lib/powerdns ; \
-		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/usr/share/doc ; \
-		ln -s pdns "$(tmpdir)"-$$be/usr/share/doc/$$pkg ; \
+		for file in $$(cd "$(tmpdir)" ; find . -name "*$$be*") ; do \
+			install -d -m 755 -o root -g root "$(be_tmpdir)"/$$(dirname "$$file") ; \
+			mv "$(tmpdir)"/"$$file" "$(be_tmpdir)"/"$$file" ; \
+		done ; \
 		\
-		install -d -m 755 -o root -g root "$(tmpdir)"-$$be/DEBIAN ; \
-		dpkg-shlibdeps "$(tmpdir)"-$$be/usr/lib/powerdns/*.so ; \
-		dpkg-gencontrol -isp -p$$pkg -P"$(tmpdir)"-$$be ; \
-		dpkg --build "$(tmpdir)"-$$be .. ; \
+		install -d -m 755 -o root -g root "$(be_tmpdir)"/usr/share/doc ; \
+		ln -s pdns "$(be_tmpdir)"/usr/share/doc/$$pkg ; \
+		\
+		install -d -m 755 -o root -g root "$(be_tmpdir)"/DEBIAN ; \
+		dpkg-shlibdeps "$(be_tmpdir)"/usr/lib/powerdns/*.so ; \
+		dpkg-gencontrol -isp -p$$pkg -P"$(be_tmpdir)" ; \
+		dpkg --build "$(be_tmpdir)" .. ; \
 	done
 
 
@@ -163,7 +163,7 @@ binary-arch: binary-main binary-backend
 
 clean:
 	rm -f debian/files debian/substvars stamp-build stamp-build-static
-	rm -rf "$(tmpdir)" "$(tmpdir)"-*
+	rm -rf "$(tmpdir)" "$(be_tmpdir)"
 	-make distclean
 	-make -C pdns/docs clean
 

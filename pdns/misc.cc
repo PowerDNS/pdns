@@ -35,6 +35,8 @@
 # include <time.h>
 # include <netinet/in.h>
 # include <unistd.h>
+#else
+# include <time.h>
 #endif // WIN32
 
 #include "utility.hh"
