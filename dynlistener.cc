@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.9 2004/02/01 18:20:16 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.10 2004/02/08 10:43:50 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -52,10 +52,16 @@
 
 extern StatBag S;
 
+DynListener::~DynListener()
+{
+  if(!d_socketname.empty())
+    unlink(d_socketname.c_str());
+}
+
 DynListener::DynListener(const string &pname)
 {
   d_restfunc=0;
-  string programname=pname;
+  string programname(pname);
 
   if(!programname.empty()) {
     struct sockaddr_un local;
@@ -81,7 +87,11 @@ DynListener::DynListener(const string &pname)
     }
     
     socketname+=programname+".controlsocket";
-    unlink(socketname.c_str());
+    int err=unlink(socketname.c_str());
+    if(err < 0 && errno!=ENOENT) {
+      L<<Logger::Critical<<"Unable to remove (previous) controlsocket: "<<strerror(errno)<<endl;
+      exit(1);
+    }
     memset(&local,0,sizeof(local));
     local.sun_family=AF_UNIX;
     strcpy(local.sun_path,socketname.c_str());
@@ -90,7 +100,7 @@ DynListener::DynListener(const string &pname)
       L<<Logger::Critical<<"Binding to dynlistener '"<<socketname<<"': "<<strerror(errno)<<endl;
       exit(1);
     }
- 
+    d_socketname=socketname;
     if(!arg()["setgid"].empty()) {
       if(chown(socketname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
 	L<<Logger::Error<<"Unable to change group ownership of controlsocket: "<<strerror(errno)<<endl;

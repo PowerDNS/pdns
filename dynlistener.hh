@@ -42,6 +42,7 @@ class DynListener
 {
 public:
   DynListener(const string &pname="");
+  ~DynListener();
   void go();
   void theListener();
   static void *theListenerHelper(void *p);
@@ -52,6 +53,8 @@ public:
   void registerFunc(const string &name, g_funk_t *gf);
   void registerRestFunc(g_funk_t *gf);
 private:
+  DynListener(const DynListener &);
+  DynListener& operator=(const DynListener &); 
   void sendLine(const string &line);
   string getLine();
 
@@ -69,7 +72,7 @@ private:
   bool d_udp;
   pid_t d_ppid;
   
-
+  string d_socketname;
   g_funkdb_t d_funcdb;
   g_funk_t* d_restfunc;
 

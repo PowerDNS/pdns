@@ -154,7 +154,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id: packethandler.cc,v 1.23 2004/02/01 18:20:16 ahu Exp $";
+    rr.content = "PowerDNS $Id: packethandler.cc,v 1.24 2004/02/08 10:43:50 ahu Exp $";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
@@ -169,8 +169,21 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
 int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
+  
+  // modes: anonymous, powerdns only, full, spoofed
+  const string mode=arg()["version-string"];
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.23 2004/02/01 18:20:16 ahu Exp $";
+    if(mode.empty() || mode=="full") 
+      rr.content="Served by POWERDNS "VERSION" $Id: packethandler.cc,v 1.24 2004/02/08 10:43:50 ahu Exp $";
+    else if(mode=="anonymous") {
+      r->setRcode(RCode::ServFail);
+      return 1;
+    }
+    else if(mode=="powerdns")
+      rr.content="Served by PowerDNS - http://www.powerdns.com";
+    else 
+      rr.content=mode;
+
     rr.ttl=5;
     rr.qname=target;
     rr.qtype=QType::TXT; // TXT

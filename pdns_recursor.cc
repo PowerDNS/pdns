@@ -337,6 +337,7 @@ void doStats(void)
     L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
+    L<<Logger::Error<<"queries running: "<<MT->numProcesses()<<endl;
     
   }
   statsWanted=false;
