@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.cc,v 1.9 2003/01/10 18:43:01 ahu Exp $
+// $Id: dnspacket.cc,v 1.10 2003/01/11 21:09:57 ahu Exp $
 #include "utility.hh"
 #include <cstdio>
 
@@ -247,18 +247,11 @@ void DNSPacket::addARecord(const string &name, u_int32_t ip, u_int32_t ttl, DNSR
   p[2]=0;
   p[3]=1; // IN
 
-  u_int32_t *ttlp=(u_int32_t *)(p+4);
-
-  *ttlp=htonl(ttl); // 4, 5, 6, 7
-
+  putLong(p+4, ttl);
   p[8]=0;
   p[9]=4; // length of data
 
-  p[10]=(ip>>24)&0xff;
-  p[11]=(ip>>16)&0xff;
-  p[12]=(ip>>8)&0xff;
-  p[13]=ip&0xff;
-  
+  putLong(p+10,ip);
   stringbuffer.append(piece1);
   stringbuffer.append(p,14);
 
@@ -296,10 +289,7 @@ void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], u_int3
   p[2]=0;
   p[3]=1; // IN
 
-  u_int32_t *ttlp=(u_int32_t *)(p+4);
-
-  *ttlp=htonl(ttl); // 4, 5, 6, 7
-
+  putLong(p+4,ttl);
   p[8]=0;
   p[9]=16; // length of data
 
@@ -332,9 +322,7 @@ void DNSPacket::addMXRecord(const string &domain, const string &mx, int priority
   piece2[2]=0;
   piece2[3]=1; // IN
 
-  u_int32_t *ttlp=(u_int32_t *)(piece2+4);
-  *ttlp=htonl(ttl); // 4, 5, 6, 7
-
+  putLong(piece2+4,ttl);
   piece2[8]=0;
   piece2[9]=0;  // need to fill this in
 
@@ -421,13 +409,10 @@ void DNSPacket::fillSOAData(const string &content, SOAData &data)
 string DNSPacket::serializeSOAData(const SOAData &d)
 {
   ostringstream o;
-
   //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
-
   o<<d.nameserver<<" "<< d.hostmaster <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
 
   return o.str();
-
 }
 
   /* the hostmaster is encoded as two parts - the bit UNTIL the first unescaped '.'
@@ -491,10 +476,7 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, u_int
   p[2]=0;
   p[3]=1; // IN
   
-  
-  u_int32_t *ttlp=(u_int32_t *)(p+4);
-  *ttlp=htonl(ttl); // 4, 5, 6, 7
-  
+  putLong(p+4,ttl);
   p[8]=0;
   p[9]=0;  // need to fill this in (length)
   
@@ -518,7 +500,6 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, u_int
   *i_p++=htonl(soadata.expire);
   *i_p++=htonl(soadata.default_ttl);
   
-  
   p[9]=piece3.length()+piece4.length()+20; 
 
   stringbuffer+=piece1;
@@ -532,9 +513,6 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, u_int
     d.nscount++;
 }
 
-
-
- 
 void DNSPacket::addCNAMERecord(const DNSResourceRecord &rr)
 {
   addCNAMERecord(rr.qname, rr.content, rr.ttl);
@@ -544,7 +522,6 @@ void DNSPacket::addCNAMERecord(const string &domain, const string &alias, u_int3
 {
  string piece1;
 
- //xtoqname(domain.c_str(),&piece1); 
  toqname(domain.c_str(),&piece1);
  char p[10];
  
@@ -553,10 +530,7 @@ void DNSPacket::addCNAMERecord(const string &domain, const string &alias, u_int3
  p[2]=0;
  p[3]=1; // IN
  
- u_int32_t *ttlp=(u_int32_t *)(p+4);
- 
- *ttlp=htonl(ttl); // 4, 5, 6, 7
- 
+ putLong(p+4,ttl);
  p[8]=0;
  p[9]=0;  // need to fill this in
  
@@ -591,10 +565,8 @@ void DNSPacket::addRPRecord(const string &domain, const string &content, u_int32
  p[2]=0;
  p[3]=1; // IN
  
- u_int32_t *ttlp=(u_int32_t *)(p+4);
- 
- *ttlp=htonl(ttl); // 4, 5, 6, 7
- 
+ putLong(p+4,ttl);
+
  p[8]=0;
  p[9]=0;  // need to fill this in
  
@@ -635,6 +607,16 @@ void DNSPacket::addNAPTRRecord(const DNSResourceRecord &rr)
 }
 
 
+void DNSPacket::makeHeader(char *p,u_int16_t qtype, u_int32_t ttl)
+{
+  p[0]=0;
+  p[1]=qtype; 
+  p[2]=0;
+  p[3]=1; // IN
+  putLong(p+4,ttl);
+  p[8]=0;
+  p[9]=0;  // need to fill this in
+}
 
 void DNSPacket::addNAPTRRecord(const string &domain, const string &content, u_int32_t ttl)
 {
@@ -643,18 +625,7 @@ void DNSPacket::addNAPTRRecord(const string &domain, const string &content, u_in
   //xtoqname(domain.c_str(),&piece1);
   toqname(domain.c_str(),&piece1);
   char p[10];
-  
-  p[0]=0;
-  p[1]=QType::NAPTR; 
-  p[2]=0;
-  p[3]=1; // IN
- 
-  u_int32_t *ttlp=(u_int32_t *)(p+4);
- 
-  *ttlp=htonl(ttl); // 4, 5, 6, 7
-  
-  p[8]=0;
-  p[9]=0;  // need to fill this in
+  makeHeader(p,QType::NAPTR,ttl);
  
   // content contains: 100  100  "s"   "http+I2R"   ""    _http._tcp.foo.com.
 
@@ -751,25 +722,11 @@ void DNSPacket::addPTRRecord(const string &domain, const string &alias, u_int32_
 {
  string piece1;
 
- //xtoqname(domain,&piece1);
  toqname(domain,&piece1);
  char p[10];
- 
- p[0]=0;
- p[1]=12; // PTR
- p[2]=0;
- p[3]=1; // IN
- 
- u_int32_t *ttlp=(u_int32_t *)(p+4);
- 
- *ttlp=htonl(ttl); // 4, 5, 6, 7
- 
- p[8]=0;
- p[9]=0;  // need to fill this in
+ makeHeader(p,QType::PTR,ttl);
 
- 
  string piece3;
- //xtoqname(alias,&piece3);
  toqname(alias,&piece3);
  
  p[9]=piece3.length();
@@ -794,19 +751,7 @@ void DNSPacket::addTXTRecord(string domain, string txt, u_int32_t ttl)
  //xtoqname(domain, &piece1);
  toqname(domain, &piece1);
  char p[10];
- 
- p[0]=0;
- p[1]=16; // TXT
- p[2]=0;
- p[3]=1; // IN
-
- u_int32_t *ttlp=(u_int32_t *)(p+4);
- 
- *ttlp=htonl(ttl); // 4, 5, 6, 7
-
- p[8]=0;
- p[9]=0; // need to fill this in
-
+ makeHeader(p,QType::TXT,ttl);
  string piece3;
  piece3.reserve(txt.length()+1);
  piece3.append(1,txt.length());
@@ -821,7 +766,6 @@ void DNSPacket::addTXTRecord(string domain, string txt, u_int32_t ttl)
 
  d.ancount++;
 }
-
 void DNSPacket::addHINFORecord(const DNSResourceRecord& rr)
 {
   addHINFORecord(rr.qname, rr.content, rr.ttl);
@@ -838,10 +782,7 @@ void DNSPacket::addHINFORecord(string domain, string content, u_int32_t ttl)
  p[1]=13; // HINFO
  p[2]=0;
  p[3]=1; // IN
-
- u_int32_t *ttlp=(u_int32_t *)(p+4);
- 
- *ttlp=htonl(ttl); // 4, 5, 6, 7
+ putLong(p+4,ttl);
 
  p[8]=0;
  p[9]=0; // need to fill this in
@@ -896,10 +837,7 @@ void DNSPacket::addNSRecord(string domain, string server, u_int32_t ttl, DNSReso
   p[1]=2; // NS
   p[2]=0;
   p[3]=1; // IN
-
-  u_int32_t *ttlp=(u_int32_t *)(p+4);
-
-  *ttlp=htonl(ttl); // 4, 5, 6, 7
+  putLong(p+4,ttl);
 
   p[8]=0;
   p[9]=0;  // need to fill this in
@@ -1094,7 +1032,10 @@ void DNSPacket::wrapup(void)
       break;
 
     default:
-      L<<Logger::Warning<<"Unable to insert a record of type "<<rr.qtype.getName()<<" for '"<<rr.qname<<"'"<<endl;
+      if(rr.qtype.getCode()>1024)
+	addGenericRecord(rr);
+      else
+	L<<Logger::Warning<<"Unable to insert a record of type "<<rr.qtype.getName()<<" for '"<<rr.qname<<"'"<<endl;
     }
   }
   d.ancount=htons(d.ancount);
@@ -1108,6 +1049,31 @@ void DNSPacket::wrapup(void)
   len=stringbuffer.length();
 }
 
+void DNSPacket::addGenericRecord(const DNSResourceRecord& rr)
+{
+  string piece1;
+ //xtoqname(domain, &piece1);
+ toqname(rr.qname, &piece1);
+ char p[10];
+ 
+ p[0]=0;
+ p[1]=rr.qtype.getCode()-1024; // TXT
+ p[2]=0;
+ p[3]=1; // IN
+
+ putLong(p+4,rr.ttl);
+
+ p[8]=rr.content.length()/256;
+ p[9]=rr.content.length()%256; // need to fill this in
+
+ stringbuffer+=piece1;
+ stringbuffer.append(p,10);
+ stringbuffer+=rr.content;
+ if(rr.d_place==DNSResourceRecord::ADDITIONAL)
+   d.arcount++;
+ else
+   d.ancount++;
+}
 
 /** Truncates a packet that has already been wrapup()-ed, possibly via a call to getData(). Do not call this function
     before having done this - it will possibly break your packet, or crash your program. 
@@ -1290,9 +1256,10 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
       rr.content=tmp;
       break;
-
     default:
-      throw AhuException("Unknown type number "+itoa(rr.qtype.getCode())+" for: '"+rr.qname+"'");
+      rr.qtype=rr.qtype.getCode()+1024;
+      rr.content.assign((const char *)datapos,length);
+      //      throw AhuException("Unknown type number "+itoa(rr.qtype.getCode())+" for: '"+rr.qname+"'");
     }
     if(pos<ntohs(d.ancount))
       rr.d_place=DNSResourceRecord::ANSWER;

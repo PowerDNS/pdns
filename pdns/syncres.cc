@@ -32,27 +32,43 @@ typedef map<string,set<DNSResourceRecord> > cache_t;
 cache_t cache;
 map<string,string> negcache;
 
+struct GetBestNSAnswer
+{
+  string qname;
+  set<DNSResourceRecord> bestns;
+  bool operator<(const GetBestNSAnswer &b) const
+  {
+    if(qname<b.qname)
+      return true;
+    if(qname==b.qname)
+      return bestns<b.bestns;
+    return false;
+  }
+};
+
 /** dramatis personae */
-int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,int depth=0);
-int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth=0);
+int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
+		int depth, set<GetBestNSAnswer>&beenthere);
+int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
 bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
 bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth);
+void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere);
 void addCruft(const string &qname, vector<DNSResourceRecord>& ret);
-string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth);
+string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere);
 void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
 {
-  int res=doResolve(qname, qtype, ret,0);
+  set<GetBestNSAnswer> beenthere;
+  int res=doResolve(qname, qtype, ret,0,beenthere);
   if(!res)
     addCruft(qname, ret);
   cout<<endl;
   return res;
 }
 
-int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth)
+int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
   prefix.assign(3*depth, ' ');
@@ -69,26 +85,43 @@ int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>
   string subdomain(qname);
 
   set<string> nsset;
-  subdomain=getBestNSNamesFromCache(subdomain,nsset,depth);
-  if(!(res=doResolveAt(nsset,subdomain,qname,qtype,ret,depth)))
+  subdomain=getBestNSNamesFromCache(subdomain,nsset,depth, beenthere); //  pass beenthere to both occasions/
+  if(!(res=doResolveAt(nsset,subdomain,qname,qtype,ret,depth, beenthere)))
     return 0;
   
   cout<<prefix<<qname<<": failed"<<endl;
   return res<0 ? RCode::ServFail : res;
 }
 
-string getA(const string &qname, int depth=0)
+string getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {
   vector<DNSResourceRecord> res;
   string ret;
 
-  if(!doResolve(qname,QType(QType::A), res,depth+1) && !res.empty()) 
+  if(!doResolve(qname,QType(QType::A), res,depth+1,beenthere) && !res.empty()) 
     ret=res[res.size()-1].content; // last entry, in case of CNAME in between
 
   return ret;
 }
 
-void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth)
+int getCache(const string &qname, const QType& qt, set<DNSResourceRecord>* res=0)
+{
+  cache_t::const_iterator j=cache.find(toLower(qname)+"|"+qt.getName());
+  if(j!=cache.end() && j->first==toLower(qname)+"|"+qt.getName() && j->second.begin()->ttl>(unsigned int)time(0)) {
+    if(res)
+      *res=j->second;
+    return (unsigned int)j->second.begin()->ttl-time(0);
+  }
+  return -1;
+}
+
+void replaceCache(const string &tuple, const set<DNSResourceRecord>& content)
+{
+  cache[tuple]=content;
+}
+
+
+void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix, subdomain(qname);
   prefix.assign(3*depth, ' ');
@@ -96,28 +129,38 @@ void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int 
 
   do {
     cout<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
-
-    cache_t::const_iterator j=cache.find(toLower(subdomain)+"|NS");
-    if(j!=cache.end() && j->first==toLower(subdomain)+"|NS") {
-      for(set<DNSResourceRecord>::const_iterator k=j->second.begin();k!=j->second.end();++k) {
-	if(k->ttl>(unsigned int)time(0)) { // the below is fugly
-	  if(!endsOn(k->content,subdomain) || // glue risk
-	     (cache.find(toLower(k->content)+"|A")!=cache.end() && ((time_t)cache[toLower(k->content)+"|A"].begin()->ttl-time(0))>5)) {
+    set<DNSResourceRecord>ns;
+    if(getCache(subdomain,QType(QType::NS),&ns)>0) {
+      for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
+	if(k->ttl>(unsigned int)time(0)) { 
+	  set<DNSResourceRecord>aset;
+	  if(!endsOn(k->content,subdomain) || getCache(k->content,QType(QType::A),&aset) > 5) {
 	    bestns.insert(*k);
 	    cout<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
 	    cout<<prefix<<qname<<": endson: "<<endsOn(k->content,subdomain);
-	    if(cache.find(toLower(k->content)+"|A")!=cache.end())
-	      cout<<", in cache, ttl="<<((time_t)cache[toLower(k->content)+"|A"].begin()->ttl-time(0))<<endl;
+	    if(!aset.empty())
+	      cout<<", in cache, ttl="<<((time_t)aset.begin()->ttl-time(0))<<endl;
 	    else
 	      cout<<", not in cache"<<endl;
 	  }
 	  else
-	    cout<<prefix<<qname<<": NS in cache for '"<<subdomain<<"' , but needs glue ("<<k->content<<") which we miss or is expired"<<endl;
+	    cout<<prefix<<qname<<": NS in cache for '"<<subdomain<<"', but needs glue ("<<k->content<<") which we miss or is expired"<<endl;
 	}
       }
       if(!bestns.empty()) {
-	cout<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"'"<<endl;
-	return;
+	GetBestNSAnswer answer;
+	answer.qname=toLower(qname); answer.bestns=bestns;
+	if(beenthere.count(answer)) {
+	  cout<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP! Trying less specific NS"<<endl;
+	  for(set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
+	    cout<<prefix<<qname<<": beenthere: "<<j->qname<<" ("<<j->bestns.size()<<")"<<endl;
+	  bestns.clear();
+	}
+	else {
+	  beenthere.insert(answer);
+	  cout<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"'"<<endl;
+	  return;
+	}
       }
     }
   }while(chopOff(subdomain));
@@ -126,7 +169,8 @@ void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int 
 void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
 {
   set<DNSResourceRecord> bestns;
-  getBestNSFromCache(qname, bestns, depth);
+  set<GetBestNSAnswer>beenthere;
+  getBestNSFromCache(qname, bestns, depth,beenthere);
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     DNSResourceRecord ns=*k;
     ns.d_place=DNSResourceRecord::AUTHORITY;
@@ -134,13 +178,13 @@ void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, in
     ret.push_back(ns);
   }
 }
-
-string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth)
+/** doesn't actually do the work, leaves that to getBestNSFromCache */
+string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
 
   set<DNSResourceRecord> bestns;
-  getBestNSFromCache(subdomain, bestns, depth);
+  getBestNSFromCache(subdomain, bestns, depth, beenthere);
 
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     nsset.insert(k->content);
@@ -155,16 +199,18 @@ bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResour
   prefix.assign(3*depth, ' ');
 
   cout<<prefix<<qname<<": Looking for CNAME cache hit of '"<<tuple<<"'"<<endl;
-  cache_t::const_iterator i=cache.find(tuple);
-  if(i!=cache.end() && i->first==tuple) { // found it
-    for(set<DNSResourceRecord>::const_iterator j=i->second.begin();j!=i->second.end();++j) {
+  set<DNSResourceRecord> cset;
+  if(getCache(qname,QType(QType::CNAME),&cset) > 0) {
+    for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       if(j->ttl>(unsigned int)time(0)) {
-	cout<<prefix<<qname<<": Found cache CNAME hit for '"<<tuple<<"' to '"<<i->second.begin()->content<<"'"<<endl;    
+	cout<<prefix<<qname<<": Found cache CNAME hit for '"<<tuple<<"' to '"<<j->content<<"'"<<endl;    
 	DNSResourceRecord rr=*j;
 	rr.ttl-=time(0);
 	ret.push_back(rr);
-	if(!(qtype==QType(QType::CNAME))) // perhaps they really wanted a CNAME!
-	  res=doResolve(i->second.begin()->content, qtype, ret, depth);
+	if(!(qtype==QType(QType::CNAME))) {// perhaps they really wanted a CNAME!
+	  set<GetBestNSAnswer>beenthere;
+	  res=doResolve(j->content, qtype, ret, depth, beenthere);
+	}
 	return true;
       }
     }
@@ -189,11 +235,11 @@ bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRec
     tuple=ni->second+"|SOA";
   }
 
-  cache_t::const_iterator i=cache.find(tuple);
+  set<DNSResourceRecord> cset;
   bool found=false, expired=false;
-  if(i!=cache.end() && i->first==tuple) { // found it
+  if(getCache(qname,qtype,&cset)>0) {
     cout<<prefix<<qname<<": Found cache hit for "<<qtype.getName()<<": ";
-    for(set<DNSResourceRecord>::const_iterator j=i->second.begin();j!=i->second.end();++j) {
+    for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       cout<<j->content;
       if(j->ttl>(unsigned int)time(0)) {
 	DNSResourceRecord rr=*j;
@@ -243,7 +289,8 @@ inline vector<string>shuffle(set<string> &nameservers)
 }
 
 /** returns -1 in case of no results, rcode otherwise */
-int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth)
+int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, 
+		int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix;
   prefix.assign(3*depth, ' ');
@@ -251,7 +298,7 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
   LWRes r;
   LWRes::res_t result;
 
-  cout<<prefix<<qname<<": Cache consultations done, going on the wire!"<<endl;
+  cout<<prefix<<qname<<": Cache consultations done, have "<<nameservers.size()<<" NS to contact"<<endl;
 
   for(;;) { // we may get more specific nameservers
     bool aabit=false;
@@ -270,8 +317,8 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	cout<<prefix<<qname<<": Not using NS to resolve itself!"<<endl;
 	continue;
       }
-      cout<<prefix<<qname<<": Trying to resolve NS "<<*tns<<endl;
-      string remoteIP=getA(*tns, depth+1);
+      cout<<prefix<<qname<<": Trying to resolve NS "<<*tns<<" ("<<1+tns-rnameservers.begin()<<"/"<<rnameservers.size()<<")"<<endl;
+      string remoteIP=getA(*tns, depth+1,beenthere);
       if(remoteIP.empty()) {
 	cout<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
 	continue;
@@ -290,7 +337,6 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
       result=r.result(aabit);
       cout<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<r.d_rcode<<endl;
 
-
       cache_t tcache;
       // reap all answers from this packet that are acceptable
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
@@ -302,6 +348,7 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	  DNSResourceRecord rr=*i;
 	  rr.d_place=DNSResourceRecord::ANSWER;
 	  rr.ttl+=time(0);
+	  //	  rr.ttl=time(0)+10+10*rr.qtype.getCode();
 	  tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
 	}
 	else
@@ -310,7 +357,7 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
     
       // supplant
       for(cache_t::const_iterator i=tcache.begin();i!=tcache.end();++i)
-	cache[i->first]=i->second;
+	replaceCache(i->first,i->second);
       
       set<string> nsset;  
       cout<<prefix<<qname<<": determining status after receiving this packet"<<endl;
@@ -328,7 +375,8 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
 	  cout<<prefix<<qname<<": got a CNAME referral, starting over with "<<i->content<<endl<<endl;
 	  ret.push_back(*i);
-	  return doResolve(i->content, qtype, ret,0);
+	  set<GetBestNSAnswer>beenthere2;
+	  return doResolve(i->content, qtype, ret,0,beenthere2);
 	}
 	// for ANY answers we *must* have an authoritive answer
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && (i->qtype==qtype || ( qtype==QType(QType::ANY) && aabit)))  {
@@ -342,9 +390,8 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	    cout<<prefix<<qname<<": got NS record '"<<i->qname<<"' -> '"<<i->content<<"'"<<endl;
 	    realreferral=true;
 	  }
-	  else {
-	    cout<<prefix<<qname<<": got upwards NS record '"<<i->qname<<"' -> '"<<i->content<<"', already had '"<<auth<<"'"<<endl;
-	  }
+	  else 
+	    cout<<prefix<<qname<<": got upwards/level NS record '"<<i->qname<<"' -> '"<<i->content<<"', had '"<<auth<<"'"<<endl;
 	  nsset.insert(toLower(i->content));
 	}
       }
@@ -368,7 +415,7 @@ int doResolveAt(set<string> nameservers, string auth, const string &qname, const
 	break; 
       }
       else {
-	cout<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibbling NS"<<endl;
+	cout<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibling NS"<<endl;
       }
     }
   }
@@ -391,7 +438,8 @@ void addCruft(const string &qname, vector<DNSResourceRecord>& ret)
     if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
        (k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::NS))) {
       cout<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs an IP address"<<endl;
-      doResolve(k->content,QType(QType::A),addit,1);
+      set<GetBestNSAnswer>beenthere;
+      doResolve(k->content,QType(QType::A),addit,1,beenthere);
     }
   
   for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {

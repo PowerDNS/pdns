@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dnspacket.hh,v 1.10 2003/01/08 21:31:06 ahu Exp $
+// $Id: dnspacket.hh,v 1.11 2003/01/11 21:09:57 ahu Exp $
 #ifndef DNSPACKET_HH
 #define DNSPACKET_HH
 
@@ -191,7 +191,7 @@ private:
 
   void addNSRecord(string domain, string server, u_int32_t ttl, DNSResourceRecord::Place place); //!< add an NS record to the packet
   void addNSRecord(const DNSResourceRecord &); //!< add an NS record to the packet
-
+  void addGenericRecord(const DNSResourceRecord& rr);
   static string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
 
 public:
@@ -248,7 +248,7 @@ private:
   int toqname(const string &name, string *qname, bool compress = true); 
   const string makeSoaHostmasterPiece(const string &hostmaster);
   static string parseLOC(const unsigned char *p, unsigned int length);
-
+  void makeHeader(char *p,u_int16_t qtype, u_int32_t ttl);
   int domprint();
   int getq();
 

@@ -124,7 +124,7 @@ void startDoResolve(void *p)
     delete R;
   }
   catch(AhuException &ae) {
-    cerr<<"startDoResolve timeout: "<<ae.reason<<endl;
+    cerr<<"startDoResolve problem: "<<ae.reason<<endl;
   }
   catch(...) {
     cerr<<"Any other exception"<<endl;
@@ -206,8 +206,14 @@ int main(int argc, char **argv)
     init();
     cerr<<"Done priming cache with root hints"<<endl;
 
+    
     makeClientSocket();
-    makeServerSocket();
+    if(argc==1)
+      makeServerSocket();
+    else {
+      cout<<"Launched within pdns! Socket="<<atoi(argv[1])<<endl;
+      d_serversock=atoi(argv[1]);
+    }
     
     char data[1500];
     struct sockaddr_in fromaddr;
@@ -262,23 +268,36 @@ int main(int argc, char **argv)
       }
       
       if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question?
-	d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-	if(d_len<0) {
-	  cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
-	  continue;
-	}
-	
-	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
-	if(P.parse(data,d_len)<0) {
-	  cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
-	}
-	else { 
-	  if(P.d.qr)
-	    cout<<"Ignoring answer on server socket!"<<endl;
-	  else {
-	    cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
-	    MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+	if(argc==1) {
+	  d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
+	  if(d_len<0) {
+	    cerr<<"Recvfrom returned error, retrying: "<<strerror(errno)<<endl;
+	    continue;
 	  }
+	  cout<<"Read "<<d_len<<" bytes?!"<<endl;
+	  P.setRemote((struct sockaddr *)&fromaddr, addrlen);
+	  if(P.parse(data,d_len)<0) {
+	    cerr<<"Unparseable packet from "<<P.getRemote()<<endl;
+	  }
+	  else { 
+	    if(P.d.qr)
+	      cout<<"Ignoring answer on server socket!"<<endl;
+	    else {
+	      cout<<"new question arrived for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+	      MT.makeThread(startDoResolve,(void*)new DNSPacket(P));
+	    }
+	  }
+	}
+	else {
+	  string line;
+	  int len=read(d_serversock,data,sizeof(data));
+	  if(len<=0) {
+	    cout<<"shit on the pdns socket"<<endl;
+	    exit(1);
+	  }
+	  line.assign(data,d_len);
+	  strip(line);
+	  cout<<"pdns gave us a question: '"<<line<<"'"<<endl;
 	}
       }
     }

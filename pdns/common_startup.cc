@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "common_startup.hh"
+#include "recbcomm.hh"
 
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
@@ -30,6 +31,7 @@ CommunicatorClass Communicator;
 UDPNameserver *N;
 int avg_latency;
 TCPNameserver *TN;
+SyncresCommunicator* SRC;
 
 ArgvMap &arg()
 {
@@ -254,9 +256,6 @@ void mainthread()
   // NOW SAFE TO CREATE THREADS!
   dl->go();
 
-
-
-
   pthread_t qtid;
   StatWebServer sws;
 
@@ -265,6 +264,8 @@ void mainthread()
   
   if(arg().mustDo("slave") || arg().mustDo("master"))
     Communicator.go(); 
+
+  SRC=new SyncresCommunicator();
 
   if(TN)
     TN->go(); // tcp nameserver launch
