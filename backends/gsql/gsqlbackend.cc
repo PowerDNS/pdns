@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.6 2003/01/23 15:34:53 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.7 2003/04/30 18:18:32 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -386,7 +386,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 	   sqlEscape(r.content).c_str(),
 	   r.ttl, r.priority,
 	   sqlEscape(r.qtype.getName()).c_str(),
-	   r.domain_id, sqlEscape(r.qname).c_str()); 
+	   r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
   try {
     d_db->doQuery(output);
   }

@@ -91,7 +91,6 @@ int DynMessenger::send(const string &msg) const
 string DynMessenger::receive() const 
 {
   char buffer[1500];
-  struct sockaddr_un dontcare;
 
   int retlen;
   string answer;
