@@ -150,14 +150,18 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   }
   
   // make calls to d_nq.add(domain, ip);
-  for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j)
+  for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+    L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
+  }
   
   set<string>alsoNotify;
   B->alsoNotifies(domain, &alsoNotify);
   
-  for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j)
+  for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
+    L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
+  }
 }
 
 bool CommunicatorClass::notifyDomain(const string &domain)
@@ -170,7 +174,7 @@ bool CommunicatorClass::notifyDomain(const string &domain)
   }
   queueNotifyDomain(domain, P.getBackend());
   // call backend and tell them we sent out the notification - even though that is premature    
-  di.backend->setNotified(di.id,di.serial);   
+  di.backend->setNotified(di.id, di.serial);
 
   return true; 
 }
@@ -200,17 +204,11 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   // figure out A records of everybody needing notification
   // do this via the FindNS class, d_fns
   
-
   for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
+
     queueNotifyDomain(i->zone,P->getBackend());
     i->backend->setNotified(i->id,i->serial); 
   }
-
-
-
-  // call it a day
-  // day()
-
 }
 
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
@@ -233,7 +231,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   
   for(vector<DomainInfo>::const_iterator i=sdomains.begin();i!=sdomains.end();++i) {
     d_slaveschanged=true;
-    u_int32_t theirserial=0;
+    u_int32_t ourserial=i->serial,theirserial=0;
+
     try {
       Resolver resolver;
       int res=resolver.getSoaSerial(i->master,i->zone, &theirserial);
@@ -243,7 +242,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
       
       if(theirserial<i->serial) {
-	L<<Logger::Error<<"Domain "<<i->zone<<" more recent than master, our serial "<<i->serial<<" > their serial "<<theirserial<<endl;
+	L<<Logger::Error<<"Domain "<<i->zone<<" more recent than master, our serial "<<ourserial<<" > their serial "<<theirserial<<endl;
 	i->backend->setFresh(i->id);
       }
       else if(theirserial==i->serial) {
@@ -291,8 +290,9 @@ int CommunicatorClass::doNotifications()
 
     if(p.d.rcode)
       L<<Logger::Warning<<"Received unsuccesful notification report for '"<<p.qdomain<<"' from "<<p.getRemote()<<", rcode: "<<p.d.rcode<<endl;      
-    else if(d_nq.removeIf(p.getRemote(), p.d.id, p.qdomain))
-      L<<Logger::Warning<<"Received valid notify answer for '"<<p.qdomain<<"' from "<<p.getRemote()<<endl;      
+    
+    if(d_nq.removeIf(p.getRemote(), p.d.id, p.qdomain))
+      L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<p.getRemote()<< (p.d.rcode ? "" : " (was acknowledged)")<<endl;      
     else
       L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<<p.getRemote()<<endl;      
   }

@@ -54,6 +54,7 @@ public:
   time_t d_last_check;
   string d_master;
   int d_confcount;
+  u_int32_t d_lastnotified;
 
   bool tryRLock()
   {
@@ -181,13 +182,15 @@ public:
 
   static DNSBackend *maker();
   static set<string> s_contents;
+  static pthread_mutex_t s_startup_lock;
 
   void setFresh(u_int32_t domain_id);
-
+  void setNotified(u_int32_t id, u_int32_t serial);
   bool startTransaction(const string &qname, int id);
   //  bool BindBackend::stopTransaction(const string &qname, int id);
   bool feedRecord(const DNSResourceRecord &r);
   bool commitTransaction();
+  bool abortTransaction();
   void insert(int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
   void rediscover(string *status=0);
   static HuffmanCodec s_hc;
@@ -236,6 +239,7 @@ private:
 
   string d_logprefix;
   int d_transaction_id;
+  string d_transaction_tmpname;
   ofstream *d_of;
   handle *d_handle;
   void queueReload(BBDomainInfo *bbd);

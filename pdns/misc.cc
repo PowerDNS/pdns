@@ -47,6 +47,25 @@ string nowTime()
   return t;
 }
 
+/** strips a domain suffix from a domain, returns true if it stripped */
+bool stripDomainSuffix(string *qname, const string &domain)
+{
+  if((qname->size()-toLower(*qname).rfind(toLower(domain)))!=domain.size()) {   
+    return false;
+
+  }
+  if(*qname==domain)
+    *qname="@";
+  else {
+    if((*qname)[qname->size()-domain.size()-1]!='.')
+      return false;
+
+    qname->resize(qname->size()-domain.size()-1);
+  }
+  return true;
+}
+
+
 int sendData(const char *buffer, int replen, int outsock)
 {
   u_int16_t nlen=htons(replen);

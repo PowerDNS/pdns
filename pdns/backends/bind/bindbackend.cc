@@ -3,9 +3,8 @@
     Copyright (C) 2002  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 as 
+    published by the Free Software Foundation; 
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: bindbackend.cc,v 1.7 2002/12/19 20:15:55 ahu Exp $ 
+// $Id: bindbackend.cc,v 1.8 2002/12/20 14:25:29 ahu Exp $ 
 #include <errno.h>
 #include <string>
 #include <map>
@@ -40,6 +39,7 @@ using namespace std;
 #include "qtype.hh"
 #include "misc.hh"
 #include "dynlistener.hh"
+#include "lock.hh"
 using namespace std;
 
 
@@ -51,6 +51,7 @@ HuffmanCodec BindBackend::s_hc;
 map<unsigned int,BBDomainInfo> BindBackend::d_bbds;
 
 int BindBackend::s_first=1;
+pthread_mutex_t BindBackend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 
 BBDomainInfo::BBDomainInfo()
 {
@@ -98,6 +99,10 @@ void BBDomainInfo::setCtime()
   d_ctime=buf.st_ctime;
 }
 
+void BindBackend::setNotified(u_int32_t id, u_int32_t serial)
+{
+  d_bbds[id].d_lastnotified=serial;
+}
 
 void BindBackend::setFresh(u_int32_t domain_id)
 {
@@ -106,48 +111,69 @@ void BindBackend::setFresh(u_int32_t domain_id)
 
 bool BindBackend::startTransaction(const string &qname, int id)
 {
-  d_of=new ofstream("/tmp/juh");
-  if(!d_of)
-    throw AhuException("Unable to open temporary zonefile!");
+  BBDomainInfo &bbd=d_bbds[d_transaction_id=id];
+  d_transaction_tmpname=bbd.d_filename+"."+itoa(random());
+  d_of=new ofstream(d_transaction_tmpname.c_str());
+  if(!*d_of) {
+    throw DBException("Unable to open temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
+    unlink(d_transaction_tmpname.c_str());
+    delete d_of;
+    d_of=0;
+  }
   
   *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
-  d_bbds[d_transaction_id=id].lock();
+  *d_of<<"; Zone '"+bbd.d_name+"' retrieved from master "<<bbd.d_master<<endl<<"; at "<<nowTime()<<endl;
+  bbd.lock();
   return true;
 }
 
 bool BindBackend::commitTransaction()
 {
   delete d_of;
-  if(rename("/tmp/juh",d_bbds[d_transaction_id].d_filename.c_str())<0)
-    throw AhuException("Unable to commit (rename to: '"+d_bbds[d_transaction_id].d_filename+"') AXFRed zone: "+stringerror());
+  d_of=0;
+  if(rename(d_transaction_tmpname.c_str(),d_bbds[d_transaction_id].d_filename.c_str())<0)
+    throw DBException("Unable to commit (rename to: '"+d_bbds[d_transaction_id].d_filename+"') AXFRed zone: "+stringerror());
 
   queueReload(&d_bbds[d_transaction_id]);
   d_bbds[d_transaction_id].unlock();
   return true;
 }
 
+bool BindBackend::abortTransaction()
+{
+  delete d_of;
+  d_of=0;
+  unlink(d_transaction_tmpname.c_str());
+  return true;
+}
+
+
 
 bool BindBackend::feedRecord(const DNSResourceRecord &r)
 {
   string qname=r.qname;
   string domain=d_bbds[d_transaction_id].d_name;
-  if((r.qname.size()-toLower(r.qname).rfind(toLower(domain)))!=domain.size()) {   // XXX THIS CHECK IS WRONG! ds9a.nl != wuhds9a.nl!
-    throw DBException("out-of-zone data '"+r.qname+"' during AXFR of zone '"+domain+"'");
-  }
-  if(qname==domain)
-    qname="@";
-  else
-    qname.resize(qname.size()-domain.size()-1);
+
+  if(!stripDomainSuffix(&qname,domain)) 
+    throw DBException("out-of-zone data '"+qname+"' during AXFR of zone '"+domain+"'");
+
+  string content=r.content;
+
+  // SOA needs stripping too! XXX FIXME
   switch(r.qtype.getCode()) {
   case QType::TXT:
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t\""<<r.content<<"\""<<endl;
     break;
   case QType::MX:
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<r.content<<"."<<endl;
+    if(!stripDomainSuffix(&content,domain))
+      content+=".";
+    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<content<<endl;
     break;
   case QType::CNAME:
   case QType::NS:
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<"."<<endl;
+    if(!stripDomainSuffix(&content,domain))
+      content+=".";
+    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<content<<endl;
     break;
   default:
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<endl;
@@ -159,6 +185,29 @@ bool BindBackend::feedRecord(const DNSResourceRecord &r)
 
 void BindBackend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 {
+  SOAData soadata;
+  for(map<u_int32_t,BBDomainInfo>::iterator i=d_bbds.begin();i!=d_bbds.end();++i) {
+    if(!i->second.d_master.empty())
+      continue;
+    soadata.serial=0;
+    try {
+      getSOA(i->second.d_name,soadata); // we might not *have* a SOA yet
+    }
+    catch(...){}
+    DomainInfo di;
+    di.id=i->first;
+    di.serial=soadata.serial;
+    di.zone=i->second.d_name;
+    di.last_check=i->second.d_last_check;
+    di.backend=this;
+    di.kind=DomainInfo::Master;
+    if(!i->second.d_lastnotified)            // don't do notification storm on startup 
+      i->second.d_lastnotified=soadata.serial;
+    else
+      if(soadata.serial!=i->second.d_lastnotified)
+	changedDomains->push_back(di);
+    
+  }
 }
 
 void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
@@ -177,6 +226,7 @@ void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     soadata.serial=0;
     soadata.refresh=0;
     soadata.serial=0;
+
     try {
       getSOA(i->second.d_name,soadata); // we might not *have* a SOA yet
     }
@@ -197,6 +247,13 @@ bool BindBackend::getDomainInfo(const string &domain, DomainInfo &di)
       di.last_check=i->second.d_last_check;
       di.backend=this;
       di.kind=i->second.d_master.empty() ? DomainInfo::Master : DomainInfo::Slave;
+      di.serial=0;
+      try {
+	SOAData sd;
+	getSOA(i->second.d_name,sd); // we might not *have* a SOA yet
+	di.serial=sd.serial;
+      }
+      catch(...){}
 
       return true;
     }
@@ -371,8 +428,11 @@ BindBackend::BindBackend(const string &suffix)
 {
   d_logprefix="[bind"+suffix+"backend]";
   setArgPrefix("bind"+suffix);
-  if(!s_first)
+  Lock l(&s_startup_lock);
+
+  if(!s_first) {
     return;
+  }
    
   s_first=0;
   if(!mustDo("enable-huffman"))
@@ -465,9 +525,10 @@ void BindBackend::loadConfig(string* status)
 	  }
 	if(j==d_bbds.end()) { // entirely new
 	  bbd.d_id=domain_id++;
-	  bbd.setCtime();
+
 	  bbd.setCheckInterval(getArgAsNum("check-interval"));
-	  nbbds[bbd.d_id].d_loaded=false;
+	  bbd.d_lastnotified=0;
+	  bbd.d_loaded=false;
 	}
 
 	bbd.d_name=i->name;
@@ -480,8 +541,10 @@ void BindBackend::loadConfig(string* status)
 	  
 	  try {
 	    ZP.parse(i->filename,i->name,bbd.d_id); // calls callback for us
+	    nbbds[bbd.d_id].setCtime();
 	    nbbds[bbd.d_id].d_loaded=true;          // does this perform locking for us?
 	    nbbds[bbd.d_id].d_status="parsed into memory at "+nowTime();
+	    
 	  }
 	  catch(AhuException &ae) {
 	    ostringstream msg;
