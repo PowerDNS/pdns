@@ -243,9 +243,9 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       (sdomains.size()>1 ? "" : "s")<<
       " checking"<<endl;
 
-  Resolver resolver;
-  resolver.makeUDPSocket();
   for(vector<DomainInfo>::const_iterator i=sdomains.begin();i!=sdomains.end();++i) {
+    Resolver resolver;
+    resolver.makeUDPSocket();
     d_slaveschanged=true;
     u_int32_t ourserial=i->serial,theirserial=0;
 
