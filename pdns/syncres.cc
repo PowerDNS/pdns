@@ -101,8 +101,16 @@ void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int 
     if(j!=cache.end() && j->first==toLower(subdomain)+"|NS") {
       for(set<DNSResourceRecord>::const_iterator k=j->second.begin();k!=j->second.end();++k) {
 	if(k->ttl>(unsigned int)time(0)) { // the below is fugly
-	  if(!endsOn(k->content,qname) || (cache.find(toLower(k->content)+"|A")!=cache.end() && cache[toLower(k->content)+"|A"].begin()->ttl>time(0))) // glue risk
+	  if(!endsOn(k->content,subdomain) || // glue risk
+	     (cache.find(toLower(k->content)+"|A")!=cache.end() && ((time_t)cache[toLower(k->content)+"|A"].begin()->ttl-time(0))>5)) {
 	    bestns.insert(*k);
+	    cout<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
+	    cout<<prefix<<qname<<": endson: "<<endsOn(k->content,subdomain);
+	    if(cache.find(toLower(k->content)+"|A")!=cache.end())
+	      cout<<", in cache, ttl="<<((time_t)cache[toLower(k->content)+"|A"].begin()->ttl-time(0))<<endl;
+	    else
+	      cout<<", not in cache"<<endl;
+	  }
 	  else
 	    cout<<prefix<<qname<<": NS in cache for '"<<subdomain<<"' , but needs glue ("<<k->content<<") which we miss or is expired"<<endl;
 	}

@@ -49,6 +49,19 @@ string nowTime()
   return t;
 }
 
+u_int16_t getShort(const unsigned char *p)
+{
+  return p[0] * 256 + p[1];
+}
+
+
+u_int16_t getShort(const char *p)
+{
+  return getShort((const unsigned char *)p);
+}
+
+
+
 /** strips a domain suffix from a domain, returns true if it stripped */
 bool stripDomainSuffix(string *qname, const string &domain)
 {

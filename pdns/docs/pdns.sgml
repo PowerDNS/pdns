@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.1 $Date: 2003/01/08 21:31:06 $</PubDate>
+    <PubDate>v2.1 $Date: 2003/01/10 18:43:01 $</PubDate>
     
     <Abstract>
 	<para>	
@@ -101,7 +101,8 @@
 	  From this, it is apparent that far more people are interested in PowerDNS than yet know about it. So spread the word!
 	</para>
 	<para>
-	  In other news, we now have a security page at <xref linkend="security-policy">.
+	  In other news, we now have a security page at <xref linkend="security-policy">. Furthermore, Maurice Nonnekes contributed an OpenBSD
+	  port! See <ulink url="http://www.codeninja.nl/openbsd/powerdns/">his page</ulink> for more details!
 	</para>
 	<para>
 	  New features and improvements:
@@ -5978,7 +5979,10 @@ GRANT ALL ON records_id_seq TO pdns;
 	  <screen>
 	    gpgsql-basic-query=select content,ttl,prio,type,domain_id,name from records where qtype='%s' and name='%s'
 	  </screen>
-	  
+	  When using the Generic PostgreSQL backend, they appear as above. When using the generic MySQL backend, change the
+	  "gpgsql-" prefix to "gmysql-".
+	</para>
+	<para>
 	  Queries can span multiple lines, like this:
 	  <screen>
 	    gpgsql-basic-query=select content,ttl,prio,type,domain_id,name from records \

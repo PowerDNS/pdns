@@ -54,6 +54,8 @@ void stripLine(string &line);
 string getHostname();
 string urlEncode(const string &text);
 int waitForData(int fd, int seconds);
+u_int16_t getShort(const unsigned char *p);
+u_int16_t getShort(const char *p);
 
 void upperCase(string& s);
 
