@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace {
   typedef HEADER dnsheader;
@@ -30,6 +31,8 @@ struct dnsrecordheader
 
 
 class MOADNSParser;
+
+
 
 class PacketReader
 {
@@ -54,20 +57,49 @@ private:
 
 };
 
+class DNSRecord;
+
 class DNSRecordContent
 {
 public:
-  static DNSRecordContent* mastermake(const struct dnsrecordheader& ah, PacketReader& pr);
+  static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr);
   virtual std::string getZoneRepresentation() const = 0;
-  virtual std::string getType() const=0;
   virtual ~DNSRecordContent() {}
 
   std::string label;
   struct dnsrecordheader header;
+
+  typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
+  static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, const char* name)
+  {
+    typemap[make_pair(cl,ty)]=f;
+    namemap[make_pair(cl,ty)]=name;
+  }
+
+  static uint16_t TypeToNumber(const string& name)
+  {
+    for(namemap_t::const_iterator i=namemap.begin(); i!=namemap.end();++i)
+      if(i->second==name)
+	return i->first.second;
+
+    throw runtime_error("Unknown DNS type '"+name+"'");
+
+  }
+
+  static const string NumberToType(uint16_t num)
+  {
+    if(!namemap.count(make_pair(1,num)))
+      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
+    return namemap[make_pair(1,num)];
+  }
+
+
 protected:
-  typedef DNSRecordContent* makerfunc_t(const struct dnsrecordheader& ah, PacketReader& pr);
+
   typedef std::map<std::pair<u_int16_t, u_int16_t>, makerfunc_t* > typemap_t;
   static typemap_t typemap;
+  typedef std::map<std::pair<u_int16_t, u_int16_t>, string > namemap_t;
+  static namemap_t namemap;
 };
 
 struct DNSRecord
@@ -76,10 +108,11 @@ struct DNSRecord
   u_int16_t d_type;
   u_int16_t d_class;
   u_int32_t d_ttl;
+  u_int16_t d_clen;
   enum {Answer, Nameserver, Additional} d_place;
   boost::shared_ptr<DNSRecordContent> d_content;
-  struct dnsrecordheader d_ah;
 };
+
 
 class MOADNSParser
 {
@@ -96,6 +129,7 @@ public:
   dnsheader d_header;
   string d_qname;
   u_int16_t d_qclass, d_qtype;
+  uint8_t d_rcode;
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;
   answers_t d_answers;

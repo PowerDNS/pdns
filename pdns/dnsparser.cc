@@ -6,30 +6,23 @@ using namespace boost;
 class UnknownRecordContent : public DNSRecordContent
 {
 public:
-  UnknownRecordContent(const struct dnsrecordheader& ah, PacketReader& pr) 
-    : d_ah(ah)
+  UnknownRecordContent(const DNSRecord& dr, PacketReader& pr) 
+    : d_dr(dr)
   {
-    pr.copyRecord(d_record, ah.d_clen);
+    pr.copyRecord(d_record, dr.d_clen);
   }
-
-  string getType() const
-  {
-    return "#"+lexical_cast<string>(d_ah.d_type);
-  }
-
-
 
   string getZoneRepresentation() const
   {
     ostringstream str;
-    if(d_ah.d_class==1)
+    if(d_dr.d_class==1)
       str<<"IN";
     else
-      str<<"CLASS"<<d_ah.d_class;
+      str<<"CLASS"<<d_dr.d_class;
 
     str<<"\t";
 
-    str<<"TYPE"<<d_ah.d_type<<"\t";
+    str<<"TYPE"<<d_dr.d_type<<"\t";
 
     str<<"\\# "<<d_record.size()<<" ";
     char hex[4];
@@ -43,24 +36,25 @@ public:
   
 
 private:
-  struct dnsrecordheader d_ah;
+  const DNSRecord& d_dr;
   vector<u_int8_t> d_record;
 };
 
 
 
-DNSRecordContent* DNSRecordContent::mastermake(const struct dnsrecordheader& ah, 
+DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, 
 					       PacketReader& pr)
 {
-  typemap_t::const_iterator i=typemap.find(make_pair(ah.d_class, ah.d_type));
+  typemap_t::const_iterator i=typemap.find(make_pair(dr.d_class, dr.d_type));
   if(i==typemap.end()) {
-    return new UnknownRecordContent(ah, pr);
+    return new UnknownRecordContent(dr, pr);
   }
-  return i->second(ah, pr);
+  return i->second(dr, pr);
 }
 
 
 DNSRecordContent::typemap_t DNSRecordContent::typemap __attribute__((init_priority(1000)));
+DNSRecordContent::namemap_t DNSRecordContent::namemap __attribute__((init_priority(1000)));
 
 void MOADNSParser::init(const char *packet, unsigned int len)
 {
@@ -111,10 +105,10 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     dr.d_class=ah.d_class;
     
     dr.d_label=label;
-    dr.d_ah=ah; 
+    dr.d_clen=ah.d_clen;
     d_answers.push_back(make_pair(dr, pr.d_pos));
 
-    dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(ah, pr));
+    dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
     if(dr.d_content) {
       //      cout<<dr.d_label<<"\t"<<dr.d_content->getZoneRepresentation();
     }
