@@ -19,6 +19,7 @@ LdapBackend::LdapBackend( const string &suffix )
 		m_msgid = 0;
 		m_qname = "";
 		m_pldap = NULL;
+		m_qlog = arg().mustDo( "query-logging" );
 		m_default_ttl = arg().asNum( "default-ttl" );
 		m_myname = "[LdapBackend]";
 
@@ -37,6 +38,7 @@ LdapBackend::LdapBackend( const string &suffix )
 
 		if( getArg( "method" ) == "strict" || mustDo( "disable-ptrrecord" ) )
 		{
+			m_list_fcnt = &LdapBackend::list_strict;
 			m_lookup_fcnt = &LdapBackend::lookup_strict;
 			m_prepare_fcnt = &LdapBackend::prepare_strict;
 		}
@@ -121,12 +123,42 @@ bool LdapBackend::list( const string& target, int domain_id )
 
 inline bool LdapBackend::list_simple( const string& target, int domain_id )
 {
+	string dn;
 	string filter;
 
-	filter = "(|(associatedDomain=" + target + ")(associatedDomain=*." + target + "))";
-	m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
+
+	// search for SOARecord of target
+	dn = getArg( "basedn" );
+	filter = "(associatedDomain=" + target + ")";
+	m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
+	m_pldap->getSearchEntry( m_msgid, m_result, true );
+
+	if( m_result.count( "dn" ) && !m_result["dn"].empty() )
+	{
+		dn = m_result["dn"][0];
+		m_result.erase( "dn" );
+	}
+
+	prepare();
+	filter = "(associatedDomain=*." + target + ")";
+	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl );
+	m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
 
 	return true;
+}
+
+
+
+inline bool LdapBackend::list_strict( const string& target, int domain_id )
+{
+	if( target.size() > 13 && target.substr( target.size() - 13, 13 ) == ".in-addr.arpa" ||
+		target.size() > 9 && target.substr( target.size() - 9, 9 ) == ".ip6.arpa" )
+	{
+		L << Logger::Warning << m_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
+		return false;   // AXFR isn't supported in strict mode. Use simple mode and additional PTR records
+	}
+
+	return list_simple( target, domain_id );
 }
 
 
@@ -140,6 +172,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 		m_qname = qname;
 		m_adomain = m_adomains.end();   // skip loops in get() first time
 
+		if( m_qlog ) { L.log( "Query: '" + qname + "|" + qtype.getName() + "'", Logger::Error ); }
 		(this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
 	}
 	catch( LDAPTimeout &lt )
@@ -180,7 +213,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPac
 	}
 
 	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-	m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
+	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
 }
 
 
@@ -223,7 +256,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 	}
 
 	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-	m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
+	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
 }
 
 
@@ -237,7 +270,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 	vector<string> parts;
 
 
-	qesc = toLower( m_pldap->escape( qname ) );
+	qesc = toLower( qname );
 	filter = "(associatedDomain=" + qesc + ")";
 
 	if( qtype.getCode() != QType::ANY )
@@ -255,7 +288,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 	}
 
 	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-	m_msgid = m_pldap->search( dn + getArg("basedn"), LDAP_SCOPE_BASE, filter, (const char**) attributes );
+	m_msgid = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, (const char**) attributes );
 }
 
 
@@ -304,7 +337,7 @@ inline bool LdapBackend::prepare_simple()
 		{
 			vector<string>::iterator i;
 			for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-				if( i->substr( i->length() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
+				if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
 					m_adomains.push_back( *i );
 				}
 			}
@@ -334,7 +367,7 @@ inline bool LdapBackend::prepare_strict()
 		{
 			vector<string>::iterator i;
 			for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-				if( i->substr( i->length() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
+				if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
 					m_adomains.push_back( *i );
 				}
 			}
@@ -428,7 +461,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 	}
 	catch( exception &e )
 	{
-		L << Logger::Error << m_myname << " Caught STL exception for attribute " << attrname << ": " << e.what() << endl;
+		L << Logger::Error << m_myname << " Caught STL exception for " << m_qname << ": " << e.what() << endl;
 		throw( DBException( "STL exception" ) );
 	}
 
@@ -454,7 +487,7 @@ public:
 		declare( suffix, "basedn", "Search root in ldap tree (must be set)","" );
 		declare( suffix, "binddn", "User dn for non anonymous binds","" );
 		declare( suffix, "secret", "User password for non anonymous binds", "" );
-		declare( suffix, "method", "How to search entries (simple, strict or tree)", "list" );
+		declare( suffix, "method", "How to search entries (simple, strict or tree)", "simple" );
 		declare( suffix, "disable-ptrrecord", "Depricated, use ldap-method=strict instead", "no" );
 	}
 

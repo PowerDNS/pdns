@@ -74,10 +74,11 @@ static char* ldap_attrany[] = {
 class LdapBackend : public DNSBackend
 {
 	bool m_getdn;
+	bool m_qlog;
 	int m_msgid;
-	int m_axfrqlen;
 	u_int32_t m_ttl;
 	u_int32_t m_default_ttl;
+	unsigned int m_axfrqlen;
 	string m_myname;
 	string m_qname;
 	QType m_qtype;
@@ -92,11 +93,11 @@ class LdapBackend : public DNSBackend
 	bool (LdapBackend::*m_prepare_fcnt)();
 
 	bool list_simple( const string& target, int domain_id );
-	bool list_tree( const string& target, int domain_id );
+	bool list_strict( const string& target, int domain_id );
 
-	void lookup_simple( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-	void lookup_strict( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-	void lookup_tree( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+	void lookup_simple( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
+	void lookup_strict( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
+	void lookup_tree( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
 
 	bool prepare();
 	bool prepare_simple();

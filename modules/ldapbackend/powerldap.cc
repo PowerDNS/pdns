@@ -145,7 +145,7 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
 	if( dn )
 	{
 		attr = ldap_get_dn( d_ld, object );
-		values.push_back( attr );
+		values.push_back( string( attr ) );
 		ldap_memfree( attr );
 		entry["dn"] = values;
 	}
