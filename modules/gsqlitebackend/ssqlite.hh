@@ -27,11 +27,18 @@ public:
   //! Destructor.
   ~SSQLite( void );
   
-  //! Performs a query.
+  //! Performs a query and puts answers in result
   int doQuery( const std::string & query, result_t & result );
   
-  //! Performs a query.
+  //! Performs a query, caller can retrieve answers with getRow
   int doQuery( const std::string & query );
+
+  //! Performs a command that does not return rows
+  int doCommand( const std::string & query )
+  {
+    return doQuery(query);
+  }
+
   
   //! Returns a row from a result set.
   bool getRow( row_t & row );

@@ -1,6 +1,6 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.cc,v 1.3 2003/09/28 17:37:43 ahu Exp $  */
+   $Id: smysql.cc,v 1.4 2003/10/11 19:57:19 ahu Exp $  */
 #include "smysql.hh"
 #include <string>
 #include <iostream>
@@ -39,6 +39,11 @@ SMySQL::~SMySQL()
 SSqlException SMySQL::sPerrorException(const string &reason)
 {
   return SSqlException(reason+string(": ")+mysql_error(&d_db));
+}
+
+int SMySQL::doCommand(const string &query)
+{
+  return doQuery(query);
 }
 
 int SMySQL::doQuery(const string &query)

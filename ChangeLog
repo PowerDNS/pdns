@@ -17,7 +17,10 @@ changes since 2.9.11:
 	- pdns_recursor has gained an init.d script
 	- sqlite support from 
 	- bindbackend2 gains supermaster support (Mark Bergsma), untested
-	
+	- slave communicator more robust against misconfiguration (empty
+	  master field)	
+	- postgresql backend gains error checking support
+
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache
 	- pdns_recursor writes its pid to disk now (FreeBSD port maintainer)

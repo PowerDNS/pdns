@@ -150,7 +150,6 @@ int Resolver::notify(int sock, const string &domain, const string &ip, u_int16_t
 
 void Resolver::sendResolve(const string &ip, const char *domain, int type)
 {
-
   DNSPacket p;
 
   p.setQuestion(Opcode::Query,domain,type);
@@ -164,7 +163,13 @@ void Resolver::sendResolve(const string &ip, const char *domain, int type)
   struct in_addr inp;
   ServiceTuple st;
   st.port=53;
-  parseService(ip, st);
+  try {
+    parseService(ip, st);
+  }
+  catch(AhuException &ae) {
+    throw ResolverException("Sending a dns question to '"+ip+"': "+ae.reason);
+  }
+
   Utility::inet_aton(st.host.c_str(),&inp);
   toaddr.sin_addr.s_addr=inp.s_addr;
 

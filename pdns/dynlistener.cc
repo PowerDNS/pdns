@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dynlistener.cc,v 1.6 2003/09/16 21:02:35 ahu Exp $ 
+// $Id: dynlistener.cc,v 1.7 2003/10/11 19:57:19 ahu Exp $ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include <cstring>
 #include <string>
@@ -206,7 +206,7 @@ void DynListener::theListener()
 	sendLine("Empty line");
 	continue;
       }
-      upperCase(parts[0]);
+      parts[0] = toUpper( parts[0] );
       if(!d_funcdb[parts[0]]) {
 	if(d_restfunc) 
 	  sendLine((*d_restfunc)(parts,d_ppid));

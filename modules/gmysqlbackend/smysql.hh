@@ -1,6 +1,6 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.hh,v 1.3 2002/12/19 16:28:31 ahu Exp $  */
+   $Id: smysql.hh,v 1.4 2003/10/11 19:57:19 ahu Exp $  */
 #ifndef SMYSQL_HH
 #define SMYSQL_HH
 
@@ -19,6 +19,7 @@ public:
   SSqlException sPerrorException(const string &reason);
   int doQuery(const string &query, result_t &result);
   int doQuery(const string &query);
+  int doCommand(const string &query);
   bool getRow(row_t &row);
   string escape(const string &str);    
   void setLog(bool state);

@@ -1,6 +1,6 @@
-/* Copyright 200w Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+/* Copyright 2003 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: spgsql.cc,v 1.2 2002/12/17 10:39:53 ahu Exp $  */
+   $Id: spgsql.cc,v 1.3 2003/10/11 19:57:19 ahu Exp $  */
 #include <string>
 #include "spgsql.hh"
 
@@ -28,10 +28,10 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string &msocket
     connectstr+=" password="+password;
 
   d_db=new PgDatabase(connectstr.c_str());
-  
+  //  L<<Logger::Error<<"Connectstr: "<<connectstr<<endl;
   // Check to see that the backend connection was successfully made
   if (d_db->ConnectionBad() ) {
-    throw sPerrorException("Unable to connect to database");
+    throw sPerrorException("Unable to connect to database, connect string: "+connectstr);
   }
 
 }
@@ -51,14 +51,29 @@ SSqlException SPgSQL::sPerrorException(const string &reason)
   return SSqlException(reason+string(": ")+d_db->ErrorMessage());
 }
 
+int SPgSQL::doCommand(const string &query)
+{
+  if(s_dolog)
+    L<<Logger::Warning<<"Command: "<<query<<endl;
+
+  if(!d_db->ExecCommandOk(query.c_str())) { 
+    throw sPerrorException("PostgreSQL failed to execute command");
+  }
+
+  d_count=0;
+  return 0;
+}
+
+
 int SPgSQL::doQuery(const string &query)
 {
   if(s_dolog)
     L<<Logger::Warning<<"Query: "<<query<<endl;
 
-  if(!d_db->Exec(query.c_str())) {
+  if(!d_db->ExecTuplesOk(query.c_str())) { // was Exec, without TuplesOk
     throw sPerrorException("PostgreSQL failed to execute command");
   }
+
   d_count=0;
   return 0;
 }
@@ -83,7 +98,7 @@ int SPgSQL::doQuery(const string &query, result_t &result)
 bool SPgSQL::getRow(row_t &row)
 {
   row.clear();
- 
+  
   if(d_count>=d_db->Tuples())
     return false;
   

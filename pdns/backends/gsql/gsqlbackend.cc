@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.9 2003/08/22 13:33:31 ahu Exp $ 
+// $Id: gsqlbackend.cc,v 1.10 2003/10/11 19:57:19 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -12,8 +12,6 @@ using namespace std;
 #include "pdns/ahuexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
-
-
 
 #include <sstream>
 
@@ -40,7 +38,7 @@ void GSQLBackend::setFresh(u_int32_t domain_id)
 	   domain_id);
 
   try {
-    d_db->doQuery(output);
+    d_db->doCommand(output);
   }
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to refresh domain_id "+itoa(domain_id)+": "+e.txtReason());
@@ -348,7 +346,7 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
   format = d_InsertSlaveZoneQuery;
   snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(domain).c_str(),sqlEscape(ip).c_str(),sqlEscape(account).c_str());
   try {
-    d_db->doQuery(output);
+    d_db->doCommand(output);
   }
   catch(SSqlException &e) {
     throw AhuException("Database error trying to insert new slave '"+domain+"': "+ e.txtReason());
@@ -388,7 +386,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 	   sqlEscape(r.qtype.getName()).c_str(),
 	   r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
   try {
-    d_db->doQuery(output);
+    d_db->doCommand(output);
   }
   catch (SSqlException &e) {
     throw AhuException(e.txtReason());
@@ -401,8 +399,8 @@ bool GSQLBackend::startTransaction(const string &domain, int domain_id)
   char output[1024];
   snprintf(output,sizeof(output)-1,d_DeleteZoneQuery.c_str(),domain_id);
   try {
-    d_db->doQuery("begin");
-    d_db->doQuery(output);
+    d_db->doCommand("begin");
+    d_db->doCommand(output);
   }
   catch (SSqlException &e) {
     throw AhuException("Database failed to start transaction: "+e.txtReason());
@@ -414,7 +412,7 @@ bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 bool GSQLBackend::commitTransaction()
 {
   try {
-    d_db->doQuery("commit");
+    d_db->doCommand("commit");
   }
   catch (SSqlException &e) {
     throw AhuException("Database failed to commit transaction: "+e.txtReason());
@@ -425,7 +423,7 @@ bool GSQLBackend::commitTransaction()
 bool GSQLBackend::abortTransaction()
 {
   try {
-    d_db->doQuery("rollback");
+    d_db->doCommand("rollback");
   }
   catch(SSqlException &e) {
     throw AhuException("MySQL failed to abort transaction: "+string(e.txtReason()));

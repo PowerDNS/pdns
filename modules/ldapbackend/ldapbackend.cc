@@ -23,25 +23,26 @@
 
 
 
-static int Toupper(int c)
-{
-  return toupper(c);
-}
-
-
 LdapBackend::LdapBackend( const string &suffix )
 {
+	unsigned int i;
+	setArgPrefix( "ldap" + suffix );
+	string hosts = getArg( "host" );
+
 	m_msgid = 0;
 	m_qname = "";
-	setArgPrefix( "ldap" + suffix );
-
-
-	m_default_ttl = (u_int32_t) strtol( getArg( "default-ttl" ).c_str(), NULL, 10 );
+	m_default_ttl = arg().asNum( "default-ttl" );
 
 	try
 	{
-		L << Logger::Info << backendname << " LDAP Server = " << getArg( "host" ) << ":" << getArg( "port" ) << endl;
-		m_pldap = new PowerLDAP( getArg( "host" ), (u_int16_t) atoi( getArg( "port" ).c_str() ) );
+		for( i = 0; i < hosts.length(); i++ )
+		{
+			if( hosts[i] == ',' ) { hosts[i] = ' '; }
+		}
+
+		L << Logger::Info << backendname << " LDAP servers = " << hosts << endl;
+
+		m_pldap = new PowerLDAP( hosts.c_str(), atoi( getArg( "port" ).c_str() ) );
 		m_pldap->simpleBind( getArg( "binddn" ), getArg( "secret" ) );
 	}
 	catch( LDAPException &e )
@@ -70,8 +71,6 @@ bool LdapBackend::list( const string &target, int domain_id )
 
 	try
 	{
-		L << Logger::Notice << backendname << " AXFR request for " << target << endl;
-
 		// search for DN of SOA record which is SOA for target zone
 
 		filter = "(&(associatedDomain=" + target + ")(SOARecord=*))";
@@ -83,7 +82,7 @@ bool LdapBackend::list( const string &target, int domain_id )
 			return false;
 		}
 
-		if( m_result.empty() || m_result.find( "dn" ) == m_result.end() || m_result["dn"].empty() )
+		if( m_result.empty() || !m_result.count( "dn" ) || m_result["dn"].empty() )
 		{
 			L << Logger::Error << backendname << " No SOA record for " << target << endl;
 			return false;
@@ -94,15 +93,22 @@ bool LdapBackend::list( const string &target, int domain_id )
 
 		// list all records one level below but not entries containing SOA records (these are seperate zones)
 
+		DLOG( L << Logger::Debug << backendname << " List = target: " << target << ", basedn: = " << dn << endl );
+
 		m_qname = "";
 		m_adomain = m_adomains.end();   // skip loops in get() first time
 		filter = "(&(associatedDomain=*" + target + ")(!(SOARecord=*)))";
 		m_msgid = m_pldap->search( dn, LDAP_SCOPE_ONELEVEL, filter, (const char**) attrany );
 	}
+	catch( LDAPTimeout &lt )
+	{
+		L << Logger::Error << backendname << " Unable to get zone " + target + " from LDAP directory: " << lt.what() << endl;
+		return false;
+	}
 	catch( LDAPException &le )
 	{
 		L << Logger::Error << backendname << " Unable to get zone " + target + " from LDAP directory: " << le.what() << endl;
-		return false;
+		throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
 	}
 	catch( exception &e )
 	{
@@ -132,12 +138,12 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	{
 		m_qtype = qtype;
 		m_qname = qname;
-		qesc = m_pldap->escape( qname );
+		qesc = toLower( m_pldap->escape( qname ) );
 
 		if( mustDo( "disable-ptrrecord" ) )  // PTRRecords will be derived from ARecords
 		{
-			len = qesc.length();
 			stringtok( parts, qesc, "." );
+			len = qesc.length();
 
 			 if( parts.size() == 6 && len > 13 && qesc.substr( len - 13, 13 ) == ".in-addr.arpa" )   // IPv4 reverse lookups
 			{
@@ -175,14 +181,20 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 			}
 		}
 
+		DLOG( L << Logger::Debug << backendname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
+
 		m_adomain = m_adomains.end();   // skip loops in get() first time
-		L << Logger::Info << backendname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl;
 		m_msgid = m_pldap->search( getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
+	}
+	catch( LDAPTimeout &lt )
+	{
+		L << Logger::Error << backendname << " Unable to search LDAP directory: " << lt.what() << endl;
+		return;
 	}
 	catch( LDAPException &le )
 	{
-		L << Logger::Warning << backendname << " Unable to search LDAP directory: " << le.what() << endl;
-		return;
+		L << Logger::Error << backendname << " Unable to search LDAP directory: " << le.what() << endl;
+		throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
 	}
 	catch( exception &e )
 	{
@@ -214,8 +226,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 				{
 					attrname = m_attribute->first;
 					qstr = attrname.substr( 0, attrname.length() - 6 );   // extract qtype string from ldap attribute name
-					transform( qstr.begin(), qstr.end(), qstr.begin(), &Toupper );
-					qt = QType( const_cast<char*>(qstr.c_str()) );
+					qt = QType( const_cast<char*>(toUpper( qstr ).c_str()) );
 
 					while( m_value != m_attribute->second.end() )
 					{
@@ -244,7 +255,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 						rr.content = content;
 						m_value++;
 
-						L << Logger::Info << backendname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", priority: " << rr.priority << ", content: " << rr.content << endl;
+						DLOG( L << Logger::Debug << backendname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", priority: " << rr.priority << ", content: " << rr.content << endl );
 						return true;
 					}
 
@@ -260,9 +271,14 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 		while( m_pldap->getSearchEntry( m_msgid, m_result, false ) && prepareEntry() );
 
 	}
+	catch( LDAPTimeout &lt )
+	{
+		L << Logger::Error << backendname << " Search failed: " << lt.what() << endl;
+	}
 	catch( LDAPException &le )
 	{
-		L << Logger::Warning << backendname << " Search failed: " << le.what() << endl;
+		L << Logger::Error << backendname << " Search failed: " << le.what() << endl;
+		throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
 	}
 	catch( exception &e )
 	{
@@ -301,7 +317,7 @@ inline bool LdapBackend::prepareEntry()
 	m_adomains.clear();
 	m_ttl = m_default_ttl;
 
-	if( m_result.find( "dNSTTL" ) != m_result.end() && !m_result["dNSTTL"].empty() )
+	if( m_result.count( "dNSTTL" ) && !m_result["dNSTTL"].empty() )
 	{
 		m_ttl = (u_int32_t) strtol( m_result["dNSTTL"][0].c_str(), NULL, 10 );
 		m_result.erase( "dNSTTL" );
@@ -310,7 +326,7 @@ inline bool LdapBackend::prepareEntry()
 	if( !m_qname.empty() )   // request was a normal lookup()
 	{
 		m_adomains.push_back( m_qname );
-		if( m_result.find( "associatedDomain" ) != m_result.end() )
+		if( m_result.count( "associatedDomain" ) )
 		{
 			m_result["PTRRecord"] = m_result["associatedDomain"];
 			m_result.erase( "associatedDomain" );
@@ -318,7 +334,7 @@ inline bool LdapBackend::prepareEntry()
 	}
 	else   // request was a list() for AXFR
 	{
-		if( m_result.find( "associatedDomain" ) != m_result.end() )
+		if( m_result.count( "associatedDomain" ) )
 		{
 			m_adomains = m_result["associatedDomain"];
 			m_result.erase( "associatedDomain" );
@@ -342,13 +358,13 @@ public:
 
 	void declareArguments( const string &suffix="" )
 	{
-		declare( suffix, "host", "your ldap server","localhost" );
-		declare( suffix, "port", "ldap server port","389" );
+		declare( suffix, "host", "one or more ldap server","localhost:389" );
+		declare( suffix, "port", "ldap server port (depricated, use ldap-host)","389" );
 		declare( suffix, "basedn", "search root in ldap tree (must be set)","" );
 		declare( suffix, "binddn", "user dn for non anonymous binds","" );
 		declare( suffix, "secret", "user password for non anonymous binds", "" );
 		declare( suffix, "disable-ptrrecord", "disable necessity for seperate PTR records", "no" );
-		declare( suffix, "default-ttl", "default ttl if DNSTTL is not set", "86400" );
+		declare( suffix, "default-ttl", "default ttl if DNSTTL is not set (depricated, use default-ttl)", "3600" );
 	}
 
 
@@ -369,7 +385,7 @@ public:
 	Loader()
 	{
 		BackendMakers().report( new LdapFactory );
-		L << Logger::Notice << backendname << " This is the ldap module version "VERSION" ("__DATE__", "__TIME__") reporting" << endl;
+		L << Logger::Info << backendname << " This is the ldap module version "VERSION" ("__DATE__", "__TIME__") reporting" << endl;
   }
 };
 
