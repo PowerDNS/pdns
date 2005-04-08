@@ -1,4 +1,4 @@
-// $Id: oraclebackend.hh,v 1.2 2003/08/22 13:33:31 ahu Exp $
+// $Id$
 
 #include <string>
 #include <map>
@@ -74,6 +74,7 @@ class OracleBackend : public DNSBackend
       void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
       bool list(const string &target, int domain_id);
       bool get(DNSResourceRecord &r);
+
       
       
    private:
