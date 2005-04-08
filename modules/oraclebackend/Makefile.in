@@ -2,17 +2,16 @@
 ## File    : Makefile
 ## Author  : Stefan Arentz
 ## Project : PowerDNS
-## Version : $Id: Makefile.in,v 1.2 2002/12/12 19:53:19 ahu Exp $
 ##
 
-ORACLE_HOME	= /opt/oracle
+ORACLE_HOME	?= /opt/oracle
 PDNS_HOME	= ../../pdns
 
 INCLUDE		= -I$(ORACLE_HOME)/rdbms/demo \
 		  -I$(ORACLE_HOME)/rdbms/public \
 		  -I$(PDNS_HOME) -I../..
 
-ORACLE_DYN_LIBS = -L/opt/oracle/lib -lclntsh
+ORACLE_DYN_LIBS = -L$(ORACLE_HOME)/lib -lclntsh
 all: liboraclebackend.so oraclebackend.o
 
 PACKAGE = @PACKAGE@
