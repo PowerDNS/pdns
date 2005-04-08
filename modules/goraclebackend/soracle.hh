@@ -29,8 +29,20 @@ private:
   OCIError  *d_errorHandle;
   OCISvcCtx *d_serviceContextHandle;
   OCIStmt   *d_statementHandles[10];
-  
+
+  struct oresult {
+    char content[256];
+    sb2 indicator;
+  } d_fields[10];
+  OCIStmt* d_handle;
+
+  dsword d_queryResult;
+
+  string getOracleError();
+
   static bool s_dolog;
+  int d_numfields;
+  //  int getNumFields(const string& query);
 };
       
 #endif /* SSORACLE_HH */

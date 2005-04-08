@@ -410,4 +410,4 @@ modules/geobackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/odbcbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile 
-modules/gsqlitebackend/Makefile )
+modules/gsqlitebackend/Makefile modules/goraclebackend/Makefile )

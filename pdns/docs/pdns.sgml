@@ -7363,6 +7363,58 @@ GRANT ALL ON records_id_seq TO pdns;
 	  feed it the schema above.
 	</para>
       </sect2>
+      <sect2><title>Oracle specifics</title>
+      <para>
+	The default setup conforms to the following schema, which you should add to a PostgreSQL database.
+	<programlisting>
+
+create table domains (
+ id		 NUMBER,
+ name		 VARCHAR(255) NOT NULL,
+ master		 VARCHAR(20) DEFAULT NULL,
+ last_check	 INT DEFAULT NULL,
+ type		 VARCHAR(6) NOT NULL,
+ notified_serial INT DEFAULT NULL, 
+ account         VARCHAR(40) DEFAULT NULL,
+ primary key (id)
+);
+create sequence DOMAINS_ID_SEQUENCE; 
+create index DOMAINS$NAME on Domains (NAME);
+
+ 
+CREATE TABLE records (
+        id              number(11) not NULL,
+        domain_id       INT DEFAULT NULL REFERENCES Domains(ID) ON DELETE CASCADE,
+        name            VARCHAR(255) DEFAULT NULL,
+        type            VARCHAR(6) DEFAULT NULL,
+        content         VARCHAR(255) DEFAULT NULL,
+        ttl             INT DEFAULT NULL,
+        prio            INT DEFAULT NULL,
+        change_date     INT DEFAULT NULL, 
+	primary key (id)
+);
+
+create index RECORDS$NAME on RECORDS (NAME);
+create sequence RECORDS_ID_SEQUENCE;
+
+create table supermasters (
+	  ip VARCHAR(25) NOT NULL, 
+	  nameserver VARCHAR(255) NOT NULL, 
+	  account VARCHAR(40) DEFAULT NULL
+);
+
+	</programlisting>
+      </para>
+      <para>
+	This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used, the 'GRANT' statements
+	can be trimmed to make sure PDNS cannot subvert the contents of your database.
+      </para>
+      <para>
+	Zone2sql with the --gpgsql flag also assumes this layout is in place.
+	</para>
+
+      </sect2>
+
       <sect2><title>Basic functionality</title>
 	<para>
 	  4 queries are needed for regular lookups, 4 for 'fancy records' which are disabled by default and 1 is needed for zone transfers.
@@ -7763,7 +7815,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	</para>
     </sect1>
     
-    <sect1 id="oracle"><Title>Generic Oracle backend</title>
+    <sect1 id="oracle"><Title>Oracle backend</title>
       <para>
 	<table>
 	  <title>Oracle backend capabilities</title>
