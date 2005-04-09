@@ -129,7 +129,8 @@ void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const struct soc
 
 void *TCPNameserver::doConnection(void *data)
 {
-  int fd=(int)data; // gotta love C (generates a harmless warning on opteron)
+  // Fix gcc-4.0 error (on AMD64)
+  int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
   pthread_detach(pthread_self());
 
   try {
