@@ -7419,6 +7419,11 @@ create table supermasters (
 insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherlabs.nl','NATIVE');
 	    </screen>
 	  </para>
+	  <para>
+	  Furthermore, use the <command>goracle-tnsname</command> setting to specify which TNSNAME the Generic Oracle Backend
+	  should be connectiong to. There are no <command>goracle-dbname</command>, <command>goracle-host</command> or
+          <command>goracle-port</command> settings, their equivalent is in <filename>/etc/tnsnames.ora</filename>.
+	  </para>
       </sect2>
 
       <sect2><title>Basic functionality</title>
