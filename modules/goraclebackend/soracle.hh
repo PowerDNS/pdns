@@ -11,8 +11,8 @@
 class SOracle : public SSql
 {
 public:
-  SOracle(const string &database, const string &host="", u_int16_t port=0,
-	  const string &msocket="",const string &user="", 
+  SOracle(const string &database, 
+	  const string &user="", 
 	  const string &password="");
   
   ~SOracle();

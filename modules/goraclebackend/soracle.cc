@@ -38,8 +38,8 @@ string SOracle::getOracleError()
   return mReason;
 }
 
-SOracle::SOracle(const string &database, const string &host, u_int16_t port, 
-		 const string &msocket, const string &user, 
+SOracle::SOracle(const string &database, 
+		 const string &user, 
 		 const string &password)
 {
    d_environmentHandle = NULL;

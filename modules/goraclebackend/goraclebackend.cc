@@ -21,10 +21,7 @@ using namespace std;
 gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQLBackend(mode,suffix)
 {
   try {
-    setDB(new SOracle(getArg("dbname"),
-		     getArg("host"),
-		     getArgAsNum("port"),
-		     getArg("socket"),
+    setDB(new SOracle(getArg("tnsname"),
 		     getArg("user"),
 		     getArg("password")));
     
@@ -44,11 +41,8 @@ public:
   
   void declareArguments(const string &suffix="")
   {
-    declare(suffix,"dbname","Pdns backend database name to connect to","powerdns");
+    declare(suffix,"tnsname","Generic Oracle backend TNSNAME to connect to","powerdns");
     declare(suffix,"user","Database backend user to connect as","powerdns");
-    declare(suffix,"host","Database backend host to connect to","");
-    declare(suffix,"port","Database backend port to connect to","0");
-    declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
 
     declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
