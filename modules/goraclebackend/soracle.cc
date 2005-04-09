@@ -21,7 +21,7 @@ string SOracle::getOracleError()
     text  msg[512];
     sb4   errcode = 0;
     
-    memset((void *) msg, (int)'\0', (size_t)512);
+    memset( msg, 0, 512);
     
     OCIErrorGet((dvoid *) d_errorHandle,1, NULL, &errcode, msg, sizeof(msg), OCI_HTYPE_ERROR);
     if (errcode) {
@@ -70,11 +70,8 @@ SOracle::SOracle(const string &database,
    err = OCILogon(d_environmentHandle, d_errorHandle, &d_serviceContextHandle, (OraText*) username, strlen(username),
 		  (OraText*) password.c_str(),  strlen(password.c_str()), (OraText*) database.c_str(), strlen(database.c_str()));
    
-   if (err) {
+   if (err) 
      throw sPerrorException("Loging in to Oracle gave error: " + getOracleError());
-   }
-
-
 }
 
 void SOracle::setLog(bool state)
@@ -106,7 +103,6 @@ SOracle::~SOracle()
     OCIHandleFree(d_environmentHandle, OCI_HTYPE_ENV);
     d_environmentHandle = NULL;
   }
-  
 }
 
 SSqlException SOracle::sPerrorException(const string &reason)
@@ -122,13 +118,13 @@ int SOracle::doCommand(const string &query)
 int getNumFields(const string& query)
 {
   string lquery=toLower(query);
-  char* delim[]={" from ", "\tfrom\t", "\tfrom ", " from\t"};
+  char* delim[]={" from ", "\tfrom\t", "\tfrom ", " from\t", 0};
   int n=0;
   string::size_type pos;
-  for(n=0; n < 4 && (pos=lquery.find(delim[n]))==string::npos; ++n)
+  for(n=0; delim[n] && (pos=lquery.find(delim[n]))==string::npos; ++n)
     ;
 
-  if(n==4)
+  if(!delim[n])
     return -1;
 
   unsigned int num=1;
