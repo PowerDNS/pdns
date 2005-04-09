@@ -13,7 +13,9 @@
 # include <io.h>
 # define access _access
 # define F_OK 0
-#endif // WIN32
+#else // WIN32
+# include <unistd.h>
+#endif // Unix
 
 // Constructor.
 SSQLite::SSQLite( const std::string & database )
