@@ -1,6 +1,5 @@
-/* Copyright 2003 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
-   for more information.
-   $Id: spgsql.cc,v 1.4 2004/01/17 13:18:22 ahu Exp $  */
+/* Copyright 2003 - 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+   for more information. */
 #include <string>
 #include "spgsql.hh"
 
@@ -12,7 +11,7 @@ using namespace std;
 
 bool SPgSQL::s_dolog;
 
-SPgSQL::SPgSQL(const string &database, const string &host, const string &msocket, const string &user, 
+SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &msocket, const string &user, 
 	       const string &password)
 {
   d_db=0;
@@ -25,6 +24,9 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string &msocket
 
   if(!host.empty())
     connectstr+=" host="+host;
+
+  if(!port.empty())
+    connectstr+=" port="+port;
 
   if(!password.empty())
     connectstr+=" password="+password;

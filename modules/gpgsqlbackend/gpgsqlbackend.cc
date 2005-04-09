@@ -1,4 +1,3 @@
-// $Id: gpgsqlbackend.cc,v 1.4 2004/09/13 19:07:00 ahu Exp $ 
 #include <string>
 #include <map>
 
@@ -23,6 +22,7 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
   try {
     setDB(new SPgSQL(getArg("dbname"),
 		  getArg("host"),
+		  getArg("port"),
 		  getArg("socket"),
 		  getArg("user"),
 		  getArg("password")));
@@ -47,6 +47,7 @@ public:
     declare(suffix,"dbname","Pdns backend database name to connect to","powerdns");
     declare(suffix,"user","Pdns backend user to connect as","powerdns");
     declare(suffix,"host","Pdns backend host to connect to","");
+    declare(suffix,"port","Database backend port to connect to","");
     declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
 

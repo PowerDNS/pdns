@@ -1,6 +1,5 @@
-/* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
-   for more information.
-   $Id: spgsql.hh,v 1.5 2004/01/17 13:18:22 ahu Exp $  */
+/* Copyright 2001 - 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+   for more information. */
 #ifndef SPGSQL_HH
 #define SPGSQL_HH
 using namespace std;
@@ -10,7 +9,7 @@ using namespace std;
 class SPgSQL : public SSql
 {
 public:
-  SPgSQL(const string &database, const string &host="", 
+  SPgSQL(const string &database, const string &host="", const string& port="",
 	 const string &msocket="",const string &user="", 
 	 const string &password="");
 
