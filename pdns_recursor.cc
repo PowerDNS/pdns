@@ -403,6 +403,7 @@ struct TCPConnection
 
 int main(int argc, char **argv) 
 {
+  int ret = EXIT_SUCCESS;
 #ifdef WIN32
     WSADATA wsaData;
     WSAStartup( MAKEWORD( 2, 0 ), &wsaData );
@@ -664,17 +665,20 @@ int main(int argc, char **argv)
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
+    ret=EXIT_FAILURE;
   }
   catch(exception &e) {
     L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
+    ret=EXIT_FAILURE;
   }
   catch(...) {
     L<<Logger::Error<<"any other exception in main: "<<endl;
+    ret=EXIT_FAILURE;
   }
   
 #ifdef WIN32
   WSACleanup();
 #endif // WIN32
 
-  return 0;
+  return ret;
 }
