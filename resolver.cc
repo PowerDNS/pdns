@@ -56,11 +56,12 @@ void Resolver::makeSocket(int type)
   memset((char *)&sin,0, sizeof(sin));
   
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
+  if(!IpToU32(arg()["query-local-address"], &sin.sin_addr.s_addr))
+    throw AhuException("Unable to resolve local address '"+ arg()["query-local-address"] +"'"); 
 
   int tries=10;
   while(--tries) {
-    sin.sin_port = htons(10000+(port_counter++)%10000); // should be random!
+    sin.sin_port = htons(10000+(random()%10000));
   
     if (bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
       break;
