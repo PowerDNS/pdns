@@ -283,6 +283,11 @@ void cleanSlashes(string &str)
 
 bool IpToU32(const string &str, u_int32_t *ip)
 {
+  if(str.empty()) {
+    *ip=0;
+    return true;
+  }
+  
   struct in_addr inp;
   if(Utility::inet_aton(str.c_str(), &inp)) {
     *ip=inp.s_addr;
