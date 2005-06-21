@@ -230,8 +230,10 @@ void makeClientSocket()
   memset((char *)&sin,0, sizeof(sin));
   
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
-  
+
+  if(!IpToU32(arg()["query-local-address"], &sin.sin_addr.s_addr))
+    throw AhuException("Unable to resolve local address '"+ arg()["query-local-address"] +"'"); 
+
   int tries=10;
   while(--tries) {
     u_int16_t port=10000+Utility::random()%10000;
@@ -245,6 +247,7 @@ void makeClientSocket()
     throw AhuException("Resolver binding to local socket: "+stringerror());
 
   Utility::setNonBlocking(d_clientsock);
+  L<<Logger::Error<<"Sending UDP queries from "<<inet_ntoa(sin.sin_addr)<<":"<< ntohs(sin.sin_port)  <<endl;
 }
 
 void makeTCPServerSockets()
@@ -288,7 +291,6 @@ void makeTCPServerSockets()
     L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
   }
 }
-
 
 void makeUDPServerSockets()
 {
@@ -429,6 +431,8 @@ int main(int argc, char **argv)
     arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     arg().set("delegation-only","Which domains we only accept delegations from")="";
+    arg().set("query-local-address","Source IP address for sending queries")="";
+
     arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
     arg().laxParse(argc,argv); // do a lax parse
@@ -450,6 +454,17 @@ int main(int argc, char **argv)
     }
 
     L.setName("pdns_recursor");
+
+    L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2005 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+#ifdef __GNUC__
+    L<<", gcc "__VERSION__;
+#endif // add other compilers here
+    L<<") starting up"<<endl;
+
+  L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+    "This is free software, and you are welcome to redistribute it "
+    "according to the terms of the GPL version 2."<<endl;
+
 
     if(arg().mustDo("trace"))
       SyncRes::setLog(true);
