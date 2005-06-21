@@ -421,7 +421,7 @@ int main(int argc, char **argv)
     arg().set("no-shuffle","Don't change")="off";
     arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     arg().set("local-port","port to listen on")="53";
-    arg().set("local-address","single address to listen on")="0.0.0.0";
+    arg().set("local-address","IP addresses to listen on, separated by spaces or commas")="0.0.0.0";
     arg().set("trace","if we should output heaps of logging")="off";
     arg().set("daemon","Operate as a daemon")="yes";
     arg().set("chroot","switch to chroot jail")="";
@@ -431,7 +431,7 @@ int main(int argc, char **argv)
     arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     arg().set("delegation-only","Which domains we only accept delegations from")="";
-    arg().set("query-local-address","Source IP address for sending queries")="";
+    arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
 
     arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
