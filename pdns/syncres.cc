@@ -37,6 +37,7 @@ extern MemRecursorCache RC;
 
 map<string,NegCacheEntry> SyncRes::s_negcache;    
 unsigned int SyncRes::s_queries;
+unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
 unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
@@ -385,10 +386,18 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       else {
 	s_outqueries++;
 	d_outqueries++;
-	if(d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode())!=1) { // <- we go out on the wire!
-	  LOG<<prefix<<qname<<": error resolving (perhaps timeout?)"<<endl;
+	int ret=d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode());
+	if(ret != 1) { // <- we go out on the wire!
+	  if(ret==0) {
+	    LOG<<prefix<<qname<<": timeout resolving"<<endl;
+	    d_timeouts++;
+	    s_outgoingtimeouts++;
+	  }
+	  else
+	    LOG<<prefix<<qname<<": error resolving"<<endl;
+
 	  nsSpeeds[toLower(*tns)].submit(1000000); // 1 sec
-	  d_timeouts++;
+	  
 	  s_throttle.throttle(d_now, remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	  continue;
 	}

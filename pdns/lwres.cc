@@ -75,7 +75,6 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type)
   toaddr.sin_port=htons(53);
   toaddr.sin_family=AF_INET;
 
-
   int ret;
 
   DTime dt;
