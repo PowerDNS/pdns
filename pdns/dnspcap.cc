@@ -1,6 +1,7 @@
 #include "dnspcap.hh"
+#include <boost/format.hpp>
 
-
+using namespace boost;
 PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
 {
   d_fp=fopen(fname.c_str(),"r");
@@ -16,10 +17,10 @@ PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
   if( d_pfh.linktype!=1)
     throw runtime_error((format("Unsupported link type %d") % d_pfh.linktype).str());
   
-  d_runts = d_oversized = d_packets = 0;
+  d_runts = d_oversized = d_correctpackets = d_nonetheripudp = 0;
 }
 
-~PcapPacketReader::PcapPacketReader()
+PcapPacketReader::~PcapPacketReader()
 {
   fclose(d_fp);
 }
@@ -58,17 +59,19 @@ try
     }
     
     checkedFreadSize(d_buffer, d_pheader.caplen);
+    d_ether=reinterpret_cast<struct ether_header*>(d_buffer);
     d_ip=reinterpret_cast<struct iphdr*>(d_buffer + sizeof(struct ether_header));
     
-    if(d_ip->protocol==17) { // udp
+    if(ntohs(d_ether->ether_type)==0x0800 && d_ip->protocol==17) { // udp
       d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + sizeof(struct ether_header) + 4 * d_ip->ihl);
       d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
       d_len = ntohs(d_udp->len) - sizeof(struct udphdr);
-      d_packets++;
+      d_correctpackets++;
       return true;
     }
-    else
-      cerr<<"proto: "<<(int)d_ip->protocol<<endl;
+    else {
+      d_nonetheripudp++;
+    }
   }
 }
 catch(EofException) {
@@ -92,7 +95,7 @@ void PcapPacketWriter::write()
   fwrite(d_ppr.d_buffer, 1, d_ppr.d_pheader.caplen, d_fp);
 }
 
-~PcapPacketWriter::PcapPacketWriter()
+PcapPacketWriter::~PcapPacketWriter()
 {
   fclose(d_fp);
 }

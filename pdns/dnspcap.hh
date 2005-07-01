@@ -3,7 +3,15 @@
 #include <cstdio>
 #include <stdexcept>
 #include <string>
+#include "misc.hh"
+#include <iostream>
 
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <netinet/ether.h>
+#include <vector>
+#include <pcap.h>
+#include <boost/format.hpp>
 using namespace std;
 
 class PcapPacketReader
@@ -31,14 +39,16 @@ public:
 
   bool getUDPPacket();
 
+  struct ether_header* d_ether;
   struct iphdr *d_ip;
   const struct tcphdr *d_tcp;
   const struct udphdr *d_udp;
   const uint8_t* d_payload;
   int d_len;
   struct pcap_pkthdr d_pheader;
+
   pcap_file_header d_pfh;
-  unsigned int d_runts, d_oversized, d_packets;
+  unsigned int d_runts, d_oversized, d_correctpackets, d_nonetheripudp;
   char d_buffer[5000];
 private:
   FILE* d_fp;
