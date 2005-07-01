@@ -53,7 +53,7 @@ qgen_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ -lboost_regex
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc dnsparser.cc dnsrecords.cc dnspcap.cc 
 
-dnsvcr_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ -lboost_regex
+dnswasher_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
 
 
 # INCLUDES=-I/usr/include/mysql
