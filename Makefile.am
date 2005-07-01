@@ -18,7 +18,7 @@ endif
 
 bin_PROGRAMS = pdns_control  
 
-EXTRA_PROGRAMS=pdns_recursor sdig pdns_control qgen
+EXTRA_PROGRAMS=pdns_recursor sdig pdns_control qgen dnswasher
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -49,6 +49,12 @@ qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 	 sillyrecords.cc
 
 qgen_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ -lboost_regex
+
+dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
+	logger.cc statbag.cc dnsparser.cc dnsrecords.cc dnspcap.cc 
+
+dnsvcr_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ -lboost_regex
+
 
 # INCLUDES=-I/usr/include/mysql
 
