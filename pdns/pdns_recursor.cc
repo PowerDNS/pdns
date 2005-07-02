@@ -373,7 +373,7 @@ void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate, last_prune;
   time_t now=time(0);
-  if(now - last_stat>60) { 
+  if(now - last_prune > 60) { 
     RC.doPrune();
     last_prune=time(0);
   }
