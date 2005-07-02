@@ -89,7 +89,8 @@ public:
   static const string NumberToType(uint16_t num)
   {
     if(!namemap.count(make_pair(1,num)))
-      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
+      return "#" + lexical_cast<string>(num);
+      //      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
     return namemap[make_pair(1,num)];
   }
 
