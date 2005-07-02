@@ -47,13 +47,15 @@ try
 
     if(d_pheader.caplen!=d_pheader.len) {
       d_runts++;
-      if(fseek(d_fp, d_pheader.caplen, SEEK_SET)<0)
+      if(fseek(d_fp, d_pheader.caplen, SEEK_CUR)<0)
 	unixDie((format("Skipping %d bytes in file %s") % d_pheader.caplen % d_fname).str());
       continue;
     }
+    if(!d_pheader.caplen)
+      continue;
     if(d_pheader.caplen > sizeof(d_buffer)) {
       d_oversized++;
-      if(fseek(d_fp, d_pheader.caplen, SEEK_SET)<0)
+      if(fseek(d_fp, d_pheader.caplen, SEEK_CUR)<0)
 	unixDie((format("Skipping %d bytes in file %s") % d_pheader.caplen % d_fname).str());
       continue;
     }
