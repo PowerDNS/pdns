@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002-2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #endif // WIN32
 
 #include <deque>
+#include <stdexcept>
 #include <string>
 #include <ctype.h>
 using namespace std;
@@ -189,6 +190,11 @@ inline void chomp( string& line, const string& delim )
 	{
 		line.resize( pos + 1 );
 	}
+}
+
+inline void unixDie(const string &why)
+{
+  throw runtime_error(why+": "+strerror(errno));
 }
 
 
