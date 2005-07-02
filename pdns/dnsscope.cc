@@ -86,15 +86,23 @@ try
   int dnserrors=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
-  unsigned int untracked=0, errorresult=0;
+  unsigned int untracked=0, errorresult=0, reallylate=0;
 
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
 
+  time_t lowestTime=2000000000, highestTime=0;
+
+
   while(pr.getUDPPacket()) {
-    if(ntohs(pr.d_udp->dest)==53 || ntohs(pr.d_udp->source)==53 && pr.d_len > sizeof(HEADER)) {
+    if((ntohs(pr.d_udp->dest)==5300 || ntohs(pr.d_udp->source)==5300 ||
+	ntohs(pr.d_udp->dest)==53   || ntohs(pr.d_udp->source)==53) &&
+        pr.d_len > sizeof(HEADER)) {
       try {
 	MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+
+	lowestTime=min(lowestTime,  pr.d_pheader.ts.tv_sec);
+	highestTime=max(highestTime, pr.d_pheader.ts.tv_sec);
 
 	string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
 	
@@ -121,7 +129,10 @@ try
 	    uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
 	                    (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
 	    //	    cout<<"Took: "<<usecs<<"usec\n";
-	    cumul[usecs]++;
+	    if(usecs<2049000)
+	      cumul[usecs]++;
+	    else
+	      reallylate++;
 
 	    
 	    if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
@@ -149,6 +160,8 @@ try
       }
     }
   }
+  cerr<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
+
   cerr<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
     pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors"<<endl;
 
@@ -161,7 +174,7 @@ try
   cerr<<statmap.size()<<" packets went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
   cerr<<untracked<<" answers could not be matched to questions"<<endl;
   cerr<<dnserrors<<" answers were unsatisfactory (indefinite, or SERVFAIL)"<<endl;
-
+  cerr<<reallylate<<" answers (would be) discarded because older than 2 seconds"<<endl;
 #if 0
         ns_r_noerror = 0,       /* No error occurred. */
         ns_r_formerr = 1,       /* Format error. */
@@ -218,18 +231,18 @@ try
     sum+=i->second;
 
     for(done_t::iterator j=done.begin(); j!=done.end(); ++j)
-    if(!j->second && i->first > j->first) {
-      j->second=true;
+      if(!j->second && i->first > j->first) {
+	j->second=true;
 
-      perc=sum*100.0/totpackets;
-      if(j->first < 1024)
-	cout<< perc <<"% of questions answered within " << j->first << " usec (";
-      else
-	cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
-
-      cout<<perc-lastperc<<"%)\n";
-      lastperc=sum*100.0/totpackets;
-    }
+	perc=sum*100.0/totpackets;
+	if(j->first < 1024)
+	  cout<< perc <<"% of questions answered within " << j->first << " usec (";
+	else
+	  cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
+	
+	cout<<perc-lastperc<<"%)\n";
+	lastperc=sum*100.0/totpackets;
+      }
   }
 
   
