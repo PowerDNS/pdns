@@ -184,6 +184,24 @@ public:
     ep.port=ntohs(remote.sin_port);
   }
 
+  bool recvFromAsync(string &dgram, IPEndpoint &ep)
+  {
+    struct sockaddr_in remote;
+    socklen_t remlen=sizeof(remote);
+    int bytes;
+    if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&remote, &remlen))<0)
+      if(errno!=EAGAIN)
+	throw NetworkError(strerror(errno));
+      else
+	return false;
+    
+    dgram.assign(d_buffer,bytes);
+    ep.address.byte=remote.sin_addr.s_addr;
+    ep.port=ntohs(remote.sin_port);
+    return true;
+  }
+
+
   //! For datagram sockets, send a datagram to a destination
   /** For datagram sockets, send a datagram to a destination
       \param dgram The datagram

@@ -12,7 +12,8 @@
 #include <arpa/nameser.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
-
+#include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
 namespace {
   typedef HEADER dnsheader;
 }
@@ -112,6 +113,32 @@ struct DNSRecord
   u_int16_t d_clen;
   enum {Answer, Nameserver, Additional} d_place;
   boost::shared_ptr<DNSRecordContent> d_content;
+
+  bool operator<(const DNSRecord& rhs) const
+  {
+    string lzrp, rzrp;
+    if(d_content)
+      lzrp=    d_content->getZoneRepresentation();
+    if(rhs.d_content)
+      rzrp=rhs.d_content->getZoneRepresentation();
+    
+    return 
+      tie(d_label,         d_type,     d_class,     d_ttl,     d_clen, lzrp) <
+      tie(rhs.d_label, rhs.d_type, rhs.d_class, rhs.d_ttl, rhs.d_clen, rzrp);
+  }
+
+  bool operator==(const DNSRecord& rhs) const
+  {
+    string lzrp, rzrp;
+    if(d_content)
+      lzrp=    d_content->getZoneRepresentation();
+    if(rhs.d_content)
+      rzrp=rhs.d_content->getZoneRepresentation();
+    
+    return 
+      tie(d_label,         d_type,     d_class,     d_ttl,     d_clen, lzrp) ==
+      tie(rhs.d_label, rhs.d_type, rhs.d_class, rhs.d_ttl, rhs.d_clen, rzrp);
+  }
 };
 
 
