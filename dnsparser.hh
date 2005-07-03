@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <arpa/nameser.h>
+#include "misc.hh"
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -32,8 +33,6 @@ struct dnsrecordheader
 
 
 class MOADNSParser;
-
-
 
 class PacketReader
 {
@@ -118,26 +117,32 @@ struct DNSRecord
   {
     string lzrp, rzrp;
     if(d_content)
-      lzrp=    d_content->getZoneRepresentation();
+      lzrp=toLower(d_content->getZoneRepresentation());
     if(rhs.d_content)
-      rzrp=rhs.d_content->getZoneRepresentation();
+      rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
+    string llabel=toLower(d_label);
+    string rlabel=toLower(rhs.d_label);
+
     return 
-      tie(d_label,         d_type,     d_class,     d_ttl,     d_clen, lzrp) <
-      tie(rhs.d_label, rhs.d_type, rhs.d_class, rhs.d_ttl, rhs.d_clen, rzrp);
+      tie(llabel,     d_type,     d_class, lzrp) <
+      tie(rlabel, rhs.d_type, rhs.d_class, rzrp);
   }
 
   bool operator==(const DNSRecord& rhs) const
   {
     string lzrp, rzrp;
     if(d_content)
-      lzrp=    d_content->getZoneRepresentation();
+      lzrp=toLower(d_content->getZoneRepresentation());
     if(rhs.d_content)
-      rzrp=rhs.d_content->getZoneRepresentation();
+      rzrp=toLower(rhs.d_content->getZoneRepresentation());
+    
+    string llabel=toLower(d_label);
+    string rlabel=toLower(rhs.d_label);
     
     return 
-      tie(d_label,         d_type,     d_class,     d_ttl,     d_clen, lzrp) ==
-      tie(rhs.d_label, rhs.d_type, rhs.d_class, rhs.d_ttl, rhs.d_clen, rzrp);
+      tie(llabel,     d_type,     d_class, lzrp) ==
+      tie(rlabel, rhs.d_type, rhs.d_class, rzrp);
   }
 };
 
