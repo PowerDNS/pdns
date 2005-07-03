@@ -108,10 +108,9 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       
       dr.d_label=label;
       dr.d_clen=ah.d_clen;
-      d_answers.push_back(make_pair(dr, pr.d_pos));
-      
       
       dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
+      d_answers.push_back(make_pair(dr, pr.d_pos));
     }
     
     if(pr.d_pos!=contentlen) {
