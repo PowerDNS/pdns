@@ -239,7 +239,8 @@ try
   pthread_t tid;
   pthread_create(&tid, 0, incomingThread, 0);
 
-  IPEndpoint remote("127.0.0.1", 5300);
+  IPEndpoint remote(argc > 2 ? argv[2] : "127.0.0.1", 
+		    argc > 3 ? atoi(argv[3]) : 5300);
   struct timeval lastsent={0,0};
 
   unsigned int once=0;
