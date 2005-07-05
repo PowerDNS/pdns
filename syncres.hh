@@ -116,7 +116,7 @@ private:
 class SyncRes
 {
 public:
-  SyncRes() : d_outqueries(0), d_throttledqueries(0), d_timeouts(0), d_cacheonly(false), d_nocache(false), d_now(time(0)) {}
+  SyncRes() : d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_cacheonly(false), d_nocache(false), d_now(time(0)) {}
   int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -138,8 +138,10 @@ public:
   static unsigned int s_outgoingtimeouts;
   static unsigned int s_throttledqueries;
   static unsigned int s_outqueries;
+  static unsigned int s_tcpoutqueries;
   static unsigned int s_nodelegated;
   unsigned int d_outqueries;
+  unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   static map<string,NegCacheEntry> s_negcache;    
@@ -185,4 +187,7 @@ private:
   };
 
 };
+class Socket;
+int asendtcp(const string& data, Socket* sock);
+int arecvtcp(string& data, int len, Socket* sock);
 #endif

@@ -35,7 +35,8 @@
 #include "ahuexception.hh"
 #include "statbag.hh"
 #include "arguments.hh"
-
+#include "sstuff.hh"
+#include "syncres.hh"
 
 LWRes::LWRes()
 {
@@ -55,7 +56,7 @@ LWRes::~LWRes()
 
 //! returns -1 for permanent error, 0 for timeout, 1 for success
 /** Never throws! */
-int LWRes::asyncresolve(const string &ip, const char *domain, int type)
+int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doTCP)
 {
   DNSPacket p;
   p.setQuestion(Opcode::Query,domain,type);
@@ -69,6 +70,7 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type)
 
   struct sockaddr_in toaddr;
   struct in_addr inp;
+  Utility::socklen_t addrlen=sizeof(toaddr);
   Utility::inet_aton(ip.c_str(),&inp);
   toaddr.sin_addr.s_addr=inp.s_addr;
 
@@ -79,16 +81,53 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type)
 
   DTime dt;
   dt.set();
-  if(asendto(p.getData(), p.len, 0, (struct sockaddr*)(&toaddr), sizeof(toaddr),p.d.id)<0) {
-    return -1;
-  }
+
+  if(!doTCP) {
+    if(asendto(p.getData(), p.len, 0, (struct sockaddr*)(&toaddr), sizeof(toaddr),p.d.id)<0) {
+      return -1;
+    }
+  
+    // sleep until we see an answer to this, interface to mtasker
     
-  Utility::socklen_t addrlen=sizeof(toaddr);
-  
-  // sleep until we see an answer to this, interface to mtasker
-  
-  ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
-    d_usec=dt.udiff();
+    ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
+  }
+  else {
+    Socket s(InterNetwork, Stream);
+    IPEndpoint ie(ip, 53);
+    s.setNonBlocking();
+    s.connect(ie);
+
+    int len=htons(p.len);
+    char *lenP=(char*)&len;
+    const char *msgP=p.getData();
+    string packet=string(lenP, lenP+2)+string(msgP, msgP+p.len);
+
+    if(asendtcp(packet, &s) == 0) {
+      cerr<<"asendtcp: timeout"<<endl;
+      return -1;
+    }
+    
+    packet.clear();
+    if(arecvtcp(packet,2, &s)==0) {
+      cerr<<"arecvtcp: timeout"<<endl;
+      return -1;
+    }
+
+    memcpy(&len, packet.c_str(), 2);
+    len=ntohs(len);
+
+    //    cerr<<"Now reading "<<len<<" bytes"<<endl;
+
+    if(arecvtcp(packet, len, &s)==0) {
+      cerr<<"arecvtcp: timeout"<<endl;
+      return -1;
+    }
+
+    memcpy(d_buf, packet.c_str(), len);
+    d_len=len;
+    ret=1;
+  }
+  d_usec=dt.udiff();
     
   return ret;
 }
@@ -102,6 +141,7 @@ LWRes::res_t LWRes::result()
     if(p.parse((char *)d_buf, d_len)<0)
       throw LWResException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
     d_aabit=p.d.aa;
+    d_aabit=p.d.tc;
     d_rcode=p.d.rcode;
     return p.getAnswers();
   }

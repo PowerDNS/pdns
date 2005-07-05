@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2005 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -61,10 +61,10 @@ public:
 
   typedef vector<DNSResourceRecord> res_t;
 
-  int asyncresolve(const string &ip, const char *domain, int type);
+  int asyncresolve(const string &ip, const char *domain, int type, bool doTCP);
   vector<DNSResourceRecord> result();
   int d_rcode;
-  bool d_aabit;
+  bool d_aabit, d_tcbit;
   u_int32_t d_usec;
 private:
   int d_sock;
@@ -78,8 +78,6 @@ private:
   u_int32_t d_ip;
   bool d_inaxfr;
   int d_bufsize;
-
-
 };
 
 #endif // PDNS_LWRES_HH

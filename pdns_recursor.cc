@@ -36,6 +36,12 @@
 #include "syncres.hh"
 #include <fcntl.h>
 #include <fstream>
+#include "sstuff.hh"
+#include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+
+using namespace boost;
+
 #include "recursor_cache.hh"
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
@@ -74,29 +80,74 @@ static int d_clientsock;
 static vector<int> d_udpserversocks;
 static vector<int> d_tcpserversocks;
 
+
 struct PacketID
 {
-  u_int16_t id;
-  struct sockaddr_in remote;
+  PacketID() : sock(0), inNeeded(0), outPos(0)
+  {}
+
+  u_int16_t id;  // wait for a specific id/remote paie
+  struct sockaddr_in remote;  // this is the remote
+
+  Socket* sock;  // or wait for an event on a TCP fd
+  int inNeeded; // if this is set, we'll read until inNeeded bytes are read
+  string inMSG; // they'll go here
+
+  string outMSG; // the outgoing message that needs to be sent
+  int outPos;    // how far we are along in the outMSG
+
+  bool operator<(const PacketID& b) const
+  {
+    int ourSock= sock ? sock->getHandle() : 0;
+    int bSock = b.sock ? b.sock->getHandle() : 0;
+    return 
+      tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) <
+      tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock);
+  }
 };
 
-bool operator<(const PacketID& a, const PacketID& b)
-{
-  if(a.id<b.id)
-    return true;
-
-  if(a.id==b.id) {
-    if(a.remote.sin_addr.s_addr < b.remote.sin_addr.s_addr)
-      return true;
-    if(a.remote.sin_addr.s_addr == b.remote.sin_addr.s_addr)
-      if(a.remote.sin_port < b.remote.sin_port)
-	return true;
-  }
-
-  return false;
-}
+static map<int,PacketID> d_tcpclientreadsocks, d_tcpclientwritesocks;
 
 MTasker<PacketID,string>* MT;
+
+int asendtcp(const string& data, Socket* sock) 
+{
+  PacketID pident;
+  pident.sock=sock;
+  pident.outMSG=data;
+  string packet;
+
+  //  cerr<<"asendtcp called for "<<data.size()<<" bytes"<<endl;
+  d_tcpclientwritesocks[sock->getHandle()]=pident;
+
+  if(!MT->waitEvent(pident,&packet,1)) { // timeout
+    d_tcpclientwritesocks.erase(sock->getHandle());
+    return 0; 
+  }
+  //  cerr<<"asendtcp happy"<<endl;
+  return 1;
+}
+
+int arecvtcp(string& data, int len, Socket* sock) 
+{
+  data="";
+  PacketID pident;
+  pident.sock=sock;
+  pident.inNeeded=len;
+
+  // cerr<<"arecvtcp called for "<<len<<" bytes"<<endl;
+  // cerr<<d_tcpclientwritesocks.size()<<" write sockets"<<endl;
+  d_tcpclientreadsocks[sock->getHandle()]=pident;
+
+  if(!MT->waitEvent(pident,&data,1)) { // timeout
+    d_tcpclientreadsocks.erase(sock->getHandle());
+    return 0; 
+  }
+
+  // cerr<<"arecvtcp happy, data.size(): "<<data.size()<<endl;
+  return 1;
+}
+
 
 /* these two functions are used by LWRes */
 int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id) 
@@ -205,7 +256,7 @@ void startDoResolve(void *p)
     if(!quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
       L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
-	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, rcode="<<res<<endl;
+	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
     
     sr.d_outqueries ? RC.cacheMisses++ : RC.cacheHits++; 
@@ -361,7 +412,7 @@ void doStats(void)
     L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
-    L<<Logger::Error<<"stats: "<<MT->numProcesses()<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
+    L<<Logger::Error<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<MT->numProcesses()<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
   }
   else if(statsWanted) 
     L<<Logger::Error<<"stats: no stats yet!"<<endl;
@@ -526,8 +577,9 @@ int main(int argc, char **argv)
       tv.tv_sec=0;
       tv.tv_usec=500000;
       
-      fd_set readfds;
+      fd_set readfds, writefds;
       FD_ZERO( &readfds );
+      FD_ZERO( &writefds );
       FD_SET( d_clientsock, &readfds );
       int fdmax=d_clientsock;
 
@@ -543,8 +595,19 @@ int main(int argc, char **argv)
 	FD_SET( *i, &readfds );
 	fdmax=max(fdmax,*i);
       }
+      for(map<int,PacketID>::const_iterator i=d_tcpclientreadsocks.begin(); i!=d_tcpclientreadsocks.end(); ++i) {
+	// cerr<<"Adding TCP socket "<<i->first<<" to read select set"<<endl;
+	FD_SET( i->first, &readfds );
+	fdmax=max(fdmax,i->first);
+      }
 
-      int selret = select(  fdmax + 1, &readfds, NULL, NULL, &tv );
+      for(map<int,PacketID>::const_iterator i=d_tcpclientwritesocks.begin(); i!=d_tcpclientwritesocks.end(); ++i) {
+	// cerr<<"Adding TCP socket "<<i->first<<" to write select set"<<endl;
+	FD_SET( i->first, &writefds );
+	fdmax=max(fdmax,i->first);
+      }
+
+      int selret = select(  fdmax + 1, &readfds, &writefds, NULL, &tv );
       if(selret<=0) 
 	if (selret == -1 && errno!=EINTR) 
 	  throw AhuException("Select returned: "+stringerror());
@@ -562,7 +625,6 @@ int main(int argc, char **argv)
 	}
 	else { 
 	  if(P.d.qr) {
-
 	    pident.remote=fromaddr;
 	    pident.id=P.d.id;
 	    string packet;
@@ -613,6 +675,65 @@ int main(int argc, char **argv)
 	  }
 	}
       }
+
+      for(map<int,PacketID>::iterator i=d_tcpclientreadsocks.begin(); i!=d_tcpclientreadsocks.end();) { 
+	if(FD_ISSET(i->first, &readfds)) { // can we receive
+	  // cerr<<"Something happened on our socket when we wanted to read "<<i->first<<endl;
+	  // cerr<<"inMSG.size(): "<<i->second.inMSG.size()<<endl;
+	  char buffer[i->second.inNeeded];
+	  int ret=read(i->first, buffer, min(i->second.inNeeded,200));
+	  // cerr<<"Read returned "<<ret<<endl;
+	  if(ret > 0) {
+	    i->second.inMSG.append(buffer, buffer+ret);
+	    i->second.inNeeded-=ret;
+	    if(!i->second.inNeeded) {
+	      // cerr<<"Got entire load of "<<i->second.inMSG.size()<<" bytes"<<endl;
+	      PacketID pid=i->second;
+	      string msg=i->second.inMSG;
+	      
+	      d_tcpclientreadsocks.erase((i++));
+	      MT->sendEvent(pid, &msg);   // XXX DODGY
+	    }
+	    else {
+	      // cerr<<"Still have "<<i->second.inNeeded<<" left to go"<<endl;
+	      ++i;
+	    }
+	  }
+	  else {
+	    cerr<<"when reading ret="<<ret<<endl;
+	    ++i;
+	  }
+	}
+	else
+	  ++i;
+
+      }
+
+      for(map<int,PacketID>::iterator i=d_tcpclientwritesocks.begin(); i!=d_tcpclientwritesocks.end(); ) { 
+	if(FD_ISSET(i->first, &writefds)) { // can we send over TCP
+	  // cerr<<"Socket "<<i->first<<" available for writing"<<endl;
+	  int ret=write(i->first, i->second.outMSG.c_str(), i->second.outMSG.size() - i->second.outPos);
+	  if(ret > 0) {
+	    i->second.outPos+=ret;
+	    if(i->second.outPos==i->second.outMSG.size()) {
+	      // cerr<<"Sent out entire load of "<<i->second.outMSG.size()<<" bytes"<<endl;
+	      PacketID pid=i->second;
+	      d_tcpclientwritesocks.erase((i++));
+	      MT->sendEvent(pid, 0);
+	      // cerr<<"Sent event too"<<endl;
+	    }
+	    else
+	      ++i;
+	  }
+	  else { 
+	    ++i;
+	    cerr<<"ret="<<ret<<" when writing"<<endl;
+	  }
+	}
+	else
+	  ++i;
+      }
+
 
       for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
 	if(FD_ISSET(i->fd, &readfds)) {
