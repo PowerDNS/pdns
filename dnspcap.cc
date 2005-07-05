@@ -44,28 +44,26 @@ try
 {
   for(;;) {
     checkedFread(&d_pheader);
+    if(!d_pheader.caplen)
+      continue;
+
+    if(d_pheader.caplen > sizeof(d_buffer)) {
+      d_oversized++;
+      throw runtime_error((format("Can't handle a %d byte packet, have space for %d")  % d_pheader.caplen % sizeof(d_buffer)).str());
+    }
+
+    checkedFreadSize(d_buffer, d_pheader.caplen);
 
     if(d_pheader.caplen!=d_pheader.len) {
       d_runts++;
-      if(fseek(d_fp, d_pheader.caplen, SEEK_CUR)<0)
-	unixDie((format("Skipping %d bytes in file %s") % d_pheader.caplen % d_fname).str());
       continue;
     }
-    if(!d_pheader.caplen)
-      continue;
-    if(d_pheader.caplen > sizeof(d_buffer)) {
-      d_oversized++;
-      if(fseek(d_fp, d_pheader.caplen, SEEK_CUR)<0)
-	unixDie((format("Skipping %d bytes in file %s") % d_pheader.caplen % d_fname).str());
-      continue;
-    }
-    
-    checkedFreadSize(d_buffer, d_pheader.caplen);
+
     d_ether=reinterpret_cast<struct ether_header*>(d_buffer);
-    d_ip=reinterpret_cast<struct iphdr*>(d_buffer + sizeof(struct ether_header));
-    
-    if(ntohs(d_ether->ether_type)==0x0800 && d_ip->protocol==17) { // udp
-      d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + sizeof(struct ether_header) + 4 * d_ip->ihl);
+    d_ip=reinterpret_cast<struct ip*>(d_buffer + sizeof(struct ether_header));
+
+    if(ntohs(d_ether->ether_type)==0x0800 && d_ip->ip_p==17) { // udp
+      d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + sizeof(struct ether_header) + 4 * d_ip->ip_hl);
       d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
       d_len = ntohs(d_udp->len) - sizeof(struct udphdr);
       d_correctpackets++;

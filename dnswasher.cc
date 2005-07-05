@@ -53,14 +53,19 @@ try
   IPObfuscator ipo;
 
   while(pr.getUDPPacket()) {
-    if(ntohs(pr.d_udp->dest)==53 || ntohs(pr.d_udp->source)==53 && pr.d_len > sizeof(HEADER)) {
+    if(ntohs(pr.d_udp->uh_dport)==53 || ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(HEADER)) {
       HEADER* dh=(HEADER*)pr.d_payload;
 
       if(dh->rd) {
-	if(dh->qr)
-	  pr.d_ip->daddr=htonl(ipo.obf(pr.d_ip->daddr));
-	else
-	  pr.d_ip->saddr=htonl(ipo.obf(pr.d_ip->saddr));
+        uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
+        uint32_t *dst=(uint32_t*)&pr.d_ip->ip_dst;
+
+        if(dh->qr)
+          *dst=htonl(ipo.obf(*dst));
+        else
+          *src=htonl(ipo.obf(*src));
+
+        pr.d_ip->ip_sum=0;
 	
 	pw.write();
       }
