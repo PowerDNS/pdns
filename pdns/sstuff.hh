@@ -162,7 +162,7 @@ public:
     remote.sin_addr.s_addr=ep.address.byte;
     remote.sin_port=htons(ep.port);
     
-    if(::connect(d_socket,(struct sockaddr *)&remote,sizeof(remote))<0)
+    if(::connect(d_socket,(struct sockaddr *)&remote,sizeof(remote)) < 0 && errno != EINPROGRESS)
       throw NetworkError(strerror(errno));
   }
 

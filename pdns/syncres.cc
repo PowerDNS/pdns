@@ -39,6 +39,7 @@ map<string,NegCacheEntry> SyncRes::s_negcache;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
+unsigned int SyncRes::s_tcpoutqueries;
 unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
 bool SyncRes::s_log;
@@ -88,7 +89,6 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
       primeHints();
     }
   }
-
 
   if(!(res=doResolveAt(nsset,subdomain,qname,qtype,ret,depth, beenthere)))
     return 0;
@@ -338,8 +338,6 @@ inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &p
     }
     L<<endl;
   }
-  
-      
 
   return rnameservers;
 }
@@ -377,6 +375,8 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
       LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 
+      bool doTCP=false;
+
       if(s_throttle.shouldThrottle(d_now, remoteIP+"|"+qname+"|"+qtype.getName())) {
 	LOG<<prefix<<qname<<": query throttled "<<endl;
 	s_throttledqueries++;
@@ -386,8 +386,14 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       else {
 	s_outqueries++;
 	d_outqueries++;
-	int ret=d_lwr.asyncresolve(remoteIP,qname.c_str(),qtype.getCode());
-	if(ret != 1) { // <- we go out on the wire!
+      TryTCP:
+	if(doTCP) {
+	  s_tcpoutqueries++;
+	  d_tcpoutqueries++;
+	}
+
+	int ret=d_lwr.asyncresolve(remoteIP, qname.c_str(), qtype.getCode(), doTCP);    // <- we go out on the wire!
+	if(ret != 1) {
 	  if(ret==0) {
 	    LOG<<prefix<<qname<<": timeout resolving"<<endl;
 	    d_timeouts++;
@@ -482,7 +488,6 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	// for ANY answers we *must* have an authoritive answer
 	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && 
 		(((i->qtype==qtype) || (i->qtype.getCode()>1024 && i->qtype.getCode()-1024==qtype.getCode())) || ( qtype==QType(QType::ANY) && 
-
 														   d_lwr.d_aabit)))  {
 	  if(i->qtype.getCode() < 1024) {
 	    LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
@@ -531,6 +536,15 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	return doResolve(newtarget, qtype, ret,0,beenthere2);
       }
       if(nsset.empty() && !d_lwr.d_rcode) {
+	if(!negindic && d_lwr.d_tcbit) {
+	  if(!doTCP) {
+	    doTCP=true;
+	    LOG<<prefix<<qname<<": status=noerror, truncated bit set, no negative SOA, retrying via TCP"<<endl;
+	    goto TryTCP;
+	  }
+	  LOG<<prefix<<qname<<": status=noerror, truncated bit set, over TCP?"<<endl;
+	  continue;
+	}
 	LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return 0;
       }
