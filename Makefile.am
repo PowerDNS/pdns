@@ -51,7 +51,7 @@ qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 qgen_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ -lboost_regex
 
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
-	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh 
+	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
 
 dnswasher_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
 
