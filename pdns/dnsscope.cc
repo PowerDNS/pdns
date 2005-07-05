@@ -1,3 +1,4 @@
+#define __FAVOR_BSD
 #include <pcap.h>
 
 #include "statbag.hh"
@@ -8,6 +9,7 @@
 #include <map>
 #include <set>
 #include <fstream>
+#include <algorithm>
 #include "anadns.hh"
 
 using namespace boost;
@@ -41,7 +43,7 @@ try
   if(argc==3)
     pw=new PcapPacketWriter(argv[2], pr);
 
-  int dnserrors=0;
+  int dnserrors=0, bogus=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0;
@@ -53,8 +55,8 @@ try
 
 
   while(pr.getUDPPacket()) {
-    if((ntohs(pr.d_udp->dest)==5300 || ntohs(pr.d_udp->source)==5300 ||
-	ntohs(pr.d_udp->dest)==53   || ntohs(pr.d_udp->source)==53) &&
+    if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
+	ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
         pr.d_len > sizeof(HEADER)) {
       try {
 	MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
@@ -111,9 +113,9 @@ try
 	continue;
       }
       catch(exception& e) {
-	cerr<<"Bogus packet"<<endl;
 	if(pw)
 	  pw->write();
+	bogus++;
 	continue;
       }
     }
@@ -121,7 +123,7 @@ try
   cerr<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
 
   cerr<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
-    pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors"<<endl;
+    pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
 
   unsigned int unanswered=0;
   for(statmap_t::const_iterator i=statmap.begin(); i!=statmap.end(); ++i) {
