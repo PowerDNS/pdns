@@ -1,15 +1,16 @@
 #ifndef PDNS_DNSPCAP_HH
 #define PDNS_DNSPCAP_HH
-#define __FAVOR_BSD
+
 #include <cstdio>
 #include <stdexcept>
 #include <string>
 #include "misc.hh"
 #include <iostream>
+#define __FAVOR_BSD
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-#include <netinet/ether.h>
+#include <net/ethernet.h>
 #include <vector>
 #include <pcap.h>
 #include <boost/format.hpp>
