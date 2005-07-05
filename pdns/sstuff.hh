@@ -274,7 +274,7 @@ public:
 
 
   //! reads one character from the socket 
-  int getchar()
+  int getChar()
   {
     char c;
 
@@ -286,9 +286,9 @@ public:
 
   void getline(string &data)
   {
-    data.clear();
+    data="";
     int c;
-    while((c=getchar())!=-1) {
+    while((c=getChar())!=-1) {
       data+=(char)c;
       if(c=='\n')
 	break;

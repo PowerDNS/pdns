@@ -55,7 +55,7 @@ dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 
 dnswasher_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
 
-dnsreplay_SOURCES=dnsreplay.cc misc.cc unix_utility.cc qtype.cc \
+dnsreplay_SOURCES=dnsreplay.cc misc.cc unix_utility.cc qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh 
 
 dnsreplay_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
