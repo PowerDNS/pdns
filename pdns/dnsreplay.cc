@@ -260,17 +260,13 @@ try
 
     HEADER* dh=(HEADER*)pr.d_payload;
     //                                                             non-recursive  
-    if((ntohs(pr.d_udp->dest)!=53 && ntohs(pr.d_udp->source)!=53) || !dh->rd || pr.d_len <= sizeof(HEADER)) 
+    if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || !dh->rd || (unsigned int)pr.d_len <= sizeof(HEADER))
       continue;
     
-    
-
     try {
       MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
       QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
 
-      int inflight;
-      
       if(!mdp.d_header.qr) {
 	s_questions++;
 	{ 
@@ -299,7 +295,7 @@ try
 	  seconds/=factor;
 	  useconds/=factor;
 	  
-	  long long nanoseconds=1000000000ULL*seconds + useconds * 1000;
+	  long long nanoseconds=(long long)(1000000000ULL*seconds + useconds * 1000);
 	  
 	  struct timespec tosleep;
 	  tosleep.tv_sec=nanoseconds/1000000000UL;

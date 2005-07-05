@@ -23,20 +23,28 @@ struct QuestionIdentifier
   }
 
   // the canonical direction is that of the question
-  static QuestionIdentifier create(const struct iphdr* d_ip, const struct udphdr* d_udp, const MOADNSParser& mdp)
+  static QuestionIdentifier create(const struct ip* ip, const struct udphdr* udp, const MOADNSParser& mdp)
   {
     QuestionIdentifier ret;
     if(mdp.d_header.qr) {
-      ret.d_sourceip=htonl(d_ip->daddr);
-      ret.d_destip=htonl(d_ip->saddr);
-      ret.d_sourceport=htons(d_udp->dest);
-      ret.d_destport=htons(d_udp->source);
+      memcpy(&ret.d_sourceip, &ip->ip_dst, sizeof(ret.d_sourceip));
+      ret.d_sourceip=htonl(ret.d_sourceip);
+
+      memcpy(&ret.d_destip, &ip->ip_src, sizeof(ret.d_destip));
+      ret.d_destip=htonl(ret.d_destip);
+
+      ret.d_sourceport=htons(udp->uh_dport);
+      ret.d_destport=htons(udp->uh_sport);
     }
     else {
-      ret.d_sourceip=htonl(d_ip->saddr);
-      ret.d_destip=htonl(d_ip->daddr);
-      ret.d_sourceport=htons(d_udp->source);
-      ret.d_destport=htons(d_udp->dest);
+      memcpy(&ret.d_sourceip, &ip->ip_src, sizeof(ret.d_sourceip));
+      ret.d_sourceip=htonl(ret.d_sourceip);
+
+      memcpy(&ret.d_destip, &ip->ip_dst, sizeof(ret.d_destip));
+      ret.d_destip=htonl(ret.d_destip);
+
+      ret.d_sourceport=htons(udp->uh_sport);
+      ret.d_destport=htons(udp->uh_dport);
     }
     ret.d_qname=mdp.d_qname;
     ret.d_qtype=mdp.d_qtype;
