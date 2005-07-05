@@ -89,6 +89,10 @@ PcapPacketWriter::PcapPacketWriter(const string& fname, PcapPacketReader& ppr) :
   if(!d_fp)
     unixDie("Unable to open file");
   
+  
+  int flags=fcntl(fileno(d_fp),F_GETFL,0);
+  fcntl(fileno(d_fp), F_SETFL,flags&(~O_NONBLOCK)); // bsd needs this in stdin (??)
+
   fwrite(&ppr.d_pfh, 1, sizeof(ppr.d_pfh), d_fp);
   
 }
