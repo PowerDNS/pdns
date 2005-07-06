@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2005 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 as 
+    published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -103,14 +102,14 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
     string packet=string(lenP, lenP+2)+string(msgP, msgP+p.len);
 
     if(asendtcp(packet, &s) == 0) {
-      cerr<<"asendtcp: timeout"<<endl;
-      return -1;
+      //      cerr<<"asendtcp: timeout"<<endl;
+      return 0;
     }
     
     packet.clear();
     if(arecvtcp(packet,2, &s)==0) {
-      cerr<<"arecvtcp: timeout"<<endl;
-      return -1;
+      //      cerr<<"arecvtcp: timeout"<<endl;
+      return 0;
     }
 
     memcpy(&len, packet.c_str(), 2);
@@ -119,8 +118,8 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
     //    cerr<<"Now reading "<<len<<" bytes"<<endl;
 
     if(arecvtcp(packet, len, &s)==0) {
-      cerr<<"arecvtcp: timeout"<<endl;
-      return -1;
+      //      cerr<<"arecvtcp: timeout"<<endl;
+      return 0;
     }
 
     memcpy(d_buf, packet.c_str(), len);
@@ -141,7 +140,7 @@ LWRes::res_t LWRes::result()
     if(p.parse((char *)d_buf, d_len)<0)
       throw LWResException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
     d_aabit=p.d.aa;
-    d_aabit=p.d.tc;
+    d_tcbit=p.d.tc;
     d_rcode=p.d.rcode;
     return p.getAnswers();
   }
