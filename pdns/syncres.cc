@@ -411,6 +411,17 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
 
       result=d_lwr.result();
+
+      if(d_lwr.d_tcbit) {
+	if(!doTCP) {
+	  doTCP=true;
+	  LOG<<prefix<<qname<<": truncated bit set, retrying via TCP"<<endl;
+	  goto TryTCP;
+	}
+	LOG<<prefix<<qname<<": truncated bit set, over TCP?"<<endl;
+	return RCode::ServFail;
+      }
+
       if(d_lwr.d_rcode==RCode::ServFail) {
 	LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
 	s_throttle.throttle(d_now,remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
@@ -536,15 +547,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	return doResolve(newtarget, qtype, ret,0,beenthere2);
       }
       if(nsset.empty() && !d_lwr.d_rcode) {
-	if(!negindic && d_lwr.d_tcbit) {
-	  if(!doTCP) {
-	    doTCP=true;
-	    LOG<<prefix<<qname<<": status=noerror, truncated bit set, no negative SOA, retrying via TCP"<<endl;
-	    goto TryTCP;
-	  }
-	  LOG<<prefix<<qname<<": status=noerror, truncated bit set, over TCP?"<<endl;
-	  continue;
-	}
+
 	LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return 0;
       }
