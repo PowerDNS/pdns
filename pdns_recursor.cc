@@ -208,7 +208,7 @@ void primeHints(void)
 
     nsset.insert(nsrr);
   }
-  RC.replace("",QType(QType::NS),nsset);
+  RC.replace("",QType(QType::NS),nsset); // and stuff in the cache
 }
 
 void startDoResolve(void *p)
@@ -226,7 +226,7 @@ void startDoResolve(void *p)
 
     SyncRes sr;
     if(!quiet)
-      L<<Logger::Error<<"["<<MT->getTid()<<"] question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (R->d_tcp ? "TCP " : "") << "question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
 
     sr.setId(MT->getTid());
     if(!P.d.rd)
@@ -243,14 +243,31 @@ void startDoResolve(void *p)
 
     const char *buffer=R->getData();
 
-    if(!R->d_tcp)
+    if(!R->d_tcp) {
+      if(R->len > 512) 
+	R->truncate(512);
+
       sendto(R->getSocket(),buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+    }
     else {
       char buf[2];
       buf[0]=R->len/256;
       buf[1]=R->len%256;
-      if(write(R->getSocket(),buf,2)!=2 || write(R->getSocket(),buffer,R->len)!=R->len)
+
+      struct iovec iov[2];
+
+      iov[0].iov_base=(void*)buf;    iov[0].iov_len=2;
+      iov[1].iov_base=(void*)buffer; iov[1].iov_len = R->len;
+
+      int ret=writev(R->getSocket(), iov, 2);
+
+      if(ret <= 0 ) 
+	L<<Logger::Error<<"Error writing TCP answer to "<<P.getRemote()<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
+      else if(ret != 2 + R->len)
 	L<<Logger::Error<<"Oops, partial answer sent to "<<P.getRemote()<<" - probably would have trouble receiving our answer anyhow (size="<<R->len<<")"<<endl;
+
+      //      if(write(R->getSocket(),buf,2)!=2 || write(R->getSocket(),buffer,R->len)!=R->len)
+      //  XXX FIXME write this writev fallback otherwise
     }
 
     if(!quiet) {
@@ -309,10 +326,6 @@ void makeTCPServerSockets()
   if(locals.empty())
     throw AhuException("No local address specified");
   
-  if(arg()["local-address"]=="0.0.0.0") {
-    L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
-  }
-
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     int fd=socket(AF_INET, SOCK_STREAM,0);
     if(fd<0) 
@@ -636,7 +649,6 @@ int main(int argc, char **argv)
 	}
       }
       
-
       for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
 	if(FD_ISSET(*i,&readfds)) { // do we have a new question on udp?
 	  d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
