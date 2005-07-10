@@ -78,8 +78,9 @@ ArgvMap &arg()
 }
 static int d_clientsock;
 static vector<int> d_udpserversocks;
-static vector<int> d_tcpserversocks;
 
+typedef vector<int> tcpserversocks_t;
+static tcpserversocks_t s_tcpserversocks;
 
 struct PacketID
 {
@@ -351,7 +352,7 @@ void makeTCPServerSockets()
     
     Utility::setNonBlocking(fd);
     listen(fd, 128);
-    d_tcpserversocks.push_back(fd);
+    s_tcpserversocks.push_back(fd);
     L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
   }
 }
@@ -468,6 +469,7 @@ struct TCPConnection
   int bytesread;
   struct sockaddr_in remote;
   char data[65535];
+  time_t startTime;
 };
 
 int main(int argc, char **argv) 
@@ -496,6 +498,8 @@ int main(int argc, char **argv)
     arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     arg().set("delegation-only","Which domains we only accept delegations from")="";
     arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
+    arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
+    arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
 
     arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
@@ -574,6 +578,8 @@ int main(int argc, char **argv)
 
     vector<TCPConnection> tcpconnections;
     counter=0;
+    time_t now;
+    unsigned int maxTcpClients=arg().asNum("max-tcp-clients");
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
       
@@ -596,18 +602,34 @@ int main(int argc, char **argv)
       FD_SET( d_clientsock, &readfds );
       int fdmax=d_clientsock;
 
-      for(vector<TCPConnection>::const_iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
-	FD_SET(i->fd, &readfds);
-	fdmax=max(fdmax,i->fd);
+      if(!tcpconnections.empty())
+	now=time(0);
+
+      vector<TCPConnection> sweeped;
+      int tcpLimit=arg().asNum("client-tcp-timeout");
+      for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
+	if(now < i->startTime + tcpLimit) {
+	  FD_SET(i->fd, &readfds);
+	  fdmax=max(fdmax,i->fd);
+	  sweeped.push_back(*i);
+	}
+	else {
+	  L<<Logger::Error<<"TCP timeout from client "<<inet_ntoa(i->remote.sin_addr)<<endl;
+	  close(i->fd);
+	}
       }
+      sweeped.swap(tcpconnections);
+
       for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
 	FD_SET( *i, &readfds );
 	fdmax=max(fdmax,*i);
       }
-      for(vector<int>::const_iterator i=d_tcpserversocks.begin(); i!=d_tcpserversocks.end(); ++i) {
-	FD_SET( *i, &readfds );
-	fdmax=max(fdmax,*i);
-      }
+      if(tcpconnections.size() < maxTcpClients) 
+	for(tcpserversocks_t::const_iterator i=s_tcpserversocks.begin(); i!=s_tcpserversocks.end(); ++i) {
+	  FD_SET(*i, &readfds );
+	  fdmax=max(fdmax,*i);
+	}
+
       for(map<int,PacketID>::const_iterator i=d_tcpclientreadsocks.begin(); i!=d_tcpclientreadsocks.end(); ++i) {
 	// cerr<<"Adding TCP socket "<<i->first<<" to read select set"<<endl;
 	FD_SET( i->first, &readfds );
@@ -671,7 +693,7 @@ int main(int argc, char **argv)
 	}
       }
 
-      for(vector<int>::const_iterator i=d_tcpserversocks.begin(); i!=d_tcpserversocks.end(); ++i) { 
+      for(tcpserversocks_t::const_iterator i=s_tcpserversocks.begin(); i!=s_tcpserversocks.end(); ++i) { 
 	if(FD_ISSET(*i ,&readfds)) { // do we have a new TCP connection
 	  struct sockaddr_in addr;
 	  socklen_t addrlen=sizeof(addr);
@@ -683,6 +705,7 @@ int main(int argc, char **argv)
 	    tc.fd=newsock;
 	    tc.state=TCPConnection::BYTE0;
 	    tc.remote=addr;
+	    tc.startTime=time(0);
 	    tcpconnections.push_back(tc);
 	  }
 	}
