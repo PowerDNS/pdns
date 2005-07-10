@@ -81,9 +81,249 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-18"><title>Version 2.9.18 (unreleased)</title>
+	<para> 
+	  The '8 million domains' release, which also marks the battle readiness of the PowerDNS Recursor. This release brings a number of new features,
+	  but also has a new build dependency, the <ulink url="http://www.boost.org">Boost library</ulink>.
+	</para>
+	<para>
+	  General bugs fixed:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		TCP authoritative server would not relaunch a backend after failure (reported by Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fix backend restarting logic (reported, and suggested fix by Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Launching identical backends multiple times, with different settings, did not work. Reported by Mario Manno.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Questions from clients denied recursion could blank out answers to clients who are allowed recursion services, temporarily. Reported by Wilco Baan.
+		This would've made it possible for outsiders to blank out a domain temporarily to your users. Luckily PowerDNS would send out SERVFAIL or Refused, and
+		not a denial of a domain's existence.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Master/slave queries did not honour the <command>query-local-address</command> setting. Spotted by David Levy of Register.com. 
+		The fix also randomises the local port used, slightly improving security. 
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Compilation fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Fix compile on Solaris, they define 'PC' for some reason. Reported by Eric Yiu.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS recursor would not compile on FreeBSD due to Linux specific defines, as reported in cvstrac ticket 26 (Ralf van der Enden) 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Several 64 bits issues have been fixed, especially in the Logging subsystem.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SSQLite would fail to compile on recent Debian systems (Matthijs Mohlmann)
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		PowerDNS now reports stray command line arguments, like when running '--local-port 5300' instead of '--local-port=5300'. Reported by Christian Welzel.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		We now warn against erroneous logging-facility specification, ie specifying an unknown facility.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>--version</command> now outputs gcc version used, so we can tell people 2.95 is no longer supported.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Extended regression tests, moved it to the new 'sdig' tool.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bind2backend is now blazingly fast, and highly memory efficient to boot. As a special bonus it can read gzipped zones directly. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The Pipe Backend has been improved such that it can send out different answers based on the IP address the question was received ON. See
+		<xref linkend="pipebackend-protocol"> for how this changed the Pipe Backend protocol. Note that you need to set 
+		<command>pipebackend-abi-version</command> to benefit from this change, existing clients are not affected. Change and documentation contributed 
+		by Marc Jauvin of Register4Less.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  See <xref linkend="recursion"> for details. Recursor improvements and fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		After half an hour of uptime, the entire cache would be pruned for each packet, which is a tad slow. It now appears 
+		the pdns recursor is among the faststest around.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Lots of redundant gettimeofday() and time() calls were removed, which has resulted in a measurable speedup. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_recursor can now listen on several addresses simultaneously.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Now supports setuid and setgid operation to allow running as a less privileged user (Bram Vandoren)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Return code of pdns_recursor binary did not make sense (Matthijs Mohlmann and Thomas Hood)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Timeouts and errors are now split out in statistics. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Many people reported broken statistics, it turned out that no statistics were being reported if there had been no questions to base them on. 
+		We now log a message to that effect.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Add <command>query-local-address</command> support, which allows the recursor to send questions from a specific IP address. Useful
+		for anycast setups.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Add outgoing TCP query support and proper truncated answer support. Needed for Worldnic Denial of Service protection, which
+		sends out truncated packets to force clients to connect over TCP, which prevents spoofing. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Properly truncate our own answers.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Improve our TCP answers by using writev, which is slightly friendlier to the network.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Maximum number of simultaneous client TCP connections can now be limited with the <command>max-tcp-clients</command> setting.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Add agressive timeouts for TCP clients to make sure resources are not wasted. Defaults to two seconds, can be
+		configured with the <command>client-tcp-timeout</command> setting.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	Backend fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		SQLite backend would not slave properly (Darron Broad)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generic MySQL would not compile on 64-bit platforms.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  New technology:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Added the new DNS parser logic, called MOADNSParser. Completely modular, every memory access checked. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		'sdig', a simple dig workalike with 'canonical' output, which is used for the regression tests. Based on the new DNS parser logic.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>dnswasher</command>, <command>dnsreplay</command> and <command>dnsscope</command>, all DNS analysis tools. See <xref linkend="analysis">
+		for more details.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generic MySQL would not compile on 64-bit platforms.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  New technology:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Added the new DNS parser logic, called MOADNSParser. Completely modular, every memory access checked. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		'sdig', a simple dig workalike with 'canonical' output, which is used for the regression tests. Based on the new DNS parser logic.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generic Oracle Backend, sponsored by Register.COM. See <xref linkend="goracle">.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+
+      </sect2>
       <sect2 id="changelog-2-9-17"><title>Version 2.9.17</title>
 	<para>
-	  See <ulink url="http://ds9a.nl/cgi-bin/cvstrac/pdns/timeline">the new timeline</ulink> for progress reports.
+	  See <ulink url="http://wiki.powerdns.com/projects/trac/timeline">the new timeline</ulink> for progress reports.
 	</para>
 	<para>
 	  The 'million domains' release - PowerDNS has now firmly established itself as a major player with the 
@@ -3871,9 +4111,6 @@ name         IN            A        1.2.3.4
 	      </para>
 	    </listitem>
 	  </varlistentry>
-
-
-
 	</variablelist>
       </para>
     </sect1>
@@ -5123,7 +5360,7 @@ local0.err                        /var/log/pdns.err
 	    or ask him to port MTasker (see below) to your operating system.
 	  </para></listitem>
 	<listitem><para>
-	    May have big problems with truncated packets.
+	    May have big problems with truncated packets (solved in 2.9.18)
 	  </para></listitem>
       </itemizedlist>
     </para>
@@ -5132,14 +5369,7 @@ local0.err                        /var/log/pdns.err
       compiled. To run on a different port, use <command>./syncres --local-port=53</command>.
       To bind to another address, use the <command>local-address</command> setting.
     </para>
-    <para>
-      <note>
-	<para>
-	  PowerDNS author bert hubert has the pdns recursor in production and browsing with it works for him. Furthermore, the LARTC
-	  mailinglist (2000 subscribers) is using the pdns recursing nameserver. 
-	</para>
-      </note>
-    </para>
+
     <para>
       Good points:
       <itemizedlist>
@@ -5148,6 +5378,9 @@ local0.err                        /var/log/pdns.err
 	  </para></listitem>
 	<listitem><para>
 	    Can handle thousands of concurrent questions
+	  </para></listitem>
+	  <listitem><para>
+	  Appears to be very fast, and contains innovative query-throttling code to save time talking to obsolete or broken nameservers.
 	  </para></listitem>
 	<listitem><para>
 	    Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
@@ -5178,6 +5411,14 @@ local0.err                        /var/log/pdns.err
 		If turned on, the recursor will attempt to add AAAA IPv6 records to questions for MX records and NS records.
 		Can be quite slow as absence of these records in earlier answers does not guarantee their non-existance. Can double
 		the amount of queries needed. Off by default.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>client-tcp-timeout</term>
+	    <listitem>
+	      <para>
+	      Time to wait for data from TCP clients. Defaults to 2 seconds. Available since 2.9.18. 
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -5220,6 +5461,22 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		Local port (singular) to bind to. Defaults to 53.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>max-tcp-clients</term>
+	    <listitem>
+	      <para>
+	      Maximum number of simultaneous incoming TCP connections allowed. Defaults to 128. Available since 2.9.18. 
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>query-local-address</term>
+	    <listitem>
+	      <para>
+		Send out local queries from this address. Useful for anycast.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -6550,6 +6807,40 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	</variablelist>
       </para>
     </sect1>
+  </chapter>
+  <chapter id="analysis"><title>Tools to analyse DNS traffic</title>
+  <para>
+    DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since 2.9.18, PowerDNS comes
+    with three tools to aid in analysis:
+    <variablelist>
+    <varlistentry>
+    <term>dnsreplay pcapfile [ipaddress] [port number]</term>
+    <listitem>
+    <para>
+    This program takes recorded questions and answers and replays them to a specified nameserver and reporting afterwards
+    which percentage of answers matched, were worse or better.
+    </para>
+    </listitem>
+    </varlistentry>
+    <varlistentry>
+    <term>dnswasher pcapfile output</term>
+    <listitem>
+    <para>
+    Anonymises recorded traffic, making sure it only contains DNS, and that the originating IP addresses of queries are stripped, which may
+    allow you to send traces to our company or mailing list without violating obligations towards your customers or privacy laws.
+    </para>
+    </listitem>
+    </varlistentry>
+    <varlistentry>
+    <term>dnsscope pcapfile</term>
+    <listitem>
+    <para>
+    Calculates statistics without replaying traffic
+    </para>
+    </listitem>
+    </varlistentry>
+    </variablelist>
+    </para>
   </chapter>
   <Appendix id="backends-detail"><title>Backends in detail</title>
     <para>
@@ -9618,7 +9909,7 @@ static RandomLoader randomloader;
     <sect1 id="on-unix"><title>Compiling PowerDNS on Unix</title>
       <para>
 	<note><para>
-	    For now, see <ulink url="http://www.powerdns.org">the Open Source PowerDNS site</ulink>. 
+	    For now, see <ulink url="http://wiki.powerdns.com/">the Open Source PowerDNS site</ulink>. 
 	    <command>./configure ; make ; make install</command> will do The Right Thing for most people.
 	  </para></note>
       </para>
@@ -9633,6 +9924,10 @@ static RandomLoader randomloader;
       <para>
 	To compile a module for inclusion at runtime, which is great if you are a unix vendor, use <command>--with-dynmodules="mod1 mod2 mod3"</command>.
 	These modules then end up as .so files in the compiled libdir. 
+      </para>
+      <para>
+        Starting with version 2.9.18, PowerDNS requires 'Boost' to compile, it is available for most operating systems. Otherwise, see <ulink url="http://www.boost.org">the Boost 
+	website</ulink>.
       </para>
       <sect2 id="unix-aix"><title>AIX</title>
 	<para>
