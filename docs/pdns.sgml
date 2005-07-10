@@ -87,6 +87,23 @@
 	  but also has a new build dependency, the <ulink url="http://www.boost.org">Boost library</ulink>.
 	</para>
 	<para>
+	  Currently several big ISPs are evaluating the PowerDNS recursor for their resolving needs, some of them have switched already.
+	  In the course of testing, over 350 million actual queries have been recorded and replayed, the answers turn out to be satisfactorily, 
+	  although we are still looking into some very minor discrepancies (less than 0.05% of queries have unexplained differences).
+	</para>
+	<para>
+	  This testing has verified that the pdns recursor, as shipped in this release, can stand up to heavy duty ISP loads 
+	  (over 20000 queries/second) and in fact does so better than major other nameservers. 
+	</para>
+	<para>
+	  We invite ISPs who note recursor problems to record their problematic traffic and replay it using the tools described in
+	  <xref linkend="analysis"> to discover if PowerDNS does a better job, and to let us know the results.
+	</para>
+	<para>
+	  In other news, the entire Wikipedia constellation now runs on PowerDNS using the Geo Backend! Thanks to Mark Bergsma
+	  for keeping us updated.
+	</para>
+	<para>
 	  General bugs fixed:
 	  <itemizedlist>
 	    <listitem>
@@ -96,7 +113,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Fix backend restarting logic (reported, and suggested fix by Norbert Sendetzky)
+		Fix backend restarting logic (reported, and fix suggested by Norbert Sendetzky)
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -142,6 +159,11 @@
 		SSQLite would fail to compile on recent Debian systems (Matthijs Mohlmann)
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		Generic MySQL would not compile on 64-bit platforms.
+	      </para>
+	    </listitem>
 	  </itemizedlist>
 	</para>
 	<para>
@@ -164,12 +186,13 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Extended regression tests, moved it to the new 'sdig' tool.
+		Extended regression tests, moved them to the new 'sdig' tool (see below).
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Bind2backend is now blazingly fast, and highly memory efficient to boot. As a special bonus it can read gzipped zones directly. 
+		Bind2backend is now blazingly fast, and highly memory efficient to boot. As a special bonus it can read gzipped zones directly. The '.NET' zone
+		is hosted using 401MB of memory, the same size as the zone on disk.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -180,10 +203,16 @@
 		by Marc Jauvin of Register4Less.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP backend has been updated (Norbert Sendetzky).
+	      </para>
+	    </listitem>
 	  </itemizedlist>
 	</para>
 	<para>
-	  See <xref linkend="recursion"> for details. Recursor improvements and fixes:
+	  Recursor improvements and fixes.
+	  See <xref linkend="recursion"> for details. The changes below mean that all of the caveats listed for the recursor have now been addressed.
 	  <itemizedlist>
 	    <listitem>
 	      <para>
@@ -291,26 +320,7 @@
 		for more details.
 	      </para>
 	    </listitem>
-	    <listitem>
-	      <para>
-		Generic MySQL would not compile on 64-bit platforms.
-	      </para>
-	    </listitem>
-	  </itemizedlist>
-	</para>
-	<para>
-	  New technology:
-	  <itemizedlist>
-	    <listitem>
-	      <para>
-		Added the new DNS parser logic, called MOADNSParser. Completely modular, every memory access checked. 
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		'sdig', a simple dig workalike with 'canonical' output, which is used for the regression tests. Based on the new DNS parser logic.
-	      </para>
-	    </listitem>
+
 	    <listitem>
 	      <para>
 		Generic Oracle Backend, sponsored by Register.COM. See <xref linkend="goracle">.
@@ -320,7 +330,6 @@
 	</para>
       </sect2>
 
-      </sect2>
       <sect2 id="changelog-2-9-17"><title>Version 2.9.17</title>
 	<para>
 	  See <ulink url="http://wiki.powerdns.com/projects/trac/timeline">the new timeline</ulink> for progress reports.
