@@ -46,7 +46,6 @@ void Logger::log(const string &msg, Urgency u)
     S.ringAccount("logmessages",msg);
     syslog(u,"%s",msg.c_str());
   }
-
 }
 
 void Logger::setLoglevel( Urgency u )
