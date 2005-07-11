@@ -91,12 +91,13 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
     ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, p.d.id);
   }
   else {
+    //    cerr<<"do tcp"<<endl;
     Socket s(InterNetwork, Stream);
     IPEndpoint ie(ip, 53);
     s.setNonBlocking();
     s.connect(ie);
 
-    int len=htons(p.len);
+    unsigned int len=htons(p.len);
     char *lenP=(char*)&len;
     const char *msgP=p.getData();
     string packet=string(lenP, lenP+2)+string(msgP, msgP+p.len);
@@ -121,7 +122,11 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
       //      cerr<<"arecvtcp: timeout"<<endl;
       return 0;
     }
-
+    if(len > d_bufsize) {
+      d_bufsize=len;
+      delete[] d_buf;
+      d_buf = new unsigned char[d_bufsize];
+    }
     memcpy(d_buf, packet.c_str(), len);
     d_len=len;
     ret=1;

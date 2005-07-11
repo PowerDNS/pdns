@@ -246,8 +246,9 @@ void startDoResolve(void *p)
     const char *buffer=R->getData();
 
     if(!R->d_tcp) {
-      if(R->len > 512) 
+      if(R->len > 512) {
 	R->truncate(512);
+      }
 
       sendto(R->getSocket(),buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
     }

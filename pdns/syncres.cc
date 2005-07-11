@@ -411,7 +411,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
 
       result=d_lwr.result();
-
+      
       if(d_lwr.d_tcbit) {
 	if(!doTCP) {
 	  doTCP=true;
