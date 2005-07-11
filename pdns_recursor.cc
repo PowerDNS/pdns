@@ -39,6 +39,7 @@
 #include "sstuff.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <boost/shared_array.hpp>
 
 using namespace boost;
 
@@ -712,14 +713,14 @@ int main(int argc, char **argv)
       }
 
       for(map<int,PacketID>::iterator i=d_tcpclientreadsocks.begin(); i!=d_tcpclientreadsocks.end();) { 
+	bool haveErased=false;
 	if(FD_ISSET(i->first, &readfds)) { // can we receive
-	  // cerr<<"Something happened on our socket when we wanted to read "<<i->first<<endl;
-	  // cerr<<"inMSG.size(): "<<i->second.inMSG.size()<<endl;
-	  char buffer[i->second.inNeeded];
-	  int ret=read(i->first, buffer, min(i->second.inNeeded,200));
+	  shared_array<char> buffer(new char[i->second.inNeeded]);
+
+	  int ret=read(i->first, buffer.get(), min(i->second.inNeeded,200));
 	  // cerr<<"Read returned "<<ret<<endl;
 	  if(ret > 0) {
-	    i->second.inMSG.append(buffer, buffer+ret);
+	    i->second.inMSG.append(&buffer[0], &buffer[ret]);
 	    i->second.inNeeded-=ret;
 	    if(!i->second.inNeeded) {
 	      // cerr<<"Got entire load of "<<i->second.inMSG.size()<<" bytes"<<endl;
@@ -727,24 +728,23 @@ int main(int argc, char **argv)
 	      string msg=i->second.inMSG;
 	      
 	      d_tcpclientreadsocks.erase((i++));
+	      haveErased=true;
 	      MT->sendEvent(pid, &msg);   // XXX DODGY
 	    }
 	    else {
 	      // cerr<<"Still have "<<i->second.inNeeded<<" left to go"<<endl;
-	      ++i;
 	    }
 	  }
 	  else {
 	    cerr<<"when reading ret="<<ret<<endl;
-	    ++i;
 	  }
 	}
-	else
+	if(!haveErased)
 	  ++i;
-
       }
 
       for(map<int,PacketID>::iterator i=d_tcpclientwritesocks.begin(); i!=d_tcpclientwritesocks.end(); ) { 
+	bool haveErased=false;
 	if(FD_ISSET(i->first, &writefds)) { // can we send over TCP
 	  // cerr<<"Socket "<<i->first<<" available for writing"<<endl;
 	  int ret=write(i->first, i->second.outMSG.c_str(), i->second.outMSG.size() - i->second.outPos);
@@ -755,17 +755,16 @@ int main(int argc, char **argv)
 	      PacketID pid=i->second;
 	      d_tcpclientwritesocks.erase((i++));
 	      MT->sendEvent(pid, 0);
+	      haveErased=true;
 	      // cerr<<"Sent event too"<<endl;
 	    }
-	    else
-	      ++i;
+
 	  }
 	  else { 
-	    ++i;
 	    cerr<<"ret="<<ret<<" when writing"<<endl;
 	  }
 	}
-	else
+	if(!haveErased)
 	  ++i;
       }
 
