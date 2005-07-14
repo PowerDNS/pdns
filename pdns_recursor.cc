@@ -564,6 +564,7 @@ int main(int argc, char **argv)
     }
     signal(SIGUSR1,usr1Handler);
     signal(SIGUSR2,usr2Handler);
+    signal(SIGPIPE,SIG_IGN);
 
     writePid();
 #endif
@@ -587,7 +588,7 @@ int main(int argc, char **argv)
 
     vector<TCPConnection> tcpconnections;
     counter=0;
-    time_t now;
+    time_t now=0;
     unsigned int maxTcpClients=arg().asNum("max-tcp-clients");
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
