@@ -122,14 +122,14 @@ int asendtcp(const string& data, Socket* sock)
   //  cerr<<"asendtcp called for "<<data.size()<<" bytes"<<endl;
   d_tcpclientwritesocks[sock->getHandle()]=pident;
 
-  if(!MT->waitEvent(pident,&packet,1)) { // timeout
+  int ret=MT->waitEvent(pident,&packet,1);
+  if(!ret || ret==-1) { // timeout
     d_tcpclientwritesocks.erase(sock->getHandle());
-    return 0; 
   }
-  //  cerr<<"asendtcp happy"<<endl;
-  return 1;
+  return ret;
 }
 
+// -1 is error, 0 is timeout, 1 is success
 int arecvtcp(string& data, int len, Socket* sock) 
 {
   data="";
@@ -141,22 +141,22 @@ int arecvtcp(string& data, int len, Socket* sock)
   // cerr<<d_tcpclientwritesocks.size()<<" write sockets"<<endl;
   d_tcpclientreadsocks[sock->getHandle()]=pident;
 
-  if(!MT->waitEvent(pident,&data,1)) { // timeout
+  int ret=MT->waitEvent(pident,&data,1);
+  if(!ret || ret==-1) { // timeout
     d_tcpclientreadsocks.erase(sock->getHandle());
-    return 0; 
   }
-
-  // cerr<<"arecvtcp happy, data.size(): "<<data.size()<<endl;
-  return 1;
+  return ret;
 }
 
 
 /* these two functions are used by LWRes */
+// -1 is error, > 1 is success
 int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id) 
 {
   return sendto(d_clientsock, data, len, flags, toaddr, addrlen);
 }
 
+// -1 is error, 0 is timeout, 1 is success
 int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id)
 {
   PacketID pident;
@@ -164,14 +164,13 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   memcpy(&pident.remote,toaddr,sizeof(pident.remote));
 
   string packet;
-  if(!MT->waitEvent(pident,&packet,1)) { // timeout
-    return 0; 
+  int ret=MT->waitEvent(pident,&packet,1);
+  if(ret > 0) {
+    *d_len=packet.size();
+    memcpy(data,packet.c_str(),min(len,*d_len));
   }
 
-  *d_len=packet.size();
-  memcpy(data,packet.c_str(),min(len,*d_len));
-
-  return 1;
+  return ret;
 }
 
 
@@ -220,12 +219,12 @@ void startDoResolve(void *p)
     DNSPacket P=*(DNSPacket *)p;
 
     delete (DNSPacket *)p;
-
+    
     vector<DNSResourceRecord>ret;
     DNSPacket *R=P.replyPacket();
     R->setA(false);
     R->setRA(true);
-
+    //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
     SyncRes sr;
     if(!quiet)
       L<<Logger::Error<<"["<<MT->getTid()<<"] " << (R->d_tcp ? "TCP " : "") << "question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
@@ -273,6 +272,7 @@ void startDoResolve(void *p)
       //  XXX FIXME write this writev fallback otherwise
     }
 
+    //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
     if(!quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
       L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
@@ -419,6 +419,12 @@ void usr1Handler(int)
   statsWanted=true;
 }
 
+void usr2Handler(int)
+{
+  SyncRes::setLog(true);
+}
+
+
 
 void doStats(void)
 {
@@ -557,6 +563,7 @@ int main(int argc, char **argv)
       daemonize();
     }
     signal(SIGUSR1,usr1Handler);
+    signal(SIGUSR2,usr2Handler);
 
     writePid();
 #endif
@@ -586,7 +593,7 @@ int main(int argc, char **argv)
       while(MT->schedule()); // housekeeping, let threads do their thing
       
       if(!((counter++)%100)) 
-	MT->makeThread(houseKeeping,0);
+	MT->makeThread(houseKeeping,0,"housekeeping");
       if(statsWanted)
 	doStats();
 
@@ -689,7 +696,7 @@ int main(int argc, char **argv)
 	      ++qcounter;
 	      P.setSocket(*i);
 	      P.d_tcp=false;
-	      MT->makeThread(startDoResolve,(void*)new DNSPacket(P));
+	      MT->makeThread(startDoResolve,(void*)new DNSPacket(P), "udp");
 	    }
 	  }
 	}
@@ -737,7 +744,8 @@ int main(int argc, char **argv)
 	    }
 	  }
 	  else {
-	    cerr<<"when reading ret="<<ret<<endl;
+	    //	    cerr<<"when reading ret="<<ret<<endl;
+	    // XXX FIXME I think some stuff needs to happen here - like send an EOF event
 	  }
 	}
 	if(!haveErased)
@@ -762,7 +770,8 @@ int main(int argc, char **argv)
 
 	  }
 	  else { 
-	    cerr<<"ret="<<ret<<" when writing"<<endl;
+	    //	    cerr<<"ret="<<ret<<" when writing"<<endl;
+	    // XXX FIXME I think some stuff needs to happen here - like send an EOF event
 	  }
 	}
 	if(!haveErased)
@@ -828,7 +837,7 @@ int main(int argc, char **argv)
 		  L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
 		else {
 		  ++qcounter;
-		  MT->makeThread(startDoResolve,(void*)new DNSPacket(P));
+		  MT->makeThread(startDoResolve,(void*)new DNSPacket(P), "tcp");
 		}
 	      }
 	    }
