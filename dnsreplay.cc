@@ -302,8 +302,9 @@ try
 	  tosleep.tv_nsec=nanoseconds%1000000000UL;
 	  
 	  nanosleep(&tosleep, 0);
+	  lastsent=pr.d_pheader.ts;
 	}
-	lastsent=pr.d_pheader.ts;
+
 	//	cout<<"sending!"<<endl;
 	s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
       }

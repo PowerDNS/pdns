@@ -52,7 +52,8 @@ private:
 
   typedef std::map<EventKey,Waiter> waiters_t;
   waiters_t d_waiters;
-  std::map<int,ucontext_t*> d_threads;
+  typedef std::map<int,pair<ucontext_t*,string> > mthreads_t;
+  mthreads_t d_threads;
   int d_tid;
   int d_maxtid;
   size_t d_stacksize;
@@ -76,11 +77,16 @@ public:
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val=0);
   void getEvents(std::vector<EventKey>& events);
-  void makeThread(tfunc_t *start, void* val);
+  void makeThread(tfunc_t *start, void* val, const string& name="");
   bool schedule();
   bool noProcesses();
   unsigned int numProcesses();
   int getTid(); 
+  void setTitle(const string& name)
+  {
+    d_threads[d_tid].second=name;
+  }
+
 private:
   static void threadWrapper(MTasker *self, tfunc_t *tf, int tid, void* val);
 };

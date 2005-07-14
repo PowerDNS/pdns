@@ -166,9 +166,15 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   w.ttd= timeout ? time(0)+timeout : 0;
   w.tid=d_tid;
   
+  if(d_waiters.count(key)) { // there was already an exact same waiter
+    return -1;
+  }
   d_waiters[key]=w;
   
-  swapcontext(d_waiters[key].context,&d_kernel); // 'A' will return here when 'key' has arrived, hands over control to kernel first
+  if(swapcontext(d_waiters[key].context,&d_kernel)) { // 'A' will return here when 'key' has arrived, hands over control to kernel first
+    perror("swapcontext");
+    exit(EXIT_FAILURE); // no way we can deal with this 
+  }
   if(val && d_waitstatus==Answer) 
     *val=d_waitval;
   d_tid=w.tid;
@@ -181,7 +187,10 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 template<class Key, class Val>void MTasker<Key,Val>::yield()
 {
   d_runQueue.push(d_tid);
-  swapcontext(d_threads[d_tid],&d_kernel); // give control to the kernel
+  if(swapcontext(d_threads[d_tid].first ,&d_kernel) < 0) { // give control to the kernel
+    perror("swapcontext in  yield");
+    exit(EXIT_FAILURE);
+  }
 }
 
 //! reports that an event took place for which threads may be waiting
@@ -193,6 +202,7 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
 template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEvent(const EventKey& key, const EventVal* val)
 {
   if(!d_waiters.count(key)) {
+    //    cout<<"Event sent nobody was waiting for!"<<endl;
     return 0;
   }
   
@@ -204,8 +214,10 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   d_tid=d_waiters[key].tid;         // set tid 
   
   d_waiters.erase(key);             // removes the waitpoint 
-  swapcontext(&d_kernel,userspace); // swaps back to the above point 'A'
-  
+  if(swapcontext(&d_kernel,userspace)) { // swaps back to the above point 'A'
+    perror("swapcontext in sendEvent");
+    exit(EXIT_FAILURE);
+  }
   delete userspace;
   return 1;
 }
@@ -215,7 +227,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
     \param start Pointer to the function which will form the start of the thread
     \param val A void pointer that can be used to pass data to the thread
 */
-template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val)
+template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val, const string& name)
 {
   ucontext_t *uc=new ucontext_t;
   getcontext(uc);
@@ -229,7 +241,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
 #else
   makecontext (uc, (void (*)(void))threadWrapper, 4, this, start, d_maxtid, val);
 #endif
-  d_threads[d_maxtid]=uc;
+  d_threads[d_maxtid]=make_pair(uc, name);
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
 }
 
@@ -249,13 +261,17 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
 
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
-    swapcontext(&d_kernel, d_threads[d_tid]);
+    if(swapcontext(&d_kernel, d_threads[d_tid].first)) {
+      perror("swapcontext in schedule");
+      exit(EXIT_FAILURE);
+    }
+      
     d_runQueue.pop();
     return true;
   }
   if(!d_zombiesQueue.empty()) {
-    delete[] (char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp;
-    delete d_threads[d_zombiesQueue.front()];
+    delete[] (char *)d_threads[d_zombiesQueue.front()].first->uc_stack.ss_sp;
+    delete d_threads[d_zombiesQueue.front()].first;
     d_threads.erase(d_zombiesQueue.front());
     d_zombiesQueue.pop();
     return true;
@@ -265,7 +281,10 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
     for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();++i) {
       if(i->second.ttd && i->second.ttd<now) {
 	d_waitstatus=TimeOut;
-	swapcontext(&d_kernel,i->second.context); // swaps back to the above point 'A'
+	if(swapcontext(&d_kernel,i->second.context)) { // swaps back to the above point 'A'
+	  perror("swapcontext in schedule2");
+	  exit(EXIT_FAILURE);
+	}
 	delete i->second.context;              
 	d_waiters.erase(i->first);                  // removes the waitpoint 
       }
