@@ -35,6 +35,7 @@ using namespace boost;
 using namespace std;
 
 StatBag S;
+bool s_quiet=true;
 
 class DNSIDManager
 {
@@ -42,10 +43,10 @@ public:
   
   int getID()
   {
-
-    for(unsigned int n=0; n < d_freeids.size() ; ++n)
+    for(uint16_t n=d_lastfreeid+1; n != d_lastfreeid ; ++n)
       if(!d_freeids[n]) {
 	d_freeids[n]=1;
+	d_lastfreeid=n;
 	return n;
       }
     cerr<<"Out of free IDs"<<endl;
@@ -57,10 +58,12 @@ public:
     if(!d_freeids[id])
       throw runtime_error("Trying to release unused id: "+lexical_cast<string>(id));
     d_freeids[id]=0;
+    d_lastfreeid=id-1;
   }
 
 private:
   bitset<65536> d_freeids;
+  uint16_t d_lastfreeid;
 } s_idmanager;
 
 struct QuestionData
@@ -81,15 +84,15 @@ unsigned int s_questions, s_answers, s_timedout, s_perfect, s_mostly, s_noorigin
 unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors;
-// XXX FIXME wasteful
+
 void pruneQids()
 {
-  qids_t nqids;
   struct timeval now;
   gettimeofday(&now, 0);
-  for(qids_t::iterator i=qids.begin(); i!=qids.end(); ++i)
+
+  for(qids_t::iterator i=qids.begin(); i!=qids.end(); ) {
     if(now.tv_sec < i->second.d_sentTime.tv_sec + 4 || (now.tv_sec == i->second.d_sentTime.tv_sec &&  now.tv_usec < i->second.d_sentTime.tv_usec)) 
-      nqids[i->first]=i->second;
+      ++i;
     else {
       s_idmanager.releaseID(i->second.d_assignedID);
       if(i->second.d_newRcode==-1)
@@ -98,9 +101,9 @@ void pruneQids()
 	s_nooriginalanswer++;
       else
 	cerr<<"Impossible - finished QI in the pool"<<endl;
+      qids.erase(i++);
     }
-
-  nqids.swap(qids);
+  }
 }
 
 void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
@@ -120,45 +123,56 @@ set<pair<string,uint16_t> > s_origbetterset;
 void measureResultAndClean(const QuestionIdentifier& qi)
 {
   QuestionData qd=qids[qi];
-  cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;
+
 
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
   compactAnswerSet(qd.d_newAnswers, canonicNew);
-  
-  cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
+
+  if(!s_quiet) {
+    cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
+    cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
+  }
 
   if(canonicOrig==canonicNew) {
     s_perfect++;
-    cout<<"yes\n";
+    if(!s_quiet)
+      cout<<"yes\n";
   }
   else {
-    cout<<"no\n";
+    if(!s_quiet)
+      cout<<"no\n";
     
     if(qd.d_norecursionavailable)
-      cout<<"\t* original nameserver did not provide recursion for this question *"<<endl;
+      if(!s_quiet)
+	cout<<"\t* original nameserver did not provide recursion for this question *"<<endl;
     if(qd.d_origRcode == qd.d_newRcode ) {
-      cout<<"\t* mostly correct *"<<endl;
+      if(!s_quiet)
+	cout<<"\t* mostly correct *"<<endl;
       s_mostly++;
     }
 
     if(!isRcodeOk(qd.d_origRcode) && isRcodeOk(qd.d_newRcode)) {
-      cout<<"\t* we better *"<<endl;
+      if(!s_quiet)
+	cout<<"\t* we better *"<<endl;
       s_webetter++;
     }
     if(isRcodeOk(qd.d_origRcode) && !isRcodeOk(qd.d_newRcode)) {
-      cout<<"\t* orig better *"<<endl;
+      if(!s_quiet)
+	cout<<"\t* orig better *"<<endl;
       s_origbetter++;
       s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype));
     }
 
-    cout<<"orig:\n";
-    for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
+    if(!s_quiet) {
+      cout<<"orig:\n";
+      for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
+	cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+      cout<<"new:\n";
+      for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
       cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
-    cout<<"new:\n";
-    for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
-      cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
-    cout<<"\n";
+      cout<<"\n";
+    }
   }
 
   qids.erase(qi);
@@ -250,7 +264,16 @@ try
 
     if(!((once++)%2000)) {
       Lock l(&s_lock);
+
+      if(qids.size() > 1000) {
+	cerr<<"Too many questions outstanding, waiting a second"<<endl;
+	sleep(1);
+      }
+      
       pruneQids();
+
+      cerr<<"There are "<<qids.size()<<" queries in flight"<<endl;
+
       cerr<<"we drop: "<<s_timedout<<", orig drop: "<<s_nooriginalanswer<<", "<<s_questions<<" questions sent, "<<s_answers
 	  <<" original answers, "<<s_perfect<<" perfect, "<<s_mostly<<" mostly correct"<<", "<<s_webetter<<" we better, "<<s_origbetter<<" orig better ("<<s_origbetterset.size()<<" diff)"<<endl;
       cerr<<"original questions from IP addresses for which recursion was not available: "<<s_norecursionavailable<<endl;
@@ -272,7 +295,8 @@ try
 	{ 
 	  Lock l(&s_lock);
 	  if(qids.count(qi)) {
-	    cout<<"Saw an exact duplicate question, "<<qi<< endl;
+	    if(!s_quiet)
+	      cout<<"Saw an exact duplicate question, "<<qi<< endl;
 	    continue;
 	  }
 	  //	  else 
@@ -290,6 +314,12 @@ try
 	if(lastsent.tv_sec && (!(s_questions%25))) {
 	  double seconds=pr.d_pheader.ts.tv_sec - lastsent.tv_sec;
 	  double useconds=(pr.d_pheader.ts.tv_usec - lastsent.tv_usec);
+
+	  if(useconds < 0) {
+	    seconds-=1;
+	    useconds+=1000000;
+	  }
+
 	  double factor=10;
 	  
 	  seconds/=factor;
@@ -300,10 +330,12 @@ try
 	  struct timespec tosleep;
 	  tosleep.tv_sec=nanoseconds/1000000000UL;
 	  tosleep.tv_nsec=nanoseconds%1000000000UL;
-	  
+
 	  nanosleep(&tosleep, 0);
 	  lastsent=pr.d_pheader.ts;
 	}
+	if(!lastsent.tv_sec)
+	  lastsent=pr.d_pheader.ts;
 
 	//	cout<<"sending!"<<endl;
 	s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
@@ -332,7 +364,8 @@ try
 	}
 	else {
 	  s_origunmatched++;
-	  cout<<"Unmatched original answer "<<qi<<endl;
+	  if(!s_quiet)
+	    cout<<"Unmatched original answer "<<qi<<endl;
 	}
       }
     }
