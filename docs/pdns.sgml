@@ -81,11 +81,14 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-18"><title>Version 2.9.18 (unreleased)</title>
+      <sect2 id="changelog-2-9-18"><title>Version 2.9.18</title>
+	<para>
+	  Released on the 14th of July 2005.
+	</para>
 	<para> 
 	  The '8 million domains' release, which also marks the battle readiness of the PowerDNS Recursor. The latest improvements have been made possible
 	  by financial support and contributions by <ulink url="http://register.com">Register.com</ulink> and
-	  <ulink url="http://www.xs4all.nl/">xs4all</ulink>. Thanks! 
+	  <ulink url="http://www.xs4all.nl/">XS4ALL</ulink>. Thanks! 
 	</para>
 	<para>
 	  This release brings a number of new features,
@@ -97,7 +100,7 @@
 	</para>
 	<para>
 	  This testing has verified that the pdns recursor, as shipped in this release, can stand up to heavy duty ISP loads 
-	  (over 20000 queries/second) and in fact does so better than major other nameservers, giving more complete, being faster to boot.
+	  (over 20000 queries/second) and in fact does so better than major other nameservers, giving more complete answers and being faster to boot.
 	</para>
 	<para>
 	  We invite ISPs who note recursor problems to record their problematic traffic and replay it using the tools described in
@@ -280,6 +283,11 @@
 	    <listitem>
 	      <para>
 		Improve our TCP answers by using writev, which is slightly friendlier to the network.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		On FreeBSD, TCP errors could cause the recursor to exit suddenly due to a SIGPIPE signal.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -5136,19 +5144,10 @@ local0.err                        /var/log/pdns.err
       Before migrating to PDNS a few things should be considered. 
       <variablelist>
 	<varlistentry>
-	  <term>PDNS is not a recursing nameserver on its own</term>
-	  <listitem>
-	    <para>
-	      If PDNS receives a question for which it is not authoritative, it can't go out on the net to figure out an answer. However, 
-	      because many installations are expected to be both authoritative and recursing, PDNS can use a separate recursing backend
-	      to provide non-authoritative answers. See <xref linkend="recursion"> for more details.
-	    </para>
-	  </listitem></varlistentry>
-	<varlistentry>
 	  <term>PDNS does not operate as a 'slave' or 'master' server with all backends</term>
 	  <listitem>
 	    <para>
-	      Only the Generic PostgreSQL, Generic MySQL and BIND backends have the ability to act as master or slave.
+	      Only the Generic SQL and BIND backends have the ability to act as master or slave.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -5373,9 +5372,10 @@ local0.err                        /var/log/pdns.err
       all mistakes are ours. Here are the current faults, so nobody can accuse us of false advertising:
       <itemizedlist>
 	<listitem><para>
-	    Only compiles on Linux, Windows and possibly Solaris. FreeBSD 4.x decided not to support the 
+	    Only compiles on Linux, FreeBSD 5.x, Windows and possibly Solaris. FreeBSD 4.x decided not to support the 
 	    POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
-	    or ask him to port MTasker (see below) to your operating system.
+	    or ask him to port MTasker (see below) to your operating system. It may work on recent 4.x systems, 
+	    letus know!
 	  </para></listitem>
 	<listitem><para>
 	    May have big problems with truncated packets (solved in 2.9.18)
