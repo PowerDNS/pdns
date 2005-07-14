@@ -287,7 +287,7 @@ try
 	  dh->id=htons(qd.d_assignedID);
 	}
 
-	if(lastsent.tv_sec) {
+	if(lastsent.tv_sec && (!(s_questions%25))) {
 	  double seconds=pr.d_pheader.ts.tv_sec - lastsent.tv_sec;
 	  double useconds=(pr.d_pheader.ts.tv_usec - lastsent.tv_usec);
 	  double factor=10;
