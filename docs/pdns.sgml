@@ -83,17 +83,21 @@
       </para>
       <sect2 id="changelog-2-9-18"><title>Version 2.9.18 (unreleased)</title>
 	<para> 
-	  The '8 million domains' release, which also marks the battle readiness of the PowerDNS Recursor. This release brings a number of new features,
+	  The '8 million domains' release, which also marks the battle readiness of the PowerDNS Recursor. The latest improvements have been made possible
+	  by financial support and contributions by <ulink url="http://register.com">Register.com</ulink> and
+	  <ulink url="http://www.xs4all.nl/">xs4all</ulink>. Thanks! 
+	</para>
+	<para>
+	  This release brings a number of new features,
 	  but also has a new build dependency, the <ulink url="http://www.boost.org">Boost library</ulink>.
 	</para>
 	<para>
 	  Currently several big ISPs are evaluating the PowerDNS recursor for their resolving needs, some of them have switched already.
-	  In the course of testing, over 350 million actual queries have been recorded and replayed, the answers turn out to be satisfactorily, 
-	  although we are still looking into some very minor discrepancies (less than 0.05% of queries have unexplained differences).
+	  In the course of testing, over 350 million actual queries have been recorded and replayed, the answers turn out to be satisfactorily. 
 	</para>
 	<para>
 	  This testing has verified that the pdns recursor, as shipped in this release, can stand up to heavy duty ISP loads 
-	  (over 20000 queries/second) and in fact does so better than major other nameservers. 
+	  (over 20000 queries/second) and in fact does so better than major other nameservers, giving more complete, being faster to boot.
 	</para>
 	<para>
 	  We invite ISPs who note recursor problems to record their problematic traffic and replay it using the tools described in
@@ -218,6 +222,11 @@
 	      <para>
 		After half an hour of uptime, the entire cache would be pruned for each packet, which is a tad slow. It now appears 
 		the pdns recursor is among the faststest around.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Under high loads, or when unlucky, some query mthreads would get 'stuck', and show up in the statistics as eternally running queries.
 	      </para>
 	    </listitem>
 	    <listitem>
