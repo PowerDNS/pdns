@@ -83,7 +83,7 @@
       </para>
       <sect2 id="changelog-2-9-18"><title>Version 2.9.18</title>
 	<para>
-	  Released on the 14th of July 2005.
+	  Released on the 16th of July 2005.
 	</para>
 	<para> 
 	  The '8 million domains' release, which also marks the battle readiness of the PowerDNS Recursor. The latest improvements have been made possible
@@ -91,8 +91,8 @@
 	  <ulink url="http://www.xs4all.nl/">XS4ALL</ulink>. Thanks! 
 	</para>
 	<para>
-	  This release brings a number of new features,
-	  but also has a new build dependency, the <ulink url="http://www.boost.org">Boost library</ulink>.
+	  This release brings a number of new features (vastly improved recursor, Generic Oracle Support, DNS analysis and replay tools, and more) 
+	  but also has a new build dependency, the <ulink url="http://www.boost.org">Boost library</ulink> (version 1.31 or higher).
 	</para>
 	<para>
 	  Currently several big ISPs are evaluating the PowerDNS recursor for their resolving needs, some of them have switched already.
@@ -107,8 +107,31 @@
 	  <xref linkend="analysis"> to discover if PowerDNS does a better job, and to let us know the results.
 	</para>
 	<para>
+	  Additionally, the bind2backend is almost ready to replace the stock bind backend. If you run with Bind zones, you are cordially invited
+	  to substitute 'launch=bind2' for 'launch=bind'. This will happen automatically in 2.9.19!
+	</para>
+	<para>
 	  In other news, the entire Wikipedia constellation now runs on PowerDNS using the Geo Backend! Thanks to Mark Bergsma
 	  for keeping us updated.
+	</para>
+	<para>
+	  There are two bugs with security implications, which only apply to installations running with the LDAP backend, or installations providing recursion
+	  to a limited range of IP addresses. If any of these apply to you, an upgrade is highly advised:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The LDAP backend did not properly escape all queries, allowing it to fail and not answer questions. We have not investigated further risks involved,
+		but we advise LDAP users to update as quickly as possible (Norbert Sendetzky, Jan de Groot)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Questions from clients denied recursion could blank out answers to clients who are allowed recursion services, temporarily. Reported by Wilco Baan.
+		This would've made it possible for outsiders to blank out a domain temporarily to your users. Luckily PowerDNS would send out SERVFAIL or Refused, and
+		not a denial of a domain's existence.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
 	</para>
 	<para>
 	  General bugs fixed:
@@ -128,13 +151,7 @@
 		Launching identical backends multiple times, with different settings, did not work. Reported by Mario Manno.
 	      </para>
 	    </listitem>
-	    <listitem>
-	      <para>
-		Questions from clients denied recursion could blank out answers to clients who are allowed recursion services, temporarily. Reported by Wilco Baan.
-		This would've made it possible for outsiders to blank out a domain temporarily to your users. Luckily PowerDNS would send out SERVFAIL or Refused, and
-		not a denial of a domain's existence.
-	      </para>
-	    </listitem>
+
 	    <listitem>
 	      <para>
 		Master/slave queries did not honour the <command>query-local-address</command> setting. Spotted by David Levy of Register.com. 
@@ -337,7 +354,6 @@
 		for more details.
 	      </para>
 	    </listitem>
-
 	    <listitem>
 	      <para>
 		Generic Oracle Backend, sponsored by Register.COM. See <xref linkend="goracle">.
@@ -4076,9 +4092,28 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
-	As of the 5th of February 2005, no actual security problems with PowerDNS 2.9.17 or later are known about. This page 
+	As of the 16th of July 2005, no actual security problems with PowerDNS 2.9.18 or later are known about. This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
-	will also be sent to all PowerDNS mailinglists and BUGTRAQ.
+	will also be sent to all PowerDNS mailinglists.
+      </para>
+      <para>
+	All versions of PowerDNS before 2.9.18 contain the following two bugs, which only apply to installations running with the LDAP backend, or installations providing recursion
+	to a limited range of IP addresses. If any of these apply to you, an upgrade is highly advised:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      The LDAP backend did not properly escape all queries, allowing it to fail and not answer questions. We have not investigated further risks involved,
+	      but we advise LDAP users to update as quickly as possible (Norbert Sendetzky, Jan de Groot)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Questions from clients denied recursion could blank out answers to clients who are allowed recursion services, temporarily. Reported by Wilco Baan.
+	      This would've made it possible for outsiders to blank out a domain temporarily to your users. Luckily PowerDNS would send out SERVFAIL or Refused, and
+	      not a denial of a domain's existence.
+	    </para>
+	  </listitem>
+	</itemizedlist>
       </para>
       <para>
 	All versions of PowerDNS before 2.9.17 are known to suffer from remote denial of service problems which can disrupt operation. Please upgrade
@@ -5375,7 +5410,7 @@ local0.err                        /var/log/pdns.err
 	    Only compiles on Linux, FreeBSD 5.x, Windows and possibly Solaris. FreeBSD 4.x decided not to support the 
 	    POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
 	    or ask him to port MTasker (see below) to your operating system. It may work on recent 4.x systems, 
-	    letus know!
+	    let us know!
 	  </para></listitem>
 	<listitem><para>
 	    May have big problems with truncated packets (solved in 2.9.18)
@@ -6827,37 +6862,42 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
     </sect1>
   </chapter>
   <chapter id="analysis"><title>Tools to analyse DNS traffic</title>
-  <para>
-    DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since 2.9.18, PowerDNS comes
-    with three tools to aid in analysis:
-    <variablelist>
-    <varlistentry>
-    <term>dnsreplay pcapfile [ipaddress] [port number]</term>
-    <listitem>
     <para>
-    This program takes recorded questions and answers and replays them to a specified nameserver and reporting afterwards
-    which percentage of answers matched, were worse or better.
-    </para>
-    </listitem>
-    </varlistentry>
-    <varlistentry>
-    <term>dnswasher pcapfile output</term>
-    <listitem>
-    <para>
-    Anonymises recorded traffic, making sure it only contains DNS, and that the originating IP addresses of queries are stripped, which may
-    allow you to send traces to our company or mailing list without violating obligations towards your customers or privacy laws.
-    </para>
-    </listitem>
-    </varlistentry>
-    <varlistentry>
-    <term>dnsscope pcapfile</term>
-    <listitem>
-    <para>
-    Calculates statistics without replaying traffic
-    </para>
-    </listitem>
-    </varlistentry>
-    </variablelist>
+      DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since 2.9.18, PowerDNS comes
+      with three tools to aid in analysis:
+      <warning>
+	<para>
+	  As of 2.9.18 these tools are somewhat rough - they have no help messages for example. They do work though.
+	</para>
+      </warning>
+      <variablelist>
+	<varlistentry>
+	  <term>dnsreplay pcapfile [ipaddress] [port number]</term>
+	  <listitem>
+	    <para>
+	      This program takes recorded questions and answers and replays them to a specified nameserver and reporting afterwards
+	      which percentage of answers matched, were worse or better.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>dnswasher pcapfile output</term>
+	  <listitem>
+	    <para>
+	      Anonymises recorded traffic, making sure it only contains DNS, and that the originating IP addresses of queries are stripped, which may
+	      allow you to send traces to our company or mailing list without violating obligations towards your customers or privacy laws.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>dnsscope pcapfile</term>
+	  <listitem>
+	    <para>
+	      Calculates statistics without replaying traffic
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
     </para>
   </chapter>
   <Appendix id="backends-detail"><title>Backends in detail</title>
@@ -8822,7 +8862,18 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
     </sect1>
     <sect1 id="ldap"><Title>LDAP backend</title>
       <para>
+	<warning>
+	  <para>
+	    This documentation has moved to <ulink url="http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend">its own page</ulink>. The information in this chapter
+	    may be outdated!
+	  </para>
+	</warning>
+      <para>
 	The main author for this module is Norbert Sendetzky who also has his own <ulink url="http://www.linuxnetworks.de/pdnsldap/index.html">PowerDNS-LDAP page</ulink>.
+      </para>
+      <para>
+	He also maintains the <ulink url="http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend">LDAP backends documentation</ulink> there. The information 
+	below may be outdated!
       </para>
       <para>
 	<table>
