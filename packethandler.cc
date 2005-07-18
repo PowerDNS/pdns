@@ -490,6 +490,22 @@ int PacketHandler::processNotify(DNSPacket *p)
 }
 
 
+
+bool validDNSName(const string &name)
+{
+  string::size_type pos, length=name.length();
+  char c;
+  for(pos=0; pos < length; ++pos) {
+    c=name[pos];
+    if(!((c >= 'a' && c <= 'z') ||
+	 (c >= 'A' && c <= 'Z') ||
+	 (c >= '0' && c <= '9') ||
+	 c =='-' || c == '_' || c=='*' || c=='.'))
+      return false;
+  }
+  return true;
+}  
+
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
 DNSPacket *PacketHandler::question(DNSPacket *p)
 {
@@ -517,7 +533,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
     // XXX FIXME do this in DNSPacket::parse ?
 
-    if(!p->qdomain.empty() && p->qdomain.find_first_of("%|")!=string::npos) {
+    if(!validDNSName(p->qdomain)) {
       L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': dropping"<<endl;
       S.inc("corrupt-packets");
       return 0;
