@@ -2,7 +2,7 @@ Source: pdns
 Section: net
 Priority: extra
 Standards-Version: 3.5.8
-Maintainer: Wichert Akkerman <wichert@wiggy.net>
+Maintainer: bert hubert <bert.hubert@netherlabs.nl>
 Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev, tdb-dev, libgdbm-dev, libldap2-dev, libsqlite0-dev, dpkg-dev (> 1.10.17)
 
 Package: pdns
