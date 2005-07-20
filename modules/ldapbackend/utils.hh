@@ -73,7 +73,7 @@ inline string ptr2ip6( vector<string>& parts )
 }
 
 
-inline string ip2ptr4( string ip )
+inline string ip2ptr4( const string& ip )
 {
 	string ptr;
 	vector<string> parts;
@@ -89,7 +89,7 @@ inline string ip2ptr4( string ip )
 }
 
 
-inline string ip2ptr6( string ip )
+inline string ip2ptr6( const string& ip )
 {
 	string ptr, part, defstr;
 	vector<string> parts;
@@ -114,6 +114,21 @@ inline string ip2ptr6( string ip )
 	}
 
 	return ptr + "ip6.arpa";
+}
+
+
+inline string strbind( const string& search, const string& replace, string subject )
+{
+	size_t pos = 0;
+
+
+	while( ( pos = subject.find( search, pos ) ) != string::npos )
+	{
+		subject.replace( pos, search.size(), replace );
+		pos += replace.size();
+	}
+
+	return subject;
 }
 
 #endif
