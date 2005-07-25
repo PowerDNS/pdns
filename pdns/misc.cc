@@ -316,3 +316,18 @@ const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t soc
 
   return "untranslateable";
 }
+
+
+#ifdef __linux__
+int isnptl (void)
+{
+  size_t len = confstr (_CS_GNU_LIBPTHREAD_VERSION, NULL, 0);
+  if (len > 0) {
+    char buf[len];
+    confstr (_CS_GNU_LIBPTHREAD_VERSION, buf, len);
+    if (strstr (buf, "NPTL"))
+      return 1;
+  }
+  return 0;
+}
+#endif

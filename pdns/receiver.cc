@@ -582,9 +582,13 @@ int main(int argc, char **argv)
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2."<<endl;
 
+#ifdef __linux__
+  if(!isnptl()) {
+    L<<Logger::Warning<<"WARNING: Running with slower LinuxThreads threading implementation. See http://doc.powerdns.com/nptl.html"<<endl;
+  }
+#endif  
 
   try {
-
     mainthread();
   }
   catch(AhuException &AE) {

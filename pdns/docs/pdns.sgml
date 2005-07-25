@@ -5173,6 +5173,29 @@ local0.err                        /var/log/pdns.err
 	Packet Cache.
       </para>
     </sect1>
+    <sect1 id="nptl"><title>Native Posix Thread Library vs LinuxThreads</title>
+      <para>
+	To get the best performance under Linux, especially on SMP systems, the use of NPTL is advised. The difference in performance
+	can be over a factor of ten in some circumstances.
+      </para>
+      <para>
+	NPTL is the default library on modern Linux distributions, so there is generally not a problem, except if you use a statically 
+	compiled version that, for portability reasons, defaults to LinuxThreads. This includes all .deb's and .rpm's provided by us up to
+	and including 2.9.18.
+      </para>
+      <para>
+	When running a PowerDNS-provided static binary of 2.9.18 or lower, it may make sense to recompile, or to upgrade to a newer version, if 
+	available. When recompiling, be sure to use a supported compiler, like g++ &gt;3.2. You might also consider moving to a distribution supplied 
+	version. 
+      </para>
+      <para>
+	A good indication that your installation might benefit from such an upgrade is to watch the 'cs' count in the output of <command>vmstat 1</command>.
+	If this is very high (&gt; 10000), you are suffering from a LinuxThreads performance problem called 'overspin'.
+      </para>
+      <para>
+	Thanks are due to L. Bunt Jackson who noted the static compilation problem in an article in Dr. Dobb's Journal.
+      </para>
+    </sect1>
   </chapter>
   <chapter id="migration"><title>Migrating to PDNS</title>
     <para>
@@ -6852,7 +6875,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <term>Q: We are a Linux/Unix vendor, can we include PowerDNS?
 	    <listitem>
 	      <para>
-	      A: Please do. In fact, we'd be very happy to work with you to make this happen. Contact <email>ahu@ds9a.nl</email> 
+	      A: Please do. In fact, we'd be very happy to work with you to make this happen. Contact <email>bert.hubert@netherlabs.nl</email> 
 	      if you have specific upstream needs.
 	      </para>
 	    </listitem>
