@@ -1,4 +1,4 @@
-/** two modes:
+/**
 
 Replay all recursion-desired DNS questions to a specified IP address.
 
@@ -12,7 +12,6 @@ When we see an answer in the tcpdump, parse it, make QI, and add it to the origi
 
 When we see an answer from the socket, use the id to match it up to the original QI
    and check
-
 
 There is one central object, which has (when complete)
 
@@ -123,7 +122,6 @@ set<pair<string,uint16_t> > s_origbetterset;
 void measureResultAndClean(const QuestionIdentifier& qi)
 {
   QuestionData qd=qids[qi];
-
 
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
@@ -247,6 +245,13 @@ catch(...)
 int main(int argc, char** argv)
 try
 {
+  if(argc < 2 || argc > 4) {
+    cerr<<"dnsreplay - replay DNS traffic to a reference server to compare performance"<<endl;
+    cerr<<"Syntax: dnsreplay pcapfile [target IP] [target port]\nDefaults to 127.0.0.1 and 5300"<<endl;
+    return EXIT_FAILURE;
+  }
+  
+
   PcapPacketReader pr(argv[1]);
   s_socket= new Socket(InterNetwork, Datagram);
   
@@ -386,27 +391,3 @@ catch(exception& e)
 }
 
 
-#if 0
-
-  /*
-  struct timespec tosleep;
-  struct timeval lastsent={0,0};
-  double seconds, useconds;
-  double factor=20;
-  */
-
-      if(lastsent.tv_sec) {
-	seconds=pr.d_pheader.ts.tv_sec - lastsent.tv_sec;
-	useconds=(pr.d_pheader.ts.tv_usec - lastsent.tv_usec);
-	
-	seconds/=factor;
-	useconds/=factor;
-	
-	long long nanoseconds=1000000000ULL*seconds + useconds * 1000;
-	
-	tosleep.tv_sec=nanoseconds/1000000000UL;
-	tosleep.tv_nsec=nanoseconds%1000000000UL;
-	
-	nanosleep(&tosleep, 0);
-      }
-#endif
