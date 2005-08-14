@@ -44,7 +44,7 @@ public:
   u_int32_t get32BitInt();
   u_int16_t get16BitInt();
   static u_int16_t get16BitInt(const vector<unsigned char>&content, u_int16_t& pos);
-  static string getLabelFromContent(const vector<u_int8_t>& content, u_int16_t& frompos, int recurs);
+  static void getLabelFromContent(const vector<u_int8_t>& content, u_int16_t& frompos, string& ret, int recurs);
   u_int8_t get8BitInt();
   void getDnsrecordheader(struct dnsrecordheader &ah);
   void copyRecord(vector<unsigned char>& dest, u_int16_t len);

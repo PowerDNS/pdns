@@ -52,7 +52,6 @@ struct QuestionIdentifier
     return ret;
   }
 
-
   uint32_t d_sourceip;
   uint32_t d_destip;
   uint16_t d_sourceport;
@@ -61,8 +60,6 @@ struct QuestionIdentifier
   string d_qname;
   uint16_t d_qtype;
   uint16_t d_id;
-
-
 };
 
 inline ostream& operator<<(ostream &s, const QuestionIdentifier& qi) 

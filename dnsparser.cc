@@ -194,37 +194,36 @@ u_int8_t PacketReader::get8BitInt()
 
 string PacketReader::getLabel(unsigned int recurs)
 {
-  return getLabelFromContent(d_content, d_pos, recurs++);
+  string ret;
+  ret.reserve(40);
+  getLabelFromContent(d_content, d_pos, ret, recurs++);
+  return ret;
 }
 
 
-string PacketReader::getLabelFromContent(const vector<u_int8_t>& content, u_int16_t& frompos, int recurs) 
+void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, u_int16_t& frompos, string& ret, int recurs) 
 {
   if(recurs > 10)
     throw MOADNSException("Loop");
-  
-  string ret;
+
   for(;;) {
     unsigned char labellen=content.at(frompos++);
-    
+
     // cout<<"Labellen: "<<(int)labellen<<endl;
     if(!labellen) {
       if(ret.empty())
-	ret+=".";
+	ret.append(1,'.');
       break;
     }
     if((labellen & 0xc0) == 0xc0) {
       u_int16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
       //	cout<<"This is an offset, need to go to: "<<offset<<endl;
-      return ret+getLabelFromContent(content, offset, ++recurs);
+      return getLabelFromContent(content, offset, ret, ++recurs);
     }
     else {
-      for(int n=0;n<labellen;++n) {
-	ret+=content.at(frompos++);
-      }
-      ret+=".";
+      ret.append(&content.at(frompos), &content.at(frompos+labellen));
+      frompos+=labellen;
+      ret.append(1,'.');
     }
   }
-  
-  return ret;
 }

@@ -140,16 +140,17 @@ private:
 const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t socklen);
 int sendData(const char *buffer, int replen, int outsock);
 
-
 inline void DTime::set()
 {
-  Utility::gettimeofday(&d_set,0);
+  // Utility::
+  gettimeofday(&d_set,0);
 }
 
 inline int DTime::udiff()
 {
   struct timeval now;
-  Utility::gettimeofday(&now,0);
+  // Utility::
+  gettimeofday(&now,0);
 
   return 1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
 }
