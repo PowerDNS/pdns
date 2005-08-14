@@ -16,9 +16,9 @@ else
 sbin_PROGRAMS = pdns_server 
 endif
 
-bin_PROGRAMS = pdns_control  
+bin_PROGRAMS = pdns_control  dnswasher dnsreplay
 
-EXTRA_PROGRAMS=pdns_recursor sdig pdns_control qgen dnswasher dnsscope dnsreplay
+EXTRA_PROGRAMS=pdns_recursor sdig pdns_control qgen dnsscope 
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -55,10 +55,12 @@ dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 
 dnswasher_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
 
-dnsreplay_SOURCES=dnsreplay.cc misc.cc unix_utility.cc qtype.cc anadns.hh \
+# unix_utility.cc
+
+dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh 
 
-dnsreplay_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
+dnsreplay_LDFLAGS= @DYNLINKFLAGS@ 
 
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
@@ -85,4 +87,3 @@ pdns_control_LDFLAGS=@THREADFLAGS@
 # binpatch_SOURCES=binpatch.cc 
 
 SUBDIRS= backends .
-
