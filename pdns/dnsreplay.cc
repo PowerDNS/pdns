@@ -1,5 +1,4 @@
 /**
-
 Replay all recursion-desired DNS questions to a specified IP address.
 
 Track all outgoing questions, remap id to one of ours.
@@ -14,11 +13,12 @@ When we see an answer from the socket, use the id to match it up to the original
    and check
 
 There is one central object, which has (when complete)
-
    our assigned id
    QI
    Original answer
    Socket answer
+
+What to do with timeouts. We keep around at most 65536 outstanding answers. 
 */
 
 #include <pcap.h>
@@ -29,6 +29,8 @@ There is one central object, which has (when complete)
 #include "anadns.hh"
 #include <arpa/nameser.h>
 #include <set>
+#include <deque>
+#include <boost/utility.hpp>
 
 using namespace boost;
 using namespace std;
@@ -36,34 +38,38 @@ using namespace std;
 StatBag S;
 bool s_quiet=true;
 
-class DNSIDManager
+class DNSIDManager : public boost::noncopyable
 {
 public:
-  
-  int getID()
+  DNSIDManager()
   {
-    for(uint16_t n=d_lastfreeid+1; n != d_lastfreeid ; ++n)
-      if(!d_freeids[n]) {
-	d_freeids[n]=1;
-	d_lastfreeid=n;
-	return n;
-      }
-    cerr<<"Out of free IDs"<<endl;
-    throw runtime_error("Out of free IDs");
+    for(unsigned int i=0; i < 65536; ++i)
+      d_available.push_back(i);
+
   }
 
-  void releaseID(int id)
+  uint16_t getID()
   {
-    if(!d_freeids[id])
-      throw runtime_error("Trying to release unused id: "+lexical_cast<string>(id));
-    d_freeids[id]=0;
-    d_lastfreeid=id-1;
+    uint16_t ret;
+    if(!d_available.empty()) {
+      ret=d_available.front();
+      d_available.pop_front();
+      return ret;
+    }
+    else
+      throw runtime_error("out of ids!");
+  }
+
+  void releaseID(uint16_t id)
+  {
+    d_available.push_back(id);
   }
 
 private:
-  bitset<65536> d_freeids;
-  uint16_t d_lastfreeid;
+  deque<uint16_t> d_available;
+  
 } s_idmanager;
+
 
 struct QuestionData
 {
@@ -72,7 +78,7 @@ struct QuestionData
   int d_assignedID;
   MOADNSParser::answers_t d_origAnswers, d_newAnswers;
   int d_origRcode, d_newRcode;
-  struct timeval d_sentTime;
+  struct timeval d_resentTime;
   bool d_norecursionavailable;
 };
 
@@ -84,16 +90,48 @@ unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors;
 
+
+double DiffTime(const struct timeval& first, const struct timeval& second)
+{
+  int seconds=second.tv_sec - first.tv_sec;
+  int useconds=second.tv_usec - first.tv_usec;
+  
+  if(useconds < 0) {
+    seconds-=1;
+    useconds+=1000000;
+  }
+  return seconds + useconds/1000000.0;
+}
+
+
+pair<unsigned int, unsigned int> WeOrigSlowQueries()
+{
+  struct timeval now;
+  gettimeofday(&now, 0);
+
+  pair<unsigned int, unsigned int> ret=make_pair(0,0);
+  for(qids_t::iterator i=qids.begin(); i!=qids.end(); ++i) {
+    double dt=DiffTime(i->second.d_resentTime, now);
+    if(dt > 2) {
+      if(i->second.d_newRcode == -1)
+	ret.first++;
+      else
+	ret.second++;
+    }
+  }
+  return ret;
+}
+
 void pruneQids()
 {
   struct timeval now;
   gettimeofday(&now, 0);
 
   for(qids_t::iterator i=qids.begin(); i!=qids.end(); ) {
-    if(now.tv_sec < i->second.d_sentTime.tv_sec + 4 || (now.tv_sec == i->second.d_sentTime.tv_sec &&  now.tv_usec < i->second.d_sentTime.tv_usec)) 
+    if(now.tv_sec < i->second.d_resentTime.tv_sec + 4 || (now.tv_sec == i->second.d_resentTime.tv_sec &&  now.tv_usec < i->second.d_resentTime.tv_usec)) 
       ++i;
     else {
-      s_idmanager.releaseID(i->second.d_assignedID);
+      //      s_idmanager.releaseID(i->second.d_assignedID);
       if(i->second.d_newRcode==-1)
 	s_timedout++;
       else if(i->second.d_origRcode==-1)
@@ -126,7 +164,7 @@ void measureResultAndClean(const QuestionIdentifier& qi)
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
   compactAnswerSet(qd.d_newAnswers, canonicNew);
-
+	
   if(!s_quiet) {
     cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
     cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
@@ -251,7 +289,6 @@ try
     return EXIT_FAILURE;
   }
   
-
   PcapPacketReader pr(argv[1]);
   s_socket= new Socket(InterNetwork, Datagram);
   
@@ -269,17 +306,20 @@ try
 
     if(!((once++)%2000)) {
       Lock l(&s_lock);
+      pair<unsigned int, unsigned int> slows=WeOrigSlowQueries();
 
-      if(qids.size() > 1000) {
-	cerr<<"Too many questions outstanding, waiting a second"<<endl;
-	sleep(1);
+      int waitingFor=qids.size() - slows.first - slows.second;
+      if(waitingFor > 1000) {
+	cerr<<"Too many questions outstanding, waiting 0.25 seconds"<<endl;
+	usleep(250000);
       }
-      
-      pruneQids();
+	        
+      //pruneQids();
 
-      cerr<<"There are "<<qids.size()<<" queries in flight"<<endl;
+      cerr<<waitingFor<<" queries that could still come in on time, "<<qids.size()<<" outstanding"<<endl;
 
-      cerr<<"we drop: "<<s_timedout<<", orig drop: "<<s_nooriginalanswer<<", "<<s_questions<<" questions sent, "<<s_answers
+
+      cerr<<"we late: "<<slows.first+s_timedout<<", orig late: "<< slows.second + s_nooriginalanswer<<", "<<s_questions<<" questions sent, "<<s_answers
 	  <<" original answers, "<<s_perfect<<" perfect, "<<s_mostly<<" mostly correct"<<", "<<s_webetter<<" we better, "<<s_origbetter<<" orig better ("<<s_origbetterset.size()<<" diff)"<<endl;
       cerr<<"original questions from IP addresses for which recursion was not available: "<<s_norecursionavailable<<endl;
       cerr<<"Unmatched from us: "<<s_weunmatched<<", unmatched from original: "<<s_origunmatched<<endl;
@@ -294,7 +334,7 @@ try
     try {
       MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
       QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
-
+      
       if(!mdp.d_header.qr) {
 	s_questions++;
 	{ 
@@ -304,14 +344,12 @@ try
 	      cout<<"Saw an exact duplicate question, "<<qi<< endl;
 	    continue;
 	  }
-	  //	  else 
-	  //	    cout<<"New question "<<qi<<endl;
-
+	   
+	  // new question!
 	  QuestionData& qd=qids[qi];
-	  gettimeofday(&qd.d_sentTime,0);
+	  gettimeofday(&qd.d_resentTime,0);
 	  
 	  qd.d_assignedID = s_idmanager.getID();
-
 
 	  dh->id=htons(qd.d_assignedID);
 	}
@@ -389,5 +427,3 @@ catch(exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
-
-
