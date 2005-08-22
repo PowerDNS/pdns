@@ -16,7 +16,7 @@ else
 sbin_PROGRAMS = pdns_server 
 endif
 
-bin_PROGRAMS = pdns_control  dnswasher dnsreplay
+bin_PROGRAMS = pdns_control  dnswasher dnsreplay dnsreplay_mindex
 
 EXTRA_PROGRAMS=pdns_recursor sdig pdns_control qgen dnsscope 
 
@@ -30,7 +30,7 @@ session.cc session.hh misc.cc misc.hh receiver.cc ueberbackend.cc \
 dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc communicator.cc communicator.hh dnsproxy.cc \
 dnsproxy.hh randombackend.cc unix_utility.cc common_startup.cc \
-utility.hh iputils.hh common_startup.hh \
+utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
 backends/bind/bindbackend2.cc backends/bind/zoneparser2.cc \
 backends/bind/bindparser.cc backends/bind/bindlexer.c \
 backends/bind/huffman.cc backends/gsql/gsqlbackend.cc \
@@ -48,12 +48,12 @@ qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc dnspacket.cc arguments.cc  qgen.cc \
 	 sillyrecords.cc
 
-qgen_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ -lboost_regex
+qgen_LDFLAGS=  @DYNLINKFLAGS@ -lboost_regex
 
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
 
-dnswasher_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
+dnswasher_LDFLAGS= @DYNLINKFLAGS@ 
 
 # unix_utility.cc
 
@@ -62,11 +62,17 @@ dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
 
 dnsreplay_LDFLAGS= @DYNLINKFLAGS@ 
 
+dnsreplay_mindex_SOURCES=dnsreplay-mindex.cc misc.cc  qtype.cc anadns.hh \
+	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh 
+
+dnsreplay_mindex_LDFLAGS= @DYNLINKFLAGS@ 
+
+
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc
 
-dnsscope_LDFLAGS= @THREADFLAGS@ @DYNLINKFLAGS@ 
+dnsscope_LDFLAGS= @DYNLINKFLAGS@ 
 
 
 # INCLUDES=-I/usr/include/mysql

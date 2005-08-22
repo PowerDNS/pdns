@@ -54,6 +54,7 @@ MemRecursorCache RC;
 
 string s_programname="pdns_recursor";
 
+#if 0
 #ifndef WIN32
 #ifndef __FreeBSD__
 extern "C" {
@@ -70,6 +71,7 @@ extern "C" {
 }
 #endif // __FreeBSD__
 #endif // WIN32
+#endif
 
 StatBag S;
 ArgvMap &arg()
