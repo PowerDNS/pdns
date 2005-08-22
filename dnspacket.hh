@@ -297,12 +297,17 @@ int DNSPacket::parse(const char *mesg, int length)
 
   int offset=0;
   d_qlen=0;
-  if(!ntohs(d.qdcount)) {
-    L << Logger::Warning << "No question section in packet from " << getRemote() <<", rcode="<<(int)d.rcode<<endl;
-    return -1;
-  }
 
-  offset = getq(); // also sets this->qdomain!
+  if(!ntohs(d.qdcount)) {
+    if(!d_tcp) {
+      L << Logger::Warning << "No question section in packet from " << getRemote() <<", rcode="<<(int)d.rcode<<endl;
+      return -1;
+    }
+  }
+  else {
+    offset = getq(); // also sets this->qdomain!
+    d_qlen=offset+4; // this points to the start of any answers
+  }
   if(offset < 0) {
     //    L << Logger::Warning << "Ignoring packet: invalid label in question from "
     //  << inet_ntoa(remote.sin_addr) << endl;
@@ -312,7 +317,7 @@ int DNSPacket::parse(const char *mesg, int length)
     return -1;
   }
 
-  d_qlen=offset+4; // this points to the start of any answers
+
   
   if((unsigned int)(15+offset)>=stringbuffer.length()) {
     L << Logger::Warning << "Ignoring packet: question too short from "<< getRemote()<<", offset "<<
