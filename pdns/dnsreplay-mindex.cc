@@ -30,6 +30,7 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include <arpa/nameser.h>
 #include <set>
 #include <deque>
+#include <boost/format.hpp>
 #include <boost/utility.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -100,14 +101,12 @@ typedef multi_index_container<
             >
 > qids_t;
 					 
-
-//typedef map<QuestionIdentifier, shared_ptr<QuestionData> > qids_t;
 qids_t qids;
 
-//typedef map<uint16_t, struct QuestionIdentifier > id2qi_t;
-//id2qi_t id2qi;
 
-unsigned int s_questions, s_answers, s_wetimedout, s_perfect, s_mostly, s_origtimedout;
+bool g_throttled;
+
+unsigned int s_questions, s_origanswers, s_weanswers, s_wetimedout, s_perfect, s_mostly, s_origtimedout;
 unsigned int s_wenever, s_orignever;
 unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
@@ -127,23 +126,34 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
 }
 
 
-pair<unsigned int, unsigned int> WeOrigSlowQueriesDelta()
+void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlow, int& origSlow)
 {
   struct timeval now;
   gettimeofday(&now, 0);
 
-  pair<unsigned int, unsigned int> ret=make_pair(0,0);
+  weOutstanding=origOutstanding=weSlow=origSlow=0;
+
   for(qids_t::iterator i=qids.begin(); i!=qids.end(); ++i) {
     double dt=DiffTime(i->d_resentTime, now);
-    if(dt > 2.0) {
+    if(dt < 2.0) {
+      if(i->d_newRcode == -1) 
+	weOutstanding++;
+      if(i->d_origRcode == -1)
+	origOutstanding++;
+    }
+    else {
       if(i->d_newRcode == -1) {
+	weSlow++;
 	if(!i->d_newlate) {
-	  //	  i->d_newlate=true; // error
+	  QuestionData qd=*i;
+	  qd.d_newlate=true;
+	  qids.replace(i, qd);
+
 	  s_wetimedout++;
 	}
-	ret.first++;
       }
       if(i->d_origRcode == -1) {
+	origSlow++;
 	if(!i->d_origlate) {
 	  QuestionData qd=*i;
 	  qd.d_origlate=true;
@@ -151,11 +161,9 @@ pair<unsigned int, unsigned int> WeOrigSlowQueriesDelta()
 
 	  s_origtimedout++;
 	}
-	ret.second++;
       }
     }
   }
-  return ret;
 }
 
 void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
@@ -242,6 +250,7 @@ try
 
   while(s_socket->recvFromAsync(packet, remote)) {
     try {
+      s_weanswers++;
       MOADNSParser mdp(packet.c_str(), packet.length());
       if(!mdp.d_header.qr) {
 	cout<<"Received a question from our reference nameserver!"<<endl;
@@ -313,17 +322,53 @@ void pruneQids()
 
 void houseKeeping()
 {
-  pair<unsigned int, unsigned int> slows=WeOrigSlowQueriesDelta();
+  static timeval last;
+
+  struct timeval now;
+  gettimeofday(&now, 0);
+
+  if(DiffTime(last, now) < 0.3)
+    return;
+
+  int weWaitingFor, origWaitingFor, weSlow, origSlow;
+  WeOrigSlowQueriesDelta(weWaitingFor, origWaitingFor, weSlow, origSlow);
     
-  int waitingFor=qids.size() - slows.first - slows.second;
-  if(waitingFor > 1000) {
-    cerr<<"Too many questions outstanding, waiting 0.25 seconds"<<endl;
-    usleep(250000);
+  if(!g_throttled) {
+    if( weWaitingFor > 1000) {
+      cerr<<"Too many questions ("<<weWaitingFor<<") outstanding, throttling"<<endl;
+      g_throttled=true;
+    }
   }
+  else if(weWaitingFor < 750) {
+    cerr<<"Unthrottling ("<<weWaitingFor<<")"<<endl;
+    g_throttled=false;
+  }
+
+  if(DiffTime(last, now) < 2)
+    return;
+
+  last=now;
+
+  /*
+        Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)
+Orig    9           21      29     36         47        57       66    72
+
+
+   */
+
+  format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
+  format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
+
   
-  cerr<<waitingFor<<" queries that could still come in on time, "<<qids.size()<<" outstanding"<<endl;
+  cerr<<headerfmt;
+  cerr<<(datafmt % "Orig"   % s_questions % origWaitingFor  % s_orignever  % s_origanswers % 0 % s_origtimedout  % 0 % 0);
+  cerr<<(datafmt % "Refer." % s_questions % weWaitingFor    % s_wenever    % s_weanswers   % 0 % s_wetimedout    % 0 % 0);
+
+
+
+  cerr<<weWaitingFor<<" queries that could still come in on time, "<<qids.size()<<" outstanding"<<endl;
   
-  cerr<<"we late: "<<s_wetimedout<<", orig late: "<< s_origtimedout<<", "<<s_questions<<" questions sent, "<<s_answers
+  cerr<<"we late: "<<s_wetimedout<<", orig late: "<< s_origtimedout<<", "<<s_questions<<" questions sent, "<<s_origanswers
       <<" original answers, "<<s_perfect<<" perfect, "<<s_mostly<<" mostly correct"<<", "<<s_webetter<<" we better, "<<s_origbetter<<" orig better ("<<s_origbetterset.size()<<" diff)"<<endl;
   cerr<<"we never: "<<s_wenever<<", orig never: "<<s_orignever<<endl;
   cerr<<"original questions from IP addresses for which recursion was not available: "<<s_norecursionavailable<<endl;
@@ -397,7 +442,7 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
       s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
     }
     else {
-      s_answers++;
+      s_origanswers++;
       
       if(qids.count(qi)) {
 	qids_t::const_iterator i=qids.find(qi);
@@ -458,13 +503,18 @@ try
 
   unsigned int once=0;
   for(;;) {
-    if(!((once++)%4000)) 
+    if(!((once++)%100)) 
       houseKeeping();
 
-    if(!pr.getUDPPacket())
-      break;
+    if(!g_throttled) {
+      if(!pr.getUDPPacket())
+	break;
+      
+      sendPacketFromPR(pr, remote);
+    }
+    else 
+      usleep(1000); // move to 'swift poll' 
 
-    sendPacketFromPR(pr, remote);
     receiveFromReference();
   }
 }
