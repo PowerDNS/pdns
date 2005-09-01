@@ -503,7 +503,7 @@ int main(int argc, char **argv)
     arg().set("chroot","switch to chroot jail")="";
     arg().set("setgid","If set, change group id to this gid for more security")="";
     arg().set("setuid","If set, change user id to this uid for more security")="";
-    arg().set("quiet","Suppress logging of questions and answers")="off";
+    arg().set("quiet","Suppress logging of questions and answers")="true";
     arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     arg().set("delegation-only","Which domains we only accept delegations from")="";
