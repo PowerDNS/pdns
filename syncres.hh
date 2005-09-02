@@ -48,10 +48,11 @@ public:
     typename cont_t::iterator i=d_cont.find(t);
     if(i==d_cont.end())
       return false;
-    if(now > i->second.ttd || i->second.count-- < 0){
+    if(now > i->second.ttd || i->second.count-- < 0) {
       d_cont.erase(i);
-      return true;
     }
+
+    return true; // still listed, still blocked
   }
   void throttle(time_t now, const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
   {
