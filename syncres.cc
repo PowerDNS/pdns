@@ -428,7 +428,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	continue;
       }
       LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
-      nsSpeeds[toLower(*tns)].submit(d_lwr.d_usec);
+      nsSpeeds[toLower(*tns)].submit(d_lwr.d_usec, &d_now);
 
       map<string,set<DNSResourceRecord> > tcache;
       // reap all answers from this packet that are acceptable
