@@ -278,7 +278,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
   }
   if(!d_waiters.empty()) {
     time_t now=time(0);
-    for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();++i) {
+    for(typename waiters_t::iterator i=d_waiters.begin();i!=d_waiters.end(); ) {
       if(i->second.ttd && i->second.ttd<now) {
 	d_waitstatus=TimeOut;
 	if(swapcontext(&d_kernel,i->second.context)) { // swaps back to the above point 'A'
@@ -286,8 +286,10 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
 	  exit(EXIT_FAILURE);
 	}
 	delete i->second.context;              
-	d_waiters.erase(i->first);                  // removes the waitpoint 
+	d_waiters.erase(i++);                  // removes the waitpoint 
       }
+      else 
+	++i;
     }
   }
   return false;
