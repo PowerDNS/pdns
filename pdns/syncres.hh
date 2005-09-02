@@ -11,7 +11,7 @@
 #include <utility>
 #include "misc.hh"
 #include "lwres.hh"
-
+#include <boost/utility.hpp>
 
 /* external functions, opaque to us */
 
@@ -87,19 +87,37 @@ private:
 class DecayingEwma
 {
 public:
-  DecayingEwma() : d_last(getTime()) , d_lastget(time(0)),  d_val(0.0) {
+  DecayingEwma() : d_last(getTime()) , d_lastget(d_last),  d_val(0.0) {
+
   }
-  void submit(int val) 
+
+  DecayingEwma(const DecayingEwma& orig) : d_last(orig.d_last), d_lastget(orig.d_lastget), d_val(orig.d_val)
   {
-    double now=getTime();
+
+  }
+
+  void submit(int val, struct timeval*tv = 0)
+  {
+    double now;
+    if(tv)
+      now=tv->tv_sec + tv->tv_usec/1000000.0;
+    else
+      now=getTime();
+
     double diff=d_last-now;
     d_last=now;
     double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
     d_val=(1-factor)*val+ factor*d_val; 
   }
-  double get()
+
+  double get(struct timeval*tv = 0)
   {
-    double now=getTime();
+    double now;
+    if(tv)
+      now=tv->tv_sec + tv->tv_usec/1000000.0;
+    else
+      now=getTime();
+
     double diff=d_lastget-now;
     d_lastget=now;
     double factor=exp(diff/60.0); // is 1.0 or less
@@ -107,7 +125,7 @@ public:
   }
 
 private:
-
+  DecayingEwma& operator=(const DecayingEwma&);
   double d_last;
   double d_lastget;
   double d_val;
@@ -117,7 +135,7 @@ private:
 class SyncRes
 {
 public:
-  SyncRes() : d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_cacheonly(false), d_nocache(false), d_now(time(0)) {}
+  SyncRes() : d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_cacheonly(false), d_nocache(false) { gettimeofday(&d_now, 0); }
   int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -171,7 +189,7 @@ private:
   bool d_cacheonly;
   bool d_nocache;
   LWRes d_lwr;
-  time_t d_now;
+  struct timeval d_now;
 
   struct GetBestNSAnswer
   {
