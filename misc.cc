@@ -150,13 +150,13 @@ void parseService(const string &descr, ServiceTuple &st)
 }
 
 
-int waitForData(int fd, int seconds)
+int waitForData(int fd, int seconds, int useconds)
 {
   struct timeval tv;
   int ret;
 
   tv.tv_sec   = seconds;
-  tv.tv_usec  = 0;
+  tv.tv_usec  = useconds;
 
   fd_set readfds;
   FD_ZERO( &readfds );
