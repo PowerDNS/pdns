@@ -117,17 +117,17 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
   do {
     LOG<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
     set<DNSResourceRecord>ns;
-    if(RC.get(d_now, subdomain,QType(QType::NS),&ns)>0) {
+    if(RC.get(d_now.tv_sec, subdomain,QType(QType::NS),&ns)>0) {
 
       for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
-	if(k->ttl > (unsigned int)d_now ) { 
+	if(k->ttl > (unsigned int)d_now.tv_sec ) { 
 	  set<DNSResourceRecord>aset;
-	  if(!endsOn(k->content,subdomain) || RC.get(d_now, k->content,QType(QType::A),&aset) > 5) {
+	  if(!endsOn(k->content,subdomain) || RC.get(d_now.tv_sec, k->content,QType(QType::A),&aset) > 5) {
 	    bestns.insert(*k);
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(k->content,subdomain);
 	    if(!aset.empty())
-	      L<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now ))<<endl;
+	      L<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl;
 	    else
 	      L<<", not in cache"<<endl;
 	  }
@@ -183,13 +183,13 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   
   LOG<<prefix<<qname<<": Looking for CNAME cache hit of '"<<tuple<<"'"<<endl;
   set<DNSResourceRecord> cset;
-  if(RC.get(d_now, qname,QType(QType::CNAME),&cset) > 0) {
+  if(RC.get(d_now.tv_sec, qname,QType(QType::CNAME),&cset) > 0) {
 
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
-      if(j->ttl>(unsigned int) d_now) {
+      if(j->ttl>(unsigned int) d_now.tv_sec) {
 	LOG<<prefix<<qname<<": Found cache CNAME hit for '"<<tuple<<"' to '"<<j->content<<"'"<<endl;    
 	DNSResourceRecord rr=*j;
-	rr.ttl-=d_now;
+	rr.ttl-=d_now.tv_sec;
 	ret.push_back(rr);
 	if(!(qtype==QType(QType::CNAME))) {// perhaps they really wanted a CNAME!
 	  set<GetBestNSAnswer>beenthere;
@@ -219,8 +219,8 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   if(s_negcache.count(toLower(qname))) {
     res=0;
     map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(toLower(qname));
-    if(d_now < ni->second.ttd) {
-      sttl=ni->second.ttd - d_now;
+    if(d_now.tv_sec < ni->second.ttd) {
+      sttl=ni->second.ttd - d_now.tv_sec;
       LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
       res=RCode::NXDomain; 
       giveNegative=true;
@@ -241,8 +241,8 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
     res=0;
     map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(tuple);
     if(ni!=s_negcache.end()) {
-      if(d_now < ni->second.ttd) {
-	sttl=ni->second.ttd - d_now;
+      if(d_now.tv_sec < ni->second.ttd) {
+	sttl=ni->second.ttd - d_now.tv_sec;
 	LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached for another "<<sttl<<" seconds"<<endl;
 	res=RCode::NoError; // only this record doesn't exist
 	giveNegative=true;
@@ -258,13 +258,13 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
-  if(RC.get(d_now, sqname,sqt,&cset)>0) {
+  if(RC.get(d_now.tv_sec, sqname,sqt,&cset)>0) {
     LOG<<prefix<<qname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG<<j->content;
-      if(j->ttl>(unsigned int) d_now) {
+      if(j->ttl>(unsigned int) d_now.tv_sec) {
 	DNSResourceRecord rr=*j;
-	rr.ttl-=d_now;
+	rr.ttl-=d_now.tv_sec;
 	if(giveNegative) {
 	  rr.d_place=DNSResourceRecord::AUTHORITY;
 	  rr.ttl=sttl;
@@ -321,7 +321,8 @@ inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &p
 
   for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
-    speeds[*i]=nsSpeeds[toLower(*i)].get();
+    DecayingEwma& temp=nsSpeeds[toLower(*i)];
+    speeds[*i]=temp.get(&d_now);
   }
   random_shuffle(rnameservers.begin(),rnameservers.end());
   stable_sort(rnameservers.begin(),rnameservers.end(),speedOrder(speeds));
@@ -338,7 +339,6 @@ inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &p
     }
     L<<endl;
   }
-
   return rnameservers;
 }
 
@@ -377,7 +377,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
       bool doTCP=false;
 
-      if(s_throttle.shouldThrottle(d_now, remoteIP+"|"+qname+"|"+qtype.getName())) {
+      if(s_throttle.shouldThrottle(d_now.tv_sec, remoteIP+"|"+qname+"|"+qtype.getName())) {
 	LOG<<prefix<<qname<<": query throttled "<<endl;
 	s_throttledqueries++;
 	d_throttledqueries++;
@@ -402,12 +402,12 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  else
 	    LOG<<prefix<<qname<<": error resolving"<<endl;
 
-	  nsSpeeds[toLower(*tns)].submit(1000000); // 1 sec
+	  nsSpeeds[toLower(*tns)].submit(1000000, &d_now); // 1 sec
 	  
-	  s_throttle.throttle(d_now, remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
+	  s_throttle.throttle(d_now.tv_sec, remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	  continue;
 	}
-	d_now=time(0);
+	gettimeofday(&d_now, 0);
       }
 
       result=d_lwr.result();
@@ -424,7 +424,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
       if(d_lwr.d_rcode==RCode::ServFail) {
 	LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
-	s_throttle.throttle(d_now,remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
+	s_throttle.throttle(d_now.tv_sec,remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
 	continue;
       }
       LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
@@ -451,7 +451,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	    
 	    DNSResourceRecord rr=*i;
 	    rr.d_place=DNSResourceRecord::ANSWER;
-	    rr.ttl+=d_now;
+	    rr.ttl+=d_now.tv_sec;
 	    //	  rr.ttl=time(0)+10+10*rr.qtype.getCode();
 	    tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
 	  }
@@ -488,7 +488,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
 	  NegCacheEntry ne;
 	  ne.name=i->qname;
-	  ne.ttd=d_now + i->ttl;
+	  ne.ttd=d_now.tv_sec + i->ttl;
 	  s_negcache[toLower(qname)]=ne;
 	  negindic=true;
 	}
@@ -527,7 +527,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  
 	  NegCacheEntry ne;
 	  ne.name=i->qname;
-	  ne.ttd=d_now + i->ttl;
+	  ne.ttd=d_now.tv_sec + i->ttl;
 	  s_negcache[toLower(qname)+"|"+qtype.getName()]=ne;
 	  negindic=true;
 	}
@@ -559,7 +559,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
       else {
 	LOG<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibling NS"<<endl;
-	s_throttle.throttle(d_now, remoteIP+"|"+qname+"|"+qtype.getName(),60,0);
+	s_throttle.throttle(d_now.tv_sec, remoteIP+"|"+qname+"|"+qtype.getName(),60,0);
       }
     }
   }
@@ -606,7 +606,7 @@ void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     DNSResourceRecord ns=*k;
     ns.d_place=DNSResourceRecord::AUTHORITY;
-    ns.ttl-=d_now;
+    ns.ttl-=d_now.tv_sec;
     ret.push_back(ns);
   }
 }

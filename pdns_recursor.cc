@@ -482,6 +482,36 @@ struct TCPConnection
   time_t startTime;
 };
 
+#if 0
+
+#include <execinfo.h>
+
+static void maketrace()
+{
+  void *array[20]; //only care about last 17 functions (3 taken with tracing support)
+  size_t size;
+  char **strings;
+  size_t i;
+
+  size = backtrace (array, 20);
+  strings = backtrace_symbols (array, size); //Need -rdynamic gcc (linker) flag for this to work
+
+  for (i = 0; i < size; i++) //skip useless functions
+    cout<<strings[i]<<"\n";
+  cout<<"--"<<endl;
+}
+
+extern "C" {
+int gettimeofday (struct timeval *__restrict __tv,
+		  __timezone_ptr_t __tz)
+{
+  maketrace();
+  return 0;
+}
+
+}
+#endif 
+
 int main(int argc, char **argv) 
 {
   int ret = EXIT_SUCCESS;
