@@ -21,6 +21,24 @@ There is one central object, which has (when complete)
 What to do with timeouts. We keep around at most 65536 outstanding answers. 
 */
 
+
+/* 
+   mental_clock=0;
+   for(;;) {
+
+   do {
+      read a packet
+      send a packet
+    } while(time_of_last_packet_sent < mental_clock) 
+    mental_clock=time_of_last_packet_sent;
+
+    wait for a response packet for 0.1 seconds
+    note how much time has passed
+    mental_clock+=time_passed;
+   }
+
+ */
+
 #include <pcap.h>
 #include <bitset>
 #include "statbag.hh"
@@ -43,6 +61,73 @@ using namespace std;
 StatBag S;
 bool s_quiet=true;
 
+
+void normalizeTV(struct timeval& tv)
+{
+  if(tv.tv_usec > 1000000) {
+    ++tv.tv_sec;
+    tv.tv_usec-=1000000;
+  }
+  else if(tv.tv_usec < 0) {
+    --tv.tv_sec;
+    tv.tv_usec+=1000000;
+  }
+}
+
+const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs)
+{
+  struct timeval ret;
+  ret.tv_sec=lhs.tv_sec + rhs.tv_sec;
+  ret.tv_usec=lhs.tv_usec + rhs.tv_usec;
+  normalizeTV(ret);
+  return ret;
+}
+
+const struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs)
+{
+  struct timeval ret;
+  ret.tv_sec=lhs.tv_sec - rhs.tv_sec;
+  ret.tv_usec=lhs.tv_usec - rhs.tv_usec;
+  normalizeTV(ret);
+  return ret;
+}
+
+const struct timeval operator*(int fact, const struct timeval& rhs)
+{
+  //  cout<<"In: "<<rhs.tv_sec<<" + "<<rhs.tv_usec<<"\n";
+  struct timeval ret;
+  if( (2000000000 / fact) < rhs.tv_usec) {
+    double d=1.0 * rhs.tv_usec * fact;
+    ret.tv_sec=fact * rhs.tv_sec;
+    ret.tv_sec+=(int) (d/1000000);
+    d/=1000000;
+    d-=(int)d;
+
+    ret.tv_usec=1000000*d;
+    normalizeTV(ret);
+    
+    cout<<"out complex: "<<ret.tv_sec<<" + "<<ret.tv_usec<<"\n";
+    
+    return ret;
+  }
+
+  ret.tv_sec=rhs.tv_sec * fact;
+  ret.tv_usec=rhs.tv_usec * fact;
+
+  normalizeTV(ret);
+  //  cout<<"out simple: "<<ret.tv_sec<<" + "<<ret.tv_usec<<"\n";
+  return ret;
+}
+
+
+bool operator<(const struct timeval& lhs, const struct timeval& rhs) 
+{
+  return make_pair(lhs.tv_sec, lhs.tv_usec) < make_pair(rhs.tv_sec, rhs.tv_usec);
+}
+
+
+
+
 class DNSIDManager : public boost::noncopyable
 {
 public:
@@ -62,7 +147,7 @@ public:
       return ret;
     }
     else
-      throw runtime_error("out of ids!");
+      throw runtime_error("out of ids!"); // XXX FIXME
   }
 
   void releaseID(uint16_t id)
@@ -248,6 +333,10 @@ try
   string packet;
   IPEndpoint remote;
 
+  int res=waitForData(s_socket->getHandle(), 0, 25000);
+  if(res < 0 || res==0)
+    return;
+
   while(s_socket->recvFromAsync(packet, remote)) {
     try {
       s_weanswers++;
@@ -285,6 +374,7 @@ try
       s_wednserrors++;
     }
   }
+
 }
 catch(exception& e)
 {
@@ -412,6 +502,7 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 
       dh->id=htons(qd.d_assignedID);
 
+#if 0
       if(lastsent.tv_sec && (!(s_questions%25))) {
 	double seconds=pr.d_pheader.ts.tv_sec - lastsent.tv_sec;
 	double useconds=(pr.d_pheader.ts.tv_usec - lastsent.tv_usec);
@@ -439,6 +530,7 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 	lastsent=pr.d_pheader.ts;
       
       //	cout<<"sending!"<<endl;
+#endif
       s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
     }
     else {
@@ -502,21 +594,39 @@ try
 
 
   unsigned int once=0;
+  struct timeval mental_time;
+  mental_time.tv_sec=0; mental_time.tv_usec=0;
+
+  if(!pr.getUDPPacket())
+    return 0;
+
   for(;;) {
+
     if(!((once++)%100)) 
       houseKeeping();
 
-    if(!g_throttled) {
+    int count=0;
+    while(pr.d_pheader.ts < mental_time) {
       if(!pr.getUDPPacket())
-	break;
+	goto out;
       
       sendPacketFromPR(pr, remote);
-    }
-    else 
-      usleep(1000); // move to 'swift poll' 
+      count++;
+    } 
+
+    //    cout<<count<<"\n";
+
+    mental_time=pr.d_pheader.ts;
+    struct timeval then, now;
+    gettimeofday(&then,0);
 
     receiveFromReference();
+
+    gettimeofday(&now, 0);
+
+    mental_time= mental_time + 2*(now-then);
   }
+ out:;
 }
 catch(exception& e)
 {
