@@ -176,6 +176,8 @@ private:
   static int s_first;
   static pthread_mutex_t s_zonemap_lock;
 
+  string d_binddirectory;
+
   string d_logprefix;
   int d_transaction_id;
   string d_transaction_tmpname;
