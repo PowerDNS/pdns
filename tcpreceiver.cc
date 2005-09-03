@@ -162,7 +162,7 @@ void *TCPNameserver::doConnection(void *data)
       DNSPacket *packet=new DNSPacket;
 
       packet->setRemote((struct sockaddr *)&remote,sizeof(remote));
-
+      packet->d_tcp=true;
       if(packet->parse(mesg, pktlen)<0)
 	break;
       

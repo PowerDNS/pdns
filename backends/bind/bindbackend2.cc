@@ -57,7 +57,6 @@ int Bind2Backend::s_first=1;
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Bind2Backend::s_zonemap_lock=PTHREAD_MUTEX_INITIALIZER;
 
-
 /* when a query comes in, we find the most appropriate zone and answer from that */
 
 BB2DomainInfo::BB2DomainInfo()
@@ -364,7 +363,8 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
     }
     doReload=false;
   }
-	
+  if(ret.str().empty())
+    ret<<"no domains reloaded\n";
   return ret.str();
 }
 
@@ -405,7 +405,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
   return ret.str();
 }
 
-static void callback(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
+static void InsertionCallback(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
 {
   us->insert(domain_id,domain,qtype,content,ttl,prio);
 }
@@ -470,7 +470,7 @@ void Bind2Backend::loadConfig(string* status)
     us=this;
     d_binddirectory=BP.getDirectory();
     ZP.setDirectory(d_binddirectory);
-    ZP.setCallback(&callback);  
+    ZP.setCallback(&InsertionCallback);  
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
     int rejected=0;
@@ -577,6 +577,7 @@ void Bind2Backend::loadConfig(string* status)
     newdomains=diff2.size();
 
     s_id_zone_map.swap(s_staging_zone_map); // commit
+
     ostringstream msg;
     msg<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"; 
     if(status)
@@ -613,12 +614,19 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZoneParser ZP;
     us=this;
 
-    cerr<<"Setting to d_binddirectory: "<<d_binddirectory<<endl;
     ZP.setDirectory(d_binddirectory);
-    ZP.setCallback(&callback);  
+    ZP.setCallback(&InsertionCallback);  
+
+    // XXX FIXME - I think this is highly bogus as we are copying pointers around here, so we are only creating aliases
 
     s_staging_zone_map[bbd->d_id]=s_id_zone_map[bbd->d_id];
-    ZP.parse(bbd->d_filename,bbd->d_name,bbd->d_id);
+
+    ZP.parse(bbd->d_filename, bbd->d_name, bbd->d_id);
+    
+    sort(s_staging_zone_map[bbd->d_id]->d_records->begin(), s_staging_zone_map[bbd->d_id]->d_records->end());
+    s_staging_zone_map[bbd->d_id]->setCtime();
+    
+    contents.clear();
     s_id_zone_map[bbd->d_id]=s_staging_zone_map[bbd->d_id];
 
     bbd->setCtime();
@@ -794,7 +802,7 @@ bool Bind2Backend::list(const string &target, int id)
   if(!s_id_zone_map.count(id))
     return false;
 
-  d_handle.reset(); // new Bind2Backend::handle;
+  d_handle.reset(); 
   DLOG(L<<"Bind2Backend constructing handle for list of "<<id<<endl);
 
   d_handle.d_qname_iter=s_id_zone_map[id]->d_records->begin();

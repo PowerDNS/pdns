@@ -41,6 +41,7 @@ DNSPacket::DNSPacket()
 {
   d_wrapped=false;
   d_compress=true;
+  d_tcp=false;
 }
 
 
@@ -964,7 +965,7 @@ void DNSPacket::wrapup(void)
       vector<string>pieces;
       stringtok(pieces,pos->content,"@");
       
-      if(pieces.size()>1) { // INSTANT ADDITIONAL PROCESSING!
+      if(pieces.size() > 1) { // INSTANT ADDITIONAL PROCESSING!
 	rr.qname=pieces[0];
 	rr.qtype=QType::A;
 	rr.ttl=pos->ttl;
@@ -983,7 +984,7 @@ void DNSPacket::wrapup(void)
 
   stable_sort(rrs.begin(),rrs.end(),rrcomp);
 
-  if(!arg().mustDo("no-shuffle")) {
+  if(!d_tcp && !arg().mustDo("no-shuffle")) {
     // now shuffle! start out with the ANSWER records  
     vector<DNSResourceRecord>::iterator first, second;
     for(first=rrs.begin();first!=rrs.end();++first) 

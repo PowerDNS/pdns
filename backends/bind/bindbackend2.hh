@@ -43,7 +43,7 @@ struct Bind2DNSRecord
       return false;
     if(qtype==QType::SOA && rhs.qtype!=QType::SOA)
       return true;
-    return false;
+    return qtype < rhs.qtype;
   }
 };
 

@@ -321,6 +321,7 @@ int Resolver::axfr(const string &ip, const char *domain)
 
   d_type=QType::AXFR;
   DNSPacket p;
+  p.d_tcp = true;
   p.setQuestion(Opcode::Query,domain,QType::AXFR);
   p.wrapup();
 
