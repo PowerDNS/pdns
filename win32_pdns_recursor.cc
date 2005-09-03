@@ -65,7 +65,7 @@ int d_tcpserversock;
 
 struct PacketID
 {
-  u_int16_t id;
+  uint16_t id;
   struct sockaddr_in remote;
 };
 
@@ -271,7 +271,7 @@ void makeClientSocket()
   
   int tries=10;
   while(--tries) {
-    u_int16_t port=10000+Utility::random()%10000;
+    uint16_t port=10000+Utility::random()%10000;
     sin.sin_port = htons(port); 
     
     if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 

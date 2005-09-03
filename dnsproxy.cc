@@ -102,7 +102,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
   if(!recurseFor(p))
     return false;
 
-  u_int16_t id;
+  uint16_t id;
   {
     Lock l(&d_lock);
     id=getID_locked();
@@ -173,7 +173,7 @@ void DNSProxy::mainloop(void)
 	Lock l(&d_lock);
 #ifdef WORDS_BIGENDIAN
 	// this is needed because spoof ID down below does not respect the native byteorder
-	d.id = ( 256 * (u_int16_t)buffer[1] ) + (u_int16_t)buffer[0];  
+	d.id = ( 256 * (uint16_t)buffer[1] ) + (uint16_t)buffer[0];  
 #endif
 	map_t::iterator i=d_conntrack.find(d.id^d_xor);
 	if(i==d_conntrack.end()) {

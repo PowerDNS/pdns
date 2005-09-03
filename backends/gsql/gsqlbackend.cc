@@ -1,4 +1,4 @@
-// $Id: gsqlbackend.cc,v 1.12 2004/01/16 22:18:12 ahu Exp $ 
+// $Id$ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 #endif // WIN32
@@ -19,7 +19,7 @@ using namespace std;
 
 #include <sstream>
 
-void GSQLBackend::setNotified(u_int32_t domain_id, u_int32_t serial)
+void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,
@@ -34,7 +34,7 @@ void GSQLBackend::setNotified(u_int32_t domain_id, u_int32_t serial)
   }
 }
 
-void GSQLBackend::setFresh(u_int32_t domain_id)
+void GSQLBackend::setFresh(uint32_t domain_id)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,d_UpdateLastCheckofZoneQuery.c_str(),

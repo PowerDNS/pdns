@@ -33,11 +33,11 @@ public:
   bool feedRecord(const DNSResourceRecord &r);
   bool createSlaveDomain(const string &ip, const string &domain, const string &account);
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
-  void setFresh(u_int32_t domain_id);
+  void setFresh(uint32_t domain_id);
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
-  void setNotified(u_int32_t domain_id, u_int32_t serial);
+  void setNotified(uint32_t domain_id, uint32_t serial);
 private:
   string d_qname;
   QType d_qtype;

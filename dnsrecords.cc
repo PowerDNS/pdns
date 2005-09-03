@@ -21,7 +21,7 @@ public:
     return ret;
   }
 
-  u_int32_t getIP() const
+  uint32_t getIP() const
   {
     return d_ip;
   }
@@ -30,7 +30,7 @@ public:
   string getZoneRepresentation() const
   {
     ostringstream str;
-    u_int32_t ip=ntohl(d_ip);
+    uint32_t ip=ntohl(d_ip);
 
     str<< ((ip >> 24)&0xff) << ".";
     str<< ((ip >> 16)&0xff) << ".";
@@ -40,7 +40,7 @@ public:
   }
 
 private:
-  u_int32_t d_ip;
+  uint32_t d_ip;
 };
 
 class AAAARecordContent : public DNSRecordContent
@@ -86,11 +86,11 @@ private:
 namespace {
   struct soatimes 
   {
-    u_int32_t serial;
-    u_int32_t refresh;
-    u_int32_t retry;
-    u_int32_t expire;
-    u_int32_t minimum;
+    uint32_t serial;
+    uint32_t refresh;
+    uint32_t retry;
+    uint32_t expire;
+    uint32_t minimum;
   };
 }
 
@@ -119,7 +119,7 @@ public:
   }
 
 private:
-  u_int16_t d_type;
+  uint16_t d_type;
   string d_nsname;
 
 };
@@ -141,11 +141,11 @@ public:
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
   {
-    u_int16_t nowpos(pr.d_pos);
+    uint16_t nowpos(pr.d_pos);
     string mname=pr.getLabel();
     string rname=pr.getLabel();
 
-    u_int16_t left=dr.d_clen - (pr.d_pos-nowpos);
+    uint16_t left=dr.d_clen - (pr.d_pos-nowpos);
 
     if(left!=sizeof(struct soatimes))
       throw MOADNSException("SOA RDATA has wrong size: "+lexical_cast<string>(left)+ ", should be "+lexical_cast<string>(sizeof(struct soatimes)));
@@ -183,7 +183,7 @@ class MXRecordContent : public DNSRecordContent
 {
 public:
 
-  MXRecordContent(u_int16_t preference, const string& mxname) 
+  MXRecordContent(uint16_t preference, const string& mxname) 
     : d_preference(preference), d_mxname(mxname)
   {
   }
@@ -195,7 +195,7 @@ public:
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
   {
-    u_int16_t preference=pr.get16BitInt();
+    uint16_t preference=pr.get16BitInt();
     string mxname=pr.getLabel();
 
     return new MXRecordContent(preference, mxname);
@@ -209,7 +209,7 @@ public:
   }
 
 private:
-  u_int16_t d_preference;
+  uint16_t d_preference;
   string d_mxname;
 };
 

@@ -410,7 +410,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
   Resolver::res_t nsset;
   try {
     Resolver resolver;
-    u_int32_t theirserial;
+    uint32_t theirserial;
     int res=resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);  
     if(res<=0) {
       L<<Logger::Error<<"Unable to determine SOA serial for "<<p->qdomain<<" at potential supermaster "<<p->getRemote()<<endl;
@@ -462,7 +462,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     return RCode::Refused;
   }
 
-  u_int32_t theirserial=0;
+  uint32_t theirserial=0;
 
   /* to quote Rusty Russell - this code is so bad that you can actually hear it suck */
   /* this is an instant DoS, just spoof notifications from the address of the master and we block  */

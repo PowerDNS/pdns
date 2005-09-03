@@ -25,10 +25,10 @@ typedef runtime_error MOADNSException;
 
 struct dnsrecordheader
 {
-  u_int16_t d_type;
-  u_int16_t d_class;
-  u_int32_t d_ttl;
-  u_int16_t d_clen;
+  uint16_t d_type;
+  uint16_t d_class;
+  uint32_t d_ttl;
+  uint16_t d_clen;
 } __attribute__((packed));
 
 
@@ -37,23 +37,23 @@ class MOADNSParser;
 class PacketReader
 {
 public:
-  PacketReader(const vector<u_int8_t>& content) 
+  PacketReader(const vector<uint8_t>& content) 
     : d_pos(0), d_content(content)
   {}
 
-  u_int32_t get32BitInt();
-  u_int16_t get16BitInt();
-  static u_int16_t get16BitInt(const vector<unsigned char>&content, u_int16_t& pos);
-  static void getLabelFromContent(const vector<u_int8_t>& content, u_int16_t& frompos, string& ret, int recurs);
-  u_int8_t get8BitInt();
+  uint32_t get32BitInt();
+  uint16_t get16BitInt();
+  static uint16_t get16BitInt(const vector<unsigned char>&content, uint16_t& pos);
+  static void getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs);
+  uint8_t get8BitInt();
   void getDnsrecordheader(struct dnsrecordheader &ah);
-  void copyRecord(vector<unsigned char>& dest, u_int16_t len);
-  void copyRecord(unsigned char* dest, u_int16_t len);
+  void copyRecord(vector<unsigned char>& dest, uint16_t len);
+  void copyRecord(unsigned char* dest, uint16_t len);
   string getLabel(unsigned int recurs=0);
 
-  u_int16_t d_pos;
+  uint16_t d_pos;
 private:
-  const vector<u_int8_t>& d_content;
+  const vector<uint8_t>& d_content;
 
 };
 
@@ -97,19 +97,19 @@ public:
 
 protected:
 
-  typedef std::map<std::pair<u_int16_t, u_int16_t>, makerfunc_t* > typemap_t;
+  typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   static typemap_t typemap;
-  typedef std::map<std::pair<u_int16_t, u_int16_t>, string > namemap_t;
+  typedef std::map<std::pair<uint16_t, uint16_t>, string > namemap_t;
   static namemap_t namemap;
 };
 
 struct DNSRecord
 {
   std::string d_label;
-  u_int16_t d_type;
-  u_int16_t d_class;
-  u_int32_t d_ttl;
-  u_int16_t d_clen;
+  uint16_t d_type;
+  uint16_t d_class;
+  uint32_t d_ttl;
+  uint16_t d_clen;
   enum {Answer, Nameserver, Additional} d_place;
   boost::shared_ptr<DNSRecordContent> d_content;
 
@@ -161,7 +161,7 @@ public:
   }
   dnsheader d_header;
   string d_qname;
-  u_int16_t d_qclass, d_qtype;
+  uint16_t d_qclass, d_qtype;
   uint8_t d_rcode;
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;

@@ -64,7 +64,7 @@ string DNSPacket::getRemote() const
   return sockAddrToString((struct sockaddr_in *)remote, d_socklen);
 }
 
-u_int16_t DNSPacket::getRemotePort() const
+uint16_t DNSPacket::getRemotePort() const
 {
   if(d_socklen==sizeof(sockaddr_in))
     return ((struct sockaddr_in*)remote)->sin_port;
@@ -198,7 +198,7 @@ void DNSPacket::setA(bool b)
   d.aa=b;
 }
 
-void DNSPacket::setID(u_int16_t id)
+void DNSPacket::setID(uint16_t id)
 {
   d.id=id;
 }
@@ -214,7 +214,7 @@ void DNSPacket::setRD(bool b)
 }
 
 
-void DNSPacket::setOpcode(u_int16_t opcode)
+void DNSPacket::setOpcode(uint16_t opcode)
 {
   d.opcode=opcode;
 }
@@ -246,7 +246,7 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
   rrs.push_back(rr);
 }
 
-void DNSPacket::addARecord(const string &name, u_int32_t ip, u_int32_t ttl, DNSResourceRecord::Place place)
+void DNSPacket::addARecord(const string &name, uint32_t ip, uint32_t ttl, DNSResourceRecord::Place place)
 {
   string piece1;
   toqname(name, &piece1);
@@ -282,7 +282,7 @@ void DNSPacket::addAAAARecord(const DNSResourceRecord &rr)
 
 
 
-void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], u_int32_t ttl,DNSResourceRecord::Place place)
+void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], uint32_t ttl,DNSResourceRecord::Place place)
 {
   string piece1;
   toqname(name.c_str(),&piece1);
@@ -309,7 +309,7 @@ void DNSPacket::addMXRecord(const DNSResourceRecord &rr)
   addMXRecord(rr.qname, rr.content, rr.priority, rr.ttl);
 }
 
-void DNSPacket::addMXRecord(const string &domain, const string &mx, int priority, u_int32_t ttl)
+void DNSPacket::addMXRecord(const string &domain, const string &mx, int priority, uint32_t ttl)
 {
   string piece1;
 
@@ -342,7 +342,7 @@ void DNSPacket::addSRVRecord(const DNSResourceRecord &rr)
   addSRVRecord(rr.qname, rr.content, rr.priority, rr.ttl);
 }
 
-void DNSPacket::addSRVRecord(const string &domain, const string &srv, int priority, u_int32_t ttl)
+void DNSPacket::addSRVRecord(const string &domain, const string &srv, int priority, uint32_t ttl)
 {
   string piece1;
   toqname(domain,&piece1);
@@ -520,7 +520,7 @@ void DNSPacket::addSOARecord(const DNSResourceRecord &rr)
   addSOARecord(rr.qname, rr.content, rr.ttl, rr.d_place);
 }
 
-void DNSPacket::addSOARecord(const string &domain, const string & content, u_int32_t ttl,DNSResourceRecord::Place place)
+void DNSPacket::addSOARecord(const string &domain, const string & content, uint32_t ttl,DNSResourceRecord::Place place)
 {
   SOAData soadata;
   fillSOAData(content, soadata);
@@ -538,9 +538,9 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, u_int
 
   char piece5[20];
   
-  u_int32_t *i_p=(u_int32_t *)piece5;
+  uint32_t *i_p=(uint32_t *)piece5;
   
-  u_int32_t soaoffset;
+  uint32_t soaoffset;
   if(soadata.serial && (soaoffset=arg().asNum("soa-serial-offset")))
     if(soadata.serial<soaoffset)
       soadata.serial+=soaoffset; // thank you DENIC
@@ -569,7 +569,7 @@ void DNSPacket::addCNAMERecord(const DNSResourceRecord &rr)
   addCNAMERecord(rr.qname, rr.content, rr.ttl);
 }
 
-void DNSPacket::addCNAMERecord(const string &domain, const string &alias, u_int32_t ttl)
+void DNSPacket::addCNAMERecord(const string &domain, const string &alias, uint32_t ttl)
 {
  string piece1;
 
@@ -604,7 +604,7 @@ void DNSPacket::addRPRecord(const DNSResourceRecord &rr)
   addRPRecord(rr.qname, rr.content, rr.ttl);
 }
 
-void DNSPacket::addRPRecord(const string &domain, const string &content, u_int32_t ttl)
+void DNSPacket::addRPRecord(const string &domain, const string &content, uint32_t ttl)
 {
  string piece1;
 
@@ -649,7 +649,7 @@ void DNSPacket::addNAPTRRecord(const DNSResourceRecord &rr)
 }
 
 
-void DNSPacket::makeHeader(char *p,u_int16_t qtype, u_int32_t ttl)
+void DNSPacket::makeHeader(char *p,uint16_t qtype, uint32_t ttl)
 {
   p[0]=0;
   p[1]=qtype; 
@@ -660,7 +660,7 @@ void DNSPacket::makeHeader(char *p,u_int16_t qtype, u_int32_t ttl)
   p[9]=0;  // need to fill this in
 }
 
-void DNSPacket::addNAPTRRecord(const string &domain, const string &content, u_int32_t ttl)
+void DNSPacket::addNAPTRRecord(const string &domain, const string &content, uint32_t ttl)
 {
   string piece1;
 
@@ -760,7 +760,7 @@ void DNSPacket::addPTRRecord(const DNSResourceRecord &rr)
   addPTRRecord(rr.qname, rr.content, rr.ttl);
 }
 
-void DNSPacket::addPTRRecord(const string &domain, const string &alias, u_int32_t ttl)
+void DNSPacket::addPTRRecord(const string &domain, const string &alias, uint32_t ttl)
 {
  string piece1;
 
@@ -791,7 +791,7 @@ void DNSPacket::addSPFRecord(const DNSResourceRecord& rr)
 }
 
 
-void DNSPacket::addTXTorSPFRecord(uint16_t qtype, string domain, string txt, u_int32_t ttl)
+void DNSPacket::addTXTorSPFRecord(uint16_t qtype, string domain, string txt, uint32_t ttl)
 {
  string piece1;
  //xtoqname(domain, &piece1);
@@ -818,7 +818,7 @@ void DNSPacket::addHINFORecord(const DNSResourceRecord& rr)
 }
 
 /** First word of content is the CPU */
-void DNSPacket::addHINFORecord(string domain, string content, u_int32_t ttl)
+void DNSPacket::addHINFORecord(string domain, string content, uint32_t ttl)
 {
   string piece1;
   toqname(domain, &piece1);
@@ -860,7 +860,7 @@ void DNSPacket::addNSRecord(const DNSResourceRecord &rr)
   addNSRecord(rr.qname, rr.content, rr.ttl, rr.d_place);
 }
 
-void DNSPacket::addNSRecord(string domain, string server, u_int32_t ttl, DNSResourceRecord::Place place)
+void DNSPacket::addNSRecord(string domain, string server, uint32_t ttl, DNSResourceRecord::Place place)
 {
   string piece1;
   toqname(domain, &piece1);
@@ -1197,7 +1197,7 @@ void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
   string label=compress(qd);
   stringbuffer.assign((char *)&d,sizeof(d));
   stringbuffer.append(label);
-  u_int16_t tmp=htons(newqtype);
+  uint16_t tmp=htons(newqtype);
   stringbuffer.append((char *)&tmp,2);
   tmp=htons(1);
   stringbuffer.append((char *)&tmp,2);
@@ -1225,7 +1225,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
 
   int numanswers=ntohs(d.ancount) + ntohs(d.nscount) + ntohs(d.arcount);
   int length;
-  u_int16_t pos=0;
+  uint16_t pos=0;
   while(numanswers--) {
     string name;  
     int offset=0;
@@ -1489,8 +1489,8 @@ int DNSPacket::findlabel(string &label)
 
     // Skip the header and data
     
-    u_int16_t dataLength = getShort(p+8);
-    u_int16_t type = getShort(p);  
+    uint16_t dataLength = getShort(p+8);
+    uint16_t type = getShort(p);  
 
     p += 10;
     

@@ -33,7 +33,7 @@ public:
 class IPAddress
 {
 public:
-  u_int32_t byte; 
+  uint32_t byte; 
 
   //! The default IPAddress is 0.0.0.0
   IPAddress()
@@ -62,7 +62,7 @@ public:
   }
 };
 
-typedef u_int16_t IPPort;
+typedef uint16_t IPPort;
 
 //! Defines an IP Endpoint which consists of an IP address and a port number
 class IPEndpoint

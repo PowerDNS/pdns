@@ -90,7 +90,7 @@ struct PacketID
   PacketID() : sock(0), inNeeded(0), outPos(0)
   {}
 
-  u_int16_t id;  // wait for a specific id/remote paie
+  uint16_t id;  // wait for a specific id/remote paie
   struct sockaddr_in remote;  // this is the remote
 
   Socket* sock;  // or wait for an event on a TCP fd
@@ -309,7 +309,7 @@ void makeClientSocket()
 
   int tries=10;
   while(--tries) {
-    u_int16_t port=10000+Utility::random()%10000;
+    uint16_t port=10000+Utility::random()%10000;
     sin.sin_port = htons(port); 
     
     if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 

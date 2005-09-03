@@ -51,23 +51,23 @@ string nowTime()
   return t;
 }
 
-u_int16_t getShort(const unsigned char *p)
+uint16_t getShort(const unsigned char *p)
 {
   return p[0] * 256 + p[1];
 }
 
 
-u_int16_t getShort(const char *p)
+uint16_t getShort(const char *p)
 {
   return getShort((const unsigned char *)p);
 }
 
-u_int32_t getLong(const unsigned char* p)
+uint32_t getLong(const unsigned char* p)
 {
   return (p[0]<<24) + (p[1]<<16) + (p[2]<<8) + p[3];
 }
 
-u_int32_t getLong(const char* p)
+uint32_t getLong(const char* p)
 {
   return getLong((unsigned char *)p);
 }
@@ -119,7 +119,7 @@ bool endsOn(const string &domain, const string &suffix)
 
 int sendData(const char *buffer, int replen, int outsock)
 {
-  u_int16_t nlen=htons(replen);
+  uint16_t nlen=htons(replen);
   Utility::iovec iov[2];
   iov[0].iov_base=(char*)&nlen;
   iov[0].iov_len=2;
@@ -281,7 +281,7 @@ void cleanSlashes(string &str)
 }
 
 
-bool IpToU32(const string &str, u_int32_t *ip)
+bool IpToU32(const string &str, uint32_t *ip)
 {
   if(str.empty()) {
     *ip=0;

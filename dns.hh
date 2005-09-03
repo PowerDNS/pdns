@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: dns.hh,v 1.3 2004/02/01 18:20:16 ahu Exp $ 
+// $Id$ 
 /* (C) 2002 POWERDNS.COM BV */
 #ifndef DNS_HH
 #define DNS_HH
@@ -32,12 +32,12 @@ struct SOAData
   string qname;
   string nameserver;
   string hostmaster;
-  u_int32_t ttl;
-  u_int32_t serial;
-  u_int32_t refresh;
-  u_int32_t retry;
-  u_int32_t expire;
-  u_int32_t default_ttl;
+  uint32_t ttl;
+  uint32_t serial;
+  uint32_t refresh;
+  uint32_t retry;
+  uint32_t expire;
+  uint32_t default_ttl;
   int domain_id;
   DNSBackend *db;
 };
@@ -71,8 +71,8 @@ public:
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
   string qname; //!< the name of this record, for example: www.powerdns.com
   string content; //!< what this record points to. Example: 10.1.2.3
-  u_int16_t priority; //!< For qtype's that support a priority or preference. Currently only MX
-  u_int32_t ttl; //!< Time To Live of this record
+  uint16_t priority; //!< For qtype's that support a priority or preference. Currently only MX
+  uint32_t ttl; //!< Time To Live of this record
   int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
   time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
   enum Place {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket

@@ -65,20 +65,20 @@ public:
       and does a nonblocking connect to support this timeout. It should be noted that nonblocking connects 
       suffer from bad portability problems, so look here if you see weird problems on new platforms */
   Session(const string &remote, int port, int timeout=0); 
-  Session(u_int32_t ip, int port, int timeout=0);
+  Session(uint32_t ip, int port, int timeout=0);
 
   Session(const Session &s); 
   
   ~Session();
   int getSocket(); //!< return the filedescriptor for layering violations
   string getRemote();
-  u_int32_t getRemoteAddr();
+  uint32_t getRemoteAddr();
   string getRemoteIP();
   void beVerbose();
   int close(); //!< close and disconnect the connection
   void setTimeout(unsigned int seconds);
 private:
-  void doConnect(u_int32_t ip, int port);
+  void doConnect(uint32_t ip, int port);
   bool d_verbose;
   char *rdbuf;
   int d_bufsize;

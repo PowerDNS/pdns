@@ -68,7 +68,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   d_header.nscount=ntohs(d_header.nscount);
   d_header.arcount=ntohs(d_header.arcount);
   
-  u_int16_t contentlen=len-sizeof(dnsheader);
+  uint16_t contentlen=len-sizeof(dnsheader);
 
   d_content.resize(contentlen);
   copy(packet+sizeof(dnsheader), packet+len, d_content.begin());
@@ -138,15 +138,15 @@ void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 }
 
 
-void PacketReader::copyRecord(vector<unsigned char>& dest, u_int16_t len)
+void PacketReader::copyRecord(vector<unsigned char>& dest, uint16_t len)
 {
   dest.resize(len);
-  for(u_int16_t n=0;n<len;++n) {
+  for(uint16_t n=0;n<len;++n) {
     dest.at(n)=d_content.at(d_pos++);
   }
 }
 
-void PacketReader::copyRecord(unsigned char* dest, u_int16_t len)
+void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
 {
   if(d_pos + len > d_content.size())
     throw MOADNSException("Attempt to copy outside of packet");
@@ -156,9 +156,9 @@ void PacketReader::copyRecord(unsigned char* dest, u_int16_t len)
 }
 
 
-u_int32_t PacketReader::get32BitInt()
+uint32_t PacketReader::get32BitInt()
 {
-  u_int32_t ret=0;
+  uint32_t ret=0;
   ret+=d_content.at(d_pos++);
   ret<<=8;
   ret+=d_content.at(d_pos++);
@@ -171,14 +171,14 @@ u_int32_t PacketReader::get32BitInt()
 }
 
 
-u_int16_t PacketReader::get16BitInt()
+uint16_t PacketReader::get16BitInt()
 {
   return get16BitInt(d_content, d_pos);
 }
 
-u_int16_t PacketReader::get16BitInt(const vector<unsigned char>&content, u_int16_t& pos)
+uint16_t PacketReader::get16BitInt(const vector<unsigned char>&content, uint16_t& pos)
 {
-  u_int16_t ret=0;
+  uint16_t ret=0;
   ret+=content.at(pos++);
   ret<<=8;
   ret+=content.at(pos++);
@@ -201,7 +201,7 @@ string PacketReader::getLabel(unsigned int recurs)
 }
 
 
-void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, u_int16_t& frompos, string& ret, int recurs) 
+void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, uint16_t& frompos, string& ret, int recurs) 
 {
   if(recurs > 10)
     throw MOADNSException("Loop");
@@ -216,7 +216,7 @@ void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, u_int16_
       break;
     }
     if((labellen & 0xc0) == 0xc0) {
-      u_int16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
+      uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
       //	cout<<"This is an offset, need to go to: "<<offset<<endl;
       return getLabelFromContent(content, offset, ret, ++recurs);
     }

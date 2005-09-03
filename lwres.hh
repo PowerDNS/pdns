@@ -65,7 +65,7 @@ public:
   vector<DNSResourceRecord> result();
   int d_rcode;
   bool d_aabit, d_tcbit;
-  u_int32_t d_usec;
+  uint32_t d_usec;
 private:
   int d_sock;
   unsigned char *d_buf;
@@ -75,7 +75,7 @@ private:
   string d_domain;
   int d_type;
   int d_timeout;
-  u_int32_t d_ip;
+  uint32_t d_ip;
   bool d_inaxfr;
   int d_bufsize;
 };

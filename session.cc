@@ -101,7 +101,7 @@ Session::Session(const string &dest, int port, int timeout)
   doConnect(*(int*)h->h_addr, port);
 }
 
-Session::Session(u_int32_t ip, int port, int timeout)
+Session::Session(uint32_t ip, int port, int timeout)
 {
   if(timeout)
     d_timeout=timeout;
@@ -115,7 +115,7 @@ void Session::setTimeout(unsigned int seconds)
 }
 
   
-void Session::doConnect(u_int32_t ip, int port)
+void Session::doConnect(uint32_t ip, int port)
 {
   init();
   clisock=socket(AF_INET,SOCK_STREAM,0);
@@ -334,7 +334,7 @@ int Session::getSocket()
 string Session::getRemote ()
 {
   ostringstream o;
-  u_int32_t rint=htonl(remote.sin_addr.s_addr);
+  uint32_t rint=htonl(remote.sin_addr.s_addr);
   o<< (rint>>24 & 0xff)<<".";
   o<< (rint>>16 & 0xff)<<".";
   o<< (rint>>8  & 0xff)<<".";
@@ -344,7 +344,7 @@ string Session::getRemote ()
   return o.str();
 }
 
-u_int32_t Session::getRemoteAddr()
+uint32_t Session::getRemoteAddr()
 {
 
   return htonl(remote.sin_addr.s_addr);
@@ -353,7 +353,7 @@ u_int32_t Session::getRemoteAddr()
 string Session::getRemoteIP()
 {
   ostringstream o;
-  u_int32_t rint=htonl(remote.sin_addr.s_addr);
+  uint32_t rint=htonl(remote.sin_addr.s_addr);
   o<< (rint>>24 & 0xff)<<".";
   o<< (rint>>16 & 0xff)<<".";
   o<< (rint>>8  & 0xff)<<".";

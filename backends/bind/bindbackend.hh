@@ -54,7 +54,7 @@ public:
   time_t d_last_check;
   string d_master;
   int d_confcount;
-  u_int32_t d_lastnotified;
+  uint32_t d_lastnotified;
 
   bool tryRLock()
   {
@@ -184,8 +184,8 @@ public:
   static set<string> s_contents;
   static pthread_mutex_t s_startup_lock;
 
-  void setFresh(u_int32_t domain_id);
-  void setNotified(u_int32_t id, u_int32_t serial);
+  void setFresh(uint32_t domain_id);
+  void setNotified(uint32_t id, uint32_t serial);
   bool startTransaction(const string &qname, int id);
   //  bool BindBackend::stopTransaction(const string &qname, int id);
   bool feedRecord(const DNSResourceRecord &r);

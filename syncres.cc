@@ -214,7 +214,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   string sqname(qname);
   QType sqt(qtype);
-  u_int32_t sttl=0;
+  uint32_t sttl=0;
 
   if(s_negcache.count(toLower(qname))) {
     res=0;

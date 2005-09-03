@@ -118,13 +118,13 @@ public:
   inline void setRemote(const struct sockaddr *a, Utility::socklen_t socklen);
   string getLocal() const;
   string getRemote() const;
-  u_int16_t getRemotePort() const;
+  uint16_t getRemotePort() const;
   void setA(bool); //!< make this packet authoritative
   void setRA(bool); //!< set the Recursion Available flag
   void setRD(bool); //!< set the Recursion Desired flag
   void setAnswer(bool); //!< Make this packet an answer
-  void setID(u_int16_t); //!< set the DNS id of this packet
-  void setOpcode(u_int16_t);  //!< set the Opcode of this packet
+  void setID(uint16_t); //!< set the DNS id of this packet
+  void setOpcode(uint16_t);  //!< set the Opcode of this packet
   void setRcode(int v); //!< set the Rcode of this packet
 
 
@@ -142,33 +142,33 @@ public:
   vector<DNSResourceRecord> getAnswers();
 private:
   string compress(const string &qd);
-  void addARecord(const string&, u_int32_t, u_int32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
+  void addARecord(const string&, uint32_t, uint32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
   void addARecord(const DNSResourceRecord &); //!< add an A record to the packet
 
-  void addAAAARecord(const string &, unsigned char addr[16], u_int32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
+  void addAAAARecord(const string &, unsigned char addr[16], uint32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
   void addAAAARecord(const DNSResourceRecord &); //!< add an A record to the packet
 
 
-  void addMXRecord(const string &domain, const string &mx, int priority, u_int32_t ttl); //!< add an MX record to the packet
+  void addMXRecord(const string &domain, const string &mx, int priority, uint32_t ttl); //!< add an MX record to the packet
   void addMXRecord(const DNSResourceRecord &); //!< add an MX record to the packet
 
-  void addSRVRecord(const string &domain, const string &srv, int priority, u_int32_t ttl); //!< add an SRVMX record to the packet
+  void addSRVRecord(const string &domain, const string &srv, int priority, uint32_t ttl); //!< add an SRVMX record to the packet
   void addSRVRecord(const DNSResourceRecord &); //!< add an SRV record to the packet
 
-  void addCNAMERecord(const string &domain, const string &alias, u_int32_t ttl); //!< add a CNAME record to the packet
+  void addCNAMERecord(const string &domain, const string &alias, uint32_t ttl); //!< add a CNAME record to the packet
   void addCNAMERecord(const DNSResourceRecord &); //!< add a CNAME record to the packet
 
-  void addRPRecord(const string &domain, const string &content, u_int32_t ttl); //!< add a RP record to the packet
+  void addRPRecord(const string &domain, const string &content, uint32_t ttl); //!< add a RP record to the packet
   void addRPRecord(const DNSResourceRecord &); //!< add a RP record to the packet
 
-  void addNAPTRRecord(const string &domain, const string &content, u_int32_t ttl); //!< add a NAPTR record to the packet
+  void addNAPTRRecord(const string &domain, const string &content, uint32_t ttl); //!< add a NAPTR record to the packet
   void addNAPTRRecord(const DNSResourceRecord &); //!< add a NAPTR record to the packet
 
 
-  void addPTRRecord(const string &domain, const string &alias, u_int32_t ttl); //!< add a PTR record to the packet
+  void addPTRRecord(const string &domain, const string &alias, uint32_t ttl); //!< add a PTR record to the packet
   void addPTRRecord(const DNSResourceRecord &); //!< add a PTR record to the packet
 
-  void addLOCRecord(const string &domain, const string &content, u_int32_t ttl); 
+  void addLOCRecord(const string &domain, const string &content, uint32_t ttl); 
   void addLOCRecord(const DNSResourceRecord &); //!< add a LOC record to the packet
 
 
@@ -191,18 +191,18 @@ private:
       number of seconds since 1 jan 1970 (unix timestamp). The other values are substituted as indicated
 
   */
-  void addSOARecord(const string &domain, const string &content, u_int32_t ttl, DNSResourceRecord::Place place); 
+  void addSOARecord(const string &domain, const string &content, uint32_t ttl, DNSResourceRecord::Place place); 
   void addSOARecord(const DNSResourceRecord &); //!< add a SOA record to the packet
 
-  void addTXTorSPFRecord(uint16_t qtype, string domain, string, u_int32_t ttl); //!< add a TXT or SPF record to the packet
+  void addTXTorSPFRecord(uint16_t qtype, string domain, string, uint32_t ttl); //!< add a TXT or SPF record to the packet
 
   void addTXTRecord(const DNSResourceRecord &); //!< add a TXT record to the packet
   void addSPFRecord(const DNSResourceRecord &); //!< add a SPF record to the packet
 
-  void addHINFORecord(string domain, string, u_int32_t ttl); //!< add a HINFO record to the packet
+  void addHINFORecord(string domain, string, uint32_t ttl); //!< add a HINFO record to the packet
   void addHINFORecord(const DNSResourceRecord &); //!< add a HINFO record to the packet
 
-  void addNSRecord(string domain, string server, u_int32_t ttl, DNSResourceRecord::Place place); //!< add an NS record to the packet
+  void addNSRecord(string domain, string server, uint32_t ttl, DNSResourceRecord::Place place); //!< add an NS record to the packet
   void addNSRecord(const DNSResourceRecord &); //!< add an NS record to the packet
   void addGenericRecord(const DNSResourceRecord& rr);
   static string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
@@ -216,7 +216,7 @@ public:
   inline const char *getData(void); //!< get binary representation of packet
   void setRaw(char *mesg, int length);
   const char *getRaw(void);
-  inline void spoofID(u_int16_t id); //!< change the ID of an existing packet. Useful for fixing up packets returned from the PacketCache
+  inline void spoofID(uint16_t id); //!< change the ID of an existing packet. Useful for fixing up packets returned from the PacketCache
   inline void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
   void truncate(int new_length); // has documentation in source
 
@@ -240,8 +240,8 @@ public:
 
   char remote[sizeof(sockaddr_in6)];
   Utility::socklen_t d_socklen; // 4
-  u_int16_t len; //!< length of the raw binary packet 2
-  u_int16_t qclass;  //!< class of the question - should always be INternet 2
+  uint16_t len; //!< length of the raw binary packet 2
+  uint16_t qclass;  //!< class of the question - should always be INternet 2
   struct dnsheader d; //!< dnsheader at the start of the databuffer 12
 
   QType qtype;  //!< type of the question 8
@@ -251,7 +251,7 @@ public:
 private:
   bool d_wrapped; // 1
   bool d_compress; // 1
-  u_int16_t d_qlen; // length of the question (including class & type) in this packet 2
+  uint16_t d_qlen; // length of the question (including class & type) in this packet 2
   
   int d_socket; // 4
   
@@ -261,7 +261,7 @@ private:
   int toqname(const string &name, string *qname, bool compress = true); 
   const string makeSoaHostmasterPiece(const string &hostmaster);
   static string parseLOC(const unsigned char *p, unsigned int length);
-  void makeHeader(char *p,u_int16_t qtype, u_int32_t ttl);
+  void makeHeader(char *p,uint16_t qtype, uint32_t ttl);
   int domprint();
   int getq();
 
@@ -342,7 +342,7 @@ inline void DNSPacket::setRemote(const struct sockaddr *s, Utility::socklen_t so
   d_socklen=socklen;
 }
 
-inline void DNSPacket::spoofID(u_int16_t id)
+inline void DNSPacket::spoofID(uint16_t id)
 {
   stringbuffer[1]=(id>>8)&0xff; 
   stringbuffer[0]=id&0xff;

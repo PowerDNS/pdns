@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: win32_receiver.cc,v 1.4 2003/11/30 10:53:17 ahu Exp $
+// $Id$
 #ifdef WIN32
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>

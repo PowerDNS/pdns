@@ -42,7 +42,7 @@ void Resolver::makeUDPSocket()
 
 void Resolver::makeSocket(int type)
 {
-  static u_int16_t port_counter=5000;
+  static uint16_t port_counter=5000;
   port_counter++; // this makes us use a new port for each query, fixes ticket #2
   if(d_sock>0)
     return;
@@ -103,7 +103,7 @@ void Resolver::timeoutReadn(char *buffer, int bytes)
   }
 }
 
-char* Resolver::sendReceive(const string &ip, u_int16_t remotePort, const char *packet, int length, unsigned int *replen)
+char* Resolver::sendReceive(const string &ip, uint16_t remotePort, const char *packet, int length, unsigned int *replen)
 {
   makeTCPSocket(ip, remotePort);
 
@@ -127,7 +127,7 @@ char* Resolver::sendReceive(const string &ip, u_int16_t remotePort, const char *
   return 0;
 }
 
-int Resolver::notify(int sock, const string &domain, const string &ip, u_int16_t id)
+int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t id)
 {
   DNSPacket p;
   p.setQuestion(Opcode::Notify,domain,QType::SOA);
@@ -221,7 +221,7 @@ int Resolver::resolve(const string &ip, const char *domain, int type)
   
 }
 
-void Resolver::makeTCPSocket(const string &ip, u_int16_t port)
+void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 {
   if(d_sock>=0)
     return;
@@ -324,7 +324,7 @@ int Resolver::axfr(const string &ip, const char *domain)
   p.setQuestion(Opcode::Query,domain,QType::AXFR);
   p.wrapup();
 
-  u_int16_t replen=htons(p.len);
+  uint16_t replen=htons(p.len);
   Utility::iovec iov[2];
   iov[0].iov_base=(char*)&replen;
   iov[0].iov_len=2;
@@ -440,7 +440,7 @@ void Resolver::sendSoaSerialRequest(const string &ip, const string &domain)
   sendResolve(ip,domain.c_str(),QType::SOA);
 }
 
-int Resolver::getSoaSerialAnswer(string &master, string &zone, u_int32_t* serial)
+int Resolver::getSoaSerialAnswer(string &master, string &zone, uint32_t* serial)
 {
   struct sockaddr_in fromaddr;
   Utility::socklen_t addrlen=sizeof(fromaddr);
@@ -463,7 +463,7 @@ int Resolver::getSoaSerialAnswer(string &master, string &zone, u_int32_t* serial
 }
 
 
-int Resolver::getSoaSerial(const string &ip, const string &domain, u_int32_t *serial)
+int Resolver::getSoaSerial(const string &ip, const string &domain, uint32_t *serial)
 {
   resolve(ip,domain.c_str(),QType::SOA);
   res_t res=result();

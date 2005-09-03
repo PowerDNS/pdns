@@ -27,7 +27,7 @@ class QGen
   {
     string qname;
     QType qtype;
-    u_int16_t id;
+    uint16_t id;
     double timeSent;
     bool operator< (const OutstandingQuestion &rhs) const
     {
