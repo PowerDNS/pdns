@@ -76,8 +76,8 @@ class LdapBackend : public DNSBackend
 	bool m_getdn;
 	bool m_qlog;
 	int m_msgid;
-	u_int32_t m_ttl;
-	u_int32_t m_default_ttl;
+	uint32_t m_ttl;
+	uint32_t m_default_ttl;
 	unsigned int m_axfrqlen;
 	string m_myname;
 	string m_qname;

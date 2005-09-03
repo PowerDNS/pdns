@@ -1,6 +1,6 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
-   $Id: smysql.cc,v 1.6 2004/02/01 18:20:16 ahu Exp $  */
+   $Id$  */
 #include "smysql.hh"
 #include <string>
 #include <iostream>
@@ -11,7 +11,7 @@ using namespace std;
 
 bool SMySQL::s_dolog;
 
-SMySQL::SMySQL(const string &database, const string &host, u_int16_t port, const string &msocket, const string &user, 
+SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user, 
 	       const string &password)
 {
   mysql_init(&d_db);

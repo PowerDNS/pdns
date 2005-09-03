@@ -53,7 +53,7 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
 
 void CommunicatorClass::suck(const string &domain,const string &remote)
 {
-  u_int32_t domain_id;
+  uint32_t domain_id;
   PacketHandler P;
 
   DomainInfo di;
@@ -244,7 +244,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     Resolver resolver;   
     resolver.makeUDPSocket();  
     d_slaveschanged=true;
-    u_int32_t ourserial=i->serial,theirserial=0;
+    uint32_t ourserial=i->serial,theirserial=0;
 
     try {
       if(d_havepriosuckrequest) {
@@ -319,7 +319,7 @@ int CommunicatorClass::doNotifications()
 
   // send out possible new notifications
   string domain, ip;
-  u_int16_t id;
+  uint16_t id;
 
   bool purged;
   while(d_nq.getOne(domain, ip, &id, purged)) {

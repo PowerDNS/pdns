@@ -1,4 +1,4 @@
-// $Id: pdnsbackend.hh,v 1.5 2003/08/22 13:33:31 ahu Exp $
+// $Id$
 
 #ifndef PDNSBACKEND_HH
 #define PDNSBACKEND_HH

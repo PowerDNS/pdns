@@ -57,16 +57,16 @@ public:
   typedef vector<DNSResourceRecord> res_t;
   void makeSocket(int type);
   void makeUDPSocket();
-  void makeTCPSocket(const string &ip, u_int16_t port=53);
-  int notify(int sock, const string &domain, const string &ip, u_int16_t id);
+  void makeTCPSocket(const string &ip, uint16_t port=53);
+  int notify(int sock, const string &domain, const string &ip, uint16_t id);
   int resolve(const string &ip, const char *domain, int type);
   void sendResolve(const string &ip, const char *domain, int type);
 
   int receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrlen);
-  char* sendReceive(const string &ip, u_int16_t remotePort, const char *packet, int length, unsigned int *replylen);
-  int getSoaSerial(const string &, const string &, u_int32_t *);
+  char* sendReceive(const string &ip, uint16_t remotePort, const char *packet, int length, unsigned int *replylen);
+  int getSoaSerial(const string &, const string &, uint32_t *);
   void sendSoaSerialRequest(const string &ip, const string &domain);
-  int getSoaSerialAnswer(string &master, string &zone, u_int32_t* serial);
+  int getSoaSerialAnswer(string &master, string &zone, uint32_t* serial);
   int axfrChunk(Resolver::res_t &res);
   vector<DNSResourceRecord> result();
   
@@ -83,7 +83,7 @@ private:
   string d_domain;
   int d_type;
   int d_timeout;
-  u_int32_t d_ip;
+  uint32_t d_ip;
   bool d_inaxfr;
 };
 

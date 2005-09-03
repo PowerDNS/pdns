@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-// $Id: win32_dynlistener.cc,v 1.2 2003/11/30 10:53:17 ahu Exp $ 
+// $Id$ 
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 #include <string>

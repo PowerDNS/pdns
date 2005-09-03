@@ -45,11 +45,11 @@ using namespace std;
 class DNSBackend;  
 struct DomainInfo
 {
-  u_int32_t id;
+  uint32_t id;
   string zone;
   string master;
-  u_int32_t notified_serial;
-  u_int32_t serial;
+  uint32_t notified_serial;
+  uint32_t serial;
   time_t last_check;
   enum {Master,Slave,Native} kind;
   DNSBackend *backend;
@@ -145,12 +145,12 @@ public:
   }
   
   //! Called by PowerDNS to inform a backend that a domain has been checked for freshness
-  virtual void setFresh(u_int32_t domain_id)
+  virtual void setFresh(uint32_t domain_id)
   {
 
   }
   //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to slaves
-  virtual void setNotified(u_int32_t id, u_int32_t serial)
+  virtual void setNotified(uint32_t id, uint32_t serial)
   {
   }
 

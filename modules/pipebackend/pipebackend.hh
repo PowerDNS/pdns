@@ -1,6 +1,6 @@
 //
 // File    : pdnsbackend.hh
-// Version : $Id: pipebackend.hh,v 1.2 2003/08/22 13:33:31 ahu Exp $
+// Version : $Id$
 //
 
 #ifndef PIPEBACKEND_HH

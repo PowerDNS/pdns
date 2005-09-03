@@ -140,11 +140,11 @@ static u_int8_t precsize_aton(const char **strptr)
 
 /* converts ascii lat/lon to unsigned encoded 32-bit number.
  *  moves pointer. */
-static u_int32_t
+static uint32_t
 latlon2ul(const char **latlonstrptr, int *which)
 {
   const char *cp;
-  u_int32_t retval;
+  uint32_t retval;
   int deg = 0, min = 0, secs = 0, secsfrac = 0;
 
   cp = *latlonstrptr;
@@ -236,12 +236,12 @@ latlon2ul(const char **latlonstrptr, int *which)
   return (retval);
 }
 
-void DNSPacket::addLOCRecord(const string &domain, const string & content, u_int32_t ttl)
+void DNSPacket::addLOCRecord(const string &domain, const string & content, uint32_t ttl)
 {
   const char *cp, *maxcp;
   
-  u_int32_t latit = 0, longit = 0, alt = 0;
-  u_int32_t lltemp1 = 0, lltemp2 = 0;
+  uint32_t latit = 0, longit = 0, alt = 0;
+  uint32_t lltemp1 = 0, lltemp2 = 0;
   int altmeters = 0, altfrac = 0, altsign = 1;
   u_int8_t hp = 0x16;    /* default = 1e6 cm = 10000.00m = 10km */
   u_int8_t vp = 0x13;    /* default = 1e3 cm = 10.00m */
@@ -340,7 +340,7 @@ void DNSPacket::addLOCRecord(const string &domain, const string & content, u_int
   p[0]=0;p[1]=QType::LOC;
   p[2]=0;p[3]=1; 
 
-  u_int32_t *ttlp=(u_int32_t *)(p+4);
+  uint32_t *ttlp=(uint32_t *)(p+4);
   *ttlp=htonl(ttl); // 4, 5, 6, 7
   
   p[8]=0;

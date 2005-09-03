@@ -1,4 +1,4 @@
-// $Id: DB2Backend.hh,v 1.1 2002/11/29 11:44:21 ahu Exp $
+// $Id$
 
 #ifndef DB2BACKEND_HH
 #define DB2BACKEND_HH

@@ -69,7 +69,7 @@ public:
 	typedef map<string, vector<string> > sentry_t;
 	typedef vector<sentry_t> sresult_t;
 
-	PowerLDAP( const string& host = "127.0.0.1", u_int16_t port = LDAP_PORT, bool tls = false );
+	PowerLDAP( const string& host = "127.0.0.1", uint16_t port = LDAP_PORT, bool tls = false );
 	~PowerLDAP();
 
 	void getOption( int option, int* value );

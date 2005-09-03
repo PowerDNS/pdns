@@ -51,11 +51,11 @@ public:
   Netmask(const string &mask) 
   {
     char *p;
-    u_int8_t bits=32;
+    uint8_t bits=32;
     d_mask=0xFFFFFFFF;
 
     if((p=strchr(mask.c_str(),'/')))
-      bits = (u_int8_t) atoi(p+1);
+      bits = (uint8_t) atoi(p+1);
 
     if( bits < 32 )
     d_mask=~(0xFFFFFFFF>>bits);
@@ -81,15 +81,15 @@ public:
   }
 
   //! If this IP address in native format matches
-  bool match(u_int32_t ip) const
+  bool match(uint32_t ip) const
   {
     return (ip & d_mask) == (d_network & d_mask);
   }
 
 
 private:
-  u_int32_t d_network;
-  u_int32_t d_mask;
+  uint32_t d_network;
+  uint32_t d_mask;
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matchs

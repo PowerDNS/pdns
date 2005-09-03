@@ -2,7 +2,7 @@
  * 	Copyright (C) 2004 Mark Bergsma <mark@nedworks.org>
  *		This software is licensed under the terms of the GPL, version 2.
  * 
- * 	$Id: geobackend.cc,v 1.1 2004/02/28 19:13:44 ahu Exp $
+ * 	$Id$
  */
 
 #include <fstream>
@@ -29,8 +29,8 @@ map<string, GeoRecord*> GeoBackend::georecords;
 string GeoBackend::soaMasterServer;
 string GeoBackend::soaHostmaster;
 string GeoBackend::zoneName;
-u_int32_t GeoBackend::geoTTL;
-u_int32_t GeoBackend::nsTTL;
+uint32_t GeoBackend::geoTTL;
+uint32_t GeoBackend::nsTTL;
 time_t GeoBackend::lastDiscoverTime = 0;
 const string GeoBackend::logprefix = "[geobackend] ";
 bool GeoBackend::first = true;

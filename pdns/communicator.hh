@@ -57,7 +57,7 @@ public:
     d_nqueue.push_back(nr);
   }
   
-  bool removeIf(const string &remote, u_int16_t id, const string &domain)
+  bool removeIf(const string &remote, uint16_t id, const string &domain)
   {
     for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) {
       //      cout<<i->id<<" "<<id<<endl;
@@ -72,7 +72,7 @@ public:
     return false;
   }
 
-  bool getOne(string &domain, string &ip, u_int16_t *id, bool &purged)
+  bool getOne(string &domain, string &ip, uint16_t *id, bool &purged)
   {
     for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
       if(i->next <= time(0)) {
@@ -106,7 +106,7 @@ private:
     string domain;
     string ip;
     int attempts;
-    u_int16_t id;
+    uint16_t id;
     time_t next;
   };
 

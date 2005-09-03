@@ -2,7 +2,7 @@
  * 	Copyright (C) 2004 Mark Bergsma <mark@nedworks.org>
  *		This software is licensed under the terms of the GPL, version 2.
  * 
- * 	$Id: ippreftree.cc,v 1.1 2004/02/28 19:13:44 ahu Exp $
+ * 	$Id$
  */
 
 #include <sstream>
@@ -19,26 +19,26 @@ IPPrefTree::~IPPrefTree() {
 }
 
 void IPPrefTree::add(const string &prefix, const short value) {
-	u_int32_t ip;
+	uint32_t ip;
 	int preflen;
 	parsePrefix(prefix, ip, preflen);
 	
 	add(ip, preflen, value);
 }
 
-void IPPrefTree::add(const u_int32_t ip, const int preflen, const short value) {
+void IPPrefTree::add(const uint32_t ip, const int preflen, const short value) {
 	addNode(root, ip, preflenToNetmask(preflen), value);
 }
 
 short IPPrefTree::lookup(const string &prefix) const {
-	u_int32_t ip;
+	uint32_t ip;
 	int preflen;
 	parsePrefix(prefix, ip, preflen);
 	
 	return lookup(ip, preflen);
 }
 
-short IPPrefTree::lookup(const u_int32_t ip, const int preflen) const {
+short IPPrefTree::lookup(const uint32_t ip, const int preflen) const {
 	const node_t *node = findDeepestFilledNode(root, ip, preflenToNetmask(preflen));
 	return (node == NULL ? 0 : node->value);
 }
@@ -60,11 +60,11 @@ int IPPrefTree::getMemoryUsage() const {
 
 // Private methods
 
-inline u_int32_t IPPrefTree::preflenToNetmask (const int preflen) const {
+inline uint32_t IPPrefTree::preflenToNetmask (const int preflen) const {
 	return ~( (1 << (32 - preflen)) - 1);
 }
 
-inline void IPPrefTree::parsePrefix(const string &prefix, u_int32_t &ip, int &preflen) const {
+inline void IPPrefTree::parsePrefix(const string &prefix, uint32_t &ip, int &preflen) const {
 	// Parse the prefix string (with format 131.155.230.139/25)
 	istringstream is(prefix);
 	ip = 0; preflen = 32;
@@ -85,7 +85,7 @@ inline void IPPrefTree::parsePrefix(const string &prefix, u_int32_t &ip, int &pr
 	}	
 }
 
-void IPPrefTree::addNode(node_t *node, const u_int32_t ip, const u_int32_t mask, const short value) {
+void IPPrefTree::addNode(node_t *node, const uint32_t ip, const uint32_t mask, const short value) {
 	if (mask == 0) {
 		// We are at the correct depth in the tree
 		node->value = value;
@@ -114,7 +114,7 @@ node_t * IPPrefTree::allocateNode() {
 	return node;	
 }
 
-const node_t * IPPrefTree::findDeepestFilledNode(const node_t *node, const u_int32_t ip, const u_int32_t mask) const {
+const node_t * IPPrefTree::findDeepestFilledNode(const node_t *node, const uint32_t ip, const uint32_t mask) const {
 	if (node == NULL) return NULL;
 	
 	if (mask == 0) {

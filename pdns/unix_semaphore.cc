@@ -34,7 +34,7 @@
 // Darwin 6.0 Compatible implementation, uses pthreads so it portable across more platforms.
 
 #define SEM_VALUE_MAX 32767
-#define SEM_MAGIC     ((u_int32_t) 0x09fa4012)
+#define SEM_MAGIC     ((uint32_t) 0x09fa4012)
 
 Semaphore::Semaphore(unsigned int value)
 {
@@ -53,7 +53,7 @@ Semaphore::Semaphore(unsigned int value)
     throw AhuException("Cannot create semaphore: cannot allocate condition");
   }
 
-  m_count = (u_int32_t) value;
+  m_count = (uint32_t) value;
   m_nwaiters = 0;
   m_magic = SEM_MAGIC;
 }

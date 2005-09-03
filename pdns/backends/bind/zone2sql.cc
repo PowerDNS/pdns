@@ -18,7 +18,7 @@
 */
 /* accepts a named.conf as parameter and outputs heaps of sql */
 
-// $Id: zone2sql.cc,v 1.9 2004/01/22 07:52:32 ahu Exp $ 
+// $Id$ 
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 

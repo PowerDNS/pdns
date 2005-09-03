@@ -71,11 +71,11 @@ private:
   int* d_udpanswers;
   int* d_resquestions;
   pthread_mutex_t d_lock;
-  u_int16_t d_xor;
+  uint16_t d_xor;
   int getID_locked();
   struct ConntrackEntry
   {
-    u_int16_t id;
+    uint16_t id;
     char remote[sizeof(sockaddr_in6)];
     Utility::socklen_t addrlen;
     int outsock;

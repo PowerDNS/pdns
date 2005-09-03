@@ -69,7 +69,7 @@ public:
   time_t d_last_check; //!< last time domain was checked for freshness
   string d_master;     //!< IP address of the master of this domain
 
-  u_int32_t d_lastnotified; //!< Last serial number we notified our slaves of
+  uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
 
 
   //! try to get a read lock on this domain
@@ -124,8 +124,8 @@ public:
   static DNSBackend *maker();
   static pthread_mutex_t s_startup_lock;
 
-  void setFresh(u_int32_t domain_id);
-  void setNotified(u_int32_t id, u_int32_t serial);
+  void setFresh(uint32_t domain_id);
+  void setNotified(uint32_t id, uint32_t serial);
   bool startTransaction(const string &qname, int id);
   //  bool Bind2Backend::stopTransaction(const string &qname, int id);
   bool feedRecord(const DNSResourceRecord &r);

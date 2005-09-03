@@ -152,7 +152,7 @@ public:
   bool abortTransaction( void );
 
   //! Mark as fresh.
-  void setFresh( u_int32_t domain_id );
+  void setFresh( uint32_t domain_id );
   
   //! Super master/slave functionality.
   bool superMasterBackend( const std::string & ip, const std::string & domain, const std::vector< DNSResourceRecord > & nsset, std::string *pAccount, DNSBackend **ppDB );

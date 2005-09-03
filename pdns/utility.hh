@@ -26,9 +26,9 @@
 #endif // WIN32
 
 #ifdef NEED_POSIX_TYPEDEF
-typedef unsigned char u_int8_t;
-typedef unsigned short int u_int16_t;
-typedef unsigned int u_int32_t;
+typedef unsigned char uint8_t;
+typedef unsigned short int uint16_t;
+typedef unsigned int uint32_t;
 #endif
 
 
@@ -72,9 +72,9 @@ typedef unsigned int u_int32_t;
 typedef unsigned char int8_t;
 typedef unsigned int  int16_t;
 typedef unsigned long int32_t;
-typedef unsigned char u_int8_t;
-typedef unsigned int  u_int16_t;
-typedef unsigned long u_int32_t;
+typedef unsigned char uint8_t;
+typedef unsigned int  uint16_t;
+typedef unsigned long uint32_t;
 
 struct in6_addr {
 	unsigned char s6_addr[16]; /* IPv6 address */
@@ -113,11 +113,11 @@ private:
 #else
   typedef int sem_value_t;
 
-  u_int32_t       m_magic;
+  uint32_t       m_magic;
   pthread_mutex_t m_lock;
   pthread_cond_t  m_gtzero;
   sem_value_t     m_count;
-  u_int32_t       m_nwaiters;
+  uint32_t       m_nwaiters;
 #endif
 
 protected:

@@ -613,7 +613,7 @@ bool ODBCBackend::abortTransaction( void )
 
 
 // Marks a domain as fresh.
-void ODBCBackend::setFresh( u_int32_t domain_id )
+void ODBCBackend::setFresh( uint32_t domain_id )
 {
   SQLRETURN           res;
   char                buf[512];

@@ -2,7 +2,7 @@
  *		Copyright (C) 2004 Mark Bergsma <mark@nedworks.org>
  *		This software is licensed under the terms of the GPL, version 2.
  * 
- *		$Id: geobackend.hh,v 1.1 2004/02/28 19:13:44 ahu Exp $
+ *		$Id$
  */
 
 
@@ -49,8 +49,8 @@ private:
 	static string soaMasterServer;
 	static string soaHostmaster;
 	static string zoneName;
-	static u_int32_t geoTTL;
-	static u_int32_t nsTTL;
+	static uint32_t geoTTL;
+	static uint32_t nsTTL;
 	static time_t lastDiscoverTime;
 	const static string logprefix;
 	

@@ -311,7 +311,7 @@ inline bool LdapBackend::prepare()
 	{
 		char* endptr;
 
-		m_ttl = (u_int32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
+		m_ttl = (uint32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
 		if( *endptr != '\0' )
 		{
 			L << Logger::Warning << m_myname << " Invalid time to life for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
@@ -429,7 +429,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 								continue;
 							}
 
-							rr.priority = (u_int16_t) strtoul( (content.substr( 0, first )).c_str(), &endptr, 10 );
+							rr.priority = (uint16_t) strtoul( (content.substr( 0, first )).c_str(), &endptr, 10 );
 							if( *endptr != '\0' )
 							{
 								L << Logger::Warning << m_myname << " Invalid " << attrname << " without priority for " << m_qname << ": " << content << endl;

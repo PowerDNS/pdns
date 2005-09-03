@@ -53,12 +53,12 @@ void stripLine(string &line);
 string getHostname();
 string urlEncode(const string &text);
 int waitForData(int fd, int seconds, int useconds=0);
-u_int16_t getShort(const unsigned char *p);
-u_int16_t getShort(const char *p);
-u_int32_t getLong(const unsigned char *p);
-u_int32_t getLong(const char *p);
+uint16_t getShort(const unsigned char *p);
+uint16_t getShort(const char *p);
+uint32_t getLong(const unsigned char *p);
+uint32_t getLong(const char *p);
 
-inline void putLong(unsigned char* p, u_int32_t val)
+inline void putLong(unsigned char* p, uint32_t val)
 {
   *p++=(val>>24)&0xff;
   *p++=(val>>16)&0xff;
@@ -66,13 +66,13 @@ inline void putLong(unsigned char* p, u_int32_t val)
   *p++=(val   )&0xff;
 
 }
-inline void putLong(char* p, u_int32_t val)
+inline void putLong(char* p, uint32_t val)
 {
   putLong((unsigned char *)p,val);
 }
 
 
-inline u_int32_t getLong(unsigned char *p)
+inline uint32_t getLong(unsigned char *p)
 {
   return (p[0]<<24)+(p[1]<<16)+(p[2]<<8)+p[3];
 }
@@ -81,7 +81,7 @@ inline u_int32_t getLong(unsigned char *p)
 struct ServiceTuple
 {
   string host;
-  u_int16_t port;
+  uint16_t port;
 };
 void parseService(const string &descr, ServiceTuple &st);
 
@@ -114,7 +114,7 @@ stringtok (Container &container, string const &in,
   }
 }
 const string toLower(const string &upper);
-bool IpToU32(const string &str, u_int32_t *ip);
+bool IpToU32(const string &str, uint32_t *ip);
 string stringerror();
 string itoa(int i);
 string uitoa(unsigned int i);

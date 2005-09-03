@@ -2,7 +2,7 @@
 
 
 
-PowerLDAP::PowerLDAP( const string& host, u_int16_t port, bool tls )
+PowerLDAP::PowerLDAP( const string& host, uint16_t port, bool tls )
 {
 	int protocol = LDAP_VERSION3;
 

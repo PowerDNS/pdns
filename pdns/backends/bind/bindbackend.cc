@@ -98,12 +98,12 @@ void BBDomainInfo::setCtime()
   d_ctime=buf.st_ctime;
 }
 
-void BindBackend::setNotified(u_int32_t id, u_int32_t serial)
+void BindBackend::setNotified(uint32_t id, uint32_t serial)
 {
   d_bbds[id].d_lastnotified=serial;
 }
 
-void BindBackend::setFresh(u_int32_t domain_id)
+void BindBackend::setFresh(uint32_t domain_id)
 {
   d_bbds[domain_id].d_last_check=time(0);
 }
@@ -190,7 +190,7 @@ bool BindBackend::feedRecord(const DNSResourceRecord &r)
 void BindBackend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 {
   SOAData soadata;
-  for(map<u_int32_t,BBDomainInfo>::iterator i=d_bbds.begin();i!=d_bbds.end();++i) {
+  for(map<uint32_t,BBDomainInfo>::iterator i=d_bbds.begin();i!=d_bbds.end();++i) {
     if(!i->second.d_master.empty())
       continue;
     soadata.serial=0;
@@ -216,7 +216,7 @@ void BindBackend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 
 void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
-  for(map<u_int32_t,BBDomainInfo>::const_iterator i=d_bbds.begin();i!=d_bbds.end();++i) {
+  for(map<uint32_t,BBDomainInfo>::const_iterator i=d_bbds.begin();i!=d_bbds.end();++i) {
     if(i->second.d_master.empty())
       continue;
     DomainInfo sd;
@@ -243,7 +243,7 @@ void BindBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
 bool BindBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
-  for(map<u_int32_t,BBDomainInfo>::const_iterator i=d_bbds.begin();i!=d_bbds.end();++i) {
+  for(map<uint32_t,BBDomainInfo>::const_iterator i=d_bbds.begin();i!=d_bbds.end();++i) {
     if(i->second.d_name==domain) {
       di.id=i->first;
       di.zone=domain;
@@ -355,7 +355,7 @@ static BindBackend *us;
 
 void BindBackend::reload()
 {
-  for(map<u_int32_t,BBDomainInfo>::iterator i=us->d_bbds.begin();i!=us->d_bbds.end();++i) 
+  for(map<uint32_t,BBDomainInfo>::iterator i=us->d_bbds.begin();i!=us->d_bbds.end();++i) 
     i->second.d_checknow=true;
 }
 
@@ -363,7 +363,7 @@ string BindBackend::DLReloadNowHandler(const vector<string>&parts, Utility::pid_
 {
   ostringstream ret;
   bool doReload=false;
-  for(map<u_int32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) {
+  for(map<uint32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) {
     doReload=false;
     if(parts.size()==1)
       doReload=true;
@@ -392,7 +392,7 @@ string BindBackend::DLDomStatusHandler(const vector<string>&parts, Utility::pid_
 {
   string ret;
   bool doPrint=false;
-  for(map<u_int32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) {
+  for(map<uint32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) {
     ostringstream line;
     doPrint=false;
     if(parts.size()==1)
@@ -417,7 +417,7 @@ string BindBackend::DLDomStatusHandler(const vector<string>&parts, Utility::pid_
 string BindBackend::DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   ostringstream ret;
-  for(map<u_int32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) 
+  for(map<uint32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) 
     if(!j->second.d_loaded)
       ret<<j->second.d_name<<"\t"<<j->second.d_status<<endl;
 	
@@ -806,7 +806,7 @@ bool BindBackend::handle::get_list(DNSResourceRecord &r)
 
 bool BindBackend::isMaster(const string &name, const string &ip)
 {
-  for(map<u_int32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) 
+  for(map<uint32_t,BBDomainInfo>::iterator j=us->d_bbds.begin();j!=us->d_bbds.end();++j) 
     if(j->second.d_name==name)
       return j->second.d_master==ip;
   return false;
