@@ -194,8 +194,10 @@ private:
   void addSOARecord(const string &domain, const string &content, u_int32_t ttl, DNSResourceRecord::Place place); 
   void addSOARecord(const DNSResourceRecord &); //!< add a SOA record to the packet
 
-  void addTXTRecord(string domain, string, u_int32_t ttl); //!< add a TXT record to the packet
+  void addTXTorSPFRecord(uint16_t qtype, string domain, string, u_int32_t ttl); //!< add a TXT or SPF record to the packet
+
   void addTXTRecord(const DNSResourceRecord &); //!< add a TXT record to the packet
+  void addSPFRecord(const DNSResourceRecord &); //!< add a SPF record to the packet
 
   void addHINFORecord(string domain, string, u_int32_t ttl); //!< add a HINFO record to the packet
   void addHINFORecord(const DNSResourceRecord &); //!< add a HINFO record to the packet

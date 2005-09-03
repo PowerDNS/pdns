@@ -780,20 +780,24 @@ void DNSPacket::addPTRRecord(const string &domain, const string &alias, u_int32_
  d.ancount++;
 }
 
-
-
 void DNSPacket::addTXTRecord(const DNSResourceRecord& rr)
 {
-  addTXTRecord(rr.qname, rr.content, rr.ttl);
+  addTXTorSPFRecord(QType::TXT, rr.qname, rr.content, rr.ttl);
 }
 
-void DNSPacket::addTXTRecord(string domain, string txt, u_int32_t ttl)
+void DNSPacket::addSPFRecord(const DNSResourceRecord& rr)
+{
+  addTXTorSPFRecord(QType::SPF, rr.qname, rr.content, rr.ttl);
+}
+
+
+void DNSPacket::addTXTorSPFRecord(uint16_t qtype, string domain, string txt, u_int32_t ttl)
 {
  string piece1;
  //xtoqname(domain, &piece1);
  toqname(domain, &piece1);
  char p[10];
- makeHeader(p,QType::TXT,ttl);
+ makeHeader(p, qtype, ttl);
  string piece3;
  piece3.reserve(txt.length()+1);
  piece3.append(1,txt.length());
@@ -1039,7 +1043,8 @@ void DNSPacket::wrapup(void)
       addMXRecord(rr);
       break;
 
-    case 16: // TXT
+    case QType::TXT: // TXT
+
       addTXTRecord(rr);
       break;
 
@@ -1062,6 +1067,10 @@ void DNSPacket::wrapup(void)
 
     case QType::NAPTR:
       addNAPTRRecord(rr);
+      break;
+
+    case QType::SPF: // SPF
+      addSPFRecord(rr);
       break;
 
     case 258: // CURL
