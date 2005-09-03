@@ -237,7 +237,8 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   
   uc->uc_stack.ss_size = d_stacksize;
 #ifdef SOLARIS
-  makecontext (uc, (void (*)(...))threadWrapper, 4, this, start, d_maxtid, val);
+  uc->uc_stack.ss_sp = (void*)(((char*)uc->uc_stack.ss_sp)+d_stacksize);
+  makecontext (uc,(void (*)(...))threadWrapper, 5, this, start, d_maxtid, val);
 #else
   makecontext (uc, (void (*)(void))threadWrapper, 4, this, start, d_maxtid, val);
 #endif
