@@ -467,8 +467,8 @@ void Bind2Backend::loadConfig(string* status)
     vector<BindDomainInfo> domains=BP.getDomains();
     
     us=this;
-
-    ZP.setDirectory(BP.getDirectory());
+    d_binddirectory=BP.getDirectory();
+    ZP.setDirectory(d_binddirectory);
     ZP.setCallback(&callback);  
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
@@ -611,6 +611,8 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     
     ZoneParser ZP;
     us=this;
+
+    ZP.setDirectory(d_binddirectory);
     ZP.setCallback(&callback);  
 
     nbbds[bbd->d_id]=s_id_zone_map[bbd->d_id];
