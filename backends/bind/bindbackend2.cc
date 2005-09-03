@@ -50,10 +50,13 @@ using namespace std;
 */
 
 map<string,int> Bind2Backend::s_name_id_map;
-map<u_int32_t,BB2DomainInfo* > Bind2Backend::s_id_zone_map;
+map<uint32_t,BB2DomainInfo* > Bind2Backend::s_id_zone_map;
+map<uint32_t, BB2DomainInfo*> Bind2Backend::s_staging_zone_map;
+
 int Bind2Backend::s_first=1;
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Bind2Backend::s_zonemap_lock=PTHREAD_MUTEX_INITIALIZER;
+
 
 /* when a query comes in, we find the most appropriate zone and answer from that */
 
@@ -64,7 +67,7 @@ BB2DomainInfo::BB2DomainInfo()
   d_checknow=false;
   d_rwlock=new pthread_rwlock_t;
   d_status="Seen in bind configuration";
-  d_confcount=0;
+
   //  cout<<"Generated a new bbdomaininfo: "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
   pthread_rwlock_init(d_rwlock,0);
 }
@@ -292,14 +295,12 @@ static string canonic(string ret)
 
 set<string> contents;
 
-map<unsigned int, BB2DomainInfo*> nbbds;
 /** This function adds a record to a domain with a certain id. */
 void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
 {
   Bind2DNSRecord bdr;
 
-  //  rr.domain_id=id;
-  BB2DomainInfo* bb2=nbbds[id];
+  BB2DomainInfo* bb2=s_staging_zone_map[id];
 
   vector<Bind2DNSRecord> &records=*bb2->d_records;
 
@@ -309,7 +310,7 @@ void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, con
   else if(bdr.qname.length() > bb2->d_name.length())
     bdr.qname.resize(bdr.qname.length() - (bb2->d_name.length() + 1));
   else
-    throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', zone='"+nbbds[id]->d_name+"'");
+    throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', zone='"+s_staging_zone_map[id]->d_name+"'");
 
   bdr.qname.swap(bdr.qname);
 
@@ -446,7 +447,7 @@ void Bind2Backend::loadConfig(string* status)
   Lock l(&s_zonemap_lock);
   
   static int domain_id=1;
-  nbbds.clear();
+  s_staging_zone_map.clear();
   if(!getArg("config").empty()) {
     BindParser BP;
     try {
@@ -505,21 +506,21 @@ void Bind2Backend::loadConfig(string* status)
 	bbd->d_filename=i->filename;
 	bbd->d_master=i->master;
 	
-	nbbds[bbd->d_id]=bbd; 
+	s_staging_zone_map[bbd->d_id]=bbd; 
 	if(!bbd->d_loaded) {
 	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 	  
 	  try {
 	    ZP.parse(i->filename,i->name,bbd->d_id); // calls callback for us
 	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
-	    sort(nbbds[bbd->d_id]->d_records->begin(), nbbds[bbd->d_id]->d_records->end());
-	    nbbds[bbd->d_id]->setCtime();
-	    nbbds[bbd->d_id]->d_loaded=true;          // does this perform locking for us?
-	    nbbds[bbd->d_id]->d_status="parsed into memory at "+nowTime();
-	    //	    cout<<"Had "<<contents.size()<<" different content fields, "<<nbbds[bbd->d_id]->d_records->size()<<" records, capacity: "<<
-	    //	      nbbds[bbd->d_id]->d_records->capacity()<<endl;
+	    sort(s_staging_zone_map[bbd->d_id]->d_records->begin(), s_staging_zone_map[bbd->d_id]->d_records->end());
+	    s_staging_zone_map[bbd->d_id]->setCtime();
+	    s_staging_zone_map[bbd->d_id]->d_loaded=true;          // does this perform locking for us?
+	    s_staging_zone_map[bbd->d_id]->d_status="parsed into memory at "+nowTime();
+	    //	    cout<<"Had "<<contents.size()<<" different content fields, "<<s_staging_zone_map[bbd->d_id]->d_records->size()<<" records, capacity: "<<
+	    //	      s_staging_zone_map[bbd->d_id]->d_records->capacity()<<endl;
 	    contents.clear();
-	    nbbds[bbd->d_id]->d_records->swap(*nbbds[bbd->d_id]->d_records);
+	    s_staging_zone_map[bbd->d_id]->d_records->swap(*s_staging_zone_map[bbd->d_id]->d_records);
 
 	  }
 	  catch(AhuException &ae) {
@@ -528,7 +529,7 @@ void Bind2Backend::loadConfig(string* status)
 
 	    if(status)
 	      *status+=msg.str();
-	    nbbds[bbd->d_id]->d_status=msg.str();
+	    s_staging_zone_map[bbd->d_id]->d_status=msg.str();
 	    L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
 	    rejected++;
 	  }
@@ -545,7 +546,7 @@ void Bind2Backend::loadConfig(string* status)
     for(map<unsigned int, BB2DomainInfo*>::const_iterator j=s_id_zone_map.begin();j!=s_id_zone_map.end();++j) {
       oldnames.insert(j->second->d_name);
     }
-    for(map<unsigned int, BB2DomainInfo*>::const_iterator j=nbbds.begin();j!=nbbds.end();++j) {
+    for(map<unsigned int, BB2DomainInfo*>::const_iterator j=s_staging_zone_map.begin();j!=s_staging_zone_map.end();++j) {
       newnames.insert(j->second->d_name);
     }
 
@@ -575,7 +576,7 @@ void Bind2Backend::loadConfig(string* status)
     set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff2));
     newdomains=diff2.size();
 
-    s_id_zone_map.swap(nbbds); // commit
+    s_id_zone_map.swap(s_staging_zone_map); // commit
     ostringstream msg;
     msg<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"; 
     if(status)
@@ -590,7 +591,7 @@ void Bind2Backend::loadConfig(string* status)
 void Bind2Backend::nukeZoneRecords(BB2DomainInfo *bbd)
 {
   bbd->d_loaded=0; // block further access
-  bbd->d_records->clear();
+  bbd->d_records->clear(); // empty the vector of Bind2DNSRecords
 }
 
 /** Must be called with bbd locked already. Will not be unlocked on return, is your own problem.
@@ -598,7 +599,7 @@ void Bind2Backend::nukeZoneRecords(BB2DomainInfo *bbd)
 
 void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 {
-  nbbds.clear();
+  s_staging_zone_map.clear(); 
 
   // we reload *now* for the time being
   //cout<<"unlock domain"<<endl;
@@ -612,12 +613,13 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZoneParser ZP;
     us=this;
 
+    cerr<<"Setting to d_binddirectory: "<<d_binddirectory<<endl;
     ZP.setDirectory(d_binddirectory);
     ZP.setCallback(&callback);  
 
-    nbbds[bbd->d_id]=s_id_zone_map[bbd->d_id];
+    s_staging_zone_map[bbd->d_id]=s_id_zone_map[bbd->d_id];
     ZP.parse(bbd->d_filename,bbd->d_name,bbd->d_id);
-    s_id_zone_map[bbd->d_id]=nbbds[bbd->d_id];
+    s_id_zone_map[bbd->d_id]=s_staging_zone_map[bbd->d_id];
 
     bbd->setCtime();
     // and raise d_loaded again!
@@ -644,9 +646,9 @@ bool operator<(const string &a, const Bind2DNSRecord &b)
 }
 
 
-void Bind2Backend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int zoneId )
+void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_p, int zoneId )
 {
-  d_handle.reset(); // =new Bind2Backend::handle;
+  d_handle.reset();
 
   string domain=toLower(qname);
 

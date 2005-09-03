@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002-2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 as 
+    published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,6 +24,10 @@
 
 using namespace std;
 
+
+/** This struct is used within the Bind2Backend to store DNS information. 
+    It is almost identical to a DNSResourceRecord, but then a bit smaller and with different sorting rules, which make sure that the SOA record comes up front.
+*/
 struct Bind2DNSRecord
 {
   string qname;
@@ -44,39 +47,46 @@ struct Bind2DNSRecord
   }
 };
 
+
+/** Class which describes all metadata of a domain for storage by the Bind2Backend, and also contains a pointer to a vector of Bind2DNSRecord's */
 class BB2DomainInfo
 {
 public:
+
   BB2DomainInfo();
 
   void setCtime();
 
   bool current();
 
-  bool d_loaded;
-  string d_status;
-  bool d_checknow;
-  time_t d_ctime;
-  string d_name;
-  string d_filename;
-  unsigned int d_id;
-  time_t d_last_check;
-  string d_master;
-  int d_confcount;
-  u_int32_t d_lastnotified;
+  bool d_loaded;  //!< if a domain is loaded
+  string d_status; //!< message describing status of a domain, for human consumtpion
+  bool d_checknow; //!< if this domain has been flagged for a check
+  time_t d_ctime;  //!< last known ctime of the file on disk
+  string d_name;   //!< actual name of the domain
+  string d_filename; //!< full absolute filename of the zone on disk
+  unsigned int d_id;  //!< internal id of the domain
+  time_t d_last_check; //!< last time domain was checked for freshness
+  string d_master;     //!< IP address of the master of this domain
 
+  u_int32_t d_lastnotified; //!< Last serial number we notified our slaves of
+
+
+  //! try to get a read lock on this domain
   bool tryRLock()
   {
     //    cout<<"[trylock!] "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
     return pthread_rwlock_tryrdlock(d_rwlock)!=EBUSY;
   }
   
+  //! unlock this domain - should only be called if it was locked!
   void unlock()
   {
     //    cout<<"[unlock] "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
     pthread_rwlock_unlock(d_rwlock);
   }
   
+  //! get a write lock on this domain
   void lock()
   {
     //cout<<"[writelock!] "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
@@ -84,14 +94,18 @@ public:
     pthread_rwlock_wrlock(d_rwlock);
   }
 
+  //! configure how often this domain should be checked for changes (on disk)
   void setCheckInterval(time_t seconds);
-  vector <Bind2DNSRecord>* d_records;
+
+  vector <Bind2DNSRecord>* d_records; //!< the actual records belonging to this domain
+
 private:
   time_t getCtime();
   time_t d_checkinterval;
   time_t d_lastcheck;
   pthread_rwlock_t *d_rwlock;
 };
+
 
 class Bind2Backend : public DNSBackend
 {
@@ -171,26 +185,29 @@ private:
     handle(const handle &);
   };
 
-  static map<string,int> s_name_id_map;
-  static map<u_int32_t,BB2DomainInfo* > s_id_zone_map;
-  static int s_first;
-  static pthread_mutex_t s_zonemap_lock;
+  static map<string,int> s_name_id_map;  //!< convert a name to a domain id
+  static map<uint32_t,BB2DomainInfo* > s_id_zone_map; //!< convert a domain id to a pointer to a BB2DomainInfo
+  static map<uint32_t, BB2DomainInfo*> s_staging_zone_map;    //!< staging area for when generating a new s_id_zone_map
+  static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
+  static pthread_mutex_t s_zonemap_lock;               //!< lock protecting ???
 
-  string d_binddirectory;
+  string d_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
 
   string d_logprefix;
+
   int d_transaction_id;
   string d_transaction_tmpname;
+
   ofstream *d_of;
   handle d_handle;
+
   void queueReload(BB2DomainInfo *bbd);
 
   void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
+
   void loadConfig(string *status=0);
   void nukeZoneRecords(BB2DomainInfo *bbd);
-
-
 };
