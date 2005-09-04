@@ -409,8 +409,8 @@ Bind2Backend::Bind2Backend(const string &suffix)
 #if __GNUC__ >= 3
     ios_base::sync_with_stdio(false);
 #endif
-  d_logprefix="[bind2"+suffix+"backend]";
-  setArgPrefix("bind2"+suffix);
+  d_logprefix="[bind"+suffix+"backend]";
+  setArgPrefix("bind"+suffix);
   Lock l(&s_startup_lock);
 
   d_transaction_id=0;
@@ -424,9 +424,9 @@ Bind2Backend::Bind2Backend(const string &suffix)
 
   extern DynListener *dl;
   us=this;
-  dl->registerFunc("BIND2-RELOAD-NOW", &DLReloadNowHandler);
-  dl->registerFunc("BIND2-DOMAIN-STATUS", &DLDomStatusHandler);
-  dl->registerFunc("BIND2-LIST-REJECTS", &DLListRejectsHandler);
+  dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler);
+  dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler);
+  dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler);
 }
 
 void Bind2Backend::rediscover(string *status)
@@ -906,7 +906,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
 class Bind2Factory : public BackendFactory
 {
    public:
-      Bind2Factory() : BackendFactory("bind2") {}
+      Bind2Factory() : BackendFactory("bind") {}
 
       void declareArguments(const string &suffix="")
       {

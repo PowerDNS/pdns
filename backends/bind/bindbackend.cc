@@ -431,8 +431,8 @@ static void callback(unsigned int domain_id, const string &domain, const string 
 
 BindBackend::BindBackend(const string &suffix)
 {
-  d_logprefix="[bind"+suffix+"backend]";
-  setArgPrefix("bind"+suffix);
+  d_logprefix="[bind1"+suffix+"backend]";
+  setArgPrefix("bind1"+suffix);
   Lock l(&s_startup_lock);
 
   d_transaction_id=0;
@@ -473,9 +473,9 @@ BindBackend::BindBackend(const string &suffix)
 
   extern DynListener *dl;
   us=this;
-  dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler);
-  dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler);
-  dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler);
+  dl->registerFunc("BIND1-RELOAD-NOW", &DLReloadNowHandler);
+  dl->registerFunc("BIND1-DOMAIN-STATUS", &DLDomStatusHandler);
+  dl->registerFunc("BIND1-LIST-REJECTS", &DLListRejectsHandler);
 }
 
 
@@ -815,7 +815,7 @@ bool BindBackend::isMaster(const string &name, const string &ip)
 class BindFactory : public BackendFactory
 {
    public:
-      BindFactory() : BackendFactory("bind") {}
+      BindFactory() : BackendFactory("bind1") {}
 
       void declareArguments(const string &suffix="")
       {
