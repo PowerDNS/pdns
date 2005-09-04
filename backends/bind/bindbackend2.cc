@@ -343,8 +343,6 @@ void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, con
   records.push_back(bdr);
 }
 
-
-
 void Bind2Backend::reload()
 {
   for(id_zone_map_t::iterator i=us->s_id_zone_map.begin();i!=us->s_id_zone_map.end();++i) 
@@ -599,6 +597,8 @@ void Bind2Backend::nukeZoneRecords(BB2DomainInfo *bbd)
 
 void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 {
+  Lock l(&s_zonemap_lock);
+
   s_staging_zone_map.clear(); 
 
   // we reload *now* for the time being
@@ -612,8 +612,6 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZP.setDirectory(d_binddirectory);
     ZP.setCallback(&InsertionCallback);  
 
-    // XXX FIXME - I think this is highly bogus as we are copying pointers around here, so we are only creating aliases
-
     s_staging_zone_map[bbd->d_id]=s_id_zone_map[bbd->d_id];
     s_staging_zone_map[bbd->d_id].d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);  // nuke it
 
@@ -623,7 +621,8 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     s_staging_zone_map[bbd->d_id].setCtime();
     
     contents.clear();
-    s_id_zone_map[bbd->d_id]=s_staging_zone_map[bbd->d_id];
+
+    s_id_zone_map[bbd->d_id]=s_staging_zone_map[bbd->d_id]; // move over
 
     bbd->setCtime();
     // and raise d_loaded again!
