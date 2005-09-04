@@ -301,6 +301,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     DLOG(L<<"Looking for SOA"<<endl);
 
     if(!s_P->getBackend()->getSOA(target,sd)) {
+      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendDelPacket(outpacket,outsock);
       return 0;
@@ -311,6 +312,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
 
   sd.db=(DNSBackend *)-1; // force uncached answer
   if(!P.getBackend()->getSOA(target,sd)) {
+      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(9); // 'NOTAUTH'
     sendDelPacket(outpacket,outsock);
     return 0;

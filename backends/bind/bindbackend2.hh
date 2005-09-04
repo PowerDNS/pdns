@@ -21,8 +21,10 @@
 #include <pthread.h>
 #include <time.h>
 #include <fstream>
+#include <boost/shared_ptr.hpp>
 
 using namespace std;
+using namespace boost;
 
 
 /** This struct is used within the Bind2Backend to store DNS information. 
@@ -34,7 +36,7 @@ struct Bind2DNSRecord
   uint32_t ttl;
   string content;
   uint16_t qtype;
-
+  uint16_t priority;
   bool operator<(const Bind2DNSRecord& rhs) const
   {
     if(qname < rhs.qname)
@@ -72,38 +74,16 @@ public:
   uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
 
 
-  //! try to get a read lock on this domain
-  bool tryRLock()
-  {
-    //    cout<<"[trylock!] "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
-    return pthread_rwlock_tryrdlock(d_rwlock)!=EBUSY;
-  }
-  
-  //! unlock this domain - should only be called if it was locked!
-  void unlock()
-  {
-    //    cout<<"[unlock] "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
-    pthread_rwlock_unlock(d_rwlock);
-  }
-  
-  //! get a write lock on this domain
-  void lock()
-  {
-    //cout<<"[writelock!] "<<(void*)d_rwlock<<"/"<<getpid()<<endl;
-
-    pthread_rwlock_wrlock(d_rwlock);
-  }
 
   //! configure how often this domain should be checked for changes (on disk)
   void setCheckInterval(time_t seconds);
 
-  vector <Bind2DNSRecord>* d_records; //!< the actual records belonging to this domain
+  shared_ptr<vector<Bind2DNSRecord> > d_records;  //!< the actual records belonging to this domain
 
 private:
   time_t getCtime();
   time_t d_checkinterval;
   time_t d_lastcheck;
-  pthread_rwlock_t *d_rwlock;
 };
 
 
@@ -148,22 +128,16 @@ private:
     void reset()
     {
       parent=0;
-      d_records=0;
+      d_records.reset();
       qname.clear();
-      if(d_bbd) {
-	d_bbd->unlock();
-	d_bbd=0;
-      }
+
     }
-    ~handle() {
-      if(d_bbd) 
-	d_bbd->unlock();
-    }
+
     handle();
 
     Bind2Backend *parent;
 
-    vector<Bind2DNSRecord>* d_records;
+    shared_ptr<vector<Bind2DNSRecord> > d_records;
     vector<Bind2DNSRecord>::const_iterator d_iter, d_end_iter;
 
     vector<Bind2DNSRecord>::const_iterator d_qname_iter;
@@ -171,7 +145,7 @@ private:
 
     bool d_list;
     int id;
-    BB2DomainInfo* d_bbd;  // appears to be only used for locking
+
     string qname;
     string domain;
     QType qtype;
@@ -186,9 +160,12 @@ private:
   };
 
   static map<string,int> s_name_id_map;  //!< convert a name to a domain id
-  static map<uint32_t,BB2DomainInfo* > s_id_zone_map; //!< convert a domain id to a pointer to a BB2DomainInfo
-  static map<uint32_t, BB2DomainInfo*> s_staging_zone_map;    //!< staging area for when generating a new s_id_zone_map
+
+  typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
+  static id_zone_map_t s_id_zone_map, s_staging_zone_map; //!< convert a domain id to a pointer to a BB2DomainInfo
+
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
+
   static pthread_mutex_t s_zonemap_lock;               //!< lock protecting ???
 
   string d_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
