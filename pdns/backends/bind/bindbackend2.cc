@@ -276,6 +276,7 @@ bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
 }
 
 
+//! lowercase, strip trailing .
 static string canonic(string ret)
 {
   string::iterator i;
@@ -292,9 +293,15 @@ static string canonic(string ret)
 }
 
 
+static void InsertionCallback(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
+{
+  us->insert(domain_id, domain, qtype, content, ttl, prio);
+}
+
 set<string> contents;
 
-/** This function adds a record to a domain with a certain id. */
+/** This function adds a record to a domain with a certain id. 
+    Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
 void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
 {
   Bind2DNSRecord bdr;
@@ -364,7 +371,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
     doReload=false;
   }
   if(ret.str().empty())
-    ret<<"no domains reloaded\n";
+    ret<<"no domains reloaded";
   return ret.str();
 }
 
@@ -405,10 +412,6 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
   return ret.str();
 }
 
-static void InsertionCallback(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
-{
-  us->insert(domain_id,domain,qtype,content,ttl,prio);
-}
 
 Bind2Backend::Bind2Backend(const string &suffix)
 {
@@ -457,11 +460,6 @@ void Bind2Backend::loadConfig(string* status)
       L<<Logger::Error<<"Error parsing bind configuration: "<<ae.reason<<endl;
       throw;
     }
-    /*
-    cout<<"sizeof Bind2DNSRecord: "<<sizeof(Bind2DNSRecord)<<endl;
-    cout<<"sizeof string: "<<sizeof(string)<<endl;
-    cout<<"sizeof qtype: "<<sizeof(QType)<<endl;
-    */
 
     ZoneParser ZP;
       
@@ -471,6 +469,7 @@ void Bind2Backend::loadConfig(string* status)
     d_binddirectory=BP.getDirectory();
     ZP.setDirectory(d_binddirectory);
     ZP.setCallback(&InsertionCallback);  
+
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
     int rejected=0;
@@ -486,11 +485,14 @@ void Bind2Backend::loadConfig(string* status)
 	  continue;
 	}
 	map<unsigned int, BB2DomainInfo*>::const_iterator j=s_id_zone_map.begin();
-	for(;j!=s_id_zone_map.end();++j)
+
+	for(;j!=s_id_zone_map.end();++j) {
 	  if(j->second->d_name==i->name) {
 	    bbd=j->second;
 	    break;
 	  }
+	}
+	
 	if(j==s_id_zone_map.end()) { // entirely new
 	  bbd=new BB2DomainInfo;
 	  bbd->d_records=new vector<Bind2DNSRecord>;
@@ -507,18 +509,20 @@ void Bind2Backend::loadConfig(string* status)
 	bbd->d_master=i->master;
 	
 	s_staging_zone_map[bbd->d_id]=bbd; 
+
 	if(!bbd->d_loaded) {
 	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 	  
 	  try {
-	    ZP.parse(i->filename,i->name,bbd->d_id); // calls callback for us
+	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
 	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
+
 	    sort(s_staging_zone_map[bbd->d_id]->d_records->begin(), s_staging_zone_map[bbd->d_id]->d_records->end());
+
 	    s_staging_zone_map[bbd->d_id]->setCtime();
 	    s_staging_zone_map[bbd->d_id]->d_loaded=true;          // does this perform locking for us?
 	    s_staging_zone_map[bbd->d_id]->d_status="parsed into memory at "+nowTime();
-	    //	    cout<<"Had "<<contents.size()<<" different content fields, "<<s_staging_zone_map[bbd->d_id]->d_records->size()<<" records, capacity: "<<
-	    //	      s_staging_zone_map[bbd->d_id]->d_records->capacity()<<endl;
+
 	    contents.clear();
 	    s_staging_zone_map[bbd->d_id]->d_records->swap(*s_staging_zone_map[bbd->d_id]->d_records);
 
@@ -540,7 +544,7 @@ void Bind2Backend::loadConfig(string* status)
 	*/
       }
 
-
+    // figure out which domains were new and which vanished
     int remdomains=0;
     set<string> oldnames, newnames;
     for(map<unsigned int, BB2DomainInfo*>::const_iterator j=s_id_zone_map.begin();j!=s_id_zone_map.end();++j) {
@@ -553,13 +557,16 @@ void Bind2Backend::loadConfig(string* status)
     vector<string> diff;
     set_difference(oldnames.begin(), oldnames.end(), newnames.begin(), newnames.end(), back_inserter(diff));
     remdomains=diff.size();
+
+    // remove domains from the map, delete their pointer
     for(vector<string>::const_iterator k=diff.begin();k!=diff.end();++k) {
       delete s_id_zone_map[s_name_id_map[*k]]->d_records;
       delete s_id_zone_map[s_name_id_map[*k]];
       s_name_id_map.erase(*k);
-      L<<Logger::Error<<"Removed: "<<*k<<endl;
+      L<<Logger::Error<<"Removed domain: "<<*k<<endl;
     }
 
+    // no clue what this does
     for(map<unsigned int, BB2DomainInfo*>::iterator j=s_id_zone_map.begin();j!=s_id_zone_map.end();++j) { // O(N*M)
       for(vector<string>::const_iterator k=diff.begin();k!=diff.end();++k)
 	if(j->second->d_name==*k) {
@@ -572,19 +579,20 @@ void Bind2Backend::loadConfig(string* status)
 	}
     }
 
+    // count number of entirely new domains
     vector<string> diff2;
     set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff2));
     newdomains=diff2.size();
 
     s_id_zone_map.swap(s_staging_zone_map); // commit
 
+    // report
     ostringstream msg;
     msg<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"; 
     if(status)
       *status=msg.str();
 
     L<<Logger::Error<<d_logprefix<<msg.str()<<endl;
-    //   L<<Logger::Info<<d_logprefix<<" Number of hash buckets: "<<d_qnames.bucket_count()<<", number of entries: "<<d_qnames.size()<< endl;
   }
 }
 

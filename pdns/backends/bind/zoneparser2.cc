@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2002 - 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 as 
+    published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -101,7 +100,7 @@ void ZoneParser::parse(const string &fname, const string &origin, unsigned int d
       }
       if(eatLine(line,rec))
 	for(vector<Record>::const_iterator i=rec.begin();i!=rec.end();++i)
-	  d_callback(domain_id,i->name, i->qtype,i->content,i->ttl,i->prio);
+	  d_callback(domain_id, i->name, i->qtype, i->content, i->ttl, i->prio);
     }
 
     //    if(ferror(fds.top())) {
