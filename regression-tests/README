@@ -1,6 +1,9 @@
 These tests can be used to verify standards compliance of PowerDNS and to
 spot regressions.
 
+Start PowerDNS with --no-shuffle for best results - the 'too-big-udp' test
+fails otherwise, for cosmetical reasons.
+
 Method of operation
 -------------------
 

@@ -1,2 +1,2 @@
 #!/bin/sh
-../pdns/sdig $nameserver $port $1 $2 | sort 
+../pdns/sdig $nameserver $port $1 $2 | sort
