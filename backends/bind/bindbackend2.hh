@@ -22,6 +22,8 @@
 #include <time.h>
 #include <fstream>
 #include <boost/shared_ptr.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
 
 using namespace std;
 using namespace boost;
@@ -45,7 +47,7 @@ struct Bind2DNSRecord
       return false;
     if(qtype==QType::SOA && rhs.qtype!=QType::SOA)
       return true;
-    return qtype < rhs.qtype;
+    return tie(qtype,content, ttl) < tie(rhs.qtype, rhs.content, rhs.ttl);
   }
 };
 

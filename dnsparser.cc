@@ -49,6 +49,7 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr,
   if(i==typemap.end()) {
     return new UnknownRecordContent(dr, pr);
   }
+
   return i->second(dr, pr);
 }
 
@@ -81,7 +82,6 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     d_qname=pr.getLabel();
     d_qtype=pr.get16BitInt();
     d_qclass=pr.get16BitInt();
-    //    cout<<"Question is for '"<<d_qname<<"', type "<<d_qtype<<endl;
   }
 
   try {
