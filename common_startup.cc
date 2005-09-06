@@ -119,6 +119,12 @@ void declareStats(void)
 {
   S.declare("udp-queries","Number of UDP queries received");
   S.declare("udp-answers","Number of answers sent out over UDP");
+
+  S.declare("udp4-answers","Number of IPv4 answers sent out over UDP");
+  S.declare("udp4-queries","Number of IPv4UDP queries received");
+  S.declare("udp6-answers","Number of IPv6 answers sent out over UDP");
+  S.declare("udp6-queries","Number of IPv6 UDP queries received");
+
   S.declare("recursing-answers","Number of recursive answers sent out");
   S.declare("recursing-questions","Number of questions sent to recursor");
   S.declare("corrupt-packets","Number of corrupt packets received");
@@ -163,17 +169,24 @@ int isGuarded(char **argv)
 void sendout(const DNSDistributor::AnswerData &AD)
 {
   static int &numanswered=*S.getPointer("udp-answers");
+  static int &numanswered4=*S.getPointer("udp4-answers");
+  static int &numanswered6=*S.getPointer("udp6-answers");
+
   if(!AD.A)
     return;
   
   N->send(AD.A);
   numanswered++;
+
+  if(AD.A->d_socklen==sizeof(sockaddr_in))
+    numanswered4++;
+  else
+    numanswered6++;
+
   int diff=AD.A->d_dt.udiff();
   avg_latency=(int)(1023*avg_latency/1024+diff/1024);
 
   delete AD.A;  
-
-
 }
 
 
@@ -189,6 +202,12 @@ void *qthread(void *p)
 
   int &numreceived=*S.getPointer("udp-queries");
   int &numanswered=*S.getPointer("udp-answers");
+
+  int &numreceived4=*S.getPointer("udp4-queries");
+  int &numanswered4=*S.getPointer("udp4-answers");
+
+  int &numreceived6=*S.getPointer("udp6-queries");
+  int &numanswered6=*S.getPointer("udp6-answers");
   numreceived=-1;
   int diff;
 
@@ -203,7 +222,11 @@ void *qthread(void *p)
     if(!(P=N->receive(&question))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
-
+    
+    if(P->d_socklen==sizeof(sockaddr_in))
+      numreceived4++;
+    else
+      numreceived6++;
 
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->getRemote());
@@ -220,6 +243,11 @@ void *qthread(void *p)
       avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
       
       numanswered++;
+      if(P->d_socklen==sizeof(sockaddr_in))
+	numanswered4++;
+      else
+	numanswered6++;
+
       continue;
     }
 
