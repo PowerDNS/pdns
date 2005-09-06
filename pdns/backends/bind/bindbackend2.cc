@@ -672,11 +672,13 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
        qname<<endl);
   
   if(strcasecmp(qname.c_str(),domain.c_str()))
-    d_handle.qname=toLower(qname.substr(0,qname.size()-domain.length()-1)); // strip domain name
+    d_handle.qname=qname.substr(0,qname.size()-domain.length()-1); // strip domain name
+
   
   d_handle.parent=this;
   d_handle.qtype=qtype;
-  d_handle.domain=domain;
+  d_handle.domain=qname.substr(qname.size()-domain.length());
+
   d_handle.d_records=s_id_zone_map[id].d_records; // give it a copy
   if(!d_handle.d_records->empty()) {
     BB2DomainInfo& bbd=s_id_zone_map[id];
@@ -684,7 +686,6 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
       d_handle.reset();
       throw DBException("Zone temporarily not available (file missing, or master dead)"); // fsck
     }
-
     
     if(!bbd.current()) {
       L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
@@ -698,7 +699,9 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
 
   //  cout<<"starting equal range for: '"<<d_handle.qname<<"'"<<endl;
-  range=equal_range(d_handle.d_records->begin(), d_handle.d_records->end(), d_handle.qname);
+  
+  string lname=toLower(d_handle.qname);
+  range=equal_range(d_handle.d_records->begin(), d_handle.d_records->end(), lname);
   
   if(range.first==range.second) {
     d_handle.d_list=false;
@@ -750,7 +753,6 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
        qname<<"- "<<d_records->size()<<" available!"<<endl);
   
   if(d_iter==d_end_iter) {
-
     return false;
   }
 
@@ -759,7 +761,6 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
     d_iter++;
   }
   if(d_iter==d_end_iter) {
-
     return false;
   }
   DLOG(L << "Bind2Backend get() returning a rr with a "<<QType(d_iter->qtype).getCode()<<endl);
