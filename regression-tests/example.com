@@ -54,6 +54,8 @@ italy-ns2		IN	A	192.168.5.2
 mail			IN	MX	25	smtp1
 smtp1			IN	CNAME	outpost
 ;
+external-mail		IN	MX	25	server1.test.com.
+;
 text			IN	TXT	"Hi, this is some text"
 ;
 ipv6			IN	AAAA	2001:6A8:0:1:210:4BFF:FE4B:4C61

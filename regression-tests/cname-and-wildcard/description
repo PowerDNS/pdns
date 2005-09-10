@@ -1,0 +1,2 @@
+If a CNAME wildcard is present, but there is also a direct hit for the qname
+but not for the qtype, a NODATA response should ensue.
