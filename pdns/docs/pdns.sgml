@@ -5094,7 +5094,55 @@ local0.err                        /var/log/pdns.err
     </para>
   </chapter>
 
-  <chapter id="performance"><title>Performance related settings</title>
+  <chapter id="performance"><title>Performance</title>
+    <sect1><title>General advice</title>
+    <para>
+      In general, best performance is achieved on recent Linux 2.6 kernels and using MySQL, although many of the largest PowerDNS 
+      installations are based on PostgreSQL. FreeBSD appears to achieve lower packet rates both for the PowerDNS recursor as for the 
+      authoritative nameserver, this is still being investigated. No comparative measurements have been done for Solaris installations.
+    </para>
+    <para>
+      On Linux, make sure to read <xref linkend="nptl">.
+    </para>
+    <para>
+      Database servers can require configuration to achieve decent performance. It is especially worth noting that 
+      several vendors ship PostgreSQL with a slow default configuration.
+    </para>
+    </sect1>
+    <sect1 id="nptl">
+      <title>Native Posix Thread Library vs LinuxThreads</title>
+      <para>
+	To get the best performance under Linux, especially on SMP
+	systems, the use of NPTL is advised. The difference in
+	performance can be over a factor of ten in some circumstances.
+      </para>
+      <para>
+	NPTL is the default library on modern Linux distributions, so
+	there is generally not a problem, except if you use a
+	statically compiled version that, for portability reasons,
+	defaults to LinuxThreads. This includes all .deb's and .rpm's
+	provided by us up to and including 2.9.18.
+      </para>
+      <para>
+	When running a PowerDNS-provided static binary of 2.9.18 or
+	lower, it may make sense to recompile, or to upgrade to a
+	newer version, if available. When recompiling, be sure to use
+	a supported compiler, like g++ &gt;3.2. You might also consider
+	moving to a distribution supplied version.
+      </para>
+      <para>
+	A good indication that your installation might benefit from
+	such an upgrade is to watch the 'cs' count in the output of
+	vmstat 1. If this is very high (&gt; 10000), you are suffering
+	from a LinuxThreads performance problem called 'overspin'.
+      </para>
+      <para>
+	Thanks are due to L. Bunt Jackson who noted the static
+	compilation problem in an article in Dr. Dobb's Journal.
+      </para>
+    </sect1>
+    <sect1 id="performance-settings">
+    <title>Performance related settings</title>
     <para>
       Different backends will have different characteristics - some will want to have more parallel
       instances than others. In general, if your backend is latency bound, like most relational databases are, 
@@ -5134,7 +5182,7 @@ local0.err                        /var/log/pdns.err
       line about it. Busy sites will prefer to turn <command>log-dns-details</command> and <command>log-failed-updates</command>
       off.
     </para>
-    <sect1 id="packetcache"><title>Packet Cache</title>
+    <sect2 id="packetcache"><title>Packet Cache</title>
       <para>
 	PDNS by default uses the 'Packet Cache' to recognise identical questions and supply them with identical answers, without any further 
 	processing. The default time to live is 10 seconds. It has been observed that the utility of the packet cache increases with the load on 
@@ -9998,6 +10046,14 @@ static RandomLoader randomloader;
         Starting with version 2.9.18, PowerDNS requires 'Boost' to compile, it is available for most operating systems. Otherwise, see <ulink url="http://www.boost.org">the Boost 
 	website</ulink>.
       </para>
+      <para>
+	If your operating system does not have a Boost package, you don't need to compile all of boost just for PowerDNS.
+	PowerDNS only uses Boost include files, so there is no need to install all of boost. Just untar the Boost distribution file and 
+	point instruct ./configure to find it, perhaps like this:
+	<screen>
+	$ CXXFLAGS=-I/home/bert/download/boost_1_33_0 ./configure ...
+    </screen>
+    </para>
       <sect2 id="unix-aix"><title>AIX</title>
 	<para>
 	  Known to compile with gcc, but only since 2.9.8. AIX lacks POSIX semaphores so they need to be emulated, as with MacOS X.
@@ -10008,6 +10064,9 @@ static RandomLoader randomloader;
 	  Works fine, but use gmake. Pipe backend is currently broken, for reasons, see <xref linkend="pipebackend">. Due to the threading model
 	  of FreeBSD, PowerDNS does not benefit from additional CPUs on the system.
 	</para>
+	<para>
+	  The FreeBSD Boost include files are installed in <filename>/usr/local/include</filename>, so prefix <command>CXXFLAGS=-I/usr/local/lib</command>
+	  to your <command>./configure</command> invocation.
       </sect2>
       <sect2 id="unix-linux"><title>Linux</title>
 	<para>
