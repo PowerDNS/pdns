@@ -200,7 +200,8 @@ bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int
   do {
     if( B.getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
-      *zoneId = sd->domain_id;
+      if(zoneId)
+	*zoneId = sd->domain_id;
       return true;
     }
   }
@@ -331,7 +332,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
   return 1;
 }
 
-/* returns 1 if everything is done & ready, 0 if the search should continue */
+/* returns 1 if everything is done & ready, 0 if the search should continue, 2 if a 'NO-ERROR' response should be generated */
 int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
@@ -352,8 +353,10 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
     B.lookup(QType(QType::ANY),target,p);
         
     bool shortcut=p->qtype.getCode()!=QType::SOA && p->qtype.getCode()!=QType::ANY;
+    int hits=0;
 
     while(B.get(rr)) {
+      hits++;
       if(!rfound && rr.qtype.getCode()==QType::CNAME) {
 	found=true;
 	r->addRecord(rr);
@@ -364,6 +367,9 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
 	r->addRecord(rr);
       }
     }
+    if(hits && !found && !rfound && shortcut ) // we found matching qnames but not a qtype
+      return 2;
+
     if(rfound)
       return 1; // ANY lookup found the right answer immediately
 
@@ -373,7 +379,8 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
       DLOG(L<<"Looping because of a CNAME to "<<target<<endl);
       found=false;
     }
-    else break;
+    else 
+      break;
   }
 
   // we now have what we really search for ready in 'target'
@@ -586,16 +593,32 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     else if(p->qclass!=1) // we only know about IN, so we don't find anything
       goto sendit;
 
+    int mret;
   retargeted:;
     if(retargetcount++>10) {
       L<<Logger::Error<<"Detected wildcard CNAME loop involving '"<<target<<"'"<<endl;
       r->setRcode(RCode::ServFail);
       goto sendit;
     }
+    mret=makeCanonic(p, r, target); // traverse CNAME chain until we have a useful record (may actually give the correct answer!)
 
-    if(makeCanonic(p,r,target)>0) // traverse CNAME chain until we have a useful record (may actually give the correct answer!)
+    if(mret==2) { // there is some data, but not of the correct type
+      SOAData sd;
+      if(getAuth(p, &sd, target, 0)) {
+	rr.qname=sd.qname;
+	rr.qtype=QType::SOA;
+	rr.content=DNSPacket::serializeSOAData(sd);
+	rr.ttl=sd.ttl;
+	rr.domain_id=sd.domain_id;
+	rr.d_place=DNSResourceRecord::AUTHORITY;
+	r->addRecord(rr);
+      }
+    }
+
+    if(mret > 0) 
       goto sendit; // this might be the end of it (client requested a CNAME, or we found the answer already)
     
+
     if(d_doFancyRecords) { // MBOXFW, URL <- fake records, emulated with MX and A
       int res=doFancyRecords(p,r,target);
       if(res) { // had a result

@@ -94,7 +94,7 @@ void declareArguments()
   arg().set("webserver-port","Port of webserver to listen on")="8081";
   arg().set("webserver-password","Password required for accessing the webserver")="";
 
-  arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="no";
+  arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="yes";
   arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="no";
   arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   
