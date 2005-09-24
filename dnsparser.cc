@@ -118,7 +118,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     }
   }
   catch(out_of_range &re) {
-
+    throw MOADNSException("Packet parsing error, out of bounds: "+string(re.what()));
   }
   
 }
@@ -200,6 +200,16 @@ string PacketReader::getLabel(unsigned int recurs)
   return ret;
 }
 
+string PacketReader::getText()
+{
+  string ret;
+  ret.reserve(40);
+
+  unsigned char labellen=d_content.at(d_pos++);
+  ret.append(&d_content.at(d_pos), &d_content.at(d_pos+labellen-1)+1); // the end is one beyond the packet
+  d_pos+=labellen;
+  return ret;
+}
 
 void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, uint16_t& frompos, string& ret, int recurs) 
 {

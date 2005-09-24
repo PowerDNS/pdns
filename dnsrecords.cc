@@ -9,7 +9,7 @@ public:
   static void report(void)
   {
     regist(1,1,&make,"A");
-   }
+  }
 
   static DNSRecordContent* make(const DNSRecord& dr, PacketReader& pr) 
   {
@@ -124,6 +124,33 @@ private:
 
 };
 
+class TXTRecordContent : public DNSRecordContent
+{
+public:
+
+  TXTRecordContent(const DNSRecord &dr, const string& text) : d_text(text) {}
+
+  static void report(void)
+  {
+    regist(1, ns_t_txt, &make, "TXT");
+  }
+
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader &pr) 
+  {
+    string txt=pr.getText();
+    return new TXTRecordContent(dr, txt);
+  }
+
+  string getZoneRepresentation() const
+  {
+    return "\""+d_text+"\""; // needs escaping?
+  }
+
+private:
+  string d_text;
+};
+
+
 class SOARecordContent : public DNSRecordContent
 {
 public:
@@ -171,8 +198,6 @@ public:
     return str.str();
   }
 
-
-  
 private:
   string d_mname;
   string d_rname;
@@ -213,6 +238,45 @@ private:
   string d_mxname;
 };
 
+class NAPTRRecordContent : public DNSRecordContent
+{
+public:
+
+  NAPTRRecordContent(uint16_t order, uint16_t preference, string flags, string services, string regexp, string replacement) 
+    : d_order(order), d_preference(preference), d_flags(flags), d_services(services), d_regexp(regexp), d_replacement(replacement)
+  {
+  }
+
+  static void report(void)
+  {
+    regist(1, ns_t_naptr, &make, "NAPTR");
+  }
+
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
+  {
+    uint16_t order=pr.get16BitInt();
+    uint16_t pref=pr.get16BitInt();
+    string flags=pr.getText();
+    string services=pr.getText();
+    string regexp=pr.getText();
+    string replacement=pr.getLabel();
+
+    return new NAPTRRecordContent(order, pref, flags, services, regexp, replacement);
+  }
+
+  string getZoneRepresentation() const
+  {
+    ostringstream str;
+    str<<d_order<<" "<<d_preference<<" \""<<d_flags<<"\" \""<<d_services<<"\" \""<<d_regexp<<"\" "<<d_replacement;
+    return str.str();
+  }
+
+private:
+  uint16_t d_order, d_preference;
+  string d_flags, d_services, d_regexp, d_replacement;
+};
+
+
 
 static struct Reporter
 {
@@ -221,8 +285,10 @@ static struct Reporter
     ARecordContent::report();
     AAAARecordContent::report();
     OneLabelRecordContent::report();
+    TXTRecordContent::report();
     SOARecordContent::report();
     MXRecordContent::report();
-    MXRecordContent::regist(1,255,0,"ANY");
+    NAPTRRecordContent::report();
+    DNSRecordContent::regist(1,255,0,"ANY");
   }
 } reporter __attribute__((init_priority(65535)));
