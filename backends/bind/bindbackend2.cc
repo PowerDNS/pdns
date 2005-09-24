@@ -49,7 +49,7 @@ using namespace std;
     on start of query, we find the best zone to answer from
 */
 
-map<string,int> Bind2Backend::s_name_id_map;
+Bind2Backend::name_id_map_t Bind2Backend::s_name_id_map;
 
 // this map contains BB2DomainInfo structs, each of which contains a *pointer* to domain data
 Bind2Backend::id_zone_map_t Bind2Backend::s_id_zone_map, Bind2Backend::s_staging_zone_map;
@@ -655,18 +655,25 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
 
   string domain=toLower(qname);
 
-  if(arg().mustDo("query-logging"))
-    L<<"Lookup for '"<<qtype.getName()<<"' of '"<<domain<<"'"<<endl;
+  bool mustlog=arg().mustDo("query-logging");
+  if(mustlog) 
+    L<<Logger::Warning<<"Lookup for '"<<qtype.getName()<<"' of '"<<domain<<"'"<<endl;
 
   while(!s_name_id_map.count(domain) && chopOff(domain));
 
-  if(!s_name_id_map.count(domain)) {
+  name_id_map_t::const_iterator iditer=s_name_id_map.find(domain);
+
+  if(iditer==s_name_id_map.end()) {
+    if(mustlog)
+      L<<Logger::Warning<<"Found no authoritative zone for "<<qname<<endl;
     d_handle.d_list=false;
     return;
   }
-  unsigned int id=s_name_id_map[domain];
-
-  d_handle.id=id;
+  //  unsigned int id=*iditer;
+  if(mustlog)
+    L<<Logger::Warning<<"Found data in zone '"<<domain<<"' with id "<<iditer->second<<endl;
+    
+  d_handle.id=iditer->second;
   
   DLOG(L<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
        qname<<endl);
@@ -674,14 +681,13 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(strcasecmp(qname.c_str(),domain.c_str()))
     d_handle.qname=qname.substr(0,qname.size()-domain.length()-1); // strip domain name
 
-  
   d_handle.parent=this;
   d_handle.qtype=qtype;
   d_handle.domain=qname.substr(qname.size()-domain.length());
 
-  d_handle.d_records=s_id_zone_map[id].d_records; // give it a copy
+  d_handle.d_records=s_id_zone_map[iditer->second].d_records; // give it a copy
   if(!d_handle.d_records->empty()) {
-    BB2DomainInfo& bbd=s_id_zone_map[id];
+    BB2DomainInfo& bbd=s_id_zone_map[iditer->second];
     if(!bbd.d_loaded) {
       d_handle.reset();
       throw DBException("Zone temporarily not available (file missing, or master dead)"); // fsck

@@ -181,6 +181,8 @@ void ZoneParser::fillRec(const string &qname, const string &qtype, const string 
   rec.content=content;
   rec.ttl=ttl;
   rec.prio=prio;
+
+  //  cerr<<"filled with type: "<<rec.qtype<<", "<<QType::chartocode(qtype.c_str())<<": "<<content<<endl;
   recs.push_back(rec);
 }
 
@@ -232,7 +234,7 @@ bool ZoneParser::eatLine(const string& line, vector<Record> &rec)
     tline=lastfirstword+"\t"+tline;
 
   vector<string> parts;
-  stringtok(parts,tline," \t\"");  // THIS IS WRONG, THE " SHOULD BE TREATED! XXX FIXME
+  stringtok(parts,tline," \t");  // we used to strip " here
   if(parts[0][0]!='$' && !isspace(parts[0][0]))
     lastfirstword=parts[0];
 
@@ -530,18 +532,18 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
       qname+="."+d_origin;
 
 
-//  cerr<<qname<<", "<<qclass<<", "<<qtype<<", "<<ttl<<", rest from field "<<cpos<<endl;
+  //  cerr<<qname<<", "<<qclass<<", "<<qtype<<", "<<ttl<<", rest from field "<<cpos<<endl;
 	  
   int left=words.size()-cpos;
   string content;
 
-   if((qtype=="MX" && left==2) || (qtype=="SRV" && left==4)){
-     int prio=atoi(words[cpos++].c_str());left--;
-     content=words[cpos++];left--;
-     
-     while(left--)
-       content+=" "+words[cpos++];
-     
+  if((qtype=="MX" && left==2) || (qtype=="SRV" && left==4)){
+    int prio=atoi(words[cpos++].c_str());left--;
+    content=words[cpos++];left--;
+    
+    while(left--)
+      content+=" "+words[cpos++];
+    
     if(content=="@")
       content=d_origin;
     else
@@ -566,7 +568,13 @@ bool ZoneParser::parseLine(const vector<string>&words, vector<Record>&rec)
     }
     if(qtype=="SOA")
       soaCanonic(content);
-    
+    if(qtype=="TXT" && content.size() > 2) {  // strip quotes from TXT
+      if(content[0]=='"')
+	content=content.substr(1);
+      if(content[content.size()-1]=='"')
+	content.resize(content.size()-1);
+    }
+      
     fillRec(qname, qtype, content,ttl, 0, rec);
     return true;
   }
