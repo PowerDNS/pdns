@@ -50,6 +50,10 @@ const string DNSPacketGenerator::getPacket()
 int main(int argc, char** argv)
 try
 {
+  if(argc < 4) {
+    cerr<<"Syntax: sdig IP-address port question question-type\n";
+    exit(EXIT_FAILURE);
+  }
   DNSPacketGenerator dpg(argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
   Socket sock(InterNetwork, Datagram);
