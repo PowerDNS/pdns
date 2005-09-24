@@ -161,7 +161,8 @@ private:
     handle(const handle &);
   };
 
-  static map<string,int> s_name_id_map;  //!< convert a name to a domain id
+  typedef map<string,int> name_id_map_t;
+  static name_id_map_t s_name_id_map;  //!< convert a name to a domain id
 
   typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
   static id_zone_map_t s_id_zone_map, s_staging_zone_map; //!< convert a domain id to a pointer to a BB2DomainInfo
