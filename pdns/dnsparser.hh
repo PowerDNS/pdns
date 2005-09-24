@@ -49,7 +49,9 @@ public:
   void getDnsrecordheader(struct dnsrecordheader &ah);
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
+
   string getLabel(unsigned int recurs=0);
+  string getText();
 
   uint16_t d_pos;
 private:
