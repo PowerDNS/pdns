@@ -16,3 +16,4 @@ www			IN	CNAME	server1
 server1			IN	A	1.2.3.4
 *.test			IN	CNAME	server1
 www.test		IN	A	4.3.2.1
+enum			IN	NAPTR 100 50 "u" "e2u+sip" "" testuser@domain.com.

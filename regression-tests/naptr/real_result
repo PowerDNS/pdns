@@ -1,0 +1,3 @@
+0	enum.test.com.	IN	NAPTR	3600	100 50 "u" "e2u+sip" "" testuser@domain.com.
+Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='enum.test.com.', qtype=NAPTR
