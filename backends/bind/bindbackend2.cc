@@ -316,7 +316,7 @@ void Bind2Backend::insert(int id, const string &qnameu, const string &qtype, con
   vector<Bind2DNSRecord>& records=*bb2.d_records;
 
   bdr.qname=toLower(canonic(qnameu));
-  if(bdr.qname==bb2.d_name)
+  if(bdr.qname==toLower(bb2.d_name))
     bdr.qname.clear();
   else if(bdr.qname.length() > bb2.d_name.length())
     bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
