@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2001 - 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -671,23 +671,26 @@ void DNSPacket::addNAPTRRecord(const string &domain, const string &content, uint
   makeHeader(p,QType::NAPTR,ttl);
  
   // content contains: 100  100  "s"   "http+I2R"   ""    _http._tcp.foo.com.
-
+  //                   100   50  "u"   "e2u+sip"    "" testuser@domain.com
+  
   vector<string> parts;
   stringtok(parts,content);
-  if(parts.size()<2) 
-    return;
+  if(parts.size() < 2) {
+    throw AhuException("Missing data for type NAPTR '"+domain+"'");
+  }
 
   int order=atoi(parts[0].c_str());
   int pref=atoi(parts[1].c_str());
 
-  vector<string::const_iterator>poss;
+  vector<string::const_iterator> poss;
   string::const_iterator i;
   for(i=content.begin();i!=content.end();++i)
     if(*i=='"')
       poss.push_back(i);
 
-  if(poss.size()!=6)
-    return;
+  if(poss.size()!=6) {
+    throw AhuException("Missing content for type NAPTR '"+domain+"'");
+  }
  
   string flags, services, regex;
   insert_iterator<string> flagsi(flags, flags.begin());
@@ -742,7 +745,7 @@ void DNSPacket::addNAPTRRecord(const string &domain, const string &content, uint
   piece3.append(regex);
 
   string piece4;
-  toqname(replacement,&piece4);
+  toqname(replacement,&piece4, false); // don't compress
  
   p[9]=(piece3.length()+piece4.length())%256;
   p[10]=(piece3.length()+piece4.length())/256;
