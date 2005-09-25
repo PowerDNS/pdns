@@ -15,6 +15,21 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+
+/** DNS records have three representations:
+    1) in the packet
+    2) parsed in a class, ready for use
+    3) in the zone
+
+    We should implement bidirectional transitions between 1&2 and 2&3.
+    Currently we have: 1 -> 2
+                       2 -> 3
+
+    We can add:        2 -> 1  easily by reversing the packetwriter
+    And we might be able to reverse 2 -> 3 as well
+*/
+    
+
 namespace {
   typedef HEADER dnsheader;
 }
@@ -43,9 +58,31 @@ public:
 
   uint32_t get32BitInt();
   uint16_t get16BitInt();
+  uint8_t get8BitInt();
+
+  void xfr32BitInt(uint32_t& val)
+  {
+    val=get32BitInt();
+  }
+
+  void xfr16BitInt(uint16_t& val)
+  {
+    val=get16BitInt();
+  }
+
+  void xfrLabel(string &label)
+  {
+    label=getLabel();
+  }
+
+  void xfrText(string &text)
+  {
+    text=getText();
+  }
+
   static uint16_t get16BitInt(const vector<unsigned char>&content, uint16_t& pos);
   static void getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs);
-  uint8_t get8BitInt();
+
   void getDnsrecordheader(struct dnsrecordheader &ah);
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
@@ -54,9 +91,9 @@ public:
   string getText();
 
   uint16_t d_pos;
+
 private:
   const vector<uint8_t>& d_content;
-
 };
 
 class DNSRecord;
@@ -65,6 +102,7 @@ class DNSRecordContent
 {
 public:
   static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr);
+
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
 
@@ -81,11 +119,10 @@ public:
   static uint16_t TypeToNumber(const string& name)
   {
     for(namemap_t::const_iterator i=namemap.begin(); i!=namemap.end();++i)
-      if(i->second==name)
+      if(!strcasecmp(i->second.c_str(), name.c_str()))
 	return i->first.second;
 
     throw runtime_error("Unknown DNS type '"+name+"'");
-
   }
 
   static const string NumberToType(uint16_t num)
@@ -95,7 +132,6 @@ public:
       //      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
     return namemap[make_pair(1,num)];
   }
-
 
 protected:
 
