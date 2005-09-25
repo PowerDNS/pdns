@@ -141,6 +141,9 @@ void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 void PacketReader::copyRecord(vector<unsigned char>& dest, uint16_t len)
 {
   dest.resize(len);
+  if(!len)
+    return;
+
   for(uint16_t n=0;n<len;++n) {
     dest.at(n)=d_content.at(d_pos++);
   }
@@ -151,7 +154,7 @@ void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
   if(d_pos + len > d_content.size())
     throw MOADNSException("Attempt to copy outside of packet");
 
-  memcpy(dest, &d_content[d_pos], len);
+  memcpy(dest, &d_content.at(d_pos), len);
   d_pos+=len;
 }
 
