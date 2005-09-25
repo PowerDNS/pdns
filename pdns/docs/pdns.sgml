@@ -6368,7 +6368,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <para>
 	      SRV records can be used to encode the location and port of services on a domain name. When encoding, the priority field
 	      is used to encode the priority. For example, '_ldap._tcp.dc._msdcs.conaxis.ch SRV     0 100 389 mars.conaxis.ch' would be 
-	      encoded with 0 in the priorit field and '100 389 mars.conaxis.ch' in the tontent field.
+	      encoded with 0 in the priority field and '100 389 mars.conaxis.ch' in the content field.
 	    </para>
 	  </listitem>      
 	</varlistentry>

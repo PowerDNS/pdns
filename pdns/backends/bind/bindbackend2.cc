@@ -87,7 +87,7 @@ bool BB2DomainInfo::current()
   if(d_checknow)
     return false;
 
-  if(!d_checknow && !d_checkinterval || (time(0)-d_lastcheck<d_checkinterval) || d_filename.empty())
+  if(!d_checkinterval || (time(0) - d_lastcheck < d_checkinterval ) || d_filename.empty())
     return true;
 
   return (getCtime()==d_ctime);
@@ -696,6 +696,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
     if(!bbd.current()) {
       L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
       queueReload(&bbd);
+      d_handle.d_records=s_id_zone_map[iditer->second].d_records; // give it a *fresh* copy
     }
   }
   else {
