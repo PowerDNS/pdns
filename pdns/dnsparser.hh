@@ -106,6 +106,8 @@ public:
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
 
+  void doRecordCheck(const struct DNSRecord&){}
+
   std::string label;
   struct dnsrecordheader header;
 
