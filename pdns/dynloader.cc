@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 as 
+    published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -59,7 +58,15 @@ int main(int argc, char **argv)
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
   arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   arg().set("chroot","")="";
+  arg().setCmd("help","Provide a helpful message");
   arg().laxParse(argc,argv);
+
+  if(arg().mustDo("help")) {
+    cerr<<"syntax:"<<endl<<endl;
+    cerr<<arg().helpstring(arg()["help"])<<endl;
+    exit(99);
+  }
+
 
   if(arg()["config-name"]!="") 
     s_programname+="-"+arg()["config-name"];

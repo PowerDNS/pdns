@@ -8,6 +8,7 @@
 #include <string>
 #include <sys/types.h>
 #include <cstdlib>
+#include <stdint.h>
 
 using namespace std;
 
