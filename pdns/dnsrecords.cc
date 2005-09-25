@@ -1,47 +1,61 @@
-#include "dnsparser.hh"
-#include <boost/lexical_cast.hpp>
-using namespace std;
-using namespace boost;
+#include "dnsrecords.hh"
 
-class ARecordContent : public DNSRecordContent
-{
-public:
-  static void report(void)
-  {
-    regist(1,1,&make,"A");
-  }
-
-  static DNSRecordContent* make(const DNSRecord& dr, PacketReader& pr) 
-  {
-    if(dr.d_clen!=4)
-      throw MOADNSException("Wrong size for A record");
-
-    ARecordContent* ret=new ARecordContent();
-    pr.copyRecord((unsigned char*) &ret->d_ip, 4);
-    return ret;
-  }
-
-  uint32_t getIP() const
-  {
-    return d_ip;
-  }
+ARecordContent::ARecordContent(const DNSRecord& dr, PacketReader& pr)
+{  
+  if(dr.d_clen!=4)
+    throw MOADNSException("Wrong size for A record");
   
+  xfrPacket(pr);
+}
 
-  string getZoneRepresentation() const
-  {
-    ostringstream str;
-    uint32_t ip=ntohl(d_ip);
+ARecordContent::ARecordContent(const string& zone)
+{  
+  if(!IpToU32(zone, &d_ip))
+    throw MOADNSException("Can't convert '"+zone+"' to an IP address");
+}
 
-    str<< ((ip >> 24)&0xff) << ".";
-    str<< ((ip >> 16)&0xff) << ".";
-    str<< ((ip >>  8)&0xff) << ".";
-    str<< ((ip      )&0xff);
-    return str.str();
-  }
 
-private:
-  uint32_t d_ip;
-};
+ARecordContent::DNSRecordContent* ARecordContent::make(const DNSRecord& dr, PacketReader& pr) 
+{
+  return new ARecordContent(dr, pr);
+}
+
+void ARecordContent::report(void)
+{
+  regist(1, 1, &ARecordContent::make, "A");
+}
+
+
+template<class Convertor>
+void ARecordContent::xfrPacket(Convertor& conv)
+{
+  conv.xfr32BitInt(d_ip);
+  d_ip=ntohl(d_ip);
+}
+
+
+uint32_t ARecordContent::getIP() const
+{
+  return d_ip;
+}
+  
+string ARecordContent::getZoneRepresentation() const
+{
+  ostringstream str;
+  uint32_t ip=ntohl(d_ip);
+  
+  str<< ((ip >> 24)&0xff) << ".";
+  str<< ((ip >> 16)&0xff) << ".";
+  str<< ((ip >>  8)&0xff) << ".";
+  str<< ((ip      )&0xff);
+  return str.str();
+}
+
+void ARecordContent::toPacket(DNSPacketWriter& pw)
+{
+  this->xfrPacket(pw);
+}
+
 
 class AAAARecordContent : public DNSRecordContent
 {
@@ -121,7 +135,6 @@ public:
 private:
   uint16_t d_type;
   string d_nsname;
-
 };
 
 class TXTRecordContent : public DNSRecordContent
@@ -238,44 +251,55 @@ private:
   string d_mxname;
 };
 
-class NAPTRRecordContent : public DNSRecordContent
+NAPTRRecordContent::NAPTRRecordContent(uint16_t order, uint16_t preference, string flags, string services, string regexp, string replacement) 
+  : d_order(order), d_preference(preference), d_flags(flags), d_services(services), d_regexp(regexp), d_replacement(replacement)
 {
-public:
+}
 
-  NAPTRRecordContent(uint16_t order, uint16_t preference, string flags, string services, string regexp, string replacement) 
-    : d_order(order), d_preference(preference), d_flags(flags), d_services(services), d_regexp(regexp), d_replacement(replacement)
-  {
-  }
+NAPTRRecordContent::NAPTRRecordContent(const DNSRecord& dr, PacketReader& pr)
+{
+  xfrPacket(pr);
+}
 
-  static void report(void)
-  {
-    regist(1, ns_t_naptr, &make, "NAPTR");
-  }
+NAPTRRecordContent::  NAPTRRecordContent(const string& zoneData)
+{
+  istringstream str(zoneData);
+  
+  str >> d_order >> d_preference >> d_flags >> d_services >> d_regexp >> d_replacement;
+}
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
-  {
-    uint16_t order=pr.get16BitInt();
-    uint16_t pref=pr.get16BitInt();
-    string flags=pr.getText();
-    string services=pr.getText();
-    string regexp=pr.getText();
-    string replacement=pr.getLabel();
+void NAPTRRecordContent::report(void)
+{
+  regist(1, ns_t_naptr, &make, "NAPTR");
+}
 
-    return new NAPTRRecordContent(order, pref, flags, services, regexp, replacement);
-  }
+DNSRecordContent* NAPTRRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
+{
+  return new NAPTRRecordContent(dr, pr);
+}
 
-  string getZoneRepresentation() const
-  {
-    ostringstream str;
-    str<<d_order<<" "<<d_preference<<" \""<<d_flags<<"\" \""<<d_services<<"\" \""<<d_regexp<<"\" "<<d_replacement;
-    return str.str();
-  }
+string NAPTRRecordContent::getZoneRepresentation() const
+{
+  ostringstream str;
+  str<<d_order<<" "<<d_preference<<" \""<<d_flags<<"\" \""<<d_services<<"\" \""<<d_regexp<<"\" "<<d_replacement;
+  return str.str();
+}
 
-private:
-  uint16_t d_order, d_preference;
-  string d_flags, d_services, d_regexp, d_replacement;
-};
+void NAPTRRecordContent::toPacket(DNSPacketWriter& pw)
+{
+  this->xfrPacket(pw);
+}
 
+template<class Convertor>
+void NAPTRRecordContent::xfrPacket(Convertor& conv)
+{
+  conv.xfr16BitInt(d_order);
+  conv.xfr16BitInt(d_preference);
+  conv.xfrText(d_flags);
+  conv.xfrText(d_services);
+  conv.xfrText(d_regexp);
+  conv.xfrLabel(d_replacement);
+}
 
 
 static struct Reporter
@@ -289,6 +313,7 @@ static struct Reporter
     SOARecordContent::report();
     MXRecordContent::report();
     NAPTRRecordContent::report();
+  
     DNSRecordContent::regist(1,255,0,"ANY");
   }
 } reporter __attribute__((init_priority(65535)));
