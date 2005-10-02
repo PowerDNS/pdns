@@ -23,6 +23,8 @@
 #include "dnswriter.hh"
 #include "rcpgenerator.hh"
 #include <boost/lexical_cast.hpp>
+#include <set>
+
 using namespace std;
 using namespace boost;
 
@@ -93,6 +95,16 @@ private:
   string d_text;
 };
 
+class SPFRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(SPF)
+
+private:
+  string d_text;
+};
+
+
 class NSRecordContent : public DNSRecordContent
 {
 public:
@@ -140,6 +152,45 @@ private:
 };
 
 
+class DNSKEYRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(DNSKEY)
+
+private:
+  uint16_t d_flags;
+  uint8_t d_protocol;
+  uint8_t d_algorithm;
+  string d_key;
+};
+
+class DSRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(DS)
+
+private:
+  uint16_t d_tag;
+  uint8_t d_algorithm, d_digesttype;
+  string d_digest;
+};
+
+
+class RRSIGRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(RRSIG)
+
+private:
+  uint16_t d_type;
+  uint8_t d_algorithm, d_labels;
+  uint32_t d_originalttl, d_sigexpire, d_siginception;
+  uint16_t d_tag;
+  string d_signer, d_signature;
+};
+
+
+
 namespace {
   struct soatimes 
   {
@@ -163,5 +214,56 @@ private:
   string d_rname;
   struct soatimes d_st;
 };
+
+
+#define boilerplate(RNAME, RTYPE)                                                                         \
+RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
+{                                                                                                  \
+  return new RNAME##RecordContent(dr, pr);                                                         \
+}                                                                                                  \
+                                                                                                   \
+RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr)                  \
+{                                                                                                  \
+  doRecordCheck(dr);                                                                               \
+  xfrPacket(pr);                                                                                   \
+}                                                                                                  \
+                                                                                                   \
+RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const string& zonedata)         \
+{                                                                                                  \
+  return new RNAME##RecordContent(zonedata);                                                       \
+}                                                                                                  \
+                                                                                                   \
+void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                                           \
+{                                                                                                  \
+  this->xfrPacket(pw);                                                                             \
+}                                                                                                  \
+                                                                                                   \
+void RNAME##RecordContent::report(void)                                                            \
+{                                                                                                  \
+  regist(1, RTYPE, &RNAME##RecordContent::make, #RNAME);                                           \
+}                                                                                                  \
+                                                                                                   \
+RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
+{                                                                                                  \
+  RecordTextReader rtr(zoneData);                                                                  \
+  xfrPacket(rtr);                                                                                  \
+}                                                                                                  \
+                                                                                                   \
+string RNAME##RecordContent::getZoneRepresentation() const                                         \
+{                                                                                                  \
+  string ret;                                                                                      \
+  RecordTextWriter rtw(ret);                                                                       \
+  const_cast<RNAME##RecordContent*>(this)->xfrPacket(rtw);                                         \
+  return ret;                                                                                      \
+}                                                                                                  
+                                                                                           
+
+#define boilerplate_conv(RNAME, TYPE, CONV)                       \
+boilerplate(RNAME, TYPE)                                          \
+template<class Convertor>                                         \
+void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
+{                                                                 \
+  CONV;                                                           \
+}                                                                 \
 
 #endif 

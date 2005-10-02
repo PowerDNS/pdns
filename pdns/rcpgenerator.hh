@@ -39,10 +39,12 @@ public:
   RecordTextReader(const string& str, const string& zone="");
   void xfr32BitInt(uint32_t& val);
   void xfr16BitInt(uint16_t& val);
+  void xfr8BitInt(uint8_t& val);
 
   void xfrIP(uint32_t& val);
   void xfrLabel(string& val);
   void xfrText(string& val);
+  void xfrBlob(string& val);
 
 private:
   string d_string;
@@ -58,9 +60,11 @@ public:
   RecordTextWriter(string& str);
   void xfr32BitInt(const uint32_t& val);
   void xfr16BitInt(const uint16_t& val);
+  void xfr8BitInt(const uint8_t& val);
   void xfrIP(const uint32_t& val);
   void xfrLabel(const string& val);
   void xfrText(const string& val);
+  void xfrBlob(const string& val);
 
 private:
   string& d_string;

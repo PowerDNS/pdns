@@ -87,6 +87,13 @@ void DNSPacketWriter::xfrLabel(const string& label)
   d_record.insert(d_record.end(), ptr, ptr+encoded.size());
 }
 
+void DNSPacketWriter::xfrBlob(const string& blob)
+{
+  const uint8_t* ptr=reinterpret_cast<const uint8_t*>(blob.c_str());
+
+  d_record.insert(d_record.end(), ptr, ptr+blob.size());
+}
+
 
 void DNSPacketWriter::commit()
 {
