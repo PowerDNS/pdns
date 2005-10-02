@@ -65,65 +65,89 @@ private:
   unsigned char d_ip6[16];
 };
 
-class NSECRecordContent : public DNSRecordContent
+
+void NSECRecordContent::report(void)
 {
-public:
-  static void report(void)
-  {
-    regist(1,47 ,&make,"NSEC");
+  regist(1, 47, &make, "NSEC");
+}
+
+NSECRecordContent::NSECRecordContent(const string& content, const string& zone)
+{
+  RecordTextReader rtr(content, zone);
+  rtr.xfrLabel(d_next);
+
+  while(!rtr.eof()) {
+    uint16_t type;
+    rtr.xfrType(type);
+    d_set.insert(type);
   }
+}
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
-  {
-    NSECRecordContent* ret=new NSECRecordContent();
-    pr.xfrLabel(ret->d_next);
-    string bitmap;
-    pr.xfrBlob(bitmap);
+void NSECRecordContent::toPacket(DNSPacketWriter& pw)
+{
+  pw.xfrLabel(d_next);
 
-    cout<<"get bitmap: "<<makeHexDump(bitmap)<<endl;
+  uint8_t res[34];
+  memset(res, 0, sizeof(res));
 
-    // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
+  set<uint16_t>::const_iterator i;
+  for(i=d_set.begin(); i != d_set.end() && *i<255; ++i){
+    res[2+*i/8] |= 1 << (7-(*i%8));
+  }
+  int len=0;
+  if(!d_set.empty()) 
+    len=1+*--i/8;
 
-    if(bitmap.size() < 2)
-      throw MOADNSException("NSEC record with impossibly small bitmap");
+  res[1]=len;
 
-    if(bitmap[0])
-      throw MOADNSException("Can't deal with NSEC mappings > 255 yet");
-    
-    int len=bitmap[1];
-    if(bitmap.size()!=2+len)
-      throw MOADNSException("Can't deal with multi-part NSEC mappings yet");
+  string tmp;
+  tmp.assign(res, res+len+2);
+  pw.xfrBlob(tmp);
+}
 
-    for(int n=0 ; n < len ; ++n) {
-      uint8_t val=bitmap[2+n];
-      for(int bit = 0; bit < 8 ; ++bit , val>>=1)
-	if(val & 1) {
-	  ret->d_set.insert((7-bit) + 8*(n));
-	}
-    }
-
-    return ret;
+NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
+{
+  NSECRecordContent* ret=new NSECRecordContent();
+  pr.xfrLabel(ret->d_next);
+  string bitmap;
+  pr.xfrBlob(bitmap);
+  
+  // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
+  
+  if(bitmap.size() < 2)
+    throw MOADNSException("NSEC record with impossibly small bitmap");
+  
+  if(bitmap[0])
+    throw MOADNSException("Can't deal with NSEC mappings > 255 yet");
+  
+  int len=bitmap[1];
+  if(bitmap.size()!=2+len)
+    throw MOADNSException("Can't deal with multi-part NSEC mappings yet");
+  
+  for(int n=0 ; n < len ; ++n) {
+    uint8_t val=bitmap[2+n];
+    for(int bit = 0; bit < 8 ; ++bit , val>>=1)
+      if(val & 1) {
+	ret->d_set.insert((7-bit) + 8*(n));
+      }
   }
   
-  string getZoneRepresentation() const
-  {
-    string ret;
-    RecordTextWriter rtw(ret);
-    rtw.xfrLabel(d_next);
+  return ret;
+}
 
-    for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
-      ret+=" ";
-      ret+=NumberToType(*i);
-    }
-
-    return ret;
+string NSECRecordContent::getZoneRepresentation() const
+{
+  string ret;
+  RecordTextWriter rtw(ret);
+  rtw.xfrLabel(d_next);
+  
+  for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
+    ret+=" ";
+    ret+=NumberToType(*i);
   }
-
-private:
-  string d_next;
-  set<uint16_t> d_set;
-};
-
+  
+  return ret;
+}
 
 
 

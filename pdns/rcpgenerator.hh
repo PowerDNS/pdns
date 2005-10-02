@@ -41,11 +41,13 @@ public:
   void xfr16BitInt(uint16_t& val);
   void xfr8BitInt(uint8_t& val);
 
+  void xfrType(uint16_t& val);
   void xfrIP(uint32_t& val);
   void xfrLabel(string& val);
   void xfrText(string& val);
   void xfrBlob(string& val);
 
+  bool eof();
 private:
   string d_string;
   string d_zone;
@@ -62,6 +64,9 @@ public:
   void xfr16BitInt(const uint16_t& val);
   void xfr8BitInt(const uint8_t& val);
   void xfrIP(const uint32_t& val);
+
+
+  void xfrType(const uint16_t& val);
   void xfrLabel(const string& val);
   void xfrText(const string& val);
   void xfrBlob(const string& val);

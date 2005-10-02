@@ -97,7 +97,7 @@ void DNSPacketWriter::xfrBlob(const string& blob)
 
 void DNSPacketWriter::commit()
 {
-  string label=EncodeDNSLabel(d_qname); // write out qname
+  string label=EncodeDNSLabel(d_recordqname); // write out qname
 
   const uint8_t* ptr=(const uint8_t*) label.c_str();
   d_content.insert(d_content.end(), ptr, ptr + label.length());
