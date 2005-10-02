@@ -17,6 +17,7 @@
 */
 
 #include "rcpgenerator.hh"
+#include "dnsparser.hh"
 #include "misc.hh"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
@@ -55,6 +56,11 @@ void RecordTextReader::xfrIP(uint32_t &val)
     throw RecordTextException("unable to parse IP address '"+ip+"'");
 }
 
+
+bool RecordTextReader::eof()
+{
+  return d_pos==d_end;
+}
 
 void RecordTextReader::xfr16BitInt(uint16_t &val)
 {
@@ -100,10 +106,10 @@ void RecordTextReader::xfrBlob(string& val)
   while(d_pos < d_end && !isspace(d_string[d_pos]))
     d_pos++;
 
-  val.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
-  
-  // XXX FIXME add base-64 decode here!
-
+  string tmp;
+  tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
+  val.clear();
+  B64Decode(tmp, val);
 }
 
 void RecordTextReader::xfrText(string& val)
@@ -126,6 +132,18 @@ void RecordTextReader::xfrText(string& val)
   d_pos++;
 }
 
+void RecordTextReader::xfrType(uint16_t& val)
+{
+  skipSpaces();
+  int pos=d_pos;
+  while(d_pos < d_end && !isspace(d_string[d_pos]))
+    d_pos++;
+
+  string tmp;
+  tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
+
+  val=DNSRecordContent::TypeToNumber(tmp);
+}
 
 
 void RecordTextReader::skipSpaces()
@@ -148,6 +166,15 @@ void RecordTextWriter::xfr32BitInt(const uint32_t& val)
   if(!d_string.empty())
     d_string.append(1,' ');
   d_string+=lexical_cast<string>(val);
+}
+
+
+
+void RecordTextWriter::xfrType(const uint16_t& val)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+  d_string+=DNSRecordContent::NumberToType(val);
 }
 
 void RecordTextWriter::xfrIP(const uint32_t& val)

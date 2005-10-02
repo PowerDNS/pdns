@@ -18,16 +18,10 @@ try
 
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
-  pw.startRecord("enum.powerdns.com", ns_t_naptr);
-  //  NAPTRRecordContent nrc(1,2,"u", "e2u+sip", "", "testuser@domain.com");
-  NAPTRRecordContent nrc("1 2 \"u\" \"e2u+sip\" \"\" testuser@domain.com");
+  pw.startRecord("enum.powerdns.com", DNSRecordContent::TypeToNumber("NSEC"));
 
-  ARecordContent arc("213.244.168.210");
-
+  NSECRecordContent nrc("jnum.powerdns.com SRV A AAAA RRSIG");
   nrc.toPacket(pw);
-
-  pw.startRecord("enum.powerdns.com", ns_t_a);
-  arc.toPacket(pw);
 
   pw.commit();
 

@@ -215,6 +215,27 @@ private:
   struct soatimes d_st;
 };
 
+class NSECRecordContent : public DNSRecordContent
+{
+public:
+  static void report(void);
+
+  NSECRecordContent()
+  {}
+
+  NSECRecordContent(const string& content, const string& zone="");
+
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
+
+  string getZoneRepresentation() const;
+  void toPacket(DNSPacketWriter& pw);
+  string d_next;
+  std::set<uint16_t> d_set;
+private:
+
+};
+
+
 
 #define boilerplate(RNAME, RTYPE)                                                                         \
 RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
