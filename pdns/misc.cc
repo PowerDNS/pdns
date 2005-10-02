@@ -316,3 +316,18 @@ const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t soc
 
   return "untranslateable";
 }
+
+string makeHexDump(const string& str)
+{
+  char tmp[5];
+  string ret;
+  ret.resize(str.size()*2.2);
+
+  for(string::size_type n=0;n<str.size();++n) {
+    sprintf(tmp,"%02x ", (unsigned char)str[n]);
+    ret+=tmp;
+  }
+  return ret;
+}
+
+
