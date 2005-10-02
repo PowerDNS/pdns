@@ -17,7 +17,7 @@
 */
 
 #include "rcpgenerator.hh"
-
+#include "misc.hh"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 using namespace boost;
@@ -26,7 +26,7 @@ RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_st
 {
 }
 
-void RecordTextReader::xfrInt(unsigned int &val)
+void RecordTextReader::xfr32BitInt(uint32_t &val)
 {
   skipSpaces();
 
@@ -40,6 +40,31 @@ void RecordTextReader::xfrInt(unsigned int &val)
   d_pos = endptr - d_string.c_str();
 }
 
+void RecordTextReader::xfrIP(uint32_t &val)
+{
+  skipSpaces();
+
+  if(!isdigit(d_string.at(d_pos)))
+    throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+  
+  string ip;
+  xfrLabel(ip);
+  
+  if(!IpToU32(ip, &val))
+    throw RecordTextException("unable to parse IP address '"+ip+"'");
+}
+
+
+void RecordTextReader::xfr16BitInt(uint16_t &val)
+{
+  uint32_t tmp;
+  xfr32BitInt(tmp);
+  val=tmp;
+  if(val!=tmp)
+    throw RecordTextException("Overflow reading 16 bit integer from record content"); // fixme improve
+}
+
+
 void RecordTextReader::xfrLabel(string& val)
 {
   skipSpaces();
@@ -50,11 +75,15 @@ void RecordTextReader::xfrLabel(string& val)
   val.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
   if(val.empty())
     val=d_zone;
-  else if(val[val.size()-1]!='.')
-    val+="."+d_zone;
+  else {
+    char last=val[val.size()-1];
+   
+    if(last != '.' && !isdigit(last)) // don't add zone to IP address
+      val+="."+d_zone;
+  }
 }
 
-void RecordTextReader::xfrQuotedText(string& val)
+void RecordTextReader::xfrText(string& val)
 {
   skipSpaces();
   if(d_string[d_pos]!='"')
@@ -91,12 +120,34 @@ RecordTextWriter::RecordTextWriter(string& str) : d_string(str)
   d_string.clear();
 }
 
-void RecordTextWriter::xfrInt(const unsigned int& val)
+void RecordTextWriter::xfr32BitInt(const uint32_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
   d_string+=lexical_cast<string>(val);
 }
+
+void RecordTextWriter::xfrIP(const uint32_t& val)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+
+  ostringstream str;
+  
+  str<< ((val >> 24)&0xff) << ".";
+  str<< ((val >> 16)&0xff) << ".";
+  str<< ((val >>  8)&0xff) << ".";
+  str<< ((val      )&0xff);
+
+  d_string+=str.str();
+}
+
+
+void RecordTextWriter::xfr16BitInt(const uint16_t& val)
+{
+  xfr32BitInt(val);
+}
+
 
 void RecordTextWriter::xfrLabel(const string& val)
 {
@@ -105,7 +156,7 @@ void RecordTextWriter::xfrLabel(const string& val)
   d_string+=val;
 }
 
-void RecordTextWriter::xfrQuotedText(const string& val)
+void RecordTextWriter::xfrText(const string& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
@@ -140,9 +191,9 @@ try
 
   rtr.xfrInt(order);
   rtr.xfrInt(pref);
-  rtr.xfrQuotedText(flags);
-  rtr.xfrQuotedText(services);
-  rtr.xfrQuotedText(regexp);
+  rtr.xfrText(flags);
+  rtr.xfrText(services);
+  rtr.xfrText(regexp);
   rtr.xfrLabel(replacement);
 
   cout<<"order: "<<order<<", pref: "<<pref<<"\n";
@@ -153,9 +204,9 @@ try
 
   rtw.xfrInt(order);
   rtw.xfrInt(pref);
-  rtw.xfrQuotedText(flags);
-  rtw.xfrQuotedText(services);
-  rtw.xfrQuotedText(regexp);
+  rtw.xfrText(flags);
+  rtw.xfrText(services);
+  rtw.xfrText(regexp);
   rtw.xfrLabel(replacement);
 
   cout<<"Regenerated: '"<<out<<"'\n";

@@ -42,7 +42,7 @@ pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREAD
 pdns_server_INCLUDES=
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
-	misc.cc misc.hh
+	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh
 
 
 qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \

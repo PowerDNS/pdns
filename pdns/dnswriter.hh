@@ -41,6 +41,11 @@ public:
 
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
+  void xfrIP(const uint32_t& val)
+  {
+    xfr32BitInt(val);
+  }
+
   void xfr8BitInt(uint8_t val);
 
   void xfrLabel(const string& label);

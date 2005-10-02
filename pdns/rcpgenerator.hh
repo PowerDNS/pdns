@@ -22,6 +22,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <stdint.h>
 
 using namespace std;
 
@@ -36,9 +37,12 @@ class RecordTextReader
 {
 public:
   RecordTextReader(const string& str, const string& zone="");
-  void xfrInt(unsigned int& val);
+  void xfr32BitInt(uint32_t& val);
+  void xfr16BitInt(uint16_t& val);
+
+  void xfrIP(uint32_t& val);
   void xfrLabel(string& val);
-  void xfrQuotedText(string& val);
+  void xfrText(string& val);
 
 private:
   string d_string;
@@ -52,9 +56,11 @@ class RecordTextWriter
 {
 public:
   RecordTextWriter(string& str);
-  void xfrInt(const unsigned int& val);
+  void xfr32BitInt(const uint32_t& val);
+  void xfr16BitInt(const uint16_t& val);
+  void xfrIP(const uint32_t& val);
   void xfrLabel(const string& val);
-  void xfrQuotedText(const string& val);
+  void xfrText(const string& val);
 
 private:
   string& d_string;
