@@ -75,12 +75,18 @@ public:
   {}
 
   uint32_t get32BitInt();
+
   uint16_t get16BitInt();
   uint8_t get8BitInt();
 
   void xfr32BitInt(uint32_t& val)
   {
     val=get32BitInt();
+  }
+
+  void xfrIP(uint32_t& val)
+  {
+    xfr32BitInt(val);
   }
 
   void xfr16BitInt(uint16_t& val)

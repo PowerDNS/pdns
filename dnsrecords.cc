@@ -43,40 +43,39 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                        
 void RNAME##RecordContent::report(void)                                                            \
 {                                                                                                  \
   regist(1, RTYPE, &RNAME##RecordContent::make, #RNAME);                                           \
+}                                                                                                  \
+                                                                                                   \
+RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
+{                                                                                                  \
+  RecordTextReader rtr(zoneData);                                                                  \
+  xfrPacket(rtr);                                                                                  \
+}                                                                                                  \
+                                                                                                   \
+string RNAME##RecordContent::getZoneRepresentation() const                                         \
+{                                                                                                  \
+  string ret;                                                                                      \
+  RecordTextWriter rtw(ret);                                                                       \
+  const_cast<RNAME##RecordContent*>(this)->xfrPacket(rtw);                                         \
+  return ret;                                                                                      \
 }                                                                                                  
+                                                                                           
+
+#define boilerplate_conv(RNAME, CONV)                             \
+template<class Convertor>                                         \
+void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
+{                                                                 \
+  CONV;                                                           \
+}                                                                 \
+
 
 boilerplate(A, ns_t_a)
-
-ARecordContent::ARecordContent(const string& zone)
-{  
-  if(!IpToU32(zone, &d_ip))
-    throw MOADNSException("Can't convert '"+zone+"' to an IP address");
-}
 
 template<class Convertor>
 void ARecordContent::xfrPacket(Convertor& conv)
 {
-  conv.xfr32BitInt(d_ip);
-  d_ip=ntohl(d_ip);
-}
-
-uint32_t ARecordContent::getIP() const
-{
-  return d_ip;
+  conv.xfrIP(d_ip);
 }
   
-string ARecordContent::getZoneRepresentation() const
-{
-  ostringstream str;
-  uint32_t ip=ntohl(d_ip);
-  
-  str<< ((ip >> 24)&0xff) << ".";
-  str<< ((ip >> 16)&0xff) << ".";
-  str<< ((ip >>  8)&0xff) << ".";
-  str<< ((ip      )&0xff);
-  return str.str();
-}
-
 void ARecordContent::doRecordCheck(const DNSRecord& dr)
 {  
   if(dr.d_clen!=4)
@@ -122,69 +121,31 @@ private:
   unsigned char d_ip6[16];
 };
 
-class OneLabelRecordContent : public DNSRecordContent
-{
-public:
 
-  OneLabelRecordContent(const DNSRecord &dr, const string& nsname) : d_type(dr.d_type), d_nsname(nsname) {}
+boilerplate(NS, ns_t_ns)
+boilerplate_conv(NS, conv.xfrLabel(d_content))
 
-  static void report(void)
-  {
-    regist(1, ns_t_ns, &make, "NS");
-    regist(1, ns_t_cname, &make, "CNAME");
-    regist(1, ns_t_ptr, &make, "PTR");
-  }
+boilerplate(PTR, ns_t_ptr)
+boilerplate_conv(PTR, conv.xfrLabel(d_content))
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader &pr) 
-  {
-    return new OneLabelRecordContent(dr, pr.getLabel());
-  }
-
-  string getZoneRepresentation() const
-  {
-    return d_nsname;
-  }
-
-private:
-  uint16_t d_type;
-  string d_nsname;
-};
+boilerplate(CNAME, ns_t_cname)
+boilerplate_conv(CNAME, conv.xfrLabel(d_content))
 
 boilerplate(TXT, ns_t_txt)
+boilerplate_conv(TXT, conv.xfrText(d_text))
 
-string TXTRecordContent::getZoneRepresentation() const
-{
-  return "\""+d_text+"\""; // needs escaping?
-}
 
-template<class Convertor>
-void TXTRecordContent::xfrPacket(Convertor& conv)
-{
-  conv.xfrText(d_text);
-}
+boilerplate(HINFO, ns_t_hinfo)
+boilerplate_conv(HINFO,   conv.xfrText(d_cpu);   conv.xfrText(d_host))
 
-TXTRecordContent::TXTRecordContent(const string& text) : d_text(text)
-{
-}
+boilerplate(RP, ns_t_rp)
+boilerplate_conv(RP,   conv.xfrLabel(d_mbox);   conv.xfrLabel(d_info))
 
 
 boilerplate(MX, ns_t_mx)
 
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : d_preference(preference), d_mxname(mxname)
 {
-}
-
-MXRecordContent::MXRecordContent(const string& str)
-{
-  istringstream ist;
-  ist>>d_preference>>d_mxname;
-}
-
-string MXRecordContent::getZoneRepresentation() const
-{
-  ostringstream ost;
-  ost<<d_preference<<" "<<d_mxname;
-  return ost.str();
 }
 
 template<class Convertor>
@@ -194,31 +155,13 @@ void MXRecordContent::xfrPacket(Convertor& conv)
   conv.xfrLabel(d_mxname);
 }
 
-
 boilerplate(NAPTR, ns_t_naptr)
-
-NAPTRRecordContent::NAPTRRecordContent(const string& zoneData)
-{
-  istringstream str(zoneData);
-  
-  str >> d_order >> d_preference >> d_flags >> d_services >> d_regexp >> d_replacement;
-}
-
-string NAPTRRecordContent::getZoneRepresentation() const
-{
-  ostringstream str;
-  str<<d_order<<" "<<d_preference<<" \""<<d_flags<<"\" \""<<d_services<<"\" \""<<d_regexp<<"\" "<<d_replacement;
-  return str.str();
-}
 
 template<class Convertor>
 void NAPTRRecordContent::xfrPacket(Convertor& conv)
 {
-  conv.xfr16BitInt(d_order);
-  conv.xfr16BitInt(d_preference);
-  conv.xfrText(d_flags);
-  conv.xfrText(d_services);
-  conv.xfrText(d_regexp);
+  conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
+  conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
   conv.xfrLabel(d_replacement);
 }
 
@@ -228,31 +171,12 @@ SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_
   : d_preference(preference), d_weight(weight), d_port(port), d_target(target)
 {}
 
-template<class Convertor>
-void SRVRecordContent::xfrPacket(Convertor& conv)
+template<class Convertor> void SRVRecordContent::xfrPacket(Convertor& conv)
 {
-  conv.xfr16BitInt(d_preference);
-  conv.xfr16BitInt(d_weight);
-  conv.xfr16BitInt(d_port);
+  conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
   conv.xfrLabel(d_target);
 }
 
-string SRVRecordContent::getZoneRepresentation() const
-{
-  ostringstream str;
-  
-  str<<d_preference<<" "<<d_weight<<" ";
-  str<<d_port<<" " << d_target;
-  return str.str();
-}
-
-SRVRecordContent::SRVRecordContent(const string& zone)
-{
-  istringstream str(zone);
-  
-  str >> d_preference >> d_weight;
-  str >> d_port >> d_target;
-}
 
 boilerplate(SOA, ns_t_soa)
 
@@ -275,23 +199,6 @@ void SOARecordContent::xfrPacket(Convertor& conv)
   conv.xfr32BitInt(d_st.minimum);
 }
 
-SOARecordContent::SOARecordContent(const string& zone)
-{
-  istringstream str(zone);
-  
-  str >> d_mname >> d_rname;
-  str >> d_st.serial >>  d_st.refresh >> d_st.retry >> d_st.expire >> d_st.minimum;
-}
-
-string SOARecordContent::getZoneRepresentation() const
-{
-  ostringstream str;
-  
-  str<<d_mname<<" "<<d_rname<<" ";
-  str<<d_st.serial<<" " << d_st.refresh <<" " <<d_st.retry << " " << d_st.expire<< " "<<d_st.minimum;
-  return str.str();
-}
-
 
 static struct Reporter
 {
@@ -299,13 +206,16 @@ static struct Reporter
   {
     ARecordContent::report();
     AAAARecordContent::report();
-    OneLabelRecordContent::report();
+    //   OneLabelRecordContent::report();
+    NSRecordContent::report();
+    CNAMERecordContent::report();
+    PTRRecordContent::report();
     TXTRecordContent::report();
     SOARecordContent::report();
     MXRecordContent::report();
     NAPTRRecordContent::report();
     SRVRecordContent::report();
-  
+    RPRecordContent::report();
     DNSRecordContent::regist(1,255,0,"ANY");
   }
 } reporter __attribute__((init_priority(65535)));

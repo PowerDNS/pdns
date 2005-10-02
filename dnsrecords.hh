@@ -21,6 +21,7 @@
 
 #include "dnsparser.hh"
 #include "dnswriter.hh"
+#include "rcpgenerator.hh"
 #include <boost/lexical_cast.hpp>
 using namespace std;
 using namespace boost;
@@ -40,7 +41,7 @@ public:
   NAPTRRecordContent(uint16_t order, uint16_t preference, string flags, string services, string regexp, string replacement);
 
   includeboilerplate(NAPTR);
-
+  template<class Convertor> void xfrRecordContent(Convertor& conv);
 private:
   uint16_t d_order, d_preference;
   string d_flags, d_services, d_regexp, d_replacement;
@@ -91,6 +92,53 @@ public:
 private:
   string d_text;
 };
+
+class NSRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(NS)
+
+private:
+  string d_content;
+};
+
+class PTRRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(PTR)
+
+private:
+  string d_content;
+};
+
+class CNAMERecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(CNAME)
+
+private:
+  string d_content;
+};
+
+
+class HINFORecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(HINFO)
+
+private:
+  string d_cpu, d_host;
+};
+
+class RPRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(RP)
+
+private:
+  string d_mbox, d_info;
+};
+
 
 namespace {
   struct soatimes 
