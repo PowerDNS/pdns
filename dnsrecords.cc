@@ -220,13 +220,13 @@ boilerplate_conv(DS, 43,
 
 
 boilerplate_conv(RRSIG, 46, 
-		 conv.xfr16BitInt(d_type); 
+		 conv.xfrType(d_type); 
   		 conv.xfr8BitInt(d_algorithm); 
   		 conv.xfr8BitInt(d_labels); 
 
   		 conv.xfr32BitInt(d_originalttl); 
-  		 conv.xfr32BitInt(d_sigexpire); 
-  		 conv.xfr32BitInt(d_siginception); 
+  		 conv.xfrTime(d_sigexpire); 
+  		 conv.xfrTime(d_siginception); 
 		 conv.xfr16BitInt(d_tag); 
 		 conv.xfrLabel(d_signer);
 		 conv.xfrBlob(d_signature);

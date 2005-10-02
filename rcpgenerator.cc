@@ -42,6 +42,24 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
   d_pos = endptr - d_string.c_str();
 }
 
+void RecordTextReader::xfrTime(uint32_t &val)
+{
+  struct tm tm;
+  memset(&tm, 0, sizeof(tm));
+  
+  string tmp;
+  xfrLabel(tmp); // ends on number, so this works 
+
+  sscanf(tmp.c_str(), "%04d%02d%02d" "%02d%02d%02d", 
+	 &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
+	 &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
+
+  tm.tm_year-=1900;
+  tm.tm_min-=1;
+  
+  val=mktime(&tm);
+}
+
 void RecordTextReader::xfrIP(uint32_t &val)
 {
   skipSpaces();
@@ -190,6 +208,24 @@ void RecordTextWriter::xfrIP(const uint32_t& val)
   str<< ((val      )&0xff);
 
   d_string+=str.str();
+}
+
+
+void RecordTextWriter::xfrTime(const uint32_t& val)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+  
+  struct tm tm;
+  time_t time=val; // Y2038 bug!
+  gmtime_r(&time, &tm);
+  
+  char tmp[16];
+  snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
+	   tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
+	   tm.tm_hour, tm.tm_min, tm.tm_sec);
+  
+  d_string += tmp;
 }
 
 
