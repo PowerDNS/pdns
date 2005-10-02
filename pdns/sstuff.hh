@@ -90,7 +90,7 @@ private:
 
   Socket(int fd)
   {
-    d_buflen=1024;
+    d_buflen=4096;
     d_buffer=new char[d_buflen];
     d_socket=fd;
   }
@@ -101,7 +101,7 @@ public:
     d_family=af;
     if((d_socket=socket(af,st, pt))<0)
       throw NetworkError(strerror(errno));
-    d_buflen=1024;
+    d_buflen=4096;
     d_buffer=new char[d_buflen];
   }
 

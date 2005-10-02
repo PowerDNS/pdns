@@ -36,8 +36,11 @@ using namespace std;
 class DNSPacketWriter
 {
 public:
+  enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
+
   DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass=1);
-  void startRecord(const string& name, uint16_t qtype, uint16_t qclass=1);
+  void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=1, Place place=ANSWER);
+  void addOpt(int udpsize, int extRCode, int Z);
 
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
@@ -64,6 +67,7 @@ public:
   
   uint16_t d_pos;
 
+  void setRD(bool rd=true);
 private:
   vector<uint8_t>& d_content;
   vector <uint8_t> d_record;
@@ -71,5 +75,6 @@ private:
   uint16_t d_qtype, d_qclass;
   string d_recordqname;
   uint16_t d_recordqtype, d_recordqclass;
+  uint32_t d_recordttl;
 };
 #endif

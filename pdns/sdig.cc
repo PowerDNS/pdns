@@ -17,11 +17,17 @@ try
   vector<uint8_t> packet;
 
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
+  
+  pw.setRD(true);
 
+  /*
   pw.startRecord("enum.powerdns.com", DNSRecordContent::TypeToNumber("NSEC"));
 
   NSECRecordContent nrc("jnum.powerdns.com SRV A AAAA RRSIG");
   nrc.toPacket(pw);
+  */
+
+  pw.addOpt(2800, 0, 0x8000);
 
   pw.commit();
 
@@ -48,4 +54,3 @@ catch(exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
-

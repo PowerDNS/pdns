@@ -164,6 +164,10 @@ boilerplate_conv(RP, ns_t_rp,
 		 );
 
 
+boilerplate_conv(OPT, ns_t_opt,
+		 conv.xfrText(d_data)
+		 );
+
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : d_preference(preference), d_mxname(mxname)
 {
 }
@@ -266,6 +270,7 @@ static struct Reporter
     RRSIGRecordContent::report();
     DSRecordContent::report();
     NSECRecordContent::report();
+    OPTRecordContent::report();
     DNSRecordContent::regist(1,255,0,"ANY");
   }
 } reporter __attribute__((init_priority(65535)));
