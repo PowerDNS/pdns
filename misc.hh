@@ -198,5 +198,6 @@ inline void unixDie(const string &why)
   throw runtime_error(why+": "+strerror(errno));
 }
 
+string makeHexDump(const string& str);
 
 #endif
