@@ -43,16 +43,55 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   d_content.insert(d_content.end(), ptr, ptr+2);
 }
 
-void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint16_t qclass)
+void DNSPacketWriter::setRD(bool rd)
+{
+  dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
+  dh->rd=rd;
+}
+
+void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place)
 {
   if(!d_record.empty()) 
     commit();
+
   d_recordqname=name;
   d_recordqtype=qtype;
   d_recordqclass=qclass;
+  d_recordttl=ttl;
 
-  dnsheader* dh=(dnsheader*) &*d_content.begin();
-  dh->ancount = htons(ntohs(dh->ancount) + 1);
+  dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
+  switch(place) {
+  case ANSWER:
+    dh->ancount = htons(ntohs(dh->ancount) + 1);
+    break;
+  case AUTHORITY:
+    dh->nscount = htons(ntohs(dh->nscount) + 1);
+    break;
+  case ADDITIONAL:
+    dh->arcount = htons(ntohs(dh->arcount) + 1);
+    break;
+  }
+}
+
+void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
+{
+  uint32_t ttl=0;
+  struct Stuff {
+    uint8_t extRCode, version;
+    uint16_t Z;
+  } __attribute__((packed));
+
+  Stuff stuff;
+
+  stuff.extRCode=extRCode;
+  stuff.version=0;
+  stuff.Z=htons(Z);
+  
+  memcpy(&ttl, &stuff, sizeof(stuff));
+  cout<<sizeof(stuff)<<endl;
+  ttl=ntohl(ttl); // will be reversed later on
+  
+  startRecord("", ns_t_opt, ttl, udpsize, ADDITIONAL);
 }
 
 void DNSPacketWriter::xfr32BitInt(uint32_t val)
@@ -106,7 +145,7 @@ void DNSPacketWriter::commit()
   struct dnsrecordheader drh;
   drh.d_type=htons(d_recordqtype);
   drh.d_class=htons(d_recordqclass);
-  drh.d_ttl=htonl(3600);
+  drh.d_ttl=htonl(d_recordttl);
   drh.d_clen=htons(d_record.size());
 
   ptr=(const uint8_t*)&drh;

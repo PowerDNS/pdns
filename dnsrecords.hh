@@ -133,6 +133,16 @@ private:
 };
 
 
+class OPTRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(OPT)
+
+private:
+  string d_data;
+};
+
+
 class HINFORecordContent : public DNSRecordContent
 {
 public:
