@@ -35,15 +35,15 @@ backends/bind/bindbackend2.cc backends/bind/zoneparser2.cc \
 backends/bind/bindparser.cc backends/bind/bindlexer.c \
 backends/bind/huffman.cc backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
-sillyrecords.cc backends/bind/bindbackend.cc
+sillyrecords.cc backends/bind/bindbackend.cc base64.cc \
+base64.hh
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
 pdns_server_INCLUDES=
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
-	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh
-
+	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh
 
 qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc dnspacket.cc arguments.cc  qgen.cc \
