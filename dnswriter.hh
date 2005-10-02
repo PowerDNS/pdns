@@ -50,7 +50,7 @@ public:
 
   void xfrLabel(const string& label);
   void xfrText(const string& text);
-
+  void xfrBlob(const string& blob);
   void commit();
   
   uint16_t d_pos;

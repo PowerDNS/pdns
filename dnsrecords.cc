@@ -18,64 +18,8 @@
 
 #include "dnsrecords.hh"
 
-#define boilerplate(RNAME, RTYPE)                                                                         \
-RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
-{                                                                                                  \
-  return new RNAME##RecordContent(dr, pr);                                                         \
-}                                                                                                  \
-                                                                                                   \
-RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr)                  \
-{                                                                                                  \
-  doRecordCheck(dr);                                                                               \
-  xfrPacket(pr);                                                                                   \
-}                                                                                                  \
-                                                                                                   \
-RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const string& zonedata)         \
-{                                                                                                  \
-  return new RNAME##RecordContent(zonedata);                                                       \
-}                                                                                                  \
-                                                                                                   \
-void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                                           \
-{                                                                                                  \
-  this->xfrPacket(pw);                                                                             \
-}                                                                                                  \
-                                                                                                   \
-void RNAME##RecordContent::report(void)                                                            \
-{                                                                                                  \
-  regist(1, RTYPE, &RNAME##RecordContent::make, #RNAME);                                           \
-}                                                                                                  \
-                                                                                                   \
-RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
-{                                                                                                  \
-  RecordTextReader rtr(zoneData);                                                                  \
-  xfrPacket(rtr);                                                                                  \
-}                                                                                                  \
-                                                                                                   \
-string RNAME##RecordContent::getZoneRepresentation() const                                         \
-{                                                                                                  \
-  string ret;                                                                                      \
-  RecordTextWriter rtw(ret);                                                                       \
-  const_cast<RNAME##RecordContent*>(this)->xfrPacket(rtw);                                         \
-  return ret;                                                                                      \
-}                                                                                                  
-                                                                                           
+boilerplate_conv(A, ns_t_a, conv.xfrIP(d_ip));
 
-#define boilerplate_conv(RNAME, CONV)                             \
-template<class Convertor>                                         \
-void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
-{                                                                 \
-  CONV;                                                           \
-}                                                                 \
-
-
-boilerplate(A, ns_t_a)
-
-template<class Convertor>
-void ARecordContent::xfrPacket(Convertor& conv)
-{
-  conv.xfrIP(d_ip);
-}
-  
 void ARecordContent::doRecordCheck(const DNSRecord& dr)
 {  
   if(dr.d_clen!=4)
@@ -121,64 +65,109 @@ private:
   unsigned char d_ip6[16];
 };
 
+class NSECRecordContent : public DNSRecordContent
+{
+public:
+  static void report(void)
+  {
+    regist(1,47 ,&make,"NSEC");
+  }
 
-boilerplate(NS, ns_t_ns)
-boilerplate_conv(NS, conv.xfrLabel(d_content))
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
+  {
+    NSECRecordContent* ret=new NSECRecordContent();
+    pr.xfrLabel(ret->d_next);
+    string bitmap;
+    pr.xfrBlob(bitmap);
 
-boilerplate(PTR, ns_t_ptr)
-boilerplate_conv(PTR, conv.xfrLabel(d_content))
+    cout<<"get bitmap: "<<makeHexDump(bitmap)<<endl;
 
-boilerplate(CNAME, ns_t_cname)
-boilerplate_conv(CNAME, conv.xfrLabel(d_content))
+    // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
 
-boilerplate(TXT, ns_t_txt)
-boilerplate_conv(TXT, conv.xfrText(d_text))
+    if(bitmap.size() < 2)
+      throw MOADNSException("NSEC record with impossibly small bitmap");
+
+    if(bitmap[0])
+      throw MOADNSException("Can't deal with NSEC mappings > 255 yet");
+    
+    int len=bitmap[1];
+    if(bitmap.size()!=2+len)
+      throw MOADNSException("Can't deal with multi-part NSEC mappings yet");
+
+    for(int n=0 ; n < len ; ++n) {
+      uint8_t val=bitmap[2+n];
+      for(int bit = 0; bit < 8 ; ++bit , val>>=1)
+	if(val & 1) {
+	  ret->d_set.insert((7-bit) + 8*(n));
+	}
+    }
+
+    return ret;
+  }
+  
+  string getZoneRepresentation() const
+  {
+    string ret;
+    RecordTextWriter rtw(ret);
+    rtw.xfrLabel(d_next);
+
+    for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
+      ret+=" ";
+      ret+=NumberToType(*i);
+    }
+
+    return ret;
+  }
+
+private:
+  string d_next;
+  set<uint16_t> d_set;
+};
 
 
-boilerplate(HINFO, ns_t_hinfo)
-boilerplate_conv(HINFO,   conv.xfrText(d_cpu);   conv.xfrText(d_host))
-
-boilerplate(RP, ns_t_rp)
-boilerplate_conv(RP,   conv.xfrLabel(d_mbox);   conv.xfrLabel(d_info))
 
 
-boilerplate(MX, ns_t_mx)
+boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content));
+boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content));
+boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content));
+boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text));
+boilerplate_conv(SPF, 99, conv.xfrText(d_text));
+boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
+
+boilerplate_conv(RP, ns_t_rp,
+		 conv.xfrLabel(d_mbox);   
+		 conv.xfrLabel(d_info)
+		 );
+
 
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : d_preference(preference), d_mxname(mxname)
 {
 }
 
-template<class Convertor>
-void MXRecordContent::xfrPacket(Convertor& conv)
-{
-  conv.xfr16BitInt(d_preference);
-  conv.xfrLabel(d_mxname);
-}
-
-boilerplate(NAPTR, ns_t_naptr)
-
-template<class Convertor>
-void NAPTRRecordContent::xfrPacket(Convertor& conv)
-{
-  conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
-  conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
-  conv.xfrLabel(d_replacement);
-}
+boilerplate_conv(MX, ns_t_mx, 
+		 conv.xfr16BitInt(d_preference);
+		 conv.xfrLabel(d_mxname);
+		 )
 
 
-boilerplate(SRV, ns_t_srv)
+boilerplate_conv(NAPTR, ns_t_naptr,
+		 conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
+		 conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
+		 conv.xfrLabel(d_replacement);
+		 )
+
+
+
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const string& target) 
   : d_preference(preference), d_weight(weight), d_port(port), d_target(target)
 {}
 
-template<class Convertor> void SRVRecordContent::xfrPacket(Convertor& conv)
-{
-  conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
-  conv.xfrLabel(d_target);
-}
+boilerplate_conv(SRV, ns_t_srv, 
+		 conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
+		 conv.xfrLabel(d_target);
+		 )
 
 
-boilerplate(SOA, ns_t_soa)
 
 SOARecordContent::SOARecordContent(const string& mname, const string& rname, const struct soatimes& st) 
   : d_mname(mname), d_rname(rname)
@@ -186,19 +175,51 @@ SOARecordContent::SOARecordContent(const string& mname, const string& rname, con
   d_st=st;
 }
 
-template<class Convertor>
-void SOARecordContent::xfrPacket(Convertor& conv)
-{
-  conv.xfrLabel(d_mname);
-  conv.xfrLabel(d_rname);
-  
-  conv.xfr32BitInt(d_st.serial);
-  conv.xfr32BitInt(d_st.refresh);
-  conv.xfr32BitInt(d_st.retry);
-  conv.xfr32BitInt(d_st.expire);
-  conv.xfr32BitInt(d_st.minimum);
-}
+boilerplate_conv(SOA, ns_t_soa, 
+		 conv.xfrLabel(d_mname);
+		 conv.xfrLabel(d_rname);
+		 conv.xfr32BitInt(d_st.serial);
+		 conv.xfr32BitInt(d_st.refresh);
+		 conv.xfr32BitInt(d_st.retry);
+		 conv.xfr32BitInt(d_st.expire);
+		 conv.xfr32BitInt(d_st.minimum);
+		 );
 
+
+boilerplate_conv(DS, 43, 
+		 conv.xfr16BitInt(d_tag); 
+		 conv.xfr8BitInt(d_algorithm); 
+		 conv.xfr8BitInt(d_digesttype); 
+		 conv.xfrBlob(d_digest);
+		 )
+
+
+
+boilerplate_conv(RRSIG, 46, 
+		 conv.xfr16BitInt(d_type); 
+  		 conv.xfr8BitInt(d_algorithm); 
+  		 conv.xfr8BitInt(d_labels); 
+
+  		 conv.xfr32BitInt(d_originalttl); 
+  		 conv.xfr32BitInt(d_sigexpire); 
+  		 conv.xfr32BitInt(d_siginception); 
+		 conv.xfr16BitInt(d_tag); 
+		 conv.xfrLabel(d_signer);
+		 conv.xfrBlob(d_signature);
+		 )
+		 
+
+
+boilerplate_conv(DNSKEY, 48, 
+		 conv.xfr16BitInt(d_flags); 
+		 conv.xfr8BitInt(d_protocol); 
+		 conv.xfr8BitInt(d_algorithm); 
+		 conv.xfrBlob(d_key);
+		 )
+
+
+
+		 
 
 static struct Reporter
 {
@@ -211,11 +232,16 @@ static struct Reporter
     CNAMERecordContent::report();
     PTRRecordContent::report();
     TXTRecordContent::report();
+    SPFRecordContent::report();
     SOARecordContent::report();
     MXRecordContent::report();
     NAPTRRecordContent::report();
     SRVRecordContent::report();
     RPRecordContent::report();
+    DNSKEYRecordContent::report();
+    RRSIGRecordContent::report();
+    DSRecordContent::report();
+    NSECRecordContent::report();
     DNSRecordContent::regist(1,255,0,"ANY");
   }
 } reporter __attribute__((init_priority(65535)));

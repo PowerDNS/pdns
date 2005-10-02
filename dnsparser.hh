@@ -75,7 +75,6 @@ public:
   {}
 
   uint32_t get32BitInt();
-
   uint16_t get16BitInt();
   uint8_t get8BitInt();
 
@@ -94,6 +93,12 @@ public:
     val=get16BitInt();
   }
 
+  void xfr8BitInt(uint8_t& val)
+  {
+    val=get8BitInt();
+  }
+
+
   void xfrLabel(string &label)
   {
     label=getLabel();
@@ -103,6 +108,8 @@ public:
   {
     text=getText();
   }
+
+  void xfrBlob(string& blob);
 
   static uint16_t get16BitInt(const vector<unsigned char>&content, uint16_t& pos);
   static void getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs);
@@ -117,6 +124,8 @@ public:
   uint16_t d_pos;
 
 private:
+  uint16_t d_startrecordpos; // needed for getBlob later on
+  uint16_t d_recordlen;      // dito
   const vector<uint8_t>& d_content;
 };
 

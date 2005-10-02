@@ -20,6 +20,7 @@
 #include "misc.hh"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include "base64.hh"
 using namespace boost;
 
 RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_string(str), d_zone(zone), d_pos(0), d_end(str.size())
@@ -64,6 +65,15 @@ void RecordTextReader::xfr16BitInt(uint16_t &val)
     throw RecordTextException("Overflow reading 16 bit integer from record content"); // fixme improve
 }
 
+void RecordTextReader::xfr8BitInt(uint8_t &val)
+{
+  uint32_t tmp;
+  xfr32BitInt(tmp);
+  val=tmp;
+  if(val!=tmp)
+    throw RecordTextException("Overflow reading 8 bit integer from record content"); // fixme improve
+}
+
 
 void RecordTextReader::xfrLabel(string& val)
 {
@@ -81,6 +91,19 @@ void RecordTextReader::xfrLabel(string& val)
     if(last != '.' && !isdigit(last)) // don't add zone to IP address
       val+="."+d_zone;
   }
+}
+
+void RecordTextReader::xfrBlob(string& val)
+{
+  skipSpaces();
+  int pos=d_pos;
+  while(d_pos < d_end && !isspace(d_string[d_pos]))
+    d_pos++;
+
+  val.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
+  
+  // XXX FIXME add base-64 decode here!
+
 }
 
 void RecordTextReader::xfrText(string& val)
@@ -101,8 +124,8 @@ void RecordTextReader::xfrText(string& val)
   if(d_pos == d_end)
     throw RecordTextException("Data field in DNS should end on a quote (\") in '"+d_string+"'");
   d_pos++;
-
 }
+
 
 
 void RecordTextReader::skipSpaces()
@@ -148,12 +171,25 @@ void RecordTextWriter::xfr16BitInt(const uint16_t& val)
   xfr32BitInt(val);
 }
 
+void RecordTextWriter::xfr8BitInt(const uint8_t& val)
+{
+  xfr32BitInt(val);
+}
+
 
 void RecordTextWriter::xfrLabel(const string& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
   d_string+=val;
+}
+
+void RecordTextWriter::xfrBlob(const string& val)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+
+  d_string+=Base64Encode(val);
 }
 
 void RecordTextWriter::xfrText(const string& val)

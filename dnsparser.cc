@@ -153,6 +153,9 @@ void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
   ah.d_class=ntohs(ah.d_class);
   ah.d_clen=ntohs(ah.d_clen);
   ah.d_ttl=ntohl(ah.d_ttl);
+
+  d_startrecordpos=d_pos; // needed for getBlob later on
+  d_recordlen=ah.d_clen;
 }
 
 
@@ -257,4 +260,11 @@ void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, uint16_t
       ret.append(1,'.');
     }
   }
+}
+
+void PacketReader::xfrBlob(string& blob)
+{
+  blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
+
+  d_pos = d_startrecordpos + d_recordlen;
 }
