@@ -88,10 +88,22 @@ public:
     xfr32BitInt(val);
   }
 
+  void xfrTime(uint32_t& val)
+  {
+    xfr32BitInt(val);
+  }
+
+
   void xfr16BitInt(uint16_t& val)
   {
     val=get16BitInt();
   }
+
+  void xfrType(uint16_t& val)
+  {
+    xfr16BitInt(val);
+  }
+
 
   void xfr8BitInt(uint8_t& val)
   {
