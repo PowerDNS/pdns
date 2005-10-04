@@ -20,3 +20,5 @@ www.test		IN	A	4.3.2.1
 enum			IN	NAPTR 100 50 "u" "e2u+sip" "" testuser@domain.com.
 counter			IN	A	1.1.1.5
 _ldap._tcp.dc		IN	SRV 	0 100 389 server1
+_double._tcp.dc		IN	SRV 	0 100 389 server1
+_double._tcp.dc		IN	SRV 	1 100 389 server1
