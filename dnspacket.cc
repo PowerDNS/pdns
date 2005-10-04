@@ -240,9 +240,12 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
 {
   if(d_compress)
     for(vector<DNSResourceRecord>::const_iterator i=rrs.begin();i!=rrs.end();++i) 
-      if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content)
-	if(rr.qtype.getCode()!=QType::MX || rr.priority==i->priority)
+      if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {
+	if(rr.qtype.getCode()!=QType::MX && rr.qtype.getCode()!=QType::SRV)
 	  return;
+	if(rr.priority==i->priority)
+	  return;
+      }
 
   rrs.push_back(rr);
 }
@@ -1107,7 +1110,6 @@ void DNSPacket::wrapup(void)
   d.arcount=htons(d.arcount);
 
   commitD();
-
 
   len=stringbuffer.length();
 }
