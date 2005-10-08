@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <stdint.h>
 
 using namespace std;
@@ -38,9 +39,20 @@ class DNSPacketWriter
 public:
   enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
+  //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
   DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass=1);
+  
+  /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order - 
+      ANSWER, AUTHORITY, ADDITIONAL */
   void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=1, Place place=ANSWER);
+
+  /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   void addOpt(int udpsize, int extRCode, int Z);
+
+  /** needs to be called after the last record is added, but can be called again and again later on. Is called internally by startRecord too.
+      The content of the vector<> passed to the constructor is inconsistent until commit is called.
+   */
+  void commit();
 
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
@@ -60,11 +72,10 @@ public:
 
   void xfr8BitInt(uint8_t val);
 
-  void xfrLabel(const string& label);
+  void xfrLabel(const string& label, bool compress=false);
   void xfrText(const string& text);
   void xfrBlob(const string& blob);
-  void commit();
-  
+
   uint16_t d_pos;
 
   void setRD(bool rd=true);
@@ -76,5 +87,7 @@ private:
   string d_recordqname;
   uint16_t d_recordqtype, d_recordqclass;
   uint32_t d_recordttl;
+  map<string, uint16_t> d_labelmap;
+  uint16_t d_stuff;
 };
 #endif

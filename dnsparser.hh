@@ -111,7 +111,7 @@ public:
   }
 
 
-  void xfrLabel(string &label)
+  void xfrLabel(string &label, bool compress=false)
   {
     label=getLabel();
   }

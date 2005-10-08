@@ -45,7 +45,7 @@ public:
   void xfrIP(uint32_t& val);
   void xfrTime(uint32_t& val);
 
-  void xfrLabel(string& val);
+  void xfrLabel(string& val, bool compress=false);
   void xfrText(string& val);
   void xfrBlob(string& val);
 
@@ -69,7 +69,7 @@ public:
   void xfrTime(const uint32_t& val);
 
   void xfrType(const uint16_t& val);
-  void xfrLabel(const string& val);
+  void xfrLabel(const string& val, bool compress=false);
   void xfrText(const string& val);
   void xfrBlob(const string& val);
 

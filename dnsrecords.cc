@@ -31,7 +31,7 @@ class AAAARecordContent : public DNSRecordContent
 public:
   static void report(void)
   {
-    regist(1,ns_t_aaaa,&make,"AAAA");
+    regist(1, ns_t_aaaa, &make, "AAAA");
   }
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
@@ -151,9 +151,9 @@ string NSECRecordContent::getZoneRepresentation() const
 
 
 
-boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content));
-boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content));
-boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content));
+boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
+boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
+boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
 boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text));
 boilerplate_conv(SPF, 99, conv.xfrText(d_text));
 boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
@@ -174,7 +174,7 @@ MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : d_
 
 boilerplate_conv(MX, ns_t_mx, 
 		 conv.xfr16BitInt(d_preference);
-		 conv.xfrLabel(d_mxname);
+		 conv.xfrLabel(d_mxname, true);
 		 )
 
 
@@ -204,8 +204,8 @@ SOARecordContent::SOARecordContent(const string& mname, const string& rname, con
 }
 
 boilerplate_conv(SOA, ns_t_soa, 
-		 conv.xfrLabel(d_mname);
-		 conv.xfrLabel(d_rname);
+		 conv.xfrLabel(d_mname, true);
+		 conv.xfrLabel(d_rname, true);
 		 conv.xfr32BitInt(d_st.serial);
 		 conv.xfr32BitInt(d_st.refresh);
 		 conv.xfr32BitInt(d_st.retry);
@@ -221,8 +221,6 @@ boilerplate_conv(DS, 43,
 		 conv.xfrBlob(d_digest);
 		 )
 
-
-
 boilerplate_conv(RRSIG, 46, 
 		 conv.xfrType(d_type); 
   		 conv.xfr8BitInt(d_algorithm); 
@@ -236,8 +234,6 @@ boilerplate_conv(RRSIG, 46,
 		 conv.xfrBlob(d_signature);
 		 )
 		 
-
-
 boilerplate_conv(DNSKEY, 48, 
 		 conv.xfr16BitInt(d_flags); 
 		 conv.xfr8BitInt(d_protocol); 
@@ -245,17 +241,12 @@ boilerplate_conv(DNSKEY, 48,
 		 conv.xfrBlob(d_key);
 		 )
 
-
-
-		 
-
 static struct Reporter
 {
   Reporter()
   {
     ARecordContent::report();
     AAAARecordContent::report();
-    //   OneLabelRecordContent::report();
     NSRecordContent::report();
     CNAMERecordContent::report();
     PTRRecordContent::report();
