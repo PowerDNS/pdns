@@ -17,6 +17,7 @@
 */
 
 #include "dnsparser.hh"
+#include "dnswriter.hh"
 #include <boost/lexical_cast.hpp>
 
 using namespace boost;
@@ -30,32 +31,44 @@ public:
     pr.copyRecord(d_record, dr.d_clen);
   }
 
+  UnknownRecordContent(const string& zone) 
+  {
+    d_record.insert(d_record.end(), zone.begin(), zone.end());
+  }
+  
   string getZoneRepresentation() const
   {
     ostringstream str;
-    if(d_dr.d_class==1)
-      str<<"IN";
-    else
-      str<<"CLASS"<<d_dr.d_class;
-
-    str<<"\t";
-
-    str<<"TYPE"<<d_dr.d_type<<"\t";
-
+  
     str<<"\\# "<<d_record.size()<<" ";
     char hex[4];
     for(size_t n=0; n<d_record.size(); ++n) {
       snprintf(hex,sizeof(hex)-1, "%02x", d_record.at(n));
       str << hex;
     }
-    str<<"\n";
     return str.str();
   }
   
-
+  void toPacket(DNSPacketWriter& pw)
+  {
+    string tmp((char*)&*d_record.begin(), (char*)&*d_record.end());
+    vector<string> parts;
+    stringtok(parts, tmp);
+    const string& relevant=parts[2];
+    unsigned int total=atoi(parts[1].c_str());
+    if(relevant.size()!=2*total)
+      throw runtime_error("invalid unknown record");
+    string out;
+    for(unsigned int n=0; n < total; ++n) {
+      int c;
+      sscanf(relevant.c_str()+2*n, "%02x", &c);
+      out.append(1, (char)c);
+    }
+    pw.xfrBlob(out);
+  }
 private:
-  const DNSRecord& d_dr;
-  vector<u_int8_t> d_record;
+  DNSRecord d_dr;
+  vector<uint8_t> d_record;
 };
 
 
@@ -71,9 +84,21 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr,
   return i->second(dr, pr);
 }
 
+DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
+					       const string& content)
+{
+  zmakermap_t::const_iterator i=zmakermap.find(make_pair(qclass, qtype));
+  if(i==zmakermap.end()) {
+    return new UnknownRecordContent(content);
+  }
+
+  return i->second(content);
+}
+
 
 DNSRecordContent::typemap_t DNSRecordContent::typemap __attribute__((init_priority(1000)));
 DNSRecordContent::namemap_t DNSRecordContent::namemap __attribute__((init_priority(1000)));
+DNSRecordContent::zmakermap_t DNSRecordContent::zmakermap __attribute__((init_priority(1000)));
 
 void MOADNSParser::init(const char *packet, unsigned int len)
 {
@@ -245,8 +270,8 @@ void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, uint16_t
 
     // cout<<"Labellen: "<<(int)labellen<<endl;
     if(!labellen) {
-      if(ret.empty())
-	ret.append(1,'.');
+      //      if(ret.empty())
+      //	ret.append(1,'.');
       break;
     }
     if((labellen & 0xc0) == 0xc0) {
@@ -255,9 +280,10 @@ void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, uint16_t
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
     else {
+      if(!ret.empty())
+	ret.append(1,'.');
       ret.append(&content.at(frompos), &content.at(frompos+labellen));
       frompos+=labellen;
-      ret.append(1,'.');
     }
   }
 }

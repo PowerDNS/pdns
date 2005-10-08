@@ -142,14 +142,17 @@ private:
 };
 
 class DNSRecord;
+class DNSPacketWriter;
 
 class DNSRecordContent
 {
 public:
   static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr);
+  static DNSRecordContent* mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
 
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
+  virtual void toPacket(DNSPacketWriter& pw)=0;
 
   void doRecordCheck(const struct DNSRecord&){}
 
@@ -157,9 +160,12 @@ public:
   struct dnsrecordheader header;
 
   typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
-  static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, const char* name)
+  typedef DNSRecordContent* zmakerfunc_t(const string& str);  
+
+  static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, zmakerfunc_t* z, const char* name)
   {
     typemap[make_pair(cl,ty)]=f;
+    zmakermap[make_pair(cl,ty)]=z;
     namemap[make_pair(cl,ty)]=name;
   }
 
@@ -184,6 +190,10 @@ protected:
 
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   static typemap_t typemap;
+
+  typedef std::map<std::pair<uint16_t, uint16_t>, zmakerfunc_t* > zmakermap_t;
+  static zmakermap_t zmakermap;
+
   typedef std::map<std::pair<uint16_t, uint16_t>, string > namemap_t;
   static namemap_t namemap;
 };
@@ -195,7 +205,7 @@ struct DNSRecord
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-  enum {Answer, Nameserver, Additional} d_place;
+  enum {Answer=1, Nameserver, Additional} d_place;
   boost::shared_ptr<DNSRecordContent> d_content;
 
   bool operator<(const DNSRecord& rhs) const
@@ -232,24 +242,30 @@ struct DNSRecord
 };
 
 
+//! This class can be used to parse incoming packets, and is copyable
 class MOADNSParser
 {
 public:
+  //! Parse from a string
   MOADNSParser(const string& buffer) 
   {
     init(buffer.c_str(), buffer.size());
   }
 
+  //! Parse from a pointer and length
   MOADNSParser(const char *packet, unsigned int len)
   {
     init(packet, len);
   }
+
   dnsheader d_header;
   string d_qname;
   uint16_t d_qclass, d_qtype;
   uint8_t d_rcode;
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;
+  
+  //! All answers contained in this packet
   answers_t d_answers;
 
   shared_ptr<PacketReader> getPacketReader(uint16_t offset)
@@ -258,6 +274,7 @@ public:
     pr->d_pos=offset;
     return pr;
   }
+
 private:
   void getDnsrecordheader(struct dnsrecordheader &ah);
   void init(const char *packet, unsigned int len);
