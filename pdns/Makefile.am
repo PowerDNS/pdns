@@ -18,7 +18,7 @@ endif
 
 bin_PROGRAMS = pdns_control  dnswasher dnsreplay 
 
-EXTRA_PROGRAMS=pdns_recursor sdig pdns_control qgen dnsscope dnsreplay_mindex
+EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsreplay_mindex
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -44,6 +44,10 @@ pdns_server_INCLUDES=
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh
+
+dnspbench_SOURCES=dnspbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
+	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh
+
 
 qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc dnspacket.cc arguments.cc  qgen.cc \

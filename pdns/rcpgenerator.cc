@@ -99,7 +99,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 }
 
 
-void RecordTextReader::xfrLabel(string& val)
+void RecordTextReader::xfrLabel(string& val, bool)
 {
   skipSpaces();
   int pos=d_pos;
@@ -109,7 +109,7 @@ void RecordTextReader::xfrLabel(string& val)
   val.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
   if(val.empty())
     val=d_zone;
-  else {
+  else if(!d_zone.empty()) {
     char last=val[val.size()-1];
    
     if(last != '.' && !isdigit(last)) // don't add zone to IP address
@@ -240,7 +240,7 @@ void RecordTextWriter::xfr8BitInt(const uint8_t& val)
 }
 
 
-void RecordTextWriter::xfrLabel(const string& val)
+void RecordTextWriter::xfrLabel(const string& val, bool)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
