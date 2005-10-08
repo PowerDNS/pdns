@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <stdint.h>
+#include <arpa/nameser.h>
 
 using namespace std;
 
@@ -37,6 +38,8 @@ using namespace std;
 class DNSPacketWriter
 {
 public:
+  typedef HEADER dnsheader;
+
   enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
@@ -77,7 +80,8 @@ public:
   void xfrBlob(const string& blob);
 
   uint16_t d_pos;
-
+  
+  dnsheader* getHeader();
   void setRD(bool rd=true);
 private:
   vector<uint8_t>& d_content;

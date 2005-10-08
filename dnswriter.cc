@@ -9,7 +9,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   dnsheader dnsheader;
   
   memset(&dnsheader, 0, sizeof(dnsheader));
-  dnsheader.id=random();
+  dnsheader.id=0;
   dnsheader.qdcount=htons(1);
   
   const uint8_t* ptr=(const uint8_t*)&dnsheader;
@@ -26,6 +26,11 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   qclass=htons(qclass);
   ptr=(const uint8_t*)&qclass;
   d_content.insert(d_content.end(), ptr, ptr+2);
+}
+
+DNSPacketWriter::dnsheader* DNSPacketWriter::getHeader()
+{
+  return (dnsheader*)&*d_content.begin();
 }
 
 void DNSPacketWriter::setRD(bool rd)
