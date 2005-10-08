@@ -236,7 +236,7 @@ public:
   NSECRecordContent(const string& content, const string& zone="");
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-
+  static DNSRecordContent* make(const string& content);
   string getZoneRepresentation() const;
   void toPacket(DNSPacketWriter& pw);
   string d_next;
@@ -271,7 +271,7 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                        
                                                                                                    \
 void RNAME##RecordContent::report(void)                                                            \
 {                                                                                                  \
-  regist(1, RTYPE, &RNAME##RecordContent::make, #RNAME);                                           \
+  regist(1, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
