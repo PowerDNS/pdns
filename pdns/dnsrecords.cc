@@ -31,7 +31,7 @@ class AAAARecordContent : public DNSRecordContent
 public:
   static void report(void)
   {
-    regist(1, ns_t_aaaa, &make, "AAAA");
+    regist(1, ns_t_aaaa, &make, &make, "AAAA");
   }
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
@@ -42,6 +42,17 @@ public:
     AAAARecordContent* ret=new AAAARecordContent();
     pr.copyRecord((unsigned char*) &ret->d_ip6, 16);
     return ret;
+  }
+
+  static DNSRecordContent* make(const string& zone) 
+  {
+    return 0;
+  }
+
+  void toPacket(DNSPacketWriter& pw)
+  {
+    string blob(d_ip6, d_ip6+16);
+    pw.xfrBlob(blob);
   }
   
   string getZoneRepresentation() const
@@ -68,7 +79,12 @@ private:
 
 void NSECRecordContent::report(void)
 {
-  regist(1, 47, &make, "NSEC");
+  regist(1, 47, &make, &make, "NSEC");
+}
+
+DNSRecordContent* NSECRecordContent::make(const string& content)
+{
+  return new NSECRecordContent(content);
 }
 
 NSECRecordContent::NSECRecordContent(const string& content, const string& zone)
@@ -120,11 +136,11 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
   if(bitmap[0])
     throw MOADNSException("Can't deal with NSEC mappings > 255 yet");
   
-  int len=bitmap[1];
+  unsigned int len=bitmap[1];
   if(bitmap.size()!=2+len)
     throw MOADNSException("Can't deal with multi-part NSEC mappings yet");
   
-  for(int n=0 ; n < len ; ++n) {
+  for(unsigned int n=0 ; n < len ; ++n) {
     uint8_t val=bitmap[2+n];
     for(int bit = 0; bit < 8 ; ++bit , val>>=1)
       if(val & 1) {
@@ -241,6 +257,7 @@ boilerplate_conv(DNSKEY, 48,
 		 conv.xfrBlob(d_key);
 		 )
 
+#if 0
 static struct Reporter
 {
   Reporter()
@@ -249,19 +266,21 @@ static struct Reporter
     AAAARecordContent::report();
     NSRecordContent::report();
     CNAMERecordContent::report();
+    MXRecordContent::report();
+    SOARecordContent::report();
+    SRVRecordContent::report();
+
     PTRRecordContent::report();
     TXTRecordContent::report();
     SPFRecordContent::report();
-    SOARecordContent::report();
-    MXRecordContent::report();
     NAPTRRecordContent::report();
-    SRVRecordContent::report();
     RPRecordContent::report();
     DNSKEYRecordContent::report();
     RRSIGRecordContent::report();
     DSRecordContent::report();
     NSECRecordContent::report();
     OPTRecordContent::report();
-    DNSRecordContent::regist(1,255,0,"ANY");
+    DNSRecordContent::regist(1,255, 0, 0, "ANY");
   }
 } reporter __attribute__((init_priority(65535)));
+#endif
