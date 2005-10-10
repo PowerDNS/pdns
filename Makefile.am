@@ -63,7 +63,8 @@ dnswasher_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 # unix_utility.cc
 
 dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
-	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh 
+	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh \
+	dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh
 
 dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
@@ -84,7 +85,9 @@ dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
-mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh 
+mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
+dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecord.hh rcpgenerator.cc rcpgenerator.hh \
+base64.cc base64.hh
 
 #../modules/gmysqlbackend/smysql.cc 
 

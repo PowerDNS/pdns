@@ -14,21 +14,30 @@ public:
   virtual int get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)=0;
   virtual void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)=0;
   virtual void doPrune(void)=0;
-  int cacheHits, cacheMisses;
-
 };
 
 
-class MemRecursorCache : public RecursorCache
+class MemRecursorCache //  : public RecursorCache
 {
 public:
-  virtual ~MemRecursorCache(){}
-  virtual unsigned int size();
-  virtual int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
-  virtual void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
-  virtual void doPrune(void);
+  ~MemRecursorCache(){}
+  unsigned int size();
+  int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
+  void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
+  void doPrune(void);
+  int cacheHits, cacheMisses;
+
 private:
-  typedef map<string,set<DNSResourceRecord> > cache_t;
+  struct StoredRecord
+  {
+    uint32_t d_ttd;
+    string d_string;
+    bool operator<(const StoredRecord& rhs) const
+    {
+      return make_pair(d_ttd, d_string) < make_pair(rhs.d_ttd, rhs.d_string);
+    }
+  };
+  typedef map<string, set<StoredRecord> > cache_t;
 
   cache_t d_cache;
 };

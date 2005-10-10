@@ -29,6 +29,9 @@ void ARecordContent::doRecordCheck(const DNSRecord& dr)
 class AAAARecordContent : public DNSRecordContent
 {
 public:
+  AAAARecordContent() : DNSRecordContent(ns_t_aaaa)
+  {}
+
   static void report(void)
   {
     regist(1, ns_t_aaaa, &make, &make, "AAAA");
@@ -87,7 +90,7 @@ DNSRecordContent* NSECRecordContent::make(const string& content)
   return new NSECRecordContent(content);
 }
 
-NSECRecordContent::NSECRecordContent(const string& content, const string& zone)
+NSECRecordContent::NSECRecordContent(const string& content, const string& zone) : DNSRecordContent(47)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfrLabel(d_next);
@@ -184,7 +187,7 @@ boilerplate_conv(OPT, ns_t_opt,
 		 conv.xfrText(d_data)
 		 );
 
-MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : d_preference(preference), d_mxname(mxname)
+MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(ns_t_mx), d_preference(preference), d_mxname(mxname)
 {
 }
 
@@ -203,7 +206,7 @@ boilerplate_conv(NAPTR, ns_t_naptr,
 
 
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const string& target) 
-  : d_preference(preference), d_weight(weight), d_port(port), d_target(target)
+  : DNSRecordContent(ns_t_srv), d_preference(preference), d_weight(weight), d_port(port), d_target(target)
 {}
 
 boilerplate_conv(SRV, ns_t_srv, 
@@ -214,7 +217,7 @@ boilerplate_conv(SRV, ns_t_srv,
 
 
 SOARecordContent::SOARecordContent(const string& mname, const string& rname, const struct soatimes& st) 
-  : d_mname(mname), d_rname(rname)
+  : DNSRecordContent(ns_t_soa), d_mname(mname), d_rname(rname)
 {
   d_st=st;
 }
@@ -257,11 +260,8 @@ boilerplate_conv(DNSKEY, 48,
 		 conv.xfrBlob(d_key);
 		 )
 
-#if 0
-static struct Reporter
+void reportBasicTypes()
 {
-  Reporter()
-  {
     ARecordContent::report();
     AAAARecordContent::report();
     NSRecordContent::report();
@@ -270,17 +270,35 @@ static struct Reporter
     SOARecordContent::report();
     SRVRecordContent::report();
 
-    PTRRecordContent::report();
-    TXTRecordContent::report();
-    SPFRecordContent::report();
-    NAPTRRecordContent::report();
-    RPRecordContent::report();
-    DNSKEYRecordContent::report();
-    RRSIGRecordContent::report();
-    DSRecordContent::report();
-    NSECRecordContent::report();
-    OPTRecordContent::report();
-    DNSRecordContent::regist(1,255, 0, 0, "ANY");
+}
+
+void reportOtherTypes()
+{
+   PTRRecordContent::report();
+   TXTRecordContent::report();
+   SPFRecordContent::report();
+   NAPTRRecordContent::report();
+   RPRecordContent::report();
+   DNSKEYRecordContent::report();
+   RRSIGRecordContent::report();
+   DSRecordContent::report();
+   NSECRecordContent::report();
+   OPTRecordContent::report();
+   DNSRecordContent::regist(1,255, 0, 0, "ANY");
+}
+
+void reportAllTypes()
+{
+  reportBasicTypes();
+  reportOtherTypes();
+}
+
+#if 0
+static struct Reporter
+{
+  Reporter()
+  {
+    reportAllTypes();
   }
 } reporter __attribute__((init_priority(65535)));
 #endif

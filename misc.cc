@@ -321,7 +321,7 @@ string makeHexDump(const string& str)
 {
   char tmp[5];
   string ret;
-  ret.resize((int)(str.size()*2.2));
+  ret.reserve((int)(str.size()*2.2));
 
   for(string::size_type n=0;n<str.size();++n) {
     sprintf(tmp,"%02x ", (unsigned char)str[n]);

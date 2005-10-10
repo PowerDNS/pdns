@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2003 - 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -32,6 +32,7 @@
 #include "arguments.hh"
 #include "lwres.hh"
 #include "recursor_cache.hh"
+#include "dnsparser.hh"
 
 extern MemRecursorCache RC;
 
@@ -44,7 +45,7 @@ unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
 bool SyncRes::s_log;
 
-#define LOG if(s_log)L<<Logger::Warning
+#define LOG if(s_log) L<<Logger::Warning
 
 Throttle<string> SyncRes::s_throttle;
 
@@ -547,7 +548,6 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	return doResolve(newtarget, qtype, ret,0,beenthere2);
       }
       if(nsset.empty() && !d_lwr.d_rcode) {
-
 	LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return 0;
       }
@@ -583,7 +583,16 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
        ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
       LOG<<d_prefix<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs IP for additional processing"<<endl;
       set<GetBestNSAnswer>beenthere;
-      doResolve(k->content,QType(QType::A),addit,1,beenthere);
+      if(k->qtype==QType(QType::MX)) {
+	string::size_type pos=k->content.find_first_not_of(" \t0123456789");
+	if(pos!=string::npos)
+	  doResolve(k->content.substr(pos),QType(QType::A),addit,1,beenthere);
+	else
+	  doResolve(k->content,QType(QType::A),addit,1,beenthere);
+      }
+      else
+	doResolve(k->content,QType(QType::A),addit,1,beenthere);
+
       if(arg().mustDo("aaaa-additional-processing"))
 	doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
     }

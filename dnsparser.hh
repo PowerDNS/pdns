@@ -33,6 +33,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include "dnswriter.hh"
 
 /** DNS records have three representations:
     1) in the packet
@@ -141,8 +142,7 @@ private:
   const vector<uint8_t>& d_content;
 };
 
-class DNSRecord;
-class DNSPacketWriter;
+struct DNSRecord;
 
 class DNSRecordContent
 {
@@ -153,6 +153,21 @@ public:
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
   virtual void toPacket(DNSPacketWriter& pw)=0;
+  virtual string serialize(const string& qname)
+  {
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, "", 1);
+    
+    pw.startRecord(qname, d_qtype);
+    this->toPacket(pw);
+    pw.commit();
+    
+    string record;
+    pw.getRecords(record);
+    return record;
+  }
+
+  static shared_ptr<DNSRecordContent> unserialize(const string& qname, uint16_t qtype, const string& serialized);
 
   void doRecordCheck(const struct DNSRecord&){}
 
@@ -186,8 +201,11 @@ public:
     return namemap[make_pair(1,num)];
   }
 
-protected:
+  explicit DNSRecordContent(uint16_t type) : d_qtype(type)
+  {}
+  const uint16_t d_qtype;
 
+protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   static typemap_t typemap;
 
@@ -241,7 +259,6 @@ struct DNSRecord
   }
 };
 
-
 //! This class can be used to parse incoming packets, and is copyable
 class MOADNSParser
 {
@@ -280,7 +297,6 @@ private:
   void init(const char *packet, unsigned int len);
   vector<uint8_t> d_content;
 };
-
 
 
 

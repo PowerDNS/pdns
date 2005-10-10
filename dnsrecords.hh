@@ -229,10 +229,8 @@ class NSECRecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-
-  NSECRecordContent()
+  NSECRecordContent() : DNSRecordContent(47)
   {}
-
   NSECRecordContent(const string& content, const string& zone="");
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
@@ -242,7 +240,6 @@ public:
   string d_next;
   std::set<uint16_t> d_set;
 private:
-
 };
 
 
@@ -253,7 +250,7 @@ RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSReco
   return new RNAME##RecordContent(dr, pr);                                                         \
 }                                                                                                  \
                                                                                                    \
-RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr)                  \
+RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr) : DNSRecordContent(RTYPE) \
 {                                                                                                  \
   doRecordCheck(dr);                                                                               \
   xfrPacket(pr);                                                                                   \
@@ -274,7 +271,7 @@ void RNAME##RecordContent::report(void)                                         
   regist(1, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
 }                                                                                                  \
                                                                                                    \
-RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
+RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordContent(RTYPE)       \
 {                                                                                                  \
   RecordTextReader rtr(zoneData);                                                                  \
   xfrPacket(rtr);                                                                                  \
@@ -296,5 +293,9 @@ void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
 {                                                                 \
   CONV;                                                           \
 }                                                                 \
+
+void reportBasicTypes();
+void reportOtherTypes();
+void reportAllTypes();
 
 #endif 
