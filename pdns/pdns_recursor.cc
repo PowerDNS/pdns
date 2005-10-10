@@ -258,6 +258,7 @@ void startDoResolve(void *p)
 
     pw.getHeader()->aa=0;
     pw.getHeader()->ra=1;
+    pw.getHeader()->qr=1;
     pw.getHeader()->id=dc->d_mdp.d_header.id;
 
     //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
@@ -274,12 +275,14 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=RCode::ServFail;
     else {
       pw.getHeader()->rcode=res;
-      for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
-	pw.startRecord(i->qname, i->qtype.getCode());
-	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));  
-	drc->toPacket(pw);
+      if(ret.size()) {
+	for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
+	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl);
+	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));  
+	  drc->toPacket(pw);
+	}
+	pw.commit();
       }
-      pw.commit();
     }
 
     if(!dc->d_tcp) {
@@ -324,6 +327,9 @@ void startDoResolve(void *p)
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
+  }
+  catch(exception& e) {
+    L<<Logger::Error<<"STL error: "<<e.what()<<endl;
   }
   catch(...) {
     L<<Logger::Error<<"Any other exception in a resolver context"<<endl;

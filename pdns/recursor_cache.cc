@@ -78,6 +78,7 @@ void MemRecursorCache::doPrune(void)
   for(cache_t::iterator j=d_cache.begin();j!=d_cache.end();){
     for(set<StoredRecord>::iterator k=j->second.begin();k!=j->second.end();) 
       if((unsigned int)k->d_ttd < (unsigned int) now) {
+	k->d_string.prune();
 	j->second.erase(k++);
 	records++;
       }
