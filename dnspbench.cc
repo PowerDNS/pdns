@@ -4,10 +4,18 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 
+
+
 int main(int argc, char** argv)
 try
 {
   reportAllTypes();
+
+  cerr<<"sizeof(optString): "<<sizeof(struct optString)<<endl;
+
+  optString os("hallo!");
+
+  cerr<<"optString: '"<<(string)os<<"'\n";
 
   vector<uint8_t> packet;
   
@@ -23,7 +31,7 @@ try
   cerr<<"hexdump: "<<makeHexDump(record)<<"\n";
   //  cerr<<"record: "<<record<<"\n";
 
-  shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(record);
+  shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(argv[1], type, record);
   cerr<<"Out: "<<argv[1]<<" IN "<<argv[2]<<" "<<regen->getZoneRepresentation()<<endl;
 }
 catch(exception& e)

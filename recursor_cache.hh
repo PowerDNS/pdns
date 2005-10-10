@@ -5,16 +5,56 @@
 #include <set>
 #include "dns.hh"
 #include "qtype.hh"
+#include <iostream>
 
-
-class RecursorCache
+struct optString 
 {
-public:
-  virtual unsigned int size()=0;
-  virtual int get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)=0;
-  virtual void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)=0;
-  virtual void doPrune(void)=0;
-};
+  optString()
+  {
+    d_len=0;
+    *buf=0;
+  }
+
+  optString(const string& str)
+  {
+    if(str.size() < 13) {
+      memcpy(buf, str.c_str(), str.size()+1);
+      d_len = str.size() + 1;
+    }
+    else {
+      new(buf) string(str);
+      d_len = 0;
+    }
+  }
+
+  operator string() const
+  {
+
+    if(d_len) {
+      return string(buf, buf + d_len - 1);
+    }
+    else {
+      return *((string*)buf);
+    }
+  }
+
+  void prune() const
+  {
+    //    cerr<<"did a prune!"<<endl;
+    if(!d_len)
+      ((string*)buf)->~string();
+  }
+
+  bool operator<(const optString& os) const
+  {
+    return (string)*this < (string) os;
+  }
+
+  char buf[14];
+  uint8_t d_len;
+} __attribute__((packed));
+
+
 
 
 class MemRecursorCache //  : public RecursorCache
@@ -31,7 +71,7 @@ private:
   struct StoredRecord
   {
     uint32_t d_ttd;
-    string d_string;
+    optString d_string;
     bool operator<(const StoredRecord& rhs) const
     {
       return make_pair(d_ttd, d_string) < make_pair(rhs.d_ttd, rhs.d_string);
