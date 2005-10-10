@@ -24,11 +24,11 @@ string DNSRR2String(const DNSResourceRecord& rr)
   vector<uint8_t> packet;
   
   uint16_t type=rr.qtype.getCode();
-  //  cerr<<"Storing type: "<<type<<"\n";
+  
 
   shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(type, 1, rr.content));
   string ret=drc->serialize(rr.qname);
-  //  cerr<<"stored as "<<ret.size()<<" bytes"<<endl;
+  //  cerr<<"stored '"<<rr.qname<<" '"<<rr.qtype.getName()<<"' '"<<rr.content<<"' as "<<ret.size()<<" bytes"<<endl;
   return ret;
 }
 

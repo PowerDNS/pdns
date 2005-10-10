@@ -71,6 +71,13 @@ struct DNSComboWriter {
   {
     d_socket=sock;
   }
+
+  string getRemote() const
+  {
+    return sockAddrToString((struct sockaddr_in *)d_remote, d_socklen);
+  }
+
+
   char d_remote[sizeof(sockaddr_in6)];
   socklen_t d_socklen;
   bool d_tcp;
@@ -256,7 +263,7 @@ void startDoResolve(void *p)
     //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
     SyncRes sr;
     if(!quiet)
-      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"<<dc->d_mdp.d_qtype<<"' from "<<"1.2.3.4"<<endl;
+      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"<<dc->d_mdp.d_qtype<<"' from "<<dc->getRemote()<<endl;
 
     sr.setId(MT->getTid());
     if(!dc->d_mdp.d_header.rd)
@@ -297,9 +304,9 @@ void startDoResolve(void *p)
       int ret=writev(dc->d_socket, iov, 2);
 
       if(ret <= 0 ) 
-	L<<Logger::Error<<"Error writing TCP answer to "<<"1.2.3.4"<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
+	L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
       else if((unsigned int)ret != 2 + packet.size())
-	L<<Logger::Error<<"Oops, partial answer sent to "<<"1.2.3.4"<<" - probably would have trouble receiving our answer anyhow (size="<<packet.size()<<")"<<endl;
+	L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" - probably would have trouble receiving our answer anyhow (size="<<packet.size()<<")"<<endl;
 
       //      if(write(R->getSocket(),buf,2)!=2 || write(R->getSocket(),buffer,R->len)!=R->len)
       //  XXX FIXME write this writev fallback otherwise
@@ -744,10 +751,10 @@ int main(int argc, char **argv)
 	    MT->sendEvent(pident, &packet);
 	  }
 	  else 
-	    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<"1.2.3.4"<<endl;
+	    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<dc.getRemote()<<endl;
 	}
 	catch(MOADNSException& mde) {
-	  L<<Logger::Error<<"Unparseable packet from remote server "<<"1.2.3.4"<<": "<<mde.what()<<endl;
+	  L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
 	}
 
       }
@@ -893,12 +900,12 @@ int main(int argc, char **argv)
 	    i->bytesread+=bytes;
 	    if(i->bytesread==i->qlen) {
 	      i->state=TCPConnection::BYTE0;
-	      DNSComboWriter* dc;
+	      DNSComboWriter* dc=0;
 	      try {
 		dc=new DNSComboWriter(i->data, i->qlen);
 	      }
 	      catch(MOADNSException &mde) {
-		L<<Logger::Error<<"Unparseable packet from remote client "<<"1.2.3.4"<<endl;
+		L<<Logger::Error<<"Unparseable packet from remote client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
 		close(i->fd);
 		tcpconnections.erase(i);
 		break;
