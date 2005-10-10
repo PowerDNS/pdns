@@ -26,6 +26,8 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   qclass=htons(qclass);
   ptr=(const uint8_t*)&qclass;
   d_content.insert(d_content.end(), ptr, ptr+2);
+
+  d_stuff=0xffff;
 }
 
 DNSPacketWriter::dnsheader* DNSPacketWriter::getHeader()
@@ -33,11 +35,6 @@ DNSPacketWriter::dnsheader* DNSPacketWriter::getHeader()
   return (dnsheader*)&*d_content.begin();
 }
 
-void DNSPacketWriter::setRD(bool rd)
-{
-  dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
-  dh->rd=rd;
-}
 
 void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place)
 {
@@ -56,6 +53,7 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_record.clear();
 
   d_stuff = sizeof(dnsrecordheader); // this is needed to get compressed label offsets right, the dnsrecordheader will be interspersed
+  d_sor=d_content.size() + d_stuff; // start of real record 
 
   dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
   switch(place) {
@@ -94,13 +92,15 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
 
 void DNSPacketWriter::xfr32BitInt(uint32_t val)
 {
-  uint8_t* ptr=reinterpret_cast<uint8_t*>(&val);
+  int rval=htonl(val);
+  uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
   d_record.insert(d_record.end(), ptr, ptr+4);
 }
 
 void DNSPacketWriter::xfr16BitInt(uint16_t val)
 {
-  uint8_t* ptr=reinterpret_cast<uint8_t*>(&val);
+  int rval=htons(val);
+  uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
   d_record.insert(d_record.end(), ptr, ptr+2);
 }
 
@@ -159,9 +159,15 @@ void DNSPacketWriter::xfrBlob(const string& blob)
   d_record.insert(d_record.end(), ptr, ptr+blob.size());
 }
 
+void DNSPacketWriter::getRecords(string& records)
+{
+  records.assign(d_content.begin() + d_sor, d_content.end());
+}
 
 void DNSPacketWriter::commit()
 {
+  if(d_stuff==0xffff && (d_content.size()!=d_sor || !d_record.empty()))
+    throw MOADNSException("DNSPacketWriter::commit() called without startRecord ever having been called, but a record was added");
   // build dnsrecordheader
   struct dnsrecordheader drh;
   drh.d_type=htons(d_recordqtype);

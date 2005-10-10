@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <stdint.h>
+#include <netinet/in.h>
 #include <arpa/nameser.h>
 
 using namespace std;
@@ -65,13 +66,12 @@ public:
   }
   void xfrIP(const uint32_t& val)
   {
-    xfr32BitInt(val);
+    xfr32BitInt(htonl(val));
   }
   void xfrTime(const uint32_t& val)
   {
     xfr32BitInt(val);
   }
-
 
   void xfr8BitInt(uint8_t val);
 
@@ -82,7 +82,8 @@ public:
   uint16_t d_pos;
   
   dnsheader* getHeader();
-  void setRD(bool rd=true);
+  void getRecords(string& records);
+
 private:
   vector<uint8_t>& d_content;
   vector <uint8_t> d_record;
@@ -93,5 +94,6 @@ private:
   uint32_t d_recordttl;
   map<string, uint16_t> d_labelmap;
   uint16_t d_stuff;
+  uint16_t d_sor;
 };
 #endif

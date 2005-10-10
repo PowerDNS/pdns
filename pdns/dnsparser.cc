@@ -26,12 +26,12 @@ class UnknownRecordContent : public DNSRecordContent
 {
 public:
   UnknownRecordContent(const DNSRecord& dr, PacketReader& pr) 
-    : d_dr(dr)
+    : DNSRecordContent(dr.d_type), d_dr(dr)
   {
     pr.copyRecord(d_record, dr.d_clen);
   }
 
-  UnknownRecordContent(const string& zone) 
+  UnknownRecordContent(const string& zone) : DNSRecordContent(0)
   {
     d_record.insert(d_record.end(), zone.begin(), zone.end());
   }
@@ -71,7 +71,54 @@ private:
   vector<uint8_t> d_record;
 };
 
+static const string EncodeDNSLabel(const string& input)  
+{  
+  typedef vector<string> parts_t;  
+  parts_t parts;  
+  stringtok(parts,input,".");   	  	 
+  string ret;  
+  for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {  
+    ret.append(1,(char)i->length());  
+    ret.append(*i);  
+  }  
+  ret.append(1,(char)0);  
+  return ret;  
+}  
 
+shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, uint16_t qtype, const string& serialized)
+{
+  dnsheader dnsheader;
+  memset(&dnsheader, 0, sizeof(dnsheader));
+  dnsheader.qdcount=htons(1);
+  dnsheader.ancount=htons(1);
+
+  vector<uint8_t> packet; // build pseudo packet
+  const uint8_t* ptr=(const uint8_t*)&dnsheader;
+  packet.insert(packet.end(), ptr, ptr + sizeof(dnsheader));    
+  char tmp[6]="\x0" "\x0\x1" "\x0\x1"; // root question for ns_t_a
+  packet.insert(packet.end(), tmp, tmp+5);
+
+  string encoded=EncodeDNSLabel(qname);
+  packet.insert(packet.end(), encoded.c_str(), encoded.c_str() + encoded.size()); // append the label
+
+  struct dnsrecordheader drh;
+  drh.d_type=htons(qtype);
+  drh.d_class=htons(1);
+  drh.d_ttl=0;
+  drh.d_clen=htons(serialized.size());
+
+  ptr=(const uint8_t*)&drh;
+  packet.insert(packet.end(), ptr, ptr + sizeof(drh));
+
+  packet.insert(packet.end(), serialized.c_str(), serialized.c_str() + serialized.size()); // this is our actual data
+  
+  MOADNSParser mdp((char*)&*packet.begin(), packet.size());
+  shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
+  ret->header.d_type=ret->d_qtype;
+  ret->label=mdp.d_answers.begin()->first.d_label;
+  ret->header.d_ttl=mdp.d_answers.begin()->first.d_ttl;
+  return ret;
+}
 
 DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, 
 					       PacketReader& pr)

@@ -40,7 +40,10 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/shared_array.hpp>
-
+#include <boost/lexical_cast.hpp>
+#include "dnsparser.hh"
+#include "dnswriter.hh"
+#include "dnsrecords.hh"
 using namespace boost;
 
 #include "recursor_cache.hh"
@@ -53,6 +56,27 @@ using namespace boost;
 MemRecursorCache RC;
 
 string s_programname="pdns_recursor";
+
+struct DNSComboWriter {
+  DNSComboWriter(const char* data, uint16_t len) : d_mdp(data, len), d_tcp(false), d_socket(-1)
+  {}
+  MOADNSParser d_mdp;
+  void setRemote(struct sockaddr* sa, socklen_t len)
+  {
+    memcpy((void *)d_remote, (void *)sa, len);
+    d_socklen=len;
+  }
+
+  void setSocket(int sock)
+  {
+    d_socket=sock;
+  }
+  char d_remote[sizeof(sockaddr_in6)];
+  socklen_t d_socklen;
+  bool d_tcp;
+  int d_socket;
+};
+
 
 #if 0
 #ifndef WIN32
@@ -205,9 +229,9 @@ void primeHints(void)
     *templ=c;
     arr.qname=nsrr.content=templ;
     arr.content=ips[c-'a'];
-    set<DNSResourceRecord>aset;
+    set<DNSResourceRecord> aset;
     aset.insert(arr);
-    RC.replace(string(templ),QType(QType::A),aset);
+    RC.replace(string(templ), QType(QType::A), aset);
 
     nsset.insert(nsrr);
   }
@@ -218,57 +242,64 @@ void startDoResolve(void *p)
 {
   try {
     bool quiet=arg().mustDo("quiet");
-    DNSPacket P=*(DNSPacket *)p;
+    DNSComboWriter* dc=(DNSComboWriter *)p;
 
-    delete (DNSPacket *)p;
+    vector<DNSResourceRecord> ret;
     
-    vector<DNSResourceRecord>ret;
-    DNSPacket *R=P.replyPacket();
-    R->setA(false);
-    R->setRA(true);
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
+
+    pw.getHeader()->aa=0;
+    pw.getHeader()->ra=1;
+    pw.getHeader()->id=dc->d_mdp.d_header.id;
+
     //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
     SyncRes sr;
     if(!quiet)
-      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (R->d_tcp ? "TCP " : "") << "question for '"<<P.qdomain<<"|"<<P.qtype.getName()<<"' from "<<P.getRemote()<<endl;
+      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"<<dc->d_mdp.d_qtype<<"' from "<<"1.2.3.4"<<endl;
 
     sr.setId(MT->getTid());
-    if(!P.d.rd)
+    if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    int res=sr.beginResolve(P.qdomain, P.qtype, ret);
+    int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret);
     if(res<0)
-      R->setRcode(RCode::ServFail);
+      pw.getHeader()->rcode=RCode::ServFail;
     else {
-      R->setRcode(res);
-      for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i)
-	R->addRecord(*i);
+      pw.getHeader()->rcode=res;
+      for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
+	pw.startRecord(i->qname, i->qtype.getCode());
+	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));  
+	drc->toPacket(pw);
+      }
+      pw.commit();
     }
 
-    const char *buffer=R->getData();
-
-    if(!R->d_tcp) {
+    if(!dc->d_tcp) {
+      /*
       if(R->len > 512) {
 	R->truncate(512);
       }
+      */
 
-      sendto(R->getSocket(),buffer,R->len,0,(struct sockaddr *)(R->remote),R->d_socklen);
+      sendto(dc->d_socket, &*packet.begin(), packet.size(), 0, (struct sockaddr *)(dc->d_remote), dc->d_socklen);
     }
     else {
       char buf[2];
-      buf[0]=R->len/256;
-      buf[1]=R->len%256;
+      buf[0]=packet.size()/256;
+      buf[1]=packet.size()%256;
 
       struct iovec iov[2];
 
-      iov[0].iov_base=(void*)buf;    iov[0].iov_len=2;
-      iov[1].iov_base=(void*)buffer; iov[1].iov_len = R->len;
+      iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
+      iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
 
-      int ret=writev(R->getSocket(), iov, 2);
+      int ret=writev(dc->d_socket, iov, 2);
 
       if(ret <= 0 ) 
-	L<<Logger::Error<<"Error writing TCP answer to "<<P.getRemote()<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
-      else if(ret != 2 + R->len)
-	L<<Logger::Error<<"Oops, partial answer sent to "<<P.getRemote()<<" - probably would have trouble receiving our answer anyhow (size="<<R->len<<")"<<endl;
+	L<<Logger::Error<<"Error writing TCP answer to "<<"1.2.3.4"<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
+      else if((unsigned int)ret != 2 + packet.size())
+	L<<Logger::Error<<"Oops, partial answer sent to "<<"1.2.3.4"<<" - probably would have trouble receiving our answer anyhow (size="<<packet.size()<<")"<<endl;
 
       //      if(write(R->getSocket(),buf,2)!=2 || write(R->getSocket(),buffer,R->len)!=R->len)
       //  XXX FIXME write this writev fallback otherwise
@@ -276,14 +307,13 @@ void startDoResolve(void *p)
 
     //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
     if(!quiet) {
-      L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(P.d.rd?"":"non-rd ")<<"question '"<<P.qdomain<<"|"<<P.qtype.getName();
-      L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
+      L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<dc->d_mdp.d_qtype;
+      L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
     
     sr.d_outqueries ? RC.cacheMisses++ : RC.cacheHits++; 
-
-    delete R;
+    delete dc;
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
@@ -409,7 +439,6 @@ void daemonize(void)
   close(0);
   close(1);
   close(2);
-
 }
 #endif
 
@@ -425,8 +454,6 @@ void usr2Handler(int)
 {
   SyncRes::setLog(true);
 }
-
-
 
 void doStats(void)
 {
@@ -458,7 +485,7 @@ void houseKeeping(void *)
   }
   if(now -last_rootupdate>7200) {
     SyncRes sr;
-    vector<DNSResourceRecord>ret;
+    vector<DNSResourceRecord> ret;
 
     sr.setNoCache();
     int res=sr.beginResolve("", QType(QType::NS), ret);
@@ -514,6 +541,13 @@ int gettimeofday (struct timeval *__restrict __tv,
 
 int main(int argc, char **argv) 
 {
+  ARecordContent::report();
+  //  AAAARecordContent::report(); // will be needed once we do ipv6 transport
+  NSRecordContent::report();
+  CNAMERecordContent::report();
+  MXRecordContent::report();
+  SOARecordContent::report();
+
   int ret = EXIT_SUCCESS;
 #ifdef WIN32
     WSADATA wsaData;
@@ -635,7 +669,6 @@ int main(int argc, char **argv)
 
       Utility::socklen_t addrlen=sizeof(fromaddr);
       int d_len;
-      DNSPacket P;
       
       struct timeval tv;
       tv.tv_sec=0;
@@ -698,22 +731,25 @@ int main(int argc, char **argv)
 	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
 	if(d_len<0) 
 	  continue;
-	
-	P.setRemote((struct sockaddr *)&fromaddr, addrlen);
-	if(P.parse(data,d_len)<0) {
-	  L<<Logger::Error<<"Unparseable packet from remote server "<<P.getRemote()<<endl;
-	}
-	else { 
-	  if(P.d.qr) {
+
+	try {
+	  DNSComboWriter dc(data, d_len);
+	  dc.setRemote((struct sockaddr *)&fromaddr, addrlen);
+
+	  if(dc.d_mdp.d_header.qr) {
 	    pident.remote=fromaddr;
-	    pident.id=P.d.id;
+	    pident.id=dc.d_mdp.d_header.id;
 	    string packet;
-	    packet.assign(data,d_len);
-	    MT->sendEvent(pident,&packet);
+	    packet.assign(data, d_len);
+	    MT->sendEvent(pident, &packet);
 	  }
 	  else 
-	    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<P.getRemote()<<endl;
+	    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<"1.2.3.4"<<endl;
 	}
+	catch(MOADNSException& mde) {
+	  L<<Logger::Error<<"Unparseable packet from remote server "<<"1.2.3.4"<<": "<<mde.what()<<endl;
+	}
+
       }
       
       for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
@@ -721,19 +757,18 @@ int main(int argc, char **argv)
 	  d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
 	  if(d_len<0) 
 	    continue;
-	  P.setRemote((struct sockaddr *)&fromaddr, addrlen);
-	  if(P.parse(data,d_len)<0) {
-	    L<<Logger::Error<<"Unparseable packet from remote client "<<P.getRemote()<<endl;
-	  }
-	  else { 
-	    if(P.d.qr)
-	      L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-	    else {
-	      ++qcounter;
-	      P.setSocket(*i);
-	      P.d_tcp=false;
-	      MT->makeThread(startDoResolve,(void*)new DNSPacket(P), "udp");
-	    }
+
+	  DNSComboWriter*dc = new DNSComboWriter(data, d_len);
+
+	  dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
+
+	  if(dc->d_mdp.d_header.qr)
+	    L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+	  else {
+	    ++qcounter;
+	    dc->setSocket(*i);
+	    dc->d_tcp=false;
+	    MT->makeThread(startDoResolve, (void*) dc, "udp");
 	  }
 	}
       }
@@ -858,23 +893,25 @@ int main(int argc, char **argv)
 	    i->bytesread+=bytes;
 	    if(i->bytesread==i->qlen) {
 	      i->state=TCPConnection::BYTE0;
-
-	      if(P.parse(i->data,i->qlen)<0) {
-		L<<Logger::Error<<"Unparseable packet from remote client "<<P.getRemote()<<endl;
+	      DNSComboWriter* dc;
+	      try {
+		dc=new DNSComboWriter(i->data, i->qlen);
+	      }
+	      catch(MOADNSException &mde) {
+		L<<Logger::Error<<"Unparseable packet from remote client "<<"1.2.3.4"<<endl;
 		close(i->fd);
 		tcpconnections.erase(i);
 		break;
 	      }
-	      else { 
-		P.setSocket(i->fd);
-		P.d_tcp=true;
-		P.setRemote((struct sockaddr *)&i->remote,sizeof(i->remote));
-		if(P.d.qr)
-		  L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-		else {
-		  ++qcounter;
-		  MT->makeThread(startDoResolve,(void*)new DNSPacket(P), "tcp");
-		}
+
+	      dc->setSocket(i->fd);
+	      dc->d_tcp=true;
+	      dc->setRemote((struct sockaddr *)&i->remote,sizeof(i->remote));
+	      if(dc->d_mdp.d_header.qr)
+		L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+	      else {
+		++qcounter;
+		MT->makeThread(startDoResolve, dc, "tcp");
 	      }
 	    }
 	  }
