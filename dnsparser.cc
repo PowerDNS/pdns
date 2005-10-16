@@ -213,6 +213,15 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   
 }
 
+bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
+{
+  if(d_header.arcount) {
+    eo->d_packetsize=d_answers.back().first.d_class;
+  }
+  else
+    return false;
+}
+
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
   unsigned int n;
