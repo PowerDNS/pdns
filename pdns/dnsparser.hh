@@ -179,8 +179,11 @@ public:
 
   static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, zmakerfunc_t* z, const char* name)
   {
-    typemap[make_pair(cl,ty)]=f;
-    zmakermap[make_pair(cl,ty)]=z;
+    if(f)
+      typemap[make_pair(cl,ty)]=f;
+    if(z)
+      zmakermap[make_pair(cl,ty)]=z;
+
     namemap[make_pair(cl,ty)]=name;
   }
 
@@ -295,6 +298,8 @@ public:
   struct EDNSOpts
   {
     uint16_t d_packetsize;
+    uint8_t d_extRCode, d_version;
+    uint16_t d_Z;
   };
 
   //! Convenience function that fills out EDNS0 options, and returns true if there are any

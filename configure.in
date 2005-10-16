@@ -19,7 +19,9 @@ AC_LANG_CPLUSPLUS
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h boost/shared_ptr.hpp getopt.h limits.h strings.h sys/time.h syslog.h unistd.h)
+AC_CHECK_HEADERS(fcntl.h  getopt.h limits.h strings.h sys/time.h syslog.h unistd.h)
+AC_CHECK_HEADERS(boost/shared_ptr.hpp, , 
+echo Missing boost - please install Boost packages or see http://doc.powerdns.com/compiling-powerdns.html; exit)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T

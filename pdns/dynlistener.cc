@@ -145,7 +145,8 @@ string DynListener::getLine()
     for(;;) {
       d_client=accept(d_s,(sockaddr*)&remote,&remlen);
       if(d_client<0) {
-	L<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<strerror(errno)<<endl;
+	if(errno!=EINTR)
+	  L<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<strerror(errno)<<endl;
 	continue;
       }
       if((len=recv(d_client,mesg,512,0))<0) {

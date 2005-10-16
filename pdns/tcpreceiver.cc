@@ -534,7 +534,10 @@ void TCPNameserver::thread()
 
       fd_set rfds=d_rfds; 
 
-      select(d_highfd+1, &rfds, 0, 0,  0); // blocks
+      int ret=select(d_highfd+1, &rfds, 0, 0,  0); // blocks
+      if(ret <= 0)
+	continue;
+
       int sock=-1;
       for(vector<int>::const_iterator i=d_sockets.begin();i!=d_sockets.end();++i) {
 	if(FD_ISSET(*i, &rfds)) {

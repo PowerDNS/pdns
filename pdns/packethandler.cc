@@ -63,6 +63,39 @@ PacketHandler::~PacketHandler()
   DLOG(L<<Logger::Error<<"PacketHandler destructor called - "<<s_count<<" left"<<endl);
 }
 
+void PacketHandler::addRootReferral(DNSPacket* r)
+{  
+  // nobody reads what we output, but it appears to be the magic that shuts some nameservers up
+  static char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
+		     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+  static char templ[40];
+  strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
+
+  // add . NS records
+  DNSResourceRecord rr;
+  rr.qtype=QType::NS;
+  rr.ttl=518400;
+  rr.d_place=DNSResourceRecord::AUTHORITY;
+  
+  for(char c='a';c<='m';++c) {
+    *templ=c;
+    rr.content=templ;
+    r->addRecord(rr);
+  }
+
+  // add the additional stuff
+  
+  rr.ttl=3600000;
+  rr.qtype=QType::A;
+  rr.d_place=DNSResourceRecord::ADDITIONAL;
+
+  for(char c='a';c<='m';++c) {
+    *templ=c;
+    rr.qname=templ;
+    rr.content=ips[c-'a'];
+    r->addRecord(rr);
+  }
+}
 
 int PacketHandler::findMboxFW(DNSPacket *p, DNSPacket *r, string &target)
 {
@@ -733,7 +766,12 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 	    p->getRemote()<< (p->d.rd ? " (recursion was desired)" : "") <<endl;
 
 	r->setA(false);
-	r->setRcode(RCode::ServFail);  // 'sorry' - this is where we might send out a root referral
+	if(arg().mustDo("send-root-referral")) {
+	  addRootReferral(r);
+	}
+	else {
+	  r->setRcode(RCode::ServFail);  // 'sorry' - this is where we might send out a root referral
+	}
       }
 				       
       S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());

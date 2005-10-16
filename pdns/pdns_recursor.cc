@@ -271,7 +271,8 @@ void startDoResolve(void *p)
     //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
     SyncRes sr;
     if(!quiet)
-      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"<<dc->d_mdp.d_qtype<<"' from "<<dc->getRemote()<<endl;
+      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
+       <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
 
     sr.setId(MT->getTid());
     if(!dc->d_mdp.d_header.rd)
@@ -323,7 +324,7 @@ void startDoResolve(void *p)
 
     //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
     if(!quiet) {
-      L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<dc->d_mdp.d_qtype;
+      L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
@@ -560,12 +561,7 @@ int gettimeofday (struct timeval *__restrict __tv,
 
 int main(int argc, char **argv) 
 {
-  ARecordContent::report();
-  //  AAAARecordContent::report(); // will be needed once we do ipv6 transport
-  NSRecordContent::report();
-  CNAMERecordContent::report();
-  MXRecordContent::report();
-  SOARecordContent::report();
+  reportBasicTypes();
 
   int ret = EXIT_SUCCESS;
 #ifdef WIN32
