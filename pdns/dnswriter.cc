@@ -45,8 +45,10 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_recordqtype=qtype;
   d_recordqclass=qclass;
   d_recordttl=ttl;
+  d_recordplace=place;
 
   d_stuff = 0; 
+  d_rollbackmarker=d_content.size();
 
   xfrLabel(d_recordqname, true);
   d_content.insert(d_content.end(), d_record.begin(), d_record.end());
@@ -54,19 +56,6 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
 
   d_stuff = sizeof(dnsrecordheader); // this is needed to get compressed label offsets right, the dnsrecordheader will be interspersed
   d_sor=d_content.size() + d_stuff; // start of real record 
-
-  dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
-  switch(place) {
-  case ANSWER:
-    dh->ancount = htons(ntohs(dh->ancount) + 1);
-    break;
-  case AUTHORITY:
-    dh->nscount = htons(ntohs(dh->nscount) + 1);
-    break;
-  case ADDITIONAL:
-    dh->arcount = htons(ntohs(dh->arcount) + 1);
-    break;
-  }
 }
 
 void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
@@ -164,6 +153,18 @@ void DNSPacketWriter::getRecords(string& records)
   records.assign(d_content.begin() + d_sor, d_content.end());
 }
 
+uint16_t DNSPacketWriter::size()
+{
+  return d_content.size() + d_stuff + d_record.size();
+}
+
+void DNSPacketWriter::rollback()
+{
+  d_content.resize(d_rollbackmarker);
+  d_record.clear();
+  d_stuff=0;
+}
+
 void DNSPacketWriter::commit()
 {
   if(d_stuff==0xffff && (d_content.size()!=d_sor || !d_record.empty()))
@@ -174,13 +175,28 @@ void DNSPacketWriter::commit()
   drh.d_class=htons(d_recordqclass);
   drh.d_ttl=htonl(d_recordttl);
   drh.d_clen=htons(d_record.size());
-
+  
   // and write out the header
   const uint8_t* ptr=(const uint8_t*)&drh;
   d_content.insert(d_content.end(), ptr, ptr+sizeof(drh));
 
+  d_stuff=0;
+
   // write out d_record
   d_content.insert(d_content.end(), d_record.begin(), d_record.end());
+
+  dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
+  switch(d_recordplace) {
+  case ANSWER:
+    dh->ancount = htons(ntohs(dh->ancount) + 1);
+    break;
+  case AUTHORITY:
+    dh->nscount = htons(ntohs(dh->nscount) + 1);
+    break;
+  case ADDITIONAL:
+    dh->arcount = htons(ntohs(dh->arcount) + 1);
+    break;
+  }
 
   d_record.clear();   // clear d_record, ready for next record
 }

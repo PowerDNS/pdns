@@ -251,6 +251,12 @@ void startDoResolve(void *p)
     bool quiet=arg().mustDo("quiet");
     DNSComboWriter* dc=(DNSComboWriter *)p;
 
+    uint16_t maxudpsize=512;
+    MOADNSParser::EDNSOpts edo;
+    if(dc->d_mdp.getEDNSOpts(&edo)) {
+      maxudpsize=edo.d_packetsize;
+    }
+
     vector<DNSResourceRecord> ret;
     
     vector<uint8_t> packet;
@@ -260,6 +266,7 @@ void startDoResolve(void *p)
     pw.getHeader()->ra=1;
     pw.getHeader()->qr=1;
     pw.getHeader()->id=dc->d_mdp.d_header.id;
+    pw.getHeader()->rd=dc->d_mdp.d_header.rd;
 
     //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
     SyncRes sr;
@@ -277,21 +284,20 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
       if(ret.size()) {
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
-	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl);
+	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, 1, (DNSPacketWriter::Place)i->d_place);
 	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));  
 	  drc->toPacket(pw);
+	  if(!dc->d_tcp && pw.size() > maxudpsize) {
+	    pw.rollback();
+	    pw.getHeader()->tc=1;
+	    goto sendit; // need to jump over pw.commit
+	  }
 	}
 	pw.commit();
       }
     }
-
+  sendit:;
     if(!dc->d_tcp) {
-      /*
-      if(R->len > 512) {
-	R->truncate(512);
-      }
-      */
-
       sendto(dc->d_socket, &*packet.begin(), packet.size(), 0, (struct sockaddr *)(dc->d_remote), dc->d_socklen);
     }
     else {
@@ -771,7 +777,7 @@ int main(int argc, char **argv)
 	  if(d_len<0) 
 	    continue;
 
-	  DNSComboWriter*dc = new DNSComboWriter(data, d_len);
+	  DNSComboWriter* dc = new DNSComboWriter(data, d_len);
 
 	  dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
 

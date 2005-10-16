@@ -58,6 +58,11 @@ public:
    */
   void commit();
 
+  uint16_t size();
+
+  /** Should the packet have grown too big for the writer's liking, rollback removes the record currently being written */
+  void rollback();
+
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
   void xfrType(uint16_t val)
@@ -95,5 +100,7 @@ private:
   map<string, uint16_t> d_labelmap;
   uint16_t d_stuff;
   uint16_t d_sor;
+  uint16_t d_rollbackmarker; // start of last complete packet, for rollback
+  Place d_recordplace;
 };
 #endif
