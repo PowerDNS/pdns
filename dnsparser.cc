@@ -124,7 +124,7 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr,
 					       PacketReader& pr)
 {
   typemap_t::const_iterator i=typemap.find(make_pair(dr.d_class, dr.d_type));
-  if(i==typemap.end()) {
+  if(i==typemap.end() || !i->second) {
     return new UnknownRecordContent(dr, pr);
   }
 
@@ -217,6 +217,20 @@ bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
 {
   if(d_header.arcount) {
     eo->d_packetsize=d_answers.back().first.d_class;
+    struct Stuff {
+      uint8_t extRCode, version;
+      uint16_t Z;
+    } __attribute__((packed));
+    
+    Stuff stuff;
+    uint32_t ttl=ntohl(d_answers.back().first.d_ttl);
+    memcpy(&stuff, &ttl, sizeof(stuff));
+
+    eo->d_extRCode=stuff.extRCode;
+    eo->d_version=stuff.version;
+    eo->d_Z=stuff.Z;
+
+    return true;
   }
   else
     return false;

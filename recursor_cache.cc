@@ -24,8 +24,6 @@ string DNSRR2String(const DNSResourceRecord& rr)
   vector<uint8_t> packet;
   
   uint16_t type=rr.qtype.getCode();
-  
-
   shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(type, 1, rr.content));
   string ret=drc->serialize(rr.qname);
   //  cerr<<"stored '"<<rr.qname<<" '"<<rr.qtype.getName()<<"' '"<<rr.content<<"' as "<<ret.size()<<" bytes"<<endl;
@@ -39,7 +37,7 @@ unsigned int MemRecursorCache::size()
 
 int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
-  unsigned int ttd;
+  unsigned int ttd=0;
   cache_t::const_iterator j=d_cache.find(toLower(qname)+"|"+qt.getName());
   //  cerr<<"looking up "<< toLower(qname)+"|"+qt.getName() << endl;
   if(res)

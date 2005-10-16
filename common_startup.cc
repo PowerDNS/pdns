@@ -87,7 +87,8 @@ void declareArguments()
   arg().setSwitch("guardian","Run within a guardian process")="no";
   arg().setSwitch("skip-cname","Do not perform CNAME indirection for each query")="no";
   arg().setSwitch("strict-rfc-axfrs","Perform strictly rfc compliant axfrs (very slow)")="no";
-  
+  arg().setSwitch("send-root-referral","Send out old-fashioned root-referral instead of ServFail in case of no authority")="no";
+
   arg().setSwitch("webserver","Start a webserver for monitoring")="no"; 
   arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
   arg().set("webserver-address","IP Address of webserver to listen on")="127.0.0.1";
@@ -222,7 +223,7 @@ void *qthread(void *p)
     if(!(P=N->receive(&question))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
-    
+
     if(P->d_socklen==sizeof(sockaddr_in))
       numreceived4++;
     else

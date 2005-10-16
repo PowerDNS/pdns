@@ -7,7 +7,8 @@
 #include "qtype.hh"
 #include <iostream>
 
-struct optString 
+template<int N=14>
+struct optString
 {
   optString()
   {
@@ -17,7 +18,7 @@ struct optString
 
   optString(const string& str)
   {
-    if(str.size() < 13) {
+    if(str.size() < N-1) {
       memcpy(buf, str.c_str(), str.size()+1);
       d_len = str.size() + 1;
     }
@@ -50,7 +51,7 @@ struct optString
     return (string)*this < (string) os;
   }
 
-  char buf[14];
+  char buf[N];
   uint8_t d_len;
 } __attribute__((packed));
 
@@ -71,7 +72,7 @@ private:
   struct StoredRecord
   {
     uint32_t d_ttd;
-    optString d_string;
+    optString<> d_string;
     bool operator<(const StoredRecord& rhs) const
     {
       return make_pair(d_ttd, d_string) < make_pair(rhs.d_ttd, rhs.d_string);

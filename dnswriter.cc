@@ -73,7 +73,7 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
   stuff.Z=htons(Z);
   
   memcpy(&ttl, &stuff, sizeof(stuff));
-  cout<<sizeof(stuff)<<endl;
+
   ttl=ntohl(ttl); // will be reversed later on
   
   startRecord("", ns_t_opt, ttl, udpsize, ADDITIONAL);

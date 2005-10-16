@@ -6001,6 +6001,12 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 	      If set, recursive queries will be handed to the recursor specified here. See <xref linkend="recursion">.
 	    </para></listitem></varlistentry>
+	<varlistentry><term>send-root-referral | --send-root-referral=yes | --send-root-referral=no</term>
+	    <listitem><para>
+	      If set, PowerDNS will send out old-fashioned root-referrals when queried for domains for which it is not authoritative. Wastes some bandwidth
+	      but may solve incoming query floods if domains are delegated to you for which you are not authoritative, but which are queried by broken
+	      recursors. Available since 2.9.19.
+	    </para></listitem></varlistentry>
 	<varlistentry><term>setgid=...</term>
 	    <listitem><para>
 	      If set, change group id to this gid for more security. See <xref linkend="security">.

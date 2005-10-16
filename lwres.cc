@@ -63,7 +63,7 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
   DNSPacketWriter pw(vpacket, domain, type);
 
   pw.getHeader()->rd=0;
-
+  pw.getHeader()->id=random();
   d_domain=domain;
   d_type=type;
   d_inaxfr=false;
