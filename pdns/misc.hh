@@ -114,6 +114,7 @@ stringtok (Container &container, string const &in,
   }
 }
 const string toLower(const string &upper);
+const string toLowerCanonic(const string &upper);
 bool IpToU32(const string &str, uint32_t *ip);
 string stringerror();
 string itoa(int i);
@@ -162,6 +163,22 @@ inline const string toLower(const string &upper)
     reply[i] = tolower(reply[i]);
   return reply;
 }
+
+inline const string toLowerCanonic(const string &upper)
+{
+  string reply(upper);
+  if(!upper.empty()) {
+    unsigned int i;
+    for(i = 0; i < reply.length() ; i++) 
+      reply[i] = tolower(reply[i]);
+   
+    if(reply[i-1]=='.')
+      reply.resize(i-1);
+  }
+      
+  return reply;
+}
+
 
 
 // Make s uppercase:

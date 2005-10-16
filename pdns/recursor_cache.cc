@@ -8,7 +8,6 @@ using namespace boost;
 
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
 {
-
   shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(qname,qt.getCode(), serial);
   DNSResourceRecord rr;
   rr.qname=regen->label;
@@ -38,17 +37,20 @@ unsigned int MemRecursorCache::size()
 int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
   unsigned int ttd=0;
-  cache_t::const_iterator j=d_cache.find(toLower(qname)+"|"+qt.getName());
-  //  cerr<<"looking up "<< toLower(qname)+"|"+qt.getName() << endl;
+  cache_t::const_iterator j=d_cache.find(toLowerCanonic(qname)+"|"+qt.getName());
+  //  cerr<<"looking up "<< toLowerCanonic(qname)+"|"+qt.getName() << endl;
   if(res)
     res->clear();
 
-  if(j!=d_cache.end() && j->first==toLower(qname)+"|"+qt.getName() && j->second.begin()->d_ttd>(unsigned int)now) {
+  if(j!=d_cache.end() && j->first==toLowerCanonic(qname)+"|"+qt.getName() && j->second.begin()->d_ttd>(unsigned int)now) {
     if(res) {
-      //      cerr<<"Have something: "<< j->second.size()<< " records\n";
-      for(set<StoredRecord>::const_iterator k=j->second.begin(); k != j->second.end(); ++k)
-	res->insert(String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd));
+      for(set<StoredRecord>::const_iterator k=j->second.begin(); k != j->second.end(); ++k) {
+	DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
+	//	cerr<<"Returning '"<<rr.content<<"'\n";
+	res->insert(rr);
+      }
     }
+
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return (unsigned int)ttd-now;
   }
@@ -58,14 +60,14 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   
 void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
-  set<StoredRecord>& stored=d_cache[toLower(qname)+"|"+qt.getName()];
+  set<StoredRecord>& stored=d_cache[toLowerCanonic(qname)+"|"+qt.getName()];
   stored.clear();
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
     StoredRecord dr;
     dr.d_ttd=i->ttl;
     dr.d_string=DNSRR2String(*i);
     stored.insert(dr);
-    //    cerr<<"Storing: "<< toLower(qname)+"|"+qt.getName() << " <=> "<<i->content<<", ttd="<<i->ttl<<endl;
+    //    cerr<<"Storing: "<< toLowerCanonic(qname)+"|"+qt.getName() << " <=> '"<<i->content<<"', ttd="<<i->ttl<<endl;
   }
 }
   
