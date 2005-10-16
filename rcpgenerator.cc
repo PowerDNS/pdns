@@ -112,7 +112,9 @@ void RecordTextReader::xfrLabel(string& val, bool)
   else if(!d_zone.empty()) {
     char last=val[val.size()-1];
    
-    if(last != '.' && !isdigit(last)) // don't add zone to IP address
+    if(last =='.')
+      val.resize(val.size()-1);
+    else if(last != '.' && !isdigit(last)) // don't add zone to IP address
       val+="."+d_zone;
   }
 }
@@ -245,6 +247,7 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
   if(!d_string.empty())
     d_string.append(1,' ');
   d_string+=val;
+  d_string+=".";
 }
 
 void RecordTextWriter::xfrBlob(const string& val)

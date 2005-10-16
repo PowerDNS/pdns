@@ -118,22 +118,25 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
   do {
     LOG<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
     set<DNSResourceRecord>ns;
-    if(RC.get(d_now.tv_sec, subdomain,QType(QType::NS),&ns)>0) {
+    if(RC.get(d_now.tv_sec, subdomain, QType(QType::NS), &ns)>0) {
 
       for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
 	if(k->ttl > (unsigned int)d_now.tv_sec ) { 
 	  set<DNSResourceRecord>aset;
+
 	  if(!endsOn(k->content,subdomain) || RC.get(d_now.tv_sec, k->content,QType(QType::A),&aset) > 5) {
-	    bestns.insert(*k);
-	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<k->content<<"'"<<endl;
-	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(k->content,subdomain);
+	    DNSResourceRecord rr=*k;
+	    rr.content=toLowerCanonic(k->content);
+	    bestns.insert(rr);
+	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl;
+	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(rr.content,subdomain);
 	    if(!aset.empty())
 	      L<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl;
 	    else
 	      L<<", not in cache"<<endl;
 	  }
 	  else
-	    LOG<<prefix<<qname<<": NS in cache for '"<<subdomain<<"', but needs glue ("<<k->content<<") which we miss or is expired"<<endl;
+	    LOG<<prefix<<qname<<": NS in cache for '"<<subdomain<<"', but needs glue ("<<toLowerCanonic(k->content)<<") which we miss or is expired"<<endl;
 	}
       }
       if(!bestns.empty()) {
@@ -173,7 +176,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname,set<string>& nsset, 
 
 bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
-  string prefix(d_prefix), tuple=toLower(qname)+"|CNAME";
+  string prefix(d_prefix), tuple=toLowerCanonic(qname)+"|CNAME";
   prefix.append(depth, ' ');
 
   if(depth>10) {
@@ -192,10 +195,12 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
 	DNSResourceRecord rr=*j;
 	rr.ttl-=d_now.tv_sec;
 	ret.push_back(rr);
-	if(!(qtype==QType(QType::CNAME))) {// perhaps they really wanted a CNAME!
+	if(!(qtype==QType(QType::CNAME))) { // perhaps they really wanted a CNAME!
 	  set<GetBestNSAnswer>beenthere;
-	  res=doResolve(j->content, qtype, ret, depth+1, beenthere);
+	  res=doResolve(toLowerCanonic(j->content), qtype, ret, depth+1, beenthere);
 	}
+	else
+	  res=0;
 	return true;
       }
     }
@@ -203,9 +208,6 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   LOG<<prefix<<qname<<": No CNAME cache hit of '"<<tuple<<"' found"<<endl;
   return false;
 }
-
-
-
 
 bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
@@ -495,7 +497,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
 	  ret.push_back(*i);
-	  newtarget=i->content;
+	  newtarget=toLowerCanonic(i->content);
 	}
 	// for ANY answers we *must* have an authoritive answer
 	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && 
@@ -519,7 +521,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  }
 	  else 
 	    LOG<<prefix<<qname<<": got upwards/level NS record '"<<i->qname<<"' -> '"<<i->content<<"', had '"<<auth<<"'"<<endl;
-	  nsset.insert(toLower(i->content));
+	  nsset.insert(toLowerCanonic(i->content));
 	}
 	else if(i->d_place==DNSResourceRecord::AUTHORITY && endsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
 	   d_lwr.d_rcode==RCode::NoError) {

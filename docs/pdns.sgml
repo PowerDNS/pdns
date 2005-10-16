@@ -81,6 +81,175 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-19"><title>Version 2.9.19 (unreleased)</title>
+	<para>
+	  Will be released in October 2005.
+	</para>
+	<para>
+	  As with other recent releases, the usage of PowerDNS appears to have skyrocketed. Informal, though strict, measurements show
+	  that PowerDNS now powers around 50% of all German domains, and somewhere in the order of 10-15% of the rest of the world. Furthermore,
+	  DNS is set to take a central role in connecting Voice over IP providers, with PowerDNS offering a very good feature set for these ENUM
+	  deployments. PowerDNS is already powering the E164.info ENUM zone and also acts as the backend for a major VoIP provisioning platform.
+	</para>
+	<para>
+	  Included in this release is the now complete packet parsing/generating, record parsing/generating infrastructure. Furthermore,
+	  this framework is used by the recursor, hopefully making it very fast, memory efficient and robust. Many records are now processed
+	  using a single line of code.
+	</para>
+	<para> 
+	  Furthermore, support for DNSSEC records is available in the new infrastructure, although is should be emphasised that there is more
+	  to DNSSEC than parsing records. There is no real support for DNSSEC (yet).
+	</para>
+	<para>
+	  Additionally, the BIND Backend has been replaced by what was up to now known as the 'Bind2Backend'. Initial benchmarking appears
+	  to show that this backend is faster, uses less memory and has shorter startup times. The code is also shorter.
+	</para>
+	<para>
+	  This release fixes a number of embarassing bugs and is a recommended upgrade. 
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		dnsreplay now has a help message and has received further massive updates, making the code substantially faster. It turns out that dnsreplay
+		is often 'heavier' than the PowerDNS process being benchmarked.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS recursor no longer prints out its queries by default as most recursor deployments have too much traffic
+		for this to be useful. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS now prints out a warning when running with legacy LinuxThreads implementation instead of the high performance NPTL
+		library, see <xref linkend="nptl"/>. Commit 455.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A lot of superfluous calls to gettimeofday() have been removed, making PowerDNS and especially the recursor faster. Suggested by Kai.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SPF records are now supported natively. Commit 472, closing ticket 22.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Improved IPv6 'bound to' messages. Thanks to Niels Bakker, Wichert Akkermans and Gerty de Wolf for suggestions.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Separate graphs can now be made of IPv6 queries and answers. Commit 485.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Out of zone additional processing is now on by default to better comply with standards. Commit 487.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Regression tests have been expanded to deal with more record types (SRV, NAPTR, TXT, duplicate SRV).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Improved query-logging in Bindbackend, which can be used for debugging purposes.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_control now has a help message.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Add RRSIG, DNSKEY, DS and NSEC records for DNSSEC-bis to new parser infrastructure.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor now honours EDNS0 allowing it to send out larger answers. 
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+
+	<para>
+	  Bugs fixed:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Domain name validation has been made a lot stricter - it turns out PostgreSQL was interpreting some (corrupt) domain names
+		as unicode. Tested and suggested by Register.com (commit 451).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP backend did not compile (commit 452, 453) due to partially applied patch (Norbert Sendetzky)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Incoming zone transfers work reliably again. Commit 460 and beyond.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recent g++ versions exposed a mistake in the PowerDNS recursor cache pruning code, causing random crashes. Fixed. Commit 465. Reported by 
+		several Red Hat users.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS recursor, and MTasker in general, did not work on Solaris. Patch by Juergen Ilse. Commit 471. Also moved most of PowerDNS over to
+		uint32_t style typedefs, which eases compilation problems on Solaris. Commit 477.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bindbackend2 did not properly search its include path for $INCLUDE statements. Noted by Mark Bergsma. Commit 474.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bindbackend did not notice changed zones, this problem has been fixed by the move to Bind2.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Zone transfers were sometimes shuffled, which wastes useless time. Commit 478.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		CNAMEs and Wildcards now work as in Bind, fixing many complaints. Commit 487.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		NAPTR records were compressed, which would work, but was in violation of the RFC. Commit 493.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		NAPTR records were not always parsed correctly from BIND zonefiles, fixed. Commit 494.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Geobackend needed additional include statement to compile on more recent Linux distrbutions. Commit 496.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-18"><title>Version 2.9.18</title>
 	<para>
 	  Released on the 16th of July 2005.
