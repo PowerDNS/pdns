@@ -148,7 +148,6 @@ LWRes::res_t LWRes::result()
     d_tcbit=mdp.d_header.tc;
     d_rcode=mdp.d_header.rcode;
 
-
     LWRes::res_t ret;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
       //      cout<<i->first.d_place<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);

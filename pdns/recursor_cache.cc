@@ -67,7 +67,7 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
     dr.d_ttd=i->ttl;
     dr.d_string=DNSRR2String(*i);
     stored.insert(dr);
-    //    cerr<<"Storing: "<< toLowerCanonic(qname)+"|"+qt.getName() << " <=> '"<<i->content<<"', ttd="<<i->ttl<<endl;
+    //cerr<<"Storing: "<< toLowerCanonic(qname)+"|"+qt.getName() << " <=> '"<<i->content<<"', ttd="<<i->ttl<<endl;
   }
 }
   

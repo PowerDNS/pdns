@@ -124,9 +124,9 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	if(k->ttl > (unsigned int)d_now.tv_sec ) { 
 	  set<DNSResourceRecord>aset;
 
-	  if(!endsOn(k->content,subdomain) || RC.get(d_now.tv_sec, k->content,QType(QType::A),&aset) > 5) {
-	    DNSResourceRecord rr=*k;
-	    rr.content=toLowerCanonic(k->content);
+	  DNSResourceRecord rr=*k;
+	  rr.content=toLowerCanonic(k->content);
+	  if(!endsOn(rr.content,subdomain) || RC.get(d_now.tv_sec, rr.content ,QType(QType::A),&aset) > 5) {
 	    bestns.insert(rr);
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(rr.content,subdomain);

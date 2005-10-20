@@ -66,8 +66,11 @@ void Resolver::makeSocket(int type)
       break;
 
   }
-  if(!tries)
+  if(!tries) {
+    Utility::closesocket(d_sock);
+    d_sock=-1;
     throw AhuException("Resolver binding to local socket: "+stringerror());
+  }
 }
 
 Resolver::Resolver()
@@ -232,7 +235,6 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 
   toaddr.sin_port=htons(port);
   toaddr.sin_family=AF_INET;
-  
 
   d_sock=socket(AF_INET,SOCK_STREAM,0);
   if(d_sock<0)
@@ -270,6 +272,8 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 #else
   if((err=connect(d_sock,(struct sockaddr*)&toaddr,sizeof(toaddr)))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
 #endif // WIN32
+    Utility::closesocket(d_sock);
+    d_sock=-1;
     throw ResolverException("connect: "+stringerror());
   }
 
@@ -364,6 +368,7 @@ int Resolver::getLength()
     int ret=waitForData(d_sock, 10);
     if(ret<0) {
       Utility::closesocket(d_sock);
+      d_sock=-1;
       throw ResolverException("Waiting on data from remote TCP client: "+stringerror());
     }
   
