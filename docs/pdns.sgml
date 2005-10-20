@@ -124,8 +124,15 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		PowerDNS can now send out old-fashioned root-referrals when queried for domains for which it is not authoritative. Wastes some bandwidth
+		but may solve incoming query floods if domains are delegated to you for which you are not authoritative, but which are queried by broken
+		recursors.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		PowerDNS now prints out a warning when running with legacy LinuxThreads implementation instead of the high performance NPTL
-		library, see <xref linkend="nptl"/>. Commit 455.
+		library, see <xref linkend="nptl">. Commit 455.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -6128,6 +6135,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  <varlistentry><term>max-queue-length=...</term>
 	    <listitem><para>
 	      If this many packets are waiting for database attention, consider the situation hopeless and respawn.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>max-tcp-connections=...</term>
+	    <listitem><para>
+	      Allow this many incoming TCP DNS connections simultaneously.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>module-dir=...</term>
 	    <listitem><para>

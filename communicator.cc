@@ -291,14 +291,7 @@ int CommunicatorClass::doNotifications()
   static Resolver d_nresolver;
   // receive incoming notifications on the nonblocking socket and take them off the list
 
-#ifndef WIN32
   while((size=recvfrom(d_nsock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen))>0) {
-#else
-  while((size=recvfrom(d_nsock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen))>0) {
-#endif
-
-
-
     DNSPacket p;
 
     p.setRemote((struct sockaddr *)&from, fromlen);
