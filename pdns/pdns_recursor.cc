@@ -252,7 +252,7 @@ void primeHints(void)
     set<DNSResourceRecord> aset;
 
     while(zpt.get(rr)) {
-      cout<<"'"<<rr.qname<<"' "<<rr.qtype.getName()<<" '"<<rr.content<<"'\n";
+      //      cout<<"'"<<rr.qname<<"' "<<rr.qtype.getName()<<" '"<<rr.content<<"'\n";
 
       rr.ttl+=time(0);
       if(rr.qtype.getCode()==QType::A) {
