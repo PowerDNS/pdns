@@ -1,11 +1,10 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2005 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    it under the terms of the GNU General Public License version 2 as 
+    published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +15,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-
 
 #include "utility.hh"
 #include <cstring>
@@ -42,7 +40,10 @@ using namespace std;
 // Closes a socket.
 int Utility::closesocket( Utility::sock_t socket )
 {
-  return ::close( socket );
+  int ret=::close(socket);
+  if(ret < 0)
+    throw AhuException("Error closing socket: "+stringerror());
+  return ret;
 }
 
 bool Utility::setNonBlocking(sock_t sock)

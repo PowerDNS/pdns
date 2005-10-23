@@ -588,9 +588,9 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
       if(k->qtype==QType(QType::MX)) {
 	string::size_type pos=k->content.find_first_not_of(" \t0123456789"); // chop off the priority
 	if(pos!=string::npos)
-	  doResolve(k->content.substr(pos),QType(QType::A),addit,1,beenthere);
+	  doResolve(toLowerCanonic(k->content.substr(pos)), QType(QType::A),addit,1,beenthere);
 	else
-	  doResolve(k->content,QType(QType::A),addit,1,beenthere);
+	  doResolve(toLowerCanonic(k->content), QType(QType::A),addit,1,beenthere);
       }
       else
 	doResolve(k->content,QType(QType::A),addit,1,beenthere);

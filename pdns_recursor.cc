@@ -44,6 +44,7 @@
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#include "zoneparser-tng.hh"
 using namespace boost;
 
 #include "recursor_cache.hh"
@@ -220,29 +221,51 @@ static void writePid(void)
 void primeHints(void)
 {
   // prime root cache
-
-  static char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
-		     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
-  DNSResourceRecord arr, nsrr;
-  arr.qtype=QType::A;
-  arr.ttl=time(0)+3600000;
-  nsrr.qtype=QType::NS;
-  nsrr.ttl=time(0)+3600000;
-  
   set<DNSResourceRecord>nsset;
-  for(char c='a';c<='m';++c) {
-    static char templ[40];
-    strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
-    *templ=c;
-    arr.qname=nsrr.content=templ;
-    arr.content=ips[c-'a'];
-    set<DNSResourceRecord> aset;
-    aset.insert(arr);
-    RC.replace(string(templ), QType(QType::A), aset);
 
-    nsset.insert(nsrr);
+  if(arg()["hint-file"].empty()) {
+    static char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
+		       "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+    DNSResourceRecord arr, nsrr;
+    arr.qtype=QType::A;
+    arr.ttl=time(0)+3600000;
+    nsrr.qtype=QType::NS;
+    nsrr.ttl=time(0)+3600000;
+    
+
+    for(char c='a';c<='m';++c) {
+      static char templ[40];
+      strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
+      *templ=c;
+      arr.qname=nsrr.content=templ;
+      arr.content=ips[c-'a'];
+      set<DNSResourceRecord> aset;
+      aset.insert(arr);
+      RC.replace(string(templ), QType(QType::A), aset);
+      
+      nsset.insert(nsrr);
+    }
   }
-  RC.replace("",QType(QType::NS),nsset); // and stuff in the cache
+  else {
+    ZoneParserTNG zpt(arg()["hint-file"]);
+    DNSResourceRecord rr;
+    set<DNSResourceRecord> aset;
+
+    while(zpt.get(rr)) {
+      cout<<"'"<<rr.qname<<"' "<<rr.qtype.getName()<<" '"<<rr.content<<"'\n";
+
+      rr.ttl+=time(0);
+      if(rr.qtype.getCode()==QType::A) {
+	set<DNSResourceRecord> aset;
+	aset.insert(rr);
+	RC.replace(rr.qname, QType(QType::A), aset);
+      }
+      if(rr.qtype.getCode()==QType::NS) {
+	nsset.insert(rr);
+      }
+    }
+  }
+  RC.replace("", QType(QType::NS), nsset); // and stuff in the cache
 }
 
 void startDoResolve(void *p)
@@ -589,6 +612,7 @@ int main(int argc, char **argv)
     arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
     arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
+    arg().set("hint-file", "If set, load root hints from this file")="";
 
     arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
