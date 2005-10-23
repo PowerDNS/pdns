@@ -85,5 +85,6 @@ private:
   int d_timeout;
   uint32_t d_ip;
   bool d_inaxfr;
+  struct sockaddr_in d_toaddr;
 };
 

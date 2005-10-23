@@ -124,6 +124,13 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		PowerDNS recursor is now able to read its root-hints from disk, which is useful to operate with
+		alternate roots, like the <ulink url="http://www.orsn.org">Open Root Server Network</ulink>. See
+		<xref linkend="built-in-recursor">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		PowerDNS can now send out old-fashioned root-referrals when queried for domains for which it is not authoritative. Wastes some bandwidth
 		but may solve incoming query floods if domains are delegated to you for which you are not authoritative, but which are queried by broken
 		recursors.
@@ -204,7 +211,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Incoming zone transfers work reliably again. Commit 460 and beyond.
+		Incoming zone transfers work reliably again. Commit 460 and beyond. And 523 - closing  Debian bug 330184. 
 	      </para>
 	    </listitem>
 	    <listitem>

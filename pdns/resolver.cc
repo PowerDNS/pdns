@@ -228,13 +228,13 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 {
   if(d_sock>=0)
     return;
-  struct sockaddr_in toaddr;
+
   struct in_addr inp;
   Utility::inet_aton(ip.c_str(),&inp);
-  toaddr.sin_addr.s_addr=inp.s_addr;
+  d_toaddr.sin_addr.s_addr=inp.s_addr;
 
-  toaddr.sin_port=htons(port);
-  toaddr.sin_family=AF_INET;
+  d_toaddr.sin_port=htons(port);
+  d_toaddr.sin_family=AF_INET;
 
   d_sock=socket(AF_INET,SOCK_STREAM,0);
   if(d_sock<0)
@@ -268,9 +268,9 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 
   int err;
 #ifndef WIN32
-  if((err=connect(d_sock,(struct sockaddr*)&toaddr,sizeof(toaddr)))<0 && errno!=EINPROGRESS) {
+  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr,sizeof(d_toaddr)))<0 && errno!=EINPROGRESS) {
 #else
-  if((err=connect(d_sock,(struct sockaddr*)&toaddr,sizeof(toaddr)))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
+  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr,sizeof(d_toaddr)))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
 #endif // WIN32
     Utility::closesocket(d_sock);
     d_sock=-1;
@@ -416,7 +416,8 @@ Resolver::res_t Resolver::result()
 {
   try {
     DNSPacket p;
-    
+    p.setRemote((const sockaddr*)&d_toaddr, sizeof(d_toaddr));
+    p.d_tcp = d_inaxfr; // fixes debian bug 330184
     if(p.parse((char *)d_buf, d_len)<0)
       throw ResolverException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
     
