@@ -89,7 +89,7 @@ pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecord.hh rcpgenerator.cc rcpgenerator.hh \
-base64.cc base64.hh
+base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh
 
 #../modules/gmysqlbackend/smysql.cc 
 

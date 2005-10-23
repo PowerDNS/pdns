@@ -272,11 +272,11 @@ void reportBasicTypes()
     MXRecordContent::report();
     SOARecordContent::report();
     SRVRecordContent::report();
+    PTRRecordContent::report();
 }
 
 void reportOtherTypes()
 {
-   PTRRecordContent::report();
    TXTRecordContent::report();
    SPFRecordContent::report();
    NAPTRRecordContent::report();
