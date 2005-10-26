@@ -195,10 +195,10 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
 {
   PacketID pident;
   pident.id=id;
-  memcpy(&pident.remote,toaddr,sizeof(pident.remote));
+  memcpy(&pident.remote, toaddr, sizeof(pident.remote));
 
   string packet;
-  int ret=MT->waitEvent(pident,&packet,1);
+  int ret=MT->waitEvent(pident, &packet, 1);
   if(ret > 0) {
     *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));

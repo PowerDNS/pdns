@@ -204,7 +204,8 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     }
     
     if(pr.d_pos!=contentlen) {
-      throw MOADNSException("Packet has trailing garbage");
+      throw MOADNSException("Packet ("+d_qname+"|#"+lexical_cast<string>(d_qtype)+") has trailing garbage ("+ lexical_cast<string>(pr.d_pos) + " < " + 
+			    lexical_cast<string>(contentlen) + ")");
     }
   }
   catch(out_of_range &re) {

@@ -103,10 +103,20 @@ void RecordTextReader::xfrLabel(string& val, bool)
 {
   skipSpaces();
   int pos=d_pos;
-  while(d_pos < d_end && !isspace(d_string[d_pos]))
-    d_pos++;
+  val.clear();
+  val.reserve(d_end - d_pos);
 
-  val.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
+  while(d_pos < d_end) {
+    if(isspace(d_string[d_pos]))
+      break;
+
+    if(d_string[d_pos]=='\\' && d_pos < d_end - 1) 
+      d_pos++;
+
+    val.append(1, d_string[d_pos]);      
+    d_pos++;
+  }
+
   if(val.empty())
     val=d_zone;
   else if(!d_zone.empty()) {
@@ -246,7 +256,18 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  d_string+=val;
+  if(val.find(' ')==string::npos) 
+    d_string+=val;
+  else {
+    d_string.reserve(d_string.size()+val.size()+3);
+    for(string::size_type pos=0; pos < val.size() ; ++pos)
+      if(isspace(val[pos]))
+	d_string+="\\ ";
+      else if(val[pos]=='\\')
+	d_string.append(1,'\\');
+      else
+	d_string.append(1,val[pos]);
+  }
   d_string+=".";
 }
 

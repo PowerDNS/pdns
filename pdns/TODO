@@ -5,9 +5,7 @@ http://wiki.powerdns.com/projects/trac/wiki/TodoList
 Some notes
 ----------
 
-Recursor needs to re-learn shuffling
-	and truncation
+	Recursor needs to re-learn shuffling
+done		and truncation
 
 figure out negative recursor cache
-
-add root-referral response to auth
