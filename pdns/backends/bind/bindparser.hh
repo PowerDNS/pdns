@@ -41,7 +41,13 @@ extern const char *bind_directory;
 class BindParser
 {
  public:
-  BindParser() : d_dir("."), d_verbose(false) {bind_directory=d_dir.c_str();}
+  BindParser() : d_dir("."), d_verbose(false) 
+  {
+    extern int include_stack_ptr;
+    include_stack_ptr=0;
+ 
+    bind_directory=d_dir.c_str(); 
+  }
   void parse(const string &fname);
   void commit(BindDomainInfo DI);
   void setDirectory(const string &dir);
