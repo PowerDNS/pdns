@@ -211,7 +211,6 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   catch(out_of_range &re) {
     throw MOADNSException("Packet parsing error, out of bounds: "+string(re.what()));
   }
-  
 }
 
 bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
