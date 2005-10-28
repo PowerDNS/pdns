@@ -36,6 +36,13 @@ CoWrapper::CoWrapper(const string &command, int timeout)
    // I think
 }
 
+CoWrapper::~CoWrapper()
+{
+  if(d_cp)
+    delete d_cp;
+}
+
+
 void CoWrapper::launch()
 {
    if(d_cp)
@@ -80,9 +87,9 @@ PipeBackend::PipeBackend(const string &suffix)
 {
    setArgPrefix("pipe"+suffix);
    try {
-      d_coproc=new CoWrapper(getArg("command"), getArgAsNum("timeout"));
-      d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
-      d_regexstr=getArg("regex");
+     d_coproc=shared_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout")));
+     d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
+     d_regexstr=getArg("regex");
    }
    catch(const ArgException &A) {
       L<<Logger::Error<<kBackendId<<" Fatal argument error: "<<A.reason<<endl;

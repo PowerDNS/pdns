@@ -12,6 +12,8 @@ class CoProcess
 public:
   CoProcess(const string &command,int timeout=0, int infd=0, int outfd=1);
   CoProcess(const char **argv, int timeout=0, int infd=0, int outfd=1);
+  ~CoProcess();
+
   void launch(const char **argv, int timeout=0, int infd=0, int outfd=1);
   void sendReceive(const string &send, string &receive);
   void receive(string &rcv);

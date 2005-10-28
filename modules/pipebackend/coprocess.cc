@@ -69,7 +69,13 @@ void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
     /* not a lot we can do here. We shouldn't return because that will leave a forked process around.
        no way to log this either - only thing we can do is make sure that our parent catches this soonest! */
   }
+}
 
+CoProcess::~CoProcess()
+{
+  int status;
+  if(!waitpid(d_pid, &status, WNOHANG)) 
+    kill(d_pid, 9);
 }
 
 void CoProcess::checkStatus()
