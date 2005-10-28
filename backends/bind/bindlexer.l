@@ -85,9 +85,9 @@ include                 BEGIN(incl);
 
 <<EOF>>   {
         if ( --include_stack_ptr < 0 )
-            {
+        {
             yyterminate();
-            }
+        }
 
         else
             {

@@ -238,6 +238,17 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		Pipebackend did not clean up, leading to an additional pipe backend per AXFR or pdns_control reload. Discovered by Marc Jauvin, fixed by commit 525.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bindbackend (both old and current versions) did not honour 'include' statements in <filename>named.conf</filename>
+		on <command>pdns_control rediscover</command>. Noted by Marc Jauvin, fixed by commit 526.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		Zone transfers were sometimes shuffled, which wastes useless time. Commit 478.
 	      </para>
 	    </listitem>
