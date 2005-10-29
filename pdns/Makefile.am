@@ -16,9 +16,9 @@ else
 sbin_PROGRAMS = pdns_server 
 endif
 
-bin_PROGRAMS = pdns_control  dnswasher dnsreplay 
+bin_PROGRAMS = pdns_control  
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsreplay_mindex
+EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsreplay_mindex dnswasher dnsreplay 
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -72,7 +72,7 @@ dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 dnsreplay_mindex_SOURCES=dnsreplay-mindex.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
-	unix_utility.cc unix_utility.hh		
+	unix_utility.cc utility.hh		
 
 dnsreplay_mindex_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
@@ -89,7 +89,7 @@ dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
-dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecord.hh rcpgenerator.cc rcpgenerator.hh \
+dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh
 
 #../modules/gmysqlbackend/smysql.cc 
