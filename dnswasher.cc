@@ -11,7 +11,6 @@ If the question has the response bit set, obfuscate the destination IP address
 otherwise, obfuscate the response IP address
 */
 
-#include <pcap.h>
 
 #include "statbag.hh"
 #include "dnspcap.hh"

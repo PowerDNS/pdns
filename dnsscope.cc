@@ -1,6 +1,4 @@
 #define __FAVOR_BSD
-#include <pcap.h>
-
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"

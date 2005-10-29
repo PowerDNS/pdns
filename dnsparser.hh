@@ -22,7 +22,6 @@
 #include <map>
 #include <sstream>
 #include <stdexcept>
-#include <pcap.h>
 #include <iostream>
 #include <vector>
 #include <errno.h>

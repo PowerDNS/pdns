@@ -12,9 +12,25 @@
 #include <netinet/udp.h>
 #include <net/ethernet.h>
 #include <vector>
-#include <pcap.h>
 #include <boost/format.hpp>
 using namespace std;
+
+struct pdns_pcap_file_header {
+  uint32_t magic;
+  uint16_t version_major;
+  uint16_t version_minor;
+  uint32_t thiszone;     /* gmt to local correction */
+  uint32_t sigfigs;    /* accuracy of timestamps */
+  uint32_t snaplen;    /* max length saved portion of each pkt */
+  uint32_t linktype;   /* data link type (LINKTYPE_*) */
+};
+
+
+struct pdns_pcap_pkthdr {
+  struct timeval ts;      /* time stamp */
+  uint32_t caplen;     /* length of portion present */
+  uint32_t len;        /* length this packet (off wire) */
+};
 
 class PcapPacketReader
 {
@@ -47,9 +63,9 @@ public:
   const struct udphdr *d_udp;
   const uint8_t* d_payload;
   int d_len;
-  struct pcap_pkthdr d_pheader;
+  struct pdns_pcap_pkthdr d_pheader;
 
-  pcap_file_header d_pfh;
+  pdns_pcap_file_header d_pfh;
   unsigned int d_runts, d_oversized, d_correctpackets, d_nonetheripudp;
   char d_buffer[32768];
 private:
