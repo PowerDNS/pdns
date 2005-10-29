@@ -39,7 +39,6 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 
  */
 
-#include <pcap.h>
 #include <bitset>
 #include "statbag.hh"
 #include "dnspcap.hh"
