@@ -11,7 +11,7 @@
       </affiliation>
     </author>
     
-    <PubDate>v2.9.18 $Date$</PubDate>
+    <PubDate>v2.9.19 $Date$</PubDate>
     
     <Abstract>
 	<para>	
@@ -81,9 +81,9 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-19"><title>Version 2.9.19 (unreleased)</title>
+      <sect2 id="changelog-2-9-19"><title>Version 2.9.19</title>
 	<para>
-	  Will be released in October 2005.
+	  Released 29th of October 2005.
 	</para>
 	<para>
 	  As with other recent releases, the usage of PowerDNS appears to have skyrocketed. Informal, though strict, measurements show
@@ -94,7 +94,8 @@
 	<para>
 	  Included in this release is the now complete packet parsing/generating, record parsing/generating infrastructure. Furthermore,
 	  this framework is used by the recursor, hopefully making it very fast, memory efficient and robust. Many records are now processed
-	  using a single line of code.
+	  using a single line of code. This has made the recursor a lot stricter in packet parsing, you will see some error messages
+	  which did not appear before. Rest assured however that these only happen for queries which have no valid answer in any case.
 	</para>
 	<para> 
 	  Furthermore, support for DNSSEC records is available in the new infrastructure, although is should be emphasised that there is more
@@ -108,12 +109,17 @@
 	  This release fixes a number of embarassing bugs and is a recommended upgrade. 
 	</para>
 	<para>
+	  Thanks are due to <ulink url="http://www.xs4all.nl">XS4ALL</ulink> who are supporting continuing development of PowerDNS, 
+	  the fruits of which can be found in this release already. Furthermore, a remarkable number of people have helped report bugs,
+	  validate solutions or have submitted entire patches. Many thanks!
+	</para>
+	<para>
 	  Improvements:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
 		dnsreplay now has a help message and has received further massive updates, making the code substantially faster. It turns out that dnsreplay
-		is often 'heavier' than the PowerDNS process being benchmarked.
+		is often 'heavier' than the PowerDNS process being benchmarked. 
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -175,6 +181,11 @@
 	    <listitem>
 	      <para>
 		Improved query-logging in Bindbackend, which can be used for debugging purposes.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Dropped libpcap dependency, making compilation easier
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -241,6 +252,7 @@
 		Pipebackend did not clean up, leading to an additional pipe backend per AXFR or pdns_control reload. Discovered by Marc Jauvin, fixed by commit 525.
 	      </para>
 	    </listitem>
+
 	    <listitem>
 	      <para>
 		Bindbackend (both old and current versions) did not honour 'include' statements in <filename>named.conf</filename>
