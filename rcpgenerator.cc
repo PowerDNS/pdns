@@ -102,7 +102,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 void RecordTextReader::xfrLabel(string& val, bool)
 {
   skipSpaces();
-  int pos=d_pos;
+
   val.clear();
   val.reserve(d_end - d_pos);
 
