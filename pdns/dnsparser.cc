@@ -168,13 +168,13 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 
   PacketReader pr(d_content);
 
-  for(n=0;n < d_header.qdcount; ++n) {
-    d_qname=pr.getLabel();
-    d_qtype=pr.get16BitInt();
-    d_qclass=pr.get16BitInt();
-  }
-
   try {
+    for(n=0;n < d_header.qdcount; ++n) {
+      d_qname=pr.getLabel();
+      d_qtype=pr.get16BitInt();
+      d_qclass=pr.get16BitInt();
+    }
+
     struct dnsrecordheader ah;
     vector<unsigned char> record;
     
