@@ -795,17 +795,22 @@ int main(int argc, char **argv)
 	  if(d_len<0) 
 	    continue;
 
-	  DNSComboWriter* dc = new DNSComboWriter(data, d_len);
+	  try {
+	    DNSComboWriter* dc = new DNSComboWriter(data, d_len);
 
-	  dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
+	    dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
 
-	  if(dc->d_mdp.d_header.qr)
-	    L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-	  else {
-	    ++qcounter;
-	    dc->setSocket(*i);
-	    dc->d_tcp=false;
-	    MT->makeThread(startDoResolve, (void*) dc, "udp");
+	    if(dc->d_mdp.d_header.qr)
+	      L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+	    else {
+	      ++qcounter;
+	      dc->setSocket(*i);
+	      dc->d_tcp=false;
+	      MT->makeThread(startDoResolve, (void*) dc, "udp");
+	    }
+	  }
+	  catch(MOADNSException& mde) {
+	    L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
 	  }
 	}
       }
