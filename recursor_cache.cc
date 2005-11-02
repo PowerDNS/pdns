@@ -77,7 +77,7 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
     dr.d_string=DNSRR2String(*i);
     k=stored.find(dr);
     if(k!=stored.end()) {           // was it there already?
-      //      cerr<<"updating record '"<<qname<<"' -> '"<<i->content<<"'\n";
+      // cerr<<"updating record '"<<qname<<"' -> '"<<i->content<<"'\n";
       k->d_ttd=i->ttl;              // update ttl
       touched.push_back(k);         // note that this record is here to stay
     }
@@ -86,18 +86,19 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
       touched.push_back(stored.insert(dr).first);  // same thing
     }
   }
-
-  for(k=stored.begin(); k!=stored.end(); ) {                     // walk over the stored set of records
-    touched_t::const_iterator j;                                
-    for(j=touched.begin(); j!=touched.end() && *j != k ; ++j);   // walk over touched iterators
-    if(j==touched.end()) {                                       // this record was not there
-      //      DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, 0); 
-      //      cerr<<"removing from record '"<<qname<<"' '"<<rr.content<<"'\n";
-      k->d_string.prune();                                      
-      stored.erase(k++);                                         // cleanup
+  if(touched.size() != stored.size()) {
+    for(k=stored.begin(); k!=stored.end(); ) {                     // walk over the stored set of records
+      touched_t::const_iterator j;                                
+      for(j=touched.begin(); j!=touched.end() && *j != k ; ++j);   // walk over touched iterators
+      if(j==touched.end()) {                                       // this record was not there
+	//	DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, 0); 
+	//	cerr<<"removing from record '"<<qname<<"' '"<<rr.content<<"'\n";
+	//      k->d_string.prune();                                      
+	stored.erase(k++);                                         // cleanup
+      }
+      else
+	++k;
     }
-    else
-      ++k;
   }
 }
   
@@ -108,7 +109,7 @@ void MemRecursorCache::doPrune(void)
   for(cache_t::iterator j=d_cache.begin();j!=d_cache.end();){
     for(set<StoredRecord>::iterator k=j->second.begin();k!=j->second.end();) 
       if((unsigned int)k->d_ttd < (unsigned int) now) {
-	k->d_string.prune();
+	//	k->d_string.prune();
 	j->second.erase(k++);
 	records++;
       }

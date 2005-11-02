@@ -6,6 +6,7 @@
 #include "dns.hh"
 #include "qtype.hh"
 #include <iostream>
+#include <boost/utility.hpp>
 
 template<int N=14>
 struct optString
@@ -14,6 +15,11 @@ struct optString
   {
     d_len=0;
     *buf=0;
+  }
+
+  optString(const optString& rhs) : d_len(rhs.d_len)
+  {
+    memcpy(buf, rhs.buf, N);
   }
 
   optString(const string& str)
@@ -56,12 +62,9 @@ struct optString
 } __attribute__((packed));
 
 
-
-
-class MemRecursorCache //  : public RecursorCache
+class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
-  ~MemRecursorCache(){}
   unsigned int size();
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
   void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
@@ -72,7 +75,8 @@ private:
   struct StoredRecord
   {
     mutable uint32_t d_ttd;
-    optString<> d_string;
+    //    optString<> d_string;
+    string d_string;
     bool operator<(const StoredRecord& rhs) const
     {
       return d_string < rhs.d_string;
