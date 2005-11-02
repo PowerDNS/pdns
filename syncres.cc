@@ -37,6 +37,7 @@
 extern MemRecursorCache RC;
 
 map<string,NegCacheEntry> SyncRes::s_negcache;    
+map<string,DecayingEwma> SyncRes::s_nsSpeeds;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
@@ -229,7 +230,6 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
       giveNegative=true;
       sqname=ni->second.name;
       sqt="SOA";
-
     }
     else {
       LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"' was negatively cached, but entry expired"<<endl;
@@ -304,7 +304,7 @@ bool SyncRes::moreSpecificThan(const string& a, const string &b)
   return counta>countb;
 }
 
-static map<string,DecayingEwma> nsSpeeds;
+
 
 struct speedOrder
 {
@@ -324,7 +324,7 @@ inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &p
 
   for(set<string>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
-    DecayingEwma& temp=nsSpeeds[toLower(*i)];
+    DecayingEwma& temp=s_nsSpeeds[toLower(*i)];
     speeds[*i]=temp.get(&d_now);
   }
   random_shuffle(rnameservers.begin(),rnameservers.end());
@@ -405,7 +405,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  else
 	    LOG<<prefix<<qname<<": error resolving"<<endl;
 
-	  nsSpeeds[toLower(*tns)].submit(1000000, &d_now); // 1 sec
+	  s_nsSpeeds[toLower(*tns)].submit(1000000, &d_now); // 1 sec
 	  
 	  s_throttle.throttle(d_now.tv_sec, remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	  continue;
@@ -431,7 +431,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	continue;
       }
       LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<remoteIP<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
-      nsSpeeds[toLower(*tns)].submit(d_lwr.d_usec, &d_now);
+      s_nsSpeeds[toLower(*tns)].submit(d_lwr.d_usec, &d_now);
 
       map<string,set<DNSResourceRecord> > tcache;
       // reap all answers from this packet that are acceptable

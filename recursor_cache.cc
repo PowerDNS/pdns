@@ -58,21 +58,46 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   return -1;
 }
   
+/* the code below is rather tricky - it basically replaces the stuff cached for qname by content, but it is special
+   cased for when inserting identical records with only differing ttls, in which case the entry is not
+   touched, but only given a new ttd */
 void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
   set<StoredRecord>& stored=d_cache[toLowerCanonic(qname)+"|"+qt.getName()];
 
-  for(set<StoredRecord>::iterator k=stored.begin();k!=stored.end();++k) 
-    k->d_string.prune();
+  set<StoredRecord>::iterator k;
+  typedef vector<set<StoredRecord>::iterator> touched_t;
+  touched_t touched;
 
-  stored.clear();
+  // walk through new content, encode it as new
+  StoredRecord dr;
 
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
-    StoredRecord dr;
     dr.d_ttd=i->ttl;
     dr.d_string=DNSRR2String(*i);
-    stored.insert(dr);
-    //cerr<<"Storing: "<< toLowerCanonic(qname)+"|"+qt.getName() << " <=> '"<<i->content<<"', ttd="<<i->ttl<<endl;
+    k=stored.find(dr);
+    if(k!=stored.end()) {           // was it there already?
+      //      cerr<<"updating record '"<<qname<<"' -> '"<<i->content<<"'\n";
+      k->d_ttd=i->ttl;              // update ttl
+      touched.push_back(k);         // note that this record is here to stay
+    }
+    else {
+      //      cerr<<"inserting record '"<<qname<<"' -> '"<<i->content<<"'\n";
+      touched.push_back(stored.insert(dr).first);  // same thing
+    }
+  }
+
+  for(k=stored.begin(); k!=stored.end(); ) {                     // walk over the stored set of records
+    touched_t::const_iterator j;                                
+    for(j=touched.begin(); j!=touched.end() && *j != k ; ++j);   // walk over touched iterators
+    if(j==touched.end()) {                                       // this record was not there
+      //      DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, 0); 
+      //      cerr<<"removing from record '"<<qname<<"' '"<<rr.content<<"'\n";
+      k->d_string.prune();                                      
+      stored.erase(k++);                                         // cleanup
+    }
+    else
+      ++k;
   }
 }
   

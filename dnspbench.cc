@@ -3,22 +3,32 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#include "logger.hh"
+#include "statbag.hh"
 
+Logger L("dnspbench");
+StatBag S;
 
 
 int main(int argc, char** argv)
 try
 {
+  dnsheader dnsheader;
+  dnsheader.qdcount=htons(1);
+  dnsheader.ancount=htons(1);
+  Socket s(InterNetwork, Datagram);
+  string spacket;
+  char* p=(char*)&dnsheader;
+  spacket.assign(p, p+sizeof(dnsheader));
+  IPEndpoint rem("127.0.0.1",5300);
+  s.sendTo(spacket, rem);
+  
+  return 0;
+
   reportAllTypes();
 
-  cerr<<"sizeof(optString): "<<sizeof(struct optString)<<endl;
-
-  optString os("hallo!");
-
-  cerr<<"optString: '"<<(string)os<<"'\n";
-
   vector<uint8_t> packet;
-  
+
   uint16_t type=DNSRecordContent::TypeToNumber(argv[2]);
 
   DNSRecordContent* drc=DNSRecordContent::mastermake(type, 1, argv[3]);

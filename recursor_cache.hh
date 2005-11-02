@@ -71,15 +71,16 @@ public:
 private:
   struct StoredRecord
   {
-    uint32_t d_ttd;
+    mutable uint32_t d_ttd;
     optString<> d_string;
     bool operator<(const StoredRecord& rhs) const
     {
-      return make_pair(d_ttd, d_string) < make_pair(rhs.d_ttd, rhs.d_string);
+      return d_string < rhs.d_string;
+      //      return make_pair(d_ttd, d_string) < make_pair(rhs.d_ttd, rhs.d_string);
     }
   };
   typedef map<string, set<StoredRecord> > cache_t;
-
+private:
   cache_t d_cache;
 };
 
