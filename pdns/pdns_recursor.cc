@@ -500,8 +500,9 @@ void doStats(void)
 {
   if(qcounter) {
     L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
-     <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits";
-    L<<Logger::Error<<", outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
+     <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
+    L<<Logger::Error<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "<<SyncRes::s_nsSpeeds.size()<<endl;
+    L<<Logger::Error<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
     L<<Logger::Error<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<MT->numProcesses()<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
@@ -518,6 +519,15 @@ void houseKeeping(void *)
   time_t now=time(0);
   if(now - last_prune > 60) { 
     RC.doPrune();
+    int pruned=0;
+    for(map<string, NegCacheEntry>::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
+      if(i->second.ttd > now) {
+	SyncRes::s_negcache.erase(i++);
+	pruned++;
+      }
+      else
+	++i;
+    //    cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
     last_prune=time(0);
   }
   if(now - last_stat>1800) { 

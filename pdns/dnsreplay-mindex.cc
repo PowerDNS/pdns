@@ -511,7 +511,7 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 	  useconds+=1000000;
 	}
 	
-	double factor=20;
+	double factor=10;
 	
 	seconds/=factor;
 	useconds/=factor;
@@ -623,7 +623,7 @@ try
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + 2*(now-then);
+    mental_time= mental_time + 1*(now-then);
   }
  out:;
 }

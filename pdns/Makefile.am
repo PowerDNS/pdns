@@ -47,7 +47,8 @@ sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter
 	logger.cc statbag.cc
 
 dnspbench_SOURCES=dnspbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
-	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh
+	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc logger.cc \
+	statbag.cc
 
 
 qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \

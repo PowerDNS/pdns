@@ -64,7 +64,11 @@ public:
     } 
     else if(i->second.ttd > e.ttd || (i->second.count) < e.count) 
       d_cont[t]=e;
-
+  }
+  
+  unsigned int size()
+  {
+    return d_cont.size();
   }
 private:
   int d_limit;
@@ -164,6 +168,7 @@ public:
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   static map<string,NegCacheEntry> s_negcache;    
+  static map<string,DecayingEwma> s_nsSpeeds;
   static Throttle<string> s_throttle;
 private:
   struct GetBestNSAnswer;
