@@ -36,8 +36,9 @@
 
 extern MemRecursorCache RC;
 
-map<string,NegCacheEntry> SyncRes::s_negcache;    
-map<string,DecayingEwma> SyncRes::s_nsSpeeds;
+SyncRes::negcache_t SyncRes::s_negcache;    
+SyncRes::nsspeeds_t SyncRes::s_nsSpeeds;    
+
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
@@ -129,12 +130,15 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	  rr.content=toLowerCanonic(k->content);
 	  if(!endsOn(rr.content,subdomain) || RC.get(d_now.tv_sec, rr.content ,QType(QType::A),&aset) > 5) {
 	    bestns.insert(rr);
+	    
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<endsOn(rr.content,subdomain);
-	    if(!aset.empty())
-	      L<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl;
-	    else
-	      L<<", not in cache"<<endl;
+	    if(!aset.empty()) {
+	      LOG<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl;
+	    }
+	    else {
+	      LOG<<", not in cache"<<endl;
+	    }
 	  }
 	  else
 	    LOG<<prefix<<qname<<": NS in cache for '"<<subdomain<<"', but needs glue ("<<toLowerCanonic(k->content)<<") which we miss or is expired"<<endl;
@@ -222,7 +226,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   if(s_negcache.count(toLower(qname))) {
     res=0;
-    map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(toLower(qname));
+    negcache_t::const_iterator ni=s_negcache.find(toLower(qname));
     if(d_now.tv_sec < ni->second.ttd) {
       sttl=ni->second.ttd - d_now.tv_sec;
       LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
@@ -238,11 +242,11 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   }
 
   if(!giveNegative) { // let's try some more
-    tuple=toLower(qname)+"|"+qtype.getName();
+    tuple=toLower(qname); tuple.append(1,'|'); tuple+=qtype.getName();
     LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', negative cached: "<<s_negcache.count(tuple)<<endl;
 
     res=0;
-    map<string,NegCacheEntry>::const_iterator ni=s_negcache.find(tuple);
+    negcache_t::const_iterator ni=s_negcache.find(tuple);
     if(ni!=s_negcache.end()) {
       if(d_now.tv_sec < ni->second.ttd) {
 	sttl=ni->second.ttd - d_now.tv_sec;
