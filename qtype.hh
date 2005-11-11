@@ -48,10 +48,17 @@ public:
   QType(); //!< Naked constructor
   explicit QType(int); //!< convert from an integer to a QType
   QType(const char *p);  //!< convert from a char* to a QType
-
+  QType(const QType& orig) : code(orig.code)
+  {
+  }
   QType &operator=(int);  //!< Assigns integers to us
   QType &operator=(const char *); //!< Assings strings to us
   QType &operator=(const string &); //!< Assings strings to us
+  QType &operator=(const QType&rhs)  //!< Assings strings to us
+  {
+    code=rhs.code;
+    return *this;
+  }
   bool operator==(const QType &) const; //!< equality operator
 
   const string getName() const; //!< Get a string representation of this type
