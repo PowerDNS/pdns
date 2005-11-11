@@ -12,6 +12,7 @@
 #include "misc.hh"
 #include "lwres.hh"
 #include <boost/utility.hpp>
+#include "recursor_cache.hh"
 
 /* external functions, opaque to us */
 
@@ -102,37 +103,42 @@ public:
 
   void submit(int val, struct timeval*tv = 0)
   {
-    double now;
+    float now;
     if(tv)
       now=tv->tv_sec + tv->tv_usec/1000000.0;
     else
       now=getTime();
 
-    double diff=d_last-now;
+    float diff=d_last-now;
     d_last=now;
-    double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
+    float factor=exp(diff)/2.0; // might be '0.5', or 0.0001
     d_val=(1-factor)*val+ factor*d_val; 
   }
 
-  double get(struct timeval*tv = 0)
+  float get(struct timeval*tv = 0)
   {
-    double now;
+    float now;
     if(tv)
       now=tv->tv_sec + tv->tv_usec/1000000.0;
     else
       now=getTime();
 
-    double diff=d_lastget-now;
+    float diff=d_lastget-now;
     d_lastget=now;
-    double factor=exp(diff/60.0); // is 1.0 or less
+    float factor=exp(diff/60.0); // is 1.0 or less
     return d_val*=factor;
+  }
+
+  bool stale(time_t limit) 
+  {
+    return limit > d_lastget;
   }
 
 private:
   DecayingEwma& operator=(const DecayingEwma&);
-  double d_last;
-  double d_lastget;
-  double d_val;
+  float d_last;
+  float d_lastget;
+  float d_val;
 };
 
 
@@ -143,7 +149,8 @@ public:
   int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
-    d_prefix="["+itoa(id)+"] ";
+    if(s_log)
+      d_prefix="["+itoa(id)+"] ";
   }
   static void setLog(bool log)
   {
@@ -167,8 +174,12 @@ public:
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
-  static map<string,NegCacheEntry> s_negcache;    
-  static map<string,DecayingEwma> s_nsSpeeds;
+  typedef map<string,NegCacheEntry> negcache_t;
+  static negcache_t s_negcache;    
+
+  typedef map<string,DecayingEwma> nsspeeds_t;
+  static nsspeeds_t s_nsSpeeds;
+
   static Throttle<string> s_throttle;
 private:
   struct GetBestNSAnswer;
