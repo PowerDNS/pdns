@@ -208,7 +208,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
 
 static void writePid(void)
 {
-  string fname=arg()["socket-dir"]+"/"+s_programname+".pid";
+  string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   ofstream of(fname.c_str());
   if(of)
     of<<getpid()<<endl;
@@ -221,7 +221,7 @@ void primeHints(void)
   // prime root cache
   set<DNSResourceRecord>nsset;
 
-  if(arg()["hint-file"].empty()) {
+  if(::arg()["hint-file"].empty()) {
     static char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
 		       "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
     DNSResourceRecord arr, nsrr;
@@ -245,7 +245,7 @@ void primeHints(void)
     }
   }
   else {
-    ZoneParserTNG zpt(arg()["hint-file"]);
+    ZoneParserTNG zpt(::arg()["hint-file"]);
     DNSResourceRecord rr;
     set<DNSResourceRecord> aset;
 
@@ -269,7 +269,7 @@ void primeHints(void)
 void startDoResolve(void *p)
 {
   try {
-    bool quiet=arg().mustDo("quiet");
+    bool quiet=::arg().mustDo("quiet");
     DNSComboWriter* dc=(DNSComboWriter *)p;
 
     uint16_t maxudpsize=512;
@@ -375,15 +375,15 @@ void makeClientSocket()
   
   sin.sin_family = AF_INET;
 
-  if(!IpToU32(arg()["query-local-address"], &sin.sin_addr.s_addr))
-    throw AhuException("Unable to resolve local address '"+ arg()["query-local-address"] +"'"); 
+  if(!IpToU32(::arg()["query-local-address"], &sin.sin_addr.s_addr))
+    throw AhuException("Unable to resolve local address '"+ ::arg()["query-local-address"] +"'"); 
 
   int tries=10;
   while(--tries) {
     uint16_t port=10000+Utility::random()%10000;
     sin.sin_port = htons(port); 
     
-    if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
+    if (::bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
       break;
     
   }
@@ -397,7 +397,7 @@ void makeClientSocket()
 void makeTCPServerSockets()
 {
   vector<string>locals;
-  stringtok(locals,arg()["local-address"]," ,");
+  stringtok(locals,::arg()["local-address"]," ,");
 
   if(locals.empty())
     throw AhuException("No local address specified");
@@ -420,27 +420,27 @@ void makeTCPServerSockets()
       exit(1);  
     }
     
-    sin.sin_port = htons(arg().asNum("local-port")); 
+    sin.sin_port = htons(::arg().asNum("local-port")); 
     
-    if (bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    if (::bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
       throw AhuException("Binding TCP server socket for "+*i+": "+stringerror());
     
     Utility::setNonBlocking(fd);
     listen(fd, 128);
     s_tcpserversocks.push_back(fd);
-    L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
+    L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
   }
 }
 
 void makeUDPServerSockets()
 {
   vector<string>locals;
-  stringtok(locals,arg()["local-address"]," ,");
+  stringtok(locals,::arg()["local-address"]," ,");
 
   if(locals.empty())
     throw AhuException("No local address specified");
   
-  if(arg()["local-address"]=="0.0.0.0") {
+  if(::arg()["local-address"]=="0.0.0.0") {
     L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
   }
 
@@ -456,14 +456,14 @@ void makeUDPServerSockets()
     if(!IpToU32(*i, &sin.sin_addr.s_addr))
       throw AhuException("Unable to resolve local address '"+ *i +"'"); 
     
-    sin.sin_port = htons(arg().asNum("local-port")); 
+    sin.sin_port = htons(::arg().asNum("local-port")); 
     
-    if (bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    if (::bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
       throw AhuException("Resolver binding to server socket for "+*i+": "+stringerror());
     
     Utility::setNonBlocking(fd);
     d_udpserversocks.push_back(fd);
-    L<<Logger::Error<<"Listening for UDP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
+    L<<Logger::Error<<"Listening for UDP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
   }
 }
 
@@ -501,7 +501,8 @@ void doStats(void)
   if(qcounter) {
     L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
      <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
-    L<<Logger::Error<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "<<SyncRes::s_nsSpeeds.size()<<endl;
+    L<<Logger::Error<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "
+     <<SyncRes::s_nsSpeeds.size()<<", bytes: "<<RC.bytes()<<endl;
     L<<Logger::Error<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Error<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
@@ -520,13 +521,21 @@ void houseKeeping(void *)
   if(now - last_prune > 60) { 
     RC.doPrune();
     int pruned=0;
-    for(map<string, NegCacheEntry>::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
+    for(SyncRes::negcache_t::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
       if(i->second.ttd > now) {
 	SyncRes::s_negcache.erase(i++);
 	pruned++;
       }
       else
 	++i;
+
+    time_t limit=now-300;
+    for(SyncRes::nsspeeds_t::iterator i = SyncRes::s_nsSpeeds.begin() ; i!= SyncRes::s_nsSpeeds.end(); )
+      if(i->second.stale(limit))
+	SyncRes::s_nsSpeeds.erase(i++);
+      else
+	++i;
+
     //    cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
     last_prune=time(0);
   }
@@ -602,43 +611,43 @@ int main(int argc, char **argv)
 
   try {
     Utility::srandom(time(0));
-    arg().set("soa-minimum-ttl","Don't change")="0";
-    arg().set("soa-serial-offset","Don't change")="0";
-    arg().set("no-shuffle","Don't change")="off";
-    arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
-    arg().set("local-port","port to listen on")="53";
-    arg().set("local-address","IP addresses to listen on, separated by spaces or commas")="0.0.0.0";
-    arg().set("trace","if we should output heaps of logging")="off";
-    arg().set("daemon","Operate as a daemon")="yes";
-    arg().set("chroot","switch to chroot jail")="";
-    arg().set("setgid","If set, change group id to this gid for more security")="";
-    arg().set("setuid","If set, change user id to this uid for more security")="";
-    arg().set("quiet","Suppress logging of questions and answers")="true";
-    arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
-    arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
-    arg().set("delegation-only","Which domains we only accept delegations from")="";
-    arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
-    arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
-    arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
-    arg().set("hint-file", "If set, load root hints from this file")="";
+    ::arg().set("soa-minimum-ttl","Don't change")="0";
+    ::arg().set("soa-serial-offset","Don't change")="0";
+    ::arg().set("no-shuffle","Don't change")="off";
+    ::arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
+    ::arg().set("local-port","port to listen on")="53";
+    ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas")="0.0.0.0";
+    ::arg().set("trace","if we should output heaps of logging")="off";
+    ::arg().set("daemon","Operate as a daemon")="yes";
+    ::arg().set("chroot","switch to chroot jail")="";
+    ::arg().set("setgid","If set, change group id to this gid for more security")="";
+    ::arg().set("setuid","If set, change user id to this uid for more security")="";
+    ::arg().set("quiet","Suppress logging of questions and answers")="true";
+    ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
+    ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+    ::arg().set("delegation-only","Which domains we only accept delegations from")="";
+    ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
+    ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
+    ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
+    ::arg().set("hint-file", "If set, load root hints from this file")="";
 
-    arg().setCmd("help","Provide a helpful message");
+    ::arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
-    arg().laxParse(argc,argv); // do a lax parse
+    ::arg().laxParse(argc,argv); // do a lax parse
 
-    string configname=arg()["config-dir"]+"/recursor.conf";
+    string configname=::arg()["config-dir"]+"/recursor.conf";
     cleanSlashes(configname);
 
-    if(!arg().file(configname.c_str())) 
+    if(!::arg().file(configname.c_str())) 
       L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
 
-    arg().parse(argc,argv);
+    ::arg().parse(argc,argv);
 
-    arg().set("delegation-only")=toLower(arg()["delegation-only"]);
+    ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
 
-    if(arg().mustDo("help")) {
+    if(::arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
-      cerr<<arg().helpstring(arg()["help"])<<endl;
+      cerr<<::arg().helpstring(::arg()["help"])<<endl;
       exit(99);
     }
 
@@ -655,9 +664,9 @@ int main(int argc, char **argv)
     "according to the terms of the GPL version 2."<<endl;
 
 
-  if(arg().mustDo("trace")) {
+  if(::arg().mustDo("trace")) {
       SyncRes::setLog(true);
-      arg().set("quiet")="no";
+      ::arg().set("quiet")="no";
       
   }
     
@@ -674,7 +683,7 @@ int main(int argc, char **argv)
     primeHints();    
     L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 #ifndef WIN32
-    if(arg().mustDo("daemon")) {
+    if(::arg().mustDo("daemon")) {
       L.toConsole(Logger::Critical);
       daemonize();
     }
@@ -686,16 +695,16 @@ int main(int argc, char **argv)
 #endif
 
     int newgid=0;
-    if(!arg()["setgid"].empty())
-      newgid=Utility::makeGidNumeric(arg()["setgid"]);
+    if(!::arg()["setgid"].empty())
+      newgid=Utility::makeGidNumeric(::arg()["setgid"]);
     int newuid=0;
-    if(!arg()["setuid"].empty())
-      newuid=Utility::makeUidNumeric(arg()["setuid"]);
+    if(!::arg()["setuid"].empty())
+      newuid=Utility::makeUidNumeric(::arg()["setuid"]);
 
 
-    if (!arg()["chroot"].empty()) {
-        if (chroot(arg()["chroot"].c_str())<0) {
-            L<<Logger::Error<<"Unable to chroot to '"+arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
+    if (!::arg()["chroot"].empty()) {
+        if (chroot(::arg()["chroot"].c_str())<0) {
+            L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
 	    exit(1);
 	}
     }
@@ -705,7 +714,8 @@ int main(int argc, char **argv)
     vector<TCPConnection> tcpconnections;
     counter=0;
     time_t now=0;
-    unsigned int maxTcpClients=arg().asNum("max-tcp-clients");
+    unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
+    int tcpLimit=::arg().asNum("client-tcp-timeout");
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
       
@@ -731,7 +741,7 @@ int main(int argc, char **argv)
 	now=time(0);
 
       vector<TCPConnection> sweeped;
-      int tcpLimit=arg().asNum("client-tcp-timeout");
+
       for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
 	if(now < i->startTime + tcpLimit) {
 	  FD_SET(i->fd, &readfds);
