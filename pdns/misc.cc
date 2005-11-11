@@ -106,16 +106,36 @@ bool chopOff(string &domain)
   return true;
 }
 
+bool ciEqual(const string& a, const string& b)
+{
+  if(a.size()!=b.size())
+    return false;
+
+  string::size_type pos=0, epos=a.size();
+  for(;pos < epos; ++pos)
+    if(dns_tolower(a[pos])!=dns_tolower(b[pos]))
+      return false;
+  return true;
+}
+
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
 bool endsOn(const string &domain, const string &suffix) 
 {
-  if(toLower(domain)==toLower(suffix) || suffix.empty())
+  if( suffix.empty() || ciEqual(domain, suffix) )
     return true;
   if(domain.size()<=suffix.size())
     return false;
-  return (toLower(domain.substr(domain.size()-suffix.size()-1,suffix.size()+1))=="."+toLower(suffix));
-}
+  
+  string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
+  if(domain[dpos++]!='.')
+    return false;
 
+  for(; dpos < domain.size(); ++dpos, ++spos)
+    if(dns_tolower(domain[dpos]) != dns_tolower(suffix[spos]))
+      return false;
+
+  return true;
+}
 
 int sendData(const char *buffer, int replen, int outsock)
 {
@@ -135,7 +155,6 @@ int sendData(const char *buffer, int replen, int outsock)
   }
   return 0;
 }
-
 
 void parseService(const string &descr, ServiceTuple &st)
 {
