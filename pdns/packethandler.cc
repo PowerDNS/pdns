@@ -389,7 +389,8 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
     int hits=0;
 
     while(B.get(rr)) {
-      hits++;
+      if(rr.qtype.getCode()!=QType::NS || p->qtype.getCode()==QType::NS)
+	hits++;
       if(!rfound && rr.qtype.getCode()==QType::CNAME) {
 	found=true;
 	r->addRecord(rr);
@@ -636,6 +637,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     mret=makeCanonic(p, r, target); // traverse CNAME chain until we have a useful record (may actually give the correct answer!)
 
     if(mret==2) { // there is some data, but not of the correct type
+      DLOG(L<<"There is some data, but not of the correct type"<<endl);
       SOAData sd;
       if(getAuth(p, &sd, target, 0)) {
 	rr.qname=sd.qname;
