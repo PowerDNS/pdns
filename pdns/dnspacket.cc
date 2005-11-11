@@ -613,7 +613,7 @@ void DNSPacket::addRPRecord(const string &domain, const string &content, uint32_
  string piece1;
 
  toqname(domain.c_str(),&piece1);
- char p[10];
+ char p[11];
  makeHeader(p,17,ttl);
  
  // content contains: mailbox-name more-info-domain (Separated by a space)
@@ -670,7 +670,7 @@ void DNSPacket::addNAPTRRecord(const string &domain, const string &content, uint
 
   //xtoqname(domain.c_str(),&piece1);
   toqname(domain.c_str(),&piece1);
-  char p[10];
+  char p[11];
   makeHeader(p,QType::NAPTR,ttl);
  
   // content contains: 100  100  "s"   "http+I2R"   ""    _http._tcp.foo.com.
