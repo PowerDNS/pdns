@@ -69,7 +69,6 @@ void RecordTextReader::xfrIP(uint32_t &val)
   
   string ip;
   xfrLabel(ip);
-  
   if(!IpToU32(ip, &val))
     throw RecordTextException("unable to parse IP address '"+ip+"'");
 }
@@ -107,7 +106,7 @@ void RecordTextReader::xfrLabel(string& val, bool)
   val.reserve(d_end - d_pos);
 
   while(d_pos < d_end) {
-    if(isspace(d_string[d_pos]))
+    if(dns_isspace(d_string[d_pos]))
       break;
 
     if(d_string[d_pos]=='\\' && d_pos < d_end - 1) 
@@ -133,7 +132,7 @@ void RecordTextReader::xfrBlob(string& val)
 {
   skipSpaces();
   int pos=d_pos;
-  while(d_pos < d_end && !isspace(d_string[d_pos]))
+  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
     d_pos++;
 
   string tmp;
@@ -166,7 +165,7 @@ void RecordTextReader::xfrType(uint16_t& val)
 {
   skipSpaces();
   int pos=d_pos;
-  while(d_pos < d_end && !isspace(d_string[d_pos]))
+  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
     d_pos++;
 
   string tmp;
@@ -178,7 +177,7 @@ void RecordTextReader::xfrType(uint16_t& val)
 
 void RecordTextReader::skipSpaces()
 {
-  while(d_pos < d_end && isspace(d_string[d_pos]))
+  while(d_pos < d_end && dns_isspace(d_string[d_pos]))
     d_pos++;
 
   if(d_pos == d_end)
@@ -207,19 +206,20 @@ void RecordTextWriter::xfrType(const uint16_t& val)
   d_string+=DNSRecordContent::NumberToType(val);
 }
 
+// this function is on the fast path for the pdns_recursor
 void RecordTextWriter::xfrIP(const uint32_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
 
-  ostringstream str;
+  char tmp[17];
+  snprintf(tmp, sizeof(tmp)-1, "%u.%u.%u.%u", 
+	   (val >> 24)&0xff,
+	   (val >> 16)&0xff,
+	   (val >>  8)&0xff,
+	   (val      )&0xff);
   
-  str<< ((val >> 24)&0xff) << ".";
-  str<< ((val >> 16)&0xff) << ".";
-  str<< ((val >>  8)&0xff) << ".";
-  str<< ((val      )&0xff);
-
-  d_string+=str.str();
+  d_string+=tmp;
 }
 
 
@@ -261,14 +261,14 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
   else {
     d_string.reserve(d_string.size()+val.size()+3);
     for(string::size_type pos=0; pos < val.size() ; ++pos)
-      if(isspace(val[pos]))
+      if(dns_isspace(val[pos]))
 	d_string+="\\ ";
       else if(val[pos]=='\\')
 	d_string.append(1,'\\');
       else
 	d_string.append(1,val[pos]);
   }
-  d_string+=".";
+  d_string.append(1,'.');
 }
 
 void RecordTextWriter::xfrBlob(const string& val)
