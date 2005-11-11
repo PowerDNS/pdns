@@ -156,11 +156,23 @@ inline int DTime::udiff()
   return 1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
 }
 
+inline bool dns_isspace(char c)
+{
+  return c==' ' || c=='\t' || c=='\r' || c=='\n';
+}
+
+inline const char dns_tolower(char c)
+{
+  if(c>='A' && c<='Z')
+    c+='a'-'A';
+  return c;
+}
+
 inline const string toLower(const string &upper)
 {
   string reply(upper);
   for(unsigned int i = 0; i < reply.length(); i++)
-    reply[i] = tolower(reply[i]);
+    reply[i] = dns_tolower(reply[i]);
   return reply;
 }
 
@@ -170,7 +182,7 @@ inline const string toLowerCanonic(const string &upper)
   if(!upper.empty()) {
     unsigned int i;
     for(i = 0; i < reply.length() ; i++) 
-      reply[i] = tolower(reply[i]);
+      reply[i] = dns_tolower(reply[i]);
    
     if(reply[i-1]=='.')
       reply.resize(i-1);
