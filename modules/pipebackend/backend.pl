@@ -12,7 +12,7 @@ chomp($line);
 
 unless($line eq "HELO\t1") {
 	print "FAIL\n";
-	print STDERR "Recevied '$line'\n";
+	print STDERR "Received '$line'\n";
 	<>;
 	exit;
 }

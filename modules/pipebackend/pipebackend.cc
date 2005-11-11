@@ -22,6 +22,9 @@ using namespace std;
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <boost/lexical_cast.hpp>
+
+using namespace boost;
 
 #include "pipebackend.hh"
 
@@ -49,7 +52,7 @@ void CoWrapper::launch()
       return;
 
    d_cp=new CoProcess(d_command, d_timeout); 
-   d_cp->send("HELO\t1");
+   d_cp->send("HELO\t"+lexical_cast<string>(arg().asNum("pipebackend-abi-version")));
    string banner;
    d_cp->receive(banner); 
    L<<Logger::Error<<"Backend launched with banner: "<<banner<<endl;
