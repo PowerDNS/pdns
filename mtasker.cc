@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
     support for waiting on events which can return values.
 
     \section copyright Copyright and License
-    MTasker is (c) 2002 by bert hubert. It is licensed to you under the terms of the GPL version 2.
+    MTasker is (c) 2002 - 2005 by bert hubert. It is licensed to you under the terms of the GPL version 2.
 
     \section overview High level overview
     MTasker is designed to support very simple cooperative multitasking to facilitate writing 
@@ -169,9 +169,11 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   if(d_waiters.count(key)) { // there was already an exact same waiter
     return -1;
   }
-  d_waiters[key]=w;
+  w.key=key;
+
+  d_waiters.insert(w);
   
-  if(swapcontext(d_waiters[key].context,&d_kernel)) { // 'A' will return here when 'key' has arrived, hands over control to kernel first
+  if(swapcontext(d_waiters.find(key)->context,&d_kernel)) { // 'A' will return here when 'key' has arrived, hands over control to kernel first
     perror("swapcontext");
     exit(EXIT_FAILURE); // no way we can deal with this 
   }
@@ -210,8 +212,8 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   if(val)
     d_waitval=*val;
   
-  ucontext_t *userspace=d_waiters[key].context;
-  d_tid=d_waiters[key].tid;         // set tid 
+  ucontext_t *userspace=d_waiters.find(key)->context;
+  d_tid=d_waiters.find(key)->tid;         // set tid 
   
   d_waiters.erase(key);             // removes the waitpoint 
   if(swapcontext(&d_kernel,userspace)) { // swaps back to the above point 'A'
@@ -259,7 +261,6 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
 */
 template<class Key, class Val>bool MTasker<Key,Val>::schedule()
 {
-
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
     if(swapcontext(&d_kernel, d_threads[d_tid].first)) {
@@ -279,18 +280,22 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
   }
   if(!d_waiters.empty()) {
     time_t now=time(0);
-    for(typename waiters_t::iterator i=d_waiters.begin();i!=d_waiters.end(); ) {
-      if(i->second.ttd && i->second.ttd<now) {
+
+    typedef typename waiters_t::template nth_index<1>::type waiters_by_ttd_index_t;
+    waiters_by_ttd_index_t& ttdindex=d_waiters.get<1>();
+
+    for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
+      if(i->ttd && i->ttd < now) {
 	d_waitstatus=TimeOut;
-	if(swapcontext(&d_kernel,i->second.context)) { // swaps back to the above point 'A'
+	if(swapcontext(&d_kernel,i->context)) { // swaps back to the above point 'A'
 	  perror("swapcontext in schedule2");
 	  exit(EXIT_FAILURE);
 	}
-	delete i->second.context;              
-	d_waiters.erase(i++);                  // removes the waitpoint 
+	delete i->context;              
+	ttdindex.erase(i++);                  // removes the waitpoint 
       }
-      else 
-	++i;
+      else if(i->ttd)
+	break;
     }
   }
   return false;

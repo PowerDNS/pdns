@@ -29,6 +29,11 @@
 #include <vector> 
 #include <map>
 #include <time.h>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+using namespace boost;
+using namespace ::boost::multi_index;
 
 //! The main MTasker class    
 /** The main MTasker class. See the main page for more information.
@@ -45,13 +50,24 @@ private:
 
   struct Waiter
   {
+    EventKey key;
     ucontext_t *context;
     time_t ttd;
     int tid;
   };
 
-  typedef std::map<EventKey,Waiter> waiters_t;
+  //  typedef std::map<EventKey,Waiter> waiters_t;
+  
+  typedef multi_index_container<
+    Waiter,
+    indexed_by <
+                ordered_unique<member<Waiter,EventKey,&Waiter::key> >,
+                ordered_non_unique<member<Waiter,time_t,&Waiter::ttd> >
+               >
+  > waiters_t;
+
   waiters_t d_waiters;
+
   typedef std::map<int,pair<ucontext_t*,string> > mthreads_t;
   mthreads_t d_threads;
   int d_tid;
