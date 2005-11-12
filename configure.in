@@ -167,12 +167,16 @@ fi
 
 AC_SUBST(programdescend)
 
+AC_ARG_ENABLE(gcc-skip-locking, 
+ [ --enable-gcc-skip-locking	If we should forcefully skip gcc locking],
+	AC_DEFINE(GCC_SKIP_LOCKING,,[Skip gcc locking]),
+ )
 
 AC_MSG_CHECKING(whether we will be building the recursor)
 AC_ARG_ENABLE(recursor, 
  [  --enable-recursor	If we should build the server],
 	enable_recursor=$enableval,
-	enable_recursor=no)
+	enable_recursor=no )
 
 AC_MSG_RESULT($enable_recursor)
 
