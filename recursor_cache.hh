@@ -1,6 +1,6 @@
 #ifndef RECURSOR_CACHE_HH
 #define RECURSOR_CACHE_HH
-#include <map>
+#include <ext/hash_map>
 #include <string>
 #include <set>
 #include "dns.hh"
@@ -8,64 +8,23 @@
 #include <iostream>
 #include <boost/utility.hpp>
 
-template<int N=14>
-struct optString
-{
-  optString()
+namespace __gnu_cxx {
+  template<>
+  struct hash<string>
   {
-    d_len=0;
-    *buf=0;
-  }
-
-  optString(const optString& rhs) : d_len(rhs.d_len)
-  {
-    memcpy(buf, rhs.buf, N);
-  }
-
-  optString(const string& str)
-  {
-    if(str.size() < N-1) {
-      memcpy(buf, str.c_str(), str.size()+1);
-      d_len = str.size() + 1;
+    size_t
+    operator()(const string& __s) const
+    { 
+      return __stl_hash_string(__s.c_str()); 
     }
-    else {
-      new(buf) string(str);
-      d_len = 0;
-    }
-  }
-
-  operator string() const
-  {
-
-    if(d_len) {
-      return string(buf, buf + d_len - 1);
-    }
-    else {
-      return *((string*)buf);
-    }
-  }
-
-  void prune() const
-  {
-    //    cerr<<"did a prune!"<<endl;
-    if(!d_len)
-      ((string*)buf)->~string();
-  }
-
-  bool operator<(const optString& os) const
-  {
-    return (string)*this < (string) os;
-  }
-
-  char buf[N];
-  uint8_t d_len;
-} __attribute__((packed));
-
+  };
+}
 
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
   unsigned int size();
+  unsigned int bytes();
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
   void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
   void doPrune(void);
@@ -75,15 +34,34 @@ private:
   struct StoredRecord
   {
     mutable uint32_t d_ttd;
-    //    optString<> d_string;
+    //optString<> d_string;
     string d_string;
     bool operator<(const StoredRecord& rhs) const
     {
       return d_string < rhs.d_string;
-      //      return make_pair(d_ttd, d_string) < make_pair(rhs.d_ttd, rhs.d_string);
+    }
+
+    unsigned int size() const
+    {
+      return 4+d_string.size();
     }
   };
-  typedef map<string, set<StoredRecord> > cache_t;
+
+  struct predicate
+  {
+    predicate(time_t limit) : d_limit(limit)
+    {
+    }
+    
+    bool operator()(const StoredRecord& sr) const
+    {
+      return sr.d_ttd < d_limit;
+    }
+    time_t d_limit;
+  };
+
+  typedef __gnu_cxx::hash_map<string, vector<StoredRecord> > cache_t;
+
 private:
   cache_t d_cache;
 };
