@@ -5,14 +5,32 @@
 #include "dnsrecords.hh"
 #include "logger.hh"
 #include "statbag.hh"
+#include <set>
+#define BOOST_NO_MT
+
+#include <boost/pool/pool.hpp>
+#include <boost/pool/object_pool.hpp>
+
+#include <boost/pool/pool_alloc.hpp>
+using namespace boost;
 
 Logger L("dnspbench");
 StatBag S;
 
-
 int main(int argc, char** argv)
 try
 {
+  set<int, std::less<int>, boost::pool_allocator<int> > blah;
+
+  for(unsigned int n=0;n< 1000000;++n)
+    blah.insert(random());
+  cerr<<"Done inserting"<<endl;
+  string line;
+  getline(cin, line);
+  cerr<<"Done!"<<endl;
+
+  exit(0);
+
   dnsheader dnsheader;
   dnsheader.qdcount=htons(1);
   dnsheader.ancount=htons(1);
