@@ -6,9 +6,10 @@
 using namespace std;
 using namespace boost;
 
-#include <bits/atomicity.h>
+#include "config.h"
 
-#ifdef GCC_SKIP_LOGGING
+#ifdef GCC_SKIP_LOCKING
+#include <bits/atomicity.h>
 // This code is ugly but does speedup the recursor tremendously on multi-processor systems, and even has a large effect (20, 30%) on uniprocessor 
 namespace __gnu_cxx
 {
@@ -16,18 +17,16 @@ namespace __gnu_cxx
   __attribute__ ((__unused__))
   __exchange_and_add(volatile _Atomic_word* __mem, int __val)
   {
-    register _Atomic_word __result;
-        __asm__ __volatile__ ("xadd{l} {%0,%1|%1,%0}"
-                          : "=r" (__result), "=m" (*__mem)
-                          : "0" (__val), "m" (*__mem));
+    register _Atomic_word __result=*__mem;
+    *__mem+=__val;
+    return __result;
   }
 
   void
   __attribute__ ((__unused__))
   __atomic_add(volatile _Atomic_word* __mem, int __val)
   {
-    __asm__ __volatile__ ("add{l} {%1,%0|%0,%1}"
-                          : "=m" (*__mem) : "ir" (__val), "m" (*__mem));
+    *__mem+=__val;
   }
 }
 #endif
