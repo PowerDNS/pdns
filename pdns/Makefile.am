@@ -77,10 +77,10 @@ dnsreplay_mindex_SOURCES=dnsreplay-mindex.cc misc.cc  qtype.cc anadns.hh \
 
 dnsreplay_mindex_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
-
-
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
-	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc
+	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
+	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
+	utility.hh dnsparser.hh
 
 dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
