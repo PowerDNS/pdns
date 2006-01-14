@@ -1,0 +1,6 @@
+These scripts are more or less private - feel free to edit them, but even
+more than the rest of PowerDNS, the contents of this directory are not
+guaranteed to work for you.
+
+The scripts contain preset paths and have many many dependencies on
+installed software.

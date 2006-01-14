@@ -1,5 +1,6 @@
 #!/bin/sh
-./configure --with-modules="mysql gmysql gpgsql gsqlite pipe pdns geo" \
+CC="distcc gcc" CXX="distcc g++" ./configure \
+		--with-modules="mysql gmysql gpgsql gsqlite pipe pdns geo" \
 		--with-pgsql-lib=/opt/postgresql/lib/ \
 		--with-pgsql-includes=/opt/postgresql/include/ \
 	--with-dynmodules="" \
