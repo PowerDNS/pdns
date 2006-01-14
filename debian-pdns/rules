@@ -42,7 +42,7 @@ binary-doc:
 
 
 build-static stamp-build-static:
-		./configure \
+		./configure CC="ccache gcc" CXX="ccache g++"\
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
 		--libdir='$${prefix}/lib/powerdns' \
