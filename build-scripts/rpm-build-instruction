@@ -1,5 +1,5 @@
 #!/bin/sh
-CC="distcc gcc" CXX="distcc g++" ./configure \
+CC="ccache gcc" CXX="ccache g++" ./configure \
 		--with-modules="mysql gmysql gpgsql gsqlite pipe pdns geo" \
 		--with-pgsql-lib=/opt/postgresql/lib/ \
 		--with-pgsql-includes=/opt/postgresql/include/ \
@@ -8,10 +8,10 @@ CC="distcc gcc" CXX="distcc g++" ./configure \
 	--prefix=/usr \
 	--sysconfdir=/etc/powerdns \
 && make clean && make && \
-sudo /bin/sh -c "rm -rf /tmp/pdns ; DESTDIR=/tmp/pdns make install-strip" &&
-sudo mkdir -p /tmp/pdns/etc/init.d &&
-sudo cp pdns/pdns /tmp/pdns/etc/init.d/pdns &&
-sudo mkdir -p /tmp/pdns/etc/powerdns &&
-sudo mv /tmp/pdns/etc/powerdns/pdns.conf-dist /tmp/pdns/etc/powerdns/pdns.conf &&
-sudo rpm -bb pdns.spec
+fakeroot /bin/sh -c "rm -rf /tmp/pdns ; DESTDIR=/tmp/pdns make install-strip" &&
+fakeroot mkdir -p /tmp/pdns/etc/init.d &&
+fakeroot cp pdns/pdns /tmp/pdns/etc/init.d/pdns &&
+fakeroot mkdir -p /tmp/pdns/etc/powerdns &&
+fakeroot mv /tmp/pdns/etc/powerdns/pdns.conf-dist /tmp/pdns/etc/powerdns/pdns.conf &&
+fakeroot rpm -bb pdns.spec
 
