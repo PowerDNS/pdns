@@ -1,0 +1,39 @@
+#!/bin/sh 
+
+# Internal script used to build daily snapshots (if there is a change in svn, that is)
+
+export PATH=/opt/gcc-4.0.2/bin:$PATH
+export LD_LIBRARY_PATH=/opt/gcc-4.0.2/lib
+
+cd /home/ahu/auto-build
+if [ -e pdns ] 
+then
+	cd pdns
+	LATEST=$(svn info svn://svn.powerdns.com/pdns/ | awk  '/^Revision/ { print $2 }'  )
+	CO=$(svn info . | awk  '/^Revision/ { print $2 }'  )
+	if [ "$LATEST" -eq "$CO" -a -e ../pdns*$CO-1.i386.rpm ]
+	then
+		echo nothing to do
+		exit
+	fi
+	cd ..
+fi
+
+# start out with virgin repo anyhow
+rm -rf pdns
+svn co svn://svn.powerdns.com/pdns/trunk/pdns
+cd pdns
+DATE=$(date +%Y%m%d).$LATEST
+ssed -r "s/Version: (.*)/Version: \\1.$DATE/" -i *.spec
+ssed -r "s/AM_INIT_AUTOMAKE\\(pdns, (.*)\\)/AM_INIT_AUTOMAKE\(pdns, \\1.$DATE\)/" -i configure.in
+ssed -r "s/^pdns \\(([^-]*)-[0-9]*\\)/pdns \\(\\1.$DATE-1\\)/" -i debian-pdns/changelog
+
+./bootstrap
+fakeroot debian-pdns/rules binary-static
+rm -rf debian-pdns/tmp/
+fakeroot ./build-scripts/rpm-build-instruction
+build-scripts/tar-gz-build-instruction
+cd ..
+mv pdns/*.tar.gz .
+
+
