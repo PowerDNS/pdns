@@ -29,6 +29,16 @@
 #include <lber.h>
 #include <ldap.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#else
+#include <sys/types.h>
+#endif
+
 
 
 #ifndef POWERLDAP_HH
@@ -69,7 +79,7 @@ public:
 	typedef map<string, vector<string> > sentry_t;
 	typedef vector<sentry_t> sresult_t;
 
-	PowerLDAP( const string& host = "127.0.0.1", uint16_t port = LDAP_PORT, bool tls = false );
+	PowerLDAP( const string& hosts = "ldap://127.0.0.1/", uint16_t port = LDAP_PORT, bool tls = false );
 	~PowerLDAP();
 
 	void getOption( int option, int* value );

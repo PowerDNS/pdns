@@ -10,7 +10,6 @@ LdapBackend::LdapBackend( const string &suffix )
 {
 	string hoststr;
 	unsigned int i, idx;
-	string::size_type end, begin = 0;
 	vector<string> hosts;
 
 
@@ -24,7 +23,6 @@ LdapBackend::LdapBackend( const string &suffix )
 		m_myname = "[LdapBackend]";
 
 		setArgPrefix( "ldap" + suffix );
-		hoststr = getArg( "host" );
 
 		m_getdn = false;
 		m_list_fcnt = &LdapBackend::list_simple;
@@ -43,13 +41,7 @@ LdapBackend::LdapBackend( const string &suffix )
 			m_prepare_fcnt = &LdapBackend::prepare_strict;
 		}
 
-		while( ( end = hoststr.find_first_of( ", \t\n", begin ) ) != string::npos )
-		{
-			hosts.push_back( hoststr.substr( begin, end - begin ) );
-			begin = end + 1;
-		}
-		hosts.push_back( hoststr.substr( begin, hoststr.length() - begin ) );
-
+		stringtok( hosts, getArg( "host" ), ", " );
 		idx = ldap_host_index++ % hosts.size();
 		hoststr = hosts[idx];
 
@@ -171,7 +163,6 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 	try
 	{
 		m_axfrqlen = 0;
-		m_qtype = qtype;
 		m_qname = qname;
 		m_adomain = m_adomains.end();   // skip loops in get() first time
 
@@ -479,6 +470,38 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
 
 
+ bool LdapBackend::getDomainInfo( const string& domain, DomainInfo& di )
+{
+	string filter;
+	SOAData sd;
+	char* attronly[] = { "sOARecord", NULL };
+
+
+	// search for SOARecord of domain
+	filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain ) ) + ")(SOARecord=*))";
+	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, (const char**) attronly );
+	m_pldap->getSearchEntry( m_msgid, m_result );
+
+	if( m_result.count( "sOARecord" ) && !m_result["sOARecord"].empty() )
+	{
+		sd.serial = 0;
+		DNSPacket::fillSOAData( m_result["sOARecord"][0], sd );
+	
+		di.id = 0;
+		di.serial = sd.serial;
+		di.zone = domain;
+		di.last_check = 0;
+		di.backend = this;
+		di.kind = DomainInfo::Master;
+
+		return true;
+	}
+	
+	return false;
+}
+
+
+
 
 
 class LdapFactory : public BackendFactory
@@ -491,8 +514,8 @@ public:
 
 	void declareArguments( const string &suffix="" )
 	{
-		declare( suffix, "host", "One or more ldap server","127.0.0.1:389" );
-		declare( suffix, "starttls", "Use TLS to encrypt connection", "no" );
+		declare( suffix, "host", "One or more LDAP server with ports or LDAP URIs (separated by spaces)","ldap://127.0.0.1:389/" );
+		declare( suffix, "starttls", "Use TLS to encrypt connection (unused for LDAP URIs)", "no" );
 		declare( suffix, "basedn", "Search root in ldap tree (must be set)","" );
 		declare( suffix, "binddn", "User dn for non anonymous binds","" );
 		declare( suffix, "secret", "User password for non anonymous binds", "" );

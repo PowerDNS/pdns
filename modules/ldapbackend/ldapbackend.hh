@@ -36,6 +36,16 @@
 #include "powerldap.hh"
 #include "utils.hh"
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#else
+#include <sys/types.h>
+#endif
+
 
 #ifndef LDAPBACKEND_HH
 #define LDAPBACKEND_HH
@@ -81,7 +91,6 @@ class LdapBackend : public DNSBackend
 	unsigned int m_axfrqlen;
 	string m_myname;
 	string m_qname;
-	QType m_qtype;
 	PowerLDAP* m_pldap;
 	PowerLDAP::sentry_t m_result;
 	PowerLDAP::sentry_t::iterator m_attribute;
@@ -102,6 +111,8 @@ class LdapBackend : public DNSBackend
 	bool prepare();
 	bool prepare_simple();
 	bool prepare_strict();
+	
+	bool getDomainInfo( const string& domain, DomainInfo& di );
 
 public:
 
