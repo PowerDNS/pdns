@@ -51,6 +51,13 @@ Provides: pdns-backend
 Description: LDAP backend for pDNS
  This package contains a LDAP backend for the PowerDNS nameserver.
 
+Package: pdns-backend-opendbx
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: OpenDBX backend for pDNS
+ This package contains a OpenDBX backend for the PowerDNS nameserver.
+
 Package: pdns-backend-mysql
 Architecture: any
 Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}

@@ -2,8 +2,8 @@
 
 tmpdir		:= $(shell pwd)/debian-pdns/tmp
 be_tmpdir	:= $(shell pwd)/debian-pdns/tmp-backend
-backends	:= ldap mysql pipe xdb gmysql gpgsql gsqlite 
-debs		:= ldap mysql pipe xdb pgsql sqlite 
+backends	:= opendbx ldap mysql pipe xdb gmysql gpgsql gsqlite
+debs		:= opendbx ldap mysql pipe xdb pgsql sqlite
 
 binary-doc:
 	-make -C pdns/docs html/index.html

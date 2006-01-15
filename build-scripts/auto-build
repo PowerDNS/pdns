@@ -23,6 +23,7 @@ fi
 rm -rf pdns
 svn co svn://svn.powerdns.com/pdns/trunk/pdns
 cd pdns
+LATEST=$(svn info . | awk  '/^Revision/ { print $2 }'  )
 DATE=$(date +%Y%m%d).$LATEST
 ssed -r "s/Version: (.*)/Version: \\1.$DATE/" -i *.spec
 ssed -r "s/AM_INIT_AUTOMAKE\\(pdns, (.*)\\)/AM_INIT_AUTOMAKE\(pdns, \\1.$DATE\)/" -i configure.in
@@ -35,5 +36,7 @@ fakeroot ./build-scripts/rpm-build-instruction
 build-scripts/tar-gz-build-instruction
 cd ..
 mv pdns/*.tar.gz .
+ssh adsl-xs4all.ds9a.nl mkdir /var/www/svn.powerdns.com/snapshots/$LATEST
+scp pdns*$LATEST*{rpm,deb,tar.gz} adsl-xs4all.ds9a.nl:/var/www/svn.powerdns.com/snapshots/$LATEST
 
 
