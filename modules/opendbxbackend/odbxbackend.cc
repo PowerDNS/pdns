@@ -65,7 +65,7 @@ OdbxBackend::~OdbxBackend()
 bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 {
 	const char* tmp;
-	string stmt, type;
+	string stmt;
 
 
 	try
@@ -83,8 +83,10 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 			di.zone = "";
 			di.master = "";
 			di.last_check = 0;
+			di.notified_serial = 0;
+			di.kind = DomainInfo::Native;
 			di.backend = this;
-			type = "";
+			di.serial = 0;
 
 			if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
 			{
@@ -98,42 +100,33 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
 			if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
 			{
-				di.master = string( tmp );
+				if( !strncmp( tmp, "SLAVE", 5 ) )
+				{
+					di.kind = DomainInfo::Slave;
+				}
+				else if( !strncmp( tmp, "MASTER", 6 ) )
+				{
+					di.kind = DomainInfo::Master;
+				}
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
 			{
-				di.last_check = strtol( tmp, NULL, 10 );
+				di.master = string( tmp );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
 			{
-				type = string( tmp );
+				di.last_check = strtol( tmp, NULL, 10 );
 			}
 
-			di.kind = DomainInfo::Native;
-
-			if( type == "SLAVE" )
+			if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
 			{
 				SOAData sd;
 
 				sd.serial = 0;
-
-				if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
-				{
 					DNSPacket::fillSOAData( string( tmp ), sd );
-				}
-				else
-				{
-					L.log( m_myname + " getDomainInfo: No serial for '" + domain + "' found", Logger::Notice );
-				}
-
 				di.serial = sd.serial;
-				di.kind = DomainInfo::Slave;
-			}
-			else if( type == "MASTER" )
-			{
-				di.kind = DomainInfo::Master;
 			}
 		}
 		while( getRecord() );
@@ -259,32 +252,32 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
 			if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
 			{
-				rr.content = string( tmp );
+				rr.domain_id = strtol( tmp, NULL, 10 );
 			}
 
-			if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
+			if( m_qname.empty() && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
 			{
-				rr.ttl = strtoul( tmp, NULL, 10 );
+				rr.qname = string( tmp );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
 			{
-				rr.priority = (u_int16_t) strtoul( tmp, NULL, 10 );
+				rr.qtype = QType( tmp );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
 			{
-				rr.qtype = QType( tmp );
+				rr.ttl = strtoul( tmp, NULL, 10 );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 4 ) ) != NULL )
 			{
-				rr.domain_id = strtol( tmp, NULL, 10 );
+				rr.priority = (u_int16_t) strtoul( tmp, NULL, 10 );
 			}
 
-			if( m_qname.empty() && ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
+			if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
 			{
-				rr.qname = string( tmp );
+				rr.content = string( tmp );
 			}
 
 			return true;

@@ -138,12 +138,12 @@ void OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
 		if( ( tmp = odbx_field_value( m_result, 4 ) ) != NULL )
 		{
-			nserial = strtol( tmp, NULL, 10 );
+			nlast = strtol( tmp, NULL, 10 );
 		}
 
 		if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
 		{
-			nlast = strtol( tmp, NULL, 10 );
+			nserial = strtol( tmp, NULL, 10 );
 		}
 
 		if( (*check_fcn)( nlast, nserial, &sd, &di ) )

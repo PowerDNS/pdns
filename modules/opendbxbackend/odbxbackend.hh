@@ -113,31 +113,31 @@ public:
 		declare( suffix, "username","User for connecting to the DBMS","powerdns");
 		declare( suffix, "password","Password for connecting to the DBMS","");
 
-		declare( suffix, "sql-list", "AXFR query", "SELECT content, ttl, prio, type, domain_id, name FROM records WHERE domain_id=':id'" );
+		declare( suffix, "sql-list", "AXFR query", "SELECT domain_id, name, type, ttl, prio, content FROM records WHERE domain_id=':id'" );
 
-		declare( suffix, "sql-lookup", "Lookup query","SELECT content, ttl, prio, type, domain_id, name FROM records WHERE name=':name'" );
-		declare( suffix, "sql-lookupid", "Lookup query with id","SELECT content, ttl, prio, type, domain_id, name FROM records WHERE name=':name' AND domain_id=':id'" );
-		declare( suffix, "sql-lookuptype", "Lookup query with type","SELECT content, ttl, prio, type, domain_id, name FROM records WHERE type=':type' AND name=':name'" );
-		declare( suffix, "sql-lookuptypeid", "Lookup query with type and id","SELECT content, ttl, prio, type, domain_id, name FROM records WHERE type=':type' AND name=':name' AND domain_id=':id'" );
+		declare( suffix, "sql-lookup", "Lookup query","SELECT domain_id, name, type, ttl, prio, content FROM records WHERE name=':name'" );
+		declare( suffix, "sql-lookupid", "Lookup query with id","SELECT domain_id, name, type, ttl, prio, content FROM records WHERE domain_id=':id' AND name=':name'" );
+		declare( suffix, "sql-lookuptype", "Lookup query with type","SELECT domain_id, name, type, ttl, prio, content FROM records WHERE name=':name' AND type=':type'" );
+		declare( suffix, "sql-lookuptypeid", "Lookup query with type and id","SELECT domain_id, name, type, ttl, prio, content FROM records WHERE domain_id=':id' AND name=':name' AND type=':type'" );
 
 		declare( suffix, "sql-zonedelete","Delete all records for this zone","DELETE FROM records WHERE domain_id=':id'" );
-		declare( suffix, "sql-zoneinfo","Get domain info","SELECT d.id, d.name, d.master, d.last_check, d.notified_serial, d.type, r.content FROM domains AS d LEFT JOIN records AS r ON d.id=r.domain_id WHERE ( d.name=':name' AND r.type='SOA' ) OR ( d.name=':name' AND r.domain_id IS NULL )" );
+		declare( suffix, "sql-zoneinfo","Get domain info","SELECT d.id, d.name, d.type, d.master, d.last_check, r.content FROM domains AS d LEFT JOIN records AS r ON d.id=r.domain_id WHERE ( d.name=':name' AND r.type='SOA' ) OR ( d.name=':name' AND r.domain_id IS NULL )" );
 
 		declare( suffix, "sql-transactbegin", "Start transaction", "BEGIN" );
 		declare( suffix, "sql-transactend", "Finish transaction", "COMMIT" );
 		declare( suffix, "sql-transactabort", "Abort transaction", "ROLLBACK" );
 
-		declare( suffix, "sql-insert-slave","Add slave domain", "INSERT INTO domains ( type, name, master, account ) VALUES ( 'SLAVE', '%s', '%s', '%s' )" );
+		declare( suffix, "sql-insert-slave","Add slave domain", "INSERT INTO domains ( name, type, master, account ) VALUES ( '%s', 'SLAVE', '%s', '%s' )" );
 		declare( suffix, "sql-insert-record","Feed record into table", "INSERT INTO records ( domain_id, name, type, ttl, prio, content ) VALUES ( '%d', '%s', '%s', '%d', '%d', '%s' )" );
 
 		declare( suffix, "sql-update-serial", "Set zone to notified", "UPDATE domains SET notified_serial='%d' WHERE id='%d'" );
 		declare( suffix, "sql-update-lastcheck", "Set time of last check", "UPDATE domains SET last_check='%d' WHERE id='%d'" );
 
-		declare( suffix, "sql-master", "Get master record for zone", "SELECT master FROM domains WHERE type='SLAVE' AND name=':name'" );
+		declare( suffix, "sql-master", "Get master record for zone", "SELECT master FROM domains WHERE name=':name' AND type='SLAVE'" );
 		declare( suffix, "sql-supermaster","Get supermaster info", "SELECT account FROM supermasters WHERE ip=':ip' AND nameserver=':ns'" );
 
-		declare( suffix, "sql-infoslaves", "Get all unfresh slaves", "SELECT d.id, d.name, d.master, d.last_check, d.notified_serial, r.change_date, r.content FROM domains AS d LEFT JOIN records AS r ON d.id=r.domain_id WHERE ( d.type='SLAVE' AND r.type='SOA' ) OR ( d.type='SLAVE' AND r.domain_id IS NULL )" );
-		declare( suffix, "sql-infomasters", "Get all updated masters", "SELECT d.id, d.name, d.master, d.last_check, d.notified_serial, r.change_date, r.content FROM domains AS d, records AS r WHERE d.type='MASTER' AND d.id=r.domain_id AND r.type='SOA'" );
+		declare( suffix, "sql-infoslaves", "Get all unfresh slaves", "SELECT d.id, d.name, d.master, d.notified_serial, d.last_check, r.change_date, r.content FROM domains AS d LEFT JOIN records AS r ON d.id=r.domain_id WHERE ( d.type='SLAVE' AND r.type='SOA' ) OR ( d.type='SLAVE' AND r.domain_id IS NULL )" );
+		declare( suffix, "sql-infomasters", "Get all updated masters", "SELECT d.id, d.name, d.master, d.notified_serial, d.last_check, r.change_date, r.content FROM domains AS d, records AS r WHERE d.type='MASTER' AND d.id=r.domain_id AND r.type='SOA'" );
 	}
 
 
