@@ -584,6 +584,7 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 
   LOG<<d_prefix<<qname<<": Starting additional processing"<<endl;
   vector<DNSResourceRecord> addit;
+  bool doIPv6AP=arg().mustDo("aaaa-additional-processing");
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
     if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
        ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
@@ -591,16 +592,22 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
       set<GetBestNSAnswer>beenthere;
       if(k->qtype==QType(QType::MX)) {
 	string::size_type pos=k->content.find_first_not_of(" \t0123456789"); // chop off the priority
-	if(pos!=string::npos)
+	if(pos!=string::npos) {
 	  doResolve(toLowerCanonic(k->content.substr(pos)), QType(QType::A),addit,1,beenthere);
-	else
+	  if(doIPv6AP)
+	    doResolve(toLowerCanonic(k->content.substr(pos)), QType(QType::AAAA),addit,1,beenthere);
+	}
+	else {
 	  doResolve(toLowerCanonic(k->content), QType(QType::A),addit,1,beenthere);
+	  if(doIPv6AP)
+	    doResolve(toLowerCanonic(k->content.substr(pos)), QType(QType::AAAA),addit,1,beenthere);
+	}
       }
-      else
+      else {
 	doResolve(k->content,QType(QType::A),addit,1,beenthere);
-
-      if(arg().mustDo("aaaa-additional-processing"))
-	doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
+	if(doIPv6AP)
+	  doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
+      }
     }
   
   for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
