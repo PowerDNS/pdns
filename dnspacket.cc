@@ -433,9 +433,9 @@ void DNSPacket::fillSOAData(const string &content, SOAData &data)
   // fill out data with some plausible defaults:
   // 10800 3600 604800 3600
   data.serial=0;
-  data.refresh=10800;
-  data.retry=3600;
-  data.expire=604800;
+  data.refresh=arg().asNum("soa-refresh-default");;
+  data.retry=arg().asNum("soa-retry-default");;
+  data.expire=arg().asNum("soa-expire-default");;
   data.default_ttl=arg().asNum("soa-minimum-ttl");
 
   vector<string>parts;

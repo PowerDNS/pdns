@@ -225,6 +225,21 @@
 # soa-minimum-ttl=3600
 
 #################################
+# soa-refresh-default	Default SOA refresh
+#
+# soa-refresh-default=10800
+
+#################################
+# soa-retry-default	Default SOA retry
+#
+# soa-retry-default=3600
+
+#################################
+# soa-expire-default	Default SOA expire
+#
+# soa-expire-default=604800
+
+#################################
 # soa-serial-offset	Make sure that no SOA serial is less than this number
 #
 # soa-serial-offset=0

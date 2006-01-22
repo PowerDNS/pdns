@@ -6245,6 +6245,22 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 		Our smtpredir MX host. See <xref linkend="fancy-records">.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>soa-expire-default=604800</term>
+	    <listitem><para>
+	      Default <link linkend="soa-type">SOA</link> expire.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>soa-minimum-ttl=3600</term>
+	    <listitem><para>
+	      Default <link linkend="soa-type">SOA</link> minimum ttl.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>soa-refresh-default=10800</term>
+	    <listitem><para>
+	      Default <link linkend="soa-type">SOA</link> refresh.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>soa-retry-default=3600</term>
+	    <listitem><para>
+	      Default <link linkend="soa-type">SOA</link> retry.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>soa-serial-offset=...</term>
 	    <listitem><para>
 	      If your database contains single-digit SOA serials and you need to host .DE domains, this setting can help

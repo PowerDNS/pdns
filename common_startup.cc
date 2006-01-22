@@ -104,6 +104,11 @@ void declareArguments()
   arg().set("negquery-cache-ttl","Seconds to store packets in the PacketCache")="60";
   arg().set("query-cache-ttl","Seconds to store packets in the PacketCache")="20";
   arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";
+
+  arg().set("soa-refresh-default","Default SOA refresh")="10800";
+  arg().set("soa-retry-default","Default SOA retry")="3600";
+  arg().set("soa-expire-default","Default SOA expire")="604800";
+
   arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
   arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
