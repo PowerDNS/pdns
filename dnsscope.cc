@@ -59,8 +59,8 @@ try
       try {
 	MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
 
-	lowestTime=min(lowestTime,  pr.d_pheader.ts.tv_sec);
-	highestTime=max(highestTime, pr.d_pheader.ts.tv_sec);
+	lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
+	highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
 	string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
 	
