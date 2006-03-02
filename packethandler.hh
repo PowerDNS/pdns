@@ -82,7 +82,7 @@ public:
 private:
   int processNotify(DNSPacket *);
   void addRootReferral(DNSPacket *r);
-  int PacketHandler::trySuperMaster(DNSPacket *p);
+  int trySuperMaster(DNSPacket *p);
   int makeCanonic(DNSPacket *p, DNSPacket *r, string &target);
   int doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target);
   int findMboxFW(DNSPacket *p, DNSPacket *r, string &target);

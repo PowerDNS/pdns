@@ -120,7 +120,7 @@ public:
 
   static DNSBackend *maker(const map<string,string> &);
   static void closeDynListener();
-  static void UeberBackend::setStatus(const string &st);
+  static void setStatus(const string &st);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const string &domain, DomainInfo &di);

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2005  PowerDNS.COM BV
+    Copyright (C) 2002 - 2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published by
@@ -572,7 +572,7 @@ int main(int argc, char **argv)
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
   
-  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2005 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
   L<<", gcc "__VERSION__;
 #endif // add other compilers here

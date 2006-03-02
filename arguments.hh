@@ -77,8 +77,8 @@ public:
   {
     parse(argc,argv,true);
   }
-  void ArgvMap::preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
-  bool ArgvMap::preParseFile(const char *fname, const string &arg); //!< use this to preparse a single var in configuration
+  void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
+  bool preParseFile(const char *fname, const string &arg); //!< use this to preparse a single var in configuration
 
   bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
   bool laxFile(const char *fname) 
