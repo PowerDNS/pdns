@@ -91,14 +91,16 @@ pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
-base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh
+base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh 
 
 #../modules/gmysqlbackend/smysql.cc 
 
 pdns_recursor_LDFLAGS=
 pdns_recursor_LDADD=
 
-pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc misc.cc unix_utility.cc
+pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
+misc.cc unix_utility.cc qtype.cc
+
 pdns_control_INCLUDES=path.hh
 pdns_control_LDFLAGS=@THREADFLAGS@
 

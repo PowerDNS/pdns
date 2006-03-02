@@ -22,7 +22,7 @@
 
 
 #include "utility.hh"
-
+#include "dns.hh"
 #ifndef WIN32
 # include <sys/time.h>
 # include <sys/types.h>
@@ -41,6 +41,8 @@
 #include <stdexcept>
 #include <string>
 #include <ctype.h>
+#include <vector>
+
 using namespace std;
 bool chopOff(string &domain);
 bool endsOn(const string &domain, const string &suffix);
@@ -228,5 +230,5 @@ inline void unixDie(const string &why)
 }
 
 string makeHexDump(const string& str);
-
+void shuffle(vector<DNSResourceRecord>& rrs);
 #endif

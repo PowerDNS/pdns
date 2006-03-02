@@ -544,7 +544,7 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, uint3
   
   uint32_t *i_p=(uint32_t *)piece5;
   
-  uint32_t soaoffset;
+  uint32_t soaoffset=0;
   if(soadata.serial && (soaoffset=arg().asNum("soa-serial-offset")))
     if(soadata.serial<soaoffset)
       soadata.serial+=soaoffset; // thank you DENIC
@@ -991,28 +991,7 @@ void DNSPacket::wrapup(void)
   stable_sort(rrs.begin(),rrs.end(),rrcomp);
 
   if(!d_tcp && !arg().mustDo("no-shuffle")) {
-    // now shuffle! start out with the ANSWER records  
-    vector<DNSResourceRecord>::iterator first, second;
-    for(first=rrs.begin();first!=rrs.end();++first) 
-      if(first->d_place==DNSResourceRecord::ANSWER && first->qtype.getCode() != QType::CNAME) // CNAME must come first
-	break;
-    for(second=first;second!=rrs.end();++second)
-      if(second->d_place!=DNSResourceRecord::ANSWER)
-	break;
-    
-    if(second-first>1)
-      random_shuffle(first,second);
-    
-    // now shuffle the additional records
-    for(first=second;first!=rrs.end();++first) 
-      if(first->d_place==DNSResourceRecord::ADDITIONAL && first->qtype.getCode() != QType::CNAME) // CNAME must come first
-	break;
-    for(second=first;second!=rrs.end();++second)
-      if(second->d_place!=DNSResourceRecord::ADDITIONAL)
-	break;
-    
-    if(second-first>1)
-      random_shuffle(first,second);
+    shuffle(rrs);
   }
   d_wrapped=true;
 
