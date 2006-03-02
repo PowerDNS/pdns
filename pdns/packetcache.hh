@@ -63,7 +63,7 @@ class PacketCache
 public:
   PacketCache();
   void insert(DNSPacket *q, DNSPacket *r);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
-  void PacketCache::insert(const char *packet, int length);
+  void insert(const char *packet, int length);
 
   inline int get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
   bool getKey(const string &key, string &content);
