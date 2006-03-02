@@ -30,6 +30,9 @@
 #include "arguments.hh"
 #include "session.hh"
 #include "packetcache.hh"
+#include <boost/lexical_cast.hpp>
+
+using namespace boost;
 
 void CommunicatorClass::addSuckRequest(const string &domain, const string &master, bool priority)
 {
@@ -86,6 +89,9 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 	  return;
 	}
 	i->domain_id=domain_id;
+	if(i->qtype.getCode()>=1024)
+	  throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
+
 	di.backend->feedRecord(*i);
       }
     }
