@@ -138,7 +138,8 @@ int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t 
   p.spoofID(id);
 
   struct in_addr inp;
-  Utility::inet_aton(ip.c_str(),&inp);
+  if(!Utility::inet_aton(ip.c_str(),&inp))
+    throw ResolverException("Unable to convert '"+ip+"' to an IP address");
 
   struct sockaddr_in toaddr;
   toaddr.sin_addr.s_addr=inp.s_addr;
