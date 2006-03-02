@@ -350,3 +350,31 @@ string makeHexDump(const string& str)
 }
 
 
+
+// shuffle, maintaining some semblance of order
+void shuffle(vector<DNSResourceRecord>& rrs)
+{
+  vector<DNSResourceRecord>::iterator first, second;
+  for(first=rrs.begin();first!=rrs.end();++first) 
+    if(first->d_place==DNSResourceRecord::ANSWER && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+      break;
+  for(second=first;second!=rrs.end();++second)
+    if(second->d_place!=DNSResourceRecord::ANSWER)
+      break;
+  
+  if(second-first>1)
+    random_shuffle(first,second);
+  
+  // now shuffle the additional records
+  for(first=second;first!=rrs.end();++first) 
+    if(first->d_place==DNSResourceRecord::ADDITIONAL && first->qtype.getCode() != QType::CNAME) // CNAME must come first
+      break;
+  for(second=first;second!=rrs.end();++second)
+    if(second->d_place!=DNSResourceRecord::ADDITIONAL)
+      break;
+  
+  if(second-first>1)
+    random_shuffle(first,second);
+
+  // we don't shuffle the rest
+}

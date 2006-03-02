@@ -266,6 +266,7 @@ void primeHints(void)
   RC.replace("", QType(QType::NS), nsset); // and stuff in the cache
 }
 
+
 void startDoResolve(void *p)
 {
   try {
@@ -305,6 +306,7 @@ void startDoResolve(void *p)
     else {
       pw.getHeader()->rcode=res;
       if(ret.size()) {
+	shuffle(ret);
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
 	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, 1, (DNSPacketWriter::Place)i->d_place);
 	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));  
