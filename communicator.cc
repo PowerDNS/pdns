@@ -317,8 +317,13 @@ int CommunicatorClass::doNotifications()
   bool purged;
   while(d_nq.getOne(domain, ip, &id, purged)) {
     if(!purged) {
-      d_nresolver.notify(d_nsock,domain,ip,id);
-      drillHole(domain,ip);
+      try {
+	d_nresolver.notify(d_nsock, domain, ip, id);
+	drillHole(domain, ip);
+      }
+      catch(ResolverException &re) {
+	L<<Logger::Error<<"Error trying to resolve '"+ip+"' for notifying '"+domain+"' to server: "+re.reason<<endl;
+      }
     }
     else
       L<<Logger::Error<<Logger::NTLog<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
@@ -393,7 +398,7 @@ void CommunicatorClass::makeNotifySocket()
 
 void CommunicatorClass::notify(const string &domain, const string &ip)
 {
-  d_nq.add(domain,ip);
+  d_nq.add(domain, ip);
 
   d_any_sem.post();
 }
