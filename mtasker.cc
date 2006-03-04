@@ -161,14 +161,15 @@ int main()
 
 template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(const EventKey &key, EventVal *val, unsigned int timeout)
 {
+  if(d_waiters.count(key)) { // there was already an exact same waiter
+    return -1;
+  }
+
   Waiter w;
   w.context=new ucontext_t;
   w.ttd= timeout ? time(0)+timeout : 0;
   w.tid=d_tid;
   
-  if(d_waiters.count(key)) { // there was already an exact same waiter
-    return -1;
-  }
   w.key=key;
 
   d_waiters.insert(w);

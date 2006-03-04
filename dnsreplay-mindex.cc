@@ -44,9 +44,14 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include "dnspcap.hh"
 #include "sstuff.hh"
 #include "anadns.hh"
+
+// this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
+#undef L
+
 #include <arpa/nameser.h>
 #include <set>
 #include <deque>
+
 #include <boost/format.hpp>
 #include <boost/utility.hpp>
 #include <boost/multi_index_container.hpp>
