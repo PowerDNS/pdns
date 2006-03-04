@@ -41,7 +41,7 @@ private:
 	
 	void addNode(node_t * node, const uint32_t ip, const uint32_t mask, const short value);
 	node_t * allocateNode();
-	const node_t * IPPrefTree::findDeepestFilledNode(const node_t *root, const uint32_t ip, const uint32_t mask) const;
+	const node_t * findDeepestFilledNode(const node_t *root, const uint32_t ip, const uint32_t mask) const;
 	void removeNode(node_t * node);
 	
 	inline uint32_t preflenToNetmask(const int preflen) const;

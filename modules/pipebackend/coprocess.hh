@@ -19,7 +19,7 @@ public:
   void receive(string &rcv);
   void send(const string &send);
 private:
-  void CoProcess::checkStatus();
+  void checkStatus();
   int d_fd1[2], d_fd2[2];
   int d_pid;
   int d_infd;
