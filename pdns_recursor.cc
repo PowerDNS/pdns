@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2005  PowerDNS.COM BV
+    Copyright (C) 2003 - 2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -655,12 +655,13 @@ int main(int argc, char **argv)
 
     L.setName("pdns_recursor");
 
-    L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2005 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+    L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
     L<<", gcc "__VERSION__;
 #endif // add other compilers here
     L<<") starting up"<<endl;
 
+    L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
   L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2."<<endl;
