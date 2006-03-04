@@ -195,7 +195,7 @@ private:
 
   inline vector<string> shuffle(set<string> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
-  string getA(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
+  vector<string> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
 
   SyncRes(const SyncRes&);
   SyncRes& operator=(const SyncRes&);
