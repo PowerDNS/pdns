@@ -724,8 +724,9 @@ int main(int argc, char **argv)
       
       if(!((counter++)%100)) 
 	MT->makeThread(houseKeeping,0,"housekeeping");
-      if(statsWanted)
+      if(statsWanted) {
 	doStats();
+      }
 
       Utility::socklen_t addrlen=sizeof(fromaddr);
       int d_len;
