@@ -1,6 +1,7 @@
 SUBDIRS=modules codedocs @programdescend@
 EXTRA_DIST=TODO README HACKING INSTALL ChangeLog debian-pdns pdns.spec  \
-codedocs/Makefile codedocs/doxygen.conf contrib/powerdns.solaris.init.d
+codedocs/Makefile codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
+bootstrap
 
 man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdns_server.8 pdns/docs/zone2sql.8 
 
