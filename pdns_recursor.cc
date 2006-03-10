@@ -516,11 +516,11 @@ void doStats(void)
   statsWanted=false;
 }
 
-void houseKeeping(void *)
+static void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate, last_prune;
   time_t now=time(0);
-  if(now - last_prune > 60) { 
+  if(now - last_prune > 300) { 
     RC.doPrune();
     int pruned=0;
     for(SyncRes::negcache_t::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
