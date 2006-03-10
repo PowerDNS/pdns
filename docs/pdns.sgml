@@ -1,8 +1,8 @@
 <!DOCTYPE Book PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
-<Book>
-  <BookInfo>
-    <Title>PowerDNS manual</Title>
-    <AUTHOR>
+<book>
+  <bookinfo>
+    <title>PowerDNS manual</title>
+    <author>
       <affiliation>
         <orgname>PowerDNS BV</orgname>
         <address>
@@ -21,7 +21,7 @@
 	       -- Dilbert
 	  </LITERALLAYOUT>
 
-	</BLOCKQUOTE>
+	</blockquote>
       </para>
     </Abstract>
 
@@ -36,7 +36,6 @@
       of backends. These backends can either be <link linkend="bindbackend">plain zonefiles</link> or be 
       <link linkend="pipebackend">more dynamic</link> in nature. 
     </Para>
-    
     <Para>
       Prime examples of backends include relational databases, but also
       loadbalancing and failover algorithms. 
@@ -81,6 +80,162 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-20"><title>Version 2.9.20 (unreleased)</title>
+	<para>
+	  Besides adding OpenDBX, this release is mostly about fixing problems and speeding up the recursor. This release has been made possible by 
+	  <ulink url="http://www.xs4all.nl">XS4ALL</ulink> and <ulink url="http://true.nl">True</ulink>.
+	</para>
+	<para>
+	  Bugs fixed in the recursor:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Possible stability issues in the recursor on encountering errors (c532, c533) 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Memory leaks in recursor fixed (c534, c572). In a test 800 million real life DNS packets have been sent to the
+		recursor, representing several days of traffic from a major ISP, memory use was high (500MB), but stable.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Prune all data in PowerDNS - previously per-nameserver and per-query performance 
+		statistics were kept around forever (c535)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		IPv6 additional processing was broken. Reported by Lionel Elie Mamane, who also provided a fix. The problem
+		was fixed differently in the end. c562.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_recursor did not shuffle answers since 2.9.19, leading to problems sending mail to the Hotmail servers.
+		Reported in t54, fixed in c567.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		If a single nameserver had multiple IP addresses listed, PowerDNS would only use one of them. Noted by 
+		Mark Martin, fixed in c570, who depends on a domain with 4 nameserver IP addresses of which 2 are broken.
+	      </para>
+	    </listitem>
+
+
+
+	  </itemizedlist>
+	  
+	  Improvements to the recursor:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Commits C540, C541, C542, C543, C545, C547 and C548, C574 all speed up the recursor by a large factor, 
+		without altering the DNS algorithm.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		c549 and c550 work around gcc bug <ulink url="http://gcc.gnu.org/bugzilla/show_bug.cgi?id=24704">24704</ulink>
+		if requested, which speeds up the recursor a lot, but involves a dirty hack. Enable with 
+		<command>./configure --enable-gcc-skip-locking</command>. No guarantees!
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	      
+	  Bugs fixed in the authoritative nameserver:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		PowerDNS would no longer allow a '/' in domain names, fixed by c537, reported in t48.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		On some compilers, processing of NAPTR records could cause the server to crash. Reported by Bernd Froemel 
+		in t29, fixed in c538.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Referrals were subtly broken by recent CNAME/Wildcard improvements, fixed in c539. Fix and other
+		improvements sponsored by <ulink url="http://true.nl">True</ulink>. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS would try to insert records it has no knowledge about in slave zones, which did not work. Reported
+		in t60, fixed in c566. A superior fix would be to implement the relevant unknown record standard.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	  Improvements to the authoritative nameserver:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Pipebackend did not properly propagate the ABI version to its children, fixed in c546, reported by 
+		kickdaddy@gmail.com in t45.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<ulink url="http://www.linuxnetworks.de/pdnsodbx/index.html">OpenDBX</ulink> backend added 
+		(c559, c560, c561) by Norbert Sendetzky. From the website:
+		<quote>
+		  The OpenDBX backend enables it to fetch DNS information from every DBMS supported by the OpenDBX library 
+		  and combines the power of one of the best DNS server implementations with the flexibility of the OpenDBX 
+		  library.
+		</quote>
+		OpenDBX adds some other features like database failover. Thanks Norbert!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		LDAP fixes as reported in t37, fixed in c558, which maked <command>pdns_control notify</command>
+		work.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Arjo Hooimeijer added support for soa-refresh-default, soa-retry-default, 
+		soa-expire-default, which were previously hardcoded. c563 and fallout in c573 (thanks to Wolfram Schlich).
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	  Miscellaneous:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Fixes for g++ 4.1. Compiling with 4.1 realizes notable speedups. c568, c569.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS now reports if it is running in 32 or 64 bit mode, useful for bi-arch users that need
+		to know if they are benefitting from <ulink url="http://www.amd.com">their great processor</ulink>. c571.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>dnsscope</command> compiles again, c551, c564 (FreeBSD 64-bit time_t).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Build scripts were added, mostly for internal use but we know some PowerDNS users build their
+		own packages too. c553, c554, c555, c556, c557.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<filename>bootstrap</filename> script was not included in release. Thanks to Stefan Arentz for noticing. Fixed in c574.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-19"><title>Version 2.9.19</title>
 	<para>
 	  Released 29th of October 2005.
@@ -145,7 +300,7 @@
 	    <listitem>
 	      <para>
 		PowerDNS now prints out a warning when running with legacy LinuxThreads implementation instead of the high performance NPTL
-		library, see <xref linkend="nptl">. Commit 455.
+		library, see <xref linkend="nptl">. c455.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -155,22 +310,22 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		SPF records are now supported natively. Commit 472, closing ticket 22.
+		SPF records are now supported natively. c472, closing t22.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Improved IPv6 'bound to' messages. Thanks to Niels Bakker, Wichert Akkermans and Gerty de Wolf for suggestions.
+		Improved IPv6 'bound to' messages. Thanks to Niels Bakker, Wichert Akkerman and Gerty de Wolf for suggestions.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Separate graphs can now be made of IPv6 queries and answers. Commit 485.
+		Separate graphs can now be made of IPv6 queries and answers. c485.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Out of zone additional processing is now on by default to better comply with standards. Commit 487.
+		Out of zone additional processing is now on by default to better comply with standards. c487.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -212,34 +367,34 @@
 	    <listitem>
 	      <para>
 		Domain name validation has been made a lot stricter - it turns out PostgreSQL was interpreting some (corrupt) domain names
-		as unicode. Tested and suggested by Register.com (commit 451).
+		as unicode. Tested and suggested by Register.com (c451).
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		LDAP backend did not compile (commit 452, 453) due to partially applied patch (Norbert Sendetzky)
+		LDAP backend did not compile (commits C452, C453) due to partially applied patch (Norbert Sendetzky)
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Incoming zone transfers work reliably again. Commit 460 and beyond. And 523 - closing  Debian bug 330184. 
+		Incoming zone transfers work reliably again. Fixed in c460 and beyond. And c523 - closing Debian bug 330184. 
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Recent g++ versions exposed a mistake in the PowerDNS recursor cache pruning code, causing random crashes. Fixed. Commit 465. Reported by 
+		Recent g++ versions exposed a mistake in the PowerDNS recursor cache pruning code, causing random crashes. Fixed in c465. Reported by 
 		several Red Hat users.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		PowerDNS recursor, and MTasker in general, did not work on Solaris. Patch by Juergen Ilse. Commit 471. Also moved most of PowerDNS over to
-		uint32_t style typedefs, which eases compilation problems on Solaris. Commit 477.
+		PowerDNS recursor, and MTasker in general, did not work on Solaris. Patch by Juergen Ilse, c471. Also moved most of PowerDNS over to
+		uint32_t style typedefs, which eases compilation problems on Solaris, c477.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Bindbackend2 did not properly search its include path for $INCLUDE statements. Noted by Mark Bergsma. Commit 474.
+		Bindbackend2 did not properly search its include path for $INCLUDE statements. Noted by Mark Bergsma, c474.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -249,39 +404,39 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Pipebackend did not clean up, leading to an additional pipe backend per AXFR or pdns_control reload. Discovered by Marc Jauvin, fixed by commit 525.
+		Pipebackend did not clean up, leading to an additional pipe backend per AXFR or pdns_control reload. Discovered by Marc Jauvin, fixed by c525.
 	      </para>
 	    </listitem>
 
 	    <listitem>
 	      <para>
 		Bindbackend (both old and current versions) did not honour 'include' statements in <filename>named.conf</filename>
-		on <command>pdns_control rediscover</command>. Noted by Marc Jauvin, fixed by commit 526.
+		on <command>pdns_control rediscover</command>. Noted by Marc Jauvin, fixed by c526.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Zone transfers were sometimes shuffled, which wastes useless time. Commit 478.
+		Zone transfers were sometimes shuffled, which wastes useless time, c478.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		CNAMEs and Wildcards now work as in Bind, fixing many complaints. Commit 487.
+		CNAMEs and Wildcards now work as in Bind, fixing many complaints, c487.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		NAPTR records were compressed, which would work, but was in violation of the RFC. Commit 493.
+		NAPTR records were compressed, which would work, but was in violation of the RFC, commit 493.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		NAPTR records were not always parsed correctly from BIND zonefiles, fixed. Commit 494.
+		NAPTR records were not always parsed correctly from BIND zonefiles, fixed, commit 494.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Geobackend needed additional include statement to compile on more recent Linux distrbutions. Commit 496.
+		Geobackend needed additional include statement to compile on more recent Linux distrbutions, commit 496.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
