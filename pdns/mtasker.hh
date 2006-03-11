@@ -57,12 +57,12 @@ private:
   };
 
   //  typedef std::map<EventKey,Waiter> waiters_t;
-  
+  struct KeyTag {};
   typedef multi_index_container<
     Waiter,
     indexed_by <
                 ordered_unique<member<Waiter,EventKey,&Waiter::key> >,
-                ordered_non_unique<member<Waiter,time_t,&Waiter::ttd> >
+                ordered_non_unique<tag<KeyTag>, member<Waiter,time_t,&Waiter::ttd> >
                >
   > waiters_t;
 
