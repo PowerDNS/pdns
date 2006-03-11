@@ -461,7 +461,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	}
 	
 	if(endsOn(i->qname, auth)) {
-	  if(d_lwr.d_aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && arg().contains("delegation-only",auth)) {
+	  if(d_lwr.d_aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth)) {
 	    LOG<<"NO! Is from delegation-only zone"<<endl;
 	    s_nodelegated++;
 	    return RCode::NXDomain;
@@ -597,7 +597,7 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 
   LOG<<d_prefix<<qname<<": Starting additional processing"<<endl;
   vector<DNSResourceRecord> addit;
-  bool doIPv6AP=arg().mustDo("aaaa-additional-processing");
+  bool doIPv6AP=::arg().mustDo("aaaa-additional-processing");
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
     if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
        ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
