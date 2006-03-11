@@ -16,9 +16,11 @@ html.tar.gz: html/index.html
 
 %.txt: %-expanded.sgml
 	docbook2txt $<
+	mv pdns-expanded.txt pdns.txt
 
 %.pdf: %-expanded.sgml
 	docbook2pdf $<
+	mv pdns-expanded.pdf pdns.pdf
 
 publish:
 	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \

@@ -132,8 +132,13 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Commits C540, C541, C542, C543, C545, C547 and C548, C574 all speed up the recursor by a large factor, 
+		Commits C535, C540, C541, C542, C543, C544, C545, C547 and C548, C574 all speed up the recursor by a large factor, 
 		without altering the DNS algorithm.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Cache was pruned every minute, which was too often. Now once every 5 minutes, c574.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -150,6 +155,12 @@
 	    <listitem>
 	      <para>
 		PowerDNS would no longer allow a '/' in domain names, fixed by c537, reported in t48.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Parameters to <command>pdns_control notify-host</command> were not checked, leading to
+		possible crashes. Reported in t24, fixed in c565.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -219,7 +230,13 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		<command>dnsscope</command> compiles again, c551, c564 (FreeBSD 64-bit time_t).
+		<command>dnsscope</command> compiles again, c551, c564 (FreeBSD 64-bit time_t). 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>dnsreplay_mindex</command> compiles again, fixed by c572. Its performance, and the performance of the recursor
+		was improved by c559.
 	      </para>
 	    </listitem>
 	    <listitem>

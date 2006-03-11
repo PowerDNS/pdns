@@ -282,8 +282,8 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
   if(!d_waiters.empty()) {
     time_t now=time(0);
 
-    typedef typename waiters_t::template nth_index<1>::type waiters_by_ttd_index_t;
-    waiters_by_ttd_index_t& ttdindex=d_waiters.get<1>();
+    typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
+    waiters_by_ttd_index_t& ttdindex=d_waiters.get<KeyTag>();
 
     for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
       if(i->ttd && i->ttd < now) {
