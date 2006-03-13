@@ -7,7 +7,7 @@ using namespace std;
 using namespace boost;
 
 #include "config.h"
-
+#define GCC_SKIP_LOCKING
 #ifdef GCC_SKIP_LOCKING
 #include <bits/atomicity.h>
 // This code is ugly but does speedup the recursor tremendously on multi-processor systems, and even has a large effect (20, 30%) on uniprocessor 
@@ -60,7 +60,7 @@ unsigned int MemRecursorCache::size()
 {
   unsigned int ret=0;
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
-    ret+=i->second.size();
+    ret+=i->d_name.size();
   }
   return ret;
 }
@@ -70,8 +70,8 @@ unsigned int MemRecursorCache::bytes()
   unsigned int ret=0;
 
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
-    ret+=i->first.length();
-    for(vector<StoredRecord>::const_iterator j=i->second.begin(); j!= i->second.end(); ++j)
+    ret+=i->d_name.length();
+    for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j!= i->d_records.end(); ++j)
       ret+=j->size();
   }
   return ret;
@@ -88,9 +88,9 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   if(res)
     res->clear();
 
-  if(j!=d_cache.end() && j->second.begin()->d_ttd>(unsigned int)now) {
+  if(j!=d_cache.end() && j->d_records.begin()->d_ttd>(unsigned int)now) {
     if(res) {
-      for(vector<StoredRecord>::const_iterator k=j->second.begin(); k != j->second.end(); ++k) {
+      for(vector<StoredRecord>::const_iterator k=j->d_records.begin(); k != j->d_records.end(); ++k) {
 	DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
 	//	cerr<<"Returning '"<<rr.content<<"'\n";
 	res->insert(rr);
@@ -112,58 +112,109 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
   int code=qt.getCode();
   string key(toLowerCanonic(qname)); key.append(1,'|'); key.append((char*)&code, ((char*)&code)+2);
   cache_t::iterator stored=d_cache.find(key);
+  
   bool isNew=false;
   if(stored == d_cache.end()) {
-    stored=d_cache.insert(make_pair(key,vector<StoredRecord>())).first;
+    stored=d_cache.insert(CacheEntry(key,vector<StoredRecord>())).first;
     isNew=true;
   }
 
   pair<vector<StoredRecord>::iterator, vector<StoredRecord>::iterator> range;
 
   StoredRecord dr;
+  CacheEntry ce=*stored;
+
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
     dr.d_ttd=i->ttl;
     dr.d_string=DNSRR2String(*i);
     
     if(isNew) 
-      stored->second.push_back(dr);
+      ce.d_records.push_back(dr);
     else {
-      range=equal_range(stored->second.begin(), stored->second.end(), dr);
+      range=equal_range(ce.d_records.begin(), ce.d_records.end(), dr);
       
       if(range.first != range.second) {
 	for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j)
 	  j->d_ttd=i->ttl;
       }
       else {
-	stored->second.push_back(dr);
-	sort(stored->second.begin(), stored->second.end());
+	ce.d_records.push_back(dr);
+	sort(ce.d_records.begin(), ce.d_records.end());
       }
     }
   }
   if(isNew) {
-    sort(stored->second.begin(), stored->second.end());
+    sort(ce.d_records.begin(), ce.d_records.end());
   }
-  if(stored->second.capacity() != stored->second.size())
-    vector<StoredRecord>(stored->second).swap(stored->second);
+
+  if(ce.d_records.capacity() != ce.d_records.size())
+    vector<StoredRecord>(ce.d_records).swap(ce.d_records);
+
+  d_cache.replace(stored, ce);
 }
   
 
 void MemRecursorCache::doPrune(void)
 {
   unsigned int names=0;
-  time_t now=time(0);
-  for(cache_t::iterator j=d_cache.begin();j!=d_cache.end();){
-    predicate p(now);
-    j->second.erase(remove_if(j->second.begin(), j->second.end(), p), j->second.end());
+  uint32_t now=(uint32_t)time(0);
 
-    if(j->second.empty()) { // everything is gone
-      d_cache.erase(j++);
-      names++;
+//  cout<<"Going to prune!\n";
+
+  typedef cache_t::nth_index<1>::type cache_by_ttd_t;
+  cache_by_ttd_t& ttdindex=d_cache.get<1>();
+
+  uint32_t looked(0), quickZonk(0), fullZonk(0), partialZonk(0), noZonk(0);
+  DTime dt;
+  dt.set(); 
+  cache_by_ttd_t::iterator j;
+  for(j=ttdindex.begin();j!=ttdindex.end();){
+    if(j->getTTD() > now) {
+//      cout<<"Done pruning, this record ("<<j->d_name<<") only needs to get killed in "<< j->getTTD() - now <<" seconds, rest will be later\n";
+      break;
+    }
+    else 
+	;
+//      cout<<"Looking at '"<<j->d_name<<"', "<<now - j->getTTD()<<" seconds overdue!\n";
+    looked++;
+    if(j->d_records.size()==1) {
+//      ttdindex.erase(j++);
+      j++;
+      quickZonk++;
+      continue;
+    }
+    predicate p(now);
+    CacheEntry ce=*j;
+
+    size_t before=ce.d_records.size();
+    ce.d_records.erase(remove_if(ce.d_records.begin(), ce.d_records.end(), p), ce.d_records.end());
+
+    if(ce.d_records.empty()) { // everything is gone
+//      cout<<"Zonked it entirely!\n";
+//      ttdindex.erase(j++);
+      j++;
+      fullZonk++;
     }
     else {
-      ++j;
+      if(ce.d_records.size()!=before) {
+//	cout<<"Zonked partially, putting back, new TTD: "<< ce.getTTD() - now<<endl;;
+	cache_by_ttd_t::iterator here=j++;
+	ttdindex.replace(here, ce);
+        partialZonk++;
+      }
+      else {
+	++j;
+        noZonk++;
+	break;
+      }
     }
   }
+  
+//  cout<<"Walk took "<< dt.udiff()<<"usec\n";
+  dt.set();
+  ttdindex.erase(ttdindex.begin(), j);
+//  cout<<"Erase took "<< dt.udiff()<<" usec, looked: "<<looked<<", quick: "<<quickZonk<<", full: ";
+//  cout<<fullZonk<<", partial: "<<partialZonk<<", no: "<<noZonk<<"\n";
   //  cache_t(d_cache).swap(d_cache);
 }
 
