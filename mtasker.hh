@@ -35,6 +35,8 @@
 using namespace boost;
 using namespace ::boost::multi_index;
 
+struct KeyTag {};
+
 //! The main MTasker class    
 /** The main MTasker class. See the main page for more information.
     \param EventKey Type of the key with which events are to be identified. Defaults to int.
@@ -57,7 +59,7 @@ private:
   };
 
   //  typedef std::map<EventKey,Waiter> waiters_t;
-  struct KeyTag {};
+
   typedef multi_index_container<
     Waiter,
     indexed_by <
