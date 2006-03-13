@@ -237,8 +237,10 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     DNSResourceRecord i;
     time_t newest=0;
 
-    if(!(this->list(domain, sd.domain_id))) 
-      throw AhuException("Backend error trying to determine magic serial number of zone '"+domain+"'");
+    if(!(this->list(domain, sd.domain_id))) {
+      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
+      return false;
+    }
   
     while(this->get(i)) {
       if(i.last_modified>newest)
