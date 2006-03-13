@@ -48,9 +48,9 @@
 */
     
 
-namespace {
+//namespace {
   typedef HEADER dnsheader;
-}
+//}
 
 using namespace std;
 using namespace boost;

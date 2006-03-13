@@ -201,7 +201,7 @@ private:
 
 
 
-namespace {
+//namespace {
   struct soatimes 
   {
     uint32_t serial;
@@ -210,7 +210,7 @@ namespace {
     uint32_t expire;
     uint32_t minimum;
   };
-}
+//}
 
 
 class SOARecordContent : public DNSRecordContent
