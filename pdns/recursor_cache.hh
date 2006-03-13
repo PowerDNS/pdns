@@ -16,18 +16,6 @@
 using namespace boost;
 using namespace ::boost::multi_index;
 
-namespace __gnu_cxx {
-  template<>
-  struct hash<string>
-  {
-    size_t
-    operator()(const string& __s) const
-    { 
-      return __stl_hash_string(__s.c_str()); 
-    }
-  };
-}
-
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
