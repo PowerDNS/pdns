@@ -1,6 +1,6 @@
 #include "base64.hh"
 
-namespace {
+namespace anonpdns {
 char B64Decode1(char cInChar)
 {
   // The incoming character will be A-Z, a-z, 0-9, +, /, or =.
@@ -90,6 +90,7 @@ inline char B64Encode1(unsigned char uc)
 
 
 }
+using namespace anonpdns;
 
 int B64Decode(const std::string& strInput, std::string& strOutput)
 {
