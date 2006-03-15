@@ -27,7 +27,6 @@
 #include "misc.hh"
 #include "ahuexception.hh"
 
-
 using namespace std;
 
 typedef AhuException ArgException;

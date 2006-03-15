@@ -1,7 +1,7 @@
 AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind 
 AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
 
-EXTRA_DIST = docs/Makefile \
+EXTRA_DIST = docs/Makefile docs/expand \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
 docs/powerdns-overview.sgml docs/powerdns-technical.sgml  \
 docs/pdns.sgml mtasker.cc \

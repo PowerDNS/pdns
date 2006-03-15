@@ -3,11 +3,11 @@
 #include <iostream>
 #include <boost/shared_ptr.hpp>
 #include "dnsrecords.hh"
+
 using namespace std;
 using namespace boost;
 
 #include "config.h"
-#define GCC_SKIP_LOCKING
 #ifdef GCC_SKIP_LOCKING
 #include <bits/atomicity.h>
 // This code is ugly but does speedup the recursor tremendously on multi-processor systems, and even has a large effect (20, 30%) on uniprocessor 
@@ -152,7 +152,8 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
 
   d_cache.replace(stored, ce);
 }
-  
+
+
 
 void MemRecursorCache::doPrune(void)
 {
@@ -213,8 +214,8 @@ void MemRecursorCache::doPrune(void)
 //  cout<<"Walk took "<< dt.udiff()<<"usec\n";
   dt.set();
   ttdindex.erase(ttdindex.begin(), j);
-//  cout<<"Erase took "<< dt.udiff()<<" usec, looked: "<<looked<<", quick: "<<quickZonk<<", full: ";
-//  cout<<fullZonk<<", partial: "<<partialZonk<<", no: "<<noZonk<<"\n";
+  //  cout<<"Erase took "<< dt.udiff()<<" usec, looked: "<<looked<<", quick: "<<quickZonk<<", full: ";
+  //  cout<<fullZonk<<", partial: "<<partialZonk<<", no: "<<noZonk<<"\n";
   //  cache_t(d_cache).swap(d_cache);
 }
 
