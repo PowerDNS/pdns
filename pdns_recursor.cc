@@ -24,6 +24,7 @@
 #ifndef WIN32
 #include <netdb.h>
 #endif // WIN32
+#include "recursor_cache.hh"
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@
 #include "zoneparser-tng.hh"
 using namespace boost;
 
-#include "recursor_cache.hh"
+
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
 #include <pthread.h>
@@ -520,7 +521,7 @@ static void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate, last_prune;
   time_t now=time(0);
-  if(now - last_prune > 300) { 
+  if(now - last_prune > 60) { 
     RC.doPrune();
     int pruned=0;
     for(SyncRes::negcache_t::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
@@ -672,7 +673,6 @@ int main(int argc, char **argv)
       ::arg().set("quiet")="no";
       
   }
-    
     makeClientSocket();
     makeUDPServerSockets();
     makeTCPServerSockets();
