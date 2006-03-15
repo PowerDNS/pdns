@@ -16,6 +16,7 @@
 using namespace boost;
 using namespace ::boost::multi_index;
 
+
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
@@ -42,6 +43,7 @@ private:
     {
       return 4+d_string.size();
     }
+
   };
 
   struct predicate
@@ -60,6 +62,7 @@ private:
   //   typedef __gnu_cxx::hash_map<string, vector<StoredRecord> > cache_t;
   struct CacheEntry
   {
+    CacheEntry(){}
     CacheEntry(const string& name, const vector<StoredRecord>& records) : d_name(name), d_records(records)
     {}
     string d_name;
@@ -72,6 +75,7 @@ private:
 	earliest=min(earliest, i->d_ttd);
       return earliest;
     }
+
   };
 
   typedef multi_index_container<
@@ -82,9 +86,9 @@ private:
                >
   > cache_t;
 
-
 private:
   cache_t d_cache;
+
 };
 
 

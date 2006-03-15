@@ -138,7 +138,8 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Cache was pruned every minute, which was too often. Now once every 5 minutes, c574.
+		Move recursor to the incredible boost::multi_index_container (c580). This brings a huge improvement
+		in cache pruning times.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -167,6 +168,12 @@
 	      <para>
 		On some compilers, processing of NAPTR records could cause the server to crash. Reported by Bernd Froemel 
 		in t29, fixed in c538.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Backend errors could make the whole nameserver exit under some circumstances, notably using the LDAP backend. Fixed in c583, reported in
+		t62.
 	      </para>
 	    </listitem>
 	    <listitem>
