@@ -48,7 +48,8 @@
       <para>
 	PDNS is an authoritative only nameserver. It will answer questions about domains it knows about, 
 	but will not go out on the net to resolve queries about other domains. However, it can use a 
-	<link linkend="recursion">recursing backend</link> to provide that functionality.
+	<link linkend="recursion">recursing backend</link> to provide that functionality. Depending 
+	on your needs, this backend can either be the PowerDNS recursor or an external one.
       </para>
       <para>
 	When PDNS answers a question, it comes out of the database, and can be trusted as being authoritative. There is
@@ -80,10 +81,18 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-20"><title>Version 2.9.20 (unreleased)</title>
+      <sect2 id="changelog-2-9-20"><title>Version 2.9.20</title>
+	<para>
+	  Released the 15th of March 2005
+	</para>
 	<para>
 	  Besides adding OpenDBX, this release is mostly about fixing problems and speeding up the recursor. This release has been made possible by 
-	  <ulink url="http://www.xs4all.nl">XS4ALL</ulink> and <ulink url="http://true.nl">True</ulink>.
+	  <ulink url="http://www.xs4all.nl">XS4ALL</ulink> and <ulink url="http://true.nl">True</ulink>. Thanks!
+	</para>
+	<para>
+	  Furthermore, we are very grateful for the help of Andrew Pinski, who hacks on gcc, and of Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz, the 
+	  author of <ulink url="http://www.boost.org/libs/multi_index/doc/index.html">boost::multi_index_container</ulink>. Without their
+	  near-realtime help this release would've been delayed a lot. Thanks!
 	</para>
 	<para>
 	  Bugs fixed in the recursor:
