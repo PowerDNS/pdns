@@ -9,8 +9,12 @@
 #undef L
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+
 #include <boost/multi_index/key_extractors.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 103300
 #include <boost/multi_index/hashed_index.hpp>
+#endif
 
 #define L theL()
 using namespace boost;
@@ -81,7 +85,11 @@ private:
   typedef multi_index_container<
     CacheEntry,
     indexed_by <
+#if BOOST_VERSION >= 103300
                 hashed_unique<member<CacheEntry,string,&CacheEntry::d_name> >,
+#else
+                ordered_unique<member<CacheEntry,string,&CacheEntry::d_name> >,
+#endif
                 ordered_non_unique<const_mem_fun<CacheEntry,uint32_t,&CacheEntry::getTTD> >
                >
   > cache_t;
