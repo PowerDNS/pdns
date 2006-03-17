@@ -93,6 +93,11 @@ mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh dnspar
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh 
 
+if NEDMALLOC
+pdns_recursor_SOURCES += ext/nedmalloc/malloc.c
+endif
+
+
 #../modules/gmysqlbackend/smysql.cc 
 
 pdns_recursor_LDFLAGS=
