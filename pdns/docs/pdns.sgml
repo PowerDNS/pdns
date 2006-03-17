@@ -83,7 +83,7 @@
       </para>
       <sect2 id="changelog-2-9-20"><title>Version 2.9.20</title>
 	<para>
-	  Released the 15th of March 2005
+	  Released the 15th of March 2006
 	</para>
 	<para>
 	  Besides adding OpenDBX, this release is mostly about fixing problems and speeding up the recursor. This release has been made possible by 

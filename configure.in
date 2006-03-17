@@ -59,7 +59,6 @@ LIBS=$ac_save_LIBS
 
 DYNLINKFLAGS=""
 THREADFLAGS=""
-enable_nedmalloc="no"
 
 case "$host_os" in
 solaris2.8 | solaris2.9 ) 
@@ -87,10 +86,6 @@ openbsd*)
 	DYNLINKFLAGS="-rdynamic"
 	LDFLAGS="-lc_r $LDFLAGS"
 	CXXFLAGS="-pthread $CXXFLAGS"
-	;;
-freebsd*)
-	AM_CONDITIONAL(NEDMALLOC, true)
-	enable_nedmalloc="yes"
 	;;
 *)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
@@ -192,9 +187,13 @@ AC_MSG_CHECKING(whether we should use nedmalloc allocator)
 AC_ARG_ENABLE(nedmalloc, 
  [  --enable-nedmalloc	If we should use nedmalloc],
 	enable_nedmalloc=$enableval,
-	
+	if echo $host_os | grep -iq freebsd
+	then
+		enable_nedmalloc=yes
+	else
+		enable_nedmalloc=no
+	fi
 	 )
-
 AC_MSG_RESULT($enable_nedmalloc)
 
 AM_CONDITIONAL(NEDMALLOC,test x"$enable_nedmalloc" = "xyes")
