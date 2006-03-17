@@ -6,7 +6,7 @@ echo
 
 aclocal19
 autoheader259
-libtoolize15
+libtoolize15 --force
 automake19 --add-missing --copy --foreign 
 autoconf259
 
