@@ -121,7 +121,7 @@ struct PacketID
   PacketID() : sock(0), inNeeded(0), outPos(0)
   {}
 
-  uint16_t id;  // wait for a specific id/remote paie
+  uint16_t id;  // wait for a specific id/remote pair
   struct sockaddr_in remote;  // this is the remote
 
   Socket* sock;  // or wait for an event on a TCP fd
@@ -129,7 +129,7 @@ struct PacketID
   string inMSG; // they'll go here
 
   string outMSG; // the outgoing message that needs to be sent
-  int outPos;    // how far we are along in the outMSG
+  string::size_type outPos;    // how far we are along in the outMSG
 
   bool operator<(const PacketID& b) const
   {
@@ -152,7 +152,6 @@ int asendtcp(const string& data, Socket* sock)
   pident.outMSG=data;
   string packet;
 
-  //  cerr<<"asendtcp called for "<<data.size()<<" bytes"<<endl;
   d_tcpclientwritesocks[sock->getHandle()]=pident;
 
   int ret=MT->waitEvent(pident,&packet,1);
@@ -170,8 +169,6 @@ int arecvtcp(string& data, int len, Socket* sock)
   pident.sock=sock;
   pident.inNeeded=len;
 
-  // cerr<<"arecvtcp called for "<<len<<" bytes"<<endl;
-  // cerr<<d_tcpclientwritesocks.size()<<" write sockets"<<endl;
   d_tcpclientreadsocks[sock->getHandle()]=pident;
 
   int ret=MT->waitEvent(pident,&data,1);
@@ -202,17 +199,15 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
     *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
   }
-
   return ret;
 }
-
 
 static void writePid(void)
 {
   string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   ofstream of(fname.c_str());
   if(of)
-    of<<getpid()<<endl;
+    of<< getpid() <<endl;
   else
     L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
 }
@@ -231,7 +226,6 @@ void primeHints(void)
     nsrr.qtype=QType::NS;
     nsrr.ttl=time(0)+3600000;
     
-
     for(char c='a';c<='m';++c) {
       static char templ[40];
       strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
@@ -251,8 +245,6 @@ void primeHints(void)
     set<DNSResourceRecord> aset;
 
     while(zpt.get(rr)) {
-      //      cout<<"'"<<rr.qname<<"' "<<rr.qtype.getName()<<" '"<<rr.content<<"'\n";
-
       rr.ttl+=time(0);
       if(rr.qtype.getCode()==QType::A) {
 	set<DNSResourceRecord> aset;
@@ -266,7 +258,6 @@ void primeHints(void)
   }
   RC.replace("", QType(QType::NS), nsset); // and stuff in the cache
 }
-
 
 void startDoResolve(void *p)
 {
@@ -341,9 +332,6 @@ void startDoResolve(void *p)
 	L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
       else if((unsigned int)ret != 2 + packet.size())
 	L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" - probably would have trouble receiving our answer anyhow (size="<<packet.size()<<")"<<endl;
-
-      //      if(write(R->getSocket(),buf,2)!=2 || write(R->getSocket(),buffer,R->len)!=R->len)
-      //  XXX FIXME write this writev fallback otherwise
     }
 
     //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
@@ -788,7 +776,7 @@ int main(int argc, char **argv)
 	else
 	  continue;
 
-      if(FD_ISSET(d_clientsock,&readfds)) { // do we have a question response?
+      if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response?
 	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
 	if(d_len<0) 
 	  continue;
@@ -810,7 +798,6 @@ int main(int argc, char **argv)
 	catch(MOADNSException& mde) {
 	  L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
 	}
-
       }
       
       for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
@@ -840,7 +827,7 @@ int main(int argc, char **argv)
       }
 
       for(tcpserversocks_t::const_iterator i=s_tcpserversocks.begin(); i!=s_tcpserversocks.end(); ++i) { 
-	if(FD_ISSET(*i ,&readfds)) { // do we have a new TCP connection
+	if(FD_ISSET(*i ,&readfds)) { // do we have a new TCP connection?
 	  struct sockaddr_in addr;
 	  socklen_t addrlen=sizeof(addr);
 	  int newsock=accept(*i, (struct sockaddr*)&addr, &addrlen);
@@ -857,6 +844,7 @@ int main(int argc, char **argv)
 	}
       }
 
+      // have any question answers come in over TCP?
       for(map<int,PacketID>::iterator i=d_tcpclientreadsocks.begin(); i!=d_tcpclientreadsocks.end();) { 
 	bool haveErased=false;
 	if(FD_ISSET(i->first, &readfds)) { // can we receive
@@ -888,7 +876,8 @@ int main(int argc, char **argv)
 	if(!haveErased)
 	  ++i;
       }
-
+      
+      // is there data we can send to remote nameservers over TCP?
       for(map<int,PacketID>::iterator i=d_tcpclientwritesocks.begin(); i!=d_tcpclientwritesocks.end(); ) { 
 	bool haveErased=false;
 	if(FD_ISSET(i->first, &writefds)) { // can we send over TCP
@@ -899,10 +888,9 @@ int main(int argc, char **argv)
 	    if(i->second.outPos==i->second.outMSG.size()) {
 	      // cerr<<"Sent out entire load of "<<i->second.outMSG.size()<<" bytes"<<endl;
 	      PacketID pid=i->second;
-	      d_tcpclientwritesocks.erase((i++));
-	      MT->sendEvent(pid, 0);
+	      d_tcpclientwritesocks.erase(i++);   // erase!
 	      haveErased=true;
-	      // cerr<<"Sent event too"<<endl;
+	      MT->sendEvent(pid, 0);
 	    }
 
 	  }
@@ -914,8 +902,8 @@ int main(int argc, char **argv)
 	if(!haveErased)
 	  ++i;
       }
-
-
+      
+      // very braindead TCP incoming question parser
       for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
 	if(FD_ISSET(i->fd, &readfds)) {
 	  if(i->state==TCPConnection::BYTE0) {

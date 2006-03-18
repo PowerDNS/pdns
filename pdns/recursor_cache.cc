@@ -157,7 +157,6 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
 
 void MemRecursorCache::doPrune(void)
 {
-  unsigned int names=0;
   uint32_t now=(uint32_t)time(0);
 
 //  cout<<"Going to prune!\n";
@@ -179,7 +178,6 @@ void MemRecursorCache::doPrune(void)
 //      cout<<"Looking at '"<<j->d_name<<"', "<<now - j->getTTD()<<" seconds overdue!\n";
     looked++;
     if(j->d_records.size()==1) {
-//      ttdindex.erase(j++);
       j++;
       quickZonk++;
       continue;
@@ -192,7 +190,6 @@ void MemRecursorCache::doPrune(void)
 
     if(ce.d_records.empty()) { // everything is gone
 //      cout<<"Zonked it entirely!\n";
-//      ttdindex.erase(j++);
       j++;
       fullZonk++;
     }
@@ -211,8 +208,8 @@ void MemRecursorCache::doPrune(void)
     }
   }
   
-//  cout<<"Walk took "<< dt.udiff()<<"usec\n";
-  dt.set();
+  //  cout<<"Walk took "<< dt.udiff()<<"usec\n";
+  //  dt.set();
   ttdindex.erase(ttdindex.begin(), j);
   //  cout<<"Erase took "<< dt.udiff()<<" usec, looked: "<<looked<<", quick: "<<quickZonk<<", full: ";
   //  cout<<fullZonk<<", partial: "<<partialZonk<<", no: "<<noZonk<<"\n";
