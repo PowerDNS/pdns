@@ -48,8 +48,6 @@
 #include "zoneparser-tng.hh"
 using namespace boost;
 
-
-
 #ifdef __FreeBSD__           // see cvstrac ticket #26
 #include <pthread.h>
 #include <semaphore.h>
