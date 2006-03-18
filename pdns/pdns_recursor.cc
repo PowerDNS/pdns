@@ -46,7 +46,9 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "zoneparser-tng.hh"
-using namespace boost;
+#include "rec_channel.hh"
+
+// using namespace boost;
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
 #include <pthread.h>
@@ -54,7 +56,8 @@ using namespace boost;
 #endif
 
 MemRecursorCache RC;
-
+RecursorStats g_stats;
+bool g_quiet;
 string s_programname="pdns_recursor";
 
 struct DNSComboWriter {
@@ -113,31 +116,6 @@ static vector<int> d_udpserversocks;
 
 typedef vector<int> tcpserversocks_t;
 static tcpserversocks_t s_tcpserversocks;
-
-struct PacketID
-{
-  PacketID() : sock(0), inNeeded(0), outPos(0)
-  {}
-
-  uint16_t id;  // wait for a specific id/remote pair
-  struct sockaddr_in remote;  // this is the remote
-
-  Socket* sock;  // or wait for an event on a TCP fd
-  int inNeeded; // if this is set, we'll read until inNeeded bytes are read
-  string inMSG; // they'll go here
-
-  string outMSG; // the outgoing message that needs to be sent
-  string::size_type outPos;    // how far we are along in the outMSG
-
-  bool operator<(const PacketID& b) const
-  {
-    int ourSock= sock ? sock->getHandle() : 0;
-    int bSock = b.sock ? b.sock->getHandle() : 0;
-    return 
-      tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) <
-      tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock);
-  }
-};
 
 static map<int,PacketID> d_tcpclientreadsocks, d_tcpclientwritesocks;
 
@@ -260,7 +238,6 @@ void primeHints(void)
 void startDoResolve(void *p)
 {
   try {
-    bool quiet=::arg().mustDo("quiet");
     DNSComboWriter* dc=(DNSComboWriter *)p;
 
     uint16_t maxudpsize=512;
@@ -282,7 +259,7 @@ void startDoResolve(void *p)
 
     //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
     SyncRes sr;
-    if(!quiet)
+    if(!g_quiet)
       L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
 
@@ -291,10 +268,21 @@ void startDoResolve(void *p)
       sr.setCacheOnly();
 
     int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret);
-    if(res<0)
+    if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
+      g_stats.servFails++;
+    }
     else {
       pw.getHeader()->rcode=res;
+      switch(res) {
+      case RCode::NXDomain:
+	g_stats.nxDomains++;
+	break;
+      case RCode::NoError:
+	g_stats.noErrors++;
+	break;
+      }
+      
       if(ret.size()) {
 	shuffle(ret);
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
@@ -333,7 +321,7 @@ void startDoResolve(void *p)
     }
 
     //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
-    if(!quiet) {
+    if(!g_quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
@@ -351,6 +339,13 @@ void startDoResolve(void *p)
   catch(...) {
     L<<Logger::Error<<"Any other exception in a resolver context"<<endl;
   }
+}
+
+RecursorControlChannel s_rcc;
+
+void makeControlChannelSocket()
+{
+  s_rcc.listen("pdns_recursor.controlsocket");
 }
 
 void makeClientSocket()
@@ -472,8 +467,9 @@ void daemonize(void)
 }
 #endif
 
-int counter, qcounter;
+uint64_t counter, qcounter;
 bool statsWanted;
+
 
 void usr1Handler(int)
 {
@@ -483,6 +479,8 @@ void usr1Handler(int)
 void usr2Handler(int)
 {
   SyncRes::setLog(true);
+  g_quiet=false;
+  ::arg().set("quiet")="no";
 }
 
 void doStats(void)
@@ -657,12 +655,13 @@ int main(int argc, char **argv)
   if(::arg().mustDo("trace")) {
       SyncRes::setLog(true);
       ::arg().set("quiet")="no";
-      
+      g_quiet=false;
   }
     makeClientSocket();
     makeUDPServerSockets();
     makeTCPServerSockets();
-        
+    makeControlChannelSocket();
+    
     MT=new MTasker<PacketID,string>(100000);
 
     char data[1500];
@@ -725,7 +724,8 @@ int main(int argc, char **argv)
       FD_ZERO( &readfds );
       FD_ZERO( &writefds );
       FD_SET( d_clientsock, &readfds );
-      int fdmax=d_clientsock;
+      FD_SET( s_rcc.d_fd, &readfds);
+      int fdmax=max(d_clientsock, s_rcc.d_fd);
 
       if(!tcpconnections.empty())
 	now=time(0);
@@ -773,6 +773,13 @@ int main(int argc, char **argv)
 	  throw AhuException("Select returned: "+stringerror());
 	else
 	  continue;
+
+      if(FD_ISSET(s_rcc.d_fd, &readfds)) {
+	string remote;
+	string msg=s_rcc.recv(&remote);
+	RecursorControlParser rcp;
+	s_rcc.send(rcp.getAnswer(msg), &remote);
+      }
 
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response?
 	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
