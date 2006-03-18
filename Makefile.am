@@ -95,7 +95,8 @@ pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
-base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh
+base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
+rec_channel_rec.cc
 
 if NEDMALLOC
 pdns_recursor_SOURCES += ext/nedmalloc/malloc.c

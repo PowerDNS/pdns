@@ -12,7 +12,11 @@
 #include "misc.hh"
 #include "lwres.hh"
 #include <boost/utility.hpp>
+#include "sstuff.hh"
 #include "recursor_cache.hh"
+#include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+#include "mtasker.hh"
 
 /* external functions, opaque to us */
 
@@ -180,7 +184,8 @@ public:
   typedef map<string,DecayingEwma> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
 
-  static Throttle<string> s_throttle;
+  typedef Throttle<string> throttle_t;
+  static throttle_t s_throttle;
 private:
   struct GetBestNSAnswer;
   int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
@@ -225,4 +230,43 @@ private:
 class Socket;
 int asendtcp(const string& data, Socket* sock);
 int arecvtcp(string& data, int len, Socket* sock);
+
+
+struct PacketID
+{
+  PacketID() : sock(0), inNeeded(0), outPos(0)
+  {}
+
+  uint16_t id;  // wait for a specific id/remote pair
+  struct sockaddr_in remote;  // this is the remote
+
+  Socket* sock;  // or wait for an event on a TCP fd
+  int inNeeded; // if this is set, we'll read until inNeeded bytes are read
+  string inMSG; // they'll go here
+
+  string outMSG; // the outgoing message that needs to be sent
+  string::size_type outPos;    // how far we are along in the outMSG
+
+  bool operator<(const PacketID& b) const
+  {
+    int ourSock= sock ? sock->getHandle() : 0;
+    int bSock = b.sock ? b.sock->getHandle() : 0;
+    return 
+      tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) <
+      tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock);
+  }
+};
+
+extern MemRecursorCache RC;
+extern uint64_t qcounter;
+extern MTasker<PacketID,string>* MT;
+
+struct RecursorStats
+{
+  uint64_t servFails;
+  uint64_t nxDomains;
+  uint64_t noErrors;
+};
+
+extern RecursorStats g_stats;
 #endif
