@@ -652,11 +652,13 @@ int main(int argc, char **argv)
     "according to the terms of the GPL version 2."<<endl;
 
 
+  g_quiet=::arg().mustDo("quiet");
   if(::arg().mustDo("trace")) {
       SyncRes::setLog(true);
       ::arg().set("quiet")="no";
       g_quiet=false;
   }
+
     makeClientSocket();
     makeUDPServerSockets();
     makeTCPServerSockets();
