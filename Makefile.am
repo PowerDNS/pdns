@@ -12,11 +12,13 @@ sysconf_DATA = pdns.conf-dist
 
 if RECURSOR
 sbin_PROGRAMS = pdns_server pdns_recursor
+bin_PROGRAMS = pdns_control  rec_control
 else
 sbin_PROGRAMS = pdns_server 
+bin_PROGRAMS = pdns_control  
 endif
 
-bin_PROGRAMS = pdns_control  
+
 
 EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsreplay_mindex dnswasher dnsreplay 
 
@@ -87,11 +89,13 @@ dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 # INCLUDES=-I/usr/include/mysql
 
+rec_control_SOURCES=rec_channel.cc rec_channel.hh rec_control.cc
+
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc dnspacket.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh sillyrecords.cc syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
-base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh 
+base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh
 
 if NEDMALLOC
 pdns_recursor_SOURCES += ext/nedmalloc/malloc.c
