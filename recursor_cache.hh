@@ -52,7 +52,7 @@ private:
 
   struct predicate
   {
-    predicate(time_t limit) : d_limit(limit)
+    predicate(uint32_t limit) : d_limit(limit)
     {
     }
     
@@ -60,7 +60,7 @@ private:
     {
       return sr.d_ttd <= d_limit;
     }
-    time_t d_limit;
+    uint32_t d_limit;
   };
 
   //   typedef __gnu_cxx::hash_map<string, vector<StoredRecord> > cache_t;
@@ -74,6 +74,9 @@ private:
     records_t d_records;
     uint32_t getTTD() const
     {
+      if(d_records.size()==1)
+	return d_records.begin()->d_ttd;
+
       uint32_t earliest=numeric_limits<uint32_t>::max();
       for(records_t::const_iterator i=d_records.begin(); i != d_records.end(); ++i)
 	earliest=min(earliest, i->d_ttd);
