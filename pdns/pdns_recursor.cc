@@ -61,7 +61,7 @@ bool g_quiet;
 string s_programname="pdns_recursor";
 
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len) : d_mdp(data, len), d_tcp(false), d_socket(-1)
+  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
   void setRemote(struct sockaddr* sa, socklen_t len)
@@ -80,7 +80,7 @@ struct DNSComboWriter {
     return sockAddrToString((struct sockaddr_in *)d_remote, d_socklen);
   }
 
-
+  struct timeval d_now;
   char d_remote[sizeof(sockaddr_in6)];
   socklen_t d_socklen;
   bool d_tcp;
@@ -258,7 +258,7 @@ void startDoResolve(void *p)
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
 
     //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
-    SyncRes sr;
+    SyncRes sr(dc->d_now);
     if(!g_quiet)
       L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
@@ -476,11 +476,14 @@ void usr1Handler(int)
   statsWanted=true;
 }
 
+
+
 void usr2Handler(int)
 {
   SyncRes::setLog(true);
   g_quiet=false;
   ::arg().set("quiet")="no";
+
 }
 
 void doStats(void)
@@ -504,19 +507,21 @@ void doStats(void)
 static void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate, last_prune;
-  time_t now=time(0);
-  if(now - last_prune > 60) { 
+  struct timeval now;
+  gettimeofday(&now, 0);
+
+  if(now.tv_sec - last_prune > 60) { 
     RC.doPrune();
     int pruned=0;
     for(SyncRes::negcache_t::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
-      if(i->second.ttd > now) {
+      if(i->second.ttd > now.tv_sec) {
 	SyncRes::s_negcache.erase(i++);
 	pruned++;
       }
       else
 	++i;
 
-    time_t limit=now-300;
+    time_t limit=now.tv_sec-300;
     for(SyncRes::nsspeeds_t::iterator i = SyncRes::s_nsSpeeds.begin() ; i!= SyncRes::s_nsSpeeds.end(); )
       if(i->second.stale(limit))
 	SyncRes::s_nsSpeeds.erase(i++);
@@ -526,19 +531,19 @@ static void houseKeeping(void *)
     //    cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
     last_prune=time(0);
   }
-  if(now - last_stat>1800) { 
+  if(now.tv_sec - last_stat>1800) { 
     doStats();
     last_stat=time(0);
   }
-  if(now -last_rootupdate>7200) {
-    SyncRes sr;
+  if(now.tv_sec -last_rootupdate>7200) {
+    SyncRes sr(now);
     vector<DNSResourceRecord> ret;
 
     sr.setNoCache();
     int res=sr.beginResolve("", QType(QType::NS), ret);
     if(!res) {
       L<<Logger::Error<<"Refreshed . records"<<endl;
-      last_rootupdate=now;
+      last_rootupdate=now.tv_sec;
     }
     else
       L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
@@ -557,34 +562,49 @@ struct TCPConnection
 };
 
 #if 0
-
 #include <execinfo.h>
 
-static void maketrace()
+  multimap<uint32_t,string> rev;
+  for(map<string,uint32_t>::const_iterator i=casesptr->begin(); i!=casesptr->end(); ++i) {
+    rev.insert(make_pair(i->second,i->first));
+  }
+  for(multimap<uint32_t,string>::const_iterator i=rev.begin(); i!= rev.end(); ++i) 
+    cout<<i->first<<" times: \n"<<i->second<<"\n";
+
+  cout.flush();
+
+map<string,uint32_t>* casesptr;
+static string maketrace()
 {
   void *array[20]; //only care about last 17 functions (3 taken with tracing support)
   size_t size;
   char **strings;
   size_t i;
 
-  size = backtrace (array, 20);
+  size = backtrace (array, 5);
   strings = backtrace_symbols (array, size); //Need -rdynamic gcc (linker) flag for this to work
 
+  string ret;
+
   for (i = 0; i < size; i++) //skip useless functions
-    cout<<strings[i]<<"\n";
-  cout<<"--"<<endl;
+    ret+=string(strings[i])+"\n";
+  return ret;
 }
 
 extern "C" {
+
 int gettimeofday (struct timeval *__restrict __tv,
 		  __timezone_ptr_t __tz)
 {
-  maketrace();
+  static map<string, uint32_t> s_cases;
+  casesptr=&s_cases;
+  s_cases[maketrace()]++;
+  __tv->tv_sec=time(0);
   return 0;
 }
 
 }
-#endif 
+#endif
 
 int main(int argc, char **argv) 
 {
@@ -703,13 +723,13 @@ int main(int argc, char **argv)
 
     vector<TCPConnection> tcpconnections;
     counter=0;
-    time_t now=0;
+    struct timeval now;
     unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
     int tcpLimit=::arg().asNum("client-tcp-timeout");
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
       
-      if(!((counter++)%100)) 
+      if(!((counter++)%500)) 
 	MT->makeThread(houseKeeping,0,"housekeeping");
       if(statsWanted) {
 	doStats();
@@ -730,12 +750,12 @@ int main(int argc, char **argv)
       int fdmax=max(d_clientsock, s_rcc.d_fd);
 
       if(!tcpconnections.empty())
-	now=time(0);
+	gettimeofday(&now, 0);
 
       vector<TCPConnection> sweeped;
 
       for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
-	if(now < i->startTime + tcpLimit) {
+	if(now.tv_sec < i->startTime + tcpLimit) {
 	  FD_SET(i->fd, &readfds);
 	  fdmax=max(fdmax,i->fd);
 	  sweeped.push_back(*i);
@@ -770,6 +790,7 @@ int main(int argc, char **argv)
       }
 
       int selret = select(  fdmax + 1, &readfds, &writefds, NULL, &tv );
+      gettimeofday(&now, 0);
       if(selret<=0) 
 	if (selret == -1 && errno!=EINTR) 
 	  throw AhuException("Select returned: "+stringerror());
@@ -789,7 +810,7 @@ int main(int argc, char **argv)
 	  continue;
 
 	try {
-	  DNSComboWriter dc(data, d_len);
+	  DNSComboWriter dc(data, d_len, now);
 	  dc.setRemote((struct sockaddr *)&fromaddr, addrlen);
 
 	  if(dc.d_mdp.d_header.qr) {
@@ -813,8 +834,10 @@ int main(int argc, char **argv)
 	  if(d_len<0) 
 	    continue;
 
+	  g_stats.queryrate.pulse(now);
+
 	  try {
-	    DNSComboWriter* dc = new DNSComboWriter(data, d_len);
+	    DNSComboWriter* dc = new DNSComboWriter(data, d_len, now);
 
 	    dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
 
@@ -845,7 +868,7 @@ int main(int argc, char **argv)
 	    tc.fd=newsock;
 	    tc.state=TCPConnection::BYTE0;
 	    tc.remote=addr;
-	    tc.startTime=time(0);
+	    tc.startTime=now.tv_sec;
 	    tcpconnections.push_back(tc);
 	  }
 	}
@@ -956,7 +979,7 @@ int main(int argc, char **argv)
 	      i->state=TCPConnection::BYTE0;
 	      DNSComboWriter* dc=0;
 	      try {
-		dc=new DNSComboWriter(i->data, i->qlen);
+		dc=new DNSComboWriter(i->data, i->qlen, now);
 	      }
 	      catch(MOADNSException &mde) {
 		L<<Logger::Error<<"Unparseable packet from remote client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
