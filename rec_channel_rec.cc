@@ -7,10 +7,10 @@
 #include "syncres.hh"
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
+#include <boost/tuple/tuple.hpp>
 
 using namespace std;
 using namespace boost;
-
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
 map<string, function< uint32_t() > >  d_get32bitmembers;
@@ -61,12 +61,21 @@ string doGet(T begin, T end)
   return ret;
 }
 
+uint32_t getQueryRate()
+{
+  struct timeval now;
+  gettimeofday(&now, 0);
+  optional<float> delay=g_stats.queryrate.get(now, 10);
+  if(delay)
+    return 1000000/(*delay);
+  else
+    return 0;
+}
+
 RecursorControlParser::RecursorControlParser()
 {
   extern uint64_t qcounter;
   addGetStat("questions", &qcounter);
-
-
 
   addGetStat("cache-entries", bind(&MemRecursorCache::size, ref(RC)));
   addGetStat("servfail-answers", &g_stats.servFails);
@@ -83,6 +92,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
 
+  addGetStat("query-rate", getQueryRate);
 }
 
 string RecursorControlParser::getAnswer(const string& question)
