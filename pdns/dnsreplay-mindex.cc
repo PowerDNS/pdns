@@ -66,35 +66,6 @@ StatBag S;
 bool s_quiet=true;
 
 
-void normalizeTV(struct timeval& tv)
-{
-  if(tv.tv_usec > 1000000) {
-    ++tv.tv_sec;
-    tv.tv_usec-=1000000;
-  }
-  else if(tv.tv_usec < 0) {
-    --tv.tv_sec;
-    tv.tv_usec+=1000000;
-  }
-}
-
-const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs)
-{
-  struct timeval ret;
-  ret.tv_sec=lhs.tv_sec + rhs.tv_sec;
-  ret.tv_usec=lhs.tv_usec + rhs.tv_usec;
-  normalizeTV(ret);
-  return ret;
-}
-
-const struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs)
-{
-  struct timeval ret;
-  ret.tv_sec=lhs.tv_sec - rhs.tv_sec;
-  ret.tv_usec=lhs.tv_usec - rhs.tv_usec;
-  normalizeTV(ret);
-  return ret;
-}
 
 const struct timeval operator*(int fact, const struct timeval& rhs)
 {

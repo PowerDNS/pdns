@@ -137,6 +137,14 @@ public:
   time_t time();
   inline void set();  //!< Reset the timer
   inline int udiff(); //!< Return the number of microseconds since the timer was last set.
+  void setTimeval(const struct timeval& tv)
+  {
+    d_set=tv;
+  }
+  struct timeval getTimeval()
+  {
+    return d_set;
+  }
 private:
   struct timeval d_set;
 };
@@ -231,4 +239,12 @@ inline void unixDie(const string &why)
 
 string makeHexDump(const string& str);
 void shuffle(vector<DNSResourceRecord>& rrs);
+
+void normalizeTV(struct timeval& tv);
+const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);
+const struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs);
+inline float makeFloat(const struct timeval& tv)
+{
+  return tv.tv_sec + tv.tv_usec/1000000.0;
+}
 #endif
