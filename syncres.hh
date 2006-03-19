@@ -15,6 +15,7 @@
 #include "sstuff.hh"
 #include "recursor_cache.hh"
 #include <boost/tuple/tuple.hpp>
+#include <boost/optional.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 
@@ -96,38 +97,48 @@ private:
 class DecayingEwma
 {
 public:
-  DecayingEwma() : d_last(getTime()) , d_lastget(d_last),  d_val(0.0) {
-
+  DecayingEwma() :  d_val(0.0) 
+  {
+    d_needinit=true;
+    d_lastget=d_last;
   }
 
-  DecayingEwma(const DecayingEwma& orig) : d_last(orig.d_last), d_lastget(orig.d_lastget), d_val(orig.d_val)
+  DecayingEwma(const DecayingEwma& orig) : d_last(orig.d_last),  d_lastget(orig.d_lastget), d_val(orig.d_val), d_needinit(orig.d_needinit)
   {
+  }
 
+  struct timeval getOrMakeTime(struct timeval* tv)
+  {
+    if(tv)
+      return *tv;
+    else {
+      struct timeval ret;
+      gettimeofday(&ret, 0);
+      return ret;
+    }
   }
 
   void submit(int val, struct timeval*tv = 0)
   {
-    float now;
-    if(tv)
-      now=tv->tv_sec + tv->tv_usec/1000000.0;
-    else
-      now=getTime();
+    struct timeval now=getOrMakeTime(tv);
 
-    float diff=d_last-now;
+    if(d_needinit) {
+      d_last=now;
+      d_needinit=false;
+    }
+
+    float diff= makeFloat(d_last - now);
+
     d_last=now;
-    float factor=exp(diff)/2.0; // might be '0.5', or 0.0001
+    double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
     d_val=(1-factor)*val+ factor*d_val; 
   }
 
-  float get(struct timeval*tv = 0)
-  {
-    float now;
-    if(tv)
-      now=tv->tv_sec + tv->tv_usec/1000000.0;
-    else
-      now=getTime();
 
-    float diff=d_lastget-now;
+  double get(struct timeval*tv = 0)
+  {
+    struct timeval now=getOrMakeTime(tv);
+    float diff=makeFloat(d_lastget-now);
     d_lastget=now;
     float factor=exp(diff/60.0); // is 1.0 or less
     return d_val*=factor;
@@ -135,13 +146,62 @@ public:
 
   bool stale(time_t limit) 
   {
-    return limit > d_lastget;
+    return limit > d_lastget.tv_sec;
   }
 
 private:
   DecayingEwma& operator=(const DecayingEwma&);
-  float d_last;
-  float d_lastget;
+  struct timeval d_last;          // stores time
+  struct timeval d_lastget;       // stores time
+  float d_val;
+  bool d_needinit;
+};
+
+
+class PulseRate
+{
+public:
+  PulseRate() :  d_val(0.0) 
+  {
+    gettimeofday(&d_last, 0);
+  }
+
+  PulseRate(const PulseRate& orig) : d_last(orig.d_last), d_val(orig.d_val)
+  {
+  }
+
+  void pulse(const struct timeval& now)
+  {
+    //    cout<<"about to submit: "<< 1000.0*makeFloat(now - d_last)<<"\n";
+    submit((int)(1000.0*(makeFloat(now-d_last))), now);
+  }
+
+  optional<float> get(struct timeval& now, unsigned int limit) const
+  {
+    optional<float> ret;
+    float diff=makeFloat(now - d_last);
+    if(diff < limit)
+      ret=d_val;
+    return ret;
+  }
+
+  bool stale(time_t limit) 
+  {
+    return limit > d_last.tv_sec;
+  }
+
+private:
+  void submit(int val, const struct timeval& now)
+  {
+    float diff= makeFloat(d_last - now);
+
+    d_last=now;
+    double factor=exp(diff/2.0)/2.0; // might be '0.5', or 0.0001
+    d_val=(1-factor)*val+ factor*d_val; 
+  }
+
+  PulseRate& operator=(const PulseRate&);
+  struct timeval d_last;          // stores time
   float d_val;
 };
 
@@ -149,7 +209,8 @@ private:
 class SyncRes
 {
 public:
-  SyncRes() : d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_cacheonly(false), d_nocache(false) { gettimeofday(&d_now, 0); }
+  explicit SyncRes(const struct timeval& now) : d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), 
+						d_cacheonly(false), d_nocache(false), d_now(now) { }
   int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -266,6 +327,7 @@ struct RecursorStats
   uint64_t servFails;
   uint64_t nxDomains;
   uint64_t noErrors;
+  PulseRate queryrate;
 };
 
 extern RecursorStats g_stats;
