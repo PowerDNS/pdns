@@ -328,6 +328,18 @@ void startDoResolve(void *p)
     }
     
     sr.d_outqueries ? RC.cacheMisses++ : RC.cacheHits++; 
+    float spent=makeFloat(sr.d_now-dc->d_now);
+    if(spent < 0.001)
+      g_stats.answers0_1++;
+    else if(spent < 0.010)
+      g_stats.answers1_10++;
+    else if(spent < 0.1)
+      g_stats.answers10_100++;
+    else if(spent < 1.0)
+      g_stats.answers100_1000++;
+    else
+      g_stats.answersSlow++;
+
     delete dc;
   }
   catch(AhuException &ae) {

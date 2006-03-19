@@ -209,8 +209,8 @@ private:
 class SyncRes
 {
 public:
-  explicit SyncRes(const struct timeval& now) : d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), 
-						d_cacheonly(false), d_nocache(false), d_now(now) { }
+  explicit SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_now(now),
+						d_cacheonly(false), d_nocache(false) { }
   int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -247,6 +247,7 @@ public:
 
   typedef Throttle<string> throttle_t;
   static throttle_t s_throttle;
+  struct timeval d_now;
 private:
   struct GetBestNSAnswer;
   int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
@@ -265,13 +266,14 @@ private:
 
   SyncRes(const SyncRes&);
   SyncRes& operator=(const SyncRes&);
+
+
 private:
   string d_prefix;
   static bool s_log;
   bool d_cacheonly;
   bool d_nocache;
   LWRes d_lwr;
-  struct timeval d_now;
 
   struct GetBestNSAnswer
   {
@@ -328,6 +330,7 @@ struct RecursorStats
   uint64_t nxDomains;
   uint64_t noErrors;
   PulseRate queryrate;
+  uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
 };
 
 extern RecursorStats g_stats;
