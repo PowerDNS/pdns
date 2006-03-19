@@ -407,7 +407,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	    d_tcpoutqueries++;
 	  }
 	  
-	  int ret=d_lwr.asyncresolve(*remoteIP, qname.c_str(), qtype.getCode(), doTCP);    // <- we go out on the wire!
+	  int ret=d_lwr.asyncresolve(*remoteIP, qname.c_str(), qtype.getCode(), doTCP, &d_now);    // <- we go out on the wire!
 	  if(ret != 1) {
 	    if(ret==0) {
 	      LOG<<prefix<<qname<<": timeout resolving"<<endl;
@@ -422,7 +422,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	    s_throttle.throttle(d_now.tv_sec, *remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
 	    continue;
 	  }
-	  gettimeofday(&d_now, 0);
+	  
 	  break; // it did work!
 	}
       }
