@@ -25,7 +25,7 @@
     support for waiting on events which can return values.
 
     \section copyright Copyright and License
-    MTasker is (c) 2002 - 2005 by bert hubert. It is licensed to you under the terms of the GPL version 2.
+    MTasker is (c) 2002 - 2006 by bert hubert. It is licensed to you under the terms of the GPL version 2.
 
     \section overview High level overview
     MTasker is designed to support very simple cooperative multitasking to facilitate writing 
@@ -167,7 +167,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 
   Waiter w;
   w.context=new ucontext_t;
-  w.ttd= timeout ? time(0)+timeout : 0;
+  w.ttd= timeout ? (time(0)+timeout) : 0;
   w.tid=d_tid;
   
   w.key=key;
