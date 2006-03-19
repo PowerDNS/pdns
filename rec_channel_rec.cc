@@ -77,6 +77,9 @@ RecursorControlParser::RecursorControlParser()
   extern uint64_t qcounter;
   addGetStat("questions", &qcounter);
 
+  addGetStat("cache-hits", &RC.cacheHits);
+  addGetStat("cache-misses", &RC.cacheMisses);
+
   addGetStat("cache-entries", bind(&MemRecursorCache::size, ref(RC)));
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
@@ -91,6 +94,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
+  addGetStat("throttled-out", &SyncRes::s_throttledqueries);
 
   addGetStat("query-rate", getQueryRate);
 }
