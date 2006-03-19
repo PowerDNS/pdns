@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 TSTAMP=$(date +%s)
-cd ..
+cd ../..
 
 VARIABLES="questions cache-entries concurrent-queries\
 	   nxdomain-answers noerror-answers\
