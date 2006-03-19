@@ -1,0 +1,87 @@
+#!/bin/sh
+WWWPREFIX=/var/www/
+WSIZE=800
+HSIZE=250
+
+function makeGraphs()
+{
+  rrdtool graph --start -$1 $WWWPREFIX/questions-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "Queries and answer counts per second" \
+	-v "packets" \
+	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
+        DEF:nxdomainanswers=pdns_recursor.rrd:nxdomain-answers:AVERAGE \
+        DEF:noerroranswers=pdns_recursor.rrd:noerror-answers:AVERAGE \
+        DEF:servfailanswers=pdns_recursor.rrd:servfail-answers:AVERAGE \
+        LINE2:questions#0000ff:"questions/s"\
+        AREA:noerroranswers#00ff00:"noerror answers/s"  \
+        STACK:nxdomainanswers#ffa500:"nxdomain answers/s"\
+        STACK:servfailanswers#ff0000:"servfail answers/s"
+
+  rrdtool graph --start -$1 $WWWPREFIX/latencies-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "Questions answered within latency" \
+	-v "questions" \
+	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
+        DEF:answers01=pdns_recursor.rrd:answers0-1:AVERAGE \
+        DEF:answers110=pdns_recursor.rrd:answers1-10:AVERAGE \
+        DEF:answers10100=pdns_recursor.rrd:answers10-100:AVERAGE \
+        DEF:answers1001000=pdns_recursor.rrd:answers100-1000:AVERAGE \
+        DEF:answersslow=pdns_recursor.rrd:answers-slow:AVERAGE \
+        LINE2:questions#0000ff:"questions/s" \
+        AREA:answers01#00ff00:"<1 ms" \
+        STACK:answers110#0000ff:"<10 ms" \
+        STACK:answers10100#00ffff:"<100 ms" \
+        STACK:answers1001000#ffff00:"<1000 ms" \
+        STACK:answersslow#ff0000:">1000 ms"       
+
+  rrdtool graph --start -$1 $WWWPREFIX/qoutq-$2.png -w $WSIZE -h $HSIZE -l 0 \
+	-t "Queries/outqueries counts per second" \
+	-v "packets" \
+	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
+        DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE \
+        LINE2:questions#ff0000:"questions/s"\
+        LINE2:alloutqueries#00ff00:"outqueries/s"
+
+  rrdtool graph --start -$1 $WWWPREFIX/timeouts-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "Outqueries/timeouts counts per second" \
+	-v "events" \
+	DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE  \
+        DEF:outgoingtimeouts=pdns_recursor.rrd:outgoing-timeouts:AVERAGE \
+        DEF:throttledout=pdns_recursor.rrd:throttled-out:AVERAGE \
+        LINE2:alloutqueries#ff0000:"outqueries/s"\
+        LINE2:outgoingtimeouts#00ff00:"outgoing timeouts/s"\
+        LINE2:throttledout#0000ff:"throttled outqueries/s"
+	
+
+  rrdtool graph --start -$1 $WWWPREFIX/caches-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "Cache sizes" \
+	-v "entries" \
+	DEF:cacheentries=pdns_recursor.rrd:cache-entries:AVERAGE  \
+	DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
+	DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
+        LINE2:cacheentries#ff0000:"cache entries" \
+        LINE2:negcacheentries#0000ff:"negative cache entries" \
+        LINE2:nsspeedsentries#00ff00:"NS speeds entries"
+        
+
+  rrdtool graph --start -$1 $WWWPREFIX/load-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-v "queries" \
+	-t "Concurrent queries" \
+	DEF:concurrentqueries=pdns_recursor.rrd:concurrent-queries:AVERAGE  \
+        LINE2:concurrentqueries#0000ff:"concurrent queries"
+        
+  rrdtool graph --start -$1 $WWWPREFIX/hitrate-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-v "percentage" -U % \
+	-t "cache hits" \
+	DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
+	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
+	CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/    \
+        LINE2:perc#0000ff:"percentage cache hits"        
+}
+	
+makeGraphs 6h 6h
+makeGraphs 24h day
+makeGraphs 7d week
+makeGraphs 1m month
+makeGraphs 1y year
+
+

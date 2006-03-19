@@ -1,0 +1,23 @@
+rrdtool create pdns_recursor.rrd -s 60 \
+DS:questions:COUNTER:600:0:100000 \
+DS:cache-entries:GAUGE:600:0:U \
+DS:concurrent-queries:GAUGE:600:0:50000 \
+DS:noerror-answers:COUNTER:600:0:100000 \
+DS:nxdomain-answers:COUNTER:600:0:100000 \
+DS:servfail-answers:COUNTER:600:0:100000 \
+DS:tcp-outqueries:COUNTER:600:0:100000 \
+DS:outgoing-timeouts:COUNTER:600:0:100000 \
+DS:throttled-out:COUNTER:600:0:100000 \
+DS:nsspeeds-entries:GAUGE:600:0:U \
+DS:negcache-entries:GAUGE:600:0:U \
+DS:all-outqueries:COUNTER:600:0:100000 \
+DS:cache-hits:COUNTER:600:0:100000 \
+DS:cache-misses:COUNTER:600:0:100000 \
+DS:answers0-1:COUNTER:600:0:100000 \
+DS:answers1-10:COUNTER:600:0:100000 \
+DS:answers10-100:COUNTER:600:0:100000 \
+DS:answers100-1000:COUNTER:600:0:100000 \
+DS:answers-slow:COUNTER:600:0:100000 \
+	RRA:AVERAGE:0.5:1:9600  \
+	RRA:AVERAGE:0.5:4:9600 	\
+	RRA:AVERAGE:0.5:24:6000	\
