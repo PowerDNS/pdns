@@ -84,6 +84,13 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
+
+  addGetStat("answers0-1", &g_stats.answers0_1);
+  addGetStat("answers1-10", &g_stats.answers1_10);
+  addGetStat("answers10-100", &g_stats.answers10_100);
+  addGetStat("answers100-1000", &g_stats.answers100_1000);
+  addGetStat("answers-slow", &g_stats.answersSlow);
+
   addGetStat("all-questions", &qcounter);
   addGetStat("negcache-entries", bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
   addGetStat("throttle-entries", bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));

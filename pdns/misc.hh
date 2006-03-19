@@ -160,10 +160,11 @@ inline void DTime::set()
 inline int DTime::udiff()
 {
   struct timeval now;
-  // Utility::
-  gettimeofday(&now,0);
 
-  return 1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
+  gettimeofday(&now,0);
+  int ret=1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
+  d_set=now;
+  return ret;
 }
 
 inline bool dns_isspace(char c)
