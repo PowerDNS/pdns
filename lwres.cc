@@ -57,7 +57,7 @@ LWRes::~LWRes()
 
 //! returns -1 for permanent error, 0 for timeout, 1 for success
 /** Never throws! */
-int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doTCP)
+int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doTCP, struct timeval* now)
 {
   vector<uint8_t> vpacket;
   DNSPacketWriter pw(vpacket, domain, type);
@@ -81,7 +81,7 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
   int ret;
 
   DTime dt;
-  dt.set();
+  dt.setTimeval(*now);
 
   if(!doTCP) {
     if(asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, (struct sockaddr*)(&toaddr), sizeof(toaddr), pw.getHeader()->id)<0) {
@@ -133,7 +133,7 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
     ret=1;
   }
   d_usec=dt.udiff();
-    
+  *now=dt.getTimeval();
   return ret;
 }
 
