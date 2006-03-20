@@ -29,7 +29,7 @@ public:
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
   void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
   void doPrune(void);
-  int cacheHits, cacheMisses;
+  uint64_t cacheHits, cacheMisses;
 
 private:
   struct StoredRecord

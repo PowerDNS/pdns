@@ -275,6 +275,9 @@ void startDoResolve(void *p)
     else {
       pw.getHeader()->rcode=res;
       switch(res) {
+      case RCode::ServFail:
+	g_stats.servFails++;
+	break;
       case RCode::NXDomain:
 	g_stats.nxDomains++;
 	break;
@@ -523,6 +526,8 @@ static void houseKeeping(void *)
   gettimeofday(&now, 0);
 
   if(now.tv_sec - last_prune > 60) { 
+    DTime dt;
+    dt.setTimeval(now);
     RC.doPrune();
     int pruned=0;
     for(SyncRes::negcache_t::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
@@ -541,6 +546,7 @@ static void houseKeeping(void *)
 	++i;
 
     //    cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
+//    cout<<"Prune took "<<dt.udiff()<<"usec\n";
     last_prune=time(0);
   }
   if(now.tv_sec - last_stat>1800) { 
