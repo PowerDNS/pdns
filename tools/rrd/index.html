@@ -1,0 +1,45 @@
+<html>
+<body>
+<!--
+-rw-r--r--  1 ahu ahu 12918 2006-03-18 23:51 /var/www/caches-day.png
+-rw-r--r--  1 ahu ahu 13174 2006-03-18 23:51 /var/www/load-day.png
+-rw-r--r--  1 ahu ahu 12728 2006-03-18 23:51 /var/www/qoutq-day.png
+-rw-r--r--  1 ahu ahu 12939 2006-03-18 23:51 /var/www/questions-day.png
+-rw-r--r--  1 ahu ahu 12913 2006-03-18 23:51 /var/www/timeouts-day.png
+-->
+<h1>PowerDNS Recursor Performance Graphs</H1>
+<table border=1>
+<tr><td>Questions</td><td>End-user initiated DNS questions</td></tr>
+<tr><td>Out-queries</td><td>Recursor initiated questions to other
+nameservers</td></tr>
+<tr><td>Throttled</td><td>If a certain nameserver is not responding, or if
+it is, but returning unuseful answers, the query can
+get prevented from happening and causing delay. This is called a 'throttled
+out-query'</td></tr>
+<tr><td>Outgoing timeout</td><td>An out-query that did not generate an
+answer within 1 or 2 seconds</td></tr>
+<tr><td>Noerror answer</td><td>A Question that was answered without an error
+status</td></tr>
+<tr><td>NXDOMAIN answer</td><td>A Question that was answered with a positive
+indication that there is no answer</td></tr>
+<tr><td>SERVFAIL answer</td><td>No answer could be given because the nameservers
+carrying the answer did not respond, or were throttled</td></tr>
+<tr><td>Cache hits/misses</td><td>A query is judged a cache-hit if it could
+be answered without generating any out-queries</td></tr>
+</table>
+<img src="latencies-day.png">
+<br>
+<img src="qoutq-day.png">
+<br>
+<img src="timeouts-day.png">
+<br>
+<img src="questions-day.png">
+<br>
+<img src="caches-day.png">
+<br>
+<img src="load-day.png">
+<br>
+<img src="hitrate-day.png">
+
+</body>
+</html>

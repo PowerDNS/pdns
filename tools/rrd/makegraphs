@@ -6,7 +6,7 @@ HSIZE=250
 function makeGraphs()
 {
   rrdtool graph --start -$1 $WWWPREFIX/questions-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Queries and answer counts per second" \
+	-t "Question and answer counts per second" \
 	-v "packets" \
 	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
         DEF:nxdomainanswers=pdns_recursor.rrd:nxdomain-answers:AVERAGE \
@@ -34,7 +34,7 @@ function makeGraphs()
         STACK:answersslow#ff0000:">1000 ms"       
 
   rrdtool graph --start -$1 $WWWPREFIX/qoutq-$2.png -w $WSIZE -h $HSIZE -l 0 \
-	-t "Queries/outqueries counts per second" \
+	-t "Questions/outqueries counts per second" \
 	-v "packets" \
 	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
         DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE \
@@ -64,7 +64,7 @@ function makeGraphs()
         
 
   rrdtool graph --start -$1 $WWWPREFIX/load-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-v "queries" \
+	-v "MThreads" \
 	-t "Concurrent queries" \
 	DEF:concurrentqueries=pdns_recursor.rrd:concurrent-queries:AVERAGE  \
         LINE2:concurrentqueries#0000ff:"concurrent queries"
@@ -80,8 +80,8 @@ function makeGraphs()
 	
 makeGraphs 6h 6h
 makeGraphs 24h day
-makeGraphs 7d week
-makeGraphs 1m month
-makeGraphs 1y year
+#makeGraphs 7d week
+#makeGraphs 1m month
+#makeGraphs 1y year
 
 
