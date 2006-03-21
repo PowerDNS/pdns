@@ -1,5 +1,5 @@
-#!/bin/sh
-WWWPREFIX=/var/www/
+#!/bin/bash
+WWWPREFIX=. 
 WSIZE=800
 HSIZE=250
 
@@ -70,7 +70,7 @@ function makeGraphs()
         LINE2:concurrentqueries#0000ff:"concurrent queries"
         
   rrdtool graph --start -$1 $WWWPREFIX/hitrate-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-v "percentage" -U % \
+	-v "percentage" \
 	-t "cache hits" \
 	DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
 	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
