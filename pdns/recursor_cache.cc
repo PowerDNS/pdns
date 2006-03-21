@@ -60,7 +60,7 @@ unsigned int MemRecursorCache::size()
 {
   unsigned int ret=0;
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
-    ret+=i->d_name.size();
+    ret+=i->d_records.size();
   }
   return ret;
 }

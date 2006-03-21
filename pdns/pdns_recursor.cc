@@ -354,7 +354,8 @@ void startDoResolve(void *p)
       g_stats.answersSlow++;
 
     uint64_t newLat=(uint64_t)(spent*1000000);
-    g_stats.avgLatencyUsec=(1-0.0001)*g_stats.avgLatencyUsec + 0.0001*newLat;
+    if(newLat < 1000000)  // outliers of several minutes exist..
+      g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0.0001*newLat);
     delete dc;
   }
   catch(AhuException &ae) {
