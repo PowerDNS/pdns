@@ -599,7 +599,7 @@ try
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + 1*(now-then);
+    mental_time= mental_time + 3*(now-then);
   }
  out:;
 }

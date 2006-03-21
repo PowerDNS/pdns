@@ -343,6 +343,8 @@ void startDoResolve(void *p)
     else
       g_stats.answersSlow++;
 
+    uint64_t newLat=(uint64_t)(spent*1000000);
+    g_stats.avgLatencyUsec=0.01*g_stats.avgLatencyUsec + (1-0.01)*newLat;
     delete dc;
   }
   catch(AhuException &ae) {
