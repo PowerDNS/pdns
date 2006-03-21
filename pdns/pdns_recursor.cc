@@ -178,6 +178,16 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   return ret;
 }
 
+void setReceiveBuffer(int fd, uint32_t size)
+{
+  uint32_t psize;
+  socklen_t len;
+  getsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&psize, &len);
+  if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size)) < 0 )
+    L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<"\n";
+}
+
+
 static void writePid(void)
 {
   string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
@@ -344,7 +354,7 @@ void startDoResolve(void *p)
       g_stats.answersSlow++;
 
     uint64_t newLat=(uint64_t)(spent*1000000);
-    g_stats.avgLatencyUsec=0.01*g_stats.avgLatencyUsec + (1-0.01)*newLat;
+    g_stats.avgLatencyUsec=(1-0.0001)*g_stats.avgLatencyUsec + 0.0001*newLat;
     delete dc;
   }
   catch(AhuException &ae) {
@@ -370,7 +380,7 @@ void makeClientSocket()
   d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
   if(d_clientsock<0) 
     throw AhuException("Making a socket for resolver: "+stringerror());
-  
+  setReceiveBuffer(d_clientsock, 250000);  
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
   
@@ -392,6 +402,7 @@ void makeClientSocket()
     throw AhuException("Resolver binding to local socket: "+stringerror());
 
   Utility::setNonBlocking(d_clientsock);
+
   L<<Logger::Error<<"Sending UDP queries from "<<inet_ntoa(sin.sin_addr)<<":"<< ntohs(sin.sin_port)  <<endl;
 }
 
@@ -449,7 +460,7 @@ void makeUDPServerSockets()
     int fd=socket(AF_INET, SOCK_DGRAM,0);
     if(fd<0) 
       throw AhuException("Making a server socket for resolver: "+stringerror());
-  
+    setReceiveBuffer(fd, 250000);
     struct sockaddr_in sin;
     memset((char *)&sin,0, sizeof(sin));
     
