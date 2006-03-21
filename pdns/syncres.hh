@@ -331,6 +331,7 @@ struct RecursorStats
   uint64_t noErrors;
   PulseRate queryrate;
   uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
+  uint64_t avgLatencyUsec;
 };
 
 extern RecursorStats g_stats;

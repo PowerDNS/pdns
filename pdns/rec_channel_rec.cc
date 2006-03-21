@@ -91,6 +91,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
+  addGetStat("qa-latency", &g_stats.avgLatencyUsec);
+
   addGetStat("all-questions", &qcounter);
   addGetStat("negcache-entries", bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
   addGetStat("throttle-entries", bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
