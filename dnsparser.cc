@@ -126,8 +126,8 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
 DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, 
 					       PacketReader& pr)
 {
-  typemap_t::const_iterator i=typemap.find(make_pair(dr.d_class, dr.d_type));
-  if(i==typemap.end() || !i->second) {
+  typemap_t::const_iterator i=getTypemap().find(make_pair(dr.d_class, dr.d_type));
+  if(i==getTypemap().end() || !i->second) {
     return new UnknownRecordContent(dr, pr);
   }
 
@@ -137,8 +137,8 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr,
 DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
 					       const string& content)
 {
-  zmakermap_t::const_iterator i=zmakermap.find(make_pair(qclass, qtype));
-  if(i==zmakermap.end()) {
+  zmakermap_t::const_iterator i=getZmakermap().find(make_pair(qclass, qtype));
+  if(i==getZmakermap().end()) {
     return new UnknownRecordContent(content);
   }
 
@@ -146,9 +146,25 @@ DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
 }
 
 
-DNSRecordContent::typemap_t DNSRecordContent::typemap __attribute__((init_priority(1000)));
-DNSRecordContent::namemap_t DNSRecordContent::namemap __attribute__((init_priority(1000)));
-DNSRecordContent::zmakermap_t DNSRecordContent::zmakermap __attribute__((init_priority(1000)));
+DNSRecordContent::typemap_t& DNSRecordContent::getTypemap()
+{
+  static DNSRecordContent::typemap_t typemap;
+  return typemap;
+}
+
+DNSRecordContent::namemap_t& DNSRecordContent::getNamemap()
+{
+  static DNSRecordContent::namemap_t namemap;
+  return namemap;
+}
+
+DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
+{
+  static DNSRecordContent::zmakermap_t zmakermap;
+  return zmakermap;
+}
+
+
 
 void MOADNSParser::init(const char *packet, unsigned int len)
 {
@@ -308,7 +324,7 @@ uint16_t PacketReader::get16BitInt(const vector<unsigned char>&content, uint16_t
   return ret;
 }
 
-u_int8_t PacketReader::get8BitInt()
+uint8_t PacketReader::get8BitInt()
 {
   return d_content.at(d_pos++);
 }
@@ -333,7 +349,7 @@ string PacketReader::getText()
   return ret;
 }
 
-void PacketReader::getLabelFromContent(const vector<u_int8_t>& content, uint16_t& frompos, string& ret, int recurs) 
+void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs) 
 {
   if(recurs > 10)
     throw MOADNSException("Loop");

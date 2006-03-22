@@ -179,16 +179,16 @@ public:
   static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, zmakerfunc_t* z, const char* name)
   {
     if(f)
-      typemap[make_pair(cl,ty)]=f;
+      getTypemap()[make_pair(cl,ty)]=f;
     if(z)
-      zmakermap[make_pair(cl,ty)]=z;
+      getZmakermap()[make_pair(cl,ty)]=z;
 
-    namemap[make_pair(cl,ty)]=name;
+    getNamemap()[make_pair(cl,ty)]=name;
   }
 
   static uint16_t TypeToNumber(const string& name)
   {
-    for(namemap_t::const_iterator i=namemap.begin(); i!=namemap.end();++i)
+    for(namemap_t::const_iterator i=getNamemap().begin(); i!=getNamemap().end();++i)
       if(!strcasecmp(i->second.c_str(), name.c_str()))
 	return i->first.second;
 
@@ -197,10 +197,10 @@ public:
 
   static const string NumberToType(uint16_t num)
   {
-    if(!namemap.count(make_pair(1,num)))
+    if(!getNamemap().count(make_pair(1,num)))
       return "#" + lexical_cast<string>(num);
       //      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
-    return namemap[make_pair(1,num)];
+    return getNamemap()[make_pair(1,num)];
   }
 
   explicit DNSRecordContent(uint16_t type) : d_qtype(type)
@@ -209,13 +209,12 @@ public:
 
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
-  static typemap_t typemap;
-
   typedef std::map<std::pair<uint16_t, uint16_t>, zmakerfunc_t* > zmakermap_t;
-  static zmakermap_t zmakermap;
-
   typedef std::map<std::pair<uint16_t, uint16_t>, string > namemap_t;
-  static namemap_t namemap;
+
+  static typemap_t& getTypemap();
+  static namemap_t& getNamemap();
+  static zmakermap_t& getZmakermap();
 };
 
 struct DNSRecord
