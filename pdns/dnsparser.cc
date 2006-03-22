@@ -54,11 +54,14 @@ public:
     string tmp((char*)&*d_record.begin(), (char*)&*d_record.end());
     vector<string> parts;
     stringtok(parts, tmp);
+    if(parts.size()!=3)
+      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+lexical_cast<string>(parts.size()));
     const string& relevant=parts[2];
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)
       throw runtime_error("invalid unknown record");
     string out;
+    out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
       int c;
       sscanf(relevant.c_str()+2*n, "%02x", &c);
