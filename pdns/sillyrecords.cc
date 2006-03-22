@@ -99,10 +99,10 @@ static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
 
 
 /* converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.*/
-static u_int8_t precsize_aton(const char **strptr)
+static uint8_t precsize_aton(const char **strptr)
 {
   unsigned int mval = 0, cmval = 0;
-  u_int8_t retval = 0;
+  uint8_t retval = 0;
   const char *cp;
   int exponent;
   int mantissa;
@@ -243,9 +243,9 @@ void DNSPacket::addLOCRecord(const string &domain, const string & content, uint3
   uint32_t latit = 0, longit = 0, alt = 0;
   uint32_t lltemp1 = 0, lltemp2 = 0;
   int altmeters = 0, altfrac = 0, altsign = 1;
-  u_int8_t hp = 0x16;    /* default = 1e6 cm = 10000.00m = 10km */
-  u_int8_t vp = 0x13;    /* default = 1e3 cm = 10.00m */
-  u_int8_t siz = 0x12;   /* default = 1e2 cm = 1.00m */
+  uint8_t hp = 0x16;    /* default = 1e6 cm = 10000.00m = 10km */
+  uint8_t vp = 0x13;    /* default = 1e3 cm = 10.00m */
+  uint8_t siz = 0x12;   /* default = 1e2 cm = 1.00m */
   int which1 = 0, which2 = 0;
 
   cp = content.c_str();

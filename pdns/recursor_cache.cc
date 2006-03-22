@@ -84,7 +84,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   uint16_t code=qt.getCode();
   string key(toLowerCanonic(qname)); key.append(1,'|'); key.append((char*)&code, ((char*)&code)+2);
   cache_t::const_iterator j=d_cache.find(key);
-  //  cerr<<"looking up "<< toLowerCanonic(qname)+"|"+qt.getName() << endl;
+  //  cerr<<"looking up "<< toLowerCanonic(qname)+"|"+qt.getName() << " ("<<key<<", "<<code<<")\n";
   if(res)
     res->clear();
 
@@ -92,7 +92,6 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
     if(res) {
       for(vector<StoredRecord>::const_iterator k=j->d_records.begin(); k != j->d_records.end(); ++k) {
 	DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
-	//	cerr<<"Returning '"<<rr.content<<"'\n";
 	res->insert(rr);
       }
     }
@@ -109,7 +108,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
    touched, but only given a new ttd */
 void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
-  int code=qt.getCode();
+  uint16_t code=qt.getCode();
   string key(toLowerCanonic(qname)); key.append(1,'|'); key.append((char*)&code, ((char*)&code)+2);
   cache_t::iterator stored=d_cache.find(key);
   
