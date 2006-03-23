@@ -58,11 +58,7 @@ string DNSRR2String(const DNSResourceRecord& rr)
 
 unsigned int MemRecursorCache::size()
 {
-  unsigned int ret=0;
-  for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
-    ret+=i->d_records.size();
-  }
-  return ret;
+  return d_cache.size();
 }
 
 unsigned int MemRecursorCache::bytes()
@@ -210,8 +206,8 @@ void MemRecursorCache::doPrune(void)
   //  cout<<"Walk took "<< dt.udiff()<<"usec\n";
   //  dt.set();
   ttdindex.erase(ttdindex.begin(), j);
-  //  cout<<"Erase took "<< dt.udiff()<<" usec, looked: "<<looked<<", quick: "<<quickZonk<<", full: ";
-  //  cout<<fullZonk<<", partial: "<<partialZonk<<", no: "<<noZonk<<"\n";
+//    cout<<"Erase took "<< dt.udiff()<<" usec, looked: "<<looked<<", quick: "<<quickZonk<<", full: ";
+ //   cout<<fullZonk<<", partial: "<<partialZonk<<", no: "<<noZonk<<"\n";
   //  cache_t(d_cache).swap(d_cache);
 }
 
