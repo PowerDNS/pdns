@@ -41,6 +41,14 @@ function makeGraphs()
         LINE2:questions#ff0000:"questions/s"\
         LINE2:alloutqueries#00ff00:"outqueries/s"
 
+  rrdtool graph --start -$1 $WWWPREFIX/qa-latency-$2.png -w $WSIZE -h $HSIZE -l 0 \
+	-t "Questions/answer latency in milliseconds" \
+	-v "msec" \
+	DEF:qalatency=pdns_recursor.rrd:qa-latency:AVERAGE  \
+	CDEF:mqalatency=qalatency,1000,/ \
+        LINE2:mqalatency#ff0000:"questions/s"
+
+
   rrdtool graph --start -$1 $WWWPREFIX/timeouts-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-t "Outqueries/timeouts counts per second" \
 	-v "events" \
@@ -58,10 +66,22 @@ function makeGraphs()
 	DEF:cacheentries=pdns_recursor.rrd:cache-entries:AVERAGE  \
 	DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
 	DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
+	DEF:throttleentries=pdns_recursor.rrd:throttle-entries:AVERAGE  \
         LINE2:cacheentries#ff0000:"cache entries" \
         LINE2:negcacheentries#0000ff:"negative cache entries" \
-        LINE2:nsspeedsentries#00ff00:"NS speeds entries"
+        LINE2:nsspeedsentries#00ff00:"NS speeds entries" \
+        LINE2:throttleentries#00ff00:"throttle map entries" 
         
+
+  rrdtool graph --start -$1 $WWWPREFIX/caches2-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "Cache sizes" \
+	-v "entries" \
+	DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
+	DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
+	DEF:throttleentries=pdns_recursor.rrd:throttle-entries:AVERAGE  \
+        LINE2:negcacheentries#0000ff:"negative cache entries" \
+        LINE2:nsspeedsentries#00ff00:"NS speeds entries" \
+        LINE2:throttleentries#ffa000:"throttle map entries" 
 
   rrdtool graph --start -$1 $WWWPREFIX/load-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-v "MThreads" \

@@ -121,6 +121,9 @@ string RecursorControlParser::getAnswer(const string& question)
 
   if(words[0]=="GET") 
     return doGet(begin, end);
+
+  if(words[0]=="QUIT") 
+    exit(1);
   
   return "Unknown command '"+cmd+"'\n";
 
