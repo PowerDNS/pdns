@@ -43,12 +43,13 @@ public:
   {
     if(now > d_last_clean + 60 ) {
       d_last_clean=now;
-      for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) 
-	if( i->second.ttd > now) {
+      for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) {
+	if( i->second.ttd < now) {
 	  d_cont.erase(i++);
 	}
 	else
 	  ++i;
+      }
     }
 
     typename cont_t::iterator i=d_cont.find(t);
