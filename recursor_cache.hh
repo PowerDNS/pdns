@@ -9,7 +9,7 @@
 #undef L
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
-
+#include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 103300
@@ -29,6 +29,8 @@ public:
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
   void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
   void doPrune(void);
+  void doDumpAndClose(int fd);
+  void doWipeCache(const string& name);
   uint64_t cacheHits, cacheMisses;
 
 private:
@@ -66,10 +68,13 @@ private:
   //   typedef __gnu_cxx::hash_map<string, vector<StoredRecord> > cache_t;
   struct CacheEntry
   {
-    CacheEntry(){}
-    CacheEntry(const string& name, const vector<StoredRecord>& records) : d_name(name), d_records(records)
+    string d_qname;
+    uint16_t d_qtype;
+
+    CacheEntry(const tuple<string, uint16_t>& key, const vector<StoredRecord>& records) : 
+      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_records(records)
     {}
-    string d_name;
+
     typedef vector<StoredRecord> records_t;
     records_t d_records;
     uint32_t getTTD() const
@@ -88,11 +93,13 @@ private:
   typedef multi_index_container<
     CacheEntry,
     indexed_by <
-#if BOOST_VERSION >= 103300
-                hashed_unique<member<CacheEntry,string,&CacheEntry::d_name> >,
-#else
-                ordered_unique<member<CacheEntry,string,&CacheEntry::d_name> >,
-#endif
+                ordered_unique<
+                      composite_key< 
+                        CacheEntry,
+                        member<CacheEntry,string,&CacheEntry::d_qname>,
+                        member<CacheEntry,uint16_t,&CacheEntry::d_qtype>
+                      >
+                >,
                 ordered_non_unique<const_mem_fun<CacheEntry,uint32_t,&CacheEntry::getTTD> >
                >
   > cache_t;

@@ -8,6 +8,9 @@
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 using namespace std;
 using namespace boost;
@@ -60,6 +63,34 @@ string doGet(T begin, T end)
   }
   return ret;
 }
+
+template<typename T>
+string doDumpCache(T begin, T end)
+{
+  T i=begin;
+  string fname;
+
+  if(i!=end) 
+    fname=*i;
+
+  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_LARGEFILE, 0660);
+  if(fd < 0) 
+    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+
+  RC.doDumpAndClose(fd); 
+
+  return "done\n";
+}
+
+template<typename T>
+string doWipeCache(T begin, T end)
+{
+  for(T i=begin; i != end; ++i)
+    RC.doWipeCache(*i);
+
+  return "done\n";
+}
+
 
 uint32_t getQueryRate()
 {
@@ -116,14 +147,20 @@ string RecursorControlParser::getAnswer(const string& question)
   if(words.empty())
     return "invalid command";
 
-  string& cmd=words[0];
+  string cmd=toLower(words[0]);
   vector<string>::const_iterator begin=words.begin()+1, end=words.end();
 
-  if(words[0]=="GET") 
+  if(words[0]=="get") 
     return doGet(begin, end);
 
-  if(words[0]=="QUIT") 
+  if(words[0]=="quit") 
     exit(1);
+
+  if(words[0]=="dump-cache") 
+    return doDumpCache(begin, end);
+
+  if(words[0]=="wipe-cache") 
+    return doWipeCache(begin, end);
   
   return "Unknown command '"+cmd+"'\n";
 

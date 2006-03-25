@@ -8,6 +8,7 @@ using namespace std;
 using namespace boost;
 
 #include "config.h"
+
 #ifdef GCC_SKIP_LOCKING
 #include <bits/atomicity.h>
 // This code is ugly but does speedup the recursor tremendously on multi-processor systems, and even has a large effect (20, 30%) on uniprocessor 
@@ -66,7 +67,7 @@ unsigned int MemRecursorCache::bytes()
   unsigned int ret=0;
 
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
-    ret+=i->d_name.length();
+    ret+=i->d_qname.length();
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j!= i->d_records.end(); ++j)
       ret+=j->size();
   }
@@ -77,18 +78,21 @@ unsigned int MemRecursorCache::bytes()
 int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
   unsigned int ttd=0;
-  uint16_t code=qt.getCode();
-  string key(toLowerCanonic(qname)); key.append(1,'|'); key.append((char*)&code, ((char*)&code)+2);
+  tuple<string, uint16_t> key=make_tuple(toLowerCanonic(qname), qt.getCode());
+
   cache_t::const_iterator j=d_cache.find(key);
+
   //  cerr<<"looking up "<< toLowerCanonic(qname)+"|"+qt.getName() << " ("<<key<<", "<<code<<")\n";
   if(res)
     res->clear();
 
-  if(j!=d_cache.end() && j->d_records.begin()->d_ttd>(unsigned int)now) {
+  if(j!=d_cache.end()) { 
     if(res) {
       for(vector<StoredRecord>::const_iterator k=j->d_records.begin(); k != j->d_records.end(); ++k) {
-	DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
-	res->insert(rr);
+	if(k->d_ttd > (uint32_t) now) {
+	  DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
+	  res->insert(rr);
+	}
       }
     }
 
@@ -104,8 +108,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
    touched, but only given a new ttd */
 void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
-  uint16_t code=qt.getCode();
-  string key(toLowerCanonic(qname)); key.append(1,'|'); key.append((char*)&code, ((char*)&code)+2);
+  tuple<string, uint16_t> key=make_tuple(toLowerCanonic(qname), qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
   
   bool isNew=false;
@@ -148,7 +151,28 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
   d_cache.replace(stored, ce);
 }
 
+void MemRecursorCache::doWipeCache(const string& name)
+{
+  pair<cache_t::iterator, cache_t::iterator> range=d_cache.equal_range(tie(name));
+  d_cache.erase(range.first, range.second);
+}
 
+void MemRecursorCache::doDumpAndClose(int fd)
+{
+  FILE* fp=fdopen(fd, "w");
+  if(!fp) {
+    close(fd);
+    return;
+  }
+  time_t now=time(0);
+  for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
+    for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j != i->d_records.end(); ++j) {
+      DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
+      fprintf(fp, "%s. %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
+    }
+  }
+  fclose(fp);
+}
 
 void MemRecursorCache::doPrune(void)
 {
