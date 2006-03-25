@@ -20,6 +20,11 @@
 
 boilerplate_conv(A, ns_t_a, conv.xfrIP(d_ip));
 
+uint32_t ARecordContent::getIP() const
+{
+  return d_ip;
+}
+
 void ARecordContent::doRecordCheck(const DNSRecord& dr)
 {  
   if(dr.d_clen!=4)
