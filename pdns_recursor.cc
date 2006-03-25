@@ -546,7 +546,7 @@ static void houseKeeping(void *)
     RC.doPrune();
     int pruned=0;
     for(SyncRes::negcache_t::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
-      if(i->second.ttd > now.tv_sec) {
+      if(i->second.ttd < now.tv_sec) {
 	SyncRes::s_negcache.erase(i++);
 	pruned++;
       }
