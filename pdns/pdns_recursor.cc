@@ -304,7 +304,8 @@ void startDoResolve(void *p)
 	  drc->toPacket(pw);
 	  if(!dc->d_tcp && pw.size() > maxudpsize) {
 	    pw.rollback();
-	    pw.getHeader()->tc=1;
+	    if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
+	      pw.getHeader()->tc=1;
 	    goto sendit; // need to jump over pw.commit
 	  }
 	}
