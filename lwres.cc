@@ -57,7 +57,7 @@ LWRes::~LWRes()
 
 //! returns -1 for permanent error, 0 for timeout, 1 for success
 /** Never throws! */
-int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doTCP, struct timeval* now)
+int LWRes::asyncresolve(uint32_t ip, const char *domain, int type, bool doTCP, struct timeval* now)
 {
   vector<uint8_t> vpacket;
   DNSPacketWriter pw(vpacket, domain, type);
@@ -70,10 +70,8 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
   d_rcode=0;
 
   struct sockaddr_in toaddr;
-  struct in_addr inp;
   Utility::socklen_t addrlen=sizeof(toaddr);
-  Utility::inet_aton(ip.c_str(),&inp);
-  toaddr.sin_addr.s_addr=inp.s_addr;
+  toaddr.sin_addr.s_addr=htonl(ip);
 
   toaddr.sin_port=htons(53);
   toaddr.sin_family=AF_INET;
@@ -94,7 +92,7 @@ int LWRes::asyncresolve(const string &ip, const char *domain, int type, bool doT
   }
   else {
     Socket s(InterNetwork, Stream);
-    IPEndpoint ie(ip, 53);
+    IPEndpoint ie(U32ToIP(ip), 53);
     s.setNonBlocking();
     s.connect(ie);
 

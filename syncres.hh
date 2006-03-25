@@ -246,7 +246,7 @@ public:
   typedef map<string,DecayingEwma> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
 
-  typedef Throttle<tuple<string,string,uint16_t> > throttle_t;
+  typedef Throttle<tuple<uint32_t,string,uint16_t> > throttle_t;
   static throttle_t s_throttle;
   struct timeval d_now;
 private:
@@ -263,7 +263,7 @@ private:
 
   inline vector<string> shuffle(set<string> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
-  vector<string> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
+  vector<uint32_t> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
 
   SyncRes(const SyncRes&);
   SyncRes& operator=(const SyncRes&);

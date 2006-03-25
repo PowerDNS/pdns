@@ -49,7 +49,7 @@ bool SyncRes::s_log;
 
 #define LOG if(s_log) L<<Logger::Warning
 
-Throttle<tuple<string,string,uint16_t> > SyncRes::s_throttle;
+Throttle<tuple<uint32_t,string,uint16_t> > SyncRes::s_throttle;
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
@@ -104,17 +104,20 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   return res<0 ? RCode::ServFail : res;
 }
 
-vector<string> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
+vector<uint32_t> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {
   typedef vector<DNSResourceRecord> res_t;
   res_t res;
 
-  vector<string> ret;
+  vector<uint32_t> ret;
 
   if(!doResolve(qname,QType(QType::A), res,depth+1,beenthere) && !res.empty()) {
     for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i)
-      if(i->qtype.getCode()==QType::A)
-	ret.push_back(i->content);
+      if(i->qtype.getCode()==QType::A) {
+	uint32_t ip;
+	if(IpToU32(i->content, &ip))
+	  ret.push_back(ntohl(ip));
+      }
   }
   if(ret.size() > 1)
     random_shuffle(ret.begin(), ret.end());
@@ -398,7 +401,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	continue;
       }
       LOG<<prefix<<qname<<": Trying to resolve NS "<<*tns<<" ("<<1+tns-rnameservers.begin()<<"/"<<rnameservers.size()<<")"<<endl;
-      typedef vector<string> remoteIPs_t;
+      typedef vector<uint32_t> remoteIPs_t;
       remoteIPs_t remoteIPs=getAs(*tns, depth+1, beenthere);
       if(remoteIPs.empty()) {
 	LOG<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
@@ -407,7 +410,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       remoteIPs_t::const_iterator remoteIP;
       bool doTCP=false;
       for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-	LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<*remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
+	LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<U32ToIP(*remoteIP)<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 	
 	if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
 	  LOG<<prefix<<qname<<": query throttled "<<endl;
@@ -464,7 +467,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
 	continue;
       }
-      LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<*remoteIP<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
+      LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<U32ToIP(*remoteIP)<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
       s_nsSpeeds[toLower(*tns)].submit(d_lwr.d_usec, &d_now);
 
       map<string,set<DNSResourceRecord> > tcache;
