@@ -64,8 +64,12 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSRes
 
 int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
-  string prefix(d_prefix);
-  prefix.append(depth, ' ');
+  
+  string prefix;
+  if(s_log) {
+    prefix=d_prefix;
+    prefix.append(depth, ' ');
+  }
   
   int res;
   if(!(d_nocache && qtype.getCode()==QType::NS && qname.empty())) {
@@ -119,8 +123,11 @@ vector<string> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAnswe
 
 void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere)
 {
-  string prefix(d_prefix), subdomain(qname);
-  prefix.append(depth, ' ');
+  string prefix, subdomain(qname);
+  if(s_log) {
+    prefix=d_prefix;
+    prefix.append(depth, ' ');
+  }
   bestns.clear();
 
   do {
@@ -187,8 +194,11 @@ string SyncRes::getBestNSNamesFromCache(const string &qname,set<string>& nsset, 
 
 bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
-  string prefix(d_prefix), tuple=toLowerCanonic(qname)+"|CNAME";
-  prefix.append(depth, ' ');
+  string prefix;
+  if(s_log) {
+    prefix=d_prefix; 
+    prefix.append(depth, ' ');
+  }
 
   if(depth>10) {
     LOG<<prefix<<qname<<": CNAME loop too deep, depth="<<depth<<endl;
@@ -196,13 +206,13 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
     return true;
   }
   
-  LOG<<prefix<<qname<<": Looking for CNAME cache hit of '"<<tuple<<"'"<<endl;
+  LOG<<prefix<<qname<<": Looking for CNAME cache hit of '"<<(toLowerCanonic(qname)+"|CNAME")<<"'"<<endl;
   set<DNSResourceRecord> cset;
   if(RC.get(d_now.tv_sec, qname,QType(QType::CNAME),&cset) > 0) {
 
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       if(j->ttl>(unsigned int) d_now.tv_sec) {
-	LOG<<prefix<<qname<<": Found cache CNAME hit for '"<<tuple<<"' to '"<<j->content<<"'"<<endl;    
+	LOG<<prefix<<qname<<": Found cache CNAME hit for '"<< (toLowerCanonic(qname)+"|CNAME") <<"' to '"<<j->content<<"'"<<endl;    
 	DNSResourceRecord rr=*j;
 	rr.ttl-=d_now.tv_sec;
 	ret.push_back(rr);
@@ -216,15 +226,19 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
       }
     }
   }
-  LOG<<prefix<<qname<<": No CNAME cache hit of '"<<tuple<<"' found"<<endl;
+  LOG<<prefix<<qname<<": No CNAME cache hit of '"<< (toLowerCanonic(qname)+"|CNAME") <<"' found"<<endl;
   return false;
 }
 
 bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   bool giveNegative=false;
-  string prefix(d_prefix), tuple;
-  prefix.append(depth, ' ');
+  
+  string prefix, tuple;
+  if(s_log) {
+    prefix=d_prefix;
+    prefix.append(depth, ' ');
+  }
 
   string sqname(qname);
   QType sqt(qtype);
@@ -338,7 +352,7 @@ inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &p
     speeds[*i]=temp.get(&d_now);
   }
   random_shuffle(rnameservers.begin(),rnameservers.end());
-  stable_sort(rnameservers.begin(),rnameservers.end(),speedOrder(speeds));
+  stable_sort(rnameservers.begin(),rnameservers.end(), speedOrder(speeds));
   
   if(s_log) {
     L<<Logger::Warning<<prefix<<"Nameservers: ";
@@ -359,8 +373,11 @@ inline vector<string> SyncRes::shuffle(set<string> &nameservers, const string &p
 int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, 
 		int depth, set<GetBestNSAnswer>&beenthere)
 {
-  string prefix(d_prefix);
-  prefix.append(depth, ' ');
+  string prefix;
+  if(s_log) {
+    prefix=d_prefix;
+    prefix.append(depth, ' ');
+  }
   
   LWRes::res_t result;
 
@@ -369,7 +386,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
   for(;;) { // we may get more specific nameservers
     result.clear();
 
-    vector<string> rnameservers=shuffle(nameservers, prefix+qname+": ");
+    vector<string> rnameservers=shuffle(nameservers, s_log ? (prefix+qname+": ") : string() );
 
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
