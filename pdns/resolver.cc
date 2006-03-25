@@ -483,7 +483,7 @@ int Resolver::getSoaSerial(const string &ip, const string &domain, uint32_t *ser
   if(parts.size()<3)
     return 0;
   
-  *serial=atoi(parts[2].c_str());
+  *serial=(uint32_t)atol(parts[2].c_str());
   return 1;
 }
 
