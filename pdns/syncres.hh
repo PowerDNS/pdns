@@ -41,7 +41,7 @@ public:
   }
   bool shouldThrottle(time_t now, const Thing& t)
   {
-    if(now > d_last_clean + 60 ) {
+    if(now > d_last_clean + 300 ) {
       d_last_clean=now;
       for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) {
 	if( i->second.ttd < now) {
@@ -246,7 +246,7 @@ public:
   typedef map<string,DecayingEwma> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
 
-  typedef Throttle<string> throttle_t;
+  typedef Throttle<tuple<string,string,uint16_t> > throttle_t;
   static throttle_t s_throttle;
   struct timeval d_now;
 private:

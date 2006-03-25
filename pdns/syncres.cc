@@ -49,7 +49,7 @@ bool SyncRes::s_log;
 
 #define LOG if(s_log) L<<Logger::Warning
 
-Throttle<string> SyncRes::s_throttle;
+Throttle<tuple<string,string,uint16_t> > SyncRes::s_throttle;
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
@@ -392,7 +392,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
 	LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<*remoteIP<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 	
-	if(s_throttle.shouldThrottle(d_now.tv_sec, *remoteIP+"|"+qname+"|"+qtype.getName())) {
+	if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
 	  LOG<<prefix<<qname<<": query throttled "<<endl;
 	  s_throttledqueries++;
 	  d_throttledqueries++;
@@ -419,7 +419,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	    
 	    s_nsSpeeds[toLower(*tns)].submit(1000000, &d_now); // 1 sec
 	  
-	    s_throttle.throttle(d_now.tv_sec, *remoteIP+"|"+qname+"|"+qtype.getName(),20,5);
+	    s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),20,5);
 	    continue;
 	  }
 	  
@@ -444,7 +444,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
       if(d_lwr.d_rcode==RCode::ServFail) {
 	LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
-	s_throttle.throttle(d_now.tv_sec,*remoteIP+"|"+qname+"|"+qtype.getName(),60,3);
+	s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
 	continue;
       }
       LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<*remoteIP<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
@@ -578,7 +578,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
       else {
 	LOG<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibling NS"<<endl;
-	s_throttle.throttle(d_now.tv_sec, *remoteIP+"|"+qname+"|"+qtype.getName(),60,0);
+	s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),60,0);
       }
     }
   }
