@@ -150,16 +150,16 @@ string RecursorControlParser::getAnswer(const string& question)
   string cmd=toLower(words[0]);
   vector<string>::const_iterator begin=words.begin()+1, end=words.end();
 
-  if(words[0]=="get") 
+  if(cmd=="get") 
     return doGet(begin, end);
 
-  if(words[0]=="quit") 
+  if(cmd=="quit") 
     exit(1);
 
-  if(words[0]=="dump-cache") 
+  if(cmd=="dump-cache") 
     return doDumpCache(begin, end);
 
-  if(words[0]=="wipe-cache") 
+  if(cmd=="wipe-cache") 
     return doWipeCache(begin, end);
   
   return "Unknown command '"+cmd+"'\n";
