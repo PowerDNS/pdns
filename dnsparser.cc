@@ -39,7 +39,6 @@ public:
   string getZoneRepresentation() const
   {
     ostringstream str;
-  
     str<<"\\# "<<d_record.size()<<" ";
     char hex[4];
     for(size_t n=0; n<d_record.size(); ++n) {
@@ -96,13 +95,21 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
   dnsheader.ancount=htons(1);
 
   vector<uint8_t> packet; // build pseudo packet
-  const uint8_t* ptr=(const uint8_t*)&dnsheader;
-  packet.insert(packet.end(), ptr, ptr + sizeof(dnsheader));    
-  char tmp[6]="\x0" "\x0\x1" "\x0\x1"; // root question for ns_t_a
-  packet.insert(packet.end(), tmp, tmp+5);
+
+  /* will look like: dnsheader, 5 bytes, encoded qname, dns record header, serialized data */
 
   string encoded=EncodeDNSLabel(qname);
-  packet.insert(packet.end(), encoded.c_str(), encoded.c_str() + encoded.size()); // append the label
+
+  packet.resize(sizeof(dnsheader) + 5 + encoded.size() + sizeof(struct dnsrecordheader) + serialized.size());
+
+  uint16_t pos=0;
+
+  memcpy(&packet[0], &dnsheader, sizeof(dnsheader)); pos+=sizeof(dnsheader);
+
+  char tmp[6]="\x0" "\x0\x1" "\x0\x1"; // root question for ns_t_a
+  memcpy(&packet[pos], &tmp, 5); pos+=5;
+
+  memcpy(&packet[pos], encoded.c_str(), encoded.size()); pos+=encoded.size();
 
   struct dnsrecordheader drh;
   drh.d_type=htons(qtype);
@@ -110,11 +117,9 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
   drh.d_ttl=0;
   drh.d_clen=htons(serialized.size());
 
-  ptr=(const uint8_t*)&drh;
-  packet.insert(packet.end(), ptr, ptr + sizeof(drh));
+  memcpy(&packet[pos], &drh, sizeof(drh)); pos+=sizeof(drh);
+  memcpy(&packet[pos], serialized.c_str(), serialized.size()); pos+=serialized.size();
 
-  packet.insert(packet.end(), serialized.c_str(), serialized.c_str() + serialized.size()); // this is our actual data
-  
   MOADNSParser mdp((char*)&*packet.begin(), packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   ret->header.d_type=ret->d_qtype;
