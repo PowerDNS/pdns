@@ -181,7 +181,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
 void setReceiveBuffer(int fd, uint32_t size)
 {
   uint32_t psize;
-  socklen_t len;
+  socklen_t len=sizeof(psize);
   getsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&psize, &len);
   if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size)) < 0 )
     L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<"\n";
@@ -212,12 +212,12 @@ void primeHints(void)
     nsrr.qtype=QType::NS;
     nsrr.ttl=time(0)+3600000;
     
-    for(char c='a';c<='m';++c) {
+    for(char c='A';c<='M';++c) {
       static char templ[40];
-      strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
+      strncpy(templ,"A.ROOT-SERVERS.NET", sizeof(templ) - 1);
       *templ=c;
       arr.qname=nsrr.content=templ;
-      arr.content=ips[c-'a'];
+      arr.content=ips[c-'A'];
       set<DNSResourceRecord> aset;
       aset.insert(arr);
       RC.replace(string(templ), QType(QType::A), aset);
