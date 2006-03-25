@@ -17,30 +17,25 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   d_content.resize(len + sizeof(dnsheader));
   uint8_t* dptr=(&*d_content.begin()) + len;
 
-
   memcpy(dptr, ptr, sizeof(dnsheader));
 
-  //  d_content.insert(d_content.end(), ptr, ptr + sizeof(dnsheader));    
-  
   xfrLabel(qname, false);
   
   len=d_content.size();
-  d_content.resize(len + d_record.size());
+  d_content.resize(len + d_record.size() + 4);
   ptr=&*d_record.begin();
   dptr=(&*d_content.begin()) + len;
   
   memcpy(dptr, ptr, d_record.size());
-  //  d_content.insert(d_content.end(), d_record.begin(), d_record.end());
 
+  len+=d_record.size();
   d_record.clear();
 
   qtype=htons(qtype);
-  ptr=(const uint8_t*)&qtype;
-  d_content.insert(d_content.end(), ptr, ptr+2);
-  
+  memcpy(&d_content[len], &qtype, 2);
+
   qclass=htons(qclass);
-  ptr=(const uint8_t*)&qclass;
-  d_content.insert(d_content.end(), ptr, ptr+2);
+  memcpy(&d_content[len+2], &qclass, 2);
 
   d_stuff=0xffff;
 }
