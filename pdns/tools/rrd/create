@@ -1,5 +1,6 @@
 rrdtool create pdns_recursor.rrd -s 60 \
 DS:questions:COUNTER:600:0:100000 \
+DS:tcp-questions:COUNTER:600:0:100000 \
 DS:cache-entries:GAUGE:600:0:U \
 DS:throttle-entries:GAUGE:600:0:U \
 DS:concurrent-queries:GAUGE:600:0:50000 \

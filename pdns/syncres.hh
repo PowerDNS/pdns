@@ -335,7 +335,6 @@ struct PacketID
 };
 
 extern MemRecursorCache RC;
-extern uint64_t qcounter;
 extern MTasker<PacketID,string>* MT;
 
 struct RecursorStats
@@ -346,6 +345,8 @@ struct RecursorStats
   PulseRate queryrate;
   uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
   uint64_t avgLatencyUsec;
+  uint64_t qcounter;
+  uint64_t tcpqcounter;
 };
 
 extern RecursorStats g_stats;

@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "logger.hh"
 
 using namespace std;
 using namespace boost;
@@ -98,15 +99,15 @@ uint32_t getQueryRate()
   gettimeofday(&now, 0);
   optional<float> delay=g_stats.queryrate.get(now, 10);
   if(delay)
-    return 1000000/(*delay);
+    return (uint32_t)(1000000/(*delay));
   else
     return 0;
 }
 
 RecursorControlParser::RecursorControlParser()
 {
-  extern uint64_t qcounter;
-  addGetStat("questions", &qcounter);
+  addGetStat("questions", &g_stats.qcounter);
+  addGetStat("tcp-questions", &g_stats.tcpqcounter);
 
   addGetStat("cache-hits", &RC.cacheHits);
   addGetStat("cache-misses", &RC.cacheMisses);
@@ -124,7 +125,6 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("qa-latency", &g_stats.avgLatencyUsec);
 
-  addGetStat("all-questions", &qcounter);
   addGetStat("negcache-entries", boost::bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
   addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
   addGetStat("nsspeeds-entries", boost::bind(&SyncRes::nsspeeds_t::size, ref(SyncRes::s_nsSpeeds)));
@@ -139,13 +139,20 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("query-rate", getQueryRate);
 }
 
-string RecursorControlParser::getAnswer(const string& question)
+static void doExit()
 {
+  L<<Logger::Error<<"Exiting on user request"<<endl;
+  exit(1);
+}
+
+string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
+{
+  *command=nop;
   vector<string> words;
   stringtok(words, question);
 
   if(words.empty())
-    return "invalid command";
+    return "invalid command\n";
 
   string cmd=toLower(words[0]);
   vector<string>::const_iterator begin=words.begin()+1, end=words.end();
@@ -153,8 +160,10 @@ string RecursorControlParser::getAnswer(const string& question)
   if(cmd=="get") 
     return doGet(begin, end);
 
-  if(cmd=="quit") 
-    exit(1);
+  if(cmd=="quit") {
+    *command=&doExit;
+    return "bye\n";
+  }
 
   if(cmd=="dump-cache") 
     return doDumpCache(begin, end);

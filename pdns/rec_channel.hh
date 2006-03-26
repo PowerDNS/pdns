@@ -9,7 +9,7 @@ class RecursorControlChannel
 {
 public:
   int listen(const std::string& filename);
-  void connect(const std::string& filename);
+  void connect(const std::string& path, const std::string& filename);
 
   uint64_t getStat(const std::string& name);
 
@@ -23,7 +23,9 @@ class RecursorControlParser
 {
 public:
   RecursorControlParser();
-  std::string getAnswer(const std::string& question);
+  static void nop(void){}
+  typedef void func_t(void);
+  std::string getAnswer(const std::string& question, func_t** func);
 
 };
 

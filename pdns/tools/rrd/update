@@ -1,17 +1,16 @@
 #!/bin/bash
 TSTAMP=$(date +%s)
-cd ../..
 
-VARIABLES="questions cache-entries concurrent-queries\
+VARIABLES="questions tcp-questions cache-entries concurrent-queries\
 	   nxdomain-answers noerror-answers\
 	   servfail-answers tcp-outqueries\
 	   outgoing-timeouts nsspeeds-entries negcache-entries all-outqueries throttled-out\
 	   cache-hits cache-misses answers0-1 answers1-10 answers10-100 answers100-1000 answers-slow\
 	qa-latency throttle-entries"
 
-UVARIABLES=$(echo $VARIABLES | tr '[a-z]' '[A-Z]' | tr - _	)
+UVARIABLES=$(echo $VARIABLES | tr '[a-z]' '[A-Z]' | tr - _ )
 
-./rec_control GET $VARIABLES |
+rec_control GET $VARIABLES |
 (
   for a in $UVARIABLES
   do

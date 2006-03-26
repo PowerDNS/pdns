@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include "mtasker.hh"
 #include <utility>
-#include "dnspacket.hh"
 #include "statbag.hh"
 #include "arguments.hh"
 #include "syncres.hh"
@@ -47,6 +46,7 @@
 #include "dnsrecords.hh"
 #include "zoneparser-tng.hh"
 #include "rec_channel.hh"
+#include "logger.hh"
 
 using namespace boost;
 
@@ -374,7 +374,7 @@ RecursorControlChannel s_rcc;
 
 void makeControlChannelSocket()
 {
-  s_rcc.listen("pdns_recursor.controlsocket");
+  s_rcc.listen(::arg()["socket-dir"]+"/pdns_recursor.controlsocket");
 }
 
 void makeClientSocket()
@@ -497,7 +497,7 @@ void daemonize(void)
 }
 #endif
 
-uint64_t counter, qcounter;
+uint64_t counter;
 bool statsWanted;
 
 
@@ -518,8 +518,8 @@ void usr2Handler(int)
 
 void doStats(void)
 {
-  if(qcounter) {
-    L<<Logger::Error<<"stats: "<<qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
+  if(g_stats.qcounter) {
+    L<<Logger::Error<<"stats: "<<g_stats.qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
      <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
     L<<Logger::Error<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "
      <<SyncRes::s_nsSpeeds.size()<<endl; // ", bytes: "<<RC.bytes()<<endl;
@@ -833,7 +833,10 @@ int main(int argc, char **argv)
 	string remote;
 	string msg=s_rcc.recv(&remote);
 	RecursorControlParser rcp;
-	s_rcc.send(rcp.getAnswer(msg), &remote);
+	RecursorControlParser::func_t* command;
+	string answer=rcp.getAnswer(msg, &command);
+	s_rcc.send(answer, &remote);
+	command();
       }
 
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response?
@@ -876,7 +879,7 @@ int main(int argc, char **argv)
 	    if(dc->d_mdp.d_header.qr)
 	      L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
 	    else {
-	      ++qcounter;
+	      ++g_stats.qcounter;
 	      dc->setSocket(*i);
 	      dc->d_tcp=false;
 	      MT->makeThread(startDoResolve, (void*) dc, "udp");
@@ -1026,7 +1029,8 @@ int main(int argc, char **argv)
 	      if(dc->d_mdp.d_header.qr)
 		L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
 	      else {
-		++qcounter;
+		++g_stats.qcounter;
+		++g_stats.tcpqcounter;
 		MT->makeThread(startDoResolve, dc, "tcp");
 	      }
 	    }

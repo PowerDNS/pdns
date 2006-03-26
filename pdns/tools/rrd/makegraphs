@@ -17,6 +17,12 @@ function makeGraphs()
         STACK:nxdomainanswers#ffa500:"nxdomain answers/s"\
         STACK:servfailanswers#ff0000:"servfail answers/s"
 
+  rrdtool graph --start -$1 $WWWPREFIX/tcp-questions-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "TCP question and answer counts per second" \
+	-v "packets" \
+	DEF:tcpquestions=pdns_recursor.rrd:tcp-questions:AVERAGE  \
+        LINE2:tcpquestions#0000ff:"questions/s"\
+
   rrdtool graph --start -$1 $WWWPREFIX/latencies-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-t "Questions answered within latency" \
 	-v "questions" \
