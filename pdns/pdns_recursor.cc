@@ -48,7 +48,7 @@
 #include "zoneparser-tng.hh"
 #include "rec_channel.hh"
 
-// using namespace boost;
+using namespace boost;
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
 #include <pthread.h>
@@ -545,13 +545,12 @@ static void houseKeeping(void *)
     dt.setTimeval(now);
     RC.doPrune();
     int pruned=0;
-    for(SyncRes::negcache_t::iterator i = SyncRes::s_negcache.begin(); i != SyncRes::s_negcache.end();) 
-      if(i->second.ttd < now.tv_sec) {
-	SyncRes::s_negcache.erase(i++);
-	pruned++;
-      }
-      else
-	++i;
+    
+    typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
+    negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(SyncRes::s_negcache);
+
+    negcache_by_ttd_index_t::iterator i=ttdindex.lower_bound(now.tv_sec);
+    ttdindex.erase(ttdindex.begin(), i);
 
     time_t limit=now.tv_sec-300;
     for(SyncRes::nsspeeds_t::iterator i = SyncRes::s_nsSpeeds.begin() ; i!= SyncRes::s_nsSpeeds.end(); )
