@@ -73,7 +73,7 @@ string doDumpCache(T begin, T end)
   if(i!=end) 
     fname=*i;
 
-  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_LARGEFILE, 0660);
+  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0) 
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
 
