@@ -27,10 +27,8 @@
 #include <cstring>
 #include <string>
 #include <vector>
-#include "dnspacket.hh"
 #include "dns.hh"
 #include "qtype.hh"
-#include "tcpreceiver.hh"
 #include "ahuexception.hh"
 #include "statbag.hh"
 #include "arguments.hh"

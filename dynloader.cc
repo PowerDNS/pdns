@@ -67,7 +67,6 @@ int main(int argc, char **argv)
     exit(99);
   }
 
-
   if(arg()["config-name"]!="") 
     s_programname+="-"+arg()["config-name"];
 
@@ -80,7 +79,6 @@ int main(int argc, char **argv)
     localdir="/tmp";
   else
     localdir=dirname(strdup(socketname.c_str()));
-
 
   const vector<string>&commands=arg().getCommands();
 

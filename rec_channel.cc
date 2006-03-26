@@ -32,12 +32,12 @@ int RecursorControlChannel::listen(const string& fname)
   strcpy(local.sun_path, fname.c_str());
     
   if(bind(d_fd, (sockaddr*)&local,sizeof(local))<0) 
-    throw AhuException("Unable to bind to controlsocket: "+string(strerror(errno)));
+    throw AhuException("Unable to bind to controlsocket '"+fname+"': "+string(strerror(errno)));
 
   return d_fd;
 }
 
-void RecursorControlChannel::connect(const string& fname)
+void RecursorControlChannel::connect(const string& path, const string& fname)
 {
   struct sockaddr_un local, remote;
 
@@ -50,12 +50,15 @@ void RecursorControlChannel::connect(const string& fname)
   if(setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     throw AhuException(string("Setsockopt failed: ")+strerror(errno));
   
-  string localname="./blah";
+  string localname=path+"/lsockXXXXXX";
+  strcpy(local.sun_path, localname.c_str());
+
+  if(mkstemp(local.sun_path) < 0)
+    throw AhuException("Unable to generate local temporary file in directory '"+path+"': "+string(strerror(errno)));
 
   local.sun_family=AF_UNIX;
-  strcpy(local.sun_path,localname.c_str());
 
-  int err=unlink(localname.c_str());
+  int err=unlink(local.sun_path);
   if(err < 0 && errno!=ENOENT)
     throw AhuException("Unable to remove local controlsocket: "+string(strerror(errno)));
 
@@ -72,10 +75,10 @@ void RecursorControlChannel::connect(const string& fname)
   memset(&remote,0,sizeof(remote));
   
   remote.sun_family=AF_UNIX;
-  strcpy(remote.sun_path,fname.c_str());
+  strcpy(remote.sun_path,(path+"/"+fname).c_str());
   if(::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0) {
     unlink(local.sun_path);
-    throw AhuException("Unable to connect to remote '"+fname+"': "+string(strerror(errno)));
+    throw AhuException("Unable to connect to remote '"+path+fname+"': "+string(strerror(errno)));
   }
 }
 
