@@ -111,7 +111,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("cache-hits", &RC.cacheHits);
   addGetStat("cache-misses", &RC.cacheMisses);
 
-  addGetStat("cache-entries", bind(&MemRecursorCache::size, ref(RC)));
+  addGetStat("cache-entries", boost::bind(&MemRecursorCache::size, ref(RC)));
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
@@ -125,11 +125,11 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("qa-latency", &g_stats.avgLatencyUsec);
 
   addGetStat("all-questions", &qcounter);
-  addGetStat("negcache-entries", bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
-  addGetStat("throttle-entries", bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
-  addGetStat("nsspeeds-entries", bind(&SyncRes::nsspeeds_t::size, ref(SyncRes::s_nsSpeeds)));
+  addGetStat("negcache-entries", boost::bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
+  addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
+  addGetStat("nsspeeds-entries", boost::bind(&SyncRes::nsspeeds_t::size, ref(SyncRes::s_nsSpeeds)));
 
-  addGetStat("concurrent-queries", bind(&MTasker<PacketID,string>::numProcesses, ref(MT)));
+  addGetStat("concurrent-queries", boost::bind(&MTasker<PacketID,string>::numProcesses, ref(MT)));
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);

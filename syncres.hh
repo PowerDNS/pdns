@@ -25,8 +25,9 @@ void primeHints(void);
 
 struct NegCacheEntry
 {
-  string name;
-  time_t ttd;
+  string d_qname;
+  string d_name;
+  uint32_t d_ttd;
 };
 
 
@@ -240,7 +241,19 @@ public:
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
-  typedef map<string,NegCacheEntry> negcache_t;
+  //  typedef map<string,NegCacheEntry> negcache_t;
+
+  typedef multi_index_container <
+    NegCacheEntry,
+    indexed_by <
+       ordered_unique<
+           member<NegCacheEntry, string, &NegCacheEntry::d_name>
+       >,
+       ordered_non_unique<
+           member<NegCacheEntry, uint32_t, &NegCacheEntry::d_ttd>
+       >
+    >
+  >negcache_t;
   static negcache_t s_negcache;    
 
   typedef map<string,DecayingEwma> nsspeeds_t;

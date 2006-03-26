@@ -248,20 +248,21 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   QType sqt(qtype);
   uint32_t sttl=0;
 
-  if(s_negcache.count(toLower(qname))) {
+  negcache_t::iterator ni=s_negcache.find(toLower(qname));
+  if(ni!=s_negcache.end()) {
+    cerr<<"found something\n";
     res=0;
-    negcache_t::const_iterator ni=s_negcache.find(toLower(qname));
-    if(d_now.tv_sec < ni->second.ttd) {
-      sttl=ni->second.ttd - d_now.tv_sec;
+    if((uint32_t)d_now.tv_sec < ni->d_ttd) {
+      sttl=ni->d_ttd - d_now.tv_sec;
       LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
       res=RCode::NXDomain; 
       giveNegative=true;
-      sqname=ni->second.name;
+      sqname=ni->d_qname;
       sqt="SOA";
     }
     else {
       LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"' was negatively cached, but entry expired"<<endl;
-      s_negcache.erase(toLower(qname));
+      s_negcache.erase(ni);
     }
   }
 
@@ -270,19 +271,19 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
     LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', negative cached: "<<s_negcache.count(tuple)<<endl;
 
     res=0;
-    negcache_t::const_iterator ni=s_negcache.find(tuple);
+    ni=s_negcache.find(tuple);
     if(ni!=s_negcache.end()) {
-      if(d_now.tv_sec < ni->second.ttd) {
-	sttl=ni->second.ttd - d_now.tv_sec;
+      if((uint32_t)d_now.tv_sec < ni->d_ttd) {
+	sttl=ni->d_ttd - d_now.tv_sec;
 	LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached for another "<<sttl<<" seconds"<<endl;
 	res=RCode::NoError; // only this record doesn't exist
 	giveNegative=true;
-	sqname=ni->second.name;
+	sqname=ni->d_qname;
 	sqt="SOA";
       }
       else {
 	LOG<<prefix<<qname<<": "<<qtype.getName()<<" was negatively cached, but entry expired"<<endl;
-	s_negcache.erase(toLower(tuple));
+	s_negcache.erase(ni);
       }
     }
   }
@@ -528,9 +529,11 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  ret.push_back(*i);
 
 	  NegCacheEntry ne;
-	  ne.name=i->qname;
-	  ne.ttd=d_now.tv_sec + i->ttl;
-	  s_negcache[toLower(qname)]=ne;
+
+	  ne.d_qname=i->qname;
+	  ne.d_ttd=d_now.tv_sec + min(i->ttl, 3600U); // controversial
+	  ne.d_name=toLower(qname);
+	  s_negcache.insert(ne);
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -567,9 +570,10 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  ret.push_back(*i);
 	  
 	  NegCacheEntry ne;
-	  ne.name=i->qname;
-	  ne.ttd=d_now.tv_sec + i->ttl;
-	  s_negcache[toLower(qname)+"|"+qtype.getName()]=ne;
+	  ne.d_qname=i->qname;
+	  ne.d_ttd=d_now.tv_sec + min(3600U,i->ttl);
+	  ne.d_name=toLower(qname)+"|"+qtype.getName();
+	  s_negcache.insert(ne);
 	  negindic=true;
 	}
       }
