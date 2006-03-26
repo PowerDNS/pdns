@@ -250,7 +250,6 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   negcache_t::iterator ni=s_negcache.find(toLower(qname));
   if(ni!=s_negcache.end()) {
-    cerr<<"found something\n";
     res=0;
     if((uint32_t)d_now.tv_sec < ni->d_ttd) {
       sttl=ni->d_ttd - d_now.tv_sec;
