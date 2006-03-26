@@ -1,0 +1,35 @@
+SBINDIR=/usr/sbin/
+
+# for socket location, see config.h
+
+OPTFLAGS?=-O3
+CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS)
+
+all: pdns_recursor rec_control
+
+install: all
+	install -s pdns_recursor $(DESTDIR)/$(SBINDIR)
+	install -s rec_control $(DESTDIR)/$(SBINDIR)
+
+clean:
+	-rm -f *.o *~ pdns_recursor rec_control
+	
+dep:
+	gcc -MM *.cc *.hh > $@
+
+-include dep
+
+PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o statbag.o \
+arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
+dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
+rec_channel.o rec_channel_rec.o
+
+REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
+
+pdns_recursor: $(PDNS_RECURSOR_OBJECTS)
+	g++ $(PDNS_RECURSOR_OBJECTS) -o $@
+
+rec_control: $(REC_CONTROL_OBJECTS)
+	g++ $(REC_CONTROL_OBJECTS) -o $@
+
+
