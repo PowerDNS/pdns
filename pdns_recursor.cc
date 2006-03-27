@@ -184,9 +184,14 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
 
 void setReceiveBuffer(int fd, uint32_t size)
 {
-  uint32_t psize;
+  uint32_t psize=0;
   socklen_t len=sizeof(psize);
-  getsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&psize, &len);
+  
+  if(!getsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&psize, &len) && psize > size) {
+    L<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<"\n";
+    return; 
+  }
+
   if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size)) < 0 )
     L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<"\n";
 }
@@ -386,7 +391,7 @@ void makeClientSocket()
   d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
   if(d_clientsock<0) 
     throw AhuException("Making a socket for resolver: "+stringerror());
-  setReceiveBuffer(d_clientsock, 250000);  
+  setReceiveBuffer(d_clientsock, 450000);  
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
   
@@ -843,54 +848,50 @@ int main(int argc, char **argv)
       }
 
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response?
-	d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-	if(d_len<0) 
-	  continue;
+	while((d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+  	try {
+   	    DNSComboWriter dc(data, d_len, now);
+	    dc.setRemote((struct sockaddr *)&fromaddr, addrlen);
 
-	try {
-	  DNSComboWriter dc(data, d_len, now);
-	  dc.setRemote((struct sockaddr *)&fromaddr, addrlen);
-
-	  if(dc.d_mdp.d_header.qr) {
-	    pident.remote=fromaddr;
-	    pident.id=dc.d_mdp.d_header.id;
-	    string packet;
-	    packet.assign(data, d_len);
-	    MT->sendEvent(pident, &packet);
+	    if(dc.d_mdp.d_header.qr) {
+	      pident.remote=fromaddr;
+	      pident.id=dc.d_mdp.d_header.id;
+	      string packet;
+	      packet.assign(data, d_len);
+	      MT->sendEvent(pident, &packet);
+	    }
+	    else 
+	      L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<dc.getRemote()<<endl;
 	  }
-	  else 
-	    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<dc.getRemote()<<endl;
-	}
-	catch(MOADNSException& mde) {
-	  L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
+	  catch(MOADNSException& mde) {
+	    L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
+	  }
 	}
       }
       
       for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
 	if(FD_ISSET(*i,&readfds)) { // do we have a new question on udp?
-	  d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-	  if(d_len<0) 
-	    continue;
+	  while((d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+	    g_stats.queryrate.pulse(now);
 
-	  g_stats.queryrate.pulse(now);
+	    try {
+	      DNSComboWriter* dc = new DNSComboWriter(data, d_len, now);
 
-	  try {
-	    DNSComboWriter* dc = new DNSComboWriter(data, d_len, now);
+	      dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
 
-	    dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
-
-	    if(dc->d_mdp.d_header.qr)
-	      L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-	    else {
-	      ++g_stats.qcounter;
-	      dc->setSocket(*i);
-	      dc->d_tcp=false;
-	      MT->makeThread(startDoResolve, (void*) dc, "udp");
+  	      if(dc->d_mdp.d_header.qr)
+	        L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+	      else {
+	        ++g_stats.qcounter;
+	        dc->setSocket(*i);
+	        dc->d_tcp=false;
+	        MT->makeThread(startDoResolve, (void*) dc, "udp");
+	      }
+            }
+	    catch(MOADNSException& mde) {
+	      L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
 	    }
-	  }
-	  catch(MOADNSException& mde) {
-	    L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
-	  }
+          }
 	}
       }
 
