@@ -226,11 +226,13 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
       d_answers.push_back(make_pair(dr, pr.d_pos));
     }
-    
+
+#if 0    
     if(pr.d_pos!=contentlen) {
       throw MOADNSException("Packet ("+d_qname+"|#"+lexical_cast<string>(d_qtype)+") has trailing garbage ("+ lexical_cast<string>(pr.d_pos) + " < " + 
 			    lexical_cast<string>(contentlen) + ")");
     }
+#endif 
   }
   catch(out_of_range &re) {
     throw MOADNSException("Packet parsing error, out of bounds: "+string(re.what()));
