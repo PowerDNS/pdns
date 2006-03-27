@@ -21,7 +21,6 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
 #include "misc.hh"
 #include <fstream>
 #include "dns.hh"

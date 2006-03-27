@@ -16,7 +16,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "logger.hh"
+#include "config.h"
+
+#ifndef RECURSOR
 #include "statbag.hh"
+extern StatBag S;
+#endif
 
 using namespace std;
 
@@ -42,8 +47,9 @@ void Logger::log(const string &msg, Urgency u)
     clog <<msg <<endl;
   }
   if( u <= d_loglevel ) {
-    extern StatBag S;
+#ifndef RECURSOR
     S.ringAccount("logmessages",msg);
+#endif
     syslog(u,"%s",msg.c_str());
   }
 }

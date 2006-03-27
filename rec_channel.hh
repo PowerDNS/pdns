@@ -3,11 +3,28 @@
 #include <string>
 #include <map>
 #include <stdint.h>
+#include <sys/un.h>
+
 
 /** this class is used both to send and answer channel commands to the PowerDNS Recursor */
 class RecursorControlChannel
 {
 public:
+  RecursorControlChannel() 
+  {
+    d_fd=-1;
+    *d_local.sun_path=0;
+  }
+
+  ~RecursorControlChannel() 
+  {
+    if(d_fd > 0)
+      close(d_fd);
+    if(d_local.sun_path)
+      unlink(d_local.sun_path);
+  }
+
+
   int listen(const std::string& filename);
   void connect(const std::string& path, const std::string& filename);
 
@@ -17,6 +34,8 @@ public:
   std::string recv(std::string* remote=0);
 
   int d_fd;
+private:
+  struct sockaddr_un d_local;
 };
 
 class RecursorControlParser
