@@ -1,10 +1,10 @@
-INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh statbag.hh \
+INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh ahuexception.hh"
 
 CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
-logger.cc statbag.cc arguments.cc  lwres.cc pdns_recursor.cc  \
+logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
 recursor_cache.cc  dnsparser.cc dnswriter.cc  dnsrecords.cc  rcpgenerator.cc  \
 base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc"
 
@@ -17,6 +17,9 @@ cp Makefile-recursor pdns-recursor/Makefile
 cp README-recursor pdns-recursor/README
 cp COPYING pdns-recursor/
 cp config-recursor.h pdns-recursor/config.h
+mkdir pdns-recursor/rrd
+cp tools/rrd/{create,update,makegraphs,index.html} pdns-recursor/rrd
+
 tar cjf pdns-recursor.tar.bz2 pdns-recursor
 
 
