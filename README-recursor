@@ -19,4 +19,28 @@ $ tar xjf boost_1_33_1.tar.bz2
 $ CXXFLAGS=-I./boost-1.33.1/ make
 
 4) Run ./pdns_recursor and you should be set!
- 
+
+
+PERFORMANCE
+-----------
+
+For the utmost in performance, compile like this:
+
+   $ PROFILEFLAGS=-fprofile-generate make
+
+Then run the program for a bit, in as much of a real-life setting as you
+have available. Then run:
+
+   $ rec_control quit
+   bye 
+
+Then do:
+
+   $ PROFILEFLAGS=-fprofile-use make clean all
+
+The resulting binary is up to 20% faster in our tests.
+
+PROBLEMS
+--------
+If you have problems linking, try removing the GCC_SKIP_LOCKING line from
+config.h

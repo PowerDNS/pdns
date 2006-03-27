@@ -3,8 +3,8 @@ SBINDIR=/usr/sbin/
 # for socket location, see config.h
 
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS)
-
+CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
+LDFLAGS+= $(PROFILEFLAGS)
 all: pdns_recursor rec_control
 
 install: all
@@ -27,9 +27,9 @@ rec_channel.o rec_channel_rec.o
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
 
 pdns_recursor: $(PDNS_RECURSOR_OBJECTS)
-	g++ $(PDNS_RECURSOR_OBJECTS) -o $@
+	g++ $(PDNS_RECURSOR_OBJECTS) $(LDFLAGS) -o $@
 
 rec_control: $(REC_CONTROL_OBJECTS)
-	g++ $(REC_CONTROL_OBJECTS) -o $@
+	g++ $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
 
 
