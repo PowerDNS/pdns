@@ -889,7 +889,7 @@ int main(int argc, char **argv)
 	      }
             }
 	    catch(MOADNSException& mde) {
-	      L<<Logger::Error<<"Unparseable packet from remote server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
+	      L<<Logger::Error<<"Unparseable packet from remote client "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
 	    }
           }
 	}
@@ -1021,7 +1021,7 @@ int main(int argc, char **argv)
 		dc=new DNSComboWriter(i->data, i->qlen, now);
 	      }
 	      catch(MOADNSException &mde) {
-		L<<Logger::Error<<"Unparseable packet from remote client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
+		L<<Logger::Error<<"Unparseable packet from remote TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
 		close(i->fd);
 		tcpconnections.erase(i);
 		break;
