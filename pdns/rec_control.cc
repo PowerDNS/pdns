@@ -53,7 +53,7 @@ try
 
   const vector<string>&commands=arg().getCommands();
   string command;
-  for(int i=0; i< commands.size(); ++i) {
+  for(unsigned int i=0; i< commands.size(); ++i) {
     if(i>0)
       command+=" ";
     command+=commands[i];

@@ -30,7 +30,6 @@
 #include "dns.hh"
 #include "qtype.hh"
 #include "ahuexception.hh"
-#include "statbag.hh"
 #include "arguments.hh"
 #include "sstuff.hh"
 #include "syncres.hh"

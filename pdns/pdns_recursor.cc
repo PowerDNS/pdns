@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include "mtasker.hh"
 #include <utility>
-#include "statbag.hh"
 #include "arguments.hh"
 #include "syncres.hh"
 #include <fcntl.h>
@@ -47,6 +46,12 @@
 #include "zoneparser-tng.hh"
 #include "rec_channel.hh"
 #include "logger.hh"
+
+#ifndef RECURSOR
+#include "statbag.hh"
+StatBag S;
+#endif
+
 
 using namespace boost;
 
@@ -105,7 +110,6 @@ extern "C" {
 #endif // __FreeBSD__
 #endif // WIN32
 
-StatBag S;
 ArgvMap &arg()
 {
   static ArgvMap theArg;
@@ -544,7 +548,6 @@ static void houseKeeping(void *)
     DTime dt;
     dt.setTimeval(now);
     RC.doPrune();
-    int pruned=0;
     
     typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
     negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(SyncRes::s_negcache);
