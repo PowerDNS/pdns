@@ -1,4 +1,6 @@
 #!/bin/bash
+#SOCKETDIR=/home/ahu/pdns/pdns/pdns/    
+SOCKETDIR=/var/run/
 TSTAMP=$(date +%s)
 
 VARIABLES="questions tcp-questions cache-entries concurrent-queries\
@@ -10,13 +12,12 @@ VARIABLES="questions tcp-questions cache-entries concurrent-queries\
 
 UVARIABLES=$(echo $VARIABLES | tr '[a-z]' '[A-Z]' | tr - _ )
 
-rec_control GET $VARIABLES |
+rec_control --socket-dir=$SOCKETDIR  GET $VARIABLES |
 (
   for a in $UVARIABLES
   do
 	  read $a
   done
-  cd - 
   rrdtool update pdns_recursor.rrd \
 	-t \
 	$(for a in $VARIABLES 
