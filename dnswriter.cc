@@ -23,6 +23,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   
   len=d_content.size();
   d_content.resize(len + d_record.size() + 4);
+
   ptr=&*d_record.begin();
   dptr=(&*d_content.begin()) + len;
   
@@ -32,10 +33,12 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   d_record.clear();
 
   qtype=htons(qtype);
-  memcpy(&d_content[len], &qtype, 2);
-
   qclass=htons(qclass);
-  memcpy(&d_content[len+2], &qclass, 2);
+
+  vector<uint8_t>::iterator i=d_content.begin()+len; // this works around a gcc 3.4 bug
+  memcpy(&*i, &qtype, 2);
+  i+=2;
+  memcpy(&*i, &qclass, 2);
 
   d_stuff=0xffff;
 }
