@@ -540,9 +540,9 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  newtarget=toLowerCanonic(i->content);
 	}
 	// for ANY answers we *must* have an authoritive answer
-	else if(i->d_place==DNSResourceRecord::ANSWER && toLower(i->qname)==toLower(qname) && 
-		(((i->qtype==qtype) || (i->qtype.getCode()>1024 && i->qtype.getCode()-1024==qtype.getCode())) || ( qtype==QType(QType::ANY) && 
-														   d_lwr.d_aabit)))  {
+	else if(i->d_place==DNSResourceRecord::ANSWER && !strcasecmp(i->qname.c_str(),qname.c_str()) && 
+		(((i->qtype==qtype) || (i->qtype.getCode()>1024 && i->qtype.getCode()-1024==qtype.getCode())) 
+		 || ( qtype==QType(QType::ANY) && d_lwr.d_aabit)))  {
 	  if(i->qtype.getCode() < 1024) {
 	    LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
 	  }

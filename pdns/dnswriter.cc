@@ -118,7 +118,7 @@ void DNSPacketWriter::xfrText(const string& text)
   d_record.insert(d_record.end(), ptr, ptr+text.size());
 }
 
-
+// this is the absolute hottest function in the pdns recursor
 void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
   typedef vector<string> parts_t;
@@ -126,7 +126,8 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
   stringtok(parts, label, ".");
   
   string enc;
-  unsigned int pos=d_content.size() + d_record.size() + d_stuff; // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
+  // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
+  unsigned int pos=d_content.size() + d_record.size() + d_stuff; 
   string chopped(label);
   
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
