@@ -115,6 +115,36 @@ stringtok (Container &container, string const &in,
     i = j + 1;
   }
 }
+
+template <typename Container>
+void
+vstringtok (Container &container, string const &in,
+           const char * const delimiters = " \t\n")
+{
+  const string::size_type len = in.length();
+  string::size_type i = 0;
+  
+  while (i<len) {
+    // eat leading whitespace
+    i = in.find_first_not_of (delimiters, i);
+    if (i == string::npos)
+      return;   // nothing left but white space
+    
+    // find the end of the token
+    string::size_type j = in.find_first_of (delimiters, i);
+    
+    // push token
+    if (j == string::npos) {
+      container.push_back (make_pair(i, len));
+      return;
+    } else
+      container.push_back (make_pair(i, j));
+    
+    // set up for next loop
+    i = j + 1;
+  }
+}
+
 const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);
 bool IpToU32(const string &str, uint32_t *ip);

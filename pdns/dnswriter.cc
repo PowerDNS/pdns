@@ -121,38 +121,38 @@ void DNSPacketWriter::xfrText(const string& text)
 // this is the absolute hottest function in the pdns recursor
 void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
-  typedef vector<string> parts_t;
+  typedef vector<pair<unsigned int, unsigned int> > parts_t;
   parts_t parts;
-  stringtok(parts, label, ".");
+  vstringtok(parts, label, ".");
   
-  string enc;
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
   unsigned int pos=d_content.size() + d_record.size() + d_stuff; 
   string chopped(label);
   
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
     map<string, uint16_t>::iterator li;
-    if(compress && (li=d_labelmap.find(chopped))!=d_labelmap.end()) {   // see if we've written out this domain before
+    // see if we've written out this domain before
+    if(compress && (li=d_labelmap.find(chopped))!=d_labelmap.end()) {   
       uint16_t offset=li->second;
       offset|=0xc000;
-      enc.append(1, (char)(offset >> 8));
-      enc.append(1, (char)(offset & 0xff));
+      d_record.push_back((char)(offset >> 8));
+      d_record.push_back((char)(offset & 0xff));
       goto out;                                 // skip trailing 0 in case of compression
     }
     else if(compress || d_labelmap.count(chopped)) { // if 'compress' is true, li will be equal to d_labelmap.end()
       d_labelmap[chopped]=pos;                       //  if untrue, we need to count 
     }
-    enc.append(1, (char)i->length());
-    enc.append(*i);
-    pos+=i->length()+1;
+    d_record.push_back((char)(i->second - i->first));
+    unsigned int len=d_record.size();
+    d_record.resize(len + i->second - i->first);
+    memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
+
+    pos+=(i->second - i->first)+1;
     chopOff(chopped);                   // www.powerdns.com -> powerdns.com -> com 
   }
-  enc.append(1,(char)0);
+  d_record.push_back(0);
 
  out:;
-
-  const uint8_t* ptr=reinterpret_cast<const uint8_t*>(enc.c_str());
-  d_record.insert(d_record.end(), ptr, ptr+enc.size());
 }
 
 void DNSPacketWriter::xfrBlob(const string& blob)
