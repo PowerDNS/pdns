@@ -132,8 +132,10 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
       range=equal_range(ce.d_records.begin(), ce.d_records.end(), dr);
       
       if(range.first != range.second) {
-	for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j)
-	  j->d_ttd=i->ttl;
+	for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j) {
+	  if(i->ttl > j->d_ttd)
+	    j->d_ttd=i->ttl;
+	}
       }
       else {
 	ce.d_records.push_back(dr);
