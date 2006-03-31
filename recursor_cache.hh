@@ -24,6 +24,8 @@ using namespace ::boost::multi_index;
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
+  MemRecursorCache() : d_cachecachevalid(false)
+  {}
   unsigned int size();
   unsigned int bytes();
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
@@ -106,7 +108,9 @@ private:
 
 private:
   cache_t d_cache;
-
+  pair<cache_t::const_iterator, cache_t::const_iterator> d_cachecache;
+  string d_cachedqname;
+  bool d_cachecachevalid;
 };
 
 
