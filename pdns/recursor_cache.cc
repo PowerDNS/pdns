@@ -78,22 +78,34 @@ unsigned int MemRecursorCache::bytes()
 int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
   unsigned int ttd=0;
-  tuple<string, uint16_t> key=make_tuple(toLowerCanonic(qname), qt.getCode());
+  string lqname(toLowerCanonic(qname));
 
-  cache_t::const_iterator j=d_cache.find(key);
+  //  cerr<<"looking up "<< toLowerCanonic(qname)+"|"+qt.getName()<<"\n";
 
-  //  cerr<<"looking up "<< toLowerCanonic(qname)+"|"+qt.getName() << " ("<<key<<", "<<code<<")\n";
+  if(!d_cachecachevalid || d_cachedqname != lqname) {
+    //    cerr<<"had cache cache miss"<<endl;
+    d_cachedqname=lqname;
+    d_cachecache=d_cache.equal_range(tie(lqname));
+    d_cachecachevalid=true;
+  }
+  else
+    ;
+  //    cerr<<"had cache cache hit!"<<endl;
+
+
   if(res)
     res->clear();
 
-  if(j!=d_cache.end()) { 
+  if(d_cachecache.first!=d_cachecache.second) { 
     if(res) {
-      for(vector<StoredRecord>::const_iterator k=j->d_records.begin(); k != j->d_records.end(); ++k) {
-	if(k->d_ttd > (uint32_t) now) {
-	  DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
-	  res->insert(rr);
-	}
-      }
+      for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
+	if(i->d_qtype == qt.getCode()) 
+	  for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
+	    if(k->d_ttd > (uint32_t) now) {
+	      DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
+	      res->insert(rr);
+	    }
+	  }
     }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
@@ -108,6 +120,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
    touched, but only given a new ttd */
 void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
+  d_cachecachevalid=false;
   tuple<string, uint16_t> key=make_tuple(toLowerCanonic(qname), qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
   
@@ -179,7 +192,7 @@ void MemRecursorCache::doDumpAndClose(int fd)
 void MemRecursorCache::doPrune(void)
 {
   uint32_t now=(uint32_t)time(0);
-
+  d_cachecachevalid=false;
 //  cout<<"Going to prune!\n";
 
   typedef cache_t::nth_index<1>::type cache_by_ttd_t;
