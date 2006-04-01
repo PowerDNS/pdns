@@ -11,6 +11,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include "logger.hh"
 
 using namespace std;
@@ -18,7 +20,6 @@ using namespace boost;
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
 map<string, function< uint32_t() > >  d_get32bitmembers;
-
 
 void addGetStat(const string& name, const uint32_t* place)
 {
@@ -32,8 +33,6 @@ void addGetStat(const string& name, function<uint32_t ()> f )
 {
   d_get32bitmembers[name]=f;
 }
-
-
 
 optional<uint64_t> get(const string& name) 
 {
@@ -104,6 +103,22 @@ uint32_t getQueryRate()
     return 0;
 }
 
+
+static uint64_t getSysTimeMsec()
+{
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+  return(ru.ru_stime.tv_sec*1000 + ru.ru_stime.tv_usec/1000);
+}
+
+static uint64_t getUserTimeMsec()
+{
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+  return(ru.ru_utime.tv_sec*1000 + ru.ru_utime.tv_usec/1000);
+}
+
+
 RecursorControlParser::RecursorControlParser()
 {
   addGetStat("questions", &g_stats.qcounter);
@@ -137,6 +152,9 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
 
   addGetStat("query-rate", getQueryRate);
+
+  addGetStat("user-msec", getUserTimeMsec);
+  addGetStat("sys-msec", getSysTimeMsec);
 }
 
 static void doExit()

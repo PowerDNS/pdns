@@ -188,12 +188,12 @@ void setReceiveBuffer(int fd, uint32_t size)
   socklen_t len=sizeof(psize);
   
   if(!getsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&psize, &len) && psize > size) {
-    L<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<"\n";
+    L<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
     return; 
   }
 
   if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size)) < 0 )
-    L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<"\n";
+    L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
 }
 
 
@@ -392,7 +392,7 @@ void makeClientSocket()
   d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
   if(d_clientsock<0) 
     throw AhuException("Making a socket for resolver: "+stringerror());
-  setReceiveBuffer(d_clientsock, 450000);  
+  setReceiveBuffer(d_clientsock, 200000);  
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
   
@@ -472,7 +472,7 @@ void makeUDPServerSockets()
     int fd=socket(AF_INET, SOCK_DGRAM,0);
     if(fd<0) 
       throw AhuException("Making a server socket for resolver: "+stringerror());
-    setReceiveBuffer(fd, 250000);
+    setReceiveBuffer(fd, 200000);
     struct sockaddr_in sin;
     memset((char *)&sin,0, sizeof(sin));
     
