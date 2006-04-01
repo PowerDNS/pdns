@@ -100,8 +100,30 @@ function makeGraphs()
 	-t "cache hits" \
 	DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
 	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
+	DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
+	DEF:sysmsec=pdns_recursor.rrd:sys-msec:AVERAGE \
 	CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/    \
-        LINE2:perc#0000ff:"percentage cache hits"        
+	CDEF:userperc=usermsec,10,/ \
+	CDEF:sysperc=sysmsec,10,/ \
+        LINE2:perc#0000ff:"percentage cache hits"  \
+        AREA:userperc#ff0000:"user cpu percentage" \
+        STACK:sysperc#00ff00:"system cpu percentage" \
+        COMMENT:"\l" \
+        COMMENT:"Cache hits " \
+        GPRINT:perc:AVERAGE:"avg %-3.1lf%%\t" \
+        GPRINT:perc:LAST:"last %-3.1lf%%\t" \
+        GPRINT:perc:MAX:"max %-3.1lf%%" \
+        COMMENT:"\l" \
+        COMMENT:"System cpu " \
+        GPRINT:sysperc:AVERAGE:"avg %-3.1lf%%\t" \
+        GPRINT:sysperc:LAST:"last %-3.1lf%%\t" \
+        GPRINT:sysperc:MAX:"max %-3.1lf%%\t" \
+        COMMENT:"\l" \
+        COMMENT:"User cpu   " \
+        GPRINT:userperc:AVERAGE:"avg %-3.1lf%%\t" \
+        GPRINT:userperc:LAST:"last %-3.1lf%%\t" \
+        GPRINT:userperc:MAX:"max %-3.1lf%%"
+
 }
 	
 makeGraphs 6h 6h
