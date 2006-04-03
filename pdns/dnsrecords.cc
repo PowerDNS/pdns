@@ -248,6 +248,13 @@ boilerplate_conv(DS, 43,
 		 conv.xfrBlob(d_digest);
 		 )
 
+
+boilerplate_conv(SSHFP, 44, 
+		 conv.xfr8BitInt(d_algorithm); 
+		 conv.xfr8BitInt(d_fptype); 
+		 conv.xfrBlob(d_fingerprint);
+		 )
+
 boilerplate_conv(RRSIG, 46, 
 		 conv.xfrType(d_type); 
   		 conv.xfr8BitInt(d_algorithm); 
