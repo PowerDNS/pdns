@@ -20,7 +20,8 @@ cp config-recursor.h pdns-recursor/config.h
 mkdir pdns-recursor/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} pdns-recursor/rrd
 cp ext/nedmalloc/malloc.c pdns-recursor
-tar cjf pdns-recursor.tar.bz2 pdns-recursor
+tar cf pdns-recursor.tar pdns-recursor
+bzip2 pdns-recursor.tar # .. solaris
 
 
 
