@@ -185,6 +185,15 @@ private:
   string d_digest;
 };
 
+class SSHFPRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(SSHFP)
+
+private:
+  uint8_t d_algorithm, d_fptype;
+  string d_fingerprint;
+};
 
 class RRSIGRecordContent : public DNSRecordContent
 {
