@@ -141,6 +141,43 @@ void RecordTextReader::xfrBlob(string& val)
   B64Decode(tmp, val);
 }
 
+
+static inline uint8_t hextodec(uint8_t val)
+{
+  if(val >= '0' && val<='9')
+    return val-'0';
+  else if(val >= 'A' && val<='F')
+    return 10+(val-'A');
+  else if(val >= 'a' && val<='f')
+    return 10+(val-'a');
+  else
+    throw RecordTextException("Unknown hexadecimal character '"+lexical_cast<string>(val)+"'");
+}
+
+
+void HEXDecode(const char* begin, const char* end, string& val)
+{
+  if((end - begin)%2)
+    throw RecordTextException("Hexadecimal blob with odd number of characters");
+
+  int limit=(end-begin)/2;
+  val.resize(limit);
+  for(int n=0; n < limit; ++n) {
+    val[n] = hextodec(begin[2*n])*16 + hextodec(begin[2*n+1]); 
+  }
+}
+
+void RecordTextReader::xfrHexBlob(string& val)
+{
+  skipSpaces();
+  int pos=d_pos;
+  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
+    d_pos++;
+
+  HEXDecode(d_string.c_str()+pos, d_string.c_str() + d_pos, val);
+}
+
+
 void RecordTextReader::xfrText(string& val)
 {
   skipSpaces();
@@ -277,6 +314,19 @@ void RecordTextWriter::xfrBlob(const string& val)
     d_string.append(1,' ');
 
   d_string+=Base64Encode(val);
+}
+
+void RecordTextWriter::xfrHexBlob(const string& val)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+
+  string::size_type limit=val.size();
+  char tmp[5];
+  for(string::size_type n = 0; n < limit; ++n) {
+    snprintf(tmp, sizeof(tmp)-1, "%02x", (unsigned char)val[n]);
+    d_string+=tmp;
+  }
 }
 
 void RecordTextWriter::xfrText(const string& val)

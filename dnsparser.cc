@@ -390,3 +390,8 @@ void PacketReader::xfrBlob(string& blob)
 
   d_pos = d_startrecordpos + d_recordlen;
 }
+
+void PacketReader::xfrHexBlob(string& blob)
+{
+  xfrBlob(blob);
+}

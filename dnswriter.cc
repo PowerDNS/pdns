@@ -162,6 +162,12 @@ void DNSPacketWriter::xfrBlob(const string& blob)
   d_record.insert(d_record.end(), ptr, ptr+blob.size());
 }
 
+void DNSPacketWriter::xfrHexBlob(const string& blob)
+{
+  xfrBlob(blob);
+}
+
+
 void DNSPacketWriter::getRecords(string& records)
 {
   records.assign(d_content.begin() + d_sor, d_content.end());
