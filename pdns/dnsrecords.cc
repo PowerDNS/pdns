@@ -252,7 +252,7 @@ boilerplate_conv(DS, 43,
 boilerplate_conv(SSHFP, 44, 
 		 conv.xfr8BitInt(d_algorithm); 
 		 conv.xfr8BitInt(d_fptype); 
-		 conv.xfrBlob(d_fingerprint);
+		 conv.xfrHexBlob(d_fingerprint);
 		 )
 
 boilerplate_conv(RRSIG, 46, 
@@ -296,6 +296,7 @@ void reportOtherTypes()
    DNSKEYRecordContent::report();
    RRSIGRecordContent::report();
    DSRecordContent::report();
+   SSHFPRecordContent::report();
    NSECRecordContent::report();
    OPTRecordContent::report();
    DNSRecordContent::regist(1,255, 0, 0, "ANY");
