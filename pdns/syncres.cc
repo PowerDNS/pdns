@@ -238,7 +238,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 {
   bool giveNegative=false;
   
-  string prefix, tuple;
+  string prefix;
   if(s_log) {
     prefix=d_prefix;
     prefix.append(depth, ' ');
@@ -248,7 +248,9 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   QType sqt(qtype);
   uint32_t sttl=0;
 
-  negcache_t::iterator ni=s_negcache.find(toLower(qname));
+  pair<string,QType> tuple(toLower(qname), QType(0));
+  negcache_t::iterator ni=s_negcache.find(tuple);
+
   if(ni!=s_negcache.end()) {
     res=0;
     if((uint32_t)d_now.tv_sec < ni->d_ttd) {
@@ -257,7 +259,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
       res=RCode::NXDomain; 
       giveNegative=true;
       sqname=ni->d_qname;
-      sqt="SOA";
+      sqt=QType::SOA;
     }
     else {
       LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"' was negatively cached, but entry expired"<<endl;
@@ -266,8 +268,8 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   }
 
   if(!giveNegative) { // let's try some more
-    tuple=toLower(qname); tuple.append(1,'|'); tuple+=qtype.getName();
-    LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<tuple<<"', negative cached: "<<s_negcache.count(tuple)<<endl;
+    tuple.second=qtype;
+    LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<qname<<"|"<<qtype.getName()<<"', negative cached: "<<s_negcache.count(tuple)<<endl;
 
     res=0;
     ni=s_negcache.find(tuple);
@@ -289,7 +291,8 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
-  if(RC.get(d_now.tv_sec, sqname,sqt,&cset)>0) {
+
+  if(RC.get(d_now.tv_sec, sqname,sqt, &cset) > 0) {
     LOG<<prefix<<qname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG<<j->content;
@@ -523,7 +526,8 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
 	  ne.d_qname=i->qname;
 	  ne.d_ttd=d_now.tv_sec + min(i->ttl, 3600U); // controversial
-	  ne.d_name=toLower(qname);
+	  ne.d_key.first=toLower(qname);
+	  ne.d_key.second=QType(0);
 	  s_negcache.insert(ne);
 	  negindic=true;
 	}
@@ -563,8 +567,9 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  NegCacheEntry ne;
 	  ne.d_qname=i->qname;
 	  ne.d_ttd=d_now.tv_sec + min(3600U,i->ttl);
-	  ne.d_name=toLower(qname)+"|"+qtype.getName();
-	  s_negcache.insert(ne);
+	  ne.d_key=make_pair(toLower(qname), qtype);
+	  if(qtype.getCode())   // prevents us from blacking out a whole domain
+	    s_negcache.insert(ne);
 	  negindic=true;
 	}
       }
