@@ -471,7 +471,9 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<U32ToIP(*remoteIP)<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
       s_nsSpeeds[toLower(*tns)].submit(d_lwr.d_usec, &d_now);
 
-      map<string,set<DNSResourceRecord> > tcache;
+      typedef map<pair<string, QType> ,set<DNSResourceRecord> > tcache_t;
+      tcache_t tcache;
+
       // reap all answers from this packet that are acceptable
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
 	if(i->qtype.getCode() < 1024) {
@@ -494,7 +496,7 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	    rr.d_place=DNSResourceRecord::ANSWER;
 	    rr.ttl+=d_now.tv_sec;
 	    //	  rr.ttl=time(0)+10+10*rr.qtype.getCode();
-	    tcache[toLower(i->qname)+"|"+i->qtype.getName()].insert(rr);
+	    tcache[make_pair(toLower(i->qname),i->qtype)].insert(rr);
 	  }
 	}	  
 	else
@@ -502,18 +504,8 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
       }
     
       // supplant
-      for(map<string,set<DNSResourceRecord> >::const_iterator i=tcache.begin();i!=tcache.end();++i) {
-	vector<string>parts;
-	stringtok(parts,i->first,"|");
-	QType qt;
-	if(parts.size()==2) {
-	  qt=parts[1];
-	  RC.replace(parts[0],qt,i->second);
-	}
-	else {
-	  qt=parts[0];
-	  RC.replace("",qt,i->second);
-	}
+      for(tcache_t::const_iterator i=tcache.begin();i!=tcache.end();++i) {
+	RC.replace(i->first.first,i->first.second,i->second);
       }
       set<string> nsset;  
       LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
@@ -621,7 +613,10 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 
   LOG<<d_prefix<<qname<<": Starting additional processing"<<endl;
   vector<DNSResourceRecord> addit;
-  bool doIPv6AP=::arg().mustDo("aaaa-additional-processing");
+  static optional<bool> l_doIPv6AP;
+  if(!l_doIPv6AP)
+    l_doIPv6AP=::arg().mustDo("aaaa-additional-processing");
+
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
     if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
        ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
@@ -631,18 +626,18 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 	string::size_type pos=k->content.find_first_not_of(" \t0123456789"); // chop off the priority
 	if(pos!=string::npos) {
 	  doResolve(toLowerCanonic(k->content.substr(pos)), QType(QType::A),addit,1,beenthere);
-	  if(doIPv6AP)
+	  if(*l_doIPv6AP)
 	    doResolve(toLowerCanonic(k->content.substr(pos)), QType(QType::AAAA),addit,1,beenthere);
 	}
 	else {
 	  doResolve(toLowerCanonic(k->content), QType(QType::A),addit,1,beenthere);
-	  if(doIPv6AP)
+	  if(*l_doIPv6AP)
 	    doResolve(toLowerCanonic(k->content.substr(pos)), QType(QType::AAAA),addit,1,beenthere);
 	}
       }
       else {
 	doResolve(k->content,QType(QType::A),addit,1,beenthere);
-	if(doIPv6AP)
+	if(*l_doIPv6AP)
 	  doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
       }
     }

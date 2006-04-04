@@ -59,6 +59,12 @@ public:
     code=rhs.code;
     return *this;
   }
+
+  bool operator<(const QType& rhs) const 
+  {
+    return code < rhs.code;
+  }
+
   bool operator==(const QType &) const; //!< equality operator
 
   const string getName() const; //!< Get a string representation of this type
