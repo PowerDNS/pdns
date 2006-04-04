@@ -25,8 +25,9 @@ void primeHints(void);
 
 struct NegCacheEntry
 {
+  pair<string, QType> d_key;
+  QType d_qtype;
   string d_qname;
-  string d_name;
   uint32_t d_ttd;
 };
 
@@ -247,7 +248,7 @@ public:
     NegCacheEntry,
     indexed_by <
        ordered_unique<
-           member<NegCacheEntry, string, &NegCacheEntry::d_name>
+           member<NegCacheEntry, pair<string,QType>, &NegCacheEntry::d_key>
        >,
        ordered_non_unique<
            member<NegCacheEntry, uint32_t, &NegCacheEntry::d_ttd>
