@@ -70,7 +70,7 @@ private:
 
   waiters_t d_waiters;
 
-  typedef std::map<int,pair<ucontext_t*,string> > mthreads_t;
+  typedef std::map<int,ucontext_t* > mthreads_t;
   mthreads_t d_threads;
   int d_tid;
   int d_maxtid;
@@ -95,15 +95,11 @@ public:
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val=0);
   void getEvents(std::vector<EventKey>& events);
-  void makeThread(tfunc_t *start, void* val, const string& name="");
+  void makeThread(tfunc_t *start, void* val);
   bool schedule();
   bool noProcesses();
   unsigned int numProcesses();
   int getTid(); 
-  void setTitle(const string& name)
-  {
-    d_threads[d_tid].second=name;
-  }
 
 private:
   static void threadWrapper(MTasker *self, tfunc_t *tf, int tid, void* val);
