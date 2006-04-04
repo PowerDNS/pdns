@@ -289,7 +289,7 @@ void startDoResolve(void *p)
     int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret);
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
-      pw.commit();
+      // no commit here, because no record
       g_stats.servFails++;
     }
     else {
@@ -678,6 +678,7 @@ int main(int argc, char **argv)
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
+    ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="0";
 
     ::arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);

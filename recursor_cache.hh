@@ -11,6 +11,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 103300
 #include <boost/multi_index/hashed_index.hpp>
@@ -31,6 +32,7 @@ public:
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
   void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content);
   void doPrune(void);
+  void doSlash(int perc);
   void doDumpAndClose(int fd);
   void doWipeCache(const string& name);
   uint64_t cacheHits, cacheMisses;
@@ -102,13 +104,13 @@ private:
                         member<CacheEntry,uint16_t,&CacheEntry::d_qtype>
                       >
                 >,
-                ordered_non_unique<const_mem_fun<CacheEntry,uint32_t,&CacheEntry::getTTD> >
+               sequenced<>
                >
   > cache_t;
 
 private:
   cache_t d_cache;
-  pair<cache_t::const_iterator, cache_t::const_iterator> d_cachecache;
+  pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   string d_cachedqname;
   bool d_cachecachevalid;
 };
