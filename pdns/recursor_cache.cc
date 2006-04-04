@@ -3,6 +3,8 @@
 #include <iostream>
 #include <boost/shared_ptr.hpp>
 #include "dnsrecords.hh"
+#include <malloc.h>
+#include "arguments.hh"
 
 using namespace std;
 using namespace boost;
@@ -99,13 +101,23 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   if(d_cachecache.first!=d_cachecache.second) { 
     if(res) {
       for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
-	if(i->d_qtype == qt.getCode()) 
+	if(i->d_qtype == qt.getCode()) {
+	  typedef cache_t::nth_index<1>::type sequence_t;
+	  sequence_t& sidx=d_cache.get<1>();
+	  sequence_t::iterator si=d_cache.project<1>(i);
+
 	  for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
 	    if(k->d_ttd > (uint32_t) now) {
 	      DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
 	      res->insert(rr);
 	    }
 	  }
+	  if(res->empty())
+	    sidx.relocate(sidx.begin(), si); 
+	  else
+	    sidx.relocate(sidx.end(), si); 
+	  break;
+	}
     }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
@@ -123,6 +135,8 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
   d_cachecachevalid=false;
   tuple<string, uint16_t> key=make_tuple(toLowerCanonic(qname), qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
+
+  //  cerr<<"storing "<< toLowerCanonic(qname)+"|"+qt.getName()<<"\n";
   
   bool isNew=false;
   if(stored == d_cache.end()) {
@@ -179,8 +193,12 @@ void MemRecursorCache::doDumpAndClose(int fd)
     close(fd);
     return;
   }
+
+  typedef cache_t::nth_index<1>::type sequence_t;
+  sequence_t& sidx=d_cache.get<1>();
+
   time_t now=time(0);
-  for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
+  for(sequence_t::const_iterator i=sidx.begin(); i != sidx.end(); ++i) {
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j != i->d_records.end(); ++j) {
       DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
       fprintf(fp, "%s. %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
@@ -189,64 +207,64 @@ void MemRecursorCache::doDumpAndClose(int fd)
   fclose(fp);
 }
 
+void MemRecursorCache::doSlash(int perc)
+{
+  doPrune();
+}
+
 void MemRecursorCache::doPrune(void)
 {
   uint32_t now=(uint32_t)time(0);
   d_cachecachevalid=false;
-//  cout<<"Going to prune!\n";
 
-  typedef cache_t::nth_index<1>::type cache_by_ttd_t;
-  cache_by_ttd_t& ttdindex=d_cache.get<1>();
-
-  uint32_t looked(0), quickZonk(0), fullZonk(0), partialZonk(0), noZonk(0);
-  DTime dt;
-  dt.set(); 
-  cache_by_ttd_t::iterator j;
-  for(j=ttdindex.begin();j!=ttdindex.end();){
-    if(j->getTTD() > now) {
-//      cout<<"Done pruning, this record ("<<j->d_name<<") only needs to get killed in "<< j->getTTD() - now <<" seconds, rest will be later\n";
-      break;
-    }
-    else 
-	;
-//      cout<<"Looking at '"<<j->d_name<<"', "<<now - j->getTTD()<<" seconds overdue!\n";
-    looked++;
-    if(j->d_records.size()==1) {
-      j++;
-      quickZonk++;
-      continue;
-    }
-    predicate p(now);
-    CacheEntry ce=*j;
-
-    size_t before=ce.d_records.size();
-    ce.d_records.erase(remove_if(ce.d_records.begin(), ce.d_records.end(), p), ce.d_records.end());
-
-    if(ce.d_records.empty()) { // everything is gone
-//      cout<<"Zonked it entirely!\n";
-      j++;
-      fullZonk++;
-    }
-    else {
-      if(ce.d_records.size()!=before) {
-//	cout<<"Zonked partially, putting back, new TTD: "<< ce.getTTD() - now<<endl;;
-	cache_by_ttd_t::iterator here=j++;
-	ttdindex.replace(here, ce);
-        partialZonk++;
-      }
-      else {
-	++j;
-        noZonk++;
-	break;
-      }
-    }
-  }
+  unsigned int maxCached=::arg().asNum("max-cache-entries");
+  unsigned int toTrim=0;
   
-  //  cout<<"Walk took "<< dt.udiff()<<"usec\n";
-  //  dt.set();
-  ttdindex.erase(ttdindex.begin(), j);
-//    cout<<"Erase took "<< dt.udiff()<<" usec, looked: "<<looked<<", quick: "<<quickZonk<<", full: ";
- //   cout<<fullZonk<<", partial: "<<partialZonk<<", no: "<<noZonk<<"\n";
-  //  cache_t(d_cache).swap(d_cache);
+  unsigned int cacheSize=d_cache.size();
+
+  if(maxCached && cacheSize > maxCached)
+    toTrim = cacheSize - maxCached;
+
+  //  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
+
+  typedef cache_t::nth_index<1>::type sequence_t;
+  sequence_t& sidx=d_cache.get<1>();
+
+
+  unsigned int tried=0, lookAt, erased=0;
+
+  // two modes - if toTrim is 0, just look through 10000 records and nuke everything that is expired
+  // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
+  if(toTrim)
+    lookAt=5*toTrim;
+  else
+    lookAt=10000;
+
+
+  sequence_t::iterator iter=sidx.begin(), eiter;
+  for(; iter != sidx.end() && tried < lookAt ; ++tried) {
+    if(iter->getTTD() < now) {
+      sidx.erase(iter++);
+      erased++;
+    }
+    else
+      ++iter;
+
+    if(toTrim && erased > toTrim)
+      break;
+  }
+
+  //  cout<<"erased "<<erased<<" records based on ttd\n";
+  
+  if(erased >= toTrim)
+    return;
+
+  //  if(toTrim)
+  //    cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n";
+
+
+  eiter=iter=sidx.begin();
+  advance(eiter, toTrim);
+  sidx.erase(iter, eiter);
 }
 

@@ -91,6 +91,13 @@ string doWipeCache(T begin, T end)
   return "done\n";
 }
 
+template<typename T>
+string doSlashCache(T begin, T end)
+{
+  RC.doSlash(10);
+
+  return "done\n";
+}
 
 uint32_t getQueryRate()
 {
@@ -185,6 +192,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="dump-cache") 
     return doDumpCache(begin, end);
+
+  if(cmd=="slash-cache") 
+    return doSlashCache(begin, end);
 
   if(cmd=="wipe-cache") 
     return doWipeCache(begin, end);
