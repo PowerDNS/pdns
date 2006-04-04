@@ -189,7 +189,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 template<class Key, class Val>void MTasker<Key,Val>::yield()
 {
   d_runQueue.push(d_tid);
-  if(swapcontext(d_threads[d_tid].first ,&d_kernel) < 0) { // give control to the kernel
+  if(swapcontext(d_threads[d_tid] ,&d_kernel) < 0) { // give control to the kernel
     perror("swapcontext in  yield");
     exit(EXIT_FAILURE);
   }
@@ -229,7 +229,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
     \param start Pointer to the function which will form the start of the thread
     \param val A void pointer that can be used to pass data to the thread
 */
-template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val, const string& name)
+template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val)
 {
   ucontext_t *uc=new ucontext_t;
   getcontext(uc);
@@ -244,7 +244,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
 #else
   makecontext (uc, (void (*)(void))threadWrapper, 4, this, start, d_maxtid, val);
 #endif
-  d_threads[d_maxtid]=make_pair(uc, name);
+  d_threads[d_maxtid]=uc;
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
 }
 
@@ -263,7 +263,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
 {
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
-    if(swapcontext(&d_kernel, d_threads[d_tid].first)) {
+    if(swapcontext(&d_kernel, d_threads[d_tid])) {
       perror("swapcontext in schedule");
       exit(EXIT_FAILURE);
     }
@@ -272,8 +272,8 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
     return true;
   }
   if(!d_zombiesQueue.empty()) {
-    delete[] (char *)d_threads[d_zombiesQueue.front()].first->uc_stack.ss_sp;
-    delete d_threads[d_zombiesQueue.front()].first;
+    delete[] (char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp;
+    delete d_threads[d_zombiesQueue.front()];
     d_threads.erase(d_zombiesQueue.front());
     d_zombiesQueue.pop();
     return true;

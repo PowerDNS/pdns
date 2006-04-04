@@ -771,7 +771,7 @@ int main(int argc, char **argv)
       while(MT->schedule()); // housekeeping, let threads do their thing
       
       if(!((counter++)%500)) 
-	MT->makeThread(houseKeeping,0,"housekeeping");
+	MT->makeThread(houseKeeping,0);
       if(statsWanted) {
 	doStats();
       }
@@ -886,7 +886,7 @@ int main(int argc, char **argv)
 	        ++g_stats.qcounter;
 	        dc->setSocket(*i);
 	        dc->d_tcp=false;
-	        MT->makeThread(startDoResolve, (void*) dc, "udp");
+	        MT->makeThread(startDoResolve, (void*) dc);
 	      }
             }
 	    catch(MOADNSException& mde) {
@@ -1036,7 +1036,7 @@ int main(int argc, char **argv)
 	      else {
 		++g_stats.qcounter;
 		++g_stats.tcpqcounter;
-		MT->makeThread(startDoResolve, dc, "tcp");
+		MT->makeThread(startDoResolve, dc);
 	      }
 	    }
 	  }
