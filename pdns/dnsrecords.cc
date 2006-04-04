@@ -245,7 +245,7 @@ boilerplate_conv(DS, 43,
 		 conv.xfr16BitInt(d_tag); 
 		 conv.xfr8BitInt(d_algorithm); 
 		 conv.xfr8BitInt(d_digesttype); 
-		 conv.xfrBlob(d_digest);
+		 conv.xfrHexBlob(d_digest);
 		 )
 
 
