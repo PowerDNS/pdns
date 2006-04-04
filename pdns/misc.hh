@@ -213,8 +213,12 @@ inline const char dns_tolower(char c)
 inline const string toLower(const string &upper)
 {
   string reply(upper);
-  for(unsigned int i = 0; i < reply.length(); i++)
-    reply[i] = dns_tolower(reply[i]);
+  char c;
+  for(unsigned int i = 0; i < reply.length(); i++) {
+    c = dns_tolower(reply[i]);
+    if( c != reply[i])
+      reply[i] = c;
+  }
   return reply;
 }
 
@@ -222,10 +226,13 @@ inline const string toLowerCanonic(const string &upper)
 {
   string reply(upper);
   if(!upper.empty()) {
-    unsigned int i;
-    for(i = 0; i < reply.length() ; i++) 
-      reply[i] = dns_tolower(reply[i]);
-   
+    unsigned int i, limit=reply.length();
+    char c;
+    for(i = 0; i < limit ; i++) {
+      c = dns_tolower(reply[i]);
+      if(c != reply[i])
+	reply[i] = c;
+    }   
     if(reply[i-1]=='.')
       reply.resize(i-1);
   }

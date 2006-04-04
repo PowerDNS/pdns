@@ -80,10 +80,10 @@ public:
 
   bool operator<(const DNSResourceRecord &b) const
   {
-    if(qname<b.qname)
+    if(qname < b.qname)
       return true;
-    if(qname==b.qname)
-      return(content<b.content);
+    if(qname == b.qname)
+      return(content < b.content);
     return false;
   }
 
