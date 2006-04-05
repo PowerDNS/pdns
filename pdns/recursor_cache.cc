@@ -137,17 +137,21 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
   cache_t::iterator stored=d_cache.find(key);
 
   //  cerr<<"storing "<< toLowerCanonic(qname)+"|"+qt.getName()<<"\n";
-  
+
   bool isNew=false;
   if(stored == d_cache.end()) {
     stored=d_cache.insert(CacheEntry(key,vector<StoredRecord>())).first;
     isNew=true;
   }
-
+  
   pair<vector<StoredRecord>::iterator, vector<StoredRecord>::iterator> range;
 
   StoredRecord dr;
   CacheEntry ce=*stored;
+
+  if(qt.getCode()==QType::SOA || qt.getCode()==QType::CNAME)  // you can only have one (1) each of these
+    ce.d_records.clear();
+
 
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
     dr.d_ttd=i->ttl;
@@ -238,7 +242,7 @@ void MemRecursorCache::doPrune(void)
   if(toTrim)
     lookAt=5*toTrim;
   else
-    lookAt=10000;
+    lookAt=0.02 * cacheSize;
 
 
   sequence_t::iterator iter=sidx.begin(), eiter;
