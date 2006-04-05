@@ -221,12 +221,12 @@ void primeHints(void)
     nsrr.qtype=QType::NS;
     nsrr.ttl=time(0)+3600000;
     
-    for(char c='A';c<='M';++c) {
+    for(char c='a';c<='m';++c) {
       static char templ[40];
-      strncpy(templ,"A.ROOT-SERVERS.NET", sizeof(templ) - 1);
+      strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
       *templ=c;
       arr.qname=nsrr.content=templ;
-      arr.content=ips[c-'A'];
+      arr.content=ips[c-'a'];
       set<DNSResourceRecord> aset;
       aset.insert(arr);
       RC.replace(string(templ), QType(QType::A), aset);
