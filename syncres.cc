@@ -65,14 +65,13 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSRes
 
 int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
-  
   string prefix;
   if(s_log) {
     prefix=d_prefix;
     prefix.append(depth, ' ');
   }
   
-  int res;
+  int res=0;
   if(!(d_nocache && qtype.getCode()==QType::NS && qname.empty())) {
     if(doCNAMECacheCheck(qname,qtype,ret,depth,res)) // will reroute us if needed
       return res;
@@ -113,12 +112,13 @@ vector<uint32_t> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAns
   vector<uint32_t> ret;
 
   if(!doResolve(qname,QType(QType::A), res,depth+1,beenthere) && !res.empty()) {
-    for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i)
+    for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
       if(i->qtype.getCode()==QType::A) {
 	uint32_t ip;
 	if(IpToU32(i->content, &ip))
 	  ret.push_back(ntohl(ip));
       }
+    }
   }
   if(ret.size() > 1)
     random_shuffle(ret.begin(), ret.end());
@@ -247,44 +247,31 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   string sqname(qname);
   QType sqt(qtype);
   uint32_t sttl=0;
+  //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"'\n";
 
-  pair<string,QType> tuple(toLower(qname), QType(0));
-  negcache_t::iterator ni=s_negcache.find(tuple);
-
-  if(ni!=s_negcache.end()) {
-    res=0;
-    if((uint32_t)d_now.tv_sec < ni->d_ttd) {
-      sttl=ni->d_ttd - d_now.tv_sec;
-      LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
-      res=RCode::NXDomain; 
-      giveNegative=true;
-      sqname=ni->d_qname;
-      sqt=QType::SOA;
-    }
-    else {
-      LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"' was negatively cached, but entry expired"<<endl;
-      s_negcache.erase(ni);
-    }
-  }
-
-  if(!giveNegative) { // let's try some more
-    tuple.second=qtype;
-    LOG<<prefix<<qname<<": Looking for direct cache hit of '"<<qname<<"|"<<qtype.getName()<<"', negative cached: "<<s_negcache.count(tuple)<<endl;
-
-    res=0;
-    ni=s_negcache.find(tuple);
-    if(ni!=s_negcache.end()) {
+  pair<negcache_t::const_iterator, negcache_t::const_iterator> range=s_negcache.equal_range(tie(toLower(qname)));
+  negcache_t::iterator ni;
+  for(ni=range.first; ni != range.second; ni++) {
+    // we have something
+    if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
+      res=0;
       if((uint32_t)d_now.tv_sec < ni->d_ttd) {
 	sttl=ni->d_ttd - d_now.tv_sec;
-	LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached for another "<<sttl<<" seconds"<<endl;
-	res=RCode::NoError; // only this record doesn't exist
+	if(ni->d_qtype.getCode()) {
+	  LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached for another "<<sttl<<" seconds"<<endl;
+	  res = RCode::NoError;
+	}
+	else {
+	  LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
+	  res= RCode::NXDomain; 
+	}
 	giveNegative=true;
 	sqname=ni->d_qname;
-	sqt="SOA";
+	sqt=QType::SOA;
+	break;
       }
       else {
-	LOG<<prefix<<qname<<": "<<qtype.getName()<<" was negatively cached, but entry expired"<<endl;
-	s_negcache.erase(ni);
+	LOG<<prefix<<qname<<": Entire record '"<<toLower(qname)<<"' was negatively cached, but entry expired"<<endl;
       }
     }
   }
@@ -314,11 +301,14 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
     }
   
     LOG<<endl;
-    if(found && !expired) 
+    if(found && !expired) {
+      res=0;
       return true;
+    }
     else
       LOG<<prefix<<qname<<": cache had only stale entries"<<endl;
   }
+
   return false;
 }
 
@@ -526,8 +516,8 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 
 	  ne.d_qname=i->qname;
 	  ne.d_ttd=d_now.tv_sec + min(i->ttl, 3600U); // controversial
-	  ne.d_key.first=toLower(qname);
-	  ne.d_key.second=QType(0);
+	  ne.d_name=toLower(qname);
+	  ne.d_qtype=QType(0);
 	  s_negcache.insert(ne);
 	  negindic=true;
 	}
@@ -567,7 +557,8 @@ int SyncRes::doResolveAt(set<string> nameservers, string auth, const string &qna
 	  NegCacheEntry ne;
 	  ne.d_qname=i->qname;
 	  ne.d_ttd=d_now.tv_sec + min(3600U,i->ttl);
-	  ne.d_key=make_pair(toLower(qname), qtype);
+	  ne.d_name=toLower(qname);
+	  ne.d_qtype=qtype;
 	  if(qtype.getCode())   // prevents us from blacking out a whole domain
 	    s_negcache.insert(ne);
 	  negindic=true;
