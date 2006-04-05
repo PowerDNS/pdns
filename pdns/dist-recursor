@@ -21,7 +21,7 @@ mkdir pdns-recursor/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} pdns-recursor/rrd
 cp ext/nedmalloc/malloc.c pdns-recursor
 tar cf pdns-recursor.tar pdns-recursor
-bzip2 pdns-recursor.tar # .. solaris
+bzip2 -f pdns-recursor.tar # .. solaris
 
 
 
