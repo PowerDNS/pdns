@@ -102,10 +102,14 @@ function makeGraphs()
 	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
 	DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
 	DEF:sysmsec=pdns_recursor.rrd:sys-msec:AVERAGE \
-	CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/    \
+	DEF:musermsec=pdns_recursor.rrd:user-msec:MAX \
+	DEF:msysmsec=pdns_recursor.rrd:sys-msec:MAX \
+	CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/ \
 	CDEF:userperc=usermsec,10,/ \
 	CDEF:sysperc=sysmsec,10,/ \
+	CDEF:totmperc=musermsec,msysmsec,+,10,/ \
         LINE2:perc#0000ff:"percentage cache hits"  \
+        LINE2:totmperc#ffff00:"max cpu use" \
         AREA:userperc#ff0000:"user cpu percentage" \
         STACK:sysperc#00ff00:"system cpu percentage" \
         COMMENT:"\l" \
