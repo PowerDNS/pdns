@@ -139,8 +139,9 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
       d_record.push_back((char)(offset & 0xff));
       goto out;                                 // skip trailing 0 in case of compression
     }
-    else if(compress || d_labelmap.count(chopped)) { // if 'compress' is true, li will be equal to d_labelmap.end()
-      d_labelmap[chopped]=pos;                       //  if untrue, we need to count 
+    
+    if(compress && pos < 16384) { 
+      d_labelmap[chopped]=pos;                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
     }
     d_record.push_back((char)(i->second - i->first));
     unsigned int len=d_record.size();
