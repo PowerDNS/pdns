@@ -3,7 +3,6 @@
 #include <iostream>
 #include <boost/shared_ptr.hpp>
 #include "dnsrecords.hh"
-#include <malloc.h>
 #include "arguments.hh"
 
 using namespace std;
@@ -242,7 +241,7 @@ void MemRecursorCache::doPrune(void)
   if(toTrim)
     lookAt=5*toTrim;
   else
-    lookAt=0.02 * cacheSize;
+    lookAt=cacheSize/50;
 
 
   sequence_t::iterator iter=sidx.begin(), eiter;
