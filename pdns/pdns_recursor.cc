@@ -247,6 +247,7 @@ void primeHints(void)
 	RC.replace(rr.qname, QType(QType::A), aset);
       }
       if(rr.qtype.getCode()==QType::NS) {
+	rr.content=toLower(rr.content);
 	nsset.insert(rr);
       }
     }
