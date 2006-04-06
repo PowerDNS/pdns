@@ -1,12 +1,22 @@
 SBINDIR=/usr/sbin/
 
-# for socket location, see config.h
+# for control socket location, see config.h
 
 OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 
-LDFLAGS+= $(PROFILEFLAGS)
+STATICFLAGS=-lstdc++
+
+ifeq ($(STATIC),semi)
+        STATICFLAGS=-Wl,-Bstatic -lstdc++ -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
+endif
+ifeq ($(STATIC),full)
+        STATICFLAGS=-lstdc++ -lm -static
+endif
+
+LDFLAGS+= $(PROFILEFLAGS) $(STATICFLAGS)
+
 all: pdns_recursor rec_control
 
 install: all
@@ -29,9 +39,9 @@ rec_channel.o rec_channel_rec.o malloc.o
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
 
 pdns_recursor: $(PDNS_RECURSOR_OBJECTS)
-	g++ $(PDNS_RECURSOR_OBJECTS) $(LDFLAGS) -o $@
+	gcc $(PDNS_RECURSOR_OBJECTS) $(LDFLAGS) -o $@
 
 rec_control: $(REC_CONTROL_OBJECTS)
-	g++ $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
+	gcc $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
 
 
