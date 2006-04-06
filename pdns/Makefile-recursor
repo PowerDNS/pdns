@@ -27,7 +27,7 @@ clean:
 	-rm -f *.o *~ pdns_recursor rec_control
 	
 dep:
-	gcc -MM *.cc *.hh > $@
+	gcc $(CXXFLAGS) -MM *.cc *.hh > $@
 
 -include dep
 
