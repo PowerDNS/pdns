@@ -42,6 +42,13 @@ The resulting binary is up to 20% faster in our tests.
 
 Do run with g++ 4.1 if you can, it is the best.
 
+RUNNING ON A DIFFERENT MACHINE
+------------------------------
+To prevent hassles with g++ 4.1 dependencies, you can build like this:
+   $ STATIC=semi make all
+or even
+   $ STATIC=full make all
+
 PROBLEMS
 --------
 If you have problems linking, try removing the GCC_SKIP_LOCKING line from
