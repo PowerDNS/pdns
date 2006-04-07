@@ -29,6 +29,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 #include "mtasker.hh"
 #include <utility>
 #include "arguments.hh"
@@ -46,6 +47,7 @@
 #include "zoneparser-tng.hh"
 #include "rec_channel.hh"
 #include "logger.hh"
+#include "iputils.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -63,6 +65,7 @@ using namespace boost;
 MemRecursorCache RC;
 RecursorStats g_stats;
 bool g_quiet;
+NetmaskGroup* g_allowFrom;
 string s_programname="pdns_recursor";
 
 struct DNSComboWriter {
@@ -442,9 +445,15 @@ void makeTCPServerSockets()
     int tmp=1;
     if(setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
       L<<Logger::Error<<"Setsockopt failed for TCP listening socket"<<endl;
-      exit(1);  
+      exit(1);
     }
     
+#ifdef TCP_DEFER_ACCEPT
+    if(setsockopt(fd,SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
+      L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
+    }
+#endif
+
     sin.sin_port = htons(::arg().asNum("local-port")); 
     
     if (::bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
@@ -680,6 +689,7 @@ int main(int argc, char **argv)
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="0";
+    ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="";
 
     ::arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
@@ -699,6 +709,14 @@ int main(int argc, char **argv)
       cerr<<"syntax:"<<endl<<endl;
       cerr<<::arg().helpstring(::arg()["help"])<<endl;
       exit(99);
+    }
+
+    if(!::arg()["allow-from"].empty()) {
+      g_allowFrom=new NetmaskGroup;
+      vector<string> ips;
+      stringtok(ips, ::arg()["allow-from"], ", ");
+      for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i)
+	g_allowFrom->addMask(*i);
     }
 
     L.setName("pdns_recursor");
@@ -876,6 +894,10 @@ int main(int argc, char **argv)
 	if(FD_ISSET(*i,&readfds)) { // do we have a new question on udp?
 	  while((d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
 	    g_stats.queryrate.pulse(now);
+	    if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
+	      g_stats.unauthorizedUDP++;
+	      continue;
+	    }
 
 	    try {
 	      DNSComboWriter* dc = new DNSComboWriter(data, d_len, now);
@@ -903,8 +925,13 @@ int main(int argc, char **argv)
 	  struct sockaddr_in addr;
 	  socklen_t addrlen=sizeof(addr);
 	  int newsock=accept(*i, (struct sockaddr*)&addr, &addrlen);
-	  
 	  if(newsock>0) {
+	    if(g_allowFrom && !g_allowFrom->match(&addr)) {
+	      g_stats.unauthorizedTCP++;
+	      close(newsock);
+	      continue;
+	    }
+
 	    Utility::setNonBlocking(newsock);
 	    TCPConnection tc;
 	    tc.fd=newsock;
