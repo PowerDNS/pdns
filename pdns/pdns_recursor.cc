@@ -560,7 +560,7 @@ static void houseKeeping(void *)
   struct timeval now;
   gettimeofday(&now, 0);
 
-  if(now.tv_sec - last_prune > 60) { 
+  if(now.tv_sec - last_prune > 300) { 
     DTime dt;
     dt.setTimeval(now);
     RC.doPrune();
@@ -578,7 +578,7 @@ static void houseKeeping(void *)
       else
 	++i;
 
-    //    cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
+    //   cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
 //    cout<<"Prune took "<<dt.udiff()<<"usec\n";
     last_prune=time(0);
   }

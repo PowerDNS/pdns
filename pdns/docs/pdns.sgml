@@ -5910,6 +5910,14 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>allow-from</term>
+	    <listitem>
+	      <para>
+		Comma separated netmasks that are allowed to use the server. The default allows complete access!
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>client-tcp-timeout</term>
 	    <listitem>
 	      <para>
@@ -5954,7 +5962,7 @@ local0.err                        /var/log/pdns.err
 	    <term>local-address</term>
 	    <listitem>
 	      <para>
-		Local IP address (singular) to bind to. Defaults to all addresses.
+		Local IP addresses to bind to, comma separated. Defaults to all addresses.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -5964,6 +5972,14 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		Local port (singular) to bind to. Defaults to 53.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>max-cache-entries</term>
+	    <listitem>
+	      <para>
+		Maximum number of cache entries. 1 million will generally suffice for most installations.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -5988,6 +6004,14 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		Don't log queries.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>socket-dir</term>
+	    <listitem>
+	      <para>
+		Where to store the control socket. This option also works with the controller, <command>rec_control</command>.
 	      </para>
 	    </listitem>
 	  </varlistentry>
