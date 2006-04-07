@@ -225,14 +225,14 @@ void MemRecursorCache::doPrune(void)
   
   unsigned int cacheSize=d_cache.size();
 
-  if(maxCached && cacheSize > maxCached)
+  if(maxCached && cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
+  }
 
   //  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
 
   typedef cache_t::nth_index<1>::type sequence_t;
   sequence_t& sidx=d_cache.get<1>();
-
 
   unsigned int tried=0, lookAt, erased=0;
 
@@ -241,7 +241,7 @@ void MemRecursorCache::doPrune(void)
   if(toTrim)
     lookAt=5*toTrim;
   else
-    lookAt=cacheSize/50;
+    lookAt=cacheSize/10;
 
 
   sequence_t::iterator iter=sidx.begin(), eiter;
