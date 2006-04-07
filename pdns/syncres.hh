@@ -352,6 +352,8 @@ struct RecursorStats
   uint64_t avgLatencyUsec;
   uint64_t qcounter;
   uint64_t tcpqcounter;
+  uint64_t unauthorizedUDP;
+  uint64_t unauthorizedTCP;
 };
 
 extern RecursorStats g_stats;

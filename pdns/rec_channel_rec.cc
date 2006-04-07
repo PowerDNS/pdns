@@ -139,6 +139,9 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
 
+  addGetStat("unauthorized-udp", &g_stats.unauthorizedUDP);
+  addGetStat("unauthorized-tcp", &g_stats.unauthorizedTCP);
+
   addGetStat("answers0-1", &g_stats.answers0_1);
   addGetStat("answers1-10", &g_stats.answers1_10);
   addGetStat("answers10-100", &g_stats.answers10_100);

@@ -20,7 +20,7 @@ public:
   {
     if(d_fd > 0)
       close(d_fd);
-    if(d_local.sun_path)
+    if(*d_local.sun_path)
       unlink(d_local.sun_path);
   }
 
