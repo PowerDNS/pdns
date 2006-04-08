@@ -5992,6 +5992,14 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>max-tcp-per-client</term>
+	    <listitem>
+	      <para>
+	      Maximum number of simultaneous incoming TCP connections allowed per client (remote IP address). Defaults to 0, which means unlimited.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>query-local-address</term>
 	    <listitem>
 	      <para>

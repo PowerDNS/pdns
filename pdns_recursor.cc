@@ -601,6 +601,7 @@ static void houseKeeping(void *)
   }
 }
 
+map<uint32_t, uint32_t> g_tcpClientCounts;
 struct TCPConnection
 {
   int fd;
@@ -610,6 +611,13 @@ struct TCPConnection
   struct sockaddr_in remote;
   char data[65535];
   time_t startTime;
+
+  void closeAndCleanup()
+  {
+    close(fd);
+    if(!g_tcpClientCounts[remote.sin_addr.s_addr]--) 
+      g_tcpClientCounts.erase(remote.sin_addr.s_addr);
+  }
 };
 
 #if 0
@@ -690,6 +698,7 @@ int main(int argc, char **argv)
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="0";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="";
+    ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
 
     ::arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
@@ -786,7 +795,10 @@ int main(int argc, char **argv)
     counter=0;
     struct timeval now;
     unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
-    int tcpLimit=::arg().asNum("client-tcp-timeout");
+    int tcpTimeout=::arg().asNum("client-tcp-timeout");
+
+    unsigned int maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
       
@@ -816,14 +828,14 @@ int main(int argc, char **argv)
       vector<TCPConnection> sweeped;
 
       for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
-	if(now.tv_sec < i->startTime + tcpLimit) {
+	if(now.tv_sec < i->startTime + tcpTimeout) {
 	  FD_SET(i->fd, &readfds);
 	  fdmax=max(fdmax,i->fd);
 	  sweeped.push_back(*i);
 	}
 	else {
 	  L<<Logger::Error<<"TCP timeout from client "<<inet_ntoa(i->remote.sin_addr)<<endl;
-	  close(i->fd);
+	  i->closeAndCleanup();
 	}
       }
       sweeped.swap(tcpconnections);
@@ -932,6 +944,12 @@ int main(int argc, char **argv)
 	      continue;
 	    }
 
+	    if(maxTCPPerClient && g_tcpClientCounts.count(addr.sin_addr.s_addr) && g_tcpClientCounts[addr.sin_addr.s_addr] >= maxTCPPerClient) {
+	      g_stats.tcpClientOverflow++;
+	      close(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+	      continue;
+	    }
+	    g_tcpClientCounts[addr.sin_addr.s_addr]++;
 	    Utility::setNonBlocking(newsock);
 	    TCPConnection tc;
 	    tc.fd=newsock;
@@ -1015,7 +1033,7 @@ int main(int argc, char **argv)
 	      i->state=TCPConnection::GETQUESTION;
 	    }
 	    if(!bytes || bytes < 0) {
-	      close(i->fd);
+	      i->closeAndCleanup();
 	      tcpconnections.erase(i);
 	      break;
 	    }
@@ -1029,7 +1047,7 @@ int main(int argc, char **argv)
 	    }
 	    if(!bytes || bytes < 0) {
 	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected after first byte"<<endl;
-	      close(i->fd);
+	      i->closeAndCleanup();
 	      tcpconnections.erase(i);
 	      break;
 	    }
@@ -1039,7 +1057,7 @@ int main(int argc, char **argv)
 	    int bytes=read(i->fd,i->data + i->bytesread,i->qlen - i->bytesread);
 	    if(!bytes || bytes < 0) {
 	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected while reading question body"<<endl;
-	      close(i->fd);
+	      i->closeAndCleanup();
 	      tcpconnections.erase(i);
 	      break;
 	    }
@@ -1052,7 +1070,7 @@ int main(int argc, char **argv)
 	      }
 	      catch(MOADNSException &mde) {
 		L<<Logger::Error<<"Unable to parse packet from remote TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
-		close(i->fd);
+		i->closeAndCleanup();
 		tcpconnections.erase(i);
 		break;
 	      }

@@ -141,6 +141,7 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("unauthorized-udp", &g_stats.unauthorizedUDP);
   addGetStat("unauthorized-tcp", &g_stats.unauthorizedTCP);
+  addGetStat("tcp-client-overflow", &g_stats.tcpClientOverflow);
 
   addGetStat("answers0-1", &g_stats.answers0_1);
   addGetStat("answers1-10", &g_stats.answers1_10);
