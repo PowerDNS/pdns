@@ -354,6 +354,7 @@ struct RecursorStats
   uint64_t tcpqcounter;
   uint64_t unauthorizedUDP;
   uint64_t unauthorizedTCP;
+  uint64_t tcpClientOverflow;
 };
 
 extern RecursorStats g_stats;
