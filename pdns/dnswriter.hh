@@ -25,9 +25,9 @@ using namespace std;
 
     vector<uint8_t> content;
     DNSPacketWriter dpw(content, const string& qname, uint16_t qtype, uint16_t qclass=1);  // sets the question
-    dpw.startrecord("this.is.an.ip.address", ns_t_a);    // does nothing, except store qname and qtype
+    dpw.startrecord("this.is.an.ip.address.", ns_t_a);    // does nothing, except store qname and qtype
     dpw.xfr32BitInt(0x01020304);                         // adds 4 bytes (0x01020304) to the record buffer
-    dpw.startrecord("this.is.an.ip.address", ns_t_a);    // aha! writes out dnsrecord header containing qname and qtype and length 4, plus the recordbuffer, which gets emptied
+    dpw.startrecord("this.is.an.ip.address.", ns_t_a);    // aha! writes out dnsrecord header containing qname and qtype and length 4, plus the recordbuffer, which gets emptied
                                                          // new qname and qtype are stored
     dpw.xfr32BitInt(0x04030201);                         // adds 4 bytes (0x04030201) to the record buffer
     dpw.commit();                                        // writes out dnsrecord header containing qname and qtype and length 4, plus the recordbuffer

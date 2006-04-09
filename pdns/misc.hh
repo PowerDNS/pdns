@@ -45,7 +45,10 @@
 
 using namespace std;
 bool chopOff(string &domain);
+bool chopOffDotted(string &domain);
+
 bool endsOn(const string &domain, const string &suffix);
+bool dottedEndsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
 string humanDuration(time_t passed);
@@ -286,4 +289,12 @@ inline float makeFloat(const struct timeval& tv)
 {
   return tv.tv_sec + tv.tv_usec/1000000.0;
 }
+struct CIStringCompare: public binary_function<string, string, bool>  
+{
+  bool operator()(const string& a, const string& b) const
+  {
+    return strcasecmp(a.c_str(), b.c_str()) < 0;
+  }
+};
+
 #endif

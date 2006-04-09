@@ -252,7 +252,8 @@ public:
                  NegCacheEntry,
                     member<NegCacheEntry, string, &NegCacheEntry::d_name>,
                     member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>
-           >
+           >,
+           composite_key_compare<CIStringCompare, std::less<QType> >
        >,
        ordered_non_unique<
            member<NegCacheEntry, uint32_t, &NegCacheEntry::d_ttd>
@@ -261,7 +262,7 @@ public:
   >negcache_t;
   static negcache_t s_negcache;    
 
-  typedef map<string,DecayingEwma> nsspeeds_t;
+  typedef map<string,DecayingEwma, CIStringCompare> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
 
   typedef Throttle<tuple<uint32_t,string,uint16_t> > throttle_t;
@@ -269,17 +270,17 @@ public:
   struct timeval d_now;
 private:
   struct GetBestNSAnswer;
-  int doResolveAt(set<string> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
+  int doResolveAt(set<string, CIStringCompare> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
 		  int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
   bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere);
   void addCruft(const string &qname, vector<DNSResourceRecord>& ret);
-  string getBestNSNamesFromCache(const string &qname,set<string>& nsset, int depth, set<GetBestNSAnswer>&beenthere);
+  string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, int depth, set<GetBestNSAnswer>&beenthere);
   void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
 
-  inline vector<string> shuffle(set<string> &nameservers, const string &prefix);
+  inline vector<string> shuffle(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
   vector<uint32_t> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
 

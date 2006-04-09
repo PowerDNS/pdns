@@ -35,13 +35,14 @@ namespace __gnu_cxx
 
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
 {
+  //  cerr<<"Serial: '"<<makeHexDump(serial)<<"'"<<endl;
   shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(qname,qt.getCode(), serial);
   DNSResourceRecord rr;
   rr.qname=regen->label;
   rr.ttl=ttd; 
   rr.content=regen->getZoneRepresentation();
   rr.qtype=regen->d_qtype;
-  //  cerr<<"Returning: '"<<rr.qname<<"' "<<rr.qtype.getName()<<"  "<<rr.ttl<<"  '"<<rr.content<<"'\n";
+
   rr.content.reserve(0);
   rr.qname.reserve(0);
   return rr;
@@ -79,14 +80,13 @@ unsigned int MemRecursorCache::bytes()
 int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
   unsigned int ttd=0;
-  string lqname(toLowerCanonic(qname));
 
-  //  cerr<<"looking up "<< toLowerCanonic(qname)+"|"+qt.getName()<<"\n";
+  //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
 
-  if(!d_cachecachevalid || d_cachedqname != lqname) {
+  if(!d_cachecachevalid || strcasecmp(d_cachedqname.c_str(), qname.c_str())) {
     //    cerr<<"had cache cache miss"<<endl;
-    d_cachedqname=lqname;
-    d_cachecache=d_cache.equal_range(tie(lqname));
+    d_cachedqname=qname;
+    d_cachecache=d_cache.equal_range(tie(qname));
     d_cachecachevalid=true;
   }
   else
@@ -122,7 +122,6 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return (unsigned int)ttd-now;
   }
-  
   return -1;
 }
  
@@ -132,10 +131,10 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
 {
   d_cachecachevalid=false;
-  tuple<string, uint16_t> key=make_tuple(toLowerCanonic(qname), qt.getCode());
+  tuple<string, uint16_t> key=make_tuple(qname, qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
 
-  //  cerr<<"storing "<< toLowerCanonic(qname)+"|"+qt.getName()<<"\n";
+  //  cerr<<"storing "<< qname+"|"+qt.getName()<<" -> '"<<content.begin()->content<<"'\n";
 
   bool isNew=false;
   if(stored == d_cache.end()) {
@@ -204,7 +203,7 @@ void MemRecursorCache::doDumpAndClose(int fd)
   for(sequence_t::const_iterator i=sidx.begin(); i != sidx.end(); ++i) {
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j != i->d_records.end(); ++j) {
       DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
-      fprintf(fp, "%s. %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
+      fprintf(fp, "%s %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
     }
   }
   fclose(fp);

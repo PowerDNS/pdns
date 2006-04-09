@@ -305,7 +305,7 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
       else
 	d_string.append(1,val[pos]);
   }
-  d_string.append(1,'.');
+  //  d_string.append(1,'.');
 }
 
 void RecordTextWriter::xfrBlob(const string& val)

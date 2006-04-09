@@ -364,10 +364,10 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
   for(;;) {
     unsigned char labellen=content.at(frompos++);
 
-    // cout<<"Labellen: "<<(int)labellen<<endl;
+    //    cerr<<"ret: '"<<ret<<"', Labellen: "<<(int)labellen<<endl;
     if(!labellen) {
-      //      if(ret.empty())
-      //	ret.append(1,'.');
+      if(ret.empty())
+      	ret.append(1,'.');
       break;
     }
     if((labellen & 0xc0) == 0xc0) {
@@ -376,9 +376,8 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
     else {
-      if(!ret.empty())
-	ret.append(1,'.');
       ret.append(&content.at(frompos), &content.at(frompos+labellen));
+      ret.append(1,'.');
       frompos+=labellen;
     }
   }

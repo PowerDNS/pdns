@@ -28,7 +28,7 @@ uint32_t ARecordContent::getIP() const
 void ARecordContent::doRecordCheck(const DNSRecord& dr)
 {  
   if(dr.d_clen!=4)
-    throw MOADNSException("Wrong size for A record");
+    throw MOADNSException("Wrong size for A record ("+lexical_cast<string>(dr.d_clen)+")");
 }
 
 class AAAARecordContent : public DNSRecordContent
