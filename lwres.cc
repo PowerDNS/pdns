@@ -152,7 +152,6 @@ LWRes::res_t LWRes::result()
       rr.qname=i->first.d_label;
       rr.ttl=i->first.d_ttl;
       rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
-      
       rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
       ret.push_back(rr);
     }

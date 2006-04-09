@@ -91,7 +91,7 @@ bool stripDomainSuffix(string *qname, const string &domain)
   return true;
 }
 
-/** Chops off the start of a domain, so goes from 'www.ds9a.nl' to 'ds9a.nl' to ''. Return zero on the empty string */
+/** Chops off the start of a domain, so goes from 'www.ds9a.nl' to 'ds9a.nl' to 'nl' to ''. Return zero on the empty string */
 bool chopOff(string &domain)
 {
   if(domain.empty())
@@ -105,6 +105,22 @@ bool chopOff(string &domain)
     domain=domain.substr(fdot+1);
   return true;
 }
+
+/** Chops off the start of a domain, so goes from 'www.ds9a.nl.' to 'ds9a.nl.' to 'nl.' to '.' Return zero on the empty string */
+bool chopOffDotted(string &domain)
+{
+  if(domain.empty() || (domain.size()==1 && domain[0]=='.'))
+    return false;
+
+  string::size_type fdot=domain.find('.');
+
+  if(fdot==domain.size()-1) 
+    domain=".";
+  else 
+    domain=domain.substr(fdot+1);
+  return true;
+}
+
 
 bool ciEqual(const string& a, const string& b)
 {
@@ -123,10 +139,12 @@ bool endsOn(const string &domain, const string &suffix)
 {
   if( suffix.empty() || ciEqual(domain, suffix) )
     return true;
+
   if(domain.size()<=suffix.size())
     return false;
   
   string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
+
   if(domain[dpos++]!='.')
     return false;
 
@@ -136,6 +154,28 @@ bool endsOn(const string &domain, const string &suffix)
 
   return true;
 }
+
+/** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
+bool dottedEndsOn(const string &domain, const string &suffix) 
+{
+  if( suffix=="." || ciEqual(domain, suffix) )
+    return true;
+
+  if(domain.size()<=suffix.size())
+    return false;
+  
+  string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
+
+  if(domain[dpos++]!='.')
+    return false;
+
+  for(; dpos < domain.size(); ++dpos, ++spos)
+    if(dns_tolower(domain[dpos]) != dns_tolower(suffix[spos]))
+      return false;
+
+  return true;
+}
+
 
 int sendData(const char *buffer, int replen, int outsock)
 {

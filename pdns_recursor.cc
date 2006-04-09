@@ -226,7 +226,7 @@ void primeHints(void)
     
     for(char c='a';c<='m';++c) {
       static char templ[40];
-      strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
+      strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
       *templ=c;
       arr.qname=nsrr.content=templ;
       arr.content=ips[c-'a'];
@@ -255,7 +255,7 @@ void primeHints(void)
       }
     }
   }
-  RC.replace("", QType(QType::NS), nsset); // and stuff in the cache
+  RC.replace(".", QType(QType::NS), nsset); // and stuff in the cache
 }
 
 void startDoResolve(void *p)
@@ -591,7 +591,7 @@ static void houseKeeping(void *)
     vector<DNSResourceRecord> ret;
 
     sr.setNoCache();
-    int res=sr.beginResolve("", QType(QType::NS), ret);
+    int res=sr.beginResolve(".", QType(QType::NS), ret);
     if(!res) {
       L<<Logger::Error<<"Refreshed . records"<<endl;
       last_rootupdate=now.tv_sec;

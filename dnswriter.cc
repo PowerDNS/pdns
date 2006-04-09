@@ -128,8 +128,9 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
   unsigned int pos=d_content.size() + d_record.size() + d_stuff; 
   string chopped(label);
-  
+
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
+    //    cerr<<"chopped: '"<<chopped<<"'\n";
     map<string, uint16_t>::iterator li;
     // see if we've written out this domain before
     if(compress && (li=d_labelmap.find(chopped))!=d_labelmap.end()) {   
@@ -147,9 +148,9 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
     unsigned int len=d_record.size();
     d_record.resize(len + i->second - i->first);
     memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
-
+    //    cerr<<"Added: '"<<string(label.c_str() + i->first, i->second - i->first) <<"'\n";
     pos+=(i->second - i->first)+1;
-    chopOff(chopped);                   // www.powerdns.com -> powerdns.com -> com 
+    chopOff(chopped);                   // www.powerdns.com. -> powerdns.com. -> com. -> .
   }
   d_record.push_back(0);
 

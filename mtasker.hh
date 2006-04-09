@@ -70,7 +70,7 @@ private:
 
   waiters_t d_waiters;
 
-  typedef std::map<int,ucontext_t* > mthreads_t;
+  typedef std::map<int, ucontext_t*> mthreads_t;
   mthreads_t d_threads;
   int d_tid;
   int d_maxtid;

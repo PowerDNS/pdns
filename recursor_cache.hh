@@ -4,6 +4,7 @@
 #include <set>
 #include "dns.hh"
 #include "qtype.hh"
+#include "misc.hh"
 #include <iostream>
 #include <boost/utility.hpp>
 #undef L
@@ -20,6 +21,7 @@
 #define L theL()
 using namespace boost;
 using namespace ::boost::multi_index;
+
 
 
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
@@ -102,7 +104,8 @@ private:
                         CacheEntry,
                         member<CacheEntry,string,&CacheEntry::d_qname>,
                         member<CacheEntry,uint16_t,&CacheEntry::d_qtype>
-                      >
+                      >,
+                      composite_key_compare<CIStringCompare, std::less<uint16_t> >
                 >,
                sequenced<>
                >
