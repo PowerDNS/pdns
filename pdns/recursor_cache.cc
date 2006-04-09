@@ -33,30 +33,95 @@ namespace __gnu_cxx
 }
 #endif
 
+string simpleCompress(const string& label)
+{
+  typedef vector<pair<unsigned int, unsigned int> > parts_t;
+  parts_t parts;
+  vstringtok(parts, label, ".");
+  string ret;
+  ret.reserve(label.size()+4);
+  for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
+    ret.append(1, (char)(i->second - i->first));
+    ret.append(label.c_str() + i->first, i->second - i->first);
+  }
+  ret.append(1,0);
+  return ret;
+}
+
+void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
+{
+  unsigned int labellen=0;
+  while((labellen=label.at(frompos++))) {
+    ret.append(label.c_str()+frompos, labellen);
+    ret.append(1,'.');
+    frompos+=labellen;
+  }
+}
+
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
 {
-  //  cerr<<"Serial: '"<<makeHexDump(serial)<<"'"<<endl;
-  shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(qname,qt.getCode(), serial);
   DNSResourceRecord rr;
-  rr.qname=regen->label;
   rr.ttl=ttd; 
-  rr.content=regen->getZoneRepresentation();
-  rr.qtype=regen->d_qtype;
+  rr.qtype=qt;
+  rr.qname=qname;
 
-  rr.content.reserve(0);
-  rr.qname.reserve(0);
+  if(rr.qtype.getCode()==QType::A) {
+    uint32_t ip;
+    memcpy((char*)&ip, serial.c_str(), 4);
+    rr.content=U32ToIP(ntohl(ip));
+  }
+  else if(rr.qtype.getCode()==QType::CNAME || rr.qtype.getCode()==QType::NS || rr.qtype.getCode()==QType::PTR) {
+    unsigned int frompos=0;
+    unsigned char labellen;
+
+    while((labellen=serial.at(frompos++))) {
+      if((labellen & 0xc0) == 0xc0) {
+	string encoded=simpleCompress(qname);
+	uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)serial.at(frompos++) - sizeof(dnsheader)-5;
+
+	simpleExpandTo(encoded, offset, rr.content);
+	//	cerr<<"Oops, fallback, content so far: '"<<rr.content<<"', offset: "<<offset<<", '"<<qname<<"', "<<qt.getName()<<"\n";
+	break;
+      }
+      rr.content.append(serial.c_str()+frompos, labellen);
+      frompos+=labellen;
+      rr.content.append(1,'.');
+    }
+  }
+  else {
+    shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(qname,qt.getCode(), serial);
+    rr.content=regen->getZoneRepresentation();
+  }
+
+  //  rr.content.reserve(0);
+  //  rr.qname.reserve(0);
   return rr;
 }
 
 string DNSRR2String(const DNSResourceRecord& rr)
 {
-  vector<uint8_t> packet;
-  
   uint16_t type=rr.qtype.getCode();
-  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(type, 1, rr.content));
-  string ret=drc->serialize(rr.qname);
+
+  if(type==QType::A) {
+    uint32_t ip;
+    IpToU32(rr.content, &ip);
+    return string((char*)&ip, 4);
+  }
+  else if(type==QType::NS) {
+    NSRecordContent ar(rr.content);
+    return ar.serialize(rr.qname);
+  }
+  else if(type==QType::CNAME) {
+    CNAMERecordContent ar(rr.content);
+    return ar.serialize(rr.qname);
+  }
+  else {
+    string ret;
+    shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(type, 1, rr.content));
+    ret=drc->serialize(rr.qname);
   //  cerr<<"stored '"<<rr.qname<<" '"<<rr.qtype.getName()<<"' '"<<rr.content<<"' as "<<ret.size()<<" bytes"<<endl;
-  return ret;
+    return ret;
+  }
 }
 
 unsigned int MemRecursorCache::size()

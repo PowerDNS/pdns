@@ -36,7 +36,6 @@
 
 
 #endif // WIN32
-
 #include <deque>
 #include <stdexcept>
 #include <string>
@@ -293,7 +292,18 @@ struct CIStringCompare: public binary_function<string, string, bool>
 {
   bool operator()(const string& a, const string& b) const
   {
-    return strcasecmp(a.c_str(), b.c_str()) < 0;
+    const unsigned char *p1 = (const unsigned char *) a.c_str();
+    const unsigned char *p2 = (const unsigned char *) b.c_str();
+    int result;
+    
+    if (p1 == p2)
+      return 0;
+    
+    while ((result = dns_tolower (*p1) - dns_tolower (*p2++)) == 0)
+      if (*p1++ == '\0')
+	break;
+    
+    return result < 0;
   }
 };
 
