@@ -388,7 +388,12 @@ RecursorControlChannel s_rcc;
 
 void makeControlChannelSocket()
 {
-  s_rcc.listen(::arg()["socket-dir"]+"/pdns_recursor.controlsocket");
+  string sockname=::arg()["socket-dir"]+"/pdns_recursor.controlsocket";
+  if(::arg().mustDo("fork")) {
+    sockname+="."+lexical_cast<string>(getpid());
+    L<<Logger::Warning<<"Forked control socket name: "<<sockname<<endl;
+  }
+  s_rcc.listen(sockname);
 }
 
 void makeClientSocket()
@@ -699,6 +704,7 @@ int main(int argc, char **argv)
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="0";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="";
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
+    ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
@@ -749,9 +755,15 @@ int main(int argc, char **argv)
       g_quiet=false;
   }
 
-    makeClientSocket();
     makeUDPServerSockets();
     makeTCPServerSockets();
+
+    if(::arg().mustDo("fork")) {
+      fork();
+      L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
+    }
+    makeClientSocket();
+
     makeControlChannelSocket();
     
     MT=new MTasker<PacketID,string>(100000);
