@@ -31,7 +31,10 @@ ArgvMap &arg()
 static void initArguments(int argc, char** argv)
 {
   arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
+
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+  arg().set("socket-pid","When controlling multiple recursors, the target pid")="";
+
   arg().setCmd("help","Provide this helpful message");
 
   arg().laxParse(argc,argv);  
@@ -49,7 +52,11 @@ try
   initArguments(argc, argv);
 
   RecursorControlChannel rccS;
-  rccS.connect(arg()["socket-dir"], "pdns_recursor.controlsocket");
+  string sockname="pdns_recursor.controlsocket";
+  if(!arg()["socket-pid"].empty())
+    sockname+="."+arg()["socket-pid"];
+
+  rccS.connect(arg()["socket-dir"], sockname);
 
   const vector<string>&commands=arg().getCommands();
   string command;
