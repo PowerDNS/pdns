@@ -185,20 +185,30 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   return ret;
 }
 
-void setReceiveBuffer(int fd, uint32_t size)
+void setBuffer(int fd, int optname, uint32_t size)
 {
   uint32_t psize=0;
   socklen_t len=sizeof(psize);
   
-  if(!getsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&psize, &len) && psize > size) {
+  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
     L<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
     return; 
   }
 
-  if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size)) < 0 )
+  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
     L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
 }
 
+
+static void setReceiveBuffer(int fd, uint32_t size)
+{
+  setBuffer(fd, SO_RCVBUF, size);
+}
+
+static void setSendBuffer(int fd, uint32_t size)
+{
+  setBuffer(fd, SO_SNDBUF, size);
+}
 
 static void writePid(void)
 {
@@ -345,7 +355,7 @@ void startDoResolve(void *p)
       if(ret <= 0 ) 
 	L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
       else if((unsigned int)ret != 2 + packet.size())
-	L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" - probably would have trouble receiving our answer anyhow (size="<<packet.size()<<")"<<endl;
+	L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
     }
 
     //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
@@ -465,6 +475,7 @@ void makeTCPServerSockets()
       throw AhuException("Binding TCP server socket for "+*i+": "+stringerror());
     
     Utility::setNonBlocking(fd);
+    setSendBuffer(fd, 65000);
     listen(fd, 128);
     s_tcpserversocks.push_back(fd);
     L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
@@ -938,7 +949,7 @@ int main(int argc, char **argv)
 	      }
             }
 	    catch(MOADNSException& mde) {
-	      L<<Logger::Error<<"Unable to parse packet from remote udp client "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
+	      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
 	    }
           }
 	}
