@@ -195,6 +195,17 @@ private:
   string d_fingerprint;
 };
 
+class CERTRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(CERT)
+
+private:
+  uint16_t d_type, d_tag;
+  uint8_t d_algorithm;
+  string d_certificate;
+};
+
 class RRSIGRecordContent : public DNSRecordContent
 {
 public:
