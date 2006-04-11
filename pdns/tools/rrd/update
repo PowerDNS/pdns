@@ -8,7 +8,8 @@ VARIABLES="questions tcp-questions cache-entries concurrent-queries\
 	   servfail-answers tcp-outqueries\
 	   outgoing-timeouts nsspeeds-entries negcache-entries all-outqueries throttled-out\
 	   cache-hits cache-misses answers0-1 answers1-10 answers10-100 answers100-1000 answers-slow\
-	qa-latency throttle-entries sys-msec user-msec"
+	qa-latency throttle-entries sys-msec user-msec unauthorized-udp unauthorized-tcp client-parse-errors\
+	server-parse-errors"
 
 UVARIABLES=$(echo $VARIABLES | tr '[a-z]' '[A-Z]' | tr - _ )
 
