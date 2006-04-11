@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2005 - 2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -240,6 +240,12 @@ boilerplate_conv(SOA, ns_t_soa,
 		 conv.xfr32BitInt(d_st.minimum);
 		 );
 
+boilerplate_conv(CERT, 37, 
+		 conv.xfr16BitInt(d_type); 
+		 conv.xfr16BitInt(d_tag); 
+		 conv.xfr8BitInt(d_algorithm); 
+		 conv.xfrBlob(d_certificate);
+		 )
 
 boilerplate_conv(DS, 43, 
 		 conv.xfr16BitInt(d_tag); 
@@ -247,7 +253,6 @@ boilerplate_conv(DS, 43,
 		 conv.xfr8BitInt(d_digesttype); 
 		 conv.xfrHexBlob(d_digest);
 		 )
-
 
 boilerplate_conv(SSHFP, 44, 
 		 conv.xfr8BitInt(d_algorithm); 
@@ -297,6 +302,7 @@ void reportOtherTypes()
    RRSIGRecordContent::report();
    DSRecordContent::report();
    SSHFPRecordContent::report();
+   CERTRecordContent::report();
    NSECRecordContent::report();
    OPTRecordContent::report();
    DNSRecordContent::regist(1,255, 0, 0, "ANY");
