@@ -55,8 +55,23 @@ Throttle<tuple<uint32_t,string,uint16_t> > SyncRes::s_throttle;
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
 {
-  set<GetBestNSAnswer> beenthere;
   s_queries++;
+  if( (qtype.getCode()==QType::PTR && !strcasecmp(qname.c_str(), "1.0.0.127.in-addr.arpa.")) ||
+      (qtype.getCode()==QType::A && qname.length()==10 && !strcasecmp(qname.c_str(), "localhost."))) {
+    ret.clear();
+    DNSResourceRecord rr;
+    rr.qname=qname;
+    rr.qtype=qtype;
+    rr.ttl=86400;
+    if(qtype.getCode()==QType::PTR)
+      rr.content="localhost.";
+    else
+      rr.content="127.0.0.1";
+    ret.push_back(rr);
+    return 0;
+  }
+
+  set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret,0,beenthere);
   if(!res)
     addCruft(qname, ret);
