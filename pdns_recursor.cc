@@ -268,6 +268,28 @@ void primeHints(void)
   RC.replace(".", QType(QType::NS), nsset); // and stuff in the cache
 }
 
+map<uint32_t, uint32_t> g_tcpClientCounts;
+
+struct TCPConnection
+{
+  int fd;
+  enum {BYTE0, BYTE1, GETQUESTION, DONE} state;
+  int qlen;
+  int bytesread;
+  struct sockaddr_in remote;
+  char data[65535];
+  time_t startTime;
+
+  void closeAndCleanup()
+  {
+    close(fd);
+    if(!g_tcpClientCounts[remote.sin_addr.s_addr]--) 
+      g_tcpClientCounts.erase(remote.sin_addr.s_addr);
+  }
+};
+
+vector<TCPConnection> g_tcpconnections; // all *running* TCP/IP questions (from clients)
+
 void startDoResolve(void *p)
 {
   try {
@@ -351,11 +373,30 @@ void startDoResolve(void *p)
       iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
 
       int ret=writev(dc->d_socket, iov, 2);
+      bool hadError=true;
 
-      if(ret <= 0 ) 
-	L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< (ret ? strerror(errno) : "EOF") <<endl;
+      if(ret == 0) 
+	L<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
+      else if(ret < 0 )  
+	L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
       else if((unsigned int)ret != 2 + packet.size())
 	L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
+      else
+	hadError=false;
+
+      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
+	if(i->fd == dc->d_socket) {
+	  if(hadError) {
+	    i->closeAndCleanup();
+	    g_tcpconnections.erase(i);
+	  }
+	  else {
+	    i->state=TCPConnection::BYTE0;
+	    i->startTime=time(0); // needs to be current, TCP is slow anyhow
+	  }
+	  break;
+	}
+      }
     }
 
     //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
@@ -617,24 +658,7 @@ static void houseKeeping(void *)
   }
 }
 
-map<uint32_t, uint32_t> g_tcpClientCounts;
-struct TCPConnection
-{
-  int fd;
-  enum {BYTE0, BYTE1, GETQUESTION} state;
-  int qlen;
-  int bytesread;
-  struct sockaddr_in remote;
-  char data[65535];
-  time_t startTime;
 
-  void closeAndCleanup()
-  {
-    close(fd);
-    if(!g_tcpClientCounts[remote.sin_addr.s_addr]--) 
-      g_tcpClientCounts.erase(remote.sin_addr.s_addr);
-  }
-};
 
 #if 0
 #include <execinfo.h>
@@ -701,6 +725,7 @@ int main(int argc, char **argv)
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas")="0.0.0.0";
     ::arg().set("trace","if we should output heaps of logging")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
+    ::arg().set("log-common-errors","If we should log rather common errors")="yes";
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
@@ -754,17 +779,19 @@ int main(int argc, char **argv)
     L<<") starting up"<<endl;
 
     L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
-  L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-    "This is free software, and you are welcome to redistribute it "
-    "according to the terms of the GPL version 2."<<endl;
-
-
-  g_quiet=::arg().mustDo("quiet");
-  if(::arg().mustDo("trace")) {
+    L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+      "This is free software, and you are welcome to redistribute it "
+      "according to the terms of the GPL version 2."<<endl;
+    
+    
+    g_quiet=::arg().mustDo("quiet");
+    if(::arg().mustDo("trace")) {
       SyncRes::setLog(true);
       ::arg().set("quiet")="no";
       g_quiet=false;
-  }
+    }
+
+    bool logCommonErrors=::arg().mustDo("log-common-errors");
 
     makeUDPServerSockets();
     makeTCPServerSockets();
@@ -814,7 +841,7 @@ int main(int argc, char **argv)
 
     Utility::dropPrivs(newuid, newgid);
 
-    vector<TCPConnection> tcpconnections;
+
     counter=0;
     struct timeval now;
     unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
@@ -845,29 +872,32 @@ int main(int argc, char **argv)
       FD_SET( s_rcc.d_fd, &readfds);
       int fdmax=max(d_clientsock, s_rcc.d_fd);
 
-      if(!tcpconnections.empty())
+      if(!g_tcpconnections.empty())
 	gettimeofday(&now, 0);
 
       vector<TCPConnection> sweeped;
 
-      for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
-	if(now.tv_sec < i->startTime + tcpTimeout) {
-	  FD_SET(i->fd, &readfds);
-	  fdmax=max(fdmax,i->fd);
+      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
+	if(i->state==TCPConnection::DONE || now.tv_sec < i->startTime + tcpTimeout) {  // don't timeout when we are working on the question!
 	  sweeped.push_back(*i);
+	  if(i->state!=TCPConnection::DONE) { // we don't listen for data when we are processing the question
+	    FD_SET(i->fd, &readfds);
+	    fdmax=max(fdmax,i->fd);
+	  }
 	}
 	else {
-	  L<<Logger::Error<<"TCP timeout from client "<<inet_ntoa(i->remote.sin_addr)<<endl;
+	  if(logCommonErrors)
+	    L<<Logger::Error<<"TCP timeout from client "<<inet_ntoa(i->remote.sin_addr)<<endl;
 	  i->closeAndCleanup();
 	}
       }
-      sweeped.swap(tcpconnections);
+      sweeped.swap(g_tcpconnections);
 
       for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
 	FD_SET( *i, &readfds );
 	fdmax=max(fdmax,*i);
       }
-      if(tcpconnections.size() < maxTcpClients) 
+      if(g_tcpconnections.size() < maxTcpClients) 
 	for(tcpserversocks_t::const_iterator i=s_tcpserversocks.begin(); i!=s_tcpserversocks.end(); ++i) {
 	  FD_SET(*i, &readfds );
 	  fdmax=max(fdmax,*i);
@@ -903,24 +933,26 @@ int main(int argc, char **argv)
 	command();
       }
 
-      if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response?
+      if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response from a server ("we are the client", hence d_clientsock)
 	while((d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-  	try {
-   	    DNSComboWriter dc(data, d_len, now);
-	    dc.setRemote((struct sockaddr *)&fromaddr, addrlen);
-
-	    if(dc.d_mdp.d_header.qr) {
+	  dnsheader dh;
+	  if(d_len >= sizeof(dnsheader)) {
+	    memcpy(&dh, data, sizeof(dh));
+	    
+	    if(dh.qr) {
 	      pident.remote=fromaddr;
-	      pident.id=dc.d_mdp.d_header.id;
+	      pident.id=dh.id;
 	      string packet;
 	      packet.assign(data, d_len);
 	      MT->sendEvent(pident, &packet);
 	    }
 	    else 
-	      L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<dc.getRemote()<<endl;
+	      L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
 	  }
-	  catch(MOADNSException& mde) {
-	    L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
+	  else {
+	    g_stats.serverParseError++; 
+	    if(logCommonErrors)
+	      L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": packet too small"<<endl;
 	  }
 	}
       }
@@ -928,7 +960,7 @@ int main(int argc, char **argv)
       for(vector<int>::const_iterator i=d_udpserversocks.begin(); i!=d_udpserversocks.end(); ++i) {
 	if(FD_ISSET(*i,&readfds)) { // do we have a new question on udp?
 	  while((d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-	    g_stats.queryrate.pulse(now);
+	    //	    g_stats.queryrate.pulse(now);  // (broken)
 	    if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
 	      g_stats.unauthorizedUDP++;
 	      continue;
@@ -939,8 +971,10 @@ int main(int argc, char **argv)
 
 	      dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
 
-  	      if(dc->d_mdp.d_header.qr)
-	        L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+  	      if(dc->d_mdp.d_header.qr) {
+		if(logCommonErrors)
+		  L<<Logger::Error<<"Ignoring answer from "<<dc->getRemote()<<" on server socket!"<<endl;
+	      }
 	      else {
 	        ++g_stats.qcounter;
 	        dc->setSocket(*i);
@@ -949,6 +983,7 @@ int main(int argc, char **argv)
 	      }
             }
 	    catch(MOADNSException& mde) {
+	      g_stats.clientParseError++; 
 	      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
 	    }
           }
@@ -956,7 +991,7 @@ int main(int argc, char **argv)
       }
 
       for(tcpserversocks_t::const_iterator i=s_tcpserversocks.begin(); i!=s_tcpserversocks.end(); ++i) { 
-	if(FD_ISSET(*i ,&readfds)) { // do we have a new TCP connection?
+	if(FD_ISSET(*i ,&readfds)) { // do we have a new TCP connection from a client?
 	  struct sockaddr_in addr;
 	  socklen_t addrlen=sizeof(addr);
 	  int newsock=accept(*i, (struct sockaddr*)&addr, &addrlen);
@@ -979,7 +1014,7 @@ int main(int argc, char **argv)
 	    tc.state=TCPConnection::BYTE0;
 	    tc.remote=addr;
 	    tc.startTime=now.tv_sec;
-	    tcpconnections.push_back(tc);
+	    g_tcpconnections.push_back(tc);
 	  }
 	}
       }
@@ -1044,7 +1079,7 @@ int main(int argc, char **argv)
       }
       
       // very braindead TCP incoming question parser
-      for(vector<TCPConnection>::iterator i=tcpconnections.begin();i!=tcpconnections.end();++i) {
+      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
 	if(FD_ISSET(i->fd, &readfds)) {
 	  if(i->state==TCPConnection::BYTE0) {
 	    int bytes=read(i->fd,i->data,2);
@@ -1057,7 +1092,7 @@ int main(int argc, char **argv)
 	    }
 	    if(!bytes || bytes < 0) {
 	      i->closeAndCleanup();
-	      tcpconnections.erase(i);
+	      g_tcpconnections.erase(i);
 	      break;
 	    }
 	  }
@@ -1069,32 +1104,33 @@ int main(int argc, char **argv)
 	      i->bytesread=0;
 	    }
 	    if(!bytes || bytes < 0) {
-	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected after first byte"<<endl;
+	      if(logCommonErrors)
+		L<<Logger::Error<<"TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected after first byte"<<endl;
 	      i->closeAndCleanup();
-	      tcpconnections.erase(i);
+	      g_tcpconnections.erase(i);
 	      break;
 	    }
-	    
 	  }
 	  else if(i->state==TCPConnection::GETQUESTION) {
 	    int bytes=read(i->fd,i->data + i->bytesread,i->qlen - i->bytesread);
 	    if(!bytes || bytes < 0) {
-	      L<<Logger::Error<<"TCP Remote "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected while reading question body"<<endl;
+	      L<<Logger::Error<<"TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected while reading question body"<<endl;
 	      i->closeAndCleanup();
-	      tcpconnections.erase(i);
+	      g_tcpconnections.erase(i);
 	      break;
 	    }
 	    i->bytesread+=bytes;
 	    if(i->bytesread==i->qlen) {
-	      i->state=TCPConnection::BYTE0;
+	      i->state=TCPConnection::DONE; // this makes us immune from timeouts, from now on *we* are responsible
 	      DNSComboWriter* dc=0;
 	      try {
 		dc=new DNSComboWriter(i->data, i->qlen, now);
 	      }
 	      catch(MOADNSException &mde) {
-		L<<Logger::Error<<"Unable to parse packet from remote TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
+		g_stats.clientParseError++; 
+		L<<Logger::Error<<"Unable to parse packet from TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
 		i->closeAndCleanup();
-		tcpconnections.erase(i);
+		g_tcpconnections.erase(i);
 		break;
 	      }
 
@@ -1107,6 +1143,7 @@ int main(int argc, char **argv)
 		++g_stats.qcounter;
 		++g_stats.tcpqcounter;
 		MT->makeThread(startDoResolve, dc);
+		break;
 	      }
 	    }
 	  }

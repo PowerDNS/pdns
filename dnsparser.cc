@@ -235,7 +235,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 #endif 
   }
   catch(out_of_range &re) {
-    throw MOADNSException("Packet parsing error, out of bounds: "+string(re.what()));
+    throw MOADNSException("Error parsing packet of "+lexical_cast<string>(len)+" bytes, out of bounds: "+string(re.what()));
   }
 }
 

@@ -356,6 +356,8 @@ struct RecursorStats
   uint64_t unauthorizedUDP;
   uint64_t unauthorizedTCP;
   uint64_t tcpClientOverflow;
+  uint64_t clientParseError;
+  uint64_t serverParseError;
 };
 
 extern RecursorStats g_stats;

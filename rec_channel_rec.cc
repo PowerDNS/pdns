@@ -143,6 +143,9 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("unauthorized-tcp", &g_stats.unauthorizedTCP);
   addGetStat("tcp-client-overflow", &g_stats.tcpClientOverflow);
 
+  addGetStat("client-parse-errors", &g_stats.clientParseError);
+  addGetStat("server-parse-errors", &g_stats.serverParseError);
+
   addGetStat("answers0-1", &g_stats.answers0_1);
   addGetStat("answers1-10", &g_stats.answers1_10);
   addGetStat("answers10-100", &g_stats.answers10_100);
