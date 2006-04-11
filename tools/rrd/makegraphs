@@ -6,7 +6,7 @@ HSIZE=250
 function makeGraphs()
 {
   rrdtool graph --start -$1 $WWWPREFIX/questions-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Question and answer counts per second" \
+	-t "Questions and answers per second" \
 	-v "packets" \
 	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
         DEF:nxdomainanswers=pdns_recursor.rrd:nxdomain-answers:AVERAGE \
@@ -18,10 +18,22 @@ function makeGraphs()
         STACK:servfailanswers#ff0000:"servfail answers/s"
 
   rrdtool graph --start -$1 $WWWPREFIX/tcp-questions-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "TCP question and answer counts per second" \
+	-t "TCP questions and answers per second, unauthorized packets/s" \
 	-v "packets" \
 	DEF:tcpquestions=pdns_recursor.rrd:tcp-questions:AVERAGE  \
-        LINE2:tcpquestions#0000ff:"questions/s"\
+	DEF:unauthudp=pdns_recursor.rrd:unauthorized-udp:AVERAGE  \
+	DEF:unauthtcp=pdns_recursor.rrd:unauthorized-tcp:AVERAGE  \
+        LINE2:tcpquestions#0000ff:"tcp questions/s" \
+	LINE2:unauthudp#ff0000:"udp unauth/s"  \
+        LINE2:unauthtcp#00ff00:"tcp unauth/s" 
+
+  rrdtool graph --start -$1 $WWWPREFIX/packet-errors-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "Parsing errors per second" \
+	-v "packets" \
+	DEF:clientparseerrors=pdns_recursor.rrd:client-parse-errors:AVERAGE  \
+	DEF:serverparseerrors=pdns_recursor.rrd:server-parse-errors:AVERAGE  \
+        LINE2:clientparseerrors#0000ff:"bad packets from clients" \
+        LINE2:serverparseerrors#00ff00:"bad packets from servers" 
 
   rrdtool graph --start -$1 $WWWPREFIX/latencies-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-t "Questions answered within latency" \
@@ -40,7 +52,7 @@ function makeGraphs()
         STACK:answersslow#ff0000:">1000 ms"       
 
   rrdtool graph --start -$1 $WWWPREFIX/qoutq-$2.png -w $WSIZE -h $HSIZE -l 0 \
-	-t "Questions/outqueries counts per second" \
+	-t "Questions/outqueries per second" \
 	-v "packets" \
 	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
         DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE \
@@ -56,7 +68,7 @@ function makeGraphs()
 
 
   rrdtool graph --start -$1 $WWWPREFIX/timeouts-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Outqueries/timeouts counts per second" \
+	-t "Outqueries/timeouts per second" \
 	-v "events" \
 	DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE  \
         DEF:outgoingtimeouts=pdns_recursor.rrd:outgoing-timeouts:AVERAGE \
@@ -97,7 +109,7 @@ function makeGraphs()
         
   rrdtool graph --start -$1 $WWWPREFIX/hitrate-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-v "percentage" \
-	-t "cache hits" \
+	-t "cache hits, cpu load" \
 	DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
 	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
 	DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
