@@ -1,6 +1,7 @@
 #!/bin/bash
 #SOCKETDIR=/home/ahu/work/pdns/pdns/pdns/    
 SOCKETDIR=/var/run/
+
 TSTAMP=$(date +%s)
 
 VARIABLES="questions tcp-questions cache-entries concurrent-queries\
