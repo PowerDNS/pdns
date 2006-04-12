@@ -191,7 +191,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   unsigned int n;
 
   PacketReader pr(d_content);
-
+  bool validPacket=false;
   try {
     for(n=0;n < d_header.qdcount; ++n) {
       d_qname=pr.getLabel();
@@ -201,9 +201,8 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 
     struct dnsrecordheader ah;
     vector<unsigned char> record;
-    
+    validPacket=true;
     for(n=0;n < d_header.ancount + d_header.nscount + d_header.arcount; ++n) {
-      
       DNSRecord dr;
       
       if(n < d_header.ancount)
@@ -222,7 +221,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       
       dr.d_label=label;
       dr.d_clen=ah.d_clen;
-      
+
       dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
       d_answers.push_back(make_pair(dr, pr.d_pos));
     }
@@ -235,7 +234,10 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 #endif 
   }
   catch(out_of_range &re) {
-    throw MOADNSException("Error parsing packet of "+lexical_cast<string>(len)+" bytes, out of bounds: "+string(re.what()));
+    if(!(validPacket && d_header.tc)) // don't sweat it over truncated packets
+      throw MOADNSException("Error parsing packet of "+lexical_cast<string>(len)+" bytes (rd="+
+			    lexical_cast<string>(d_header.rd)+
+			    "), out of bounds: "+string(re.what()));
   }
 }
 

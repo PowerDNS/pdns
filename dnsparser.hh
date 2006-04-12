@@ -54,7 +54,13 @@
 
 using namespace std;
 using namespace boost;
-typedef runtime_error MOADNSException;
+
+class MOADNSException : public runtime_error
+{
+public:
+  MOADNSException(const string& str) : runtime_error(str)
+  {}
+};
 
 struct dnsrecordheader
 {

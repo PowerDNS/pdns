@@ -101,7 +101,6 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 void RecordTextReader::xfrLabel(string& val, bool)
 {
   skipSpaces();
-
   val.clear();
   val.reserve(d_end - d_pos);
 
@@ -216,7 +215,6 @@ void RecordTextReader::skipSpaces()
 {
   while(d_pos < d_end && dns_isspace(d_string[d_pos]))
     d_pos++;
-
   if(d_pos == d_end)
     throw RecordTextException("missing field at the end of record content '"+d_string+"'");
 }

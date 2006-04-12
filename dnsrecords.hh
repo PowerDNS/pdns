@@ -298,7 +298,7 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordCo
     xfrPacket(rtr);                                                                                \
   }                                                                                                \
   catch(RecordTextException& rtr) {                                                                \
-    throw MOADNSParser("Parsing record content: "+string(rtr.what()));                             \
+    throw MOADNSException("Parsing record content: "+string(rtr.what()));                          \
   }												   \
 }                                                                                                  \
                                                                                                    \
