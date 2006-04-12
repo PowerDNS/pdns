@@ -237,7 +237,7 @@ void *qthread(void *p)
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->getRemote());
 
-    if(PC.get(P,&cached)) { // short circuit - does the PacketCache recognize this question?
+    if((P->d.opcode != Opcode::Notify) && PC.get(P,&cached)) { // short circuit - does the PacketCache recognize this question?
       cached.setRemote((struct sockaddr *)(P->remote),P->d_socklen);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
       cached.spoofID(P->d.id);                                        // inlined 
