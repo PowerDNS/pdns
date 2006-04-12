@@ -43,6 +43,8 @@ int main(int argc, char** argv)
 try
 {
   reportAllTypes();
+
+#if 0
   Socket s(InterNetwork, Datagram);
 
   vector<uint8_t> vpacket;
@@ -51,23 +53,18 @@ try
 
   for(unsigned int n=0; n < 1000000; ++n) {
     DNSPacketWriter pw(vpacket, domain, type);
-    pw.startRecord(domain, 1, 3600, 1, DNSPacketWriter::ANSWER);
-    shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(1, 1, "1.2.3.4"));      
-
-    drc->toPacket(pw);
+    
+    pw.getHeader()->rd=1;
+    pw.getHeader()->id=n;
     pw.commit();
-    pw.getHeader()->rd=0;
-    //    IPEndpoint rem("127.0.0.1",5300);
-    //    string spacket((char*)(&*vpacket.begin()), vpacket.size());
-    //    s.sendTo(spacket, rem);
+    IPEndpoint rem("127.0.0.1",5300);
+    string spacket((char*)(&*vpacket.begin()), vpacket.size());
+    s.sendTo(spacket, rem);
   }
-  cout<<xcount<<endl;
+
 
   return 0; 
-#if 0
-
-
-
+#endif
 
   vector<uint8_t> packet;
 
@@ -85,7 +82,6 @@ try
 
   shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(argv[1], type, record);
   cerr<<"Out: "<<argv[1]<<" IN "<<argv[2]<<" "<<regen->getZoneRepresentation()<<endl;
-#endif
 }
 catch(exception& e)
 {
