@@ -99,23 +99,18 @@ int LWRes::asyncresolve(uint32_t ip, const char *domain, int type, bool doTCP, s
     string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
 
     if(asendtcp(packet, &s) == 0) {
-      //      cerr<<"asendtcp: timeout"<<endl;
       return 0;
     }
     
     packet.clear();
     if(arecvtcp(packet,2, &s)==0) {
-      //      cerr<<"arecvtcp: timeout"<<endl;
       return 0;
     }
 
     memcpy(&len, packet.c_str(), 2);
     len=ntohs(len);
 
-    //    cerr<<"Now reading "<<len<<" bytes"<<endl;
-
     if(arecvtcp(packet, len, &s)==0) {
-      //      cerr<<"arecvtcp: timeout"<<endl;
       return 0;
     }
     if(len > (unsigned int)d_bufsize) {
@@ -160,6 +155,7 @@ LWRes::res_t LWRes::result()
     //    return p.getAnswers();
   }
   catch(...) {
+    g_stats.serverParseError++; 
     d_rcode=RCode::ServFail;
     LWRes::res_t empty;
     return empty;
