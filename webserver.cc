@@ -48,6 +48,7 @@ void WebServer::setCaller(void *that)
 
 void *WebServer::serveConnection(void *p)
 {
+  pthread_detach(pthread_self());
   Session *client=static_cast<Session *>(p);
   try {
     string line;
