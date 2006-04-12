@@ -129,18 +129,12 @@ void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const struct soc
 
 void *TCPNameserver::doConnection(void *data)
 {
+  DNSPacket *packet = NULL;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
   pthread_detach(pthread_self());
 
   try {
-    {
-      Lock l(&s_plock);
-      if(!s_P) {
-	L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
-	s_P=new PacketHandler;
-      }
-    }
     char mesg[512];
     
     DLOG(L<<"TCP Connection accepted on fd "<<fd<<endl);
@@ -159,7 +153,11 @@ void *TCPNameserver::doConnection(void *data)
       
       getQuestion(fd,mesg,pktlen,remote);
       S.inc("tcp-queries");      
-      DNSPacket *packet=new DNSPacket;
+
+      if (packet != NULL)
+        delete packet;
+
+      packet=new DNSPacket;
 
       packet->setRemote((struct sockaddr *)&remote,sizeof(remote));
       packet->d_tcp=true;
@@ -214,10 +212,15 @@ void *TCPNameserver::doConnection(void *data)
       DNSPacket *reply; 
       {
 	Lock l(&s_plock);
+	if(!s_P) {
+	  L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
+	  s_P=new PacketHandler;
+	}
 	reply=s_P->question(packet); // we really need to ask the backend :-)
       }
 
       delete packet;
+      packet = NULL;
 	
       if(!reply)  // unable to write an answer?
 	break;
@@ -226,7 +229,9 @@ void *TCPNameserver::doConnection(void *data)
       sendDelPacket(reply, fd);
     }
     
-  out:;
+  out:
+    if (packet != NULL)
+      delete packet;
   }
   catch(DBException &e) {
     Lock l(&s_plock);
