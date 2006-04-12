@@ -157,7 +157,7 @@ LWRes::res_t LWRes::result()
   }
   catch(exception &mde) {
     if(::arg().mustDo("log-common-errors"))
-      L<<Logger::Error<<"Unable to parse packet from remote server: "<<mde.what()<<"\n";
+      L<<Logger::Error<<"Unable to parse packet from remote server: "<<mde.what()<<endl;
   }
   catch(...) {
     L<<Logger::Error<<"Unknown error parsing packet from remote server"<<endl;

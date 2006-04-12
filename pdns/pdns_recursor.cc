@@ -292,9 +292,8 @@ vector<TCPConnection> g_tcpconnections; // all *running* TCP/IP questions (from 
 
 void startDoResolve(void *p)
 {
+  DNSComboWriter* dc=(DNSComboWriter *)p;
   try {
-    DNSComboWriter* dc=(DNSComboWriter *)p;
-
     uint16_t maxudpsize=512;
     MOADNSParser::EDNSOpts edo;
     if(dc->d_mdp.getEDNSOpts(&edo)) {
@@ -346,8 +345,11 @@ void startDoResolve(void *p)
 	shuffle(ret);
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
 	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, 1, (DNSPacketWriter::Place)i->d_place);
-	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));  
+	  
+	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));
+	  
 	  drc->toPacket(pw);
+	
 	  if(!dc->d_tcp && pw.size() > maxudpsize) {
 	    pw.rollback();
 	    if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
@@ -426,6 +428,9 @@ void startDoResolve(void *p)
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
+  }
+  catch(MOADNSException& e) {
+    L<<Logger::Error<<"DNS parser error: "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
   }
   catch(exception& e) {
     L<<Logger::Error<<"STL error: "<<e.what()<<endl;
@@ -968,7 +973,7 @@ int main(int argc, char **argv)
 
 	    try {
 	      DNSComboWriter* dc = new DNSComboWriter(data, d_len, now);
-
+	      
 	      dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
 
   	      if(dc->d_mdp.d_header.qr) {
