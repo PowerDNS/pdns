@@ -293,8 +293,13 @@ void RNAME##RecordContent::report(void)                                         
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordContent(RTYPE)       \
 {                                                                                                  \
-  RecordTextReader rtr(zoneData);                                                                  \
-  xfrPacket(rtr);                                                                                  \
+  try {                                                                                            \
+    RecordTextReader rtr(zoneData);                                                                \
+    xfrPacket(rtr);                                                                                \
+  }                                                                                                \
+  catch(RecordTextException& rtr) {                                                                \
+    throw MOADNSParser("Parsing record content: "+string(rtr.what()));                             \
+  }												   \
 }                                                                                                  \
                                                                                                    \
 string RNAME##RecordContent::getZoneRepresentation() const                                         \

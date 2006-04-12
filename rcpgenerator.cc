@@ -65,7 +65,7 @@ void RecordTextReader::xfrIP(uint32_t &val)
   skipSpaces();
 
   if(!isdigit(d_string.at(d_pos)))
-    throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("while parsing IP address, expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
   
   string ip;
   xfrLabel(ip);

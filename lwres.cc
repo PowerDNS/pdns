@@ -35,6 +35,7 @@
 #include "syncres.hh"
 #include "dnswriter.hh"
 #include "dnsparser.hh"
+#include "logger.hh"
 
 LWRes::LWRes()
 {
@@ -154,11 +155,16 @@ LWRes::res_t LWRes::result()
     return ret;
     //    return p.getAnswers();
   }
-  catch(...) {
-    g_stats.serverParseError++; 
-    d_rcode=RCode::ServFail;
-    LWRes::res_t empty;
-    return empty;
+  catch(exception &mde) {
+    if(::arg().mustDo("log-common-errors"))
+      L<<Logger::Error<<"Unable to parse packet from remote server: "<<mde.what()<<"\n";
   }
+  catch(...) {
+    L<<Logger::Error<<"Unknown error parsing packet from remote server"<<endl;
+  }
+  g_stats.serverParseError++; 
+  d_rcode=RCode::ServFail;
+  LWRes::res_t empty;
+  return empty;
 }
 
