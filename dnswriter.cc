@@ -16,9 +16,9 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   uint32_t len=d_content.size();
   d_content.resize(len + sizeof(dnsheader));
   uint8_t* dptr=(&*d_content.begin()) + len;
-
+  
   memcpy(dptr, ptr, sizeof(dnsheader));
-
+  d_stuff=0;
   xfrLabel(qname, false);
   
   len=d_content.size();
@@ -140,10 +140,10 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
       d_record.push_back((char)(offset & 0xff));
       goto out;                                 // skip trailing 0 in case of compression
     }
-    
-    if(li==d_labelmap.end() && pos < 16384) { 
+
+    if(li==d_labelmap.end() && pos< 16384)
       d_labelmap[chopped]=pos;                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
-    }
+    
     d_record.push_back((char)(i->second - i->first));
     unsigned int len=d_record.size();
     d_record.resize(len + i->second - i->first);
