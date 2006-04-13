@@ -131,7 +131,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
     //    cerr<<"chopped: '"<<chopped<<"'\n";
-    map<string, uint16_t>::iterator li;
+    map<string, uint16_t>::iterator li=d_labelmap.end();
     // see if we've written out this domain before
     if(compress && (li=d_labelmap.find(chopped))!=d_labelmap.end()) {   
       uint16_t offset=li->second;
@@ -141,7 +141,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
       goto out;                                 // skip trailing 0 in case of compression
     }
     
-    if(compress && pos < 16384) { 
+    if(li==d_labelmap.end() && pos < 16384) { 
       d_labelmap[chopped]=pos;                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
     }
     d_record.push_back((char)(i->second - i->first));
