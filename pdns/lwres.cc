@@ -141,7 +141,7 @@ LWRes::res_t LWRes::result()
     d_tcbit=mdp.d_header.tc;
     d_rcode=mdp.d_header.rcode;
 
-    if(d_domain  != mdp.d_qname) {
+    if(strcasecmp(d_domain.c_str(), mdp.d_qname.c_str())) {
       L<<Logger::Error<<"Packet purporting to come from remote server "<<U32ToIP(d_ip)<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
       g_stats.spoofedCount++;
       goto out;
