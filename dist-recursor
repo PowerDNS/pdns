@@ -1,3 +1,5 @@
+VERSION=3.0-pre1
+
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
@@ -8,20 +10,20 @@ logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
 recursor_cache.cc  dnsparser.cc dnswriter.cc  dnsrecords.cc  rcpgenerator.cc  \
 base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc"
 
-cat $INCLUDES $CFILES | wc 
 
-rm -rf pdns-recursor
-mkdir  pdns-recursor
-cp $INCLUDES $CFILES pdns-recursor
-cp Makefile-recursor pdns-recursor/Makefile
-cp README-recursor pdns-recursor/README
-cp COPYING pdns-recursor/
-cp config-recursor.h pdns-recursor/config.h
-mkdir pdns-recursor/rrd
-cp tools/rrd/{create,update,makegraphs,index.html} pdns-recursor/rrd
-cp ext/nedmalloc/malloc.c pdns-recursor
-tar cf pdns-recursor.tar pdns-recursor
-bzip2 -f pdns-recursor.tar # .. solaris
+DIRNAME=pdns-recursor-$VERSION
+rm -rf $DIRNAME
+mkdir  $DIRNAME
+cp $INCLUDES $CFILES $DIRNAME
+cp Makefile-recursor $DIRNAME/Makefile
+cp README-recursor $DIRNAME/README
+cp COPYING $DIRNAME/
+cp config-recursor.h $DIRNAME/config.h
+mkdir $DIRNAME/rrd
+cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
+cp ext/nedmalloc/malloc.c $DIRNAME
+tar cf $DIRNAME.tar $DIRNAME
+bzip2 -f $DIRNAME.tar # .. solaris
 
 
 

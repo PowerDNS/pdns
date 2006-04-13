@@ -57,6 +57,7 @@ LWRes::~LWRes()
 /** Never throws! */
 int LWRes::asyncresolve(uint32_t ip, const char *domain, int type, bool doTCP, struct timeval* now)
 {
+  d_ip=ip;
   vector<uint8_t> vpacket;
   DNSPacketWriter pw(vpacket, domain, type);
 
@@ -66,6 +67,7 @@ int LWRes::asyncresolve(uint32_t ip, const char *domain, int type, bool doTCP, s
   d_type=type;
   d_inaxfr=false;
   d_rcode=0;
+
 
   struct sockaddr_in toaddr;
   Utility::socklen_t addrlen=sizeof(toaddr);
@@ -139,6 +141,12 @@ LWRes::res_t LWRes::result()
     d_tcbit=mdp.d_header.tc;
     d_rcode=mdp.d_header.rcode;
 
+    if(d_domain  != mdp.d_qname) {
+      L<<Logger::Error<<"Packet purporting to come from remote server "<<U32ToIP(d_ip)<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
+      g_stats.spoofedCount++;
+      goto out;
+    }
+
     LWRes::res_t ret;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
       //      cout<<i->first.d_place<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
@@ -162,7 +170,10 @@ LWRes::res_t LWRes::result()
   catch(...) {
     L<<Logger::Error<<"Unknown error parsing packet from remote server"<<endl;
   }
+
   g_stats.serverParseError++; 
+
+ out:
   d_rcode=RCode::ServFail;
   LWRes::res_t empty;
   return empty;
