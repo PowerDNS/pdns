@@ -1,18 +1,23 @@
 SBINDIR=/usr/sbin/
 
+SYSDEPS=$(shell uname)
+
+-include sysdeps/$(SYSDEPS).inc
+
 # for control socket location, see config.h
 
 OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 
-STATICFLAGS=-lstdc++
-
+LINKCC=g++
 ifeq ($(STATIC),semi)
         STATICFLAGS=-Wl,-Bstatic -lstdc++ -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
+        LINKCC=gcc
 endif
 ifeq ($(STATIC),full)
         STATICFLAGS=-lstdc++ -lm -static
+        LINKCC=gcc
 endif
 
 LDFLAGS+= $(PROFILEFLAGS) $(STATICFLAGS)
@@ -39,9 +44,9 @@ rec_channel.o rec_channel_rec.o malloc.o
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
 
 pdns_recursor: $(PDNS_RECURSOR_OBJECTS)
-	gcc $(PDNS_RECURSOR_OBJECTS) $(LDFLAGS) -o $@
+	$(LINKCC) $(PDNS_RECURSOR_OBJECTS) $(LDFLAGS) -o $@
 
 rec_control: $(REC_CONTROL_OBJECTS)
-	gcc $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
+	$(LINKCC) $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
 
 
