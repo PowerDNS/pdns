@@ -941,7 +941,7 @@ int main(int argc, char **argv)
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response from a server ("we are the client", hence d_clientsock)
 	while((d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
 	  dnsheader dh;
-	  if(d_len >= sizeof(dnsheader)) {
+	  if((size_t) d_len >= sizeof(dnsheader)) {
 	    memcpy(&dh, data, sizeof(dh));
 	    
 	    if(dh.qr) {
