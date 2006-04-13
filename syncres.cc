@@ -641,17 +641,10 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
       LOG<<d_prefix<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs IP for additional processing"<<endl;
       set<GetBestNSAnswer>beenthere;
       if(k->qtype==QType(QType::MX)) {
-	string::size_type pos=k->content.find_first_not_of(" \t0123456789"); // chop off the priority
-	if(pos!=string::npos) {
-	  doResolve(k->content.substr(pos), QType(QType::A),addit,1,beenthere);
+	pair<string,string> prioServer=splitField(k->content,' ');
+	  doResolve(prioServer.second, QType(QType::A), addit, 1, beenthere);
 	  if(*l_doIPv6AP)
-	    doResolve(k->content.substr(pos), QType(QType::AAAA),addit,1,beenthere);
-	}
-	else {
-	  doResolve(k->content, QType(QType::A),addit,1,beenthere);
-	  if(*l_doIPv6AP)
-	    doResolve(k->content.substr(pos), QType(QType::AAAA),addit,1,beenthere);
-	}
+	    doResolve(prioServer.second, QType(QType::AAAA), addit, 1, beenthere);
       }
       else {
 	doResolve(k->content,QType(QType::A),addit,1,beenthere);

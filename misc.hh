@@ -306,5 +306,5 @@ struct CIStringCompare: public binary_function<string, string, bool>
     return result < 0;
   }
 };
-
+pair<string, string> splitField(const string& inp, char sepa);
 #endif

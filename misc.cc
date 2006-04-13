@@ -460,3 +460,16 @@ const struct timeval operator-(const struct timeval& lhs, const struct timeval& 
   normalizeTV(ret);
   return ret;
 }
+
+pair<string, string> splitField(const string& inp, char sepa)
+{
+  pair<string, string> ret;
+  string::size_type cpos=inp.find(sepa);
+  if(cpos==string::npos)
+    ret.first=inp;
+  else {
+    ret.first=inp.substr(0, cpos);
+    ret.second=inp.substr(cpos+1);
+  }
+  return ret;
+}
