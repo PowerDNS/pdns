@@ -642,9 +642,9 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
       set<GetBestNSAnswer>beenthere;
       if(k->qtype==QType(QType::MX)) {
 	pair<string,string> prioServer=splitField(k->content,' ');
-	  doResolve(prioServer.second, QType(QType::A), addit, 1, beenthere);
-	  if(*l_doIPv6AP)
-	    doResolve(prioServer.second, QType(QType::AAAA), addit, 1, beenthere);
+	doResolve(prioServer.second, QType(QType::A), addit, 1, beenthere);
+	if(*l_doIPv6AP)
+	  doResolve(prioServer.second, QType(QType::AAAA), addit, 1, beenthere);
       }
       else {
 	doResolve(k->content,QType(QType::A),addit,1,beenthere);
