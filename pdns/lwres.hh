@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <sys/types.h>
+#include "misc.hh"
 
 #ifndef WIN32
 
