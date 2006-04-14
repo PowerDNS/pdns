@@ -450,7 +450,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    d_tcpoutqueries++;
 	  }
 	  
-	  int ret=d_lwr.asyncresolve(*remoteIP, qname.c_str(), qtype.getCode(), doTCP, &d_now);    // <- we go out on the wire!
+	  int ret=d_lwr.asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, &d_now);    // <- we go out on the wire!
 	  if(ret != 1) {
 	    if(ret==0) {
 	      LOG<<prefix<<qname<<": timeout resolving"<<endl;

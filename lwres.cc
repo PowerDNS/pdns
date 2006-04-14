@@ -55,7 +55,7 @@ LWRes::~LWRes()
 
 //! returns -1 for permanent error, 0 for timeout, 1 for success
 /** Never throws! */
-int LWRes::asyncresolve(uint32_t ip, const char *domain, int type, bool doTCP, struct timeval* now)
+int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP, struct timeval* now)
 {
   d_ip=ip;
   vector<uint8_t> vpacket;
