@@ -43,8 +43,8 @@
 #include "dns.hh"
 using namespace std;
 
-int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id);
-int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id, const string& domain);
+int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id, int* fd);
+int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id, const string& domain, int fd);
 
 class LWResException : public AhuException
 {
