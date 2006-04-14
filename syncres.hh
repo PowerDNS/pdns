@@ -317,7 +317,7 @@ int arecvtcp(string& data, int len, Socket* sock);
 
 struct PacketID
 {
-  PacketID() : sock(0), inNeeded(0), outPos(0)
+  PacketID() : sock(0), inNeeded(0), outPos(0), nearMisses(0)
   {}
 
   uint16_t id;  // wait for a specific id/remote pair
@@ -329,6 +329,8 @@ struct PacketID
 
   string outMSG; // the outgoing message that needs to be sent
   string::size_type outPos;    // how far we are along in the outMSG
+
+  mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
 
   bool operator<(const PacketID& b) const
   {

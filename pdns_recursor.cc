@@ -127,7 +127,8 @@ static tcpserversocks_t s_tcpserversocks;
 
 static map<int,PacketID> d_tcpclientreadsocks, d_tcpclientwritesocks;
 
-MTasker<PacketID,string>* MT;
+typedef MTasker<PacketID,string> MT_t;
+MT_t* MT;
 
 int asendtcp(const string& data, Socket* sock) 
 {
@@ -182,6 +183,10 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   if(ret > 0) {
     *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
+    if(pident.nearMisses > 100) {
+      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<") bogus answers came in from "<<sockAddrToString((struct sockaddr_in*)toaddr, sizeof(pident.remote))<<", assuming spoof attempt."<<endl;
+      return -1;
+    }
   }
   return ret;
 }
@@ -999,6 +1004,12 @@ int main(int argc, char **argv)
 		  if(logCommonErrors)
 		    L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
 		  g_stats.unexpectedCount++;
+		  
+		  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
+		    if(!memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr))) {
+		      mthread->key.nearMisses++;
+		    }
+		  }
 		}
 	      }
 	      else 

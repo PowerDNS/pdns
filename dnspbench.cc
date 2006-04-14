@@ -44,27 +44,32 @@ try
 {
   reportAllTypes();
 
-#if 0
   Socket s(InterNetwork, Datagram);
+  
+  IPEndpoint rem("127.0.0.1",1232), loc("213.156.2.1", 53);
+  s.bind(loc);
 
   vector<uint8_t> vpacket;
-  string domain="www.ds9a.nl";
+  string domain="ds9a.nl";
   uint16_t type=1;
 
-  for(unsigned int n=0; n < 1000000; ++n) {
+  for(unsigned int n=0; n < 65536; ++n) {
     DNSPacketWriter pw(vpacket, domain, type);
     
     pw.getHeader()->rd=1;
+    pw.getHeader()->qr=1;
     pw.getHeader()->id=n;
+    ARecordContent arc("1.2.3.4");
+    pw.startRecord("ds9a.nl", 1, 9999, 1, DNSPacketWriter::ANSWER);
+    arc.toPacket(pw);
     pw.commit();
-    IPEndpoint rem("127.0.0.1",5300);
+
     string spacket((char*)(&*vpacket.begin()), vpacket.size());
     s.sendTo(spacket, rem);
   }
 
-
   return 0; 
-#endif
+#if 0
 
   vector<uint8_t> packet;
 
@@ -82,6 +87,7 @@ try
 
   shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(argv[1], type, record);
   cerr<<"Out: "<<argv[1]<<" IN "<<argv[2]<<" "<<regen->getZoneRepresentation()<<endl;
+#endif
 }
 catch(exception& e)
 {
