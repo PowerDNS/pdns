@@ -46,7 +46,7 @@ try
 
   Socket s(InterNetwork, Datagram);
   
-  IPEndpoint rem("127.0.0.1",1232), loc("213.156.2.1", 53);
+  IPEndpoint rem("10.0.1.6",35515), loc("213.156.2.1", 53);
   s.bind(loc);
 
   vector<uint8_t> vpacket;

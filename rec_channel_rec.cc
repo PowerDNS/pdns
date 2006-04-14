@@ -153,6 +153,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers-slow", &g_stats.answersSlow);
 
   addGetStat("qa-latency", &g_stats.avgLatencyUsec);
+  addGetStat("unexpected-packets", &g_stats.unexpectedCount);
+  addGetStat("spoof-prevents", &g_stats.spoofCount);
 
   addGetStat("negcache-entries", boost::bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
   addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));

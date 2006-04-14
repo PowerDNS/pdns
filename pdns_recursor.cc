@@ -172,10 +172,15 @@ int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int a
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id)
+int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id, const string& domain)
 {
+  static optional<unsigned int> nearMissLimit;
+  if(!nearMissLimit) 
+    nearMissLimit=::arg().asNum("spoof-nearmiss-max");
+
   PacketID pident;
   pident.id=id;
+  pident.domain=domain;
   memcpy(&pident.remote, toaddr, sizeof(pident.remote));
 
   string packet;
@@ -183,8 +188,9 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   if(ret > 0) {
     *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
-    if(pident.nearMisses > 100) {
-      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<") bogus answers came in from "<<sockAddrToString((struct sockaddr_in*)toaddr, sizeof(pident.remote))<<", assuming spoof attempt."<<endl;
+    if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
+      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<sockAddrToString((struct sockaddr_in*)toaddr, sizeof(pident.remote))<<", assuming spoof attempt."<<endl;
+      g_stats.spoofCount++;
       return -1;
     }
   }
@@ -741,6 +747,25 @@ int gettimeofday (struct timeval *__restrict __tv,
 }
 #endif
 
+string questionExpand(const char* packet, uint16_t len)
+{
+  const char* end=packet+len;
+  const char* pos=packet+12;
+  unsigned char labellen;
+  string ret;
+
+  while((labellen=*pos++)) {
+    if(pos+labellen > end)
+      break;
+    ret.append(pos, labellen);
+    ret.append(1,'.');
+    pos+=labellen;
+  }
+  if(ret.empty())
+    ret=".";
+  return ret;
+}
+
 int main(int argc, char **argv) 
 {
   reportBasicTypes();
@@ -778,6 +803,7 @@ int main(int argc, char **argv)
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12";
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
+    ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
 
     ::arg().setCmd("help","Provide a helpful message");
     L.toConsole(Logger::Warning);
@@ -998,15 +1024,16 @@ int main(int argc, char **argv)
 	      if(dh.qr && dh.qdcount) {
 		pident.remote=fromaddr;
 		pident.id=dh.id;
+		pident.domain=questionExpand(data, d_len);
 		string packet;
 		packet.assign(data, d_len);
 		if(!MT->sendEvent(pident, &packet)) {
 		  if(logCommonErrors)
-		    L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
+		    L<<Logger::Warning<<"Discarding unexpected packet answering '"<<pident.domain<<"' from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
 		  g_stats.unexpectedCount++;
 		  
 		  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
-		    if(!memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr))) {
+		    if(!memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr)) && !strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
 		      mthread->key.nearMisses++;
 		    }
 		  }
