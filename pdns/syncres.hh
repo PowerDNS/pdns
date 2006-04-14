@@ -317,7 +317,7 @@ int arecvtcp(string& data, int len, Socket* sock);
 
 struct PacketID
 {
-  PacketID() : sock(0), inNeeded(0), outPos(0), nearMisses(0)
+  PacketID() : sock(0), inNeeded(0), outPos(0), nearMisses(0), fd(-1)
   {}
 
   uint16_t id;  // wait for a specific id/remote pair
@@ -332,16 +332,17 @@ struct PacketID
   string::size_type outPos;    // how far we are along in the outMSG
 
   mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
+  int fd;
 
   bool operator<(const PacketID& b) const
   {
     int ourSock= sock ? sock->getHandle() : 0;
     int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) <
-        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock))
+    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, fd, ourSock) <
+        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, b.fd, bSock))
       return true;
-    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) >
-        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock))
+    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, fd, ourSock) >
+        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, b.fd, bSock))
       return false;
 
     return strcasecmp(domain.c_str(), b.domain.c_str()) < 0;
