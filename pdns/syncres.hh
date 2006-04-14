@@ -358,7 +358,7 @@ struct RecursorStats
   uint64_t tcpClientOverflow;
   uint64_t clientParseError;
   uint64_t serverParseError;
-  uint64_t spoofedCount;
+  uint64_t unexpectedCount;
 };
 
 extern RecursorStats g_stats;

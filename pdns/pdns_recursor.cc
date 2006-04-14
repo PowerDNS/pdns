@@ -725,7 +725,7 @@ int main(int argc, char **argv)
     ::arg().set("no-shuffle","Don't change")="off";
     ::arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     ::arg().set("local-port","port to listen on")="53";
-    ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas")="0.0.0.0";
+    ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas")="127.0.0.1";
     ::arg().set("trace","if we should output heaps of logging")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
     ::arg().set("log-common-errors","If we should log rather common errors")="yes";
@@ -741,7 +741,7 @@ int main(int argc, char **argv)
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="0";
-    ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="";
+    ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12";
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
 
@@ -942,15 +942,15 @@ int main(int argc, char **argv)
 	  if((size_t) d_len >= sizeof(dnsheader)) {
 	    memcpy(&dh, data, sizeof(dh));
 	    
-	    if(dh.qr) {
+	    if(dh.qr && dh.qdcount) {
 	      pident.remote=fromaddr;
 	      pident.id=dh.id;
 	      string packet;
 	      packet.assign(data, d_len);
 	      if(!MT->sendEvent(pident, &packet)) {
 		if(logCommonErrors)
-		  L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<"\n";
-		g_stats.spoofedCount++;
+		  L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
+		g_stats.unexpectedCount++;
 	      }
 	    }
 	    else 
