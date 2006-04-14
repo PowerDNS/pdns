@@ -50,25 +50,6 @@ private:
   std::queue<int> d_runQueue;
   std::queue<int> d_zombiesQueue;
 
-  struct Waiter
-  {
-    EventKey key;
-    ucontext_t *context;
-    time_t ttd;
-    int tid;
-  };
-
-  //  typedef std::map<EventKey,Waiter> waiters_t;
-
-  typedef multi_index_container<
-    Waiter,
-    indexed_by <
-                ordered_unique<member<Waiter,EventKey,&Waiter::key> >,
-                ordered_non_unique<tag<KeyTag>, member<Waiter,time_t,&Waiter::ttd> >
-               >
-  > waiters_t;
-
-  waiters_t d_waiters;
 
   typedef std::map<int, ucontext_t*> mthreads_t;
   mthreads_t d_threads;
@@ -80,6 +61,24 @@ private:
   enum {Error=-1,TimeOut=0,Answer} d_waitstatus;
 
 public:
+  struct Waiter
+  {
+    EventKey key;
+    ucontext_t *context;
+    time_t ttd;
+    int tid;
+  };
+
+  typedef multi_index_container<
+    Waiter,
+    indexed_by <
+                ordered_unique<member<Waiter,EventKey,&Waiter::key> >,
+                ordered_non_unique<tag<KeyTag>, member<Waiter,time_t,&Waiter::ttd> >
+               >
+  > waiters_t;
+
+  waiters_t d_waiters;
+
   //! Constructor
   /** Constructor with a small default stacksize. If any of your threads exceeds this stack, your application will crash. 
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
@@ -91,7 +90,7 @@ public:
   }
 
   typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
-  int waitEvent(const EventKey &key, EventVal *val=0, unsigned int timeout=0);
+  int waitEvent(EventKey &key, EventVal *val=0, unsigned int timeout=0);
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val=0);
   void getEvents(std::vector<EventKey>& events);
@@ -103,6 +102,7 @@ public:
 
 private:
   static void threadWrapper(MTasker *self, tfunc_t *tf, int tid, void* val);
+  EventKey d_eventkey;   // for waitEvent, contains exact key it was awoken for
 };
 #include "mtasker.cc"
 

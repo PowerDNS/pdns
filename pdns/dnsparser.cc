@@ -378,6 +378,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
     else {
+      // should check for . here and replace by \.
       ret.append(&content.at(frompos), &content.at(frompos+labellen));
       ret.append(1,'.');
       frompos+=labellen;

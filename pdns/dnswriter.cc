@@ -123,7 +123,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
   typedef vector<pair<unsigned int, unsigned int> > parts_t;
   parts_t parts;
-  vstringtok(parts, label, ".");
+  vstringtok(parts, label, "."); // XXX FIXME this should deal with escaped .
   
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
   unsigned int pos=d_content.size() + d_record.size() + d_stuff; 

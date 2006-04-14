@@ -97,8 +97,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
     throw RecordTextException("Overflow reading 8 bit integer from record content"); // fixme improve
 }
 
-
-void RecordTextReader::xfrLabel(string& val, bool)
+void RecordTextReader::xfrLabel(string& val, bool) 
 {
   skipSpaces();
   val.clear();

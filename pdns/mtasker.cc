@@ -158,7 +158,7 @@ int main()
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer 
 */
 
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(const EventKey &key, EventVal *val, unsigned int timeout)
+template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeout)
 {
   if(d_waiters.count(key)) { // there was already an exact same waiter
     return -1;
@@ -180,6 +180,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   if(val && d_waitstatus==Answer) 
     *val=d_waitval;
   d_tid=w.tid;
+  key=d_eventkey;
   return d_waitstatus;
 }
 
@@ -216,7 +217,7 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   
   ucontext_t *userspace=waiter->context;
   d_tid=waiter->tid;         // set tid 
-  
+  d_eventkey=waiter->key;        // pass waitEvent the exact key it was woken for
   d_waiters.erase(waiter);             // removes the waitpoint 
   if(swapcontext(&d_kernel,userspace)) { // swaps back to the above point 'A'
     perror("swapcontext in sendEvent");
