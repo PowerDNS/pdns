@@ -113,16 +113,22 @@ public:
 
   }
 
-  uint16_t getID()
+  uint16_t peakID()
   {
     uint16_t ret;
     if(!d_available.empty()) {
       ret=d_available.front();
-      d_available.pop_front();
       return ret;
     }
     else
       throw runtime_error("out of ids!"); // XXX FIXME
+  }
+
+  uint16_t getID()
+  {
+    uint16_t ret=peakID();
+    d_available.pop_front();
+    return ret;
   }
 
   void releaseID(uint16_t id)
@@ -325,7 +331,7 @@ try
       qids_by_id_index_t& idindex=qids.get<AssignedIDTag>();
       qids_by_id_index_t::const_iterator found=idindex.find(ntohs(mdp.d_header.id));
       if(found == idindex.end()) {
-	cout<<"Received an answer ("<<mdp.d_qname<<") from reference nameserver with id "<<mdp.d_header.id<<" which we can't match to a question!"<<endl;
+//	cout<<"Received an answer ("<<mdp.d_qname<<") from reference nameserver with id "<<mdp.d_header.id<<" which we can't match to a question!"<<endl;
 	s_weunmatched++;
 	continue;
       }
@@ -452,8 +458,16 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
   //                                                             non-recursive  
   if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || !dh->rd || (unsigned int)pr.d_len <= sizeof(HEADER))
     return;
-  
+  QuestionData qd;
   try {
+    dnsheader* dh=(dnsheader*)pr.d_payload;
+    if(!dh->qr) {
+      qd.d_assignedID = s_idmanager.peakID();
+      uint16_t tmp=dh->id;
+      dh->id=htons(qd.d_assignedID);
+      s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
+      dh->id=tmp;
+    }
     MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
     QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
     
@@ -464,49 +478,11 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 	  cout<<"Saw an exact duplicate question, "<<qi<< endl;
 	return;
       }
-      
       // new question!
-
-      QuestionData qd;
       qd.d_qi=qi;
       gettimeofday(&qd.d_resentTime,0);
-      
       qd.d_assignedID = s_idmanager.getID();
-      
       qids.insert(qd);
-
-      dh->id=htons(qd.d_assignedID);
-
-#if 0
-      if(lastsent.tv_sec && (!(s_questions%25))) {
-	double seconds=pr.d_pheader.ts.tv_sec - lastsent.tv_sec;
-	double useconds=(pr.d_pheader.ts.tv_usec - lastsent.tv_usec);
-	
-	if(useconds < 0) {
-	  seconds-=1;
-	  useconds+=1000000;
-	}
-	
-	double factor=10;
-	
-	seconds/=factor;
-	useconds/=factor;
-	
-	long long nanoseconds=(long long)(1000000000ULL*seconds + useconds * 1000);
-	
-	struct timespec tosleep;
-	tosleep.tv_sec=nanoseconds/1000000000UL;
-	tosleep.tv_nsec=nanoseconds%1000000000UL;
-	
-	nanosleep(&tosleep, 0);
-	lastsent=pr.d_pheader.ts;
-      }
-      if(!lastsent.tv_sec)
-	lastsent=pr.d_pheader.ts;
-      
-      //	cout<<"sending!"<<endl;
-#endif
-      s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
     }
     else {
       s_origanswers++;
@@ -599,7 +575,7 @@ try
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + 3*(now-then);
+    mental_time= mental_time + 1*(now-then);
   }
  out:;
 }
