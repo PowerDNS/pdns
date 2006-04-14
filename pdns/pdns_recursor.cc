@@ -189,7 +189,7 @@ int makeClientSocket()
       port=queryPort;
       tries=1;
     }
-//    cout<<"sin->sin_port: "<<port<<endl;
+
     sin->sin_port = htons(port); 
     
     if (::bind(ret, (struct sockaddr *)&*sin, sizeof(*sin)) >= 0) 
@@ -1094,7 +1094,8 @@ int main(int argc, char **argv)
 		  g_stats.unexpectedCount++;
 		  
 		  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
-		    if(!memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr)) && !strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
+		    if(pident.fd==mthread->key.fd && !memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr)) && 
+		       !strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
 		      mthread->key.nearMisses++;
 		    }
 		  }
