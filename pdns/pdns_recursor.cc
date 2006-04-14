@@ -311,7 +311,6 @@ void startDoResolve(void *p)
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
 
-    //    MT->setTitle("udp question for "+P.qdomain+"|"+P.qtype.getName());
     SyncRes sr(dc->d_now);
     if(!g_quiet)
       L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
@@ -401,7 +400,6 @@ void startDoResolve(void *p)
       }
     }
 
-    //    MT->setTitle("DONE! udp question for "+P.qdomain+"|"+P.qtype.getName());
     if(!g_quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
@@ -949,7 +947,11 @@ int main(int argc, char **argv)
 	      pident.id=dh.id;
 	      string packet;
 	      packet.assign(data, d_len);
-	      MT->sendEvent(pident, &packet);
+	      if(!MT->sendEvent(pident, &packet)) {
+		if(logCommonErrors)
+		  L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<"\n";
+		g_stats.spoofedCount++;
+	      }
 	    }
 	    else 
 	      L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
