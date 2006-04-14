@@ -119,6 +119,7 @@ ArgvMap &arg()
   return theArg;
 }
 static int d_clientsock;
+static int d_prevclientsock;
 static vector<int> d_udpserversocks;
 
 typedef vector<int> tcpserversocks_t;
@@ -450,8 +451,29 @@ void makeControlChannelSocket()
   s_rcc.listen(sockname);
 }
 
-void makeClientSocket()
+// this stuff is a tad complicated. There are two client sockets, the current one and the previous one (prevclientsocket)
+// if this function is called, and more than 5 seconds have passed since the previous call, the previous client socket is closed,
+// and replaced by the current one, which is then reopened.
+void remakeClientSocket()
 {
+  static time_t lastChange;
+
+  if(d_clientsock>=0 && !::arg()["query-local-port"].empty()) // already have a port, and we are fixed
+    return;
+
+  if(!lastChange)
+    lastChange=time(0)-10;
+
+  if(lastChange > time(0) - 5)
+    return;
+
+  lastChange=time(0);
+
+  if(d_prevclientsock >= 0) {
+    close(d_prevclientsock);
+  }
+  d_prevclientsock=d_clientsock;  
+
   d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
   if(d_clientsock<0) 
     throw AhuException("Making a socket for resolver: "+stringerror());
@@ -466,7 +488,13 @@ void makeClientSocket()
 
   int tries=10;
   while(--tries) {
-    uint16_t port=10000+Utility::random()%10000;
+    uint16_t port;
+    if(::arg()["query-local-port"].empty())
+      port=10000+Utility::random()%50000;
+    else {
+      port=::arg().asNum("query-local-port");
+      tries=1;
+    }
     sin.sin_port = htons(port); 
     
     if (::bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
@@ -474,11 +502,11 @@ void makeClientSocket()
     
   }
   if(!tries)
-    throw AhuException("Resolver binding to local socket: "+stringerror());
+    throw AhuException("Resolver binding to local query client socket: "+stringerror());
 
   Utility::setNonBlocking(d_clientsock);
-
-  L<<Logger::Error<<"Sending UDP queries from "<<inet_ntoa(sin.sin_addr)<<":"<< ntohs(sin.sin_port)  <<endl;
+  
+  //  L<<Logger::Error<<"Sending UDP queries from "<<inet_ntoa(sin.sin_addr)<<":"<< ntohs(sin.sin_port)  <<endl;
 }
 
 void makeTCPServerSockets()
@@ -737,6 +765,7 @@ int main(int argc, char **argv)
     ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
+    ::arg().set("query-local-port","Source port address for sending queries, defaults to random")="";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
@@ -765,14 +794,6 @@ int main(int argc, char **argv)
       exit(99);
     }
 
-    if(!::arg()["allow-from"].empty()) {
-      g_allowFrom=new NetmaskGroup;
-      vector<string> ips;
-      stringtok(ips, ::arg()["allow-from"], ", ");
-      for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i)
-	g_allowFrom->addMask(*i);
-    }
-
     L.setName("pdns_recursor");
 
     L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
@@ -786,6 +807,22 @@ int main(int argc, char **argv)
       "This is free software, and you are welcome to redistribute it "
       "according to the terms of the GPL version 2."<<endl;
     
+
+    if(!::arg()["allow-from"].empty()) {
+      g_allowFrom=new NetmaskGroup;
+      vector<string> ips;
+      stringtok(ips, ::arg()["allow-from"], ", ");
+      L<<Logger::Warning<<"Only allowing queries from: ";
+      for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
+	g_allowFrom->addMask(*i);
+	if(i!=ips.begin())
+	  L<<Logger::Warning<<", ";
+	L<<Logger::Warning<<*i;
+      }
+      L<<Logger::Warning<<endl;
+    }
+    else if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
+      L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
     
     g_quiet=::arg().mustDo("quiet");
     if(::arg().mustDo("trace")) {
@@ -803,7 +840,8 @@ int main(int argc, char **argv)
       fork();
       L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
     }
-    makeClientSocket();
+    d_clientsock=d_prevclientsock=-1;
+    remakeClientSocket();
 
     makeControlChannelSocket();
     
@@ -855,8 +893,10 @@ int main(int argc, char **argv)
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
       
-      if(!((counter++)%500)) 
+      if(!((counter++)%500)) {
+	remakeClientSocket();
 	MT->makeThread(houseKeeping,0);
+      }
       if(statsWanted) {
 	doStats();
       }
@@ -872,6 +912,9 @@ int main(int argc, char **argv)
       FD_ZERO( &readfds );
       FD_ZERO( &writefds );
       FD_SET( d_clientsock, &readfds );
+      if(d_prevclientsock >= 0)
+	FD_SET( d_prevclientsock, &readfds );
+
       FD_SET( s_rcc.d_fd, &readfds);
       int fdmax=max(d_clientsock, s_rcc.d_fd);
 
@@ -935,31 +978,37 @@ int main(int argc, char **argv)
 	s_rcc.send(answer, &remote);
 	command();
       }
-
-      if(FD_ISSET(d_clientsock,&readfds)) { // do we have a UDP question response from a server ("we are the client", hence d_clientsock)
-	while((d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-	  dnsheader dh;
-	  if((size_t) d_len >= sizeof(dnsheader)) {
-	    memcpy(&dh, data, sizeof(dh));
-	    
-	    if(dh.qr && dh.qdcount) {
-	      pident.remote=fromaddr;
-	      pident.id=dh.id;
-	      string packet;
-	      packet.assign(data, d_len);
-	      if(!MT->sendEvent(pident, &packet)) {
-		if(logCommonErrors)
-		  L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
-		g_stats.unexpectedCount++;
+      
+      for(int port=0; port < 2; ++port) {
+	if(port && d_prevclientsock < 0)
+	  break;
+	int sock = port ? d_prevclientsock : d_clientsock;
+	  
+	if(FD_ISSET(sock,&readfds)) { // do we have a UDP question response from a server ("we are the client", hence d_clientsock)
+	  while((d_len=recvfrom(sock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+	    dnsheader dh;
+	    if((size_t) d_len >= sizeof(dnsheader)) {
+	      memcpy(&dh, data, sizeof(dh));
+	      
+	      if(dh.qr && dh.qdcount) {
+		pident.remote=fromaddr;
+		pident.id=dh.id;
+		string packet;
+		packet.assign(data, d_len);
+		if(!MT->sendEvent(pident, &packet)) {
+		  if(logCommonErrors)
+		    L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
+		  g_stats.unexpectedCount++;
+		}
 	      }
+	      else 
+		L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
 	    }
-	    else 
-	      L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
-	  }
-	  else {
-	    g_stats.serverParseError++; 
-	    if(logCommonErrors)
-	      L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": packet too small"<<endl;
+	    else {
+	      g_stats.serverParseError++; 
+	      if(logCommonErrors)
+		L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": packet too small"<<endl;
+	    }
 	  }
 	}
       }
