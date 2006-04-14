@@ -6008,6 +6008,14 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>query-local-port</term>
+	    <listitem>
+	      <para>
+		Send out local queries from this port exclusively. Useful for strict firewalls. Random, and possibly changing, if unset.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>quiet</term>
 	    <listitem>
 	      <para>
