@@ -88,7 +88,7 @@ int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP,
   
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, pw.getHeader()->id);
+    ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, pw.getHeader()->id, domain);
   }
   else {
     Socket s(InterNetwork, Stream);

@@ -322,6 +322,7 @@ struct PacketID
 
   uint16_t id;  // wait for a specific id/remote pair
   struct sockaddr_in remote;  // this is the remote
+  string domain;             // this is the question 
 
   Socket* sock;  // or wait for an event on a TCP fd
   int inNeeded; // if this is set, we'll read until inNeeded bytes are read
@@ -336,9 +337,14 @@ struct PacketID
   {
     int ourSock= sock ? sock->getHandle() : 0;
     int bSock = b.sock ? b.sock->getHandle() : 0;
-    return 
-      tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) <
-      tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock);
+    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) <
+        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock))
+      return true;
+    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, ourSock) >
+        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, bSock))
+      return false;
+
+    return strcasecmp(domain.c_str(), b.domain.c_str()) < 0;
   }
 };
 
@@ -361,6 +367,7 @@ struct RecursorStats
   uint64_t clientParseError;
   uint64_t serverParseError;
   uint64_t unexpectedCount;
+  uint64_t spoofCount;
 };
 
 extern RecursorStats g_stats;
