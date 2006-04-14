@@ -144,7 +144,7 @@ LWRes::res_t LWRes::result()
     if(strcasecmp(d_domain.c_str(), mdp.d_qname.c_str())) { 
       if(d_domain.find((char)0)==string::npos) {// embedded nulls are too noisy
 	L<<Logger::Error<<"Packet purporting to come from remote server "<<U32ToIP(d_ip)<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
-	g_stats.spoofedCount++;
+	g_stats.unexpectedCount++;
       }
       goto out;
     }
