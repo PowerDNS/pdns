@@ -62,7 +62,7 @@ public:
 
   typedef vector<DNSResourceRecord> res_t;
 
-  int asyncresolve(uint32_t ip, const char *domain, int type, bool doTCP, struct timeval* now);
+  int asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP, struct timeval* now);
   vector<DNSResourceRecord> result();
   int d_rcode;
   bool d_aabit, d_tcbit;
