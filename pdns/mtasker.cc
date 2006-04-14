@@ -203,7 +203,9 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
 */
 template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEvent(const EventKey& key, const EventVal* val)
 {
-  if(!d_waiters.count(key)) {
+  typename waiters_t::iterator waiter=d_waiters.find(key);
+
+  if(waiter == d_waiters.end()) {
     //    cout<<"Event sent nobody was waiting for!"<<endl;
     return 0;
   }
@@ -212,10 +214,10 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   if(val)
     d_waitval=*val;
   
-  ucontext_t *userspace=d_waiters.find(key)->context;
-  d_tid=d_waiters.find(key)->tid;         // set tid 
+  ucontext_t *userspace=waiter->context;
+  d_tid=waiter->tid;         // set tid 
   
-  d_waiters.erase(key);             // removes the waitpoint 
+  d_waiters.erase(waiter);             // removes the waitpoint 
   if(swapcontext(&d_kernel,userspace)) { // swaps back to the above point 'A'
     perror("swapcontext in sendEvent");
     exit(EXIT_FAILURE);
