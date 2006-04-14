@@ -189,9 +189,10 @@ int makeClientSocket()
       port=queryPort;
       tries=1;
     }
+//    cout<<"sin->sin_port: "<<port<<endl;
     sin->sin_port = htons(port); 
     
-    if (::bind(ret, (struct sockaddr *)&*sin, sizeof(sin)) >= 0) 
+    if (::bind(ret, (struct sockaddr *)&*sin, sizeof(*sin)) >= 0) 
       break;
   }
   if(!tries)
@@ -222,6 +223,7 @@ public:
     if((d_passthrough=state)) {
       pair<int, int> sock=make_pair(makeClientSocket(), 1);
       d_socks.insert(sock);
+      d_numsocks=1;
     }
   }
   
@@ -238,14 +240,20 @@ public:
     }
     else {
       socks_t::iterator pos=d_socks.begin();
-      advance(pos, random() % d_socks.size());
+      advance(pos, random() % d_numsocks);
       pos->second++;
       return pos->first;
     }
   }
 
+  void returnSocket(int fd)
+  {
+    socks_t::iterator i=d_socks.find(fd);
+    returnSocket(i);
+  }
+
   // return a socket to the pool, or simply erase it
-  void returnSocket(socks_t::iterator i)
+  void returnSocket(socks_t::iterator& i)
   {
     if(d_passthrough) {
       ++i;
@@ -296,6 +304,8 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
       return -1;
     }
   }
+  else
+    g_udpclientsocks.returnSocket(fd);
   return ret;
 }
 
@@ -966,8 +976,10 @@ int main(int argc, char **argv)
 
     unsigned int maxTCPPerClient=::arg().asNum("max-tcp-per-client");
 
-    if(::arg().parmIsset("query-local-port") || ::arg().mustDo("single-socket"))
+    if(!::arg()["query-local-port"].empty() || ::arg().mustDo("single-socket")) {
+      L<<Logger::Warning<<"Switching to single-socket mode"<<endl;
       g_udpclientsocks.setPassthrough(true);
+    }
 
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
@@ -1058,8 +1070,9 @@ int main(int argc, char **argv)
 	command();
       }
       
-      for(UDPClientSocks::socks_t::iterator i=g_udpclientsocks.d_socks.begin(); i!=g_udpclientsocks.d_socks.end(); i++ ) {
-	if(FD_ISSET(i->first, &readfds)) { // do we have a UDP question response from a server ("we are the client", hence clientsock)
+      // do we have a UDP question response from a server ("we are the client", hence clientsock)
+      for(UDPClientSocks::socks_t::iterator i=g_udpclientsocks.d_socks.begin(); i!=g_udpclientsocks.d_socks.end(); ) {
+	if(i->first <= fdmax && FD_ISSET(i->first, &readfds)) { 
 	  while((d_len=recvfrom(i->first, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
 	    if((size_t) d_len >= sizeof(dnsheader)) {
 	      dnsheader dh;
@@ -1076,8 +1089,8 @@ int main(int argc, char **argv)
 		string packet;
 		packet.assign(data, d_len);
 		if(!MT->sendEvent(pident, &packet)) {
-		  if(logCommonErrors)
-		    L<<Logger::Warning<<"Discarding unexpected packet answering '"<<pident.domain<<"' from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
+//		  if(logCommonErrors)
+//		    L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
 		  g_stats.unexpectedCount++;
 		  
 		  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
@@ -1095,9 +1108,12 @@ int main(int argc, char **argv)
 	      if(logCommonErrors)
 		L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": packet too small"<<endl;
 	    }
+	    break;
 	  }
 	  g_udpclientsocks.returnSocket(i);
 	}
+	else 
+	  ++i;
       }
       
       for(vector<int>::const_iterator i=g_udpserversocks.begin(); i!=g_udpserversocks.end(); ++i) {
