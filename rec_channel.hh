@@ -24,7 +24,6 @@ public:
       unlink(d_local.sun_path);
   }
 
-
   int listen(const std::string& filename);
   void connect(const std::string& path, const std::string& filename);
 
