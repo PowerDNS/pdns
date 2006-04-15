@@ -58,7 +58,7 @@ private:
   size_t d_stacksize;
 
   EventVal d_waitval;
-  enum {Error=-1,TimeOut=0,Answer} d_waitstatus;
+  enum waitstatusenum {Error=-1,TimeOut=0,Answer} d_waitstatus;
 
 public:
   struct Waiter

@@ -41,6 +41,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/function.hpp>
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
@@ -397,7 +398,7 @@ map<uint32_t, uint32_t> g_tcpClientCounts;
 struct TCPConnection
 {
   int fd;
-  enum {BYTE0, BYTE1, GETQUESTION, DONE} state;
+  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
   int qlen;
   int bytesread;
   struct sockaddr_in remote;
