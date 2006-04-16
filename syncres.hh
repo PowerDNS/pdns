@@ -317,8 +317,10 @@ int arecvtcp(string& data, int len, Socket* sock);
 
 struct PacketID
 {
-  PacketID() : sock(0), inNeeded(0), outPos(0), nearMisses(0), fd(-1)
-  {}
+  PacketID() : id(0), sock(0), inNeeded(0), outPos(0), nearMisses(0), fd(-1)
+  {
+    memset(&remote, 0, sizeof(remote));
+  }
 
   uint16_t id;  // wait for a specific id/remote pair
   struct sockaddr_in remote;  // this is the remote
