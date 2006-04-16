@@ -1,6 +1,9 @@
 #include <boost/function.hpp>
 #include <boost/any.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+#include <vector>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -28,6 +31,7 @@ protected:
   {
     callbackfunc_t d_callback;
     boost::any d_parameter;
+    struct timeval d_ttd;
   };
 
 public:
@@ -36,7 +40,7 @@ public:
   virtual ~FDMultiplexer()
   {}
 
-  virtual int run(struct timeval* tv=0) = 0;
+  virtual int run(struct timeval* tv) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
   virtual void addReadFD(int fd, callbackfunc_t toDo, boost::any parameter=boost::any())
@@ -62,6 +66,23 @@ public:
   virtual void removeWriteFD(int fd)
   {
     this->removeFD(d_writeCallbacks, fd);
+  }
+
+  virtual void setReadTTD(int fd, struct timeval tv, int timeout)
+  {
+    if(!d_readCallbacks.count(fd))
+      throw FDMultiplexerException("attempt to timestamp fd not in the multiplexer");
+    tv.tv_sec += timeout;
+    d_readCallbacks[fd].d_ttd=tv;
+  }
+
+  virtual std::vector<std::pair<int, boost::any> > getTimeouts(const struct timeval& tv)
+  {
+    std::vector<std::pair<int, boost::any> > ret;
+    for(callbackmap_t::iterator i=d_readCallbacks.begin(); i!=d_readCallbacks.end(); ++i)
+      if(i->second.d_ttd.tv_sec && boost::tie(tv.tv_sec, tv.tv_usec) > boost::tie(i->second.d_ttd.tv_sec, i->second.d_ttd.tv_usec)) 
+	ret.push_back(std::make_pair(i->first, i->second.d_parameter));
+    return ret;
   }
 
   typedef FDMultiplexer* getMultiplexer_t();
@@ -93,7 +114,7 @@ public:
   virtual ~SelectFDMultiplexer()
   {}
 
-  virtual int run(struct timeval* tv=0);
+  virtual int run(struct timeval* tv);
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);

@@ -22,7 +22,7 @@ public:
     close(d_epollfd);
   }
 
-  virtual int run(struct timeval* tv=0);
+  virtual int run(struct timeval* tv);
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
@@ -63,6 +63,7 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
   Callback cb;
   cb.d_callback=toDo;
   cb.d_parameter=parameter;
+  memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
 
   if(cbmap.count(fd))
     throw FDMultiplexerException("Tried to add fd "+lexical_cast<string>(fd)+ " to multiplexer twice");
@@ -81,9 +82,6 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
 
 void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
-  if(d_inrun && d_iter->first==fd)  // trying to remove us!
-    d_iter++;
-
   if(!cbmap.erase(fd))
     throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
 
@@ -98,8 +96,7 @@ int EpollFDMultiplexer::run(struct timeval* now)
   }
   
   int ret=epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, 500);
-  if(now)
-    gettimeofday(now,0);
+  gettimeofday(now,0);
   
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("select returned error: "+stringerror());
@@ -112,13 +109,15 @@ int EpollFDMultiplexer::run(struct timeval* now)
   for(int n=0; n < ret; ++n) {
     d_iter=d_readCallbacks.find(d_eevents[n].data.fd);
     
-    if(d_iter != d_readCallbacks.end())
+    if(d_iter != d_readCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+    }
 
     d_iter=d_writeCallbacks.find(d_eevents[n].data.fd);
     
-    if(d_iter != d_writeCallbacks.end())
+    if(d_iter != d_writeCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+    }
   }
 
   d_inrun=false;

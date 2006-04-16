@@ -717,6 +717,9 @@ void handleNewTCPQuestion(int fd, boost::any& )
     tc.startTime=g_now.tv_sec;
     TCPConnection::s_currentConnections++;
     g_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
+    struct timeval now;
+    gettimeofday(&now, 0);
+    g_fdm->setReadTTD(tc.fd, now, 2);
   }
 }
 
@@ -1328,17 +1331,24 @@ int main(int argc, char **argv)
 
       gettimeofday(&g_now, 0);
       g_fdm->run(&g_now);
-      cout<<"tcp: "<<TCPConnection::s_currentConnections<<endl;
+
+      typedef vector<pair<int, boost::any> > expired_t;
+      expired_t expired=g_fdm->getTimeouts(g_now);
+
+      for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
+	TCPConnection conn=any_cast<TCPConnection>(i->second);
+	g_fdm->removeReadFD(i->first);
+	conn.closeAndCleanup();
+      }
+
       if(listenOnTCP) {
 	if(TCPConnection::s_currentConnections > maxTcpClients) {
-	  cout<<"Removed from accept loop"<<endl;
 	  g_fdm->removeReadFD(g_tcpListenSocket);
 	  listenOnTCP=false;
 	}
       }
       else {
 	if(TCPConnection::s_currentConnections <= maxTcpClients) {
-	  cout<<"Added back to accept loop"<<endl;
 	  g_fdm->addReadFD(g_tcpListenSocket, handleNewTCPQuestion);
 	  listenOnTCP=true;
 	}

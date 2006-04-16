@@ -26,7 +26,7 @@ void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toD
   Callback cb;
   cb.d_callback=toDo;
   cb.d_parameter=parameter;
-
+  memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
   if(cbmap.count(fd))
     throw FDMultiplexerException("Tried to add fd "+lexical_cast<string>(fd)+ " to multiplexer twice");
   cbmap[fd]=cb;
@@ -61,12 +61,10 @@ int SelectFDMultiplexer::run(struct timeval* now)
     FD_SET(i->first, &writefds);
     fdmax=max(i->first, fdmax);
   }
-
   
   struct timeval tv={0,500000};
   int ret=select(fdmax + 1, &readfds, &writefds, 0, &tv);
-  if(now)
-    gettimeofday(now,0);
+  gettimeofday(now, 0);
   
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("select returned error: "+stringerror());
