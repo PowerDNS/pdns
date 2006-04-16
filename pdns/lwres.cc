@@ -102,21 +102,22 @@ int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP,
     const char *msgP=(const char*)&*vpacket.begin();
     string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
 
-    if(asendtcp(packet, &s) == 0) {
-      return 0;
-    }
-    
+    ret=asendtcp(packet, &s);
+    if(!(ret>0))           
+      return ret;
+
     packet.clear();
-    if(arecvtcp(packet,2, &s)==0) {
-      return 0;
-    }
+    ret=arecvtcp(packet, 2, &s);
+    if(!(ret > 0))
+      return ret;
 
     memcpy(&len, packet.c_str(), 2);
     len=ntohs(len);
 
-    if(arecvtcp(packet, len, &s)==0) {
-      return 0;
-    }
+    ret=arecvtcp(packet, len, &s);
+    if(!(ret > 0))
+      return ret;
+    
     if(len > (unsigned int)d_bufsize) {
       d_bufsize=len;
       delete[] d_buf;

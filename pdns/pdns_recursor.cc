@@ -55,7 +55,6 @@
 StatBag S;
 #endif
 
-
 using namespace boost;
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
@@ -130,36 +129,48 @@ static map<int,PacketID> d_tcpclientreadsocks, d_tcpclientwritesocks;
 typedef MTasker<PacketID,string> MT_t;
 MT_t* MT;
 
+// -1 is error, 0 is timeout, 1 is success
 int asendtcp(const string& data, Socket* sock) 
 {
   PacketID pident;
   pident.sock=sock;
   pident.outMSG=data;
-  string packet;
 
   d_tcpclientwritesocks[sock->getHandle()]=pident;
+  string packet;
 
   int ret=MT->waitEvent(pident,&packet,1);
+
   if(!ret || ret==-1) { // timeout
     d_tcpclientwritesocks.erase(sock->getHandle());
   }
+  else if(packet.size() !=data.size()) { // main loop tells us what it sent out, or empty in case of an error
+    return -1;
+  }
+  
   return ret;
 }
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvtcp(string& data, int len, Socket* sock) 
 {
-  data="";
+  //  cerr<<"arecvtcp called for "<<len<<" bytes\n";
+  data.clear();
   PacketID pident;
   pident.sock=sock;
   pident.inNeeded=len;
-
+  //  cerr<<"Adding fd to clientreadsocks: "<<sock->getHandle()<<endl;
   d_tcpclientreadsocks[sock->getHandle()]=pident;
 
   int ret=MT->waitEvent(pident,&data,1);
+  //  cerr<<"ret in arecvtcp: "<<ret<<", data.size(): "<<data.size()<<"\n";
   if(!ret || ret==-1) { // timeout
     d_tcpclientreadsocks.erase(sock->getHandle());
   }
+  else if(data.empty()) {// error, EOF or other
+    return -1;
+  }
+
   return ret;
 }
 
@@ -1186,8 +1197,7 @@ int main(int argc, char **argv)
 	if(FD_ISSET(i->first, &readfds)) { // can we receive
 	  shared_array<char> buffer(new char[i->second.inNeeded]);
 
-	  int ret=read(i->first, buffer.get(), min(i->second.inNeeded,200));
-	  // cerr<<"Read returned "<<ret<<endl;
+	  int ret=read(i->first, buffer.get(), i->second.inNeeded);
 	  if(ret > 0) {
 	    i->second.inMSG.append(&buffer[0], &buffer[ret]);
 	    i->second.inNeeded-=ret;
@@ -1198,15 +1208,18 @@ int main(int argc, char **argv)
 	      
 	      d_tcpclientreadsocks.erase((i++));
 	      haveErased=true;
-	      MT->sendEvent(pid, &msg);   // XXX DODGY
+	      MT->sendEvent(pid, &msg);   // XXX DODGY (why? msg is copied nicely by sendEvent)
 	    }
 	    else {
 	      // cerr<<"Still have "<<i->second.inNeeded<<" left to go"<<endl;
 	    }
 	  }
 	  else {
-	    //	    cerr<<"when reading ret="<<ret<<endl;
-	    // XXX FIXME I think some stuff needs to happen here - like send an EOF event
+	    PacketID pid=i->second;
+	    d_tcpclientreadsocks.erase((i++));
+	    haveErased=true;
+	    string empty;
+	    MT->sendEvent(pid, &empty); // this conveys error status
 	  }
 	}
 	if(!haveErased)
@@ -1217,22 +1230,22 @@ int main(int argc, char **argv)
       for(map<int,PacketID>::iterator i=d_tcpclientwritesocks.begin(); i!=d_tcpclientwritesocks.end(); ) { 
 	bool haveErased=false;
 	if(FD_ISSET(i->first, &writefds)) { // can we send over TCP
-	  // cerr<<"Socket "<<i->first<<" available for writing"<<endl;
 	  int ret=write(i->first, i->second.outMSG.c_str(), i->second.outMSG.size() - i->second.outPos);
 	  if(ret > 0) {
 	    i->second.outPos+=ret;
 	    if(i->second.outPos==i->second.outMSG.size()) {
-	      // cerr<<"Sent out entire load of "<<i->second.outMSG.size()<<" bytes"<<endl;
 	      PacketID pid=i->second;
 	      d_tcpclientwritesocks.erase(i++);   // erase!
 	      haveErased=true;
-	      MT->sendEvent(pid, 0);
+	      MT->sendEvent(pid, &pid.outMSG);  // send back what we sent to convey everything is ok
 	    }
-
 	  }
-	  else { 
-	    //	    cerr<<"ret="<<ret<<" when writing"<<endl;
-	    // XXX FIXME I think some stuff needs to happen here - like send an EOF event
+	  else {  // error or EOF
+	    PacketID pid=i->second;             
+	    d_tcpclientwritesocks.erase(i++);  
+	    haveErased=true;
+	    string sent;
+	    MT->sendEvent(pid, &sent);         // we convey error status by sending empty string
 	  }
 	}
 	if(!haveErased)
