@@ -72,6 +72,7 @@ bool g_quiet;
 NetmaskGroup* g_allowFrom;
 string s_programname="pdns_recursor";
 int g_tcpListenSocket;
+int g_tcpTimeout;
 
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
@@ -719,7 +720,7 @@ void handleNewTCPQuestion(int fd, boost::any& )
     g_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
     struct timeval now;
     gettimeofday(&now, 0);
-    g_fdm->setReadTTD(tc.fd, now, 2);
+    g_fdm->setReadTTD(tc.fd, now, g_tcpTimeout);
   }
 }
 
@@ -1306,7 +1307,7 @@ int main(int argc, char **argv)
 
     counter=0;
     unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
-    int tcpTimeout=::arg().asNum("client-tcp-timeout");
+    g_tcpTimeout=::arg().asNum("client-tcp-timeout");
 
     g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
 
