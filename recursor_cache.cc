@@ -94,8 +94,8 @@ DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const strin
     shared_ptr<DNSRecordContent> regen=DNSRecordContent::unserialize(qname, qt.getCode(), serial);
     rr.content=regen->getZoneRepresentation();
   }
-  //  rr.content.reserve(0);
-  //  rr.qname.reserve(0);
+  rr.content.reserve(0);
+  rr.qname.reserve(0);
   return rr;
 }
 
