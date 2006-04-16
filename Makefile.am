@@ -103,9 +103,6 @@ dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerat
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
 rec_channel_rec.cc selectmplexer.cc 
 
-pdns_recursor_SOURCES += epollmplexer.cc
-# pdns_recursor_SOURCES += kqueuemplexer.cc
-
 if NEDMALLOC
 pdns_recursor_SOURCES += ext/nedmalloc/malloc.c
 endif

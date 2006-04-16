@@ -71,6 +71,7 @@ RecursorStats g_stats;
 bool g_quiet;
 NetmaskGroup* g_allowFrom;
 string s_programname="pdns_recursor";
+int g_tcpListenSocket;
 
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
@@ -432,8 +433,12 @@ struct TCPConnection
     close(fd);
     if(!g_tcpClientCounts[remote.sin_addr.s_addr]--) 
       g_tcpClientCounts.erase(remote.sin_addr.s_addr);
+    s_currentConnections--;
   }
+  static unsigned int s_currentConnections; //!< total number of current TCP connections
 };
+
+unsigned int TCPConnection::s_currentConnections; 
 
 void startDoResolve(void *p)
 {
@@ -557,7 +562,6 @@ void startDoResolve(void *p)
 #endif
     }
 
-
     if(!g_quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
@@ -622,8 +626,9 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
       conn.state=TCPConnection::GETQUESTION;
     }
     if(!bytes || bytes < 0) {
+      TCPConnection tmp(conn); 
       g_fdm->removeReadFD(fd);
-      conn.closeAndCleanup();
+      tmp.closeAndCleanup();
       return;
     }
   }
@@ -637,8 +642,9 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     if(!bytes || bytes < 0) {
       if(g_logCommonErrors)
 	L<<Logger::Error<<"TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<" disconnected after first byte"<<endl;
+      TCPConnection tmp(conn); 
       g_fdm->removeReadFD(fd);
-      conn.closeAndCleanup();
+      tmp.closeAndCleanup();  // conn loses validity here..
       return;
     }
   }
@@ -646,8 +652,9 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     int bytes=read(conn.fd,conn.data + conn.bytesread,conn.qlen - conn.bytesread);
     if(!bytes || bytes < 0) {
       L<<Logger::Error<<"TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<" disconnected while reading question body"<<endl;
+      TCPConnection tmp(conn);
       g_fdm->removeReadFD(fd);
-      conn.closeAndCleanup();
+      tmp.closeAndCleanup();  // conn loses validity here..
 
       return;
     }
@@ -662,9 +669,9 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
       catch(MOADNSException &mde) {
 	g_stats.clientParseError++; 
 	L<<Logger::Error<<"Unable to parse packet from TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<endl;
+	TCPConnection tmp(conn); 
 	g_fdm->removeReadFD(fd);
-
-	conn.closeAndCleanup();
+	tmp.closeAndCleanup();
 	return;
       }
       
@@ -683,6 +690,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
   }
 }
 
+//! Handle new incoming TCP connection
 void handleNewTCPQuestion(int fd, boost::any& )
 {
   struct sockaddr_in addr;
@@ -707,10 +715,10 @@ void handleNewTCPQuestion(int fd, boost::any& )
     tc.state=TCPConnection::BYTE0;
     tc.remote=addr;
     tc.startTime=g_now.tv_sec;
+    TCPConnection::s_currentConnections++;
     g_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
   }
 }
-
 
 void makeTCPServerSockets()
 {
@@ -721,8 +729,8 @@ void makeTCPServerSockets()
     throw AhuException("No local address specified");
   
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
-    int fd=socket(AF_INET, SOCK_STREAM,0);
-    if(fd<0) 
+    g_tcpListenSocket=socket(AF_INET, SOCK_STREAM,0);
+    if(g_tcpListenSocket<0) 
       throw AhuException("Making a server socket for resolver: "+stringerror());
   
     struct sockaddr_in sin;
@@ -733,26 +741,26 @@ void makeTCPServerSockets()
       throw AhuException("Unable to resolve local address '"+ *i +"'"); 
 
     int tmp=1;
-    if(setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
+    if(setsockopt(g_tcpListenSocket,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
       L<<Logger::Error<<"Setsockopt failed for TCP listening socket"<<endl;
       exit(1);
     }
     
 #ifdef TCP_DEFER_ACCEPT
-    if(setsockopt(fd,SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
+    if(setsockopt(g_tcpListenSocket, SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
       L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
 #endif
 
     sin.sin_port = htons(::arg().asNum("local-port")); 
     
-    if (::bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    if (::bind(g_tcpListenSocket, (struct sockaddr *)&sin, sizeof(sin))<0) 
       throw AhuException("Binding TCP server socket for "+*i+": "+stringerror());
     
-    Utility::setNonBlocking(fd);
-    setSendBuffer(fd, 65000);
-    listen(fd, 128);
-    g_fdm->addReadFD(fd, handleNewTCPQuestion);
+    Utility::setNonBlocking(g_tcpListenSocket);
+    setSendBuffer(g_tcpListenSocket, 65000);
+    listen(g_tcpListenSocket, 128);
+    g_fdm->addReadFD(g_tcpListenSocket, handleNewTCPQuestion);
     L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
   }
 }
@@ -1306,6 +1314,7 @@ int main(int argc, char **argv)
 
 
     g_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
+    bool listenOnTCP(true);
 
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
@@ -1317,8 +1326,23 @@ int main(int argc, char **argv)
 	doStats();
       }
 
-      gettimeofday(&g_now, 0); // make this only happen if there are tcp clients XXX FIXME
+      gettimeofday(&g_now, 0);
       g_fdm->run(&g_now);
+      cout<<"tcp: "<<TCPConnection::s_currentConnections<<endl;
+      if(listenOnTCP) {
+	if(TCPConnection::s_currentConnections > maxTcpClients) {
+	  cout<<"Removed from accept loop"<<endl;
+	  g_fdm->removeReadFD(g_tcpListenSocket);
+	  listenOnTCP=false;
+	}
+      }
+      else {
+	if(TCPConnection::s_currentConnections <= maxTcpClients) {
+	  cout<<"Added back to accept loop"<<endl;
+	  g_fdm->addReadFD(g_tcpListenSocket, handleNewTCPQuestion);
+	  listenOnTCP=true;
+	}
+      }
     }
   }
   catch(AhuException &ae) {

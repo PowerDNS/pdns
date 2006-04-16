@@ -51,12 +51,14 @@ public:
   }
 
   //! Remove an fd from the read watch list. You can't call this function on an fd that is closed already!
+  /** WARNING: references to 'parameter' become invalid after this function! */
   virtual void removeReadFD(int fd)
   {
     this->removeFD(d_readCallbacks, fd);
   }
 
   //! Remove an fd from the write watch list. You can't call this function on an fd that is closed already!
+  /** WARNING: references to 'parameter' become invalid after this function! */
   virtual void removeWriteFD(int fd)
   {
     this->removeFD(d_writeCallbacks, fd);
