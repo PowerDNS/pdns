@@ -1,16 +1,26 @@
+# user editable stuff:
 SBINDIR=/usr/sbin/
-
-SYSDEPS=$(shell uname)
-
--include sysdeps/$(SYSDEPS).inc
-
-# for control socket location, see config.h
-
 OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
+LINKCC=$(CXX)
+CC=gcc
 
-LINKCC=g++
+# static dependencies
+
+PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
+arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
+dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
+rec_channel.o rec_channel_rec.o malloc.o selectmplexer.o
+
+REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
+
+# what we need 
+all: pdns_recursor rec_control 
+
+# OS specific instructions
+-include sysdeps/$(shell uname).inc
+
 ifeq ($(STATIC),semi)
         STATICFLAGS=-Wl,-Bstatic -lstdc++ -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
         LINKCC=gcc
@@ -20,33 +30,26 @@ ifeq ($(STATIC),full)
         LINKCC=gcc
 endif
 
-LDFLAGS+= $(PROFILEFLAGS) $(STATICFLAGS)
-
-all: pdns_recursor rec_control
+LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
 
 install: all
 	install -s pdns_recursor $(DESTDIR)/$(SBINDIR)
 	install -s rec_control $(DESTDIR)/$(SBINDIR)
 
 clean:
-	-rm -f *.o *~ pdns_recursor rec_control
+	-rm -f *.o *~ pdns_recursor rec_control optional/*.o
 	
 dep:
 	gcc $(CXXFLAGS) -MM *.cc *.hh > $@
 
 -include dep
 
-PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
-arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
-dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
-rec_channel.o rec_channel_rec.o malloc.o
+optional:
+	mkdir optional
 
-REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
-
-pdns_recursor: $(PDNS_RECURSOR_OBJECTS)
-	$(LINKCC) $(PDNS_RECURSOR_OBJECTS) $(LDFLAGS) -o $@
+pdns_recursor: optional $(OPTIONALS) $(PDNS_RECURSOR_OBJECTS) 
+	$(LINKCC) $(PDNS_RECURSOR_OBJECTS) $(wildcard optional/*.o) $(LDFLAGS) -o $@
 
 rec_control: $(REC_CONTROL_OBJECTS)
 	$(LINKCC) $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
-
 
