@@ -9,26 +9,17 @@
 using namespace boost;
 using namespace std;
 
-class SelectFDMultiplexer : public FDMultiplexer
-{
-public:
-  SelectFDMultiplexer()
-  {}
-  virtual ~SelectFDMultiplexer()
-  {}
-
-  virtual int run(struct timeval* tv=0);
-
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
-  virtual void removeFD(callbackmap_t& cbmap, int fd);
-};
-
-
-FDMultiplexer* getMultiplexer()
+static FDMultiplexer* make()
 {
   return new SelectFDMultiplexer();
 }
 
+static struct RegisterOurselves
+{
+  RegisterOurselves() {
+    FDMultiplexer::getMultiplexerMap().insert(make_pair(1, &make));
+  }
+} doIt;
 
 void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter)
 {
