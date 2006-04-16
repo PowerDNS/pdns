@@ -453,12 +453,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  int ret=d_lwr.asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, &d_now);    // <- we go out on the wire!
 	  if(ret != 1) {
 	    if(ret==0) {
-	      LOG<<prefix<<qname<<": timeout resolving"<<endl;
+	      LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;
 	      d_timeouts++;
 	      s_outgoingtimeouts++;
 	    }
 	    else
-	      LOG<<prefix<<qname<<": error resolving"<<endl;
+	      LOG<<prefix<<qname<<": error resolving "<< (doTCP ? "over TCP" : "") << endl;
 	    
 	    s_nsSpeeds[*tns].submit(1000000, &d_now); // 1 sec
 	  

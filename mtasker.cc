@@ -201,6 +201,8 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
     \param key Key of the event for which threads may be waiting
     \param val If non-zero, pointer to the content of the event
     \return Returns -1 in case of error, 0 if there were no waiters, 1 if a thread was woken up.
+
+    WARNING: when passing val as zero, d_waitval is undefined, and hence waitEvent will return undefined!
 */
 template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEvent(const EventKey& key, const EventVal* val)
 {
