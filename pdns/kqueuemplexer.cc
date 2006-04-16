@@ -27,7 +27,7 @@ public:
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
-    return "epoll";
+    return "kqueue";
   }
 private:
   int d_kqueuefd;
