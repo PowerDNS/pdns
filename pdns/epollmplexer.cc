@@ -5,32 +5,48 @@
 #include "misc.hh"
 #include <boost/lexical_cast.hpp>
 #include "syncres.hh"
+#include <sys/epoll.h>
 
 using namespace boost;
 using namespace std;
 
-class SelectFDMultiplexer : public FDMultiplexer
+#include <sys/epoll.h>
+
+
+class EpollFDMultiplexer : public FDMultiplexer
 {
 public:
-  SelectFDMultiplexer()
-  {}
-  virtual ~SelectFDMultiplexer()
-  {}
+  EpollFDMultiplexer();
+  virtual ~EpollFDMultiplexer()
+  {
+    close(d_epollfd);
+  }
 
   virtual int run(struct timeval* tv=0);
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
+private:
+  int d_epollfd;
+  boost::shared_array<epoll_event> d_eevents;
+  static int s_maxevents; // not a hard maximum
 };
-
 
 FDMultiplexer* getMultiplexer()
 {
-  return new SelectFDMultiplexer();
+  return new EpollFDMultiplexer();
 }
 
 
-void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter)
+int EpollFDMultiplexer::s_maxevents=1024;
+EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents])
+{
+  d_epollfd=epoll_create(s_maxevents); // not hard max
+  if(d_epollfd < 0)
+    throw FDMultiplexerException("Setting up epoll: "+stringerror());
+}
+
+void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter)
 {
   Callback cb;
   cb.d_callback=toDo;
@@ -38,42 +54,38 @@ void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toD
 
   if(cbmap.count(fd))
     throw FDMultiplexerException("Tried to add fd "+lexical_cast<string>(fd)+ " to multiplexer twice");
+  struct epoll_event eevent;
+  
+  eevent.events = (&cbmap == &d_readCallbacks) ? EPOLLIN : EPOLLOUT;
+  
+  eevent.data.u64=0; // placate valgrind (I love it so much)
+  eevent.data.fd=fd; 
+
+  if(epoll_ctl(d_epollfd, EPOLL_CTL_ADD, fd, &eevent) < 0)
+    throw FDMultiplexerException("Adding fd to epoll set: "+stringerror());
+
   cbmap[fd]=cb;
 }
 
-void SelectFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
+void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
   if(d_inrun && d_iter->first==fd)  // trying to remove us!
     d_iter++;
 
   if(!cbmap.erase(fd))
     throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
+
+  if(epoll_ctl(d_epollfd, EPOLL_CTL_DEL, fd, 0) < 0)
+    throw FDMultiplexerException("Removing fd from epoll set: "+stringerror());
 }
 
-int SelectFDMultiplexer::run(struct timeval* now)
+int EpollFDMultiplexer::run(struct timeval* now)
 {
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
-  fd_set readfds, writefds;
-  FD_ZERO(&readfds);
-  FD_ZERO(&writefds);
   
-  int fdmax=0;
-
-  for(callbackmap_t::const_iterator i=d_readCallbacks.begin(); i != d_readCallbacks.end(); ++i) {
-    FD_SET(i->first, &readfds);
-    fdmax=max(i->first, fdmax);
-  }
-
-  for(callbackmap_t::const_iterator i=d_writeCallbacks.begin(); i != d_writeCallbacks.end(); ++i) {
-    FD_SET(i->first, &writefds);
-    fdmax=max(i->first, fdmax);
-  }
-
-  
-  struct timeval tv={0,500000};
-  int ret=select(fdmax + 1, &readfds, &writefds, 0, &tv);
+  int ret=epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, 500);
   if(now)
     gettimeofday(now,0);
   
@@ -83,22 +95,18 @@ int SelectFDMultiplexer::run(struct timeval* now)
   if(ret==0) // nothing
     return 0;
 
-  d_iter=d_readCallbacks.end();
   d_inrun=true;
-  
-  for(callbackmap_t::iterator i=d_readCallbacks.begin(); i != d_readCallbacks.end() && i->first <= fdmax; ) {
-    d_iter=i++;
 
-    if(FD_ISSET(d_iter->first, &readfds)) {
+  for(int n=0; n < ret; ++n) {
+    d_iter=d_readCallbacks.find(d_eevents[n].data.fd);
+    
+    if(d_iter != d_readCallbacks.end())
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
-    }
-  }
 
-  for(callbackmap_t::iterator i=d_writeCallbacks.begin(); i != d_writeCallbacks.end() && i->first <= fdmax; ) {
-    d_iter=i++;
-    if(FD_ISSET(d_iter->first, &writefds)) {
+    d_iter=d_writeCallbacks.find(d_eevents[n].data.fd);
+    
+    if(d_iter != d_writeCallbacks.end())
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
-    }
   }
 
   d_inrun=false;
@@ -106,7 +114,6 @@ int SelectFDMultiplexer::run(struct timeval* now)
 }
 
 #if 0
-
 void acceptData(int fd, boost::any& parameter)
 {
   cout<<"Have data on fd "<<fd<<endl;
@@ -125,7 +132,7 @@ int main()
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 
-  SelectFDMultiplexer sfm;
+  EpollFDMultiplexer sfm;
 
   sfm.addReadFD(s.getHandle(), &acceptData, &s);
 
@@ -136,4 +143,5 @@ int main()
   sfm.removeReadFD(s.getHandle());
 }
 #endif
+
 
