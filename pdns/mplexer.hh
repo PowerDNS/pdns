@@ -19,6 +19,7 @@ public:
 
     It has some "interesting" semantics
 */
+
 class FDMultiplexer
 {
 protected:
@@ -61,6 +62,17 @@ public:
     this->removeFD(d_writeCallbacks, fd);
   }
 
+  typedef FDMultiplexer* getMultiplexer_t();
+  typedef std::multimap<int, getMultiplexer_t*> FDMultiplexermap_t;
+
+  static FDMultiplexermap_t& getMultiplexerMap()
+  {
+    static FDMultiplexermap_t theMap;
+    return theMap;
+  }
+  
+  virtual std::string getName() = 0;
+
 protected:
   typedef std::map<int, Callback> callbackmap_t;
   callbackmap_t d_readCallbacks, d_writeCallbacks;
@@ -69,7 +81,23 @@ protected:
   virtual void removeFD(callbackmap_t& cbmap, int fd)=0;
   bool d_inrun;
   callbackmap_t::iterator d_iter;
-
 };
 
-FDMultiplexer* getMultiplexer();
+class SelectFDMultiplexer : public FDMultiplexer
+{
+public:
+  SelectFDMultiplexer()
+  {}
+  virtual ~SelectFDMultiplexer()
+  {}
+
+  virtual int run(struct timeval* tv=0);
+
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
+  virtual void removeFD(callbackmap_t& cbmap, int fd);
+  std::string getName()
+  {
+    return "select";
+  }
+};
+

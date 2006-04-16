@@ -101,12 +101,14 @@ logger.cc statbag.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
-rec_channel_rec.cc selectmplexer.cc
+rec_channel_rec.cc selectmplexer.cc 
+
+pdns_recursor_SOURCES += epollmplexer.cc
+# pdns_recursor_SOURCES += kqueuemplexer.cc
 
 if NEDMALLOC
 pdns_recursor_SOURCES += ext/nedmalloc/malloc.c
 endif
-
 
 #../modules/gmysqlbackend/smysql.cc 
 

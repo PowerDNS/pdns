@@ -1128,6 +1128,23 @@ void handleUDPServerResponse(int fd, boost::any&)
       sweeped.swap(g_tcpconnections);
 #endif
 
+FDMultiplexer* getMultiplexer()
+{
+  FDMultiplexer* ret;
+  for(FDMultiplexer::FDMultiplexermap_t::const_iterator i = FDMultiplexer::getMultiplexerMap().begin();
+      i != FDMultiplexer::getMultiplexerMap().end(); ++i) {
+    try {
+      ret=i->second();
+      L<<Logger::Error<<"Enabled '"<<ret->getName()<<"' multiplexer"<<endl;
+      return ret;
+    }
+    catch(...)
+      {}
+  }
+  L<<Logger::Error<<"No working multiplexer found!"<<endl;
+  exit(1);
+}
+
 int main(int argc, char **argv) 
 {
   reportBasicTypes();
@@ -1189,7 +1206,7 @@ int main(int argc, char **argv)
     }
 
     L.setName("pdns_recursor");
-    g_fdm=getMultiplexer();
+
 
     L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
@@ -1202,6 +1219,7 @@ int main(int argc, char **argv)
       "This is free software, and you are welcome to redistribute it "
       "according to the terms of the GPL version 2."<<endl;
     
+    g_fdm=getMultiplexer();
 
     if(!::arg()["allow-from"].empty()) {
       g_allowFrom=new NetmaskGroup;

@@ -25,16 +25,27 @@ public:
 
   virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
+  string getName()
+  {
+    return "epoll";
+  }
 private:
   int d_kqueuefd;
   boost::shared_array<struct kevent> d_kevents;
   static int s_maxevents; // not a hard maximum
 };
 
-FDMultiplexer* getMultiplexer()
+static FDMultiplexer* make()
 {
   return new KqueueFDMultiplexer();
 }
+
+static struct RegisterOurselves
+{
+  RegisterOurselves() {
+    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &make)); // priority 0!
+  }
+} doIt;
 
 int KqueueFDMultiplexer::s_maxevents=1024;
 KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxevents])
