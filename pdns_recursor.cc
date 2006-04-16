@@ -49,12 +49,16 @@
 #include "rec_channel.hh"
 #include "logger.hh"
 #include "iputils.hh"
+#include "mplexer.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
 #endif
 
+FDMultiplexer* g_fdm;
+unsigned int g_maxTCPPerClient;
+bool g_logCommonErrors;
 using namespace boost;
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
@@ -119,15 +123,14 @@ ArgvMap &arg()
   return theArg;
 }
 
-static vector<int> g_udpserversocks;
-
+struct timeval g_now;
 typedef vector<int> tcpserversocks_t;
-static tcpserversocks_t s_tcpserversocks;
-
-static map<int,PacketID> d_tcpclientreadsocks, d_tcpclientwritesocks;
 
 typedef MTasker<PacketID,string> MT_t;
 MT_t* MT;
+
+
+void handleTCPClientWritable(int fd, boost::any& var);
 
 // -1 is error, 0 is timeout, 1 is success
 int asendtcp(const string& data, Socket* sock) 
@@ -136,20 +139,21 @@ int asendtcp(const string& data, Socket* sock)
   pident.sock=sock;
   pident.outMSG=data;
 
-  d_tcpclientwritesocks[sock->getHandle()]=pident;
+  g_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
   string packet;
 
   int ret=MT->waitEvent(pident,&packet,1);
 
   if(!ret || ret==-1) { // timeout
-    d_tcpclientwritesocks.erase(sock->getHandle());
+    g_fdm->removeWriteFD(sock->getHandle());
   }
   else if(packet.size() !=data.size()) { // main loop tells us what it sent out, or empty in case of an error
     return -1;
   }
-  
   return ret;
 }
+
+void handleTCPClientReadable(int fd, boost::any& var);
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvtcp(string& data, int len, Socket* sock) 
@@ -159,13 +163,13 @@ int arecvtcp(string& data, int len, Socket* sock)
   PacketID pident;
   pident.sock=sock;
   pident.inNeeded=len;
-  //  cerr<<"Adding fd to clientreadsocks: "<<sock->getHandle()<<endl;
-  d_tcpclientreadsocks[sock->getHandle()]=pident;
+  //  cerr<<"Adding fd to clientreadsocks: "<<sock->getHandle()<<", needed: "<<pident.inNeeded<<endl;
+  g_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
 
   int ret=MT->waitEvent(pident,&data,1);
   //  cerr<<"ret in arecvtcp: "<<ret<<", data.size(): "<<data.size()<<"\n";
   if(!ret || ret==-1) { // timeout
-    d_tcpclientreadsocks.erase(sock->getHandle());
+    g_fdm->removeReadFD(sock->getHandle());
   }
   else if(data.empty()) {// error, EOF or other
     return -1;
@@ -214,6 +218,8 @@ int makeClientSocket()
   return ret;
 }
 
+void handleUDPServerResponse(int fd, boost::any&);
+
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it
 // but after you call 'returnSocket' on it, don't assume anything anymore
@@ -235,6 +241,7 @@ public:
     if((d_passthrough=state)) {
       pair<int, int> sock=make_pair(makeClientSocket(), 1);
       d_socks.insert(sock);
+      g_fdm->addReadFD(sock.first, handleUDPServerResponse);
       d_numsocks=1;
     }
   }
@@ -248,6 +255,7 @@ public:
       pair<int, int> sock=make_pair(makeClientSocket(), 1);
       d_socks.insert(sock);
       d_numsocks++;
+      g_fdm->addReadFD(sock.first, handleUDPServerResponse);
       return sock.first;
     }
     else {
@@ -273,7 +281,9 @@ public:
     }
 
     if(!--i->second) {
+      g_fdm->removeReadFD(i->first);
       ::close(i->first);
+
       d_socks.erase(i++);
       --d_numsocks;
     }
@@ -316,8 +326,9 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
       return -1;
     }
   }
-  else
+  else {
     g_udpclientsocks.returnSocket(fd);
+  }
   return ret;
 }
 
@@ -424,8 +435,6 @@ struct TCPConnection
   }
 };
 
-vector<TCPConnection> g_tcpconnections; // all *running* TCP/IP questions (from clients)
-
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
@@ -435,7 +444,7 @@ void startDoResolve(void *p)
     if(dc->d_mdp.getEDNSOpts(&edo)) {
       maxudpsize=edo.d_packetsize;
     }
-
+    
     vector<DNSResourceRecord> ret;
     
     vector<uint8_t> packet;
@@ -520,7 +529,18 @@ void startDoResolve(void *p)
 	L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
       else
 	hadError=false;
+      
+      // update tcp connection status, either by closing or moving to 'BYTE0'
 
+      if(hadError) {
+	g_fdm->removeReadFD(dc->d_socket);
+	close(dc->d_socket);
+	// i->closeAndCleanup(); // XXX we don't remove ourselves from the list anymore 
+      }
+
+      // XXX FIXME, need to restore resetting connection to BYTE0 in case of noerror!
+
+#if 0
       for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
 	if(i->fd == dc->d_socket) {
 	  if(hadError) {
@@ -534,7 +554,9 @@ void startDoResolve(void *p)
 	  break;
 	}
       }
+#endif
     }
+
 
     if(!g_quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
@@ -586,6 +608,109 @@ void makeControlChannelSocket()
   s_rcc.listen(sockname);
 }
 
+void handleRunningTCPQuestion(int fd, boost::any& var)
+{
+  TCPConnection& conn=any_cast<TCPConnection&>(var);
+
+  if(conn.state==TCPConnection::BYTE0) {
+    int bytes=read(conn.fd,conn.data,2);
+    if(bytes==1)
+      conn.state=TCPConnection::BYTE1;
+    if(bytes==2) { 
+      conn.qlen=(conn.data[0]<<8)+conn.data[1];
+      conn.bytesread=0;
+      conn.state=TCPConnection::GETQUESTION;
+    }
+    if(!bytes || bytes < 0) {
+      g_fdm->removeReadFD(fd);
+      conn.closeAndCleanup();
+      return;
+    }
+  }
+  else if(conn.state==TCPConnection::BYTE1) {
+    int bytes=read(conn.fd,conn.data+1,1);
+    if(bytes==1) {
+      conn.state=TCPConnection::GETQUESTION;
+      conn.qlen=(conn.data[0]<<8)+conn.data[1];
+      conn.bytesread=0;
+    }
+    if(!bytes || bytes < 0) {
+      if(g_logCommonErrors)
+	L<<Logger::Error<<"TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<" disconnected after first byte"<<endl;
+      g_fdm->removeReadFD(fd);
+      conn.closeAndCleanup();
+      return;
+    }
+  }
+  else if(conn.state==TCPConnection::GETQUESTION) {
+    int bytes=read(conn.fd,conn.data + conn.bytesread,conn.qlen - conn.bytesread);
+    if(!bytes || bytes < 0) {
+      L<<Logger::Error<<"TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<" disconnected while reading question body"<<endl;
+      g_fdm->removeReadFD(fd);
+      conn.closeAndCleanup();
+
+      return;
+    }
+    conn.bytesread+=bytes;
+    if(conn.bytesread==conn.qlen) {
+      //      conn.state=TCPConnection::DONE; // this makes us immune from timeouts, from now on *we* are responsible
+      conn.state=TCPConnection::BYTE0; // *wrong* - yes, we want to listen for a new question already, but we shouldn't timeout etc
+      DNSComboWriter* dc=0;
+      try {
+	dc=new DNSComboWriter(conn.data, conn.qlen, g_now);
+      }
+      catch(MOADNSException &mde) {
+	g_stats.clientParseError++; 
+	L<<Logger::Error<<"Unable to parse packet from TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<endl;
+	g_fdm->removeReadFD(fd);
+
+	conn.closeAndCleanup();
+	return;
+      }
+      
+      dc->setSocket(conn.fd);
+      dc->d_tcp=true;
+      dc->setRemote((struct sockaddr *)&conn.remote,sizeof(conn.remote));
+      if(dc->d_mdp.d_header.qr)
+	L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+      else {
+	++g_stats.qcounter;
+	++g_stats.tcpqcounter;
+	MT->makeThread(startDoResolve, dc);
+	return;
+      }
+    }
+  }
+}
+
+void handleNewTCPQuestion(int fd, boost::any& )
+{
+  struct sockaddr_in addr;
+  socklen_t addrlen=sizeof(addr);
+  int newsock=accept(fd, (struct sockaddr*)&addr, &addrlen);
+  if(newsock>0) {
+    if(g_allowFrom && !g_allowFrom->match(&addr)) {
+      g_stats.unauthorizedTCP++;
+      close(newsock);
+      return;
+    }
+    
+    if(g_maxTCPPerClient && g_tcpClientCounts.count(addr.sin_addr.s_addr) && g_tcpClientCounts[addr.sin_addr.s_addr] >= g_maxTCPPerClient) {
+      g_stats.tcpClientOverflow++;
+      close(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      return;
+    }
+    g_tcpClientCounts[addr.sin_addr.s_addr]++;
+    Utility::setNonBlocking(newsock);
+    TCPConnection tc;
+    tc.fd=newsock;
+    tc.state=TCPConnection::BYTE0;
+    tc.remote=addr;
+    tc.startTime=g_now.tv_sec;
+    g_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
+  }
+}
+
 
 void makeTCPServerSockets()
 {
@@ -627,10 +752,47 @@ void makeTCPServerSockets()
     Utility::setNonBlocking(fd);
     setSendBuffer(fd, 65000);
     listen(fd, 128);
-    s_tcpserversocks.push_back(fd);
+    g_fdm->addReadFD(fd, handleNewTCPQuestion);
     L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
   }
 }
+
+void handleNewUDPQuestion(int fd, boost::any& var)
+{
+  int d_len;
+  char data[1500];
+  struct sockaddr_in fromaddr;
+  socklen_t addrlen=sizeof(fromaddr);
+
+  while((d_len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+    if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
+      g_stats.unauthorizedUDP++;
+      continue;
+    }
+    
+    try {
+      DNSComboWriter* dc = new DNSComboWriter(data, d_len, g_now);
+      
+      dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
+      
+      if(dc->d_mdp.d_header.qr) {
+	if(g_logCommonErrors)
+	  L<<Logger::Error<<"Ignoring answer from "<<dc->getRemote()<<" on server socket!"<<endl;
+      }
+      else {
+	++g_stats.qcounter;
+	dc->setSocket(fd);
+	dc->d_tcp=false;
+	MT->makeThread(startDoResolve, (void*) dc);
+      }
+    }
+    catch(MOADNSException& mde) {
+      g_stats.clientParseError++; 
+      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
+    }
+  }
+}
+
 
 void makeUDPServerSockets()
 {
@@ -662,7 +824,7 @@ void makeUDPServerSockets()
       throw AhuException("Resolver binding to server socket for "+*i+": "+stringerror());
     
     Utility::setNonBlocking(fd);
-    g_udpserversocks.push_back(fd);
+    g_fdm->addReadFD(fd, handleNewUDPQuestion);
     L<<Logger::Error<<"Listening for UDP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
   }
 }
@@ -833,6 +995,139 @@ string questionExpand(const char* packet, uint16_t len)
   return ret;
 }
 
+
+void handleRCC(int fd, boost::any& var)
+{
+  string remote;
+  string msg=s_rcc.recv(&remote);
+  RecursorControlParser rcp;
+  RecursorControlParser::func_t* command;
+  string answer=rcp.getAnswer(msg, &command);
+  s_rcc.send(answer, &remote);
+  command();
+}
+
+void handleTCPClientReadable(int fd, boost::any& var)
+{
+  PacketID& pident=any_cast<PacketID&>(var);
+  //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident.inNeeded: "<<pident.inNeeded<<", "<<pident.sock->getHandle()<<endl;
+
+  shared_array<char> buffer(new char[pident.inNeeded]);
+
+  int ret=read(fd, buffer.get(), pident.inNeeded);
+  if(ret > 0) {
+    pident.inMSG.append(&buffer[0], &buffer[ret]);
+    pident.inNeeded-=ret;
+    if(!pident.inNeeded) {
+      //      cerr<<"Got entire load of "<<pident.inMSG.size()<<" bytes"<<endl;
+      PacketID pid=pident;
+      string msg=pident.inMSG;
+      
+      g_fdm->removeReadFD(fd);
+      MT->sendEvent(pid, &msg); 
+    }
+    else {
+      //      cerr<<"Still have "<<pident.inNeeded<<" left to go"<<endl;
+    }
+  }
+  else {
+    PacketID tmp=pident;
+    g_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
+    string empty;
+    MT->sendEvent(tmp, &empty); // this conveys error status
+  }
+}
+
+void handleTCPClientWritable(int fd, boost::any& var)
+{
+  PacketID& pid=any_cast<PacketID&>(var);
+  
+  int ret=write(fd, pid.outMSG.c_str(), pid.outMSG.size() - pid.outPos);
+  if(ret > 0) {
+    pid.outPos+=ret;
+    if(pid.outPos==pid.outMSG.size()) {
+      PacketID tmp=pid;
+      g_fdm->removeWriteFD(fd);
+      MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
+    }
+  }
+  else {  // error or EOF
+    g_fdm->removeWriteFD(fd);
+    string sent;
+    MT->sendEvent(pid, &sent);         // we convey error status by sending empty string
+  }
+}
+
+void handleUDPServerResponse(int fd, boost::any&)
+{
+  int d_len;
+  char data[1500];
+  struct sockaddr_in fromaddr;
+  socklen_t addrlen=sizeof(fromaddr);
+
+  while((d_len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+    if((size_t) d_len >= sizeof(dnsheader)) {
+      dnsheader dh;
+      memcpy(&dh, data, sizeof(dh));
+      
+      if(!dh.qdcount) // UPC, Nominum?
+	continue; 
+      
+      if(dh.qr) {
+	PacketID pident;
+	pident.remote=fromaddr;
+	pident.id=dh.id;
+	pident.fd=fd;
+	pident.domain=questionExpand(data, d_len);
+	string packet;
+	packet.assign(data, d_len);
+	if(!MT->sendEvent(pident, &packet)) {
+	  // if(g_logCommonErrors)
+	  //   L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
+	  g_stats.unexpectedCount++;
+	  
+	  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
+	    if(pident.fd==mthread->key.fd && !memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr)) && 
+	       !strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
+	      mthread->key.nearMisses++;
+	    }
+	  }
+	}
+      }
+      else
+	L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
+    }
+    else {
+      g_stats.serverParseError++; 
+      if(g_logCommonErrors)
+	L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": packet too small"<<endl;
+    }
+    break;
+  }
+  g_udpclientsocks.returnSocket(fd);
+}
+
+#if 0
+// this code sweeps all running tcp connections for timeouts, it didn't survive move to multiplexer
+      vector<TCPConnection> sweeped;
+
+      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
+	if(i->state==TCPConnection::DONE || g_now.tv_sec < i->startTime + tcpTimeout) {  // don't timeout when we are working on the question!
+	  sweeped.push_back(*i);
+	  if(i->state!=TCPConnection::DONE) { // we don't listen for data when we are processing the question
+	    FD_SET(i->fd, &readfds);
+	    fdmax=max(fdmax,i->fd);
+	  }
+	}
+	else {
+	  if(g_logCommonErrors)
+	    L<<Logger::Error<<"TCP timeout from client "<<inet_ntoa(i->remote.sin_addr)<<endl;
+	  i->closeAndCleanup();
+	}
+      }
+      sweeped.swap(g_tcpconnections);
+#endif
+
 int main(int argc, char **argv) 
 {
   reportBasicTypes();
@@ -894,6 +1189,7 @@ int main(int argc, char **argv)
     }
 
     L.setName("pdns_recursor");
+    g_fdm=getMultiplexer();
 
     L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
@@ -930,7 +1226,7 @@ int main(int argc, char **argv)
       g_quiet=false;
     }
 
-    bool logCommonErrors=::arg().mustDo("log-common-errors");
+    g_logCommonErrors=::arg().mustDo("log-common-errors");
 
     makeUDPServerSockets();
     makeTCPServerSockets();
@@ -945,8 +1241,6 @@ int main(int argc, char **argv)
     
     MT=new MTasker<PacketID,string>(100000);
 
-    char data[1500];
-    struct sockaddr_in fromaddr;
     
     PacketID pident;
     primeHints();    
@@ -982,16 +1276,18 @@ int main(int argc, char **argv)
 
 
     counter=0;
-    struct timeval now;
     unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
     int tcpTimeout=::arg().asNum("client-tcp-timeout");
 
-    unsigned int maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+    g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
 
     if(!::arg()["query-local-port"].empty() || ::arg().mustDo("single-socket")) {
       L<<Logger::Warning<<"Switching to single-socket mode"<<endl;
       g_udpclientsocks.setPassthrough(true);
     }
+
+
+    g_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
 
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
@@ -1003,326 +1299,8 @@ int main(int argc, char **argv)
 	doStats();
       }
 
-      Utility::socklen_t addrlen=sizeof(fromaddr);
-      int d_len;
-      
-      struct timeval tv;
-      tv.tv_sec=0;
-      tv.tv_usec=500000;
-      
-      fd_set readfds, writefds;
-      FD_ZERO( &readfds );
-      FD_ZERO( &writefds );
-
-      FD_SET( s_rcc.d_fd, &readfds);
-      int fdmax=s_rcc.d_fd;
-      for(UDPClientSocks::socks_t::iterator i=g_udpclientsocks.d_socks.begin(); i!=g_udpclientsocks.d_socks.end(); ++i) {
-	FD_SET( i->first, &readfds );
-	fdmax=max(fdmax, i->first);
-      }
-
-      if(!g_tcpconnections.empty())
-	gettimeofday(&now, 0);
-
-      vector<TCPConnection> sweeped;
-
-      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
-	if(i->state==TCPConnection::DONE || now.tv_sec < i->startTime + tcpTimeout) {  // don't timeout when we are working on the question!
-	  sweeped.push_back(*i);
-	  if(i->state!=TCPConnection::DONE) { // we don't listen for data when we are processing the question
-	    FD_SET(i->fd, &readfds);
-	    fdmax=max(fdmax,i->fd);
-	  }
-	}
-	else {
-	  if(logCommonErrors)
-	    L<<Logger::Error<<"TCP timeout from client "<<inet_ntoa(i->remote.sin_addr)<<endl;
-	  i->closeAndCleanup();
-	}
-      }
-      sweeped.swap(g_tcpconnections);
-
-      for(vector<int>::const_iterator i=g_udpserversocks.begin(); i!=g_udpserversocks.end(); ++i) {
-	FD_SET( *i, &readfds );
-	fdmax=max(fdmax,*i);
-      }
-      if(g_tcpconnections.size() < maxTcpClients) 
-	for(tcpserversocks_t::const_iterator i=s_tcpserversocks.begin(); i!=s_tcpserversocks.end(); ++i) {
-	  FD_SET(*i, &readfds );
-	  fdmax=max(fdmax,*i);
-	}
-
-      for(map<int,PacketID>::const_iterator i=d_tcpclientreadsocks.begin(); i!=d_tcpclientreadsocks.end(); ++i) {
-	// cerr<<"Adding TCP socket "<<i->first<<" to read select set"<<endl;
-	FD_SET( i->first, &readfds );
-	fdmax=max(fdmax,i->first);
-      }
-
-      for(map<int,PacketID>::const_iterator i=d_tcpclientwritesocks.begin(); i!=d_tcpclientwritesocks.end(); ++i) {
-	// cerr<<"Adding TCP socket "<<i->first<<" to write select set"<<endl;
-	FD_SET( i->first, &writefds );
-	fdmax=max(fdmax,i->first);
-      }
-
-      int selret = select(  fdmax + 1, &readfds, &writefds, NULL, &tv );
-      gettimeofday(&now, 0);
-      if(selret<=0) 
-	if (selret == -1 && errno!=EINTR) 
-	  throw AhuException("Select returned: "+stringerror());
-	else
-	  continue;
-
-      if(FD_ISSET(s_rcc.d_fd, &readfds)) {
-	string remote;
-	string msg=s_rcc.recv(&remote);
-	RecursorControlParser rcp;
-	RecursorControlParser::func_t* command;
-	string answer=rcp.getAnswer(msg, &command);
-	s_rcc.send(answer, &remote);
-	command();
-      }
-      
-      // do we have a UDP question response from a server ("we are the client", hence clientsock)
-      for(UDPClientSocks::socks_t::iterator i=g_udpclientsocks.d_socks.begin(); i!=g_udpclientsocks.d_socks.end(); ) {
-	if(i->first <= fdmax && FD_ISSET(i->first, &readfds)) { 
-	  while((d_len=recvfrom(i->first, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-	    if((size_t) d_len >= sizeof(dnsheader)) {
-	      dnsheader dh;
-	      memcpy(&dh, data, sizeof(dh));
-	      
-	      if(!dh.qdcount) // UPC, Nominum?
-		continue; 
-
-	      if(dh.qr) {
-		pident.remote=fromaddr;
-		pident.id=dh.id;
-		pident.fd=i->first;
-		pident.domain=questionExpand(data, d_len);
-		string packet;
-		packet.assign(data, d_len);
-		if(!MT->sendEvent(pident, &packet)) {
-//		  if(logCommonErrors)
-//		    L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
-		  g_stats.unexpectedCount++;
-		  
-		  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
-		    if(pident.fd==mthread->key.fd && !memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr)) && 
-		       !strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
-		      mthread->key.nearMisses++;
-		    }
-		  }
-		}
-	      }
-	      else
-		L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
-	    }
-	    else {
-	      g_stats.serverParseError++; 
-	      if(logCommonErrors)
-		L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": packet too small"<<endl;
-	    }
-	    break;
-	  }
-	  g_udpclientsocks.returnSocket(i);
-	}
-	else 
-	  ++i;
-      }
-      
-      for(vector<int>::const_iterator i=g_udpserversocks.begin(); i!=g_udpserversocks.end(); ++i) {
-	if(FD_ISSET(*i,&readfds)) { // do we have a new question on udp?
-	  while((d_len=recvfrom(*i, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-	    //	    g_stats.queryrate.pulse(now);  // (broken)
-	    if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
-	      g_stats.unauthorizedUDP++;
-	      continue;
-	    }
-
-	    try {
-	      DNSComboWriter* dc = new DNSComboWriter(data, d_len, now);
-	      
-	      dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
-
-  	      if(dc->d_mdp.d_header.qr) {
-		if(logCommonErrors)
-		  L<<Logger::Error<<"Ignoring answer from "<<dc->getRemote()<<" on server socket!"<<endl;
-	      }
-	      else {
-	        ++g_stats.qcounter;
-	        dc->setSocket(*i);
-	        dc->d_tcp=false;
-	        MT->makeThread(startDoResolve, (void*) dc);
-	      }
-            }
-	    catch(MOADNSException& mde) {
-	      g_stats.clientParseError++; 
-	      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
-	    }
-          }
-	}
-      }
-
-      for(tcpserversocks_t::const_iterator i=s_tcpserversocks.begin(); i!=s_tcpserversocks.end(); ++i) { 
-	if(FD_ISSET(*i ,&readfds)) { // do we have a new TCP connection from a client?
-	  struct sockaddr_in addr;
-	  socklen_t addrlen=sizeof(addr);
-	  int newsock=accept(*i, (struct sockaddr*)&addr, &addrlen);
-	  if(newsock>0) {
-	    if(g_allowFrom && !g_allowFrom->match(&addr)) {
-	      g_stats.unauthorizedTCP++;
-	      close(newsock);
-	      continue;
-	    }
-
-	    if(maxTCPPerClient && g_tcpClientCounts.count(addr.sin_addr.s_addr) && g_tcpClientCounts[addr.sin_addr.s_addr] >= maxTCPPerClient) {
-	      g_stats.tcpClientOverflow++;
-	      close(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
-	      continue;
-	    }
-	    g_tcpClientCounts[addr.sin_addr.s_addr]++;
-	    Utility::setNonBlocking(newsock);
-	    TCPConnection tc;
-	    tc.fd=newsock;
-	    tc.state=TCPConnection::BYTE0;
-	    tc.remote=addr;
-	    tc.startTime=now.tv_sec;
-	    g_tcpconnections.push_back(tc);
-	  }
-	}
-      }
-
-      // have any question answers come in over TCP?
-      for(map<int,PacketID>::iterator i=d_tcpclientreadsocks.begin(); i!=d_tcpclientreadsocks.end();) { 
-	bool haveErased=false;
-	if(FD_ISSET(i->first, &readfds)) { // can we receive
-	  shared_array<char> buffer(new char[i->second.inNeeded]);
-
-	  int ret=read(i->first, buffer.get(), i->second.inNeeded);
-	  if(ret > 0) {
-	    i->second.inMSG.append(&buffer[0], &buffer[ret]);
-	    i->second.inNeeded-=ret;
-	    if(!i->second.inNeeded) {
-	      // cerr<<"Got entire load of "<<i->second.inMSG.size()<<" bytes"<<endl;
-	      PacketID pid=i->second;
-	      string msg=i->second.inMSG;
-	      
-	      d_tcpclientreadsocks.erase((i++));
-	      haveErased=true;
-	      MT->sendEvent(pid, &msg);   // XXX DODGY (why? msg is copied nicely by sendEvent)
-	    }
-	    else {
-	      // cerr<<"Still have "<<i->second.inNeeded<<" left to go"<<endl;
-	    }
-	  }
-	  else {
-	    PacketID pid=i->second;
-	    d_tcpclientreadsocks.erase((i++));
-	    haveErased=true;
-	    string empty;
-	    MT->sendEvent(pid, &empty); // this conveys error status
-	  }
-	}
-	if(!haveErased)
-	  ++i;
-      }
-      
-      // is there data we can send to remote nameservers over TCP?
-      for(map<int,PacketID>::iterator i=d_tcpclientwritesocks.begin(); i!=d_tcpclientwritesocks.end(); ) { 
-	bool haveErased=false;
-	if(FD_ISSET(i->first, &writefds)) { // can we send over TCP
-	  int ret=write(i->first, i->second.outMSG.c_str(), i->second.outMSG.size() - i->second.outPos);
-	  if(ret > 0) {
-	    i->second.outPos+=ret;
-	    if(i->second.outPos==i->second.outMSG.size()) {
-	      PacketID pid=i->second;
-	      d_tcpclientwritesocks.erase(i++);   // erase!
-	      haveErased=true;
-	      MT->sendEvent(pid, &pid.outMSG);  // send back what we sent to convey everything is ok
-	    }
-	  }
-	  else {  // error or EOF
-	    PacketID pid=i->second;             
-	    d_tcpclientwritesocks.erase(i++);  
-	    haveErased=true;
-	    string sent;
-	    MT->sendEvent(pid, &sent);         // we convey error status by sending empty string
-	  }
-	}
-	if(!haveErased)
-	  ++i;
-      }
-      
-      // very braindead TCP incoming question parser
-      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
-	if(FD_ISSET(i->fd, &readfds)) {
-	  if(i->state==TCPConnection::BYTE0) {
-	    int bytes=read(i->fd,i->data,2);
-	    if(bytes==1)
-	      i->state=TCPConnection::BYTE1;
-	    if(bytes==2) { 
-	      i->qlen=(i->data[0]<<8)+i->data[1];
-	      i->bytesread=0;
-	      i->state=TCPConnection::GETQUESTION;
-	    }
-	    if(!bytes || bytes < 0) {
-	      i->closeAndCleanup();
-	      g_tcpconnections.erase(i);
-	      break;
-	    }
-	  }
-	  else if(i->state==TCPConnection::BYTE1) {
-	    int bytes=read(i->fd,i->data+1,1);
-	    if(bytes==1) {
-	      i->state=TCPConnection::GETQUESTION;
-	      i->qlen=(i->data[0]<<8)+i->data[1];
-	      i->bytesread=0;
-	    }
-	    if(!bytes || bytes < 0) {
-	      if(logCommonErrors)
-		L<<Logger::Error<<"TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected after first byte"<<endl;
-	      i->closeAndCleanup();
-	      g_tcpconnections.erase(i);
-	      break;
-	    }
-	  }
-	  else if(i->state==TCPConnection::GETQUESTION) {
-	    int bytes=read(i->fd,i->data + i->bytesread,i->qlen - i->bytesread);
-	    if(!bytes || bytes < 0) {
-	      L<<Logger::Error<<"TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<" disconnected while reading question body"<<endl;
-	      i->closeAndCleanup();
-	      g_tcpconnections.erase(i);
-	      break;
-	    }
-	    i->bytesread+=bytes;
-	    if(i->bytesread==i->qlen) {
-	      i->state=TCPConnection::DONE; // this makes us immune from timeouts, from now on *we* are responsible
-	      DNSComboWriter* dc=0;
-	      try {
-		dc=new DNSComboWriter(i->data, i->qlen, now);
-	      }
-	      catch(MOADNSException &mde) {
-		g_stats.clientParseError++; 
-		L<<Logger::Error<<"Unable to parse packet from TCP client "<<sockAddrToString(&i->remote,sizeof(i->remote))<<endl;
-		i->closeAndCleanup();
-		g_tcpconnections.erase(i);
-		break;
-	      }
-
-	      dc->setSocket(i->fd);
-	      dc->d_tcp=true;
-	      dc->setRemote((struct sockaddr *)&i->remote,sizeof(i->remote));
-	      if(dc->d_mdp.d_header.qr)
-		L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-	      else {
-		++g_stats.qcounter;
-		++g_stats.tcpqcounter;
-		MT->makeThread(startDoResolve, dc);
-		break;
-	      }
-	    }
-	  }
-	}
-      }
+      gettimeofday(&g_now, 0); // make this only happen if there are tcp clients XXX FIXME
+      g_fdm->run(&g_now);
     }
   }
   catch(AhuException &ae) {
