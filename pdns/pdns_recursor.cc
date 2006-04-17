@@ -1273,7 +1273,8 @@ int main(int argc, char **argv)
 
     
     PacketID pident;
-    primeHints();    
+    primeHints();   
+    L.setLoglevel((Logger::Urgency)4); 
     L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 #ifndef WIN32
     if(::arg().mustDo("daemon")) {
