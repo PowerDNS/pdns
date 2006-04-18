@@ -366,14 +366,14 @@ string U32ToIP(uint32_t val)
   return tmp;
 }
 
-const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t socklen) 
+
+const string sockAddrToString(struct sockaddr_in *remote) 
 {    
-  if(socklen==sizeof(struct sockaddr_in)) {
+  if(remote->sin_family == AF_INET) {
     struct sockaddr_in sip;
     memcpy(&sip,(struct sockaddr_in*)remote,sizeof(sip));
     return inet_ntoa(sip.sin_addr);
   }
-#ifdef HAVE_IPV6
   else {
     char tmp[128];
     
@@ -382,9 +382,6 @@ const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t soc
 
     return tmp;
   }
-#endif
-
-  return "untranslateable";
 }
 
 string makeHexDump(const string& str)

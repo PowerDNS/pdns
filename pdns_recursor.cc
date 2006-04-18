@@ -71,17 +71,17 @@ RecursorStats g_stats;
 bool g_quiet;
 NetmaskGroup* g_allowFrom;
 string s_programname="pdns_recursor";
-int g_tcpListenSocket;
+vector<int> g_tcpListenSockets;
 int g_tcpTimeout;
 
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
-  void setRemote(struct sockaddr* sa, socklen_t len)
+  void setRemote(ComboAddress* sa)
   {
-    memcpy((void *)d_remote, (void *)sa, len);
-    d_socklen=len;
+    d_remote=*sa;
+    d_socklen= d_remote.sin4.sin_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
   }
 
   void setSocket(int sock)
@@ -91,11 +91,11 @@ struct DNSComboWriter {
 
   string getRemote() const
   {
-    return sockAddrToString((struct sockaddr_in *)d_remote, d_socklen);
+    return d_remote.toString();
   }
 
   struct timeval d_now;
-  char d_remote[sizeof(sockaddr_in6)];
+  ComboAddress d_remote;
   socklen_t d_socklen;
   bool d_tcp;
   int d_socket;
@@ -310,7 +310,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
     *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
-      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<sockAddrToString((struct sockaddr_in*)toaddr, sizeof(pident.remote))<<", assuming spoof attempt."<<endl;
+      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<sockAddrToString((struct sockaddr_in*)toaddr)<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
       return -1;
     }
@@ -404,7 +404,7 @@ void primeHints(void)
   RC.replace(".", QType(QType::NS), nsset); // and stuff in the cache
 }
 
-map<uint32_t, uint32_t> g_tcpClientCounts;
+map<ComboAddress, uint32_t> g_tcpClientCounts;
 
 struct TCPConnection
 {
@@ -412,15 +412,15 @@ struct TCPConnection
   enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
   int qlen;
   int bytesread;
-  struct sockaddr_in remote;
+  ComboAddress remote;
   char data[65535];
   time_t startTime;
 
   void closeAndCleanup()
   {
     close(fd);
-    if(!g_tcpClientCounts[remote.sin_addr.s_addr]--) 
-      g_tcpClientCounts.erase(remote.sin_addr.s_addr);
+    if(!g_tcpClientCounts[remote]--) 
+      g_tcpClientCounts.erase(remote);
     s_currentConnections--;
   }
   static unsigned int s_currentConnections; //!< total number of current TCP connections
@@ -499,7 +499,7 @@ void startDoResolve(void *p)
     }
   sendit:;
     if(!dc->d_tcp) {
-      sendto(dc->d_socket, &*packet.begin(), packet.size(), 0, (struct sockaddr *)(dc->d_remote), dc->d_socklen);
+      sendto(dc->d_socket, &*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_socklen);
     }
     else {
       char buf[2];
@@ -616,7 +616,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     }
     if(!bytes || bytes < 0) {
       if(g_logCommonErrors)
-	L<<Logger::Error<<"TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<" disconnected after first byte"<<endl;
+	L<<Logger::Error<<"TCP client "<< conn.remote.toString() <<" disconnected after first byte"<<endl;
       TCPConnection tmp(conn); 
       g_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();  // conn loses validity here..
@@ -626,7 +626,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
   else if(conn.state==TCPConnection::GETQUESTION) {
     int bytes=read(conn.fd,conn.data + conn.bytesread,conn.qlen - conn.bytesread);
     if(!bytes || bytes < 0) {
-      L<<Logger::Error<<"TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<" disconnected while reading question body"<<endl;
+      L<<Logger::Error<<"TCP client "<< conn.remote.toString() <<" disconnected while reading question body"<<endl;
       TCPConnection tmp(conn);
       g_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();  // conn loses validity here..
@@ -642,7 +642,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
       }
       catch(MOADNSException &mde) {
 	g_stats.clientParseError++; 
-	L<<Logger::Error<<"Unable to parse packet from TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<endl;
+	L<<Logger::Error<<"Unable to parse packet from TCP client "<< conn.remote.toString() <<endl;
 	TCPConnection tmp(conn); 
 	g_fdm->removeReadFD(fd);
 	tmp.closeAndCleanup();
@@ -651,7 +651,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
       
       dc->setSocket(conn.fd);
       dc->d_tcp=true;
-      dc->setRemote((struct sockaddr *)&conn.remote,sizeof(conn.remote));
+      dc->setRemote(&conn.remote);
       if(dc->d_mdp.d_header.qr)
 	L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
       else {
@@ -667,7 +667,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
 //! Handle new incoming TCP connection
 void handleNewTCPQuestion(int fd, boost::any& )
 {
-  struct sockaddr_in addr;
+  ComboAddress addr;
   socklen_t addrlen=sizeof(addr);
   int newsock=accept(fd, (struct sockaddr*)&addr, &addrlen);
   if(newsock>0) {
@@ -677,12 +677,12 @@ void handleNewTCPQuestion(int fd, boost::any& )
       return;
     }
     
-    if(g_maxTCPPerClient && g_tcpClientCounts.count(addr.sin_addr.s_addr) && g_tcpClientCounts[addr.sin_addr.s_addr] >= g_maxTCPPerClient) {
+    if(g_maxTCPPerClient && g_tcpClientCounts.count(addr) && g_tcpClientCounts[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
       close(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       return;
     }
-    g_tcpClientCounts[addr.sin_addr.s_addr]++;
+    g_tcpClientCounts[addr]++;
     Utility::setNonBlocking(newsock);
     TCPConnection tc;
     tc.fd=newsock;
@@ -699,46 +699,51 @@ void handleNewTCPQuestion(int fd, boost::any& )
 
 void makeTCPServerSockets()
 {
+  int fd;
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
 
   if(locals.empty())
     throw AhuException("No local address specified");
   
+  ComboAddress sin;
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
-    g_tcpListenSocket=socket(AF_INET, SOCK_STREAM,0);
-    if(g_tcpListenSocket<0) 
-      throw AhuException("Making a server socket for resolver: "+stringerror());
-  
-    struct sockaddr_in sin;
     memset((char *)&sin,0, sizeof(sin));
-    
-    sin.sin_family = AF_INET;
-    if(!IpToU32(*i, &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address '"+ *i +"'"); 
+    ComboAddress sin;
+    sin.sin4.sin_family = AF_INET;
+    if(!IpToU32(*i, &sin.sin4.sin_addr.s_addr)) {
+      sin.sin6.sin6_family = AF_INET6;
+      if(inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
+	throw AhuException("Unable to resolve local address '"+ *i +"'"); 
+    }
+
+    fd=socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
+    if(fd<0) 
+      throw AhuException("Making a TCP server socket for resolver: "+stringerror());
 
     int tmp=1;
-    if(setsockopt(g_tcpListenSocket,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
+    if(setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
       L<<Logger::Error<<"Setsockopt failed for TCP listening socket"<<endl;
       exit(1);
     }
     
 #ifdef TCP_DEFER_ACCEPT
-    if(setsockopt(g_tcpListenSocket, SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
-      L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
+    if(setsockopt(fd, SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
+      if(i==locals.begin())
+	L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
 #endif
 
-    sin.sin_port = htons(::arg().asNum("local-port")); 
-    
-    if (::bind(g_tcpListenSocket, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    sin.sin4.sin_port = htons(::arg().asNum("local-port")); 
+    int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
+    if (::bind(fd, (struct sockaddr *)&sin, socklen )<0) 
       throw AhuException("Binding TCP server socket for "+*i+": "+stringerror());
     
-    Utility::setNonBlocking(g_tcpListenSocket);
-    setSendBuffer(g_tcpListenSocket, 65000);
-    listen(g_tcpListenSocket, 128);
-    g_fdm->addReadFD(g_tcpListenSocket, handleNewTCPQuestion);
-    L<<Logger::Error<<"Listening for TCP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
+    Utility::setNonBlocking(fd);
+    setSendBuffer(fd, 65000);
+    listen(fd, 128);
+    g_fdm->addReadFD(fd, handleNewTCPQuestion);
+    L<<Logger::Error<<"Listening for TCP queries on "<< sockAddrToString(&sin.sin4) <<":"<<::arg().asNum("local-port")<<endl;
   }
 }
 
@@ -746,7 +751,7 @@ void handleNewUDPQuestion(int fd, boost::any& var)
 {
   int d_len;
   char data[1500];
-  struct sockaddr_in fromaddr;
+  ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
   while((d_len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
@@ -758,7 +763,7 @@ void handleNewUDPQuestion(int fd, boost::any& var)
     try {
       DNSComboWriter* dc = new DNSComboWriter(data, d_len, g_now);
       
-      dc->setRemote((struct sockaddr *)&fromaddr, addrlen);
+      dc->setRemote(&fromaddr);
       
       if(dc->d_mdp.d_header.qr) {
 	if(g_logCommonErrors)
@@ -773,7 +778,7 @@ void handleNewUDPQuestion(int fd, boost::any& var)
     }
     catch(MOADNSException& mde) {
       g_stats.clientParseError++; 
-      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<": "<<mde.what()<<endl;
+      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
     }
   }
 }
@@ -792,25 +797,30 @@ void makeUDPServerSockets()
   }
 
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
-    int fd=socket(AF_INET, SOCK_DGRAM,0);
+    ComboAddress sin;
+    memset(&sin, 0, sizeof(sin));
+    sin.sin4.sin_family = AF_INET;
+    if(!IpToU32(*i, &sin.sin4.sin_addr.s_addr)) {
+      sin.sin6.sin6_family = AF_INET6;
+      if(inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
+	throw AhuException("Unable to resolve local address '"+ *i +"'"); 
+    }
+    
+    int fd=socket(sin.sin4.sin_family, SOCK_DGRAM,0);
     if(fd<0) 
-      throw AhuException("Making a server socket for resolver: "+stringerror());
+      throw AhuException("Making a UDP server socket for resolver: "+stringerror());
+
     setReceiveBuffer(fd, 200000);
-    struct sockaddr_in sin;
-    memset((char *)&sin,0, sizeof(sin));
-    
-    sin.sin_family = AF_INET;
-    if(!IpToU32(*i, &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address '"+ *i +"'"); 
-    
-    sin.sin_port = htons(::arg().asNum("local-port")); 
-    
-    if (::bind(fd, (struct sockaddr *)&sin, sizeof(sin))<0) 
+    sin.sin4.sin_port = htons(::arg().asNum("local-port")); 
+
+    int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
+    if (::bind(fd, (struct sockaddr *)&sin, socklen)<0) 
       throw AhuException("Resolver binding to server socket for "+*i+": "+stringerror());
     
     Utility::setNonBlocking(fd);
     g_fdm->addReadFD(fd, handleNewUDPQuestion);
-    L<<Logger::Error<<"Listening for UDP queries on "<<inet_ntoa(sin.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
+    g_tcpListenSockets.push_back(fd);
+    L<<Logger::Error<<"Listening for UDP queries on "<<sin.toString()<<":"<<::arg().asNum("local-port")<<endl;
   }
 }
 
@@ -1060,7 +1070,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
     else {
       g_stats.serverParseError++; 
       if(g_logCommonErrors)
-	L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen) <<
+	L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr) <<
 	  ": packet smalller than DNS header"<<endl;
     }
     string empty;
@@ -1099,7 +1109,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
       g_udpclientsocks.returnSocket(fd);
   }
   else
-    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
+    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr)  <<endl;
 }
 
 FDMultiplexer* getMultiplexer()
@@ -1291,7 +1301,7 @@ int main(int argc, char **argv)
 	  TCPConnection conn=any_cast<TCPConnection>(i->second);
 	  if(conn.state != TCPConnection::DONE) {
 	    if(g_logCommonErrors)
-	      L<<Logger::Warning<<"Timeout from remote TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<endl;
+	      L<<Logger::Warning<<"Timeout from remote TCP client "<< conn.remote.toString() <<endl;
 	    g_fdm->removeReadFD(i->first);
 	    conn.closeAndCleanup();
 	  }
@@ -1308,14 +1318,17 @@ int main(int argc, char **argv)
       g_fdm->run(&g_now);
 
       if(listenOnTCP) {
-	if(TCPConnection::s_currentConnections > maxTcpClients) {
-	  g_fdm->removeReadFD(g_tcpListenSocket);
+	if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown
+	  for_each(g_tcpListenSockets.begin(), g_tcpListenSockets.end(), 
+		   boost::bind(&FDMultiplexer::removeReadFD, g_fdm, _1));
 	  listenOnTCP=false;
 	}
       }
       else {
-	if(TCPConnection::s_currentConnections <= maxTcpClients) {
-	  g_fdm->addReadFD(g_tcpListenSocket, handleNewTCPQuestion);
+	if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
+	  for_each(g_tcpListenSockets.begin(), g_tcpListenSockets.end(), 
+		   boost::bind(&FDMultiplexer::addReadFD, 
+			       g_fdm, _1, handleNewTCPQuestion, boost::any()));
 	  listenOnTCP=true;
 	}
       }
