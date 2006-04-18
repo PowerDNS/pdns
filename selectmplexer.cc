@@ -21,7 +21,7 @@ static struct RegisterOurselves
   }
 } doIt;
 
-void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter)
+void SelectFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
 {
   Callback cb;
   cb.d_callback=toDo;

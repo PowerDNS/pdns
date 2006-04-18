@@ -23,7 +23,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
@@ -32,8 +32,10 @@ public:
 private:
   int d_kqueuefd;
   boost::shared_array<struct kevent> d_kevents;
-  static int s_maxevents; // not a hard maximum
+  static unsigned int s_maxevents; // not a hard maximum
 };
+
+unsigned int KqueueFDMultiplexer::s_maxevents=1024;
 
 static FDMultiplexer* make()
 {
@@ -47,7 +49,6 @@ static struct RegisterOurselves
   }
 } doIt;
 
-int KqueueFDMultiplexer::s_maxevents=1024;
 KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxevents])
 {
   d_kqueuefd=kqueue();
@@ -55,34 +56,28 @@ KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxev
     throw FDMultiplexerException("Setting up kqueue: "+stringerror());
 }
 
-void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter)
+void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
 {
-  Callback cb;
-  cb.d_callback=toDo;
-  cb.d_parameter=parameter;
-  memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
-  
-  if(cbmap.count(fd))
-    throw FDMultiplexerException("Tried to add fd "+lexical_cast<string>(fd)+ " to multiplexer twice");
+  cerr<<"called\n";
+  accountingAddFD(cbmap, fd, toDo, parameter);
 
   struct kevent kqevent;
   EV_SET(&kqevent, fd, (&cbmap == &d_readCallbacks) ? EVFILT_READ : EVFILT_WRITE, EV_ADD, 0,0,0);
   
-  if(kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0)
+  if(kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0) {
+    cbmap.erase(fd);
     throw FDMultiplexerException("Adding fd to kqueue set: "+stringerror());
-
-  cbmap[fd]=cb;
+  }
 }
 
 void KqueueFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
-  if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
+  accountingRemoveFD(cbmap, fd);
 
   struct kevent kqevent;
   EV_SET(&kqevent, fd, (&cbmap == &d_readCallbacks) ? EVFILT_READ : EVFILT_WRITE, EV_DELETE, 0,0,0);
   
-  if(kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0)
+  if(kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0) // ponder putting Callback back on the map..
     throw FDMultiplexerException("Removing fd from kqueue set: "+stringerror());
 }
 
