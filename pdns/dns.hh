@@ -60,7 +60,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : priority(0), d_place(ANSWER) {};
+  DNSResourceRecord() : qclass(1), priority(0), d_place(ANSWER) {};
   ~DNSResourceRecord(){};
 
   string serialize() const;
@@ -69,6 +69,7 @@ public:
   // data
   
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
+  uint16_t qclass; //!< class of this record
   string qname; //!< the name of this record, for example: www.powerdns.com
   string content; //!< what this record points to. Example: 10.1.2.3
   uint16_t priority; //!< For qtype's that support a priority or preference. Currently only MX

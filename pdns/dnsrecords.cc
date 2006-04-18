@@ -282,19 +282,19 @@ boilerplate_conv(DNSKEY, 48,
 
 void reportBasicTypes()
 {
-    ARecordContent::report();
-    AAAARecordContent::report();
-    NSRecordContent::report();
-    CNAMERecordContent::report();
-    MXRecordContent::report();
-    SOARecordContent::report();
-    SRVRecordContent::report();
-    PTRRecordContent::report();
+  ARecordContent::report();
+  AAAARecordContent::report();
+  NSRecordContent::report();
+  CNAMERecordContent::report();
+  MXRecordContent::report();
+  SOARecordContent::report();
+  SRVRecordContent::report();
+  PTRRecordContent::report();
+  DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
 }
 
 void reportOtherTypes()
 {
-   TXTRecordContent::report();
    SPFRecordContent::report();
    NAPTRRecordContent::report();
    RPRecordContent::report();
@@ -306,6 +306,7 @@ void reportOtherTypes()
    NSECRecordContent::report();
    OPTRecordContent::report();
    DNSRecordContent::regist(1,255, 0, 0, "ANY");
+   TXTRecordContent::report();
 }
 
 void reportAllTypes()

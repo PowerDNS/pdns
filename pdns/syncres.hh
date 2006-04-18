@@ -18,8 +18,7 @@
 #include <boost/optional.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
-
-/* external functions, opaque to us */
+#include "iputils.hh"
 
 void primeHints(void);
 
@@ -214,7 +213,7 @@ class SyncRes
 public:
   explicit SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_now(now),
 						d_cacheonly(false), d_nocache(false) { }
-  int beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret);
+  int beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
     if(s_log)
@@ -268,6 +267,8 @@ public:
   typedef Throttle<tuple<uint32_t,string,uint16_t> > throttle_t;
   static throttle_t s_throttle;
   struct timeval d_now;
+  static unsigned int s_maxnegttl;
+  static string s_serverID;
 private:
   struct GetBestNSAnswer;
   int doResolveAt(set<string, CIStringCompare> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
@@ -311,6 +312,7 @@ private:
 
 };
 class Socket;
+/* external functions, opaque to us */
 int asendtcp(const string& data, Socket* sock);
 int arecvtcp(string& data, int len, Socket* sock);
 
@@ -372,6 +374,16 @@ struct RecursorStats
   uint64_t unexpectedCount;
   uint64_t spoofCount;
   uint64_t resourceLimits;
+  typedef vector<ComboAddress> remotes_t;
+  remotes_t remotes;
+  int d_remotepos;
+  void addRemote(const ComboAddress& remote)
+  {
+    if(!remotes.size())
+      return;
+
+    remotes[(d_remotepos++) % remotes.size()]=remote;
+  }
 };
 
 extern RecursorStats g_stats;
