@@ -6,7 +6,9 @@
 #include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 #include <sys/types.h>
+#ifdef __FreeBSD__ 
 #include <sys/event.h>
+#endif
 #include <sys/time.h>
 
 using namespace boost;

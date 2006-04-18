@@ -4,7 +4,7 @@ OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 LINKCC=$(CXX)
-CC=gcc
+CC?=gcc
 
 # static dependencies
 
@@ -40,7 +40,7 @@ clean:
 	-rm -f *.o *~ pdns_recursor rec_control optional/*.o
 	
 dep:
-	gcc $(CXXFLAGS) -MM *.cc *.hh > $@
+	$(CC) $(CXXFLAGS) -MM *.cc *.hh > $@
 
 -include dep
 
