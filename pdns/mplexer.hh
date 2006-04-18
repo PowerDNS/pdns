@@ -3,6 +3,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <boost/lexical_cast.hpp>
 #include <vector>
 #include <map>
 #include <stdexcept>
@@ -43,13 +44,13 @@ public:
   virtual int run(struct timeval* tv) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
-  virtual void addReadFD(int fd, callbackfunc_t toDo, boost::any parameter=boost::any())
+  virtual void addReadFD(int fd, callbackfunc_t toDo, const boost::any& parameter=boost::any())
   {
     this->addFD(d_readCallbacks, fd, toDo, parameter);
   }
 
   //! Add an fd to the write watch list - currently an fd can only be on one list at a time!
-  virtual void addWriteFD(int fd, callbackfunc_t toDo, boost::any parameter=boost::any())
+  virtual void addWriteFD(int fd, callbackfunc_t toDo, const boost::any& parameter=boost::any())
   {
     this->addFD(d_writeCallbacks, fd, toDo, parameter);
   }
@@ -100,10 +101,28 @@ protected:
   typedef std::map<int, Callback> callbackmap_t;
   callbackmap_t d_readCallbacks, d_writeCallbacks;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter)=0;
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)=0;
   virtual void removeFD(callbackmap_t& cbmap, int fd)=0;
   bool d_inrun;
   callbackmap_t::iterator d_iter;
+
+  void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+  {
+    Callback cb;
+    cb.d_callback=toDo;
+    cb.d_parameter=parameter;
+    memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
+  
+    if(cbmap.count(fd))
+      throw FDMultiplexerException("Tried to add fd "+boost::lexical_cast<std::string>(fd)+ " to multiplexer twice");
+    cbmap[fd]=cb;
+  }
+
+  void accountingRemoveFD(callbackmap_t& cbmap, int fd) 
+  {
+    if(!cbmap.erase(fd)) 
+      throw FDMultiplexerException("Tried to remove unlisted fd "+boost::lexical_cast<std::string>(fd)+ " from multiplexer");
+  }
 };
 
 class SelectFDMultiplexer : public FDMultiplexer
@@ -116,7 +135,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   std::string getName()
   {

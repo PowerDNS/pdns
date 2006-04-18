@@ -24,7 +24,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
@@ -58,15 +58,10 @@ EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents
     throw FDMultiplexerException("Setting up epoll: "+stringerror());
 }
 
-void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, boost::any parameter)
+void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
 {
-  Callback cb;
-  cb.d_callback=toDo;
-  cb.d_parameter=parameter;
-  memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
+  accountingAddFD(cbmap, fd, toDo, parameter);
 
-  if(cbmap.count(fd))
-    throw FDMultiplexerException("Tried to add fd "+lexical_cast<string>(fd)+ " to multiplexer twice");
   struct epoll_event eevent;
   
   eevent.events = (&cbmap == &d_readCallbacks) ? EPOLLIN : EPOLLOUT;
@@ -74,10 +69,10 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
   eevent.data.u64=0; // placate valgrind (I love it so much)
   eevent.data.fd=fd; 
 
-  if(epoll_ctl(d_epollfd, EPOLL_CTL_ADD, fd, &eevent) < 0)
+  if(epoll_ctl(d_epollfd, EPOLL_CTL_ADD, fd, &eevent) < 0) {
+    cbmap.erase(fd);
     throw FDMultiplexerException("Adding fd to epoll set: "+stringerror());
-
-  cbmap[fd]=cb;
+  }
 }
 
 void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
