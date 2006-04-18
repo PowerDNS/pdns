@@ -5,7 +5,9 @@
 #include "misc.hh"
 #include <boost/lexical_cast.hpp>
 #include "syncres.hh"
+#ifdef __linux__
 #include <sys/epoll.h>
+#endif
 
 using namespace boost;
 using namespace std;
