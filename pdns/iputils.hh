@@ -34,6 +34,36 @@
 
 using namespace std;
 
+union ComboAddress {
+  struct sockaddr_in sin4;
+  struct sockaddr_in6 sin6;
+
+  bool operator<(const ComboAddress& rhs) const
+  {
+    if(sin4.sin_family < rhs.sin4.sin_family)
+      return true;
+    if(sin4.sin_family > rhs.sin4.sin_family)
+      return false;
+    
+    if(sin4.sin_family == AF_INET)
+      return sin4.sin_addr.s_addr < rhs.sin4.sin_addr.s_addr;
+    else
+      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6_addr.s6_addr, 16) < 0;
+  }
+
+  string toString() const
+  {
+    char tmp[128];
+    if(sin4.sin_family==AF_INET && !inet_ntop(AF_INET, ( const char * ) &sin4.sin_addr, tmp, sizeof(tmp)))
+      return tmp;
+
+    if(sin4.sin_family==AF_INET6 && !inet_ntop(AF_INET6, ( const char * ) &sin6.sin6_addr, tmp, sizeof(tmp)))
+      return tmp;
+      
+    return tmp;
+  }
+};
+
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
 class NetmaskException: public AhuException 
 {
@@ -41,55 +71,86 @@ public:
   NetmaskException(const string &a) : AhuException(a) {}
 };
 
+inline ComboAddress makeComboAddress(const string& str)
+{
+  ComboAddress address;
+  address.sin4.sin_family=AF_INET;
+  if(inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
+    address.sin4.sin_family=AF_INET6;
+    if(inet_pton(AF_INET6, str.c_str(), &address.sin6.sin6_addr) <= 0)
+      throw NetmaskException("Unable to convert '"+str+"' to a netmask");	
+  }
+  return address;
+}
+
 /** This class represents a netmask and can be queried to see if a certain
     IP address is matched by this mask */
-
 class Netmask
 {
 public:
   //! Constructor supplies the mask, which cannot be changed 
   Netmask(const string &mask) 
   {
-    char *p;
-    uint8_t bits=32;
-    d_mask=0xFFFFFFFF;
-
-    if((p=strchr(mask.c_str(),'/')))
-      bits = (uint8_t) atoi(p+1);
-
-    if( bits < 32 )
-    d_mask=~(0xFFFFFFFF>>bits);
-
-    struct in_addr a;
-    if(!Utility::inet_aton(mask.substr(0,p-mask.c_str()).c_str(), &a))
-      throw NetmaskException("Unable to convert '"+mask+"' to a netmask");
-    d_network=htonl(a.s_addr);
+    pair<string,string> split=splitField(mask,'/');
+    d_network=makeComboAddress(split.first);
+    
+    if(!split.second.empty()) {
+      d_bits = (uint8_t) atoi(split.second.c_str());
+      if(d_bits<32)
+	d_mask=~(0xFFFFFFFF>>d_bits);
+    }
+    else if(d_network.sin4.sin_family==AF_INET) {
+      d_bits = 32;
+      d_mask = 0xFFFFFFFF;
+    }
+    else 
+      d_bits=128;
   }
 
   //! If this IP address in socket address matches
-  bool match(const struct sockaddr_in *ip) const
+  bool match(const ComboAddress *ip) const
   {
-    return match(htonl((unsigned int)ip->sin_addr.s_addr));
+    if(d_network.sin4.sin_family != ip->sin4.sin_family) {
+      return false;
+    }
+    if(d_network.sin4.sin_family == AF_INET) {
+      return match4(htonl((unsigned int)ip->sin4.sin_addr.s_addr));
+    }
+    if(d_network.sin6.sin6_family == AF_INET6) {
+      uint8_t bytes=d_bits/8, n;
+      const uint8_t *us=(const uint8_t*) &d_network.sin6.sin6_addr.s6_addr;
+      const uint8_t *them=(const uint8_t*) &ip->sin6.sin6_addr.s6_addr;
+      
+      for(n=0; n < bytes; ++n) {
+	if(us[n]!=them[n]) {
+	  return false;
+	}
+      }
+      // still here, now match remaining bits
+      uint8_t bits=bytes%8;
+      uint8_t mask= ~(0xFF>>bits);
+      return((us[n] & mask) == (them[n] & mask));
+    }
+    return false;
   }
 
   //! If this ASCII IP address matches
   bool match(const string &ip) const
   {
-    struct in_addr a;
-    Utility::inet_aton(ip.c_str(), &a);
-    return match(htonl(a.s_addr));
+    ComboAddress address=makeComboAddress(ip);
+    return match(&address);
   }
 
   //! If this IP address in native format matches
-  bool match(uint32_t ip) const
+  bool match4(uint32_t ip) const
   {
-    return (ip & d_mask) == (d_network & d_mask);
+    return (ip & d_mask) == (ntohl(d_network.sin4.sin_addr.s_addr) & d_mask);
   }
 
-
 private:
-  uint32_t d_network;
+  ComboAddress d_network;
   uint32_t d_mask;
+  uint8_t d_bits;
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matchs
@@ -99,7 +160,7 @@ class NetmaskGroup
 {
 public:
   //! If this IP address is matched by any of the classes within
-  bool match(struct sockaddr_in *ip)
+  bool match(ComboAddress *ip)
   {
     for(container_t::const_iterator i=d_masks.begin();i!=d_masks.end();++i)
       if(i->match(ip))

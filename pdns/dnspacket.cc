@@ -52,17 +52,17 @@ string DNSPacket::getString()
 
 string DNSPacket::getLocal() const
 {
-  struct sockaddr_in sa;
-  int addrlen=sizeof(struct sockaddr_in);
+  struct sockaddr_in6 sa;
+  int addrlen=sizeof(sa);
 
   getsockname(d_socket, (struct sockaddr *)&sa, (socklen_t *)&addrlen);
-  return sockAddrToString(&sa, (socklen_t)addrlen);
+  return sockAddrToString(&sa);
 }
 
 
 string DNSPacket::getRemote() const
 {
-  return sockAddrToString((struct sockaddr_in *)remote, d_socklen);
+  return sockAddrToString((struct sockaddr_in *)remote);
 }
 
 uint16_t DNSPacket::getRemotePort() const

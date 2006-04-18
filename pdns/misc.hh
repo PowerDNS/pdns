@@ -181,7 +181,7 @@ public:
 private:
   struct timeval d_set;
 };
-const string sockAddrToString(struct sockaddr_in *remote, Utility::socklen_t socklen);
+const string sockAddrToString(struct sockaddr_in *remote);
 int sendData(const char *buffer, int replen, int outsock);
 
 inline void DTime::set()
