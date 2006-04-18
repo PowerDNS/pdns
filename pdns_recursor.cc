@@ -525,26 +525,13 @@ void startDoResolve(void *p)
       if(hadError) {
 	g_fdm->removeReadFD(dc->d_socket);
 	close(dc->d_socket);
-	// i->closeAndCleanup(); // XXX we don't remove ourselves from the list anymore 
       }
-      else 
-	; // XXX FIXME, need to restore resetting connection to BYTE0 in case of noerror!
-
-#if 0
-      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
-	if(i->fd == dc->d_socket) {
-	  if(hadError) {
-	    i->closeAndCleanup();
-	    g_tcpconnections.erase(i);
-	  }
-	  else {
-	    i->state=TCPConnection::BYTE0;
-	    i->startTime=time(0); // needs to be current, TCP is slow anyhow
-	  }
-	  break;
-	}
+      else {
+	any_cast<TCPConnection&>(g_fdm->getReadParameter(dc->d_socket)).state=TCPConnection::BYTE0;
+	struct timeval now; 
+	gettimeofday(&now, 0); // needs to be updated
+	g_fdm->setReadTTD(dc->d_socket, now, g_tcpTimeout);
       }
-#endif
     }
 
     if(!g_quiet) {
@@ -645,8 +632,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     }
     conn.bytesread+=bytes;
     if(conn.bytesread==conn.qlen) {
-      //      conn.state=TCPConnection::DONE; // this makes us immune from timeouts, from now on *we* are responsible
-      conn.state=TCPConnection::BYTE0; // *wrong* - yes, we want to listen for a new question already, but we shouldn't timeout etc
+      conn.state=TCPConnection::DONE;        // this makes us immune from timeouts, from now on *we* are responsible
       DNSComboWriter* dc=0;
       try {
 	dc=new DNSComboWriter(conn.data, conn.qlen, g_now);
@@ -1313,15 +1299,16 @@ int main(int argc, char **argv)
 	MT->makeThread(houseKeeping,0);
       }
 
-      if(!(counter%1)) {
+      if(!(counter%11)) {
 	typedef vector<pair<int, boost::any> > expired_t;
 	expired_t expired=g_fdm->getTimeouts(g_now);
 	
 	for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
 	  TCPConnection conn=any_cast<TCPConnection>(i->second);
-	  g_fdm->removeReadFD(i->first);
-	  cerr<<"Closed connection with our client "<<i->first<<"\n";
-	  conn.closeAndCleanup();
+	  if(conn.state != TCPConnection::DONE) {
+	    g_fdm->removeReadFD(i->first);
+	    conn.closeAndCleanup();
+	  }
 	}
       }
       
