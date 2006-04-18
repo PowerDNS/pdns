@@ -254,6 +254,9 @@ public:
   // return a socket to the pool, or simply erase it
   void returnSocket(socks_t::iterator& i)
   {
+    if(i==d_socks.end()) {
+      throw AhuException("Trying to return a socket not in the pool");
+    }
     g_fdm->removeReadFD(i->first);
     ::close(i->first);
     
@@ -1043,14 +1046,14 @@ void handleTCPClientWritable(int fd, boost::any& var)
 
 void handleUDPServerResponse(int fd, boost::any& var)
 {
-  PacketID& pid=any_cast<PacketID&>(var);
+  PacketID pid=any_cast<PacketID>(var);
   int len;
   char data[1500];
   struct sockaddr_in fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
   len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
-  g_udpclientsocks.returnSocket(fd);
+
 
   if(len < (int)sizeof(dnsheader)) {
     if(len < 0)
@@ -1062,6 +1065,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
 	  ": packet smalller than DNS header"<<endl;
     }
     string empty;
+    g_udpclientsocks.returnSocket(fd);
     MT->sendEvent(pid, &empty); // this denotes error
     return;
   }  
@@ -1096,27 +1100,6 @@ void handleUDPServerResponse(int fd, boost::any& var)
   else
     L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;
 }
-
-#if 0
-// this code sweeps all running tcp connections for timeouts, it didn't survive move to multiplexer
-      vector<TCPConnection> sweeped;
-
-      for(vector<TCPConnection>::iterator i=g_tcpconnections.begin();i!=g_tcpconnections.end();++i) {
-	if(i->state==TCPConnection::DONE || g_now.tv_sec < i->startTime + tcpTimeout) {  // don't timeout when we are working on the question!
-	  sweeped.push_back(*i);
-	  if(i->state!=TCPConnection::DONE) { // we don't listen for data when we are processing the question
-	    FD_SET(i->fd, &readfds);
-	    fdmax=max(fdmax,i->fd);
-	  }
-	}
-	else {
-	  if(g_logCommonErrors)
-	    L<<Logger::Error<<"TCP timeout from client "<<inet_ntoa(i->remote.sin_addr)<<endl;
-	  i->closeAndCleanup();
-	}
-      }
-      sweeped.swap(g_tcpconnections);
-#endif
 
 FDMultiplexer* getMultiplexer()
 {
@@ -1306,6 +1289,8 @@ int main(int argc, char **argv)
 	for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
 	  TCPConnection conn=any_cast<TCPConnection>(i->second);
 	  if(conn.state != TCPConnection::DONE) {
+	    if(g_logCommonErrors)
+	      L<<Logger::Warning<<"Timeout from remote TCP client "<<sockAddrToString(&conn.remote,sizeof(conn.remote))<<endl;
 	    g_fdm->removeReadFD(i->first);
 	    conn.closeAndCleanup();
 	  }
@@ -1320,7 +1305,6 @@ int main(int argc, char **argv)
 
       gettimeofday(&g_now, 0);
       g_fdm->run(&g_now);
-
 
       if(listenOnTCP) {
 	if(TCPConnection::s_currentConnections > maxTcpClients) {
