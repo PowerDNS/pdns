@@ -747,7 +747,6 @@ void makeTCPServerSockets()
   ComboAddress sin;
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     memset((char *)&sin,0, sizeof(sin));
-    ComboAddress sin;
     sin.sin4.sin_family = AF_INET;
     if(!IpToU32(*i, &sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;

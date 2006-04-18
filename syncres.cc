@@ -89,7 +89,10 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     ret.push_back(rr);
     return 0;
   }
-
+  
+  if(qclass!=1)
+    return -1;
+  
   set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret,0,beenthere);
   if(!res)
