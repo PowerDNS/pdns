@@ -371,6 +371,7 @@ struct RecursorStats
   uint64_t serverParseError;
   uint64_t unexpectedCount;
   uint64_t spoofCount;
+  uint64_t resourceLimits;
 };
 
 extern RecursorStats g_stats;

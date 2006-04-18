@@ -156,6 +156,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("spoof-prevents", &g_stats.spoofCount);
 
+  addGetStat("resource-limits", &g_stats.resourceLimits);
+
   addGetStat("negcache-entries", boost::bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
   addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
   addGetStat("nsspeeds-entries", boost::bind(&SyncRes::nsspeeds_t::size, ref(SyncRes::s_nsSpeeds)));
