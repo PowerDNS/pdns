@@ -176,7 +176,7 @@ unsigned int s_questions, s_origanswers, s_weanswers, s_wetimedout, s_perfect, s
 unsigned int s_wenever, s_orignever;
 unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
-unsigned int s_wednserrors, s_origdnserrors;
+unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
 
 
 double DiffTime(const struct timeval& first, const struct timeval& second)
@@ -444,7 +444,7 @@ Orig    9           21      29     36         47        57       66    72
   cerr<<"we never: "<<s_wenever<<", orig never: "<<s_orignever<<endl;
   cerr<<"original questions from IP addresses for which recursion was not available: "<<s_norecursionavailable<<endl;
   cerr<<"Unmatched from us: "<<s_weunmatched<<", unmatched from original: "<<s_origunmatched << " ( - decoding err: "<<s_origunmatched-s_origdnserrors<<")"<<endl;
-  cerr<<"DNS decoding errors from us: "<<s_wednserrors<<", from original: "<<s_origdnserrors<<endl<<endl;
+  cerr<<"DNS decoding errors from us: "<<s_wednserrors<<", from original: "<<s_origdnserrors<<", exact duplicates from client: "<<s_duplicates<<endl<<endl;
 
   pruneQids();
 
@@ -476,6 +476,7 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
       if(qids.count(qi)) {
 	if(!s_quiet)
 	  cout<<"Saw an exact duplicate question, "<<qi<< endl;
+	s_duplicates++;
 	return;
       }
       // new question!
@@ -575,7 +576,7 @@ try
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + 1*(now-then);
+    mental_time= mental_time + 3*(now-then);
   }
  out:;
 }
