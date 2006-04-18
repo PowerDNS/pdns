@@ -457,12 +457,17 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      d_timeouts++;
 	      s_outgoingtimeouts++;
 	    }
+	    else if(ret==-2) {
+	      LOG<<prefix<<qname<<": hit a local resource limit resolving "<< (doTCP ? "over TCP" : "")<<endl;
+	      g_stats.resourceLimits++;
+	    }
 	    else
 	      LOG<<prefix<<qname<<": error resolving "<< (doTCP ? "over TCP" : "") << endl;
 	    
-	    s_nsSpeeds[*tns].submit(1000000, &d_now); // 1 sec
-	  
-	    s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),20,5);
+	    if(ret!=-2) { // don't account for resource limits, they are our own fault
+	      s_nsSpeeds[*tns].submit(1000000, &d_now); // 1 sec
+	      s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),20,5);
+	    }
 	    continue;
 	  }
 	  

@@ -53,7 +53,7 @@ LWRes::~LWRes()
 }
 
 
-//! returns -1 for permanent error, 0 for timeout, 1 for success
+//! returns -2 for OS limits error, -1 for permanent error that has to do with remote, 0 for timeout, 1 for success
 /** Never throws! */
 int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP, struct timeval* now)
 {
@@ -83,8 +83,10 @@ int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP,
 
   if(!doTCP) {
     int queryfd;
-    if(asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, (struct sockaddr*)(&toaddr), sizeof(toaddr), pw.getHeader()->id, &queryfd) < 0) {
-      return -1;
+    
+    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, (struct sockaddr*)(&toaddr), 
+	       sizeof(toaddr), pw.getHeader()->id, domain, &queryfd)) < 0) {
+      return ret; // passes back the -2 EMFILE
     }
   
     // sleep until we see an answer to this, interface to mtasker
@@ -92,41 +94,47 @@ int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP,
     ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, pw.getHeader()->id, domain, queryfd);
   }
   else {
-    Socket s(InterNetwork, Stream);
-    IPEndpoint ie(U32ToIP(ip), 53);
-    s.setNonBlocking();
-    s.connect(ie);
-
-    unsigned int len=htons(vpacket.size());
-    char *lenP=(char*)&len;
-    const char *msgP=(const char*)&*vpacket.begin();
-    string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
-
-    ret=asendtcp(packet, &s);
-    if(!(ret>0))           
-      return ret;
-
-    packet.clear();
-    ret=arecvtcp(packet, 2, &s);
-    if(!(ret > 0))
-      return ret;
-
-    memcpy(&len, packet.c_str(), 2);
-    len=ntohs(len);
-
-    ret=arecvtcp(packet, len, &s);
-    if(!(ret > 0))
-      return ret;
-    
-    if(len > (unsigned int)d_bufsize) {
-      d_bufsize=len;
-      delete[] d_buf;
-      d_buf = new unsigned char[d_bufsize];
+    try {
+      Socket s(InterNetwork, Stream);
+      IPEndpoint ie(U32ToIP(ip), 53);
+      s.setNonBlocking();
+      s.connect(ie);
+      
+      unsigned int len=htons(vpacket.size());
+      char *lenP=(char*)&len;
+      const char *msgP=(const char*)&*vpacket.begin();
+      string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
+      
+      ret=asendtcp(packet, &s);
+      if(!(ret>0))           
+	return ret;
+      
+      packet.clear();
+      ret=arecvtcp(packet, 2, &s);
+      if(!(ret > 0))
+	return ret;
+      
+      memcpy(&len, packet.c_str(), 2);
+      len=ntohs(len);
+      
+      ret=arecvtcp(packet, len, &s);
+      if(!(ret > 0))
+	return ret;
+      
+      if(len > (unsigned int)d_bufsize) {
+	d_bufsize=len;
+	delete[] d_buf;
+	d_buf = new unsigned char[d_bufsize];
+      }
+      memcpy(d_buf, packet.c_str(), len);
+      d_len=len;
+      ret=1;
     }
-    memcpy(d_buf, packet.c_str(), len);
-    d_len=len;
-    ret=1;
+    catch(NetworkError& ne) {
+      ret = -2; // OS limits error
+    }
   }
+
   d_usec=dt.udiff();
   *now=dt.getTimeval();
   return ret;
