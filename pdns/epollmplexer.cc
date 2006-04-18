@@ -39,17 +39,17 @@ private:
 };
 
 
-static FDMultiplexer* make()
+static FDMultiplexer* makeEpoll()
 {
   return new EpollFDMultiplexer();
 }
 
-static struct RegisterOurselves
+static struct EpollRegisterOurselves
 {
-  RegisterOurselves() {
-    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &make)); // priority 0!
+  EpollRegisterOurselves() {
+    FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &makeEpoll)); // priority 0!
   }
-} doIt;
+} doItEpoll;
 
 
 int EpollFDMultiplexer::s_maxevents=1024;

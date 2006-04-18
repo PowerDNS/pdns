@@ -44,12 +44,12 @@ static FDMultiplexer* make()
   return new KqueueFDMultiplexer();
 }
 
-static struct RegisterOurselves
+static struct KqueueRegisterOurselves
 {
-  RegisterOurselves() {
+  KqueueRegisterOurselves() {
     FDMultiplexer::getMultiplexerMap().insert(make_pair(0, &make)); // priority 0!
   }
-} doIt;
+} kQueuedoIt;
 
 KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxevents])
 {
