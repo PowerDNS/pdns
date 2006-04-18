@@ -203,8 +203,9 @@ string doTopRemotes()
   ostringstream ret;
   ret<<"Over last "<<total<<" queries:\n";
   format fmt("%.02f%%\t%s\n");
+  int limit=0;
   if(total)
-    for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end(); ++i)
+    for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit)
       ret<< fmt % (-100.0*i->first/total) % i->second.toString();
 
   return ret.str();
