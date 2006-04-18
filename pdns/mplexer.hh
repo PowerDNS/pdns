@@ -77,6 +77,13 @@ public:
     d_readCallbacks[fd].d_ttd=tv;
   }
 
+  virtual boost::any& getReadParameter(int fd) 
+  {
+    if(!d_readCallbacks.count(fd))
+      throw FDMultiplexerException("attempt to look up data in multiplexer for unlisted fd "+boost::lexical_cast<std::string>(fd));
+    return d_readCallbacks[fd].d_parameter;
+  }
+
   virtual std::vector<std::pair<int, boost::any> > getTimeouts(const struct timeval& tv)
   {
     std::vector<std::pair<int, boost::any> > ret;
@@ -96,6 +103,7 @@ public:
   }
   
   virtual std::string getName() = 0;
+
 
 protected:
   typedef std::map<int, Callback> callbackmap_t;
