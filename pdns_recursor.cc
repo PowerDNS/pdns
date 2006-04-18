@@ -1054,10 +1054,9 @@ void handleUDPServerResponse(int fd, boost::any& var)
 
   len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
 
-
   if(len < (int)sizeof(dnsheader)) {
     if(len < 0)
-      cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
+      ; //       cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
     else {
       g_stats.serverParseError++; 
       if(g_logCommonErrors)
@@ -1096,6 +1095,8 @@ void handleUDPServerResponse(int fd, boost::any& var)
 	}
       }
     }
+    else 
+      g_udpclientsocks.returnSocket(fd);
   }
   else
     L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)  <<endl;

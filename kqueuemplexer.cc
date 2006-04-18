@@ -58,7 +58,6 @@ KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxev
 
 void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
 {
-  cerr<<"called\n";
   accountingAddFD(cbmap, fd, toDo, parameter);
 
   struct kevent kqevent;
@@ -119,6 +118,7 @@ int KqueueFDMultiplexer::run(struct timeval* now)
   return 0;
 }
 
+#if 0
 void acceptData(int fd, boost::any& parameter)
 {
   cout<<"Have data on fd "<<fd<<endl;
@@ -129,7 +129,6 @@ void acceptData(int fd, boost::any& parameter)
   cout<<"Received "<<packet.size()<<" bytes!\n";
 }
 
-#if 0
 int main()
 {
   Socket s(InterNetwork, Datagram);
