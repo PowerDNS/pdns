@@ -54,7 +54,7 @@ public:
     vector<string> parts;
     stringtok(parts, tmp);
     if(parts.size()!=3)
-      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+lexical_cast<string>(parts.size()));
+      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+lexical_cast<string>(parts.size())+": "+tmp );
     const string& relevant=parts[2];
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)

@@ -39,13 +39,14 @@ extern MemRecursorCache RC;
 
 SyncRes::negcache_t SyncRes::s_negcache;    
 SyncRes::nsspeeds_t SyncRes::s_nsSpeeds;    
-
+unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
 unsigned int SyncRes::s_tcpoutqueries;
 unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
+string SyncRes::s_serverID;
 bool SyncRes::s_log;
 
 #define LOG if(s_log) L<<Logger::Warning
@@ -53,7 +54,7 @@ bool SyncRes::s_log;
 Throttle<tuple<uint32_t,string,uint16_t> > SyncRes::s_throttle;
 
 /** everything begins here - this is the entry point just after receiving a packet */
-int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret)
+int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
 {
   s_queries++;
   if( (qtype.getCode()==QType::PTR && !strcasecmp(qname.c_str(), "1.0.0.127.in-addr.arpa.")) ||
@@ -62,11 +63,29 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, vector<DNSRes
     DNSResourceRecord rr;
     rr.qname=qname;
     rr.qtype=qtype;
+    rr.qclass=1;
     rr.ttl=86400;
     if(qtype.getCode()==QType::PTR)
       rr.content="localhost.";
     else
       rr.content="127.0.0.1";
+    ret.push_back(rr);
+    return 0;
+  }
+
+  if(qclass==3 && qtype.getCode()==QType::TXT && 
+        (!strcasecmp(qname.c_str(), "version.bind.") || !strcasecmp(qname.c_str(), "id.server.") || !strcasecmp(qname.c_str(), "version.pdns.") ) 
+     ) {
+    ret.clear();
+    DNSResourceRecord rr;
+    rr.qname=qname;
+    rr.qtype=qtype;
+    rr.qclass=qclass;
+    rr.ttl=86400;
+    if(!strcasecmp(qname.c_str(),"version.bind.")  || !strcasecmp(qname.c_str(),"version.pdns."))
+      rr.content="\""+::arg()["version-string"]+"\"";
+    else
+      rr.content="\""+s_serverID+"\"";
     ret.push_back(rr);
     return 0;
   }
@@ -545,7 +564,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  NegCacheEntry ne;
 
 	  ne.d_qname=i->qname;
-	  ne.d_ttd=d_now.tv_sec + min(i->ttl, 3600U); // controversial
+	  ne.d_ttd=d_now.tv_sec + min(i->ttl, s_maxnegttl); // controversial
 	  ne.d_name=qname;
 	  ne.d_qtype=QType(0);
 	  s_negcache.insert(ne);

@@ -8,6 +8,7 @@
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/format.hpp>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -181,6 +182,34 @@ static void doExit()
   exit(1);
 }
 
+string doTopRemotes()
+{
+  typedef map<ComboAddress, int> counts_t;
+  counts_t counts;
+  
+  unsigned int total=0;
+  for(RecursorStats::remotes_t::const_iterator i=g_stats.remotes.begin(); i != g_stats.remotes.end(); ++i)
+    if(i->sin4.sin_family) {
+      total++;
+      counts[*i]++;
+    }
+
+  typedef multimap<int, ComboAddress> rcounts_t;
+  rcounts_t rcounts;
+  
+  for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
+    rcounts.insert(make_pair(-i->second, i->first));
+
+  ostringstream ret;
+  ret<<"Over last "<<total<<" queries:\n";
+  format fmt("%.02f%%\t%s\n");
+  if(total)
+    for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end(); ++i)
+      ret<< fmt % (-100.0*i->first/total) % i->second.toString();
+
+  return ret.str();
+}
+
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
@@ -209,6 +238,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="wipe-cache") 
     return doWipeCache(begin, end);
+
+  if(cmd=="top-remotes")
+    return doTopRemotes();
   
   return "Unknown command '"+cmd+"'\n";
 

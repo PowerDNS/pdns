@@ -51,6 +51,14 @@ union ComboAddress {
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) < 0;
   }
 
+  socklen_t getSocklen()
+  {
+    if(sin4.sin_family == AF_INET)
+      return sizeof(sin4);
+    else
+      return sizeof(sin6);
+  }
+
   string toString() const
   {
     char tmp[128];

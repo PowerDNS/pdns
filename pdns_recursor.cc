@@ -81,7 +81,6 @@ struct DNSComboWriter {
   void setRemote(ComboAddress* sa)
   {
     d_remote=*sa;
-    d_socklen= d_remote.sin4.sin_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
   }
 
   void setSocket(int sock)
@@ -96,7 +95,6 @@ struct DNSComboWriter {
 
   struct timeval d_now;
   ComboAddress d_remote;
-  socklen_t d_socklen;
   bool d_tcp;
   int d_socket;
 };
@@ -458,7 +456,7 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret);
+    int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
@@ -481,9 +479,8 @@ void startDoResolve(void *p)
       if(ret.size()) {
 	shuffle(ret);
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
-	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, 1, (DNSPacketWriter::Place)i->d_place);
-	  
-	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), 1, i->content));
+	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place);
+	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content));
 	  
 	  drc->toPacket(pw);
 	
@@ -499,7 +496,7 @@ void startDoResolve(void *p)
     }
   sendit:;
     if(!dc->d_tcp) {
-      sendto(dc->d_socket, &*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_socklen);
+      sendto(dc->d_socket, &*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
     }
     else {
       char buf[2];
@@ -671,6 +668,7 @@ void handleNewTCPQuestion(int fd, boost::any& )
   socklen_t addrlen=sizeof(addr);
   int newsock=accept(fd, (struct sockaddr*)&addr, &addrlen);
   if(newsock>0) {
+    g_stats.addRemote(addr);
     if(g_allowFrom && !g_allowFrom->match(&addr)) {
       g_stats.unauthorizedTCP++;
       close(newsock);
@@ -697,22 +695,22 @@ void handleNewTCPQuestion(int fd, boost::any& )
   }
 }
 
-
 void handleNewUDPQuestion(int fd, boost::any& var)
 {
-  int d_len;
+  int len;
   char data[1500];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
-  while((d_len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+  if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+    g_stats.addRemote(fromaddr);
     if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
       g_stats.unauthorizedUDP++;
-      continue;
+      return;
     }
     
     try {
-      DNSComboWriter* dc = new DNSComboWriter(data, d_len, g_now);
+      DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
       
       dc->setRemote(&fromaddr);
       
@@ -790,7 +788,6 @@ void makeTCPServerSockets()
       L<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<::arg().asNum("local-port")<<endl;
   }
 }
-
 
 void makeUDPServerSockets()
 {
@@ -926,7 +923,7 @@ static void houseKeeping(void *)
     vector<DNSResourceRecord> ret;
 
     sr.setNoCache();
-    int res=sr.beginResolve(".", QType(QType::NS), ret);
+    int res=sr.beginResolve(".", QType(QType::NS), 1, ret);
     if(!res) {
       L<<Logger::Error<<"Refreshed . records"<<endl;
       last_rootupdate=now.tv_sec;
@@ -1175,6 +1172,10 @@ int main(int argc, char **argv)
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="0";
+    ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
+    ::arg().set("server-id", "Returned when queried for 'server.id' TXT, defaults to hostname")="";
+    ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
+    ::arg().set("version-string", "maximum number of packets to store statistics for")="PowerDNS Recursor "VERSION" $Id$";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12";
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
@@ -1238,6 +1239,16 @@ int main(int argc, char **argv)
       g_quiet=false;
     }
 
+    SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
+    SyncRes::s_serverID=::arg()["server-id"];
+    if(SyncRes::s_serverID.empty()) {
+      char tmp[128];
+      gethostname(tmp, sizeof(tmp)-1);
+      SyncRes::s_serverID=tmp;
+    }
+
+    g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
+    memset(&*g_stats.remotes.begin(), 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));
     g_logCommonErrors=::arg().mustDo("log-common-errors");
 
     makeUDPServerSockets();
