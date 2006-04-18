@@ -697,6 +697,46 @@ void handleNewTCPQuestion(int fd, boost::any& )
   }
 }
 
+
+void handleNewUDPQuestion(int fd, boost::any& var)
+{
+  int d_len;
+  char data[1500];
+  ComboAddress fromaddr;
+  socklen_t addrlen=sizeof(fromaddr);
+
+  while((d_len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+    if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
+      g_stats.unauthorizedUDP++;
+      continue;
+    }
+    
+    try {
+      DNSComboWriter* dc = new DNSComboWriter(data, d_len, g_now);
+      
+      dc->setRemote(&fromaddr);
+      
+      if(dc->d_mdp.d_header.qr) {
+	if(g_logCommonErrors)
+	  L<<Logger::Error<<"Ignoring answer from "<<dc->getRemote()<<" on server socket!"<<endl;
+      }
+      else {
+	++g_stats.qcounter;
+	dc->setSocket(fd);
+	dc->d_tcp=false;
+	MT->makeThread(startDoResolve, (void*) dc);
+      }
+    }
+    catch(MOADNSException& mde) {
+      g_stats.clientParseError++; 
+      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
+    }
+  }
+}
+
+typedef vector<pair<int, function< void(int, any&) > > > deferredAdd_t;
+deferredAdd_t deferredAdd;
+
 void makeTCPServerSockets()
 {
   int fd;
@@ -742,47 +782,12 @@ void makeTCPServerSockets()
     Utility::setNonBlocking(fd);
     setSendBuffer(fd, 65000);
     listen(fd, 128);
-    g_fdm->addReadFD(fd, handleNewTCPQuestion);
+    deferredAdd.push_back(make_pair(fd, handleNewTCPQuestion));
+    //    g_fdm->addReadFD(fd, handleNewTCPQuestion);
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<::arg().asNum("local-port")<<endl;
     else
       L<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<::arg().asNum("local-port")<<endl;
-  }
-}
-
-void handleNewUDPQuestion(int fd, boost::any& var)
-{
-  int d_len;
-  char data[1500];
-  ComboAddress fromaddr;
-  socklen_t addrlen=sizeof(fromaddr);
-
-  while((d_len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-    if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
-      g_stats.unauthorizedUDP++;
-      continue;
-    }
-    
-    try {
-      DNSComboWriter* dc = new DNSComboWriter(data, d_len, g_now);
-      
-      dc->setRemote(&fromaddr);
-      
-      if(dc->d_mdp.d_header.qr) {
-	if(g_logCommonErrors)
-	  L<<Logger::Error<<"Ignoring answer from "<<dc->getRemote()<<" on server socket!"<<endl;
-      }
-      else {
-	++g_stats.qcounter;
-	dc->setSocket(fd);
-	dc->d_tcp=false;
-	MT->makeThread(startDoResolve, (void*) dc);
-      }
-    }
-    catch(MOADNSException& mde) {
-      g_stats.clientParseError++; 
-      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
-    }
   }
 }
 
@@ -821,7 +826,8 @@ void makeUDPServerSockets()
       throw AhuException("Resolver binding to server socket for "+*i+": "+stringerror());
     
     Utility::setNonBlocking(fd);
-    g_fdm->addReadFD(fd, handleNewUDPQuestion);
+    //    g_fdm->addReadFD(fd, handleNewUDPQuestion);
+    deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
     g_tcpListenSockets.push_back(fd);
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<::arg().asNum("local-port")<<endl;
@@ -1208,8 +1214,6 @@ int main(int argc, char **argv)
     L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
       "This is free software, and you are welcome to redistribute it "
       "according to the terms of the GPL version 2."<<endl;
-    
-    g_fdm=getMultiplexer();
 
     if(!::arg()["allow-from"].empty()) {
       g_allowFrom=new NetmaskGroup;
@@ -1244,11 +1248,14 @@ int main(int argc, char **argv)
       L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
     }
 
+    g_fdm=getMultiplexer();
+
+    for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
+      g_fdm->addReadFD(i->first, i->second);
 
     makeControlChannelSocket();
     
     MT=new MTasker<PacketID,string>(100000);
-
     
     PacketID pident;
     primeHints();    
