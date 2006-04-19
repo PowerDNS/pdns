@@ -1,0 +1,66 @@
+PDNS_RECURSOR(1)
+================
+bert hubert <bert.hubert@netherlabs.nl>
+v3.0, 19 April 2006
+
+NAME
+----
+rec_control - control pdns_recursor
+
+SYNOPSIS
+--------
+'rec_control' [--help] [--socket-dir] [--socket-pid] command ..
+
+DESCRIPTION
+-----------
+rec_control(1) allows the operator to control a running instance
+of the pdns_recursor.
+
+The commands that can be passed to the recursor are described on
+http://doc.powerdns.com/built-in-recursor.html
+
+EXAMPLES
+--------
+
+To stop the recursor by hand, run:
+
+	# rec_control quit
+
+To dump the cache to disk, execute:
+
+	# rec_control dump-cache /tmp/the-cache
+
+OPTIONS
+-------
+
+--help::
+	provide this helpful message
+
+--socket-dir::
+	Where the controlsocket will live
+
+--socket-pid::
+	When running in SMP mode, pid of pdns_recursor to control
+
+BUGS
+----
+None known. File new ones at http://wiki.powerdns.com.
+
+AUTHOR
+------
+Written by PowerDNS.COM BV, bert hubert, <bert.hubert@netherlabs.nl>
+
+RESOURCES
+---------
+Website: http://wiki.powerdns.com, http://www.powerdns.com
+
+SEE ALSO
+--------
+pdns_recursor(1)
+
+COPYING
+-------
+Copyright (C) 2006 PowerDNS.COM BV. Free use of this software
+is granted under the terms of the GNU General Public License (GPL) version
+2.
+
