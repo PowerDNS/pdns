@@ -68,8 +68,10 @@ try
   rccS.send(command);
   string receive=rccS.recv();
   cout<<receive;
+  exit(0);
 }
 catch(AhuException& ae)
 {
   cerr<<"Fatal: "<<ae.reason<<"\n";
+  exit(1);
 }

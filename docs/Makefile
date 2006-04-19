@@ -6,7 +6,7 @@ pdns-expanded.sgml: pdns.sgml
 	./expand < $< > $@
 	
 clean:
-	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.txt *.ps *.bak *.tmp *~ *.log html.tar.gz html pdns
+	rm -rf *.xml *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log html.tar.gz html pdns
 
 html/index.html: pdns-expanded.sgml
 	db2html -V %use-id-as-filename% -o html $<
@@ -22,6 +22,15 @@ html.tar.gz: html/index.html
 	docbook2pdf $<
 	mv pdns-expanded.pdf pdns.pdf
 
+%.xml: %.txt
+	asciidoc -b docbook -d manpage  $<
+        
+%: %.xml
+	xmlto man $<
+                
+%.html: %.txt
+	asciidoc -b xhtml11 -d manpage  $<
+                        
 publish:
 	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \
 	exit.powerdns.com:/opt/websites/downloads.powerdns.com/www/documentation/
