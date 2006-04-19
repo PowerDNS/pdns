@@ -12,6 +12,10 @@ recursor_cache.cc  dnsparser.cc dnswriter.cc  dnsrecords.cc  rcpgenerator.cc  \
 base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
 selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc"
 
+cd docs
+make pdns_recursor.1 rec_control.1
+cd ..
+
 DIRNAME=pdns-recursor-$VERSION
 rm -rf $DIRNAME
 mkdir  $DIRNAME
@@ -23,6 +27,8 @@ cp config-recursor.h $DIRNAME/config.h
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
 cp ext/nedmalloc/malloc.c $DIRNAME
+cp pdns-recursor.init.d $DIRNAME
+cp docs/pdns_recursor.1 docs/rec_control.1 $DIRNAME
 
 mkdir -p $DIRNAME/sysdeps
 cp  sysdeps-recursor/* $DIRNAME/sysdeps
