@@ -1265,11 +1265,9 @@ int main(int argc, char **argv)
       fork();
       L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
     }
-    g_fdm=getMultiplexer();
-    makeControlChannelSocket();
-    
+
     MT=new MTasker<PacketID,string>(100000);
-    
+    makeControlChannelSocket();        
     PacketID pident;
     primeHints();    
     L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
@@ -1279,7 +1277,8 @@ int main(int argc, char **argv)
       L.toConsole(Logger::Critical);
       daemonize();
     }
-    
+    g_fdm=getMultiplexer();
+
     for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
       g_fdm->addReadFD(i->first, i->second);
 
@@ -1306,7 +1305,6 @@ int main(int argc, char **argv)
     }
 
     Utility::dropPrivs(newuid, newgid);
-
 
     counter=0;
     unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
