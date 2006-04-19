@@ -44,7 +44,7 @@ string simpleCompress(const string& label)
     ret.append(1, (char)(i->second - i->first));
     ret.append(label.c_str() + i->first, i->second - i->first);
   }
-  ret.append(1,(char)0);
+  ret.append(1, (char)0);
   return ret;
 }
 

@@ -24,7 +24,7 @@ int RecursorControlChannel::listen(const string& fname)
   
   int err=unlink(fname.c_str());
   if(err < 0 && errno!=ENOENT)
-    throw AhuException("Unable to remove (previous) controlsocket: "+string(strerror(errno)));
+    throw AhuException("Can't remove (previous) controlsocket '"+fname+"': "+string(strerror(errno)) + " (try --socket-dir)");
 
   memset(&local,0,sizeof(local));
   local.sun_family=AF_UNIX;

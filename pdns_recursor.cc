@@ -1210,10 +1210,11 @@ int main(int argc, char **argv)
 #endif // add other compilers here
     L<<") starting up"<<endl;
 
-    L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
     L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
       "This is free software, and you are welcome to redistribute it "
       "according to the terms of the GPL version 2."<<endl;
+
+    L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
 
     if(!::arg()["allow-from"].empty()) {
       g_allowFrom=new NetmaskGroup;
@@ -1272,6 +1273,7 @@ int main(int argc, char **argv)
     L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 #ifndef WIN32
     if(::arg().mustDo("daemon")) {
+      L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
       L.toConsole(Logger::Critical);
       daemonize();
     }
