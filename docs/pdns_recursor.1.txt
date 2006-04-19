@@ -1,0 +1,150 @@
+PDNS_RECURSOR(1)
+================
+bert hubert <bert.hubert@netherlabs.nl>
+v3.0, 19 April 2006
+
+NAME
+----
+pdns_recursor - high-performance,  simple  and secure recursing nameserver
+
+SYNOPSIS
+--------
+'pdns_recursor' [--daemon] [--local-address] [--help, -h] [--allow-from]
+
+DESCRIPTION
+-----------
+pdns_recursor(1) is a high performance,  simple  and  secure  recursing
+nameserver.  It currently powers over two million internet connections.
+
+
+The recursor is configured via a configuration file, but each  item  in
+that file can be overridden on the command line.
+
+
+This  manpage lists the core set of features needed to get the PowerDNS
+recursor  working,  for  full  and  up  to   date   details   head   to
+http://doc.powerdns.com/built-in-recursor.html
+
+
+EXAMPLES
+--------
+To listen on 1.2.3.4 and allow the 1.2.3.0/8 subnet to recurse, and run
+as a daemon, execute:
+
+	# pdns_recursor --local-address=1.2.3.4 --allow-from=1.2.3.0/8 --daemon
+
+To stop the recursor by hand, run:
+
+	# rec_control quit
+
+
+       Alternatively, use the init.d script provided.
+
+OPTIONS
+-------
+For authoritative listing of options, consult the documentation referenced above.
+
+--aaaa-additional-processing::
+	turn on to do AAAA additional processing (slow)
+
+--allow-from::
+	If set, only allow these comma separated netmasks to recurse
+
+--chroot::
+	switch to chroot jail
+
+--client-tcp-timeout::
+	Timeout in seconds when talking to TCP clients
+
+--config-dir::
+	Location of configuration directory (recursor.conf)
+
+--daemon::
+	Operate as a daemon
+
+--delegation-only::
+	Which domains we only accept delegations from
+
+--fork::
+	If set, fork the daemon for possible double performance
+
+--hint-file::
+	If set, load root hints from this file
+
+--local-address::
+	IP addresses to listen on, separated by spaces or commas
+
+--local-port::
+	port to listen on
+
+--log-common-errors::
+	If we should log rather common errors
+
+--max-cache-entries::
+	If set, maximum number of entries in the main cache
+
+--max-negative-ttl::
+	maximum number of seconds to keep a negative cached entry in memory
+
+--max-tcp-clients::
+	Maximum number of simultaneous TCP clients
+
+--max-tcp-per-client::
+	If set, maximum number of TCP sessions per client (IP address)
+
+--query-local-address::
+	Source IP address for sending queries
+
+--quiet::
+	Suppress logging of questions and answers
+
+--remotes-ringbuffer-entries::
+	maximum number of packets to store statistics for
+
+--server-id::
+	Returned when queried for 'server.id' TXT, defaults to hostname
+
+--setgid::
+	If set, change group id to this gid for more security
+
+--setuid::
+	If set, change user id to this uid for more security
+
+--single-socket::
+	If set, only use a single socket for outgoing queries
+
+--socket-dir::
+	Where the controlsocket will live
+
+--spoof-nearmiss-max::
+	If non-zero, assume spoofing after this many near misses
+
+--trace::
+	if we should output heaps of logging
+
+--version-string::
+	string reported on version.pdns or version.bind
+
+
+BUGS
+----
+None known. File new ones at http://wiki.powerdns.com.
+
+AUTHOR
+------
+Written by PowerDNS.COM BV, bert hubert, <bert.hubert@netherlabs.nl>
+
+RESOURCES
+---------
+Website: http://wiki.powerdns.com, http://www.powerdns.com
+
+SEE ALSO
+--------
+rec_control(1)
+
+COPYING
+-------
+Copyright (C) 2006 PowerDNS.COM BV. Free use of this software
+is granted under the terms of the GNU General Public License (GPL) version
+2.
+
