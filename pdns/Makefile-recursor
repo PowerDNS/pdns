@@ -18,21 +18,27 @@ rec_channel.o rec_channel_rec.o malloc.o selectmplexer.o
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
 
 # what we need 
-all: pdns_recursor rec_control 
+all: message pdns_recursor rec_control 
 
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
 
 ifeq ($(STATIC),semi)
         STATICFLAGS=-Wl,-Bstatic -lstdc++ -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
-        LINKCC=gcc
+        LINKCC=$(CC)
 endif
 ifeq ($(STATIC),full)
         STATICFLAGS=-lstdc++ -lm -static
-        LINKCC=gcc
+        LINKCC=$(CC)
 endif
 
 LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
+
+message: 
+	@echo
+	@echo PLEASE READ: If you get an error mentioning \#include '<boost/something.hpp>', please read README
+	@echo PLEASE READ: for an easy fix!
+	@echo 
 
 install: all
 	-mkdirhier $(DESTDIR)/$(SBINDIR)
