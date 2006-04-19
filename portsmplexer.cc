@@ -5,8 +5,12 @@
 #include "misc.hh"
 #include <boost/lexical_cast.hpp>
 #include "syncres.hh"
+
+#if defined(__sun__) && defined(__svr4__)
 #include <port.h>
 #include <sys/port_impl.h>
+#endif
+
 using namespace boost;
 using namespace std;
 
