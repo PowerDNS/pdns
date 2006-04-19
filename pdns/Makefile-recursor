@@ -40,7 +40,7 @@ clean:
 	-rm -f *.o *~ pdns_recursor rec_control optional/*.o
 	
 dep:
-	$(CC) $(CXXFLAGS) -MM *.cc *.hh > $@
+	$(CXX) $(CXXFLAGS) -MM *.cc *.hh > $@
 
 -include dep
 
