@@ -1275,6 +1275,8 @@ int main(int argc, char **argv)
     if(::arg().mustDo("daemon")) {
       L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
       L.toConsole(Logger::Critical);
+      L.setLoglevel((Logger::Urgency)(4));
+
       daemonize();
     }
     g_fdm=getMultiplexer();
