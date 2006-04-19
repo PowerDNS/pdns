@@ -10,7 +10,7 @@ CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
 recursor_cache.cc  dnsparser.cc dnswriter.cc  dnsrecords.cc  rcpgenerator.cc  \
 base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
-selectmplexer.cc epollmplexer.cc kqueuemplexer.cc"
+selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc"
 
 DIRNAME=pdns-recursor-$VERSION
 rm -rf $DIRNAME
@@ -24,7 +24,8 @@ mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
 cp ext/nedmalloc/malloc.c $DIRNAME
 
-cp -a sysdeps-recursor $DIRNAME/sysdeps
+mkdir -p $DIRNAME/sysdeps
+cp  sysdeps-recursor/* $DIRNAME/sysdeps
 
 tar cf $DIRNAME.tar $DIRNAME
 bzip2 -f $DIRNAME.tar # .. solaris
