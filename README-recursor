@@ -1,3 +1,12 @@
+DOCUMENTATION
+-------------
+For full details, please read:
+
+               http://doc.powerdns.com/built-in-recursor.html
+
+COMPILING
+---------
+
 The only dependency is Boost, http://boost.org/
 You only need to download it, there is no need to compile.
 
