@@ -244,7 +244,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doTopRemotes();
 
   if(cmd=="ping")
-    return "pong";
+    return "pong\n";
   
   return "Unknown command '"+cmd+"'\n";
 

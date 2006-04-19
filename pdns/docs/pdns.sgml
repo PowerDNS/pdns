@@ -5845,37 +5845,39 @@ local0.err                        /var/log/pdns.err
   </chapter>
   <chapter id="built-in-recursor"><title>PowerDNS resolver/recursing nameserver</title>
     <para>
-      As of 2.9.4, a small recursor comes with PowerDNS. The algorithm is influenced by the works of Dan J. Bernstein although
-      all mistakes are ours. Here are the current faults, so nobody can accuse us of false advertising:
-      <itemizedlist>
-	<listitem><para>
-	    Only compiles on Linux, FreeBSD 5.x, Windows and possibly Solaris. FreeBSD 4.x decided not to support the 
-	    POSIX get/set/swapcontext functions. Bug your favorite FreeBSD kernel or libc maintainer for a fix,
-	    or ask him to port MTasker (see below) to your operating system. It may work on recent 4.x systems, 
-	    let us know!
-	  </para></listitem>
-	<listitem><para>
-	    May have big problems with truncated packets (solved in 2.9.18)
-	  </para></listitem>
-      </itemizedlist>
+      The PowerDNS recursor is part of the source tarball of the main PowerDNS distribution, but it is released separately. Starting from
+      the version 3.0 pre-releases, there are zero known bugs or issues with the recursor. It is known to power the resolving needs of over 2 million
+      internet connections.
     </para>
     <para>
-      To compile, add <command>--enable-recursor</command> to configure and the file <filename>pdns_recursor</filename> will be 
-      compiled. To run on a different port, use <command>./syncres --local-port=53</command>.
-      To bind to another address, use the <command>local-address</command> setting.
+      The documentation below is only for the 3.0 series, users of older versions are urged to upgrade!
     </para>
-
     <para>
-      Good points:
+      Notable features:
       <itemizedlist>
 	<listitem><para>
 	    Uses MTasker (<ulink url="http://ds9a.nl/mtasker">homepage</ulink>)
 	  </para></listitem>
 	<listitem><para>
-	    Can handle thousands of concurrent questions
+	    Can handle thousands of concurrent questions. A dual Xeon 3GHz has been measured functioning very well at 9000 real life replayed
+	    packets per second, with 40% cpu idle. More testing equipment is needed to max out the recursor.
 	  </para></listitem>
-	  <listitem><para>
-	  Appears to be very fast, and contains innovative query-throttling code to save time talking to obsolete or broken nameservers.
+	<listitem><para>
+	    Powered by a highly modern DNS packet parser that should be resistant against many forms of buffer overflows.
+	  </para></listitem>
+	<listitem><para>
+	    Best spoofing protection that we know about, involving both source port randomisation and spoofing detection.
+	  </para></listitem>
+	<listitem><para>
+	    Uses 'connected' UDP sockets which allow the recursor to react quickly to unreachable hosts or hosts for which 
+	    the server is running, but the nameserver is down. This makes the recursor faster to respond in case of misconfigured domains,
+	    which are sadly very frequent.
+	  </para></listitem>
+	<listitem><para>
+	    Special support for FreeBSD, Linux and Solaris stateful multiplexing (kqueue, epoll, completion ports).
+	  </para></listitem>
+	<listitem><para>
+	    Very fast, and contains innovative query-throttling code to save time talking to obsolete or broken nameservers.
 	  </para></listitem>
 	<listitem><para>
 	    Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
@@ -5884,17 +5886,23 @@ local0.err                        /var/log/pdns.err
 	    Relies heavily on Standard C++ Library infrastructure, which makes for little code (406 core lines).
 	  </para></listitem>
 	<listitem><para>
-	    Is very verbose in showing how recursion actually works.
+	    Is very verbose in showing how recursion actually works, when enabled to do so with --verbose.
 	  </para></listitem>
 	<listitem><para>
 	    The algorithm is simple and quite nifty.
 	  </para></listitem>
       </itemizedlist>
     </para>
+    <para>
+      The PowerDNS recursor is controlled and queried using the <filename>rec_control</filename> tool. 
     <sect1><title>pdns_recursor settings</title>
       <para>
 	At startup, the recursing nameserver reads the file <filename>recursor.conf</filename> from the configuration directory,
-	often <filename>/etc/powerdns</filename> or <filename>/usr/local/etc</filename>.
+	often <filename>/etc/powerdns</filename> or <filename>/usr/local/etc</filename>. Each setting below can appear on the command line,
+	prefixed by '--', or in the configuration file. The command line overrides the configuration file.
+      </para>
+      <para>
+	A switch can be set to on simply by passing it, like '--daemon', and turned off explicitly by '--daemon=off' or '--daemon=no'.
       </para>
       <para>
 	The following settings can be configured:
@@ -5913,15 +5921,22 @@ local0.err                        /var/log/pdns.err
 	    <term>allow-from</term>
 	    <listitem>
 	      <para>
-		Comma separated netmasks that are allowed to use the server. The default allows complete access!
+		Comma separated netmasks (both IPv4 and IPv6) that are allowed to use the server. The default allows access only from RFC 1918 
+		private IP addresses, like 10.0.0.0/8. Due to the agressive nature of the internet these days, it is highly recommended
+		to not open up the recursor for the entire internet. Questions from IP addresses not listed here are ignored and do 
+		not get an answer.
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry><term>chroot</term>
+	    <listitem><para>
+		If set, chroot to this directory for more security. See <xref linkend="security">.
+	      </para></listitem></varlistentry>
 	  <varlistentry>
 	    <term>client-tcp-timeout</term>
 	    <listitem>
 	      <para>
-	      Time to wait for data from TCP clients. Defaults to 2 seconds. Available since 2.9.18. 
+	      Time to wait for data from TCP clients. Defaults to 2 seconds. 
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -5950,6 +5965,17 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>fork</term>
+	    <listitem>
+	      <para>
+		If running on an SMP system with enough memory, this feature forks PowerDNS so it benefits from two processors. Experimental. Renames
+		controlsockets, so care is needed to connect to the right one using <command>rec_control</command>, using <command>--socket-pid</command>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+
+	  <varlistentry>
 	    <term>hints-file</term>
 	    <listitem>
 	      <para>
@@ -5962,7 +5988,7 @@ local0.err                        /var/log/pdns.err
 	    <term>local-address</term>
 	    <listitem>
 	      <para>
-		Local IP addresses to bind to, comma separated. Defaults to all addresses.
+		Local IPv4 or IPv6 addresses to bind to, comma separated. Defaults to only loopback.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -5975,11 +6001,31 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+
+	  <varlistentry>
+	    <term>log-common-errors</term>
+	    <listitem>
+	      <para>
+		Some DNS errors occur rather frequently and are no cause for alarm. Logging these is on by default.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	  <varlistentry>
 	    <term>max-cache-entries</term>
 	    <listitem>
 	      <para>
 		Maximum number of cache entries. 1 million will generally suffice for most installations.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>max-negative-ttl</term>
+	    <listitem>
+	      <para>
+		A query for which there is authoritatively no answer is cached to quickly deny a record's existence later on, without
+		putting a heavy load on the remote server. In practice, caches can become saturated with hundreds of thousands of hosts
+		which are tried only once. This setting, which defaults to 3600 seconds, puts a maximum on the amount of time negative
+		entries are cached.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -6007,19 +6053,39 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
-	  <varlistentry>
-	    <term>query-local-port</term>
-	    <listitem>
-	      <para>
-		Send out local queries from this port exclusively. Useful for strict firewalls. Random, and possibly changing, if unset.
-	      </para>
-	    </listitem>
-	  </varlistentry>
+
 	  <varlistentry>
 	    <term>quiet</term>
 	    <listitem>
 	      <para>
-		Don't log queries.
+		Don't log queries. On by default.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>remotes-ringbuffer-entries</term>
+	    <listitem>
+	      <para>
+		Number of entries in the remotes ringbuffer, which keeps statistics on who is querying your server. Can be read out using
+		<command>rec_control top-remotes</command>. Defaults to 0.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>server-id</term>
+	    <listitem>
+	      <para>
+		The PowerDNS recursor by replies to a query for 'id.server' with its hostname, useful for in clusters. Use this setting to override
+		the answer it gives.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>set-gid</term>
+	    <term>set-uid</term>
+	    <listitem>
+	      <para>
+		PowerDNS can change its user and group id after binding to its socket. Can be used for better security.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -6032,6 +6098,14 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>spoof-nearmiss-max</term>
+	    <listitem>
+	      <para>
+		If set to non-zero, PowerDNS will assume it is being spoofed after seeing this many answers with the wrong id. Defaults to 20.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>trace</term>
 	    <listitem>
 	      <para>
@@ -6039,9 +6113,115 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>version-string</term>
+	    <listitem>
+	      <para>
+		By default, PowerDNS replies to the 'version.bind' query with its version number. Security concious users may wish to override
+		the reply PowerDNS issues.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	</variablelist>
       <para>
+    <sect2 id="rec-control"><title>Controlling and querying the recursor</title>
+	<para>
+	  To control and query the PowerDNS recursor, the tool <filename>rec_control</filename> is provided. This program
+	  talks to the recursor over the 'controlsocket', often stored in <filename>/var/run</filename>.
+	</para>
+	<para>
+	  As a sample command, try:
+	  <screen>
+	    # rec_control ping
+	    pong
+	  </screen>
+	</para>
+	<para>
+	  When not running as root, <command>--socket-dir=/tmp</command> might be appropriate.
+	</para>
+	<para>
+	  All rec_control commands are documented below:
+	  <variablelist>
+	    <varlistentry>
+	      <term>dump-cache filename</term>
+	      <listitem>
+		<para>
+		  Dumps the entire cache to the filename mentioned. This file should not exist already, PowerDNS
+		  will refuse to overwrite it. While dumping, the recursor will not answer questions.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
+	      <term>get statistic</term>
+	      <listitem>
+		<para>
+		  Retrieve a statistic. For items that can be queried, see below.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
+	      <term>ping</term>
+	      <listitem>
+		<para>
+		  Check if server is alive.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
+	      <term>quit</term>
+	      <listitem>
+		<para>
+		  Request shutdown of the recursor.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
+	      <term>top-remotes</term>
+	      <listitem>
+		<para>
+		  Shows the top-20 most active remote hosts. Statistics are over the last 'remotes-ringbuffer-entries' queries, which
+		  defaults to 0.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
+	      <term>wipe-cache domain0. [domain1. domain2.]</term>
+	      <listitem>
+		<para>
+		  Wipe entries from the cache. This is useful if, for example, an important server has a new IP address, but the TTL has not
+		  yet expired. Multiple domain names can be passed. Note that you must terminate a domain with a .! So to wipe powerdns.org,
+		  issue 'rec_control wipe-cache powerdns.org.'.
+		</para>
+		<para>
+		  <warning>
+		    <para>
+		      Ubunty Breezy ships a version of Boost that has problems with this command! Either refrain from
+		      using wipe-cache or download a more recent Boost into the PowerDNS source directory, as explained in the
+		      <filename>README</filename>
+		    </para>
+		  </warning>
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	  </variablelist>
+	</para>
+	<para>
+	  The command 'get' can query a large number of statistics, which are detailed in <xref linkend="recursor-stats">.
+
+	</para>
+	<para>
+	  More details on what 'throttled' queries and the like are can be found below in <xref linkend="recursor-details">.
+	</para>
+      </sect2>
+
     <sect2 id="verisign"><title>Verisign weirdness</title>
+	<para>
+	  <note>
+	    <para>
+	      Verisign backed off, this feature is no longer needed (for now).
+	    </para>
+	  </note>
+	</para>
 	<para>
 	  Verisign, the current operator of the COM and NET zones, decided to add a wildcard record so as to draw all queries for non-existing 
 	  domains to their own page, which lists domains you might want to visist instead. 
@@ -6061,7 +6241,7 @@ local0.err                        /var/log/pdns.err
 	  
 
     </sect1>
-    <sect1><title>Details</title>
+    <sect1 id="recursor-details"><title>Details</title>
       <para>
 	PowerDNS implements a very simple but effective nameserver. Care has been taken not to overload remote servers in case
 	of overly active clients.
@@ -6092,7 +6272,47 @@ local0.err                        /var/log/pdns.err
 	</itemizedlist>
       </para>
     </sect1>
-    <sect1><title>Statistics</title>
+    <sect1 id="recursor-stats"><title>Statistics</title>
+      <para>
+	The <command>rec_control get</command> command can be used to query the following keys, either single keys or multiple keys 
+	at once:
+	  <screen>
+all-outqueries      counts the number of outgoing UDP queries since starting
+answers0-1          counts the number of queries answered within 1 milisecond
+answers100-1000     counts the number of queries answered within 1 second
+answers10-100       counts the number of queries answered within 100 miliseconds
+answers1-10         counts the number of queries answered within 10 miliseconds
+answers-slow        counts the number of queries answered after 1 second
+cache-entries       shows the number of entries in the cache
+cache-hits          counts the number of cache hits since starting
+cache-misses        counts the number of cache misses since starting
+client-parse-errors counts number of client packets that could not be parsed
+concurrent-queries  shows the number of MThreads currently running
+negcache-entries    shows the number of entries in the Negative answer cache
+noerror-answers     counts the number of times it answered NOERROR since starting
+nsspeeds-entries    shows the number of entries in the NS speeds map
+nxdomain-answers    counts the number of times it answered NXDOMAIN since starting
+outgoing-timeouts   counts the number of timeouts on outgoing UDP queries since starting
+qa-latency          shows the current latency average
+questions           counts all End-user initiated queries with the RD bit set
+resource-limits     counts number of queries that could not be performed because of resource limits
+server-parse-errors counts number of server replied packets that could not be parsed
+servfail-answers    counts the number of times it answered SERVFAIL since starting
+spoof-prevents      number of times PowerDNS considered itself spoofed, and dropped the data
+sys-msec            number of CPU milliseconds spent in 'system' mode
+tcp-client-overflow number of times an IP address was denied TCP access because it already had too many connections
+tcp-outqueries      counts the number of outgoing TCP queries since starting
+tcp-questions       counts all incoming TCP queries (since starting)
+throttled-out       counts the number of throttled outgoing UDP queries since starting
+throttle-entries    shows the number of entries in the throttle map
+unauthorized-tcp    number of TCP questions denied because of allow-from restrictions
+unauthorized-udp    number of UDP questions denied because of allow-from restrictions
+unexpected-packets  number of answers from remote servers that were unexpected (might point to spoofing)
+user-msec            number of CPU milliseconds spent in 'user' mode
+	  </screen>
+	In the <filename>rrd/</filename> subdirectory a number of rrdtool scripts is provided to make nice
+	graphs of all these numbers.
+      </para>
       <para>
 	Every half our or so, the recursor outputs a line with statistics. More infrastructure is planned so as to allow
 	for Cricket or MRTG graphs. To force the output of statistics, send the process a SIGUSR1. A line of statistics looks 
