@@ -1,5 +1,7 @@
 # user editable stuff:
 SBINDIR=/usr/sbin/
+BINDIR=/usr/bin/
+CONFIGDIR="/etc/powerdns/"
 OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
@@ -33,8 +35,13 @@ endif
 LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
 
 install: all
+	-mkdirhier $(DESTDIR)/$(SBINDIR)
 	install -s pdns_recursor $(DESTDIR)/$(SBINDIR)
-	install -s rec_control $(DESTDIR)/$(SBINDIR)
+	mkdirhier $(DESTDIR)/$(BINDIR)
+	install -s rec_control $(DESTDIR)/$(BINDIR)
+	-mkdirhier $(DESTDIR)/$(CONFIGDIR)
+	./pdns_recursor --config > $(DESTDIR)/$(CONFIGDIR)/recursor.conf
+	
 
 clean:
 	-rm -f *.o *~ pdns_recursor rec_control optional/*.o
