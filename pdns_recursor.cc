@@ -1258,12 +1258,7 @@ int main(int argc, char **argv)
       fork();
       L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
     }
-
     g_fdm=getMultiplexer();
-
-    for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
-      g_fdm->addReadFD(i->first, i->second);
-
     makeControlChannelSocket();
     
     MT=new MTasker<PacketID,string>(100000);
@@ -1277,6 +1272,10 @@ int main(int argc, char **argv)
       L.toConsole(Logger::Critical);
       daemonize();
     }
+    
+    for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
+      g_fdm->addReadFD(i->first, i->second);
+
     signal(SIGUSR1,usr1Handler);
     signal(SIGUSR2,usr2Handler);
     signal(SIGPIPE,SIG_IGN);
