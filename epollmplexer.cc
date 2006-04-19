@@ -12,9 +12,6 @@
 using namespace boost;
 using namespace std;
 
-#include <sys/epoll.h>
-
-
 class EpollFDMultiplexer : public FDMultiplexer
 {
 public:
