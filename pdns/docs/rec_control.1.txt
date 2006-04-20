@@ -1,5 +1,5 @@
-PDNS_RECURSOR(1)
-================
+REC_CONTROL(1)
+==============
 bert hubert <bert.hubert@netherlabs.nl>
 v3.0, 19 April 2006
 

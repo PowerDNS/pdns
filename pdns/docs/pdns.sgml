@@ -81,6 +81,95 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-recursor-3-0"><title>Recursor version 3.0</title>
+	<para>
+	  Released 20th of April 2006, <ulink url="http://www.powerdns.com/en/downloads.aspx">download</ulink>.
+	</para>
+	<para>
+	  This is the first separate release of the PowerDNS Recursor. There are many reasons for this, one of the most important ones is that 
+	  previously we could only do a release when both the recursor and the authoritative nameserver were fully tested and in good shape. The split
+	  allows us to release new versions when each part is ready.
+	</para>
+	<para>
+	  Now for the real news. This version of the PowerDNS recursor powers the network access of over two million internet connections. Two large
+	  access providers have been running pre-releases of 3.0 for the past few weeks and results are good. Furthermore, the various pre-releases
+	  have been tested nearly non-stop with DNS traffic replayed at 3000 queries/second.
+	</para>
+	<para>
+	  As expected, the 2 million househoulds shook out some very rare bugs. But even a rare bug happens once in a while when there are this many users.
+	</para>
+	<para>
+	  We consider this version of the PowerDNS recursor to be the most advanced resolver publicly available. Given current levels of spam, phishing 
+	  and other forms of internet crime we think no recursor should offer less than the best in spoofing protection. We urge all 
+	  operators of resolvers without proper spoofing countermeasures to consider PowerDNS, as it is a Better Internet Nameserver Daemon.
+	</para>
+	<para>
+	  A good article on DNS spoofing can be found <ulink url="http://www.securesphere.net/download/papers/dnsspoof.htm">here</ulink>. Some 
+	  more information, based on a previous version of PowerDNS, can be found on the 
+	  <ulink url="http://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns">PowerDNS development blog</ulink>.
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      Because of recent DNS based denial of service attacks, running an open recursor has become a security risk. Therefore, unless configured otherwise
+	      this version of PowerDNS will only listen on localhost, which means it does not resolve for hosts on your network.
+	      To fix, configure the <command>local-address</command> setting with all addresses you want to listen on. Additionally, by default
+	      service is restricted to RFC 1918 private IP addresses. Use <command>allow-from</command> to selectively open up the recursor
+	      for your own network. See <xref linkend="recursor-settings"> for details.
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  Important new features of the PowerDNS recursor 3.0:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Best spoofing protection and detection we know of. Not only is spoofing made harder by using a new network address for each query,
+		PowerDNS detects when an attempt is made to spoof it, and temporarily ignores the data. For details, see <xref linkend="anti-spoofing">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		First nameserver to benefit from epoll/kqueue/Solaris completion ports event reporting framework, for stellar performance.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Best statistics of any recursing nameserver we know of, see <xref linkend="recursor-stats">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Last-recently-used based cache cleanup algorithm, keeping the 'best' records in memory
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		First class Solaris support, built on a 'try and buy' Sun CoolThreads T&nbsp;2000.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Full IPv6 support, implemented natively.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Access filtering, both for IPv4 and IPv6.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Experimental SMP support for nearly double performance. See <xref linkend="recursor-performance">.
+	      </para>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Many people helped package and test this release. Jorn Ekkelenkamp of ISP-Services helped find the '8000 SOAs' bug and spotted
+	  many other oddities and <ulink url="http://www.xs4all.nl">XS4ALL</ulink> internet funded a lot of the recent development. 
+	  Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz of the boost::multi_index_container was again of great help. 
+	</para>
+      </sect2>
       <sect2 id="changelog-2-9-20"><title>Version 2.9.20</title>
 	<para>
 	  Released the 15th of March 2006
@@ -5895,7 +5984,7 @@ local0.err                        /var/log/pdns.err
     </para>
     <para>
       The PowerDNS recursor is controlled and queried using the <filename>rec_control</filename> tool. 
-    <sect1><title>pdns_recursor settings</title>
+    <sect1 id="recursor-settings"><title>pdns_recursor settings</title>
       <para>
 	At startup, the recursing nameserver reads the file <filename>recursor.conf</filename> from the configuration directory,
 	often <filename>/etc/powerdns</filename> or <filename>/usr/local/etc</filename>. Each setting below can appear on the command line,
@@ -6256,35 +6345,52 @@ local0.err                        /var/log/pdns.err
       </para>
     </sect1>
     <sect1 id="recursor-details"><title>Details</title>
-      <para>
-	PowerDNS implements a very simple but effective nameserver. Care has been taken not to overload remote servers in case
-	of overly active clients.
-      </para>
-      <para>
-	This is implemented using the 'throttle'. This accounts all recent traffic and prevents queries that have been sent out
-	recently from going out again.
-      </para>
-      <para>
-	There are three levels of throttling.
-	<itemizedlist>
-	  <listitem>
-	    <para>
-	      If a remote server indicates that it is lame for a zone, the exact question won't
-	      be repeated in the next 60 seconds.
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>
-	      After 4 ServFail responses in 60 seconds, the query gets throttled too.
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>
-	      5 timeouts in 20 seconds also lead to query suppression.
-	    </para>
-	  </listitem>
-	</itemizedlist>
-      </para>
+      <sect2 id="anti-spoofing"><title>Anti-spoofing</title>
+	<para>
+	  The PowerDNS recursor 3.0 uses a fresh UDP source port for each outgoing query, making spoofing around 64000 times harder. This 
+	  raises the bar from 'easily doable given some time' to 'very hard'. Under some circimstances, 'some time' has been measured at 2 seconds. 
+	  This technique was first used by <filename>dnscache</filename> by Dan J. Bernstein.
+	</para>
+	<para>
+	  In addition, PowerDNS detects when it is being sent too many unexpected answers, and mistrusts a proper answer if found within
+	  a clutch of unexpected ones.
+	</para>
+	<para>
+	  This behaviour can be tuned using the <command>spoof-nearmiss-max</command>.
+	</para>
+      </sect2>
+      <sect2><title>Throttling</title>
+	<para>
+	  PowerDNS implements a very simple but effective nameserver. Care has been taken not to overload remote servers in case
+	  of overly active clients.
+	</para>
+	<para>
+	  This is implemented using the 'throttle'. This accounts all recent traffic and prevents queries that have been sent out
+	  recently from going out again.
+	</para>
+	<para>
+	  There are three levels of throttling.
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		If a remote server indicates that it is lame for a zone, the exact question won't
+		be repeated in the next 60 seconds.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		After 4 ServFail responses in 60 seconds, the query gets throttled too.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		5 timeouts in 20 seconds also lead to query suppression.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+
     </sect1>
     <sect1 id="recursor-stats"><title>Statistics</title>
       <para>
