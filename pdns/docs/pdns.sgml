@@ -6245,6 +6245,12 @@ local0.err                        /var/log/pdns.err
 	      The above is relevant if dmesg shows <command>Using pmtmr for high-res timesource</command>
 	    </para>
 	  </listitem>
+	  <listitem>
+	    <para>
+	      If you need it, try <command>--fork</command>, this will fork the daemon into two halves, allowing it to benefit from a second CPU.
+	      This feature almost doubles performance, but is a bit of a hack. 
+	    </para>
+	  </listitem>
 	</itemizedlist>
 	Following the instructions above, you should be able to attain very high query rates.
       </para>
