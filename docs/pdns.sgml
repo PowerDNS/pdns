@@ -1277,7 +1277,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		delegation-only, a Verisign special. See <xref linkend="verisign">.
+		delegation-only, a Verisign special. 
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -5960,7 +5960,7 @@ local0.err                        /var/log/pdns.err
 	    <term>delegation-only</term>
 	    <listitem>
 	      <para>
-		A Verisign special, see <xref linkend="verisign">.
+		A Verisign special.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -6124,21 +6124,22 @@ local0.err                        /var/log/pdns.err
 	  </varlistentry>
 	</variablelist>
       <para>
-    <sect2 id="rec-control"><title>Controlling and querying the recursor</title>
-	<para>
-	  To control and query the PowerDNS recursor, the tool <filename>rec_control</filename> is provided. This program
-	  talks to the recursor over the 'controlsocket', often stored in <filename>/var/run</filename>.
-	</para>
-	<para>
-	  As a sample command, try:
-	  <screen>
-	    # rec_control ping
-	    pong
-	  </screen>
-	</para>
-	<para>
-	  When not running as root, <command>--socket-dir=/tmp</command> might be appropriate.
-	</para>
+    </sect1>
+    <sect1 id="rec-control"><title>Controlling and querying the recursor</title>
+      <para>
+	To control and query the PowerDNS recursor, the tool <filename>rec_control</filename> is provided. This program
+	talks to the recursor over the 'controlsocket', often stored in <filename>/var/run</filename>.
+      </para>
+      <para>
+	As a sample command, try:
+	<screen>
+	  # rec_control ping
+	  pong
+	</screen>
+      </para>
+      <para>
+	When not running as root, <command>--socket-dir=/tmp</command> might be appropriate.
+      </para>
 	<para>
 	  All rec_control commands are documented below:
 	  <variablelist>
@@ -6212,34 +6213,41 @@ local0.err                        /var/log/pdns.err
 	<para>
 	  More details on what 'throttled' queries and the like are can be found below in <xref linkend="recursor-details">.
 	</para>
-      </sect2>
-
-    <sect2 id="verisign"><title>Verisign weirdness</title>
-	<para>
-	  <note>
+    </sect1>
+    <sect1 id="recursor-performance"><title>PowerDNS Recursor performance</title>
+      <para>
+	To get the best out of the PowerDNS recursor, which is important if you are doing thousands of queries per second, please 
+	consider the following. 
+	<itemizedlist>
+	  <listitem>
 	    <para>
-	      Verisign backed off, this feature is no longer needed (for now).
+	      Limit the size of the cache to a sensible value. Cache hit rate does not improve meaningfully beyond 4 million <command>max-cache-entries</command>,
+	      reducing the memory footprint reduces CPU cache misses.
 	    </para>
-	  </note>
-	</para>
-	<para>
-	  Verisign, the current operator of the COM and NET zones, decided to add a wildcard record so as to draw all queries for non-existing 
-	  domains to their own page, which lists domains you might want to visist instead. 
-	</para>
-	<para>
-	  To reinstate old behaviour, add <command>delegation-only=com,net</command> to your recursor configuration.
-	</para>
-	<para>
-	  What this does is reject all authoritative answers from the COM and NET servers. ISC, the current maintainers of BIND, have 
-	  implemented this feature first, PowerDNS has mostly copied their algorithm. Thanks!
-	</para>
-	<para>
-	  Verisign might decide to evade our tactic with wildcard NS records, by which time other measures will be needed to restore the 
-	  old behaviour.
-	</para>
-      </sect2>
-	  
-
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Compile using g++ 4.1 or later. This compiler really does a good job on PowerDNS, much better than 3.4 or 4.0.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Consider performing a 'profiled build' as described in the README. This is good for a 20% performance boost in some cases.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      When running with &gt;3000 queries per second, and running Linux versions prior to 2.6.17 on some motherboards, your computer may 
+	      spend an inordinate amount of time working around an ACPI bug for each call to gettimeofday. This is solved by rebooting with 'clock=tsc'
+	      or upgrading to a 2.6.17 kernel.
+	    </para>
+	    <para>
+	      The above is relevant if dmesg shows <command>Using pmtmr for high-res timesource</command>
+	    </para>
+	  </listitem>
+	</itemizedlist>
+	Following the instructions above, you should be able to attain very high query rates.
+      </para>
     </sect1>
     <sect1 id="recursor-details"><title>Details</title>
       <para>

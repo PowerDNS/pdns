@@ -7,6 +7,9 @@ For full details, please read:
 COMPILING
 ---------
 
+$ ./configure
+$ make or gmake
+
 The only dependency is Boost, http://boost.org/
 You only need to download it, there is no need to compile.
 
@@ -25,9 +28,14 @@ $ tar xjf boost_1_33_1.tar.bz2
 
 3) Compile the PowerDNS recursor using:
 
-$ CXXFLAGS=-I./boost_1_33_1/ make
+$ CXXFLAGS=-I./boost_1_33_1/ ./configure
+$ CXXFLAGS=-I./boost_1_33_1/ make clean 
+$ CXXFLAGS=-I./boost_1_33_1/ make all
+(the 'clean' is needed to have make pick up the new boost)
 
 4) Run ./pdns_recursor and you should be set!
+
+5) (g)make install
 
 PERFORMANCE
 -----------
@@ -54,8 +62,6 @@ RUNNING ON A DIFFERENT MACHINE
 ------------------------------
 To prevent hassles with g++ 4.1 dependencies, you can build like this:
    $ STATIC=semi make all
-or even
-   $ STATIC=full make all
 
 PROBLEMS
 --------
