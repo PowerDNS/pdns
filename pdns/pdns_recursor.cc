@@ -528,7 +528,7 @@ void startDoResolve(void *p)
 	close(dc->d_socket);
       }
       else {
-	any_cast<TCPConnection*>(g_fdm->getReadParameter(dc->d_socket))->state=TCPConnection::BYTE0;
+	any_cast<TCPConnection>(&g_fdm->getReadParameter(dc->d_socket))->state=TCPConnection::BYTE0;
 	struct timeval now; 
 	gettimeofday(&now, 0); // needs to be updated
 	g_fdm->setReadTTD(dc->d_socket, now, g_tcpTimeout);
@@ -587,8 +587,7 @@ void makeControlChannelSocket()
 
 void handleRunningTCPQuestion(int fd, boost::any& var)
 {
-  TCPConnection* conn=any_cast<TCPConnection*>(var);
-
+  TCPConnection* conn=any_cast<TCPConnection>(&var);
   if(conn->state==TCPConnection::BYTE0) {
     int bytes=read(conn->fd,conn->data,2);
     if(bytes==1)
@@ -1013,7 +1012,7 @@ void handleRCC(int fd, boost::any& var)
 
 void handleTCPClientReadable(int fd, boost::any& var)
 {
-  PacketID* pident=any_cast<PacketID*>(var);
+  PacketID* pident=any_cast<PacketID>(&var);
   //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident->inNeeded: "<<pident->inNeeded<<", "<<pident->sock->getHandle()<<endl;
 
   shared_array<char> buffer(new char[pident->inNeeded]);
@@ -1044,7 +1043,7 @@ void handleTCPClientReadable(int fd, boost::any& var)
 
 void handleTCPClientWritable(int fd, boost::any& var)
 {
-  PacketID* pid=any_cast<PacketID*>(var);
+  PacketID* pid=any_cast<PacketID>(&var);
   
   int ret=write(fd, pid->outMSG.c_str(), pid->outMSG.size() - pid->outPos);
   if(ret > 0) {
