@@ -528,7 +528,7 @@ void startDoResolve(void *p)
 	close(dc->d_socket);
       }
       else {
-	any_cast<TCPConnection&>(g_fdm->getReadParameter(dc->d_socket)).state=TCPConnection::BYTE0;
+	any_cast<TCPConnection*>(g_fdm->getReadParameter(dc->d_socket))->state=TCPConnection::BYTE0;
 	struct timeval now; 
 	gettimeofday(&now, 0); // needs to be updated
 	g_fdm->setReadTTD(dc->d_socket, now, g_tcpTimeout);
@@ -587,69 +587,69 @@ void makeControlChannelSocket()
 
 void handleRunningTCPQuestion(int fd, boost::any& var)
 {
-  TCPConnection& conn=any_cast<TCPConnection&>(var);
+  TCPConnection* conn=any_cast<TCPConnection*>(var);
 
-  if(conn.state==TCPConnection::BYTE0) {
-    int bytes=read(conn.fd,conn.data,2);
+  if(conn->state==TCPConnection::BYTE0) {
+    int bytes=read(conn->fd,conn->data,2);
     if(bytes==1)
-      conn.state=TCPConnection::BYTE1;
+      conn->state=TCPConnection::BYTE1;
     if(bytes==2) { 
-      conn.qlen=(conn.data[0]<<8)+conn.data[1];
-      conn.bytesread=0;
-      conn.state=TCPConnection::GETQUESTION;
+      conn->qlen=(conn->data[0]<<8)+conn->data[1];
+      conn->bytesread=0;
+      conn->state=TCPConnection::GETQUESTION;
     }
     if(!bytes || bytes < 0) {
-      TCPConnection tmp(conn); 
+      TCPConnection tmp(*conn); 
       g_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();
       return;
     }
   }
-  else if(conn.state==TCPConnection::BYTE1) {
-    int bytes=read(conn.fd,conn.data+1,1);
+  else if(conn->state==TCPConnection::BYTE1) {
+    int bytes=read(conn->fd,conn->data+1,1);
     if(bytes==1) {
-      conn.state=TCPConnection::GETQUESTION;
-      conn.qlen=(conn.data[0]<<8)+conn.data[1];
-      conn.bytesread=0;
+      conn->state=TCPConnection::GETQUESTION;
+      conn->qlen=(conn->data[0]<<8)+conn->data[1];
+      conn->bytesread=0;
     }
     if(!bytes || bytes < 0) {
       if(g_logCommonErrors)
-	L<<Logger::Error<<"TCP client "<< conn.remote.toString() <<" disconnected after first byte"<<endl;
-      TCPConnection tmp(conn); 
+	L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected after first byte"<<endl;
+      TCPConnection tmp(*conn); 
       g_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();  // conn loses validity here..
       return;
     }
   }
-  else if(conn.state==TCPConnection::GETQUESTION) {
-    int bytes=read(conn.fd,conn.data + conn.bytesread,conn.qlen - conn.bytesread);
+  else if(conn->state==TCPConnection::GETQUESTION) {
+    int bytes=read(conn->fd,conn->data + conn->bytesread,conn->qlen - conn->bytesread);
     if(!bytes || bytes < 0) {
-      L<<Logger::Error<<"TCP client "<< conn.remote.toString() <<" disconnected while reading question body"<<endl;
-      TCPConnection tmp(conn);
+      L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected while reading question body"<<endl;
+      TCPConnection tmp(*conn);
       g_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();  // conn loses validity here..
 
       return;
     }
-    conn.bytesread+=bytes;
-    if(conn.bytesread==conn.qlen) {
-      conn.state=TCPConnection::DONE;        // this makes us immune from timeouts, from now on *we* are responsible
+    conn->bytesread+=bytes;
+    if(conn->bytesread==conn->qlen) {
+      conn->state=TCPConnection::DONE;        // this makes us immune from timeouts, from now on *we* are responsible
       DNSComboWriter* dc=0;
       try {
-	dc=new DNSComboWriter(conn.data, conn.qlen, g_now);
+	dc=new DNSComboWriter(conn->data, conn->qlen, g_now);
       }
       catch(MOADNSException &mde) {
 	g_stats.clientParseError++; 
-	L<<Logger::Error<<"Unable to parse packet from TCP client "<< conn.remote.toString() <<endl;
-	TCPConnection tmp(conn); 
+	L<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->remote.toString() <<endl;
+	TCPConnection tmp(*conn); 
 	g_fdm->removeReadFD(fd);
 	tmp.closeAndCleanup();
 	return;
       }
       
-      dc->setSocket(conn.fd);
+      dc->setSocket(conn->fd);
       dc->d_tcp=true;
-      dc->setRemote(&conn.remote);
+      dc->setRemote(&conn->remote);
       if(dc->d_mdp.d_header.qr)
 	L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
       else {
@@ -1013,29 +1013,29 @@ void handleRCC(int fd, boost::any& var)
 
 void handleTCPClientReadable(int fd, boost::any& var)
 {
-  PacketID& pident=any_cast<PacketID&>(var);
-  //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident.inNeeded: "<<pident.inNeeded<<", "<<pident.sock->getHandle()<<endl;
+  PacketID* pident=any_cast<PacketID*>(var);
+  //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident->inNeeded: "<<pident->inNeeded<<", "<<pident->sock->getHandle()<<endl;
 
-  shared_array<char> buffer(new char[pident.inNeeded]);
+  shared_array<char> buffer(new char[pident->inNeeded]);
 
-  int ret=read(fd, buffer.get(), pident.inNeeded);
+  int ret=read(fd, buffer.get(), pident->inNeeded);
   if(ret > 0) {
-    pident.inMSG.append(&buffer[0], &buffer[ret]);
-    pident.inNeeded-=ret;
-    if(!pident.inNeeded) {
-      //      cerr<<"Got entire load of "<<pident.inMSG.size()<<" bytes"<<endl;
-      PacketID pid=pident;
-      string msg=pident.inMSG;
+    pident->inMSG.append(&buffer[0], &buffer[ret]);
+    pident->inNeeded-=ret;
+    if(!pident->inNeeded) {
+      //      cerr<<"Got entire load of "<<pident->inMSG.size()<<" bytes"<<endl;
+      PacketID pid=*pident;
+      string msg=pident->inMSG;
       
       g_fdm->removeReadFD(fd);
       MT->sendEvent(pid, &msg); 
     }
     else {
-      //      cerr<<"Still have "<<pident.inNeeded<<" left to go"<<endl;
+      //      cerr<<"Still have "<<pident->inNeeded<<" left to go"<<endl;
     }
   }
   else {
-    PacketID tmp=pident;
+    PacketID tmp=*pident;
     g_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
     string empty;
     MT->sendEvent(tmp, &empty); // this conveys error status
@@ -1044,19 +1044,19 @@ void handleTCPClientReadable(int fd, boost::any& var)
 
 void handleTCPClientWritable(int fd, boost::any& var)
 {
-  PacketID& pid=any_cast<PacketID&>(var);
+  PacketID* pid=any_cast<PacketID*>(var);
   
-  int ret=write(fd, pid.outMSG.c_str(), pid.outMSG.size() - pid.outPos);
+  int ret=write(fd, pid->outMSG.c_str(), pid->outMSG.size() - pid->outPos);
   if(ret > 0) {
-    pid.outPos+=ret;
-    if(pid.outPos==pid.outMSG.size()) {
-      PacketID tmp=pid;
+    pid->outPos+=ret;
+    if(pid->outPos==pid->outMSG.size()) {
+      PacketID tmp=*pid;
       g_fdm->removeWriteFD(fd);
       MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
     }
   }
   else {  // error or EOF
-    PacketID tmp(pid);
+    PacketID tmp(*pid);
     g_fdm->removeWriteFD(fd);
     string sent;
     MT->sendEvent(tmp, &sent);         // we convey error status by sending empty string
