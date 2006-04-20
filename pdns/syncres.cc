@@ -120,6 +120,8 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   if(d_cacheonly)
     return 0;
 
+  // place for lookaside cache
+
   LOG<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl;
 
   string subdomain(qname);

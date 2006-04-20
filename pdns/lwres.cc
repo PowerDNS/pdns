@@ -68,7 +68,6 @@ int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP,
   d_inaxfr=false;
   d_rcode=0;
 
-
   struct sockaddr_in toaddr;
   Utility::socklen_t addrlen=sizeof(toaddr);
   toaddr.sin_addr.s_addr=htonl(ip);

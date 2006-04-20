@@ -13,7 +13,7 @@ pdns_server=$SBINARYPATH/pdns_recursor
 
 doPC()
 {
-	ret=$($BINARYPATH/rec_control $EXTRAOPTS $1 $2 2> /dev/null)
+	ret=`$BINARYPATH/rec_control $EXTRAOPTS $1 $2 2> /dev/null`
 }
 
 

@@ -1,0 +1,12 @@
+#!/bin/sh
+echo Testing dependencies and compiler.
+
+GMAKE=`which gmake`
+if test -z "$GMAKE"
+then
+	make basic_checks
+else
+	echo Using gmake to build
+	gmake basic_checks
+fi
+
