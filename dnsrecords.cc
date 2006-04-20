@@ -246,7 +246,7 @@ boilerplate_conv(CERT, 37,
 		 conv.xfr8BitInt(d_algorithm); 
 		 conv.xfrBlob(d_certificate);
 		 )
-
+#undef DS
 boilerplate_conv(DS, 43, 
 		 conv.xfr16BitInt(d_tag); 
 		 conv.xfr8BitInt(d_algorithm); 
