@@ -18,7 +18,7 @@ AutoReqProv: no
 rm -rf $RPM_BUILD_ROOT
 export PATH=/opt/gcc-4.1/bin:${PATH}
 export LD_LIBRARY_PATH=/opt/gcc-4.1/lib
-CXXFLAGS=-I/home/ahu/download/boost-06-03-30-0000/ make STATIC=semi
+CC=gcc CXXFLAGS=-I/home/ahu/download/boost-06-03-30-0000/ make STATIC=semi
 
 %install
 DESTDIR=$RPM_BUILD_ROOT make install
@@ -38,7 +38,7 @@ This RPM is semi-statically compiled and should work on all Linux distributions.
 "/usr/share/man/man1/pdns_recursor.1.gz"
 "/usr/share/man/man1/rec_control.1.gz"
 %dir "/etc/powerdns/"
-%config(noreplace) "/etc/powerdns/recursor.conf"
+%config "/etc/powerdns/recursor.conf-dist"
 
 %post
 echo Remember to create a 'pdns' user before starting pdns
