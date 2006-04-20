@@ -71,7 +71,8 @@ RecursorStats g_stats;
 bool g_quiet;
 NetmaskGroup* g_allowFrom;
 string s_programname="pdns_recursor";
-vector<int> g_tcpListenSockets;
+typedef vector<int> g_tcpListenSockets_t;
+g_tcpListenSockets_t g_tcpListenSockets;
 int g_tcpTimeout;
 
 struct DNSComboWriter {
@@ -1350,16 +1351,15 @@ int main(int argc, char **argv)
 
       if(listenOnTCP) {
 	if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown
-	  for_each(g_tcpListenSockets.begin(), g_tcpListenSockets.end(), 
-		   boost::bind(&FDMultiplexer::removeReadFD, g_fdm, _1));
+	  for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+	    g_fdm->removeReadFD(*i);
 	  listenOnTCP=false;
 	}
       }
       else {
 	if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
-	  for_each(g_tcpListenSockets.begin(), g_tcpListenSockets.end(), 
-		   boost::bind(&FDMultiplexer::addReadFD, 
-			       g_fdm, _1, handleNewTCPQuestion, boost::any()));
+	  for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+	    g_fdm->addReadFD(*i, handleNewTCPQuestion);
 	  listenOnTCP=true;
 	}
       }
