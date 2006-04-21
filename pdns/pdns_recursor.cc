@@ -841,10 +841,15 @@ void daemonize(void)
   
   setsid(); 
 
-  // cleanup open fds, but skip sockets 
-  close(0);
-  close(1);
-  close(2);
+  int i=open("/dev/null",O_RDWR); /* open stdin */
+  if(i < 0) 
+    L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
+  else {
+    dup2(i,0); /* stdin */
+    dup2(i,1); /* stderr */
+    dup2(i,2); /* stderr */
+    close(i);
+  }
 }
 #endif
 
