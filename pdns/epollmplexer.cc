@@ -66,6 +66,7 @@ EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents
   }
   catch(FDMultiplexerException &fe) {
     close(fd);
+    close(d_epollfd);
     throw FDMultiplexerException("epoll multiplexer failed self-test: "+string(fe.what()));
   }
     
