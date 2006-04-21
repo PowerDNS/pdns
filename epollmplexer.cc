@@ -55,6 +55,20 @@ EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents
   d_epollfd=epoll_create(s_maxevents); // not hard max
   if(d_epollfd < 0)
     throw FDMultiplexerException("Setting up epoll: "+stringerror());
+  int fd=socket(AF_INET, SOCK_DGRAM, 0); // for self-test
+  if(fd < 0)
+    return;
+  try {
+    addReadFD(fd, 0);
+    removeReadFD(fd);
+    close(fd);
+    return;
+  }
+  catch(FDMultiplexerException &fe) {
+    close(fd);
+    throw FDMultiplexerException("epoll multiplexer failed self-test: "+string(fe.what()));
+  }
+    
 }
 
 void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)

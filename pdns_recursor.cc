@@ -819,7 +819,7 @@ void makeUDPServerSockets()
 
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0) 
-      throw AhuException("Resolver binding to server socket for "+*i+": "+stringerror());
+      throw AhuException("Resolver binding to server socket on port "+::arg()["local-port"]+" for "+*i+": "+stringerror());
     
     Utility::setNonBlocking(fd);
     //    g_fdm->addReadFD(fd, handleNewUDPQuestion);
@@ -1135,8 +1135,12 @@ FDMultiplexer* getMultiplexer()
       L<<Logger::Error<<"Enabled '"<<ret->getName()<<"' multiplexer"<<endl;
       return ret;
     }
-    catch(...)
-      {}
+    catch(FDMultiplexerException &fe) {
+      L<<Logger::Error<<"Non-fatal error initializing possible multiplexer: "<<fe.what()<<endl;
+    }
+    catch(...) {
+      L<<Logger::Error<<"Non-fatal error initializing possible multiplexer"<<endl;
+    }
   }
   L<<Logger::Error<<"No working multiplexer found!"<<endl;
   exit(1);
