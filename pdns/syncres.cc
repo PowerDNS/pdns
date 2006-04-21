@@ -296,11 +296,11 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
       if((uint32_t)d_now.tv_sec < ni->d_ttd) {
 	sttl=ni->d_ttd - d_now.tv_sec;
 	if(ni->d_qtype.getCode()) {
-	  LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached for another "<<sttl<<" seconds"<<endl;
+	  LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
 	  res = RCode::NoError;
 	}
 	else {
-	  LOG<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached for another "<<sttl<<" seconds"<<endl;
+	  LOG<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
 	  res= RCode::NXDomain; 
 	}
 	giveNegative=true;
@@ -318,7 +318,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   bool found=false, expired=false;
 
   if(RC.get(d_now.tv_sec, sqname,sqt, &cset) > 0) {
-    LOG<<prefix<<qname<<": Found cache hit for "<<sqt.getName()<<": ";
+    LOG<<prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG<<j->content;
       if(j->ttl>(unsigned int) d_now.tv_sec) {
@@ -340,7 +340,8 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   
     LOG<<endl;
     if(found && !expired) {
-      res=0;
+      if(!giveNegative)
+	res=0;
       return true;
     }
     else
