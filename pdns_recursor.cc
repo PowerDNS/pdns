@@ -1136,7 +1136,7 @@ FDMultiplexer* getMultiplexer()
       return ret;
     }
     catch(FDMultiplexerException &fe) {
-      L<<Logger::Error<<"Non-fatal error initializing possible multiplexer: "<<fe.what()<<endl;
+      L<<Logger::Error<<"Non-fatal error initializing possible multiplexer ("<<fe.what()<<"), falling back"<<endl;
     }
     catch(...) {
       L<<Logger::Error<<"Non-fatal error initializing possible multiplexer"<<endl;
