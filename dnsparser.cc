@@ -188,7 +188,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   d_content.resize(contentlen);
   copy(packet+sizeof(dnsheader), packet+len, d_content.begin());
   
-  unsigned int n;
+  unsigned int n=0;
 
   PacketReader pr(d_content);
   bool validPacket=false;
@@ -234,10 +234,22 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 #endif 
   }
   catch(out_of_range &re) {
-    if(!(validPacket && d_header.tc)) // don't sweat it over truncated packets
+    if(validPacket && d_header.tc) { // don't sweat it over truncated packets, but do adjust an, ns and arcount
+      if(n < d_header.ancount) {
+	d_header.ancount=n; d_header.nscount = d_header.arcount = 0;
+      }
+      else if(n < d_header.ancount + d_header.nscount) {
+	d_header.nscount = n - d_header.ancount; d_header.arcount=0;
+      }
+      else {
+	d_header.arcount = n - d_header.ancount - d_header.nscount;
+      }
+    }
+    else {
       throw MOADNSException("Error parsing packet of "+lexical_cast<string>(len)+" bytes (rd="+
 			    lexical_cast<string>(d_header.rd)+
 			    "), out of bounds: "+string(re.what()));
+    }
   }
 }
 
