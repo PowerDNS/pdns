@@ -243,13 +243,13 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 
 bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
 {
-  if(d_header.arcount) {
+  if(d_header.arcount && !d_answers.empty()) {
     eo->d_packetsize=d_answers.back().first.d_class;
     struct Stuff {
       uint8_t extRCode, version;
       uint16_t Z;
     } __attribute__((packed));
-    
+     
     Stuff stuff;
     uint32_t ttl=ntohl(d_answers.back().first.d_ttl);
     memcpy(&stuff, &ttl, sizeof(stuff));
