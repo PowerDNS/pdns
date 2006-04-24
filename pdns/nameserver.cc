@@ -196,12 +196,12 @@ void UDPNameserver::send(DNSPacket *p)
     p=new DNSPacket(*p);
     p->truncate(512);
     buffer=p->getData();
-    if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(p->remote),p->d_socklen)<0) 
+    if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->d_socklen)<0) 
       L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
     delete p;
   }
   else {
-    if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(p->remote),p->d_socklen)<0)
+    if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->d_socklen)<0)
       L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
   }
 }

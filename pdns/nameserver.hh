@@ -85,7 +85,7 @@ private:
 
 inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 {
-  char remote[ sizeof(sockaddr_in6) ];
+  ComboAddress remote;
   extern StatBag S;
 
   Utility::socklen_t addrlen;
@@ -93,7 +93,7 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   char mesg[513];
   Utility::sock_t sock=-1;
 
-  memset( remote, 0, sizeof( remote ));
+  memset( &remote, 0, sizeof( remote ));
   addrlen=sizeof(remote);  
   if(d_sockets.size()>1) {
     fd_set rfds=d_rfds;
@@ -109,7 +109,7 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 
 	// XXX FIXME this code could be using recvmsg + ip_pktinfo on platforms that support it
 	
-	if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) remote, &addrlen))<0) {
+	if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) &remote, &addrlen))<0) {
 	  L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
 	  return 0;
 	}
@@ -123,13 +123,13 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     sock=d_sockets[0];
 
     len=0;
-    if((len=recvfrom(sock,mesg,512,0,(sockaddr*) remote, &addrlen))<0) {
+    if((len=recvfrom(sock,mesg,512,0,(sockaddr*) &remote, &addrlen))<0) {
       L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
       return 0;
     }
   }
   
-  DLOG(L<<"Received a packet " << len <<" bytes long from "<<inet_ntoa( reinterpret_cast< sockaddr_in * >( &remote )->sin_addr )<<endl);
+  DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
   
   DNSPacket *packet;
   if(prefilled)  // they gave us a preallocated packet
@@ -138,7 +138,7 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     packet=new DNSPacket; // don't forget to free it!
   packet->d_dt.set(); // timing
   packet->setSocket(sock);
-  packet->setRemote((struct sockaddr *)remote, addrlen);
+  packet->setRemote(&remote);
   if(packet->parse(mesg, len)<0) {
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", packet->getRemote());

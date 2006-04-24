@@ -238,7 +238,7 @@ void *qthread(void *p)
     S.ringAccount("remotes",P->getRemote());
 
     if((P->d.opcode != Opcode::Notify) && PC.get(P,&cached)) { // short circuit - does the PacketCache recognize this question?
-      cached.setRemote((struct sockaddr *)(P->remote),P->d_socklen);  // inlined
+      cached.setRemote(&P->remote);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
       cached.spoofID(P->d.id);                                        // inlined 
       cached.d.rd=P->d.rd; // copy in recursion desired bit 

@@ -56,20 +56,18 @@ string DNSPacket::getLocal() const
   int addrlen=sizeof(sa);
 
   getsockname(d_socket, (struct sockaddr *)&sa, (socklen_t *)&addrlen);
-  return sockAddrToString(&sa);
+  return sockAddrToString((struct sockaddr_in*)&sa);
 }
 
 
 string DNSPacket::getRemote() const
 {
-  return sockAddrToString((struct sockaddr_in *)remote);
+  return remote.toString();
 }
 
 uint16_t DNSPacket::getRemotePort() const
 {
-  if(d_socklen==sizeof(sockaddr_in))
-    return ((struct sockaddr_in*)remote)->sin_port;
-  return 0;
+  return remote.sin4.sin_port;
 }
 
 void DNSPacket::trim()
@@ -83,7 +81,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
 {
   DLOG(L<<"DNSPacket copy constructor called!"<<endl);
   d_socket=orig.d_socket;
-  memcpy(remote, orig.remote, sizeof(remote));
+  remote=orig.remote;
   len=orig.len;
   d_qlen=orig.d_qlen;
   d_dt=orig.d_dt;
@@ -1400,7 +1398,7 @@ DNSPacket *DNSPacket::replyPacket() const
   DNSPacket *r=new DNSPacket;
   r->setSocket(d_socket);
 
-  r->setRemote((struct sockaddr *)remote, d_socklen);
+  r->setRemote(&remote);
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative
   r->setRA(0); // no recursion available

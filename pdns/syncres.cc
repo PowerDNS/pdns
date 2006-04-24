@@ -94,7 +94,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     return -1;
   
   set<GetBestNSAnswer> beenthere;
-  int res=doResolve(qname, qtype, ret,0,beenthere);
+  int res=doResolve(qname, qtype, ret, 0, beenthere);
   if(!res)
     addCruft(qname, ret);
   return res;
