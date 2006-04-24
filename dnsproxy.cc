@@ -109,8 +109,8 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 
     ConntrackEntry ce;
     ce.id       = p->d.id;
-    memcpy((void *)&ce.remote,(void *)&p->remote, p->d_socklen);
-    ce.addrlen  = p->d_socklen;
+    memcpy((void *)&ce.remote,(void *)&p->remote, p->remote.getSocklen()); 
+    ce.addrlen  = p->remote.getSocklen();
     ce.outsock  = p->getSocket();
     ce.created  = time( NULL );
 
