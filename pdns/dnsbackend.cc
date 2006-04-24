@@ -32,14 +32,12 @@ string DNSBackend::getRemote(DNSPacket *p)
 
 bool DNSBackend::getRemote(DNSPacket *p, struct sockaddr *sa, Utility::socklen_t *len)
 {
-  if(p->d_socklen<*len)
+  if(p->remote.getSocklen() < *len)
     return false;
-  *len=p->d_socklen;
+  *len=p->remote.getSocklen();
   memcpy(sa,&p->remote,*len);
   return true;
 }
-
-
 
 void DNSBackend::setArgPrefix(const string &prefix)
 {

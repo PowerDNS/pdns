@@ -26,7 +26,7 @@
 
 #include <string>
 #include <errno.h>
-
+#include<boost/tokenizer.hpp>
 #include <algorithm>
 
 #include "dns.hh"
@@ -85,7 +85,6 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   len=orig.len;
   d_qlen=orig.d_qlen;
   d_dt=orig.d_dt;
-  d_socklen=orig.d_socklen;
   d_compress=orig.d_compress;
   d_tcp=orig.d_tcp;
   qtype=orig.qtype;
@@ -674,37 +673,37 @@ void DNSPacket::addNAPTRRecord(const string &domain, const string &content, uint
   // content contains: 100  100  "s"   "http+I2R"   ""    _http._tcp.foo.com.
   //                   100   50  "u"   "e2u+sip"    "" testuser@domain.com
   
-  vector<string> parts;
-  stringtok(parts,content);
-  if(parts.size() < 2) {
-    throw AhuException("Missing data for type NAPTR '"+domain+"'");
+  using namespace boost;
+  escaped_list_separator<char> els("\\", " ", "\"");
+  tokenizer<escaped_list_separator<char> > tok(content, els);
+  tokenizer<escaped_list_separator<char> >::iterator iter=tok.begin();
+  int order, pref;
+  string flags, services, regex, replacement;
+  unsigned int n;
+  for(n=0; iter != tok.end(); ++iter, ++n) {
+    switch(n) {
+    case 0:
+	order=atoi(iter->c_str());
+	break;
+    case 1:
+      pref=atoi(iter->c_str());
+      break;
+    case 2:
+      flags=*iter;
+      break;
+    case 3:
+      services=*iter;
+      break;
+    case 4:
+      regex=*iter;
+      break;
+    case 5:
+      replacement=*iter;
+      break;
+    }
   }
-
-  int order=atoi(parts[0].c_str());
-  int pref=atoi(parts[1].c_str());
-
-  vector<string::const_iterator> poss;
-  string::const_iterator i;
-  for(i=content.begin();i!=content.end();++i)
-    if(*i=='"')
-      poss.push_back(i);
-
-  if(poss.size()!=6) {
-    throw AhuException("Missing content for type NAPTR '"+domain+"'");
-  }
- 
-  string flags, services, regex;
-  insert_iterator<string> flagsi(flags, flags.begin());
-  copy(poss[0]+1,poss[1],flagsi);
-  insert_iterator<string> servicesi(services, services.begin());
-  copy(poss[2]+1,poss[3],servicesi);
-  insert_iterator<string> regexi(regex, regex.begin());
-  copy(poss[4]+1,poss[5],regexi);
-  
-  for(i=poss[5]+1;i<content.end() && isspace(*i);++i); // skip spaces
-  string replacement;
-  insert_iterator<string> replacementi(replacement,replacement.begin());
-  copy(i,content.end(),replacementi);
+  if(n!=6 || iter!=tok.end())
+    throw AhuException("Error parsing NAPTR content '"+content+"'");
 
 /* 
  The packet format for the NAPTR record is:

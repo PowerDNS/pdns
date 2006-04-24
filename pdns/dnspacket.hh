@@ -240,7 +240,6 @@ public:
   //////// DATA !
 
   ComboAddress remote;
-  Utility::socklen_t d_socklen; // 4
   uint16_t len; //!< length of the raw binary packet 2
   uint16_t qclass;  //!< class of the question - should always be INternet 2
   struct dnsheader d; //!< dnsheader at the start of the databuffer 12
