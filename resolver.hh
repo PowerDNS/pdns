@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 #include <sys/types.h>
-
+#include "iputils.hh"
 #ifndef WIN32
 
 # include <arpa/nameser.h>
@@ -85,6 +85,6 @@ private:
   int d_timeout;
   uint32_t d_ip;
   bool d_inaxfr;
-  struct sockaddr_in d_toaddr;
+  ComboAddress d_toaddr;
 };
 

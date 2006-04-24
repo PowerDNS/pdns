@@ -31,6 +31,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <sys/types.h>
+#include "iputils.hh"
 
 #ifndef WIN32
 #include <sys/socket.h>
@@ -115,7 +116,7 @@ public:
     unsigned int arcount:16;  //!< number of additional resource records
   };
 
-  inline void setRemote(const struct sockaddr *a, Utility::socklen_t socklen);
+  inline void setRemote(const ComboAddress*);
   string getLocal() const;
   string getRemote() const;
   uint16_t getRemotePort() const;
@@ -238,7 +239,7 @@ public:
 
   //////// DATA !
 
-  char remote[sizeof(sockaddr_in6)];
+  ComboAddress remote;
   Utility::socklen_t d_socklen; // 4
   uint16_t len; //!< length of the raw binary packet 2
   uint16_t qclass;  //!< class of the question - should always be INternet 2
@@ -333,13 +334,9 @@ int DNSPacket::parse(const char *mesg, int length)
 }
 
 //! Use this to set where this packet was received from or should be sent to
-inline void DNSPacket::setRemote(const struct sockaddr *s, Utility::socklen_t socklen)
+inline void DNSPacket::setRemote(const ComboAddress *s)
 {
-  if(socklen>(Utility::socklen_t)sizeof(remote))
-    throw AhuException("Address too long for storage: "+itoa(socklen));
-
-  memcpy((void *)remote,(void *)s,socklen);
-  d_socklen=socklen;
+  remote=*s;
 }
 
 inline void DNSPacket::spoofID(uint16_t id)

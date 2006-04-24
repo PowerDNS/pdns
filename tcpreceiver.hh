@@ -48,8 +48,8 @@ public:
 private:
 
   static int sendDelPacket(DNSPacket *p, int outsock);
-  static int readLength(int fd, struct sockaddr_in *remote);
-  static void getQuestion(int fd, char *mesg, int pktlen, const struct sockaddr_in &remote);
+  static int readLength(int fd, ComboAddress *remote);
+  static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote);
   static int doAXFR(const string &target, DNSPacket *q, int outsock);
   static bool canDoAXFR(DNSPacket *q);
   static void *doConnection(void *data);

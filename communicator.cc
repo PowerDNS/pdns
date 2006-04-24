@@ -290,7 +290,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
 int CommunicatorClass::doNotifications()
 {
-  struct sockaddr_in from;
+  ComboAddress from;
   Utility::socklen_t fromlen=sizeof(from);
   char buffer[1500];
   int size;
@@ -300,7 +300,7 @@ int CommunicatorClass::doNotifications()
   while((size=recvfrom(d_nsock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen))>0) {
     DNSPacket p;
 
-    p.setRemote((struct sockaddr *)&from, fromlen);
+    p.setRemote(&from);
 
     if(p.parse(buffer,size)<0) {
       L<<Logger::Warning<<"Unable to parse SOA notification answer from "<<p.getRemote()<<endl;

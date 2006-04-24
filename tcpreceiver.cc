@@ -84,7 +84,7 @@ void *TCPNameserver::launcher(void *data)
 }
 
 
-int TCPNameserver::readLength(int fd, struct sockaddr_in *remote)
+int TCPNameserver::readLength(int fd, ComboAddress *remote)
 {
   int bytesLeft=2;
   unsigned char buf[2];
@@ -95,13 +95,13 @@ int TCPNameserver::readLength(int fd, struct sockaddr_in *remote)
   while(bytesLeft) {
     int ret=waitForData(fd, s_timeout);
     if(ret<0)
-      throw AhuException("Waiting on data from remote TCP client "+string(inet_ntoa(remote->sin_addr))+": "+stringerror());
+      throw AhuException("Waiting on data from remote TCP client "+remote->toString()+": "+stringerror());
   
     ret=recv(fd, reinterpret_cast< char * >( buf ) +2-bytesLeft, bytesLeft,0);
     if(ret<0)
-      throw AhuException("Trying to read data from remote TCP client "+string(inet_ntoa(remote->sin_addr))+": "+stringerror());
+      throw AhuException("Trying to read data from remote TCP client "+remote->toString()+": "+stringerror());
     if(!ret) {
-      DLOG(L<<"Remote TCP client "+string(inet_ntoa(remote->sin_addr))+" closed connection");
+      DLOG(L<<"Remote TCP client "+remote->toString()+" closed connection");
       return -1;
     }
     bytesLeft-=ret;
@@ -109,7 +109,7 @@ int TCPNameserver::readLength(int fd, struct sockaddr_in *remote)
   return buf[0]*256+buf[1];
 }
 
-void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const struct sockaddr_in &remote)
+void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const ComboAddress &remote)
 {
   int ret=0, bytesread=0;
   while(bytesread<pktlen) {
@@ -122,9 +122,9 @@ void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const struct soc
 
  err:;
   if(ret<0) 
-    throw AhuException("Error reading DNS data from TCP client "+string(inet_ntoa(remote.sin_addr))+": "+stringerror());
+    throw AhuException("Error reading DNS data from TCP client "+remote.toString()+": "+stringerror());
   else 
-    throw AhuException("Remote TCP client "+string(inet_ntoa(remote.sin_addr))+" closed connection");
+    throw AhuException("Remote TCP client "+remote.toString()+" closed connection");
 }
 
 void *TCPNameserver::doConnection(void *data)
@@ -140,14 +140,14 @@ void *TCPNameserver::doConnection(void *data)
     DLOG(L<<"TCP Connection accepted on fd "<<fd<<endl);
     
     for(;;) {
-      struct sockaddr_in remote;
+      ComboAddress remote;
       
       int pktlen=readLength(fd, &remote);
       if(pktlen<0) // EOF
 	break;
 
       if(pktlen>511) {
-	L<<Logger::Error<<"Received an overly large question from "<<inet_ntoa(remote.sin_addr)<<", dropping"<<endl;
+	L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
 	break;
       }
       
@@ -159,7 +159,7 @@ void *TCPNameserver::doConnection(void *data)
 
       packet=new DNSPacket;
 
-      packet->setRemote((struct sockaddr *)&remote,sizeof(remote));
+      packet->setRemote(&remote);
       packet->d_tcp=true;
       if(packet->parse(mesg, pktlen)<0)
 	break;
@@ -198,7 +198,7 @@ void *TCPNameserver::doConnection(void *data)
 
       DNSPacket* cached=new DNSPacket;
       if(!packet->d.rd && (PC.get(packet, cached))) { // short circuit - does the PacketCache recognize this question?
-	cached->setRemote((struct sockaddr *)(packet->remote), sizeof(struct sockaddr_in));
+	cached->setRemote(&packet->remote);
 	cached->spoofID(packet->d.id);
 	if(sendDelPacket(cached, fd)<0) 
 	  goto out;
@@ -264,7 +264,7 @@ bool TCPNameserver::canDoAXFR(DNSPacket *q)
   if(arg().mustDo("disable-axfr"))
     return false;
 
-  if( arg()["allow-axfr-ips"].empty() || d_ng.match( (struct sockaddr_in *) &q->remote ) )
+  if( arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->remote ) )
     return true;
 
   extern CommunicatorClass Communicator;

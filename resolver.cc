@@ -232,10 +232,10 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 
   struct in_addr inp;
   Utility::inet_aton(ip.c_str(),&inp);
-  d_toaddr.sin_addr.s_addr=inp.s_addr;
+  d_toaddr.sin4.sin_addr.s_addr=inp.s_addr;
 
-  d_toaddr.sin_port=htons(port);
-  d_toaddr.sin_family=AF_INET;
+  d_toaddr.sin4.sin_port=htons(port);
+  d_toaddr.sin4.sin_family=AF_INET;
 
   d_sock=socket(AF_INET,SOCK_STREAM,0);
   if(d_sock<0)
@@ -417,7 +417,7 @@ Resolver::res_t Resolver::result()
 {
   try {
     DNSPacket p;
-    p.setRemote((const sockaddr*)&d_toaddr, sizeof(d_toaddr));
+    p.setRemote(&d_toaddr);
     p.d_tcp = d_inaxfr; // fixes debian bug 330184
     if(p.parse((char *)d_buf, d_len)<0)
       throw ResolverException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");

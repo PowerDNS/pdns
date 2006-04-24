@@ -93,7 +93,7 @@ void DNSProxy::onlyFrom(const string &ips)
 
 bool DNSProxy::recurseFor(DNSPacket* p)
 {
-  return d_ng.match((struct sockaddr_in *)&p->remote);
+  return d_ng.match((ComboAddress *)&p->remote);
 }
 
 /** returns false if p->remote is not allowed to recurse via us */
