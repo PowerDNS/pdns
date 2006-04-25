@@ -22,7 +22,9 @@
 
 #include <string>
 #include <stdexcept>
+#ifndef SOLARIS8
 #include <stdint.h>
+#endif
 
 using namespace std;
 

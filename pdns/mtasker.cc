@@ -243,7 +243,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   uc->uc_stack.ss_sp = new char[d_stacksize];
   
   uc->uc_stack.ss_size = d_stacksize;
-#ifdef SOLARIS
+#ifdef SOLARIS8
   uc->uc_stack.ss_sp = (void*)(((char*)uc->uc_stack.ss_sp)+d_stacksize);
   makecontext (uc,(void (*)(...))threadWrapper, 5, this, start, d_maxtid, val);
 #else
@@ -277,7 +277,11 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
     return true;
   }
   if(!d_zombiesQueue.empty()) {
+#ifdef SOLARIS8
+    delete[] (((char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp)-d_stacksize);
+#else
     delete[] (char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp;
+#endif
     delete d_threads[d_zombiesQueue.front()];
     d_threads.erase(d_zombiesQueue.front());
     d_zombiesQueue.pop();
