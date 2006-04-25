@@ -6170,8 +6170,8 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>set-gid</term>
-	    <term>set-uid</term>
+	    <term>setgid</term>
+	    <term>setuid</term>
 	    <listitem>
 	      <para>
 		PowerDNS can change its user and group id after binding to its socket. Can be used for better security.
@@ -6451,6 +6451,266 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       <para>
 	Finally, 12% of queries were not performed because identical queries had gone out previously, saving load servers worldwide.
       </para>
+    </sect1>
+    <sect1 id="recursor-design-and-engineering">
+      <title>Design and Engineering of the PowerDNS Recursor</title>
+      <para>
+	<warning>
+	  <para>
+	    This section is aimed at programmers wanting to contibute to the recursor, or to help fix bugs. It is not required
+	    reading for a PowerDNS operator, although it might prove interesting.
+	  </para>
+	</warning>
+      </para>
+      <para>The PowerDNS Recursor consists of very little code, the core DNS logic is less than a thousand lines.</para>
+	  
+	  <para>This smallness is achieved through the use of some fine infrastructure: MTasker, MOADNSParser, MPlexer and the C++ Standard Library/Boost. This page will explain the conceptual relation between these components, and the route of a packet through the program.</para>
+	  
+      <sect2>
+	<title>The PowerDNS Recursor</title>
+	<para>The Recursor started out as a tiny project, mostly a technology demonstration. These days it  consists of the core plus 9000 lines of features. This combined with a need for very high performance has made the recursor code less accessible than it was. The page you are reading hopes to rectify this situation.</para>
+	
+      </sect2>
+      <sect2>
+	<title>Synchronous code using MTasker</title>
+	<para>The original name of the program was <command>syncres</command>, which is still reflected in the filename <literal>syncres.cc</literal>, and the class SyncRes. This means that PowerDNS is written naively, with one thread of execution per query, synchronously waiting for packets, Normally this would lead to very bad performance (unless running on a computer with very fast threading, like possibly the Sun CoolThreads family), so PowerDNS employs <ulink url="http://ds9a.nl/mtasker">MTasker</ulink> for very fast userspace threading.</para>
+	
+	<para>MTasker, which was developed separately from PowerDNS, does not provide a full multithreading system but restricts itself to those features a nameserver needs. It offers cooperative multitasking, which means there is no forced preemption of threads. This in turn means that no two <command>MThreads</command> ever really run at the same time.</para>
+	
+	<para>This is both good and bad, but mostly good. It means PowerDNS does not have to think about locking. No two threads will ever be talking to the DNS cache at the same time, for example.</para>
+	
+	<para>It also means that the recursor could block if any operation takes too long.</para>
+	
+	<para>The core interaction with MTasker are the waitEvent() and sendEvent() functions. These pass around PacketID objects. Everything PowerDNS needs to wait for is described by a PacketID event, so the name is a bit misleading. Waiting for a TCP socket to have data available is also passed via a PacketID, for example.</para>
+	
+	<para>The version of MTasker in PowerDNS is newer than that described at the MTasker site, with a vital difference being that thet waitEvent() structure passes along a copy of the exact PacketID sendEvent() transmitted. Furthermore, threads can trawl through the list of events being waited for and modify the respective PacketIDs. This is used for example with <command>near miss</command> packets: packets that appear to answer questions we asked, but differ in the DNS id. On seeing such a packet, the recursor trawls through all PacketIDs and if it finds any nearmisses, it updates the PacketID::nearMisses counter. The actual PacketID thus lives inside MTasker while any thread is waiting for it.</para>
+	
+      </sect2>
+      <sect2>
+	<title>MPlexer</title>
+	<para>The Recursor uses a separate socket per outgoing query. This has the important benefit of making spoofing 64000 times harder, and additionally means that ICMP errors are reported back to the program. In measurements this appears to happen to one in ten queries, which would otherwise take a two-second timeout before PowerDNS moves on to another nameserver.</para>
+	
+	<para>However, this means that the program routinely needs to wait on hundreds or even thousands of sockets. Different operating systems offer various ways to monitor the state of sockets or more generally, filedescriptors. To abstract out the differing strategies, PowerDNS contains <command>MPlexer</command> classes, all of which descend from the FDMultiplexer class.</para>
+	
+	<para>This class is very simple and offers only five important methods: addReadFD(), addWriteFD(), removeReadFD(), removeWriteFD() and run.</para>
+	
+	<para>The arguments to the <command>add</command> functions consist of an fd, a callback, and a boost::any variable that is passed as a reference to the callback.</para>
+	
+	<para>This might remind you of the MTasker above, and it is indeed the same trick: state is stored within the MPlexer. As long as a filedescriptor remains within either the Read or Write active list, its state will remain stored.</para>
+	
+	<para>On arrival of a packet (or more generally, when an FD becomes readable or writable, which for example might mean a new TCP connection), the callback is called with the aforementioned reference to its parameter.</para>
+	
+	<para>The callback is free to call removeReadFD() or removeWriteFD() to remove itself from the active list.</para>
+	
+	<para>PowerDNS defines such callbacks as newUDPQuestion(), newTCPConnection(), handleRunningTCPConnection().</para>
+	
+	<para>Finally, the run() method needs to be called whenever the program is ready for new data. This happens in the main loop in pdns_recursor.cc. This loop is what MTasker refers to as <command>the kernel</command>. In this loop, any packets or other MPlexer events get translated either into new MThreads within MTasker, or into calls to sendEvent(), which in turn wakes up other MThreads.</para>
+	
+      </sect2>
+      <sect2>
+	<title>MOADNSParser</title>
+	<para>Yes, this does stand for <command>the Mother of All DNS Parsers</command>. And even that name does not do it justice! The MOADNSParser is the third attempt I've made at writing DNS packet parser and after two miserable failures, I think I've finally gotten it right.</para>
+	
+	<para>Writing and parsing DNS packets, and the DNS records it contains, consists of four things:
+	  <orderedlist>
+	    <listitem>
+	      <para>
+		Parsing a DNS record (from packet) into memory
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Generating a DNS record from memory (to packet)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Writing out memory to user-readable zone format
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Reading said zone format into memory
+	      </para>
+	    </listitem>
+	  </orderedlist>
+	</para>
+
+	<para>This gets tedious very quickly, as one needs to implement all four operations for each new record type, and there are dozens of them.</para>
+	
+	<para>While writing the MOADNSParser, it was discovered there is a remarkable symmetry between these four transitions. DNS Records are nearly always laid out in the same order in memory as in their zone format representation. And reading is nothing but inverse writing.</para>
+	
+	<para>So, the MOADNSParser is built around the notion of a <command>Conversion</command>, and we write all Conversion types once. So we have a Conversion from IP address in memory to an IP address in a DNS packet, and vice versa. And we have a Conversion from an IP address in zone format to memory, and vice versa.</para>
+	
+	<para>This in turn means that the entire implementation of the ARecordContent is as follows (wait for it!)</para>
+	
+	<literallayout class="monospaced">conv.xfrIP(d_ip);</literallayout>
+	<para>Through the use of the magic called <literal>c++ Templates</literal>, this one line does everything needed to perform the four operations mentioned above.</para>
+	
+	<para>At one point, I got really obsessed with PowerDNS memory use. So, how do we store DNS data in the PowerDNS recorsor? I mentioned <command>memory</command> above a lot - this means we could just store the DNSRecordContent objects. However, this would be wasteful.</para>
+	
+	<para>For example, storing the following:</para>
+	
+	<literallayout class="monospaced">www.ds9a.nl  3600 IN   CNAME  outpost.ds9a.nl.</literallayout>
+	<para>Would duplicate a lot of data. So, what is actually stored is a partial DNS packet. To store the CNAMEDNSRecordContent that corresponds to the above, we generate a DNS packet that has <command>www.ds9a.nl IN CNAME</command> as its question. Then we add <command>3600 IN CNAME outpost.ds9a.nl</command>. as its answer. Then we chop off the question part, and store the rest in the <command>www.ds9a.nl IN CNAME</command> key in our cache.</para>
+	
+	<para>When we need to retrieve <command>www.ds9a.nl IN CNAME</command>, the inverse happens. We find the proper partial packet, prefix it with a question for <command>www.ds9a.nl IN CNAME</command>, and expand the resulting packet into the answer <command>3600 IN CNAME outpost.ds9a.nl.</command>.</para>
+	
+	<para>Why do we go through all these motions? Because of DNS compression, which allows us to omit the whole <command>.ds9a.nl.</command> part, saving us 9 bytes. This is amplified when storing multiple MX records which all look more or less alike. This optimization is not performed yet though.</para>
+	
+	<para>Even without compression, it makes sense as all records are automatically stored very compactly.</para>
+	
+	<para>The PowerDNS recursor only parses a number of <command>well known record types</command> and passes all other information across verbatim - it doesn't have to know about the content it is serving.</para>
+	
+      </sect2>
+      <sect2>
+	<title>The C++ Standard Library / Boost</title>
+	<para>C++ is a powerful language. Perhaps a bit too powerful at times, you can turn a program into a real freakshow if you so desire.</para>
+	
+	<para>PowerDNS generally tries not to go overboard in this respect, but we do build upon a very advanced part of the <ulink url="http://www.boost.org">Boost</ulink> C++ library: 
+	  <ulink url="http://boost.org/libs/multi_index/doc/index.html">boost::multi index container</ulink>.</para>
+	
+	<para>This container provides the equivalent of SQL indexes on multiple keys. It also implements compound keys, which PowerDNS uses as well.</para>
+	
+	<para>The main DNS cache is implemented as a multi index container object, with a compound key on the name and type of a record. Furthermore, the cache is sequenced, each time a record is accessed it is moved to the end of the list. When cleanup is performed, we start at the beginning. New records also get inserted at the end. For DNS correctness, the sort order of the cache is case insensitive.</para>
+	
+	<para>The multi index container appears in other parts of PowerDNS, and MTasker as well.</para>
+	
+      </sect2>
+      <sect2>
+	<title>Actual DNS Algorithm</title>
+	<para>The DNS rfcs do define the DNS algorithm, but you can't actually implement it exactly that way, it was written in 1987.</para>
+	
+	<para>Also, like what happened to HTML, it is expected that even non-standards conforming domains work, and a sizeable fraction of them is misconfigured these days.</para>
+	
+	<para>Everything begins with SyncRes::beginResolve(), which knows nothing about sockets, and needs to be passed a domain name, dns type and dns class which we are interested in. It returns a vector of DNSResourceRecord objects, ready for writing either into an answer packet, or for internal use.</para>
+	
+	<para>After checking if the query is for any of the hardcoded domains (localhost, version.bind, id.server), the query is passed to SyncRes::doResolve, together with two vital parameters: the <literal>depth</literal> and <literal>beenthere</literal> set. As the word <command>recursor</command> implies, we will need to recurse for answers. The <command>depth</command> parameter documents how deep we've recursed already.</para>
+	
+	<para>The <literal>beenthere</literal> set prevents loops. At each step, when a nameserver is queried, it is added to the <literal>beenthere</literal> set. No nameserver in the set will ever be queried again for the same question in the recursion process - we know for a fact it won't help us further. This prevents the process from getting stuck in loops.</para>
+	
+	<para>SyncRes::doResolve first checks if there is a CNAME in cache, using SyncRes::doCNAMECacheCheck, for the domain name and type queried and if so, changes the query (which is passed by reference) to the domain the CNAME points to. This is the cause of many DNS problems, a CNAME record really means <command>start over with this query</command>.</para>
+	
+	<para>This is followed by a call do SyncRes::doCacheCheck, which consults the cache for a straight answer to the question (as possibly rerouted by a CNAME). This function also consults the so called negative cache, but we won't go into that just yet.</para>
+	
+	<para>If this function finds the correct answer, and the answer hasn't expired yet, it gets returned and we are (almost) done. This happens in 80 to 90% of all queries. Which is good, as what follows is a lot of work.</para>
+	
+	<para>To recap:
+	  <orderedlist>
+	    <listitem>
+	      <para>
+		beginResolve() - entry point, does checks for hardcoded domains
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		doResolve() - start of recursion process, gets passed <literal>depth</literal> of 0 and empty <literal>beenthere</literal> set
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		doCNAMECacheCheck() - check if there is a CNAME in cache which would reroute the query
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		doCacheCheck() - see if cache contains straight answer to possibly rerouted query.
+	      </para>
+	    </listitem>
+	  </orderedlist>
+	</para>
+	<para>If the data we were queried for was in the cache, we are almost done. One final step, which might as well be optional as nobody benefits from it, is SyncRes::addCruft. This function does additional processing, which means that if the query was for the MX record of a domain, we also add the IP address of the mail exchanger.</para>
+	
+      </sect2>
+      <sect2>
+	<title>The non-cached case</title>
+	<para>This is where things get interesting, because we start out with a nearly empty cache and have to go out to the net to get answers to fill it.</para>
+	
+	<para>The way DNS works, if you don't know the answer to a question, you find somebody who does. Initially you have no other place to go than the root servers. This is embodied in the SyncRes::getBestNSNamesFromCache method, which gets passed the domain we are interested in, as well as the <literal>depth</literal> and <literal>nsset</literal> parameters mentioned earlier.</para>
+	
+	<para>From now on, assume our query will be for <command><literal>www.powerdns.com.</literal></command>. SyncRes::getBestNSNamesFromCache will first check if there are NS records in cache for <literal><command>www.powerdns.com.</command></literal>, but there won't be. It then checks <literal>powerdns.com. NS</literal>, and while these records do exist on the internet, the recursor doesn't know about them yet. So, we go on to check the cache for <literal><command>com. NS</command></literal>, for which the same holds. Finally we end up checking for <literal><command>. NS</command></literal>, and these we do know about: they are the root servers and were loaded into PowerDNS on startup.</para>
+	
+	<para>So, SyncRes::getBestNSNamesFromCache fills out a set with the <command>names</command> of nameservers it knows about for the <command><literal>.</literal></command> zone.</para>
+	
+	<para>This set, together with the original query <command><literal>www.powerdns.com</literal></command> gets passed to SyncRes::doResolveAt. This function can't yet go to work immediately though, it only knows the names of nameservers it can try. This is like asking for directions and instead of hearing <command>take the third right</command> you are told <command>go to 123 Fifth Avenue, and take a right</command> - the answer doesn't help you further unless you know where 123 Fifth Avenue is.</para>
+	
+	<para>SyncRes::doResolveAt first shuffles the nameservers both randomly and on performance order. If it knows a nameserver was fast in the past, it will get queried first. More about this later.</para>
+	
+	<para>Ok, here is the part where things get a bit scary. How does SyncRes::doResolveAt find the IP address of a nameserver? Well, by calling SyncRes::getAs (<command>get A records</command>), which in turn calls.. SyncRes::doResolve. Hang on! That's where we came from! Massive potential for loops here. Well, it turns out that for any domain which can be resolved, this loop terminates. We do pass the <literal>beenthere</literal> set again, which makes sure we don't keep on asking the same questions to the same nameservers.</para>
+	
+	<para>Ok, SyncRes::getAs will give us the IP addresses of the chosen root-server, because these IP addresses were loaded on startup. We then ask these IP addresses (nameservers can have several) for its best answer for <command><literal>www.powerdns.com.</literal></command>. This is done using the LWRes class and specifically LWRes::asyncresolve, which gets passed domain name, type and IP address. This function interacts with MTasker and MPlexer above in ways which needn't concern us now. When it returns, the LWRes object contains the best answers the queried server had for our domain, which in this case means it tells us about the nameservers of <literal>com.</literal>, and their IP addresses.</para>
+	
+	<para>All the relevant answers it gives are stored in the cache, after which SyncRes::doResolveAt (which we are still in) evaluates what to do now.</para>
+	
+	<para>There are 6 options:
+	  <orderedlist>
+	    <listitem>
+	      <para>
+		The final answer is in, we are done, return to SyncRes::doResolve and SyncRes::beginResolve
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The nameserver we queried tells us the domain we asked for authoritatively does not exist. In case of the root-servers, this happens when we query for <emphasis><literal>www.powerdns.kom.</literal></emphasis> for example, there is no <emphasis><literal>kom.</literal></emphasis>. Return to SyncRes::beginResolve, we are done.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A lesser form - it tells us it is authoritative for the query we asked about, but there is no record matching our type. This happens when querying for the IPv6 address of a host which only has an IPv4 address. Return to SyncRes::beginResolve, we are done.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The nameserver passed us a CNAME to another domain, and we need to reroute. Go to SyncRes::doResolve for the new domain.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The namserver did not know about the domain, but does know who does, a <emphasis>referral</emphasis>. Stay within doResolveAt and loop to these new nameservers.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The nameserver replied saying <emphasis>no idea</emphasis>. This is called a <emphasis>lame delegation</emphasis>. Stay within SyncRes::doResolveAt and try the other nameservers we have for this domain.
+	      </para>
+	    </listitem>
+	  </orderedlist>
+	</para>
+	<para>When not redirected using a CNAME, this function will loop until it has exhausted all nameservers and all their IP addresses. DNS is surprisingly resilient that there is often only a single non-broken nameserver left to answer queries, and we need to be prepared for that.</para>
+	
+	<para>This is the whole DNS algorithm in PowerDNS, all in less than 700 lines of code. It contains a lot of tricky bits though, related to the cache.</para>
+	
+      </sect2>
+      <sect2>
+	<title>Some of the things we glossed over</title>
+	<para>Whenever a packet is sent to a remote nameserver, the response time is stored in the SyncRes::s_nsSpeeds map, using an exponentially weighted moving average. This EWMA averages out different response times, and also makes them decrease over time. This means that a nameserver that hasn't been queried recently gradually becomes <command>faster</command> in the eyes of PowerDNS, giving it a chance again.</para>
+	
+	<para>A timeout is accounted as a 1s response time, which should take that server out of the running for a while.</para>
+	
+	<para>Furthermore, queries are throttled. This means that each query to a nameserver that has failed is accounted in the <literal>s_throttle</literal> object. Before performing a new query, the query and the nameserver are looked up via shouldThrottle. If so, the query is assumed to have failed without even being performed. This saves a lot of network traffic and makes PowerDNS quick to respond to lame servers.</para>
+	
+	<para>It also offers a modicum of protection against birthday attack powered spoofing attempts, as PowerDNS will not innundate a broken server with queries.</para>
+	
+	<para>The negative query cache we mentioned earlier caches the cases 2 and 3 in the enumeration above. This data needs to be stored separately, as it represents <command>non-data</command>. Each negcache query entry is the name of the SOA record that was presented with the evidence of non-existance. This SOA record is then retrieved from the regular cache, but with the TTL that originally came with the NXDOMAIN (case 2) or NXRRSET (case 3).</para>
+	
+      </sect2>
+      <sect2>
+	<title>The Recursor Cache</title>
+	<para>As mentioned before, the cache stores partial packets. It also stores not the <command>Time To Live</command> of records, but in fact the <command>Time To Die</command>. If the cache contains data, but it is expired, that data should not be deemed present. This bit of PowerDNS has proven tricky, leading to deadlocks in the past.</para>
+	
+	<para>There are some other very tricky things to deal with. For example, through a process called <command>more details</command>, a domain might have more nameservers than listed in its parent zone. So, there might only be two nameservers for <literal><command>powerdns.com.</command></literal> in the <command><literal>com.</literal></command> zone, but the <command><literal>powerdns.com</literal></command> zone might list more.</para>
+	
+	<para>This means that the cache should not, when talking to the <command><literal>com.</literal></command> servers later on, overwrite these four nameservers with only the two copies the <command><literal>com.</literal></command> servers pass us.</para>
+	
+	<para>However, in other cases (like for example for SOA and CNAME records), new data should overwrite old data.</para>
+	
+      </sect2>
+      <sect2>
+	<title>Some small things</title>
+	<para>The server-side part of PowerDNS (<literal>pdns_recursor.cc</literal>), which listens to queries by end-users, is fully IPv6 capable using the ComboAddress class. This class is in fact a union of a <literal>struct sockaddr_in</literal> and a <literal>struct sockaddr_in6</literal>. As long as the <literal>sin_family</literal> (or <literal>sin6_family</literal>) and <literal>sin_port</literal> members are in the same place, this works just fine, allowing us to pass a ComboAddress*, cast to a <literal>sockaddr*</literal> to the socket functions. For convenience, the ComboAddress also offers a length() method which can be used to indicate the length - either sizeof(sockaddr_in) or sizeof(sockaddr_in6).</para>
+	
+	<para>Access to the recursor is governed through the NetmaskGroup class, which internally contains Netmaks, which in turn contain a ComboAddress.</para>
+      </sect2>
     </sect1>
   </chapter>
   <chapter id="replication"><title>Master/Slave operation &amp; replication</title>
@@ -8069,7 +8329,7 @@ while(&lt;&gt;)
       <para>
 	<warning>
 	  <para>
-	    This backend is deprecated! Use the Generic MySQL backend which is better in <emphasis>all</emphasis> respects.
+	    This backend is deprecated! Use the Generic MySQL backend which is better in <command>all</command> respects.
 	    It does support master/slave operation, this backend does not. See <xref linkend="generic-mypgsql-backends">.
 	  </para>
 	  <para>
@@ -8451,7 +8711,7 @@ CREATE TABLE Zones (
 	<para>
 	  <warning>
 	    <para>
-	      If using MySQL with 'slave' support enabled in PowerDNS you <emphasis>must</emphasis> run MySQL with a table engine that supports transactions.
+	      If using MySQL with 'slave' support enabled in PowerDNS you <command>must</command> run MySQL with a table engine that supports transactions.
 	    </para>
 	  </warning>
 	</para>
@@ -11207,11 +11467,11 @@ static RandomLoader randomloader;
 	  <para>
 	    First add the include directory, to do this you have to select <guilabel>Include files</guilabel>
 	    from the <guilabel>Show directories for:</guilabel> combobox. Then press the <guibutton>New</guibutton>
-	    button and browse to the <emphasis>include</emphasis> directory of pthreads (ie. <filename>C:\pthreads\include</filename>).
+	    button and browse to the <command>include</command> directory of pthreads (ie. <filename>C:\pthreads\include</filename>).
 	  </para>
 	  
 	  <para>
-	    Then switch to <guilabel>Library files</guilabel> and add the <emphasis>library</emphasis> directory
+	    Then switch to <guilabel>Library files</guilabel> and add the <command>library</command> directory
 	    (ie. <filename>C:\pthreads\lib</filename>) using the same method as above.
 	  </para>        
 	</sect4>
