@@ -1,0 +1,2 @@
+cp -ra ${install_dir}/* ${pdns_recursor_dir}
+mkdir -p $pdns_recursor_dir/usr/share/applications
