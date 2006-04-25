@@ -2,7 +2,9 @@
 #define PDNS_REC_CHANNEL
 #include <string>
 #include <map>
+#ifndef SOLARIS8
 #include <stdint.h>
+#endif
 #include <sys/un.h>
 
 

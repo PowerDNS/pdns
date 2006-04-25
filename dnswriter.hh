@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#ifndef SOLARIS8
 #include <stdint.h>
+#endif
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 
