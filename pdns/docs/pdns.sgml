@@ -81,6 +81,71 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-recursor-3-0-1"><title>Recursor version 3.0.1</title>
+	<para>
+	  Released 25th of April 2006, <ulink url="http://www.powerdns.com/en/downloads.aspx">download</ulink>.
+	</para>
+	<para>
+	  This release consists of nothing but tiny fixes to 3.0, including one with security implications. An upgrade is highly recommended.
+	</para>
+	<para>
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Compilation used both <filename>cc</filename> and <filename>gcc</filename>, leading to the possibility of compiling with different compiler versions (c766).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      <command>rec_control</command> would leave files named <filename>lsockXXXXXX</filename> around in the configured socket-dir. Operators
+	      may wish to remove these files from  their socket-dir (often <filename>/var/run</filename>), quite a few might have accumulated already (c767).
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
+	      Certain malformed packets could crash the recursor. As far as we can determine these packets could only lead to a crash, 
+	      but as always, there are no guarantees. A quick upgrade is highly recommended (commits C760, C761). Reported by David Gavarret.
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
+	      Recursor would not distinguish between NXDOMAIN and NXRRSET (c756). Reported and debugged by Jorn Ekkelenkamp.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Some error messages and trace logging statements were improved (commits C756, C758, C759).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      stderr was closed during daemonizing, but not dupped to /dev/null, leading to slight chance of odd behaviour on reporting errors (c757)
+	    </para>
+	  </listitem>
+	</itemizedlist>
+	Operating system specific fixes:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      The stock Debian sarge Linux kernel, 2.6.8, claims to support epoll but fails at runtime. The epoll self-testing code has been improved,
+	      and PowerDNS will fall back to a select based multiplexer if needed (c758) Reported by Michiel van Es.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Solaris 8 compilation and runtime issues were addressed. See the README for details (c765). Reported by Juergen Georgi and Kenneth Marshall.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Solaris 10 x86_64 compilation issues were addressed (c755). Reported and debugged by Eric Sproul.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      </sect2>
       <sect2 id="changelog-recursor-3-0"><title>Recursor version 3.0</title>
 	<para>
 	  Released 20th of April 2006, <ulink url="http://www.powerdns.com/en/downloads.aspx">download</ulink>.
@@ -4575,9 +4640,13 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
-	As of the 16th of July 2005, no actual security problems with PowerDNS 2.9.18 or later are known about. This page 
+	As of the 25th of April 2006, no actual security problems with PowerDNS 2.9.18, Recursor 3.0.1, or later are known about.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailinglists.
+      </para>
+      <para>
+	Version 3.0 of the PowerDNS recursor contains a denial of service bug which can be exploited remotely. This bug, which we believe to only lead to a crash,
+	has been fixed in 3.0.1. There are no guarantees however, so an upgrade from 3.0 is highly recommended.
       </para>
       <para>
 	All versions of PowerDNS before 2.9.18 contain the following two bugs, which only apply to installations running with the LDAP backend, or installations providing recursion
