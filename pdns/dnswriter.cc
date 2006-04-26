@@ -101,7 +101,7 @@ void DNSPacketWriter::xfr32BitInt(uint32_t val)
 
 void DNSPacketWriter::xfr16BitInt(uint16_t val)
 {
-  int rval=htons(val);
+  uint16_t rval=htons(val);
   uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
   d_record.insert(d_record.end(), ptr, ptr+2);
 }
