@@ -666,21 +666,24 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
     l_doIPv6AP=::arg().mustDo("aaaa-additional-processing");
 
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
-    if((k->d_place==DNSResourceRecord::ANSWER && k->qtype==QType(QType::MX)) || 
+    if( (k->d_place==DNSResourceRecord::ANSWER && (k->qtype==QType(QType::MX) || k->qtype==QType(QType::SRV)))  || 
        ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
       LOG<<d_prefix<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs IP for additional processing"<<endl;
-      set<GetBestNSAnswer>beenthere;
-      if(k->qtype==QType(QType::MX)) {
-	pair<string,string> prioServer=splitField(k->content,' ');
-	doResolve(prioServer.second, QType(QType::A), addit, 1, beenthere);
-	if(*l_doIPv6AP)
-	  doResolve(prioServer.second, QType(QType::AAAA), addit, 1, beenthere);
-      }
-      else {
-	doResolve(k->content,QType(QType::A),addit,1,beenthere);
-	if(*l_doIPv6AP)
-	  doResolve(k->content,QType(QType::AAAA),addit,1,beenthere);
-      }
+      set<GetBestNSAnswer> beenthere;
+      vector<pair<string::size_type, string::size_type> > fields;
+      vstringtok(fields, k->content, " ");
+      string host;
+      if(k->qtype==QType(QType::MX) && fields.size()==2)
+	host=string(k->content.c_str() + fields[1].first, fields[1].second - fields[1].first);
+      else if(k->qtype==QType(QType::NS))
+	host=k->content;
+      else if(k->qtype==QType(QType::SRV) && fields.size()==4)
+	host=string(k->content.c_str() + fields[3].first, fields[3].second - fields[3].first);
+      else 
+	continue;
+      doResolve(host, QType(QType::A), addit, 1, beenthere);
+      if(*l_doIPv6AP)
+	doResolve(host, QType(QType::AAAA), addit, 1, beenthere);
     }
   
   for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
