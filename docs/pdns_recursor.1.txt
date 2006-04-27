@@ -50,6 +50,12 @@ For authoritative listing of options, consult the documentation referenced above
 --allow-from::
 	If set, only allow these comma separated netmasks to recurse
 
+--auth-zones::
+           Comma separated list of 'zonename=filename' pairs. Zones read from
+           these files are served authoritatively. Example: auth-zones=
+           ds9a.nl=/var/zones/ds9a.nl, powerdns.com=/var/zones/powerdns.com.
+           Available since 3.1.
+
 --chroot::
 	switch to chroot jail
 
@@ -65,8 +71,17 @@ For authoritative listing of options, consult the documentation referenced above
 --delegation-only::
 	Which domains we only accept delegations from
 
+--export-etc-hosts::
+           If set, this flag will export the host names and IP addresses
+           mentioned in /etc/hosts. Available since 3.1.
 --fork::
 	If set, fork the daemon for possible double performance
+
+--forward-zones::
+           Comma separated list of 'zonename=IP' pairs. Queries for zones
+           listed here will be forwarded to the IP address listed.
+           auth-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1.
+           Available since 3.1.
 
 --hint-file::
 	If set, load root hints from this file

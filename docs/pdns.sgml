@@ -6086,6 +6086,15 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>auth-zones</term>
+	    <listitem>
+	      <para>
+		Comma separated list of 'zonename=filename' pairs. Zones read from these files are served authoritatively. Example:
+		<command>auth-zones= ds9a.nl=/var/zones/ds9a.nl, powerdns.com=/var/zones/powerdns.com</command>. Available since 3.1.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	  <varlistentry><term>chroot</term>
 	    <listitem><para>
 		If set, chroot to this directory for more security. See <xref linkend="security">.
@@ -6123,6 +6132,15 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>export-etc-hosts</term>
+	    <listitem>
+	      <para>
+		If set, this flag will export the host names and IP addresses mentioned in <filename>/etc/hosts</filename>. Available since 3.1.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
 	    <term>fork</term>
 	    <listitem>
 	      <para>
@@ -6131,7 +6149,15 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
-
+	  <varlistentry>
+	    <term>forward-zones</term>
+	    <listitem>
+	      <para>
+		Comma separated list of 'zonename=IP' pairs. Queries for zones listed here will be forwarded to the IP address listed.
+		<command>auth-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1</command>. Available since 3.1.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
 	  <varlistentry>
 	    <term>hints-file</term>
