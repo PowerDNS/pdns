@@ -17,7 +17,7 @@ rec_control(1) allows the operator to control a running instance
 of the pdns_recursor.
 
 The commands that can be passed to the recursor are described on
-http://doc.powerdns.com/built-in-recursor.html
+http://doc.powerdns.com/rec-control.html
 
 EXAMPLES
 --------
@@ -41,6 +41,34 @@ OPTIONS
 
 --socket-pid::
 	When running in SMP mode, pid of pdns_recursor to control
+
+COMMANDS
+--------
+dump-cache filename::
+	Dumps the entire cache to the filename mentioned. This file should
+	not exist already, PowerDNS will refuse to overwrite it. While
+	dumping, the recursor will not answer questions.
+
+get statistic::
+	Retrieve a statistic. For items that can be queried, see
+	http://doc.powerdns.com/recursor-stats.html
+
+ping::
+	Check if server is alive.
+
+quit::
+	Request shutdown of the recursor
+
+top-remotes::
+	Shows the top-20 most active remote hosts. Statistics are over the
+	last 'remotes-ringbuffer-entries' queries, which defaults to 0.
+
+wipe-cache domain0 [domain1]::
+	Wipe entries from the cache. This is useful if, for example, an
+	important server has a new IP address, but the TTL has not yet
+	expired. Multiple domain names can be passed. Note that you must
+	terminate a domain with a .!  So to wipe powerdns.org, issue
+	'rec_control wipe-cache powerdns.org.'.
 
 BUGS
 ----
