@@ -275,7 +275,6 @@ bool ZoneParser::isType(const string &s)
   if(isClass(s))
     return false;
 
-
   return true;
 }
 
