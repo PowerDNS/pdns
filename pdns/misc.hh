@@ -307,4 +307,21 @@ struct CIStringCompare: public binary_function<string, string, bool>
   }
 };
 pair<string, string> splitField(const string& inp, char sepa);
+
+inline bool isCanonical(const string& dom)
+{
+  if(dom.empty())
+    return false;
+  return dom[dom.size()-1]=='.';
+}
+
+inline string toCanonic(const string& zone, const string& domain)
+{
+  if(isCanonical(domain))
+    return domain;
+  string ret=domain;
+  ret.append(1,'.');
+  ret.append(zone);
+  return ret;
+}
 #endif
