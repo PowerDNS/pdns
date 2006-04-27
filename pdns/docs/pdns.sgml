@@ -6405,6 +6405,14 @@ local0.err                        /var/log/pdns.err
 	  </listitem>
 	  <listitem>
 	    <para>
+	      A busy server may need hundreds of file descriptors on startup, and deals with spikes better if it has that many available
+	      later on. Linux by default restricts processes to 1024 file descriptors, which should suffice most of the time, but Solaris
+	      has a default limit of 256. This can be raised using the ulimit command. FreeBSD has a default limit that is high enough for even
+	      very heavy duty use.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
 	      If you need it, try <command>--fork</command>, this will fork the daemon into two halves, allowing it to benefit from a second CPU.
 	      This feature almost doubles performance, but is a bit of a hack. 
 	    </para>
@@ -6559,7 +6567,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	<title>MPlexer</title>
 	<para>The Recursor uses a separate socket per outgoing query. This has the important benefit of making spoofing 64000 times harder, and additionally means that ICMP errors are reported back to the program. In measurements this appears to happen to one in ten queries, which would otherwise take a two-second timeout before PowerDNS moves on to another nameserver.</para>
 	
-	<para>However, this means that the program routinely needs to wait on hundreds or even thousands of sockets. Different operating systems offer various ways to monitor the state of sockets or more generally, filedescriptors. To abstract out the differing strategies, PowerDNS contains <command>MPlexer</command> classes, all of which descend from the FDMultiplexer class.</para>
+	<para>However, this means that the program routinely needs to wait on hundreds or even thousands of sockets. Different operating systems offer various ways to monitor the state of sockets or more generally, filedescriptors. To abstract out the differing strategies (<function>select</function>, <function>epoll</function>, <function>kqueue</function>, <function>completion ports</function>), PowerDNS contains <command>MPlexer</command> classes, all of which descend from the FDMultiplexer class.</para>
 	
 	<para>This class is very simple and offers only five important methods: addReadFD(), addWriteFD(), removeReadFD(), removeWriteFD() and run.</para>
 	
@@ -6709,7 +6717,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	
 	<para>Ok, SyncRes::getAs will give us the IP addresses of the chosen root-server, because these IP addresses were loaded on startup. We then ask these IP addresses (nameservers can have several) for its best answer for <command><literal>www.powerdns.com.</literal></command>. This is done using the LWRes class and specifically LWRes::asyncresolve, which gets passed domain name, type and IP address. This function interacts with MTasker and MPlexer above in ways which needn't concern us now. When it returns, the LWRes object contains the best answers the queried server had for our domain, which in this case means it tells us about the nameservers of <literal>com.</literal>, and their IP addresses.</para>
 	
-	<para>All the relevant answers it gives are stored in the cache, after which SyncRes::doResolveAt (which we are still in) evaluates what to do now.</para>
+	<para>All the relevant answers it gives are stored in the cache (or actually, merged), after which SyncRes::doResolveAt (which we are still in) evaluates what to do now.</para>
 	
 	<para>There are 6 options:
 	  <orderedlist>
@@ -6772,6 +6780,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	<para>This means that the cache should not, when talking to the <command><literal>com.</literal></command> servers later on, overwrite these four nameservers with only the two copies the <command><literal>com.</literal></command> servers pass us.</para>
 	
 	<para>However, in other cases (like for example for SOA and CNAME records), new data should overwrite old data.</para>
+	<para>Note that PowerDNS deviates from RFC 2181 (section 5.4.1) in this respect.</para>
 	
       </sect2>
       <sect2>
