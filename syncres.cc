@@ -100,6 +100,11 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
   return res;
 }
 
+bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int& res)
+{
+  return false;
+}
+
 int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
@@ -121,6 +126,9 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
     return 0;
 
   // place for lookaside cache
+
+  if(doOOBResolve(qname, qtype, ret, depth, res))
+    return res;
 
   LOG<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl;
 
@@ -183,7 +191,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 
 	  DNSResourceRecord rr=*k;
 	  rr.content=k->content;
-	  if(!dottedEndsOn(rr.content,subdomain) || RC.get(d_now.tv_sec, rr.content ,QType(QType::A),&aset) > 5) {
+	  if(!dottedEndsOn(rr.content, subdomain) || RC.get(d_now.tv_sec, rr.content, QType(QType::A), s_log ? &aset : 0) > 5) {
 	    bestns.insert(rr);
 	    
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl;
@@ -215,6 +223,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	}
       }
     }
+    LOG<<prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl;
   }while(chopOffDotted(subdomain));
 }
 
@@ -229,7 +238,8 @@ string SyncRes::getBestNSNamesFromCache(const string &qname,set<string, CIString
 
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     nsset.insert(k->content);
-    subdomain=k->qname;
+    if(k==bestns.begin())
+      subdomain=k->qname;
   }
   return subdomain;
 }
