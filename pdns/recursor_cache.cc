@@ -164,26 +164,29 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
     res->clear();
 
   if(d_cachecache.first!=d_cachecache.second) { 
-    if(res) {
-      for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
-	if(i->d_qtype == qt.getCode()) {
-	  typedef cache_t::nth_index<1>::type sequence_t;
-	  sequence_t& sidx=d_cache.get<1>();
-	  sequence_t::iterator si=d_cache.project<1>(i);
-
-	  for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
-	    if(k->d_ttd > (uint32_t) now) {
-	      DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd=k->d_ttd); 
+    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
+      if(i->d_qtype == qt.getCode()) {
+	typedef cache_t::nth_index<1>::type sequence_t;
+	sequence_t& sidx=d_cache.get<1>();
+	sequence_t::iterator si=d_cache.project<1>(i);
+	
+	for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
+	  if(k->d_ttd < 1000000000 || k->d_ttd > (uint32_t) now) {
+	    ttd=k->d_ttd;
+	    if(res) {
+	      DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd); 
 	      res->insert(rr);
 	    }
 	  }
+	}
+	if(res) {
 	  if(res->empty())
 	    sidx.relocate(sidx.begin(), si); 
 	  else
 	    sidx.relocate(sidx.end(), si); 
-	  break;
 	}
-    }
+	break;
+      }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
     return (unsigned int)ttd-now;
@@ -311,7 +314,8 @@ void MemRecursorCache::doPrune(void)
 
   sequence_t::iterator iter=sidx.begin(), eiter;
   for(; iter != sidx.end() && tried < lookAt ; ++tried) {
-    if(iter->getTTD() < now) {
+    unsigned int ttd=iter->getTTD();
+    if(ttd < now) { 
       sidx.erase(iter++);
       erased++;
     }
