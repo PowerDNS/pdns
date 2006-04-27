@@ -264,6 +264,28 @@ public:
   typedef map<string,DecayingEwma, CIStringCompare> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
 
+  struct AuthDomain
+  {
+    string d_server;
+    typedef multi_index_container <
+      DNSResourceRecord,
+      indexed_by < 
+        ordered_non_unique< 
+          composite_key< DNSResourceRecord,
+		         member<DNSResourceRecord, string, &DNSResourceRecord::qname>,
+		         member<DNSResourceRecord, QType, &DNSResourceRecord::qtype>
+                       >,
+          composite_key_compare<CIStringCompare, std::less<QType> >
+        >
+      >
+    > records_t;
+    records_t d_records;       
+  };
+  
+
+  typedef map<string, AuthDomain, CIStringCompare> domainmap_t;
+  static domainmap_t s_domainmap;
+
   typedef Throttle<tuple<uint32_t,string,uint16_t> > throttle_t;
   static throttle_t s_throttle;
   struct timeval d_now;
@@ -275,6 +297,7 @@ private:
 		  int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
   bool doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
+  domainmap_t::const_iterator getBestAuthZone(string* qname);
   bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere);

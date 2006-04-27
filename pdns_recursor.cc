@@ -42,6 +42,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
+#include <boost/algorithm/string.hpp>
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
@@ -1146,6 +1147,143 @@ FDMultiplexer* getMultiplexer()
   exit(1);
 }
 
+static void makeNameToIPZone(const string& hostname, const string& ip)
+{
+  SyncRes::AuthDomain ad;
+  DNSResourceRecord rr;
+  rr.qname=toCanonic("", hostname);
+  rr.d_place=DNSResourceRecord::ANSWER;
+  rr.ttl=86400;
+  rr.qtype=QType::SOA;
+  rr.content="localhost. root 1 604800 864002419200 604800";
+  
+  ad.d_records.insert(rr);
+
+  rr.qtype=QType::NS;
+  rr.content="localhost.";
+
+  ad.d_records.insert(rr);
+  
+  rr.qtype=QType::A;
+  rr.content=ip;
+  ad.d_records.insert(rr);
+  
+  if(SyncRes::s_domainmap.count(rr.qname)) {
+    L<<Logger::Warning<<"Hosts file will not overwrite zone '"<<rr.qname<<"' already loaded"<<endl;
+  }
+  else {
+    L<<Logger::Warning<<"Inserting forward zone '"<<rr.qname<<"' based on hosts file"<<endl;
+    SyncRes::s_domainmap[rr.qname]=ad;
+  }
+}
+
+static void makeIPToNamesZone(const vector<string>& parts) 
+{
+  string address=parts[0];
+  vector<string> ipparts;
+  stringtok(ipparts, address,".");
+  if(ipparts.size()!=4)
+    return;
+  
+
+  SyncRes::AuthDomain ad;
+  DNSResourceRecord rr;
+  for(int n=3; n>=0 ; --n) {
+    rr.qname.append(ipparts[n]);
+    rr.qname.append(1,'.');
+  }
+  rr.qname.append("in-addr.arpa.");
+
+  rr.d_place=DNSResourceRecord::ANSWER;
+  rr.ttl=86400;
+  rr.qtype=QType::SOA;
+  rr.content="localhost. root 1 604800 864002419200 604800";
+  
+  ad.d_records.insert(rr);
+
+  rr.qtype=QType::NS;
+  rr.content="localhost.";
+
+  ad.d_records.insert(rr);
+  rr.qtype=QType::PTR;
+
+  for(unsigned int n=1; n < parts.size(); ++n) {
+    rr.content=toCanonic("", parts[n]);
+    ad.d_records.insert(rr);
+  }
+
+  if(SyncRes::s_domainmap.count(rr.qname)) {
+    L<<Logger::Warning<<"Hosts file will not overwrite zone '"<<rr.qname<<"' already loaded"<<endl;
+  }
+  else {
+    L<<Logger::Warning<<"Inserting reverse zone '"<<rr.qname<<"' based on hosts file"<<endl;
+    SyncRes::s_domainmap[rr.qname]=ad;
+  }
+}
+
+void parseAuthAndForwards()
+{
+  SyncRes::s_domainmap.clear(); // this makes us idempotent
+
+  typedef vector<string> parts_t;
+  parts_t parts;  
+  for(int n=0; n < 2 ; ++n ) {
+    parts.clear();
+    stringtok(parts, ::arg()[n ? "forward-zones" : "auth-zones"], ",\t\n\r");
+    for(parts_t::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+      SyncRes::AuthDomain ad;
+      pair<string,string> headers=splitField(*iter, '=');
+      trim(headers.first);
+      trim(headers.second);
+      headers.first=toCanonic("", headers.first);
+      if(n==0) {
+	L<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
+	ZoneParserTNG zpt(headers.second, headers.first);
+	DNSResourceRecord rr;
+	while(zpt.get(rr)) {
+	  ad.d_records.insert(rr);
+	}
+      }
+      else {
+	L<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' to IP '"<<headers.second<<"'"<<endl;
+	ad.d_server=headers.second;
+      }
+      
+      SyncRes::s_domainmap[headers.first]=ad;
+    }
+  }
+  
+  if(!::arg().mustDo("export-etc-hosts"))
+    return;
+
+  string line;
+  string fname;
+
+  ifstream ifs("/etc/hosts");
+  if(!ifs) {
+    L<<Logger::Warning<<"Could not open /etc/hosts for reading"<<endl;
+    return;
+  }
+    
+  string::size_type pos;
+  while(getline(ifs,line)) {
+    pos=line.find('#');
+    if(pos!=string::npos)
+     line.resize(pos);
+    trim(line);
+    if(line.empty())
+      continue;
+    parts.clear();
+    stringtok(parts, line, "\t\r\n ");
+    if(parts[0].find(':')!=string::npos)
+      continue;
+
+    for(unsigned int n=1; n < parts.size(); ++n)
+      makeNameToIPZone(parts[n], parts[0]);
+    makeIPToNamesZone(parts);
+  }
+}
+
 int main(int argc, char **argv) 
 {
   reportBasicTypes();
@@ -1189,6 +1327,9 @@ int main(int argc, char **argv)
     ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
+    ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
+    ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
+    ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("config","Output blank configuration");
@@ -1262,6 +1403,9 @@ int main(int argc, char **argv)
       gethostname(tmp, sizeof(tmp)-1);
       SyncRes::s_serverID=tmp;
     }
+    
+
+    parseAuthAndForwards();
 
     g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
     memset(&*g_stats.remotes.begin(), 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));

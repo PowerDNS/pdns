@@ -46,6 +46,7 @@ unsigned int SyncRes::s_outqueries;
 unsigned int SyncRes::s_tcpoutqueries;
 unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
+SyncRes::domainmap_t SyncRes::s_domainmap;
 string SyncRes::s_serverID;
 bool SyncRes::s_log;
 
@@ -102,7 +103,65 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
 
 bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int& res)
 {
-  return false;
+  string prefix;
+  if(s_log) {
+    prefix=d_prefix;
+    prefix.append(depth, ' ');
+  }
+
+  LOG<<prefix<<qname<<": checking auth storage for '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
+  string authdomain(qname);
+
+  domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
+  if(iter==s_domainmap.end()) {
+    LOG<<prefix<<qname<<": auth storage has no zone for this query!"<<endl;
+    return false;
+  }
+  LOG<<prefix<<qname<<": auth storage has data, zone='"<<authdomain<<"'"<<endl;
+  pair<AuthDomain::records_t::const_iterator, AuthDomain::records_t::const_iterator> range;
+
+  range=iter->second.d_records.equal_range(tie(qname)); // partial lookup
+  
+  ret.clear();
+  AuthDomain::records_t::const_iterator ziter;
+  for(ziter=range.first; ziter!=range.second; ++ziter) {
+    if(ziter->qtype==qtype || ziter->qtype.getCode()==QType::CNAME)  // let rest of nameserver do the legwork on this one
+      ret.push_back(*ziter);
+  }
+  if(ret.empty()) {
+    LOG<<prefix<<qname<<": no exact match in zone '"<<authdomain<<"'"<<endl;
+    return false;
+  }
+
+  string nsdomain(qname);
+
+  while(chopOffDotted(nsdomain) && nsdomain!=iter->first) {
+    range=iter->second.d_records.equal_range(make_tuple(nsdomain,QType(QType::NS))); 
+    if(range.first==range.second)
+      continue;
+
+    for(ziter=range.first; ziter!=range.second; ++ziter) {
+      DNSResourceRecord rr=*ziter;
+      rr.d_place=DNSResourceRecord::AUTHORITY;
+      ret.push_back(rr);
+    }
+  }
+  if(ret.empty()) {
+    LOG<<prefix<<qname<<": no NS match in zone '"<<authdomain<<"' either, handing out SOA"<<endl;
+    ziter=iter->second.d_records.find(make_tuple(authdomain, QType(QType::SOA)));
+    if(ziter!=iter->second.d_records.end()) {
+      DNSResourceRecord rr=*ziter;
+      rr.d_place=DNSResourceRecord::AUTHORITY;
+      ret.push_back(rr);
+    }
+    else
+      LOG<<prefix<<qname<<": can't find SOA record '"<<authdomain<<"' in our zone!"<<endl;
+    res=RCode::NXDomain;
+  }
+  else 
+    res=0;
+
+  return true;;
 }
 
 int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
@@ -114,7 +173,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   }
   
   int res=0;
-  if(!(d_nocache && qtype.getCode()==QType::NS && qname.empty())) {
+  if(!(d_nocache && qtype.getCode()==QType::NS && qname==".")) {
     if(doCNAMECacheCheck(qname,qtype,ret,depth,res)) // will reroute us if needed
       return res;
     
@@ -124,11 +183,6 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 
   if(d_cacheonly)
     return 0;
-
-  // place for lookaside cache
-
-  if(doOOBResolve(qname, qtype, ret, depth, res))
-    return res;
 
   LOG<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl;
 
@@ -144,10 +198,10 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
     }
   }
 
-  if(!(res=doResolveAt(nsset,subdomain,qname,qtype,ret,depth, beenthere)))
+  if(!(res=doResolveAt(nsset, subdomain, qname, qtype, ret, depth, beenthere)))
     return 0;
   
-  LOG<<prefix<<qname<<": failed"<<endl;
+  LOG<<prefix<<qname<<": failed (res="<<res<<")"<<endl;
   return res<0 ? RCode::ServFail : res;
 }
 
@@ -227,11 +281,29 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
   }while(chopOffDotted(subdomain));
 }
 
+SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(string* qname)
+{
+  SyncRes::domainmap_t::const_iterator ret;
+  do {
+    ret=s_domainmap.find(*qname);
+    if(ret!=s_domainmap.end()) 
+      break;
+  }while(chopOffDotted(*qname));
+  return ret;
+}
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
 string SyncRes::getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
+
+  string authdomain(qname);
+  
+  domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
+  if(iter!=s_domainmap.end()) {
+    nsset.insert(iter->second.d_server);
+    return authdomain;
+  }
 
   set<DNSResourceRecord> bestns;
   getBestNSFromCache(subdomain, bestns, depth, beenthere);
@@ -431,8 +503,9 @@ struct TCacheComp
 
 
 /** returns -1 in case of no results, rcode otherwise */
-int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, 
-		int depth, set<GetBestNSAnswer>&beenthere)
+int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, const string &qname, const QType &qtype, 
+			 vector<DNSResourceRecord>&ret, 
+			 int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix;
   if(s_log) {
@@ -458,80 +531,100 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	LOG<<prefix<<qname<<": Not using NS to resolve itself!"<<endl;
 	continue;
       }
-      LOG<<prefix<<qname<<": Trying to resolve NS "<<*tns<<" ("<<1+tns-rnameservers.begin()<<"/"<<rnameservers.size()<<")"<<endl;
+
       typedef vector<uint32_t> remoteIPs_t;
-      remoteIPs_t remoteIPs=getAs(*tns, depth+1, beenthere);
-      if(remoteIPs.empty()) {
-	LOG<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
-	continue;
-      }
+      remoteIPs_t remoteIPs;
       remoteIPs_t::const_iterator remoteIP;
       bool doTCP=false;
-      for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-	LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<U32ToIP(*remoteIP)<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
-	
-	if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
-	  LOG<<prefix<<qname<<": query throttled "<<endl;
-	  s_throttledqueries++;
-	  d_throttledqueries++;
+      int resolveret;
+
+      if(tns->empty()) {
+	LOG<<prefix<<qname<<": Domain is out-of-band"<<endl;
+	doOOBResolve(qname, qtype, result, depth, d_lwr.d_rcode);
+	d_lwr.d_tcbit=false;
+      }
+      else {
+	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<rnameservers.size()<<")"<<endl;
+	if(!isCanonical(*tns)) {
+	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver"<<endl;
+	  uint32_t tmp=0;
+	  IpToU32(*tns, &tmp);
+	  remoteIPs.push_back(htonl(tmp));
+	}
+	else
+	  remoteIPs=getAs(*tns, depth+1, beenthere);
+
+	if(remoteIPs.empty()) {
+	  LOG<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
 	  continue;
 	}
-	else {
-	  s_outqueries++;
-	  d_outqueries++;
-	TryTCP:
-	  if(doTCP) {
-	    s_tcpoutqueries++;
-	    d_tcpoutqueries++;
-	  }
+
+	for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+	  LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<U32ToIP(*remoteIP)<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 	  
-	  int ret=d_lwr.asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, &d_now);    // <- we go out on the wire!
-	  if(ret != 1) {
-	    if(ret==0) {
-	      LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;
-	      d_timeouts++;
-	      s_outgoingtimeouts++;
-	    }
-	    else if(ret==-2) {
-	      LOG<<prefix<<qname<<": hit a local resource limit resolving "<< (doTCP ? "over TCP" : "")<<endl;
-	      g_stats.resourceLimits++;
-	    }
-	    else
-	      LOG<<prefix<<qname<<": error resolving "<< (doTCP ? "over TCP" : "") << endl;
-	    
-	    if(ret!=-2) { // don't account for resource limits, they are our own fault
-	      s_nsSpeeds[*tns].submit(1000000, &d_now); // 1 sec
-	      s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),20,5);
-	    }
+	  if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
+	    LOG<<prefix<<qname<<": query throttled "<<endl;
+	    s_throttledqueries++; d_throttledqueries++;
 	    continue;
 	  }
-	  
-	  break; // it did work!
+	  else {
+	    s_outqueries++; d_outqueries++;
+	  TryTCP:
+	    if(doTCP) {
+	      s_tcpoutqueries++; d_tcpoutqueries++;
+	    }
+	    
+	    resolveret=d_lwr.asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, &d_now);    // <- we go out on the wire!
+	    if(resolveret != 1) {
+	      if(resolveret==0) {
+		LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;
+		d_timeouts++;
+		s_outgoingtimeouts++;
+	      }
+	      else if(resolveret==-2) {
+		LOG<<prefix<<qname<<": hit a local resource limit resolving "<< (doTCP ? "over TCP" : "")<<endl;
+		g_stats.resourceLimits++;
+	      }
+	      else
+		LOG<<prefix<<qname<<": error resolving "<< (doTCP ? "over TCP" : "") << endl;
+	      
+	      if(resolveret!=-2) { // don't account for resource limits, they are our own fault
+		s_nsSpeeds[*tns].submit(1000000, &d_now); // 1 sec
+		s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),20,5);
+	      }
+	      continue;
+	    }
+	    
+	    break;  // this IP address worked!
+	  wasLame:; // well, it didn't
+	    LOG<<prefix<<qname<<": status=NS "<<*tns<<" ("<<U32ToIP(*remoteIP)<<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl;
+	    s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),60,0);
+	  }
 	}
-      }
-
-      if(remoteIP == remoteIPs.end())  // we tried all IP addresses, none worked
-	continue; 
-
-      result=d_lwr.result();
+	
+	if(remoteIP == remoteIPs.end())  // we tried all IP addresses, none worked
+	  continue; 
+	
+	result=d_lwr.result();
       
-      if(d_lwr.d_tcbit) {
-	if(!doTCP) {
-	  doTCP=true;
-	  LOG<<prefix<<qname<<": truncated bit set, retrying via TCP"<<endl;
-	  goto TryTCP;
+	if(d_lwr.d_tcbit) {
+	  if(!doTCP) {
+	    doTCP=true;
+	    LOG<<prefix<<qname<<": truncated bit set, retrying via TCP"<<endl;
+	    goto TryTCP;
+	  }
+	  LOG<<prefix<<qname<<": truncated bit set, over TCP?"<<endl;
+	  return RCode::ServFail;
 	}
-	LOG<<prefix<<qname<<": truncated bit set, over TCP?"<<endl;
-	return RCode::ServFail;
+	
+	if(d_lwr.d_rcode==RCode::ServFail) {
+	  LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling IP or NS"<<endl;
+	  s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
+	  continue;
+	}
+	LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<U32ToIP(*remoteIP)<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
+	s_nsSpeeds[*tns].submit(d_lwr.d_usec, &d_now);
       }
-
-      if(d_lwr.d_rcode==RCode::ServFail) {
-	LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling NS"<<endl;
-	s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
-	continue;
-      }
-      LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<U32ToIP(*remoteIP)<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
-      s_nsSpeeds[*tns].submit(d_lwr.d_usec, &d_now);
 
       typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;
       tcache_t tcache;
@@ -650,9 +743,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	nameservers=nsset;
 	break; 
       }
-      else {
-	LOG<<prefix<<qname<<": status=NS "<<*tns<<" is lame for '"<<auth<<"', trying sibling NS"<<endl;
-	s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),60,0);
+      else if(isCanonical(*tns)) {
+	goto wasLame;;
       }
     }
   }
