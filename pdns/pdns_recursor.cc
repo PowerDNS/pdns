@@ -205,13 +205,13 @@ int makeClientSocket(int family)
     if(family==AF_INET) {
       sin4->sin4.sin_port = htons(port); 
       
-      if (::bind(ret, (struct sockaddr *)&*sin4, sizeof(*sin4)) >= 0) 
+      if (::bind(ret, (struct sockaddr *)&*sin4, sin4->getSocklen()) >= 0) 
 	break;
     }
     else {
       sin6->sin6.sin6_port = htons(port); 
       
-      if (::bind(ret, (struct sockaddr *)&*sin6, sizeof(*sin6)) >= 0) 
+      if (::bind(ret, (struct sockaddr *)&*sin6, sin6->getSocklen()) >= 0) 
 	break;
     }
   }
@@ -899,6 +899,7 @@ void doStats(void)
 }
 
 static void houseKeeping(void *)
+try
 {
   static time_t last_stat, last_rootupdate, last_prune;
   struct timeval now;
@@ -944,7 +945,11 @@ static void houseKeeping(void *)
       L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
   }
 }
-
+catch(AhuException& ae)
+{
+  L<<Logger::Error<<"Fatal error: "<<ae.reason<<endl;
+  throw;
+}
 
 
 #if 0
