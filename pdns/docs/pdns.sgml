@@ -6256,6 +6256,16 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>serve-rfc1918</term>
+	    <listitem>
+	      <para>
+		On by default, this makes the server authoritatively aware of: <filename>10.in-addr.arpa</filename>, 
+		<filename>168.192.in-addr.arpa</filename>, <filename>16-31.172.in-addr.arpa</filename>, which saves
+		load on the AS112 servers. Individual parts of these zones can still be loaded or forwarded.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>server-id</term>
 	    <listitem>
 	      <para>

@@ -1177,18 +1177,16 @@ static void makeNameToIPZone(const string& hostname, const string& ip)
   }
 }
 
+//! parts[0] must be an IP address, the rest must be host names
 static void makeIPToNamesZone(const vector<string>& parts) 
 {
   string address=parts[0];
   vector<string> ipparts;
   stringtok(ipparts, address,".");
-  if(ipparts.size()!=4)
-    return;
   
-
   SyncRes::AuthDomain ad;
   DNSResourceRecord rr;
-  for(int n=3; n>=0 ; --n) {
+  for(int n=ipparts.size()-1; n>=0 ; --n) {
     rr.qname.append(ipparts[n]);
     rr.qname.append(1,'.');
   }
@@ -1197,7 +1195,7 @@ static void makeIPToNamesZone(const vector<string>& parts)
   rr.d_place=DNSResourceRecord::ANSWER;
   rr.ttl=86400;
   rr.qtype=QType::SOA;
-  rr.content="localhost. root 1 604800 864002419200 604800";
+  rr.content="localhost. root. 1 604800 86400 2419200 604800";
   
   ad.d_records.insert(rr);
 
@@ -1207,16 +1205,18 @@ static void makeIPToNamesZone(const vector<string>& parts)
   ad.d_records.insert(rr);
   rr.qtype=QType::PTR;
 
-  for(unsigned int n=1; n < parts.size(); ++n) {
-    rr.content=toCanonic("", parts[n]);
-    ad.d_records.insert(rr);
-  }
+  if(ipparts.size()==4)  // otherwise this is a partial zone
+    for(unsigned int n=1; n < parts.size(); ++n) {
+      rr.content=toCanonic("", parts[n]);
+      ad.d_records.insert(rr);
+    }
 
   if(SyncRes::s_domainmap.count(rr.qname)) {
-    L<<Logger::Warning<<"Hosts file will not overwrite zone '"<<rr.qname<<"' already loaded"<<endl;
+    L<<Logger::Warning<<"Will not overwrite zone '"<<rr.qname<<"' already loaded"<<endl;
   }
   else {
-    L<<Logger::Warning<<"Inserting reverse zone '"<<rr.qname<<"' based on hosts file"<<endl;
+    if(ipparts.size()==4)
+      L<<Logger::Warning<<"Inserting reverse zone '"<<rr.qname<<"' based on hosts file"<<endl;
     SyncRes::s_domainmap[rr.qname]=ad;
   }
 }
@@ -1253,34 +1253,48 @@ void parseAuthAndForwards()
     }
   }
   
-  if(!::arg().mustDo("export-etc-hosts"))
-    return;
-
-  string line;
-  string fname;
-
-  ifstream ifs("/etc/hosts");
-  if(!ifs) {
-    L<<Logger::Warning<<"Could not open /etc/hosts for reading"<<endl;
-    return;
-  }
+  if(::arg().mustDo("export-etc-hosts")) {
+    string line;
+    string fname;
     
-  string::size_type pos;
-  while(getline(ifs,line)) {
-    pos=line.find('#');
-    if(pos!=string::npos)
-     line.resize(pos);
-    trim(line);
-    if(line.empty())
-      continue;
+    ifstream ifs("/etc/hosts");
+    if(!ifs) {
+      L<<Logger::Warning<<"Could not open /etc/hosts for reading"<<endl;
+      return;
+    }
+    
+    string::size_type pos;
+    while(getline(ifs,line)) {
+      pos=line.find('#');
+      if(pos!=string::npos)
+	line.resize(pos);
+      trim(line);
+      if(line.empty())
+	continue;
+      parts.clear();
+      stringtok(parts, line, "\t\r\n ");
+      if(parts[0].find(':')!=string::npos)
+	continue;
+      
+      for(unsigned int n=1; n < parts.size(); ++n)
+	makeNameToIPZone(parts[n], parts[0]);
+      makeIPToNamesZone(parts);
+    }
+  }
+  if(::arg().mustDo("serve-rfc1918")) {
+    L<<Logger::Warning<<"Inserting rfc 1918 private space zones"<<endl;
     parts.clear();
-    stringtok(parts, line, "\t\r\n ");
-    if(parts[0].find(':')!=string::npos)
-      continue;
-
-    for(unsigned int n=1; n < parts.size(); ++n)
-      makeNameToIPZone(parts[n], parts[0]);
+    parts.push_back("127");
     makeIPToNamesZone(parts);
+    parts[0]="10";
+    makeIPToNamesZone(parts);
+
+    parts[0]="192.168";
+    makeIPToNamesZone(parts);
+    for(int n=16; n < 32; n++) {
+      parts[0]="172."+lexical_cast<string>(n);
+      makeIPToNamesZone(parts);
+    }
   }
 }
 
@@ -1330,6 +1344,7 @@ int main(int argc, char **argv)
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
+    ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("config","Output blank configuration");

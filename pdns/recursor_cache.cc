@@ -165,7 +165,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 
   if(d_cachecache.first!=d_cachecache.second) { 
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
-      if(i->d_qtype == qt.getCode()) {
+      if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY) {
 	typedef cache_t::nth_index<1>::type sequence_t;
 	sequence_t& sidx=d_cache.get<1>();
 	sequence_t::iterator si=d_cache.project<1>(i);
@@ -174,7 +174,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 	  if(k->d_ttd < 1000000000 || k->d_ttd > (uint32_t) now) {
 	    ttd=k->d_ttd;
 	    if(res) {
-	      DNSResourceRecord rr=String2DNSRR(qname, qt,  k->d_string, ttd); 
+	      DNSResourceRecord rr=String2DNSRR(qname, QType(i->d_qtype),  k->d_string, ttd); 
 	      res->insert(rr);
 	    }
 	  }
@@ -185,7 +185,8 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 	  else
 	    sidx.relocate(sidx.end(), si); 
 	}
-	break;
+	if(qt.getCode()!=QType::ANY) // normally if we have a hit, we are done
+	  break;
       }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";

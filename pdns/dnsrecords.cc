@@ -291,6 +291,7 @@ void reportBasicTypes()
   SRVRecordContent::report();
   PTRRecordContent::report();
   DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  DNSRecordContent::regist(1, 255, 0, 0, "ANY");
 }
 
 void reportOtherTypes()
@@ -305,7 +306,6 @@ void reportOtherTypes()
    CERTRecordContent::report();
    NSECRecordContent::report();
    OPTRecordContent::report();
-   DNSRecordContent::regist(1,255, 0, 0, "ANY");
    TXTRecordContent::report();
 }
 

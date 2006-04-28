@@ -125,12 +125,13 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   ret.clear();
   AuthDomain::records_t::const_iterator ziter;
   for(ziter=range.first; ziter!=range.second; ++ziter) {
-    if(ziter->qtype==qtype || ziter->qtype.getCode()==QType::CNAME)  // let rest of nameserver do the legwork on this one
+    if(qtype.getCode()==QType::ANY || ziter->qtype==qtype || ziter->qtype.getCode()==QType::CNAME)  // let rest of nameserver do the legwork on this one
       ret.push_back(*ziter);
   }
-  if(ret.empty()) {
-    LOG<<prefix<<qname<<": no exact match in zone '"<<authdomain<<"'"<<endl;
-    return false;
+  if(!ret.empty()) {
+    LOG<<prefix<<qname<<": exact match in zone '"<<authdomain<<"'"<<endl;
+    res=0;
+    return true;
   }
 
   string nsdomain(qname);
@@ -399,7 +400,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
 
-  if(RC.get(d_now.tv_sec, sqname,sqt, &cset) > 0) {
+  if(RC.get(d_now.tv_sec, sqname, sqt, &cset) > 0) {
     LOG<<prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG<<j->content;
@@ -632,7 +633,11 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       // reap all answers from this packet that are acceptable
       for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
 	LOG<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
-	
+	if(i->qtype.getCode()==QType::ANY) {
+	  LOG<<"NO! - we don't accept 'ANY' data"<<endl;
+	  continue;
+	}
+	  
 	if(dottedEndsOn(i->qname, auth)) {
 	  if(d_lwr.d_aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth)) {
 	    LOG<<"NO! Is from delegation-only zone"<<endl;
@@ -644,6 +649,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    
 	    DNSResourceRecord rr=*i;
 	    rr.d_place=DNSResourceRecord::ANSWER;
+	    //	    if(rr.ttl < 5)
+	    //  rr.ttl=60;
 	    rr.ttl+=d_now.tv_sec;
 	    if(rr.qtype.getCode() == QType::NS) // people fiddle with the case
 	      rr.content=toLower(rr.content); // this must stay!
@@ -761,6 +768,11 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
   return -1;
 }
 
+static bool uniqueComp(const DNSResourceRecord& a, const DNSResourceRecord& b)
+{
+  return(a.qtype==b.qtype && a.qname==b.qname && a.content==b.content);
+}
+
 void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 {
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k)  // don't add stuff to an NXDOMAIN!
@@ -798,6 +810,8 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 	doResolve(host, QType(QType::AAAA), addit, 1, beenthere);
     }
   
+  sort(addit.begin(), addit.end());
+  addit.erase(unique(addit.begin(), addit.end(), uniqueComp), addit.end());
   for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
     if(k->qtype.getCode()==QType::A || k->qtype.getCode()==QType::AAAA) {
       k->d_place=DNSResourceRecord::ADDITIONAL;
