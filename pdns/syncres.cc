@@ -46,6 +46,8 @@ unsigned int SyncRes::s_outqueries;
 unsigned int SyncRes::s_tcpoutqueries;
 unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
+unsigned int SyncRes::s_unreachables;
+
 SyncRes::domainmap_t SyncRes::s_domainmap;
 string SyncRes::s_serverID;
 bool SyncRes::s_log;
@@ -586,12 +588,17 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 		LOG<<prefix<<qname<<": hit a local resource limit resolving "<< (doTCP ? "over TCP" : "")<<endl;
 		g_stats.resourceLimits++;
 	      }
-	      else
+	      else {
+		s_unreachables++; d_unreachables++;
 		LOG<<prefix<<qname<<": error resolving "<< (doTCP ? "over TCP" : "") << endl;
+	      }
 	      
 	      if(resolveret!=-2) { // don't account for resource limits, they are our own fault
 		s_nsSpeeds[*tns].submit(1000000, &d_now); // 1 sec
-		s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),20,5);
+		if(resolveret==-1)
+		  s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable
+		else
+		  s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 20, 5);  // timeout
 	      }
 	      continue;
 	    }
@@ -599,7 +606,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    break;  // this IP address worked!
 	  wasLame:; // well, it didn't
 	    LOG<<prefix<<qname<<": status=NS "<<*tns<<" ("<<U32ToIP(*remoteIP)<<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl;
-	    s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()),60,0);
+	    s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
 	  }
 	}
 	

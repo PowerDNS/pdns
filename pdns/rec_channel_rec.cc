@@ -169,6 +169,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
+  addGetStat("unreachables", &SyncRes::s_unreachables);
 
   addGetStat("query-rate", getQueryRate);
 
