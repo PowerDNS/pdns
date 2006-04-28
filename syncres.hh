@@ -411,4 +411,15 @@ struct RecursorStats
 };
 
 extern RecursorStats g_stats;
+
+
+template<typename Index>
+std::pair<typename Index::iterator,bool>
+replacing_insert(Index& i,const typename Index::value_type& x)
+{
+  std::pair<typename Index::iterator,bool> res=i.insert(x);
+  if(!res.second)res.second=i.replace(res.first,x);
+  return res;
+}
+
 #endif
