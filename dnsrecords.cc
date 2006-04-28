@@ -68,19 +68,14 @@ public:
   
   string getZoneRepresentation() const
   {
-    ostringstream str;
+    struct sockaddr_in6 addr;
+    addr.sin6_family=AF_INET6;
+    memcpy(&addr.sin6_addr, d_ip6, 16);
 
-    char hex[4];
-    for(size_t n=0; n< 16 ; n+=2) {
-      snprintf(hex,sizeof(hex)-1, "%x", d_ip6[n]);
-      str << hex;
-      snprintf(hex,sizeof(hex)-1, "%02x", d_ip6[n+1]);
-      str << hex;
-      if(n!=14)
-	str<<":";
-    }
-
-    return str.str();
+    char tmp[128];
+    tmp[0]=0;
+    inet_ntop(AF_INET6, (const char*)& addr.sin6_addr, tmp, sizeof(tmp));
+    return tmp;
   }
 
 private:
