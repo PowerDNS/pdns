@@ -676,7 +676,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  ne.d_ttd=d_now.tv_sec + min(i->ttl, s_maxnegttl); // controversial
 	  ne.d_name=qname;
 	  ne.d_qtype=QType(0);
-	  s_negcache.insert(ne);
+	  
+	  pair<negcache_t::iterator, bool> res=s_negcache.insert(ne);
+	  if(!res.second) {
+	    s_negcache.erase(res.first);
+	    s_negcache.insert(ne);
+	  }
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -711,11 +716,16 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  
 	  NegCacheEntry ne;
 	  ne.d_qname=i->qname;
-	  ne.d_ttd=d_now.tv_sec + min(3600U,i->ttl);
+	  ne.d_ttd=d_now.tv_sec + min(s_maxnegttl, i->ttl);
 	  ne.d_name=qname;
 	  ne.d_qtype=qtype;
-	  if(qtype.getCode())   // prevents us from blacking out a whole domain
-	    s_negcache.insert(ne);
+	  if(qtype.getCode()) {  // prevents us from blacking out a whole domain
+	    pair<negcache_t::iterator, bool> res=s_negcache.insert(ne);
+	    if(!res.second) {
+	      s_negcache.erase(res.first);
+	      s_negcache.insert(ne);
+	    }
+	  }
 	  negindic=true;
 	}
       }
