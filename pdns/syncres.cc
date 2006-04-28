@@ -684,11 +684,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  ne.d_name=qname;
 	  ne.d_qtype=QType(0);
 	  
-	  pair<negcache_t::iterator, bool> res=s_negcache.insert(ne);
-	  if(!res.second) {
-	    s_negcache.erase(res.first);
-	    s_negcache.insert(ne);
-	  }
+	  replacing_insert(s_negcache, ne);
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -727,11 +723,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  ne.d_name=qname;
 	  ne.d_qtype=qtype;
 	  if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-	    pair<negcache_t::iterator, bool> res=s_negcache.insert(ne);
-	    if(!res.second) {
-	      s_negcache.erase(res.first);
-	      s_negcache.insert(ne);
-	    }
+	    replacing_insert(s_negcache, ne);
 	  }
 	  negindic=true;
 	}
