@@ -47,6 +47,7 @@ unsigned int SyncRes::s_tcpoutqueries;
 unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
 unsigned int SyncRes::s_unreachables;
+bool SyncRes::s_doIPv6;
 
 SyncRes::domainmap_t SyncRes::s_domainmap;
 string SyncRes::s_serverID;
@@ -54,7 +55,7 @@ bool SyncRes::s_log;
 
 #define LOG if(s_log) L<<Logger::Warning
 
-Throttle<tuple<uint32_t,string,uint16_t> > SyncRes::s_throttle;
+SyncRes::throttle_t SyncRes::s_throttle;
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
@@ -208,24 +209,54 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   return res<0 ? RCode::ServFail : res;
 }
 
-vector<uint32_t> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
+/** This function explicitly goes out for A addresses, but if configured to use IPv6 as well, will also return any IPv6 addresses in the cache
+    Additionally, it will return the 'best' address up front, and the rest shufled
+*/
+vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {
   typedef vector<DNSResourceRecord> res_t;
   res_t res;
 
-  vector<uint32_t> ret;
+  typedef vector<ComboAddress> ret_t;
+  ret_t ret;
 
   if(!doResolve(qname,QType(QType::A), res,depth+1,beenthere) && !res.empty()) {
     for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
       if(i->qtype.getCode()==QType::A) {
-	uint32_t ip;
-	if(IpToU32(i->content, &ip))
-	  ret.push_back(ntohl(ip));
+	ret.push_back(ComboAddress(i->content, 53));
       }
     }
   }
-  if(ret.size() > 1)
+
+  if(s_doIPv6) {
+    typedef set<DNSResourceRecord> ipv6_t;
+    ipv6_t ipv6;
+    if(RC.get(d_now.tv_sec, qname, QType(QType::AAAA), &ipv6) > 0) {
+      for(ipv6_t::const_iterator i=ipv6.begin(); i != ipv6.end(); ++i) 
+	ret.push_back(ComboAddress(i->content, 53));
+    }
+  }
+  
+  if(ret.size() > 1) {
     random_shuffle(ret.begin(), ret.end());
+
+    // move 'best' address up front
+    nsspeeds_t::iterator best=s_nsSpeeds.find(qname);
+
+    if(best != s_nsSpeeds.end())
+      for(ret_t::iterator i=ret.begin(); i != ret.end(); ++i) {
+	//	cerr<<"Is "<<i->toString()<<" equal to "<<best->second.d_best.toString()<<"?\n";
+	if(*i==best->second.d_best) {
+	  if(i!=ret.begin()) {
+	    //	    cerr<<"Moving "<<best->second.d_best.toString()<<" up front!\n";
+	    *i=*ret.begin();
+	    *ret.begin()=best->second.d_best;
+	  }
+	  break;
+	}
+      }
+  }
+    
   return ret;
 }
 
@@ -460,7 +491,7 @@ struct speedOrder
   map<string,double>& d_speeds;
 };
 
-inline vector<string> SyncRes::shuffle(set<string, CIStringCompare> &nameservers, const string &prefix)
+inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix)
 {
   vector<string> rnameservers;
   rnameservers.reserve(nameservers.size());
@@ -468,18 +499,18 @@ inline vector<string> SyncRes::shuffle(set<string, CIStringCompare> &nameservers
 
   for(set<string, CIStringCompare>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
-    DecayingEwma& temp=s_nsSpeeds[*i];
-    speeds[*i]=temp.get(&d_now);
+    speeds[*i]=s_nsSpeeds[*i].get(&d_now);
   }
   random_shuffle(rnameservers.begin(),rnameservers.end());
-  stable_sort(rnameservers.begin(),rnameservers.end(), speedOrder(speeds));
+  speedOrder so(speeds);
+  stable_sort(rnameservers.begin(),rnameservers.end(), so);
   
   if(s_log) {
     L<<Logger::Warning<<prefix<<"Nameservers: ";
     for(vector<string>::const_iterator i=rnameservers.begin();i!=rnameservers.end();++i) {
       if(i!=rnameservers.begin()) {
 	L<<", ";
-	if(!((i-rnameservers.begin())%4))
+	if(!((i-rnameservers.begin())%3))
 	  L<<endl<<Logger::Warning<<prefix<<"             ";
       }
       L<<*i<<"(" << (int)(speeds[*i]/1000.0) <<"ms)";
@@ -523,7 +554,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
   for(;;) { // we may get more specific nameservers
     result.clear();
 
-    vector<string> rnameservers=shuffle(nameservers, s_log ? (prefix+qname+": ") : string() );
+    vector<string> rnameservers=shuffleInSpeedOrder(nameservers, s_log ? (prefix+qname+": ") : string() );
 
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
@@ -535,7 +566,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	continue;
       }
 
-      typedef vector<uint32_t> remoteIPs_t;
+      typedef vector<ComboAddress> remoteIPs_t;
       remoteIPs_t remoteIPs;
       remoteIPs_t::const_iterator remoteIP;
       bool doTCP=false;
@@ -550,9 +581,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<rnameservers.size()<<")"<<endl;
 	if(!isCanonical(*tns)) {
 	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver"<<endl;
-	  uint32_t tmp=0;
-	  IpToU32(*tns, &tmp);
-	  remoteIPs.push_back(htonl(tmp));
+	  remoteIPs.push_back(ComboAddress(*tns, 53));
 	}
 	else
 	  remoteIPs=getAs(*tns, depth+1, beenthere);
@@ -561,9 +590,18 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  LOG<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
 	  continue;
 	}
+	else {
+	  LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to: ";
+	  for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
+	    if(remoteIP != remoteIPs.begin())
+	      LOG<<", ";
+	    LOG<<remoteIP->toString();
+	  }
+	  LOG<<endl;
 
+	}
 	for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-	  LOG<<prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to "<<U32ToIP(*remoteIP)<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
+	  LOG<<prefix<<qname<<": Trying IP "<< remoteIP->toString() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 	  
 	  if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
 	    LOG<<prefix<<qname<<": query throttled "<<endl;
@@ -594,7 +632,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      }
 	      
 	      if(resolveret!=-2) { // don't account for resource limits, they are our own fault
-		s_nsSpeeds[*tns].submit(1000000, &d_now); // 1 sec
+		s_nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
 		if(resolveret==-1)
 		  s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable
 		else
@@ -605,7 +643,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    
 	    break;  // this IP address worked!
 	  wasLame:; // well, it didn't
-	    LOG<<prefix<<qname<<": status=NS "<<*tns<<" ("<<U32ToIP(*remoteIP)<<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl;
+	    LOG<<prefix<<qname<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl;
 	    s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
 	  }
 	}
@@ -630,8 +668,14 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
 	  continue;
 	}
-	LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<<U32ToIP(*remoteIP)<<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
-	s_nsSpeeds[*tns].submit(d_lwr.d_usec, &d_now);
+	LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
+
+	/*  // for you IPv6 fanatics :-)
+	if(remoteIP->sin4.sin_family==AF_INET6)
+	  d_lwr.d_usec/=3;
+	*/
+
+	s_nsSpeeds[*tns].submit(*remoteIP, d_lwr.d_usec, &d_now);
       }
 
       typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;

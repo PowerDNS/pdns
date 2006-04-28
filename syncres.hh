@@ -136,7 +136,6 @@ public:
     d_val=(1-factor)*val+ factor*d_val; 
   }
 
-
   double get(struct timeval*tv = 0)
   {
     struct timeval now=getOrMakeTime(tv);
@@ -146,13 +145,12 @@ public:
     return d_val*=factor;
   }
 
-  bool stale(time_t limit) 
+  bool stale(time_t limit) const
   {
     return limit > d_lastget.tv_sec;
   }
 
 private:
-  DecayingEwma& operator=(const DecayingEwma&);
   struct timeval d_last;          // stores time
   struct timeval d_lastget;       // stores time
   float d_val;
@@ -187,7 +185,7 @@ public:
     return ret;
   }
 
-  bool stale(time_t limit) 
+  bool stale(time_t limit) const
   {
     return limit > d_last.tv_sec;
   }
@@ -239,6 +237,7 @@ public:
   static unsigned int s_tcpoutqueries;
   static unsigned int s_nodelegated;
   static unsigned int s_unreachables;
+  static bool s_doIPv6;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -265,7 +264,57 @@ public:
   >negcache_t;
   static negcache_t s_negcache;    
 
-  typedef map<string,DecayingEwma, CIStringCompare> nsspeeds_t;
+  //! This represents a number of decaying Ewmas, used to store performance per namerserver-name. 
+  /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
+      d_best is filled out with the best address for this collection */
+  struct DecayingEwmaCollection
+  {
+    void submit(const ComboAddress& remote, int usecs, struct timeval* now) 
+    {
+      collection_t::iterator pos;
+      for(pos=d_collection.begin(); pos != d_collection.end(); ++pos)
+	if(pos->first==remote)
+	  break;
+      if(pos!=d_collection.end()) {
+	pos->second.submit(usecs, now);
+      }
+      else {
+	DecayingEwma de;
+	de.submit(usecs, now);
+	d_collection.push_back(make_pair(remote, de));
+      }
+    }
+
+    double get(struct timeval* now)
+    {
+      if(d_collection.empty())
+	return 0;
+      double ret=numeric_limits<double>::max();
+      double tmp;
+      for(collection_t::iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) {
+	if((tmp=pos->second.get()) < ret) {
+	  ret=tmp;
+	  d_best=pos->first;
+	}
+      }
+      
+      return ret;
+    }
+    
+    bool stale(time_t limit) const
+    {
+      for(collection_t::const_iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) 
+	if(!pos->second.stale(limit))
+	  return false;
+      return true;
+    }
+
+    typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
+    collection_t d_collection;
+    ComboAddress d_best;
+  };
+
+  typedef map<string, DecayingEwmaCollection , CIStringCompare> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
 
   struct AuthDomain
@@ -290,7 +339,7 @@ public:
   typedef map<string, AuthDomain, CIStringCompare> domainmap_t;
   static domainmap_t s_domainmap;
 
-  typedef Throttle<tuple<uint32_t,string,uint16_t> > throttle_t;
+  typedef Throttle<tuple<ComboAddress,string,uint16_t> > throttle_t;
   static throttle_t s_throttle;
   struct timeval d_now;
   static unsigned int s_maxnegttl;
@@ -309,9 +358,9 @@ private:
   string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, int depth, set<GetBestNSAnswer>&beenthere);
   void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
 
-  inline vector<string> shuffle(set<string, CIStringCompare> &nameservers, const string &prefix);
+  inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
-  vector<uint32_t> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
+  vector<ComboAddress> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
 
   SyncRes(const SyncRes&);
   SyncRes& operator=(const SyncRes&);
@@ -353,7 +402,7 @@ struct PacketID
   }
 
   uint16_t id;  // wait for a specific id/remote pair
-  struct sockaddr_in remote;  // this is the remote
+  ComboAddress remote;  // this is the remote
   string domain;             // this is the question 
 
   Socket* sock;  // or wait for an event on a TCP fd
@@ -370,11 +419,11 @@ struct PacketID
   {
     int ourSock= sock ? sock->getHandle() : 0;
     int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, fd, ourSock) <
-        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, b.fd, bSock))
+    if( tie(id, remote, fd, ourSock) <
+        tie(b.id, remote, b.fd, bSock))
       return true;
-    if( tie(id, remote.sin_addr.s_addr, remote.sin_port, fd, ourSock) >
-        tie(b.id, b.remote.sin_addr.s_addr, b.remote.sin_port, b.fd, bSock))
+    if( tie(id, remote, fd, ourSock) >
+        tie(b.id, remote, b.fd, bSock))
       return false;
 
     return strcasecmp(domain.c_str(), b.domain.c_str()) < 0;
@@ -402,6 +451,8 @@ struct RecursorStats
   uint64_t unexpectedCount;
   uint64_t spoofCount;
   uint64_t resourceLimits;
+  uint64_t ipv6queries;
+
   typedef vector<ComboAddress> remotes_t;
   remotes_t remotes;
   int d_remotepos;
