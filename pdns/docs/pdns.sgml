@@ -6237,6 +6237,15 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>query-local-address6</term>
+	    <listitem>
+	      <para>
+		Send out local IPv6 queries from this address. Disabled by default, which also disables
+		outgoing IPv6 support. A useful setting is <command>::0</command>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
 	  <varlistentry>
 	    <term>quiet</term>

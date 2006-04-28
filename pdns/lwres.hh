@@ -23,9 +23,8 @@
 #include <vector>
 #include <sys/types.h>
 #include "misc.hh"
-
+#include "iputils.hh"
 #ifndef WIN32
-
 # include <arpa/nameser.h>
 # include <resolv.h>
 # include <netdb.h> 
@@ -43,8 +42,8 @@
 #include "dns.hh"
 using namespace std;
 
-int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id, const string& domain, int* fd);
-int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id, const string& domain, int fd);
+int asendto(const char *data, int len, int flags, const ComboAddress& ip, int id, const string& domain, int* fd);
+int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, int id, const string& domain, int fd);
 
 class LWResException : public AhuException
 {
@@ -62,7 +61,7 @@ public:
 
   typedef vector<DNSResourceRecord> res_t;
 
-  int asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP, struct timeval* now);
+  int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now);
   vector<DNSResourceRecord> result();
   int d_rcode;
   bool d_aabit, d_tcbit;
@@ -76,7 +75,7 @@ private:
   string d_domain;
   int d_type;
   int d_timeout;
-  uint32_t d_ip;
+  ComboAddress d_ip;
   bool d_inaxfr;
   int d_bufsize;
 };

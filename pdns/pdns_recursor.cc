@@ -177,36 +177,43 @@ int arecvtcp(string& data, int len, Socket* sock)
 }
 
 // returns -1 for errors which might go away, throws for ones that won't
-int makeClientSocket()
+int makeClientSocket(int family)
 {
-  int ret=socket(AF_INET, SOCK_DGRAM, 0);
+  int ret=socket(family, SOCK_DGRAM, 0);
   if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
     return ret;
 
   if(ret<0) 
     throw AhuException("Making a socket for resolver: "+stringerror());
 
-  static optional<struct sockaddr_in> sin;
-  if(!sin) {
-    struct sockaddr_in tmp;
-    sin=tmp;
-    memset((char *)&*sin,0, sizeof(sin));
-    sin->sin_family = AF_INET;
-    
-    if(!IpToU32(::arg()["query-local-address"], &sin->sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address '"+ ::arg()["query-local-address"] +"'"); 
+  static optional<ComboAddress> sin4;
+  if(!sin4) {
+    sin4=ComboAddress(::arg()["query-local-address"]);
   }
-  
+  static optional<ComboAddress> sin6;
+  if(!sin6) {
+    if(!::arg()["query-local-address6"].empty())
+    sin6=ComboAddress(::arg()["query-local-address6"]);
+  }
+
   int tries=10;
   while(--tries) {
     uint16_t port=1025+Utility::random()%64510;
     if(tries==1)  // fall back to kernel 'random'
 	port=0;
 
-    sin->sin_port = htons(port); 
-    
-    if (::bind(ret, (struct sockaddr *)&*sin, sizeof(*sin)) >= 0) 
-      break;
+    if(family==AF_INET) {
+      sin4->sin4.sin_port = htons(port); 
+      
+      if (::bind(ret, (struct sockaddr *)&*sin4, sizeof(*sin4)) >= 0) 
+	break;
+    }
+    else {
+      sin6->sin6.sin6_port = htons(port); 
+      
+      if (::bind(ret, (struct sockaddr *)&*sin6, sizeof(*sin6)) >= 0) 
+	break;
+    }
   }
   if(!tries)
     throw AhuException("Resolver binding to local query client socket: "+stringerror());
@@ -230,19 +237,19 @@ public:
   {
   }
 
-  typedef map<int,int> socks_t;
+  typedef set<int> socks_t;
   socks_t d_socks;
 
   // returning -1 means: temporary OS error (ie, out of files)
-  int getSocket()
+  int getSocket(uint16_t family)
   {
-    pair<int, int> sock=make_pair(makeClientSocket(), 1);
-    if(sock.first < 0) // temporary error - exception otherwise
+    int fd=makeClientSocket(family);
+    if(fd < 0) // temporary error - receive exception otherwise
       return -1;
 
-    d_socks.insert(sock);
+    d_socks.insert(fd);
     d_numsocks++;
-    return sock.first;
+    return fd;
   }
 
   void returnSocket(int fd)
@@ -257,8 +264,8 @@ public:
     if(i==d_socks.end()) {
       throw AhuException("Trying to return a socket not in the pool");
     }
-    g_fdm->removeReadFD(i->first);
-    ::close(i->first);
+    g_fdm->removeReadFD(*i);
+    ::close(*i);
     
     d_socks.erase(i++);
     --d_numsocks;
@@ -268,18 +275,18 @@ public:
 
 /* these two functions are used by LWRes */
 // -2 is OS error, -1 is error that depends on the remote, > 1 is success
-int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id, const string& domain, int* fd) 
+int asendto(const char *data, int len, int flags, const ComboAddress& toaddr, int id, const string& domain, int* fd) 
 {
-  *fd=g_udpclientsocks.getSocket();
+  *fd=g_udpclientsocks.getSocket(toaddr.sin4.sin_family);
   if(*fd < 0)
     return -2;
   PacketID pident;
   pident.fd=*fd;
   pident.id=id;
   pident.domain=domain;
-  memcpy(&pident.remote, toaddr, sizeof(pident.remote));
+  pident.remote=toaddr;
   
-  int ret=connect(*fd, toaddr, addrlen);
+  int ret=connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen());
   if(ret < 0)
     return ret;
 
@@ -288,7 +295,7 @@ int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int a
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::socklen_t *addrlen, int *d_len, int id, const string& domain, int fd)
+int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, int id, const string& domain, int fd)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit) 
@@ -298,19 +305,18 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
   pident.fd=fd;
   pident.id=id;
   pident.domain=domain;
-  memcpy(&pident.remote, toaddr, sizeof(pident.remote));
+  pident.remote=fromaddr;
 
   string packet;
   int ret=MT->waitEvent(pident, &packet, 1);
   if(ret > 0) {
-    if(packet.empty()) {// means "error"
+    if(packet.empty()) // means "error"
       return -1; 
-    }
 
     *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
-      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<sockAddrToString((struct sockaddr_in*)toaddr)<<", assuming spoof attempt."<<endl;
+      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
       return -1;
     }
@@ -803,6 +809,7 @@ void makeUDPServerSockets()
 
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     ComboAddress sin;
+
     memset(&sin, 0, sizeof(sin));
     sin.sin4.sin_family = AF_INET;
     if(!IpToU32(*i, &sin.sin4.sin_addr.s_addr)) {
@@ -1073,14 +1080,14 @@ void handleUDPServerResponse(int fd, boost::any& var)
   PacketID pid=any_cast<PacketID>(var);
   int len;
   char data[1500];
-  struct sockaddr_in fromaddr;
+  ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
   len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
 
   if(len < (int)sizeof(dnsheader)) {
     if(len < 0)
-      ; //       cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
+      ; //      cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
     else {
       g_stats.serverParseError++; 
       if(g_logCommonErrors)
@@ -1113,7 +1120,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
       g_stats.unexpectedCount++;
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
-	if(pident.fd==mthread->key.fd && !memcmp(&mthread->key.remote.sin_addr, &pident.remote.sin_addr, sizeof(pident.remote.sin_addr)) && 
+	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote && 
 	   !strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
 	  mthread->key.nearMisses++;
 	}
@@ -1327,6 +1334,7 @@ int main(int argc, char **argv)
     ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
+    ::arg().set("query-local-address6","Source IPv6 address for sending queries")="";
     //    ::arg().set("query-local-port","Source port address for sending queries, defaults to random")="";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
@@ -1411,6 +1419,12 @@ int main(int argc, char **argv)
       g_quiet=false;
     }
 
+
+    if(!::arg()["query-local-address6"].empty()) {
+      SyncRes::s_doIPv6=true;
+      L<<Logger::Error<<"Enabling IPv6 transport for outgoing queries"<<endl;
+    }
+    
     SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
     SyncRes::s_serverID=::arg()["server-id"];
     if(SyncRes::s_serverID.empty()) {

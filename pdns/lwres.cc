@@ -55,7 +55,7 @@ LWRes::~LWRes()
 
 //! returns -2 for OS limits error, -1 for permanent error that has to do with remote, 0 for timeout, 1 for success
 /** Never throws! */
-int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP, struct timeval* now)
+int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now)
 {
   d_ip=ip;
   vector<uint8_t> vpacket;
@@ -68,13 +68,6 @@ int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP,
   d_inaxfr=false;
   d_rcode=0;
 
-  struct sockaddr_in toaddr;
-  Utility::socklen_t addrlen=sizeof(toaddr);
-  toaddr.sin_addr.s_addr=htonl(ip);
-
-  toaddr.sin_port=htons(53);
-  toaddr.sin_family=AF_INET;
-
   int ret;
 
   DTime dt;
@@ -82,20 +75,24 @@ int LWRes::asyncresolve(uint32_t ip, const string& domain, int type, bool doTCP,
 
   if(!doTCP) {
     int queryfd;
-    
-    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, (struct sockaddr*)(&toaddr), 
-	       sizeof(toaddr), pw.getHeader()->id, domain, &queryfd)) < 0) {
+    if(ip.sin4.sin_family==AF_INET6)
+      g_stats.ipv6queries++;
+
+    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, pw.getHeader()->id, domain, &queryfd)) < 0) {
       return ret; // passes back the -2 EMFILE
     }
   
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0,(struct sockaddr*)(&toaddr), &addrlen, &d_len, pw.getHeader()->id, domain, queryfd);
+    ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0, ip, &d_len, pw.getHeader()->id, domain, queryfd);
   }
   else {
     try {
+      if(ip.sin4.sin_addr.s_addr != AF_INET) // sstuff isn't yet ready for IPv6
+	return -1;
+
       Socket s(InterNetwork, Stream);
-      IPEndpoint ie(U32ToIP(ip), 53);
+      IPEndpoint ie(U32ToIP(ip.sin4.sin_addr.s_addr), 53);   // WRONG WRONG WRONG XXX FIXME
       s.setNonBlocking();
       s.connect(ie);
       
@@ -152,7 +149,7 @@ LWRes::res_t LWRes::result()
 
     if(strcasecmp(d_domain.c_str(), mdp.d_qname.c_str())) { 
       if(d_domain.find((char)0)==string::npos) {// embedded nulls are too noisy
-	L<<Logger::Error<<"Packet purporting to come from remote server "<<U32ToIP(d_ip)<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
+	L<<Logger::Error<<"Packet purporting to come from remote server "<<d_ip.toString()<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
 	g_stats.unexpectedCount++;
       }
       goto out;

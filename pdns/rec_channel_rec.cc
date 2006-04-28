@@ -167,6 +167,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
+  addGetStat("ipv6-outqueries", &g_stats.ipv6queries);
   addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
   addGetStat("unreachables", &SyncRes::s_unreachables);
