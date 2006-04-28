@@ -32,6 +32,9 @@
 #include <functional>
 #include "ahuexception.hh"
 #include "misc.hh"
+#include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+
 
 using namespace std;
 
@@ -39,11 +42,21 @@ union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
 
+  bool operator==(const ComboAddress& rhs) const
+  {
+    if(boost::tie(sin4.sin_family, sin4.sin_port) != boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+      return false;
+    if(sin4.sin_family == AF_INET)
+      return sin4.sin_addr.s_addr == rhs.sin4.sin_addr.s_addr;
+    else
+      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16)==0;
+  }
+
   bool operator<(const ComboAddress& rhs) const
   {
-    if(sin4.sin_family < rhs.sin4.sin_family)
+    if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return true;
-    if(sin4.sin_family > rhs.sin4.sin_family)
+    if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return false;
     
     if(sin4.sin_family == AF_INET)
@@ -52,12 +65,45 @@ union ComboAddress {
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) < 0;
   }
 
-  socklen_t getSocklen()
+  bool operator>(const ComboAddress& rhs) const
+  {
+    if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+      return true;
+    if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+      return false;
+    
+    if(sin4.sin_family == AF_INET)
+      return sin4.sin_addr.s_addr > rhs.sin4.sin_addr.s_addr;
+    else
+      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) > 0;
+  }
+
+
+  socklen_t getSocklen() const
   {
     if(sin4.sin_family == AF_INET)
       return sizeof(sin4);
     else
       return sizeof(sin6);
+  }
+  
+  ComboAddress() 
+  {
+    sin4.sin_family=AF_INET;
+    sin4.sin_addr.s_addr=0;
+    sin4.sin_port=0;
+  }
+
+  explicit ComboAddress(const string& str, uint16_t port=0)
+  {
+    memset(&sin6, 0, sizeof(sin6));
+    sin4.sin_family = AF_INET;
+    sin4.sin_port=htons(port);
+    if(!IpToU32(str, &sin4.sin_addr.s_addr)) {
+      sin6.sin6_family = AF_INET6;
+      if(inet_pton(AF_INET6, str.c_str(), &sin6.sin6_addr) <= 0)
+	throw AhuException("Unable to convert presentation address '"+ str +"'"); 
+    }
   }
 
   string toString() const
