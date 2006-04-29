@@ -5,26 +5,21 @@
 #ifndef SOLARIS8
 #include <stdint.h>
 #endif
-#include <sys/un.h>
 
+#ifndef WIN32
+#include <sys/un.h>
+#else
+// ?
+struct sockaddr_un {};
+#endif
 
 /** this class is used both to send and answer channel commands to the PowerDNS Recursor */
 class RecursorControlChannel
 {
 public:
-  RecursorControlChannel() 
-  {
-    d_fd=-1;
-    *d_local.sun_path=0;
-  }
+  RecursorControlChannel();
 
-  ~RecursorControlChannel() 
-  {
-    if(d_fd > 0)
-      close(d_fd);
-    if(*d_local.sun_path)
-      unlink(d_local.sun_path);
-  }
+  ~RecursorControlChannel();
 
   int listen(const std::string& filename);
   void connect(const std::string& path, const std::string& filename);
@@ -46,7 +41,6 @@ public:
   static void nop(void){}
   typedef void func_t(void);
   std::string getAnswer(const std::string& question, func_t** func);
-
 };
 
 
