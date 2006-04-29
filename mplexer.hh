@@ -8,6 +8,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include "utility.hh"
 
 class FDMultiplexerException : public std::runtime_error
 {

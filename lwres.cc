@@ -17,8 +17,6 @@
 */
 #include "utility.hh"
 #include "lwres.hh"
-#include <pthread.h>
-#include <semaphore.h>
 #include <iostream>
 #include <errno.h>
 #include "misc.hh"
@@ -62,7 +60,7 @@ int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, 
   DNSPacketWriter pw(vpacket, domain, type);
 
   pw.getHeader()->rd=0;
-  pw.getHeader()->id=random();
+  pw.getHeader()->id=Utility::random();
   d_domain=domain;
   d_type=type;
   d_inaxfr=false;

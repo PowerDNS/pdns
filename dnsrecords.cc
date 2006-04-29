@@ -74,7 +74,7 @@ public:
 
     char tmp[128];
     tmp[0]=0;
-    inet_ntop(AF_INET6, (const char*)& addr.sin6_addr, tmp, sizeof(tmp));
+    Utility::inet_ntop(AF_INET6, (const char*)& addr.sin6_addr, tmp, sizeof(tmp));
     return tmp;
   }
 

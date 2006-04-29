@@ -330,7 +330,6 @@ template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses()
   return d_threads.size();
 }
 
-
 //! gives access to the list of Events threads are waiting for
 /** The kernel can call this to get a list of Events threads are waiting for. This is very useful
     to setup 'select' or 'poll' or 'aio' events needed to satisfy these requests.

@@ -257,6 +257,7 @@ void MemRecursorCache::doWipeCache(const string& name)
   pair<cache_t::iterator, cache_t::iterator> range=d_cache.equal_range(tie(name));
   d_cache.erase(range.first, range.second);
 }
+#include <unistd.h>
 
 void MemRecursorCache::doDumpAndClose(int fd)
 {
