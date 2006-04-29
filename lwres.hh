@@ -25,8 +25,6 @@
 #include "misc.hh"
 #include "iputils.hh"
 #ifndef WIN32
-# include <arpa/nameser.h>
-# include <resolv.h>
 # include <netdb.h> 
 # include <unistd.h>
 # include <sys/time.h>

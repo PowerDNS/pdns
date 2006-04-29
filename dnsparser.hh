@@ -25,13 +25,13 @@
 #include <iostream>
 #include <vector>
 #include <errno.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
+// #include <netinet/in.h>
 #include "misc.hh"
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include "dns.hh"
 #include "dnswriter.hh"
 
 /** DNS records have three representations:
@@ -47,11 +47,6 @@
     And we might be able to reverse 2 -> 3 as well
 */
     
-
-//namespace {
-  typedef HEADER dnsheader;
-//}
-
 using namespace std;
 using namespace boost;
 
@@ -61,14 +56,6 @@ public:
   MOADNSException(const string& str) : runtime_error(str)
   {}
 };
-
-struct dnsrecordheader
-{
-  uint16_t d_type;
-  uint16_t d_class;
-  uint32_t d_ttl;
-  uint16_t d_clen;
-} __attribute__((packed));
 
 
 class MOADNSParser;
