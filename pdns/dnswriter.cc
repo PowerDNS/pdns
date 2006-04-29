@@ -43,7 +43,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   d_stuff=0xffff;
 }
 
-DNSPacketWriter::dnsheader* DNSPacketWriter::getHeader()
+dnsheader* DNSPacketWriter::getHeader()
 {
   return (dnsheader*)&*d_content.begin();
 }

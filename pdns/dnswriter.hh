@@ -7,9 +7,7 @@
 #ifndef SOLARIS8
 #include <stdint.h>
 #endif
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-
+#include "dns.hh"
 using namespace std;
 
 /** this class can be used to write DNS packets. It knows about DNS in the sense that it makes 
@@ -41,8 +39,6 @@ using namespace std;
 class DNSPacketWriter
 {
 public:
-  typedef HEADER dnsheader;
-
   enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
