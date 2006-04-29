@@ -185,7 +185,7 @@ int sendData(const char *buffer, int replen, int outsock)
   iov[0].iov_len=2;
   iov[1].iov_base=(char*)buffer;
   iov[1].iov_len=replen;
-  int ret=writev(outsock,iov,2);
+  int ret=Utility::writev(outsock,iov,2);
 
   if(ret<0) {
     return -1;
@@ -348,7 +348,7 @@ bool IpToU32(const string &str, uint32_t *ip)
   }
   
   struct in_addr inp;
-  if(inet_aton(str.c_str(), &inp)) {
+  if(Utility::inet_aton(str.c_str(), &inp)) {
     *ip=inp.s_addr;
     return true;
   }
@@ -377,7 +377,7 @@ const string sockAddrToString(struct sockaddr_in *remote)
   else {
     char tmp[128];
     
-    if(!inet_ntop(AF_INET6, ( const char * ) &((struct sockaddr_in6 *)remote)->sin6_addr, tmp, sizeof(tmp)))
+    if(!Utility::inet_ntop(AF_INET6, ( const char * ) &((struct sockaddr_in6 *)remote)->sin6_addr, tmp, sizeof(tmp)))
       return "IPv6 untranslateable";
 
     return tmp;

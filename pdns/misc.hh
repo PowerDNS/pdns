@@ -29,12 +29,9 @@
 # include <sys/socket.h>
 # include <time.h>
 #else
-# pragma warning ( disable: 4786 )
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>
 # include "utility.hh"
-
-
 #endif // WIN32
 #include <deque>
 #include <stdexcept>
@@ -186,15 +183,14 @@ int sendData(const char *buffer, int replen, int outsock);
 
 inline void DTime::set()
 {
-  // Utility::
-  gettimeofday(&d_set,0);
+  Utility::gettimeofday(&d_set,0);
 }
 
 inline int DTime::udiff()
 {
   struct timeval now;
 
-  gettimeofday(&now,0);
+  Utility::gettimeofday(&now,0);
   int ret=1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
   d_set=now;
   return ret;

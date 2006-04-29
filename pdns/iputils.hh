@@ -35,7 +35,6 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 
-
 using namespace std;
 
 union ComboAddress {
@@ -99,9 +98,9 @@ union ComboAddress {
     memset(&sin6, 0, sizeof(sin6));
     sin4.sin_family = AF_INET;
     sin4.sin_port=htons(port);
-    if(!IpToU32(str, &sin4.sin_addr.s_addr)) {
+    if(!IpToU32(str, (uint32_t*)&sin4.sin_addr.s_addr)) {
       sin6.sin6_family = AF_INET6;
-      if(inet_pton(AF_INET6, str.c_str(), &sin6.sin6_addr) <= 0)
+      if(Utility::inet_pton(AF_INET6, str.c_str(), &sin6.sin6_addr) <= 0)
 	throw AhuException("Unable to convert presentation address '"+ str +"'"); 
     }
   }
@@ -109,10 +108,10 @@ union ComboAddress {
   string toString() const
   {
     char tmp[128];
-    if(sin4.sin_family==AF_INET && !inet_ntop(AF_INET, ( const char * ) &sin4.sin_addr, tmp, sizeof(tmp)))
+    if(sin4.sin_family==AF_INET && !Utility::inet_ntop(AF_INET, ( const char * ) &sin4.sin_addr, tmp, sizeof(tmp)))
       return tmp;
 
-    if(sin4.sin_family==AF_INET6 && !inet_ntop(AF_INET6, ( const char * ) &sin6.sin6_addr, tmp, sizeof(tmp)))
+    if(sin4.sin_family==AF_INET6 && !Utility::inet_ntop(AF_INET6, ( const char * ) &sin6.sin6_addr, tmp, sizeof(tmp)))
       return tmp;
       
     return tmp;
@@ -130,9 +129,9 @@ inline ComboAddress makeComboAddress(const string& str)
 {
   ComboAddress address;
   address.sin4.sin_family=AF_INET;
-  if(inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
+  if(Utility::inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
     address.sin4.sin_family=AF_INET6;
-    if(inet_pton(AF_INET6, str.c_str(), &address.sin6.sin6_addr) <= 0)
+    if(Utility::inet_pton(AF_INET6, str.c_str(), &address.sin6.sin6_addr) <= 0)
       throw NetmaskException("Unable to convert '"+str+"' to a netmask");	
   }
   return address;
