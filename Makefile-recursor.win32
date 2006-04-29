@@ -1,0 +1,69 @@
+# user editable stuff:
+CONFIGDIR="/etc/powerdns/"
+OPTFLAGS?=-O3
+CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) -g
+CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
+LINKCC=i586-mingw32msvc-g++
+CC=i586-mingw32msvc-gcc
+CXX=i586-mingw32msvc-g++
+# static dependencies
+
+PDNS_RECURSOR_OBJECTS=syncres.o  misc.o win32_utility.o qtype.o   \
+arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
+dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
+malloc.o selectmplexer.o win32_logger.o win32_rec_channel.o rec_channel_rec.o
+
+# REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
+
+# what we need 
+all: message pdns_recursor.exe
+
+LDFLAGS += -lwinmm -lwsock32 -lws2_32 $(PROFILEFLAGS) $(STATICFLAGS)
+
+message: 
+	@echo
+	@echo PLEASE READ: If you get an error mentioning \#include '<boost/something.hpp>', please read README
+	@echo PLEASE READ: for an easy fix!
+	@echo 
+
+basic_checks: 
+	@-rm -f pdns_hw
+	-$(CXX) $(CXXFLAGS)  pdns_hw.cc -o pdns_hw 
+	@echo
+	@if test -x ./pdns_hw ; \
+		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; fi; \
+	 else 	\
+	 	echo; echo Could not compile simple binary, read README please; \
+		rm -f dep ; \
+	 fi
+
+install: all
+	-mkdir -p $(DESTDIR)/$(SBINDIR)
+	mv pdns_recursor $(DESTDIR)/$(SBINDIR)
+	strip $(DESTDIR)/$(SBINDIR)/pdns_recursor
+	mkdir -p $(DESTDIR)/$(BINDIR)
+	mv rec_control $(DESTDIR)/$(BINDIR)
+	strip $(DESTDIR)/$(BINDIR)/rec_control
+	-mkdir -p $(DESTDIR)/$(CONFIGDIR)
+	$(DESTDIR)/$(SBINDIR)/pdns_recursor --config > $(DESTDIR)/$(CONFIGDIR)/recursor.conf-dist
+	-mkdir -p $(DESTDIR)/usr/share/man/man1
+	cp pdns_recursor.1 rec_control.1 $(DESTDIR)/usr/share/man/man1
+	$(OS_SPECIFIC_INSTALL)	
+
+clean:
+	-rm -f dep *.o *~ pdns_recursor rec_control optional/*.o
+	
+dep:
+	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@
+
+-include dep
+
+optional:
+	mkdir optional
+
+pdns_recursor.exe: optional $(OPTIONALS) $(PDNS_RECURSOR_OBJECTS) 
+	$(LINKCC) $(PDNS_RECURSOR_OBJECTS) $(wildcard optional/*.o) $(LDFLAGS) -o $@
+
+rec_control: $(REC_CONTROL_OBJECTS)
+	$(LINKCC) $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
+
