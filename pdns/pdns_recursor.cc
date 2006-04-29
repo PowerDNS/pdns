@@ -16,20 +16,21 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifndef WIN32
+#include <netdb.h>
+#include <netinet/tcp.h>
+#include <unistd.h>
+#endif // WIN32
+
 #include "utility.hh" 
 #include <iostream>
 #include <errno.h>
 #include <map>
 #include <set>
-#ifndef WIN32
-#include <netdb.h>
-#include <netinet/tcp.h>
-#endif // WIN32
 #include "recursor_cache.hh"
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "mtasker.hh"
 #include <utility>
@@ -181,7 +182,7 @@ int arecvtcp(string& data, int len, Socket* sock)
 // returns -1 for errors which might go away, throws for ones that won't
 int makeClientSocket(int family)
 {
-  int ret=socket(family, SOCK_DGRAM, 0);
+  int ret=(int)socket(family, SOCK_DGRAM, 0);
   if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
     return ret;
 
@@ -315,7 +316,7 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
     if(packet.empty()) // means "error"
       return -1; 
 
-    *d_len=packet.size();
+    *d_len=(int)packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
       L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
@@ -359,9 +360,9 @@ static void writePid(void)
   string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   ofstream of(fname.c_str());
   if(of)
-    of<< getpid() <<endl;
+    of<< Utility::getpid() <<endl;
   else
-    L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
+    L<<Logger::Error<<"Requested to write pid for "<<Utility::getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
 }
 
 void primeHints(void)
@@ -426,7 +427,7 @@ struct TCPConnection
 
   void closeAndCleanup()
   {
-    close(fd);
+    Utility::closesocket(fd);
     if(!g_tcpClientCounts[remote]--) 
       g_tcpClientCounts.erase(remote);
     s_currentConnections--;
@@ -534,7 +535,7 @@ void startDoResolve(void *p)
 
       if(hadError) {
 	g_fdm->removeReadFD(dc->d_socket);
-	close(dc->d_socket);
+  Utility::closesocket(dc->d_socket);
       }
       else {
 	any_cast<TCPConnection>(&g_fdm->getReadParameter(dc->d_socket))->state=TCPConnection::BYTE0;
@@ -588,7 +589,7 @@ void makeControlChannelSocket()
 {
   string sockname=::arg()["socket-dir"]+"/pdns_recursor.controlsocket";
   if(::arg().mustDo("fork")) {
-    sockname+="."+lexical_cast<string>(getpid());
+    sockname+="."+lexical_cast<string>(Utility::getpid());
     L<<Logger::Warning<<"Forked control socket name: "<<sockname<<endl;
   }
   s_rcc.listen(sockname);
@@ -676,18 +677,18 @@ void handleNewTCPQuestion(int fd, boost::any& )
 {
   ComboAddress addr;
   socklen_t addrlen=sizeof(addr);
-  int newsock=accept(fd, (struct sockaddr*)&addr, &addrlen);
+  int newsock=(int)accept(fd, (struct sockaddr*)&addr, &addrlen);
   if(newsock>0) {
     g_stats.addRemote(addr);
     if(g_allowFrom && !g_allowFrom->match(&addr)) {
       g_stats.unauthorizedTCP++;
-      close(newsock);
+      Utility::closesocket(newsock);
       return;
     }
     
     if(g_maxTCPPerClient && g_tcpClientCounts.count(addr) && g_tcpClientCounts[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
-      close(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      Utility::closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       return;
     }
     g_tcpClientCounts[addr]++;
@@ -954,52 +955,7 @@ catch(AhuException& ae)
   L<<Logger::Error<<"Fatal error: "<<ae.reason<<endl;
   throw;
 }
-
-
-#if 0
-#include <execinfo.h>
-
-  multimap<uint32_t,string> rev;
-  for(map<string,uint32_t>::const_iterator i=casesptr->begin(); i!=casesptr->end(); ++i) {
-    rev.insert(make_pair(i->second,i->first));
-  }
-  for(multimap<uint32_t,string>::const_iterator i=rev.begin(); i!= rev.end(); ++i) 
-    cout<<i->first<<" times: \n"<<i->second<<"\n";
-
-  cout.flush();
-
-map<string,uint32_t>* casesptr;
-static string maketrace()
-{
-  void *array[20]; //only care about last 17 functions (3 taken with tracing support)
-  size_t size;
-  char **strings;
-  size_t i;
-
-  size = backtrace (array, 5);
-  strings = backtrace_symbols (array, size); //Need -rdynamic gcc (linker) flag for this to work
-
-  string ret;
-
-  for (i = 0; i < size; i++) //skip useless functions
-    ret+=string(strings[i])+"\n";
-  return ret;
-}
-
-extern "C" {
-
-int gettimeofday (struct timeval *__restrict __tv,
-		  __timezone_ptr_t __tz)
-{
-  static map<string, uint32_t> s_cases;
-  casesptr=&s_cases;
-  s_cases[maketrace()]++;
-  __tv->tv_sec=time(0);
-  return 0;
-}
-
-}
-#endif
+;
 
 string questionExpand(const char* packet, uint16_t len)
 {
@@ -1039,7 +995,7 @@ void handleTCPClientReadable(int fd, boost::any& var)
 
   shared_array<char> buffer(new char[pident->inNeeded]);
 
-  int ret=read(fd, buffer.get(), pident->inNeeded);
+  int ret=recv(fd, buffer.get(), pident->inNeeded,0);
   if(ret > 0) {
     pident->inMSG.append(&buffer[0], &buffer[ret]);
     pident->inNeeded-=ret;
@@ -1067,7 +1023,7 @@ void handleTCPClientWritable(int fd, boost::any& var)
 {
   PacketID* pid=any_cast<PacketID>(&var);
   
-  int ret=write(fd, pid->outMSG.c_str(), pid->outMSG.size() - pid->outPos);
+  int ret=send(fd, pid->outMSG.c_str(), pid->outMSG.size() - pid->outPos,0);
   if(ret > 0) {
     pid->outPos+=ret;
     if(pid->outPos==pid->outMSG.size()) {
@@ -1130,7 +1086,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
 	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote && 
-	   !strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
+    !Utility::strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
 	  mthread->key.nearMisses++;
 	}
       }
@@ -1402,6 +1358,9 @@ int main(int argc, char **argv)
 #ifdef __GNUC__
     L<<", gcc "__VERSION__;
 #endif // add other compilers here
+#ifdef _MSC_VER
+	L<<", MSVC "<<_MSC_VER;
+#endif
     L<<") starting up"<<endl;
 
     L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
@@ -1451,7 +1410,8 @@ int main(int argc, char **argv)
     parseAuthAndForwards();
 
     g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
-    memset(&*g_stats.remotes.begin(), 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));
+	if(!g_stats.remotes.empty())
+	  memset(&g_stats.remotes[0], 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));
     g_logCommonErrors=::arg().mustDo("log-common-errors");
 
     makeUDPServerSockets();

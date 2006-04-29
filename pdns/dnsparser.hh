@@ -183,7 +183,7 @@ public:
   static uint16_t TypeToNumber(const string& name)
   {
     for(namemap_t::const_iterator i=getNamemap().begin(); i!=getNamemap().end();++i)
-      if(!strcasecmp(i->second.c_str(), name.c_str()))
+      if(!Utility::strcasecmp(i->second.c_str(), name.c_str()))
 	return i->first.second;
 
     throw runtime_error("Unknown DNS type '"+name+"'");
@@ -261,7 +261,7 @@ public:
   //! Parse from a string
   MOADNSParser(const string& buffer) 
   {
-    init(buffer.c_str(), buffer.size());
+    init(buffer.c_str(), (unsigned int)buffer.size());
   }
 
   //! Parse from a pointer and length

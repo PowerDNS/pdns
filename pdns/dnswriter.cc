@@ -74,10 +74,14 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
 void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
 {
   uint32_t ttl=0;
+
+#pragma pack( push )
+#pragma pack( 1 )
   struct Stuff {
     uint8_t extRCode, version;
     uint16_t Z;
-  } __attribute__((packed));
+  };
+#pragma pack( pop )
 
   Stuff stuff;
 

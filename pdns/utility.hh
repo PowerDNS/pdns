@@ -25,10 +25,15 @@
 # include "config.h"
 #endif // WIN32
 
+#ifdef _MSC_VER
+# define NEED_POSIX_TYPEDEF
+#endif // _MSC_VER
+
 #ifdef NEED_POSIX_TYPEDEF
 typedef unsigned char uint8_t;
 typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
 #endif
 
 
@@ -43,15 +48,17 @@ typedef unsigned int uint32_t;
 # include <semaphore.h>
 # include <signal.h>
 # include <errno.h>
+# include <unistd.h>
 #else
 typedef int socklen_t;
+#define _WIN32_WINNT 0x0400
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <io.h>
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>
 # include <signal.h>
 # include <map>
-
-// For scope fix.
-# define for if ( false ) {} else for
 
 #ifndef ETIMEDOUT
 # define ETIMEDOUT    WSAETIMEDOUT
@@ -59,9 +66,7 @@ typedef int socklen_t;
 
 # define EINPROGRESS  WSAEWOULDBLOCK
 
-
 # define snprintf _snprintf
-#include <ws2tcpip.h>
 #endif // WIN32
 #include <string>
 
@@ -78,7 +83,7 @@ private:
 
   static const char *inet_ntop4( const char *src, char *dst, size_t size );
   static const char *inet_ntop6( const char *src, char *dst, size_t size );
-
+#pragma warning (disable:4996)
 #endif // WIN32
 
 public:

@@ -207,8 +207,7 @@ Utility::inet_ntop6( const char *src, char *dst, size_t size )
 	 * Check for overflow, copy, and we're done.
 	 */
 	if ((size_t)(tp - tmp) > size) {
-	  cerr<<"Error!\n";
-	  errno = ENOSPC;
+	  // errno = ENOSPC;
 	  return (NULL);
 	}
 	strcpy(dst, tmp);

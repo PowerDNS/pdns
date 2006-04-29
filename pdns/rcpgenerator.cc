@@ -57,7 +57,7 @@ void RecordTextReader::xfrTime(uint32_t &val)
   tm.tm_year-=1900;
   tm.tm_min-=1;
   
-  val=mktime(&tm);
+  val=(uint32_t)mktime(&tm);
 }
 
 void RecordTextReader::xfrIP(uint32_t &val)
@@ -129,7 +129,7 @@ void RecordTextReader::xfrLabel(string& val, bool)
 void RecordTextReader::xfrBlob(string& val)
 {
   skipSpaces();
-  int pos=d_pos;
+  int pos=(int)d_pos;
   while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
     d_pos++;
 
@@ -158,7 +158,7 @@ void HEXDecode(const char* begin, const char* end, string& val)
   if((end - begin)%2)
     throw RecordTextException("Hexadecimal blob with odd number of characters");
 
-  int limit=(end-begin)/2;
+  int limit=(int)(end-begin)/2;
   val.resize(limit);
   for(int n=0; n < limit; ++n) {
     val[n] = hextodec(begin[2*n])*16 + hextodec(begin[2*n+1]); 
@@ -168,7 +168,7 @@ void HEXDecode(const char* begin, const char* end, string& val)
 void RecordTextReader::xfrHexBlob(string& val)
 {
   skipSpaces();
-  int pos=d_pos;
+  int pos=(int)d_pos;
   while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
     d_pos++;
 
@@ -199,7 +199,7 @@ void RecordTextReader::xfrText(string& val)
 void RecordTextReader::xfrType(uint16_t& val)
 {
   skipSpaces();
-  int pos=d_pos;
+  int pos=(int)d_pos;
   while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
     d_pos++;
 

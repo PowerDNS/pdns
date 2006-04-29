@@ -2,8 +2,10 @@
 #define PDNS_REC_CHANNEL
 #include <string>
 #include <map>
-#ifndef SOLARIS8
+#if !defined SOLARIS8 && !defined WIN32
 #include <stdint.h>
+#elif defined WIN32
+#include "utility.hh"
 #endif
 
 #ifndef WIN32

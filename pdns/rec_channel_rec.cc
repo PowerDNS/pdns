@@ -1,3 +1,5 @@
+
+#include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
@@ -12,10 +14,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include "logger.hh"
 #ifndef WIN32
 #include <sys/resource.h>
+#include <sys/time.h>
 #endif
 
 using namespace std;

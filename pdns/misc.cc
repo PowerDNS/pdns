@@ -16,12 +16,23 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+
+#ifndef WIN32
+#include <sys/param.h>
+#include <netdb.h>
+#include <sys/time.h>
+#include <time.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#endif // WIN32
+
 #include "misc.hh"
 #include <vector>
 #include <sstream>
 #include <errno.h>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
 
 #include <iomanip>
 #include <string.h>
@@ -30,16 +41,6 @@
 #include "ahuexception.hh"
 #include <sys/types.h>
 
-#ifndef WIN32
-# include <sys/param.h>
-# include <netdb.h>
-# include <sys/time.h>
-# include <time.h>
-# include <netinet/in.h>
-# include <unistd.h>
-#else
-# include <time.h>
-#endif // WIN32
 
 #include "utility.hh"
 

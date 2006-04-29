@@ -93,14 +93,16 @@ private:
   string escape(const string &str) const;
 };
 
+# pragma pack ( push )
+# pragma pack ( 1 )
 struct dnsrecordheader
 {
   uint16_t d_type;
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-} __attribute__((packed));
-
+};
+# pragma pack( pop )
 typedef enum  {
         ns_t_invalid = 0,       /* Cookie. */
         ns_t_a = 1,             /* Host address. */

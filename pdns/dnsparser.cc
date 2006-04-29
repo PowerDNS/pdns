@@ -39,7 +39,7 @@ public:
   string getZoneRepresentation() const
   {
     ostringstream str;
-    str<<"\\# "<<d_record.size()<<" ";
+    str<<"\\# "<<(unsigned int)d_record.size()<<" ";
     char hex[4];
     for(size_t n=0; n<d_record.size(); ++n) {
       snprintf(hex,sizeof(hex)-1, "%02x", d_record.at(n));
@@ -109,7 +109,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
   char tmp[6]="\x0" "\x0\x1" "\x0\x1"; // root question for ns_t_a
   memcpy(&packet[pos], &tmp, 5); pos+=5;
 
-  memcpy(&packet[pos], encoded.c_str(), encoded.size()); pos+=encoded.size();
+  memcpy(&packet[pos], encoded.c_str(), encoded.size()); pos+=(uint16_t)encoded.size();
 
   struct dnsrecordheader drh;
   drh.d_type=htons(qtype);
@@ -118,9 +118,9 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
   drh.d_clen=htons(serialized.size());
 
   memcpy(&packet[pos], &drh, sizeof(drh)); pos+=sizeof(drh);
-  memcpy(&packet[pos], serialized.c_str(), serialized.size()); pos+=serialized.size();
+  memcpy(&packet[pos], serialized.c_str(), serialized.size()); pos+=(uint16_t)serialized.size();
 
-  MOADNSParser mdp((char*)&*packet.begin(), packet.size());
+  MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   ret->header.d_type=ret->d_qtype;
   ret->label=mdp.d_answers.begin()->first.d_label;
@@ -257,11 +257,15 @@ bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
 {
   if(d_header.arcount && !d_answers.empty()) {
     eo->d_packetsize=d_answers.back().first.d_class;
-    struct Stuff {
-      uint8_t extRCode, version;
-      uint16_t Z;
-    } __attribute__((packed));
-     
+#pragma pack (push)
+#pragma pack (1)
+struct Stuff 
+{ 
+	uint8_t extRCode, version; 
+	uint16_t Z; 
+};
+#pragma pack (pop)
+
     Stuff stuff;
     uint32_t ttl=ntohl(d_answers.back().first.d_ttl);
     memcpy(&stuff, &ttl, sizeof(stuff));

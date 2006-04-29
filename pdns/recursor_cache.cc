@@ -127,7 +127,7 @@ string DNSRR2String(const DNSResourceRecord& rr)
 
 unsigned int MemRecursorCache::size()
 {
-  return d_cache.size();
+  return (unsigned int)d_cache.size();
 }
 
 unsigned int MemRecursorCache::bytes()
@@ -135,7 +135,7 @@ unsigned int MemRecursorCache::bytes()
   unsigned int ret=0;
 
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
-    ret+=i->d_qname.length();
+    ret+=(unsigned int)i->d_qname.length();
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j!= i->d_records.end(); ++j)
       ret+=j->size();
   }
@@ -149,7 +149,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 
   //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
 
-  if(!d_cachecachevalid || strcasecmp(d_cachedqname.c_str(), qname.c_str())) {
+  if(!d_cachecachevalid || Utility::strcasecmp(d_cachedqname.c_str(), qname.c_str())) {
     //    cerr<<"had cache cache miss"<<endl;
     d_cachedqname=qname;
     d_cachecache=d_cache.equal_range(tie(qname));
@@ -257,7 +257,6 @@ void MemRecursorCache::doWipeCache(const string& name)
   pair<cache_t::iterator, cache_t::iterator> range=d_cache.equal_range(tie(name));
   d_cache.erase(range.first, range.second);
 }
-#include <unistd.h>
 
 void MemRecursorCache::doDumpAndClose(int fd)
 {

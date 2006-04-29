@@ -273,7 +273,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::noProcesses()
  */
 template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses()
 {
-  return d_threads.size();
+  return (unsigned int)d_threads.size();
 }
 
 //! gives access to the list of Events threads are waiting for
