@@ -110,6 +110,11 @@ For authoritative listing of options, consult the documentation referenced above
 --query-local-address::
 	Source IP address for sending queries
 
+--query-local-address6::
+	Send out local IPv6 queries from this address. Disabled by default,
+	which also disables outgoing IPv6 support. A useful setting is
+	'::0'.
+
 --quiet::
 	Suppress logging of questions and answers
 

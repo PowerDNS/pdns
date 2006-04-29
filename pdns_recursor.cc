@@ -1167,7 +1167,7 @@ static void makeNameToIPZone(const string& hostname, const string& ip)
   rr.d_place=DNSResourceRecord::ANSWER;
   rr.ttl=86400;
   rr.qtype=QType::SOA;
-  rr.content="localhost. root 1 604800 864002419200 604800";
+  rr.content="localhost. root 1 604800 86400 2419200 604800";
   
   ad.d_records.insert(rr);
 

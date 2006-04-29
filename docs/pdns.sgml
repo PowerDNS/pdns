@@ -6748,7 +6748,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	<title>The non-cached case</title>
 	<para>This is where things get interesting, because we start out with a nearly empty cache and have to go out to the net to get answers to fill it.</para>
 	
-	<para>The way DNS works, if you don't know the answer to a question, you find somebody who does. Initially you have no other place to go than the root servers. This is embodied in the SyncRes::getBestNSNamesFromCache method, which gets passed the domain we are interested in, as well as the <literal>depth</literal> and <literal>nsset</literal> parameters mentioned earlier.</para>
+	<para>The way DNS works, if you don't know the answer to a question, you find somebody who does. Initially you have no other place to go than the root servers. This is embodied in the SyncRes::getBestNSNamesFromCache method, which gets passed the domain we are interested in, as well as the <literal>depth</literal> and <literal>beenthere</literal> parameters mentioned earlier.</para>
 	
 	<para>From now on, assume our query will be for <command><literal>www.powerdns.com.</literal></command>. SyncRes::getBestNSNamesFromCache will first check if there are NS records in cache for <literal><command>www.powerdns.com.</command></literal>, but there won't be. It then checks <literal>powerdns.com. NS</literal>, and while these records do exist on the internet, the recursor doesn't know about them yet. So, we go on to check the cache for <literal><command>com. NS</command></literal>, for which the same holds. Finally we end up checking for <literal><command>. NS</command></literal>, and these we do know about: they are the root servers and were loaded into PowerDNS on startup.</para>
 	
