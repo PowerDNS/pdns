@@ -44,12 +44,7 @@ typedef unsigned int uint32_t;
 # include <signal.h>
 # include <errno.h>
 #else
-// Disable debug info truncation warning.
-# pragma warning ( disable: 4786 )
-# pragma warning ( disable: 4503 )
-# pragma warning ( disable: 4101 )
-
-# define _WIN32_WINNT 0x0400
+typedef int socklen_t;
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>
 # include <signal.h>
@@ -64,83 +59,13 @@ typedef unsigned int uint32_t;
 
 # define EINPROGRESS  WSAEWOULDBLOCK
 
-# define VERSION "2.9.13-WIN32"
 
 # define snprintf _snprintf
-
-// Custom bittypes.
-typedef unsigned char int8_t;
-typedef unsigned int  int16_t;
-typedef unsigned long int32_t;
-typedef unsigned char uint8_t;
-typedef unsigned int  uint16_t;
-typedef unsigned long uint32_t;
-
-struct in6_addr {
-	unsigned char s6_addr[16]; /* IPv6 address */
-};
-
-struct sockaddr_in6 {
-	unsigned short sin6_family; /* AF_INET6 */
-	unsigned short sin6_port; /* transport layer port # */
-	unsigned long sin6_flowinfo; /* IPv6 flow information */
-	struct in6_addr sin6_addr; /* IPv6 address */
-};
-
+#include <ws2tcpip.h>
 #endif // WIN32
-
-#include <semaphore.h>
 #include <string>
 
 using namespace std;
-
-
-//! A semaphore class.
-class Semaphore
-{
-private:
-  sem_t *m_pSemaphore;
-#ifdef WIN32
-  typedef int sem_value_t;
-
-  //! The semaphore.
-
-
-
-  //! Semaphore counter.
-  long m_counter;
-
-#else
-  typedef int sem_value_t;
-
-  uint32_t       m_magic;
-  pthread_mutex_t m_lock;
-  pthread_cond_t  m_gtzero;
-  sem_value_t     m_count;
-  uint32_t       m_nwaiters;
-#endif
-
-protected:
-public:
-  //! Default constructor.
-  Semaphore( unsigned int value = 0 );
-
-  //! Destructor.
-  ~Semaphore( void );
-  
-  //! Posts to a semaphore.
-  int post( void );
-
-  //! Waits for a semaphore.
-  int wait( void );
-
-  //! Tries to wait for a semaphore.
-  int tryWait( void );
-  
-  //! Retrieves the semaphore value.
-  int getValue( Semaphore::sem_value_t *sval );
-  
-};
 
 
 //! This is a utility class used for platform independant abstraction.
