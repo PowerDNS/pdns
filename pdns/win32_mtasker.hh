@@ -3,9 +3,9 @@
     Copyright (C) 2002  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-    
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #ifndef WIN32_MTASKER_HH
 #define WIN32_MTASKER_HH
@@ -27,6 +27,8 @@
 #include <map>
 #include <time.h>
 
+struct KeyTag {};
+
 //! The main MTasker class    
 /** The main MTasker class. See the main page for more information.
     \param EventKey Type of the key with which events are to be identified. Defaults to int.
@@ -35,26 +37,37 @@
 */
 template<class EventKey=int, class EventVal=int> class MTasker
 {
-private:  
-  LPVOID d_kernel;     
-  std::queue<int> d_runQueue;
-  std::queue<int> d_zombiesQueue;
-
+public:
   struct Waiter
   {
     LPVOID context;
     time_t ttd;
     int tid;
+    EventKey key;
   };
+  typedef multi_index_container<
+    Waiter,
+    indexed_by <
+                ordered_unique<member<Waiter,EventKey,&Waiter::key> >,
+                ordered_non_unique<tag<KeyTag>, member<Waiter,time_t,&Waiter::ttd> >
+               >
+  > waiters_t;
 
-  typedef std::map<EventKey,Waiter> waiters_t;
   waiters_t d_waiters;
+
+private:  
+  LPVOID d_kernel;     
+  std::queue<int> d_runQueue;
+  std::queue<int> d_zombiesQueue;
+
+
   std::map<int,LPVOID> d_threads;
   int d_tid;
   int d_maxtid;
   size_t d_stacksize;
 
   EventVal d_waitval;
+  EventKey d_eventkey;
   enum {Error=-1,TimeOut=0,Answer} d_waitstatus;
 
 public:
@@ -70,14 +83,16 @@ public:
   }
 
   typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
-  int waitEvent(const EventKey &key, EventVal *val=0, unsigned int timeout=0);
+  int waitEvent(EventKey &key, EventVal *val=0, unsigned int timeout=0);
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val=0);
   void getEvents(std::vector<EventKey>& events);
   void makeThread(tfunc_t *start, void* val);
   bool schedule();
   bool noProcesses();
+  unsigned int numProcesses();
   int getTid(); 
+
 private:
   //! This structure holds some fiber data that is passed to the threadWrapper.
   struct ThreadParam
