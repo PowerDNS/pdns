@@ -10,6 +10,20 @@
 
 using namespace std;
 
+RecursorControlChannel::RecursorControlChannel()
+{
+  d_fd=-1;
+  *d_local.sun_path=0;
+}
+
+RecursorControlChannel::~RecursorControlChannel() 
+{
+  if(d_fd > 0)
+    close(d_fd);
+  if(*d_local.sun_path)
+    unlink(d_local.sun_path);
+}
+
 int RecursorControlChannel::listen(const string& fname)
 {
   struct sockaddr_un local;

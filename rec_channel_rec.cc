@@ -13,8 +13,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/time.h>
-#include <sys/resource.h>
 #include "logger.hh"
+#ifndef WIN32
+#include <sys/resource.h>
+#endif
 
 using namespace std;
 using namespace boost;
@@ -100,6 +102,7 @@ string doSlashCache(T begin, T end)
   return "done\n";
 }
 
+#if 0  // broken!
 uint32_t getQueryRate()
 {
   struct timeval now;
@@ -110,8 +113,9 @@ uint32_t getQueryRate()
   else
     return 0;
 }
+#endif 
 
-
+#ifndef WIN32
 static uint64_t getSysTimeMsec()
 {
   struct rusage ru;
@@ -125,7 +129,7 @@ static uint64_t getUserTimeMsec()
   getrusage(RUSAGE_SELF, &ru);
   return(ru.ru_utime.tv_sec*1000 + ru.ru_utime.tv_usec/1000);
 }
-
+#endif
 
 RecursorControlParser::RecursorControlParser()
 {
@@ -172,10 +176,11 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
   addGetStat("unreachables", &SyncRes::s_unreachables);
 
-  addGetStat("query-rate", getQueryRate);
-
+#ifndef WIN32
+  //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
+#endif
 }
 
 static void doExit()
