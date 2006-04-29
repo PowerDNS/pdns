@@ -7,10 +7,12 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
+#ifndef WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
+#endif
 #include <fcntl.h>
 #include <stdexcept>
 #include <boost/shared_ptr.hpp>
@@ -44,7 +46,7 @@ public:
   IPAddress(const string &remote)
   {
     struct in_addr addr;
-    if(!inet_aton(remote.c_str(), &addr))
+    if(!Utility::inet_aton(remote.c_str(), &addr))
       throw NetworkError("Could not convert '"+remote+"' to an IP address");
     byte=addr.s_addr;
   }
@@ -131,9 +133,7 @@ public:
   //! Set the socket to non-blocking
   void setNonBlocking()
   {
-    int flags=fcntl(d_socket,F_GETFL,0);    
-    if(flags<0 || fcntl(d_socket, F_SETFL,flags|O_NONBLOCK) <0)
-      throw NetworkError("Setting socket to nonblocking: "+string(strerror(errno)));
+    Utility::setNonBlocking(d_socket);
   }
 
   //! Bind the socket to a specified endpoint
