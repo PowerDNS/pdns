@@ -23,13 +23,14 @@
 #include <set>
 #ifndef WIN32
 #include <netdb.h>
+#include <netinet/tcp.h>
 #endif // WIN32
 #include "recursor_cache.hh"
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <netinet/tcp.h>
+
 #include "mtasker.hh"
 #include <utility>
 #include "arguments.hh"
@@ -51,6 +52,7 @@
 #include "logger.hh"
 #include "iputils.hh"
 #include "mplexer.hh"
+#include "config.h"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -265,7 +267,7 @@ public:
       throw AhuException("Trying to return a socket not in the pool");
     }
     g_fdm->removeReadFD(*i);
-    ::close(*i);
+    Utility::closesocket(*i);
     
     d_socks.erase(i++);
     --d_numsocks;
@@ -504,19 +506,19 @@ void startDoResolve(void *p)
     }
   sendit:;
     if(!dc->d_tcp) {
-      sendto(dc->d_socket, &*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
+      sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
     }
     else {
       char buf[2];
       buf[0]=packet.size()/256;
       buf[1]=packet.size()%256;
 
-      struct iovec iov[2];
+      Utility::iovec iov[2];
 
       iov[0].iov_base=(void*)buf;              iov[0].iov_len=2;
       iov[1].iov_base=(void*)&*packet.begin(); iov[1].iov_len = packet.size();
 
-      int ret=writev(dc->d_socket, iov, 2);
+      int ret=Utility::writev(dc->d_socket, iov, 2);
       bool hadError=true;
 
       if(ret == 0) 
@@ -537,7 +539,7 @@ void startDoResolve(void *p)
       else {
 	any_cast<TCPConnection>(&g_fdm->getReadParameter(dc->d_socket))->state=TCPConnection::BYTE0;
 	struct timeval now; 
-	gettimeofday(&now, 0); // needs to be updated
+	Utility::gettimeofday(&now, 0); // needs to be updated
 	g_fdm->setReadTTD(dc->d_socket, now, g_tcpTimeout);
       }
     }
@@ -596,7 +598,8 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
 {
   TCPConnection* conn=any_cast<TCPConnection>(&var);
   if(conn->state==TCPConnection::BYTE0) {
-    int bytes=read(conn->fd,conn->data,2);
+
+    int bytes=recv(conn->fd, conn->data, 2, 0);
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
     if(bytes==2) { 
@@ -612,7 +615,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     }
   }
   else if(conn->state==TCPConnection::BYTE1) {
-    int bytes=read(conn->fd,conn->data+1,1);
+    int bytes=recv(conn->fd,conn->data+1,1,0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
       conn->qlen=(conn->data[0]<<8)+conn->data[1];
@@ -628,7 +631,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     }
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
-    int bytes=read(conn->fd,conn->data + conn->bytesread,conn->qlen - conn->bytesread);
+    int bytes=recv(conn->fd,conn->data + conn->bytesread,conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0) {
       L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected while reading question body"<<endl;
       TCPConnection tmp(*conn);
@@ -696,8 +699,9 @@ void handleNewTCPQuestion(int fd, boost::any& )
     tc.startTime=g_now.tv_sec;
     TCPConnection::s_currentConnections++;
     g_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
+
     struct timeval now;
-    gettimeofday(&now, 0);
+    Utility::gettimeofday(&now, 0);
     g_fdm->setReadTTD(tc.fd, now, g_tcpTimeout);
   }
 }
@@ -755,9 +759,9 @@ void makeTCPServerSockets()
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     memset((char *)&sin,0, sizeof(sin));
     sin.sin4.sin_family = AF_INET;
-    if(!IpToU32(*i, &sin.sin4.sin_addr.s_addr)) {
+    if(!IpToU32(*i, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
-      if(inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
+      if(Utility::inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
 	throw AhuException("Unable to resolve local address '"+ *i +"'"); 
     }
 
@@ -812,9 +816,9 @@ void makeUDPServerSockets()
 
     memset(&sin, 0, sizeof(sin));
     sin.sin4.sin_family = AF_INET;
-    if(!IpToU32(*i, &sin.sin4.sin_addr.s_addr)) {
+    if(!IpToU32(*i, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
-      if(inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
+      if(Utility::inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
 	throw AhuException("Unable to resolve local address '"+ *i +"'"); 
     }
     
@@ -903,7 +907,7 @@ try
 {
   static time_t last_stat, last_rootupdate, last_prune;
   struct timeval now;
-  gettimeofday(&now, 0);
+  Utility::gettimeofday(&now, 0);
 
   if(now.tv_sec - last_prune > 300) { 
     DTime dt;
@@ -931,7 +935,7 @@ try
     doStats();
     last_stat=time(0);
   }
-  if(now.tv_sec -last_rootupdate>7200) {
+  if(now.tv_sec - last_rootupdate > 7200) {
     SyncRes sr(now);
     vector<DNSResourceRecord> ret;
 
@@ -1317,7 +1321,10 @@ int main(int argc, char **argv)
   int ret = EXIT_SUCCESS;
 #ifdef WIN32
     WSADATA wsaData;
-    WSAStartup( MAKEWORD( 2, 0 ), &wsaData );
+    if(WSAStartup( MAKEWORD( 2, 2 ), &wsaData )) {
+      cerr<<"Unable to initialize winsock\n";
+      exit(1);
+    }
 #endif // WIN32
 
   try {
@@ -1334,7 +1341,11 @@ int main(int argc, char **argv)
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
-    ::arg().set("quiet","Suppress logging of questions and answers")="true";
+#ifdef WIN32
+    ::arg().set("quiet","Suppress logging of questions and answers")="off";
+#else
+    ::arg().set("quiet","Suppress logging of questions and answers")="";
+#endif
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
@@ -1385,9 +1396,7 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-
     L.setName("pdns_recursor");
-
 
     L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
@@ -1448,10 +1457,12 @@ int main(int argc, char **argv)
     makeUDPServerSockets();
     makeTCPServerSockets();
 
+#ifndef WIN32
     if(::arg().mustDo("fork")) {
       fork();
       L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
     }
+#endif
 
     MT=new MTasker<PacketID,string>(100000);
     makeControlChannelSocket();        
@@ -1466,17 +1477,15 @@ int main(int argc, char **argv)
 
       daemonize();
     }
+    signal(SIGUSR1,usr1Handler);
+    signal(SIGUSR2,usr2Handler);
+    signal(SIGPIPE,SIG_IGN);
+    writePid();
+#endif
     g_fdm=getMultiplexer();
 
     for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
       g_fdm->addReadFD(i->first, i->second);
-
-    signal(SIGUSR1,usr1Handler);
-    signal(SIGUSR2,usr2Handler);
-    signal(SIGPIPE,SIG_IGN);
-
-    writePid();
-#endif
 
     int newgid=0;
     if(!::arg()["setgid"].empty())
@@ -1485,7 +1494,7 @@ int main(int argc, char **argv)
     if(!::arg()["setuid"].empty())
       newuid=Utility::makeUidNumeric(::arg()["setuid"]);
 
-
+#ifndef WIN32
     if (!::arg()["chroot"].empty()) {
         if (chroot(::arg()["chroot"].c_str())<0) {
             L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
@@ -1494,6 +1503,8 @@ int main(int argc, char **argv)
     }
 
     Utility::dropPrivs(newuid, newgid);
+    g_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
+#endif 
 
     counter=0;
     unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
@@ -1501,7 +1512,7 @@ int main(int argc, char **argv)
 
     g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
 
-    g_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
+
     bool listenOnTCP(true);
 
     for(;;) {
@@ -1532,7 +1543,7 @@ int main(int argc, char **argv)
 	doStats();
       }
 
-      gettimeofday(&g_now, 0);
+      Utility::gettimeofday(&g_now, 0);
       g_fdm->run(&g_now);
 
       if(listenOnTCP) {
