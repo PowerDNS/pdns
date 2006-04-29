@@ -115,7 +115,7 @@ public:
       return *tv;
     else {
       struct timeval ret;
-      gettimeofday(&ret, 0);
+      Utility::gettimeofday(&ret, 0);
       return ret;
     }
   }
@@ -163,7 +163,7 @@ class PulseRate
 public:
   PulseRate() :  d_val(0.0) 
   {
-    gettimeofday(&d_last, 0);
+    Utility::gettimeofday(&d_last, 0);
   }
 
   PulseRate(const PulseRate& orig) : d_last(orig.d_last), d_val(orig.d_val)
