@@ -139,14 +139,19 @@ int main()
    
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer
 */
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(const EventKey &key, EventVal *val, unsigned int timeout)
+template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeout)
 {
+  if(d_waiters.count(key)) { // there was already an exact same waiter
+    return -1;
+  }
+
   Waiter w;
   w.context=GetCurrentFiber();
   w.ttd= timeout ? time(0)+timeout : 0;
   w.tid=d_tid;
- 
-  d_waiters[key]=w;
+  w.key=key;
+
+  d_waiters.insert(w);
 
   SwitchToFiber(d_kernel);
   if(val && d_waitstatus==Answer)
@@ -172,18 +177,22 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
 */
 template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEvent(const EventKey& key, const EventVal* val)
 {
-  if(!d_waiters.count(key)) {
+ 
+ typename waiters_t::iterator waiter=d_waiters.find(key);
+
+  if(waiter == d_waiters.end()) {
+    //    cout<<"Event sent nobody was waiting for!"<<endl;
     return 0;
   }
- 
+  
   d_waitstatus=Answer;
   if(val)
     d_waitval=*val;
  
-  LPVOID userspace=d_waiters[key].context;
-  d_tid=d_waiters[key].tid;         // set tid
- 
-  d_waiters.erase(key);             // removes the waitpoint
+  LPVOID userspace=waiter->context;
+  d_tid=waiter->tid;         // set tid
+  d_eventkey=waiter->key;        // pass waitEvent the exact key it was woken for
+  d_waiters.erase(waiter);             // removes the waitpoint
   SwitchToFiber(userspace);         // swaps back to the above point 'A'
  
   return 1;
@@ -237,12 +246,13 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
   }
   if(!d_waiters.empty()) {
     time_t now=time(0);
-    for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();++i) {
-      if(i->second.ttd && i->second.ttd<now) {
+    for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();) {
+      if(i->ttd && i->ttd<now) {
 d_waitstatus=TimeOut;
-SwitchToFiber(i->second.context);
-d_waiters.erase(i->first);                  // removes the waitpoint
+SwitchToFiber(i->context);
+d_waiters.erase(i++);                  // removes the waitpoint
       }
+      else ++i;
     }
   }
   return false;
@@ -255,6 +265,15 @@ d_waiters.erase(i->first);                  // removes the waitpoint
 template<class Key, class Val>bool MTasker<Key,Val>::noProcesses()
 {
   return d_threads.empty();
+}
+
+//! returns the number of processes running
+/** Call this to perhaps limit activities if too many threads are running
+    \return number of processes running
+ */
+template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses()
+{
+  return d_threads.size();
 }
 
 //! gives access to the list of Events threads are waiting for

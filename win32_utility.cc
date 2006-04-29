@@ -1,11 +1,11 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2006 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2
-    as published by the Free Software Foundation
-    
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,13 +14,14 @@
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 // Utility class win32 implementation.
 
 #include "utility.hh"
-
+#include <iostream>
+#include <mmsystem.h>
 
 // Closes a socket.
 int Utility::closesocket( Utility::sock_t socket )
@@ -42,15 +43,14 @@ Utility::pid_t Utility::getpid( void )
 }
 
 
-// Returns the current time.
+// Returns a monotonic clock
 int Utility::gettimeofday( struct timeval *tv, void *tz )
 {
-  DWORD ticks = GetTickCount();
-
   if ( tv == NULL )
     return -1;
 
-  tv->tv_sec  = static_cast< long >( ticks / 1000 );
+  DWORD ticks = timeGetTime();
+  tv->tv_sec  = 86400 + static_cast< long >( ticks / 1000 );
   tv->tv_usec = static_cast< long >( ticks % 1000 );
 
   return 0;
@@ -121,17 +121,10 @@ const char *Utility::inet_ntop4( const char *src, char *dst, size_t size )
   return reinterpret_cast< const char * >( dst );
 }
 
-
 #define NS_IN6ADDRSZ  16
 #define NS_INT16SZ    2
 #define NS_INADDRSZ   4
 
-/* const char *
- * inet_ntop6(src, dst, size)
- *	convert IPv6 binary address into presentation (printable) format
- * author:
- *	Paul Vixie, 1996.
- */
 const char *
 Utility::inet_ntop6( const char *src, char *dst, size_t size )
 {
@@ -144,7 +137,7 @@ Utility::inet_ntop6( const char *src, char *dst, size_t size )
 	 */
 	char tmp[sizeof "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255"], *tp;
 	struct { int base, len; } best, cur;
-	u_int words[NS_IN6ADDRSZ / NS_INT16SZ];
+	uint16_t words[NS_IN6ADDRSZ / NS_INT16SZ];
 	int i;
 
 	/*
@@ -214,12 +207,14 @@ Utility::inet_ntop6( const char *src, char *dst, size_t size )
 	 * Check for overflow, copy, and we're done.
 	 */
 	if ((size_t)(tp - tmp) > size) {
-		errno = ENOSPC;
-		return (NULL);
+	  cerr<<"Error!\n";
+	  errno = ENOSPC;
+	  return (NULL);
 	}
 	strcpy(dst, tmp);
 	return (dst);
 }
+
 
 
 /* int
@@ -401,7 +396,7 @@ void Utility::usleep( unsigned long usec )
 
 
 // Writes a vector.
-int Utility::writev( Utility::sock_t socket, const struct Utility::iovec *vector, size_t count )
+int Utility::writev( Utility::sock_t socket, const Utility::iovec *vector, size_t count )
 {
   unsigned int i;
   int res;
@@ -419,65 +414,3 @@ int Utility::writev( Utility::sock_t socket, const struct Utility::iovec *vector
   return nbytes;
 }
 
-
-// Semaphore class implementation.
-Semaphore::Semaphore( unsigned int value )
-{
-  m_pSemaphore  = new sem_t;
-  m_counter     = value;
-
-  sem_init( m_pSemaphore, 0, value );
-}
-
-
-// Destructor.
-Semaphore::~Semaphore( void )
-{
-  // FIXME: Memleak! Delete m_pSemaphore.
-}
-
-
-// Returns the value of the semaphore.
-int Semaphore::getValue( Semaphore::sem_value_t *sval )
-{
-  if ( sval != NULL )
-    *sval = m_counter;
-
-  return 0;
-}
-
-
-// Posts to a semaphore.
-int Semaphore::post( void )
-{
-  if ( sem_post( m_pSemaphore ) != 0 )
-    return -1;
-
-  InterlockedIncrement( &m_counter );
-
-  return 0;
-}
-
-
-// Tries to wait for a semaphore.
-int Semaphore::tryWait( void )
-{
-  if ( sem_trywait( m_pSemaphore ) != 0 )
-    return -1;
-
-  InterlockedDecrement( &m_counter );
-
-  return 0;
-}
-
-
-// Tries waits for a semaphore.
-int Semaphore::wait( void )
-{
-  if ( sem_wait( m_pSemaphore ) != 0 )
-    return -1;
-
-  InterlockedDecrement( &m_counter );
-
-  return 0;
-}

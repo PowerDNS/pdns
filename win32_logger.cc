@@ -18,10 +18,7 @@
 */
 
 #include "utility.hh"
-#include "pdnsservice.hh"
 #include "logger.hh"
-#include "statbag.hh"
-#include "pdnsmsg.hh"
 
 using namespace std;
 
@@ -40,75 +37,24 @@ void Logger::log(const string &msg, Urgency u)
   tmp[ 0 ] = msg.c_str();
   tmp[ 1 ] = NULL;
 
-  extern StatBag S;
-  S.ringAccount("logmessages",msg);
+  char timestr[ 128 ];
+  time_t curtime= time( NULL );
+  strftime( timestr, sizeof( timestr ), "%a %d %b %X", localtime( &curtime ));
 
   if ( m_pLogFile != NULL )
   {
-    char timestr[ 128 ];
-    time_t curtime;
     ostringstream message;
-
-    curtime = time( NULL );
-    strftime( timestr, sizeof( timestr ), "%a %d %b %X", localtime( &curtime ));
-    
     message << timestr << " (" << u << "): " << msg << endl;
     fwrite( message.str().c_str(), sizeof( char ), message.str().length(), m_pLogFile );
     fflush( m_pLogFile );
   }
 
-  if ( PDNSService::instance())
-  {
-    if ( !PDNSService::instance()->isRunningAsService() && u <= consoleUrgency )
-    {
-      clog << msg << endl;
-      return;
-    }
-  }
-
-  if ( !PDNSService::instance())
-  {
-    clog << msg << endl;
-    return;
-  }
-
-  if ( !opened )
-    return;
-
-  if ( m_eventLogHandle == NULL )
-    return;
-  
-  // Only log relevant messages.
-  //if ( m_toNTLog.find( pthread_self()) == m_toNTLog.end())
-  //  return;
-
-  if ( m_toNTLog[ pthread_self() ] == false )
-    return;
-  
-  //if ( u == EVENTLOG_INFORMATION_TYPE )
-  //  return; // Don't spam the NT log.
-
-  DWORD eventId;
-  switch ( u )
-  {
-  case EVENTLOG_ERROR_TYPE:
-    eventId = MSG_ERROR;
-    break;
-
-  case EVENTLOG_WARNING_TYPE:
-    eventId = MSG_WARNING;
-    break;
-
-  default:
-    eventId = MSG_INFO;
-  }
-  
-  ReportEvent( m_eventLogHandle, u, 0, eventId, NULL, 1, 0, tmp, NULL );
+  clog << timestr<<" " <<msg << endl;
+  return;
 }
 
 void Logger::toConsole(Urgency u)
 {
-
   consoleUrgency=u;
 }
 
@@ -121,7 +67,7 @@ void Logger::toFile( const string & filename )
 
 void Logger::toNTLog( void )
 {
-  m_eventLogHandle = RegisterEventSource( NULL, NTService::instance()->getServiceName().c_str());
+
 }
 
 void Logger::open()
@@ -144,37 +90,26 @@ Logger::Logger(const string &n, int facility)
   name=n;
   m_pLogFile = NULL;
   m_eventLogHandle = NULL;
-  pthread_mutex_init(&lock,0);
   open();
 }
 
 Logger& Logger::operator<<(Urgency u)
 {
-  pthread_mutex_lock(&lock);
-
-  if ( u == NTLog )
-    m_toNTLog[ pthread_self() ] = true;
-  else
-    d_outputurgencies[pthread_self()]=u;
-
-  pthread_mutex_unlock(&lock);
+  d_outputurgencies[0]=u;
   return *this;
 }
 
 Logger& Logger::operator<<(const string &s)
 {
-  pthread_mutex_lock(&lock);
+  if(!d_outputurgencies.count(0)) // default urgency
+    d_outputurgencies[0]=Info;
 
-  if(!d_outputurgencies.count(pthread_self())) // default urgency
-    d_outputurgencies[pthread_self()]=Info;
+  if ( !m_toNTLog.count( 0))
+    m_toNTLog[ 0 ] = false;
 
-  if ( !m_toNTLog.count( pthread_self()))
-    m_toNTLog[ pthread_self() ] = false;
+  //  if(d_outputurgencies[0]<=(unsigned int)consoleUrgency) // prevent building strings we won't ever print
+      d_strings[0].append(s);
 
-  //  if(d_outputurgencies[pthread_self()]<=(unsigned int)consoleUrgency) // prevent building strings we won't ever print
-      d_strings[pthread_self()].append(s);
-
-  pthread_mutex_unlock(&lock);
   return *this;
 }
 
@@ -188,18 +123,55 @@ Logger& Logger::operator<<(int i)
   return *this;
 }
 
+Logger& Logger::operator<<(unsigned int i)
+{
+  ostringstream tmp;
+  tmp<<i;
+
+  *this<<tmp.str();
+
+  return *this;
+}
+
+Logger& Logger::operator<<(unsigned long i)
+{
+  ostringstream tmp;
+  tmp<<i;
+
+  *this<<tmp.str();
+
+  return *this;
+}
+
+Logger& Logger::operator<<(unsigned long long i)
+{
+  ostringstream tmp;
+  tmp<<i;
+
+  *this<<tmp.str();
+
+  return *this;
+}
+
+
+Logger& Logger::operator<<(long i)
+{
+  ostringstream tmp;
+  tmp<<i;
+
+  *this<<tmp.str();
+
+  return *this;
+}
+
+
 Logger& Logger::operator<<( ostream & (blah)(ostream &))
 {
-  // *this<<" ("<<(int)d_outputurgencies[pthread_self()]<<", "<<(int)consoleUrgency<<")";
-  pthread_mutex_lock(&lock);
+  log(d_strings[0], d_outputurgencies[0]);
 
+  d_strings.erase(0);  
+  d_outputurgencies.erase(0);
 
-  log(d_strings[pthread_self()], d_outputurgencies[pthread_self()]);
-  d_strings.erase(pthread_self());  
-  d_outputurgencies.erase(pthread_self());
-  m_toNTLog.erase( pthread_self());
-
-  pthread_mutex_unlock(&lock);
   return *this;
 }
 
