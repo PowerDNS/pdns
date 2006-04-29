@@ -24,15 +24,16 @@
 #include <ctime>
 #include <iostream>
 #include <sstream>
-#include <pthread.h>
 
 #ifndef WIN32
 # include <syslog.h>
+#include <pthread.h>
 
 #else
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>
-
+typedef int pthread_mutex_t;
+typedef int pthread_t;
 #endif // WIN32
 
 using namespace std;
