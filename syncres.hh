@@ -76,7 +76,7 @@ public:
   
   unsigned int size()
   {
-    return d_cont.size();
+    return (unsigned int)d_cont.size();
   }
 private:
   int d_limit;
@@ -133,7 +133,7 @@ public:
 
     d_last=now;
     double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
-    d_val=(1-factor)*val+ factor*d_val; 
+    d_val=(float)((1-factor)*val+ (float)factor*d_val); 
   }
 
   double get(struct timeval*tv = 0)
@@ -141,7 +141,7 @@ public:
     struct timeval now=getOrMakeTime(tv);
     float diff=makeFloat(d_lastget-now);
     d_lastget=now;
-    float factor=exp(diff/60.0); // is 1.0 or less
+    float factor=exp(diff/60.0f); // is 1.0 or less
     return d_val*=factor;
   }
 
@@ -197,7 +197,7 @@ private:
 
     d_last=now;
     double factor=exp(diff/2.0)/2.0; // might be '0.5', or 0.0001
-    d_val=(1-factor)*val+ factor*d_val; 
+    d_val=(float)((1-factor)*val+ (float)factor*d_val); 
   }
 
   PulseRate& operator=(const PulseRate&);
@@ -426,7 +426,7 @@ struct PacketID
         tie(b.id, remote, b.fd, bSock))
       return false;
 
-    return strcasecmp(domain.c_str(), b.domain.c_str()) < 0;
+    return Utility::strcasecmp(domain.c_str(), b.domain.c_str()) < 0;
   }
 };
 

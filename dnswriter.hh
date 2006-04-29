@@ -4,8 +4,10 @@
 #include <string>
 #include <vector>
 #include <map>
-#ifndef SOLARIS8
+#if !defined SOLARIS8 && !defined WIN32
 #include <stdint.h>
+#elif defined WIN32
+#include "utility.hh"
 #endif
 #include "dns.hh"
 using namespace std;

@@ -26,6 +26,7 @@
 #include <vector> 
 #include <map>
 #include <time.h>
+#include <boost/multi_index_container.hpp>
 
 struct KeyTag {};
 

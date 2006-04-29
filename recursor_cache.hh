@@ -18,11 +18,11 @@
 #include <boost/multi_index/hashed_index.hpp>
 #endif
 
+#undef max
+
 #define L theL()
 using namespace boost;
 using namespace ::boost::multi_index;
-
-
 
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
@@ -53,7 +53,7 @@ private:
 
     unsigned int size() const
     {
-      return 4+d_string.size();
+      return ( unsigned int ) 4+d_string.size();
     }
 
   };

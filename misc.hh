@@ -224,7 +224,7 @@ inline const string toLowerCanonic(const string &upper)
 {
   string reply(upper);
   if(!upper.empty()) {
-    unsigned int i, limit=reply.length();
+    unsigned int i, limit= ( unsigned int ) reply.length();
     char c;
     for(i = 0; i < limit ; i++) {
       c = dns_tolower(reply[i]);
@@ -282,7 +282,7 @@ const struct timeval operator+(const struct timeval& lhs, const struct timeval& 
 const struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs);
 inline float makeFloat(const struct timeval& tv)
 {
-  return tv.tv_sec + tv.tv_usec/1000000.0;
+  return tv.tv_sec + tv.tv_usec/1000000.0f;
 }
 struct CIStringCompare: public binary_function<string, string, bool>  
 {

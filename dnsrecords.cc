@@ -16,6 +16,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include "utility.hh"
 #include "dnsrecords.hh"
 
 boilerplate_conv(A, ns_t_a, conv.xfrIP(d_ip));

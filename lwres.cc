@@ -15,6 +15,8 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+
+
 #include "utility.hh"
 #include "lwres.hh"
 #include <iostream>
@@ -76,7 +78,7 @@ int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, 
     if(ip.sin4.sin_family==AF_INET6)
       g_stats.ipv6queries++;
 
-    if((ret=asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, pw.getHeader()->id, domain, &queryfd)) < 0) {
+    if((ret=asendto((const char*)&*vpacket.begin(), (int)vpacket.size(), 0, ip, pw.getHeader()->id, domain, &queryfd)) < 0) {
       return ret; // passes back the -2 EMFILE
     }
   
@@ -145,7 +147,7 @@ LWRes::res_t LWRes::result()
     d_tcbit=mdp.d_header.tc;
     d_rcode=mdp.d_header.rcode;
 
-    if(strcasecmp(d_domain.c_str(), mdp.d_qname.c_str())) { 
+    if(Utility::strcasecmp(d_domain.c_str(), mdp.d_qname.c_str())) { 
       if(d_domain.find((char)0)==string::npos) {// embedded nulls are too noisy
 	L<<Logger::Error<<"Packet purporting to come from remote server "<<d_ip.toString()<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
 	g_stats.unexpectedCount++;

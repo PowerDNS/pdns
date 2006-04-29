@@ -16,7 +16,6 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-
 #include "utility.hh"
 #include "syncres.hh"
 #include <iostream>
@@ -61,8 +60,8 @@ SyncRes::throttle_t SyncRes::s_throttle;
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
 {
   s_queries++;
-  if( (qtype.getCode()==QType::PTR && !strcasecmp(qname.c_str(), "1.0.0.127.in-addr.arpa.")) ||
-      (qtype.getCode()==QType::A && qname.length()==10 && !strcasecmp(qname.c_str(), "localhost."))) {
+  if( (qtype.getCode()==QType::PTR && !Utility::strcasecmp(qname.c_str(), "1.0.0.127.in-addr.arpa.")) ||
+      (qtype.getCode()==QType::A && qname.length()==10 && !Utility::strcasecmp(qname.c_str(), "localhost."))) {
     ret.clear();
     DNSResourceRecord rr;
     rr.qname=qname;
@@ -78,7 +77,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
   }
 
   if(qclass==3 && qtype.getCode()==QType::TXT && 
-        (!strcasecmp(qname.c_str(), "version.bind.") || !strcasecmp(qname.c_str(), "id.server.") || !strcasecmp(qname.c_str(), "version.pdns.") ) 
+        (!Utility::strcasecmp(qname.c_str(), "version.bind.") || !Utility::strcasecmp(qname.c_str(), "id.server.") || !Utility::strcasecmp(qname.c_str(), "version.pdns.") ) 
      ) {
     ret.clear();
     DNSResourceRecord rr;
@@ -86,7 +85,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     rr.qtype=qtype;
     rr.qclass=qclass;
     rr.ttl=86400;
-    if(!strcasecmp(qname.c_str(),"version.bind.")  || !strcasecmp(qname.c_str(),"version.pdns."))
+    if(!Utility::strcasecmp(qname.c_str(),"version.bind.")  || !Utility::strcasecmp(qname.c_str(),"version.pdns."))
       rr.content="\""+::arg()["version-string"]+"\"";
     else
       rr.content="\""+s_serverID+"\"";
@@ -301,7 +300,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	if(beenthere.count(answer)) {
 	  LOG<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP! Trying less specific NS"<<endl;
 	  for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
-	    LOG<<prefix<<qname<<": beenthere: "<<j->qname<<" ("<<j->bestns.size()<<")"<<endl;
+	    LOG<<prefix<<qname<<": beenthere: "<<j->qname<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl;
 	  bestns.clear();
 	}
 	else {
@@ -524,7 +523,7 @@ struct TCacheComp
 {
   bool operator()(const pair<string, QType>& a, const pair<string, QType>& b) const
   {
-    int cmp=strcasecmp(a.first.c_str(), b.first.c_str());
+    int cmp=Utility::strcasecmp(a.first.c_str(), b.first.c_str());
     if(cmp < 0)
       return true;
     if(cmp > 0)
@@ -549,7 +548,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
   
   LWRes::res_t result;
 
-  LOG<<prefix<<qname<<": Cache consultations done, have "<<nameservers.size()<<" NS to contact"<<endl;
+  LOG<<prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact"<<endl;
 
   for(;;) { // we may get more specific nameservers
     result.clear();
@@ -558,7 +557,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
-	LOG<<prefix<<qname<<": Failed to resolve via any of the "<<rnameservers.size()<<" offered NS"<<endl;
+	LOG<<prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS"<<endl;
 	return -1;
       }
       if(qname==*tns && qtype.getCode()==QType::A) {
@@ -578,7 +577,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	d_lwr.d_tcbit=false;
       }
       else {
-	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<rnameservers.size()<<")"<<endl;
+	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl;
 	if(!isCanonical(*tns)) {
 	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver"<<endl;
 	  remoteIPs.push_back(ComboAddress(*tns, 53));
@@ -668,7 +667,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
 	  continue;
 	}
-	LOG<<prefix<<qname<<": Got "<<result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
+	LOG<<prefix<<qname<<": Got "<<(unsigned int)result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
 
 	/*  // for you IPv6 fanatics :-)
 	if(remoteIP->sin4.sin_family==AF_INET6)
@@ -743,7 +742,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  newtarget=i->content;
 	}
 	// for ANY answers we *must* have an authoritive answer
-	else if(i->d_place==DNSResourceRecord::ANSWER && !strcasecmp(i->qname.c_str(),qname.c_str()) && 
+	else if(i->d_place==DNSResourceRecord::ANSWER && !Utility::strcasecmp(i->qname.c_str(),qname.c_str()) && 
 		( (i->qtype==qtype) ||
 		                      ( qtype==QType(QType::ANY) && d_lwr.d_aabit)))  {
 	  
@@ -798,7 +797,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	return 0;
       }
       else if(realreferral) {
-	LOG<<prefix<<qname<<": status=did not resolve, got "<<nsset.size()<<" NS, looping to them"<<endl;
+	LOG<<prefix<<qname<<": status=did not resolve, got "<<(unsigned int)nsset.size()<<" NS, looping to them"<<endl;
 	auth=newauth;
 	nameservers=nsset;
 	break; 
