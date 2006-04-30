@@ -35,9 +35,9 @@ cp configure-recursor $DIRNAME/configure
 
 mkdir -p $DIRNAME/sysdeps
 cp  sysdeps-recursor/* $DIRNAME/sysdeps
-
+cp "PowerDNS Recursor.vcproj" $DIRNAME/
 tar cf $DIRNAME.tar $DIRNAME
 bzip2 -f $DIRNAME.tar # .. solaris
 
-#g++ -O3 -I../ -DSYSCONFDIR=\"/etc\" -DLOCALSTATEDIR=\"/var/run\" \
-#$CFILES -O3 -funit-at-a-time -o pdns_recursor
+zip -q $DIRNAME.zip $DIRNAME/*
+
