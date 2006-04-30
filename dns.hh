@@ -55,7 +55,6 @@ public:
   enum { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
 };
 
-
 //! This class represents a resource record
 class DNSResourceRecord
 {
@@ -88,21 +87,34 @@ public:
     return false;
   }
 
-
 private:
   string escape(const string &str) const;
 };
 
+#ifdef _MSC_VER
 # pragma pack ( push )
 # pragma pack ( 1 )
+# define GCCPACKATTRIBUTE
+#else
+# define GCCPACKATTRIBUTE __attribute__((packed))
+#endif
 struct dnsrecordheader
 {
   uint16_t d_type;
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-};
-# pragma pack( pop )
+} GCCPACKATTRIBUTE;
+
+struct EDNS0Record 
+{ 
+	uint8_t extRCode, version; 
+	uint16_t Z; 
+} GCCPACKATTRIBUTE;
+#ifdef _MSC_VER
+#pragma pack (pop)
+#endif 
+
 typedef enum  {
         ns_t_invalid = 0,       /* Cookie. */
         ns_t_a = 1,             /* Host address. */
@@ -154,11 +166,13 @@ typedef enum  {
         ns_t_any = 255,         /* Wildcard match. */
 };
 
-#ifndef WIN32
-#include <endian.h>
-#else
+#ifdef WIN32
 #define BYTE_ORDER 1
 #define LITTLE_ENDIAN 1
+#elif __FreeBSD__
+#include <machine/endian.h>
+#else
+#include <endian.h>
 #endif
 
 struct dnsheader {

@@ -18,7 +18,6 @@
 
 #ifndef WIN32
 #include <netdb.h>
-#include <netinet/tcp.h>
 #include <unistd.h>
 #endif // WIN32
 
