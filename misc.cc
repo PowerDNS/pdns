@@ -328,6 +328,26 @@ string stringerror()
   return strerror(errno);
 }
 
+#ifdef WIN32
+string netstringerror()
+{
+  char buf[512];
+  int err=WSAGetLastError();
+  if(FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
+		     0, buf, sizeof(buf)-1, NULL)) {
+    return string(buf);
+  }
+  else {
+    return strerror(err);
+  }
+}
+#else
+string netstringerror()
+{
+  return stringerror();
+}
+#endif
+
 void cleanSlashes(string &str)
 {
   string::const_iterator i;
