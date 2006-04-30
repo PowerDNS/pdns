@@ -1552,9 +1552,9 @@ int main(int argc, char **argv)
     }
 
 #ifndef WIN32
-    doWindowsServiceArguments(service);
     serviceMain(argc, argv);
 #else
+    doWindowsServiceArguments(service);
     RecursorService::instance()->start( argc, argv, ::arg().mustDo( "ntservice" )); 
 #endif
 
