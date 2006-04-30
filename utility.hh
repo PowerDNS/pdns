@@ -27,6 +27,7 @@
 
 #ifdef _MSC_VER
 # define NEED_POSIX_TYPEDEF
+# pragma warning (disable:4996)
 #endif // _MSC_VER
 
 #ifdef NEED_POSIX_TYPEDEF
@@ -83,7 +84,7 @@ private:
 
   static const char *inet_ntop4( const char *src, char *dst, size_t size );
   static const char *inet_ntop6( const char *src, char *dst, size_t size );
-#pragma warning (disable:4996)
+
 #endif // WIN32
 
 public:
