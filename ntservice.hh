@@ -24,9 +24,7 @@
 
 #ifndef NTSERVICE_HH
 #define NTSERVICE_HH
-
-#define WINDOWS_LEAN_AND_MEAN
-#include <windows.h>
+#include "utility.hh"
 
 #include <string>
 #include "singleton.hh"

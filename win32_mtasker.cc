@@ -248,9 +248,9 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
     time_t now=time(0);
     for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();) {
       if(i->ttd && i->ttd<now) {
-d_waitstatus=TimeOut;
-SwitchToFiber(i->context);
-d_waiters.erase(i++);                  // removes the waitpoint
+	d_waitstatus=TimeOut;
+	SwitchToFiber(i->context);
+	d_waiters.erase(i++);                  // removes the waitpoint
       }
       else ++i;
     }
