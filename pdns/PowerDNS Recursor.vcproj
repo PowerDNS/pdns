@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="PowerDNS Recursor"
 	ProjectGUID="{E43D2E84-6056-49C6-9DA1-7044BA08E87A}"
+	RootNamespace="PowerDNS Recursor"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -38,7 +39,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Documents and Settings\ahu\Mijn documenten\boost_1_33_1&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\Eventlogger\&quot;;&quot;C:\Documents and Settings\ahu\Mijn documenten\boost_1_33_1&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -113,7 +114,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;C:\Documents and Settings\ahu\Mijn documenten\boost_1_33_1&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\Eventlogger\&quot;;&quot;C:\Documents and Settings\ahu\Mijn documenten\boost_1_33_1&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -199,6 +200,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\config.h"
+				>
+			</File>
+			<File
 				RelativePath=".\dnsparser.cc"
 				>
 			</File>
@@ -219,6 +224,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ntservice.cc"
+				>
+			</File>
+			<File
+				RelativePath=".\ntservice.hh"
+				>
+			</File>
+			<File
 				RelativePath=".\pdns_recursor.cc"
 				>
 			</File>
@@ -236,6 +249,14 @@
 			</File>
 			<File
 				RelativePath=".\recursor_cache.cc"
+				>
+			</File>
+			<File
+				RelativePath=".\recursorservice.cc"
+				>
+			</File>
+			<File
+				RelativePath=".\recursorservice.hh"
 				>
 			</File>
 			<File
