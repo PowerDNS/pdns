@@ -1273,7 +1273,7 @@ void parseAuthAndForwards()
   }
 }
 
-int serviceMain(int argc, char**argv)
+int serviceMain(int argc, char*argv[])
 {
   L.setName("pdns_recursor");
 
@@ -1556,6 +1556,7 @@ int main(int argc, char **argv)
     serviceMain(argc, argv);
 #else
     doWindowsServiceArguments(service);
+	L.toNTLog();
     RecursorService::instance()->start( argc, argv, ::arg().mustDo( "ntservice" )); 
 #endif
 

@@ -19,7 +19,8 @@
 
 #include "utility.hh"
 #include "logger.hh"
-
+#include "ntservice.hh" 
+#include "pdnsmsg.hh"
 using namespace std;
 
 Logger &theL(const string &pname)
@@ -48,6 +49,8 @@ void Logger::log(const string &msg, Urgency u)
     fwrite( message.str().c_str(), sizeof( char ), message.str().length(), m_pLogFile );
     fflush( m_pLogFile );
   }
+  if(m_eventLogHandle)
+    ReportEvent( m_eventLogHandle, u, 0, MSG_WARNING, NULL, 1, 0, tmp, NULL );
 
   clog << timestr<<" " <<msg << endl;
   return;
@@ -67,7 +70,8 @@ void Logger::toFile( const string & filename )
 
 void Logger::toNTLog( void )
 {
-
+  m_eventLogHandle = RegisterEventSource( NULL, 
+	  NTService::instance()->getServiceName().c_str());
 }
 
 void Logger::open()
