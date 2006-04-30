@@ -50,7 +50,7 @@ public:
   
   void toPacket(DNSPacketWriter& pw)
   {
-    string tmp((char*)&*d_record.begin(), (char*)&*d_record.end());
+    string tmp((char*)&*d_record.begin(), d_record.size());
     vector<string> parts;
     stringtok(parts, tmp);
     if(parts.size()!=3)
