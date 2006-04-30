@@ -826,8 +826,9 @@ void makeUDPServerSockets()
     }
     
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM,0);
-    if(fd<0) 
-      throw AhuException("Making a UDP server socket for resolver: "+stringerror());
+    if(fd < 0) {
+      throw AhuException("Making a UDP server socket for resolver: "+netstringerror());
+    }
 
     setReceiveBuffer(fd, 200000);
     sin.sin4.sin_port = htons(::arg().asNum("local-port")); 

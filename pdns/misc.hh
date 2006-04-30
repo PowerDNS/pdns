@@ -149,6 +149,7 @@ const string toLowerCanonic(const string &upper);
 bool IpToU32(const string &str, uint32_t *ip);
 string U32ToIP(uint32_t);
 string stringerror();
+string netstringerror();
 string itoa(int i);
 string uitoa(unsigned int i);
 
