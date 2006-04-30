@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual C++ Express 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PowerDNS Recursor", "PowerDNS Recursor.vcproj", "{E43D2E84-6056-49C6-9DA1-7044BA08E87A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Eventlogger", "Eventlogger\Eventlogger.vcproj", "{36E5DAC2-6761-4692-BC72-7B5DE6B57628}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E43D2E84-6056-49C6-9DA1-7044BA08E87A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E43D2E84-6056-49C6-9DA1-7044BA08E87A}.Debug|Win32.Build.0 = Debug|Win32
+		{E43D2E84-6056-49C6-9DA1-7044BA08E87A}.Release|Win32.ActiveCfg = Release|Win32
+		{E43D2E84-6056-49C6-9DA1-7044BA08E87A}.Release|Win32.Build.0 = Release|Win32
+		{36E5DAC2-6761-4692-BC72-7B5DE6B57628}.Debug|Win32.ActiveCfg = Debug|Win32
+		{36E5DAC2-6761-4692-BC72-7B5DE6B57628}.Debug|Win32.Build.0 = Debug|Win32
+		{36E5DAC2-6761-4692-BC72-7B5DE6B57628}.Release|Win32.ActiveCfg = Release|Win32
+		{36E5DAC2-6761-4692-BC72-7B5DE6B57628}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
