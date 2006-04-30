@@ -17,8 +17,11 @@
 */
 
 #ifndef WIN32
-#include <netdb.h>
-#include <unistd.h>
+# include <netdb.h>
+# include <unistd.h>
+#else 
+ #include "ntservice.hh"
+ #include "recursorservice.hh"
 #endif // WIN32
 
 #include "utility.hh" 
@@ -1269,17 +1272,209 @@ void parseAuthAndForwards()
   }
 }
 
+int serviceMain(int argc, char**argv)
+{
+  L.setName("pdns_recursor");
+
+  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+#ifdef __GNUC__
+  L<<", gcc "__VERSION__;
+#endif // add other compilers here
+#ifdef _MSC_VER
+  L<<", MSVC "<<_MSC_VER;
+#endif
+  L<<") starting up"<<endl;
+  
+  L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+    "This is free software, and you are welcome to redistribute it "
+    "according to the terms of the GPL version 2."<<endl;
+  
+  L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
+  
+  if(!::arg()["allow-from"].empty()) {
+    g_allowFrom=new NetmaskGroup;
+    vector<string> ips;
+    stringtok(ips, ::arg()["allow-from"], ", ");
+    L<<Logger::Warning<<"Only allowing queries from: ";
+    for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
+      g_allowFrom->addMask(*i);
+      if(i!=ips.begin())
+	L<<Logger::Warning<<", ";
+      L<<Logger::Warning<<*i;
+    }
+    L<<Logger::Warning<<endl;
+  }
+  else if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
+    L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
+  
+  g_quiet=::arg().mustDo("quiet");
+  if(::arg().mustDo("trace")) {
+    SyncRes::setLog(true);
+    ::arg().set("quiet")="no";
+    g_quiet=false;
+  }
+  
+  
+  if(!::arg()["query-local-address6"].empty()) {
+    SyncRes::s_doIPv6=true;
+    L<<Logger::Error<<"Enabling IPv6 transport for outgoing queries"<<endl;
+  }
+  
+  SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
+  SyncRes::s_serverID=::arg()["server-id"];
+  if(SyncRes::s_serverID.empty()) {
+    char tmp[128];
+    gethostname(tmp, sizeof(tmp)-1);
+    SyncRes::s_serverID=tmp;
+  }
+  
+  
+  parseAuthAndForwards();
+  
+  g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
+  if(!g_stats.remotes.empty())
+    memset(&g_stats.remotes[0], 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));
+  g_logCommonErrors=::arg().mustDo("log-common-errors");
+  
+  makeUDPServerSockets();
+  makeTCPServerSockets();
+  
+#ifndef WIN32
+  if(::arg().mustDo("fork")) {
+    fork();
+    L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
+  }
+#endif
+  
+  MT=new MTasker<PacketID,string>(100000);
+  makeControlChannelSocket();        
+  PacketID pident;
+  primeHints();    
+  L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
+#ifndef WIN32
+  if(::arg().mustDo("daemon")) {
+    L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
+    L.toConsole(Logger::Critical);
+    L.setLoglevel((Logger::Urgency)(4));
+    
+    daemonize();
+  }
+  signal(SIGUSR1,usr1Handler);
+  signal(SIGUSR2,usr2Handler);
+  signal(SIGPIPE,SIG_IGN);
+  writePid();
+#endif
+  g_fdm=getMultiplexer();
+  
+  for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
+    g_fdm->addReadFD(i->first, i->second);
+  
+  int newgid=0;
+  if(!::arg()["setgid"].empty())
+    newgid=Utility::makeGidNumeric(::arg()["setgid"]);
+  int newuid=0;
+  if(!::arg()["setuid"].empty())
+    newuid=Utility::makeUidNumeric(::arg()["setuid"]);
+  
+#ifndef WIN32
+  if (!::arg()["chroot"].empty()) {
+    if (chroot(::arg()["chroot"].c_str())<0) {
+      L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
+      exit(1);
+    }
+  }
+  
+  Utility::dropPrivs(newuid, newgid);
+  g_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
+#endif 
+  
+  counter=0;
+  unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
+  g_tcpTimeout=::arg().asNum("client-tcp-timeout");
+  
+  g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+  
+  
+  bool listenOnTCP(true);
+  
+  for(;;) {
+    while(MT->schedule()); // housekeeping, let threads do their thing
+      
+    if(!(counter%500)) {
+      MT->makeThread(houseKeeping,0);
+    }
+
+    if(!(counter%11)) {
+      typedef vector<pair<int, boost::any> > expired_t;
+      expired_t expired=g_fdm->getTimeouts(g_now);
+	
+      for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
+	TCPConnection conn=any_cast<TCPConnection>(i->second);
+	if(conn.state != TCPConnection::DONE) {
+	  if(g_logCommonErrors)
+	    L<<Logger::Warning<<"Timeout from remote TCP client "<< conn.remote.toString() <<endl;
+	  g_fdm->removeReadFD(i->first);
+	  conn.closeAndCleanup();
+	}
+      }
+    }
+      
+    counter++;
+
+    if(statsWanted) {
+      doStats();
+    }
+
+    Utility::gettimeofday(&g_now, 0);
+    g_fdm->run(&g_now);
+
+    if(listenOnTCP) {
+      if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown
+	for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+	  g_fdm->removeReadFD(*i);
+	listenOnTCP=false;
+      }
+    }
+    else {
+      if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
+	for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+	  g_fdm->addReadFD(*i, handleNewTCPQuestion);
+	listenOnTCP=true;
+      }
+    }
+  }
+}
+#ifdef WIN32
+void doWindowsServiceArguments(RecursorService& recursor)
+{
+  if(::arg().mustDo( "register-service" )) {
+    if ( !recursor.registerService( "The PowerDNS Recursor.", true )) {
+      cerr << "Could not register service." << endl;
+      exit( 99 );
+    }
+    
+    exit( 0 );
+  }
+
+  if ( ::arg().mustDo( "unregister-service" )) {
+    recursor.unregisterService();
+    exit( 0 );
+  }
+}
+#endif
+
 int main(int argc, char **argv) 
 {
   reportBasicTypes();
 
   int ret = EXIT_SUCCESS;
 #ifdef WIN32
-    WSADATA wsaData;
-    if(WSAStartup( MAKEWORD( 2, 2 ), &wsaData )) {
-      cerr<<"Unable to initialize winsock\n";
-      exit(1);
-    }
+  RecursorService service;
+  WSADATA wsaData;
+  if(WSAStartup( MAKEWORD( 2, 2 ), &wsaData )) {
+    cerr<<"Unable to initialize winsock\n";
+    exit(1);
+  }
 #endif // WIN32
 
   try {
@@ -1298,6 +1493,12 @@ int main(int argc, char **argv)
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
 #ifdef WIN32
     ::arg().set("quiet","Suppress logging of questions and answers")="off";
+    ::arg().setSwitch( "register-service", "Register the service" )= "no";
+    ::arg().setSwitch( "unregister-service", "Unregister the service" )= "no";
+    ::arg().setSwitch( "ntservice", "Run as service" )= "no";
+    ::arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes"; 
+    ::arg().setSwitch( "use-logfile", "Use a log file" )= "no"; 
+    ::arg().setSwitch( "logfile", "Filename of the log file" )= "recursor.log"; 
 #else
     ::arg().set("quiet","Suppress logging of questions and answers")="";
 #endif
@@ -1306,7 +1507,6 @@ int main(int argc, char **argv)
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
     ::arg().set("query-local-address6","Source IPv6 address for sending queries")="";
-    //    ::arg().set("query-local-port","Source port address for sending queries, defaults to random")="";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
@@ -1351,175 +1551,13 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-    L.setName("pdns_recursor");
-
-    L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
-#ifdef __GNUC__
-    L<<", gcc "__VERSION__;
-#endif // add other compilers here
-#ifdef _MSC_VER
-	L<<", MSVC "<<_MSC_VER;
-#endif
-    L<<") starting up"<<endl;
-
-    L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-      "This is free software, and you are welcome to redistribute it "
-      "according to the terms of the GPL version 2."<<endl;
-
-    L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
-
-    if(!::arg()["allow-from"].empty()) {
-      g_allowFrom=new NetmaskGroup;
-      vector<string> ips;
-      stringtok(ips, ::arg()["allow-from"], ", ");
-      L<<Logger::Warning<<"Only allowing queries from: ";
-      for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
-	g_allowFrom->addMask(*i);
-	if(i!=ips.begin())
-	  L<<Logger::Warning<<", ";
-	L<<Logger::Warning<<*i;
-      }
-      L<<Logger::Warning<<endl;
-    }
-    else if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
-      L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
-    
-    g_quiet=::arg().mustDo("quiet");
-    if(::arg().mustDo("trace")) {
-      SyncRes::setLog(true);
-      ::arg().set("quiet")="no";
-      g_quiet=false;
-    }
-
-
-    if(!::arg()["query-local-address6"].empty()) {
-      SyncRes::s_doIPv6=true;
-      L<<Logger::Error<<"Enabling IPv6 transport for outgoing queries"<<endl;
-    }
-    
-    SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
-    SyncRes::s_serverID=::arg()["server-id"];
-    if(SyncRes::s_serverID.empty()) {
-      char tmp[128];
-      gethostname(tmp, sizeof(tmp)-1);
-      SyncRes::s_serverID=tmp;
-    }
-    
-
-    parseAuthAndForwards();
-
-    g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
-	if(!g_stats.remotes.empty())
-	  memset(&g_stats.remotes[0], 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));
-    g_logCommonErrors=::arg().mustDo("log-common-errors");
-
-    makeUDPServerSockets();
-    makeTCPServerSockets();
-
 #ifndef WIN32
-    if(::arg().mustDo("fork")) {
-      fork();
-      L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
-    }
+    doWindowsServiceArguments(service);
+    serviceMain(argc, argv);
+#else
+    RecursorService::instance()->start( argc, argv, ::arg().mustDo( "ntservice" )); 
 #endif
 
-    MT=new MTasker<PacketID,string>(100000);
-    makeControlChannelSocket();        
-    PacketID pident;
-    primeHints();    
-    L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
-#ifndef WIN32
-    if(::arg().mustDo("daemon")) {
-      L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
-      L.toConsole(Logger::Critical);
-      L.setLoglevel((Logger::Urgency)(4));
-
-      daemonize();
-    }
-    signal(SIGUSR1,usr1Handler);
-    signal(SIGUSR2,usr2Handler);
-    signal(SIGPIPE,SIG_IGN);
-    writePid();
-#endif
-    g_fdm=getMultiplexer();
-
-    for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
-      g_fdm->addReadFD(i->first, i->second);
-
-    int newgid=0;
-    if(!::arg()["setgid"].empty())
-      newgid=Utility::makeGidNumeric(::arg()["setgid"]);
-    int newuid=0;
-    if(!::arg()["setuid"].empty())
-      newuid=Utility::makeUidNumeric(::arg()["setuid"]);
-
-#ifndef WIN32
-    if (!::arg()["chroot"].empty()) {
-        if (chroot(::arg()["chroot"].c_str())<0) {
-            L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
-	    exit(1);
-	}
-    }
-
-    Utility::dropPrivs(newuid, newgid);
-    g_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
-#endif 
-
-    counter=0;
-    unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
-    g_tcpTimeout=::arg().asNum("client-tcp-timeout");
-
-    g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
-
-
-    bool listenOnTCP(true);
-
-    for(;;) {
-      while(MT->schedule()); // housekeeping, let threads do their thing
-      
-      if(!(counter%500)) {
-	MT->makeThread(houseKeeping,0);
-      }
-
-      if(!(counter%11)) {
-	typedef vector<pair<int, boost::any> > expired_t;
-	expired_t expired=g_fdm->getTimeouts(g_now);
-	
-	for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
-	  TCPConnection conn=any_cast<TCPConnection>(i->second);
-	  if(conn.state != TCPConnection::DONE) {
-	    if(g_logCommonErrors)
-	      L<<Logger::Warning<<"Timeout from remote TCP client "<< conn.remote.toString() <<endl;
-	    g_fdm->removeReadFD(i->first);
-	    conn.closeAndCleanup();
-	  }
-	}
-      }
-      
-      counter++;
-
-      if(statsWanted) {
-	doStats();
-      }
-
-      Utility::gettimeofday(&g_now, 0);
-      g_fdm->run(&g_now);
-
-      if(listenOnTCP) {
-	if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown
-	  for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	    g_fdm->removeReadFD(*i);
-	  listenOnTCP=false;
-	}
-      }
-      else {
-	if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
-	  for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	    g_fdm->addReadFD(*i, handleNewTCPQuestion);
-	  listenOnTCP=true;
-	}
-      }
-    }
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;

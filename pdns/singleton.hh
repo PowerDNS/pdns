@@ -20,8 +20,6 @@
 #ifndef SINGLETON_HH
 #define SINGLETON_HH
 
-#pragma warning ( disable: 4786 ) 
-
 #define WINDOWS_LEAN_AND_MEAN
 #include <windows.h>
 
