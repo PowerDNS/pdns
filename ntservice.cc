@@ -68,8 +68,9 @@ bool NTService::registerService( const std::string & description, bool registerL
     return false; // Could not open the Service Control Manager.
 
   GetModuleFileName( NULL, temp, sizeof( temp ));
-
+	
   str << temp << " --ntservice";
+  
   if ( CreateService( 
     sc, 
     getServiceName().c_str(), 
@@ -83,11 +84,11 @@ bool NTService::registerService( const std::string & description, bool registerL
     NULL,
     NULL,
     NULL,
-    NULL ) == NULL && GetLastError() != ERROR_SERVICE_EXISTS )
+    NULL ) == NULL  )
   {
-    return false; // Don't we all like functions with 43 billion parameters?
+	if(GetLastError() != ERROR_SERVICE_EXISTS)
+      return false; // Don't we all like functions with 43 billion parameters?
   }
-
   CloseServiceHandle( sc );
 
   str.str( "" );
@@ -133,7 +134,7 @@ bool NTService::registerService( const std::string & description, bool registerL
     GetCurrentDirectory( sizeof( path ), path );
 
     // FIXME: This really should be: str << path << "\\" << getServiceName() << "msg.dll";
-    str << path << "\\pdnsmsg.dll";
+    str << path << "\\Eventlogger.dll";
     if ( RegSetValueEx( pkey, "EventMessageFile", 0, REG_SZ, reinterpret_cast< const unsigned char * >( str.str().c_str()), str.str().length()) != ERROR_SUCCESS )
     {
       RegCloseKey( pkey );
