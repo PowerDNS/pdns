@@ -11,7 +11,8 @@ CXX=i586-mingw32msvc-g++
 PDNS_RECURSOR_OBJECTS=syncres.o  misc.o win32_utility.o qtype.o   \
 arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
-malloc.o selectmplexer.o win32_logger.o win32_rec_channel.o rec_channel_rec.o
+malloc.o selectmplexer.o win32_logger.o win32_rec_channel.o rec_channel_rec.o \
+recursorservice.o ntservice.o
 
 # REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
 
