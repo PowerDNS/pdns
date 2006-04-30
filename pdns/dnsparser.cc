@@ -257,16 +257,8 @@ bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
 {
   if(d_header.arcount && !d_answers.empty()) {
     eo->d_packetsize=d_answers.back().first.d_class;
-#pragma pack (push)
-#pragma pack (1)
-struct Stuff 
-{ 
-	uint8_t extRCode, version; 
-	uint16_t Z; 
-};
-#pragma pack (pop)
 
-    Stuff stuff;
+    EDNS0Record stuff;
     uint32_t ttl=ntohl(d_answers.back().first.d_ttl);
     memcpy(&stuff, &ttl, sizeof(stuff));
 

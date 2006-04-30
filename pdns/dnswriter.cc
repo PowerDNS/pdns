@@ -75,15 +75,7 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
 {
   uint32_t ttl=0;
 
-#pragma pack( push )
-#pragma pack( 1 )
-  struct Stuff {
-    uint8_t extRCode, version;
-    uint16_t Z;
-  };
-#pragma pack( pop )
-
-  Stuff stuff;
+  EDNS0Record stuff;
 
   stuff.extRCode=extRCode;
   stuff.version=0;
