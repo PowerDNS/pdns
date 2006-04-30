@@ -88,11 +88,10 @@ int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, 
   }
   else {
     try {
-      if(ip.sin4.sin_addr.s_addr != AF_INET) // sstuff isn't yet ready for IPv6
+      if(ip.sin4.sin_family != AF_INET) // sstuff isn't yet ready for IPv6
 	return -1;
-
       Socket s(InterNetwork, Stream);
-      IPEndpoint ie(U32ToIP(ip.sin4.sin_addr.s_addr), 53);   // WRONG WRONG WRONG XXX FIXME
+      IPEndpoint ie(U32ToIP(ntohl(ip.sin4.sin_addr.s_addr)), 53);   // WRONG WRONG WRONG XXX FIXME
       s.setNonBlocking();
       s.connect(ie);
       

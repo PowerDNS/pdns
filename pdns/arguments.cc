@@ -300,6 +300,8 @@ bool ArgvMap::file(const char *fname, bool lax)
 
   while(getline(f,pline)) {
     chomp(pline," \t\r\n");   // strip trailing white spaces
+    if(pline.empty())
+      continue;
 
     if(pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
