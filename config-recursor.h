@@ -2,4 +2,6 @@
 #define LOCALSTATEDIR "/var/run/" 
 #define VERSION "3.1-snapshot2"
 #define RECURSOR
+#ifndef WIN32
 #define GCC_SKIP_LOCKING
+#endif
