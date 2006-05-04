@@ -252,10 +252,15 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
   d_cache.replace(stored, ce);
 }
 
-void MemRecursorCache::doWipeCache(const string& name)
+int MemRecursorCache::doWipeCache(const string& name)
 {
+  int count=0;
   pair<cache_t::iterator, cache_t::iterator> range=d_cache.equal_range(tie(name));
-  d_cache.erase(range.first, range.second);
+  for(cache_t::const_iterator i=range.first; i != range.second; ) {
+    count++;
+    d_cache.erase(i++);
+  }
+  return count;
 }
 
 void MemRecursorCache::doDumpAndClose(int fd)

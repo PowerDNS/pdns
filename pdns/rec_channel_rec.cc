@@ -90,10 +90,11 @@ string doDumpCache(T begin, T end)
 template<typename T>
 string doWipeCache(T begin, T end)
 {
+  int count=0;
   for(T i=begin; i != end; ++i)
-    RC.doWipeCache(*i);
+    count+=RC.doWipeCache(toCanonic("", *i));
 
-  return "done\n";
+  return "wiped "+lexical_cast<string>(count)+" records\n";
 }
 
 template<typename T>
