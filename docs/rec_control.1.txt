@@ -69,6 +69,9 @@ wipe-cache domain0 [domain1]::
 	expired. Multiple domain names can be passed. Note that you must
 	terminate a domain with a .!  So to wipe powerdns.org, issue
 	'rec_control wipe-cache powerdns.org.'.
+	Versions beyond 3.1 don't need the trailing dot. Consider not only
+	wiping 'www.domain.com.' but also 'domain.com.', as the cached nameservers
+	or target of CNAME may continue to be undesired.
 
 BUGS
 ----

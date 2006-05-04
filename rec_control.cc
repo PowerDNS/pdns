@@ -38,8 +38,8 @@ static void initArguments(int argc, char** argv)
   arg().setCmd("help","Provide this helpful message");
 
   arg().laxParse(argc,argv);  
-  if(arg().mustDo("help")) {
-    cerr<<"syntax:"<<endl<<endl;
+  if(arg().getCommands().empty() || arg().mustDo("help")) {
+    cerr<<"syntax: rec_control [options] command, options as below: "<<endl<<endl;
     cerr<<arg().helpstring(arg()["help"])<<endl;
     exit(99);
   }

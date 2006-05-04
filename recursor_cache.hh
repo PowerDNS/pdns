@@ -36,7 +36,7 @@ public:
   void doPrune(void);
   void doSlash(int perc);
   void doDumpAndClose(int fd);
-  void doWipeCache(const string& name);
+  int doWipeCache(const string& name);
   uint64_t cacheHits, cacheMisses;
 
 private:

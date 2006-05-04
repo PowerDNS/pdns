@@ -6393,8 +6393,11 @@ local0.err                        /var/log/pdns.err
 	      <listitem>
 		<para>
 		  Wipe entries from the cache. This is useful if, for example, an important server has a new IP address, but the TTL has not
-		  yet expired. Multiple domain names can be passed. Note that you must terminate a domain with a .! So to wipe powerdns.org,
-		  issue 'rec_control wipe-cache powerdns.org.'.
+		  yet expired. Multiple domain names can be passed. For versions before 3.1, you must terminate a domain with a .! So to wipe powerdns.org,
+		  issue 'rec_control wipe-cache powerdns.org.'. For later versions, the dot is optional. 
+		</para>
+		<para>
+		  Note that deletion is exact, wiping 'com.' will leave 'www.powerdns.com.' untouched!
 		</para>
 		<para>
 		  <warning>
@@ -6402,6 +6405,11 @@ local0.err                        /var/log/pdns.err
 		      Ubunty Breezy ships a version of Boost that has problems with this command! Either refrain from
 		      using wipe-cache or download a more recent Boost into the PowerDNS source directory, as explained in the
 		      <filename>README</filename>
+		    </para>
+		  </warning>
+		  <warning>
+		    <para>
+		    Don't just wipe 'www.somedomain.com', its NS records or CNAME target may still be undesired, so wipe 'somedomain.com' as well.
 		    </para>
 		  </warning>
 		</para>
