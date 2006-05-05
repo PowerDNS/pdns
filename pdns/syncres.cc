@@ -699,9 +699,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    
 	    DNSResourceRecord rr=*i;
 	    rr.d_place=DNSResourceRecord::ANSWER;
-	    //	    if(rr.ttl < 5)
+	    //      if(rr.ttl < 5)
 	    //  rr.ttl=60;
-	    rr.ttl+=d_now.tv_sec;
+
+	    rr.ttl += d_now.tv_sec;
 	    if(rr.qtype.getCode() == QType::NS) // people fiddle with the case
 	      rr.content=toLower(rr.content); // this must stay!
 	    tcache[make_pair(i->qname,i->qtype)].insert(rr);
@@ -713,6 +714,15 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     
       // supplant
       for(tcache_t::const_iterator i=tcache.begin();i!=tcache.end();++i) {
+	if(i->second.size() > 1) {
+	  uint32_t lowestTTL=numeric_limits<uint32_t>::max();
+	  for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
+	    lowestTTL=min(lowestTTL, j->ttl);
+	  
+	  for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
+	    ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
+	}
+
 	RC.replace(i->first.first, i->first.second, i->second);
       }
       set<string, CIStringCompare> nsset;  
