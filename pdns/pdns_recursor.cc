@@ -1204,9 +1204,61 @@ static void makeIPToNamesZone(const vector<string>& parts)
   }
 }
 
+
+void parseAuthAndForwards();
+
+string reloadAuthAndForwards()
+{
+  SyncRes::domainmap_t original=SyncRes::s_domainmap;
+  
+  try {
+    L<<Logger::Warning<<"Reloading zones, purging data from cache"<<endl;
+  
+    for(SyncRes::domainmap_t::const_iterator i = SyncRes::s_domainmap.begin(); i != SyncRes::s_domainmap.end(); ++i) {
+      for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
+	RC.doWipeCache(j->qname);
+    }
+
+    string configname=::arg()["config-dir"]+"/recursor.conf";
+    cleanSlashes(configname);
+    
+    if(!::arg().preParseFile(configname.c_str(), "forward-zones")) 
+      L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
+    
+    ::arg().preParseFile(configname.c_str(), "auth-zones");
+    ::arg().preParseFile(configname.c_str(), "export-etc-hosts");
+    ::arg().preParseFile(configname.c_str(), "serve-rfc1918");
+    
+    parseAuthAndForwards();
+    
+    // purge again - new zones need to blank out the cache
+    for(SyncRes::domainmap_t::const_iterator i = SyncRes::s_domainmap.begin(); i != SyncRes::s_domainmap.end(); ++i) {
+      for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
+	RC.doWipeCache(j->qname);
+    }
+
+    // this is pretty blunt
+    SyncRes::s_negcache.clear(); 
+    return "ok\n";
+  }
+  catch(exception& e) {
+    L<<Logger::Error<<"Had error reloading zones, keeping original data: "<<e.what()<<endl;
+  }
+  catch(AhuException& ae) {
+    L<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<ae.reason<<endl;
+  }
+  catch(...) {
+    L<<Logger::Error<<"Encountered unknown error reloading zones, keeping original data"<<endl;
+  }
+  SyncRes::s_domainmap.swap(original);
+  return "reloading failed, see log\n";
+}
+
 void parseAuthAndForwards()
 {
   SyncRes::s_domainmap.clear(); // this makes us idempotent
+
+  TXTRecordContent::report();
 
   typedef vector<string> parts_t;
   parts_t parts;  
@@ -1224,7 +1276,19 @@ void parseAuthAndForwards()
 	ZoneParserTNG zpt(headers.second, headers.first);
 	DNSResourceRecord rr;
 	while(zpt.get(rr)) {
+	  try {
+	    string tmp=DNSRR2String(rr);
+	    rr=String2DNSRR(rr.qname, rr.qtype, tmp, 3600);
+	  }
+	  catch(exception &e) {
+	    throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
+	  }
+	  catch(...) {
+	    throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
+	  }
+
 	  ad.d_records.insert(rr);
+
 	}
       }
       else {

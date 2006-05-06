@@ -255,7 +255,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="ping")
     return "pong\n";
-  
-  return "Unknown command '"+cmd+"'\n";
 
+  if(cmd=="reload-zones") {
+    return reloadAuthAndForwards();
+  }
+
+  return "Unknown command '"+cmd+"'\n";
 }

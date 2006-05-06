@@ -31,6 +31,7 @@ using namespace boost;
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
   RNAME##RecordContent(const string& zoneData);                                                  \
   static void report(void);                                                                      \
+  static void unreport(void);                                                                    \
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);                          \
   static DNSRecordContent* make(const string& zonedata);                                         \
   string getZoneRepresentation() const;                                                          \
@@ -289,6 +290,10 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                        
 void RNAME##RecordContent::report(void)                                                            \
 {                                                                                                  \
   regist(1, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
+}                                                                                                  \
+void RNAME##RecordContent::unreport(void)                                                          \
+{                                                                                                  \
+  unregist(1, RTYPE);                                                                              \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordContent(RTYPE)       \
