@@ -987,8 +987,16 @@ void handleRCC(int fd, boost::any& var)
   RecursorControlParser rcp;
   RecursorControlParser::func_t* command;
   string answer=rcp.getAnswer(msg, &command);
-  s_rcc.send(answer, &remote);
-  command();
+  try {
+    s_rcc.send(answer, &remote);
+    command();
+  }
+  catch(exception& e) {
+    L<<Logger::Error<<"Error dealing with control socket request: "<<e.what()<<endl;
+  }
+  catch(AhuException& ae) {
+    L<<Logger::Error<<"Error dealing with control socket request: "<<ae.reason<<endl;
+  }
 }
 
 void handleTCPClientReadable(int fd, boost::any& var)

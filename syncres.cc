@@ -103,6 +103,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
   return res;
 }
 
+//! This is the 'out of band resolver', in other words, the authoritative server
 bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int& res)
 {
   string prefix;
@@ -701,7 +702,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    rr.d_place=DNSResourceRecord::ANSWER;
 	    //      if(rr.ttl < 5)
 	    //  rr.ttl=60;
-
+	    rr.ttl=min(86400*14U, rr.ttl); // limit TTL to two weeks
 	    rr.ttl += d_now.tv_sec;
 	    if(rr.qtype.getCode() == QType::NS) // people fiddle with the case
 	      rr.content=toLower(rr.content); // this must stay!
@@ -714,7 +715,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     
       // supplant
       for(tcache_t::const_iterator i=tcache.begin();i!=tcache.end();++i) {
-	if(i->second.size() > 1) {
+	if(i->second.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
 	  uint32_t lowestTTL=numeric_limits<uint32_t>::max();
 	  for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
 	    lowestTTL=min(lowestTTL, j->ttl);
@@ -742,7 +743,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  ne.d_qname=i->qname;
 	  ne.d_ttd=d_now.tv_sec + min(i->ttl, s_maxnegttl); // controversial
 	  ne.d_name=qname;
-	  ne.d_qtype=QType(0);
+	  ne.d_qtype=QType(0); // this encodes 'whole record'
 	  
 	  replacing_insert(s_negcache, ne);
 	  negindic=true;
