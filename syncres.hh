@@ -477,4 +477,6 @@ replacing_insert(Index& i,const typename Index::value_type& x)
   return res;
 }
 
+
+std::string reloadAuthAndForwards();
 #endif

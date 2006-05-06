@@ -117,6 +117,7 @@ private:
   string d_cachedqname;
   bool d_cachecachevalid;
 };
-
+string DNSRR2String(const DNSResourceRecord& rr);
+DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd);
 
 #endif

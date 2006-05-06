@@ -59,6 +59,10 @@ ping::
 quit::
 	Request shutdown of the recursor
 
+reload-zones::
+	Reload authoritative and forward zones. Retains current configuration
+	in case of errors.
+
 top-remotes::
 	Shows the top-20 most active remote hosts. Statistics are over the
 	last 'remotes-ringbuffer-entries' queries, which defaults to 0.

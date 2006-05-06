@@ -6380,6 +6380,16 @@ local0.err                        /var/log/pdns.err
 	      </listitem>
 	    </varlistentry>	  
 	    <varlistentry>
+	      <term>reload-zones</term>
+	      <listitem>
+		<para>
+		Reload data about all authoritative and forward zones. The configuration file is also scanned 
+		to see if the <command>auth-domain</command>, <command>forward-domain</command> and <command>export-etc-hosts</command>
+		statements have changed, and if so, these changes are incorporated.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
 	      <term>top-remotes</term>
 	      <listitem>
 		<para>
@@ -6402,9 +6412,8 @@ local0.err                        /var/log/pdns.err
 		<para>
 		  <warning>
 		    <para>
-		      Ubunty Breezy ships a version of Boost that has problems with this command! Either refrain from
-		      using wipe-cache or download a more recent Boost into the PowerDNS source directory, as explained in the
-		      <filename>README</filename>
+		    In PowerDNS versions 3.0.0 and 3.0.1 this command is slightly buggy and might cause your nameserver to crash if the first
+		    query after wiping the cache is for the domain you just wiped.
 		    </para>
 		  </warning>
 		  <warning>

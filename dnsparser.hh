@@ -180,6 +180,13 @@ public:
     getNamemap()[make_pair(cl,ty)]=name;
   }
 
+  static void unregist(uint16_t cl, uint16_t ty) 
+  {
+    pair<uint16_t, uint16_t> key=make_pair(cl, ty);
+    getTypemap().erase(key);
+    getZmakermap().erase(key);
+  }
+
   static uint16_t TypeToNumber(const string& name)
   {
     for(namemap_t::const_iterator i=getNamemap().begin(); i!=getNamemap().end();++i)
