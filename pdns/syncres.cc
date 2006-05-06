@@ -576,6 +576,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	LOG<<prefix<<qname<<": Domain is out-of-band"<<endl;
 	doOOBResolve(qname, qtype, result, depth, d_lwr.d_rcode);
 	d_lwr.d_tcbit=false;
+	d_lwr.d_aabit=true;
       }
       else {
 	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl;

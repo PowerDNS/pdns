@@ -255,6 +255,7 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
 int MemRecursorCache::doWipeCache(const string& name)
 {
   int count=0;
+  d_cachecachevalid=false;
   pair<cache_t::iterator, cache_t::iterator> range=d_cache.equal_range(tie(name));
   for(cache_t::const_iterator i=range.first; i != range.second; ) {
     count++;
@@ -342,7 +343,7 @@ void MemRecursorCache::doPrune(void)
 
 
   eiter=iter=sidx.begin();
-  advance(eiter, toTrim);
+  std::advance(eiter, toTrim);
   sidx.erase(iter, eiter);
 }
 
