@@ -114,7 +114,7 @@ void RecursorControlChannel::send(const std::string& msg, const std::string* rem
     strcpy(remoteaddr.sun_path, remote->c_str());
 
     if(::sendto(d_fd, msg.c_str(), msg.length(), 0, (struct sockaddr*) &remoteaddr, sizeof(remoteaddr) ) < 0)
-      throw AhuException("Unable to send message over control channel: "+string(strerror(errno)));
+      throw AhuException("Unable to send message over control channel '"+*remote+"': "+string(strerror(errno)));
   }
   else if(::send(d_fd, msg.c_str(), msg.length(), 0) < 0)
     throw AhuException("Unable to send message over control channel: "+string(strerror(errno)));
