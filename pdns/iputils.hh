@@ -105,6 +105,38 @@ union ComboAddress {
     }
   }
 
+  bool isMappedIPv4()  
+  {
+    if(sin4.sin_family!=AF_INET6)
+      return false;
+    
+    int n=0;
+    const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
+    for(n=0; n < 10; ++n)
+      if(ptr[n])
+	return false;
+    
+    for(; n < 12; ++n)
+      if(ptr[n]!=0xff)
+	return false;
+    
+    return true;
+  }
+  
+  ComboAddress mapToIPv4()  
+  {
+    if(!isMappedIPv4())
+      throw AhuException("ComboAddress can't map non-mapped IPv6 address back to IPv4");
+    ComboAddress ret;
+    ret.sin4.sin_family=AF_INET;
+    ret.sin4.sin_port=0;
+    
+    const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
+    ptr+=12;
+    memcpy(&ret.sin4.sin_addr.s_addr, ptr, 4);
+    return ret;
+  }
+
   string toString() const
   {
     char tmp[128];
@@ -159,6 +191,11 @@ public:
     }
     else 
       d_bits=128;
+  }
+
+  bool match(const ComboAddress& ip) const
+  {
+    return match(&ip);
   }
 
   //! If this IP address in socket address matches
@@ -217,7 +254,7 @@ public:
   bool match(ComboAddress *ip)
   {
     for(container_t::const_iterator i=d_masks.begin();i!=d_masks.end();++i)
-      if(i->match(ip))
+      if(i->match(ip) || (ip->isMappedIPv4() && i->match(ip->mapToIPv4()) ))
 	return true;
 
     return false;
