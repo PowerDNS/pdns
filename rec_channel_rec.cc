@@ -194,7 +194,7 @@ static void doExit()
 
 string doTopRemotes()
 {
-  typedef map<ComboAddress, int> counts_t;
+  typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
   counts_t counts;
   
   unsigned int total=0;

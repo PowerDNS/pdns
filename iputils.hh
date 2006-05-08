@@ -77,6 +77,20 @@ union ComboAddress {
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) > 0;
   }
 
+  struct addressOnlyLessThan: public binary_function<string, string, bool>
+  {
+    bool operator()(const ComboAddress& a, const ComboAddress& b) const
+    {
+      if(a.sin4.sin_family < b.sin4.sin_family)
+	return true;
+      if(a.sin4.sin_family > b.sin4.sin_family)
+	return false;
+      if(a.sin4.sin_family == AF_INET)
+	return a.sin4.sin_addr.s_addr < b.sin4.sin_addr.s_addr;
+      else
+	return memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, 16) < 0;
+    }
+  };
 
   socklen_t getSocklen() const
   {
@@ -129,7 +143,7 @@ union ComboAddress {
       throw AhuException("ComboAddress can't map non-mapped IPv6 address back to IPv4");
     ComboAddress ret;
     ret.sin4.sin_family=AF_INET;
-    ret.sin4.sin_port=0;
+    ret.sin4.sin_port=sin4.sin_port;
     
     const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
     ptr+=12;
