@@ -722,7 +722,6 @@ void handleNewUDPQuestion(int fd, boost::any& var)
       g_stats.unauthorizedUDP++;
       return;
     }
-    
     try {
       DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
       
@@ -1348,6 +1347,7 @@ void parseAuthAndForwards()
 int serviceMain(int argc, char*argv[])
 {
   L.setName("pdns_recursor");
+  L.setLoglevel((Logger::Urgency)(4));
 
   L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
@@ -1428,8 +1428,6 @@ int serviceMain(int argc, char*argv[])
   if(::arg().mustDo("daemon")) {
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
-    L.setLoglevel((Logger::Urgency)(4));
-    
     daemonize();
   }
   signal(SIGUSR1,usr1Handler);
