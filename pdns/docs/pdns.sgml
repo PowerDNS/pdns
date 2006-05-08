@@ -81,6 +81,149 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-recursor-3-1"><title>Recursor version 3.1 (UNRELEASED)</title>
+	<para>
+	  Unreleased, pre-releases available <ulink url="http://svn.powerdns.com/3.1-pre1">here</ulink>.
+	</para>
+	<para>
+	  After version 3.0.1 has proved to hold up very well under tremendous loads, 3.1 adds important new features:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Ability to serve authoritative data from 'BIND' style zone files (using <command>auth-zones</command> statement).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Ability to forward domains so configured to external servers (using <command>forward-zones</command>).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Possibility of 'serving' the contents of <filename>/etc/hosts</filename> over DNS, which is very well 
+		suited to simple domestic router/DNS setups. Enabled using <command>export-etc-hosts</command>.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		As recommended by recent standards documents, the PowerDNS recursor is now authoritative for RFC-1918 private IP space
+		zones by default (suggested by Paul Vixie).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Full outgoing IPv6 support (off by default) with IPv6 servers getting equal treatment with IPv4, nameserver 
+		addresses are chosen based on average response speed, irrespective of protocol.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Initial Windows support, including running as a service ('NET START "POWERDNS RECURSOR"'). <command>rec_channel</command> is still missing,
+		the rest should work. Performance appears to be below that of the UNIX versions, this situation is expected to improve.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Bug fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		No longer send out SRV and MX record priorities as zero on big-endian platforms (UltraSPARC). Discovered by Eric Sproul, fixed in c773.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SRV records need additional processing, especially in an Active Directory setting. Reported by Kenneth Marshall, fixed in c774.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The root-records were not being refreshed, which could lead to problems under inconceivable conditions. Fixed in c780.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fix resolving domain names for nameservers with multiple IP addresses, with one of these addresses being lame. Other nameserver implementations
+		were also unable to resolve these domains, so not a big bug. Fixed in c780.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		For a period of 5 minutes after expiring a negative cache entry, the domain would not be re-cached negatively, leading to a lot of duplicate
+		outgoing queries for this short period. This fix has raised the average cache hit rate of the recursor by a few percent. Fixed in c783.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Query throttling was not aggressive enough and not all sorts of queries were throttled. Implemented in c786.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Fix possible crash during startup when parsing empty configuration lines (c807).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fix possible crash when the first query after wiping a cache entry was for the just deleted entry. Rare in production servers. Fixed in c820.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Recursor would send out differing TTLs when receiving a misconfigured, standards violating, RRSET with different TTLs. Implement fix as mandated by
+		RFC 2181, paragraph 5.2. Reported by Stephen Harker (c819).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The <command>top-remotes</command> would list remotes duplicately, once per source port. Discovered by Jorn Ekkelenkamp, fixed in c827, which is post 3.1-pre1.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		ANY queries are now implemented as in other nameserver implementations, leading to a decrease in outgoing queries. The RFCs are not very 
+		clear on desired behaviour, what is implemented now saves bandwidth and CPU and brings us in line with existing practice. Previously
+		ANY queries were not cached by the PowerDNS recursor. Implemented in c784.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>rec_control</command> was very sparse in its error reporting, and user unfriendly as well. Reported by Erik Bos, fixed in c818 and c820.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		IPv6 addresses were printed in a non-standard way, fixed in c788.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		TTLs of records are now capped at two weeks, c820.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	    <listitem>
+	      <para>
+	      <command>allow-from</command> IPv4 netmasks now automatically work for IP4-to-IPv6 mapper IPv4 addresses, which appear when running on the wildcard 
+	      <command>::</command> IPv6 address. Lack of feature noted by Marcus 'darix' Rueckert. Fixed in c826, which is post 3.1-pre1.
+	      </para>
+	    </listitem>
+	  <listitem>
+	      <para>
+	      Errors before daemonizing are now also sent to syslog. Suggested by Marcus 'darix' Rueckert. Fixed in c825, which is post 3.1-pre1.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-recursor-3-0-1"><title>Recursor version 3.0.1</title>
 	<para>
 	  Released 25th of April 2006, <ulink url="http://www.powerdns.com/en/downloads.aspx">download</ulink>.
