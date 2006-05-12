@@ -209,7 +209,6 @@
 		TTLs of records are now capped at two weeks, c820.
 	      </para>
 	    </listitem>
-	  </itemizedlist>
 	    <listitem>
 	      <para>
 	      <command>allow-from</command> IPv4 netmasks now automatically work for IP4-to-IPv6 mapper IPv4 addresses, which appear when running on the wildcard 
