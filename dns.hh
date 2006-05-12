@@ -171,8 +171,37 @@ typedef enum  {
 #define LITTLE_ENDIAN 1
 #elif __FreeBSD__
 #include <machine/endian.h>
-#else
-#include <endian.h>
+#elif __linux__
+# include <endian.h>
+
+#else  // with thanks to <arpa/nameser.h> 
+
+# define LITTLE_ENDIAN   1234    /* least-significant byte first (vax, pc) */
+# define BIG_ENDIAN      4321    /* most-significant byte first (IBM, net) */
+# define PDP_ENDIAN      3412    /* LSB first in word, MSW first in long (pdp) */
+
+#if defined(vax) || defined(ns32000) || defined(sun386) || defined(i386) || \
+        defined(__i386) || defined(__ia64) || defined(__amd64) || \
+        defined(MIPSEL) || defined(_MIPSEL) || defined(BIT_ZERO_ON_RIGHT) || \
+        defined(__alpha__) || defined(__alpha) || \
+        (defined(__Lynx__) && defined(__x86__))
+# define BYTE_ORDER      LITTLE_ENDIAN
+#endif
+
+#if defined(sel) || defined(pyr) || defined(mc68000) || defined(sparc) || \
+    defined(__sparc) || \
+    defined(is68k) || defined(tahoe) || defined(ibm032) || defined(ibm370) || \
+    defined(MIPSEB) || defined(_MIPSEB) || defined(_IBMR2) || defined(DGUX) ||\
+    defined(apollo) || defined(__convex__) || defined(_CRAY) || \
+    defined(__hppa) || defined(__hp9000) || \
+    defined(__hp9000s300) || defined(__hp9000s700) || \
+    defined(__hp3000s900) || defined(MPE) || \
+    defined(BIT_ZERO_ON_LEFT) || defined(m68k) || \
+        (defined(__Lynx__) && \
+        (defined(__68k__) || defined(__sparc__) || defined(__powerpc__)))
+# define BYTE_ORDER      BIG_ENDIAN
+#endif
+
 #endif
 
 struct dnsheader {
