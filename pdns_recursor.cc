@@ -260,6 +260,9 @@ public:
   void returnSocket(int fd)
   {
     socks_t::iterator i=d_socks.find(fd);
+    if(i==d_socks.end()) {
+      throw AhuException("Trying to return a socket (fd="+lexical_cast<string>(fd)+") not in the pool");
+    }
     returnSocket(i);
   }
 
@@ -279,17 +282,35 @@ public:
 
 
 /* these two functions are used by LWRes */
-// -2 is OS error, -1 is error that depends on the remote, > 1 is success
-int asendto(const char *data, int len, int flags, const ComboAddress& toaddr, int id, const string& domain, int* fd) 
+// -2 is OS error, -1 is error that depends on the remote, > 0 is success
+int asendto(const char *data, int len, int flags, const ComboAddress& toaddr, uint16_t id, const string& domain, int* fd) 
 {
+
+  PacketID pident;
+  pident.domain=domain;
+  pident.remote=toaddr;
+
+  // see if there is an existing outstanding request we can chain on to, using partial equivalence function
+  pair<MT_t::waiters_t::iterator, MT_t::waiters_t::iterator> chain=MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
+
+  for(; chain.first != chain.second; chain.first++) {
+    if(chain.first->key.fd > -1) { // don't chain onto existing chained waiter!
+      //      cerr<<"Orig: "<<pident.domain<<", "<<pident.remote.toString()<<", id="<<id<<endl;
+      // cerr<<"Had hit: "<< chain.first->key.domain<<", "<<chain.first->key.remote.toString()<<", id="<<chain.first->key.id
+      // <<", count="<<chain.first->key.chain.size()<<", origfd: "<<chain.first->key.fd<<endl;
+      
+      chain.first->key.chain.insert(id); // we can chain
+      *fd=-1;                            // gets used in waitEvent / sendEvent later on
+      return 1;
+    }
+  }
+
   *fd=g_udpclientsocks.getSocket(toaddr.sin4.sin_family);
   if(*fd < 0)
     return -2;
-  PacketID pident;
+
   pident.fd=*fd;
   pident.id=id;
-  pident.domain=domain;
-  pident.remote=toaddr;
   
   int ret=connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen());
   if(ret < 0)
@@ -300,7 +321,7 @@ int asendto(const char *data, int len, int flags, const ComboAddress& toaddr, in
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, int id, const string& domain, int fd)
+int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, uint16_t id, const string& domain, int fd)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit) 
@@ -314,6 +335,7 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
 
   string packet;
   int ret=MT->waitEvent(pident, &packet, 1);
+
   if(ret > 0) {
     if(packet.empty()) // means "error"
       return -1; 
@@ -327,7 +349,8 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
     }
   }
   else {
-    g_udpclientsocks.returnSocket(fd);
+    if(fd >= 0)
+      g_udpclientsocks.returnSocket(fd);
   }
   return ret;
 }
@@ -1057,6 +1080,21 @@ void handleTCPClientWritable(int fd, boost::any& var)
   }
 }
 
+// resend event to everybody chained onto it
+void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& content)
+{
+  if(iter->key.chain.empty())
+    return;
+
+  for(PacketID::chain_t::iterator i=iter->key.chain.begin(); i != iter->key.chain.end() ; ++i) {
+    resend.fd=-1;
+    resend.id=*i;
+    MT->sendEvent(resend, &content);
+    g_stats.chainResends++;
+    //    cerr<<"\tResending "<<content.size()<<" bytes for fd="<<resend.fd<<" and id="<<resend.id<<": "<< res <<endl;
+  }
+}
+
 void handleUDPServerResponse(int fd, boost::any& var)
 {
   PacketID pid=any_cast<PacketID>(var);
@@ -1076,9 +1114,15 @@ void handleUDPServerResponse(int fd, boost::any& var)
 	L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr) <<
 	  ": packet smalller than DNS header"<<endl;
     }
-    string empty;
+
     g_udpclientsocks.returnSocket(fd);
-    MT->sendEvent(pid, &empty); // this denotes error
+    string empty;
+
+    MT_t::waiters_t::iterator iter=MT->d_waiters.find(pid);
+    if(iter != MT->d_waiters.end()) 
+      doResends(iter, pid, empty);
+    
+    MT->sendEvent(pid, &empty); // this denotes error (does lookup again.. at least L1 will be hot)
     return;
   }  
 
@@ -1096,6 +1140,12 @@ void handleUDPServerResponse(int fd, boost::any& var)
     pident.domain=questionExpand(data, len); // don't copy this from above - we need to do the actual read
     string packet;
     packet.assign(data, len);
+
+    MT_t::waiters_t::iterator iter=MT->d_waiters.find(pident);
+    if(iter != MT->d_waiters.end()) {
+      doResends(iter, pident, packet);
+    }
+
     if(!MT->sendEvent(pident, &packet)) {
       // if(g_logCommonErrors)
       //   L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
@@ -1103,12 +1153,12 @@ void handleUDPServerResponse(int fd, boost::any& var)
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
 	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote && 
-    !Utility::strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
+	   !Utility::strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
 	  mthread->key.nearMisses++;
 	}
       }
     }
-    else 
+    else if(fd >= 0)
       g_udpclientsocks.returnSocket(fd);
   }
   else
