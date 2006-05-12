@@ -413,23 +413,44 @@ struct PacketID
   string::size_type outPos;    // how far we are along in the outMSG
 
   mutable uint32_t nearMisses; // number of near misses - host correct, id wrong
+  typedef set<uint16_t > chain_t;
+  mutable chain_t chain;
   int fd;
 
   bool operator<(const PacketID& b) const
   {
     int ourSock= sock ? sock->getHandle() : 0;
     int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(id, remote, fd, ourSock) <
-        tie(b.id, remote, b.fd, bSock))
+    if( tie(remote, ourSock) < tie(b.remote, bSock))
       return true;
-    if( tie(id, remote, fd, ourSock) >
-        tie(b.id, remote, b.fd, bSock))
+    if( tie(remote, ourSock) > tie(b.remote, bSock))
       return false;
 
-    return Utility::strcasecmp(domain.c_str(), b.domain.c_str()) < 0;
+    int cmp=Utility::strcasecmp(domain.c_str(), b.domain.c_str());
+    if(cmp < 0)
+      return true;
+    if(cmp > 0)
+      return false;
+
+    return tie(fd, id) < tie(b.fd, b.id);
   }
 };
 
+struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>  
+{
+  bool operator()(const PacketID& a, const PacketID& b) const
+  {
+    int ourSock= a.sock ? a.sock->getHandle() : 0;
+    int bSock = b.sock ? b.sock->getHandle() : 0;
+    if( tie(a.remote, ourSock) < tie(b.remote, bSock))
+      return true;
+    if( tie(a.remote, ourSock) > tie(b.remote, bSock))
+      return false;
+
+    int cmp=Utility::strcasecmp(a.domain.c_str(), b.domain.c_str());
+    return cmp < 0;
+  }
+};
 extern MemRecursorCache RC;
 extern MTasker<PacketID,string>* MT;
 
@@ -452,6 +473,7 @@ struct RecursorStats
   uint64_t spoofCount;
   uint64_t resourceLimits;
   uint64_t ipv6queries;
+  uint64_t chainResends;
 
   typedef vector<ComboAddress> remotes_t;
   remotes_t remotes;
