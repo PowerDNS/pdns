@@ -313,8 +313,11 @@ int asendto(const char *data, int len, int flags, const ComboAddress& toaddr, ui
   pident.id=id;
   
   int ret=connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen());
-  if(ret < 0)
+  if(ret < 0) {
+    if(errno==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
+      return -2;
     return ret;
+  }
 
   g_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
   return send(*fd, data, len, 0);
