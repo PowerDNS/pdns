@@ -178,6 +178,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
   addGetStat("unreachables", &SyncRes::s_unreachables);
+  addGetStat("chain-resends", &g_stats.chainResends);
 
 #ifndef WIN32
   //  addGetStat("query-rate", getQueryRate);
