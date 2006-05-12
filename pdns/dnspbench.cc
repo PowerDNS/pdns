@@ -47,7 +47,7 @@ try
   Socket s(InterNetwork, Datagram);
   
   IPEndpoint rem("10.0.1.6", atoi(argv[1])), loc("213.156.2.1", 53);
-  s.bind(loc);
+  //  s.bind(loc);
 
   vector<uint8_t> vpacket;
   string domain="ds9a.nl";
@@ -57,12 +57,12 @@ try
     DNSPacketWriter pw(vpacket, domain, type);
     
     pw.getHeader()->rd=1;
-    pw.getHeader()->qr=1;
+    pw.getHeader()->qr=0;
     pw.getHeader()->id=n;
-    ARecordContent arc("1.2.3.4");
-    pw.startRecord("ds9a.nl", 1, 9999, 1, DNSPacketWriter::ANSWER);
-    arc.toPacket(pw);
-    pw.commit();
+    //    ARecordContent arc("1.2.3.4");
+    //    pw.startRecord("ds9a.nl", 1, 9999, 1, DNSPacketWriter::ANSWER);
+    //    arc.toPacket(pw);
+    //    pw.commit();
 
     string spacket((char*)(&*vpacket.begin()), vpacket.size());
     s.sendTo(spacket, rem);
