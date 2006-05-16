@@ -198,7 +198,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 /* the code below is rather tricky - it basically replaces the stuff cached for qname by content, but it is special
    cased for when inserting identical records with only differing ttls, in which case the entry is not
    touched, but only given a new ttd */
-void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content)
+void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth)
 {
   d_cachecachevalid=false;
   tuple<string, uint16_t> key=make_tuple(qname, qt.getCode());
@@ -232,7 +232,7 @@ void MemRecursorCache::replace(const string &qname, const QType& qt,  const set<
       
       if(range.first != range.second) {
 	for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j) {
-	  if(i->ttl > j->d_ttd)
+	  if(i->ttl > j->d_ttd || auth) // authoritative packets can override the TTL to be lower
 	    j->d_ttd=i->ttl;
 	}
       }
