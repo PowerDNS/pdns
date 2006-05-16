@@ -415,7 +415,7 @@ void primeHints(void)
       arr.content=ips[c-'a'];
       set<DNSResourceRecord> aset;
       aset.insert(arr);
-      RC.replace(string(templ), QType(QType::A), aset);
+      RC.replace(string(templ), QType(QType::A), aset, true); // auth, nuke it all
       
       nsset.insert(nsrr);
     }
@@ -430,7 +430,7 @@ void primeHints(void)
       if(rr.qtype.getCode()==QType::A) {
 	set<DNSResourceRecord> aset;
 	aset.insert(rr);
-	RC.replace(rr.qname, QType(QType::A), aset);
+	RC.replace(rr.qname, QType(QType::A), aset, true); // auth, etc see above
       }
       if(rr.qtype.getCode()==QType::NS) {
 	rr.content=toLower(rr.content);
@@ -438,7 +438,7 @@ void primeHints(void)
       }
     }
   }
-  RC.replace(".", QType(QType::NS), nsset); // and stuff in the cache
+  RC.replace(".", QType(QType::NS), nsset, true); // and stuff in the cache (auth)
 }
 
 map<ComboAddress, uint32_t> g_tcpClientCounts;

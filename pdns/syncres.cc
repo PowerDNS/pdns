@@ -725,7 +725,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
 	}
 
-	RC.replace(i->first.first, i->first.second, i->second);
+	RC.replace(i->first.first, i->first.second, i->second, d_lwr.d_aabit);
       }
       set<string, CIStringCompare> nsset;  
       LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
