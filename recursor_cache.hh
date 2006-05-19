@@ -32,7 +32,7 @@ public:
   unsigned int size();
   unsigned int bytes();
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
-  void replace(const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth);
+  void replace(time_t, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth);
   void doPrune(void);
   void doSlash(int perc);
   void doDumpAndClose(int fd);

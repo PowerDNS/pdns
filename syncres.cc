@@ -288,7 +288,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	      LOG<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl;
 	    }
 	    else {
-	      LOG<<", not in cache"<<endl;
+	      LOG<<", not in cache / did not look at cache"<<endl;
 	    }
 	  }
 	  else
@@ -701,12 +701,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    
 	    DNSResourceRecord rr=*i;
 	    rr.d_place=DNSResourceRecord::ANSWER;
-	    //      if(rr.ttl < 5)
-	    //  rr.ttl=60;
+
 	    rr.ttl=min(86400*14U, rr.ttl); // limit TTL to two weeks
 	    rr.ttl += d_now.tv_sec;
+
 	    if(rr.qtype.getCode() == QType::NS) // people fiddle with the case
-	      rr.content=toLower(rr.content); // this must stay!
+	      rr.content=toLower(rr.content); // this must stay! (the cache can't be case-insensitive on the RHS of records)
 	    tcache[make_pair(i->qname,i->qtype)].insert(rr);
 	  }
 	}	  
@@ -725,7 +725,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
 	}
 
-	RC.replace(i->first.first, i->first.second, i->second, d_lwr.d_aabit);
+	RC.replace(d_now.tv_sec, i->first.first, i->first.second, i->second, d_lwr.d_aabit);
       }
       set<string, CIStringCompare> nsset;  
       LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
