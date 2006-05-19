@@ -83,7 +83,7 @@
       </para>
       <sect2 id="changelog-recursor-3-1"><title>Recursor version 3.1 (UNRELEASED)</title>
 	<para>
-	  Unreleased, pre-releases available <ulink url="http://svn.powerdns.com/3.1-pre1">here</ulink>.
+	  Unreleased, pre-releases available <ulink url="http://svn.powerdns.com/3.1-pre2">here</ulink>.
 	</para>
 	<para>
 	  After version 3.0.1 has proved to hold up very well under tremendous loads, 3.1 adds important new features:
@@ -182,6 +182,17 @@
 		The <command>top-remotes</command> would list remotes duplicately, once per source port. Discovered by Jorn Ekkelenkamp, fixed in c827, which is post 3.1-pre1.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		Default <command>allow-from</command> allowed queries from fe80::/16, corrected to fe80::/10. Spotted by Niels Bakker, fixed in c829, which is post 3.1-pre1.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		While PowerDNS blocks failing queries quickly, multiple packets could briefly be in flight for the same domain and nameserver. This situation is now
+		explicitly detected and queries are chained to identical queries already in flight. Fixed in c833 and c834, post 3.1-pre1.
+	      </para>
+	    </listitem>
 	  </itemizedlist>
 	</para>
 	<para>
@@ -215,9 +226,29 @@
 	      <command>::</command> IPv6 address. Lack of feature noted by Marcus 'darix' Rueckert. Fixed in c826, which is post 3.1-pre1.
 	      </para>
 	    </listitem>
-	  <listitem>
+	    <listitem>
 	      <para>
 	      Errors before daemonizing are now also sent to syslog. Suggested by Marcus 'darix' Rueckert. Fixed in c825, which is post 3.1-pre1.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		When launching without any form of configured network connectivity, all root-servers would be cached as 'down' for some time. Detect this special case
+		and treat it as a resource-constraint, which is not accounted against specific nameservers. Spotted by Seth Arnold, fixed in c835, which is post 3.1-pre1.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The recursor now does not allow authoritative servers to keep supplying its own NS records into perpetuity, which causes problems
+		when a domain is redelegated but the old authorative servers are not updated to this effect. Noticed and explained at length by Darren 
+		Gamble of Shaw Communications, addressed by c837, which is post 3.1-pre2.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some operators may want to follow RFC 2181 paragraph 5.2 and 5.4. This harms performance and does not solve any real problem,
+		but does make PowerDNS more compliant. If you want this, enable <command>auth-can-lower-ttl</command>. Implemented in c839, which is
+		post 3.1-pre2.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -6225,6 +6256,17 @@ local0.err                        /var/log/pdns.err
 		private IP addresses, like 10.0.0.0/8. Due to the agressive nature of the internet these days, it is highly recommended
 		to not open up the recursor for the entire internet. Questions from IP addresses not listed here are ignored and do 
 		not get an answer.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>auth-can-lower-ttl</term>
+	    <listitem>
+	      <para>
+		Authoritative zones can transmit a TTL value that is lower than that specified in the parent zone. This is called a
+		'delegation inconsistency'. To follow RFC 2181 paragraphs 5.2 and 5.4 to the letter, enable this feature. 
+		This will mean a slight deterioration of performance, and it will not solve any problems, but does make
+		the recursor more standards compliant. Not recommended unless you have to tick an 'RFC 2181 compliant' box. Off by default.
 	      </para>
 	    </listitem>
 	  </varlistentry>

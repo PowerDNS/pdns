@@ -50,6 +50,12 @@ For authoritative listing of options, consult the documentation referenced above
 --allow-from::
 	If set, only allow these comma separated netmasks to recurse
 
+--auth-can-lower-ttl::
+	Authoritative zones can transmit a TTL value that is lower than that specified in the parent zone. This is called a
+	'delegation inconsistency'. To follow RFC 2181 paragraphs 5.2 and 5.4 to the letter, enable this feature. 
+	This will mean a slight deterioration of performance, and it will not solve any problems, but does make
+	the recursor more standards compliant. Not recommended unless you have to tick an 'RFC 2181 compliant' box. Off by default.
+
 --auth-zones::
            Comma separated list of 'zonename=filename' pairs. Zones read from
            these files are served authoritatively. Example: auth-zones=

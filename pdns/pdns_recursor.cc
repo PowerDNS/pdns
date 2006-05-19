@@ -1446,7 +1446,8 @@ int serviceMain(int argc, char*argv[])
     ::arg().set("quiet")="no";
     g_quiet=false;
   }
-  
+
+  RC.d_followRFC2181=::arg().mustDo("auth-can-lower-ttl");
   
   if(!::arg()["query-local-address6"].empty()) {
     SyncRes::s_doIPv6=true;
@@ -1655,6 +1656,7 @@ int main(int argc, char **argv)
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
+    ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("config","Output blank configuration");

@@ -27,7 +27,7 @@ using namespace ::boost::multi_index;
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
-  MemRecursorCache() : d_cachecachevalid(false)
+  MemRecursorCache() : d_followRFC2181(false), d_cachecachevalid(false)
   {}
   unsigned int size();
   unsigned int bytes();
@@ -38,6 +38,7 @@ public:
   void doDumpAndClose(int fd);
   int doWipeCache(const string& name);
   uint64_t cacheHits, cacheMisses;
+  bool d_followRFC2181;
 
 private:
   struct StoredRecord
@@ -111,7 +112,6 @@ private:
                >
   > cache_t;
 
-private:
   cache_t d_cache;
   pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   string d_cachedqname;
