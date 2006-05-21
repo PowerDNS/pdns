@@ -123,14 +123,14 @@ static uint64_t getSysTimeMsec()
 {
   struct rusage ru;
   getrusage(RUSAGE_SELF, &ru);
-  return(ru.ru_stime.tv_sec*1000 + ru.ru_stime.tv_usec/1000);
+  return (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
 }
 
 static uint64_t getUserTimeMsec()
 {
   struct rusage ru;
   getrusage(RUSAGE_SELF, &ru);
-  return(ru.ru_utime.tv_sec*1000 + ru.ru_utime.tv_usec/1000);
+  return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 }
 #endif
 
