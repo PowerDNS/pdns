@@ -40,8 +40,10 @@
 #include "dns.hh"
 using namespace std;
 
-int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id, const string& domain, int* fd);
-int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id, const string& domain, int fd);
+int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id, 
+	    const string& domain, uint16_t qtype,  int* fd);
+int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id, 
+	      const string& domain, uint16_t, int fd);
 
 class LWResException : public AhuException
 {

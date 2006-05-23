@@ -78,13 +78,15 @@ int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, 
     if(ip.sin4.sin_family==AF_INET6)
       g_stats.ipv6queries++;
 
-    if((ret=asendto((const char*)&*vpacket.begin(), (int)vpacket.size(), 0, ip, pw.getHeader()->id, domain, &queryfd)) < 0) {
+    if((ret=asendto((const char*)&*vpacket.begin(), (int)vpacket.size(), 0, ip, pw.getHeader()->id, 
+		    domain, type, &queryfd)) < 0) {
       return ret; // passes back the -2 EMFILE
     }
   
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0, ip, &d_len, pw.getHeader()->id, domain, queryfd);
+    ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0, ip, &d_len, pw.getHeader()->id, 
+		  domain, type, queryfd);
   }
   else {
     try {

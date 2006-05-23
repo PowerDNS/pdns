@@ -233,7 +233,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
       if(range.first != range.second) {
 	for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j) {
 	  /* see http://mailman.powerdns.com/pipermail/pdns-users/2006-May/003413.html */
-	  if(j->d_ttd > now && i->ttl > j->d_ttd && qt.getCode()==QType::NS && auth) // don't allow auth servers to *raise* TTL of an NS record
+	  if(j->d_ttd > (unsigned int) now && i->ttl > j->d_ttd && qt.getCode()==QType::NS && auth) // don't allow auth servers to *raise* TTL of an NS record
 	    continue;
 	  if(i->ttl > j->d_ttd || (auth && d_followRFC2181) ) // authoritative packets can override the TTL to be lower
 	    j->d_ttd=i->ttl;

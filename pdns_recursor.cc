@@ -283,12 +283,14 @@ public:
 
 /* these two functions are used by LWRes */
 // -2 is OS error, -1 is error that depends on the remote, > 0 is success
-int asendto(const char *data, int len, int flags, const ComboAddress& toaddr, uint16_t id, const string& domain, int* fd) 
+int asendto(const char *data, int len, int flags, 
+	    const ComboAddress& toaddr, uint16_t id, const string& domain, uint16_t qtype, int* fd) 
 {
 
   PacketID pident;
-  pident.domain=domain;
-  pident.remote=toaddr;
+  pident.domain = domain;
+  pident.remote = toaddr;
+  pident.type = qtype;
 
   // see if there is an existing outstanding request we can chain on to, using partial equivalence function
   pair<MT_t::waiters_t::iterator, MT_t::waiters_t::iterator> chain=MT->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
@@ -324,7 +326,8 @@ int asendto(const char *data, int len, int flags, const ComboAddress& toaddr, ui
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, uint16_t id, const string& domain, int fd)
+int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, 
+	      uint16_t id, const string& domain, uint16_t qtype, int fd)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit) 
@@ -334,6 +337,7 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
   pident.fd=fd;
   pident.id=id;
   pident.domain=domain;
+  pident.type = qtype;
   pident.remote=fromaddr;
 
   string packet;
@@ -992,8 +996,9 @@ catch(AhuException& ae)
 }
 ;
 
-string questionExpand(const char* packet, uint16_t len)
+string questionExpand(const char* packet, uint16_t len, uint16_t& type)
 {
+  type=0;
   const char* end=packet+len;
   const char* pos=packet+12;
   unsigned char labellen;
@@ -1008,6 +1013,10 @@ string questionExpand(const char* packet, uint16_t len)
   }
   if(ret.empty())
     ret=".";
+
+  if(pos + labellen + 2 <= end)  // is this correct XXX FIXME?
+    type=(*pos)*256 + *(pos+1);
+    
   return ret;
 }
 
@@ -1140,7 +1149,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
     pident.remote=fromaddr;
     pident.id=dh.id;
     pident.fd=fd;
-    pident.domain=questionExpand(data, len); // don't copy this from above - we need to do the actual read
+    pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
     string packet;
     packet.assign(data, len);
 
@@ -1155,7 +1164,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
       g_stats.unexpectedCount++;
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
-	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote && 
+	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
 	   !Utility::strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
 	  mthread->key.nearMisses++;
 	}
