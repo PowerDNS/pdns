@@ -81,9 +81,11 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-recursor-3-1"><title>Recursor version 3.1 (UNRELEASED)</title>
+      <sect2 id="changelog-recursor-3-1"><title>Recursor version 3.1</title>
 	<para>
-	  Unreleased, pre-releases available <ulink url="http://svn.powerdns.com/3.1-pre2">here</ulink>.
+	  Released on the 23rd of May 2006. Many thanks are due to the operators of some of the largest internet access providers in the world,
+	  each having many millions of customers, who have tested the various 3.1 pre-releases for suitability. They have uncovered and helped 
+	  fix bugs that could impact us all, but are only (quickly) noticeable with such vast amounts of DNS traffic.
 	</para>
 	<para>
 	  After version 3.0.1 has proved to hold up very well under tremendous loads, 3.1 adds important new features:
