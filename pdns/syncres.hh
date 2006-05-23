@@ -396,7 +396,7 @@ int arecvtcp(string& data, int len, Socket* sock);
 
 struct PacketID
 {
-  PacketID() : id(0), sock(0), inNeeded(0), outPos(0), nearMisses(0), fd(-1)
+  PacketID() : id(0), type(0), sock(0), inNeeded(0), outPos(0), nearMisses(0), fd(-1)
   {
     memset(&remote, 0, sizeof(remote));
   }
@@ -404,6 +404,7 @@ struct PacketID
   uint16_t id;  // wait for a specific id/remote pair
   ComboAddress remote;  // this is the remote
   string domain;             // this is the question 
+  uint16_t type;             // and this is its type
 
   Socket* sock;  // or wait for an event on a TCP fd
   int inNeeded; // if this is set, we'll read until inNeeded bytes are read
@@ -421,9 +422,9 @@ struct PacketID
   {
     int ourSock= sock ? sock->getHandle() : 0;
     int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(remote, ourSock) < tie(b.remote, bSock))
+    if( tie(remote, ourSock, type) < tie(b.remote, bSock, b.type))
       return true;
-    if( tie(remote, ourSock) > tie(b.remote, bSock))
+    if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
       return false;
 
     int cmp=Utility::strcasecmp(domain.c_str(), b.domain.c_str());
@@ -442,9 +443,9 @@ struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>
   {
     int ourSock= a.sock ? a.sock->getHandle() : 0;
     int bSock = b.sock ? b.sock->getHandle() : 0;
-    if( tie(a.remote, ourSock) < tie(b.remote, bSock))
+    if( tie(a.remote, ourSock, a.type) < tie(b.remote, bSock, b.type))
       return true;
-    if( tie(a.remote, ourSock) > tie(b.remote, bSock))
+    if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
       return false;
 
     int cmp=Utility::strcasecmp(a.domain.c_str(), b.domain.c_str());
