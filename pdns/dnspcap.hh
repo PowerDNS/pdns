@@ -32,6 +32,14 @@ struct pdns_pcap_pkthdr {
   uint32_t len;        /* length this packet (off wire) */
 };
 
+struct pdns_lcc_header {
+  uint16_t lcc_pkttype;/* packet type */
+  uint16_t lcc_hatype;/* link-layer address type */
+  uint16_t lcc_halen;/* link-layer address length */
+  uint8_t lcc_addr[8];/* link-layer address */
+  uint16_t lcc_protocol;/* protocol */
+};
+
 class PcapPacketReader
 {
 public:
@@ -57,6 +65,7 @@ public:
 
   bool getUDPPacket();
 
+  struct pdns_lcc_header* d_lcc;
   struct ether_header* d_ether;
   struct ip *d_ip;
   const struct tcphdr *d_tcp;
@@ -71,6 +80,7 @@ public:
 private:
   FILE* d_fp;
   string d_fname;
+  int d_skipMediaHeader;
 };
 
 class PcapPacketWriter

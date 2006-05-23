@@ -18,8 +18,12 @@ PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
   if(d_pfh.magic != 2712847316UL)
     throw runtime_error((format("PCAP file %s has bad magic %x, should be %x") % fname % d_pfh.magic % 2712847316UL).str());
   
-  if( d_pfh.linktype!=1)
-    throw runtime_error((format("Unsupported link type %d") % d_pfh.linktype).str());
+  if( d_pfh.linktype==1) {
+    d_skipMediaHeader=sizeof(struct ether_header);
+  } else if(d_pfh.linktype==113) {
+    d_skipMediaHeader=16;
+  }
+  else throw runtime_error((format("Unsupported link type %d") % d_pfh.linktype).str());
   
   d_runts = d_oversized = d_correctpackets = d_nonetheripudp = 0;
 }
@@ -64,10 +68,18 @@ try
     }
 
     d_ether=reinterpret_cast<struct ether_header*>(d_buffer);
-    d_ip=reinterpret_cast<struct ip*>(d_buffer + sizeof(struct ether_header));
+    d_lcc=reinterpret_cast<struct pdns_lcc_header*>(d_buffer);
 
-    if(ntohs(d_ether->ether_type)==0x0800 && d_ip->ip_p==17) { // udp
-      d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + sizeof(struct ether_header) + 4 * d_ip->ip_hl);
+    d_ip=reinterpret_cast<struct ip*>(d_buffer + d_skipMediaHeader);
+
+    uint16_t contentCode;
+    if(d_pfh.linktype==1) 
+      contentCode=ntohs(d_ether->ether_type);
+    else if(d_pfh.linktype==113)
+      contentCode=ntohs(d_lcc->lcc_protocol);
+
+    if(contentCode==0x0800 && d_ip->ip_p==17) { // udp
+      d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + d_skipMediaHeader + 4 * d_ip->ip_hl);
       d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
       d_len = ntohs(d_udp->uh_ulen) - sizeof(struct udphdr);
       d_correctpackets++;
