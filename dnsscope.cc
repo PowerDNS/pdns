@@ -55,7 +55,7 @@ try
   while(pr.getUDPPacket()) {
     if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
 	ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
-        pr.d_len > sizeof(HEADER)) {
+        pr.d_len > 12) {
       try {
 	MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
 

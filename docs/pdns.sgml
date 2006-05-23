@@ -247,7 +247,7 @@
 	    <listitem>
 	      <para>
 		Some operators may want to follow RFC 2181 paragraph 5.2 and 5.4. This harms performance and does not solve any real problem,
-		but does make PowerDNS more compliant. If you want this, enable <command>auth-can-lower-ttl</command>. Implemented in c839, which is
+		but does make PowerDNS more compliant. If you want this, enable <command>auth-can-lower-ttl</command>. Implemented in c838, which is
 		post 3.1-pre2.
 	      </para>
 	    </listitem>
