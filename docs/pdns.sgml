@@ -81,7 +81,16 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-recursor-3-1"><title>Recursor version 3.1</title>
+      <sect2 id="changelog-recursor-3-1-1"><title>Recursor version 3.1.1</title>
+	<para>
+	  <warning>
+	    <para> 
+	      3.1.1 is identical to 3.1 except for a bug in the packet chaining code which would mainly manifest itself for IPv6 enabled Konqueror 
+	      users with very fast connections to their PowerDNS installation. However, all 3.1 users are urged to upgrade to 3.1.1.
+	      Many thanks to Alessandro Bono for his quick aid in solving this problem.
+	    </para>
+	  </warning>
+	</para>
 	<para>
 	  Released on the 23rd of May 2006. Many thanks are due to the operators of some of the largest internet access providers in the world,
 	  each having many millions of customers, who have tested the various 3.1 pre-releases for suitability. They have uncovered and helped 
