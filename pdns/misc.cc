@@ -197,9 +197,8 @@ int sendData(const char *buffer, int replen, int outsock)
   return 0;
 }
 
-void parseService(const string &descr, ServiceTuple &st)
+static void parseService4(const string &descr, ServiceTuple &st)
 {
-
   vector<string>parts;
   stringtok(parts,descr,":");
   if(parts.empty())
@@ -209,6 +208,36 @@ void parseService(const string &descr, ServiceTuple &st)
     st.port=atoi(parts[1].c_str());
 }
 
+static void parseService6(const string &descr, ServiceTuple &st)
+{
+  string::size_type pos=descr.find(']');
+  if(pos == string::npos)
+    throw AhuException("Unable to parse '"+descr+"' as an IPv6 service");
+
+  st.host=descr.substr(1, pos-1);
+  if(pos + 2 < descr.length())
+    st.port=atoi(descr.c_str() + pos +2);
+}
+
+
+void parseService(const string &descr, ServiceTuple &st)
+{
+  if(descr.empty())
+    throw AhuException("Unable to parse '"+descr+"' as a service");
+
+  vector<string> parts;
+  stringtok(parts, descr, ":");
+
+  if(descr[0]=='[') {
+    parseService6(descr, st);
+  }
+  else if(descr[0]==':' || parts.size() > 2 || descr.find("::") != string::npos) {
+    st.host=descr;
+  }
+  else {
+    parseService4(descr, st);
+  }
+}
 
 int waitForData(int fd, int seconds, int useconds)
 {
