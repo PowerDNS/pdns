@@ -795,14 +795,19 @@ void makeTCPServerSockets()
   if(locals.empty())
     throw AhuException("No local address specified");
   
-  ComboAddress sin;
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
+    ServiceTuple st;
+    st.port=::arg().asNum("local-port");
+    parseService(*i, st);
+    
+    ComboAddress sin;
+
     memset((char *)&sin,0, sizeof(sin));
     sin.sin4.sin_family = AF_INET;
-    if(!IpToU32(*i, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
+    if(!IpToU32(st.host, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
-      if(Utility::inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
-	throw AhuException("Unable to resolve local address '"+ *i +"'"); 
+      if(Utility::inet_pton(AF_INET6, st.host.c_str(), &sin.sin6.sin6_addr) <= 0)
+	throw AhuException("Unable to resolve local address for TCP server on '"+ st.host +"'"); 
     }
 
     fd=socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
@@ -822,10 +827,10 @@ void makeTCPServerSockets()
     }
 #endif
 
-    sin.sin4.sin_port = htons(::arg().asNum("local-port")); 
+    sin.sin4.sin_port = htons(st.port);
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0) 
-      throw AhuException("Binding TCP server socket for "+*i+": "+stringerror());
+      throw AhuException("Binding TCP server socket for "+ st.host +": "+stringerror());
     
     Utility::setNonBlocking(fd);
     setSendBuffer(fd, 65000);
@@ -833,9 +838,9 @@ void makeTCPServerSockets()
     deferredAdd.push_back(make_pair(fd, handleNewTCPQuestion));
     //    g_fdm->addReadFD(fd, handleNewTCPQuestion);
     if(sin.sin4.sin_family == AF_INET) 
-      L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<::arg().asNum("local-port")<<endl;
+      L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      L<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<::arg().asNum("local-port")<<endl;
+      L<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -852,14 +857,18 @@ void makeUDPServerSockets()
   }
 
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
+    ServiceTuple st;
+    st.port=::arg().asNum("local-port");
+    parseService(*i, st);
+
     ComboAddress sin;
 
     memset(&sin, 0, sizeof(sin));
     sin.sin4.sin_family = AF_INET;
-    if(!IpToU32(*i, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
+    if(!IpToU32(st.host.c_str() , (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
-      if(Utility::inet_pton(AF_INET6, i->c_str(), &sin.sin6.sin6_addr) <= 0)
-	throw AhuException("Unable to resolve local address '"+ *i +"'"); 
+      if(Utility::inet_pton(AF_INET6, st.host.c_str(), &sin.sin6.sin6_addr) <= 0)
+	throw AhuException("Unable to resolve local address for UDP server on '"+ st.host +"'"); 
     }
     
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM,0);
@@ -868,20 +877,20 @@ void makeUDPServerSockets()
     }
 
     setReceiveBuffer(fd, 200000);
-    sin.sin4.sin_port = htons(::arg().asNum("local-port")); 
+    sin.sin4.sin_port = htons(st.port);
 
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0) 
-      throw AhuException("Resolver binding to server socket on port "+::arg()["local-port"]+" for "+*i+": "+stringerror());
+      throw AhuException("Resolver binding to server socket on port "+ lexical_cast<string>(st.port) +" for "+ st.host+": "+stringerror());
     
     Utility::setNonBlocking(fd);
     //    g_fdm->addReadFD(fd, handleNewUDPQuestion);
     deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
     g_tcpListenSockets.push_back(fd);
     if(sin.sin4.sin_family == AF_INET) 
-      L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<::arg().asNum("local-port")<<endl;
+      L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      L<<Logger::Error<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<::arg().asNum("local-port")<<endl;
+      L<<Logger::Error<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -1628,7 +1637,7 @@ int main(int argc, char **argv)
     ::arg().set("no-shuffle","Don't change")="off";
     ::arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     ::arg().set("local-port","port to listen on")="53";
-    ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas")="127.0.0.1";
+    ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().set("trace","if we should output heaps of logging")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
     ::arg().set("log-common-errors","If we should log rather common errors")="yes";
