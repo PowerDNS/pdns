@@ -80,6 +80,7 @@ string s_programname="pdns_recursor";
 typedef vector<int> g_tcpListenSockets_t;
 g_tcpListenSockets_t g_tcpListenSockets;
 int g_tcpTimeout;
+bool g_ignoreRD;
 
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
@@ -496,7 +497,7 @@ void startDoResolve(void *p)
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
 
     sr.setId(MT->getTid());
-    if(!dc->d_mdp.d_header.rd)
+    if(!dc->d_mdp.d_header.rd && !g_ignoreRD)
       sr.setCacheOnly();
 
     int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
@@ -1456,6 +1457,8 @@ int serviceMain(int argc, char*argv[])
     g_quiet=false;
   }
 
+  g_ignoreRD=::arg().mustDo("ignore-rd-bit");
+
   RC.d_followRFC2181=::arg().mustDo("auth-can-lower-ttl");
   
   if(!::arg()["query-local-address6"].empty()) {
@@ -1666,6 +1669,7 @@ int main(int argc, char **argv)
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
+    ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatability" )= "off"; 
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("config","Output blank configuration");
