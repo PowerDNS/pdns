@@ -185,8 +185,29 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
       return res;
   }
 
-  if(d_cacheonly)
+  if(d_cacheonly) { // very limited OOB support
+    LOG<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', recursion was not requested, peaking at auth/forward zones"<<endl;
+    string authname(qname);
+    domainmap_t::const_iterator iter=getBestAuthZone(&authname);
+    if(iter != s_domainmap.end()) {
+      string server=iter->second.d_server;
+      if(server.empty()) {
+	LWRes::res_t result;
+	ret.clear();
+	doOOBResolve(qname, qtype, ret, depth, res);
+	return res;
+      }
+      else {
+	LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<<server<<"' for zone '"<<authname<<"'"<<endl;
+	ComboAddress remoteIP(server, 53);
+	res=d_lwr.asyncresolve(remoteIP, qname, qtype.getCode(), false, &d_now);    // <- we go out on the wire!
+	ret=d_lwr.result();
+	return res;
+      }
+    }
+
     return 0;
+  }
 
   LOG<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl;
 
@@ -335,7 +356,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname,set<string, CIString
   
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
   if(iter!=s_domainmap.end()) {
-    nsset.insert(iter->second.d_server);
+    nsset.insert(iter->second.d_server); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
     return authdomain;
   }
 
@@ -759,7 +780,6 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 		                      ( qtype==QType(QType::ANY) && d_lwr.d_aabit)))  {
 	  
 	  LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
-
 
 	  done=true;
 	  ret.push_back(*i);

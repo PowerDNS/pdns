@@ -80,7 +80,6 @@ string s_programname="pdns_recursor";
 typedef vector<int> g_tcpListenSockets_t;
 g_tcpListenSockets_t g_tcpListenSockets;
 int g_tcpTimeout;
-bool g_ignoreRD;
 
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
@@ -497,7 +496,7 @@ void startDoResolve(void *p)
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
 
     sr.setId(MT->getTid());
-    if(!dc->d_mdp.d_header.rd && !g_ignoreRD)
+    if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
     int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
@@ -1465,8 +1464,6 @@ int serviceMain(int argc, char*argv[])
     ::arg().set("quiet")="no";
     g_quiet=false;
   }
-
-  g_ignoreRD=::arg().mustDo("ignore-rd-bit");
 
   RC.d_followRFC2181=::arg().mustDo("auth-can-lower-ttl");
   
