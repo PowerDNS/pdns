@@ -127,13 +127,28 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   
   ret.clear();
   AuthDomain::records_t::const_iterator ziter;
+  bool somedata=false;
   for(ziter=range.first; ziter!=range.second; ++ziter) {
+    somedata=true;
     if(qtype.getCode()==QType::ANY || ziter->qtype==qtype || ziter->qtype.getCode()==QType::CNAME)  // let rest of nameserver do the legwork on this one
       ret.push_back(*ziter);
   }
   if(!ret.empty()) {
     LOG<<prefix<<qname<<": exact match in zone '"<<authdomain<<"'"<<endl;
     res=0;
+    return true;
+  }
+  if(somedata) {
+    LOG<<prefix<<qname<<": found record in '"<<authdomain<<"', but nothing of the right type, sending SOA"<<endl;
+    ziter=iter->second.d_records.find(make_tuple(authdomain, QType(QType::SOA)));
+    if(ziter!=iter->second.d_records.end()) {
+      DNSResourceRecord rr=*ziter;
+      rr.d_place=DNSResourceRecord::AUTHORITY;
+      ret.push_back(rr);
+    }
+    else
+      LOG<<prefix<<qname<<": can't find SOA record '"<<authdomain<<"' in our zone!"<<endl;
+    res=RCode::NoError;
     return true;
   }
 
@@ -165,7 +180,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   else 
     res=0;
 
-  return true;;
+  return true;
 }
 
 int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
