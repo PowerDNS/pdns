@@ -178,6 +178,34 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   
   int res=0;
   if(!(d_nocache && qtype.getCode()==QType::NS && qname==".")) {
+    if(d_cacheonly) { // very limited OOB support
+      LOG<<prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl;
+      string authname(qname);
+      domainmap_t::const_iterator iter=getBestAuthZone(&authname);
+      if(iter != s_domainmap.end()) {
+	string server=iter->second.d_server;
+	if(server.empty()) {
+	  LWRes::res_t result;
+	  ret.clear();
+	  doOOBResolve(qname, qtype, ret, depth, res);
+	  return res;
+	}
+	else {
+	  LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<<server<<"' for zone '"<<authname<<"'"<<endl;
+	  ComboAddress remoteIP(server, 53);
+	  res=d_lwr.asyncresolve(remoteIP, qname, qtype.getCode(), false, &d_now);    
+	  // filter out the good stuff from d_lwr.result()
+	  LWRes::res_t result=d_lwr.result();
+
+	  for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
+	    if(i->d_place == DNSResourceRecord::ANSWER)
+	      ret.push_back(*i);
+	  }
+	  return res;
+	}
+      }
+    }
+
     if(doCNAMECacheCheck(qname,qtype,ret,depth,res)) // will reroute us if needed
       return res;
     
@@ -185,30 +213,9 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
       return res;
   }
 
-  if(d_cacheonly) { // very limited OOB support
-    LOG<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', recursion was not requested, peaking at auth/forward zones"<<endl;
-    string authname(qname);
-    domainmap_t::const_iterator iter=getBestAuthZone(&authname);
-    if(iter != s_domainmap.end()) {
-      string server=iter->second.d_server;
-      if(server.empty()) {
-	LWRes::res_t result;
-	ret.clear();
-	doOOBResolve(qname, qtype, ret, depth, res);
-	return res;
-      }
-      else {
-	LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<<server<<"' for zone '"<<authname<<"'"<<endl;
-	ComboAddress remoteIP(server, 53);
-	res=d_lwr.asyncresolve(remoteIP, qname, qtype.getCode(), false, &d_now);    // <- we go out on the wire!
-	ret=d_lwr.result();
-	return res;
-      }
-    }
-
+  if(d_cacheonly)
     return 0;
-  }
-
+    
   LOG<<prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl;
 
   string subdomain(qname);
