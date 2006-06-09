@@ -835,7 +835,8 @@ void makeTCPServerSockets()
     setSendBuffer(fd, 65000);
     listen(fd, 128);
     deferredAdd.push_back(make_pair(fd, handleNewTCPQuestion));
-    //    g_fdm->addReadFD(fd, handleNewTCPQuestion);
+    g_tcpListenSockets.push_back(fd);
+
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
@@ -885,7 +886,7 @@ void makeUDPServerSockets()
     Utility::setNonBlocking(fd);
     //    g_fdm->addReadFD(fd, handleNewUDPQuestion);
     deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
-    g_tcpListenSockets.push_back(fd);
+
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
