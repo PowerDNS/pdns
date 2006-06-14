@@ -42,7 +42,7 @@ LWRes::LWRes()
   d_sock=-1;
   d_timeout=500000;
   d_bufsize=1500;
-  d_buf=new unsigned char[d_bufsize];
+  d_buf = 0;
 }
 
 LWRes::~LWRes()
@@ -57,6 +57,9 @@ LWRes::~LWRes()
 /** Never throws! */
 int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now)
 {
+  if(!d_buf)
+    d_buf=new unsigned char[d_bufsize];
+
   d_ip=ip;
   vector<uint8_t> vpacket;
   DNSPacketWriter pw(vpacket, domain, type);

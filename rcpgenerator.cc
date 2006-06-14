@@ -103,14 +103,15 @@ void RecordTextReader::xfrLabel(string& val, bool)
   val.clear();
   val.reserve(d_end - d_pos);
 
+  const char* strptr=d_string.c_str();
   while(d_pos < d_end) {
-    if(dns_isspace(d_string[d_pos]))
+    if(dns_isspace(strptr[d_pos]))
       break;
 
-    if(d_string[d_pos]=='\\' && d_pos < d_end - 1) 
+    if(strptr[d_pos]=='\\' && d_pos < d_end - 1) 
       d_pos++;
 
-    val.append(1, d_string[d_pos]);      
+    val.append(1, strptr[d_pos]);      
     d_pos++;
   }
 
@@ -130,7 +131,8 @@ void RecordTextReader::xfrBlob(string& val)
 {
   skipSpaces();
   int pos=(int)d_pos;
-  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
+  const char* strptr=d_string.c_str();
+  while(d_pos < d_end && !dns_isspace(strptr[d_pos]))
     d_pos++;
 
   string tmp;
@@ -212,7 +214,8 @@ void RecordTextReader::xfrType(uint16_t& val)
 
 void RecordTextReader::skipSpaces()
 {
-  while(d_pos < d_end && dns_isspace(d_string[d_pos]))
+  const char* strptr = d_string.c_str();
+  while(d_pos < d_end && dns_isspace(strptr[d_pos]))
     d_pos++;
   if(d_pos == d_end)
     throw RecordTextException("missing field at the end of record content '"+d_string+"'");
