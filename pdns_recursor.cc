@@ -936,7 +936,7 @@ void usr2Handler(int)
 
 void doStats(void)
 {
-  if(g_stats.qcounter) {
+  if(g_stats.qcounter && (RC.cacheHits + RC.cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     L<<Logger::Error<<"stats: "<<g_stats.qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
      <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
     L<<Logger::Error<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "
