@@ -90,12 +90,12 @@ public:
   }
 
   typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
-  int waitEvent(EventKey &key, EventVal *val=0, unsigned int timeout=0);
+  int waitEvent(EventKey &key, EventVal *val=0, unsigned int timeout=0, unsigned int now=0);
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val=0);
   void getEvents(std::vector<EventKey>& events);
   void makeThread(tfunc_t *start, void* val);
-  bool schedule();
+  bool schedule(unsigned int now=0);
   bool noProcesses();
   unsigned int numProcesses();
   int getTid(); 

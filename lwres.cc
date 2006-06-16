@@ -89,7 +89,7 @@ int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, 
     // sleep until we see an answer to this, interface to mtasker
     
     ret=arecvfrom(reinterpret_cast<char *>(d_buf), d_bufsize-1,0, ip, &d_len, pw.getHeader()->id, 
-		  domain, type, queryfd);
+		  domain, type, queryfd, now->tv_sec);
   }
   else {
     try {
