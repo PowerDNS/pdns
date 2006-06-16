@@ -120,7 +120,7 @@ public:
     }
   }
 
-  void submit(int val, struct timeval*tv = 0)
+  void submit(int val, struct timeval* tv)
   {
     struct timeval now=getOrMakeTime(tv);
 
@@ -136,7 +136,7 @@ public:
     d_val=(float)((1-factor)*val+ (float)factor*d_val); 
   }
 
-  double get(struct timeval*tv = 0)
+  double get(struct timeval* tv)
   {
     struct timeval now=getOrMakeTime(tv);
     float diff=makeFloat(d_lastget-now);
@@ -292,7 +292,7 @@ public:
       double ret=numeric_limits<double>::max();
       double tmp;
       for(collection_t::iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) {
-	if((tmp=pos->second.get()) < ret) {
+	if((tmp=pos->second.get(now)) < ret) {
 	  ret=tmp;
 	  d_best=pos->first;
 	}
