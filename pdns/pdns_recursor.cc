@@ -327,7 +327,7 @@ int asendto(const char *data, int len, int flags,
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, 
-	      uint16_t id, const string& domain, uint16_t qtype, int fd)
+	      uint16_t id, const string& domain, uint16_t qtype, int fd, unsigned int now)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit) 
@@ -341,7 +341,7 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
   pident.remote=fromaddr;
 
   string packet;
-  int ret=MT->waitEvent(pident, &packet, 1);
+  int ret=MT->waitEvent(pident, &packet, 1, now);
 
   if(ret > 0) {
     if(packet.empty()) // means "error"
@@ -567,7 +567,7 @@ void startDoResolve(void *p)
 
       if(hadError) {
 	g_fdm->removeReadFD(dc->d_socket);
-  Utility::closesocket(dc->d_socket);
+	Utility::closesocket(dc->d_socket);
       }
       else {
 	any_cast<TCPConnection>(&g_fdm->getReadParameter(dc->d_socket))->state=TCPConnection::BYTE0;
@@ -1549,7 +1549,7 @@ int serviceMain(int argc, char*argv[])
   bool listenOnTCP(true);
   
   for(;;) {
-    while(MT->schedule()); // housekeeping, let threads do their thing
+    while(MT->schedule(g_now.tv_sec)); // housekeeping, let threads do their thing
       
     if(!(counter%500)) {
       MT->makeThread(houseKeeping,0);

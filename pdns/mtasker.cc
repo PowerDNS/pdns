@@ -158,7 +158,7 @@ int main()
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer 
 */
 
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeout)
+template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeout, unsigned int now)
 {
   if(d_waiters.count(key)) { // there was already an exact same waiter
     return -1;
@@ -166,7 +166,10 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 
   Waiter w;
   w.context=new ucontext_t;
-  w.ttd= timeout ? (time(0)+timeout) : 0;
+  w.ttd=0;
+  if(timeout)
+    w.ttd= timeout + (now ? now : time(0));
+
   w.tid=d_tid;
   
   w.key=key;
@@ -264,7 +267,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
     \return Returns if there is more work scheduled and recalling schedule now would be useful
       
 */
-template<class Key, class Val>bool MTasker<Key,Val>::schedule()
+template<class Key, class Val>bool MTasker<Key,Val>::schedule(unsigned int now)
 {
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
@@ -288,7 +291,8 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
     return true;
   }
   if(!d_waiters.empty()) {
-    time_t now=time(0);
+    if(!now)
+      now=time(0);
 
     typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
     //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
@@ -296,7 +300,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
 
 
     for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
-      if(i->ttd && i->ttd < now) {
+      if(i->ttd && (unsigned int)i->ttd < now) {
 	d_waitstatus=TimeOut;
 	if(swapcontext(&d_kernel,i->context)) { // swaps back to the above point 'A'
 	  perror("swapcontext in schedule2");
