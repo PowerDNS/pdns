@@ -752,7 +752,6 @@ void handleNewUDPQuestion(int fd, boost::any& var)
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
     g_stats.addRemote(fromaddr);
     if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
-      cout<<"mapped: "<<fromaddr.isMappedIPv4()<<endl;
       if(!g_quiet) 
 	L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
 
@@ -1009,15 +1008,15 @@ catch(AhuException& ae)
 string questionExpand(const char* packet, uint16_t len, uint16_t& type)
 {
   type=0;
-  const char* end=packet+len;
-  const char* pos=packet+12;
+  const unsigned char* end=(const unsigned char*)packet+len;
+  const unsigned char* pos=(const unsigned char*)packet+12;
   unsigned char labellen;
   string ret;
   ret.reserve(len-12);
   while((labellen=*pos++)) {
     if(pos+labellen > end)
       break;
-    ret.append(pos, labellen);
+    ret.append((const char*)pos, labellen);
     ret.append(1,'.');
     pos+=labellen;
   }
@@ -1169,8 +1168,8 @@ void handleUDPServerResponse(int fd, boost::any& var)
     }
 
     if(!MT->sendEvent(pident, &packet)) {
-      // if(g_logCommonErrors)
-      //   L<<Logger::Warning<<"Discarding unexpected packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr, addrlen)<<endl;
+//      if(g_logCommonErrors)
+//        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toString()<<": "<<pident.type<<endl;
       g_stats.unexpectedCount++;
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
