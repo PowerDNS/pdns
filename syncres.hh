@@ -453,7 +453,8 @@ struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>
   }
 };
 extern MemRecursorCache RC;
-extern MTasker<PacketID,string>* MT;
+typedef MTasker<PacketID,string> MT_t;
+extern MT_t* MT;
 
 struct RecursorStats
 {

@@ -133,9 +133,7 @@ ArgvMap &arg()
 struct timeval g_now;
 typedef vector<int> tcpserversocks_t;
 
-typedef MTasker<PacketID,string> MT_t;
-MT_t* MT;
-
+MT_t* MT; // the big MTasker
 
 void handleTCPClientWritable(int fd, boost::any& var);
 
@@ -760,7 +758,6 @@ void handleNewUDPQuestion(int fd, boost::any& var)
     }
     try {
       DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
-      
       dc->setRemote(&fromaddr);
       
       if(dc->d_mdp.d_header.qr) {
@@ -1554,7 +1551,7 @@ int serviceMain(int argc, char*argv[])
       MT->makeThread(houseKeeping,0);
     }
 
-    if(!(counter%11)) {
+    if(!(counter%55)) {
       typedef vector<pair<int, boost::any> > expired_t;
       expired_t expired=g_fdm->getTimeouts(g_now);
 	
