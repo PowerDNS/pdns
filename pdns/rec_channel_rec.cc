@@ -1,4 +1,3 @@
-
 #include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/lexical_cast.hpp>
@@ -15,6 +14,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "logger.hh"
+#include "dnsparser.hh"
 #ifndef WIN32
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -133,6 +133,28 @@ static uint64_t getUserTimeMsec()
   return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 }
 #endif
+
+static string doCurrentQueries()
+{
+  ostringstream ostr;
+
+  ostr << MT->d_waiters.size() <<" currently outstanding questions\n";
+
+  boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5%\n");
+
+  ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained");
+  int n=0;
+  for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end() && n < 100; ++mthread, ++n) {
+    const PacketID& pident = mthread->key;
+    ostr << (fmt 
+	     % pident.domain % DNSRecordContent::NumberToType(pident.type) 
+	     % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
+	     % (pident.fd == -1 ? 'Y' : 'n')
+	     );
+  }
+  ostr <<" - done\n";
+  return ostr.str();
+}
 
 RecursorControlParser::RecursorControlParser()
 {
@@ -254,6 +276,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="top-remotes")
     return doTopRemotes();
 
+  if(cmd=="current-queries")
+    return doCurrentQueries();
+  
   if(cmd=="ping")
     return "pong\n";
 
