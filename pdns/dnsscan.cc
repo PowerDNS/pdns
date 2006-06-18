@@ -7,7 +7,6 @@
 // this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
 #undef L
 
-#include <arpa/nameser.h>
 #include <set>
 #include <deque>
 
@@ -38,6 +37,10 @@ try
     cerr<<"Syntax: dnsscan file1 [file2 ..] "<<endl;
     exit(1);
   }
+
+  unsigned int counts[256];
+  for(unsigned int n=0 ; n < 256; ++n) 
+    counts[n]=0;
     
   for(int n=1; n < argc; ++n) {
     PcapPacketReader pr(argv[n]);
@@ -45,6 +48,9 @@ try
     while(pr.getUDPPacket()) {
       try {
 	MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+	if(mdp.d_qtype < 256)
+	  counts[mdp.d_qtype]++;
+
 	for(int i=0; i < mdp.d_qname.length(); ++i)
 	  if(!isalnum(mdp.d_qname[i]) && mdp.d_qname[i]!='.' && mdp.d_qname[i]!='-' && mdp.d_qname[i]!='_') {
 	    //	  cout<<mdp.d_qname<<"|"<<mdp.d_qtype<<"|"<<mdp.d_qclass<<"\n";
@@ -66,6 +72,11 @@ try
       }
     }
   }
+  for(unsigned int n=0 ; n < 256; ++n) {
+    if(counts[n])
+      cout << n << "\t" << counts[n] << "\n";
+  }
+
 }
 catch(exception& e)
 {
