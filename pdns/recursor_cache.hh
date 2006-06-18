@@ -77,9 +77,10 @@ private:
   {
     string d_qname;
     uint16_t d_qtype;
+    bool d_auth;
 
-    CacheEntry(const tuple<string, uint16_t>& key, const vector<StoredRecord>& records) : 
-      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_records(records)
+    CacheEntry(const tuple<string, uint16_t>& key, const vector<StoredRecord>& records, bool auth) : 
+      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_records(records)
     {}
 
     typedef vector<StoredRecord> records_t;

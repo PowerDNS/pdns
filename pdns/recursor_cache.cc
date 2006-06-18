@@ -208,7 +208,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
 
   bool isNew=false;
   if(stored == d_cache.end()) {
-    stored=d_cache.insert(CacheEntry(key,vector<StoredRecord>())).first;
+    stored=d_cache.insert(CacheEntry(key,vector<StoredRecord>(), auth)).first;
     isNew=true;
   }
   
@@ -220,7 +220,11 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   if(qt.getCode()==QType::SOA || qt.getCode()==QType::CNAME)  // you can only have one (1) each of these
     ce.d_records.clear();
 
-
+  if(auth && !ce.d_auth) {
+    ce.d_records.clear(); // clear non-auth data
+    ce.d_auth = true;
+  }
+  
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
     dr.d_ttd=i->ttl;
     dr.d_string=DNSRR2String(*i);
