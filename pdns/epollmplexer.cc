@@ -94,7 +94,11 @@ void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
   if(!cbmap.erase(fd))
     throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
 
-  if(epoll_ctl(d_epollfd, EPOLL_CTL_DEL, fd, 0) < 0)
+  struct epoll_event dummy;
+  dummy.events = 0;
+  dummy.data.u64 = 0;
+
+  if(epoll_ctl(d_epollfd, EPOLL_CTL_DEL, fd, &dummy) < 0)
     throw FDMultiplexerException("Removing fd from epoll set: "+stringerror());
 }
 
