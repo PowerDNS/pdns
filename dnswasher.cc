@@ -14,7 +14,6 @@ otherwise, obfuscate the response IP address
 
 #include "statbag.hh"
 #include "dnspcap.hh"
-#include <arpa/nameser.h>
 
 using namespace boost;
 using namespace std;
@@ -52,8 +51,8 @@ try
   IPObfuscator ipo;
 
   while(pr.getUDPPacket()) {
-    if(ntohs(pr.d_udp->uh_dport)==53 || ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(HEADER)) {
-      HEADER* dh=(HEADER*)pr.d_payload;
+    if(ntohs(pr.d_udp->uh_dport)==53 || ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(dnsheader)) {
+      dnsheader* dh=(dnsheader*)pr.d_payload;
 
       if(dh->rd) {
         uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;

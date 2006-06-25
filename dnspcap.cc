@@ -72,7 +72,7 @@ try
 
     d_ip=reinterpret_cast<struct ip*>(d_buffer + d_skipMediaHeader);
 
-    uint16_t contentCode;
+    uint16_t contentCode=0;
     if(d_pfh.linktype==1) 
       contentCode=ntohs(d_ether->ether_type);
     else if(d_pfh.linktype==113)
