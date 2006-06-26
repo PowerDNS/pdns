@@ -81,6 +81,98 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-recursor-3-1-2"><title>Recursor version 3.1.2 (unreleased)</title>
+	<para>
+	  Compared to 3.1.1, this release consists almost exclusively of bug-fixes and speedups. A quick update is recommended, as some of the bugs
+	  impact operators of authoritative zones on the internet. This version has been tested by some of the largest internet providers on the planet,
+	  and is expected to perform well for everybody.
+	</para>
+	<para>
+	  Many thanks are due to Darren Gamble, Stefan Schmidt and Bryan Seitz who all provided excellent feedback based on their large-scale
+	  tests of the recursor.
+	</para>
+	<para>
+	  Bug-fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Internal authoritative server did not differentiate between 'NXDOMAIN' and 'NXRRSET', in other words, it would answer
+		'no such host' when an AAAA query came in for a domain that did exist, but did not have an AAAA record. This only affects
+		users with <command>auth-zones</command> configured. Discovered by Bryan Seitz, fixed in c848.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		ANY queries for hosts where nothing was present in the cache would not work. This did not cause real problems as ANY queries are 
+		not reliable (by design) for anything other than debugging, but did slow down the nameserver and cause unnecessary load on remote
+		nameservers. Fixed in c854.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		When exceeding the configured maximum amount of TCP sessions, TCP support would break and the nameserver would waste CPU trying to accept TCP
+		connections on UDP ports. Noted by Bryan Seitz, fixed in c849.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		DNS queries come in two flavours: recursion desired and non-recursion desired. The latter is not very useful for a recursor, but is 
+		sometimes (erroneously) used by monitoring software or loadbalancers to detect nameserver availability. A non-rd query would not only not recurse,
+		but also not query authoritative zones, which is confusing. Fixed in c847.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Non-standard DNS TCP queries, that did occur however, could drive the recursor to 100% CPU usage for extended periods of time. This did not disrupt service
+		immediately, but does waste a lot of CPU, possibly exhausting resources. Discovered by Bryan Seitz, fixed in c858, which is post-3.1.2-rc1.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The PowerDNS recursor did not honour the rare but standardised 'ANY' query class (normally 'ANY' refers to the query type, not class), upsetting the Wildfire
+		Jabber server. Discovered and debugged by Daniel Nauck, fixed in c859, which is post-3.1.2-rc1.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Everybody's favorite, when starting up under high load, a bogus line of statistics was sometimes logged. Fixed in c851.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Remove some spurious debugging output on dropping a packet by an unauthorized host. Discovered by Kai. Fixed in c854.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Misconfigured domains, with a broken nameserver in the parent zone, should now work better. Changes motivated and suggested by
+		Darren Gamble. This makes PowerDNS more compliant with RFC 2181 by making it prefer authoritative data over non-authoritative data.
+		Implemented in c856.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS can now listen on multiple ports, using the <command>local-address</command> setting. Added in c845.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A number of speedups which should have a noticeable impact, implemented in commits C850, C852, C853, C855
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The recursor now works around an issue with the Linux kernel 2.6.8, as shipped by Debian. Fixed by Christof Meerwald in c860, which is post 3.1.2-rc1.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-recursor-3-1-1"><title>Recursor version 3.1.1</title>
 	<para>
 	  <warning>
@@ -6367,7 +6459,9 @@ local0.err                        /var/log/pdns.err
 	    <term>local-address</term>
 	    <listitem>
 	      <para>
-		Local IPv4 or IPv6 addresses to bind to, comma separated. Defaults to only loopback.
+		Local IPv4 or IPv6 addresses to bind to, comma separated. Defaults to only loopback. Addresses can also contain port numbers,
+		for IPv4 specify like this: <command>1.2.3.4:5300</command>, for IPv6: <command>[::1]:5300</command>. Port specifications are available since
+		3.1.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
