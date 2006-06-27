@@ -224,7 +224,16 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
   }
-  
+
+  if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
+    vector<StoredRecord>::iterator j;
+    for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) 
+      if(j->d_ttd > now)
+	break;
+    if(j != ce.d_records.end()) // we still have valid data, ignore unauth data
+      return;
+  }
+
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
     dr.d_ttd=i->ttl;
     dr.d_string=DNSRR2String(*i);
