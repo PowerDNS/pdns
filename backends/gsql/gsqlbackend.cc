@@ -97,9 +97,10 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     di.serial=0;
     try {
       SOAData sd;
-      if(!getSOA(domain,sd))
+      if(!getSOA(domain,sd)) 
 	L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
-      di.serial=sd.serial;
+      else
+	di.serial=sd.serial;
     }
     catch(AhuException &ae){
       L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
