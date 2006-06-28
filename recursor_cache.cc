@@ -223,6 +223,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   if(auth && !ce.d_auth) {
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
+    isNew=true;           // data should be sorted again
   }
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
@@ -230,8 +231,12 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) 
       if(j->d_ttd > now)
 	break;
-    if(j != ce.d_records.end()) // we still have valid data, ignore unauth data
+    if(j != ce.d_records.end()) { // we still have valid data, ignore unauth data
       return;
+    }
+    else {
+      ce.d_auth = false;  // new data won't be auth
+    }
   }
 
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
