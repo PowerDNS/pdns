@@ -1509,7 +1509,7 @@ int serviceMain(int argc, char*argv[])
   }
 #endif
   
-  MT=new MTasker<PacketID,string>(100000);
+  MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
   makeControlChannelSocket();        
   PacketID pident;
   primeHints();    
@@ -1638,6 +1638,7 @@ int main(int argc, char **argv)
 
   try {
     Utility::srandom(time(0));
+    ::arg().set("stack-size","stack size per mthread")="200000";
     ::arg().set("soa-minimum-ttl","Don't change")="0";
     ::arg().set("soa-serial-offset","Don't change")="0";
     ::arg().set("no-shuffle","Don't change")="off";
