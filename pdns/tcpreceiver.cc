@@ -304,6 +304,10 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     // find domain_id via SOA and list complete domain. No SOA, no AXFR
     
     DLOG(L<<"Looking for SOA"<<endl);
+    if(!s_P) {
+      L<<Logger::Error<<"TCP server is without backend connections in doAXFR, launching"<<endl;
+      s_P=new PacketHandler;
+    }
 
     if(!s_P->getBackend()->getSOA(target,sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
