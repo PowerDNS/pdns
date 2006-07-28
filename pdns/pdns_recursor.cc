@@ -709,7 +709,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
       else {
 	++g_stats.qcounter;
 	++g_stats.tcpqcounter;
-	MT->makeThread(startDoResolve, dc);
+	MT->makeThread(startDoResolve, dc); // deletes dc
 	return;
       }
     }
@@ -777,12 +777,13 @@ void handleNewUDPQuestion(int fd, boost::any& var)
       if(dc->d_mdp.d_header.qr) {
 	if(g_logCommonErrors)
 	  L<<Logger::Error<<"Ignoring answer from "<<dc->getRemote()<<" on server socket!"<<endl;
+	delete dc;
       }
       else {
 	++g_stats.qcounter;
 	dc->setSocket(fd);
 	dc->d_tcp=false;
-	MT->makeThread(startDoResolve, (void*) dc);
+	MT->makeThread(startDoResolve, (void*) dc); // deletes dc
       }
     }
     catch(MOADNSException& mde) {
