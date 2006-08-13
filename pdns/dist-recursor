@@ -1,4 +1,4 @@
-VERSION=3.1.2
+VERSION=3.1.3-pre
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
@@ -30,7 +30,7 @@ cp COPYING $DIRNAME/
 cp config-recursor.h $DIRNAME/config.h
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
-cp ext/nedmalloc/malloc.c $DIRNAME
+cp ext/dlmalloc/malloc.{c,h} $DIRNAME
 cp pdns-recursor.init.d $DIRNAME
 cp docs/pdns_recursor.1 docs/rec_control.1 $DIRNAME
 cp configure-recursor $DIRNAME/configure
