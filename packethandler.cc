@@ -493,7 +493,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
   DNSBackend *db=0;
   DomainInfo di;
-  if(!B.getDomainInfo(p->qdomain,di) || !(db=di.backend)) {
+  if(!B.getDomainInfo(p->qdomain, di) || !(db=di.backend)) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
     return trySuperMaster(p);
   }
