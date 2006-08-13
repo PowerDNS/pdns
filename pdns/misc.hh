@@ -28,6 +28,7 @@
 # include <sys/types.h>
 # include <sys/socket.h>
 # include <time.h>
+# include <syslog.h>
 #else
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>
@@ -38,6 +39,7 @@
 #include <string>
 #include <ctype.h>
 #include <vector>
+#include <boost/optional.hpp>
 
 using namespace std;
 bool chopOff(string &domain);
@@ -58,7 +60,7 @@ uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
-
+boost::optional<int> logFacilityToLOG(unsigned int facility);
 inline void putLong(unsigned char* p, uint32_t val)
 {
   *p++=(val>>24)&0xff;
