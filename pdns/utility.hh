@@ -73,6 +73,52 @@ typedef int socklen_t;
 
 using namespace std;
 
+//! A semaphore class.
+class Semaphore
+{
+private:
+  sem_t *m_pSemaphore;
+#ifdef WIN32
+  typedef int sem_value_t;
+
+  //! The semaphore.
+
+
+
+  //! Semaphore counter.
+  long m_counter;
+
+#else
+  typedef int sem_value_t;
+
+  uint32_t       m_magic;
+  pthread_mutex_t m_lock;
+  pthread_cond_t  m_gtzero;
+  sem_value_t     m_count;
+  uint32_t       m_nwaiters;
+#endif
+
+protected:
+public:
+  //! Default constructor.
+  Semaphore( unsigned int value = 0 );
+
+  //! Destructor.
+  ~Semaphore( void );
+
+  //! Posts to a semaphore.
+  int post( void );
+
+  //! Waits for a semaphore.
+  int wait( void );
+
+  //! Tries to wait for a semaphore.
+  int tryWait( void );
+
+  //! Retrieves the semaphore value.
+  int getValue( Semaphore::sem_value_t *sval );
+
+};
 
 //! This is a utility class used for platform independant abstraction.
 class Utility

@@ -61,6 +61,7 @@ uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
 boost::optional<int> logFacilityToLOG(unsigned int facility);
+
 inline void putLong(unsigned char* p, uint32_t val)
 {
   *p++=(val>>24)&0xff;
