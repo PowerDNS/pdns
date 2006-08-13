@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -33,6 +33,7 @@
 #include <cstring>
 #include <iostream>
 #include <algorithm>
+#include <boost/optional.hpp>
 
 #include <iomanip>
 #include <string.h>
@@ -519,4 +520,30 @@ pair<string, string> splitField(const string& inp, char sepa)
     ret.second=inp.substr(cpos+1);
   }
   return ret;
+}
+
+boost::optional<int> logFacilityToLOG(unsigned int facility)
+{
+  boost::optional<int> ret;
+
+  switch(facility) {
+  case 0:
+    return LOG_LOCAL0;
+  case 1:
+    return(LOG_LOCAL1);
+  case 2:
+    return(LOG_LOCAL2);
+  case 3:
+    return(LOG_LOCAL3);
+  case 4:
+    return(LOG_LOCAL4);
+  case 5:
+    return(LOG_LOCAL5);
+  case 6:
+    return(LOG_LOCAL6);
+  case 7:
+    return(LOG_LOCAL7);
+  default:
+    return ret;
+  }
 }

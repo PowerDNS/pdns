@@ -417,39 +417,11 @@ int main(int argc, char **argv)
     
     arg().laxParse(argc,argv); // reparse so the commandline still wins
     if(!arg()["logging-facility"].empty()) {
-      
-      int facility=arg().asNum("logging-facility");
-      if(!isdigit(arg()["logging-facility"][0]))
-	facility=-1;
-      switch(facility) {
-      case 0:
-	theL().setFacility(LOG_LOCAL0);
-	break;
-      case 1:
-	theL().setFacility(LOG_LOCAL1);
-	break;
-      case 2:
-	theL().setFacility(LOG_LOCAL2);
-	break;
-      case 3:
-	theL().setFacility(LOG_LOCAL3);
-	break;
-      case 4:
-	theL().setFacility(LOG_LOCAL4);
-	break;
-      case 5:
-	theL().setFacility(LOG_LOCAL5);
-	break;
-      case 6:
-	theL().setFacility(LOG_LOCAL6);
-	break;
-      case 7:
-	theL().setFacility(LOG_LOCAL7);
-	break;
-      default:
-	L<<Logger::Error<<"Unknown logging facility level '"<<arg()["logging-facility"]<<"'"<<endl;
-	break;
-      }
+      boost::optional<int> val=logFacilityToLOG(arg().asNum("logging-facility") );
+      if(val)
+	theL().setFacility(*val);
+      else
+	L<<Logger::Error<<"Unknown logging facility "<<arg().asNum("logging-facility") <<endl;
     }
 
     L.setLoglevel((Logger::Urgency)(arg().asNum("loglevel")));
