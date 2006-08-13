@@ -79,8 +79,8 @@ GeoBackend::~GeoBackend() {
 	}
 }
 
-bool GeoBackend::getSOA(const string &name, SOAData &soadata) {
-	if (toLower(name) != toLower(zoneName))
+bool GeoBackend::getSOA(const string &name, SOAData &soadata, DNSPacket *p) {
+	if (toLower(name) != toLower(zoneName) || soaMasterServer.empty() || soaHostmaster.empty())
 		return false;
 	
 	soadata.nameserver = soaMasterServer;
@@ -229,6 +229,8 @@ void GeoBackend::answerLocalhostRecord(const string &qdomain, DNSPacket *p) {
 }
 
 void GeoBackend::queueNSRecords(const string &qname) {
+	// nsRecords may be empty, e.g. when used in overlay mode
+	
 	for (vector<string>::const_iterator i = nsRecords.begin(); i != nsRecords.end(); ++i) {
 		DNSResourceRecord *rr = new DNSResourceRecord;
 		rr->qtype = QType::NS;
@@ -293,6 +295,10 @@ void GeoBackend::loadSOAValues() {
 	vector<string> values;
 	stringtok(values, getArg("soa-values"), " ,");
 	
+	if (values.empty())
+		// No SOA values, probably no SOA record wanted because of overlay mode
+		return;
+	
 	if (values.size() != 2)
 		throw AhuException("Invalid number of soa-values specified in configuration");
 	
@@ -302,9 +308,6 @@ void GeoBackend::loadSOAValues() {
 
 void GeoBackend::loadNSRecords() {
 	stringtok(nsRecords, getArg("ns-records"), " ,");
-	
-	if (nsRecords.empty())
-		throw AhuException("No NS records specified in configuration");
 }
 
 void GeoBackend::loadIPLocationMap() {
@@ -423,10 +426,14 @@ void GeoBackend::loadGeoRecords() {
 					string filename(*i);
 					if (filename[filename.size()-1] != '/')
 						filename += '/';
+					
+					if (dent->d_name[0] == '.')
+						continue;	// skip filenames starting with a dot
+						
 					filename += dent->d_name;
 					
 					if (stat(filename.c_str(), &stbuf) != 0 || !S_ISREG(stbuf.st_mode))
-						continue;
+						continue;	// skip everything but regular files
 						
 					GeoRecord *gr = new GeoRecord;
 					gr->directorfile = filename;
@@ -484,8 +491,8 @@ void GeoBackend::loadDirectorMap(GeoRecord &gr) {
 	while(getline(ifs, line)) {
 		chomp(line, " \t");	// Erase whitespace
 
-		if (line[0] == '#')
-			continue;	// Skip comments
+		if (line.empty() || line[0] == '#')
+			continue;	// Skip empty lines and comments
 	
 		// Parse $RECORD
 		if (line.substr(0, 7) == "$RECORD") {
