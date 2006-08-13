@@ -699,7 +699,6 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
       dc->setSocket(tconn.fd);
       dc->d_tcp=true;
       dc->setRemote(&tconn.remote);
-
       if(dc->d_mdp.d_header.qr) {
 	delete dc;
 	L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
@@ -1437,7 +1436,16 @@ void parseAuthAndForwards()
 int serviceMain(int argc, char*argv[])
 {
   L.setName("pdns_recursor");
-  L.setLoglevel((Logger::Urgency)(4));
+
+  L.setLoglevel((Logger::Urgency)(6)); // info and up
+
+  if(!::arg()["logging-facility"].empty()) {
+    boost::optional<int> val=logFacilityToLOG(::arg().asNum("logging-facility") );
+    if(val)
+      theL().setFacility(*val);
+    else
+      L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
+  }
 
   L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
@@ -1662,6 +1670,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "logfile", "Filename of the log file" )= "recursor.log"; 
 #else
     ::arg().set("quiet","Suppress logging of questions and answers")="";
+    ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
 #endif
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
     ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
@@ -1690,7 +1699,7 @@ int main(int argc, char **argv)
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("config","Output blank configuration");
-    L.toConsole(Logger::Warning);
+    L.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
 
     string configname=::arg()["config-dir"]+"/recursor.conf";

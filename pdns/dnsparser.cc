@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2005 - 2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -177,6 +177,9 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     throw MOADNSException("Packet shorter than minimal header");
   
   memcpy(&d_header, packet, sizeof(dnsheader));
+
+  if(d_header.opcode)
+    throw MOADNSException("Can't parse non-query packet with opcode="+ lexical_cast<string>(d_header.opcode));
 
   d_header.qdcount=ntohs(d_header.qdcount);
   d_header.ancount=ntohs(d_header.ancount);
