@@ -153,7 +153,7 @@ LWRes::res_t LWRes::result()
 
     if(Utility::strcasecmp(d_domain.c_str(), mdp.d_qname.c_str())) { 
       if(d_domain.find((char)0)==string::npos) {// embedded nulls are too noisy
-	L<<Logger::Error<<"Packet purporting to come from remote server "<<d_ip.toString()<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
+	L<<Logger::Notice<<"Packet purporting to come from remote server "<<d_ip.toString()<<" contained wrong answer: '" << d_domain << "' != '" << mdp.d_qname << "'" << endl;
 	g_stats.unexpectedCount++;
       }
       goto out;
@@ -177,10 +177,10 @@ LWRes::res_t LWRes::result()
   }
   catch(exception &mde) {
     if(::arg().mustDo("log-common-errors"))
-      L<<Logger::Error<<"Unable to parse packet from remote server: "<<mde.what()<<endl;
+      L<<Logger::Notice<<"Unable to parse packet from remote server "<<d_ip.toString()<<": "<<mde.what()<<endl;
   }
   catch(...) {
-    L<<Logger::Error<<"Unknown error parsing packet from remote server"<<endl;
+    L<<Logger::Notice<<"Unknown error parsing packet from remote server"<<endl;
   }
 
   g_stats.serverParseError++; 
