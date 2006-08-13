@@ -26,6 +26,13 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
+#ifdef _MSC_VER
+/* Enable full aliasing on MSVC */
+/*#pragma optimize("a", on)*/
+#endif
+
+//#define CHECKVALIDTC
+
 #include "nedmalloc.h"
 #define MSPACES 1
 #define ONLY_MSPACES 1
@@ -44,6 +51,7 @@ DEALINGS IN THE SOFTWARE.
 #endif
 /* The default of 64Kb means we spend too much time kernel-side */
 #define DEFAULT_GRANULARITY (1*1024*1024)
+#define MAX_RELEASE_CHECK_FREQUENCY 4095
 #include "malloc.c.h"
 
 /* The maximum concurrent threads in a pool possible */
@@ -119,7 +127,7 @@ struct threadcacheblk_t
 };
 typedef struct threadcache_t
 {
-#ifdef DEBUG
+#ifdef CHECKVALIDTC
 	unsigned int magic1;
 #endif
 	int mymspace;						/* Last mspace entry this thread used. =-1 for not in use, =-2 for end of list */
@@ -127,7 +135,7 @@ typedef struct threadcache_t
 	unsigned int mallocs, frees, successes;
 	size_t freeInCache;					/* How much free space is stored in this cache */
 	threadcacheblk *bins[(THREADCACHEMAXBINS+1)*2];
-#ifdef DEBUG
+#ifdef CHECKVALIDTC
 	unsigned int magic2;
 #endif
 	char cachesync[128];				/* Make sure it's nowhere near the next threadcache */
@@ -270,7 +278,7 @@ static NOINLINE threadcache *AllocCache(nedpool *p) THROWSPEC
 		tc=&p->caches[n];
 	}
 	tc->mymspace=0;
-#ifdef DEBUG
+#ifdef CHECKVALIDTC
 	tc->magic1=*(unsigned int *)"NEDMALC1";
 	tc->magic2=*(unsigned int *)"NEDMALC2";
 #endif
@@ -420,7 +428,7 @@ static NOINLINE int InitPool(nedpool *p, size_t capacity, int threads) THROWSPEC
 	p->threads=(threads<1 || threads>MAXTHREADSINPOOL) ? MAXTHREADSINPOOL : threads;
 	if(TLSALLOC(&p->mycache)) goto err;
 	if(!(p->m[0]=(mstate) create_mspace(capacity, 1))) goto err;
-	p->m[0]->nedpool=p;
+	p->m[0]->extp=p;
 	if(InitCaches(p, 0, 4)) goto err;
 	RELEASE_LOCK(&p->mutex);
 	return 1;
@@ -481,6 +489,7 @@ static NOINLINE mstate FindMSpace(nedpool *p, threadcache *tc, int *lastUsed, si
 	}
 	/* Let it lock on the last one it used */
 badexit:
+	ACQUIRE_LOCK(&p->m[*lastUsed]->mutex);
 	return p->m[*lastUsed];
 found:
 	*lastUsed=n;
@@ -539,8 +548,8 @@ void *nedgetvalue(nedpool **p, void *mem) THROWSPEC
 	fm=get_mstate_for(mcp);
 	if(!ok_magic(fm)) return 0;
 	if(!ok_address(fm, mcp)) return 0;
-	if(!fm->nedpool) return 0;
-	np=(nedpool *) fm->nedpool;
+	if(!fm->extp) return 0;
+	np=(nedpool *) fm->extp;
 	if(p) *p=np;
 	return np->uservalue;
 }
@@ -612,7 +621,16 @@ static FORCEINLINE void GetThreadCache(nedpool **p, threadcache **tc, int *mymsp
 		*tc=0;
 		*mymspace=-mycache-1;
 	}
-	assert(*mymspace>=0 && (!*tc || (*(unsigned int *)"NEDMALC1"==(*tc)->magic1 && *(unsigned int *)"NEDMALC2"==(*tc)->magic2)));
+	assert(*mymspace>=0);
+#ifdef CHECKVALIDTC
+	if(*tc)
+	{
+		if(*tc<&(*p)->caches[0] || *tc>=&(*p)->caches[5] || *(unsigned int *)"NEDMALC1"!=(*tc)->magic1 || *(unsigned int *)"NEDMALC2"!=(*tc)->magic2)
+		{
+			abort();
+		}
+	}
+#endif
 }
 
 void * nedpmalloc(nedpool *p, size_t size) THROWSPEC
