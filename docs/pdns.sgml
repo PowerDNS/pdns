@@ -81,7 +81,10 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-recursor-3-1-2"><title>Recursor version 3.1.2 (unreleased)</title>
+      <sect2 id="changelog-recursor-3-1-2"><title>Recursor version 3.1.2</title>
+	<para>
+	  Released Monday 26th of June 2006.
+	</para>
 	<para>
 	  Compared to 3.1.1, this release consists almost exclusively of bug-fixes and speedups. A quick update is recommended, as some of the bugs
 	  impact operators of authoritative zones on the internet. This version has been tested by some of the largest internet providers on the planet,
@@ -6483,6 +6486,16 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>logging-facility</term>
+	    <listitem>
+	      <para>
+		If set to a digit, logging is performed under this LOCAL facility. See <xref linkend="syslog"/>. Available from 3.1.3 and onwards. Do not pass names like 'local0'!
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  
+
 	  <varlistentry>
 	    <term>max-cache-entries</term>
 	    <listitem>
