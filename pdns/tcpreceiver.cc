@@ -253,8 +253,8 @@ void *TCPNameserver::doConnection(void *data)
   {
     L << Logger::Error << "TCP Connection Thread caught unknown exception." << endl;
   }
-  Utility::closesocket(fd);
   d_connectionroom_sem->post();
+  Utility::closesocket(fd);
 
   return 0;
 }
