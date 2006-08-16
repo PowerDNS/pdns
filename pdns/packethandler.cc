@@ -575,7 +575,8 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     // XXX FIXME do this in DNSPacket::parse ?
 
     if(!validDNSName(p->qdomain)) {
-      L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': dropping"<<endl;
+      if(arg().mustDo("log-dns-details"))
+        L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': dropping"<<endl;
       S.inc("corrupt-packets");
       return 0;
     }
