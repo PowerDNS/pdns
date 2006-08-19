@@ -651,7 +651,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       }
     }
 
-    if(mret > 0) 
+    if(mret == 1) 
       goto sendit; // this might be the end of it (client requested a CNAME, or we found the answer already)
     
 
