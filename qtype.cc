@@ -56,6 +56,7 @@ QType::QType()
       insert("SRV",33);
       insert("A6",38);
       insert("NAPTR",35);
+      insert("SPF",99);
       insert("AXFR",252);
       insert("ANY",255);
       insert("URL",256);
