@@ -81,6 +81,76 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-recursor-3-1-3"><title>Recursor version 3.1.3 (unreleased)</title>
+	<para>
+	  (not yet released)
+	</para>
+	<para>
+	  Compared to 3.1.2, this release again consists of a number of mostly minor bug fixes, and some slight improvements. 
+	</para>
+	<para>
+	  Many thanks are again due to Darren Gamble who together with his team has discovered many misconfigured domains that do work 
+	  with some other name servers. DNS has long been tolerant of misconfigurations, PowerDNS intends to uphold that tradition. Almost all of
+	  the domains found by Darren now work as well in PowerDNS as in other name server implementations.
+	</para>
+	<para>
+	  Thanks to some recent migrations, this release, or something very close to it, is powering over 40 million internet connections that
+	  we know of. We appreciate hearing about succesful as well as unsuccesful migrations, please feel free to notify pdns.bd@powerdns.com of your 
+	  experiences, good or bad.
+	</para>
+	<para>
+	  Bug-fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The MThread default stack size was too small, which led to problems, mostly on 64-bit platforms. This stack size is now configurable
+		using the <command>stack-size</command> setting should our estimate be off. Discovered by Darren Gamble, Sten Spans and a number of others. 
+		Fixed in c868.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Plug a small memory leak discovered by Kai and Darren Gamble, fixed in c870.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Switch from the excellent nedmalloc to dlmalloc, based on advice by the nedmalloc author. Nedmalloc is optimised for multithreaded
+		operation, whereas the PowerDNS recursor is single threaded. The version of nedmalloc shipped contained a number of possible bugs,
+		which are probably resolved by moving to dlmalloc. Some reported crashes on hitting 2G of allocated memory on 64 bit systems might 
+		be solved by this switch, which should also increase performance. See c873 for details.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+        </para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The cache is now explicitly aware of the difference between authoritative and unauthoritative data, allowing it to deal
+		with some domains that have different data in the parent zone than in the authoritative zone. Patch in c867.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		No longer try to parse DNS updates as if they were queries. Discovered and fixed by Jan Gyselinck, fix in c871.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Rebalance logging priorities for less log cluttering and add IP address to a remote server error message. 
+		Noticed and fixed by Jan Gyselinck (c877).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Add <command>logging-facility</command> setting, allowing syslog to send PowerDNS logging to a separate file. Added in c871.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+        </para>
+      </sect2>
       <sect2 id="changelog-recursor-3-1-2"><title>Recursor version 3.1.2</title>
 	<para>
 	  Released Monday 26th of June 2006.
@@ -7390,6 +7460,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 		Default number of Distributor (backend) threads to start. See <xref linkend="performance">.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>do-ipv6-additional-processing=...</term>
+	    <listitem><para>
+		Perform AAAA additional processing. 
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>fancy-records=...</term>
 	    <listitem><para>
 		Process URL and MBOXFW records. See <xref linkend="fancy-records">.
@@ -7419,6 +7493,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 		Local IP address to which we bind. You can specify multiple addresses separated by commas or whitespace. It is highly 
 	      advised to bind to specific interfaces and not use the default 'bind to any'. This causes big problems if you have multiple
 	      IP addresses. Unix does not provide a way of figuring out what IP address a packet was sent to when binding to any.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>local-ipv6=...</term>
+	    <listitem><para>
+		Local IPv6 address to which we bind. You can specify multiple addresses separated by commas or whitespace.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>local-port=...</term>
 	    <listitem><para>
@@ -7461,6 +7539,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 	      Do not attempt to read the configuration file.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>no-shuffle</term>
+	    <listitem><para>
+	      Do not attempt to shuffle query results.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>out-of-zone-additional-processing | --out-of-zone-additional-processing=yes | --out-of-zone-additional-processing=no</term>
 	    <listitem><para>
 	      Do out of zone additional processing. This means that if a malicious user adds a '.com' zone to your server, it is not used for 
@@ -7470,10 +7552,6 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 	      Seconds to store queries with an answer in the Query Cache. See <xref linkend="querycache">.
 	    </para></listitem></varlistentry>
-	<varlistentry><term>queue-limit=...</term>
-	    <listitem><para>
-		Maximum number of miliseconds to queue a query. See <xref linkend="performance">.
-	      </para></listitem></varlistentry>
 	  <varlistentry><term>query-local-address=...</term>
 	    <listitem><para>
 	      The IP address to use as a source address for sending queries. Useful if you have multiple IPs and pdns is not bound to the IP address your operating system uses by default for outgoing packets.
@@ -7481,6 +7559,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  <varlistentry><term>query-logging | query-logging=yes | query-logging=no</term>
 	    <listitem><para>
 	      Hints to a backend that it should log a textual representation of queries it performs. Can be set at runtime.
+	      </para></listitem></varlistentry>
+	<varlistentry><term>queue-limit=...</term>
+	    <listitem><para>
+		Maximum number of miliseconds to queue a query. See <xref linkend="performance">.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>recursive-cache-ttl=...</term>
 	    <listitem><para>
@@ -8276,15 +8358,6 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <para>
 	      A: Run 'ldd' on the pdns_server binary and figure out what libraries you are missing. Most likely you need to install gcc 3.0 libraries, 
 	      RedHat 7.1 and 7.2 have packages available, Debian installs these by default if you use the 'unstable deb' of PDNS.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term>Q: What I want can't be done from a backend - I need the whole PDNS source</term>
-	  <listitem>
-	    <para>
-	      A: If you require the source, please contact us (pdns@powerdns.com). All commercial licensees receive the source, 
-	      for others we may grant exceptions.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -11003,8 +11076,7 @@ static RandomLoader randomloader;
 	  that by setting <command>random-hostname</command>.
 	</para>
 	<para>
-	  NOTE: this simple backend neglects to handle case properly! For a more complete example, see the full pdns-dev distribution as found on
-	  <ulink url="http://www.powerdns.com/pdns">the website</ulink>.
+	  NOTE: this simple backend neglects to handle case properly!
 	</para>
     </sect2>
     <sect2><title>Interface definition</title>
