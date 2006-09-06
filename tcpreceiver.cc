@@ -133,7 +133,7 @@ void *TCPNameserver::doConnection(void *data)
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
   pthread_detach(pthread_self());
-
+  Utility::setNonBlocking(fd);
   try {
     char mesg[512];
     
@@ -158,7 +158,7 @@ void *TCPNameserver::doConnection(void *data)
         delete packet;
 
       packet=new DNSPacket;
-
+      
       packet->setRemote(&remote);
       packet->d_tcp=true;
       if(packet->parse(mesg, pktlen)<0)
@@ -244,7 +244,7 @@ void *TCPNameserver::doConnection(void *data)
     Lock l(&s_plock);
     delete s_P;
     s_P = 0; // on next call, backend will be recycled
-    L<<Logger::Error<<"TCP nameserver had error, cycling backend:"<<ae.reason<<endl;
+    L<<Logger::Error<<"TCP nameserver had error, cycling backend: "<<ae.reason<<endl;
   }
   catch(exception &e) {
     L<<Logger::Error<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
