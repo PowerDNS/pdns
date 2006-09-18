@@ -6920,6 +6920,7 @@ cache-misses        counts the number of cache misses since starting
 chain-resends       number of queries chained to existing outstanding query
 client-parse-errors counts number of client packets that could not be parsed
 concurrent-queries  shows the number of MThreads currently running
+dlg-only-drops      number of records dropped because of delegation only setting
 negcache-entries    shows the number of entries in the Negative answer cache
 noerror-answers     counts the number of times it answered NOERROR since starting
 nsspeeds-entries    shows the number of entries in the NS speeds map

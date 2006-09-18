@@ -187,6 +187,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("spoof-prevents", &g_stats.spoofCount);
 
   addGetStat("resource-limits", &g_stats.resourceLimits);
+  addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
 
   addGetStat("negcache-entries", boost::bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
   addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
