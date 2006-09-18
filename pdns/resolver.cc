@@ -269,9 +269,9 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 
   int err;
 #ifndef WIN32
-  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr,sizeof(d_toaddr)))<0 && errno!=EINPROGRESS) {
+  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr, d_toaddr.getSocklen()))<0 && errno!=EINPROGRESS) {
 #else
-  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr,sizeof(d_toaddr)))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
+  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr, d_toaddr.getSocklen()))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
 #endif // WIN32
     Utility::closesocket(d_sock);
     d_sock=-1;
