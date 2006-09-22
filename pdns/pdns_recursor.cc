@@ -314,6 +314,7 @@ int asendto(const char *data, int len, int flags,
   
   int ret=connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen());
   if(ret < 0) {
+    g_udpclientsocks.returnSocket(*fd);
     if(errno==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
       return -2;
     return ret;
