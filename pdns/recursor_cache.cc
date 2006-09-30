@@ -273,11 +273,16 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   d_cache.replace(stored, ce);
 }
 
-int MemRecursorCache::doWipeCache(const string& name)
+int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
 {
   int count=0;
   d_cachecachevalid=false;
-  pair<cache_t::iterator, cache_t::iterator> range=d_cache.equal_range(tie(name));
+  pair<cache_t::iterator, cache_t::iterator> range;
+  if(qtype==0xffff)
+    range=d_cache.equal_range(tie(name));
+  else
+    range=d_cache.equal_range(tie(name, qtype));
+
   for(cache_t::const_iterator i=range.first; i != range.second; ) {
     count++;
     d_cache.erase(i++);

@@ -186,6 +186,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("spoof-prevents", &g_stats.spoofCount);
 
+  addGetStat("nsset-invalidations", &g_stats.nsSetInvalidations);
+
   addGetStat("resource-limits", &g_stats.resourceLimits);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
 

@@ -36,7 +36,7 @@ public:
   void doPrune(void);
   void doSlash(int perc);
   void doDumpAndClose(int fd);
-  int doWipeCache(const string& name);
+  int doWipeCache(const string& name, uint16_t qtype=0xffff);
   uint64_t cacheHits, cacheMisses;
   bool d_followRFC2181;
 
