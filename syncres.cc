@@ -603,7 +603,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
-	LOG<<prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS"<<endl;
+	LOG<<prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl;
+	if(auth!=".") {
+	  g_stats.nsSetInvalidations++;
+	  LOG<<prefix<<qname<<": Invalidating nameservers for level '"<<auth<<"', next query might succeed"<<endl;
+	  RC.doWipeCache(auth, QType::NS);
+	}
 	return -1;
       }
       if(qname==*tns && qtype.getCode()==QType::A) {

@@ -2,10 +2,10 @@
 
 Buildroot: /tmp/pdns/
 Name: pdns-recursor
-Version: 3.1.2
+Version: 3.1.3
 Release: 1
 Summary: extremely powerful and versatile recursing nameserver
-Copyright: see /usr/doc/pdns/copyright
+License: GPL
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS

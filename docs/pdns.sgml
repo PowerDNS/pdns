@@ -81,9 +81,9 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-recursor-3-1-3"><title>Recursor version 3.1.3 (unreleased)</title>
+      <sect2 id="changelog-recursor-3-1-3"><title>Recursor version 3.1.3</title>
 	<para>
-	  (not yet released)
+	  Released the 12th of September 2006.
 	</para>
 	<para>
 	  Compared to 3.1.2, this release again consists of a number of mostly minor bug fixes, and some slight improvements. 
@@ -6924,6 +6924,7 @@ dlg-only-drops      number of records dropped because of delegation only setting
 negcache-entries    shows the number of entries in the Negative answer cache
 noerror-answers     counts the number of times it answered NOERROR since starting
 nsspeeds-entries    shows the number of entries in the NS speeds map
+nsset-invalidations number of times an nsset was dropped because it no longer worked
 nxdomain-answers    counts the number of times it answered NXDOMAIN since starting
 outgoing-timeouts   counts the number of timeouts on outgoing UDP queries since starting
 qa-latency          shows the current latency average
