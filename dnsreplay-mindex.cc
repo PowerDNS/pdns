@@ -48,7 +48,6 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 // this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
 #undef L
 
-#include <arpa/nameser.h>
 #include <set>
 #include <deque>
 
@@ -454,9 +453,9 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 {
   static struct timeval lastsent;
 
-  HEADER* dh=(HEADER*)pr.d_payload;
+  dnsheader* dh=(dnsheader*)pr.d_payload;
   //                                                             non-recursive  
-  if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || !dh->rd || (unsigned int)pr.d_len <= sizeof(HEADER))
+  if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || !dh->rd || (unsigned int)pr.d_len <= sizeof(dnsheader))
     return;
   QuestionData qd;
   try {
@@ -576,7 +575,7 @@ try
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + 3*(now-then);
+    mental_time= mental_time + 1*(now-then);
   }
  out:;
 }
