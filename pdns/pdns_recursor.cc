@@ -321,7 +321,10 @@ int asendto(const char *data, int len, int flags,
   }
 
   g_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
-  return send(*fd, data, len, 0);
+  ret=send(*fd, data, len, 0);
+  if(ret < 0)
+    g_udpclientsocks.returnSocket(*fd);
+  return ret;
 }
 
 // -1 is error, 0 is timeout, 1 is success
