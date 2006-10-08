@@ -6520,7 +6520,7 @@ local0.err                        /var/log/pdns.err
 	  </varlistentry>
 
 	  <varlistentry>
-	    <term>hints-file</term>
+	    <term>hint-file</term>
 	    <listitem>
 	      <para>
 		If set, the root-hints are read from this file. If unset, default root hints are used. Available since 2.9.19.
