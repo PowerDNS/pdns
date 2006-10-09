@@ -229,7 +229,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     vector<StoredRecord>::iterator j;
     for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) 
-      if(j->d_ttd > now)
+      if((time_t)j->d_ttd > now)
 	break;
     if(j != ce.d_records.end()) { // we still have valid data, ignore unauth data
       return;
@@ -304,8 +304,13 @@ void MemRecursorCache::doDumpAndClose(int fd)
   time_t now=time(0);
   for(sequence_t::const_iterator i=sidx.begin(); i != sidx.end(); ++i) {
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j != i->d_records.end(); ++j) {
-      DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
-      fprintf(fp, "%s %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
+      try {
+	DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
+	fprintf(fp, "%s %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
+      }
+      catch(...) {
+	fprintf(fp, "; error printing '%s'\n", i->d_qname.c_str());
+      }
     }
   }
   fclose(fp);
