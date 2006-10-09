@@ -270,7 +270,12 @@ public:
     if(i==d_socks.end()) {
       throw AhuException("Trying to return a socket not in the pool");
     }
-    g_fdm->removeReadFD(*i);
+    try {
+      g_fdm->removeReadFD(*i);
+    }
+    catch(FDMultiplexerException& e) {
+      // we sometimes return a socket that has not yet been assigned to g_fdm
+    }
     Utility::closesocket(*i);
     
     d_socks.erase(i++);
