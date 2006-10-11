@@ -238,8 +238,9 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   string subdomain(qname);
 
   set<string, CIStringCompare> nsset;
+  bool flawedNSSet=false;
   for(int tries=0;tries<2 && nsset.empty();++tries) {
-    subdomain=getBestNSNamesFromCache(subdomain,nsset,depth, beenthere); //  pass beenthere to both occasions
+    subdomain=getBestNSNamesFromCache(subdomain, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
 
     if(nsset.empty()) { // must've lost root records
       LOG<<prefix<<qname<<": our root expired, repriming from hints and retrying"<<endl;
@@ -247,7 +248,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
     }
   }
 
-  if(!(res=doResolveAt(nsset, subdomain, qname, qtype, ret, depth, beenthere)))
+  if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere)))
     return 0;
   
   LOG<<prefix<<qname<<": failed (res="<<res<<")"<<endl;
@@ -305,7 +306,7 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix, subdomain(qname);
   if(s_log) {
@@ -317,6 +318,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
   do {
     LOG<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
     set<DNSResourceRecord> ns;
+    *flawedNSSet = false;
     if(RC.get(d_now.tv_sec, subdomain, QType(QType::NS), &ns) > 0) {
       for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
 	if(k->ttl > (unsigned int)d_now.tv_sec ) { 
@@ -336,8 +338,10 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	      LOG<<", not in cache / did not look at cache"<<endl;
 	    }
 	  }
-	  else
+	  else {
+	    *flawedNSSet=true;
 	    LOG<<prefix<<qname<<": NS in cache for '"<<subdomain<<"', but needs glue ("<<k->content<<") which we miss or is expired"<<endl;
+	  }
 	}
       }
       if(!bestns.empty()) {
@@ -345,13 +349,14 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	answer.qname=qname; answer.bestns=bestns;
 	if(beenthere.count(answer)) {
 	  LOG<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP! Trying less specific NS"<<endl;
-	  for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
-	    LOG<<prefix<<qname<<": beenthere: "<<j->qname<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl;
+	  if(s_log)
+	    for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j)
+	      LOG<<prefix<<qname<<": beenthere: "<<j->qname<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl;
 	  bestns.clear();
 	}
 	else {
 	  beenthere.insert(answer);
-	  LOG<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"'"<<endl;
+	  LOG<<prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' (flawedNSSet="<<*flawedNSSet<<")"<<endl;
 	  return;
 	}
       }
@@ -372,7 +377,7 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(string* qname)
 }
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-string SyncRes::getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, int depth, set<GetBestNSAnswer>&beenthere)
+string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
 
@@ -385,7 +390,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname,set<string, CIString
   }
 
   set<DNSResourceRecord> bestns;
-  getBestNSFromCache(subdomain, bestns, depth, beenthere);
+  getBestNSFromCache(subdomain, bestns, flawedNSSet, depth, beenthere);
 
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     nsset.insert(k->content);
@@ -582,7 +587,7 @@ struct TCacheComp
 
 
 /** returns -1 in case of no results, rcode otherwise */
-int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, const string &qname, const QType &qtype, 
+int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, 
 			 vector<DNSResourceRecord>&ret, 
 			 int depth, set<GetBestNSAnswer>&beenthere)
 {
@@ -604,7 +609,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
 	LOG<<prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl;
-	if(auth!=".") {
+	if(auth!="." && flawedNSSet) {
 	  g_stats.nsSetInvalidations++;
 	  LOG<<prefix<<qname<<": Invalidating nameservers for level '"<<auth<<"', next query might succeed"<<endl;
 	  RC.doWipeCache(auth, QType::NS);
@@ -639,6 +644,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 
 	if(remoteIPs.empty()) {
 	  LOG<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
+	  flawedNSSet=true;
 	  continue;
 	}
 	else {
@@ -927,8 +933,9 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
 {
   set<DNSResourceRecord> bestns;
-  set<GetBestNSAnswer>beenthere;
-  getBestNSFromCache(qname, bestns, depth,beenthere);
+  set<GetBestNSAnswer> beenthere;
+  bool dontcare;
+  getBestNSFromCache(qname, bestns, &dontcare, depth, beenthere);
 
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     DNSResourceRecord ns=*k;

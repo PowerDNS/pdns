@@ -229,7 +229,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     vector<StoredRecord>::iterator j;
     for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) 
-      if((time_t)j->d_ttd > now)
+      if((time_t)j->d_ttd > now) 
 	break;
     if(j != ce.d_records.end()) { // we still have valid data, ignore unauth data
       return;
