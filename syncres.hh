@@ -346,16 +346,16 @@ public:
   static string s_serverID;
 private:
   struct GetBestNSAnswer;
-  int doResolveAt(set<string, CIStringCompare> nameservers, string auth, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
+  int doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
 		  int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
   bool doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(string* qname);
   bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, int depth, set<GetBestNSAnswer>& beenthere);
+  void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
   void addCruft(const string &qname, vector<DNSResourceRecord>& ret);
-  string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, int depth, set<GetBestNSAnswer>&beenthere);
+  string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
   void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
 
   inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
