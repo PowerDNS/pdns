@@ -1,12 +1,11 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2005  PowerDNS.COM BV
+    Copyright (C) 2002-2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
     
-
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -320,7 +319,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   PacketHandler P; // now open up a database connection, we'll need it
 
   sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!P.getBackend()->getSOA(target,sd)) {
+  if(!P.getBackend()->getSOA(target, sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(9); // 'NOTAUTH'
     sendDelPacket(outpacket,outsock);
@@ -330,7 +329,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   soa.qname=target;
   soa.qtype=QType::SOA;
   soa.content=DNSPacket::serializeSOAData(sd);
-  soa.ttl=sd.default_ttl;
+  soa.ttl=sd.ttl;
   soa.domain_id=sd.domain_id;
   soa.d_place=DNSResourceRecord::ANSWER;
     
