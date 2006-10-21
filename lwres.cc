@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2005 PowerDNS.COM BV
+    Copyright (C) 2002 - 2006 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -121,7 +121,8 @@ int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, 
       if(!(ret > 0))
 	return ret;
       
-      if(len > (unsigned int)d_bufsize) {
+      if(len > d_bufsize) {
+	//	cerr<<"Reallocating to "<<len<<" bytes ("<<packet.size()<<")\n";
 	d_bufsize=len;
 	delete[] d_buf;
 	d_buf = new unsigned char[d_bufsize];

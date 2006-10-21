@@ -115,6 +115,8 @@ bool chopOffDotted(string &domain)
     return false;
 
   string::size_type fdot=domain.find('.');
+  if(fdot == string::npos)
+    return false;
 
   if(fdot==domain.size()-1) 
     domain=".";
