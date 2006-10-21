@@ -1104,7 +1104,7 @@ void handleTCPClientWritable(int fd, boost::any& var)
 {
   PacketID* pid=any_cast<PacketID>(&var);
   
-  int ret=send(fd, pid->outMSG.c_str(), pid->outMSG.size() - pid->outPos,0);
+  int ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
   if(ret > 0) {
     pid->outPos+=ret;
     if(pid->outPos==pid->outMSG.size()) {

@@ -100,7 +100,7 @@ int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, 
       s.setNonBlocking();
       s.connect(ie);
       
-      unsigned int len=htons(vpacket.size());
+      uint16_t len=htons(vpacket.size());
       char *lenP=(char*)&len;
       const char *msgP=(const char*)&*vpacket.begin();
       string packet=string(lenP, lenP+2)+string(msgP, msgP+vpacket.size());
