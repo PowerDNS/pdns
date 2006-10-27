@@ -56,7 +56,6 @@ struct Bind2DNSRecord
 class BB2DomainInfo
 {
 public:
-
   BB2DomainInfo();
 
   void setCtime();
@@ -74,8 +73,6 @@ public:
   string d_master;     //!< IP address of the master of this domain
 
   uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
-
-
 
   //! configure how often this domain should be checked for changes (on disk)
   void setCheckInterval(time_t seconds);
@@ -113,7 +110,9 @@ public:
   bool feedRecord(const DNSResourceRecord &r);
   bool commitTransaction();
   bool abortTransaction();
-  void insert(int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
+
+  typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
+  void insert(shared_ptr<id_zone_map_t> stage, int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -164,8 +163,8 @@ private:
   typedef map<string,int> name_id_map_t;
   static name_id_map_t s_name_id_map;  //!< convert a name to a domain id
 
-  typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
-  static id_zone_map_t s_id_zone_map, s_staging_zone_map; //!< convert a domain id to a pointer to a BB2DomainInfo
+
+  static shared_ptr<id_zone_map_t> s_id_zone_map; //!< convert a domain id to a pointer to a BB2DomainInfo
 
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
 

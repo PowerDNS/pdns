@@ -248,7 +248,7 @@ ZoneParser::~ZoneParser()
 
 }
 
-void ZoneParser::setCallback(callback_t *callback)
+void ZoneParser::setCallback(callback_t callback)
 {
   d_callback=callback;
 }
