@@ -431,7 +431,7 @@ Bind2Backend::Bind2Backend(const string &suffix)
 
 void Bind2Backend::rediscover(string *status)
 {
-  loadConfig(status);
+  us->loadConfig(status);
 }
 
 void Bind2Backend::loadConfig(string* status)
