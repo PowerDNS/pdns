@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002-2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -22,6 +22,7 @@
 #include <map>
 #include <vector>
 #include <time.h>
+#include <boost/function.hpp>
 
 using namespace std;
 
@@ -41,9 +42,10 @@ class ZoneParser
   void parse(const string &fname,const string &origin, unsigned int domain_id);
   void parse(const string &fname,const string &origin, vector<Record>&records);
   
-  typedef void callback_t(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio);
-  void setCallback(callback_t *callback);
-  callback_t *d_callback;
+  //  typedef void callback_t(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio);
+  typedef boost::function<void(unsigned int, const string &, const string &, const string &, int, int)> callback_t;
+  void setCallback(callback_t callback);
+  callback_t d_callback;
   bool parseLine(const vector<string>&words, vector<Record> &);
   bool eatLine(const string& line, vector<Record>&);
   void setDirectory(const string &dir);
