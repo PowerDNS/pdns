@@ -49,6 +49,8 @@ using namespace std;
     on start of query, we find the best zone to answer from
 */
 
+static Bind2Backend *us;
+
 Bind2Backend::name_id_map_t Bind2Backend::s_name_id_map;
 
 // this map contains BB2DomainInfo structs, each of which contains a *pointer* to domain data
@@ -147,7 +149,7 @@ bool Bind2Backend::commitTransaction()
     throw DBException("Unable to commit (rename to: '"+s_id_zone_map[d_transaction_id].d_filename+"') AXFRed zone: "+stringerror());
 
 
-  queueReload(&s_id_zone_map[d_transaction_id]);
+  us->queueReload(&s_id_zone_map[d_transaction_id]);
 
   d_transaction_id=0;
 
@@ -295,8 +297,6 @@ static string canonic(string ret)
     ret.resize(i-ret.begin()-1);
   return ret;
 }
-
-static Bind2Backend *us;
 
 static void InsertionCallback(unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
 {
@@ -695,7 +695,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
     
     if(!bbd.current()) {
       L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
-      queueReload(&bbd);
+      us->queueReload(&bbd);
       d_handle.d_records=s_id_zone_map[iditer->second].d_records; // give it a *fresh* copy
     }
   }
