@@ -161,15 +161,16 @@ private:
   };
 
   typedef map<string,int> name_id_map_t;
-  static name_id_map_t s_name_id_map;  //!< convert a name to a domain id
 
-
-  static shared_ptr<id_zone_map_t> s_id_zone_map; //!< convert a domain id to a pointer to a BB2DomainInfo
+  struct State 
+  {
+    name_id_map_t name_id_map;  //!< convert a name to a domain id
+    id_zone_map_t id_zone_map;
+  };
+  static shared_ptr<State> s_state;
+  static pthread_mutex_t s_state_lock;               //!< lock protecting ???
 
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
-
-  static pthread_mutex_t s_zonemap_lock;               //!< lock protecting ???
-
   string d_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
 
   string d_logprefix;
