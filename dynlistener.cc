@@ -235,6 +235,10 @@ void DynListener::theListener()
     {
       L<<Logger::Error<<"Fatal error 2 in control listener: "<<E<<endl;
     }
+  catch(exception& e)
+    {
+      L<<Logger::Error<<"Fatal STL error: "<<e.what()<<endl;
+    }
   catch(...)
     {
       L<<Logger::Error<<"Fatal: unknown exception occured"<<endl;
