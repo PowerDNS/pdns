@@ -112,7 +112,15 @@ public:
   bool abortTransaction();
 
   typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
-  void insert(shared_ptr<id_zone_map_t> stage, int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
+  typedef map<string,int> name_id_map_t;
+
+  struct State 
+  {
+    name_id_map_t name_id_map;  //!< convert a name to a domain id
+    id_zone_map_t id_zone_map;
+  };
+
+  void insert(shared_ptr<State> stage, int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -160,13 +168,7 @@ private:
     handle(const handle &);
   };
 
-  typedef map<string,int> name_id_map_t;
 
-  struct State 
-  {
-    name_id_map_t name_id_map;  //!< convert a name to a domain id
-    id_zone_map_t id_zone_map;
-  };
   static shared_ptr<State> s_state;
   static pthread_mutex_t s_state_lock;               //!< lock protecting ???
 

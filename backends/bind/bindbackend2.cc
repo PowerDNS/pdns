@@ -321,7 +321,7 @@ static string canonic(string ret)
   return ret;
 }
 
-static void InsertionCallback(shared_ptr<Bind2Backend::id_zone_map_t> stage, unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
+static void InsertionCallback(shared_ptr<Bind2Backend::State> stage, unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
 {
   us->insert(stage, domain_id, domain, qtype, content, ttl, prio);
 }
@@ -330,15 +330,14 @@ set<string> contents;
 
 /** This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insert(shared_ptr<id_zone_map_t> stage, int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
+void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
 {
-
   // XXXX WRONG WRONG WRONG REWRITE
 
-  BB2DomainInfo bb2=(*stage)[id];
+  BB2DomainInfo bb2 = stage->id_zone_map[id];
   Bind2DNSRecord bdr;
 
-  vector<Bind2DNSRecord>& records=*bb2.d_records;
+  vector<Bind2DNSRecord>& records=*bb2.d_records; 
 
   bdr.qname=toLower(canonic(qnameu));
   if(bdr.qname==toLower(bb2.d_name))
@@ -469,7 +468,8 @@ void Bind2Backend::loadConfig(string* status)
   
   static int domain_id=1;
 
-  shared_ptr<id_zone_map_t> staging_zone_map(new id_zone_map_t);
+  shared_ptr<State> staging = shared_ptr<State>(new State);
+
   if(!getArg("config").empty()) {
     BindParser BP;
     try {
@@ -488,7 +488,7 @@ void Bind2Backend::loadConfig(string* status)
 
     d_binddirectory=BP.getDirectory();
     ZP.setDirectory(d_binddirectory);
-    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging_zone_map, _1, _2, _3, _4, _5, _6);
+    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
     ZP.setCallback(func);  
 
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
@@ -508,10 +508,9 @@ void Bind2Backend::loadConfig(string* status)
 	BB2DomainInfo* bbd=0;
 
 	if(!s_state->name_id_map.count(i->name)) { // is it fully new?
-	  bbd=&(*staging_zone_map)[domain_id];
+	  bbd=&staging->id_zone_map[domain_id];
 	  bbd->d_id=domain_id++;
-	  s_state->name_id_map[i->name]=bbd->d_id;
-
+	
 	  // this isn't necessary, we do this on the actual load
 	  //	  bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);
 
@@ -520,10 +519,11 @@ void Bind2Backend::loadConfig(string* status)
 	  bbd->d_loaded=false;
 	}
 	else {  // no, we knew about it already
-	  (*staging_zone_map)[s_state->name_id_map[i->name]]=s_state->id_zone_map[s_state->name_id_map[i->name]];
-	  bbd=&(*staging_zone_map)[s_state->name_id_map[i->name]];
+	  staging->id_zone_map[s_state->name_id_map[i->name]] = s_state->id_zone_map[s_state->name_id_map[i->name]]; // these should all be read-only on s_state
+	  bbd = &staging->id_zone_map[s_state->name_id_map[i->name]];
 	}
 	
+	staging->name_id_map[i->name]=bbd->d_id; // fill out name -> id map
 
 	// overwrite what we knew about the domain
 	bbd->d_name=i->name;
@@ -534,20 +534,20 @@ void Bind2Backend::loadConfig(string* status)
 	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 	  
 	  try {
-	    // we need to allocate a new vector so we don't kill the original
+	    // we need to allocate a new vector so we don't kill the original, which is still in use!
 	    bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>); 
 
 	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
 	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
 
-	    sort((*staging_zone_map)[bbd->d_id].d_records->begin(), (*staging_zone_map)[bbd->d_id].d_records->end());
-
-	    (*staging_zone_map)[bbd->d_id].setCtime();
-	    (*staging_zone_map)[bbd->d_id].d_loaded=true; 
-	    (*staging_zone_map)[bbd->d_id].d_status="parsed into memory at "+nowTime();
+	    sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
+	    
+	    staging->id_zone_map[bbd->d_id].setCtime();
+	    staging->id_zone_map[bbd->d_id].d_loaded=true; 
+	    staging->id_zone_map[bbd->d_id].d_status="parsed into memory at "+nowTime();
 
 	    contents.clear();
-	    //  s_(*staging_zone_map)[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
+	    //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
 	  }
 	  catch(AhuException &ae) {
 	    ostringstream msg;
@@ -555,7 +555,7 @@ void Bind2Backend::loadConfig(string* status)
 
 	    if(status)
 	      *status+=msg.str();
-	    (*staging_zone_map)[bbd->d_id].d_status=msg.str();
+	    staging->id_zone_map[bbd->d_id].d_status=msg.str();
 	    L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
 	    rejected++;
 	  }
@@ -569,17 +569,18 @@ void Bind2Backend::loadConfig(string* status)
     // figure out which domains were new and which vanished
     int remdomains=0;
     set<string> oldnames, newnames;
-    for(id_zone_map_t::const_iterator j=s_state->id_zone_map.begin();j!=s_state->id_zone_map.end();++j) {
+    for(id_zone_map_t::const_iterator j=s_state->id_zone_map.begin();j != s_state->id_zone_map.end();++j) {
       oldnames.insert(j->second.d_name);
     }
-    for(id_zone_map_t::const_iterator j=staging_zone_map->begin();j!=staging_zone_map->end();++j) {
+    for(id_zone_map_t::const_iterator j=staging->id_zone_map.begin(); j!= staging->id_zone_map.end(); ++j) {
       newnames.insert(j->second.d_name);
     }
 
     vector<string> diff;
     set_difference(oldnames.begin(), oldnames.end(), newnames.begin(), newnames.end(), back_inserter(diff));
     remdomains=diff.size();
-        
+
+#if 0        
     // remove domains from the *name* map, delete their pointer
     for(vector<string>::const_iterator k=diff.begin();k!=diff.end(); ++k) {
       L<<Logger::Error<<"Removing domain: "<<*k<<endl;
@@ -598,13 +599,14 @@ void Bind2Backend::loadConfig(string* status)
 	  break;
 	}
     }
+#endif
 
     // count number of entirely new domains
     vector<string> diff2;
     set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff2));
     newdomains=diff2.size();
 
-    s_state->id_zone_map.swap(*staging_zone_map);
+    s_state = staging; // and boy do we hope this is a threadsafe operation!
 
     // report
     ostringstream msg;
@@ -628,31 +630,31 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 {
   Lock l(&s_state_lock);
 
-  shared_ptr<id_zone_map_t> staging_zone_map(new id_zone_map_t);
+  shared_ptr<State> staging(new State);
 
   // we reload *now* for the time being
 
   try {
-    nukeZoneRecords(bbd);
+    nukeZoneRecords(bbd); // ? do we need this?
     
     ZoneParser ZP;
     us=this;
 
     ZP.setDirectory(d_binddirectory);
-    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging_zone_map, _1, _2, _3, _4, _5, _6);
+    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
     ZP.setCallback(func);  
 
-    (*staging_zone_map)[bbd->d_id]=s_state->id_zone_map[bbd->d_id];
-    (*staging_zone_map)[bbd->d_id].d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);  // nuke it
+    staging->id_zone_map[bbd->d_id]=s_state->id_zone_map[bbd->d_id];
+    staging->id_zone_map[bbd->d_id].d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);  // nuke it
 
     ZP.parse(bbd->d_filename, bbd->d_name, bbd->d_id);
     
-    sort((*staging_zone_map)[bbd->d_id].d_records->begin(), (*staging_zone_map)[bbd->d_id].d_records->end());
-    (*staging_zone_map)[bbd->d_id].setCtime();
+    sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
+    staging->id_zone_map[bbd->d_id].setCtime();
     
     contents.clear();
 
-    s_state->id_zone_map[bbd->d_id]=(*staging_zone_map)[bbd->d_id]; // move over
+    s_state->id_zone_map[bbd->d_id]=staging->id_zone_map[bbd->d_id]; // move over
 
     bbd->setCtime();
     // and raise d_loaded again!
@@ -728,7 +730,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
     
     if(!bbd.current()) {
       L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
-      us->queueReload(&bbd);
+      us->queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
       d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a *fresh* copy
     }
   }
