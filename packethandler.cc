@@ -18,7 +18,7 @@
 #include "utility.hh"
 #include <string>
 #include <sys/types.h>
-
+#include <boost/algorithm/string.hpp>
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
@@ -82,6 +82,9 @@ void PacketHandler::addRootReferral(DNSPacket* r)
     rr.content=templ;
     r->addRecord(rr);
   }
+
+  if(boost::iequals(arg()["send-root-referral"], "lean"))
+     return;
 
   // add the additional stuff
   
