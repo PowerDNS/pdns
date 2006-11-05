@@ -81,6 +81,70 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-recursor-3-1-4"><title>Recursor version 3.1.4 (UNRELEASED)</title>
+	<para>
+	  Not yet released.
+	</para>
+	<para>
+	  This is yet another release that mostly fixes minor issues. An upgrade is recommended, as the combined fixes improve the recursor considerably.
+	</para>
+	<para>
+	  Bugs:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		On certain error conditions, PowerDNS would neglect to close a socket, which might therefore eventually run out. Spotted by Stefan Schmidt, fixed in commits C892, C897, C899.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some nameservers (including PowerDNS in rare circumstances) emit a SOA record in the authority section. The recursor mistakenly interpreted this as an 
+		authoritative "NXRRSET". Spotted by Bryan Seitz, fixed in c893.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		In some circumstances, PowerDNS could end up with a useless (not working, or no longer working) set of nameserver records for a domain. This release contains logic
+		to invalidate such broken NSSETs, without overloading authoritative servers. This problem had previously been spotted by Bryan Seitz, 'Cerb' and Darren Gamble. 
+		Invalidations of NSSETs can be plotted using the "nsset-invalidations" metric, available through <command>rec_control get</command>.
+		Implemented in c896 and c901.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS could crash while dumping the cache using <command>rec_control dump-cache</command>. Reported by Wouter of WideXS and Stefan Schmidt and many others, fixed in c900.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Under rare circumstances (depleted TCP buffers), PowerDNS might send out incomplete questions to remote servers. Additionally, on big-endian systems (non-Intel and non-AMD 
+		generally), sending out large TCP answers questions would not work at all, and possibly crash. Brought to our attention by David Gavarret, fixed in c903.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The recursor contained the potential for a dead-lock processing an invalid domain name. It is not known how this might be triggered, 
+		but it has been observed by 'Cerb' on #powerdns. Several dead-locks where PowerDNS consumed all CPU, but did not answer questions, 
+		have been reported in the past few months. These might be fixed by c904.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		PowerDNS has support to drop answers from so called 'delegation only' zones. A statistic ("dlg-only-drops") is now available to plot how often this happens. Implemented in c890.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Hint-file parameter was mistakenly named "hints-file" in the documentation. Spotted by my Marco Davids, fixed in c898.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+
       <sect2 id="changelog-recursor-3-1-3"><title>Recursor version 3.1.3</title>
 	<para>
 	  Released the 12th of September 2006.
