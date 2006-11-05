@@ -19,7 +19,7 @@ bin_PROGRAMS = pdns_control
 endif
 
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsreplay_mindex dnswasher dnsreplay dnsscan dnslog
+EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsgram dnsreplay_mindex dnswasher dnsreplay dnsscan dnslog
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -95,6 +95,13 @@ dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	utility.hh dnsparser.hh
 
 dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
+
+dnsgram_SOURCES=dnsgram.cc misc.cc unix_utility.cc qtype.cc \
+	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
+	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
+	utility.hh dnsparser.hh
+
+
 
 
 # INCLUDES=-I/usr/include/mysql
