@@ -215,7 +215,7 @@ RecursorControlParser::RecursorControlParser()
 static void doExit()
 {
   L<<Logger::Error<<"Exiting on user request"<<endl;
-  exit(1);
+  _exit(1);
 }
 
 string doTopRemotes()
