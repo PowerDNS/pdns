@@ -63,7 +63,7 @@ case "$1" in
 	;;		
 
 	force-reload | restart)
-		echo -n "Restarting PowerDNS authoritative nameserver: "
+		echo -n "Restarting PowerDNS recursing nameserver: "
 		echo -n stopping and waiting.. 
 		doPC quit
 		sleep 3
