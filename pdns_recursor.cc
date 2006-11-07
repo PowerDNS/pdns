@@ -652,7 +652,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
     if(bytes==2) { 
-      conn->qlen=(conn->data[0]<<8)+conn->data[1];
+      conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
       conn->bytesread=0;
       conn->state=TCPConnection::GETQUESTION;
     }
@@ -664,10 +664,10 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     }
   }
   else if(conn->state==TCPConnection::BYTE1) {
-    int bytes=recv(conn->fd,conn->data+1,1,0);
+    int bytes=recv(conn->fd, conn->data+1, 1, 0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
-      conn->qlen=(conn->data[0]<<8)+conn->data[1];
+      conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
       conn->bytesread=0;
     }
     if(!bytes || bytes < 0) {
@@ -680,7 +680,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
     }
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
-    int bytes=recv(conn->fd,conn->data + conn->bytesread,conn->qlen - conn->bytesread, 0);
+    int bytes=recv(conn->fd, conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0) {
       L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected while reading question body"<<endl;
       TCPConnection tmp(*conn);
