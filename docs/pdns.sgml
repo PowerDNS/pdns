@@ -128,6 +128,17 @@
 		have been reported in the past few months. These might be fixed by c904.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		IPv6 'allow-from' matching had problems with the least significant bits, sometimes allowing disallowed addresses, but mostly disallowing allowed addresses. Spotted by Wouter
+		from WideXS, fixed in c916.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Large TCP questions followed by garbage could cause the recursor to crash.
+	      </para>
+	    </listitem>
 	  </itemizedlist>
 	  Improvements:
 	  <itemizedlist>
@@ -139,6 +150,17 @@
 	    <listitem>
 	      <para>
 		Hint-file parameter was mistakenly named "hints-file" in the documentation. Spotted by my Marco Davids, fixed in c898.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>rec_control quit</command> should be near instantaneous now, as it no longer meticulously cleans up memory before exiting. Problem spotted by Darren Gamble, fixed in 
+		c914, closing t84.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		init.d script no longer refers to the Recursor as the Authoritative Server. Spotted by Wouter of WideXS, fixed in c913.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
