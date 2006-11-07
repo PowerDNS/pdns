@@ -228,7 +228,7 @@ public:
     const char *ptr=data.c_str();
 
     do {
-      res=::send(d_socket,ptr,toWrite,0);
+      res=::send(d_socket, ptr, toWrite, 0);
       if(res<0) 
 	throw NetworkError("Writing to a socket: "+string(strerror(errno)));
       if(!res)

@@ -700,7 +700,8 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
       }
       catch(MOADNSException &mde) {
 	g_stats.clientParseError++; 
-	L<<Logger::Error<<"Unable to parse packet from TCP client "<< tconn.remote.toString() <<endl;
+	if(g_logCommonErrors)
+	  L<<Logger::Error<<"Unable to parse packet from TCP client "<< tconn.remote.toString() <<endl;
 	tconn.closeAndCleanup();
 	return;
       }
@@ -796,7 +797,8 @@ void handleNewUDPQuestion(int fd, boost::any& var)
     }
     catch(MOADNSException& mde) {
       g_stats.clientParseError++; 
-      L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
+      if(g_logCommonErrors)
+	L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
     }
   }
 }
