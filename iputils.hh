@@ -232,8 +232,9 @@ public:
 	}
       }
       // still here, now match remaining bits
-      uint8_t bits=bytes%8;
+      uint8_t bits= d_bits % 8;
       uint8_t mask= ~(0xFF>>bits);
+
       return((us[n] & mask) == (them[n] & mask));
     }
     return false;
