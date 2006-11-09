@@ -537,9 +537,9 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, uint3
   
   string piece4=makeSoaHostmasterPiece(soadata.hostmaster);
 
-  char piece5[20];
+  uint32_t piece5[5];
   
-  uint32_t *i_p=(uint32_t *)piece5;
+  uint32_t *i_p=piece5;
   
   uint32_t soaoffset=0;
   if(soadata.serial && (soaoffset=arg().asNum("soa-serial-offset")))
@@ -558,7 +558,7 @@ void DNSPacket::addSOARecord(const string &domain, const string & content, uint3
   stringbuffer.append(p,10);
   stringbuffer+=piece3;
   stringbuffer+=piece4;
-  stringbuffer.append(piece5,20);
+  stringbuffer.append((char*)piece5,20);
   if(place==DNSResourceRecord::ANSWER)
     d.ancount++;
   else
