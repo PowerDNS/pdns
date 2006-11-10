@@ -16,6 +16,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include <boost/algorithm/string.hpp>
 #include "utility.hh"
 #include "syncres.hh"
 #include <iostream>
@@ -855,9 +856,18 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	return RCode::NXDomain;
       }
       if(!newtarget.empty()) {
+	if(iequals(newtarget,qname)) {
+	  LOG<<prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl;
+	  return RCode::ServFail;
+	}
+	if(depth > 10) {
+	  LOG<<prefix<<qname<<": status=got a CNAME referral, but recursing too deep, returning SERVFAIL"<<endl;
+	  return RCode::ServFail;
+	}
 	LOG<<prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl;
+
 	set<GetBestNSAnswer>beenthere2;
-	return doResolve(newtarget, qtype, ret,0,beenthere2);
+	return doResolve(newtarget, qtype, ret, depth + 1, beenthere2);
       }
       if(nsset.empty() && !d_lwr.d_rcode) {
 	LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
