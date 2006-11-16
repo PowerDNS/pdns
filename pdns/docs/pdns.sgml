@@ -81,12 +81,31 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-recursor-3-1-4"><title>Recursor version 3.1.4 (UNRELEASED)</title>
+      <sect2 id="changelog-recursor-3-1-4"><title>Recursor version 3.1.4</title>
 	<para>
-	  Not yet released.
+	  Released the 13th of November 2006.
 	</para>
 	<para>
-	  This is yet another release that mostly fixes minor issues. An upgrade is recommended, as the combined fixes improve the recursor considerably.
+	  This release contains almost no new features, but consists mostly of minor and major bug fixes. It also addresses two major security issues, which makes 
+	  this release a highly recommended upgrade.
+	</para>
+	<para>
+	  Security issues:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Large TCP questions followed by garbage could cause the recursor to crash. This critical security issue has been assigned CVE-2006-4251, and is fixed in 
+		c915. More information can be found in <xref linkend="powerdns-advisory-2006-01">.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		CNAME loops with zero second TTLs could cause crashes in some conditions. These loops could be constructed by malicious parties, 
+		making this issue a potential denial of service attack. This security issue has been assigned CVE-2006-4252 and is fixed by c919. 
+		More information can be found in <xref linkend="powerdns-advisory-2006-02">. Many thanks to David Gavarret for helping pin down this problem.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
 	</para>
 	<para>
 	  Bugs:
@@ -134,11 +153,7 @@
 		from WideXS, fixed in c916.
 	      </para>
 	    </listitem>
-	    <listitem>
-	      <para>
-		Large TCP questions followed by garbage could cause the recursor to crash.
-	      </para>
-	    </listitem>
+
 	  </itemizedlist>
 	  Improvements:
 	  <itemizedlist>
@@ -161,6 +176,11 @@
 	    <listitem>
 	      <para>
 		init.d script no longer refers to the Recursor as the Authoritative Server. Spotted by Wouter of WideXS, fixed in c913.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		A potentially serious warning for users of the GNU C Library version 2.5 was fixed. Spotted by Marcus Rueckert, fixed in c920.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -5075,9 +5095,14 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
-	As of the 25th of April 2006, no actual security problems with PowerDNS 2.9.18, Recursor 3.0.1, or later are known about.  This page 
+	As of the 11th of November 2006, no actual security problems with PowerDNS 2.9.18, Recursor 3.1.4, or later are known about.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailinglists.
+      </para>
+      <para>
+	Version 3.1.3 and earlier of the PowerDNS recursor contain two security issues, both of which can lead to a denial of service, both of which can be triggered
+	by remote users. One of the issues might lead be exploited and lead to a system compromise. For more detail, see <xref linkend="powerdns-advisory-2006-01"> and
+	<xref linkend="powerdns-advisory-2006-02">.
       </para>
       <para>
 	Version 3.0 of the PowerDNS recursor contains a denial of service bug which can be exploited remotely. This bug, which we believe to only lead to a crash,
@@ -5116,7 +5141,195 @@ name         IN            A        1.2.3.4
 	This license is included in the distribution and in this documentation, see <xref linkend="license">.
       </para>
     </sect1>
-      
+    <sect1 id="powerdns-advisory-2006-01">
+      <title>PowerDNS Security Advisory 2006-01: Malformed TCP queries can lead to a buffer overflow which might be exploitable</title>
+      <para>
+	<table>
+	  <title>PowerDNS Security Advisory</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row>
+		<entry>
+		  CVE
+		</entry>
+		<entry>
+		  CVE-2006-4251
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Date
+		</entry>
+		<entry>
+		  13th of November 2006
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Affects
+		</entry>
+		<entry>
+		  PowerDNS Recursor versions 3.1.3 and earlier, on all operating systems.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Not affected
+		</entry>
+		<entry>
+		  No versions of the PowerDNS Authoritative Server ('pdns_server') are affected.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Severity 
+		</entry>
+		<entry>
+		  Critical
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Impact
+		</entry>
+		<entry>
+		  Potential remote system compromise. 
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Exploit
+		</entry>
+		<entry>
+		  As far as we know, no exploit is available as of 11th of November 2006.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Solution
+		</entry>
+		<entry>
+		  Upgrade to PowerDNS Recursor 3.1.4, or apply the patches referred below and recompile
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Workaround
+		</entry>
+		<entry>
+		  Disable TCP access to the Recursor. This will have slight operational impact, but it is likely that this will not lead
+		  to meaningful degradation of service. Disabling access is best performed at packet level, either by configuring a firewall, or 
+		  instructing the host operating system to drop TCP connections to port 53.
+		  Additionally, exposure can be limited by configuring the <command>allow-from</command> setting so only trusted users
+		  can query your nameserver.
+		</entry>
+	      </row>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	PowerDNS Recursor 3.1.3 and previous miscalculate the length of incoming TCP DNS queries, and will attempt to read up to 4 gigabytes of query
+	into a 65535 byte buffer.
+      </para>
+      <para>
+	We have not verified if this problem might actually lead to a system compromise, but are acting on the assumption that it might.
+      </para>
+      <para>
+	For distributors, a minimal patch is available on <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/changeset/915">the PowerDNS wiki</ulink>.
+	Additionally, those shipping very old versions of the PowerDNS Recursor might benefit from this <ulink url="http://ds9a.nl/tmp/cve-2006-4251.patch">
+	  patch</ulink>.
+      </para>
+      <para>
+        The impact of these and other security problems can be lessened by considering the advice in <xref linkend="security">.
+      </para>
+    </sect1>
+    <sect1 id="powerdns-advisory-2006-02">
+      <title>PowerDNS Security Advisory 2006-02: Zero second CNAME TTLs can make PowerDNS exhaust allocated stack space, and crash</title>
+      <para>
+	<table>
+	  <title>PowerDNS Security Advisory</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row>
+		<entry>
+		  CVE
+		</entry>
+		<entry>
+		  CVE-2006-4252
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Date
+		</entry>
+		<entry>
+		  13th of November 2006
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Affects
+		</entry>
+		<entry>
+		  PowerDNS Recursor versions 3.1.3 and earlier, on all operating systems.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Not affected
+		</entry>
+		<entry>
+		  No versions of the PowerDNS Authoritative Server ('pdns_server') are affected.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Severity 
+		</entry>
+		<entry>
+		  Moderate
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Impact
+		</entry>
+		<entry>
+		  Denial of service
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Exploit
+		</entry>
+		<entry>
+		  This problem can be triggered by sending queries for specifically configured domains
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Solution
+		</entry>
+		<entry>
+		  Upgrade to PowerDNS Recursor 3.1.4, or apply c919.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Workaround
+		</entry>
+		<entry>
+		  None known. Exposure can be limited by configuring the <command>allow-from</command> setting so only trusted users
+		  can query your nameserver.
+		</entry>
+	      </row>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	PowerDNS would recurse endlessly on encountering a CNAME loop consisting entirely of zero second CNAME records, eventually exceeding resources and crashing.
+      </para>
+    </sect1>
     <sect1 id="thanks-to"><title>Acknowledgements</title>
       <para>
 	PowerDNS is grateful for the help of the following people or institutions:
@@ -6007,7 +6220,9 @@ local0.err                        /var/log/pdns.err
     <sect1 id="settings"><title>Settings</title>
       <para>PDNS has several options to easily allow it to run more securely. Most notable are the <command>chroot</command>, 
 	<command>setuid</command> and <command>setgid</command> options which can be specified.</para>
-
+      <para>
+	For additional information on PowerDNS security, PowerDNS security incidents and PowerDNS security policy, see <xref linkend="security-policy">.
+      </para>
 	<sect2><title>Running as a less privileged identity</title>
 	<para>
 	  By specifying <command>setuid</command> and <command>setgid</command>, PDNS changes to this identity shortly after
