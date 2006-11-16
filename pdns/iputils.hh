@@ -119,7 +119,7 @@ union ComboAddress {
     }
   }
 
-  bool isMappedIPv4()  
+  bool isMappedIPv4()  const
   {
     if(sin4.sin_family!=AF_INET6)
       return false;
@@ -137,7 +137,7 @@ union ComboAddress {
     return true;
   }
   
-  ComboAddress mapToIPv4()  
+  ComboAddress mapToIPv4() const
   {
     if(!isMappedIPv4())
       throw AhuException("ComboAddress can't map non-mapped IPv6 address back to IPv4");
@@ -266,7 +266,7 @@ class NetmaskGroup
 {
 public:
   //! If this IP address is matched by any of the classes within
-  bool match(ComboAddress *ip)
+  bool match(const ComboAddress *ip)
   {
     for(container_t::const_iterator i=d_masks.begin();i!=d_masks.end();++i)
       if(i->match(ip) || (ip->isMappedIPv4() && i->match(ip->mapToIPv4()) ))

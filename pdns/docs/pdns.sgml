@@ -6793,6 +6793,16 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>dont-query</term>
+	    <listitem>
+	      <para>
+		The DNS is a public database, but sometimes contains delegations to private IP addresses, like for example 127.0.0.1. This can have odd effects, 
+		depending on your network, and may even be a security risk. Therefore, since version 3.1.5, the PowerDNS recursor by default does not query
+		private space IP addresses. This setting can be used to expand or reduce the limitations.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>export-etc-hosts</term>
 	    <listitem>
 	      <para>

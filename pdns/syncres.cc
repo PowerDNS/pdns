@@ -660,10 +660,15 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	}
 	for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
 	  LOG<<prefix<<qname<<": Trying IP "<< remoteIP->toString() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
+	  extern NetmaskGroup* g_dontQuery;
 	  
 	  if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
 	    LOG<<prefix<<qname<<": query throttled "<<endl;
 	    s_throttledqueries++; d_throttledqueries++;
+	    continue;
+	  } 
+	  else if(g_dontQuery && g_dontQuery->match(&*remoteIP)) {
+	    LOG<<prefix<<qname<<": not sending query to " << remoteIP->toString() << ", blocked by 'dont-query' setting" << endl;
 	    continue;
 	  }
 	  else {

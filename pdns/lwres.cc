@@ -52,7 +52,6 @@ LWRes::~LWRes()
   delete[] d_buf;
 }
 
-
 //! returns -2 for OS limits error, -1 for permanent error that has to do with remote, 0 for timeout, 1 for success
 /** Never throws! */
 int LWRes::asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now)
