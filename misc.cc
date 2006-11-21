@@ -191,10 +191,26 @@ int sendData(const char *buffer, int replen, int outsock)
   iov[1].iov_len=replen;
   int ret=Utility::writev(outsock,iov,2);
 
-  if(ret<0) {
+  if(ret<=0) { // "EOF is error"
     return -1;
   }
   if(ret!=replen+2) {
+    // we can safely assume ret > 2, as 2 is < PIPE_BUF
+    
+    buffer += (ret - 2);
+    replen -= (ret - 2);
+
+    while (replen) {
+      ret = write(outsock, buffer, replen);
+      if(ret < 0)
+	return ret;
+      if(!ret)
+	return -1; // "EOF == error"
+      replen -= ret;
+      buffer += ret;
+    }
+    if(!replen)
+      return 0;
     return -1;
   }
   return 0;
