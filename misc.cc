@@ -41,8 +41,6 @@
 #include <stdio.h>
 #include "ahuexception.hh"
 #include <sys/types.h>
-
-
 #include "utility.hh"
 
 string nowTime()
@@ -94,7 +92,7 @@ bool stripDomainSuffix(string *qname, const string &domain)
 }
 
 /** Chops off the start of a domain, so goes from 'www.ds9a.nl' to 'ds9a.nl' to 'nl' to ''. Return zero on the empty string */
-bool chopOff(string &domain)
+bool chopOff(string &domain) 
 {
   if(domain.empty())
     return false;
@@ -103,8 +101,12 @@ bool chopOff(string &domain)
 
   if(fdot==string::npos) 
     domain="";
-  else 
-    domain=domain.substr(fdot+1);
+  else {
+    string::size_type remain = domain.length() - (fdot + 1);
+    char tmp[remain];
+    memcpy(tmp, domain.c_str()+fdot+1, remain);
+    domain.assign(tmp, remain); // don't dare to do this w/o tmp holder :-)
+  }
   return true;
 }
 
@@ -120,8 +122,12 @@ bool chopOffDotted(string &domain)
 
   if(fdot==domain.size()-1) 
     domain=".";
-  else 
-    domain=domain.substr(fdot+1);
+  else  {
+    string::size_type remain = domain.length() - (fdot + 1);
+    char tmp[remain];
+    memcpy(tmp, domain.c_str()+fdot+1, remain);
+    domain.assign(tmp, remain);
+  }
   return true;
 }
 
