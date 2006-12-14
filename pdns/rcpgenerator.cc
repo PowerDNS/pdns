@@ -66,11 +66,40 @@ void RecordTextReader::xfrIP(uint32_t &val)
 
   if(!isdigit(d_string.at(d_pos)))
     throw RecordTextException("while parsing IP address, expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+
+  uint32_t octet=0;
+  val=0;
+  char count=0;
   
-  string ip;
-  xfrLabel(ip);
-  if(!IpToU32(ip, &val))
-    throw RecordTextException("unable to parse IP address '"+ip+"'");
+  for(;;) {
+    if(d_string.at(d_pos)=='.') {
+      val<<=8;
+      val+=octet;
+      octet=0;
+      count++;
+      if(count > 3)
+	break;
+    }
+    else if(isdigit(d_string.at(d_pos))) {
+      octet*=10;
+      octet+=d_string.at(d_pos) - '0';
+      if(octet > 255)
+	throw RecordTextException("unable to parse IP address");
+    }
+    else if(dns_isspace(d_string.at(d_pos))) 
+      break;
+    else
+      throw RecordTextException("unable to parse IP address, strange character: "+d_string.at(d_pos));
+
+    d_pos++;
+    if(d_pos == d_string.length())
+      break;
+  }
+  if(count<=3) {
+    val<<=8;
+    val+=octet;
+  }
+  val=ntohl(val);
 }
 
 
@@ -250,13 +279,30 @@ void RecordTextWriter::xfrIP(const uint32_t& val)
     d_string.append(1,' ');
 
   char tmp[17];
-  snprintf(tmp, sizeof(tmp)-1, "%u.%u.%u.%u", 
-	   (val >> 24)&0xff,
-	   (val >> 16)&0xff,
-	   (val >>  8)&0xff,
-	   (val      )&0xff);
-  
-  d_string+=tmp;
+  uint32_t ip=htonl(val);
+  uint8_t vals[4];
+
+  memcpy(&vals[0], &ip, sizeof(ip));
+
+  char *pos=tmp;
+
+  for(int n=0; n < 4; ++n) {
+    if(vals[n]<10) {
+      *(pos++)=vals[n]+'0';
+    } else if(vals[n] < 100) {
+      *(pos++)=(vals[n]/10) +'0';
+      *(pos++)=(vals[n]%10) +'0';
+    } else {
+      *(pos++)=(vals[n]/100) +'0';
+      vals[n]%=100;
+      *(pos++)=(vals[n]/10) +'0';
+      *(pos++)=(vals[n]%10) +'0';
+    }
+    if(n!=3)
+      *(pos++)='.';
+  }
+  *pos=0;
+  d_string.append(tmp, pos);
 }
 
 
