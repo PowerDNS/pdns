@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2005  PowerDNS.COM BV
+    Copyright (C) 2002-2006  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -18,8 +18,34 @@
 */
 #ifndef MISC_HH
 #define MISC_HH
-/* (C) 2002 POWERDNS.COM BV */
 
+#if 0
+#define RDTSC(qp) \
+do { \
+  unsigned long lowPart, highPart;					\
+  __asm__ __volatile__("rdtsc" : "=a" (lowPart), "=d" (highPart)); \
+    qp = (((unsigned long long) highPart) << 32) | lowPart; \
+} while (0)
+
+#include <iostream>
+using std::cout;
+using std::endl;
+
+struct TSCTimer
+{
+  TSCTimer()
+  {
+    RDTSC(d_tsc1);
+  }
+  ~TSCTimer()
+  {
+    uint64_t tsc2;
+    RDTSC(tsc2);
+    cout<<"Timer: "<< (tsc2 - d_tsc1)/3000.0 << endl;
+  }
+  uint64_t d_tsc1;
+};
+#endif
 
 #include "utility.hh"
 #include "dns.hh"
@@ -305,7 +331,40 @@ struct CIStringCompare: public binary_function<string, string, bool>
     
     return result < 0;
   }
+
+  bool operator()(const string& a, const char* b) const
+  {
+    const unsigned char *p1 = (const unsigned char *) a.c_str();
+    const unsigned char *p2 = (const unsigned char *) b;
+    int result;
+    
+    if (p1 == p2)
+      return 0;
+    
+    while ((result = dns_tolower (*p1) - dns_tolower (*p2++)) == 0)
+      if (*p1++ == '\0')
+	break;
+    
+    return result < 0;
+  }
+
+  bool operator()(const char* a, const string& b) const
+  {
+    const unsigned char *p1 = (const unsigned char *) a;
+    const unsigned char *p2 = (const unsigned char *) b.c_str();
+    int result;
+    
+    if (p1 == p2)
+      return 0;
+    
+    while ((result = dns_tolower (*p1) - dns_tolower (*p2++)) == 0)
+      if (*p1++ == '\0')
+	break;
+    
+    return result < 0;
+  }
 };
+
 pair<string, string> splitField(const string& inp, char sepa);
 
 inline bool isCanonical(const string& dom)
