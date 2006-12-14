@@ -41,6 +41,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   memcpy(&*i, &qclass, 2);
 
   d_stuff=0xffff;
+  d_labelmap.reserve(16);
 }
 
 dnsheader* DNSPacketWriter::getHeader()
@@ -63,10 +64,16 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_stuff = 0; 
   d_rollbackmarker=d_content.size();
 
-  xfrLabel(d_recordqname, true);
-  d_content.insert(d_content.end(), d_record.begin(), d_record.end());
-  d_record.clear();
-
+  if(d_qname == d_recordqname) {  // don't do the whole label compression thing if we *know* we can get away with "see question"
+    static char marker[2]={0xc0, 0x0c};
+    d_content.insert(d_content.end(), &marker[0], &marker[2]);
+  }
+  else {
+    xfrLabel(d_recordqname, true);
+    d_content.insert(d_content.end(), d_record.begin(), d_record.end());
+    d_record.clear();
+  }
+      
   d_stuff = sizeof(dnsrecordheader); // this is needed to get compressed label offsets right, the dnsrecordheader will be interspersed
   d_sor=d_content.size() + d_stuff; // start of real record 
 }
@@ -114,7 +121,16 @@ void DNSPacketWriter::xfrText(const string& text)
   d_record.insert(d_record.end(), ptr, ptr+text.size());
 }
 
-// this is the absolute hottest function in the pdns recursor
+DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const string& label)
+{
+  DNSPacketWriter::lmap_t::iterator ret;
+  for(ret=lmap.begin(); ret != lmap.end(); ++ret)
+    if(ret->first == label)
+      break;
+  return ret;
+}
+
+// this is the absolute hottest function in the pdns recursor 
 void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
   typedef vector<pair<unsigned int, unsigned int> > parts_t;
@@ -127,9 +143,9 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
     //    cerr<<"chopped: '"<<chopped<<"'\n";
-    map<string, uint16_t>::iterator li=d_labelmap.end();
+    lmap_t::iterator li=d_labelmap.end();
     // see if we've written out this domain before
-    if(compress && (li=d_labelmap.find(chopped))!=d_labelmap.end()) {   
+    if(compress && (li=find(d_labelmap, chopped))!=d_labelmap.end()) {   
       uint16_t offset=li->second;
       offset|=0xc000;
       d_record.push_back((char)(offset >> 8));
@@ -138,15 +154,17 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
     }
 
     if(li==d_labelmap.end() && pos< 16384)
-      d_labelmap[chopped]=pos;                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
-    
+      d_labelmap.push_back(make_pair(chopped, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
+
     d_record.push_back((char)(i->second - i->first));
     unsigned int len=d_record.size();
     d_record.resize(len + i->second - i->first);
     memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
     //    cerr<<"Added: '"<<string(label.c_str() + i->first, i->second - i->first) <<"'\n";
     pos+=(i->second - i->first)+1;
-    chopOff(chopped);                   // www.powerdns.com. -> powerdns.com. -> com. -> .
+
+    if(i+1 != parts.end())
+      chopOff(chopped);                   // www.powerdns.com. -> powerdns.com. -> com. -> .
   }
   d_record.push_back(0);
 

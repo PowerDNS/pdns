@@ -40,7 +40,9 @@ using namespace std;
 
 class DNSPacketWriter
 {
+
 public:
+  typedef vector<pair<string, uint16_t> > lmap_t;
   enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
@@ -98,7 +100,7 @@ private:
   string d_recordqname;
   uint16_t d_recordqtype, d_recordqclass;
   uint32_t d_recordttl;
-  map<string, uint16_t> d_labelmap;
+  lmap_t d_labelmap;
   uint16_t d_stuff;
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
