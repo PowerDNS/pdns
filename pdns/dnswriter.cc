@@ -19,6 +19,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   
   memcpy(dptr, ptr, sizeof(dnsheader));
   d_stuff=0;
+
   xfrLabel(qname, false);
   
   len=d_content.size();
