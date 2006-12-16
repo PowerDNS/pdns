@@ -93,7 +93,7 @@ int TCPNameserver::readLength(int fd, ComboAddress *remote)
 
   while(bytesLeft) {
     int ret=waitForData(fd, s_timeout);
-    if(ret<0)
+    if(ret < 0)
       throw AhuException("Waiting on data from remote TCP client "+remote->toString()+": "+stringerror());
   
     ret=recv(fd, reinterpret_cast< char * >( buf ) +2-bytesLeft, bytesLeft,0);
@@ -376,7 +376,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     if(!((++count)%chunk)) {
       count=0;
     
-      if(sendDelPacket(outpacket, outsock)<0)  // FIXME: this leaks memory!
+      if(sendDelPacket(outpacket, outsock) < 0)  // FIXME: this leaks memory!
 	return 0;
 
       outpacket=q->replyPacket();  
