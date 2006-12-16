@@ -477,6 +477,7 @@ struct RecursorStats
   uint64_t ipv6queries;
   uint64_t chainResends;
   uint64_t nsSetInvalidations;
+  uint64_t shunted;
 
   typedef vector<ComboAddress> remotes_t;
   remotes_t remotes;
