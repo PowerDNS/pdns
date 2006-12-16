@@ -32,6 +32,8 @@ public:
   unsigned int size();
   unsigned int bytes();
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
+
+  int getDirect(time_t now, const char* qname, const QType& qt, uint32_t ttd[10], char* data[10], uint16_t len[10]);
   void replace(time_t, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth);
   void doPrune(void);
   void doSlash(int perc);
@@ -95,7 +97,6 @@ private:
 	earliest=min(earliest, i->d_ttd);
       return earliest;
     }
-
   };
 
   typedef multi_index_container<

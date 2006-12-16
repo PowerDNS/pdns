@@ -19,7 +19,7 @@
 #ifndef MISC_HH
 #define MISC_HH
 
-#if 0
+#if 1
 #define RDTSC(qp) \
 do { \
   unsigned long lowPart, highPart;					\

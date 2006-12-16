@@ -282,7 +282,7 @@ public:
     d_socks.erase(i++);
     --d_numsocks;
   }
-}g_udpclientsocks;
+} g_udpclientsocks;
 
 
 /* these two functions are used by LWRes */
@@ -395,6 +395,7 @@ static void setSendBuffer(int fd, uint32_t size)
   setBuffer(fd, SO_SNDBUF, size);
 }
 
+
 static void writePid(void)
 {
   string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
@@ -485,6 +486,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var);
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
+
   try {
     uint16_t maxudpsize=512;
     MOADNSParser::EDNSOpts edo;
@@ -493,9 +495,9 @@ void startDoResolve(void *p)
     }
     
     vector<DNSResourceRecord> ret;
-    
     vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
+
+    DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass); 
 
     pw.getHeader()->aa=0;
     pw.getHeader()->ra=1;
@@ -513,6 +515,7 @@ void startDoResolve(void *p)
       sr.setCacheOnly();
 
     int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
@@ -534,12 +537,18 @@ void startDoResolve(void *p)
       
       if(ret.size()) {
 	shuffle(ret);
-	for(vector<DNSResourceRecord>::const_iterator i=ret.begin();i!=ret.end();++i) {
-	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place);
-	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content));
+
+	for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
+	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
 	  
-	  drc->toPacket(pw);
-	
+	  if(i->qtype.getCode() == QType::A) { // blast out A record w/o doing whole dnswriter thing
+	    uint32_t ip=0;
+	    IpToU32(i->content, &ip);
+	    pw.xfr32BitInt(htonl(ip));
+	  } else {
+	    shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content)); 
+	    drc->toPacket(pw);
+	  }
 	  if(!dc->d_tcp && pw.size() > maxudpsize) {
 	    pw.rollback();
 	    if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
@@ -547,6 +556,7 @@ void startDoResolve(void *p)
 	    goto sendit; // need to jump over pw.commit
 	  }
 	}
+
 	pw.commit();
       }
     }
@@ -593,13 +603,13 @@ void startDoResolve(void *p)
 	g_fdm->setReadTTD(tc.fd, g_now, g_tcpTimeout);
       }
     }
-
+    
     if(!g_quiet) {
       L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
-    
+
     sr.d_outqueries ? RC.cacheMisses++ : RC.cacheHits++; 
     float spent=makeFloat(sr.d_now-dc->d_now);
     if(spent < 0.001)
@@ -616,6 +626,7 @@ void startDoResolve(void *p)
     uint64_t newLat=(uint64_t)(spent*1000000);
     if(newLat < 1000000)  // outliers of several minutes exist..
       g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0.0001*newLat);
+
     delete dc;
   }
   catch(AhuException &ae) {
@@ -764,15 +775,56 @@ void handleNewTCPQuestion(int fd, boost::any& )
   }
 }
  
+void questionExpand(const char* packet, uint16_t len, char* qname, int maxlen, uint16_t& type)
+{
+  type=0;
+  const unsigned char* end=(const unsigned char*)packet+len;
+  unsigned char* lbegin=(unsigned char*)packet+12;
+  unsigned char* pos=lbegin;
+  unsigned char labellen;
+
+  // 3www4ds9a2nl0
+  char *dst=qname;
+  char* lend=dst + maxlen;
+  
+  if(!*pos)
+    *dst++='.';
+
+  while((labellen=*pos++) && pos < end) { // "scan and copy"
+    if(dst >= lend)
+      throw runtime_error("Label length exceeded destination length");
+    for(;labellen;--labellen)
+      *dst++ = *pos++;
+    *dst++='.';
+  }
+  *dst=0;
+
+  if(pos + labellen + 2 <= end)  // is this correct XXX FIXME?
+    type=(*pos)*256 + *(pos+1);
+
+
+  //  cerr<<"Returning: '"<< string(tmp+1, pos) <<"'\n";
+}
+
+string questionExpand(const char* packet, uint16_t len, uint16_t& type)
+{
+  char tmp[512];
+  questionExpand(packet, len, tmp, sizeof(tmp), type);
+  return tmp;
+}
+
 void handleNewUDPQuestion(int fd, boost::any& var)
 {
   int len;
   char data[1500];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
+  uint64_t tsc1, tsc2;
 
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+    RDTSC(tsc1);      
     g_stats.addRemote(fromaddr);
+
     if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
       if(!g_quiet) 
 	L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
@@ -781,18 +833,59 @@ void handleNewUDPQuestion(int fd, boost::any& var)
       return;
     }
     try {
-      DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
-      dc->setRemote(&fromaddr);
+      dnsheader* dh=(dnsheader*)data;
       
-      if(dc->d_mdp.d_header.qr) {
+      if(dh->qr) {
 	if(g_logCommonErrors)
-	  L<<Logger::Error<<"Ignoring answer from "<<dc->getRemote()<<" on server socket!"<<endl;
-	delete dc;
+	  L<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
 	++g_stats.qcounter;
+	uint16_t type;
+	char qname[256];
+	questionExpand(data, len, qname, sizeof(qname), type);  
+	
+	// must all be same length answers right now!
+	if((type==QType::A || type==QType::AAAA) && dh->arcount==0 && dh->ancount==0 && dh->nscount ==0 && ntohs(dh->qdcount)==1 ) {
+	  char *record[10];
+	  uint16_t rlen[10];
+	  uint32_t ttd[10];
+	  int count;
+	  if((count=RC.getDirect(g_now.tv_sec, qname, QType(type), ttd, record, rlen))) { 
+	    if(len + count*(sizeof(dnsrecordheader) + 2 + rlen[0]) > 512)
+	      goto slow;
+
+	    random_shuffle(record, &record[count]);
+	    dh->qr=1;
+	    dh->ra=1;
+	    dh->ancount=ntohs(count);
+	    for(int n=0; n < count ; ++n) {
+	      memcpy(data+len, "\xc0\x0c", 2); // answer label pointer
+	      len+=2;
+	      struct dnsrecordheader drh;
+	      drh.d_type=htons(type);
+	      drh.d_class=htons(1);
+	      drh.d_ttl=htonl(ttd[n] - g_now.tv_sec);
+	      drh.d_clen=htons(rlen[n]);
+	      memcpy(data+len, &drh, sizeof(drh));
+	      len+=sizeof(drh);
+	      memcpy(data+len, record[n], rlen[n]);
+	      len+=rlen[n];
+	    }
+	    RDTSC(tsc2);      	    
+	    g_stats.shunted++;
+	    sendto(fd, data, len, 0, (struct sockaddr *)(&fromaddr), fromaddr.getSocklen());
+	    cerr<<"shunted: " << (tsc2-tsc1) / 3000.0 << endl;
+	    return;
+	  }
+	}
+      slow:
+	DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
 	dc->setSocket(fd);
+	dc->setRemote(&fromaddr);
+
 	dc->d_tcp=false;
+
 	MT->makeThread(startDoResolve, (void*) dc); // deletes dc
       }
     }
@@ -1027,30 +1120,6 @@ catch(AhuException& ae)
   throw;
 }
 ;
-
-string questionExpand(const char* packet, uint16_t len, uint16_t& type)
-{
-  type=0;
-  const unsigned char* end=(const unsigned char*)packet+len;
-  const unsigned char* pos=(const unsigned char*)packet+12;
-  unsigned char labellen;
-  string ret;
-  ret.reserve(len-12);
-  while((labellen=*pos++)) {
-    if(pos+labellen > end)
-      break;
-    ret.append((const char*)pos, labellen);
-    ret.append(1,'.');
-    pos+=labellen;
-  }
-  if(ret.empty())
-    ret=".";
-
-  if(pos + labellen + 2 <= end)  // is this correct XXX FIXME?
-    type=(*pos)*256 + *(pos+1);
-    
-  return ret;
-}
 
 
 void handleRCC(int fd, boost::any& var)
