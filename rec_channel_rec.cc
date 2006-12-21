@@ -190,6 +190,14 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("resource-limits", &g_stats.resourceLimits);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
+  
+  addGetStat("shunted-queries", &g_stats.shunted);
+  addGetStat("noshunt-size", &g_stats.noShuntSize);
+  addGetStat("noshunt-expired", &g_stats.noShuntExpired);
+  addGetStat("noshunt-nomatch", &g_stats.noShuntNoMatch);
+  addGetStat("noshunt-cname", &g_stats.noShuntCNAME);
+  addGetStat("noshunt-wrong-question", &g_stats.noShuntWrongQuestion);
+  addGetStat("noshunt-wrong-type", &g_stats.noShuntWrongType);
 
   addGetStat("negcache-entries", boost::bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
   addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
