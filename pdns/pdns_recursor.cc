@@ -843,7 +843,13 @@ void handleNewUDPQuestion(int fd, boost::any& var)
 	++g_stats.qcounter;
 	uint16_t type;
 	char qname[256];
-	questionExpand(data, len, qname, sizeof(qname), type);  
+        try {
+	   questionExpand(data, len, qname, sizeof(qname), type);  
+        }
+        catch(exception &e)
+        {
+           throw MOADNSException(e.what());
+        }
 	
 	// must all be same length answers right now!
 	if((type==QType::A || type==QType::AAAA) && dh->arcount==0 && dh->ancount==0 && dh->nscount ==0 && ntohs(dh->qdcount)==1 ) {
@@ -875,10 +881,16 @@ void handleNewUDPQuestion(int fd, boost::any& var)
 	    RDTSC(tsc2);      	    
 	    g_stats.shunted++;
 	    sendto(fd, data, len, 0, (struct sockaddr *)(&fromaddr), fromaddr.getSocklen());
-	    cerr<<"shunted: " << (tsc2-tsc1) / 3000.0 << endl;
+//	    cerr<<"shunted: " << (tsc2-tsc1) / 3000.0 << endl;
 	    return;
 	  }
 	}
+	else {
+	  if(type!=QType::A && type!=QType::AAAA)
+    	    g_stats.noShuntWrongType++;
+          else
+            g_stats.noShuntWrongQuestion++;
+        }
       slow:
 	DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
 	dc->setSocket(fd);
