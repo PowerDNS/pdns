@@ -4,6 +4,7 @@
 #include <boost/shared_ptr.hpp>
 #include "dnsrecords.hh"
 #include "arguments.hh"
+#include "syncres.hh"
 
 using namespace std;
 using namespace boost;
@@ -145,7 +146,7 @@ unsigned int MemRecursorCache::bytes()
 int MemRecursorCache::getDirect(time_t now, const char* qname, const QType& qt, uint32_t ttd[10], char* data[10], uint16_t len[10])
 {
   if(!d_cachecachevalid || Utility::strcasecmp(d_cachedqname.c_str(), qname)) {
-    cerr<<"had cache cache miss for '"<<qname<<"'"<<endl;
+//    cerr<<"had cache cache miss for '"<<qname<<"'"<<endl;
     d_cachedqname=qname;
     d_cachecache=d_cache.equal_range(tie(qname));
     d_cachecachevalid=true;
@@ -154,22 +155,30 @@ int MemRecursorCache::getDirect(time_t now, const char* qname, const QType& qt, 
     ;
   //    cerr<<"had cache cache hit!"<<endl;
 
-  if(d_cachecache.first == d_cachecache.second)
+  if(d_cachecache.first == d_cachecache.second) {
+    g_stats.noShuntNoMatch++;
     return false;
+  }
 
   pair<cache_t::iterator, cache_t::iterator> range = d_cachecache;
   
   unsigned int n=0;
   for(;range.first != range.second; ++range.first) {
-    if(range.first->d_qtype == QType::CNAME) // if we see a cname, we need the whole shebang (for now)
+    if(range.first->d_qtype == QType::CNAME) { // if we see a cname, we need the whole shebang (for now)
+      g_stats.noShuntCNAME++;
       return false;
+    }
     if(range.first->d_qtype != qt.getCode())
       continue;
-    if(range.first->getTTD() < (unsigned int) now)
+    if(range.first->getTTD() < (unsigned int) now) {
+      g_stats.noShuntExpired++;
       return false;
+    }
     
-    if(range.first->d_records.empty() || range.first->d_records.size() > 9 )
+    if(range.first->d_records.empty() || range.first->d_records.size() > 9 ) {
+      g_stats.noShuntSize++;
       return false;
+    }
     
     size_t limit=range.first->d_records.size();
     n=0;
@@ -189,6 +198,8 @@ int MemRecursorCache::getDirect(time_t now, const char* qname, const QType& qt, 
     else
       return false;
   }
+  if(!n)
+    g_stats.noShuntNoMatch++;
   return n;
 
 }
