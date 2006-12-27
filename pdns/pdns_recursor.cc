@@ -1740,6 +1740,7 @@ void doWindowsServiceArguments(RecursorService& recursor)
 
 int main(int argc, char **argv) 
 {
+  g_stats.startupTime=time(0);
   reportBasicTypes();
 
   int ret = EXIT_SUCCESS;
@@ -1806,6 +1807,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatability" )= "off"; 
 
     ::arg().setCmd("help","Provide a helpful message");
+    ::arg().setCmd("version","Print version string ("VERSION")");
     ::arg().setCmd("config","Output blank configuration");
     L.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
@@ -1823,6 +1825,10 @@ int main(int argc, char **argv)
     if(::arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
       cerr<<::arg().helpstring(::arg()["help"])<<endl;
+      exit(99);
+    }
+    if(::arg().mustDo("version")) {
+      cerr<<"version: "VERSION<<endl;
       exit(99);
     }
 

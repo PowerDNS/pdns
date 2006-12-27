@@ -134,6 +134,11 @@ static uint64_t getUserTimeMsec()
 }
 #endif
 
+static uint64_t calculateUptime()
+{
+  return time(0) - g_stats.startupTime;
+}
+
 static string doCurrentQueries()
 {
   ostringstream ostr;
@@ -212,6 +217,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
   addGetStat("unreachables", &SyncRes::s_unreachables);
   addGetStat("chain-resends", &g_stats.chainResends);
+
+  addGetStat("uptime", calculateUptime);
 
 #ifndef WIN32
   //  addGetStat("query-rate", getQueryRate);

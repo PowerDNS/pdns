@@ -479,7 +479,7 @@ struct RecursorStats
   uint64_t nsSetInvalidations;
   uint64_t shunted;
   uint64_t noShuntCNAME, noShuntExpired, noShuntSize, noShuntNoMatch, noShuntWrongType, noShuntWrongQuestion;
-
+  time_t startupTime;
 
   typedef vector<ComboAddress> remotes_t;
   remotes_t remotes;
