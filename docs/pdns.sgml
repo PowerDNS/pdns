@@ -1393,7 +1393,7 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Reported version can be changed, or removed - see the "version-string" setting.
+		Reported version can be changed, or removed - see the "version-string" setting. 
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -7000,6 +7000,14 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>version</term>
+	    <listitem>
+	      <para>
+		Print version of this binary. Useful for checking which version of the PowerDNS recursor is installed on a system. Available since 3.1.5.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>version-string</term>
 	    <listitem>
 	      <para>
@@ -7253,7 +7261,8 @@ throttle-entries    shows the number of entries in the throttle map
 unauthorized-tcp    number of TCP questions denied because of allow-from restrictions
 unauthorized-udp    number of UDP questions denied because of allow-from restrictions
 unexpected-packets  number of answers from remote servers that were unexpected (might point to spoofing)
-user-msec            number of CPU milliseconds spent in 'user' mode
+uptime              number of seconds process has been running (since 3.1.5)
+user-msec           number of CPU milliseconds spent in 'user' mode
 	  </screen>
 	In the <filename>rrd/</filename> subdirectory a number of rrdtool scripts is provided to make nice
 	graphs of all these numbers.
