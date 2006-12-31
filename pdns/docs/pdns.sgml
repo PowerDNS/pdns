@@ -75,6 +75,7 @@
 	for updates. The PDF version is available on <ulink url="http://doc.powerdns.com/pdf">http://doc.powerdns.com/pdf</ulink>, a text file is
 	on <ulink url="http://doc.powerdns.com/txt">http://doc.powerdns.com/txt/</ulink>. 
       </para>
+    </sect1>
     <sect1 id="changelog">
       <title>Release notes</title>
       <para>
@@ -1405,8 +1406,7 @@
 	  </itemizedlist>
 	</para>
 	<para>
-	Bug fixes:
-	<para>
+	  Bug fixes:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
@@ -1941,6 +1941,7 @@
 	      <para>
 		gpgsql no longer reports as gmysql (Sherwin Daganoto)
 	      </para>
+	    </listitem>
 	    <listitem>
 	      <para>
 		SRV would not be parsed right from disk (Christof Meerwald)
@@ -1984,13 +1985,16 @@
 	    <listitem>
 	      <para>
 		Cleanups by Norbert: getAuth moved to chopOff, arguments::contains massive cleanup, more.
+	      </para>
 	    </listitem>
 	  </itemizedlist>
+	</para>
       </sect2>
       
       <sect2 id="changelog-2-9-11"><title>Version 2.9.11</title>	
       	<para>
 	  Yet another iteration, hopefully this will be the last silly release. 
+	</para>
 	<para>
 	  <warning>
 	    <para>
@@ -2078,8 +2082,9 @@
 		LDAP: added support for scoped searches (Norbert Sendetzky)
 	      </para>
 	    </listitem>
-	</itemizedlist>
-	</sect2>		
+	  </itemizedlist>
+	</para>
+      </sect2>		
       <sect2 id="changelog-2-9-8"><title>Version 2.9.8</title>	
 	<para>
 	  Queen's day release! 30th of April 2003.
@@ -2318,6 +2323,7 @@
 	      this issue. We hope to resolve it soon.
 	    </para>
 	  </warning>
+	</para>
 	<para>
 	  <itemizedlist>
 	    <listitem>
@@ -3073,29 +3079,30 @@ pdns[17495]: AXFR done for 'forfun.net', zone committed
 doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	</para>
 	<para>	
-	<itemizedlist>
-	<listitem>
-	<para>
-	License changed to the GNU General Public License version 2.
-	</para>
-	</listitem>
-	<listitem>
-	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		License changed to the GNU General Public License version 2.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		Cleanups by Erik Bos @ xs4all.
-	</para>
-	</listitem>
-	<listitem>
-	<para>
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		Build improvements by Wichert Akkerman
-	</para>
-	</listitem>
-	<listitem>
-	<para>
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		Lots of work on the build system, entirely revamped. By PowerDNS.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
 	</para>
-	</listitem>
-	</itemizedlist>
-	</sect2>
+      </sect2>
 	
       <sect2 id="changelog-2-8"><title>Version 2.8</title>	
 	<para>
@@ -3543,6 +3550,7 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
+	</para>
 	<para>
 	  Documentation: added details for <command>strict-rfc-axfrs</command>. This feature can be used if very old clients need to be able
 	  to do zone transfers with PDNS. Very slow.
@@ -4130,8 +4138,9 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	      </para>	  
 	    </listitem>
 	  </itemizedlist>
-
+	</para>
       </sect2>
+
       <sect2 id="changelog-1-99-11"><title>Version 1.99.11 Prerelease</title>
 	<para>
 	  This release is important because it is the first release which is accompanied by an Open Source Backend Development Kit, allowing external 
@@ -5013,7 +5022,8 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	  Stability may be an issue as well as performance. This version has a tendency to log a bit too much which slows 
 	  the nameserver down a lot.
 	</para>
-	<sect3><title>Known bugs</title>
+	<sect3>
+	  <title>Known bugs</title>
 	  <para>
 	    Decreasing a ringbuffer on the website is a sure way to crash the daemon. Zone2sql, while improved, still
 	    has problems with a zone in the following format:
@@ -5027,11 +5037,11 @@ name         IN            A        1.2.3.4
 	  </para>
 	  <para>
 	    Zone2sql does not close filedescriptors.
-	  <para>
+	  </para>
 
 	  <para>
 	    FreeBSD version does not stop when requested via the init.d script.
-	  <para>
+	  </para>
 
 	</sect3>
 	<sect3><title>Missing features</title>
@@ -5351,7 +5361,8 @@ name         IN            A        1.2.3.4
       <para>
 	(these people don't share the blame for any errors or mistakes in powerdns - those are all ours)
       </para>
-  </Chapter>
+    </sect1>
+</Chapter>
 
 <Chapter id="installing-on-unix">
     <Title>Installing on Unix</Title>
@@ -5946,6 +5957,7 @@ GRANT ALL ON records TO pdns;
 	      </listitem>
 	    </varlistentry>
 	  </variablelist>
+	</para>
 	</sect2>
     </sect1>
   </chapter>
@@ -6173,6 +6185,7 @@ LegendI[recursing]: recursing-answers
 
 	</screen>
       </para>
+      </sect1>
       <sect1 id="syslog"><title>Operational logging using syslog</title>
       <para>(<command>logging-facility</command> is available from 1.99.10 and onwards)</para>
       <para>
@@ -6234,6 +6247,7 @@ local0.err                        /var/log/pdns.err
 	  Both these parameters can be specified either numerically or as real names.
 	  You should set these parameters immediately if they are not set!
 	</para>
+	</sect2>
 	<sect2><title>Jailing the process in a chroot</title>
 	<para>
 	  The <command>chroot</command> option secures PDNS to its own directory so that even if it should become compromised and
@@ -6397,8 +6411,8 @@ local0.err                        /var/log/pdns.err
       <para>
 	The size of the packetcache can be observed with <command>/etc/init.d/pdns show packetcache-size</command>
       </para>
-    </sect1>
-    <sect1 id="querycache"><title>Query Cache</title>
+    </sect2>
+    <sect2 id="querycache"><title>Query Cache</title>
       <para>
 	Besides entire packets, PDNS can also cache individual backend queries. Each DNS query leads to a number of backend queries,
 	the most obvious additional backend query is the check for a possible CNAME. So, when a query comes in for the 'A' record for
@@ -6422,7 +6436,8 @@ local0.err                        /var/log/pdns.err
 	but that the Packet Cache also saves a lot of CPU because 0 internal processing is done when answering a question from the
 	Packet Cache.
       </para>
-    </sect1>
+    </sect2>
+  </sect1>
   </chapter>
   <chapter id="migration"><title>Migrating to PDNS</title>
     <para>
@@ -7620,7 +7635,6 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	described in RFC 1996.
       </para>
       <para>
-      <para>
 	<warning>
 	  <para>
 	    Master support is OFF by default, turn it on by adding <command>master</command> to the configuration. The same 
@@ -7696,6 +7710,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      support@yourdomain.com should go to.
 	    </para>
 	  </listitem>
+	</varlistentry>
 	<varlistentry>
 	  <term>URL</term>
 	  <listitem>
@@ -7991,13 +8006,15 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
     </para>
   </chapter>
   <chapter id="metrics"><title>Index of all internal metrics</title>
-    <para></para>
-      <sect1 id="counters-variables"><title>Counters &amp; variables</title>
+    <sect1 id="counters-variables"><title>Counters &amp; variables</title>
       <para>
       A number of counters and variables are set during PDNS operation. These can be queried with the init.d
       <command>dump</command>, <command>show</command> and <command>mrtg</command> commands, or viewed with the
       webserver.
-      
+      </para>
+      <sect2 id="counters">
+	<title>Counters</title>
+      <para>
       <variablelist>
 	<varlistentry>
 	  <term>corrupt-packets</term>
@@ -8053,8 +8070,9 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	</varlistentry>
       </variablelist>
     </para>
-    <para>
-      <sect2><title>Ring buffers</title>
+    </sect2>
+    <sect2>
+      <title>Ring buffers</title>
 	<para>
 	  Besides counters, PDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place
 	  in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.
@@ -8132,6 +8150,8 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       </varlistentry>
     </variablelist>
   </para>
+  </sect2>
+  </sect1>
   </chapter>
 
   <chapter id="types"><title>Supported record types and their storage</title>
@@ -8587,6 +8607,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </varlistentry>
 	</variablelist>
       </para>
+    </sect1>
     <sect1 id="pdns-devel-faq"><title>Backend developer HOWTO</title>
       <para>
 	Writing backends without access to the full PDNS source means that you need to write code that can be loaded by PDNS at runtime. 
@@ -8746,6 +8767,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 		to far higher adoption rates. We hope that PowerDNS will soon be included in major Linux and UNIX distributions.
 	      </para>
 	    </listitem>
+	  </varlistentry>
 	  <varlistentry>
 	    <term>Q: How does PowerDNS.COM BV expect to make money now that the nameserver is free?</term>
 	    <listitem>
@@ -8764,6 +8786,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      <para>
 		In fact, their strategy is a lot like ours in general.
 	      </para>
+	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
 	    <term>Q: Can I buy support contracts for PowerDNS?</term>
@@ -8771,6 +8794,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      <para>
 		Sure, to do so, please contact us at <email>sales@powerdns.com</email>
 	      </para>
+	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
 	    <term>Q: Will you accept patches? We've added a feature</term>
@@ -8803,7 +8827,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </varlistentry>
 
 	  <varlistentry>
-	    <term>Q: We are a Linux/Unix vendor, can we include PowerDNS?
+	    <term>Q: We are a Linux/Unix vendor, can we include PowerDNS?</term>
 	    <listitem>
 	      <para>
 	      A: Please do. In fact, we'd be very happy to work with you to make this happen. Contact <email>ahu@ds9a.nl</email> 
@@ -9970,6 +9994,8 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 	      </listitem>
 	    </varlistentry>
 	  </variablelist>
+	</para>
+      </sect2>
       <sect2><title>Fancy records</title>
 	<para>
 	  If PDNS is used with so called 'Fancy Records', the 'MBOXFW' record exists which specifies an email address forwarding instruction, 
@@ -10137,6 +10163,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 	  </programlisting>
 	  Make sure that the assigned id in the domains table matches the domain_id field in the records table!
 	</para>
+      </sect2>
     </sect1>
     
     <sect1 id="oracle"><Title>Oracle backend</title>
@@ -10636,6 +10663,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
           If <command>bind-check-interval</command> is specified as zero, no checks will be performed until the <command>pdns_control reload</command>
 	  is given.
         </para>
+      </sect2>
       <sect2 id="bind-control-commands"><title>Pdns_control commands</title>
 	<para>
 	  <variablelist>
@@ -10694,6 +10722,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    In the future, this may be improved so the old zone remains available should parsing fail.
 	  </para>
 	</sect3>
+      </sect2>
       <sect2><title>Commands</title>
 	<para>
 	  <command>pdns_control</command> offers commands to communicate instructions to PowerDNS. These are detailed here.
@@ -10832,6 +10861,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    may be outdated!
 	  </para>
 	</warning>
+      </para>
       <para>
 	The main author for this module is Norbert Sendetzky who also has his own <ulink url="http://www.linuxnetworks.de/pdnsldap/index.html">PowerDNS-LDAP page</ulink>.
       </para>
@@ -11219,6 +11249,7 @@ associateddomain: ns.example.dom
 	PDNS breaks strict RFC compatability by not always checking for the presence of a SOA record first. This is unlikely to lead to 
 	problems though.
       </para>
+  </sect1>
   </appendix>
   <appendix id="backend-writers-guide"><title>Backend writers' guide</title>
     <para>
@@ -11509,7 +11540,7 @@ static RandomLoader randomloader;
 	    </varlistentry>
 	  
 	  <varlistentry>
-	    <term>bool list(int domain_id)
+	    <term>bool list(int domain_id)</term>
 	    <listitem>
 	      <para>
 		Initiates a list of the indicated domain. Records should then be made available via the <function>get()</function> method. 
@@ -11884,6 +11915,7 @@ static RandomLoader randomloader;
         </para>
         <para>
           Supermaster/superslave is a complicated concept, if this is all unclear see <xref linkend="supermaster">.
+	</para>
       </sect2>
     </sect1>
     <sect1 id="master-backends"><title>Read/write master-capable backends</title>
@@ -11982,6 +12014,7 @@ static RandomLoader randomloader;
 	<para>
 	  The FreeBSD Boost include files are installed in <filename>/usr/local/include</filename>, so prefix <command>CXXFLAGS=-I/usr/local/lib</command>
 	  to your <command>./configure</command> invocation.
+	</para>
       </sect2>
       <sect2 id="unix-linux"><title>Linux</title>
 	<para>
@@ -12015,6 +12048,7 @@ static RandomLoader randomloader;
     <sect1 id="on-windows"><title>Compiling PowerDNS on Windows</title>
       <para>
 	By Michel Stol (<email>michel@powerdns.com</email>).
+      </para>
       <sect2><title>Assumptions</title>
         <para>
 	  I will assume these things from you:      
@@ -12125,7 +12159,7 @@ static RandomLoader randomloader;
 	  </para>          
 	</sect4>
 	
-	<sect3>
+	<sect4>
 	  <title>Installing pthreads for Windows</title>
 	  
 	  <para>
@@ -12143,7 +12177,8 @@ static RandomLoader randomloader;
 	    The library is now installed, we still have to tell Visual C++ where it's located though, more
 	    on that later.
 	  </para>        
-	</sect3>
+	</sect4>
+      </sect3>
 	
       </sect2>
       
@@ -12493,6 +12528,7 @@ static RandomLoader randomloader;
       
       </sect2>
     </sect1>
+  </appendix>
   <appendix id="license"><title>PowerDNS license (GNU General Public License version 2)</title>
     <para>
       GNU GENERAL PUBLIC LICENSE
