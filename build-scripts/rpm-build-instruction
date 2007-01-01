@@ -7,6 +7,7 @@ CC="ccache gcc" CXX="ccache g++" ./configure \
 	--enable-static-binaries --enable-recursor \
 	--prefix=/usr \
 	--sysconfdir=/etc/powerdns \
+	--mandir=/usr/man/ \
 && make clean && make && \
 fakeroot /bin/sh -c "rm -rf /tmp/pdns ; DESTDIR=/tmp/pdns make install-strip" &&
 fakeroot rm /tmp/pdns/usr/lib/*.a /tmp/pdns/usr/lib/*.la &&
