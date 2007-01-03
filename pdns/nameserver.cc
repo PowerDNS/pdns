@@ -191,7 +191,7 @@ UDPNameserver::UDPNameserver()
 void UDPNameserver::send(DNSPacket *p)
 {
   const char *buffer=p->getData();
-  DLOG(L<<Logger::Notice<<"Sending a packet to "<<inet_ntoa( reinterpret_cast< sockaddr_in * >(( p->remote ))->sin_addr)<<" ("<<p->len<<" octets)"<<endl);
+  DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->remote.toString() <<" ("<<p->len<<" octets)"<<endl);
   if(p->len>512) {
     p=new DNSPacket(*p);
     p->truncate(512);

@@ -1127,7 +1127,7 @@ void DNSPacket::truncate(int new_length)
   if(new_length>len || !d_wrapped)
     return;
 
-  DLOG(L<<Logger::Warning<<"Truncating a packet to "<<inet_ntoa( reinterpret_cast< sockaddr_in * >( remote )->sin_addr )<<endl);
+  DLOG(L<<Logger::Warning<<"Truncating a packet to "<< remote.toString() <<endl);
 
   len=new_length;
   stringbuffer[2]|=2; // set TC
