@@ -564,7 +564,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
   DNSPacket *r=0;
   try {    
-    DLOG(L << Logger::Notice<<"Remote "<<inet_ntoa( reinterpret_cast< struct sockaddr_in * >( &( p->remote ))->sin_addr )<<" wants a type " << p->qtype.getName() << " ("<<p->qtype.getCode()<<") about '"<<p->qdomain << "'" << endl);
+    DLOG(L << Logger::Notice<<"Remote "<< p->remote.toString() <<" wants a type " << p->qtype.getName() << " ("<<p->qtype.getCode()<<") about '"<<p->qdomain << "'" << endl);
 
 // XXX FIXME Find out why this isn't working!
 #ifndef WIN32
