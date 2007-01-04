@@ -570,6 +570,40 @@ void DNSPacket::addCNAMERecord(const DNSResourceRecord &rr)
   addCNAMERecord(rr.qname, rr.content, rr.ttl);
 }
 
+
+void DNSPacket::addMRRecord(const DNSResourceRecord &rr)
+{
+  addMRRecord(rr.qname, rr.content, rr.ttl);
+}
+
+void DNSPacket::addMRRecord(const string& domain, const string& alias, uint32_t ttl)
+{
+  string piece1;
+
+  toqname(domain.c_str(),&piece1);
+  char p[10];
+  
+  p[0]=0;
+  p[1]=QType::MR; 
+  p[2]=0;
+  p[3]=1; // IN
+  
+  putLong(p+4,ttl);
+  p[8]=0;
+  p[9]=0;  // need to fill this in
+  
+  string piece3;
+  toqname(alias,&piece3);
+  
+  p[9]=piece3.length();
+  
+  stringbuffer+=piece1;
+  stringbuffer.append(p,10);
+  stringbuffer+=piece3;
+  
+  d.ancount++;
+}
+
 void DNSPacket::addCNAMERecord(const string &domain, const string &alias, uint32_t ttl)
 {
  string piece1;
@@ -1014,6 +1048,10 @@ void DNSPacket::wrapup(void)
       addSOARecord(rr);
       break;
 
+    case QType::MR:
+      addMRRecord(rr);
+      break;
+
     case 12:  // PTR
       addPTRRecord(rr);
       break;
@@ -1251,7 +1289,6 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
       break;
 
     case QType::A:
-
       ip = getLong(datapos);
 
       o.clear();
@@ -1354,6 +1391,7 @@ vector<DNSResourceRecord> DNSPacket::getAnswers()
     case QType::CNAME:
     case QType::NS:
     case QType::PTR:
+    case QType::MR:
       expand(datapos+offset,end,rr.content);
       break;
 

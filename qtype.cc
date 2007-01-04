@@ -44,6 +44,7 @@ QType::QType()
       insert("NS",2);
       insert("CNAME",5);
       insert("SOA",6);
+      insert("MR",9);
       insert("PTR",12);
       insert("HINFO",13);
       insert("MX",15);

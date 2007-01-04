@@ -149,12 +149,14 @@ private:
   void addAAAARecord(const string &, unsigned char addr[16], uint32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
   void addAAAARecord(const DNSResourceRecord &); //!< add an A record to the packet
 
-
   void addMXRecord(const string &domain, const string &mx, int priority, uint32_t ttl); //!< add an MX record to the packet
   void addMXRecord(const DNSResourceRecord &); //!< add an MX record to the packet
 
   void addSRVRecord(const string &domain, const string &srv, int priority, uint32_t ttl); //!< add an SRVMX record to the packet
   void addSRVRecord(const DNSResourceRecord &); //!< add an SRV record to the packet
+
+  void addMRRecord(const string &domain, const string &alias, uint32_t ttl); //!< add a MR record to the packet
+  void addMRRecord(const DNSResourceRecord &); //!< add a MR record to the packet
 
   void addCNAMERecord(const string &domain, const string &alias, uint32_t ttl); //!< add a CNAME record to the packet
   void addCNAMERecord(const DNSResourceRecord &); //!< add a CNAME record to the packet
