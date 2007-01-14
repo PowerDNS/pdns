@@ -10398,8 +10398,8 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
         As this is a generic backend, built on top of the gSql framework, you can specify all queries as documented in <link linkend="generic-mypgsql-backends">Generic MySQL and PgSQL backends</link>.
       </para>
       <para>
-	SQLite exists in two incompatible versions, numbered 2 and 3, and PowerDNS supports both. It is recommended to go with version 3 as is is newer, has better performance and is
-	actively maintained.
+	SQLite exists in two incompatible versions, numbered 2 and 3, and from 2.9.21 onwards, PowerDNS supports both. It is recommended to go with version 3 
+	as it is newer, has better performance and is actively maintained.
       </para>
       <sect2>
         <title>Compiling the SQLite backend</title>

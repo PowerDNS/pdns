@@ -278,7 +278,7 @@ void mainthread()
    if(!arg()["chroot"].empty()) {  
      if(arg().mustDo("master") || arg().mustDo("slave"))
 	gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
-     if(chroot(arg()["chroot"].c_str())<0) {
+     if(chroot(arg()["chroot"].c_str())<0 || chdir("/")<0) {
        L<<Logger::Error<<"Unable to chroot to '"+arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);
      }   
