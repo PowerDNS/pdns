@@ -264,6 +264,7 @@ void parseService(const string &descr, ServiceTuple &st)
   }
 }
 
+// returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitForData(int fd, int seconds, int useconds)
 {
   struct timeval tv;
