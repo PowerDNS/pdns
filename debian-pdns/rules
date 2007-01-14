@@ -2,8 +2,8 @@
 
 tmpdir		:= $(shell pwd)/debian-pdns/tmp
 be_tmpdir	:= $(shell pwd)/debian-pdns/tmp-backend
-backends	:= opendbx ldap mysql pipe xdb gmysql gpgsql gsqlite
-debs		:= opendbx ldap mysql pipe xdb pgsql sqlite
+backends	:= opendbx ldap mysql pipe xdb gmysql gpgsql gsqlite gsqlite3
+debs		:= opendbx ldap mysql pipe xdb pgsql sqlite sqlite3
 
 binary-doc:
 	-make -C pdns/docs html/index.html
@@ -51,7 +51,7 @@ build-static stamp-build-static:
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
-		--with-modules="mysql gmysql gpgsql pipe pdns gsqlite geo" \
+		--with-modules="mysql gmysql gpgsql pipe pdns gsqlite gsqlite3 geo" \
 		--with-dynmodules="" \
 		--enable-static-binaries --enable-recursor 
 	make
