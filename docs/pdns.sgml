@@ -10373,7 +10373,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
     </sect1>
 
     <sect1 id="gsqlite">
-      <title>Generic SQLite backend</title>
+      <title>Generic SQLite backend (2 and 3)</title>
       <para>
       	<table>
 	        <title>Generic SQLite backend capabilities</title>
@@ -10397,6 +10397,10 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
       <para>
         As this is a generic backend, built on top of the gSql framework, you can specify all queries as documented in <link linkend="generic-mypgsql-backends">Generic MySQL and PgSQL backends</link>.
       </para>
+      <para>
+	SQLite exists in two incompatible versions, numbered 2 and 3, and PowerDNS supports both. It is recommended to go with version 3 as is is newer, has better performance and is
+	actively maintained.
+      </para>
       <sect2>
         <title>Compiling the SQLite backend</title>
         <para>
@@ -10404,8 +10408,9 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
           You can download these from <ulink url="http://www.sqlite.org/download.html">http://www.sqlite.org/download.html</ulink>, or you can use packages (if your distribution provides those).
         </para>
         <para>
-          When you've installed the library you can use: <command>./configure --with-modules="gsqlite"</command> to configure PowerDNS to use the SQLite backend.
-          Compilation can then proceed as usual.
+          When you've installed the library you can use: <command>./configure --with-modules="gsqlite"</command> or
+	  <command>./configure --with-modules="gsqlite3"</command> to configure PowerDNS to use the SQLite backend.
+          Compilation can then proceed as usual. 
         </para>
 	<para>
 	  SQLite is included in most PowerDNS binary releases.
@@ -10419,11 +10424,11 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	        
 	        <programlisting>
             create table domains (
-              id		INTEGER PRIMARY KEY,
-              name		VARCHAR(255) NOT NULL,
-              master		VARCHAR(20) DEFAULT NULL,
-              last_check	INTEGER DEFAULT NULL,
-              type		VARCHAR(6) NOT NULL,
+              id                INTEGER PRIMARY KEY,
+              name              VARCHAR(255) NOT NULL,
+              master            VARCHAR(20) DEFAULT NULL,
+              last_check        INTEGER DEFAULT NULL,
+              type              VARCHAR(6) NOT NULL,
               notified_serial   INTEGER DEFAULT NULL, 
               account           VARCHAR(40) DEFAULT NULL
             );
@@ -10458,8 +10463,11 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
       	<para>
 	        After you have created the database you probably want to fill it with data. 
 	        If you have a BIND zonefile it's as easy as: <command>zone2sql --zone=myzonefile --gmysql | sqlite powerdns.sqlite</command>, but
-	        you can also use AXFR (or insert data manually if you have too much time ;)).
+	        you can also use AXFR (or insert data manually).
 	      </para>
+	<para>
+	  To communicate with a SQLite database, use either the 'sqlite' or 'sqlite3' program, and feed it SQL.
+	</para>
       </sect2>
       <sect2>
         <title>Using the SQLite backend</title>
@@ -10469,8 +10477,8 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
         <para>
           <programlisting>
             # in pdns.conf
-            launch=gsqlite
-            gsqlite-database=&lt;path to your SQLite database&gt;
+            launch=gsqlite # or gsqlite3
+            gsqlite-database=&lt;path to your SQLite database&gt;   # or gsqlite3-database
           </programlisting>
         </para>
         <para>
