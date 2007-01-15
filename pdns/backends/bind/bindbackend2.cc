@@ -954,7 +954,7 @@ class Bind2Factory : public BackendFactory
       void declareArguments(const string &suffix="")
       {
          declare(suffix,"config","Location of named.conf","");
-         declare(suffix,"example-zones","Install example zones","no");
+	 //         declare(suffix,"example-zones","Install example zones","no");
          declare(suffix,"check-interval","Interval for zonefile changes","0");
          declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
          declare(suffix,"supermasters","List of IP-addresses of supermasters","");
