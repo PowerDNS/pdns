@@ -1,6 +1,6 @@
-/*
+ /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2005  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -641,7 +641,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
     mret=makeCanonic(p, r, target); // traverse CNAME chain until we have a useful record (may actually give the correct answer!)
 
     if(mret==2) { // there is some data, but not of the correct type
-      DLOG(L<<"There is some data, but not of the correct type"<<endl);
+      DLOG(L<<"There is some data, but not of the correct type, adding SOA for NXRECORDSET"<<endl);
       SOAData sd;
       if(getAuth(p, &sd, target, 0)) {
 	rr.qname=sd.qname;
@@ -762,7 +762,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       weAuth=getAuth(p, &sd, target, &zoneId); // TLDAuth perhaps
 
     if(weAuth) {
-      DLOG(L<<Logger::Warning<<"Soa found: "<<soa<<endl);
+      DLOG(L<<Logger::Warning<<"Soa found: '"<<sd.qname<<"'"<<endl);
       ;
     }
     if(!weAuth) {
@@ -805,6 +805,8 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 	B.lookup("NS", subdomain,p,zoneId);  // start our search at the backend
 	
 	while(B.get(rr)) {
+	  if(!found)
+	    r->clearRecords(); // we need to start out with an empty slate
 	  found=true;
 	  rr.d_place=DNSResourceRecord::AUTHORITY; // this for the authority section
 	  r->addRecord(rr);

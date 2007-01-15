@@ -233,6 +233,11 @@ void DNSPacket::addARecord(const DNSResourceRecord &rr)
   addARecord(rr.qname, htonl(inet_addr(rr.content.c_str())), rr.ttl, rr.d_place);
 }
 
+void DNSPacket::clearRecords()
+{
+  rrs.clear();
+}
+
 void DNSPacket::addRecord(const DNSResourceRecord &rr)
 {
   if(d_compress)

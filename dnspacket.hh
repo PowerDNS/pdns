@@ -129,6 +129,8 @@ public:
   void setRcode(int v); //!< set the Rcode of this packet
 
 
+  void clearRecords(); //!< when building a packet, wipe all previously added records
+
   /** Add a DNSResourceRecord to this packet. A DNSPacket (as does a DNS Packet) has 4 kinds of resource records. Questions, 
       Answers, Authority and Additional. See RFC 1034 and 1035 for details. You can specify where a record needs to go in the
       DNSResourceRecord d_place field */
