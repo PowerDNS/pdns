@@ -1,0 +1,2 @@
+Test for blah.test.com IN NS blah.test.com, blah.test.com IN A 1.2.3.4 not
+giving an NXRRSET
