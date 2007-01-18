@@ -186,7 +186,7 @@ bool dottedEndsOn(const string &domain, const string &suffix)
   return true;
 }
 
-
+int waitForRWData(int fd, bool waitForRead, int seconds, int useconds);
 int sendData(const char *buffer, int replen, int outsock)
 {
   uint16_t nlen=htons(replen);
@@ -197,9 +197,9 @@ int sendData(const char *buffer, int replen, int outsock)
   iov[1].iov_len=replen;
   int ret=Utility::writev(outsock,iov,2);
 
-  if(ret<=0) { // "EOF is error"
+  if(ret<0)  // "EOF is error" - we can't deal with EAGAIN errors at this stage yet
     return -1;
-  }
+
   if(ret!=replen+2) {
     // we can safely assume ret > 2, as 2 is < PIPE_BUF
     
@@ -208,8 +208,14 @@ int sendData(const char *buffer, int replen, int outsock)
 
     while (replen) {
       ret = write(outsock, buffer, replen);
-      if(ret < 0)
+      if(ret < 0) {
+	if(errno==EAGAIN) { // wait, we might've exhausted the window
+	  while(waitForRWData(outsock, false, 1, 0)==0)
+	    ;
+	  continue;
+	}
 	return ret;
+      }
       if(!ret)
 	return -1; // "EOF == error"
       replen -= ret;
@@ -267,17 +273,26 @@ void parseService(const string &descr, ServiceTuple &st)
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitForData(int fd, int seconds, int useconds)
 {
+  return waitForRWData(fd, true, seconds, useconds);
+}
+
+int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
+{
   struct timeval tv;
   int ret;
 
   tv.tv_sec   = seconds;
   tv.tv_usec  = useconds;
 
-  fd_set readfds;
+  fd_set readfds, writefds;
   FD_ZERO( &readfds );
-  FD_SET( fd, &readfds );
+  FD_ZERO( &writefds );
+  if(waitForRead)
+    FD_SET( fd, &readfds );
+  else
+    FD_SET( fd, &writefds );
 
-  ret = select( fd + 1, &readfds, NULL, NULL, &tv );
+  ret = select( fd + 1, &readfds, &writefds, NULL, &tv );
   if ( ret == -1 )
     errno = ETIMEDOUT;
 
