@@ -21,6 +21,7 @@
 #include <string>
 #include <cstdio>
 #include <stdexcept>
+#include <stack>
 
 using namespace std;
 
@@ -35,8 +36,8 @@ public:
   typedef runtime_error exception;
 private:
   bool getLine();
-
-  FILE *d_fp;
+  void stackFile(const std::string& fname);
+  stack<FILE *> d_fps;
   string d_line;
   string d_prevqname;
   string d_zonename;
