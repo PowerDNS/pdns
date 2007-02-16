@@ -31,14 +31,23 @@
 
 ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname) : d_zonename(zname), d_defaultttl(3600)
 {
-  d_fp=fopen(fname.c_str(), "r");
-  if(!d_fp)
+  stackFile(fname);
+}
+
+void ZoneParserTNG::stackFile(const std::string& fname)
+{
+  FILE *fp=fopen(fname.c_str(), "r");
+  if(!fp)
     throw runtime_error("Unable to open file '"+fname+"': "+stringerror());
+  d_fps.push(fp);
 }
 
 ZoneParserTNG::~ZoneParserTNG()
 {
-  fclose(d_fp);
+  while(!d_fps.empty()) {
+    fclose(d_fps.top());
+    d_fps.pop();
+  }
 }
 
 static string makeString(const string& line, const pair<string::size_type, string::size_type>& range)
@@ -90,8 +99,21 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     goto retry;
 
   if(d_line[0]=='$') { 
-    if(makeString(d_line, parts[0])=="$TTL" && parts.size() > 1)
+    string command=makeString(d_line, parts[0]);
+    if(command=="$TTL" && parts.size() > 1)
       d_defaultttl=makeTTLFromZone(makeString(d_line,parts[1]));
+    else if(command=="$INCLUDE" && parts.size() > 1) {
+      stackFile(unquotify(makeString(d_line, parts[1])));
+    }
+#if 0
+    else if(command=="$GENERATE" && parts.size() > 2) {
+      // $GENERATE 1-127 $ CNAME $.0
+      string range=makeString(d_line, parts[1]);
+      int start, stop, step=0;
+      int ret=sscanf(range.c_str(),"%d-%d/%d", &start, & stop, &step);
+      cerr<<"ret="<<ret<<", start="<<start<<", stop="<<stop<<", step="<<step<<endl;
+    }
+#endif
     else
       throw exception("Can't parse zone line '"+d_line+"'");
     goto retry;
@@ -222,10 +244,14 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
 bool ZoneParserTNG::getLine()
 {
-  char buffer[1024];
-  if(fgets(buffer, 1024, d_fp)) {
-    d_line=buffer;
-    return true;
+  while(!d_fps.empty()) {
+    char buffer[1024];
+    if(fgets(buffer, 1024, d_fps.top())) {
+      d_line=buffer;
+      return true;
+    }
+    fclose(d_fps.top());
+    d_fps.pop();
   }
   return false;
 }
