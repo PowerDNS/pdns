@@ -29,7 +29,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname) : d_zonename(zname), d_defaultttl(3600)
+ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), d_zonename(zname), d_defaultttl(3600)
 {
   stackFile(fname);
 }
@@ -180,7 +180,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     if(command=="$TTL" && parts.size() > 1)
       d_defaultttl=makeTTLFromZone(makeString(d_line,parts[1]));
     else if(command=="$INCLUDE" && parts.size() > 1) {
-      stackFile(unquotify(makeString(d_line, parts[1])));
+      string fname=unquotify(makeString(d_line, parts[1]));
+      if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
+	fname=d_reldir+"/"+fname;
+      stackFile(fname);
     }
     else if(command=="$ORIGIN" && parts.size() > 1) {
       d_zonename = toCanonic("", makeString(d_line, parts[1]));

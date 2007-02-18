@@ -28,7 +28,7 @@ using namespace std;
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, const string& zname="");
+  ZoneParserTNG(const string& fname, const string& zname="", const string& reldir="");
 
   ~ZoneParserTNG();
 
@@ -40,6 +40,7 @@ private:
   bool getTemplateLine();
   void stackFile(const std::string& fname);
   stack<FILE *> d_fps;
+  string d_reldir;
   string d_line;
   string d_prevqname;
   string d_zonename;
