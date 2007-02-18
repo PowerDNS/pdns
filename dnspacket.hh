@@ -67,6 +67,14 @@
 
 class DNSBackend;
 
+/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
+void fillSOAData(const string &content, SOAData &data);
+
+/** for use by DNSPacket, converts a SOAData class to a ascii line again */
+string serializeSOAData(const SOAData &data);
+
+string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
+
 //! This class represents DNS packets, either received or to be sent.
 class DNSPacket
 {
@@ -74,9 +82,8 @@ public:
   DNSPacket();
   DNSPacket(const DNSPacket &orig);
 
-  int expand(const unsigned char *begin, const unsigned char *end, string &expanded, int depth=0);
   inline int parse(const char *mesg, int len); //!< parse a raw UDP or TCP packet and suck the data inward
-  string getString();
+  string getString(); //!< for serialization - just passes the whole packet
 
   //! the raw DNS header
   struct dnsheader 
@@ -106,7 +113,7 @@ public:
     unsigned int cd:1;     //!< checking disabled by resolver
     unsigned int ad:1;     //!< authentic data
     unsigned int unused:1; //!< 
-    unsigned int ra:1;     //!< ??
+    unsigned int ra:1;     //!< recursion available
 #endif
     ////////////////
     
@@ -116,34 +123,73 @@ public:
     unsigned int arcount:16;  //!< number of additional resource records
   };
 
+  // address & socket manipulation
   inline void setRemote(const ComboAddress*);
   string getLocal() const;
   string getRemote() const;
   uint16_t getRemotePort() const;
-  void setA(bool); //!< make this packet authoritative
-  void setRA(bool); //!< set the Recursion Available flag
-  void setRD(bool); //!< set the Recursion Desired flag
-  void setAnswer(bool); //!< Make this packet an answer
-  void setID(uint16_t); //!< set the DNS id of this packet
-  void setOpcode(uint16_t);  //!< set the Opcode of this packet
-  void setRcode(int v); //!< set the Rcode of this packet
+
+  Utility::sock_t getSocket() const
+  {
+    return d_socket;
+  }
+  inline void setSocket(Utility::sock_t sock);
 
 
-  void clearRecords(); //!< when building a packet, wipe all previously added records
+  // these manipulate 'd'
+  void setA(bool); //!< make this packet authoritative - manipulates 'd'
+  void setID(uint16_t); //!< set the DNS id of this packet - manipulates 'd'
+  void setRA(bool); //!< set the Recursion Available flag - manipulates 'd'
+  void setRD(bool); //!< set the Recursion Desired flag - manipulates 'd'
+  void setAnswer(bool); //!< Make this packet an answer - clears the 'stringbuffer' first, if passed 'true', does nothing otherwise, manipulates 'd'
+
+  void setOpcode(uint16_t);  //!< set the Opcode of this packet - manipulates 'd'
+  void setRcode(int v); //!< set the Rcode of this packet - manipulates 'd'
+
+  void clearRecords(); //!< when building a packet, wipe all previously added records (clears 'rrs')
 
   /** Add a DNSResourceRecord to this packet. A DNSPacket (as does a DNS Packet) has 4 kinds of resource records. Questions, 
       Answers, Authority and Additional. See RFC 1034 and 1035 for details. You can specify where a record needs to go in the
       DNSResourceRecord d_place field */
-  void addRecord(const DNSResourceRecord &); 
+  void addRecord(const DNSResourceRecord &);  // adds to 'rrs'
 
-  /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-  static void fillSOAData(const string &content, SOAData &data);
+  void setQuestion(int op, const string &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (label, type, class etc)
+  vector<DNSResourceRecord> getAnswers(); // this can be called only when a packet has been parsed
 
-  /** for use by DNSPacket, converts a SOAData class to a ascii line again */
-  static string serializeSOAData(const SOAData &data);
-  void setQuestion(int op, const string &qdomain, int qtype);
-  vector<DNSResourceRecord> getAnswers();
+  DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
+  void wrapup(void);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
+  inline const char *getData(void); //!< get binary representation of packet, will call 'wrapup' for you
+
+  const char *getRaw(void); //!< provides access to the raw packet, possibly on a packet that has never been 'wrapped'
+  inline void spoofID(uint16_t id); //!< change the ID of an existing packet. Useful for fixing up packets returned from the PacketCache
+  inline void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
+  void truncate(int new_length); // has documentation in source
+
+  bool needAP(); //!< query this to find out if this packet needs additional processing, based on rrs
+  vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
+  void setCompress(bool compress);
+
+  DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
+
+  inline void commitD(); //!< copies 'd' into the stringbuffer
+
+  //////// DATA !
+
+  ComboAddress remote;
+  uint16_t len; //!< length of the raw binary packet 2
+  uint16_t qclass;  //!< class of the question - should always be INternet 2
+  struct dnsheader d; //!< dnsheader at the start of the databuffer 12
+
+  QType qtype;  //!< type of the question 8
+
+  string qdomain;  //!< qname of the question 4 - unsure how this is used
+  bool d_tcp;
+
 private:
+  void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
+
+  int expand(const unsigned char *begin, const unsigned char *end, string &expanded, int depth=0);
+
   string compress(const string &qd);
   void addARecord(const string&, uint32_t, uint32_t ttl, DNSResourceRecord::Place place); //!< add an A record to the packet
   void addARecord(const DNSResourceRecord &); //!< add an A record to the packet
@@ -210,49 +256,7 @@ private:
   void addNSRecord(string domain, string server, uint32_t ttl, DNSResourceRecord::Place place); //!< add an NS record to the packet
   void addNSRecord(const DNSResourceRecord &); //!< add an NS record to the packet
   void addGenericRecord(const DNSResourceRecord& rr);
-  static string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
 
-public:
-
-  DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
-  void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
-  void trim();
-  void wrapup(void); 
-  inline const char *getData(void); //!< get binary representation of packet
-  void setRaw(char *mesg, int length);
-  const char *getRaw(void);
-  inline void spoofID(uint16_t id); //!< change the ID of an existing packet. Useful for fixing up packets returned from the PacketCache
-  inline void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
-  void truncate(int new_length); // has documentation in source
-
-  bool needAP(); //!< query this to find out if this packet needs additional processing
-  vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
-  void setCompress(bool compress);
-
-  DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
-  Utility::sock_t getSocket() const
-  {
-    return d_socket;
-  }
-  inline void setSocket(Utility::sock_t sock);
-  inline void commitD();
-  static bool isRD(const string &buffer)
-  {
-    return ((struct dnsheader *)buffer.c_str())->rd;
-  }
-
-  //////// DATA !
-
-  ComboAddress remote;
-  uint16_t len; //!< length of the raw binary packet 2
-  uint16_t qclass;  //!< class of the question - should always be INternet 2
-  struct dnsheader d; //!< dnsheader at the start of the databuffer 12
-
-  QType qtype;  //!< type of the question 8
-
-  string qdomain;  //!< qname of the question 4
-  bool d_tcp;
-private:
   bool d_wrapped; // 1
   bool d_compress; // 1
   uint16_t d_qlen; // length of the question (including class & type) in this packet 2

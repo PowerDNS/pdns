@@ -151,7 +151,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     }
     else if(cstat==1) {
       // ehm 
-      DNSPacket::fillSOAData(d_answer.content,sd);
+      fillSOAData(d_answer.content,sd);
       sd.domain_id=d_answer.domain_id;
       sd.ttl=d_answer.ttl;
       sd.db=0;
@@ -165,7 +165,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       DNSResourceRecord rr;
       rr.qname=domain;
       rr.qtype=QType::SOA;
-      rr.content=DNSPacket::serializeSOAData(sd);
+      rr.content=serializeSOAData(sd);
       rr.ttl=sd.ttl;
       rr.domain_id=sd.domain_id;
       addOneCache(d_question,rr);

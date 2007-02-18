@@ -19,7 +19,7 @@ bin_PROGRAMS = pdns_control
 endif
 
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsgram dnsdemog dnsreplay_mindex dnswasher dnsreplay dnsscan dnslog
+EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control dnsscope dnsgram dnsdemog dnsreplay_mindex dnswasher dnsreplay dnsscan dnslog
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -51,13 +51,6 @@ sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter
 dnspbench_SOURCES=dnspbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc logger.cc \
 	statbag.cc qtype.cc
-
-
-qgen_SOURCES=resolver.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
-	logger.cc statbag.cc dnspacket.cc arguments.cc  qgen.cc \
-	 sillyrecords.cc
-
-qgen_LDFLAGS=  @DYNLINKFLAGS@ -lboost_regex
 
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
