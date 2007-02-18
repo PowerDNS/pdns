@@ -60,6 +60,7 @@
 #include "dnsproxy.hh"
 #include "utility.hh"
 #include "common_startup.hh"
+#include "dnsrecords.hh"
 
 time_t s_starttime;
 
@@ -386,6 +387,8 @@ static void tbhandler(int num)
 //! The main function of pdns, the pdns process
 int main(int argc, char **argv)
 { 
+  reportAllTypes(); // init MOADNSParser
+
   s_programname="pdns";
   s_starttime=time(0);
 
