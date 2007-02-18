@@ -646,7 +646,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       if(getAuth(p, &sd, target, 0)) {
 	rr.qname=sd.qname;
 	rr.qtype=QType::SOA;
-	rr.content=DNSPacket::serializeSOAData(sd);
+	rr.content=serializeSOAData(sd);
 	rr.ttl=sd.ttl;
 	rr.domain_id=sd.domain_id;
 	rr.d_place=DNSResourceRecord::AUTHORITY;
@@ -674,7 +674,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       if(B.getSOA(target,sd,p)) {
 	rr.qname=target;
 	rr.qtype=QType::SOA;
-	rr.content=DNSPacket::serializeSOAData(sd);
+	rr.content=serializeSOAData(sd);
 	rr.ttl=sd.ttl;
 	rr.domain_id=sd.domain_id;
 	rr.d_place=DNSResourceRecord::ANSWER;
@@ -831,7 +831,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 	// we have authority but no answer, so we add the SOA for negative caching
 	rr.qname=sd.qname;
 	rr.qtype=QType::SOA;
-	rr.content=DNSPacket::serializeSOAData(sd);
+	rr.content=serializeSOAData(sd);
 	rr.ttl=sd.ttl;
 	rr.domain_id=sd.domain_id;
 	rr.d_place=DNSResourceRecord::AUTHORITY;

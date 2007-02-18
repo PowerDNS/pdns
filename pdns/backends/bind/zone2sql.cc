@@ -97,11 +97,10 @@ static void callback(unsigned int domain_id,const string &domain, const string &
       }
     }
     SOAData soadata;
-    DNSPacket::fillSOAData(content, soadata);
+    fillSOAData(content, soadata);
     soadata.hostmaster=stripDot(soadata.hostmaster);
     soadata.nameserver=stripDot(soadata.nameserver);
-    content=DNSPacket::serializeSOAData(soadata);
-
+    content=serializeSOAData(soadata);
 
     lastsoa_qname=stripDot(domain);
   }

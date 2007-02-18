@@ -213,7 +213,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 
   while(this->get(rr)) {
     hits++;
-    DNSPacket::fillSOAData(rr.content, sd);
+    fillSOAData(rr.content, sd);
     sd.domain_id=rr.domain_id;
     sd.ttl=rr.ttl;
   }

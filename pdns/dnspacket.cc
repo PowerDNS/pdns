@@ -44,7 +44,6 @@ DNSPacket::DNSPacket()
   d_tcp=false;
 }
 
-
 string DNSPacket::getString()
 {
   return stringbuffer;
@@ -68,13 +67,6 @@ string DNSPacket::getRemote() const
 uint16_t DNSPacket::getRemotePort() const
 {
   return remote.sin4.sin_port;
-}
-
-void DNSPacket::trim()
-{
-  rrs.clear();
-  qdomain=""; // .clear();
-  string(stringbuffer).swap(stringbuffer); // kudos Scott
 }
 
 DNSPacket::DNSPacket(const DNSPacket &orig)
@@ -220,11 +212,6 @@ void DNSPacket::setOpcode(uint16_t opcode)
 const char *DNSPacket::getRaw(void)
 {
   return stringbuffer.data();
-}
-
-void DNSPacket::setRaw(char *mesg, int length)
-{
-  stringbuffer.assign(mesg,length); 
 }
 
 void DNSPacket::addARecord(const DNSResourceRecord &rr)
@@ -409,7 +396,7 @@ void DNSPacket::addSRVRecord(const string &domain, const string &srv, int priori
   d.ancount++;
 }
 
-string &DNSPacket::attodot(string &str)
+string& attodot(string &str)
 {
    if(str.find_first_of("@")==string::npos)
       return str;
@@ -427,7 +414,7 @@ string &DNSPacket::attodot(string &str)
    return str;
 }
 
-void DNSPacket::fillSOAData(const string &content, SOAData &data)
+void fillSOAData(const string &content, SOAData &data)
 {
   // content consists of fields separated by spaces:
   //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
@@ -471,7 +458,7 @@ void DNSPacket::fillSOAData(const string &content, SOAData &data)
 }
 
 
-string DNSPacket::serializeSOAData(const SOAData &d)
+string serializeSOAData(const SOAData &d)
 {
   ostringstream o;
   //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
@@ -1233,7 +1220,7 @@ void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
 
 void DNSPacket::pasteQ(const char *question, int length)
 {
-  stringbuffer.replace(12,length,question,length);  // bytes 12 & onward need to become *question
+  stringbuffer.replace(12, length, question, length);  // bytes 12 & onward need to become *question
 }
 
 

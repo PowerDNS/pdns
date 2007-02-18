@@ -328,7 +328,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
 
   soa.qname=target;
   soa.qtype=QType::SOA;
-  soa.content=DNSPacket::serializeSOAData(sd);
+  soa.content=serializeSOAData(sd);
   soa.ttl=sd.ttl;
   soa.domain_id=sd.domain_id;
   soa.d_place=DNSResourceRecord::ANSWER;
