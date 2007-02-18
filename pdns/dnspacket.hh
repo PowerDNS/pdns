@@ -85,48 +85,16 @@ public:
   inline int parse(const char *mesg, int len); //!< parse a raw UDP or TCP packet and suck the data inward
   string getString(); //!< for serialization - just passes the whole packet
 
-  //! the raw DNS header
-  struct dnsheader 
-  {
-    unsigned int id:16;  //!< id of this query/response
-#ifdef WORDS_BIGENDIAN     // ultrasparc
-    unsigned int qr:1;      //!< 1 if this is a query, 0 if response
-    unsigned int opcode:4;  //!< the opcode
-    unsigned int aa:1;   //!< packet contains authoritative data
-    unsigned int tc:1;   //!< packet is truncated
-    unsigned int rd:1;   //!< this packets wants us to recurse
-    unsigned int ra:1;     //!< ??
-    unsigned int unused:1; //!< 
-    unsigned int ad:1;     //!< authentic data
-    unsigned int cd:1;     //!< checking disabled by resolver
-    unsigned int rcode:4;  //!< ??
-#else
-    unsigned int rd:1;   //!< this packets wants us to recurse
-    unsigned int tc:1;   //!< packet is truncated
-    unsigned int aa:1;   //!< packet contains authoritative data
-    unsigned int opcode:4;  //!< the opcode
-    unsigned int qr:1;      //!< 1 if this is a query, 0 if response
-
-    /////////// 
-
-    unsigned int rcode:4;  //!< ??
-    unsigned int cd:1;     //!< checking disabled by resolver
-    unsigned int ad:1;     //!< authentic data
-    unsigned int unused:1; //!< 
-    unsigned int ra:1;     //!< recursion available
-#endif
-    ////////////////
-    
-    unsigned int qdcount:16;  //!< number of questions
-    unsigned int ancount:16;  //!< number of answers
-    unsigned int nscount:16;  //!< number of authoritative nameservers included in answer
-    unsigned int arcount:16;  //!< number of additional resource records
-  };
-
   // address & socket manipulation
   inline void setRemote(const ComboAddress*);
-  string getLocal() const;
   string getRemote() const;
+  string getLocal() const
+  {
+    ComboAddress ca;
+    socklen_t len=sizeof(ca);
+    getsockname(d_socket, (sockaddr*)&ca, &len);
+    return ca.toString();
+  }
   uint16_t getRemotePort() const;
 
   Utility::sock_t getSocket() const
@@ -154,7 +122,6 @@ public:
   void addRecord(const DNSResourceRecord &);  // adds to 'rrs'
 
   void setQuestion(int op, const string &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (label, type, class etc)
-  vector<DNSResourceRecord> getAnswers(); // this can be called only when a packet has been parsed
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
   void wrapup(void);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
