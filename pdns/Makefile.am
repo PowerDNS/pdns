@@ -19,7 +19,7 @@ bin_PROGRAMS = pdns_control
 endif
 
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsgram dnsreplay_mindex dnswasher dnsreplay dnsscan dnslog
+EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control qgen dnsscope dnsgram dnsdemog dnsreplay_mindex dnswasher dnsreplay dnsscan dnslog
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -32,12 +32,13 @@ dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc communicator.cc communicator.hh dnsproxy.cc \
 dnsproxy.hh randombackend.cc unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
-backends/bind/bindbackend2.cc backends/bind/zoneparser2.cc \
+backends/bind/bindbackend2.cc  \
 backends/bind/bindparser.cc backends/bind/bindlexer.c \
 backends/bind/huffman.cc backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
-sillyrecords.cc backends/bind/bindbackend.cc base64.cc \
-base64.hh
+sillyrecords.cc base64.cc \
+base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
+rcpgenerator.cc	 dnsparser.cc
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
@@ -97,6 +98,12 @@ dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 dnsgram_SOURCES=dnsgram.cc misc.cc unix_utility.cc qtype.cc \
+	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
+	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
+	utility.hh dnsparser.hh
+
+
+dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
 	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
 	utility.hh dnsparser.hh
