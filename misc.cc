@@ -197,7 +197,7 @@ int sendData(const char *buffer, int replen, int outsock)
   iov[1].iov_len=replen;
   int ret=Utility::writev(outsock,iov,2);
 
-  if(ret<0)  // "EOF is error" - we can't deal with EAGAIN errors at this stage yet
+  if(ret <= 0)  // "EOF is error" - we can't deal with EAGAIN errors at this stage yet
     return -1;
 
   if(ret!=replen+2) {
@@ -586,4 +586,15 @@ boost::optional<int> logFacilityToLOG(unsigned int facility)
   default:
     return ret;
   }
+}
+
+string stripDot(const string& dom)
+{
+  if(dom.empty())
+    return dom;
+
+  if(dom[dom.size()-1]!='.')
+    return dom;
+
+  return dom.substr(0,dom.size()-1);
 }

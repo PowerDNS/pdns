@@ -383,4 +383,7 @@ inline string toCanonic(const string& zone, const string& domain)
   ret.append(zone);
   return ret;
 }
+
+string stripDot(const string& dom);
+
 #endif
