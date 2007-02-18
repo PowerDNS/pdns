@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2006  PowerDNS.COM BV
+    Copyright (C) 2005 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -85,14 +85,91 @@ static unsigned int makeTTLFromZone(const string& str)
   return val;
 }
 
+bool ZoneParserTNG::getTemplateLine()
+{
+  if(d_templatecounter > d_templatestop || d_templateparts.empty()) // no template, or done with
+    return false;
+
+  string retline;
+  for(parts_t::const_iterator iter = d_templateparts.begin() ; iter != d_templateparts.end(); ++iter) {
+    if(iter != d_templateparts.begin())
+      retline+=" ";
+
+    string part=makeString(d_templateline, *iter);
+    
+    /* a part can contain a 'naked' $, an escaped $ (\$), or ${offset,width,radix}, with width defaulting to 0, 
+       and radix beging 'd', 'o', 'x' or 'X', defaulting to 'd'. 
+
+       The width is zero-padded, so if the counter is at 1, the offset is 15, with is 3, and the radix is 'x',
+       output will be '010', from the input of ${15,3,x}
+    */
+
+    string outpart;
+    outpart.reserve(part.size()+5);
+    bool inescape=false;
+
+    for(string::size_type pos = 0; pos < part.size() ; ++pos) {
+      char c=part[pos];
+      if(inescape) {
+	outpart.append(1, c);
+	inescape=false;
+	continue;
+      }
+	
+      if(part[pos]=='\\') {
+	inescape=true;
+	continue;
+      }
+      if(c=='$') {
+	if(pos + 1 == part.size() || part[pos+1]!='{') {  // a trailing $, or not followed by {
+	  outpart.append(lexical_cast<string>(d_templatecounter));
+	  continue;
+	}
+	
+	// need to deal with { case 
+	
+	pos+=2;
+	string::size_type startPos=pos;
+	for(; pos < part.size() && part[pos]!='}' ; ++pos)
+	  ;
+	
+	if(pos == part.size()) // partial spec
+	  break;
+
+	// we are on the '}'
+
+	string spec(part.c_str() + startPos, part.c_str() + pos);
+	int offset=0, width=0;
+	char radix='d';
+	sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
+
+	char format[12];
+	snprintf(format, sizeof(format) - 1, "%%0%d%c", width, radix); // make into printf-style format
+
+	char tmp[80];
+	snprintf(tmp, sizeof(tmp)-1, format, d_templatecounter + offset); // and do the actual printing
+	outpart+=tmp;
+      }
+      else
+	outpart.append(1, c);
+    }
+    retline+=outpart;
+  }
+  d_templatecounter+=d_templatestep;
+
+  d_line = retline;
+  return true;
+}
+
 bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
  retry:;
-  if(!getLine())
+  if(!getTemplateLine() && !getLine())
     return false;
 
   chomp(d_line, " \r\n\x1a");
-  deque<pair<string::size_type, string::size_type> > parts;
+
+  parts_t parts;
   vstringtok(parts, d_line);
 
   if(parts.empty())
@@ -105,15 +182,22 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     else if(command=="$INCLUDE" && parts.size() > 1) {
       stackFile(unquotify(makeString(d_line, parts[1])));
     }
-#if 0
+    else if(command=="$ORIGIN" && parts.size() > 1) {
+      d_zonename = toCanonic("", makeString(d_line, parts[1]));
+    }
     else if(command=="$GENERATE" && parts.size() > 2) {
       // $GENERATE 1-127 $ CNAME $.0
       string range=makeString(d_line, parts[1]);
-      int start, stop, step=0;
-      int ret=sscanf(range.c_str(),"%d-%d/%d", &start, & stop, &step);
-      cerr<<"ret="<<ret<<", start="<<start<<", stop="<<stop<<", step="<<step<<endl;
+      d_templatestep=1;
+      d_templatestop=0;
+      sscanf(range.c_str(),"%d-%d/%d", &d_templatecounter, &d_templatestop, &d_templatestep);
+      d_templateline=d_line;
+      parts.pop_front();
+      parts.pop_front();
+
+      d_templateparts=parts;
+      goto retry;
     }
-#endif
     else
       throw exception("Can't parse zone line '"+d_line+"'");
     goto retry;
