@@ -2,7 +2,7 @@
 #include "misc.hh"
 #include "dnsparser.hh"
 
-DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass)
+DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
   : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass)
 {
   d_content.clear();
@@ -11,6 +11,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   memset(&dnsheader, 0, sizeof(dnsheader));
   dnsheader.id=0;
   dnsheader.qdcount=htons(1);
+  dnsheader.opcode=opcode;
   
   const uint8_t* ptr=(const uint8_t*)&dnsheader;
   uint32_t len=d_content.size();
@@ -49,7 +50,6 @@ dnsheader* DNSPacketWriter::getHeader()
 {
   return (dnsheader*)&*d_content.begin();
 }
-
 
 void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place)
 {

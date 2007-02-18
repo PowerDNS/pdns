@@ -167,7 +167,7 @@ void DNSProxy::mainloop(void)
       }
       (*d_resanswers)++;
       (*d_udpanswers)++;
-      DNSPacket::dnsheader d;
+      dnsheader d;
       memcpy(&d,buffer,sizeof(d));
       {
 	Lock l(&d_lock);

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2001 - 2005  PowerDNS.COM BV
+    Copyright (C) 2001 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -48,16 +48,6 @@ string DNSPacket::getString()
 {
   return stringbuffer;
 }
-
-string DNSPacket::getLocal() const
-{
-  struct sockaddr_in6 sa;
-  int addrlen=sizeof(sa);
-
-  getsockname(d_socket, (struct sockaddr *)&sa, (socklen_t *)&addrlen);
-  return sockAddrToString((struct sockaddr_in*)&sa);
-}
-
 
 string DNSPacket::getRemote() const
 {
@@ -130,7 +120,6 @@ int DNSPacket::expand(const unsigned char *begin, const unsigned char *end, stri
   // lowercase(qdomain); (why was this?)
   
   return p-begin;
-
 }
 
 /** copies the question into our class
@@ -203,7 +192,6 @@ void DNSPacket::setRD(bool b)
   d.rd=b;
 }
 
-
 void DNSPacket::setOpcode(uint16_t opcode)
 {
   d.opcode=opcode;
@@ -273,8 +261,6 @@ void DNSPacket::addAAAARecord(const DNSResourceRecord &rr)
      <<endl;
 }
 
-
-
 void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], uint32_t ttl,DNSResourceRecord::Place place)
 {
   string piece1;
@@ -295,7 +281,6 @@ void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], uint32
   else
     d.ancount++;
 }
-
 
 void DNSPacket::addMXRecord(const DNSResourceRecord &rr)
 {
@@ -1217,208 +1202,9 @@ void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
 
 /** A DNS answer packets needs to include the original question. This function allows you to
     paste in a question */
-
 void DNSPacket::pasteQ(const char *question, int length)
 {
   stringbuffer.replace(12, length, question, length);  // bytes 12 & onward need to become *question
-}
-
-
-vector<DNSResourceRecord> DNSPacket::getAnswers()
-{
-  // XXX FIXME a lot of this code happily touches bytes beyond your packet! 
-
-  vector<DNSResourceRecord> rrs;
-  if(!(d.ancount|d.arcount|d.nscount))
-    return rrs;
-
-  const unsigned char *answerp=(const unsigned char *)stringbuffer.c_str()+d_qlen+12;
-  const unsigned char *end=(const unsigned char *)stringbuffer.c_str()+len;
-
-  int numanswers=ntohs(d.ancount) + ntohs(d.nscount) + ntohs(d.arcount);
-  int length;
-  uint16_t pos=0;
-  while(numanswers--) {
-    string name;  
-    int offset=0;
-    offset=expand(answerp,end,name);
-
-    DNSResourceRecord rr;
-    rr.qname=name;
-    rr.qtype=answerp[offset]*256+answerp[offset+1];
-    rr.ttl=answerp[offset+7]+256*(answerp[offset+6]+256*(answerp[offset+5]+256*answerp[offset+4]));
-    rr.content="";
-    length=256*(unsigned char)answerp[offset+8]+(unsigned char)answerp[offset+8+1];
-
-    const unsigned char *datapos=answerp+offset+10;
-
-    if(datapos+length  > end)
-      throw AhuException("Record extends beyond end of packet");
-
-    string part;
-    offset=0;
-
-    ostringstream o;
-    int ip;
-    int weight;
-    int port;
-
-    switch(rr.qtype.getCode()) {
-
-    case QType::SOA:
-      part=""; offset+=expand(datapos+offset,end,part); rr.content=part;      // mname
-      part=""; offset+=expand(datapos+offset,end,part); rr.content+=" "+part;  // hostmaster
-
-      // explicitly copy the SOA values out of the packet to avoid 
-      // SPARC alignment issues.
-      
-      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset    ));
-      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+4  ));
-      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+8  ));
-      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+12 ));
-      rr.content+=" ";rr.content+=uitoa(getLong( datapos+offset+16 ));
-
-      break;
-
-    case QType::A:
-      ip = getLong(datapos);
-
-      o.clear();
-      o<<((ip>>24)&0xff)<<".";
-      o<<((ip>>16)&0xff)<<".";
-      o<<((ip>>8)&0xff)<<".";
-      o<<((ip>>0)&0xff);
-      
-      rr.content=o.str();
-      break;
-      
-    case QType::MX:
-      rr.priority=(datapos[0] << 8) + datapos[1];
-      expand(datapos+2,end,rr.content);
-
-      break;
-
-    case QType::TXT:
-      rr.content.assign((const char *)datapos+offset+1,(int)datapos[offset]);
-      break;
-
-    case QType::HINFO:  // this code is way way way overdue for a redesign
-      rr.content="\"";
-      rr.content.append((const char *)datapos+offset+1,(int)datapos[offset]);
-      rr.content+="\" \"";
-      rr.content.append((const char *)datapos+offset+(int)datapos[offset]+2,
-			(int)datapos[offset+(int)datapos[offset]+1]);
-      rr.content+="\"";
-      break;
-
-
-    case QType::LOC:
-      rr.content=parseLOC(reinterpret_cast<const unsigned char *>(datapos+offset),length);
-      break;
-
-
-    case QType::SRV: // rfc 2052
-      // priority goes into mx-priority
-      rr.priority=(datapos[0] << 8) + datapos[1];
-      // rest glue together  
-      weight = (datapos[2] << 8) + datapos[3];
-      port = (datapos[4] << 8) + datapos[5];
-      expand(datapos+offset+6,end,part);
-      rr.content.assign(itoa(weight));
-      rr.content+=" "+itoa(port)+" "+part;
-      break;
-
-    case QType::NAPTR: // rfc 2915
-      {
-        const string quote="\"";
-        const string space=" ";
-
-        int order;
-        int pref;
-        string flags, services, regex, replacement, result;
-
-        order=(datapos[0] << 8) + datapos[1];
-
-        // "pref" should maybe be put into rr.priority, but that
-        // might have unintended side effects that I cannot
-        // evaluate at this time.
-        //
-        // Lorens Kockum 2004-10-12
-
-        pref=(datapos[2] << 8) + datapos[3];
-
-        // The following would be a good subject for a mini-
-        // function with boundary checking, which could be
-        // reused in a lot of places in this file (see FIXME
-        // at beginning of function).
-
-        offset = 4 ;
-        flags.assign((const char *)datapos+offset+1,(int)datapos[offset]);
-        offset+=flags.size()+1;
-        services.assign((const char *)datapos+offset+1,(int)datapos[offset]);
-        offset+=services.size()+1;
-        regex.assign((const char *)datapos+offset+1,(int)datapos[offset]);
-        offset+=regex.size()+1;
-
-        expand(datapos+offset,end,replacement);
-
-        if (!replacement.size()) replacement = "." ;
-
-        rr.content = itoa(order) \
-                     + " " + itoa(pref) \
-                     + " " + quote + flags + quote \
-                     + " " + quote + services + quote \
-                     + " " + quote + regex + quote \
-                     + " " + replacement;
-      }
-      break;
-
-    case QType::RP:
-      offset+=expand(datapos+offset,end,rr.content);
-      expand(datapos+offset,end,part);
-      rr.content+=" "+part;
-      break;
-
-
-    case QType::CNAME:
-    case QType::NS:
-    case QType::PTR:
-    case QType::MR:
-      expand(datapos+offset,end,rr.content);
-      break;
-
-    case QType::AAAA:
-      if(length!=16)
-	throw AhuException("Wrong length AAAA record returned from remote");
-      char tmp[128];
-#ifdef AF_INET6	
-      if(!Utility::inet_ntop(AF_INET6, (const char *)datapos, tmp, sizeof(tmp)-1))
-#endif
-	throw AhuException("Unable to translate record of type AAAA in resolver");
-
-      rr.content=tmp;
-      break;
-
-    default:
-      rr.qtype=rr.qtype.getCode()+1024;
-      rr.content.assign((const char *)datapos,length);
-      //      throw AhuException("Unknown type number "+itoa(rr.qtype.getCode())+" for: '"+rr.qname+"'");
-    }
-    if(pos<ntohs(d.ancount))
-      rr.d_place=DNSResourceRecord::ANSWER;
-    else if(pos<ntohs(d.ancount)+ntohs(d.nscount))
-      rr.d_place=DNSResourceRecord::AUTHORITY;
-    else
-      rr.d_place=DNSResourceRecord::ADDITIONAL;
-      
-    rrs.push_back(rr);    
-    pos++;
-    //    cout<<"Added '"<<rr.qname<<"' '"<<rr.content<<"' "<<rr.qtype.getName()<<endl;
-    //    cout<<"Advancing "<<length<<" bytes"<<endl;
-    answerp=datapos+length; 
-  }
-  return rrs;
-  
 }
 
 /** convenience function for creating a reply packet from a question packet. Do not forget to delete it after use! */
