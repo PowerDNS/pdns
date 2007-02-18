@@ -8,7 +8,6 @@
 #include <utility>
 #include <errno.h>
 #include "misc.hh"
-#include "zoneparser.hh"
 #include "ahuexception.hh"
 using namespace std;
 #define YYDEBUG 1
@@ -126,7 +125,7 @@ command:
 zone_command:
 	ZONETOK quotedname zone_block
 	{
-		s_di.name=ZoneParser::canonic($2);
+		s_di.name=stripDot($2);
 		
 		parent->commit(s_di);
 		s_di.clear();

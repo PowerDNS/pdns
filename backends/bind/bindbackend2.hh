@@ -120,7 +120,7 @@ public:
     id_zone_map_t id_zone_map;
   };
 
-  void insert(shared_ptr<State> stage, int id, const string &qname, const string &qtype, const string &content, int ttl, int prio);  
+  void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl, int prio);  
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2006  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -33,8 +33,7 @@ using namespace std;
 #include "dnsbackend.hh"
 #include "bindbackend2.hh"
 #include "dnspacket.hh"
-
-#include "zoneparser.hh"
+#include "zoneparser-tng.hh"
 #include "bindparser.hh"
 #include "logger.hh"
 #include "arguments.hh"
@@ -321,16 +320,11 @@ static string canonic(string ret)
   return ret;
 }
 
-static void InsertionCallback(shared_ptr<Bind2Backend::State> stage, unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio)
-{
-  us->insert(stage, domain_id, domain, qtype, content, ttl, prio);
-}
-
 set<string> contents;
 
 /** This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const string &qtype, const string &content, int ttl=300, int prio=25)
+void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl=300, int prio=25)
 {
   // XXXX WRONG WRONG WRONG REWRITE
 
@@ -352,7 +346,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   if(!records.empty() && bdr.qname==(records.end()-1)->qname)
     bdr.qname=(records.end()-1)->qname;
 
-  bdr.qtype=QType(qtype.c_str()).getCode();
+  bdr.qtype=qtype.getCode();
   bdr.content=canonic(content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
   set<string>::const_iterator i=contents.find(bdr.content);
   if(i!=contents.end())
@@ -480,16 +474,16 @@ void Bind2Backend::loadConfig(string* status)
       throw;
     }
 
-    ZoneParser ZP;
+
       
     vector<BindDomainInfo> domains=BP.getDomains();
     
     us=this;
 
     d_binddirectory=BP.getDirectory();
-    ZP.setDirectory(d_binddirectory);
-    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
-    ZP.setCallback(func);  
+    //    ZP.setDirectory(d_binddirectory);
+    //    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
+
 
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
@@ -537,7 +531,13 @@ void Bind2Backend::loadConfig(string* status)
 	    // we need to allocate a new vector so we don't kill the original, which is still in use!
 	    bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>); 
 
-	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
+	    ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+	    DNSResourceRecord rr;
+	    while(zpt.get(rr)) {
+	      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
+	    }
+
+	    //	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
 	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
 
 	    sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
@@ -637,18 +637,17 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
   try {
     nukeZoneRecords(bbd); // ? do we need this?
     
-    ZoneParser ZP;
     us=this;
-
-    ZP.setDirectory(d_binddirectory);
-    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
-    ZP.setCallback(func);  
 
     staging->id_zone_map[bbd->d_id]=s_state->id_zone_map[bbd->d_id];
     staging->id_zone_map[bbd->d_id].d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);  // nuke it
 
-    ZP.parse(bbd->d_filename, bbd->d_name, bbd->d_id);
-    
+    ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, d_binddirectory);
+    DNSResourceRecord rr;
+    while(zpt.get(rr)) {
+      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
+    }
+        
     sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
     staging->id_zone_map[bbd->d_id].setCtime();
     

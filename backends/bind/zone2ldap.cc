@@ -1,6 +1,7 @@
 /*
  *  PowerDNS BIND Zone to LDAP converter
  *  Copyright (C) 2003  Norbert Sendetzky
+ *  Copyright (C) 2007  bert hubert
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -23,18 +24,16 @@
 #include <iostream>
 #include <stdio.h>
 #include "arguments.hh"
-#include "zoneparser.hh"
 #include "bindparser.hh"
 #include "statbag.hh"
+#include <boost/function.hpp>
 #include "misc.hh"
 #include "dns.hh"
-
+#include "zoneparser-tng.hh"
 
 using std::map;
 using std::string;
 using std::vector;
-
-
 
 StatBag S;
 ArgvMap args;
@@ -43,14 +42,12 @@ string g_basedn;
 string g_zonename;
 map<string,bool> g_objects;
 
-
-
 static void callback_simple( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
 {
 	string host;
 	string::size_type pos;
 	vector<string> parts;
-	string domain2 = ZoneParser::canonic( domain );
+	string domain2 = stripDot( domain );
 
 
 	if( ( pos = domain2.rfind( g_zonename ) ) == string::npos )
@@ -59,7 +56,7 @@ static void callback_simple( unsigned int domain_id, const string &domain, const
 		return;
 	}
 
-	host = ZoneParser::canonic( domain2.substr( 0, pos ) );
+	host = stripDot( domain2.substr( 0, pos ) );
 
 	cout << "dn: dc=";
 	if( !host.empty() ) { cout << host << ",dc="; }
@@ -86,7 +83,7 @@ static void callback_simple( unsigned int domain_id, const string &domain, const
 
 	cout << qtype << "Record: ";
 	if( prio != 0 ) { cout << prio << " "; }
-	cout << ZoneParser::canonic( content ) << endl << endl;
+	cout << stripDot( content ) << endl << endl;
 }
 
 
@@ -96,7 +93,7 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
 	unsigned int i;
 	string dn, net;
 	vector<string> parts;
-	string domain2 = ZoneParser::canonic( domain );
+	string domain2 = stripDot( domain );
 
 	stringtok( parts, domain2, "." );
 	if( parts.empty() ) { return; }
@@ -142,7 +139,7 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
 
 	cout << qtype << "Record: ";
 	if( prio != 0 ) { cout << prio << " "; }
-	cout << ZoneParser::canonic( content ) << endl << endl;
+	cout << stripDot( content ) << endl << endl;
 }
 
 
@@ -150,7 +147,6 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
 int main( int argc, char* argv[] )
 {
 	BindParser BP;
-	ZoneParser ZP;
 	vector<string> parts;
 
 
@@ -181,18 +177,18 @@ int main( int argc, char* argv[] )
 
 		g_basedn = args["basedn"];
 		g_dnsttl = args.mustDo( "dnsttl" );
-
-		ZP.setCallback( &callback_simple );
+		typedef boost::function<void(unsigned int, const string &, const string &, const string &, int, int)> callback_t;
+		callback_t callback = callback_simple;
 		if( args["layout"] == "tree" )
 		{
-			ZP.setCallback( &callback_tree );
+			callback=callback_tree;
 		}
 
 		if( !args["named-conf"].empty() )
 		{
 			BP.setVerbose( args.mustDo( "verbose" ) );
 			BP.parse( args["named-conf"] );
-			ZP.setDirectory( BP.getDirectory() );
+//			ZP.setDirectory( BP.getDirectory() );
 			const vector<BindDomainInfo> &domains = BP.getDomains();
 
 			for( vector<BindDomainInfo>::const_iterator i = domains.begin(); i != domains.end(); i++ )
@@ -203,7 +199,10 @@ int main( int argc, char* argv[] )
 					{
 						cerr << "Parsing file: " << i->filename << ", domain: " << i->name << endl;
 						g_zonename = i->name;
-						ZP.parse( i->filename, i->name, 0 );
+						ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+						DNSResourceRecord rr;
+						while(zpt.get(rr))
+							callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
 					}
 				}
 				catch( AhuException &ae )
@@ -225,8 +224,10 @@ int main( int argc, char* argv[] )
 			}
 
 			g_zonename = args["zone-name"];
-			ZP.setDirectory( "." );
-			ZP.parse( args["zone-file"], args["zone-name"], 0 );
+			ZoneParserTNG zpt(args["zone-file"], args["zone-name"]);
+			DNSResourceRecord rr;
+			while(zpt.get(rr))
+				callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
 		}
 	}
 	catch( AhuException &ae )
