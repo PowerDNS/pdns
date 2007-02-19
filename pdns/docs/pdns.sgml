@@ -6844,6 +6844,15 @@ local0.err                        /var/log/pdns.err
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>forward-zones-file</term>
+	    <listitem>
+	      <para>
+		Same as <command>forward-zones</command>, parsed from a file. Only 1 zone is allowed per line, specified as follows:
+		<command>ds9a.nl=213.244.168.210</command>. Available since 3.1.5.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
 	  <varlistentry>
 	    <term>hint-file</term>
