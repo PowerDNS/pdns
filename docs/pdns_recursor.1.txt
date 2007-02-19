@@ -89,6 +89,11 @@ For authoritative listing of options, consult the documentation referenced above
            auth-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1.
            Available since 3.1.
 
+--forward-zones-file::
+           listed here will be forwarded to the IP address listed.
+           One zone per line, like: ds9a.nl=213.244.168.210
+           Available since 3.1.5
+
 --hint-file::
 	If set, load root hints from this file
 

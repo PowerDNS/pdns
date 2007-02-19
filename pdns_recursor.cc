@@ -819,10 +819,10 @@ void handleNewUDPQuestion(int fd, boost::any& var)
   char data[1500];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
-  uint64_t tsc1, tsc2;
+  //  uint64_t tsc1, tsc2;
 
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-    RDTSC(tsc1);      
+    //    RDTSC(tsc1);      
     g_stats.addRemote(fromaddr);
 
     if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
@@ -841,6 +841,7 @@ void handleNewUDPQuestion(int fd, boost::any& var)
       }
       else {
 	++g_stats.qcounter;
+#if 0
 	uint16_t type;
 	char qname[256];
         try {
@@ -892,6 +893,7 @@ void handleNewUDPQuestion(int fd, boost::any& var)
             g_stats.noShuntWrongQuestion++;
         }
       slow:
+#endif
 	DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
 	dc->setSocket(fd);
 	dc->setRemote(&fromaddr);
@@ -1481,6 +1483,37 @@ void parseAuthAndForwards()
     }
   }
   
+  if(!::arg()["forward-zones-file"].empty()) {
+    L<<Logger::Warning<<"Reading zone forwarding information from '"<<::arg()["forward-zones-file"]<<"'"<<endl;
+    SyncRes::AuthDomain ad;
+    FILE *rfp=fopen(::arg()["forward-zones-file"].c_str(), "r");
+
+    if(!rfp)
+      throw AhuException("Error opening forward-zones-file '"+::arg()["forward-zones-file"]+"': "+stringerror());
+
+    shared_ptr<FILE> fp=shared_ptr<FILE>(rfp, fclose);
+    
+    char line[1024];
+    vector<string> parts;
+    int linenum=0;
+    uint64_t before = SyncRes::s_domainmap.size();
+    while(linenum++, fgets(line, sizeof(line)-1, fp.get())) {
+      parts.clear();
+      stringtok(parts,line,"=, ");
+      if(parts.empty())
+	continue;
+      if(parts.size()<2) 
+	throw AhuException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+      trim(parts[0]);
+      trim(parts[1]);
+      parts[0]=toCanonic("", parts[0]);
+      ad.d_server=parts[1];
+      //      cerr<<"Inserting '"<<domain<<"' to '"<<ad.d_server<<"'\n";
+      SyncRes::s_domainmap[parts[0]]=ad;
+    }
+    L<<Logger::Warning<<"Done parsing " << SyncRes::s_domainmap.size() - before<<" forwarding instructions"<<endl;
+  }
+
   if(::arg().mustDo("export-etc-hosts")) {
     string line;
     string fname;
@@ -1606,7 +1639,6 @@ int serviceMain(int argc, char*argv[])
     gethostname(tmp, sizeof(tmp)-1);
     SyncRes::s_serverID=tmp;
   }
-  
   
   parseAuthAndForwards();
   
@@ -1801,6 +1833,7 @@ int main(int argc, char **argv)
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
+    ::arg().set("forward-zones-file", "File with domain=ip pairs for forwarding")="";
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
