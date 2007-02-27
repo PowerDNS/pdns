@@ -29,7 +29,7 @@
 bool QType::uninit=true;
 vector<QType::namenum> QType::names;
 
-void QType::insert(char *p, int n)
+void QType::insert(const char *p, int n)
 {
   names.push_back(make_pair(string(p),n));
 }

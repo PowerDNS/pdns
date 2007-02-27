@@ -24,9 +24,9 @@ using namespace boost;
 class NetworkError : public runtime_error
 {
 public:
-  NetworkError(string why="Network Error") : runtime_error(why.c_str())
+  NetworkError(const string& why="Network Error") : runtime_error(why.c_str())
   {}
-  NetworkError(char *why="Network Error") : runtime_error(why)
+  NetworkError(const char *why="Network Error") : runtime_error(why)
   {}
 };
 
