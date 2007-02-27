@@ -76,7 +76,7 @@ public:
 private:
   short int code;
   typedef pair<string,int> namenum; 
-  void insert(char *p, int n);
+  void insert(const char *p, int n);
 
   static vector<namenum> names;
   static bool uninit;
