@@ -179,16 +179,16 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     string command=makeString(d_line, parts[0]);
     if(command=="$TTL" && parts.size() > 1)
       d_defaultttl=makeTTLFromZone(makeString(d_line,parts[1]));
-    else if(command=="$INCLUDE" && parts.size() > 1) {
+    else if(iequals(command,"$INCLUDE") && parts.size() > 1) {
       string fname=unquotify(makeString(d_line, parts[1]));
       if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
 	fname=d_reldir+"/"+fname;
       stackFile(fname);
     }
-    else if(command=="$ORIGIN" && parts.size() > 1) {
+    else if(iequals(command, "$ORIGIN") && parts.size() > 1) {
       d_zonename = toCanonic("", makeString(d_line, parts[1]));
     }
-    else if(command=="$GENERATE" && parts.size() > 2) {
+    else if(iequals(command, "$GENERATE") && parts.size() > 2) {
       // $GENERATE 1-127 $ CNAME $.0
       string range=makeString(d_line, parts[1]);
       d_templatestep=1;
