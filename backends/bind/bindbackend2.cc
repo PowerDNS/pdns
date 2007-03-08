@@ -534,6 +534,13 @@ void Bind2Backend::loadConfig(string* status)
 	    ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
 	    DNSResourceRecord rr;
 	    while(zpt.get(rr)) {
+	      if(rr.qtype.getCode()==QType::MX) {
+		char tmp[rr.content.size()];
+		int prio;
+		sscanf(rr.content.c_str(), "%d %s", &prio, tmp);
+		rr.priority=prio;
+		rr.content=tmp;
+	      }
 	      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
 	    }
 
@@ -655,6 +662,13 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, d_binddirectory);
     DNSResourceRecord rr;
     while(zpt.get(rr)) {
+      if(rr.qtype.getCode()==QType::MX) {
+	char tmp[rr.content.size()];
+	int prio;
+	sscanf(rr.content.c_str(), "%d %s", &prio, tmp);
+	rr.priority=prio;
+	rr.content=tmp;
+      }
       insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
     }
         
