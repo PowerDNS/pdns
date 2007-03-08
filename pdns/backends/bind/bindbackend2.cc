@@ -549,6 +549,16 @@ void Bind2Backend::loadConfig(string* status)
 	    contents.clear();
 	    //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
 	  }
+	  catch(AhuException &ae) {
+	    ostringstream msg;
+	    msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
+
+	    if(status)
+	      *status+=msg.str();
+	    staging->id_zone_map[bbd->d_id].d_status=msg.str();
+	    L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
+	    rejected++;
+	  }
 	  catch(exception &ae) {
 	    ostringstream msg;
 	    msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
@@ -661,6 +671,11 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     bbd->d_checknow=0;
     bbd->d_status="parsed into memory at "+nowTime();
     L<<Logger::Warning<<"Zone '"<<bbd->d_name<<"' ("<<bbd->d_filename<<") reloaded"<<endl;
+  }
+  catch(AhuException &ae) {
+    ostringstream msg;
+    msg<<" error at "+nowTime()+" parsing '"<<bbd->d_name<<"' from file '"<<bbd->d_filename<<"': "<<ae.reason;
+    bbd->d_status=msg.str();
   }
   catch(exception &ae) {
     ostringstream msg;
