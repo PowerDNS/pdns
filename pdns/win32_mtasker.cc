@@ -244,15 +244,20 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
     d_zombiesQueue.pop();
     return true;
   }
+
   if(!d_waiters.empty()) {
-    time_t now=time(0);
-    for(typename waiters_t::const_iterator i=d_waiters.begin();i!=d_waiters.end();) {
-      if(i->ttd && i->ttd<now) {
+    typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
+    //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
+    waiters_by_ttd_index_t& ttdindex=boost::multi_index::get<KeyTag>(d_waiters);
+
+    for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
+      if(i->ttd && (unsigned int)i->ttd < now) {
 	d_waitstatus=TimeOut;
 	SwitchToFiber(i->context);
-	d_waiters.erase(i++);                  // removes the waitpoint
+	ttdindex.erase(i++);                  // removes the waitpoint 
       }
-      else ++i;
+      else if(i->ttd)
+	break;
     }
   }
   return false;
