@@ -26,7 +26,8 @@
 
 #include <string>
 #include <errno.h>
-#include<boost/tokenizer.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 #include <algorithm>
 
 #include "dns.hh"
@@ -35,7 +36,8 @@
 #include "dnspacket.hh"
 #include "logger.hh"
 #include "arguments.hh"
-
+#include "dnswriter.hh"
+#include "dnsparser.hh"
 
 DNSPacket::DNSPacket() 
 {
@@ -47,6 +49,19 @@ DNSPacket::DNSPacket()
 string DNSPacket::getString()
 {
   return stringbuffer;
+}
+
+const char *DNSPacket::getData(void)
+{
+  if(!d_wrapped)
+    wrapup();
+
+  return stringbuffer.data();
+}
+
+const char *DNSPacket::getRaw(void)
+{
+  return stringbuffer.data();
 }
 
 string DNSPacket::getRemote() const
@@ -80,82 +95,6 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   stringbuffer=orig.stringbuffer;
   d=orig.d;
 }
-
-int DNSPacket::expand(const unsigned char *begin, const unsigned char *end, string &expanded, int depth)
-{
-  if(depth>10)
-    throw AhuException("Looping label when parsing a packet");
-
-  unsigned int n;
-  const unsigned char *p=begin;
-
-  while((n=*(unsigned char *)p++)) {
-    char tmp[256];
-    if(n==0x41)
-       throw AhuException("unable to expand binary label, generally caused by deprecated IPv6 reverse lookups");
-
-    if((n & 0xc0) == 0xc0 ) { 
-       unsigned int labelOffset=(n&~0xc0)*256+ (int)*(unsigned char *)p;
-       expand((unsigned char *)stringbuffer.c_str()+labelOffset,end,expanded,++depth); // was cvstrac ticket #21
-       return 1+p-begin;
-    }
-
-    if(p+n>=end) { // this is a bogus packet, references beyond the end of the buffer
-       throw AhuException("Label claims to be longer than packet");
-    }
-    strncpy((char *)tmp,(const char *)p,n);
-    
-    if(*(p+n)) { // add a ., except at the end
-       tmp[n]='.';
-       tmp[n+1]=0;
-    }
-    else
-       tmp[n]=0;
-    
-    expanded+=tmp;
-    
-    p+=n;
-  }
-  
-  // lowercase(qdomain); (why was this?)
-  
-  return p-begin;
-}
-
-/** copies the question into our class
- *  and returns offset of question type & class. Returns -1 in case of an error
- */
-int DNSPacket::getq()
-{
-  const unsigned char *orig=(const unsigned char *)stringbuffer.c_str()+12;
-  const unsigned char *end=orig+(stringbuffer.length()-12);
-  qdomain="";
-  try {
-    return expand(orig,end,qdomain);
-  }
-  catch(AhuException &ae) {
-     L<<Logger::Error<<"On retrieving question of packet from "<<getRemote()<<", encountered error: "<<ae.reason<<endl;
-  }
-  return -1;
-}
-
-/*
-                                    1  1  1  1  1  1
-      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                      ID                       |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |QR|   Opcode  |AA|TC|RD|RA|   Z    |   RCODE   |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                    QDCOUNT                    |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                    ANCOUNT                    |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                    NSCOUNT                    |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                    ARCOUNT                    |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-*/
 
 void DNSPacket::setRcode(int v)
 {
@@ -197,16 +136,6 @@ void DNSPacket::setOpcode(uint16_t opcode)
   d.opcode=opcode;
 }
 
-const char *DNSPacket::getRaw(void)
-{
-  return stringbuffer.data();
-}
-
-void DNSPacket::addARecord(const DNSResourceRecord &rr)
-{
-  DLOG(L<<"Adding an A record to the packet!"<<endl);
-  addARecord(rr.qname, htonl(inet_addr(rr.content.c_str())), rr.ttl, rr.d_place);
-}
 
 void DNSPacket::clearRecords()
 {
@@ -227,159 +156,7 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
   rrs.push_back(rr);
 }
 
-void DNSPacket::addARecord(const string &name, uint32_t ip, uint32_t ttl, DNSResourceRecord::Place place)
-{
-  string piece1;
-  toqname(name, &piece1);
-
-  char p[14];
-  makeHeader(p,QType::A,ttl);
-  p[8]=0;
-  p[9]=4; // length of data
-
-  putLong(p+10,ip);
-  stringbuffer.append(piece1);
-  stringbuffer.append(p,14);
-
-  if(place==DNSResourceRecord::ADDITIONAL)
-    d.arcount++;
-  else
-    d.ancount++;
-}
-
-void DNSPacket::addAAAARecord(const DNSResourceRecord &rr)
-{
-  DLOG(L<<"Adding an AAAA record to the packet!"<<endl);
-  unsigned char addr[16];
-
-#ifdef HAVE_IPV6
-  if( Utility::inet_pton( AF_INET6, rr.content.c_str(), static_cast< void * >( addr )))
-    addAAAARecord(rr.qname, addr, rr.ttl,rr.d_place);
-  else
-#endif
-    L<<Logger::Error<<"Unable to convert IPv6 TEXT '"<<rr.content<<"' into binary for record '"<<rr.qname<<"': "
-     <<endl;
-}
-
-void DNSPacket::addAAAARecord(const string &name, unsigned char addr[16], uint32_t ttl,DNSResourceRecord::Place place)
-{
-  string piece1;
-  toqname(name.c_str(),&piece1);
-
-  char p[26];
-  makeHeader(p,QType::AAAA,ttl);
-  p[8]=0;
-  p[9]=16; // length of data
-
-  for(int n=0;n<16;n++)
-    p[10+n]=addr[n];
-
-  stringbuffer.append(piece1);
-  stringbuffer.append(p,26);
-  if(place==DNSResourceRecord::ADDITIONAL)
-    d.arcount++;
-  else
-    d.ancount++;
-}
-
-void DNSPacket::addMXRecord(const DNSResourceRecord &rr)
-{
-  addMXRecord(rr.qname, rr.content, rr.priority, rr.ttl);
-}
-
-void DNSPacket::addMXRecord(const string &domain, const string &mx, int priority, uint32_t ttl)
-{
-  string piece1;
-
-  toqname(domain,&piece1);
-
-  char piece2[12];
-  makeHeader(piece2,QType::MX,ttl);
-
-  // start of payload for which we need to specify the length in 8 & 9
-
-  piece2[10]=(priority>>8)&0xff;
-  piece2[11]=priority&0xff;
-  
-  string piece3;
-  toqname(mx,&piece3);
-  // end of payload
-
-  piece2[9]=piece3.length()+2; // fill in length
-
-  stringbuffer+=piece1;
-  stringbuffer.append(piece2,12);
-  stringbuffer+=piece3;
-
-  d.ancount++;
-}
-
-
-void DNSPacket::addSRVRecord(const DNSResourceRecord &rr)
-{
-  addSRVRecord(rr.qname, rr.content, rr.priority, rr.ttl);
-}
-
-void DNSPacket::addSRVRecord(const string &domain, const string &srv, int priority, uint32_t ttl)
-{
-  string piece1;
-  toqname(domain,&piece1);
-	    
-  string target;
-  int weight=0;
-  int port=0;
-
-  vector<string>parts;
-  stringtok(parts,srv);
-  int pleft=parts.size();
-
-  // We need to have exactly 3 parts, so we have to check it!
-  if (pleft<2) {
-    throw AhuException("Missing data for type SRV "+domain);
-  }
-  
-  if(pleft) 
-    weight = atoi(parts[0].c_str());
-
-  if(pleft>1) 
-    port = atoi(parts[1].c_str());
-
-  if(pleft>2) 
-    toqname(parts[2],&target);
-
-  
-
-  char p[16];
-  makeHeader(p,QType::SRV,ttl);
-  
-  p[8]=0;
-  p[9]=0;  // need to fill this in
-
-  // start of payload for which we need to specify the length in 8 & 9
-
-  // priority aka preference
-  p[10]=(priority>>8)&0xff;
-  p[11]=priority&0xff;
-
-  // weight
-  p[12]=(weight>>8)&0xff;
-  p[13]=weight&0xff;
-  
-  // port
-  p[14]=(port>>8)&0xff;
-  p[15]=port&0xff;
-  
-  // target 
-  // end of payload
-
-  p[9]=target.length()+6; // fill in length
-
-  stringbuffer+=piece1;
-  stringbuffer.append(p,16);
-  stringbuffer+=target;
-
-  d.ancount++;
-}
+// the functions below update the 'arcount' and 'ancount', plus they serialize themselves to the stringbuffer
 
 string& attodot(string &str)
 {
@@ -433,7 +210,6 @@ void fillSOAData(const string &content, SOAData &data)
   if(pleft>4)
     data.retry=atoi(parts[4].c_str());
 
-
   if(pleft>5)
     data.expire=atoi(parts[5].c_str());
 
@@ -441,7 +217,6 @@ void fillSOAData(const string &content, SOAData &data)
     data.default_ttl=atoi(parts[6].c_str());
 
 }
-
 
 string serializeSOAData(const SOAData &d)
 {
@@ -452,457 +227,6 @@ string serializeSOAData(const SOAData &d)
   return o.str();
 }
 
-  /* the hostmaster is encoded as two parts - the bit UNTIL the first unescaped '.'
-     is encoded as a TXT string, the rest as a domain 
-
-     we might encounter escaped dots in the first part though: bert\.hubert.powerdns.com for example should be
-     11bert.hubert7powerdns3com0 */
-
-/* Very ugly btw, this needs to be better */
-const string DNSPacket::makeSoaHostmasterPiece(const string &hostmaster)
-{
-  string ret;
-  string first;
-  string::size_type i;
-
-  for(i=0;i<hostmaster.length();++i) {
-    if(hostmaster[i]=='.') {
-      break;
-    }
-    if(hostmaster[i]=='\\' && i+1<hostmaster.length()) {
-      ++i;
-      first.append(1,hostmaster[i]);
-      continue;
-    }
-    first.append(1,hostmaster[i]);
-  }
-
-  ret.resize(1);
-  ret[0]=first.length();
-  ret+=first;
-  
-  string second;
-  if(i+1<hostmaster.length())
-     toqname(hostmaster.substr(i+1),&second); 
-  else {
-     second.resize(1);
-     second[0]=0;
-  }
-
-  return ret+second;
-}
-
-
-void DNSPacket::addSOARecord(const DNSResourceRecord &rr)
-{
-  addSOARecord(rr.qname, rr.content, rr.ttl, rr.d_place);
-}
-
-void DNSPacket::addSOARecord(const string &domain, const string & content, uint32_t ttl,DNSResourceRecord::Place place)
-{
-  SOAData soadata;
-  fillSOAData(content, soadata);
-
-  string piece1;
-  toqname(domain, &piece1);
-
-  char p[10];
-  makeHeader(p,QType::SOA,ttl);
-  
-  string piece3;  
-  toqname(soadata.nameserver,&piece3, false);
-  
-  string piece4=makeSoaHostmasterPiece(soadata.hostmaster);
-
-  uint32_t piece5[5];
-  
-  uint32_t *i_p=piece5;
-  
-  uint32_t soaoffset=0;
-  if(soadata.serial && (soaoffset=arg().asNum("soa-serial-offset")))
-    if(soadata.serial<soaoffset)
-      soadata.serial+=soaoffset; // thank you DENIC
-
-  *i_p++=htonl(soadata.serial ? soadata.serial : time(0));
-  *i_p++=htonl(soadata.refresh);
-  *i_p++=htonl(soadata.retry);
-  *i_p++=htonl(soadata.expire);
-  *i_p++=htonl(soadata.default_ttl);
-  
-  p[9]=piece3.length()+piece4.length()+20; 
-
-  stringbuffer+=piece1;
-  stringbuffer.append(p,10);
-  stringbuffer+=piece3;
-  stringbuffer+=piece4;
-  stringbuffer.append((char*)piece5,20);
-  if(place==DNSResourceRecord::ANSWER)
-    d.ancount++;
-  else
-    d.nscount++;
-}
-
-void DNSPacket::addCNAMERecord(const DNSResourceRecord &rr)
-{
-  addCNAMERecord(rr.qname, rr.content, rr.ttl);
-}
-
-
-void DNSPacket::addMRRecord(const DNSResourceRecord &rr)
-{
-  addMRRecord(rr.qname, rr.content, rr.ttl);
-}
-
-void DNSPacket::addMRRecord(const string& domain, const string& alias, uint32_t ttl)
-{
-  string piece1;
-
-  toqname(domain.c_str(),&piece1);
-  char p[10];
-  
-  p[0]=0;
-  p[1]=QType::MR; 
-  p[2]=0;
-  p[3]=1; // IN
-  
-  putLong(p+4,ttl);
-  p[8]=0;
-  p[9]=0;  // need to fill this in
-  
-  string piece3;
-  toqname(alias,&piece3);
-  
-  p[9]=piece3.length();
-  
-  stringbuffer+=piece1;
-  stringbuffer.append(p,10);
-  stringbuffer+=piece3;
-  
-  d.ancount++;
-}
-
-void DNSPacket::addCNAMERecord(const string &domain, const string &alias, uint32_t ttl)
-{
- string piece1;
-
- toqname(domain.c_str(),&piece1);
- char p[10];
- 
- p[0]=0;
- p[1]=5; // CNAME
- p[2]=0;
- p[3]=1; // IN
- 
- putLong(p+4,ttl);
- p[8]=0;
- p[9]=0;  // need to fill this in
- 
- string piece3;
- //xtoqname(alias,&piece3);
- toqname(alias,&piece3);
- 
- p[9]=piece3.length();
-
- stringbuffer+=piece1;
- stringbuffer.append(p,10);
- stringbuffer+=piece3;
-
- d.ancount++;
-}
-
-
-void DNSPacket::addRPRecord(const DNSResourceRecord &rr)
-{
-  addRPRecord(rr.qname, rr.content, rr.ttl);
-}
-
-void DNSPacket::addRPRecord(const string &domain, const string &content, uint32_t ttl)
-{
- string piece1;
-
- toqname(domain.c_str(),&piece1);
- char p[11];
- makeHeader(p,17,ttl);
- 
- // content contains: mailbox-name more-info-domain (Separated by a space)
- string::size_type pos;
- if((pos=content.find(" "))==string::npos) {
-   L<<Logger::Warning<<"RP record for domain '"<<domain<<"' has malformed content field"<<endl;
-   return;
- }
-
- string mboxname=content.substr(0,pos);
- string moreinfo=content.substr(pos+1);
-
- string piece3;
- toqname(mboxname,&piece3);
-
- string piece4;
- toqname(moreinfo,&piece4);
- 
- p[9]=(piece3.length()+piece4.length())%256;
- p[10]=(piece3.length()+piece4.length())/256;
-
- stringbuffer+=piece1;
- stringbuffer.append(p,10);
- stringbuffer+=piece3;
- stringbuffer+=piece4;
-
- // done
- d.ancount++;
-}
-
-
-
-
-void DNSPacket::addNAPTRRecord(const DNSResourceRecord &rr)
-{
-  addNAPTRRecord(rr.qname, rr.content, rr.ttl);
-}
-
-
-void DNSPacket::makeHeader(char *p,uint16_t qtype, uint32_t ttl)
-{
-  p[0]=0;
-  p[1]=qtype; 
-  p[2]=0;
-  p[3]=1; // IN
-  putLong(p+4,ttl);
-  p[8]=0;
-  p[9]=0;  // need to fill this in
-}
-
-void DNSPacket::addNAPTRRecord(const string &domain, const string &content, uint32_t ttl)
-{
-  string piece1;
-
-  //xtoqname(domain.c_str(),&piece1);
-  toqname(domain.c_str(),&piece1);
-  char p[11];
-  makeHeader(p,QType::NAPTR,ttl);
- 
-  // content contains: 100  100  "s"   "http+I2R"   ""    _http._tcp.foo.com.
-  //                   100   50  "u"   "e2u+sip"    "" testuser@domain.com
-  
-  using namespace boost;
-  escaped_list_separator<char> els("\\", " ", "\"");
-  tokenizer<escaped_list_separator<char> > tok(content, els);
-  tokenizer<escaped_list_separator<char> >::iterator iter=tok.begin();
-  int order, pref;
-  string flags, services, regex, replacement;
-  unsigned int n;
-  for(n=0; iter != tok.end(); ++iter, ++n) {
-    switch(n) {
-    case 0:
-	order=atoi(iter->c_str());
-	break;
-    case 1:
-      pref=atoi(iter->c_str());
-      break;
-    case 2:
-      flags=*iter;
-      break;
-    case 3:
-      services=*iter;
-      break;
-    case 4:
-      regex=*iter;
-      break;
-    case 5:
-      replacement=*iter;
-      break;
-    }
-  }
-  if(n!=6 || iter!=tok.end())
-    throw AhuException("Error parsing NAPTR content '"+content+"'");
-
-/* 
- The packet format for the NAPTR record is:
-
-                                          1  1  1  1  1  1
-            0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-          |                     ORDER                     |
-          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-          |                   PREFERENCE                  |
-          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-          /                     FLAGS                     /
-          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-          /                   SERVICES                    /
-          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-          /                    REGEXP                     /
-          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-          /                  REPLACEMENT                  /
-          /                                               /
-          +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-	  (jeez)
-*/
-
-
-  string piece3;
-  piece3.resize(4);
- 
-  piece3[0]=(order>>8)&0xff;
-  piece3[1]=(order)&0xff;
-
-  piece3[2]=(pref>>8)&0xff;
-  piece3[3]=(pref)&0xff;
-
-  piece3.append(1,flags.length());
-  piece3.append(flags);
-  piece3.append(1,services.length());
-  piece3.append(services);
-  piece3.append(1,regex.length());
-  piece3.append(regex);
-
-  string piece4;
-  toqname(replacement,&piece4, false); // don't compress
- 
-  p[9]=(piece3.length()+piece4.length())%256;
-  p[10]=(piece3.length()+piece4.length())/256;
-
-  stringbuffer+=piece1;
-  stringbuffer.append(p,10);
-  stringbuffer+=piece3;
-  stringbuffer+=piece4;
-  
-  // done
-  d.ancount++;
-}
- 
-void DNSPacket::addPTRRecord(const DNSResourceRecord &rr)
-{
-  addPTRRecord(rr.qname, rr.content, rr.ttl);
-}
-
-void DNSPacket::addPTRRecord(const string &domain, const string &alias, uint32_t ttl)
-{
- string piece1;
-
- toqname(domain,&piece1);
- char p[10];
- makeHeader(p,QType::PTR,ttl);
-
- string piece3;
- toqname(alias,&piece3);
- 
- p[9]=piece3.length();
- 
- stringbuffer+=piece1;
- stringbuffer.append(p,10);
- stringbuffer+=piece3;
-
- d.ancount++;
-}
-
-void DNSPacket::addTXTRecord(const DNSResourceRecord& rr)
-{
-  addTXTorSPFRecord(QType::TXT, rr.qname, rr.content, rr.ttl);
-}
-
-void DNSPacket::addSPFRecord(const DNSResourceRecord& rr)
-{
-  addTXTorSPFRecord(QType::SPF, rr.qname, rr.content, rr.ttl);
-}
-
-
-void DNSPacket::addTXTorSPFRecord(uint16_t qtype, string domain, string txt, uint32_t ttl)
-{
- string piece1;
- //xtoqname(domain, &piece1);
- toqname(domain, &piece1);
- char p[10];
- makeHeader(p, qtype, ttl);
- string piece3;
- piece3.reserve(txt.length()+1);
- piece3.append(1,txt.length());
- piece3.append(txt);
-
- p[8]=piece3.length()/256;;
- p[9]=piece3.length()%256;
-
- stringbuffer+=piece1;
- stringbuffer.append(p,10);
- stringbuffer+=piece3;
-
- d.ancount++;
-}
-void DNSPacket::addHINFORecord(const DNSResourceRecord& rr)
-{
-  addHINFORecord(rr.qname, rr.content, rr.ttl);
-}
-
-/** First word of content is the CPU */
-void DNSPacket::addHINFORecord(string domain, string content, uint32_t ttl)
-{
-  string piece1;
-  toqname(domain, &piece1);
-  char p[10];
-  makeHeader(p,QType::HINFO,ttl);
-  
-  string::size_type offset=content.find(" ");
-  string cpu, host;
-  if(offset==string::npos) {
-    cpu=content;
-  } else {
-    cpu=content.substr(0,offset);
-    host=content.substr(offset);
-  }
-  
-  string piece3;
-  piece3.reserve(cpu.length()+1);
-  piece3.append(1,cpu.length());
-  piece3.append(cpu);
-  
-  string piece4;
-  piece4.reserve(host.length()+1);
-  piece4.append(1,host.length());
-  piece4.append(host);
-    
-  p[8]=0;
-  p[9]=piece3.length()+piece4.length();
-  
-  stringbuffer+=piece1;
-  stringbuffer.append(p,10);
-  stringbuffer+=piece3;
-  stringbuffer+=piece4;
-  
-  d.ancount++;
-}
-
-void DNSPacket::addNSRecord(const DNSResourceRecord &rr)
-{
-  addNSRecord(rr.qname, rr.content, rr.ttl, rr.d_place);
-}
-
-void DNSPacket::addNSRecord(string domain, string server, uint32_t ttl, DNSResourceRecord::Place place)
-{
-  string piece1;
-  toqname(domain, &piece1);
-
-  char p[10];
-  makeHeader(p,QType::NS,ttl);
-
-  string piece3;
-  string::size_type pos=server.find('@'); // chop off @
-  if(pos!=string::npos)
-    server.resize(pos);
-
-  toqname(server,&piece3);
-
-  p[9]=piece3.length();;
-
-  stringbuffer.append(piece1);
-  stringbuffer.append(p,10);
-  stringbuffer.append(piece3);
-
-  if(place==DNSResourceRecord::AUTHORITY)
-    d.nscount++;
-  else
-    d.ancount++;
-
-}
-
 
 static int rrcomp(const DNSResourceRecord &A, const DNSResourceRecord &B)
 {
@@ -910,27 +234,6 @@ static int rrcomp(const DNSResourceRecord &A, const DNSResourceRecord &B)
     return 1;
 
   return 0;
-}
-
-/** You can call this function to find out if there are any records that need additional processing. 
-    This holds for MX records and CNAME records, where information about the content may need further resolving. */
-bool DNSPacket::needAP()
-{
-  // if speed ever becomes an issue, this function might be implemented in the addRecord() method, which would set a flag
-  // whenever a record that needs additional processing is added
-
-  for(vector<DNSResourceRecord>::const_iterator i=rrs.begin();
-      i!=rrs.end();
-      ++i)
-    {
-      if(i->d_place!=DNSResourceRecord::ADDITIONAL && 
-	 ( (i->qtype.getCode()==QType::NS && i->content.find('@')==string::npos) ||  // NS records with @ in them are processed
-	  i->qtype.getCode()==QType::MX )) 
-	{
-	  return true;
-	}
-    }
-  return false;
 }
 
 vector<DNSResourceRecord*> DNSPacket::getAPRecords()
@@ -1003,133 +306,35 @@ void DNSPacket::wrapup(void)
   }
   d_wrapped=true;
 
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, qdomain, qtype.getCode(), 1);
+
+  pw.getHeader()->aa=d.aa;
+  pw.getHeader()->ra=d.ra;
+  pw.getHeader()->qr=d.qr;
+  pw.getHeader()->id=d.id;
+  pw.getHeader()->rd=d.rd;
 
   for(pos=rrs.begin();pos<rrs.end();++pos) {
-    rr=*pos;
-    DLOG(L<<"Added to data, RR: " << rr.qname);
-    DLOG(L<<"(" << rr.qtype.getName() << ")" << " " << (int) rr.d_place<< endl);
-
-    switch(rr.qtype.getCode()) {
-    case 1:  // A
-      addARecord(rr);
-      break;
-    case 2:  // NS
-      addNSRecord(rr);
-      break;
-
-    case 5:  // CNAME
-      addCNAMERecord(rr);
-      break;
-
-    case 6:  // SOA
-      addSOARecord(rr);
-      break;
-
-    case QType::MR:
-      addMRRecord(rr);
-      break;
-
-    case 12:  // PTR
-      addPTRRecord(rr);
-      break;
-
-    case 13: // HINFO
-      addHINFORecord(rr);
-      break;
-
-    case 15: // MX
-      addMXRecord(rr);
-      break;
-
-    case QType::TXT: // TXT
-
-      addTXTRecord(rr);
-      break;
-
-    case 17: // RP
-      addRPRecord(rr);
-      break;
-
-
-    case 28: // AAAA
-      addAAAARecord(rr);
-      break;
-
-    case QType::SRV: 
-      addSRVRecord(rr); 
-      break;
-
-    case QType::LOC:
-      addLOCRecord(rr);
-      break;
-
-    case QType::NAPTR:
-      addNAPTRRecord(rr);
-      break;
-
-    case QType::SPF: // SPF
-      addSPFRecord(rr);
-      break;
-
-    case 258: // CURL
-    case 256: // URL
-      addARecord(rr.qname,htonl(inet_addr(arg()["urlredirector"].c_str())),rr.ttl,DNSResourceRecord::ANSWER);   
-      break;
-
-    case 257: // MBOXFW
-      string::size_type pos;
-      pos=rr.qname.find("@");
-      DLOG(L<<Logger::Warning<<"Adding rr.qname: '"<<rr.qname<<"'"<<endl);
-      if(pos!=string::npos)
-	{
-	  string substr=rr.qname.substr(pos+1);
-
-	  addMXRecord(substr,arg()["smtpredirector"],25,rr.ttl);
-	}
-      break;
-
-    default:
-      if(rr.qtype.getCode()>1024)
-	addGenericRecord(rr);
-      else
-	L<<Logger::Warning<<"Unable to insert a record of type "<<rr.qtype.getName()<<" for '"<<rr.qname<<"'"<<endl;
+    // this needs to deal with the 'prio' mismatch!
+    if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
+      pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
     }
+    pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
+    shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
+    drc->toPacket(pw);
   }
-  d.ancount=htons(d.ancount);
-  d.qdcount=htons(d.qdcount);
-  d.nscount=htons(d.nscount);
-  d.arcount=htons(d.arcount);
-
-  commitD();
-
-  len=stringbuffer.length();
+  try {
+    pw.commit();
+  }
+  catch(exception& e) {
+    cerr<<"Exception: "<<e.what()<<endl;
+    throw;
+  }
+  stringbuffer.assign((char*)&packet[0], packet.size());
+  len=packet.size();
 }
 
-void DNSPacket::addGenericRecord(const DNSResourceRecord& rr)
-{
-  string piece1;
- //xtoqname(domain, &piece1);
- toqname(rr.qname, &piece1);
- char p[10];
- 
- p[0]=0;
- p[1]=rr.qtype.getCode()-1024; // TXT
- p[2]=0;
- p[3]=1; // IN
-
- putLong(p+4,rr.ttl);
-
- p[8]=rr.content.length()/256;
- p[9]=rr.content.length()%256; // need to fill this in
-
- stringbuffer+=piece1;
- stringbuffer.append(p,10);
- stringbuffer+=rr.content;
- if(rr.d_place==DNSResourceRecord::ADDITIONAL)
-   d.arcount++;
- else
-   d.ancount++;
-}
 
 /** Truncates a packet that has already been wrapup()-ed, possibly via a call to getData(). Do not call this function
     before having done this - it will possibly break your packet, or crash your program. 
@@ -1148,37 +353,6 @@ void DNSPacket::truncate(int new_length)
   stringbuffer[2]|=2; // set TC
 }
 
-string DNSPacket::compress(const string &qd)
-{
-  // input www.casema.net, output 3www6casema3net
-  // input www.casema.net., output 3www6casema3net
-  string qname = "";
-
-  // Convert the name to a qname
-
-  const char *p = qd.c_str();
-  const char *q = strchr(p, '.');
-  
-  while (p <= (qd.c_str() + qd.length()))
-    {
-      int length = (q == NULL) ? strlen(p) : (q - p);
-      if (length == 0) {
-        break;
-      }
-      qname += (char) length;
-      qname.append(p, length);
-      
-      if (q == NULL) {
-	break;
-      } else {
-	p = q + 1;
-	q = strchr(p, '.');
-      }
-    }
-  
-  qname += (char) 0x00;
-  return qname;
-}
 
 void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
 {
@@ -1191,20 +365,6 @@ void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
   d.opcode=op;
   qdomain=qd;
   qtype=newqtype;
-  string label=compress(qd);
-  stringbuffer.assign((char *)&d,sizeof(d));
-  stringbuffer.append(label);
-  uint16_t tmp=htons(newqtype);
-  stringbuffer.append((char *)&tmp,2);
-  tmp=htons(1);
-  stringbuffer.append((char *)&tmp,2);
-}
-
-/** A DNS answer packets needs to include the original question. This function allows you to
-    paste in a question */
-void DNSPacket::pasteQ(const char *question, int length)
-{
-  stringbuffer.replace(12, length, question, length);  // bytes 12 & onward need to become *question
 }
 
 /** convenience function for creating a reply packet from a question packet. Do not forget to delete it after use! */
@@ -1221,169 +381,75 @@ DNSPacket *DNSPacket::replyPacket() const
   r->setID(d.id);
   r->setOpcode(d.opcode);
 
-  // reserve some space
-  r->stringbuffer.reserve(d_qlen+12);
-  // copy the question in
-  r->pasteQ(stringbuffer.c_str()+12,d_qlen);
-  
   r->d_dt=d_dt;
   r->d.qdcount=1;
   r->d_tcp = d_tcp;
+  r->qdomain = qdomain;
+  r->qtype = qtype;
   return r;
 }
 
-int DNSPacket::findlabel(string &label)
+void DNSPacket::spoofQuestion(const string &qd)
 {
-  const char *data = stringbuffer.data();
-  const char *p = data + 12;
+  string label=simpleCompress(qd);
+  for(string::size_type i=0;i<label.size();++i)
+    stringbuffer[i+sizeof(d)]=label[i];
+  d_wrapped=true; // if we do this, don't later on wrapup
+}
 
-  // Look in the question section
-   
-  for (unsigned int i = 0; i < d.qdcount; i++) {
-    while (*p != 0x00) {
-      // Skip compressed labels
-      if ((*p & 0xC0) == 0xC0) {
-	p += 1;
-	break;
-      }
-      else {
-	if (strncmp(p, label.data(), label.size()) == 0)
-	  return (p - data);
-	p += (*p + 1);
-      }
-    }
-      
-    // Skip the tailing zero
-    p++;
-    
-    // Skip the header
-    p += 4;
+/** This function takes data from the network, possibly received with recvfrom, and parses
+    it into our class. Results of calling this function multiple times on one packet are
+    unknown. Returns -1 if the packet cannot be parsed.
+*/
+int DNSPacket::parse(const char *mesg, int length)
+{
+  stringbuffer.assign(mesg,length); 
+
+  len=length;
+  if(length < 12) { 
+    L << Logger::Warning << "Ignoring packet: too short from "
+      << getRemote() << endl;
+    return -1;
   }
+  MOADNSParser mdp(string(mesg, length));
 
-  // Look in the answer sections
+  memcpy((void *)&d,(const void *)stringbuffer.c_str(),12);
+  qdomain=mdp.d_qname;
+  if(!qdomain.empty()) // strip dot
+    erase_tail(qdomain, 1);
 
-  for (unsigned int i = 0; i < d.ancount + d.nscount + d.arcount; i++) {
-    while (*p != 0x00) {
-      // Skip compressed labels - means the end
-      if ((*p & 0xC0) == 0xC0)
-	{
-	  p += 1;
-	  break;
-	}
-      else
-	{
-	  if (strncmp(p, label.data(), label.size()) == 0)
-	    {
-	      return (p - data);
-	    }
-	  
-	  p += (*p + 1);
-	}
-    }
-    
-    // Skip the trailing zero or other half of the ptr
-       
-    p++;
-
-    // Skip the header and data
-    
-    uint16_t dataLength = getShort(p+8);
-    uint16_t type = getShort(p);  
-
-    p += 10;
-    
-    // Check for NS, CNAME, PTR and MX records
-    
-    if (type == QType::NS || type == QType::CNAME || type == QType::PTR || type == QType::MX) {
-      // For MX records, skip the preference field
-      if (type == QType::MX){
-	p += 2;
-      }
-
-      while (*p != 0x00) {
-	//
-	// Skip compressed labels
-	//
-	
-	if ((*p & 0xC0) == 0xC0) {
-	  p += 1;
-	  break;
-	}
-	else {
-
-	  if (strncmp(p, label.data(), label.size()) == 0) {
-	    return (p - data);
-	  }
-		   
-	  p += (*p + 1);
-	}
-      }
-	   
-      // Skip the trailing zero or the last byte of a compresed label
-      p++;	 
-    }
-    else {
-      p += dataLength;
+  if(!ntohs(d.qdcount)) {
+    if(!d_tcp) {
+      L << Logger::Warning << "No question section in packet from " << getRemote() <<", rcode="<<(int)d.rcode<<endl;
+      return -1;
     }
   }
   
-  return -1;
+  qtype=mdp.d_qtype;
+  qclass=mdp.d_qclass;
+  return 0;
 }
 
-int DNSPacket::toqname(const char *name, string &qname, bool comp)
+//! Use this to set where this packet was received from or should be sent to
+void DNSPacket::setRemote(const ComboAddress *s)
 {
-  qname = compress(name);
-
-  if (d_compress && comp) {
-    // Now find a previous declared label. We work through the complete
-    // name from left to right like this:
-    //  ns1.norad.org
-    //  norad.org
-    //  org
-    
-    int i = 0;
-    bool containsptr=false;
-    
-    while (qname[i] != 0x00 &&	/* qname[i] == 0x00 => i == qname.length */
-	(qname[i] & 0xC0) != 0xC0) {	// no use to try to compress offsets
-      // Get a portion of the name
-      
-      // qname must include an extra trailing '\0' if it's prefix
-      // is not an offset ptr
-      string s = qname.substr(i);	/* s == qname[i..N) */
-      if (!containsptr) s = s + '\0';
-
-
-      // Did we see this before?
-      int offset = findlabel(s);
-      
-      if ( offset != -1) {
-	qname[i + 0] = (char) (((offset | 0xC000) & 0x0000FF00) >> 8);
-	qname[i + 1] = (char)  ((offset | 0xC000) & 0x000000FF);
-	qname = qname.substr(0, i + 2); // XX setlength() ?
-	containsptr=true;
-	// qname now consists of unique prefix+known suffix (on location 'offset')
-	// we managed to make qname shorter, maybe we can do that again
-	i = 0;
-	
-      }
-      else {				/* offset == -1 */
-      	// Move to the next label
-      	i += (qname[i] + 1); // doesn't quite handle very long labels
-      }
-    }
-  }
-  
-  return qname.length();
+  remote=*s;
 }
 
-int DNSPacket::toqname(const string &name, string &qname, bool compress)
+void DNSPacket::spoofID(uint16_t id)
 {
-   return toqname(name.c_str(), qname, compress);
+  stringbuffer[1]=(id>>8)&0xff; 
+  stringbuffer[0]=id&0xff;
+  d.id=id;
 }
 
-int DNSPacket::toqname(const string &name, string *qname, bool compress)
+void DNSPacket::setSocket(Utility::sock_t sock)
 {
-   return toqname(name.c_str(), *qname, compress);
+  d_socket=sock;
+}
+
+void DNSPacket::commitD()
+{
+  stringbuffer.replace(0,12,(char *)&d,12); // copy in d
 }
 

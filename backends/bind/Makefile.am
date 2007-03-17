@@ -13,7 +13,7 @@ bin_PROGRAMS = zone2sql zone2ldap
 zone2sql_SOURCES=bindparser.yy bindlexer.l \
 ../../arguments.cc ../../logger.cc zone2sql.cc ../../statbag.cc ../../misc.cc \
 ../../unix_utility.cc ../../qtype.cc ../../dnspacket.cc \
-../../sillyrecords.cc  ../../zoneparser-tng.cc ../../dnsrecords.cc \
+../../zoneparser-tng.cc ../../dnsrecords.cc \
 ../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc
 
 

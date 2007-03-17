@@ -310,6 +310,7 @@ private:
   vector<uint8_t> d_content;
 };
 
-
+string simpleCompress(const string& label);
+void simpleExpandTo(const string& label, unsigned int frompos, string& ret);
 
 #endif

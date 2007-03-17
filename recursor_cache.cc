@@ -34,30 +34,6 @@ namespace __gnu_cxx
 }
 #endif
 
-string simpleCompress(const string& label)
-{
-  typedef vector<pair<unsigned int, unsigned int> > parts_t;
-  parts_t parts;
-  vstringtok(parts, label, ".");
-  string ret;
-  ret.reserve(label.size()+4);
-  for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-    ret.append(1, (char)(i->second - i->first));
-    ret.append(label.c_str() + i->first, i->second - i->first);
-  }
-  ret.append(1, (char)0);
-  return ret;
-}
-
-void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
-{
-  unsigned int labellen=0;
-  while((labellen=label.at(frompos++))) {
-    ret.append(label.c_str()+frompos, labellen);
-    ret.append(1,'.');
-    frompos+=labellen;
-  }
-}
 
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
 {

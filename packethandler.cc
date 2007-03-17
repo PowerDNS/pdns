@@ -306,10 +306,13 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
   DNSResourceRecord rr;
   SOAData sd;
 
-  if(p->qtype.getCode()!=QType::AXFR && r->needAP()) { // this packet needs additional processing
+  if(p->qtype.getCode()!=QType::AXFR) { // this packet needs additional processing
+    vector<DNSResourceRecord *> arrs=r->getAPRecords();
+    if(arrs.empty()) 
+      return 1;
+
     DLOG(L<<Logger::Warning<<"This packet needs additional processing!"<<endl);
 
-    vector<DNSResourceRecord *> arrs=r->getAPRecords();
     vector<DNSResourceRecord> crrs;
 
     for(vector<DNSResourceRecord *>::const_iterator i=arrs.begin();
