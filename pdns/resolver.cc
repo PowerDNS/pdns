@@ -27,7 +27,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
-
+#include <boost/algorithm/string.hpp>
 #include "dns.hh"
 #include "qtype.hh"
 #include "tcpreceiver.hh"
@@ -410,10 +410,22 @@ Resolver::res_t Resolver::result()
     DNSResourceRecord rr;
     for(MOADNSParser::answers_t::const_iterator i=mdp->d_answers.begin(); i!=mdp->d_answers.end(); ++i) {          
       rr.qname = i->first.d_label;
+      if(!rr.qname.empty())
+	erase_tail(rr.qname, 1); // strip .
       rr.qtype = i->first.d_type;
       rr.ttl = i->first.d_ttl;
       rr.content = i->first.d_content->getZoneRepresentation();
+      
+      uint16_t qtype=rr.qtype.getCode();
+
+      if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
+	erase_tail(rr.content, 1);
+
+      if(qtype==QType::TXT)
+	rr.content=unquotify(rr.content);
+
       if(rr.qtype.getCode() == QType::MX) {
+
 	vector<string> parts;
 	stringtok(parts, rr.content);
 	rr.priority = atoi(parts[0].c_str());

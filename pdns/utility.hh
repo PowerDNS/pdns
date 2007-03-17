@@ -22,7 +22,7 @@
 #define UTILITY_HH
 
 #ifndef WIN32
-# include "config.h"
+// # include "config.h"
 #endif // WIN32
 
 #ifdef _MSC_VER

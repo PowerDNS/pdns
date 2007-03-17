@@ -534,7 +534,7 @@ void Bind2Backend::loadConfig(string* status)
 	    ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
 	    DNSResourceRecord rr;
 	    while(zpt.get(rr)) {
-	      if(rr.qtype.getCode()==QType::MX) {
+	      if(rr.qtype.getCode()==QType::MX) { // XXX FIXME
 		char tmp[rr.content.size()];
 		int prio;
 		sscanf(rr.content.c_str(), "%d %s", &prio, tmp);
@@ -662,7 +662,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, d_binddirectory);
     DNSResourceRecord rr;
     while(zpt.get(rr)) {
-      if(rr.qtype.getCode()==QType::MX) {
+      if(rr.qtype.getCode()==QType::MX) {  // XXX FIXME
 	char tmp[rr.content.size()];
 	int prio;
 	sscanf(rr.content.c_str(), "%d %s", &prio, tmp);
