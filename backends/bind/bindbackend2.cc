@@ -26,7 +26,7 @@
 #include <fstream>
 #include <sstream>
 #include <boost/bind.hpp>
-
+#include <boost/algorithm/string.hpp>
 using namespace std;
 
 #include "dns.hh"
@@ -347,7 +347,20 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
     bdr.qname=(records.end()-1)->qname;
 
   bdr.qtype=qtype.getCode();
-  bdr.content=canonic(content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
+  bdr.content=content; 
+
+  if(bdr.qtype == QType::MX || bdr.qtype == QType::SRV) { 
+    prio=atoi(bdr.content.c_str());
+    
+    string::size_type pos = bdr.content.find_first_not_of("0123456789");
+    if(pos != string::npos)
+      erase_head(bdr.content, pos);
+    trim_left(bdr.content);
+  }
+  
+  if(bdr.qtype==QType::CNAME || bdr.qtype==QType::MX || bdr.qtype==QType::NS)
+    bdr.content=canonic(bdr.content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
+
   set<string>::const_iterator i=contents.find(bdr.content);
   if(i!=contents.end())
    bdr.content=*i;
@@ -357,7 +370,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
 
   bdr.ttl=ttl;
   bdr.priority=prio;
-
+  
   records.push_back(bdr);
 }
 
@@ -534,13 +547,6 @@ void Bind2Backend::loadConfig(string* status)
 	    ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
 	    DNSResourceRecord rr;
 	    while(zpt.get(rr)) {
-	      if(rr.qtype.getCode()==QType::MX) { // XXX FIXME
-		char tmp[rr.content.size()];
-		int prio;
-		sscanf(rr.content.c_str(), "%d %s", &prio, tmp);
-		rr.priority=prio;
-		rr.content=tmp;
-	      }
 	      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
 	    }
 
@@ -662,13 +668,6 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, d_binddirectory);
     DNSResourceRecord rr;
     while(zpt.get(rr)) {
-      if(rr.qtype.getCode()==QType::MX) {  // XXX FIXME
-	char tmp[rr.content.size()];
-	int prio;
-	sscanf(rr.content.c_str(), "%d %s", &prio, tmp);
-	rr.priority=prio;
-	rr.content=tmp;
-      }
       insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
     }
         
@@ -805,7 +804,7 @@ bool Bind2Backend::get(DNSResourceRecord &r)
     return false;
   }
   if(::arg().mustDo("query-logging"))
-    L<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"'"<<endl;
+    L<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"', prio: "<<r.priority<<endl;
   return true;
 }
 
