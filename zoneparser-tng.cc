@@ -88,7 +88,7 @@ static unsigned int makeTTLFromZone(const string& str)
 
 bool ZoneParserTNG::getTemplateLine()
 {
-  if(d_templatecounter > d_templatestop || d_templateparts.empty()) // no template, or done with
+  if(d_templateparts.empty() || d_templatecounter > d_templatestop) // no template, or done with
     return false;
 
   string retline;

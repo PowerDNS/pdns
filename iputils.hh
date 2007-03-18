@@ -34,6 +34,7 @@
 #include "misc.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
 
@@ -161,6 +162,14 @@ union ComboAddress {
       return tmp;
       
     return tmp;
+  }
+
+  string toStringWithPort() const
+  {
+    if(sin4.sin_family==AF_INET)
+      return toString() + ":" + boost::lexical_cast<string>(ntohs(sin4.sin_port));
+    else
+      return "["+toString() + "]:" + boost::lexical_cast<string>(ntohs(sin4.sin_port));
   }
 };
 
