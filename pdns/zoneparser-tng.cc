@@ -305,6 +305,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   case QType::CNAME:
   case QType::PTR:
   case QType::SRV:
+  case QType::AFSDB:
     rr.content=toCanonic(d_zonename, rr.content);
     break;
 

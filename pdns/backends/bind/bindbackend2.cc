@@ -358,7 +358,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
     trim_left(bdr.content);
   }
   
-  if(bdr.qtype==QType::CNAME || bdr.qtype==QType::MX || bdr.qtype==QType::NS)
+  if(bdr.qtype==QType::CNAME || bdr.qtype==QType::MX || bdr.qtype==QType::NS || bdr.qtype==QType::AFSDB)
     bdr.content=canonic(bdr.content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
 
   set<string>::const_iterator i=contents.find(bdr.content);

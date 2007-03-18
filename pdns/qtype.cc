@@ -50,6 +50,7 @@ QType::QType()
       insert("MX",15);
       insert("TXT",16);
       insert("RP",17);
+      insert("AFSDB", 18);
       insert("SIG",24);
       insert("KEY",25);
       insert("AAAA",28);

@@ -200,6 +200,11 @@ boilerplate_conv(MX, ns_t_mx,
 		 conv.xfrLabel(d_mxname, true);
 		 )
 
+boilerplate_conv(AFSDB, ns_t_afsdb, 
+		 conv.xfr16BitInt(d_subtype);
+		 conv.xfrLabel(d_hostname);
+		 )
+
 
 boilerplate_conv(NAPTR, ns_t_naptr,
 		 conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
@@ -300,6 +305,7 @@ void reportBasicTypes()
 
 void reportOtherTypes()
 {
+   AFSDBRecordContent::report();
    SPFRecordContent::report();
    NAPTRRecordContent::report();
    RPRecordContent::report();

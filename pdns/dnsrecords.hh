@@ -207,6 +207,17 @@ private:
   string d_certificate;
 };
 
+class AFSDBRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(AFSDB)
+
+private:
+  uint16_t d_subtype;
+  string d_hostname;
+};
+
+
 class CERTRecordContent : public DNSRecordContent
 {
 public:
