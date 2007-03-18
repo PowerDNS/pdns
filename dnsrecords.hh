@@ -196,6 +196,17 @@ private:
   string d_fingerprint;
 };
 
+class KEYRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(KEY)
+
+private:
+  uint16_t d_flags;
+  uint8_t d_protocol, d_algorithm;
+  string d_certificate;
+};
+
 class CERTRecordContent : public DNSRecordContent
 {
 public:

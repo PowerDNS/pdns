@@ -235,6 +235,13 @@ boilerplate_conv(SOA, ns_t_soa,
 		 conv.xfr32BitInt(d_st.expire);
 		 conv.xfr32BitInt(d_st.minimum);
 		 );
+#undef KEY
+boilerplate_conv(KEY, ns_t_key, 
+		 conv.xfr16BitInt(d_flags); 
+		 conv.xfr8BitInt(d_protocol); 
+		 conv.xfr8BitInt(d_algorithm); 
+		 conv.xfrBlob(d_certificate);
+		 );
 
 boilerplate_conv(CERT, 37, 
 		 conv.xfr16BitInt(d_type); 
@@ -296,6 +303,7 @@ void reportOtherTypes()
    SPFRecordContent::report();
    NAPTRRecordContent::report();
    RPRecordContent::report();
+   KEYRecordContent::report();
    DNSKEYRecordContent::report();
    RRSIGRecordContent::report();
    DSRecordContent::report();
