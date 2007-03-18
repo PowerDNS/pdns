@@ -553,9 +553,20 @@ bool validDNSName(const string &name)
   return true;
 }  
 
-//! Called by the Distributor to ask a question. Returns 0 in case of an error
 DNSPacket *PacketHandler::question(DNSPacket *p)
 {
+  bool shouldRecurse=false;
+  DNSPacket *ret=questionOrRecurse(p, &shouldRecurse);
+  if(shouldRecurse) {
+    DP->sendPacket(p);
+  }
+  return ret;
+}
+
+//! Called by the Distributor to ask a question. Returns 0 in case of an error
+DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
+{
+  *shouldRecurse=false;
   DNSResourceRecord rr;
   SOAData sd;
   sd.db=0;
@@ -738,7 +749,6 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
     // RECURSION CUT-OUT! 
 
-
     bool weAuth;
     int zoneId;
     zoneId=-1;
@@ -750,10 +760,12 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
 
     if(p->d.rd && d_doRecursion && !weAuth) {
-      if(DP->sendPacket(p)) {
+      if(DP->recurseFor(p)) {
+	*shouldRecurse=true;
 	delete r;
 	return 0;
       }
+
       else noCache=true;
     }
     

@@ -69,7 +69,7 @@ public:
     T **d_guard;
   };
 
-
+  DNSPacket *questionOrRecurse(DNSPacket *, bool* shouldRecurse); //!< hand us a DNS packet with a question, we'll tell you answer, or that you should recurse
   DNSPacket *question(DNSPacket *); //!< hand us a DNS packet with a question, we give you an answer
   PacketHandler(); 
   ~PacketHandler(); // defined in packethandler.cc, and does --count

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2006  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -39,6 +39,7 @@
 #include "statbag.hh"
 #include "resolver.hh"
 #include "communicator.hh"
+using namespace boost;
 
 extern PacketCache PC;
 extern StatBag S;
@@ -54,11 +55,11 @@ PacketHandler *TCPNameserver::s_P;
 int TCPNameserver::s_timeout;
 NetmaskGroup TCPNameserver::d_ng;
 
-int TCPNameserver::sendDelPacket(DNSPacket *p, int outsock)
+
+int TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
   const char *buf=p->getData();
   int res=sendData(buf, p->len, outsock);
-  delete p;
   return res;
 }
 
@@ -81,7 +82,6 @@ void *TCPNameserver::launcher(void *data)
   static_cast<TCPNameserver *>(data)->thread();
   return 0;
 }
-
 
 int TCPNameserver::readLength(int fd, ComboAddress *remote)
 {
@@ -126,9 +126,61 @@ void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const ComboAddre
     throw AhuException("Remote TCP client "+remote.toString()+" closed connection");
 }
 
+static void proxyQuestion(shared_ptr<DNSPacket> packet)
+{
+  int sock=socket(AF_INET, SOCK_STREAM, 0);
+  if(sock < 0)
+    throw AhuException("Error making TCP connection socket to recursor: "+stringerror());
+
+  try {
+    ServiceTuple st;
+    st.port=53;
+    parseService(arg()["recursor"],st);
+    
+    ComboAddress recursor(st.host, st.port);
+    if(connect(sock, (struct sockaddr*)&recursor, recursor.getSocklen()) < 0) {
+      throw AhuException("Error making TCP connection to recursor "+st.host+": "+stringerror());
+    }
+    const string &buffer=packet->getString();
+    
+    uint16_t len=htons(buffer.length()), slen;
+    
+    if(write(sock, &len, 2) != 2 || write(sock, buffer.c_str(), buffer.length()) != buffer.length()) 
+      throw AhuException("Error sending data to recursor");
+    
+    int ret;
+    
+    ret=read(sock, &len, 2);
+    if(ret!=2) {
+      throw AhuException("Error reading data from recursor");
+    }
+    len=ntohs(len);
+
+    char answer[len];
+    ret=read(sock, answer, len);
+    if(ret!=len) 
+      throw AhuException("Error reading data from recursor");
+
+    slen=htons(len);
+    ret=write(packet->getSocket(), &slen, 2);
+    if(ret != 2) 
+      throw AhuException("Error reading data from recursor");
+    
+    ret=write(packet->getSocket(), answer, len);
+    if(ret != len) 
+      throw AhuException("Error reading data from recursor");
+  }
+  catch(...) {
+    close(sock);
+    throw;
+  }
+  close(sock);
+  return;
+}
+
 void *TCPNameserver::doConnection(void *data)
 {
-  DNSPacket *packet = NULL;
+  shared_ptr<DNSPacket> packet;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
   pthread_detach(pthread_self());
@@ -153,13 +205,10 @@ void *TCPNameserver::doConnection(void *data)
       getQuestion(fd,mesg,pktlen,remote);
       S.inc("tcp-queries");      
 
-      if (packet != NULL)
-        delete packet;
-
-      packet=new DNSPacket;
-      
+      packet=shared_ptr<DNSPacket>(new DNSPacket);
       packet->setRemote(&remote);
       packet->d_tcp=true;
+      packet->setSocket(fd);
       if(packet->parse(mesg, pktlen)<0)
 	break;
       
@@ -169,68 +218,43 @@ void *TCPNameserver::doConnection(void *data)
 	continue;
       }
 
+      shared_ptr<DNSPacket> reply; 
 
-      if(packet->d.rd && arg().mustDo("recursor")) {
-	// now what
-	// this is a pretty rare event all in all, so we can afford to be slow
 
-	// this code SHOULD attempt to answer from the local cache first!
-	S.inc("recursing-questions");
-	Resolver res;
-	unsigned int len;
-        DLOG(L<<"About to hand query to recursor"<<endl);
-	ServiceTuple st;
-	st.port=53;
-	parseService(arg()["recursor"],st);
+      shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
 
-	char *buffer=res.sendReceive(st.host,st.port,packet->getRaw(),packet->len,&len);
-        DLOG(L<<"got an answer from recursor: "<<len<<" bytes, "<<(int)buffer<<endl);
-	if(buffer) {
-	  sendData(buffer,len,fd);
-	  DLOG(L<<"sent out to customer: "<<len<<" bytes"<<endl);
-	  delete buffer;
-	  S.inc("recursing-answers");
-	  S.inc("tcp-answers");  
-	}
-	continue;
-      }
-
-      DNSPacket* cached=new DNSPacket;
-      if(!packet->d.rd && (PC.get(packet, cached))) { // short circuit - does the PacketCache recognize this question?
+      if(!packet->d.rd && (PC.get(packet.get(), cached.get()))) { // short circuit - does the PacketCache recognize this question?
 	cached->setRemote(&packet->remote);
 	cached->spoofID(packet->d.id);
-	if(sendDelPacket(cached, fd)<0) 
+	if(sendPacket(cached, fd)<0) 
 	  goto out;
-
+	
 	S.inc("tcp-answers");
 	continue;
       }
-      else
-	delete cached;
-      
-      DNSPacket *reply; 
+	
       {
 	Lock l(&s_plock);
 	if(!s_P) {
 	  L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
 	  s_P=new PacketHandler;
 	}
-	reply=s_P->question(packet); // we really need to ask the backend :-)
+	bool shouldRecurse;
+	reply=shared_ptr<DNSPacket>(s_P->questionOrRecurse(packet.get(), &shouldRecurse)); // we really need to ask the backend :-)
+	if(shouldRecurse) {
+	  proxyQuestion(packet);
+	  continue;
+	}
       }
 
-      delete packet;
-      packet = NULL;
-	
       if(!reply)  // unable to write an answer?
 	break;
 	
       S.inc("tcp-answers");
-      sendDelPacket(reply, fd);
+      sendPacket(reply, fd);
     }
-    
   out:
-    if (packet != NULL)
-      delete packet;
+    ;
   }
   catch(DBException &e) {
     Lock l(&s_plock);
@@ -258,7 +282,7 @@ void *TCPNameserver::doConnection(void *data)
   return 0;
 }
 
-bool TCPNameserver::canDoAXFR(DNSPacket *q)
+bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 {
   if(arg().mustDo("disable-axfr"))
     return false;
@@ -277,20 +301,20 @@ bool TCPNameserver::canDoAXFR(DNSPacket *q)
 }
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
+int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int outsock)
 {
-  DNSPacket *outpacket=0;
+  shared_ptr<DNSPacket> outpacket;
   if(!canDoAXFR(q)) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
 
-    outpacket=q->replyPacket();
+    outpacket=shared_ptr<DNSPacket>(q->replyPacket());
     outpacket->setRcode(RCode::Refused); 
     // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
-    sendDelPacket(outpacket,outsock);
+    sendPacket(outpacket,outsock);
     return 0;
   }
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
-  outpacket=q->replyPacket();
+  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
 
   DNSResourceRecord soa;  
   DNSResourceRecord rr;
@@ -311,7 +335,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     if(!s_P->getBackend()->getSOA(target,sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
-      sendDelPacket(outpacket,outsock);
+      sendPacket(outpacket,outsock);
       return 0;
     }
 
@@ -322,7 +346,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   if(!P.getBackend()->getSOA(target, sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(9); // 'NOTAUTH'
-    sendDelPacket(outpacket,outsock);
+    sendPacket(outpacket,outsock);
     return 0;
   }
 
@@ -336,7 +360,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   if(!sd.db || sd.db==(DNSBackend *)-1) {
     L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
     outpacket->setRcode(RCode::ServFail);
-    sendDelPacket(outpacket,outsock);
+    sendPacket(outpacket,outsock);
     return 0;
   }
  
@@ -348,14 +372,14 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   if(!(B->list(target, sd.domain_id))) {  
     L<<Logger::Error<<"Backend signals error condition"<<endl;
     outpacket->setRcode(2); // 'SERVFAIL'
-    sendDelPacket(outpacket,outsock);
+    sendPacket(outpacket,outsock);
     return 0;
   }
   /* write first part of answer */
 
   DLOG(L<<"Sending out SOA"<<endl);
   outpacket->addRecord(soa); // AXFR format begins and ends with a SOA record, so we add one
-  sendDelPacket(outpacket, outsock);
+  sendPacket(outpacket, outsock);
 
   /* now write all other records */
 
@@ -364,7 +388,7 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
   if(arg().mustDo("strict-rfc-axfrs"))
     chunk=1;
 
-  outpacket=q->replyPacket();
+  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
   outpacket->setCompress(false);
 
   while(B->get(rr)) {
@@ -376,23 +400,23 @@ int TCPNameserver::doAXFR(const string &target, DNSPacket *q, int outsock)
     if(!((++count)%chunk)) {
       count=0;
     
-      if(sendDelPacket(outpacket, outsock) < 0)  // FIXME: this leaks memory!
+      if(sendPacket(outpacket, outsock) < 0)  
 	return 0;
 
-      outpacket=q->replyPacket();  
+      outpacket=shared_ptr<DNSPacket>(q->replyPacket());
       outpacket->setCompress(false);
       // FIXME: Subsequent messages SHOULD NOT have a question section, though the final message MAY.
     }
   }
   if(count) {
-    sendDelPacket(outpacket, outsock);
+    sendPacket(outpacket, outsock);
   }
 
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
-  outpacket=q->replyPacket();
+  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
   outpacket->addRecord(soa);
-  sendDelPacket(outpacket, outsock);
+  sendPacket(outpacket, outsock);
   DLOG(L<<"last packet - close"<<endl);
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
@@ -416,7 +440,6 @@ TCPNameserver::TCPNameserver()
   vector<string>locals6;
   stringtok(locals6,arg()["local-ipv6"]," ,");
 
-
   if(locals.empty() && locals6.empty())
     throw AhuException("No local address specified");
 
@@ -434,30 +457,12 @@ TCPNameserver::TCPNameserver()
   FD_ZERO(&d_rfds);  
 
   for(vector<string>::const_iterator laddr=locals.begin();laddr!=locals.end();++laddr) {
-    struct sockaddr_in local;
     int s=socket(AF_INET,SOCK_STREAM,0); 
 
     if(s<0) 
       throw AhuException("Unable to acquire TCP socket: "+stringerror());
-    
-    memset(&local,0,sizeof(local));
-    local.sin_family=AF_INET;
 
-    struct hostent *h;
-    
-    if ( *laddr == "0.0.0.0" )
-    {
-      local.sin_addr.s_addr = INADDR_ANY;
-    }
-    else 
-    {
-      h=gethostbyname(laddr->c_str());
-  
-      if(!h)
-        throw AhuException("Unable to resolve local address '"+*laddr+"'");
-
-      local.sin_addr.s_addr=*(int*)h->h_addr;
-    }
+    ComboAddress local(*laddr, arg().asNum("local-port"));
       
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -465,21 +470,18 @@ TCPNameserver::TCPNameserver()
       exit(1);  
     }
 
-    local.sin_port=htons(arg().asNum("local-port"));
-    
-    if(bind(s, (sockaddr*)&local,sizeof(local))<0) {
+    if(bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to TCP socket");
     }
     
     listen(s,128);
-    L<<Logger::Error<<"TCP server bound to "<<*laddr<<":"<<arg().asNum("local-port")<<endl;
+    L<<Logger::Error<<"TCP server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
     FD_SET(s, &d_rfds);
     d_highfd=max(s,d_highfd);
   }
 
-  // TODO: Implement ipv6
 #if !WIN32 && HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     int s=socket(AF_INET6,SOCK_STREAM,0); 
@@ -487,23 +489,7 @@ TCPNameserver::TCPNameserver()
     if(s<0) 
       throw AhuException("Unable to acquire TCPv6 socket: "+stringerror());
 
-    sockaddr_in6 locala;
-    memset(&locala, 0, sizeof(locala));
-    locala.sin6_port=htons(arg().asNum("local-port"));
-    locala.sin6_family=AF_INET6;
-
-    if(!inet_pton(AF_INET6, laddr->c_str(), (void *)&locala.sin6_addr)) {
-      addrinfo *addrinfos;
-      addrinfo hints;
-      memset(&hints,0,sizeof(hints));
-      hints.ai_socktype=SOCK_STREAM;
-      hints.ai_family=AF_INET6;
-      
-      if(getaddrinfo(laddr->c_str(),arg()["local-port"].c_str(),&hints,&addrinfos)) 
-	throw AhuException("Unable to resolve local IPv6 address '"+*laddr+"'"); 
-
-      memcpy(&locala,addrinfos->ai_addr,addrinfos->ai_addrlen);
-    }
+    ComboAddress local(*laddr, arg().asNum("local-port"));
 
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -511,14 +497,13 @@ TCPNameserver::TCPNameserver()
       exit(1);  
     }
 
-
-    if(bind(s, (const sockaddr*)&locala, sizeof(locala))<0) {
+    if(bind(s, (const sockaddr*)&local, local.getSocklen())<0) {
       L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to TCPv6 socket");
     }
     
     listen(s,128);
-    L<<Logger::Error<<"TCPv6 server bound to ["<<*laddr<<"]:"<<arg()["local-port"]<<endl;
+    L<<Logger::Error<<"TCPv6 server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
     FD_SET(s, &d_rfds);
     d_highfd=max(s,d_highfd);
@@ -527,7 +512,7 @@ TCPNameserver::TCPNameserver()
 }
 
 
-//! Start of TCP operations thread
+//! Start of TCP operations thread, we launch a new thread for each incoming TCP question
 void TCPNameserver::thread()
 {
   struct timeval tv;
@@ -541,7 +526,7 @@ void TCPNameserver::thread()
 
       fd_set rfds=d_rfds; 
 
-      int ret=select(d_highfd+1, &rfds, 0, 0,  0); // blocks
+      int ret=select(d_highfd+1, &rfds, 0, 0,  0); // blocks, forever if need be
       if(ret <= 0)
 	continue;
 
