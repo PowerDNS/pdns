@@ -128,7 +128,7 @@ void OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
 		if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
 		{
-			DNSPacket::fillSOAData( string( tmp ), sd );
+			fillSOAData( string( tmp ), sd );
 		}
 
 		if( !sd.serial && ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )

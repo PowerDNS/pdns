@@ -125,7 +125,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 				SOAData sd;
 
 				sd.serial = 0;
-					DNSPacket::fillSOAData( string( tmp ), sd );
+				fillSOAData( string( tmp ), sd );
 				di.serial = sd.serial;
 			}
 		}

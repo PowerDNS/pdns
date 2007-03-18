@@ -485,7 +485,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 	if( m_result.count( "sOARecord" ) && !m_result["sOARecord"].empty() )
 	{
 		sd.serial = 0;
-		DNSPacket::fillSOAData( m_result["sOARecord"][0], sd );
+		fillSOAData( m_result["sOARecord"][0], sd );
 	
 		di.id = 0;
 		di.serial = sd.serial;
