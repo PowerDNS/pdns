@@ -1,5 +1,7 @@
 #include <string>
 #include <vector>
+#include <time.h>
+#include <stdlib.h>
 #include <pdns/misc.hh>
 
 
@@ -129,6 +131,25 @@ inline string strbind( const string& search, const string& replace, string subje
 	}
 
 	return subject;
+}
+
+/*
+ *  Convert a LDAP time string to a time_t. Return 0 if unable to convert
+ */
+
+inline time_t str2tstamp( const string& str )
+{
+	char* tmp;
+	struct tm tm;
+
+	tmp =  strptime( str.c_str(), "%Y%m%d%H%M%SZ", &tm );
+
+	if( tmp != NULL && *tmp == 0 )
+	{
+		return mktime( &tm );
+	}
+
+	return 0;
 }
 
 #endif

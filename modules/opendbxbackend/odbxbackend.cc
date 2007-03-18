@@ -2,62 +2,80 @@
 
 
 
-unsigned int odbx_host_index = 0;
+inline string& strbind( const string& search, const string& replace, string& subject )
+{
+	size_t pos = 0;
+
+	while( ( pos = subject.find( search, pos ) ) != string::npos )
+	{
+		subject.replace( pos, search.size(), replace );
+		pos += replace.size();
+	}
+
+	return subject;
+}
+
+
+
+inline string& toLowerByRef( string& str )
+{
+	for( unsigned int i = 0; i < str.length(); i++ )
+	{
+		str[i] = dns_tolower( str[i] );
+	}
+
+	return str;
+}
 
 
 
 OdbxBackend::OdbxBackend( const string& suffix )
 {
-	int err = -1;
-	unsigned int  idx, i, h;
 	vector<string> hosts;
 
 
 	try
 	{
 		m_result = NULL;
+		m_handle[READ] = NULL;
+		m_handle[WRITE] = NULL;
 		m_myname = "[OpendbxBackend]";
 		m_default_ttl = arg().asNum( "default-ttl" );
 		m_qlog = arg().mustDo( "query-logging" );
 
 		setArgPrefix( "opendbx" + suffix );
-		stringtok( hosts, getArg( "host" ), ", " );
 
-		idx = odbx_host_index++ % hosts.size();
-
-		for( i = 0; i < hosts.size(); i++ )
+		if( getArg( "host" ).size() > 0 )
 		{
-			h = ( idx + i ) % hosts.size();
-			if( !( err = odbx_init( &m_handle, getArg( "backend" ).c_str(), hosts[h].c_str(), getArg( "port" ).c_str() ) ) ) { break; }
+			L.log( m_myname + " WARNING: Using depricated opendbx-host parameter", Logger::Warning );
+			stringtok( m_hosts[READ], getArg( "host" ), ", " );
+			m_hosts[WRITE] = m_hosts[READ];
+		}
+		else
+		{
+			stringtok( m_hosts[READ], getArg( "host-read" ), ", " );
+			stringtok( m_hosts[WRITE], getArg( "host-write" ), ", " );
 		}
 
-		if( err < 0 )
-		{
-			L.log( m_myname + " OdbxBackend: Unable to connect to server - " + string( odbx_error( m_handle, err ) ),  Logger::Error );
-			throw( AhuException( "Fatal: odbx_init() failed" ) );
-		}
-
-		if( ( err = odbx_bind_simple( m_handle, getArg( "database" ).c_str(), getArg( "username" ).c_str(), getArg( "password" ).c_str() ) ) < 0 )
-		{
-			L.log( m_myname + " OdbxBackend: Unable to bind to database - " + string( odbx_error( m_handle, err ) ),  Logger::Error );
-			throw( AhuException( "Fatal: odbx_bind_simple() failed" ) );
-		}
+		if( !connectTo( m_hosts[READ], READ ) ) { throw( AhuException( "Fatal: Connecting to server for reading failed" ) ); }
+		if( !connectTo( m_hosts[WRITE], WRITE ) ) { throw( AhuException( "Fatal: Connecting to server for writing failed" ) ); }
 	}
 	catch( exception& e )
 	{
-		L.log( m_myname + " OdbxBackend: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Fatal: STL exception" ) );
+		L.log( m_myname + " OdbxBackend(): Caught STL exception - " + e.what(),  Logger::Error );
+		throw( AhuException( "Fatal: STL exception" ) );
 	}
-
-	L.log( m_myname + " Connection succeeded", Logger::Notice );
 }
 
 
 
 OdbxBackend::~OdbxBackend()
 {
-	odbx_unbind( m_handle );
-	odbx_finish( m_handle );
+	odbx_unbind( m_handle[WRITE] );
+	odbx_unbind( m_handle[READ] );
+
+	odbx_finish( m_handle[WRITE] );
+	odbx_finish( m_handle[READ] );
 }
 
 
@@ -65,17 +83,17 @@ OdbxBackend::~OdbxBackend()
 bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 {
 	const char* tmp;
-	string stmt;
 
 
 	try
 	{
 		DLOG( L.log( m_myname + " getDomainInfo()", Logger::Debug ) );
 
-		stmt = strbind( ":name", escape( toLower( domain ) ), getArg( "sql-zoneinfo" ) );
-		execStmt( stmt.c_str(), stmt.size(), true );
+		string stmt = getArg( "sql-zoneinfo" );
+		string& stmtref = strbind( ":name", escape( toLower( domain ), READ ), stmt );
 
-		if( !getRecord() ) { return false; }
+		if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
+		if( !getRecord( READ ) ) { return false; }
 
 		do
 		{
@@ -95,7 +113,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
 			if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
 			{
-				di.zone = string( tmp );
+				di.zone = string( tmp, odbx_field_length( m_result, 1 ) );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
@@ -112,7 +130,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
 			if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
 			{
-				di.master = string( tmp );
+				di.master = string( tmp, odbx_field_length( m_result, 3 ) );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
@@ -125,16 +143,16 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 				SOAData sd;
 
 				sd.serial = 0;
-				fillSOAData( string( tmp ), sd );
+				fillSOAData( string( tmp, odbx_field_length( m_result, 6 ) ), sd );
 				di.serial = sd.serial;
 			}
 		}
-		while( getRecord() );
+		while( getRecord( READ ) );
 	}
 	catch( exception& e )
 	{
 		L.log( m_myname + " getDomainInfo: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return true;
@@ -144,11 +162,6 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
 bool OdbxBackend::list( const string& target, int zoneid )
 {
-	string stmt;
-	size_t len;
-
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " list()", Logger::Debug ) );
@@ -156,22 +169,29 @@ bool OdbxBackend::list( const string& target, int zoneid )
 		m_qname = "";
 		m_result = NULL;
 
-		len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
+		size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
 
-		if( len < 0 || len > sizeof( m_buffer ) - 1 )
+		if( len < 0 )
 		{
-			L.log( m_myname + " list: Unable to convert zone id to string",  Logger::Error );
-			throw( DBException( "Error: Libc error" ) );
+			L.log( m_myname + " list: Unable to convert zone id to string - format error",  Logger::Error );
+			return false;
 		}
 
-		stmt = strbind( ":id", string( m_buffer, len ), getArg( "sql-list" ) );
+		if( len > sizeof( m_buffer ) - 1 )
+		{
+			L.log( m_myname + " list: Unable to convert zone id to string - insufficient buffer space",  Logger::Error );
+			return false;
+		}
 
-		execStmt( stmt.c_str(), stmt.size(), true );
+		string stmt = getArg( "sql-list" );
+		string& stmtref = strbind( ":id", string( m_buffer, len ), stmt );
+
+		if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
 	}
 	catch( exception& e )
 	{
 		L.log( m_myname + " list: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return true;
@@ -181,12 +201,12 @@ bool OdbxBackend::list( const string& target, int zoneid )
 
 void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dnspkt, int zoneid )
 {
-	string stmt;
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " lookup()", Logger::Debug ) );
+
+		string stmt;
+		string& stmtref = stmt;
 
 		m_result = NULL;
 		m_qname = qname;
@@ -197,7 +217,8 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
 			{
 				stmt = getArg( "sql-lookup" );
 			} else {
-				stmt = strbind( ":type", qtype.getName(), getArg( "sql-lookuptype" ) );
+				stmt = getArg( "sql-lookuptype" );
+				stmtref = strbind( ":type", qtype.getName(), stmt );
 			}
 		}
 		else
@@ -206,22 +227,34 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
 			{
 	 			stmt = getArg( "sql-lookupid" );
 			} else {
-				stmt = strbind( ":type", qtype.getName(), getArg( "sql-lookuptypeid" ) );
+				stmt = getArg( "sql-lookuptypeid" );
+				stmtref = strbind( ":type", qtype.getName(), stmt );
 			}
  			
 			size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
 
-			if( len < 0 || len > sizeof( m_buffer ) - 1 )
+			if( len < 0 )
 			{
-				L.log( m_myname + " lookup: Unable to convert zone id to string",  Logger::Error );
+				L.log( m_myname + " lookup: Unable to convert zone id to string - format error",  Logger::Error );
 				throw( DBException( "Error: Libc error" ) );
 			}
 
-			stmt = strbind( ":id", string( m_buffer, len ), stmt );
+			if( len > sizeof( m_buffer ) - 1 )
+			{
+				L.log( m_myname + " lookup: Unable to convert zone id to string - insufficient buffer space",  Logger::Error );
+				throw( DBException( "Error: Libc error" ) );
 		}
 
-		stmt = strbind( ":name", escape( toLower( qname ) ), stmt );
-		execStmt( stmt.c_str(), stmt.size(), true );
+			stmtref = strbind( ":id", string( m_buffer, len ), stmtref );
+		}
+
+		string tmp = qname;
+		stmtref = strbind( ":name", escape( toLowerByRef( tmp ), READ ), stmtref );
+
+		if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) )
+		{
+			throw( DBException( "Error: DB statement failed" ) );
+		}
 	}
 	catch( exception& e )
 	{
@@ -241,7 +274,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 	{
 		DLOG( L.log( m_myname + " get()", Logger::Debug ) );
 
-		if( getRecord() )
+		if( getRecord( READ ) )
 		{
 			rr.content = "";
 			rr.priority = 0;
@@ -257,7 +290,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
 			if( m_qname.empty() && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
 			{
-				rr.qname = string( tmp );
+				rr.qname = string( tmp, odbx_field_length( m_result, 1 ) );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
@@ -277,7 +310,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
 			if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
 			{
-				rr.content = string( tmp );
+				rr.content = string( tmp, odbx_field_length( m_result, 5 ) );
 			}
 
 			return true;
@@ -286,7 +319,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 	catch( exception& e )
 	{
 		L.log( m_myname + " get: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return false;
@@ -302,15 +335,30 @@ void OdbxBackend::setFresh( u_int32_t domain_id )
 	{
 		DLOG( L.log( m_myname + " setFresh()", Logger::Debug ) );
 
+		if( !m_handle[WRITE] && !connectTo( m_hosts[WRITE], WRITE ) )
+		{
+			L.log( m_myname + " setFresh: Master server is unreachable",  Logger::Error );
+			throw( DBException( "Error: Server unreachable" ) );
+		}
+
 		len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-update-lastcheck" ).c_str(), time( 0 ), domain_id );
 
-		if( len < 0 || len > sizeof( m_buffer ) - 1 )
+		if( len < 0 )
 		{
-			L.log( m_myname + " setFresh: Unable to insert values into statement '" + getArg( "sql-update-lastcheck" ) + "'",  Logger::Error );
+			L.log( m_myname + " setFresh: Unable to insert values into statement '" + getArg( "sql-update-lastcheck" ) + "' - format error",  Logger::Error );
 			throw( DBException( "Error: Libc error" ) );
 		}
 
-		execStmt( m_buffer, len, false );
+		if( len > sizeof( m_buffer ) - 1 )
+		{
+			L.log( m_myname + " setFresh: Unable to insert values into statement '" + getArg( "sql-update-lastcheck" ) + "' - insufficient buffer space",  Logger::Error );
+			throw( DBException( "Error: Libc error" ) );
+		}
+
+		if( !execStmt( m_buffer, len, WRITE ) )
+		{
+			throw( DBException( "Error: DB statement failed" ) );
+		}
 	}
 	catch ( exception& e )
 	{
@@ -323,22 +371,34 @@ void OdbxBackend::setFresh( u_int32_t domain_id )
 
 void OdbxBackend::setNotified( u_int32_t domain_id, u_int32_t serial )
 {
-	size_t len;
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " setNotified()", Logger::Debug ) );
 
-		len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-update-serial" ).c_str(), serial, domain_id );
-
-		if( len < 0 || len > sizeof( m_buffer ) - 1 )
+		if( !m_handle[WRITE] && !connectTo( m_hosts[WRITE], WRITE ) )
 		{
-			L.log( m_myname + " setNotified: Unable to insert values into statement '" + getArg( "sql-update-serial" ) + "'",  Logger::Error );
+			L.log( m_myname + " setFresh: Master server is unreachable",  Logger::Error );
+			throw( DBException( "Error: Server unreachable" ) );
+		}
+
+		size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-update-serial" ).c_str(), serial, domain_id );
+
+		if( len < 0 )
+		{
+			L.log( m_myname + " setNotified: Unable to insert values into statement '" + getArg( "sql-update-serial" ) + "' - format error",  Logger::Error );
 			throw( DBException( "Error: Libc error" ) );
 		}
 
-		execStmt( m_buffer, len, false );
+		if( len > sizeof( m_buffer ) - 1 )
+		{
+			L.log( m_myname + " setNotified: Unable to insert values into statement '" + getArg( "sql-update-serial" ) + "' - insufficient buffer space",  Logger::Error );
+			throw( DBException( "Error: Libc error" ) );
+		}
+
+		if( !execStmt( m_buffer, len, WRITE ) )
+		{
+			throw( DBException( "Error: DB statement failed" ) );
+		}
 	}
 	catch ( exception& e )
 	{
@@ -351,17 +411,15 @@ void OdbxBackend::setNotified( u_int32_t domain_id, u_int32_t serial )
 
 bool OdbxBackend::isMaster( const string& domain, const string& ip )
 {
-	string stmt;
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " isMaster()", Logger::Debug ) );
 
-		stmt = strbind( ":name", escape( toLower( domain ) ), getArg( "sql-master" ) );
-		execStmt( stmt.c_str(), stmt.size(), true );
+		string stmt = getArg( "sql-master" );
+		string& stmtref = strbind( ":name", escape( toLower( domain ), READ ), stmt );
 
-		if( !getRecord() ) { return false; }
+		if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
+		if( !getRecord( READ ) ) { return false; }
 
 		do
 		{
@@ -369,16 +427,17 @@ bool OdbxBackend::isMaster( const string& domain, const string& ip )
 			{
 				if( !strcmp( odbx_field_value( m_result, 0 ), ip.c_str() ) )
 				{
+					while( getRecord( READ ) );
 					return true;
 				}
 			}
 		}
-		while( getRecord() );
+		while( getRecord( READ ) );
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " isMaster: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return false;
@@ -392,15 +451,17 @@ void OdbxBackend::getUnfreshSlaveInfos( vector<DomainInfo>* unfresh )
 	{
 		DLOG( L.log( m_myname + " getUnfreshSlaveInfos()", Logger::Debug ) );
 
-		if( unfresh != NULL )
+		if( unfresh == NULL )
 		{
-			getDomainList( getArg( "sql-infoslaves" ), unfresh, &checkSlave );
+			L.log( m_myname + " getUnfreshSlaveInfos: invalid parameter - NULL pointer",  Logger::Error );
+			return;
 		}
+
+		getDomainList( getArg( "sql-infoslaves" ), unfresh, &checkSlave );
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " getUnfreshSlaveInfo: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
 	}
 }
 
@@ -412,15 +473,17 @@ void OdbxBackend::getUpdatedMasters( vector<DomainInfo>* updated )
 	{
 		DLOG( L.log( m_myname + " getUpdatedMasters()", Logger::Debug ) );
 
-		if( updated != NULL )
+		if( updated == NULL )
 		{
-			getDomainList( getArg( "sql-infomasters" ), updated, &checkMaster );
+			L.log( m_myname + " getUpdatedMasters: invalid parameter - NULL pointer",  Logger::Error );
+			return;
 		}
+
+		getDomainList( getArg( "sql-infomasters" ), updated, &checkMaster );
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " getUpdatedMasters: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
 	}
 }
 
@@ -428,43 +491,41 @@ void OdbxBackend::getUpdatedMasters( vector<DomainInfo>* updated )
 
 bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& set, string* account, DNSBackend** ddb )
 {
-	string stmt;
-	vector<DNSResourceRecord>::const_iterator i;
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " superMasterBackend()", Logger::Debug ) );
 
 		if( account != NULL && ddb != NULL )
 		{
+			vector<DNSResourceRecord>::const_iterator i;
+
 			for( i = set.begin(); i != set.end(); i++ )
 			{
-				stmt = strbind( ":ip", escape( ip ), getArg( "sql-supermaster" ) );
-				stmt = strbind( ":ns", escape( i->content ), stmt );
+				string stmt = getArg( "sql-supermaster" );
+				string& stmtref = strbind( ":ip", escape( ip, READ ), stmt );
+				stmtref = strbind( ":ns", escape( i->content, READ ), stmtref );
 
-				execStmt( stmt.c_str(), stmt.size(), true );
+				if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
 
-				if( !getRecord() ) { return false; }
-
-				do
+				if( getRecord( READ ) )
 				{
 					if( odbx_field_value( m_result, 0 ) != NULL )
 					{
 						*account = string( odbx_field_value( m_result, 0 ), odbx_field_length( m_result, 0 ) );
 					}
-				}
-				while( getRecord() );
+
+					while( getRecord( READ ) );
 
 				*ddb=this;
 				return true;
 			}
 		}
 	}
+	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " superMasterBackend: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return false;
@@ -474,28 +535,38 @@ bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, co
 
 bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, const string& account )
 {
-	size_t len;
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " createSlaveDomain()", Logger::Debug ) );
 
-		len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-slave" ).c_str(), escape( toLower( domain ) ).c_str(),
-			escape( ip ).c_str(), escape( account ).c_str() );
-
-		if( len < 0 || len > sizeof( m_buffer ) - 1 )
+		if( !m_handle[WRITE] && !connectTo( m_hosts[WRITE], WRITE ) )
 		{
-			L.log( m_myname + " createSlaveDomain: Unable to insert values in statement '" + getArg( "sql-insert-slave" ) + "'",  Logger::Error );
-			throw( DBException( "Error: Libc error" ) );
+			L.log( m_myname + " createSlaveDomain: Master server is unreachable",  Logger::Error );
+			return false;
 		}
 
-		execStmt( m_buffer, len, false );
+		string tmp = domain;
+		size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-slave" ).c_str(), escape( toLowerByRef( tmp ), WRITE ).c_str(),
+			escape( ip, WRITE ).c_str(), escape( account, WRITE ).c_str() );
+
+		if( len < 0 )
+		{
+			L.log( m_myname + " createSlaveDomain: Unable to insert values in statement '" + getArg( "sql-insert-slave" ) + "' - format error",  Logger::Error );
+			return false;
+		}
+
+		if( len > sizeof( m_buffer ) - 1 )
+		{
+			L.log( m_myname + " createSlaveDomain: Unable to insert values in statement '" + getArg( "sql-insert-slave" ) + "' - insufficient buffer space",  Logger::Error );
+			return false;
+		}
+
+		if( !execStmt( m_buffer, len, WRITE ) ) { return false; }
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " createSlaveDomain: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return true;
@@ -505,28 +576,39 @@ bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, con
 
 bool OdbxBackend::feedRecord( const DNSResourceRecord& rr )
 {
-	size_t len;
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " feedRecord()", Logger::Debug ) );
 
-		len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-record" ).c_str(), rr.domain_id,
-			escape( toLower( rr.qname ) ).c_str(), rr.qtype.getName().c_str(), rr.ttl, rr.priority, escape( rr.content ).c_str() );
-
-		if( len < 0 || len > sizeof( m_buffer ) - 1 )
+		if( !m_handle[WRITE] && !connectTo( m_hosts[WRITE], WRITE ) )
 		{
-			L.log( m_myname + " feedRecord: Unable to insert values in statement '" + getArg( "sql-insert-record" ) + "'",  Logger::Error );
-			throw( DBException( "Error: Libc error" ) );
+			L.log( m_myname + " feedRecord: Master server is unreachable",  Logger::Error );
+			return false;
 		}
 
-		execStmt( m_buffer, len, false );
+		string tmp = rr.qname;
+		size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-record" ).c_str(), rr.domain_id,
+			escape( toLowerByRef( tmp ), WRITE ).c_str(), rr.qtype.getName().c_str(), rr.ttl, rr.priority,
+			escape( rr.content, WRITE ).c_str() );
+
+		if( len < 0 )
+		{
+			L.log( m_myname + " feedRecord: Unable to insert values in statement '" + getArg( "sql-insert-record" ) + "' - format error",  Logger::Error );
+			return false;
+		}
+
+		if( len > sizeof( m_buffer ) - 1 )
+		{
+			L.log( m_myname + " feedRecord: Unable to insert values in statement '" + getArg( "sql-insert-record" ) + "' - insufficient buffer space",  Logger::Error );
+			return false;
+		}
+
+		if( !execStmt( m_buffer, len, WRITE ) ) { return false; }
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " feedRecord: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return true;
@@ -536,33 +618,41 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr )
 
 bool OdbxBackend::startTransaction( const string& domain, int zoneid )
 {
-	size_t len;
-	string stmt;
-
-
 	try
 	{
 		DLOG( L.log( m_myname + " startTransaction()", Logger::Debug ) );
 
-		stmt = getArg( "sql-transactbegin" );
-		execStmt( stmt.c_str(), stmt.size(), false );
-
-		len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
-
-		if( len < 0 || len > sizeof( m_buffer ) - 1 )
+		if( !m_handle[WRITE] && !connectTo( m_hosts[WRITE], WRITE ) )
 		{
-			L.log( m_myname + " lookup: Unable to convert zone id to string",  Logger::Error );
-			throw( DBException( "Error: Libc error" ) );
+			L.log( m_myname + " startTransaction: Master server is unreachable",  Logger::Error );
+			return false;
 		}
 
-		stmt = strbind( ":id", string( m_buffer, len ), getArg( "sql-zonedelete" ) );
+		string& stmtref = const_cast<string&>( getArg( "sql-transactbegin" ) );
+		if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
 
-		execStmt( stmt.c_str(), stmt.size(), false );
+		size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
+
+		if( len < 0 )
+		{
+			L.log( m_myname + " startTransaction: Unable to convert zone id to string - format error",  Logger::Error );
+			return false;
+		}
+
+		if( len > sizeof( m_buffer ) - 1 )
+		{
+			L.log( m_myname + " startTransaction: Unable to convert zone id to string - insufficient buffer space",  Logger::Error );
+			return false;
+		}
+
+		string stmt = getArg( "sql-zonedelete" );
+		stmtref = strbind( ":id", string( m_buffer, len ), stmt );
+		if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " startTransaction: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return true;
@@ -576,12 +666,19 @@ bool OdbxBackend::commitTransaction()
 	{
 		DLOG( L.log( m_myname + " commitTransaction()", Logger::Debug ) );
 
-		execStmt( getArg( "sql-transactend" ).c_str(), getArg( "sql-transactend" ).size(), false );
+		if( !m_handle[WRITE] && !connectTo( m_hosts[WRITE], WRITE ) )
+		{
+			L.log( m_myname + " commitTransaction: Master server is unreachable",  Logger::Error );
+			return false;
+		}
+
+		const string& stmt = getArg( "sql-transactend" );
+		if( !execStmt( stmt.c_str(), stmt.size(), WRITE ) ) { return false; }
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " commitTransaction: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return true;
@@ -595,12 +692,19 @@ bool OdbxBackend::abortTransaction()
 	{
 		DLOG( L.log( m_myname + " abortTransaction()", Logger::Debug ) );
 
-		execStmt( getArg( "sql-transactabort" ).c_str(), getArg( "sql-transabort" ).size(), false );
+		if( !m_handle[WRITE] && !connectTo( m_hosts[WRITE], WRITE ) )
+		{
+			L.log( m_myname + " abortTransaction: Master server is unreachable",  Logger::Error );
+			return false;
+		}
+
+		const string& stmt = getArg( "sql-transactabort" );
+		if( !execStmt( stmt.c_str(), stmt.size(), WRITE ) ) { return false; }
 	}
 	catch ( exception& e )
 	{
 		L.log( m_myname + " abortTransaction: Caught STL exception - " + e.what(),  Logger::Error );
-		throw( DBException( "Error: STL exception" ) );
+		return false;
 	}
 
 	return true;

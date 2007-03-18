@@ -1,11 +1,10 @@
 /*
  *  PowerDNS LDAP Backend
- *  Copyright (C) 2003 Norbert Sendetzky <norbert@linuxnetworks.de>
+ *  Copyright (C) 2003-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
- *  the Free Software Foundation
- *  any later version.
+ *  as published by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -76,6 +75,7 @@ static char* ldap_attrany[] = {
 	"nAPTRRecord",
 //	"kXRecord",
 //	"certRecord",
+	"modifyTimestamp",
 	NULL
 };
 
@@ -89,6 +89,7 @@ class LdapBackend : public DNSBackend
 	uint32_t m_ttl;
 	uint32_t m_default_ttl;
 	unsigned int m_axfrqlen;
+	time_t m_last_modified;
 	string m_myname;
 	string m_qname;
 	PowerLDAP* m_pldap;

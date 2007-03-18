@@ -22,6 +22,9 @@ LdapBackend::LdapBackend( const string &suffix )
 		m_default_ttl = arg().asNum( "default-ttl" );
 		m_myname = "[LdapBackend]";
 
+		// we need UTC time for timestamps
+		setenv( "TZ", "", 1 ); tzset();
+
 		setArgPrefix( "ldap" + suffix );
 
 		m_getdn = false;
@@ -124,7 +127,7 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 	qesc = toLower( m_pldap->escape( target ) );
 
 	// search for SOARecord of target
-	filter = strbind( ":target:", "(associatedDomain=" + qesc + ")", getArg( "filter-axfr" ) );
+	filter = strbind( ":target:", "associatedDomain=" + qesc, getArg( "filter-axfr" ) );
 	m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
 	m_pldap->getSearchEntry( m_msgid, m_result, true );
 
@@ -135,7 +138,7 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 	}
 
 	prepare();
-	filter = strbind( ":target:", "(associatedDomain=*." + qesc + ")", getArg( "filter-axfr" ) );
+	filter = strbind( ":target:", "associatedDomain=*." + qesc, getArg( "filter-axfr" ) );
 	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn << ", filter: " << filter << endl );
 	m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
 
@@ -192,16 +195,16 @@ void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPac
 {
 	string filter, attr, qesc;
 	char** attributes = ldap_attrany + 1;   // skip associatedDomain
-	char* attronly[] = { NULL, "dNSTTL", NULL };
+	char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
 	qesc = toLower( m_pldap->escape( qname ) );
-	filter = "(associatedDomain=" + qesc + ")";
+	filter = "associatedDomain=" + qesc;
 
 	if( qtype.getCode() != QType::ANY )
 	{
 		attr = qtype.getName() + "Record";
-		filter = "(&" + filter + "(" + attr + "=*))";
+		filter = "&(" + filter + ")(" + attr + "=*)";
 		attronly[0] = (char*) attr.c_str();
 		attributes = attronly;
 	}
@@ -220,7 +223,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 	vector<string> parts;
 	string filter, attr, qesc;
 	char** attributes = ldap_attrany + 1;   // skip associatedDomain
-	char* attronly[] = { NULL, "dNSTTL", NULL };
+	char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
 	qesc = toLower( m_pldap->escape( qname ) );
@@ -229,23 +232,23 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 
 	 if( parts.size() == 6 && len > 13 && qesc.substr( len - 13, 13 ) == ".in-addr.arpa" )   // IPv4 reverse lookups
 	{
-		filter = "(aRecord=" + ptr2ip4( parts ) + ")";
+		filter = "aRecord=" + ptr2ip4( parts );
 		attronly[0] = "associatedDomain";
 		attributes = attronly;
 	}
 	else if( parts.size() == 34 && len > 9 && ( qesc.substr( len - 9, 9 ) == ".ip6.arpa" ) )   // IPv6 reverse lookups
 	{
-		filter = "(aAAARecord=" + ptr2ip6( parts ) + ")";
+		filter = "aAAARecord=" + ptr2ip6( parts );
 		attronly[0] = "associatedDomain";
 		attributes = attronly;
 	}
 	else   // IPv4 and IPv6 lookups
 	{
-		filter = "(associatedDomain=" + qesc + ")";
+		filter = "associatedDomain=" + qesc;
 		if( qtype.getCode() != QType::ANY )
 		{
 			attr = qtype.getName() + "Record";
-			filter = "(&" + filter + "(" + attr + "=*))";
+			filter = "&(" + filter + ")(" + attr + "=*)";
 			attronly[0] = (char*) attr.c_str();
 			attributes = attronly;
 		}
@@ -263,25 +266,25 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 {
 	string filter, attr, qesc, dn;
 	char** attributes = ldap_attrany + 1;   // skip associatedDomain
-	char* attronly[] = { NULL, "dNSTTL", NULL };
+	char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 	vector<string>::reverse_iterator i;
 	vector<string> parts;
 
 
 	qesc = toLower( m_pldap->escape( qname ) );
-	filter = "(associatedDomain=" + qesc + ")";
+	filter = "associatedDomain=" + qesc;
 
 	if( qtype.getCode() != QType::ANY )
 	{
 		attr = qtype.getName() + "Record";
-		filter = "(&" + filter + "(" + attr + "=*))";
+		filter = "&(" + filter + ")(" + attr + "=*)";
 		attronly[0] = (char*) attr.c_str();
 		attributes = attronly;
 	}
 
 	filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-	stringtok( parts, qesc, "." );
+	stringtok( parts, toLower( qname ), "." );
 	for( i = parts.rbegin(); i != parts.rend(); i++ )
 	{
 		dn = "dc=" + *i + "," + dn;
@@ -292,11 +295,11 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 }
 
 
-
 inline bool LdapBackend::prepare()
 {
 	m_adomains.clear();
 	m_ttl = m_default_ttl;
+	m_last_modified = 0;
 
 	if( m_result.count( "dNSTTL" ) && !m_result["dNSTTL"].empty() )
 	{
@@ -309,6 +312,15 @@ inline bool LdapBackend::prepare()
 			m_ttl = m_default_ttl;
 		}
 		m_result.erase( "dNSTTL" );
+	}
+
+	if( m_result.count( "modifyTimestamp" ) && !m_result["modifyTimestamp"].empty() )
+	{
+		if( ( m_last_modified = str2tstamp( m_result["modifyTimestamp"][0] ) ) == 0 )
+		{
+			L << Logger::Warning << m_myname << " Invalid modifyTimestamp for " << m_qname << ": " << m_result["modifyTimestamp"][0] << endl;
+		}
+		m_result.erase( "modifyTimestamp" );
 	}
 
 	if( !(this->*m_prepare_fcnt)() )
@@ -407,6 +419,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 						rr.qname = *m_adomain;
 						rr.priority = 0;
 						rr.ttl = m_ttl;
+						rr.last_modified = m_last_modified;
 
 						if( qt.getCode() == QType::MX || qt.getCode() == QType::SRV )   // Priority, e.g. 10 smtp.example.com
 						{
@@ -520,9 +533,9 @@ public:
 		declare( suffix, "binddn", "User dn for non anonymous binds","" );
 		declare( suffix, "secret", "User password for non anonymous binds", "" );
 		declare( suffix, "method", "How to search entries (simple, strict or tree)", "simple" );
-		declare( suffix, "filter-axfr", "LDAP filter for limiting AXFR results", ":target:" );
-		declare( suffix, "filter-lookup", "LDAP filter for limiting IP or name lookups", ":target:" );
-		declare( suffix, "disable-ptrrecord", "Depricated, use ldap-method=strict instead", "no" );
+		declare( suffix, "filter-axfr", "LDAP filter for limiting AXFR results", "(:target:)" );
+		declare( suffix, "filter-lookup", "LDAP filter for limiting IP or name lookups", "(:target:)" );
+		declare( suffix, "disable-ptrrecord", "Deprecated, use ldap-method=strict instead", "no" );
 	}
 
 

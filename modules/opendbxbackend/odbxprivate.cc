@@ -2,7 +2,50 @@
 
 
 
-void OdbxBackend::execStmt( const char* stmt, unsigned long length, bool select )
+unsigned int odbx_host_index[2] = { 0, 0 };
+
+
+
+bool OdbxBackend::connectTo( const vector<string>& hosts, QueryType type )
+{
+	int err;
+	unsigned int h, i;
+	int idx = odbx_host_index[type]++ % hosts.size();
+
+
+	if( m_handle[type] != NULL )
+	{
+		odbx_unbind( m_handle[type] );
+		odbx_finish( m_handle[type] );
+		m_handle[type] = NULL;
+	}
+
+	for( i = 0; i < hosts.size(); i++ )
+	{
+		h = ( idx + i ) % hosts.size();
+
+		if( ( err = odbx_init( &(m_handle[type]), getArg( "backend" ).c_str(), hosts[h].c_str(), getArg( "port" ).c_str() ) ) == ODBX_ERR_SUCCESS )
+		{
+			if( ( err = odbx_bind( m_handle[type], getArg( "database" ).c_str(), getArg( "username" ).c_str(), getArg( "password" ).c_str(), ODBX_BIND_SIMPLE ) ) == ODBX_ERR_SUCCESS )
+			{
+				L.log( m_myname + " Database connection (" + (type ? "write" : "read") + ") to '" + hosts[h] + "' succeeded", Logger::Notice );
+				return true;
+			}
+
+			L.log( m_myname + " Unable to bind to database on host " + hosts[h] + " - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+			continue;
+		}
+
+		L.log( m_myname + " Unable to connect to server on host " + hosts[h] + " - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+	}
+
+	m_handle[type] = NULL;
+	return false;
+}
+
+
+
+bool OdbxBackend::execStmt( const char* stmt, unsigned long length, QueryType type )
 {
 	int err;
 
@@ -11,18 +54,23 @@ void OdbxBackend::execStmt( const char* stmt, unsigned long length, bool select 
 
 	if( m_qlog ) { L.log( m_myname + " Query: " + stmt, Logger::Info ); }
 
-	if( ( err = odbx_query( m_handle, stmt, length ) ) < 0 )
+	if( ( err = odbx_query( m_handle[type], stmt, length ) ) < 0 )
 	{
-		L.log( m_myname + " execStmt: Unable to execute query - " + string( odbx_error( m_handle, err ) ),  Logger::Error );
-		throw( AhuException( "Error: odbx_query() failed" ) );
+		L.log( m_myname + " execStmt: Unable to execute query - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+
+		if( err != -ODBX_ERR_PARAM && odbx_error_type( m_handle[type], err ) > 0 ) { return false; }   // ODBX_ERR_PARAM workaround
+		if( !connectTo( m_hosts[type], type ) ) { return false; }
+		if( odbx_query( m_handle[type], stmt, length ) < 0 ) { return false; }
 	}
 
-	if( !select ) { while( getRecord() ); }
+	if( type == WRITE ) { while( getRecord( type ) ); }
+
+	return true;
 }
 
 
 
-bool OdbxBackend::getRecord()
+bool OdbxBackend::getRecord( QueryType type )
 {
 	int err = 3;
 
@@ -31,13 +79,19 @@ bool OdbxBackend::getRecord()
 
 	do
 	{
+		if( err < 0 )
+		{
+			L.log( m_myname + " getRecord: Unable to get next result - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+			throw( AhuException( "Error: odbx_result() failed" ) );
+		}
+
 		if( m_result != NULL )
 		{
 			if( err == 3 )
 			{
 				if( ( err = odbx_row_fetch( m_result ) ) < 0 )
 				{
-					L.log( m_myname + " getRecord: Unable to get next row - " + string( odbx_error( m_handle, err ) ),  Logger::Error );
+					L.log( m_myname + " getRecord: Unable to get next row - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
 					throw( AhuException( "Error: odbx_row_fetch() failed" ) );
 				}
 
@@ -72,13 +126,7 @@ bool OdbxBackend::getRecord()
 			m_result = NULL;
 		}
 	}
-	while( ( err =  odbx_result( m_handle, &m_result, NULL, 0 ) ) > 0 );
-
-	if( err < 0 )
-	{
-		L.log( m_myname + " getRecord: Unable to get next result - " + string( odbx_error( m_handle, err ) ),  Logger::Error );
-		throw( AhuException( "Error: odbx_result() failed" ) );
-	}
+	while( ( err =  odbx_result( m_handle[type], &m_result, NULL, 0 ) ) != 0 );
 
 	m_result = NULL;
 	return false;
@@ -86,18 +134,21 @@ bool OdbxBackend::getRecord()
 
 
 
-string OdbxBackend::escape( const string& str )
+string OdbxBackend::escape( const string& str, QueryType type )
 {
 	int err;
 	unsigned long len = sizeof( m_escbuf );
 
 
-	DLOG( L.log( m_myname + " escape()", Logger::Debug ) );
+	DLOG( L.log( m_myname + " escape(string)", Logger::Debug ) );
 
-	if( ( err = odbx_escape( m_handle, str.c_str(), str.size(), m_escbuf, &len ) ) < 0 )
+	if( ( err = odbx_escape( m_handle[type], str.c_str(), str.size(), m_escbuf, &len ) ) < 0 )
 	{
-		L.log( m_myname + " escape: Unable to escape string - " + string( odbx_error( m_handle, err ) ),  Logger::Error );
-		throw( AhuException( "Error: odbx_escape() failed" ) );
+		L.log( m_myname + " escape(string): Unable to escape string - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+
+		if( err != -ODBX_ERR_PARAM && odbx_error_type( m_handle[type], err ) > 0 ) { throw( runtime_error( "odbx_escape() failed" ) ); }   // ODBX_ERR_PARAM workaround
+		if( !connectTo( m_hosts[type], type ) ) { throw( runtime_error( "odbx_escape() failed" ) ); }
+		if( odbx_escape( m_handle[type], str.c_str(), str.size(), m_escbuf, &len ) < 0 ) { throw( runtime_error( "odbx_escape() failed" ) ); }
 	}
 
 	return string( m_escbuf, len );
@@ -105,7 +156,7 @@ string OdbxBackend::escape( const string& str )
 
 
 
-void OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, bool (*check_fcn)(u_int32_t,u_int32_t,SOAData*,DomainInfo*) )
+bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, bool (*check_fcn)(u_int32_t,u_int32_t,SOAData*,DomainInfo*) )
 {
 	const char* tmp;
 	u_int32_t nlast, nserial;
@@ -115,9 +166,8 @@ void OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
 	DLOG( L.log( m_myname + " getDomainList()", Logger::Debug ) );
 
-	execStmt( stmt.c_str(), stmt.size(), true );
-
-	if( !getRecord() ) { return; }
+	if( !execStmt( stmt.c_str(), stmt.size(), READ ) ) { return false; }
+	if( !getRecord( READ ) ) { return false; }
 
 	do
 	{
@@ -128,7 +178,7 @@ void OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
 		if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
 		{
-			fillSOAData( string( tmp ), sd );
+			fillSOAData( string( tmp, odbx_field_length( m_result, 6 ) ), sd );
 		}
 
 		if( !sd.serial && ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
@@ -171,7 +221,9 @@ void OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 			list->push_back( di );
 		}
 	}
-	while( getRecord() );
+	while( getRecord( READ ) );
+
+	return true;
 }
 
 
