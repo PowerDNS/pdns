@@ -56,12 +56,6 @@ int TCPNameserver::s_timeout;
 NetmaskGroup TCPNameserver::d_ng;
 
 
-int TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
-{
-  const char *buf=p->getData();
-  int res=sendData(buf, p->len, outsock);
-  return res;
-}
 
 void TCPNameserver::go()
 {
@@ -83,47 +77,115 @@ void *TCPNameserver::launcher(void *data)
   return 0;
 }
 
-int TCPNameserver::readLength(int fd, ComboAddress *remote)
+// throws AhuException if things didn't go according to plan, returns 0 if really 0 bytes were read
+int readnWithTimeout(int fd, void* buffer, unsigned int n, bool throwOnEOF=true)
 {
-  int bytesLeft=2;
-  unsigned char buf[2];
-  
-  Utility::socklen_t remotelen=sizeof(*remote);
-  getpeername(fd, (struct sockaddr *)remote, &remotelen);
-
-  while(bytesLeft) {
-    int ret=waitForData(fd, s_timeout);
-    if(ret < 0)
-      throw AhuException("Waiting on data from remote TCP client "+remote->toString()+": "+stringerror());
-  
-    ret=recv(fd, reinterpret_cast< char * >( buf ) +2-bytesLeft, bytesLeft,0);
-    if(ret<0)
-      throw AhuException("Trying to read data from remote TCP client "+remote->toString()+": "+stringerror());
-    if(!ret) {
-      DLOG(L<<"Remote TCP client "+remote->toString()+" closed connection");
-      return -1;
+  unsigned int bytes=n;
+  char *ptr = (char*)buffer;
+  int ret;
+  while(bytes) {
+    ret=read(fd, ptr, bytes);
+    if(ret < 0) {
+      if(errno==EAGAIN) {
+	ret=waitForData(fd, 5);
+	if(ret < 0)
+	  throw AhuException("Waiting for data read");
+	if(!ret)
+	  throw AhuException("Timeout reading data");
+	continue;
+      }
+      else
+	throw AhuException("Reading data: "+stringerror());
     }
-    bytesLeft-=ret;
+    if(!ret) {
+      if(!throwOnEOF && n == bytes)
+	return 0;
+      else
+	throw AhuException("Did not fulfill read from TCP due to EOF");
+    }
+    
+    ptr += ret;
+    bytes -= ret;
   }
-  return buf[0]*256+buf[1];
+  return n;
 }
 
-void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const ComboAddress &remote)
+// ditto
+void writenWithTimeout(int fd, const void *buffer, unsigned int n)
 {
-  int ret=0, bytesread=0;
-  while(bytesread<pktlen) {
-    if((ret=waitForData(fd,s_timeout))<0 || (ret=recv(fd,mesg+bytesread,pktlen-bytesread,0))<=0)
-      goto err;
-
-    bytesread+=ret;
+  unsigned int bytes=n;
+  const char *ptr = (char*)buffer;
+  int ret;
+  while(bytes) {
+    ret=write(fd, ptr, bytes);
+    if(ret < 0) {
+      if(errno==EAGAIN) {
+	ret=waitForRWData(fd, false, 5, 0);
+	if(ret < 0)
+	  throw AhuException("Waiting for data write");
+	if(!ret)
+	  throw AhuException("Timeout writing data");
+	continue;
+      }
+      else
+	throw AhuException("Writing data: "+stringerror());
+    }
+    if(!ret) {
+      throw AhuException("Did not fulfill TCP write due to EOF");
+    }
+    
+    ptr += ret;
+    bytes -= ret;
   }
-  return;
+}
 
- err:;
-  if(ret<0) 
-    throw AhuException("Error reading DNS data from TCP client "+remote.toString()+": "+stringerror());
-  else 
-    throw AhuException("Remote TCP client "+remote.toString()+" closed connection");
+void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
+{
+  int err;
+  Utility::socklen_t len=sizeof(err);
+
+#ifndef WIN32
+  if((err=connect(fd, remote, socklen))<0 && errno!=EINPROGRESS) 
+#else
+  if((err=connect(clisock, remote, socklen))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) 
+#endif // WIN32
+    throw AhuException("connect: "+stringerror());
+
+  if(!err)
+    goto done;
+  
+  err=waitForRWData(fd, false, 5, 0);
+  if(err == 0)
+    throw AhuException("Timeout connecting to remote");
+  if(err < 0)
+    throw AhuException("Error connecting to remote");
+
+  if(getsockopt(fd, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
+    throw AhuException("Error connecting to remote: "+stringerror()); // Solaris
+
+  if(err)
+    throw AhuException("Error connecting to remote: "+string(strerror(err)));
+
+ done:
+  ;
+}
+
+void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
+{
+  const char *buf=p->getData();
+  uint16_t len=htons(p->len);
+  writenWithTimeout(outsock, &len, 2);
+  writenWithTimeout(outsock, buf, p->len);
+}
+
+
+void TCPNameserver::getQuestion(int fd, char *mesg, int pktlen, const ComboAddress &remote)
+try
+{
+  readnWithTimeout(fd, mesg, pktlen);
+}
+catch(AhuException& ae) {
+    throw AhuException("Error reading DNS data from TCP client "+remote.toString()+": "+ae.reason);
 }
 
 static void proxyQuestion(shared_ptr<DNSPacket> packet)
@@ -132,47 +194,37 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
   if(sock < 0)
     throw AhuException("Error making TCP connection socket to recursor: "+stringerror());
 
+  Utility::setNonBlocking(sock);
+  ServiceTuple st;
+  st.port=53;
+  parseService(arg()["recursor"],st);
+
   try {
-    ServiceTuple st;
-    st.port=53;
-    parseService(arg()["recursor"],st);
-    
     ComboAddress recursor(st.host, st.port);
-    if(connect(sock, (struct sockaddr*)&recursor, recursor.getSocklen()) < 0) {
-      throw AhuException("Error making TCP connection to recursor "+st.host+": "+stringerror());
-    }
+    connectWithTimeout(sock, (struct sockaddr*)&recursor, recursor.getSocklen());
     const string &buffer=packet->getString();
     
     uint16_t len=htons(buffer.length()), slen;
     
-    if(write(sock, &len, 2) != 2 || write(sock, buffer.c_str(), buffer.length()) != buffer.length()) 
-      throw AhuException("Error sending data to recursor");
+    writenWithTimeout(sock, &len, 2);
+    writenWithTimeout(sock, buffer.c_str(), buffer.length());
     
     int ret;
     
-    ret=read(sock, &len, 2);
-    if(ret!=2) {
-      throw AhuException("Error reading data from recursor");
-    }
+    ret=readnWithTimeout(sock, &len, 2);
     len=ntohs(len);
 
     char answer[len];
-    ret=read(sock, answer, len);
-    if(ret!=len) 
-      throw AhuException("Error reading data from recursor");
+    ret=readnWithTimeout(sock, answer, len);
 
     slen=htons(len);
-    ret=write(packet->getSocket(), &slen, 2);
-    if(ret != 2) 
-      throw AhuException("Error reading data from recursor");
+    writenWithTimeout(packet->getSocket(), &slen, 2);
     
-    ret=write(packet->getSocket(), answer, len);
-    if(ret != len) 
-      throw AhuException("Error reading data from recursor");
+    writenWithTimeout(packet->getSocket(), answer, len);
   }
-  catch(...) {
+  catch(AhuException& ae) {
     close(sock);
-    throw;
+    throw AhuException("While proxying a question to recursor "+st.host+": " +ae.reason);
   }
   close(sock);
   return;
@@ -192,10 +244,14 @@ void *TCPNameserver::doConnection(void *data)
     
     for(;;) {
       ComboAddress remote;
-      
-      int pktlen=readLength(fd, &remote);
-      if(pktlen<0) // EOF
+      socklen_t remotelen=remote.getSocklen();
+      getpeername(fd, (struct sockaddr *)&remote, &remotelen);
+
+      uint16_t pktlen;
+      if(!readnWithTimeout(fd, &pktlen, 2, false))
 	break;
+      else
+	pktlen=ntohs(pktlen);
 
       if(pktlen>511) {
 	L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
@@ -219,16 +275,12 @@ void *TCPNameserver::doConnection(void *data)
       }
 
       shared_ptr<DNSPacket> reply; 
-
-
       shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
 
       if(!packet->d.rd && (PC.get(packet.get(), cached.get()))) { // short circuit - does the PacketCache recognize this question?
 	cached->setRemote(&packet->remote);
 	cached->spoofID(packet->d.id);
-	if(sendPacket(cached, fd)<0) 
-	  goto out;
-	
+	sendPacket(cached, fd);
 	S.inc("tcp-answers");
 	continue;
       }
@@ -253,8 +305,6 @@ void *TCPNameserver::doConnection(void *data)
       S.inc("tcp-answers");
       sendPacket(reply, fd);
     }
-  out:
-    ;
   }
   catch(DBException &e) {
     Lock l(&s_plock);
@@ -400,8 +450,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     if(!((++count)%chunk)) {
       count=0;
     
-      if(sendPacket(outpacket, outsock) < 0)  
-	return 0;
+      sendPacket(outpacket, outsock);
 
       outpacket=shared_ptr<DNSPacket>(q->replyPacket());
       outpacket->setCompress(false);

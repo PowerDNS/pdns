@@ -135,7 +135,6 @@ void Session::doConnect(uint32_t ip, int port)
   if((err=connect(clisock,(struct sockaddr*)&remote,sizeof(remote)))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
 #endif // WIN32
     throw SessionException("connect: "+stringerror());
-
   }
 
   if(!err)

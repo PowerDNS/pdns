@@ -186,7 +186,6 @@ bool dottedEndsOn(const string &domain, const string &suffix)
   return true;
 }
 
-int waitForRWData(int fd, bool waitForRead, int seconds, int useconds);
 int sendData(const char *buffer, int replen, int outsock)
 {
   uint16_t nlen=htons(replen);
