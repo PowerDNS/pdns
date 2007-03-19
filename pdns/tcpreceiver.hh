@@ -48,7 +48,7 @@ public:
   void go();
 private:
 
-  static int sendPacket(boost::shared_ptr<DNSPacket> p, int outsock);
+  static void sendPacket(boost::shared_ptr<DNSPacket> p, int outsock);
   static int readLength(int fd, ComboAddress *remote);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote);
   static int doAXFR(const string &target, boost::shared_ptr<DNSPacket> q, int outsock);
