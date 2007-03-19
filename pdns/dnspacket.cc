@@ -405,6 +405,7 @@ void DNSPacket::spoofQuestion(const string &qd)
     unknown. Returns -1 if the packet cannot be parsed.
 */
 int DNSPacket::parse(const char *mesg, int length)
+try
 {
   stringbuffer.assign(mesg,length); 
 
@@ -431,6 +432,9 @@ int DNSPacket::parse(const char *mesg, int length)
   qtype=mdp.d_qtype;
   qclass=mdp.d_qclass;
   return 0;
+}
+catch(exception& e) {
+  return -1;
 }
 
 //! Use this to set where this packet was received from or should be sent to
