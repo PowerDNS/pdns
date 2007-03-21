@@ -746,25 +746,23 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   d_handle.qtype=qtype;
   d_handle.domain=qname.substr(qname.size()-domain.length());
 
+  BB2DomainInfo& bbd = state->id_zone_map[iditer->second];
+  if(!bbd.d_loaded) {
+    d_handle.reset();
+    throw DBException("Zone temporarily not available (file missing, or master dead)"); // fsck
+  }
+    
+  if(!bbd.current()) {
+    L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
+    us->queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
+    d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a *fresh* copy
+  }
 
   d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a copy
-  if(!d_handle.d_records->empty()) {
-    BB2DomainInfo& bbd = state->id_zone_map[iditer->second];
-    if(!bbd.d_loaded) {
-      d_handle.reset();
-      throw DBException("Zone temporarily not available (file missing, or master dead)"); // fsck
-    }
-    
-    if(!bbd.current()) {
-      L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
-      us->queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
-      d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a *fresh* copy
-    }
-  }
-  else {
+  
+  if(d_handle.d_records->empty())
     DLOG(L<<"Query with no results"<<endl);
-  }
-
+  
   pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
 
   //  cout<<"starting equal range for: '"<<d_handle.qname<<"'"<<endl;
