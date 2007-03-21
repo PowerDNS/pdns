@@ -325,7 +325,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 	i!=crrs.end();
 	++i) {
       
-      if(i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer
+      if(!i->qname.empty() && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer, except for root referral
 	r->d.aa=false;
 	//	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
@@ -781,18 +781,26 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       ;
     }
     if(!weAuth) {
+      DLOG(L<<Logger::Warning<<"We're not authoritative"<<endl);
       if(p->d.rd || target==p->qdomain) { // only servfail if we didn't follow a CNAME
+	DLOG(L<<Logger::Warning<<"Adding SERVFAIL as we did not followed a CNAME"<<endl);
 	if(d_logDNSDetails)
 	  L<<Logger::Warning<<"Not authoritative for '"<< target<<"', sending servfail to "<<
 	    p->getRemote()<< (p->d.rd ? " (recursion was desired)" : "") <<endl;
 
 	r->setA(false);
 	if(arg().mustDo("send-root-referral")) {
+	  DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
 	  addRootReferral(r);
 	}
 	else {
-	  r->setRcode(RCode::ServFail);  // 'sorry' - this is where we might send out a root referral
+	  DLOG(L<<Logger::Warning<<"Adding SERVFAIL"<<endl);
+	  r->setRcode(RCode::ServFail);  // 'sorry' 
 	}
+      }
+      else if(!p->d.rd) {
+	addRootReferral(r);
+	goto sendit;
       }
 				       
       S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
@@ -885,7 +893,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   sendit:;
     if(doAdditionalProcessingAndDropAA(p,r)<0)
       return 0;
-    
     r->wrapup(); // needed for inserting in cache
     if(!noCache)
       PC.insert(p,r); // in the packet cache
