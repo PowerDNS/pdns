@@ -317,20 +317,23 @@ void DNSPacket::wrapup(void)
   pw.getHeader()->rd=d.rd;
 
   if(!rrs.empty()) {
-    for(pos=rrs.begin();pos<rrs.end();++pos) {
-      // this needs to deal with the 'prio' mismatch!
-      if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
-	pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
-      }
-      pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
-      drc->toPacket(pw);
-    }
     try {
+      for(pos=rrs.begin();pos<rrs.end();++pos) {
+	// this needs to deal with the 'prio' mismatch!
+	if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
+	  pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
+	}
+	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
+	if(!pos->content.empty() && pos->content[0]!='"') {
+	  pos->content="\""+pos->content+"\"";
+	}
+	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
+	drc->toPacket(pw);
+      }
       pw.commit();
     }
     catch(exception& e) {
-      cerr<<"Exception: "<<e.what()<<endl;
+      L<<Logger::Error<<"Exception: "<<e.what()<<endl;
       throw;
     }
   }
