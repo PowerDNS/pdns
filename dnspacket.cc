@@ -324,7 +324,7 @@ void DNSPacket::wrapup(void)
 	  pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
 	}
 	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
-	if(!pos->content.empty() && pos->content[0]!='"') {
+	if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
 	  pos->content="\""+pos->content+"\"";
 	}
 	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
