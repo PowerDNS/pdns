@@ -117,7 +117,6 @@ public:
 
   //! Retrieves the semaphore value.
   int getValue( Semaphore::sem_value_t *sval );
-
 };
 
 //! This is a utility class used for platform independant abstraction.

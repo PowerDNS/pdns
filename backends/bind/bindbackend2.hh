@@ -111,8 +111,8 @@ public:
   bool commitTransaction();
   bool abortTransaction();
 
+  typedef map<string, int> name_id_map_t;
   typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
-  typedef map<string,int> name_id_map_t;
 
   struct State 
   {

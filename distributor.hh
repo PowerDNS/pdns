@@ -79,9 +79,6 @@ public:
     return d_num_threads-d_idle_threads;
   }
 
-
-
-
   struct QuestionData
   {
     Question *Q;
@@ -89,7 +86,6 @@ public:
     void (*callback)(const AnswerData &);
     int id;
   };
-
 
   typedef pair<QuestionData, AnswerData> tuple_t;
   
@@ -178,7 +174,6 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
       
       pthread_mutex_unlock(&us->q_lock);
       Answer *a;      
-
 
 #ifndef SMTPREDIR
       if(queuetimeout && q->d_dt.udiff()>queuetimeout*1000) {

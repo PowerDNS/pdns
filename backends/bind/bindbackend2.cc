@@ -383,11 +383,11 @@ void Bind2Backend::reload()
 
 string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
+  shared_ptr<State> state = s_state;
   ostringstream ret;
 
   for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
-    if(s_state->name_id_map.count(*i)) {
-      shared_ptr<State> state=s_state;
+    if(state->name_id_map.count(*i)) {
       BB2DomainInfo& bbd=state->id_zone_map[state->name_id_map[*i]];
       
       us->queueReload(&bbd);
@@ -405,9 +405,10 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
 string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   ostringstream ret;
+  shared_ptr<State> state = s_state;;
+      
   if(parts.size() > 1) {
     for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
-      shared_ptr<State> state = s_state;;
       if(state->name_id_map.count(*i)) {
 	BB2DomainInfo& bbd=state->id_zone_map[state->name_id_map[*i]];  // XXX s_name_id_map needs trick as well
 	ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
@@ -417,7 +418,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
     }    
   }
   else
-    for(id_zone_map_t::iterator i=us->s_state->id_zone_map.begin(); i!=us->s_state->id_zone_map.end(); ++i) 
+    for(id_zone_map_t::iterator i=state->id_zone_map.begin(); i!=state->id_zone_map.end(); ++i) 
       ret<< i->second.d_name << ": "<< (i->second.d_loaded ? "": "[rejected]") <<"\t"<<i->second.d_status<<"\n";      
 
   if(ret.str().empty())
@@ -429,8 +430,10 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
 
 string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
+  shared_ptr<State> state = s_state;
+
   ostringstream ret;
-  for(id_zone_map_t::iterator j=us->s_state->id_zone_map.begin(); j!=us->s_state->id_zone_map.end(); ++j) 
+  for(id_zone_map_t::iterator j = state->id_zone_map.begin(); j != state->id_zone_map.end(); ++j) 
     if(!j->second.d_loaded)
       ret<<j->second.d_name<<"\t"<<j->second.d_status<<endl;
 	
@@ -486,8 +489,6 @@ void Bind2Backend::loadConfig(string* status)
       L<<Logger::Error<<"Error parsing bind configuration: "<<ae.reason<<endl;
       throw;
     }
-
-
       
     vector<BindDomainInfo> domains=BP.getDomains();
     
@@ -645,7 +646,7 @@ void Bind2Backend::loadConfig(string* status)
 void Bind2Backend::nukeZoneRecords(BB2DomainInfo *bbd)
 {
   bbd->d_loaded=0; // block further access
-  bbd->d_records->clear(); // empty the vector of Bind2DNSRecords
+  bbd->d_records = shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);
 }
 
 
