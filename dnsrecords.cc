@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2006  PowerDNS.COM BV
+    Copyright (C) 2005 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -177,8 +177,8 @@ string NSECRecordContent::getZoneRepresentation() const
 boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
 boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
 boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
-boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text));
-boilerplate_conv(SPF, 99, conv.xfrText(d_text));
+boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text, true));
+boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
 
 boilerplate_conv(RP, ns_t_rp,

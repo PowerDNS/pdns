@@ -83,7 +83,7 @@ public:
   void xfr8BitInt(uint8_t val);
 
   void xfrLabel(const string& label, bool compress=false);
-  void xfrText(const string& text);
+  void xfrText(const string& text, bool multi=false);
   void xfrBlob(const string& blob);
   void xfrHexBlob(const string& blob);
 

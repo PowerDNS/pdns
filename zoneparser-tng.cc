@@ -280,8 +280,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       continue;
     }
     catch(...) {
-      cerr<<"Oops, this doesn't look like a qtype, stopping loop\n";
-      break;
+      throw runtime_error("Parsing zone content line: '"+nextpart+"' doesn't look like a qtype, stopping loop");
     }
   }
   if(!haveQTYPE) 
