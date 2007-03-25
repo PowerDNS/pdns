@@ -39,7 +39,10 @@ using namespace std;
 #include "misc.hh"
 #include "dnspacket.hh"
 #include "zoneparser-tng.hh"
+#include "dnsrecords.hh"
+#include <boost/algorithm/string.hpp>
 
+using namespace boost;
 StatBag S;
 
 static const string sqlstr(const string &name)
@@ -105,6 +108,16 @@ static void callback(unsigned int domain_id,const string &domain, const string &
     lastsoa_qname=stripDot(domain);
   }
   
+  if(qtype == "MX" || qtype == "SRV") { 
+    prio=atoi(content.c_str());
+    
+    string::size_type pos = content.find_first_not_of("0123456789");
+    if(pos != string::npos)
+      erase_head(content, pos);
+    trim_left(content);
+  }
+
+
   lastsoa_domain_id=dirty_hack_num;
 
   if(mode==MYSQL) {
@@ -151,6 +164,7 @@ ArgvMap &arg()
 int main(int argc, char **argv)
 {
   try {
+    reportAllTypes();
 #if __GNUC__ >= 3
     ios_base::sync_with_stdio(false);
 #endif
