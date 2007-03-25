@@ -394,9 +394,7 @@ Server::Server(int p, const string &p_localaddress)
   s=socket(AF_INET,SOCK_STREAM,0);
 
   if(s<0)
-    {
-      throw Exception(string("socket: ")+strerror(errno));
-    }
+    throw Exception(string("socket: ")+strerror(errno));
   
   memset(&local,0,sizeof(local));
   
@@ -426,9 +424,8 @@ Server::Server(int p, const string &p_localaddress)
   if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     throw SessionException(string("Setsockopt failed: ")+strerror(errno));
 
-
   if(bind(s, (sockaddr*)&local,sizeof(local))<0)
-      throw SessionException("binding to port "+itoa(port)+string(": ")+strerror(errno));
+      throw SessionException("binding to port "+itoa(port)+string(" on ")+localaddress+": "+strerror(errno));
   
   if(listen(s,128)<0)
       throw SessionException("listen: "+stringerror());
