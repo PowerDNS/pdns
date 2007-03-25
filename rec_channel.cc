@@ -26,7 +26,6 @@ RecursorControlChannel::~RecursorControlChannel()
 
 int RecursorControlChannel::listen(const string& fname)
 {
-  struct sockaddr_un local;
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
     
   if(d_fd < 0) 
@@ -40,11 +39,11 @@ int RecursorControlChannel::listen(const string& fname)
   if(err < 0 && errno!=ENOENT)
     throw AhuException("Can't remove (previous) controlsocket '"+fname+"': "+string(strerror(errno)) + " (try --socket-dir)");
 
-  memset(&local,0,sizeof(local));
-  local.sun_family=AF_UNIX;
-  strcpy(local.sun_path, fname.c_str());
+  memset(&d_local,0,sizeof(d_local));
+  d_local.sun_family=AF_UNIX;
+  strcpy(d_local.sun_path, fname.c_str());
     
-  if(bind(d_fd, (sockaddr*)&local,sizeof(local))<0) 
+  if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0) 
     throw AhuException("Unable to bind to controlsocket '"+fname+"': "+string(strerror(errno)));
 
   return d_fd;

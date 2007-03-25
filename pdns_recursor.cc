@@ -395,15 +395,15 @@ static void setSendBuffer(int fd, uint32_t size)
   setBuffer(fd, SO_SNDBUF, size);
 }
 
-
+string s_pidfname;
 static void writePid(void)
 {
-  string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
-  ofstream of(fname.c_str());
+  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
+  ofstream of(s_pidfname.c_str());
   if(of)
     of<< Utility::getpid() <<endl;
   else
-    L<<Logger::Error<<"Requested to write pid for "<<Utility::getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
+    L<<Logger::Error<<"Requested to write pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
 }
 
 void primeHints(void)
