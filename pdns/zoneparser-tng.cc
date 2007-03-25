@@ -162,6 +162,22 @@ bool ZoneParserTNG::getTemplateLine()
   return true;
 }
 
+void chopComment(string& line)
+{
+  string::size_type pos, len = line.length();
+  bool inQuote=false;
+  for(pos = 0 ; pos < len; ++pos) {
+    if(line[pos]=='\\') 
+      pos++;
+    else if(line[pos]=='"') 
+      inQuote=!inQuote;
+    else if(line[pos]==';' && !inQuote)
+      break;
+  }
+  if(pos != len)
+    line.resize(pos);
+}
+
 bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
  retry:;
@@ -273,18 +289,15 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
   rr.content=d_line.substr(range.first);
 
-  string::size_type pos=rr.content.rfind(';');
-  if(pos!=string::npos)
-    rr.content.resize(pos);
+  chopComment(rr.content);
+  string::size_type pos;
 
   if(rr.qtype.getCode()!=QType::TXT && (pos=rr.content.find('('))!=string::npos) {
     rr.content.resize(pos); // chop off (
     trim(rr.content);
     while(getLine()) {
       chomp(d_line,"\r\n ");
-      pos=d_line.rfind(';');
-      if(pos!=string::npos)
-	d_line.resize(pos);
+      chopComment(d_line);
 
       trim(d_line);
       
