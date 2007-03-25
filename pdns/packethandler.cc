@@ -828,8 +828,10 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	B.lookup("NS", subdomain,p,zoneId);  // start our search at the backend
 	
 	while(B.get(rr)) {
-	  if(!found)
+	  if(target==p->qdomain && !found) { // don't strip data if we've been retargeted!
+	    DLOG(L<<Logger::Warning<<"Clearing records - we've discovered we are auth (see cs 947)"<<endl);
 	    r->clearRecords(); // we need to start out with an empty slate
+	  }
 	  found=true;
 	  rr.d_place=DNSResourceRecord::AUTHORITY; // this for the authority section
 	  r->addRecord(rr);
