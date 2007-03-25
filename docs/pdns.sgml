@@ -10604,13 +10604,6 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	</table>
       </para>
       <para>
-	<note>
-	  <para>
-	    There is also the Bind2backend which works exactly like this backend but is far more experimental. In the future it supplant the bindbackend.
-	  </para>
-	</note>
-      </para>
-      <para>
 	The BindBackend started life as a demonstration of the versatility of PDNS but quickly gained in importance when there appeared to be demand
 	for a Bind 'workalike'.
       </para>
@@ -10633,7 +10626,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	    <listitem>
 	      <para>
 		Loads the 'example.com' zone which can be queried to determine if PowerDNS is functioning without configuring 
-		database backends.
+		database backends. This feature is no longer supported from 2.9.21 onwards.
 	      </para>
 	    </listitem>
 	  </varlistentry>
