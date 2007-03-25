@@ -230,6 +230,12 @@ RecursorControlParser::RecursorControlParser()
 static void doExit()
 {
   L<<Logger::Error<<"Exiting on user request"<<endl;
+  extern RecursorControlChannel s_rcc;
+  s_rcc.~RecursorControlChannel(); 
+
+  extern string s_pidfname;
+  if(!s_pidfname.empty()) 
+    unlink(s_pidfname.c_str()); // we can at least try..
   _exit(1);
 }
 
