@@ -58,6 +58,8 @@ smtp1			IN	CNAME	outpost
 external-mail		IN	MX	25	server1.test.com.
 ;
 text			IN	TXT	"Hi, this is some text"
+multitext			IN	TXT	"text part one" "text part two" "text part three"
+escapedtext			IN	TXT	"begin" "the \"middle\" p\\art" "the end"
 ;
 ipv6			IN	AAAA	2001:6A8:0:1:210:4BFF:FE4B:4C61
 ;
