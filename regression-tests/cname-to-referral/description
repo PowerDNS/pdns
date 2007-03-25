@@ -1,0 +1,3 @@
+A CNAME to a record that we have NS records for. This is to verify ticket
+123 does not return. This ticket was addressed by commit 992, but the fix
+looks a bit scary.
