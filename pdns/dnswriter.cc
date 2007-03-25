@@ -1,6 +1,7 @@
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
+#include <boost/tokenizer.hpp>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
   : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass)
@@ -115,11 +116,22 @@ void DNSPacketWriter::xfr8BitInt(uint8_t val)
   d_record.push_back(val);
 }
 
-void DNSPacketWriter::xfrText(const string& text)
+void DNSPacketWriter::xfrText(const string& text, bool)
 {
-  d_record.push_back(text.length());
-  const uint8_t* ptr=(uint8_t*)(text.c_str());
-  d_record.insert(d_record.end(), ptr, ptr+text.size());
+  escaped_list_separator<char> sep('\\', ' ' , '"');
+  tokenizer<escaped_list_separator<char> > tok(text, sep);
+
+  tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();
+
+  if(beg==tok.end()) {
+    d_record.push_back(0);
+  }
+  else 
+    for(; beg!=tok.end(); ++beg){
+      d_record.push_back(beg->length());
+      const uint8_t* ptr=(uint8_t*)(beg->c_str());
+      d_record.insert(d_record.end(), ptr, ptr+beg->length());
+    }
 }
 
 DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const string& label)

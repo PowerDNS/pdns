@@ -358,16 +358,44 @@ string PacketReader::getLabel(unsigned int recurs)
   return ret;
 }
 
-string PacketReader::getText()
+static string txtEscape(const string &name)
+{
+  string ret;
+
+  for(string::const_iterator i=name.begin();i!=name.end();++i)
+    if(*i=='"' || *i=='\\'){
+      ret += '\\';
+      ret += *i;
+    }
+    else
+      ret += *i;
+  return ret;
+}
+
+// exceptions thrown here do not result in logging in the main pdns auth server - just so you know!
+string PacketReader::getText(bool multi)
 {
   string ret;
   ret.reserve(40);
+  while(d_pos < d_startrecordpos + d_recordlen ) {
+    if(!ret.empty()) {
+      ret.append(1,' ');
+    }
+    unsigned char labellen=d_content.at(d_pos++);
+    
+    ret.append(1,'"');
+    string val(&d_content.at(d_pos), &d_content.at(d_pos+labellen-1)+1);
+    
+    ret.append(txtEscape(val)); // the end is one beyond the packet
+    ret.append(1,'"');
+    d_pos+=labellen;
+    if(!multi)
+      break;
+  }
 
-  unsigned char labellen=d_content.at(d_pos++);
-  ret.append(&d_content.at(d_pos), &d_content.at(d_pos+labellen-1)+1); // the end is one beyond the packet
-  d_pos+=labellen;
   return ret;
 }
+
 
 void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs) 
 {

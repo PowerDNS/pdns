@@ -206,25 +206,33 @@ void RecordTextReader::xfrHexBlob(string& val)
   HEXDecode(d_string.c_str()+pos, d_string.c_str() + d_pos, val);
 }
 
-
-void RecordTextReader::xfrText(string& val)
+void RecordTextReader::xfrText(string& val, bool multi)
 {
-  skipSpaces();
-  if(d_string[d_pos]!='"')
-    throw RecordTextException("Data field in DNS should start with quote (\") at position "+lexical_cast<string>(d_pos)+" of '"+d_string+"'");
-
   val.clear();
   val.reserve(d_end - d_pos);
-  
-  while(++d_pos < d_end && d_string[d_pos]!='"') {
-    if(d_string[d_pos]=='\\' && d_pos+1!=d_end) {
-      ++d_pos;
+
+  while(d_pos != d_end) {
+    if(!val.empty())
+      val.append(1, ' ');
+
+    skipSpaces();
+    if(d_string[d_pos]!='"')
+      throw RecordTextException("Data field in DNS should start with quote (\") at position "+lexical_cast<string>(d_pos)+" of '"+d_string+"'");
+
+    val.append(1, '"');
+    while(++d_pos < d_end && d_string[d_pos]!='"') {
+      if(d_string[d_pos]=='\\' && d_pos+1!=d_end) {
+	val.append(1, d_string[d_pos++]);
+      }
+      val.append(1, d_string[d_pos]);
     }
-    val.append(1, d_string[d_pos]);
+    val.append(1,'"');
+    if(d_pos == d_end)
+      throw RecordTextException("Data field in DNS should end on a quote (\") in '"+d_string+"'");
+    d_pos++;
+    if(!multi)
+      break;
   }
-  if(d_pos == d_end)
-    throw RecordTextException("Data field in DNS should end on a quote (\") in '"+d_string+"'");
-  d_pos++;
 }
 
 void RecordTextReader::xfrType(uint16_t& val)
@@ -383,25 +391,12 @@ void RecordTextWriter::xfrHexBlob(const string& val)
   }
 }
 
-void RecordTextWriter::xfrText(const string& val)
+void RecordTextWriter::xfrText(const string& val, bool multi)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  d_string.append(1,'"');
 
-  if(val.find_first_of("\\\"") == string::npos)
-    d_string+=val;
-  else {
-    string::size_type end=val.size();
-    
-    for(string::size_type pos=0; pos < end; ++pos) {
-      if(val[pos]=='\'' || val[pos]=='"')
-	d_string.append(1,'\\');
-      d_string.append(1, val[pos]);
-    }
-  }
-
-  d_string.append(1,'"');
+  d_string.append(val);
 }
 
 

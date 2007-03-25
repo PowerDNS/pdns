@@ -109,9 +109,9 @@ public:
     label=getLabel();
   }
 
-  void xfrText(string &text)
+  void xfrText(string &text, bool multi=false)
   {
-    text=getText();
+    text=getText(multi);
   }
 
   void xfrBlob(string& blob);
@@ -125,7 +125,7 @@ public:
   void copyRecord(unsigned char* dest, uint16_t len);
 
   string getLabel(unsigned int recurs=0);
-  string getText();
+  string getText(bool multi);
 
   uint16_t d_pos;
 
