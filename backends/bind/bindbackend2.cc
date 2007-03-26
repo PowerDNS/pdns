@@ -454,7 +454,6 @@ Bind2Backend::Bind2Backend(const string &suffix)
   if(!s_first) {
     return;
   }
-   
   s_first=0;
   s_state = shared_ptr<State>(new State);
   loadConfig();
@@ -464,6 +463,14 @@ Bind2Backend::Bind2Backend(const string &suffix)
   dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler);
   dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler);
   dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler);
+}
+
+Bind2Backend::~Bind2Backend()
+{
+  if(us==this) {
+    L<<Logger::Error<<"Main bind2backend instance being destructed"<<endl;
+    exit(1);
+  }
 }
 
 void Bind2Backend::rediscover(string *status)
@@ -629,8 +636,8 @@ void Bind2Backend::loadConfig(string* status)
     vector<string> diff2;
     set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff2));
     newdomains=diff2.size();
-
-    s_state = staging; // and boy do we hope this is a threadsafe operation!
+    
+    s_state.swap(staging); // and boy do we hope this is a threadsafe operation!
 
     // report
     ostringstream msg;

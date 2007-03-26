@@ -28,7 +28,6 @@
 using namespace std;
 using namespace boost;
 
-
 /** This struct is used within the Bind2Backend to store DNS information. 
     It is almost identical to a DNSResourceRecord, but then a bit smaller and with different sorting rules, which make sure that the SOA record comes up front.
 */
@@ -90,11 +89,11 @@ class Bind2Backend : public DNSBackend
 {
 public:
   Bind2Backend(const string &suffix=""); //!< Makes our connection to the database. Calls exit(1) if it fails.
+  ~Bind2Backend();
   void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains);
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
-  
 
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int id);
@@ -114,7 +113,7 @@ public:
   typedef map<string, int> name_id_map_t;
   typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
 
-  struct State 
+  struct State : public boost::noncopyable
   {
     name_id_map_t name_id_map;  //!< convert a name to a domain id
     id_zone_map_t id_zone_map;
