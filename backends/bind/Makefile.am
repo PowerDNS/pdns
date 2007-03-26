@@ -1,5 +1,6 @@
 INCLUDES=-I../..
 noinst_LTLIBRARIES = libbind2backend.la
+AM_CPPFLAGS=@THREADFLAGS@
 
 libbind2backend_la_SOURCES=bindbackend2.cc bindbackend2.hh bindparser.yy \
 bindlexer.l ../../zoneparser-tng.cc ../../misc.cc huffman.cc huffman.hh  \
