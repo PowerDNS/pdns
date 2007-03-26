@@ -38,15 +38,24 @@ public:
 };
 
 extern const char *bind_directory;
+extern FILE *yyin;
 class BindParser
 {
  public:
-  BindParser() : d_dir("."), d_verbose(false) 
+  BindParser() : d_dir("."), d_verbose(false)
   {
+    yyin=0;
     extern int include_stack_ptr;
     include_stack_ptr=0;
  
     bind_directory=d_dir.c_str(); 
+  }
+  ~BindParser()
+  {
+    if(yyin) {
+      fclose(yyin);
+      yyin=0;
+    }
   }
   void parse(const string &fname);
   void commit(BindDomainInfo DI);
