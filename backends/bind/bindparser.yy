@@ -126,6 +126,7 @@ zone_command:
 	ZONETOK quotedname zone_block
 	{
 		s_di.name=stripDot($2);
+		free($2);
 		
 		parent->commit(s_di);
 		s_di.clear();
@@ -134,6 +135,7 @@ zone_command:
 	ZONETOK quotedname AWORD zone_block
 	{
 	        s_di.name=$2;
+		free($2);
 		parent->commit(s_di);
 		s_di.clear();
 	}
@@ -173,6 +175,7 @@ options_command: command | options_directory_command
 options_directory_command: DIRECTORYTOK quotedname
 	{
 		parent->setDirectory($2);
+		free($2);
 	}
 	;
 
@@ -211,6 +214,7 @@ masters: /* empty */
 master: AWORD
 	{
 		s_di.master=$1;
+		free($1);
 	}
 	;
 
@@ -219,6 +223,7 @@ zone_file_command:
 	{
 	  //		printf("Found a filename: '%s'\n",$2);
 		s_di.filename=$2;
+		free($2);
 	}
 	;
 
@@ -226,6 +231,7 @@ zone_type_command:
 TYPETOK AWORD
 	{
 		s_di.type=$2;
+		free($2);
 	}
 	;
 
