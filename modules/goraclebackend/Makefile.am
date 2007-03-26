@@ -1,3 +1,4 @@
+AM_CPPFLAGS=@THREADFLAGS@
 lib_LTLIBRARIES = libgoraclebackend.la
 #bin_PROGRAMS = soracle
 
