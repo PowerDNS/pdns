@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <fstream>
+#include <boost/utility.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
