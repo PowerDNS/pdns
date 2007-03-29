@@ -499,8 +499,6 @@ void Bind2Backend::loadConfig(string* status)
       
     vector<BindDomainInfo> domains=BP.getDomains();
     
-    us=this;
-
     d_binddirectory=BP.getDirectory();
     //    ZP.setDirectory(d_binddirectory);
     //    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
@@ -667,9 +665,6 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 
   try {
     nukeZoneRecords(bbd); // ? do we need this?
-    
-    us=this;
-
     staging->id_zone_map[bbd->d_id]=s_state->id_zone_map[bbd->d_id];
     staging->id_zone_map[bbd->d_id].d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);  // nuke it
 
