@@ -120,7 +120,7 @@ public:
     id_zone_map_t id_zone_map;
   };
 
-  void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl, int prio);  
+  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl, int prio);  
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -173,8 +173,8 @@ private:
   static pthread_mutex_t s_state_lock;               //!< lock protecting ???
 
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
-  string d_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
 
+  static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
   string d_logprefix;
 
   int d_transaction_id;
@@ -183,7 +183,7 @@ private:
   ofstream *d_of;
   handle d_handle;
 
-  void queueReload(BB2DomainInfo *bbd);
+  static void queueReload(BB2DomainInfo *bbd);
 
   void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
@@ -191,5 +191,5 @@ private:
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
 
   void loadConfig(string *status=0);
-  void nukeZoneRecords(BB2DomainInfo *bbd);
+  static void nukeZoneRecords(BB2DomainInfo *bbd);
 };
