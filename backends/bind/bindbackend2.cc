@@ -752,7 +752,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   BB2DomainInfo& bbd = state->id_zone_map[iditer->second];
   if(!bbd.d_loaded) {
     d_handle.reset();
-    throw DBException("Zone temporarily not available (file missing, or master dead)"); // fsck
+    throw DBException("Zone for '"+bbd.d_name+"' in '"+bbd.d_filename+"' temporarily not available (file missing, or master dead)"); // fsck
   }
     
   if(!bbd.current()) {
