@@ -49,8 +49,6 @@ using namespace std;
     on start of query, we find the best zone to answer from
 */
 
-static Bind2Backend *us;
-
 // this map contains BB2DomainInfo structs, each of which contains a *pointer* to domain data
 shared_ptr<Bind2Backend::State> Bind2Backend::s_state;
 
@@ -76,7 +74,7 @@ int Bind2Backend::s_first=1;
 
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Bind2Backend::s_state_lock=PTHREAD_MUTEX_INITIALIZER;
-
+string Bind2Backend::s_binddirectory;  
 /* when a query comes in, we find the most appropriate zone and answer from that */
 
 BB2DomainInfo::BB2DomainInfo()
@@ -164,7 +162,7 @@ bool Bind2Backend::commitTransaction()
   if(rename(d_transaction_tmpname.c_str(), state->id_zone_map[d_transaction_id].d_filename.c_str())<0)
     throw DBException("Unable to commit (rename to: '" + state->id_zone_map[d_transaction_id].d_filename+"') AXFRed zone: "+stringerror());
 
-  us->queueReload(&state->id_zone_map[d_transaction_id]);
+  queueReload(&state->id_zone_map[d_transaction_id]);
 
   d_transaction_id=0;
 
@@ -377,7 +375,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
 void Bind2Backend::reload()
 {
   Lock l(&s_state_lock);
-  for(id_zone_map_t::iterator i = us->s_state->id_zone_map.begin(); i != us->s_state->id_zone_map.end(); ++i) 
+  for(id_zone_map_t::iterator i = s_state->id_zone_map.begin(); i != s_state->id_zone_map.end(); ++i) 
     i->second.d_checknow=true;
 }
 
@@ -390,7 +388,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
     if(state->name_id_map.count(*i)) {
       BB2DomainInfo& bbd=state->id_zone_map[state->name_id_map[*i]];
       
-      us->queueReload(&bbd);
+      queueReload(&bbd);
       ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
     }
     else
@@ -440,7 +438,6 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
   return ret.str();
 }
 
-
 Bind2Backend::Bind2Backend(const string &suffix)
 {
 #if __GNUC__ >= 3
@@ -459,7 +456,6 @@ Bind2Backend::Bind2Backend(const string &suffix)
   loadConfig();
 
   extern DynListener *dl;
-  us=this;
   dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler);
   dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler);
   dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler);
@@ -467,15 +463,12 @@ Bind2Backend::Bind2Backend(const string &suffix)
 
 Bind2Backend::~Bind2Backend()
 {
-  if(us==this) {
-    L<<Logger::Error<<"Main bind2backend instance being destructed"<<endl;
-    exit(1);
-  }
+
 }
 
 void Bind2Backend::rediscover(string *status)
 {
-  us->loadConfig(status);
+  loadConfig(status);
 }
 
 void Bind2Backend::loadConfig(string* status)
@@ -499,7 +492,7 @@ void Bind2Backend::loadConfig(string* status)
       
     vector<BindDomainInfo> domains=BP.getDomains();
     
-    d_binddirectory=BP.getDirectory();
+    s_binddirectory=BP.getDirectory();
     //    ZP.setDirectory(d_binddirectory);
     //    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
 
@@ -668,7 +661,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     staging->id_zone_map[bbd->d_id]=s_state->id_zone_map[bbd->d_id];
     staging->id_zone_map[bbd->d_id].d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);  // nuke it
 
-    ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, d_binddirectory);
+    ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
     DNSResourceRecord rr;
     while(zpt.get(rr)) {
       insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
@@ -757,7 +750,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
     
   if(!bbd.current()) {
     L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
-    us->queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
+    queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
     d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a *fresh* copy
   }
 
@@ -885,7 +878,7 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 
 bool Bind2Backend::isMaster(const string &name, const string &ip)
 {
-  for(id_zone_map_t::iterator j=us->s_state->id_zone_map.begin();j!=us->s_state->id_zone_map.end();++j) 
+  for(id_zone_map_t::iterator j=s_state->id_zone_map.begin();j!=s_state->id_zone_map.end();++j) 
     if(j->second.d_name==name)
       return j->second.d_master==ip;
   return false;
