@@ -172,8 +172,6 @@ string NSECRecordContent::getZoneRepresentation() const
   return ret;
 }
 
-
-
 boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
 boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
 boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
@@ -308,6 +306,7 @@ void reportOtherTypes()
    AFSDBRecordContent::report();
    SPFRecordContent::report();
    NAPTRRecordContent::report();
+   LOCRecordContent::report();
    RPRecordContent::report();
    KEYRecordContent::report();
    DNSKEYRecordContent::report();

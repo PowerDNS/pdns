@@ -1,102 +1,14 @@
 #include "utility.hh"
 #include <cstdio>
-
+#include <math.h>
 #include <cstdlib>
 #include <sys/types.h>
-
-#include <iostream>  
-
 #include <string>
 #include <errno.h>
-
-#include <algorithm>
-
-#include "dns.hh"
-#include "dnsbackend.hh"
-#include "ahuexception.hh"
-#include "dnspacket.hh"
-#include "logger.hh"
-#include "arguments.hh"
-
-void DNSPacket::addLOCRecord(const DNSResourceRecord &rr)
-{
-  addLOCRecord(rr.qname, rr.content, rr.ttl);
-}
-
-string DNSPacket::parseLOC(const unsigned char *p, unsigned int length)
-{
-  /*
-    MSB                                           LSB
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-      0|        VERSION        |         SIZE          |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-      2|       HORIZ PRE       |       VERT PRE        |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-      4|                   LATITUDE                    |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-      6|                   LATITUDE                    |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-      8|                   LONGITUDE                   |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-     10|                   LONGITUDE                   |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-     12|                   ALTITUDE                    |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-     14|                   ALTITUDE                    |
-       +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-  */
-
-  struct RP
-  {
-    unsigned int version:8;
-    unsigned int size:8;
-    unsigned int horizpre:8;
-    unsigned int vertpre:8;
-  }rp;
-
-  memcpy(&rp,p,sizeof(rp));
-  char ret[256];
-
-  double latitude= (((p[4]<<24)  + (p[5]<<16)  +  (p[6]<<8) +  p[7])  - (1<<31))/3600000.0;
-  double longitude=(((p[8]<<24)  + (p[9]<<16)  + (p[10]<<8) + p[11])  - (1<<31))/3600000.0;
-  double altitude= (((p[12]<<24) + (p[13]<<16) + (p[14]<<8) + p[15])           )/100 - 100000;
-  
-  double size=0.01*((rp.size>>4)&0xf);
-  int count=rp.size&0xf;
-  while(count--)
-    size*=10;
-
-  double horizpre=0.01*((rp.horizpre>>4)&0xf);
-  count=rp.horizpre&0xf;
-  while(count--)
-    horizpre*=10;
-
-  double vertpre=0.01*((rp.vertpre>>4)&0xf);
-  count=rp.vertpre&0xf;
-  while(count--)
-    vertpre*=10;
-
-
-  double remlat=60.0*(latitude-(int)latitude);
-  double remlong=60.0*(longitude-(int)longitude);
-  snprintf(ret,sizeof(ret)-1,"%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm",
-	   abs((int)latitude), (int) ((latitude-(int)latitude)*60),
-	   (double)((remlat-(int)remlat)*60.0),
-	   latitude>0 ? 'N' : 'S',
-	   abs((int)longitude), (int) ((longitude-(int)longitude)*60),
-	   (double)((remlong-(int)remlong)*60.0),
-	   longitude>0 ? 'E' : 'W',
-	   altitude, size, horizpre, vertpre);
-
-
-  return ret;
-}
-
+#include "dnsrecords.hh"
 
 static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
                                  1000000,10000000,100000000,1000000000};
-
-
 
 /* converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.*/
 static uint8_t precsize_aton(const char **strptr)
@@ -160,8 +72,7 @@ latlon2ul(const char **latlonstrptr, int *which)
   
   while (isdigit(*cp))
     min = min * 10 + (*cp++ - '0');
-  
-  
+    
   while (isspace(*cp))
     cp++;
   
@@ -236,34 +147,73 @@ latlon2ul(const char **latlonstrptr, int *which)
   return (retval);
 }
 
-void DNSPacket::addLOCRecord(const string &domain, const string & content, uint32_t ttl)
+void LOCRecordContent::report(void)
 {
+  regist(1, ns_t_loc, &make, &make, "LOC");
+}
+
+DNSRecordContent* LOCRecordContent::make(const string& content)
+{
+  return new LOCRecordContent(content);
+}
+
+
+void LOCRecordContent::toPacket(DNSPacketWriter& pw)
+{
+  pw.xfr8BitInt(d_version);
+  pw.xfr8BitInt(d_size);
+  pw.xfr8BitInt(d_horizpre);
+  pw.xfr8BitInt(d_vertpre);
+
+  pw.xfr32BitInt(d_latitude);
+  pw.xfr32BitInt(d_longitude);
+  pw.xfr32BitInt(d_altitude);
+}
+
+LOCRecordContent::DNSRecordContent* LOCRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
+{
+  LOCRecordContent* ret=new LOCRecordContent();
+  pr.xfr8BitInt(ret->d_version);
+  pr.xfr8BitInt(ret->d_size);
+  pr.xfr8BitInt(ret->d_horizpre);
+  pr.xfr8BitInt(ret->d_vertpre);
+
+  pr.xfr32BitInt(ret->d_latitude);
+  pr.xfr32BitInt(ret->d_longitude);
+  pr.xfr32BitInt(ret->d_altitude);
+  
+  return ret;
+}
+
+LOCRecordContent::LOCRecordContent(const string& content, const string& zone) : DNSRecordContent(ns_t_loc)
+{
+  // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
+  // convert this to d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude
+  d_version = 0;
+
   const char *cp, *maxcp;
   
-  uint32_t latit = 0, longit = 0, alt = 0;
   uint32_t lltemp1 = 0, lltemp2 = 0;
   int altmeters = 0, altfrac = 0, altsign = 1;
-  uint8_t hp = 0x16;    /* default = 1e6 cm = 10000.00m = 10km */
-  uint8_t vp = 0x13;    /* default = 1e3 cm = 10.00m */
-  uint8_t siz = 0x12;   /* default = 1e2 cm = 1.00m */
+  d_horizpre = 0x16;    /* default = 1e6 cm = 10000.00m = 10km */
+  d_vertpre = 0x13;    /* default = 1e3 cm = 10.00m */
+  d_size = 0x12;   /* default = 1e2 cm = 1.00m */
   int which1 = 0, which2 = 0;
 
   cp = content.c_str();
   maxcp = cp + strlen(content.c_str());
 
   lltemp1 = latlon2ul(&cp, &which1);
-
-
   lltemp2 = latlon2ul(&cp, &which2);
 
   switch (which1 + which2) {
   case 3:                 /* 1 + 2, the only valid combination */
     if ((which1 == 1) && (which2 == 2)) { /* normal case */
-      latit = lltemp1;
-      longit = lltemp2;
+      d_latitude = lltemp1;
+      d_longitude = lltemp2;
     } else if ((which1 == 2) && (which2 == 1)) {/*reversed*/
-      longit = lltemp1;
-      latit = lltemp2;
+      d_latitude = lltemp1;
+      d_longitude = lltemp2;
     } else {        /* some kind of brokenness */
       return;
     }
@@ -294,7 +244,7 @@ void DNSPacket::addLOCRecord(const string &domain, const string & content, uint3
     }
   }
   
-  alt = (10000000 + (altsign * (altmeters * 100 + altfrac)));
+  d_altitude = (10000000 + (altsign * (altmeters * 100 + altfrac)));
   
   while (!isspace(*cp) && (cp < maxcp))
     /* if trailing garbage or m */
@@ -307,7 +257,7 @@ void DNSPacket::addLOCRecord(const string &domain, const string & content, uint3
   if (cp >= maxcp)
     goto defaults;
   
-  siz = precsize_aton(&cp);
+  d_size = precsize_aton(&cp);
   
   while (!isspace(*cp) && (cp < maxcp))/*if trailing garbage or m*/
     cp++;
@@ -318,7 +268,7 @@ void DNSPacket::addLOCRecord(const string &domain, const string & content, uint3
   if (cp >= maxcp)
     goto defaults;
   
-  hp = precsize_aton(&cp);
+  d_horizpre = precsize_aton(&cp);
   
   while (!isspace(*cp) && (cp < maxcp))/*if trailing garbage or m*/
     cp++;
@@ -329,36 +279,48 @@ void DNSPacket::addLOCRecord(const string &domain, const string & content, uint3
   if (cp >= maxcp)
     goto defaults;
   
-  vp = precsize_aton(&cp);
+  d_vertpre = precsize_aton(&cp);
   
  defaults:
+  ;
+}
 
-  string piece1;
-  toqname(domain, &piece1);
 
-  char p[10];
-  p[0]=0;p[1]=QType::LOC;
-  p[2]=0;p[3]=1; 
+string LOCRecordContent::getZoneRepresentation() const
+{
+  // convert d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude to:
+  // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
 
-  uint32_t *ttlp=(uint32_t *)(p+4);
-  *ttlp=htonl(ttl); // 4, 5, 6, 7
+  double latitude= ((int32_t)d_latitude  - (1<<31))/3600000.0;
+  double longitude=((int32_t)d_longitude - (1<<31))/3600000.0; 
+  double altitude= ((int32_t)d_altitude           )/100 - 100000;
   
-  p[8]=0;
-  p[9]=16; 
-  
-  string piece3;
-  piece3.resize(4);
-  piece3[0]=0;
-  piece3[1]=siz;
-  piece3[2]=hp;
-  piece3[3]=vp;
- 
-  stringbuffer+=piece1;
-  stringbuffer.append(p,10);
-  stringbuffer+=piece3;
-  latit=htonl(latit);   longit=htonl(longit);   alt=htonl(alt);
-  stringbuffer.append((char *)&latit,4);
-  stringbuffer.append((char *)&longit,4);
-  stringbuffer.append((char *)&alt,4);
-  d.ancount++;
+  double size=0.01*((d_size>>4)&0xf);
+  int count=d_size & 0xf;
+  while(count--)
+    size*=10;
+
+  double horizpre=0.01*((d_horizpre>>4) & 0xf);
+  count=d_horizpre&0xf;
+  while(count--)
+    horizpre*=10;
+
+  double vertpre=0.01*((d_vertpre>>4)&0xf);
+  count=d_vertpre&0xf;
+  while(count--)
+    vertpre*=10;
+
+  double remlat=60.0*(latitude-(int)latitude);
+  double remlong=60.0*(longitude-(int)longitude);
+  char ret[80];
+  snprintf(ret,sizeof(ret)-1,"%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm",
+	   abs((int)latitude), abs((int) ((latitude-(int)latitude)*60)),
+	   fabs((double)((remlat-(int)remlat)*60.0)),
+	   latitude>0 ? 'N' : 'S',
+	   abs((int)longitude), abs((int) ((longitude-(int)longitude)*60)),
+	   fabs((double)((remlong-(int)remlong)*60.0)),
+	   longitude>0 ? 'E' : 'W',
+	   altitude, size, horizpre, vertpre);
+
+  return ret;
 }
