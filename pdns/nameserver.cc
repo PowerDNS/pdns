@@ -131,7 +131,6 @@ void UDPNameserver::bindIPv6()
   if(locals.empty())
     return;
 
-
   int s;
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     string localname(*i);
@@ -143,24 +142,8 @@ void UDPNameserver::bindIPv6()
     if(localname=="::0") {
       L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-ipv6 option"<<endl;
     }
-
-    sockaddr_in6 locala;
-    memset(&locala, 0, sizeof(locala));
-    locala.sin6_port=htons(arg().asNum("local-port"));
-    locala.sin6_family=AF_INET6;
-
-    if(!inet_pton(AF_INET6, localname.c_str(), (void *)&locala.sin6_addr)) {
-      addrinfo *addrinfos;
-      addrinfo hints;
-      memset(&hints,0,sizeof(hints));
-      hints.ai_socktype=SOCK_DGRAM;
-      hints.ai_family=AF_INET6;
-
-      if(getaddrinfo(localname.c_str(),arg()["local-port"].c_str(),&hints,&addrinfos))
-	throw AhuException("Unable to resolve local IPv6 address '"+localname+"'"); 
-      memcpy(&locala,addrinfos->ai_addr,addrinfos->ai_addrlen);
-    }
-
+    
+    ComboAddress locala(localname, arg().asNum("local-port"));
 
     if(bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to UDP ipv6 socket: "<<strerror(errno)<<endl;

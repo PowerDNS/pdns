@@ -307,6 +307,7 @@ void reportOtherTypes()
    SPFRecordContent::report();
    NAPTRRecordContent::report();
    LOCRecordContent::report();
+   HINFORecordContent::report();
    RPRecordContent::report();
    KEYRecordContent::report();
    DNSKEYRecordContent::report();

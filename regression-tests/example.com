@@ -24,6 +24,8 @@ location		IN	LOC	51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00m 10.00m
 			IN	LOC	51 56 2.789 N 5 54 0.000 W 4.00m 3.00m 10000.00m 10.00m
 			IN	LOC	51 56 3.012 S 5 54 0.000 W 4.00m 4.00m 10000.00m 10.00m
 ;
+hwinfo			IN	HINFO	"abc" "def"
+;
 smtp-servers		IN	A	192.168.0.2
 smtp-servers		IN	A	192.168.0.3
 smtp-servers		IN	A	192.168.0.4
