@@ -1,6 +1,6 @@
 Buildroot: /tmp/pdns
 Name: pdns-static
-Version: 2.9.21.20070331.1007
+Version: 2.9.21.20070331.1007.20070331.1008
 Release: 1
 Summary: extremely powerful and versatile nameserver
 License: GPL
@@ -26,7 +26,6 @@ backend'.
 "/usr/sbin/pdns_server"
 "/usr/bin/pdns_control"
 "/usr/bin/zone2sql"
-"/usr/bin/rec_control"
 "/usr/bin/zone2ldap"
 "/usr/man/man8/pdns_control.8"
 "/usr/man/man8/pdns_server.8"
