@@ -4,7 +4,7 @@ CC="ccache gcc" CXX="ccache g++" ./configure \
 		--with-pgsql-lib=/opt/postgresql/lib/ \
 		--with-pgsql-includes=/opt/postgresql/include/ \
 	--with-dynmodules="" \
-	--enable-static-binaries --enable-recursor \
+	--enable-static-binaries \
 	--prefix=/usr \
 	--sysconfdir=/etc/powerdns \
 	--mandir=/usr/man/ \

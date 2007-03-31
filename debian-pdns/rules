@@ -53,7 +53,7 @@ build-static stamp-build-static:
 		--mandir='$${datadir}/man' \
 		--with-modules="mysql gmysql gpgsql pipe pdns gsqlite gsqlite3 geo" \
 		--with-dynmodules="" \
-		--enable-static-binaries --enable-recursor 
+		--enable-static-binaries 
 	make
 	touch stamp-build-static
 
@@ -67,8 +67,7 @@ build stamp-build: configure
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
 		--with-dynmodules="$(backends)" \
-		--with-modules="geo" \
-		--enable-recursor
+		--with-modules="geo" 
 	make
 	touch stamp-build
 
@@ -88,7 +87,6 @@ binary-main-prepare:
 		--strip-unneeded \
 		"$(tmpdir)"/usr/bin/zone2sql \
 		"$(tmpdir)"/usr/sbin/pdns_server \
-		"$(tmpdir)"/usr/sbin/pdns_recursor \
 		"$(tmpdir)"/usr/bin/pdns_control
 	mv "$(tmpdir)"/etc/powerdns/pdns.conf-dist "$(tmpdir)"/etc/powerdns/pdns.conf
 
