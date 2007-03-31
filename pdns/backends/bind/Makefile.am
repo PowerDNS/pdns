@@ -14,16 +14,13 @@ bin_PROGRAMS = zone2sql zone2ldap
 zone2sql_SOURCES=bindparser.yy bindlexer.l \
 ../../arguments.cc ../../logger.cc zone2sql.cc ../../statbag.cc ../../misc.cc \
 ../../unix_utility.cc ../../qtype.cc ../../dnspacket.cc \
-../../zoneparser-tng.cc ../../dnsrecords.cc \
+../../zoneparser-tng.cc ../../dnsrecords.cc ../../sillyrecords.cc \
 ../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc
-
 
 zone2ldap_SOURCES=bindparser.yy bindlexer.l \
 ../../arguments.cc ../../logger.cc zone2ldap.cc ../../statbag.cc ../../misc.cc \
 ../../unix_utility.cc ../../qtype.cc  ../../zoneparser-tng.cc ../../dnsrecords.cc \
-../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc
-
-
+../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc ../../sillyrecords.cc
 
 zone2ldap_LDFLAGS=@THREADFLAGS@
 

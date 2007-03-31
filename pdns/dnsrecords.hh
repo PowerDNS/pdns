@@ -285,7 +285,24 @@ public:
 private:
 };
 
+class LOCRecordContent : public DNSRecordContent
+{
+public:
+  static void report(void);
+  LOCRecordContent() : DNSRecordContent(ns_t_loc)
+  {}
+  LOCRecordContent(const string& content, const string& zone="");
 
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
+  static DNSRecordContent* make(const string& content);
+  string getZoneRepresentation() const;
+  void toPacket(DNSPacketWriter& pw);
+
+  uint8_t d_version, d_size, d_horizpre, d_vertpre;
+  uint32_t d_latitude, d_longitude, d_altitude;
+  
+private:
+};
 
 #define boilerplate(RNAME, RTYPE)                                                                         \
 RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
