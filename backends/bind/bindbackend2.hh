@@ -25,6 +25,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace std;
 using namespace boost;
@@ -78,7 +81,6 @@ public:
   void setCheckInterval(time_t seconds);
 
   shared_ptr<vector<Bind2DNSRecord> > d_records;  //!< the actual records belonging to this domain
-
 private:
   time_t getCtime();
   time_t d_checkinterval;
