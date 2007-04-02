@@ -35,6 +35,14 @@ public:
   string filename;
   string master;
   string type;
+    
+  dev_t d_dev;
+  ino_t d_ino;
+
+  bool operator<(const BindDomainInfo& b) const
+  {
+    return make_pair(d_dev, d_ino) < make_pair(b.d_dev, b.d_ino);
+  }
 };
 
 extern const char *bind_directory;

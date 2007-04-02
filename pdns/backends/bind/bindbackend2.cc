@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fstream>
+#include <fcntl.h>
 #include <sstream>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
@@ -471,6 +472,20 @@ void Bind2Backend::rediscover(string *status)
   loadConfig(status);
 }
 
+static void prefetchFile(const std::string& fname)
+{
+#if 0
+  static int fd;
+  if(fd > 0)
+    close(fd);
+  fd=open(fname.c_str(), O_RDONLY);
+  if(fd < 0)
+    return;
+
+  posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
+#endif 
+}
+
 void Bind2Backend::loadConfig(string* status)
 {
   // Interference with createSlaveDomain()
@@ -494,13 +509,23 @@ void Bind2Backend::loadConfig(string* status)
     
     s_binddirectory=BP.getDirectory();
     //    ZP.setDirectory(d_binddirectory);
-    //    ZoneParser::callback_t func=boost::bind(&InsertionCallback, staging, _1, _2, _3, _4, _5, _6);
-
 
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
     int rejected=0;
     int newdomains=0;
+
+    //    random_shuffle(domains.begin(), domains.end());
+    struct stat st;
+      
+    for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) 
+    {
+      stat(i->filename.c_str(), &st);
+      i->d_dev = st.st_dev;
+      i->d_ino = st.st_ino;
+    }
+
+    sort(domains.begin(), domains.end()); // put stuff in inode order
 
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
 	i!=domains.end();
@@ -537,7 +562,7 @@ void Bind2Backend::loadConfig(string* status)
 	bbd->d_master=i->master;
 	
 	if(!bbd->d_loaded || !bbd->current()) {
-	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
+	  //	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 	  
 	  try {
 	    // we need to allocate a new vector so we don't kill the original, which is still in use!
@@ -550,7 +575,7 @@ void Bind2Backend::loadConfig(string* status)
 	    }
 
 	    //	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
-	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
+	    //	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
 
 	    sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
 	    
