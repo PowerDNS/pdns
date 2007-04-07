@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2005  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -20,7 +20,7 @@
 #include <errno.h>
 #include "communicator.hh"
 #include <set>
-
+#include <boost/utility.hpp>
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "packethandler.hh"
@@ -64,7 +64,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   bool first=true;    
   try {
     Resolver resolver;
-    resolver.axfr(remote,domain.c_str());
+    resolver.axfr(remote, domain.c_str());
 
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());
 
@@ -250,36 +250,46 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     Resolver resolver;   
     resolver.makeUDPSocket();  
     d_slaveschanged=true;
-    uint32_t ourserial=i->serial,theirserial=0;
+    uint32_t ourserial=i->serial, theirserial=0;
+    
+    if(d_havepriosuckrequest) {
+      d_havepriosuckrequest=false;
+      break;
+    }
 
-    try {
-      if(d_havepriosuckrequest) {
-	d_havepriosuckrequest=false;
+    vector<string> masters;
+    stringtok(masters, i->master, ", \t");
+    for(vector<string>::const_iterator iter = masters.begin(); iter != masters.end(); ++iter) {
+      try {
+	resolver.getSoaSerial(*iter, i->zone, &theirserial);
+	
+	if(theirserial<i->serial) {
+	  L<<Logger::Error<<"Domain "<<i->zone<<" more recent than master, our serial "<<ourserial<<" > their serial "<<theirserial<<endl;
+	  i->backend->setFresh(i->id);
+	}
+	else if(theirserial==i->serial) {
+	  L<<Logger::Warning<<"Domain "<<i->zone<<" is fresh"<<endl;
+	  i->backend->setFresh(i->id);
+	}
+	else {
+	  L<<Logger::Warning<<"Domain "<<i->zone<<" is stale, master serial "<<theirserial<<", our serial "<<i->serial<<endl;
+	  addSuckRequest(i->zone, *iter);
+	}
 	break;
       }
-
-      resolver.getSoaSerial(i->master, i->zone, &theirserial);
-      
-      if(theirserial<i->serial) {
-	L<<Logger::Error<<"Domain "<<i->zone<<" more recent than master, our serial "<<ourserial<<" > their serial "<<theirserial<<endl;
-	i->backend->setFresh(i->id);
+      catch(ResolverException &re) {
+	L<<Logger::Error<<"Error trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
+	if(next(iter) != masters.end()) 
+	  L<<Logger::Error<<"Trying next master for '"+i->zone+"'"<<endl;
       }
-      else if(theirserial==i->serial) {
-	L<<Logger::Warning<<"Domain "<<i->zone<<" is fresh"<<endl;
-	i->backend->setFresh(i->id);
+      catch(AhuException &re) {
+	L<<Logger::Error<<"Error trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
+	if(next(iter) != masters.end()) 
+	  L<<Logger::Error<<"Trying next master for '"+i->zone+"'"<<endl;
       }
-      else {
-	L<<Logger::Warning<<"Domain "<<i->zone<<" is stale, master serial "<<theirserial<<", our serial "<<i->serial<<endl;
-	addSuckRequest(i->zone,i->master);
-      }
-    }
-    catch(ResolverException &re) {
-      L<<Logger::Error<<"Error trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
     }
   }
 }  
-
-
 
 int CommunicatorClass::doNotifications()
 {

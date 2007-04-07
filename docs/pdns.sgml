@@ -5808,7 +5808,7 @@ name         IN            A        1.2.3.4
 create table domains (
  id		 INT auto_increment,
  name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(20) DEFAULT NULL,
+ master		 VARCHAR(128) DEFAULT NULL,
  last_check	 INT DEFAULT NULL,
  type		 VARCHAR(6) NOT NULL,
  notified_serial INT DEFAULT NULL, 
@@ -9596,7 +9596,7 @@ CREATE TABLE Zones (
 create table domains (
  id		 INT auto_increment,
  name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(20) DEFAULT NULL,
+ master		 VARCHAR(128) DEFAULT NULL,
  last_check	 INT DEFAULT NULL,
  type		 VARCHAR(6) NOT NULL,
  notified_serial INT DEFAULT NULL, 
@@ -9658,7 +9658,7 @@ CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains`
 create table domains (
  id		 SERIAL PRIMARY KEY,
  name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(20) DEFAULT NULL,
+ master		 VARCHAR(128) DEFAULT NULL,
  last_check	 INT DEFAULT NULL,
  type		 VARCHAR(6) NOT NULL,
  notified_serial INT DEFAULT NULL, 
@@ -9718,7 +9718,7 @@ GRANT ALL ON records_id_seq TO pdns;
 create table domains (
  id		 NUMBER,
  name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(20) DEFAULT NULL,
+ master		 VARCHAR(128) DEFAULT NULL,
  last_check	 INT DEFAULT NULL,
  type		 VARCHAR(6) NOT NULL,
  notified_serial INT DEFAULT NULL, 
@@ -10332,7 +10332,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 create table Domains (
  ID		 number(11) NOT NULL,
  NAME		 VARCHAR(255) NOT NULL,
- MASTER		 VARCHAR(20) DEFAULT NULL,
+ MASTER		 VARCHAR(128) DEFAULT NULL,
  LAST_CHECK	 INT DEFAULT NULL,
  TYPE		 VARCHAR(6) NOT NULL,
  NOTIFIED_SERIAL INT DEFAULT NULL,
@@ -10435,7 +10435,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
             create table domains (
               id                INTEGER PRIMARY KEY,
               name              VARCHAR(255) NOT NULL,
-              master            VARCHAR(20) DEFAULT NULL,
+              master            VARCHAR(128) DEFAULT NULL,
               last_check        INTEGER DEFAULT NULL,
               type              VARCHAR(6) NOT NULL,
               notified_serial   INTEGER DEFAULT NULL, 
