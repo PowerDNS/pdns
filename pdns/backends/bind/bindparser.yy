@@ -213,7 +213,9 @@ masters: /* empty */
 
 master: AWORD
 	{
-		s_di.master=$1;
+		if(!s_di.master.empty())
+		  s_di.master.append(1, ' ');
+		s_di.master.append($1);
 		free($1);
 	}
 	;
