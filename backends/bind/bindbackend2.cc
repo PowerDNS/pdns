@@ -196,9 +196,6 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
 
   // SOA needs stripping too! XXX FIXME - also, this should not be here I think
   switch(r.qtype.getCode()) {
-  case QType::TXT:
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t\""<<r.content<<"\""<<endl;
-    break;
   case QType::MX:
     if(!stripDomainSuffix(&content,domain))
       content+=".";
