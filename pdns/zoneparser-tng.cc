@@ -178,6 +178,26 @@ void chopComment(string& line)
     line.resize(pos);
 }
 
+bool findAndElide(string& line, char c)
+{
+  string::size_type pos, len = line.length();
+  bool inQuote=false;
+  for(pos = 0 ; pos < len; ++pos) {
+    if(line[pos]=='\\') 
+      pos++;
+    else if(line[pos]=='"') 
+      inQuote=!inQuote;
+    else if(line[pos]==c && !inQuote)
+      break;
+  }
+  if(pos != len) {
+    line.erase(pos, 1);
+    return true;
+  }
+  return false;
+}
+
+
 bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
  retry:;
@@ -289,27 +309,22 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   rr.content=d_line.substr(range.first);
 
   chopComment(rr.content);
-  string::size_type pos;
-
-  if(rr.qtype.getCode()!=QType::TXT && (pos=rr.content.find('('))!=string::npos) {
-    rr.content.resize(pos); // chop off (
-    trim(rr.content);
-    while(getLine()) {
-      chomp(d_line,"\r\n ");
-      chopComment(d_line);
-
-      trim(d_line);
-      
-      pos=d_line.find(')');
-      if(pos!=string::npos) {
-	d_line.resize(pos);
+  //  cerr<<"rr.content before possible elide: '"<<rr.content<<"'\n";
+  if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
+    if(!findAndElide(rr.content, ')')) {
+      while(getLine()) {
+	chomp(d_line,"\r\n ");
+	chopComment(d_line);
 	trim(d_line);
+	
+	bool ended = findAndElide(d_line, ')');
 	rr.content+=" "+d_line;
-	break;
+	if(ended)
+	  break;
       }
-      rr.content+=" "+d_line;
     }
   }
+
   vector<string> soaparts;
   switch(rr.qtype.getCode()) {
   case QType::MX:
@@ -356,20 +371,3 @@ bool ZoneParserTNG::getLine()
   }
   return false;
 }
-
-
-#if 0
-int main(int argc, char** argv)
-try
-{
-  reportAllTypes();
-  ZoneParserTNG zpt(argv[1]);
-  DNSResourceRecord rr;
-  while(zpt.get(rr)) {
-  }
-  
-
-}
-catch(...)
-{}
-#endif

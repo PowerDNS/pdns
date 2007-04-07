@@ -1,7 +1,6 @@
 $TTL 3600
 $ORIGIN test.com.
-@		IN	SOA	ns1.test.com.	ahu.example.com. (
-			2005092501
+@		IN	SOA	ns1.test.com.	ahu.example.com. (  2005092501
 			8H ; refresh
 			2H ; retry
 			1W ; expire
