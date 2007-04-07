@@ -547,7 +547,7 @@ bool validDNSName(const string &name)
     if(!((c >= 'a' && c <= 'z') ||
 	 (c >= 'A' && c <= 'Z') ||
 	 (c >= '0' && c <= '9') ||
-	 c =='-' || c == '_' || c=='*' || c=='.' || c=='/'))
+	 c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@'))
       return false;
   }
   return true;
