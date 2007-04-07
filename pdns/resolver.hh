@@ -61,9 +61,7 @@ public:
 
   int receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrlen);
   char* sendReceive(const string &ip, uint16_t remotePort, const char *packet, int length, unsigned int *replylen);
-  int getSoaSerial(const string &, const string &, uint32_t *);
-  void sendSoaSerialRequest(const string &ip, const string &domain);
-  int getSoaSerialAnswer(string &master, string &zone, uint32_t* serial);
+  void getSoaSerial(const string &, const string &, uint32_t *);
   int axfrChunk(Resolver::res_t &res);
   vector<DNSResourceRecord> result();
   
@@ -81,6 +79,7 @@ private:
   int d_type;
   int d_timeout;
   uint32_t d_ip;
+  uint16_t d_randomid;
   bool d_inaxfr;
   ComboAddress d_toaddr;
 };

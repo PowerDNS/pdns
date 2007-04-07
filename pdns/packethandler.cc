@@ -458,18 +458,14 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
   try {
     Resolver resolver;
     uint32_t theirserial;
-    int res=resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);  
-    if(res<=0) {
-      L<<Logger::Error<<"Unable to determine SOA serial for "<<p->qdomain<<" at potential supermaster "<<p->getRemote()<<endl;
-      return RCode::ServFail;
-    }
+    resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);  
   
     resolver.resolve(p->getRemote(),p->qdomain.c_str(), QType::NS);
 
     nsset=resolver.result();
   }
   catch(ResolverException &re) {
-    L<<Logger::Error<<"Error resolving SOA or NS for '"<<p->qdomain<<"' at "<<p->getRemote()<<endl;
+    L<<Logger::Error<<"Error resolving SOA or NS at: "<< p->getRemote() <<": "<<re.reason<<endl;
     return RCode::ServFail;
   }
 
@@ -515,9 +511,11 @@ int PacketHandler::processNotify(DNSPacket *p)
   /* this is an instant DoS, just spoof notifications from the address of the master and we block  */
 
   Resolver resolver;
-  int res=resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);
-  if(res<=0) {
-    L<<Logger::Error<<"Unable to determine SOA serial for "<<p->qdomain<<" at "<<p->getRemote()<<endl;
+  try {
+    resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);
+  }
+  catch(ResolverException& re) {
+    L<<Logger::Error<<re.reason<<endl;
     return RCode::ServFail;
   }
 	

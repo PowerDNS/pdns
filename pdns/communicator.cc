@@ -258,14 +258,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 	break;
       }
 
-      resolver.sendSoaSerialRequest(i->master,i->zone);
-      string master, zone;
-      int res=resolver.getSoaSerialAnswer(master,zone,&theirserial);
-
-      if(res<=0) {
-	L<<Logger::Error<<"Unable to determine SOA serial for "<<i->zone<<" at "<<i->master<<endl;
-	continue;
-      }
+      resolver.getSoaSerial(i->master, i->zone, &theirserial);
       
       if(theirserial<i->serial) {
 	L<<Logger::Error<<"Domain "<<i->zone<<" more recent than master, our serial "<<ourserial<<" > their serial "<<theirserial<<endl;
