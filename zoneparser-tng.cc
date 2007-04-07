@@ -309,7 +309,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   rr.content=d_line.substr(range.first);
 
   chopComment(rr.content);
-  //  cerr<<"rr.content before possible elide: '"<<rr.content<<"'\n";
+
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
       while(getLine()) {

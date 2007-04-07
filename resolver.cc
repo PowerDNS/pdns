@@ -138,8 +138,8 @@ char* Resolver::sendReceive(const string &ip, uint16_t remotePort, const char *p
 int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t id)
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, domain, QType::SOA, Opcode::Notify);
-  pw.getHeader()->id = id;
+  DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
+  pw.getHeader()->id = d_randomid = id;
   
   ComboAddress dest(ip, 53);
 
@@ -153,6 +153,7 @@ void Resolver::sendResolve(const string &ip, const char *domain, int type)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
+  pw.getHeader()->id = d_randomid = random();
 
   d_domain=domain;
   d_type=type;
@@ -201,7 +202,7 @@ int Resolver::receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrl
 int Resolver::resolve(const string &ip, const char *domain, int type)
 {
   makeUDPSocket();
-  sendResolve(ip,domain,type);
+  sendResolve(ip, domain, type);
   try {
     struct sockaddr_in from;
     return receiveResolve((sockaddr*)&from, sizeof(from));
@@ -298,6 +299,7 @@ int Resolver::axfr(const string &ip, const char *domain)
   
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::AXFR);
+  pw.getHeader()->id = d_randomid = random();
 
   uint16_t replen=htons(packet.size());
   Utility::iovec iov[2];
@@ -381,7 +383,6 @@ int Resolver::axfrChunk(Resolver::res_t &res)
   return 1;
 }
 
-
 Resolver::res_t Resolver::result()
 {
   shared_ptr<MOADNSParser> mdp;
@@ -391,6 +392,9 @@ Resolver::res_t Resolver::result()
   }
   catch(...) {
     throw ResolverException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
+  }
+  if(mdp->d_header.id != d_randomid) {
+    throw ResolverException("Remote nameserver replied with wrong id");
   }
   if(mdp->d_header.rcode)
     if(d_inaxfr)
@@ -425,7 +429,6 @@ Resolver::res_t Resolver::result()
 	rr.content=unquotify(rr.content);
 
       if(rr.qtype.getCode() == QType::MX) {
-
 	vector<string> parts;
 	stringtok(parts, rr.content);
 	rr.priority = atoi(parts[0].c_str());
@@ -444,47 +447,21 @@ Resolver::res_t Resolver::result()
     return ret;
 }
 
-void Resolver::sendSoaSerialRequest(const string &ip, const string &domain)
+void Resolver::getSoaSerial(const string &ip, const string &domain, uint32_t *serial)
 {
-  sendResolve(ip,domain.c_str(),QType::SOA);
-}
-
-int Resolver::getSoaSerialAnswer(string &master, string &zone, uint32_t* serial)
-{
-  struct sockaddr_in fromaddr;
-  Utility::socklen_t addrlen=sizeof(fromaddr);
-
-  receiveResolve((struct sockaddr*)&fromaddr, addrlen);
+  resolve(ip, domain.c_str(), QType::SOA);
   res_t res=result();
   if(res.empty())
-    return 0;
-  
+    throw ResolverException("Query to '" + ip + "' for SOA of '" + domain + "' produced no answers");
+
+  if(res[0].qtype.getCode() != QType::SOA) 
+    throw ResolverException("Query to '" + ip + "' for SOA of '" + domain + "' produced a "+res[0].qtype.getName()+" record");
+
   vector<string>parts;
-  stringtok(parts,res[0].content);
+  stringtok(parts, res[0].content);
   if(parts.size()<3)
-    return 0;
-  
-  *serial=strtoul(parts[2].c_str(), NULL, 10);
-  master=""; // fix this!!
-  zone=res[0].qname;
-
-  return 1;
-}
-
-
-int Resolver::getSoaSerial(const string &ip, const string &domain, uint32_t *serial)
-{
-  resolve(ip,domain.c_str(),QType::SOA);
-  res_t res=result();
-  if(res.empty())
-    return 0;
-  
-  vector<string>parts;
-  stringtok(parts,res[0].content);
-  if(parts.size()<3)
-    return 0;
+    throw ResolverException("Query to '" + ip + "' for SOA of '" + domain + "' produced an unparseable response");
   
   *serial=(uint32_t)atol(parts[2].c_str());
-  return 1;
 }
 
