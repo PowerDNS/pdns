@@ -425,9 +425,6 @@ Resolver::res_t Resolver::result()
       if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
 	erase_tail(rr.content, 1);
 
-      if(qtype==QType::TXT)
-	rr.content=unquotify(rr.content);
-
       if(rr.qtype.getCode() == QType::MX) {
 	vector<string> parts;
 	stringtok(parts, rr.content);
