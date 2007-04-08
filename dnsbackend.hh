@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -16,9 +16,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-// $Id$
-/* (C) 2002 POWERDNS.COM BV  */
-   
 #ifndef DNSBACKEND_HH
 #define DNSBACKEND_HH
 
@@ -39,15 +36,15 @@ class DNSPacket;
 
 #include "qtype.hh"
 #include "dns.hh"
+#include <vector>
 using namespace std;
-
   
 class DNSBackend;  
 struct DomainInfo
 {
   uint32_t id;
   string zone;
-  string master;
+  vector<string> masters;
   uint32_t notified_serial;
   uint32_t serial;
   time_t last_check;

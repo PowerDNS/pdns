@@ -249,10 +249,17 @@ int main(int argc, char **argv)
 
 	      if(mode==POSTGRES) {
 		if(arg().mustDo("slave")) {
-		  if(i->master.empty())
+		  if(i->masters.empty())
 		    cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
-		  else
-		    cout<<"insert into domains (name,type,master) values ("<<sqlstr(i->name)<<",'SLAVE'"<<", '"<<i->master<<"');"<<endl;
+		  else {
+		    string masters;
+		    for(vector<string>::const_iterator iter = i->masters.begin(); iter != i->masters.end(); ++iter) {
+		      if(iter != i->masters.begin())
+			masters.append(1, ' ');
+		      masters+=*iter;
+		    }
+		    cout<<"insert into domains (name,type,master) values ("<<sqlstr(i->name)<<",'SLAVE'"<<", '"<<masters<<"');"<<endl;
+		  }
 		}
 		else
 		  cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;

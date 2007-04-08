@@ -190,11 +190,12 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(!P.getBackend()->getDomainInfo(domain, di))
     return "Domain '"+domain+"' unknown";
   
-  if(di.master.empty())
+  if(di.masters.empty())
     return "Domain '"+domain+"' is not a slave domain (or has no master defined)";
 
-  Communicator.addSuckRequest(domain,di.master);
-  return "Added retrieval request for '"+domain+"' from master "+di.master;
+  random_shuffle(di.masters.begin(), di.masters.end());
+  Communicator.addSuckRequest(domain, di.masters.front());
+  return "Added retrieval request for '"+domain+"' from master "+di.masters.front();
 }
 
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)

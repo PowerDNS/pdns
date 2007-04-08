@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2005  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -73,7 +73,7 @@ public:
   string d_filename; //!< full absolute filename of the zone on disk
   unsigned int d_id;  //!< internal id of the domain
   time_t d_last_check; //!< last time domain was checked for freshness
-  string d_master;     //!< IP address of the master of this domain
+  vector<string> d_masters;     //!< IP address of the master of this domain
 
   uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
 

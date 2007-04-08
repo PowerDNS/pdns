@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -29,11 +29,12 @@ class BindDomainInfo
 public:
   void clear() 
   {
-    name=filename=master=type="";
+    name=filename=type="";
+    masters.clear();
   }
   string name;
   string filename;
-  string master;
+  vector<string> masters;
   string type;
     
   dev_t d_dev;
