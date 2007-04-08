@@ -133,6 +133,15 @@ private:
   string d_content;
 };
 
+class MRRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(MR)
+
+private:
+  string d_alias;
+};
+
 
 class OPTRecordContent : public DNSRecordContent
 {
