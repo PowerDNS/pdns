@@ -82,6 +82,294 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
+      <sect2 id="changelog-2-9-21"><title>PowerDNS Authoritative Server version 2.9.21 (Unreleased)</title>
+	<para>
+	  Unreleased.
+	</para>
+	<para>
+	  This is the first release the PowerDNS Authoritative Server since the Recursor was split off to a separate product, and also marks the transfer
+	  of the new technology developed specifically for the recursor, back to the authoritative server.
+	</para>
+	<para>
+	  This move has reduced the amount of code of the Authoritative server by over 2000 lines, while improving the quality
+	  of the program enormously.
+	</para>
+	<para>
+	  However, since so much has been changed, care should be taken when deploying 2.9.21.
+	</para>
+	<para>
+	  To signify the magnitude of the underlying improvements, the next release of the PowerDNS Authoritative Server will be called 3.0.
+	</para>
+	<para>
+	  This release would not have been possible without large amounts of help and support from the PowerDNS Community. We specifically want to thank
+	  Massimo Bandinelli of Italy's <ulink url="http://register.it">Register.it</ulink>, <ulink url="http://aaldering-ict.nl">Dave Aaldering of Aaldering ICT</ulink>, 
+	  <ulink url="http://true.nl">True BV</ulink>, <ulink url="http://www.xs4all.nl">XS4ALL</ulink>, Daniel Bilik of <ulink url="http://www.neosystem.cz">Neosystem</ulink>,
+	  <ulink url="http://www.easydns.com">EasyDNS</ulink>, <ulink url="http://schwer.us">Augie Schwer</ulink>, 
+	  <ulink url="http://www.opensuse.org">Marcus Rueckert of OpenSUSE</ulink>, Andre Muraro of <ulink url="http://www.locaweb.com.br">Locaweb</ulink>,
+	  Antony Lesuisse.
+	</para>
+	<para>
+	  Security issues:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The previous packet parsing and generating code contained no known bugs, but was however very lengthy and overly complex, and might have had
+		security problems. The new code is 'inherently safe' because it relies on bounds-checking C++ constructs. Therefore, a move to 2.9.21 is highly
+		recommened.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Pre-2.9.21, communication between master and server nameservers was not checked as rigidly as possible, possibly allowing third parties to disrupt
+		but not modify such communications.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      The 'bind1' legacy version of our BIND backend has been dropped! There should be no need to rely on this old version anymore, as the main BIND backend
+	      has been very well tested recently.
+	    </para>
+	  </warning>
+	<para>
+	  Bugs:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Multi-part TXT records weren't supported. This has been fixed, and regression tests have been added. Code in commits C1016, C996, C994.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		CNAME referrals to child zones gave improper responses. Noted by Augie Schwer in t123, fixed in c992.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		NS to a nameserver with the name of the zone itself generated problems. Spotted by Augie Schwer, fixed in c947.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Multi-line records in the BIND backend were not always parsed correctly. Fixed in c1014.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The LOC-record had problems operating outside of the eastern hemisphere of the northern part of the world! Fixed in c1011.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Backends were compiled without multithreading preprocessor flags. As far as we can determine, this would only cause problems for the BIND backend, 
+		but we cannot rule out this caused instability in other backends. Fixed in c1001.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The BIND backend was highly unstable under reloads, and leaked memory and file descriptors. 
+		Thanks to Mark Bergsma and Massimo Bandinelli for respectively pointing this out to us and testing
+		large amounts of patches to fix the problem. The fixes have resulted in better performance, less code, and a remarkable simplification 
+		of this backend. c1006, c999, c905 and previous.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		BIND backend gave convincing NXDOMAINS on unloaded zones in some cases. Spotted and fixed by Daniel Bilik in c984.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SOA records in zone transfers sometimes contained the wrong SOA TTL. Spotted by Christian Kuehn, fixed in c902.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS could get confused by very high SOA serial numbers. Spotted and fixed by Dan Billik, fixed in c626.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some versions of FreeBSD perform very strict checks on socket address sizes passed to 'connect', which could lead to problems retrieving zones over AXFR.
+		Fixed in c891.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some versions of FreeBSD perform very strict checks on IPv6 socket addresses, leading to problems. Discovered by Sten Spans, fixed in c885 and c886.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		IXFR requests were not logged properly. Noted by Ralf van der Enden, fixed in c990.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Many bugs in the TCP nameserver, leading to a PowerDNS process that did not respond to TCP queries over time. Many fixes provided by
+		Dan Bilik, other problems were fixed by rewriting our TCP handling code. Commits C982 and C980, C950, C924, C889, C874, C869, C685, C684.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fix crashes on the ARM processor due to alignment errors. Thanks to Sjoerd Simons. Closes Debian bug 397031. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Missing data in generic SQL backends would sometimes lead to faked SOA serial data. Spotted by Leander Lakkas from True. Fix in c866.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		When receiving two quick notifications in succession, the packet cache would sometimes "process" the second one, leading PowerDNS to ignore it. Spotted by 
+		Dan Bilik, fixed in c686.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Geobackend (by Mark Bergsma) did not properly override the getSOA method, breaking non-overlay operation of this fine backend. The geobackend now also
+		skips '.hidden' configuration files, and now properly disregards empty configuration files. Additionally, the overlapping abilities were improved. Details
+		available in c876, by Mark.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Features:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Thanks to <ulink url="http://www.easydns.com">EasyDNS</ulink>, PowerDNS now supports multiple masters per domain. Implemented in c1018, c1017.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Thanks to <ulink url="http://www.easydns.com">EasyDNS</ulink>, PowerDNS now supports the KEY record type, as well the SPF record. In c976.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added support for CERT, SSHFP, DNSKEY, DS, NSEC, RRSIG record types, as part of the move to the new DNS parsing/generating code.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Support for the AFSDB record type, as requested by 'Bastian'. Implemented in c978, closing t129.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Support for the MR record type. Implemented in c941 and c1019.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Gsqlite3 backend was added by Antony Lesuisse in c942;
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added the ability to send out light-weight root-referrals that save bandwidth yet still placate mediocre resolver implementations. Implemented in c912, 
+		enable with 'root-referral=lean'.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Miscellaneous OpenDBX and LDAP backend improvements by Norbert Sendetzky. Applied in c977.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		SGML source of the documentation was cleaned up by Ruben Kerkhof in c936.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Speedups in core DNS label processing code. Implemented in c928, c654, c1020.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		When communicating with master servers and encountering errors, more useful details are logged. Reported by Stefan Arentz in t137, closed by c1015.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Database errors are now logged with more details. Addressed in c1004.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		pdns_control problems are now logged more verbosely. Change in c910.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Erroneous address configuration was logged unclearly. Spotted by River Tarnell, fixed in c888.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Example configuration shipped with PowerDNS was very old. Noted by Leen Besselink, fixed in c946.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS neglected to chdir to the root when chrooted. This closes t110, fixed in c944.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Microsoft resolver had problems with responses we generated for CNAMEs pointing out of our bailiwick. Fixed in c983 and expedited by Locaweb.com.br.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Built-in webserver logs errors more verbosely. Closes t82, gixed in c991.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Queries containing '@' no longer flood the logs. Addressed in c1014.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The build process now looks for PostgreSQL in more places. Implemented in c998, closes t90.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Speedups in the BIND backend now mean large installations enjoy startup times up to 30 times faster than with the original BIND nameserver. Many thanks
+		to Massimo Bandinelli.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		IPv6 and IPv4 address parsing routines have been replaced, which should result in prettier output in some cases. c962, c1012 and others.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		5 new regression tests have been added to insure old bugs do not return.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fix small issues with very modern compilers and BOOST snapshots. Noted by Marcus Rueckert, addressed in c954, c964 c965, c1003.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-recursor-3-1-4"><title>Recursor version 3.1.4</title>
 	<para>
 	  Released the 13th of November 2006.
@@ -7918,11 +8206,14 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 	      If set, recursive queries will be handed to the recursor specified here. See <xref linkend="recursion">.
 	    </para></listitem></varlistentry>
-	<varlistentry><term>send-root-referral | --send-root-referral=yes | --send-root-referral=no</term>
+	<varlistentry><term>send-root-referral | --send-root-referral=yes | --send-root-referral=no | --send-root-referral=lean</term>
 	    <listitem><para>
 	      If set, PowerDNS will send out old-fashioned root-referrals when queried for domains for which it is not authoritative. Wastes some bandwidth
 	      but may solve incoming query floods if domains are delegated to you for which you are not authoritative, but which are queried by broken
 	      recursors. Available since 2.9.19.
+	      </para>
+	    <para>
+	      Since 2.9.21, it is possible to specify 'lean' root referrals, which waste less bandwidth.
 	    </para></listitem></varlistentry>
 	<varlistentry><term>setgid=...</term>
 	    <listitem><para>
