@@ -366,9 +366,10 @@ void ODBCBackend::getUnfreshSlaveInfos( std::vector< DomainInfo > *pDomains )
       di.zone = m_diQuery.m_name;
 
     if ( m_diQuery.m_nullResult[ 2 ] == SQL_NULL_DATA )
-      di.master = "";
-    else
-      di.master = m_diQuery.m_master;
+      di.masters.clear();
+    else {
+      stringtok(di.masters, m_diQuery.m_master, " \t");
+    }
 
     if ( m_diQuery.m_nullResult[ 3 ] == SQL_NULL_DATA )
       di.last_check = 0;

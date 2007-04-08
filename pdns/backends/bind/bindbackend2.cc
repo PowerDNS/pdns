@@ -148,7 +148,7 @@ bool Bind2Backend::startTransaction(const string &qname, int id)
   }
   
   *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
-  *d_of<<"; Zone '"+bbd.d_name+"' retrieved from master "<<bbd.d_master<<endl<<"; at "<<nowTime()<<endl;
+  *d_of<<"; Zone '"+bbd.d_name+"' retrieved from master "<<endl<<"; at "<<nowTime()<<endl; // insert master info here again
 
   return true;
 }
@@ -222,7 +222,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
   Lock l(&s_state_lock); // needs to work on the actual state, as we change stuff
 
   for(id_zone_map_t::iterator i = s_state->id_zone_map.begin(); i != s_state->id_zone_map.end() ; ++i) {
-    if(!i->second.d_master.empty())
+    if(!i->second.d_masters.empty())
       continue;
     soadata.serial=0;
     try {
@@ -248,12 +248,12 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
   shared_ptr<State> state = s_state;
   for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
-    if(i->second.d_master.empty())
+    if(i->second.d_masters.empty())
       continue;
     DomainInfo sd;
     sd.id=i->first;
     sd.zone=i->second.d_name;
-    sd.master=i->second.d_master;
+    sd.masters=i->second.d_masters;
     sd.last_check=i->second.d_last_check;
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
@@ -279,10 +279,10 @@ bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
     if(i->second.d_name==domain) {
       di.id=i->first;
       di.zone=domain;
-      di.master=i->second.d_master;
+      di.masters=i->second.d_masters;
       di.last_check=i->second.d_last_check;
       di.backend=this;
-      di.kind=i->second.d_master.empty() ? DomainInfo::Master : DomainInfo::Slave;
+      di.kind=i->second.d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave;
       di.serial=0;
       try {
 	SOAData sd;
@@ -556,7 +556,7 @@ void Bind2Backend::loadConfig(string* status)
 	// overwrite what we knew about the domain
 	bbd->d_name=i->name;
 	bbd->d_filename=i->filename;
-	bbd->d_master=i->master;
+	bbd->d_masters=i->masters;
 	
 	if(!bbd->d_loaded || !bbd->current()) {
 	  //	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
@@ -900,9 +900,13 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 
 bool Bind2Backend::isMaster(const string &name, const string &ip)
 {
-  for(id_zone_map_t::iterator j=s_state->id_zone_map.begin();j!=s_state->id_zone_map.end();++j) 
-    if(j->second.d_name==name)
-      return j->second.d_master==ip;
+  for(id_zone_map_t::iterator j=s_state->id_zone_map.begin();j!=s_state->id_zone_map.end();++j) {
+    if(j->second.d_name==name) {
+      for(vector<string>::const_iterator iter = j->second.d_masters.begin(); iter != j->second.d_masters.end(); ++iter)
+	if(*iter==ip)
+	  return true;
+    }
+  }
   return false;
 }
 
@@ -981,7 +985,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   bbd.d_records = shared_ptr<vector<Bind2DNSRecord> >(new vector<Bind2DNSRecord>);
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
-  bbd.d_master = ip;
+  bbd.d_masters.push_back(ip);
   bbd.d_filename = filename;
 
   s_state->name_id_map[domain] = bbd.d_id;

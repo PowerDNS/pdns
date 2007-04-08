@@ -88,7 +88,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   
   di.id=atol(d_result[0][0].c_str());
   di.zone=d_result[0][1];
-  di.master=d_result[0][2];
+  stringtok(di.masters, d_result[0][2], " ,\t");
   di.last_check=atol(d_result[0][3].c_str());
   di.backend=this;
   
@@ -136,7 +136,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     DomainInfo sd;
     sd.id=atol(d_result[n][0].c_str());
     sd.zone=d_result[n][1];
-    sd.master=d_result[n][2];
+    stringtok(sd.masters, d_result[n][2], ", \t");
     sd.last_check=atol(d_result[n][3].c_str());
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
@@ -160,7 +160,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   /* list all domains that need notifications for which we are master, and insert into updatedDomains
      id,name,master IP,serial */
   char output[1024];
-  snprintf(output,sizeof(output)-1,d_InfoOfAllMasterDomainsQuery.c_str());
+  snprintf(output, sizeof(output)-1, d_InfoOfAllMasterDomainsQuery.c_str());
 
   try {
     d_db->doQuery(output,d_result);
@@ -169,13 +169,12 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
     throw AhuException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
   }
 
-  vector<DomainInfo>allMasters;
+  vector<DomainInfo> allMasters;
   int numanswers=d_result.size();
   for(int n=0;n<numanswers;++n) { // id,name,master,last_check
     DomainInfo sd;
     sd.id=atol(d_result[n][0].c_str());
     sd.zone=d_result[n][1];
-    sd.master=d_result[n][2];
     sd.last_check=atol(d_result[n][3].c_str());
     sd.notified_serial=atoi(d_result[n][4].c_str());
     sd.backend=this;

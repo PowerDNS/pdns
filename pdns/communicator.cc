@@ -53,7 +53,6 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   d_any_sem.post();
 }
 
-
 void CommunicatorClass::suck(const string &domain,const string &remote)
 {
   uint32_t domain_id;
@@ -246,7 +245,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       (sdomains.size()>1 ? "" : "s")<<
       " checking"<<endl;
 
-  for(vector<DomainInfo>::const_iterator i=sdomains.begin();i!=sdomains.end();++i) {
+  for(vector<DomainInfo>::iterator i=sdomains.begin();i!=sdomains.end();++i) {
     Resolver resolver;   
     resolver.makeUDPSocket();  
     d_slaveschanged=true;
@@ -257,9 +256,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       break;
     }
 
-    vector<string> masters;
-    stringtok(masters, i->master, ", \t");
-    for(vector<string>::const_iterator iter = masters.begin(); iter != masters.end(); ++iter) {
+    random_shuffle(i->masters.begin(), i->masters.end());
+    for(vector<string>::const_iterator iter = i->masters.begin(); iter != i->masters.end(); ++iter) {
       try {
 	resolver.getSoaSerial(*iter, i->zone, &theirserial);
 	
@@ -279,13 +277,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
       catch(ResolverException &re) {
 	L<<Logger::Error<<"Error trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
-	if(next(iter) != masters.end()) 
-	  L<<Logger::Error<<"Trying next master for '"+i->zone+"'"<<endl;
+	if(next(iter) != i->masters.end()) 
+	  L<<Logger::Error<<"Trying next master '"<<*next(iter)<<"' for '"+i->zone+"'"<<endl;
       }
       catch(AhuException &re) {
 	L<<Logger::Error<<"Error trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
-	if(next(iter) != masters.end()) 
-	  L<<Logger::Error<<"Trying next master for '"+i->zone+"'"<<endl;
+	if(next(iter) != i->masters.end()) 
+	  L<<Logger::Error<<"Trying next master '"<<*next(iter)<<"' for '"+i->zone+"'"<<endl;
       }
     }
   }

@@ -99,7 +99,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 		{
 			di.id = 0;
 			di.zone = "";
-			di.master = "";
+			di.masters.clear();
 			di.last_check = 0;
 			di.notified_serial = 0;
 			di.kind = DomainInfo::Native;
@@ -130,7 +130,8 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
 			if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
 			{
-				di.master = string( tmp, odbx_field_length( m_result, 3 ) );
+				string masters = string( tmp, odbx_field_length( m_result, 3 ) );
+				stringtok(di.masters, masters, ", \t");
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
