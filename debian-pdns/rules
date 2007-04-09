@@ -42,12 +42,11 @@ binary-doc:
 
 
 build-static stamp-build-static:
-		./configure CC="ccache gcc" CXX="ccache g++"\
+		./configure LIBS="-lkrb5 -lk5crypto -lpgport -lgssapi_krb5 -lkrb5support -lgssapi_krb5 -lcom_err -lnsl -lresolv" \
+		CC="ccache gcc" CXX="ccache g++"\
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
 		--libdir='$${prefix}/lib/powerdns' \
-                --with-pgsql-lib=/opt/postgresql/lib/ \
-                --with-pgsql-includes=/opt/postgresql/include/ \
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
