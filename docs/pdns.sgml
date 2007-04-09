@@ -104,9 +104,10 @@
 	  This release would not have been possible without large amounts of help and support from the PowerDNS Community. We specifically want to thank
 	  Massimo Bandinelli of Italy's <ulink url="http://register.it">Register.it</ulink>, <ulink url="http://aaldering-ict.nl">Dave Aaldering of Aaldering ICT</ulink>, 
 	  <ulink url="http://true.nl">True BV</ulink>, <ulink url="http://www.xs4all.nl">XS4ALL</ulink>, Daniel Bilik of <ulink url="http://www.neosystem.cz">Neosystem</ulink>,
-	  <ulink url="http://www.easydns.com">EasyDNS</ulink>, <ulink url="http://schwer.us">Augie Schwer</ulink>, 
-	  <ulink url="http://www.opensuse.org">Marcus Rueckert of OpenSUSE</ulink>, Andre Muraro of <ulink url="http://www.locaweb.com.br">Locaweb</ulink>,
-	  Antony Lesuisse.
+	  <ulink url="http://www.easydns.com">EasyDNS</ulink>, <ulink url="http://schwer.us">Augie Schwer</ulink>, <ulink url="http://www.wikipedia.org">Mark Bergsma</ulink>,
+	  <ulink url="http://www.opensuse.org">Marcus Rueckert of OpenSUSE</ulink>, Andre Muraro of <ulink url="http://www.locaweb.com.br">Locaweb</ulink>, 
+	  Antony Lesuisse, <ulink url="http://www.linuxnetworks.de">Norbert Sendetzky</ulink>, <ulink url="http://www.aruba.it">Marco Chiavacci</ulink>, 
+	  and Ruben Kerkhof.
 	</para>
 	<para>
 	  Security issues:
@@ -139,6 +140,12 @@
 	    <listitem>
 	      <para>
 		Multi-part TXT records weren't supported. This has been fixed, and regression tests have been added. Code in commits C1016, C996, C994.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Our snapshots were built against a static version of PosgreSQL that was incompatible with many Linux distributions, leading to instant
+		crashes on startup. Fixed in C1022 and C1023.
 	      </para>
 	    </listitem>
 	    <listitem>
