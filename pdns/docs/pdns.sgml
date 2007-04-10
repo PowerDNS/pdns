@@ -116,7 +116,7 @@
 	      <para>
 		The previous packet parsing and generating code contained no known bugs, but was however very lengthy and overly complex, and might have had
 		security problems. The new code is 'inherently safe' because it relies on bounds-checking C++ constructs. Therefore, a move to 2.9.21 is highly
-		recommened.
+		recommended.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -249,7 +249,8 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Thanks to <ulink url="http://www.easydns.com">EasyDNS</ulink>, PowerDNS now supports multiple masters per domain. Implemented in c1018, c1017.
+		Thanks to <ulink url="http://www.easydns.com">EasyDNS</ulink>, PowerDNS now supports multiple masters per domain. For configuration
+		details, see <xref linkend="slave">. Implemented in c1018, c1017.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -6742,7 +6743,7 @@ local0.err                        /var/log/pdns.err
 	  <term>PDNS does not operate as a 'slave' or 'master' server with all backends</term>
 	  <listitem>
 	    <para>
-	      Only the Generic SQL and BIND backends have the ability to act as master or slave.
+	      Only the Generic SQL, OpenDBX and BIND backends have the ability to act as master or slave.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -7913,6 +7914,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       <para>
 	Slave operation can also be programmed using several pdns_control commands, see <xref linkend="pdnscontrol">. The 'retrieve' command
 	is especially useful as it triggers an immediate retrieval of the zone from the configured master.
+      </para>
+      <para>
+	Since 2.9.21, PowerDNS supports multiple masters. For the BIND backend, the native BIND configuration language suffices to specify
+	multiple masters, for SQL based backends, list all master servers separated by commas in the 'master' field of the domains table.
       </para>
       <sect2 id=supermaster><title>Supermaster automatic provisioning of slaves</title>
 	<para>
@@ -11574,6 +11579,13 @@ associateddomain: ns.example.dom
       exception of MySQL), you must make sure that you do find answers which differ only in case.
 	</para></warning>
     </para>
+    <para> 
+      <warning><para>
+	  PowerDNS may instantiate multiple instances of your backend, or destroy existing copies and instantiate new ones. Backend code
+	  should therefore be thread-safe with respect to its static data. Additionally, it is wise if instantiation is a fast operation, 
+	  with the possible exception of the first construction.
+	</para></warning>
+    </para>
     <sect1 id="simple-backends"><title>Simple read-only native backends</title>
       <para>
 	Implementing a backend consists of inheriting from the DNSBackend class. For read-only backends, which do not support slave operation,
@@ -11709,7 +11721,7 @@ public:
 class RandomLoader
 {
 public:
-  Loader()
+  RandomLoader()
   {
     BackendMakers().report(new RandomFactory);
     
