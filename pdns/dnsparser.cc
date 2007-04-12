@@ -405,7 +405,6 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
   for(;;) {
     unsigned char labellen=content.at(frompos++);
 
-    //    cerr<<"ret: '"<<ret<<"', Labellen: "<<(int)labellen<<endl;
     if(!labellen) {
       if(ret.empty())
       	ret.append(1,'.');
@@ -417,10 +416,14 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
     else {
-      // should check for . here and replace by \.
-      ret.append(&content.at(frompos), &content.at(frompos+labellen));
+      // XXX FIXME THIS MIGHT BE VERY SLOW!
+      ret.reserve(ret.size() + labellen + 2);
+      for(string::size_type n = 0 ; n < labellen; ++n, frompos++) {
+	if(content.at(frompos)=='.')
+	  ret.append(1, '\\');
+	ret.append(1, content[frompos]);
+      }
       ret.append(1,'.');
-      frompos+=labellen;
     }
   }
 }

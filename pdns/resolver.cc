@@ -187,8 +187,9 @@ int Resolver::receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrl
 
   int res=select(d_sock+1,&rd,0,0,&timeout);
 
-  if(!res)
+  if(!res) {
     throw ResolverException("Timeout waiting for answer");
+  }
   if(res<0)
     throw ResolverException("Error waiting for answer: "+stringerror());
 
@@ -204,8 +205,8 @@ int Resolver::resolve(const string &ip, const char *domain, int type)
   makeUDPSocket();
   sendResolve(ip, domain, type);
   try {
-    struct sockaddr_in from;
-    return receiveResolve((sockaddr*)&from, sizeof(from));
+    ComboAddress from(ip);
+    return receiveResolve((sockaddr*)&from, from.getSocklen());
   }
   catch(ResolverException &re) {
     throw ResolverException(re.reason+" from "+ip);

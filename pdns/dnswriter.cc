@@ -2,6 +2,7 @@
 #include "misc.hh"
 #include "dnsparser.hh"
 #include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
   : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass)
@@ -143,19 +144,44 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const stri
   return ret;
 }
 
+typedef vector<pair<string::size_type, string::size_type> > parts_t;
+
+bool labeltokUnescape(parts_t& parts, const string& label)
+{
+  string::size_type epos = label.size(), lpos(0), pos;
+  bool unescapedSomething = false;
+  const char* ptr=label.c_str();
+
+  parts.clear();
+
+  for(pos = 0 ; pos < epos; ++pos) {
+    if(ptr[pos]=='\\') {
+      pos++;
+      unescapedSomething = true;
+      continue;
+    }
+    if(ptr[pos]=='.') {
+      parts.push_back(make_pair(lpos, pos));
+      lpos=pos+1;
+    }
+  }
+  
+  if(lpos < pos)
+    parts.push_back(make_pair(lpos, pos));
+  return unescapedSomething;
+}
+
 // this is the absolute hottest function in the pdns recursor 
 void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
-  typedef vector<pair<unsigned int, unsigned int> > parts_t;
   parts_t parts;
-  vstringtok(parts, label, "."); // XXX FIXME this should deal with escaped .
+  bool unescaped=labeltokUnescape(parts, label); 
   
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
   unsigned int pos=d_content.size() + d_record.size() + d_stuff; 
-  string chopped(label);
-
+  string chopped;
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-    //    cerr<<"chopped: '"<<chopped<<"'\n";
+    chopped.assign(label.c_str() + i->first);
     lmap_t::iterator li=d_labelmap.end();
     // see if we've written out this domain before
     if(compress && (li=find(d_labelmap, chopped))!=d_labelmap.end()) {   
@@ -169,15 +195,24 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
     if(li==d_labelmap.end() && pos< 16384)
       d_labelmap.push_back(make_pair(chopped, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
 
-    d_record.push_back((char)(i->second - i->first));
-    unsigned int len=d_record.size();
-    d_record.resize(len + i->second - i->first);
-    memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
-    //    cerr<<"Added: '"<<string(label.c_str() + i->first, i->second - i->first) <<"'\n";
-    pos+=(i->second - i->first)+1;
+    if(unescaped) {
+      string part(label.c_str() + i -> first, i->second - i->first);
+      replace_all(part, "\\.", ".");
+      d_record.push_back(part.size());
+      unsigned int len=d_record.size();
+      d_record.resize(len + part.size());
 
-    if(i+1 != parts.end())
-      chopOff(chopped);                   // www.powerdns.com. -> powerdns.com. -> com. -> .
+      memcpy(((&*d_record.begin()) + len), part.c_str(), part.size());
+      pos+=(part.size())+1;			 
+    }
+    else {
+      d_record.push_back((char)(i->second - i->first));
+      unsigned int len=d_record.size();
+      d_record.resize(len + i->second - i->first);
+      memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
+      pos+=(i->second - i->first)+1;
+    }
+
   }
   d_record.push_back(0);
 

@@ -138,15 +138,12 @@ private:
     bool get(DNSResourceRecord &);
     void reset()
     {
-      parent=0;
       d_records.reset();
       qname.clear();
-
+      mustlog=false;
     }
 
     handle();
-
-    Bind2Backend *parent;
 
     shared_ptr<vector<Bind2DNSRecord> > d_records;
     vector<Bind2DNSRecord>::const_iterator d_iter, d_end_iter;
@@ -160,9 +157,9 @@ private:
     string qname;
     string domain;
     QType qtype;
+    bool mustlog;
+
   private:
-    int count;
-    
     bool get_normal(DNSResourceRecord &);
     bool get_list(DNSResourceRecord &);
 
