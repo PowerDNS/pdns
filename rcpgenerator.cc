@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2005 - 2007 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -137,7 +137,7 @@ void RecordTextReader::xfrLabel(string& val, bool)
     if(dns_isspace(strptr[d_pos]))
       break;
 
-    if(strptr[d_pos]=='\\' && d_pos < d_end - 1) 
+    if(strptr[d_pos]=='\\' && d_pos < d_end - 1 && strptr[d_pos+1]!='.')  // leave the \. escape around
       d_pos++;
 
     val.append(1, strptr[d_pos]);      

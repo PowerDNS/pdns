@@ -65,6 +65,9 @@ static unsigned int makeTTLFromZone(const string& str)
   char lc=toupper(str[str.length()-1]);
   if(!isdigit(lc))
     switch(lc) {
+    case 'M':
+      val*=60; // minutes, not months!
+      break;
     case 'H':
       val*=3600;
       break;
@@ -73,9 +76,6 @@ static unsigned int makeTTLFromZone(const string& str)
       break;
     case 'W':
       val*=3600*24*7;
-      break;
-    case 'M':
-      val*=3600*24*7*4;
       break;
     case 'Y': // ? :-)
       val*=3600*24*365;
@@ -351,6 +351,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       else
 	rr.content+=soaparts[n];
     }
+    break;
   default:;
   }
 

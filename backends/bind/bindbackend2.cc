@@ -322,8 +322,6 @@ set<string> contents;
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
 void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl=300, int prio=25)
 {
-  // XXXX WRONG WRONG WRONG REWRITE
-
   BB2DomainInfo bb2 = stage->id_zone_map[id];
   Bind2DNSRecord bdr;
 
@@ -760,7 +758,6 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(strcasecmp(qname.c_str(),domain.c_str()))
     d_handle.qname=qname.substr(0,qname.size()-domain.length()-1); // strip domain name
 
-  d_handle.parent=this;
   d_handle.qtype=qtype;
   d_handle.domain=qname.substr(qname.size()-domain.length());
 
@@ -776,11 +773,11 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
     d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a *fresh* copy
   }
 
-  d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a copy
+  d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a reference counted copy
   
   if(d_handle.d_records->empty())
     DLOG(L<<"Query with no results"<<endl);
-  
+
   pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
 
   //  cout<<"starting equal range for: '"<<d_handle.qname<<"'"<<endl;
@@ -795,6 +792,8 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   else {
     d_handle.d_iter=range.first;
     d_handle.d_end_iter=range.second;
+    d_handle.mustlog = mustlog;
+
   }
 
   d_handle.d_list=false;
@@ -802,8 +801,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
 
 Bind2Backend::handle::handle()
 {
-  //  d_records=0;
-  count=0;
+  mustlog=false;
 }
 
 bool Bind2Backend::get(DNSResourceRecord &r)
@@ -858,6 +856,9 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   r.ttl=(d_iter)->ttl;
   r.priority=(d_iter)->priority;
   d_iter++;
+  if(mustlog)
+    L<<Logger::Warning<<"Returning: "<< r.qtype.getName()<<" "<<r.content<<endl;
+
 
   return true;
 }
@@ -875,7 +876,6 @@ bool Bind2Backend::list(const string &target, int id)
   d_handle.d_qname_iter= d_handle.d_records->begin();
   d_handle.d_qname_end=d_handle.d_records->end();   // iter now points to a vector of pointers to vector<BBResourceRecords>
 
-  d_handle.parent=this;
   d_handle.id=id;
   d_handle.d_list=true;
   return true;
