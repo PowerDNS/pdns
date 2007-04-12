@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "misc.hh"
 
 using namespace std;
 using namespace boost;
@@ -113,7 +114,7 @@ public:
   bool commitTransaction();
   bool abortTransaction();
 
-  typedef map<string, int> name_id_map_t;
+  typedef map<string, int, CIStringCompare> name_id_map_t;
   typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
 
   struct State : public boost::noncopyable
