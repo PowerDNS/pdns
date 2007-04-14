@@ -19,6 +19,7 @@
 #include <iostream>
 #include "ahuexception.hh"
 #include "arguments.hh"
+#include "config.h"
 
 using namespace std;
 

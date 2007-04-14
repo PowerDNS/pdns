@@ -813,25 +813,6 @@ string questionExpand(const char* packet, uint16_t len, uint16_t& type)
   return tmp;
 }
 
-#include <sys/syscall.h>
-#include <unistd.h>
-#include <asm/unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#if 0
-extern "C" {
-ssize_t recvfrom(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen)
-{
-#ifdef __NR_socketcall
-	return syscall(__NR_socketcall, 12, &s);
-#else
-	return syscall(__NR_recvfrom, s, buf, len, flags, from, fromlen);
-#endif
-}
-}
-#endif
-
 void handleNewUDPQuestion(int fd, boost::any& var)
 {
   int len;

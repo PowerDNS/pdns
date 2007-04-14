@@ -46,6 +46,10 @@ private:
 int main(int argc, char** argv)
 try
 {
+  if(argc!=3) {
+    cerr<<"Syntax: dnswasher infile outfile\n";
+    exit(1);
+  }
   PcapPacketReader pr(argv[1]);
   PcapPacketWriter pw(argv[2], pr);
   IPObfuscator ipo;
