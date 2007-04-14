@@ -817,8 +817,8 @@ bool Bind2Backend::get(DNSResourceRecord &r)
 
     return false;
   }
-  if(::arg().mustDo("query-logging"))
-    L<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"', prio: "<<r.priority<<endl;
+  if(d_handle.mustlog)
+    L<<Logger::Warning<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"', prio: "<<r.priority<<endl;
   return true;
 }
 
@@ -856,9 +856,6 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   r.ttl=(d_iter)->ttl;
   r.priority=(d_iter)->priority;
   d_iter++;
-  if(mustlog)
-    L<<Logger::Warning<<"Returning: "<< r.qtype.getName()<<" "<<r.content<<endl;
-
 
   return true;
 }

@@ -277,21 +277,7 @@ void DNSPacket::wrapup(void)
   vector<DNSResourceRecord>::iterator pos;
 
   vector<DNSResourceRecord> additional;
-  for(pos=rrs.begin();pos<rrs.end();++pos) {
-    if(pos->qtype.getCode()==QType::NS) {
-      vector<string>pieces;
-      stringtok(pieces,pos->content,"@");
-      
-      if(pieces.size() > 1) { // INSTANT ADDITIONAL PROCESSING!
-	rr.qname=pieces[0];
-	rr.qtype=QType::A;
-	rr.ttl=pos->ttl;
-	rr.content=pieces[1];
-	rr.d_place=DNSResourceRecord::ADDITIONAL;
-	additional.push_back(rr);
-      }
-    }
-  }
+
   int ipos=rrs.size();
   rrs.resize(rrs.size()+additional.size());
   copy(additional.begin(), additional.end(), rrs.begin()+ipos);
@@ -318,7 +304,7 @@ void DNSPacket::wrapup(void)
 
   if(!rrs.empty()) {
     try {
-      for(pos=rrs.begin();pos<rrs.end();++pos) {
+      for(pos=rrs.begin(); pos < rrs.end(); ++pos) {
 	// this needs to deal with the 'prio' mismatch!
 	if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
 	  pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
@@ -327,6 +313,8 @@ void DNSPacket::wrapup(void)
 	if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
 	  pos->content="\""+pos->content+"\"";
 	}
+	if(pos->content.empty())  // empty contents confuse the MOADNS setup
+	  pos->content=".";
 	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
 	drc->toPacket(pw);
       }

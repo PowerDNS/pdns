@@ -175,6 +175,12 @@ bool labeltokUnescape(parts_t& parts, const string& label)
 void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
   parts_t parts;
+
+  if(label.size()==1 && label[0]=='.') { // otherwise we encode '..'
+    d_record.push_back(0);
+    return;
+  }
+
   bool unescaped=labeltokUnescape(parts, label); 
   
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
@@ -212,7 +218,6 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
       memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
       pos+=(i->second - i->first)+1;
     }
-
   }
   d_record.push_back(0);
 
