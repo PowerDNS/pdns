@@ -310,6 +310,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
   chopComment(rr.content);
 
+  if(equals(rr.content, "@"))
+    rr.content=d_zonename;
+
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
       while(getLine()) {
