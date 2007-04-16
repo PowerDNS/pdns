@@ -220,14 +220,14 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 {
   SOAData soadata;
 
-  Lock l(&s_state_lock); // needs to work on the actual state, as we change stuff
+  //  Lock l(&s_state_lock); // we don't really change the zone map, just flip a bit
 
   for(id_zone_map_t::iterator i = s_state->id_zone_map.begin(); i != s_state->id_zone_map.end() ; ++i) {
-    if(!i->second.d_masters.empty())
+    if(!i->second.d_masters.empty() || !i->second.current())
       continue;
     soadata.serial=0;
     try {
-      getSOA(i->second.d_name,soadata); // we might not *have* a SOA yet
+      this->getSOA(i->second.d_name, soadata); // we might not *have* a SOA yet
     }
     catch(...){}
     DomainInfo di;
@@ -772,7 +772,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(!bbd.current()) {
     L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
     queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
-    d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a *fresh* copy
+    state = s_state;
   }
 
   d_handle.d_records = state->id_zone_map[iditer->second].d_records; // give it a reference counted copy

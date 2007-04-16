@@ -736,14 +736,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     else
       weAuth=false;
 
-
     if(p->d.rd && d_doRecursion && !weAuth) {
       if(DP->recurseFor(p)) {
 	*shouldRecurse=true;
 	delete r;
 	return 0;
       }
-
       else noCache=true;
     }
     
