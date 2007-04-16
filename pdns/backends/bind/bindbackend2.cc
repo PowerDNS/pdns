@@ -223,11 +223,11 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
   //  Lock l(&s_state_lock); // we don't really change the zone map, just flip a bit
 
   for(id_zone_map_t::iterator i = s_state->id_zone_map.begin(); i != s_state->id_zone_map.end() ; ++i) {
-    if(!i->second.d_masters.empty() || !i->second.current())
+    if(!i->second.d_masters.empty())
       continue;
     soadata.serial=0;
     try {
-      this->getSOA(i->second.d_name, soadata); // we might not *have* a SOA yet
+      this->getSOA(i->second.d_name, soadata); // we might not *have* a SOA yet, but this might trigger a load of it
     }
     catch(...){}
     DomainInfo di;
