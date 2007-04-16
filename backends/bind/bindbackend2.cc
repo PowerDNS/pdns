@@ -199,6 +199,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
   case QType::MX:
     if(!stripDomainSuffix(&content, domain))
       content+=".";
+  case QType::SRV:
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<content<<endl;
     break;
   case QType::CNAME:
@@ -318,7 +319,8 @@ static string canonic(string ret)
 
 set<string> contents;
 
-/** This function adds a record to a domain with a certain id. 
+/** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedence matching
+    This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
 void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl=300, int prio=25)
 {
