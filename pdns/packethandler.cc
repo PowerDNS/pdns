@@ -332,7 +332,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 
       QType qtypes[2];
       qtypes[0]="A"; qtypes[1]="AAAA";
-      for(int n=0;n < d_doIPv6AdditionalProcessing + 1; ++n) {
+      for(int n=0 ; n < d_doIPv6AdditionalProcessing + 1; ++n) {
 	B.lookup(qtypes[n],i->content,p);  
 	bool foundOne=false;
 	while(B.get(rr)) {
@@ -344,26 +344,6 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 	  
 	  rr.d_place=DNSResourceRecord::ADDITIONAL;
 	  r->addRecord(rr);
-	  
-	}
-	if(!foundOne) {
-	  if(d_doRecursion && DP->recurseFor(p)) {
-	    try {
-	      Resolver resolver;
-	      resolver.resolve(arg()["recursor"],i->content.c_str(),QType::A);
-	      Resolver::res_t res=resolver.result();
-	      for(Resolver::res_t::const_iterator j=res.begin();j!=res.end();++j) {
-		if(j->d_place==DNSResourceRecord::ANSWER) {
-		  rr=*j;
-		  rr.d_place=DNSResourceRecord::ADDITIONAL;
-		  r->addRecord(rr);
-		}
-	      }
-	    }
-	    catch(ResolverException& re) {
-	      // L<<Logger::Error<<"Trying to do additional processing for answer to '"<<p->qdomain<<"' query: "<<re.reason<<endl;
-	    }
-	  }
 	}
       }
     }
