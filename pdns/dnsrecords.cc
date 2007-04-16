@@ -212,7 +212,6 @@ boilerplate_conv(NAPTR, ns_t_naptr,
 		 )
 
 
-
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const string& target) 
   : DNSRecordContent(ns_t_srv), d_preference(preference), d_weight(weight), d_port(port), d_target(target)
 {}
