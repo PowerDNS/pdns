@@ -55,8 +55,6 @@ PacketHandler *TCPNameserver::s_P;
 int TCPNameserver::s_timeout;
 NetmaskGroup TCPNameserver::d_ng;
 
-
-
 void TCPNameserver::go()
 {
   L<<Logger::Error<<"Creating backend connection for TCP"<<endl;
@@ -244,8 +242,11 @@ void *TCPNameserver::doConnection(void *data)
     
     for(;;) {
       ComboAddress remote;
-      socklen_t remotelen=remote.getSocklen();
-      getpeername(fd, (struct sockaddr *)&remote, &remotelen);
+      socklen_t remotelen=sizeof(remote);
+      if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
+	L<<Logger::Error<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
+	break;
+      }
 
       uint16_t pktlen;
       if(!readnWithTimeout(fd, &pktlen, 2, false))
@@ -292,7 +293,9 @@ void *TCPNameserver::doConnection(void *data)
 	  s_P=new PacketHandler;
 	}
 	bool shouldRecurse;
+
 	reply=shared_ptr<DNSPacket>(s_P->questionOrRecurse(packet.get(), &shouldRecurse)); // we really need to ask the backend :-)
+
 	if(shouldRecurse) {
 	  proxyQuestion(packet);
 	  continue;

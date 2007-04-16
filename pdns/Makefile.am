@@ -79,27 +79,27 @@ dnslog_SOURCES=dnslog.cc misc.cc  qtype.cc anadns.hh \
 dnsreplay_mindex_SOURCES=dnsreplay-mindex.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
-	unix_utility.cc utility.hh		
+	unix_utility.cc utility.hh sillyrecords.cc	
 
 dnsreplay_mindex_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
 	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
-	utility.hh dnsparser.hh
+	utility.hh dnsparser.hh sillyrecords.cc
 
 dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 dnsgram_SOURCES=dnsgram.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
 	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
-	utility.hh dnsparser.hh
+	utility.hh dnsparser.hh sillyrecords.cc
 
 
 dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
 	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
-	utility.hh dnsparser.hh
+	utility.hh dnsparser.hh sillyrecords.cc
 
 
 
