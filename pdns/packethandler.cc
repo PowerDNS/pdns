@@ -116,6 +116,7 @@ int PacketHandler::findMboxFW(DNSPacket *p, DNSPacket *r, string &target)
     wedoforward=true;
 
   if(wedoforward) {
+    r->clearRecords();
     rr.content=arg()["smtpredirector"];
     rr.priority=25;
     rr.ttl=7200;
@@ -137,6 +138,8 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
   B.lookup("URL",target,p); // search for a URL before we search for an A
         
   while(B.get(rr)) {
+    if(!found) 
+      r->clearRecords();
     found=true;
     DLOG(L << "Found a URL!" << endl);
     rr.content=arg()["urlredirector"];
@@ -146,14 +149,16 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
     r->addRecord(rr);
   }  
 
-  if(found)
+  if(found) 
     return 1;
-      
+
   // now try CURL
   
   B.lookup("CURL",target,p); // search for a URL before we search for an A
       
   while(B.get(rr)) {
+    if(!found) 
+      r->clearRecords();
     found=true;
     DLOG(L << "Found a CURL!" << endl);
     rr.content=arg()["urlredirector"];
@@ -648,7 +653,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(mret == 1) 
       goto sendit; // this might be the end of it (client requested a CNAME, or we found the answer already)
-    
 
     if(d_doFancyRecords) { // MBOXFW, URL <- fake records, emulated with MX and A
       int res=doFancyRecords(p,r,target);
