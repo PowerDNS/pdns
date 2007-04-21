@@ -70,6 +70,7 @@ public:
   string getZoneRepresentation() const
   {
     struct sockaddr_in6 addr;
+    memset(&addr, 0, sizeof(addr));
     addr.sin6_family=AF_INET6;
     memcpy(&addr.sin6_addr, d_ip6, 16);
 

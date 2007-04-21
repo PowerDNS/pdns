@@ -81,7 +81,7 @@ string Bind2Backend::s_binddirectory;
 BB2DomainInfo::BB2DomainInfo()
 {
   d_loaded=false;
-  d_last_check=0;
+  d_lastcheck=0;
   d_checknow=false;
   d_status="Unknown";
 }
@@ -96,7 +96,13 @@ bool BB2DomainInfo::current()
   if(d_checknow)
     return false;
 
-  if(!d_checkinterval || (time(0) - d_lastcheck < d_checkinterval ) || d_filename.empty())
+  if(!d_checkinterval) 
+    return true;
+
+  if(time(0) - d_lastcheck < d_checkinterval)
+    return true;
+  
+  if(d_filename.empty())
     return true;
 
   return (getCtime()==d_ctime);
@@ -129,7 +135,7 @@ void Bind2Backend::setNotified(uint32_t id, uint32_t serial)
 void Bind2Backend::setFresh(uint32_t domain_id)
 {
   Lock l(&s_state_lock);
-  s_state->id_zone_map[domain_id].d_last_check=time(0);
+  s_state->id_zone_map[domain_id].d_lastcheck=time(0);
 }
 
 bool Bind2Backend::startTransaction(const string &qname, int id)
@@ -234,7 +240,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     di.id=i->first;
     di.serial=soadata.serial;
     di.zone=i->second.d_name;
-    di.last_check=i->second.d_last_check;
+    di.last_check=i->second.d_lastcheck;
     di.backend=this;
     di.kind=DomainInfo::Master;
     if(!i->second.d_lastnotified)            // don't do notification storm on startup 
@@ -255,7 +261,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     sd.id=i->first;
     sd.zone=i->second.d_name;
     sd.masters=i->second.d_masters;
-    sd.last_check=i->second.d_last_check;
+    sd.last_check=i->second.d_lastcheck;
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
     SOAData soadata;
@@ -281,7 +287,7 @@ bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
       di.id=i->first;
       di.zone=domain;
       di.masters=i->second.d_masters;
-      di.last_check=i->second.d_last_check;
+      di.last_check=i->second.d_lastcheck;
       di.backend=this;
       di.kind=i->second.d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave;
       di.serial=0;
@@ -517,9 +523,10 @@ void Bind2Backend::loadConfig(string* status)
       
     for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) 
     {
-      stat(i->filename.c_str(), &st);
-      i->d_dev = st.st_dev;
-      i->d_ino = st.st_ino;
+      if(stat(i->filename.c_str(), &st) == 0) {
+	i->d_dev = st.st_dev;
+	i->d_ino = st.st_ino;
+      }
     }
 
     sort(domains.begin(), domains.end()); // put stuff in inode order
