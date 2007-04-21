@@ -27,10 +27,15 @@ using namespace std;
 class BindDomainInfo 
 {
 public:
+  BindDomainInfo() : d_dev(0), d_ino(0)
+  {}
+
   void clear() 
   {
     name=filename=type="";
     masters.clear();
+    d_dev=0;
+    d_ino=0;
   }
   string name;
   string filename;

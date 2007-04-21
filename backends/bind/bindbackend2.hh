@@ -73,7 +73,7 @@ public:
   string d_name;   //!< actual name of the domain
   string d_filename; //!< full absolute filename of the zone on disk
   unsigned int d_id;  //!< internal id of the domain
-  time_t d_last_check; //!< last time domain was checked for freshness
+  time_t d_lastcheck; //!< last time domain was checked for freshness
   vector<string> d_masters;     //!< IP address of the master of this domain
 
   uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
@@ -85,9 +85,7 @@ public:
 private:
   time_t getCtime();
   time_t d_checkinterval;
-  time_t d_lastcheck;
 };
-
 
 class Bind2Backend : public DNSBackend
 {
