@@ -82,9 +82,9 @@
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
       </para>
-      <sect2 id="changelog-2-9-21"><title>PowerDNS Authoritative Server version 2.9.21 (Unreleased)</title>
+      <sect2 id="changelog-2-9-21"><title>PowerDNS Authoritative Server version 2.9.21</title>
 	<para>
-	  Unreleased.
+	  Released the 21st of April 2007.
 	</para>
 	<para>
 	  This is the first release the PowerDNS Authoritative Server since the Recursor was split off to a separate product, and also marks the transfer
@@ -104,10 +104,11 @@
 	  This release would not have been possible without large amounts of help and support from the PowerDNS Community. We specifically want to thank
 	  Massimo Bandinelli of Italy's <ulink url="http://register.it">Register.it</ulink>, <ulink url="http://aaldering-ict.nl">Dave Aaldering of Aaldering ICT</ulink>, 
 	  <ulink url="http://true.nl">True BV</ulink>, <ulink url="http://www.xs4all.nl">XS4ALL</ulink>, Daniel Bilik of <ulink url="http://www.neosystem.cz">Neosystem</ulink>,
-	  <ulink url="http://www.easydns.com">EasyDNS</ulink>, <ulink url="http://schwer.us">Augie Schwer</ulink>, <ulink url="http://www.wikipedia.org">Mark Bergsma</ulink>,
+	  <ulink url="http://www.easydns.com">EasyDNS</ulink>, <ulink url="http://www.siemens.com">Heinrich Ruthensteiner</ulink> of Siemens, 
+	  <ulink url="http://schwer.us">Augie Schwer</ulink>, <ulink url="http://www.wikipedia.org">Mark Bergsma</ulink>, <ulink url="http://www.forfun.net">Marco Davids</ulink>,
 	  <ulink url="http://www.opensuse.org">Marcus Rueckert of OpenSUSE</ulink>, Andre Muraro of <ulink url="http://www.locaweb.com.br">Locaweb</ulink>, 
-	  Antony Lesuisse, <ulink url="http://www.linuxnetworks.de">Norbert Sendetzky</ulink>, <ulink url="http://www.aruba.it">Marco Chiavacci</ulink>, 
-	  and Ruben Kerkhof.
+	  Antony Lesuisse, <ulink url="http://www.linuxnetworks.de">Norbert Sendetzky</ulink>, <ulink url="http://www.aruba.it">Marco Chiavacci</ulink>, Christoph Haas,
+	  Ralf van der Enden and Ruben Kerkhof.
 	</para>
 	<para>
 	  Security issues:
@@ -144,6 +145,16 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		Email addresses with embedded dots in SOA records were not parsed correctly, nor were other embedded dots. Noted by 'Bastiaan', fixed in c1026.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		BIND backend treated the 'm' TTL modifier as 'months' and not 'minutes'. Closes Debian bug 406462. Addressed in c1026.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		Our snapshots were built against a static version of PosgreSQL that was incompatible with many Linux distributions, leading to instant
 		crashes on startup. Fixed in C1022 and C1023.
 	      </para>
@@ -151,6 +162,12 @@
 	    <listitem>
 	      <para>
 		CNAME referrals to child zones gave improper responses. Noted by Augie Schwer in t123, fixed in c992.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		When passing a port number with the <command>recursor</command> setting, this would sometimes generate errors during additional processing. Switched off
+		overly helpful additional processing for recursive queries to remove this problem. Implemented in c1031, spotted by Ralf van der Enden.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -179,7 +196,7 @@
 		The BIND backend was highly unstable under reloads, and leaked memory and file descriptors. 
 		Thanks to Mark Bergsma and Massimo Bandinelli for respectively pointing this out to us and testing
 		large amounts of patches to fix the problem. The fixes have resulted in better performance, less code, and a remarkable simplification 
-		of this backend. c1006, c999, c905 and previous.
+		of this backend. Commits C1039, C1034, C1035, C1006, C999, C905 and previous.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -211,6 +228,11 @@
 	    <listitem>
 	      <para>
 		IXFR requests were not logged properly. Noted by Ralf van der Enden, fixed in c990.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Some NAPTR records needed an additional space character to encode correctly. Spotted by Heinrich Ruthensteiner, fixed in c1029.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -291,7 +313,7 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Miscellaneous OpenDBX and LDAP backend improvements by Norbert Sendetzky. Applied in c977.
+		Miscellaneous OpenDBX and LDAP backend improvements by Norbert Sendetzky. Applied in c977 and c1040.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -358,6 +380,16 @@
 	      <para>
 		Speedups in the BIND backend now mean large installations enjoy startup times up to 30 times faster than with the original BIND nameserver. Many thanks
 		to Massimo Bandinelli.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		BIND backend now offers full support for query logging, implemented in c1026, c1029.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		BIND backend named.conf parsing is now fully case-insensitive for domain names. This closes Debian bug 406461, fixed in c1027.
 	      </para>
 	    </listitem>
 	    <listitem>
