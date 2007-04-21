@@ -34,7 +34,7 @@ dnsproxy.hh randombackend.cc unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
 backends/bind/bindbackend2.cc  \
 backends/bind/bindparser.cc backends/bind/bindlexer.c \
-backends/bind/huffman.cc backends/gsql/gsqlbackend.cc \
+backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
 base64.cc sillyrecords.cc \
 base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
