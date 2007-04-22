@@ -34,27 +34,34 @@
     <Para>
       The PowerDNS daemon is a versatile nameserver which supports a large number
       of backends. These backends can either be <link linkend="bindbackend">plain zonefiles</link> or be 
-      <link linkend="pipebackend">more dynamic</link> in nature. 
+      <link linkend="pipebackend">more dynamic</link> in nature. Additionally, through use of clever programming techniques,
+      PowerDNS offers very high domain resolution performance.
     </Para>
     <Para>
-      Prime examples of backends include relational databases, but also
-      loadbalancing and failover algorithms. 
+      Prime examples of backends include relational databases, but also (geographical) loadbalancing and failover algorithms. 
     </Para>
     <para>
-      The company is called PowerDNS BV, the nameserver daemon is called PDNS.
+      The company is called PowerDNS.COM BV, the nameserver daemon is called PDNS.
     </para>
 
     <sect1 id="function-design"><title>Function &amp; design of PDNS</title>
       <para>
-	PDNS is an authoritative only nameserver. It will answer questions about domains it knows about, 
+	PowerDNS consists of two parts: the Authoritative Server and the Recursor. Other nameservers
+	fully combine these functions, PowerDNS offers them separately, but can mix both authoritative and recursive
+	usage seamlessly.
+	
+	The Authoritative Server will answer questions about domains it knows about, 
 	but will not go out on the net to resolve queries about other domains. However, it can use a 
 	<link linkend="recursion">recursing backend</link> to provide that functionality. Depending 
 	on your needs, this backend can either be the PowerDNS recursor or an external one.
       </para>
       <para>
-	When PDNS answers a question, it comes out of the database, and can be trusted as being authoritative. There is
+	When the Authoritative Server answers a question, it comes out of the database, and can be trusted as being authoritative. There is
 	no way to pollute the cache or to confuse the daemon. 
       </para>
+      <para>
+	The Recursor, conversely, by default has no knowledge of domains itself, but will always consult other authoritative servers
+	to answer questions given to it.
       <para>
 	PDNS has been designed to serve both the needs of small installations by being easy to setup, as well as 
 	for serving very large query volumes on large numbers of domains.
@@ -81,6 +88,9 @@
       <para>
 	Before proceeding, it is advised to check the release notes for your PDNS version, as specified in the name of the distribution
 	file.
+      </para>
+      <para>
+	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
       <sect2 id="changelog-2-9-21"><title>PowerDNS Authoritative Server version 2.9.21</title>
 	<para>
@@ -5729,6 +5739,12 @@ name         IN            A        1.2.3.4
 	  bind-example-zones
 	</screen>
 
+	<warning>
+	  <para>
+	    As of 2.9.21, the BIND backend no longer features the 'bind-example-zones' command. These will return in 2.9.22.
+	  </para>
+	</warning>
+
 	This configures powerdns to 'launch' the bindbackend, and enable the example zones. To fire up PDNS in testing mode, execute: 
 	<command>/etc/init.d/pdns monitor</command>, where you may have to substitute the location of your SysV init.d location you 
 	specified earlier.
@@ -6355,7 +6371,7 @@ GRANT ALL ON records TO pdns;
   </chapter>
 
   <Chapter id="monitoring">
-    <title>Logging &amp; Monitoring PDNS performance</title>
+    <title>Logging &amp; Monitoring Authoritative Server performance</title>
     <para>
       In a production environment, you will want to be able to monitor PDNS performance. For this purpose, currently 
       two methods are available, the webserver and the init.d
@@ -6782,6 +6798,10 @@ local0.err                        /var/log/pdns.err
       </variablelist>
       To migrate, the <command>zone2sql</command> tool is provided. 
       </para>
+    <para>
+      Additionally, the PowerDNS source comes with a number of diagnostic tools, which can be helpful in verifying proper 
+      PowerDNS operation, versus incumbent nameservers. See <xref linkend="analysis"> for more details.
+    </para>
     <sect1 id="zone2sql"><title>Zone2sql</title>
       <para>
 	Zone2sql parses Bind named.conf files and zonefiles and outputs SQL 
@@ -7300,7 +7320,7 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>serve-rfc1918</term>
+	    <term>serve-rfc<emphasis>1918</emphasis></term>
 	    <listitem>
 	      <para>
 		On by default, this makes the server authoritatively aware of: <filename>10.in-addr.arpa</filename>, 
@@ -8069,9 +8089,9 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       </variablelist>
     </para>
   </chapter>
-  <chapter id="all-settings"><title>Index of all settings</title>
+  <chapter id="all-settings"><title>Index of all Authoritative Server settings</title>
     <para>
-      All PDNS settings are listed here, excluding those that originate from backends, which are documented in the relevant chapters.
+      All PDNS Authoritative Server settings are listed here, excluding those that originate from backends, which are documented in the relevant chapters.
       <variablelist>
 	<varlistentry>
 	  <term><anchor id="allow-axfr-ips">allow-axfr-ips=...</term>
@@ -8349,10 +8369,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       </variablelist>
     </para>
   </chapter>
-  <chapter id="metrics"><title>Index of all internal metrics</title>
+  <chapter id="metrics"><title>Index of all Authoritative Server metrics</title>
     <sect1 id="counters-variables"><title>Counters &amp; variables</title>
       <para>
-      A number of counters and variables are set during PDNS operation. These can be queried with the init.d
+      A number of counters and variables are set during PDNS Authoritative Server operation. These can be queried with the init.d
       <command>dump</command>, <command>show</command> and <command>mrtg</command> commands, or viewed with the
       webserver.
       </para>
@@ -8502,6 +8522,9 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
     <para>
       This chapter lists all record types PDNS supports, and how they are stored in backends. The list is mostly alphabetical but
       some types are grouped.
+    </para>
+    <para>
+      The PowerDNS Recursor can serve and store all record types, regardless of wether these are explicitly supported. 
     <variablelist>
       <varlistentry>
 	<term>A</term>
@@ -8521,6 +8544,22 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </listitem>      
 	</varlistentry>
 	<varlistentry>
+	  <term>AFSDB (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	    Specialised record type for the 'Andrew Filesystem'. Stored as: '#subtype hostname', where subtype is a number.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
+	<term>CERT (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	    Specialised record type for storing certificates, defined in RFC 2538.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
 	  <term>CNAME</term>
 	  <listitem>
 	    <para>
@@ -8530,11 +8569,45 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </listitem>      
 	</varlistentry>
 	<varlistentry>
+	  <term>DNSKEY (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	      The DNSKEY DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
+	      and serve DNSSEC records, no further DNSSEC processing is performed.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
+	  <term>DS (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	      The DS DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
+	      and serve DNSSEC records, no further DNSSEC processing is performed.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
 	  <term>HINFO</term>
 	  <listitem>
 	    <para>
 	      Hardware Info record, used to specify CPU and operating system. Stored with a single space separating these two, 
 	      example: 'i386 Linux'.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
+	  <term>KEY (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	      The LOC record is fully supported. For its syntax, see RFC 2535.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
+	  <term>LOC</term>
+	  <listitem>
+	    <para>
+	      The LOC record is fully supported. For its syntax, see RFC 1876. A sample content would be: '51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00m 10.00m'
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -8571,6 +8644,15 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </listitem>      
 	</varlistentry>
 	<varlistentry>
+	  <term>NSEC (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	      The NSEC DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
+	      and serve DNSSEC records, no further DNSSEC processing is performed.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
 	  <term>PTR</term>
 	  <listitem>
 	    <para>
@@ -8586,6 +8668,15 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      Responsible Person record, as described in RFC 1183. Stored with a single space between the mailbox name and the more-information
 	      pointer. Example 'peter.powerdns.com peter.people.powerdns.com', to indicate that peter@powerdns.com is responsible and that more 
 	      information about peter is available by querying the TXT record of peter.people.powerdns.com.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
+	  <term>RRSIG (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	      The RRSIG DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
+	      and serve DNSSEC records, no further DNSSEC processing is performed.
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -8642,6 +8733,23 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </listitem>      
 	</varlistentry>
 	<varlistentry>
+	  <term>SPF (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	      SPF records can be used to store Sender Permitted From details. 
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
+	  <term>SSHFP (since 2.9.21)</term>
+	  <listitem>
+	    <para>
+	      The SSHFP record type, used for storing Secure Shell (SSH) fingerprints, is fully supported. A sample from RFC 4255 is:
+	      '2 1 123456789abcdef67890123456789abcdef67890'.
+	    </para>
+	  </listitem>      
+	</varlistentry>
+	<varlistentry>
 	  <term>SRV</term>
 	  <listitem>
 	    <para>
@@ -8672,19 +8780,22 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	You may also help others (please do).
       </para>
       <para>
-	Some users may not have experience in interacting with developers or the open source community. This FAQ is to be considered 
-	MANDATORY READING before asking us for help.
+	The PowerDNS company provides free support on the public mailing lists, and can help or support you in private as well. 
+	For first class and rapid support, please contact pdns.bd@trilab.com.
       </para>
       <para>
-	You are also advised to look at <ulink url="http://wiki.powerdns.com">the Wiki</ulink> for more information.
+	More information about the PowerDNS community, and its mailing lists, can be found on <ulink url="http://wiki.powerdns.com">its Wiki</ulink>.
+      </para>
+      <para>
+	Below, please find a list of common questions asked on our public mailing lists.
       </para>
       <variablelist>
 	<varlistentry>
 	  <term>Q: Help!</term>
 	  <listitem>
 	    <para>
-	      A: Please try harder. Specifically, before people will be able to help you, they need to know a lot about your system.
-	      Things you may find irrelevant. But, as you have a problem, you are not in a good position to know what is relevant and what not.
+	      A: Please try harder :-) Specifically, before people will be able to help you, they need to know a lot about your system. If you
+	      list more details, chances are you'll get better answers.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -8697,10 +8808,6 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	      got it from (RPM, .DEB, tar.gz). If you compiled it yourself, what were the ./configure parameters.
 	    </para>
 	    <para>
-	      In the Open Source community, not supplying vital details is interpreted as a lack of respect for those willing to take 
-	      time to answer your questions!
-	    </para>
-	    <para>
 	      If at *all* possible, supply the actual name of your domain and the IP address of your server(s).
 	    </para>
 	  </listitem>
@@ -8710,24 +8817,25 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  <term>Q: Where should I send my question?</term>
 	  <listitem>
 	    <para>
-	      A: To a mailinglist. Do not mail the authors directly unless you previously entered a support contract with them!
-	      For subscription details, see <ulink url="http://mailman.powerdns.com/mailman/admin/">the mailinglists page</ulink>.
+	      A: To a mailinglist. Please email the authors directly only if you previously entered a support contract with them, or 
+	      are considering doing so.
+	      For mailing list details, see <ulink url="http://mailman.powerdns.com/mailman/admin/">the mailinglists page</ulink>.
 	    </para>
 	    <para>
 	      Questions about using PowerDNS should be sent to the pdns-users list, questions about compiler errors or feature requests
 	      to pdns-dev.
 	    </para>
 	    <para>
-	      Before posting, read all FAQs and tell people you did.
+	      Before posting, read all FAQs. 
 	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>Q: I'm special, I don't email to mailinglists!</term>
+	  <term>Q: My information is confidential, must I send it to the mailing list?</term>
 	  <listitem>
 	    <para>
-	      We're special too, and we ask you to mail the mailinglists. If you need privacy, consider entering a support 
-	      relationship with us, in which case you can email <email>support@powerdns.com</email>.
+	      If you desire privacy, please consider entering a support relationship with us, 
+	      in which case you can email <email>pdns.bd@trilab.com</email>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -8798,39 +8906,12 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>Q: I try to launch the pgmysqlbackend and it can't find it!</term>
-	    <listitem>
-	      <para>
-		A: You did not read the changelog, nor the README. The 'pgmysql' backend is no more and has been split
-		into the gmysql and gpgsql backends, with the common code residing within PowerDNS itself.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>Q: PowerDNS compiles under OpenBSD, but crashes immediately, now what?</term>
-	    <listitem>
-	      <para>
-		A: Reasons behind this are somewhat unclear but we hear they go away if you use a more recent compiler. Let us know
-		on <email>pdns-dev@mailman.powerdns.com</email>. See also 
-		<ulink url="http://www.codeninja.nl/openbsd/powerdns/">here</ulink>.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>Q: I'm trying to build from CVS but I get lots of weird errors!</term>
+	    <term>Q: I'm trying to build from SVN but I get lots of weird errors!</term>
 	    <listitem>
 	      <para>
 		A: Read the 'HACKING' file, it lists the build requirements (mostly autoconf, automake, libtool). In many cases, 
-		it may be easier to build from the source distribution though.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>Q: I'm on Solaris 7 and AAAA records do not work</term>
-	    <listitem>
-	      <para>
-		A: Indeed, and this is pretty sad. Either upgrade to Solaris 8 or convince people to write the replacement functions
-		needed to encode AAAA if the host operating system does not offer them.
+		it may be easier to build from the source distribution though. More information for developers
+		is available on <ulink url="http://wiki.powerdns.com">the PowerDNS Open Source Community Wiki</ulink>.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -8839,28 +8920,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem>
 	      <para>
 		A: Your gcc is too old. Versions 2.95.2 and older are not supported. Many distributions have improved gcc 2.95.2 
-		with an ostringstream implementation, in which case their 2.95.2 is also supported. We like gcc 3.2.1 best.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>Q: Ok, I've installed gcc 3.2.1 but now the gpgsql backend won't link</term>
-	    <listitem>
-	      <para>
-		A: Sadly, the gcc C++ on-disk object format has changed a few times since the 2.95 days. This means that
-		gcc 3.2.1 cannot link against libpq++.so compiled with 2.95. The trick is to recompile PostgreSQL with 3.2.1
-		too and have it install in a separate location. Then reconfigure the pdns compile to look there, with
-		<command>./configure --with-pgsql-lib=/opt/postgresql-with-3.2.1/lib</command>
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>Q: I've installed PostgreSQL 7.3 but it has no libpq++.so</term>
-	    <listitem>
-	      <para>
-		A: As of 7.3, libpq++ has been split out of the main PostgreSQL distribution. See <ulink url="http://gborg.postgresql.org/">here</ulink>.
-		It would in fact be a great idea to move the gpgsql backend to the C interface instead of the C++ one. On Debian 'Sid', libpq++.so
-		hides in the libpqpp-dev package.
+		with an ostringstream implementation, in which case their 2.95.2 is also supported. 
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -8955,11 +9015,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
     <sect1 id="pdns-devel-faq"><title>Backend developer HOWTO</title>
       <para>
 	Writing backends without access to the full PDNS source means that you need to write code that can be loaded by PDNS at runtime. 
-	This in turn means that you need to use the same compiler that we do. For linux, this is currently GCC 3.0.4, although any 3.0.x 
-	compiler is probably fine. In tests, even 3.1 works.
-      </para>
-      <para>
-	For FreeBSD we use GCC 2.95.2.
+	This in turn means that you need to use the same compiler that we do. 
       </para>
       <para>
 	Furthermore, your pdns_server executable must be dynamically linked. The default .rpm PDNS contains a static binary so you need to retrieve the
@@ -9022,15 +9078,6 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>Q: My backend compiles but when I try to load it, it says 'undefined symbol: _Z13BackendMakersv'</term>
-	  <listitem>
-	    <para>
-	      A: Your pdns_server binary is static and cannot load a backend driver at runtime. Get a dynamic version of pdns, or complain 
-	      to pdns@powerdns.com if one isn't available. To check what kind of binary you have, execute 'file $(which pdns_server)'.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
 	  <term>Q: My backend compiles but when I try to load it, it says 'undefined symbol: BackendMakers__Fv'</term>
 	  <listitem>
 	    <para>
@@ -9060,7 +9107,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  <term>Q: I need a backend but I can't write it, can you help?</term>
 	  <listitem>
 	    <para>
-	      A: Yes, we also do custom development. Contact us at pdns@powerdns.com.
+	      A: Yes, we also do custom development. Contact us at pdns.bd@trilab.com.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -9095,40 +9142,6 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem>
 	      <para>
 		A: Far from it. In fact, we expect development to speed up now that we have joined the open source community.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>Q: Why is the nameserver now open source?</term>
-	    <listitem>
-	      <para>
-		A: In the current economic climate and also the way the Internet is built up right now, selling software is very hard. Most  potential 
-		customers had never before bought a piece of software for their UNIX internet setup. Even though we know (from the recent survey) that
-		nameserver operators love PowerDNS, their suggested price for it is in the $100 range.
-	      </para>
-	      <para>
-		For us, it makes far more sense to open source PowerDNS than to ask $100 for it. It is expected that open sourcing PowerDNS will lead
-		to far higher adoption rates. We hope that PowerDNS will soon be included in major Linux and UNIX distributions.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>Q: How does PowerDNS.COM BV expect to make money now that the nameserver is free?</term>
-	    <listitem>
-	      <para>
-		A: In fact, we don't expect to in the near future. We also don't have a lot of expenses, basically 
-		some hosting and a few domain names. 
-	      </para>
-	      <para>
-		However, we are available for consulting work, for example to help a large registrar or registry migrate to PowerDNS, or to help
-		integrate our software in existing provisioning systems.
-	      </para>
-	      <para>
-		Furthermore, non-GPL licenses are available for those needing to do closed source modifications, or for customers 
-		uncomfortable with the GPL. This is much like what <ulink url="http://www.mysql.com/company/index.html">MySQL AB</ulink> is doing now.
-	      </para>
-	      <para>
-		In fact, their strategy is a lot like ours in general.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -10727,8 +10740,8 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	            <row><entry>Master</entry><entry>Yes</entry></row>
 	            <row><entry>Slave</entry><entry>Yes</entry></row>
 	            <row><entry>Superslave</entry><entry>Yes</entry></row>
-	            <row><entry>Module name</entry><entry>gsqlite</entry></row>
-	            <row><entry>Launch name</entry><entry>gsqlite</entry></row>
+	            <row><entry>Module name</entry><entry>gsqlite and gsqlite3</entry></row>
+	            <row><entry>Launch name</entry><entry>gsqlite and gsqlite3</entry></row>
 	          </tbody>
 	        </tgroup>
 	      </table>
@@ -10743,7 +10756,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
       </para>
       <para>
 	SQLite exists in two incompatible versions, numbered 2 and 3, and from 2.9.21 onwards, PowerDNS supports both. It is recommended to go with version 3 
-	as it is newer, has better performance and is actively maintained.
+	as it is newer, has better performance and is actively maintained. To use version 3, choose 'launch=gsqlite3'.
       </para>
       <sect2>
         <title>Compiling the SQLite backend</title>

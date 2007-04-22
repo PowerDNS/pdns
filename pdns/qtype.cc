@@ -56,8 +56,13 @@ QType::QType()
       insert("AAAA",28);
       insert("LOC",29);
       insert("SRV",33);
+      insert("CERT", 37);
       insert("A6",38);
       insert("NAPTR",35);
+      insert("DS", 43);
+      insert("SSHFP", 44);
+      insert("RRSIG", 46);
+      insert("DNSKEY", 48);
       insert("SPF",99);
       insert("AXFR",252);
       insert("ANY",255);
