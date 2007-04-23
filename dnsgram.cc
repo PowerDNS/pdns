@@ -95,7 +95,9 @@ try
     typedef set<pair<string, uint16_t> > queries_t;
     queries_t questions, answers;
 
-    unsigned int count = 10000;
+    unsigned int count = 50000;
+    
+    map<pair<string, uint16_t>, int> counts;
 
     while(pr.getUDPPacket()) {
       if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
@@ -132,14 +134,19 @@ try
 	  else if(!mdp.d_header.rd && !mdp.d_header.qr) {
 	    g_lastquestionTime=pr.d_pheader.ts;
 	    g_serverQuestions++;
+	    counts[make_pair(mdp.d_qname, mdp.d_qtype)]++;
+	    questions.insert(make_pair(mdp.d_qname, mdp.d_qtype));
 	    totalQueries++;
 	  }
-	  else if(!mdp.d_header.rd && mdp.d_header.qr)
+	  else if(!mdp.d_header.rd && mdp.d_header.qr) {
+	    answers.insert(make_pair(mdp.d_qname, mdp.d_qtype));
 	    g_serverResponses++;
+	  }
 	  
 	  if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec > 2) {
 	    makeReport(pr.d_pheader.ts);
 	    lastreport = pr.d_pheader.ts;
+
 	  }
 	  
 	}
@@ -163,7 +170,7 @@ try
     cerr<<skipped<<" skipped\n";
     ofstream failed("failed");
     for(diff_t::const_iterator i = diff.begin(); i != diff.end() ; ++i) {
-      failed << i->first << "\t" << i->second << "\n";
+      failed << i->first << "\t" << i->second << "\t"<<counts[make_pair(i->first, i->second)]<<"\n";
     }
 
     diff.clear();
