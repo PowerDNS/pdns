@@ -136,8 +136,7 @@ void *WebServer::serveConnection(void *p)
 
     HandlerFunction *fptr;
     if((fptr=d_functions[baseUrl])) {
-      
-      bool custom;
+      bool custom=false;
       string ret=(*fptr)(varmap, d_that, &custom);
 
       if(!custom) {
