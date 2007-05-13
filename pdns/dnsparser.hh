@@ -149,7 +149,8 @@ public:
   virtual string serialize(const string& qname)
   {
     vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, "", 1);
+    string empty;
+    DNSPacketWriter pw(packet, empty, 1);
     
     pw.startRecord(qname, d_qtype);
     this->toPacket(pw);
@@ -310,7 +311,7 @@ private:
   vector<uint8_t> d_content;
 };
 
-string simpleCompress(const string& label);
+string simpleCompress(const string& label, const string& root="");
 void simpleExpandTo(const string& label, unsigned int frompos, string& ret);
 
 #endif

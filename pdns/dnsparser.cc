@@ -440,7 +440,7 @@ void PacketReader::xfrHexBlob(string& blob)
   xfrBlob(blob);
 }
 
-string simpleCompress(const string& label)
+string simpleCompress(const string& label, const string& root)
 {
   typedef vector<pair<unsigned int, unsigned int> > parts_t;
   parts_t parts;
@@ -448,12 +448,18 @@ string simpleCompress(const string& label)
   string ret;
   ret.reserve(label.size()+4);
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
+    if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + i->first, label.length() - i->first)) {
+      const char rootptr[2]={0xc0,0x11};
+      ret.append(rootptr, 2);
+      return ret;
+    }
     ret.append(1, (char)(i->second - i->first));
     ret.append(label.c_str() + i->first, i->second - i->first);
   }
   ret.append(1, (char)0);
   return ret;
 }
+
 
 void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
 {
