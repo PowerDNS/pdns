@@ -85,14 +85,8 @@ string DNSRR2String(const DNSResourceRecord& rr)
     IpToU32(rr.content, &ip);
     return string((char*)&ip, 4);
   }
-  else if(type==QType::NS) {
-    NSRecordContent ar(rr.content);
-    return ar.serialize(rr.qname);
-  }
-  else if(type==QType::CNAME) {
-    CNAMERecordContent ar(rr.content);
-    return ar.serialize(rr.qname);
-  }
+  else if(type==QType::NS || type==QType::CNAME)
+      return simpleCompress(rr.content, rr.qname);
   else {
     string ret;
     shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(type, 1, rr.content));
