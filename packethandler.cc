@@ -698,6 +698,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	if(rr.qtype==p->qtype || p->qtype.getCode()==QType::ANY ) {
 	  DLOG(L<<"Found a direct answer: "<<rr.content<<endl);
 	  found=true;
+	  if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
+	    rr.content=arg()["urlredirector"];
+	    rr.qtype=QType::A; 
+	    rr.qname=target;
+	  }
+
 	  r->addRecord(rr);  // and add
 	}
 	else
