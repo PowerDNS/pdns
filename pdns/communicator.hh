@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002-2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -24,6 +24,7 @@
 #include <semaphore.h>
 #include <queue>
 #include <list>
+#include <limits>
 
 #ifndef WIN32
 # include <unistd.h>
@@ -94,7 +95,7 @@ public:
   
   time_t earliest()
   {
-    time_t early=(1<<31)-1; // y2038 problem lurking here :-)
+    time_t early=numeric_limits<time_t>::max() - 1; 
     for(d_nqueue_t::const_iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
       early=min(early,i->next);
     return early-time(0);
