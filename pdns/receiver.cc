@@ -66,7 +66,7 @@ time_t s_starttime;
 
 string s_programname="pdns"; // used in packethandler.cc
 
-char *funnytext=
+const char *funnytext=
 "*****************************************************************************\n"\
 "Ok, you just ran pdns_server through 'strings' hoping to find funny messages.\n"\
 "Well, you found one. \n"\
