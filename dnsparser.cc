@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2006  PowerDNS.COM BV
+    Copyright (C) 2005 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -205,7 +205,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     struct dnsrecordheader ah;
     vector<unsigned char> record;
     validPacket=true;
-    for(n=0;n < d_header.ancount + d_header.nscount + d_header.arcount; ++n) {
+    for(n=0;n < (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount); ++n) {
       DNSRecord dr;
       
       if(n < d_header.ancount)
