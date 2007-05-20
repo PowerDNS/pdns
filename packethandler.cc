@@ -275,6 +275,12 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
       found=true;
       if((p->qtype.getCode()==QType::ANY || rr.qtype==p->qtype) || rr.qtype.getCode()==QType::CNAME) {
 	rr.qname=target;
+
+	if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
+	  rr.content=arg()["urlredirector"];
+	  rr.qtype=QType::A; 
+	}
+
 	r->addRecord(rr);  // and add
 	if(rr.qtype.getCode()==QType::CNAME) {
 	  if(target==rr.content) {
