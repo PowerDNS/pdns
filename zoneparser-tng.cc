@@ -40,14 +40,16 @@ void ZoneParserTNG::stackFile(const std::string& fname)
   FILE *fp=fopen(fname.c_str(), "r");
   if(!fp)
     throw runtime_error("Unable to open file '"+fname+"': "+stringerror());
-  d_fps.push(fp);
+
+  filestate fs(fp, fname);
+  d_filestates.push(fs);
 }
 
 ZoneParserTNG::~ZoneParserTNG()
 {
-  while(!d_fps.empty()) {
-    fclose(d_fps.top());
-    d_fps.pop();
+  while(!d_filestates.empty()) {
+    fclose(d_filestates.top().d_fp);
+    d_filestates.pop();
   }
 }
 
@@ -56,7 +58,23 @@ static string makeString(const string& line, const pair<string::size_type, strin
   return string(line.c_str() + range.first, range.second - range.first);
 }
 
-static unsigned int makeTTLFromZone(const string& str)
+static bool isTimeSpec(const string& nextpart)
+{
+  if(nextpart.empty())
+    return false;
+  for(string::const_iterator iter = nextpart.begin(); iter != nextpart.end(); ++iter) {
+    if(isdigit(*iter))
+      continue;
+    if(iter+1 != nextpart.end())
+      return false;
+    char c=tolower(*iter);
+    return (c=='m' || c=='h' || c=='d' || c=='w' || c=='y');
+  }
+  return true;
+}
+
+
+unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
 {
   if(str.empty())
     return 0;
@@ -80,8 +98,11 @@ static unsigned int makeTTLFromZone(const string& str)
     case 'Y': // ? :-)
       val*=3600*24*365;
       break;
+
     default:
-      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"'");
+      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' on line "+
+				     lexical_cast<string>(d_filestates.top().d_lineno)+" of file '"+
+				     d_filestates.top().d_filename+"'");
     }
   return val;
 }
@@ -198,6 +219,7 @@ bool findAndElide(string& line, char c)
 }
 
 
+
 bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
  retry:;
@@ -214,8 +236,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
   if(d_line[0]=='$') { 
     string command=makeString(d_line, parts[0]);
-    if(command=="$TTL" && parts.size() > 1)
-      d_defaultttl=makeTTLFromZone(makeString(d_line,parts[1]));
+    if(iequals(command,"$TTL") && parts.size() > 1)
+      d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, parts[1]), is_any_of(";")));
     else if(iequals(command,"$INCLUDE") && parts.size() > 1) {
       string fname=unquotify(makeString(d_line, parts[1]));
       if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
@@ -239,7 +261,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       goto retry;
     }
     else
-      throw exception("Can't parse zone line '"+d_line+"'");
+      throw exception("Can't parse zone line '"+d_line+"' on line "+lexical_cast<string>(d_filestates.top().d_lineno)+
+		      " of file '"+d_filestates.top().d_filename);
     goto retry;
   }
 
@@ -284,7 +307,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       // cout<<"Ignoring 'IN'\n";
       continue;
     }
-    if(!haveTTL && !haveQTYPE && all(nextpart, is_digit())) {
+    if(!haveTTL && !haveQTYPE && isTimeSpec(nextpart)) {
       rr.ttl=makeTTLFromZone(nextpart);
       haveTTL=true;
       // cout<<"ttl is probably: "<<rr.ttl<<endl;
@@ -300,7 +323,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       continue;
     }
     catch(...) {
-      throw runtime_error("Parsing zone content line: '"+nextpart+"' doesn't look like a qtype, stopping loop");
+      throw runtime_error("Parsing zone content on line "+
+			  lexical_cast<string>(d_filestates.top().d_lineno)+
+			  " of file '"+d_filestates.top().d_filename+"': '"+nextpart+
+			  "' doesn't look like a qtype, stopping loop");
     }
   }
   if(!haveQTYPE) 
@@ -364,14 +390,15 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
 bool ZoneParserTNG::getLine()
 {
-  while(!d_fps.empty()) {
+  while(!d_filestates.empty()) {
     char buffer[1024];
-    if(fgets(buffer, 1024, d_fps.top())) {
+    if(fgets(buffer, 1024, d_filestates.top().d_fp)) {
+      d_filestates.top().d_lineno++;
       d_line=buffer;
       return true;
     }
-    fclose(d_fps.top());
-    d_fps.pop();
+    fclose(d_filestates.top().d_fp);
+    d_filestates.pop();
   }
   return false;
 }
