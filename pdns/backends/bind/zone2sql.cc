@@ -41,6 +41,9 @@ using namespace std;
 #include "zoneparser-tng.hh"
 #include "dnsrecords.hh"
 #include <boost/algorithm/string.hpp>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace boost;
 StatBag S;
@@ -219,14 +222,23 @@ int main(int argc, char **argv)
     namedfile=arg()["named-conf"];
     zonefile=arg()["zone"];
 
-    int count=0;
+    int count=0, num_domainsdone=0;
 
     if(zonefile.empty()) {
       BindParser BP;
       BP.setVerbose(arg().mustDo("verbose"));
       BP.parse(namedfile.empty() ? "./named.conf" : namedfile);
     
-      const vector<BindDomainInfo> &domains=BP.getDomains();
+      vector<BindDomainInfo> domains=BP.getDomains();
+      struct stat st;
+      for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) {
+	if(stat(i->filename.c_str(), &st) == 0) {
+	  i->d_dev = st.st_dev;
+	  i->d_ino = st.st_ino;
+	}
+      }
+      
+      sort(domains.begin(), domains.end()); // put stuff in inode order
 
       int numdomains=domains.size();
       int tick=numdomains/100;
@@ -273,7 +285,15 @@ int main(int argc, char **argv)
 	    DNSResourceRecord rr;
 	    while(zpt.get(rr)) 
 	      callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+	    num_domainsdone++;
 	  }
+	  catch(exception &ae) {
+	    if(!arg().mustDo("on-error-resume-next"))
+	      throw;
+	    else
+	      cerr<<endl<<ae.what()<<endl;
+	  }
+
 	  catch(AhuException &ae) {
 	    if(!arg().mustDo("on-error-resume-next"))
 	      throw;
@@ -293,9 +313,9 @@ int main(int argc, char **argv)
       dirty_hack_num=-1; // trigger first SOA output
       while(zpt.get(rr)) 
 	callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
-
+      num_domainsdone=1;
     }
-    cerr<<"Parsed "<<num_records<<" records"<<endl;
+    cerr<<num_domainsdone<<" domains were fully parsed, containing "<<num_records<<" records\n";
     
   }
   catch(AhuException &ae) {
