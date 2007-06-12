@@ -27,6 +27,7 @@
 #include "bindparser.hh"
 #include "statbag.hh"
 #include <boost/function.hpp>
+#include "dnsrecords.hh"
 #include "misc.hh"
 #include "dns.hh"
 #include "zoneparser-tng.hh"
@@ -155,7 +156,7 @@ int main( int argc, char* argv[] )
 #if __GNUC__ >= 3
 		ios_base::sync_with_stdio( false );
 #endif
-
+		reportAllTypes();
 		args.setCmd( "help", "Provide a helpful message" );
 		args.setSwitch( "verbose", "Verbose comments on operation" ) = "no";
 		args.setSwitch( "resume", "Continue after errors" ) = "no";
