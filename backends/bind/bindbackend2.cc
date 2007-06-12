@@ -336,7 +336,9 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   vector<Bind2DNSRecord>& records=*bb2.d_records; 
 
   bdr.qname=toLower(canonic(qnameu));
-  if(bdr.qname==toLower(bb2.d_name))
+  if(bb2.d_name.empty())
+    ;
+  else if(bdr.qname==toLower(bb2.d_name))
     bdr.qname.clear();
   else if(bdr.qname.length() > bb2.d_name.length())
     bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
@@ -764,7 +766,9 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   DLOG(L<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
        qname<<endl);
   
-  if(strcasecmp(qname.c_str(),domain.c_str()))
+  if(domain.empty())
+    d_handle.qname=qname;
+  else if(strcasecmp(qname.c_str(),domain.c_str()))
     d_handle.qname=qname.substr(0,qname.size()-domain.length()-1); // strip domain name
 
   d_handle.qtype=qtype;
@@ -802,7 +806,6 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
     d_handle.d_iter=range.first;
     d_handle.d_end_iter=range.second;
     d_handle.mustlog = mustlog;
-
   }
 
   d_handle.d_list=false;
