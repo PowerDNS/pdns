@@ -114,7 +114,7 @@ int EpollFDMultiplexer::run(struct timeval* now)
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("select returned error: "+stringerror());
 
-  if(ret==0) // nothing
+  if(ret < 1) // thanks AB!
     return 0;
 
   d_inrun=true;
