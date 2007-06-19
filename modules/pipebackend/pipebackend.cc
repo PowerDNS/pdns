@@ -88,6 +88,7 @@ void CoWrapper::receive(string &line)
 
 PipeBackend::PipeBackend(const string &suffix)
 {
+   signal(SIGCHLD, SIG_IGN);
    setArgPrefix("pipe"+suffix);
    try {
      d_coproc=shared_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout")));
