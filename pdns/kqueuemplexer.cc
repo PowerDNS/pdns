@@ -98,7 +98,7 @@ int KqueueFDMultiplexer::run(struct timeval* now)
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("kqueue returned error: "+stringerror());
 
-  if(ret==0) // nothing
+  if(ret < 0) // nothing - thanks AB!
     return 0;
 
   d_inrun=true;
