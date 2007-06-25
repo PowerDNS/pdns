@@ -335,6 +335,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   rr.content=d_line.substr(range.first);
 
   chopComment(rr.content);
+  trim(rr.content);
 
   if(equals(rr.content, "@"))
     rr.content=d_zonename;
