@@ -102,6 +102,7 @@ public:
   DecayingEwma() :  d_val(0.0) 
   {
     d_needinit=true;
+    d_last.tv_sec = d_last.tv_usec = 0;
     d_lastget=d_last;
   }
 
