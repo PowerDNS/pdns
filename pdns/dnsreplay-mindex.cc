@@ -77,7 +77,7 @@ const struct timeval operator*(int fact, const struct timeval& rhs)
     d/=1000000;
     d-=(int)d;
 
-    ret.tv_usec=1000000*d;
+    ret.tv_usec=(unsigned int)(1000000*d);
     normalizeTV(ret);
     
     cout<<"out complex: "<<ret.tv_sec<<" + "<<ret.tv_usec<<"\n";
@@ -245,6 +245,22 @@ bool isRcodeOk(int rcode)
 
 set<pair<string,uint16_t> > s_origbetterset;
 
+bool isRootReferral(const MOADNSParser::answers_t& answers)
+{
+  if(answers.empty())
+    return false;
+
+  bool ok=true;
+  for(MOADNSParser::answers_t::const_iterator iter = answers.begin(); iter != answers.end(); ++iter) {
+    //    cerr<<(int)iter->first.d_place<<", "<<iter->first.d_label<<" "<<iter->first.d_type<<", # "<<answers.size()<<endl;
+    if(iter->first.d_place!=2)
+      ok=false;
+    if(iter->first.d_label!="." || iter->first.d_type!=QType::NS)
+      ok=false;
+  }
+  return ok;
+}
+
 void measureResultAndClean(const QuestionIdentifier& qi)
 {
   QuestionData qd=*qids.find(qi);
@@ -281,11 +297,13 @@ void measureResultAndClean(const QuestionIdentifier& qi)
 	cout<<"\t* we better *"<<endl;
       s_webetter++;
     }
-    if(isRcodeOk(qd.d_origRcode) && !isRcodeOk(qd.d_newRcode)) {
+    if(isRcodeOk(qd.d_origRcode) && !isRcodeOk(qd.d_newRcode) && !isRootReferral(qd.d_origAnswers)) {
       if(!s_quiet)
 	cout<<"\t* orig better *"<<endl;
       s_origbetter++;
-      s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype));
+      if(s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype)).second) {
+	cout<<"orig better: " << qi.d_qname<<" "<< qi.d_qtype<<endl;
+      }
     }
 
     if(!s_quiet) {
@@ -451,12 +469,13 @@ Orig    9           21      29     36         47        57       66    72
 
 void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 {
-  static struct timeval lastsent;
+  //  static struct timeval lastsent;
 
   dnsheader* dh=(dnsheader*)pr.d_payload;
   //                                                             non-recursive  
-  if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || !dh->rd || (unsigned int)pr.d_len <= sizeof(dnsheader))
+  if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || dh->rd || (unsigned int)pr.d_len <= sizeof(dnsheader))
     return;
+
   QuestionData qd;
   try {
     dnsheader* dh=(dnsheader*)pr.d_payload;
@@ -575,7 +594,7 @@ try
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + 1*(now-then);
+    mental_time= mental_time + 1 * (now-then);
   }
  out:;
 }
