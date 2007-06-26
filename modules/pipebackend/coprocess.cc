@@ -76,6 +76,9 @@ CoProcess::~CoProcess()
   int status;
   if(!waitpid(d_pid, &status, WNOHANG)) 
     kill(d_pid, 9);
+  
+  close(d_fd1[1]);
+  fclose(d_fp);
 }
 
 void CoProcess::checkStatus()
