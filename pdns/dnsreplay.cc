@@ -44,6 +44,7 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include "dnspcap.hh"
 #include "sstuff.hh"
 #include "anadns.hh"
+#include <boost/program_options.hpp>
 
 // this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
 #undef L
@@ -64,6 +65,9 @@ using namespace std;
 StatBag S;
 bool s_quiet=true;
 
+namespace po = boost::program_options;
+
+po::variables_map g_vm;
 
 
 const struct timeval operator*(int fact, const struct timeval& rhs)
@@ -548,20 +552,48 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 int main(int argc, char** argv)
 try
 {
-  if(argc < 2 || argc > 4) {
-    cerr<<"dnsreplay - replay DNS traffic to a reference server to compare performance"<<endl;
-    cerr<<"Syntax: dnsreplay pcapfile [target IP] [target port]\nDefaults to 127.0.0.1 and 5300"<<endl;
-    return EXIT_FAILURE;
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("help,h", "produce help message")
+    ("speedup", po::value<uint16_t>()->default_value(1), "replay at this speedup");
+
+  po::options_description alloptions;
+  po::options_description hidden("hidden options");
+  hidden.add_options()
+    ("pcap-source", po::value<string>(), "PCAP source file")
+    ("target-ip", po::value<string>()->default_value("127.0.0.1"), "target-ip")
+    ("target-port", po::value<uint16_t>()->default_value(5300), "target port");
+
+  alloptions.add(desc).add(hidden);
+  po::positional_options_description p;
+  p.add("pcap-source", 1);
+  p.add("target-ip", 1);
+  p.add("target-port", 1);
+
+  po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
+  po::notify(g_vm);
+  if (g_vm.count("help")) {
+    cerr << desc << "\n";
+    return EXIT_SUCCESS;
   }
   
-  PcapPacketReader pr(argv[1]);
+  if(!g_vm.count("pcap-source")) {
+    cerr<<"Fatal, need to specify at least a PCAP source file"<<endl;
+    cerr << desc << "\n";
+    return EXIT_FAILURE;
+  }
+
+  uint16_t speedup=g_vm["speedup"].as<uint16_t>();
+
+  PcapPacketReader pr(g_vm["pcap-source"].as<string>());
   s_socket= new Socket(InterNetwork, Datagram);
 
   s_socket->setNonBlocking();
   
-  IPEndpoint remote(argc > 2 ? argv[2] : "127.0.0.1", 
-		    argc > 3 ? atoi(argv[3]) : 5300);
+  IPEndpoint remote(g_vm["target-ip"].as<string>(), 
+		    g_vm["target-port"].as<uint16_t>());
 
+  cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
 
   unsigned int once=0;
   struct timeval mental_time;
@@ -594,7 +626,7 @@ try
 
     gettimeofday(&now, 0);
 
-    mental_time= mental_time + 1 * (now-then);
+    mental_time= mental_time + speedup * (now-then);
   }
  out:;
 }
@@ -602,3 +634,4 @@ catch(exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
+

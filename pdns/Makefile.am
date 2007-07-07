@@ -19,7 +19,7 @@ bin_PROGRAMS = pdns_control
 endif
 
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control dnsscope dnsgram dnsdemog dnsreplay_mindex dnswasher dnsreplay dnsscan dnslog
+EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control dnsscope dnsgram dnsdemog dnswasher dnsreplay dnsscan dnslog
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -59,12 +59,6 @@ dnswasher_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 # unix_utility.cc
 
-dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
-	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh \
-	dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc
-
-dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
-
 dnsscan_SOURCES=dnsscan.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
@@ -76,12 +70,12 @@ dnslog_SOURCES=dnslog.cc misc.cc  qtype.cc anadns.hh \
 	unix_utility.cc utility.hh		
 
 
-dnsreplay_mindex_SOURCES=dnsreplay-mindex.cc misc.cc  qtype.cc anadns.hh \
+dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	unix_utility.cc utility.hh sillyrecords.cc	
 
-dnsreplay_mindex_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
+dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ -lboost_program_options
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
@@ -113,7 +107,7 @@ logger.cc statbag.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
-rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc
+rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh
 
 if NEDMALLOC
 pdns_recursor_SOURCES += ext/nedmalloc/malloc.c
