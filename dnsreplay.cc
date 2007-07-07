@@ -63,7 +63,7 @@ using namespace ::boost::multi_index;
 using namespace std;
 
 StatBag S;
-bool s_quiet=true;
+bool g_quiet=true;
 
 namespace po = boost::program_options;
 
@@ -102,8 +102,6 @@ bool operator<(const struct timeval& lhs, const struct timeval& rhs)
 {
   return make_pair(lhs.tv_sec, lhs.tv_usec) < make_pair(rhs.tv_sec, rhs.tv_usec);
 }
-
-
 
 
 class DNSIDManager : public boost::noncopyable
@@ -273,44 +271,45 @@ void measureResultAndClean(const QuestionIdentifier& qi)
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
   compactAnswerSet(qd.d_newAnswers, canonicNew);
 	
-  if(!s_quiet) {
+  if(!g_quiet) {
     cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
     cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
   }
 
   if(canonicOrig==canonicNew) {
     s_perfect++;
-    if(!s_quiet)
+    if(!g_quiet)
       cout<<"yes\n";
   }
   else {
-    if(!s_quiet)
+    if(!g_quiet)
       cout<<"no\n";
     
     if(qd.d_norecursionavailable)
-      if(!s_quiet)
+      if(!g_quiet)
 	cout<<"\t* original nameserver did not provide recursion for this question *"<<endl;
     if(qd.d_origRcode == qd.d_newRcode ) {
-      if(!s_quiet)
+      if(!g_quiet)
 	cout<<"\t* mostly correct *"<<endl;
       s_mostly++;
     }
 
     if(!isRcodeOk(qd.d_origRcode) && isRcodeOk(qd.d_newRcode)) {
-      if(!s_quiet)
+      if(!g_quiet)
 	cout<<"\t* we better *"<<endl;
       s_webetter++;
     }
     if(isRcodeOk(qd.d_origRcode) && !isRcodeOk(qd.d_newRcode) && !isRootReferral(qd.d_origAnswers)) {
-      if(!s_quiet)
+      if(!g_quiet)
 	cout<<"\t* orig better *"<<endl;
       s_origbetter++;
-      if(s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype)).second) {
-	cout<<"orig better: " << qi.d_qname<<" "<< qi.d_qtype<<endl;
-      }
+      if(!g_quiet) 
+	if(s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype)).second) {
+	  cout<<"orig better: " << qi.d_qname<<" "<< qi.d_qtype<<endl;
+	}
     }
 
-    if(!s_quiet) {
+    if(!g_quiet) {
       cout<<"orig:\n";
       for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
 	cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
@@ -471,14 +470,18 @@ Orig    9           21      29     36         47        57       66    72
 
 }
 
-void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
+
+bool g_rdSelector;
+
+bool sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 {
   //  static struct timeval lastsent;
 
   dnsheader* dh=(dnsheader*)pr.d_payload;
+  bool sent=false;
   //                                                             non-recursive  
-  if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || dh->rd || (unsigned int)pr.d_len <= sizeof(dnsheader))
-    return;
+  if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || dh->rd != g_rdSelector || (unsigned int)pr.d_len <= sizeof(dnsheader))
+    return sent;
 
   QuestionData qd;
   try {
@@ -488,6 +491,7 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
       uint16_t tmp=dh->id;
       dh->id=htons(qd.d_assignedID);
       s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
+      sent=true;
       dh->id=tmp;
     }
     MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
@@ -496,10 +500,10 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
     if(!mdp.d_header.qr) {
       s_questions++;
       if(qids.count(qi)) {
-	if(!s_quiet)
+	if(!g_quiet)
 	  cout<<"Saw an exact duplicate question, "<<qi<< endl;
 	s_duplicates++;
-	return;
+	return sent;
       }
       // new question!
       qd.d_qi=qi;
@@ -530,11 +534,11 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 	  measureResultAndClean(qi);
 	}
 	
-	return;
+	return sent;
       }
       else {
 	s_origunmatched++;
-	if(!s_quiet)
+	if(!g_quiet)
 	  cout<<"Unmatched original answer "<<qi<<endl;
       }
     }
@@ -547,6 +551,7 @@ void sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
   {
     s_origdnserrors++;
   }
+  return sent;
 }
 
 int main(int argc, char** argv)
@@ -555,6 +560,9 @@ try
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
+    ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
+    ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
+    ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
     ("speedup", po::value<uint16_t>()->default_value(1), "replay at this speedup");
 
   po::options_description alloptions;
@@ -570,18 +578,28 @@ try
   p.add("target-ip", 1);
   p.add("target-port", 1);
 
+
   po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
   po::notify(g_vm);
+
+
   if (g_vm.count("help")) {
+    cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
     cerr << desc << "\n";
     return EXIT_SUCCESS;
   }
   
   if(!g_vm.count("pcap-source")) {
     cerr<<"Fatal, need to specify at least a PCAP source file"<<endl;
+    cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
     cerr << desc << "\n";
     return EXIT_FAILURE;
   }
+
+  uint32_t packetLimit = g_vm["packet-limit"].as<uint32_t>();
+
+  g_rdSelector = g_vm["recursive"].as<bool>();
+  g_quiet = g_vm["quiet"].as<bool>();
 
   uint16_t speedup=g_vm["speedup"].as<uint16_t>();
 
@@ -601,22 +619,22 @@ try
 
   if(!pr.getUDPPacket())
     return 0;
+  unsigned int count=0;
 
   for(;;) {
-
     if(!((once++)%100)) 
       houseKeeping();
-
-    int count=0;
+    
     while(pr.d_pheader.ts < mental_time) {
       if(!pr.getUDPPacket())
 	goto out;
       
-      sendPacketFromPR(pr, remote);
-      count++;
+      if(sendPacketFromPR(pr, remote))
+	count++;
     } 
 
-    //    cout<<count<<"\n";
+    if(packetLimit && count > packetLimit) 
+      break;
 
     mental_time=pr.d_pheader.ts;
     struct timeval then, now;
