@@ -57,6 +57,19 @@ void PowerLDAP::getOption( int option, int *value )
 }
 
 
+void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int method, int timeout )
+{
+	int msgid;
+
+	if( ( msgid = ldap_bind( d_ld, ldapbinddn.c_str(), ldapsecret.c_str(), method ) ) == -1 )
+	{
+		throw LDAPException( "Failed to bind to LDAP server: " + getError( msgid ) );
+	}
+
+	waitResult( msgid, timeout, NULL );
+}
+
+
 void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
 {
 	int err;
@@ -87,7 +100,6 @@ int PowerLDAP::search( const string& base, int scope, const string& filter, cons
 
 int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
 {
-	int rc;
 	struct timeval tv;
 	LDAPMessage* res;
 
@@ -95,13 +107,14 @@ int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
 
-	if( ( rc = ldap_result( d_ld, msgid, LDAP_MSG_ONE, &tv, &res ) ) == -1 )
+	int rc = ldap_result( d_ld, msgid, LDAP_MSG_ONE, &tv, &res );
+
+	switch( rc )
 	{
-		throw LDAPException( "Error waiting for LDAP result: " + getError() );
-	}
-	else if( rc == 0 )
-	{
-		throw LDAPTimeout();
+		case -1:
+			throw LDAPException( "Error waiting for LDAP result: " + getError() );
+		case 0:
+			throw LDAPTimeout();
 	}
 
 	if( result == NULL )

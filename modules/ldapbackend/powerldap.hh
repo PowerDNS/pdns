@@ -24,18 +24,13 @@
 #include <vector>
 #include <exception>
 #include <stdexcept>
+#include <inttypes.h>
 #include <errno.h>
 #include <lber.h>
 #include <ldap.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <sys/types.h>
 #endif
 
 
@@ -84,6 +79,7 @@ public:
 	void getOption( int option, int* value );
 	void setOption( int option, int value );
 
+	void bind( const string& ldapbinddn = "", const string& ldapsecret = "", int method = LDAP_AUTH_SIMPLE, int timeout = 5 );
 	void simpleBind( const string& ldapbinddn = "", const string& ldapsecret = "" );
 	int search( const string& base, int scope, const string& filter, const char** attr = 0 );
 

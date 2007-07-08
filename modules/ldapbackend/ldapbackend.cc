@@ -57,22 +57,26 @@ LdapBackend::LdapBackend( const string &suffix )
 
 		m_pldap = new PowerLDAP( hoststr.c_str(), LDAP_PORT, mustDo( "starttls" ) );
 		m_pldap->setOption( LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
-		m_pldap->simpleBind( getArg( "binddn" ), getArg( "secret" ) );
+		m_pldap->bind( getArg( "binddn" ), getArg( "secret" ), LDAP_AUTH_SIMPLE, getArgAsNum( "timeout" ) );
+
+		L << Logger::Notice << m_myname << " Ldap connection succeeded" << endl;
+		return;
+	}
+	catch( LDAPTimeout &lt )
+	{
+		L << Logger::Error << m_myname << " Ldap connection to server failed because of timeout" << endl;
 	}
 	catch( LDAPException &le )
 	{
-		if( m_pldap != NULL ) { delete( m_pldap ); }
 		L << Logger::Error << m_myname << " Ldap connection to server failed: " << le.what() << endl;
-		throw( AhuException( "Unable to connect to ldap server" ) );
 	}
 	catch( exception &e )
 	{
-		if( m_pldap != NULL ) { delete( m_pldap ); }
 		L << Logger::Error << m_myname << " Caught STL exception: " << e.what() << endl;
-		throw( AhuException( "Unable to connect to ldap server" ) );
 	}
 
-	L << Logger::Notice << m_myname << " Ldap connection succeeded" << endl;
+	if( m_pldap != NULL ) { delete( m_pldap ); }
+	throw( AhuException( "Unable to connect to ldap server" ) );
 }
 
 
@@ -499,7 +503,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 	{
 		sd.serial = 0;
 		fillSOAData( m_result["sOARecord"][0], sd );
-	
+
 		di.id = 0;
 		di.serial = sd.serial;
 		di.zone = domain;
@@ -509,7 +513,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -532,6 +536,7 @@ public:
 		declare( suffix, "basedn", "Search root in ldap tree (must be set)","" );
 		declare( suffix, "binddn", "User dn for non anonymous binds","" );
 		declare( suffix, "secret", "User password for non anonymous binds", "" );
+		declare( suffix, "timeout", "Seconds before connecting to server fails", "5" );
 		declare( suffix, "method", "How to search entries (simple, strict or tree)", "simple" );
 		declare( suffix, "filter-axfr", "LDAP filter for limiting AXFR results", "(:target:)" );
 		declare( suffix, "filter-lookup", "LDAP filter for limiting IP or name lookups", "(:target:)" );

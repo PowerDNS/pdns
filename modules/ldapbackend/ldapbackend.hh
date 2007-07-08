@@ -24,6 +24,7 @@
 #include <string>
 #include <cstdlib>
 #include <cctype>
+#include <inttypes.h>
 #include <pdns/dns.hh>
 #include <pdns/utility.hh>
 #include <pdns/dnspacket.hh>
@@ -37,12 +38,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <sys/types.h>
 #endif
 
 
@@ -112,7 +107,7 @@ class LdapBackend : public DNSBackend
 	bool prepare();
 	bool prepare_simple();
 	bool prepare_strict();
-	
+
 	bool getDomainInfo( const string& domain, DomainInfo& di );
 
 public:
