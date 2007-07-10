@@ -34,7 +34,7 @@
 #include <iostream>
 #include <algorithm>
 #include <boost/optional.hpp>
-
+#include <poll.h>
 #include <iomanip>
 #include <string.h>
 #include <stdlib.h>
@@ -277,21 +277,18 @@ int waitForData(int fd, int seconds, int useconds)
 
 int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
 {
-  struct timeval tv;
   int ret;
 
-  tv.tv_sec   = seconds;
-  tv.tv_usec  = useconds;
-
-  fd_set readfds, writefds;
-  FD_ZERO( &readfds );
-  FD_ZERO( &writefds );
+  struct pollfd pfd;
+  memset(&pfd, 0, sizeof(pfd));
+  pfd.fd = fd;
+  
   if(waitForRead)
-    FD_SET( fd, &readfds );
+    pfd.events=POLLIN;
   else
-    FD_SET( fd, &writefds );
+    pfd.events=POLLOUT;
 
-  ret = select( fd + 1, &readfds, &writefds, NULL, &tv );
+  ret = poll(&pfd, 1, seconds);
   if ( ret == -1 )
     errno = ETIMEDOUT;
 
