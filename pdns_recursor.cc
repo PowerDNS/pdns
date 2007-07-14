@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2006  PowerDNS.COM BV
+    Copyright (C) 2003 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
+#include "htimer.hh"
 
 #include "mtasker.hh"
 #include <utility>
@@ -136,7 +137,7 @@ typedef vector<int> tcpserversocks_t;
 
 MT_t* MT; // the big MTasker
 
-void handleTCPClientWritable(int fd, boost::any& var);
+void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
 // -1 is error, 0 is timeout, 1 is success
 int asendtcp(const string& data, Socket* sock) 
@@ -158,7 +159,7 @@ int asendtcp(const string& data, Socket* sock)
   return ret;
 }
 
-void handleTCPClientReadable(int fd, boost::any& var);
+void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var);
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvtcp(string& data, int len, Socket* sock) 
@@ -180,53 +181,8 @@ int arecvtcp(string& data, int len, Socket* sock)
   return ret;
 }
 
-// returns -1 for errors which might go away, throws for ones that won't
-int makeClientSocket(int family)
-{
-  int ret=(int)socket(family, SOCK_DGRAM, 0);
-  if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
-    return ret;
 
-  if(ret<0) 
-    throw AhuException("Making a socket for resolver: "+stringerror());
-
-  static optional<ComboAddress> sin4;
-  if(!sin4) {
-    sin4=ComboAddress(::arg()["query-local-address"]);
-  }
-  static optional<ComboAddress> sin6;
-  if(!sin6) {
-    if(!::arg()["query-local-address6"].empty())
-    sin6=ComboAddress(::arg()["query-local-address6"]);
-  }
-
-  int tries=10;
-  while(--tries) {
-    uint16_t port=1025+Utility::random()%64510;
-    if(tries==1)  // fall back to kernel 'random'
-	port=0;
-
-    if(family==AF_INET) {
-      sin4->sin4.sin_port = htons(port); 
-      
-      if (::bind(ret, (struct sockaddr *)&*sin4, sin4->getSocklen()) >= 0) 
-	break;
-    }
-    else {
-      sin6->sin6.sin6_port = htons(port); 
-      
-      if (::bind(ret, (struct sockaddr *)&*sin6, sin6->getSocklen()) >= 0) 
-	break;
-    }
-  }
-  if(!tries)
-    throw AhuException("Resolver binding to local query client socket: "+stringerror());
-
-  Utility::setNonBlocking(ret);
-  return ret;
-}
-
-void handleUDPServerResponse(int fd, boost::any&);
+void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
 
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it
@@ -244,16 +200,24 @@ public:
   typedef set<int> socks_t;
   socks_t d_socks;
 
-  // returning -1 means: temporary OS error (ie, out of files)
-  int getSocket(uint16_t family)
+  // returning -1 means: temporary OS error (ie, out of files), -2 means OS error
+  int getSocket(const ComboAddress& toaddr, int* fd)
   {
-    int fd=makeClientSocket(family);
-    if(fd < 0) // temporary error - receive exception otherwise
+    *fd=makeClientSocket(toaddr.sin4.sin_family);
+    if(*fd < 0) // temporary error - receive exception otherwise
       return -1;
 
-    d_socks.insert(fd);
+    if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
+      int err = errno;
+      returnSocket(*fd);
+      if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
+	return -2;
+      return -1;
+    }
+
+    d_socks.insert(*fd);
     d_numsocks++;
-    return fd;
+    return 0;
   }
 
   void returnSocket(int fd)
@@ -282,6 +246,54 @@ public:
     d_socks.erase(i++);
     --d_numsocks;
   }
+
+  // returns -1 for errors which might go away, throws for ones that won't
+  int makeClientSocket(int family)
+  {
+    int ret=(int)socket(family, SOCK_DGRAM, 0);
+    if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
+      return ret;
+    
+    if(ret<0) 
+      throw AhuException("Making a socket for resolver: "+stringerror());
+    
+    static optional<ComboAddress> sin4;
+    if(!sin4) {
+      sin4=ComboAddress(::arg()["query-local-address"]);
+    }
+    static optional<ComboAddress> sin6;
+    if(!sin6) {
+      if(!::arg()["query-local-address6"].empty())
+	sin6=ComboAddress(::arg()["query-local-address6"]);
+    }
+    
+    int tries=10;
+    while(--tries) {
+      uint16_t port=1025+Utility::random()%64510;
+      if(tries==1)  // fall back to kernel 'random'
+	port=0;
+      
+      if(family==AF_INET) {
+	sin4->sin4.sin_port = htons(port); 
+	
+	if (::bind(ret, (struct sockaddr *)&*sin4, sin4->getSocklen()) >= 0) 
+	  break;
+      }
+      else {
+	sin6->sin6.sin6_port = htons(port); 
+	
+	if (::bind(ret, (struct sockaddr *)&*sin6, sin6->getSocklen()) >= 0) 
+	  break;
+      }
+    }
+    if(!tries)
+      throw AhuException("Resolver binding to local query client socket: "+stringerror());
+    
+    Utility::setNonBlocking(ret);
+    return ret;
+  }
+
+
 } g_udpclientsocks;
 
 
@@ -311,21 +323,13 @@ int asendto(const char *data, int len, int flags,
     }
   }
 
-  *fd=g_udpclientsocks.getSocket(toaddr.sin4.sin_family);
-  if(*fd < 0)
-    return -2;
+  int ret=g_udpclientsocks.getSocket(toaddr, fd);
+  if(ret < 0)
+    return ret;
 
   pident.fd=*fd;
   pident.id=id;
   
-  int ret=connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen());
-  if(ret < 0) {
-    g_udpclientsocks.returnSocket(*fd);
-    if(errno==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
-      return -2;
-    return ret;
-  }
-
   g_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
   ret=send(*fd, data, len, 0);
   if(ret < 0)
@@ -481,7 +485,7 @@ struct TCPConnection
 };
 
 unsigned int TCPConnection::s_currentConnections; 
-void handleRunningTCPQuestion(int fd, boost::any& var);
+void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 void startDoResolve(void *p)
 {
@@ -655,7 +659,7 @@ void makeControlChannelSocket()
   s_rcc.listen(sockname);
 }
 
-void handleRunningTCPQuestion(int fd, boost::any& var)
+void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   TCPConnection* conn=any_cast<TCPConnection>(&var);
 
@@ -738,7 +742,7 @@ void handleRunningTCPQuestion(int fd, boost::any& var)
 }
 
 //! Handle new incoming TCP connection
-void handleNewTCPQuestion(int fd, boost::any& )
+void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 {
   ComboAddress addr;
   socklen_t addrlen=sizeof(addr);
@@ -813,8 +817,10 @@ string questionExpand(const char* packet, uint16_t len, uint16_t& type)
   return tmp;
 }
 
-void handleNewUDPQuestion(int fd, boost::any& var)
+void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
+  //  static HTimer s_timer("udp new question processing");
+  //  HTimerSentinel hts=s_timer.getSentinel();
   int len;
   char data[1500];
   ComboAddress fromaddr;
@@ -1078,6 +1084,8 @@ void doStats(void)
   else if(statsWanted) 
     L<<Logger::Warning<<"stats: no stats yet!"<<endl;
 
+  //  HTimer::listAll();
+
   statsWanted=false;
 }
 
@@ -1136,7 +1144,7 @@ catch(AhuException& ae)
 ;
 
 
-void handleRCC(int fd, boost::any& var)
+void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
   string remote;
   string msg=s_rcc.recv(&remote);
@@ -1155,7 +1163,7 @@ void handleRCC(int fd, boost::any& var)
   }
 }
 
-void handleTCPClientReadable(int fd, boost::any& var)
+void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pident=any_cast<PacketID>(&var);
   //  cerr<<"handleTCPClientReadable called for fd "<<fd<<", pident->inNeeded: "<<pident->inNeeded<<", "<<pident->sock->getHandle()<<endl;
@@ -1186,7 +1194,7 @@ void handleTCPClientReadable(int fd, boost::any& var)
   }
 }
 
-void handleTCPClientWritable(int fd, boost::any& var)
+void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pid=any_cast<PacketID>(&var);
   
@@ -1222,8 +1230,10 @@ void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& c
   }
 }
 
-void handleUDPServerResponse(int fd, boost::any& var)
+void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
+  //  static HTimer s_timer("udp server response processing");
+
   PacketID pid=any_cast<PacketID>(var);
   int len;
   char data[1500];
@@ -1231,7 +1241,7 @@ void handleUDPServerResponse(int fd, boost::any& var)
   socklen_t addrlen=sizeof(fromaddr);
 
   len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
-
+  //  HTimerSentinel hts=s_timer.getSentinel();
   if(len < (int)sizeof(dnsheader)) {
     if(len < 0)
       ; //      cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
@@ -1273,7 +1283,9 @@ void handleUDPServerResponse(int fd, boost::any& var)
       doResends(iter, pident, packet);
     }
 
+    //    s_timer.stop();
     if(!MT->sendEvent(pident, &packet)) {
+      //      s_timer.start();
 //      if(g_logCommonErrors)
 //        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toString()<<": "<<pident.type<<endl;
       g_stats.unexpectedCount++;
@@ -1285,8 +1297,10 @@ void handleUDPServerResponse(int fd, boost::any& var)
 	}
       }
     }
-    else if(fd >= 0)
+    else if(fd >= 0) {
+      //      s_timer.start();
       g_udpclientsocks.returnSocket(fd);
+    }
   }
   else
     L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr)  <<endl;
@@ -1573,7 +1587,7 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
   }
 
-  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2006 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2007 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
   L<<", gcc "__VERSION__;
 #endif // add other compilers here
@@ -1714,7 +1728,7 @@ int serviceMain(int argc, char*argv[])
     }
 
     if(!(counter%55)) {
-      typedef vector<pair<int, boost::any> > expired_t;
+      typedef vector<pair<int, FDMultiplexer::funcparam_t> > expired_t;
       expired_t expired=g_fdm->getTimeouts(g_now);
 	
       for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
@@ -1772,6 +1786,9 @@ void doWindowsServiceArguments(RecursorService& recursor)
 
 int main(int argc, char **argv) 
 {
+  //  HTimer mtimer("main");
+  //  mtimer.start();
+
   g_stats.startupTime=time(0);
   reportBasicTypes();
 
