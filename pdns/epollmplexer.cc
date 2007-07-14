@@ -23,7 +23,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
@@ -72,7 +72,7 @@ EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents
     
 }
 
-void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)
 {
   accountingAddFD(cbmap, fd, toDo, parameter);
 
@@ -138,10 +138,10 @@ int EpollFDMultiplexer::run(struct timeval* now)
 }
 
 #if 0
-void acceptData(int fd, boost::any& parameter)
+void acceptData(int fd, funcparam_t& parameter)
 {
   cout<<"Have data on fd "<<fd<<endl;
-  Socket* sock=boost::any_cast<Socket*>(parameter);
+  Socket* sock=funcparam_t_cast<Socket*>(parameter);
   string packet;
   IPEndpoint rem;
   sock->recvFrom(packet, rem);

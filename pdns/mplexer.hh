@@ -27,12 +27,16 @@ public:
 
 class FDMultiplexer
 {
+public:
+  //  typedef boost::variant<PacketID, TCPConnection> funcparam_t;
+  typedef boost::any funcparam_t;
 protected:
-  typedef boost::function< void(int, boost::any&) > callbackfunc_t;
+
+  typedef boost::function< void(int, funcparam_t&) > callbackfunc_t;
   struct Callback
   {
     callbackfunc_t d_callback;
-    boost::any d_parameter;
+    funcparam_t d_parameter;
     struct timeval d_ttd;
   };
 
@@ -45,13 +49,13 @@ public:
   virtual int run(struct timeval* tv) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
-  virtual void addReadFD(int fd, callbackfunc_t toDo, const boost::any& parameter=boost::any())
+  virtual void addReadFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
   {
     this->addFD(d_readCallbacks, fd, toDo, parameter);
   }
 
   //! Add an fd to the write watch list - currently an fd can only be on one list at a time!
-  virtual void addWriteFD(int fd, callbackfunc_t toDo, const boost::any& parameter=boost::any())
+  virtual void addWriteFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
   {
     this->addFD(d_writeCallbacks, fd, toDo, parameter);
   }
@@ -78,16 +82,16 @@ public:
     d_readCallbacks[fd].d_ttd=tv;
   }
 
-  virtual boost::any& getReadParameter(int fd) 
+  virtual funcparam_t& getReadParameter(int fd) 
   {
     if(!d_readCallbacks.count(fd))
       throw FDMultiplexerException("attempt to look up data in multiplexer for unlisted fd "+boost::lexical_cast<std::string>(fd));
     return d_readCallbacks[fd].d_parameter;
   }
 
-  virtual std::vector<std::pair<int, boost::any> > getTimeouts(const struct timeval& tv)
+  virtual std::vector<std::pair<int, funcparam_t> > getTimeouts(const struct timeval& tv)
   {
-    std::vector<std::pair<int, boost::any> > ret;
+    std::vector<std::pair<int, funcparam_t> > ret;
     for(callbackmap_t::iterator i=d_readCallbacks.begin(); i!=d_readCallbacks.end(); ++i)
       if(i->second.d_ttd.tv_sec && boost::tie(tv.tv_sec, tv.tv_usec) > boost::tie(i->second.d_ttd.tv_sec, i->second.d_ttd.tv_usec)) 
 	ret.push_back(std::make_pair(i->first, i->second.d_parameter));
@@ -110,12 +114,12 @@ protected:
   typedef std::map<int, Callback> callbackmap_t;
   callbackmap_t d_readCallbacks, d_writeCallbacks;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)=0;
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)=0;
   virtual void removeFD(callbackmap_t& cbmap, int fd)=0;
   bool d_inrun;
   callbackmap_t::iterator d_iter;
 
-  void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+  void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)
   {
     Callback cb;
     cb.d_callback=toDo;
@@ -144,7 +148,7 @@ public:
 
   virtual int run(struct timeval* tv);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   std::string getName()
   {
