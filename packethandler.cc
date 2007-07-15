@@ -610,6 +610,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       r->setRcode(RCode::NotImp); 
       return r; 
     }
+
+    // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
     
     r=p->replyPacket();  // generate an empty reply packet
 

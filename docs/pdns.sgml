@@ -12377,7 +12377,7 @@ static RandomLoader randomloader;
 	  of FreeBSD, PowerDNS does not benefit from additional CPUs on the system.
 	</para>
 	<para>
-	  The FreeBSD Boost include files are installed in <filename>/usr/local/include</filename>, so prefix <command>CXXFLAGS=-I/usr/local/lib</command>
+	  The FreeBSD Boost include files are installed in <filename>/usr/local/include</filename>, so prefix <command>CXXFLAGS=-I/usr/local/include</command>
 	  to your <command>./configure</command> invocation.
 	</para>
       </sect2>

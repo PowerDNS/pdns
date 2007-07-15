@@ -50,7 +50,7 @@ sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter
 
 dnspbench_SOURCES=dnspbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc logger.cc \
-	statbag.cc qtype.cc
+	statbag.cc qtype.cc sillyrecords.cc
 
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
