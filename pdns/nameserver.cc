@@ -91,6 +91,9 @@ void UDPNameserver::bindIPv4()
     if(s<0)
       throw AhuException("Unable to acquire a UDP socket: "+string(strerror(errno)));
   
+    if(locals.size() > 1 && !Utility::setNonBlocking(s))
+      throw AhuException("Unable to set UDP socket to non-blocking: "+stringerror());
+  
     memset(&locala,0,sizeof(locala));
     locala.sin_family=AF_INET;
 
