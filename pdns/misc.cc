@@ -288,7 +288,7 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
   else
     pfd.events=POLLOUT;
 
-  ret = poll(&pfd, 1, seconds);
+  ret = poll(&pfd, 1, seconds * 1000);
   if ( ret == -1 )
     errno = ETIMEDOUT;
 
