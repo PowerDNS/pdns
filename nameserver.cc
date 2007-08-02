@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2002 - 2005  PowerDNS.COM BV
+    Copyright (C) 2002 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -23,7 +23,7 @@
 #include <iostream>
 #include <string>
 #include <sys/types.h>
-
+#include <boost/shared_ptr.hpp>
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "dnspacket.hh"
@@ -32,6 +32,8 @@
 #include "logger.hh"
 #include "arguments.hh"
 #include "statbag.hh"
+
+using namespace boost;
 
 extern StatBag S;
 
@@ -179,12 +181,11 @@ void UDPNameserver::send(DNSPacket *p)
   const char *buffer=p->getData();
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->remote.toString() <<" ("<<p->len<<" octets)"<<endl);
   if(p->len>512) {
-    p=new DNSPacket(*p);
+    shared_ptr<DNSPacket> p(new DNSPacket(*p));
     p->truncate(512);
     buffer=p->getData();
     if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->remote.getSocklen())<0) 
       L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
-    delete p;
   }
   else {
     if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->remote.getSocklen())<0)

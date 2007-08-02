@@ -599,6 +599,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	if(res>=0) {
 	  DNSPacket *r=p->replyPacket();
 	  r->setRcode(res);
+	  r->setOpcode(Opcode::Notify);
 	  return r;
 	}
 	return 0;
