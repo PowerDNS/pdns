@@ -896,12 +896,21 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   sendit:;
     if(doAdditionalProcessingAndDropAA(p,r)<0)
       return 0;
+
     r->wrapup(); // needed for inserting in cache
     if(!noCache)
       PC.insert(p,r); // in the packet cache
   }
   catch(DBException &e) {
     L<<Logger::Error<<"Database module reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
+    r->setRcode(RCode::ServFail);
+    S.inc("servfail-packets");
+    S.ringAccount("servfail-queries",p->qdomain);
+  }
+  catch(exception &e) {
+    L<<Logger::Error<<"Exception building anser packet ("<<e.what()<<") sending out servfail"<<endl;
+    delete r;
+    r=p->replyPacket();  // generate an empty reply packet    
     r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",p->qdomain);
