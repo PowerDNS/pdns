@@ -181,11 +181,11 @@ void UDPNameserver::send(DNSPacket *p)
   const char *buffer=p->getData();
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->remote.toString() <<" ("<<p->len<<" octets)"<<endl);
   if(p->len>512) {
-    shared_ptr<DNSPacket> p(new DNSPacket(*p));
-    p->truncate(512);
-    buffer=p->getData();
-    if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->remote.getSocklen())<0) 
-      L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
+    shared_ptr<DNSPacket> sharedp(new DNSPacket(*p));
+    sharedp->truncate(512);
+    buffer=sharedp->getData();
+    if(sendto(sharedp->getSocket(),buffer,sharedp->len,0,(struct sockaddr *)(&sharedp->remote), sharedp->remote.getSocklen())<0) 
+      L<<Logger::Error<<"Error sending reply with sendto (socket="<<sharedp->getSocket()<<"): "<<strerror(errno)<<endl;
   }
   else {
     if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->remote.getSocklen())<0)
