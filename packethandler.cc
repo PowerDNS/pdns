@@ -398,8 +398,10 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
 	r->addRecord(rr);
       }
     }
-    if(hits && !found && !rfound && shortcut ) // we found matching qnames but not a qtype
+    if(hits && !found && !rfound && shortcut ) { // we found matching qnames but not a qtype
+      DLOG(L<<"Found matching qname, but not the qtype"<<endl);
       return 2;
+    }
 
     if(rfound)
       return 1; // ANY lookup found the right answer immediately
@@ -653,6 +655,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     mret=makeCanonic(p, r, target); // traverse CNAME chain until we have a useful record (may actually give the correct answer!)
 
     if(mret==2) { // there is some data, but not of the correct type
+      r->clearRecords();
       DLOG(L<<"There is some data, but not of the correct type, adding SOA for NXRECORDSET"<<endl);
       SOAData sd;
       if(getAuth(p, &sd, target, 0)) {
@@ -695,7 +698,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	}
       }
     }
-
     noSameLevelNS=true;
 
     if(p->qtype.getCode()!=QType::SOA) { // regular direct lookup
@@ -738,7 +740,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     
     // not found yet, try wildcards (we only try here in case of recursion - we should check before we hand off)
 
-    if(p->d.rd && d_doRecursion && d_doWildcards) { 
+    if(mret != 2 && p->d.rd && d_doRecursion && d_doWildcards) { 
       int res=doWildcardRecords(p,r,target);
       if(res) { // had a result
 	// FIXME: wildCard may retarget us in the future
