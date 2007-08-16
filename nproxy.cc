@@ -226,7 +226,7 @@ try
   if(connect(g_pdnssocket, (struct sockaddr*) &pdns, pdns.getSocklen()) < 0) 
     throw runtime_error("Failed to connect PowerDNS socket to address "+pdns.toStringWithPort()+": "+stringerror());
 
-  syslogFmt(boost::format("Sending notifications to internal address %s") % pdns.toStringWithPort());
+  syslogFmt(boost::format("Sending notifications from %s to internal address %s") % originAddress.toString() % pdns.toStringWithPort());
 
   g_fdm.addReadFD(g_pdnssocket, handleInsideUDPPacket);
 

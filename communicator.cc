@@ -105,7 +105,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     }
   }
   catch(ResolverException &re) {
-    L<<Logger::Error<<"Unable to AXFR zone '"+domain+"': "<<re.reason<<endl;
+    L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"': "<<re.reason<<endl;
     if(di.backend && !first) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
