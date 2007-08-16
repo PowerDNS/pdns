@@ -19,7 +19,7 @@ bin_PROGRAMS = pdns_control
 endif
 
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control dnsscope dnsgram dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy
+EXTRA_PROGRAMS=pdns_recursor sdig dnspbench pdns_control dnsscope dnsgram dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -79,9 +79,15 @@ dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ -lboost_program_options
 
 nproxy_SOURCES=nproxy.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
-	sillyrecords.cc selectmplexer.cc 
+	sillyrecords.cc selectmplexer.cc  mplexer.hh
 
 nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ -lboost_program_options
+
+notify_SOURCES=notify.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
+	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
+	sillyrecords.cc selectmplexer.cc 
+
+notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ -lboost_program_options
 
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
