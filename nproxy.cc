@@ -39,6 +39,12 @@ struct NotificationInFlight
 typedef map<uint16_t, NotificationInFlight> nifs_t;
 nifs_t g_nifs;
 
+void syslogFmt(const boost::format& fmt)
+{
+  cerr<<"nproxy: "<<fmt<<endl;
+  syslog(LOG_WARNING, "%s", str(fmt).c_str());
+}
+
 void handleOutsideUDPPacket(int fd, boost::any&)
 try
 {
@@ -60,13 +66,13 @@ try
   nif.domain = mdp.d_qname;
   nif.origID = mdp.d_header.id;
 
-  cerr<<"External notification received for: "<< nif.domain << endl;
+
 
   if(mdp.d_header.opcode != Opcode::Notify || mdp.d_qtype != QType::SOA) {
-    cerr<<"Opcode: "<<mdp.d_header.opcode<<", != notify\n";
+    syslogFmt(boost::format("Received non-notification packet for domain '%s' from external nameserver %s") % nif.domain % nif.source.toStringWithPort());
     return;
   }
-  
+  syslogFmt(boost::format("External notification received for domain '%s' from %s") % nif.domain % nif.source.toStringWithPort());  
   vector<uint8_t> outpacket;
   DNSPacketWriter pw(outpacket, mdp.d_qname, mdp.d_qtype, 1, Opcode::Notify);
 
@@ -82,7 +88,7 @@ try
 }
 catch(exception &e)
 {
-  cerr<<"Error parsing incoming packet: "<<e.what()<<endl;
+  syslogFmt(boost::format("Error parsing packet from external nameserver: %s") % e.what());
 }
 
 
@@ -104,32 +110,34 @@ try
   string packet(buffer, len);
   MOADNSParser mdp(packet);
 
-  cerr<<"Inside notification response for: "<<mdp.d_qname<<endl;
+  //  cerr<<"Inside notification response for: "<<mdp.d_qname<<endl;
 
   if(!g_nifs.count(mdp.d_header.id)) {
-    cerr<<"Response from inner PowerDNS with unknown ID "<<mdp.d_header.id<<endl;
+    syslogFmt(boost::format("Response from inner PowerDNS with unkown ID %1%") % (uint16_t)mdp.d_header.id);
     return;
   }
   
   nif=g_nifs[mdp.d_header.id];
 
   if(!iequals(nif.domain,mdp.d_qname)) {
-    cerr<<"Response from inner PowerDNS for different domain '"<<mdp.d_qname<<"' than original notification '"<<nif.domain<<"'"<<endl;
+    syslogFmt(boost::format("Response from inner nameserver for different domain '%s' than original notification '%s'") % mdp.d_qname % nif.domain);
   } else {
     struct dnsheader dh;
     memcpy(&dh, buffer, sizeof(dh));
     dh.id = nif.origID;
     
     if(sendto(nif.origSocket, buffer, len, 0, (sockaddr*) &nif.source, nif.source.getSocklen()) < 0) {
-      throw runtime_error("Unable to send notify to PowerDNS: "+stringerror());
+      syslogFmt(boost::format("Unable to send notification response to external nameserver %s - %s") % nif.source.toStringWithPort() % stringerror());
     }
+    else
+      syslogFmt(boost::format("Sent notification response to external nameserver %s for domain '%s'") % nif.source.toStringWithPort() % nif.domain);
   }
   g_nifs.erase(mdp.d_header.id);
 
 }
 catch(exception &e)
 {
-  cerr<<"Error parsing incoming packet: "<<e.what()<<endl;
+  syslogFmt(boost::format("Error parsing packet from internal nameserver: %s") % e.what());
 }
 
 void expireOldNotifications()
@@ -137,7 +145,7 @@ void expireOldNotifications()
   time_t limit = time(0) - 10;
   for(nifs_t::iterator iter = g_nifs.begin(); iter != g_nifs.end(); ) {
     if(iter->second.resentTime < limit) {
-      cerr<<"Removing notification proxy entry for '"<<iter->second.domain<<"', expired"<<endl;
+      syslogFmt(boost::format("Notification for domain '%s' was sent to inner nameserver, but no response within 10 seconds") % iter->second.domain);
       g_nifs.erase(iter++);
     }
     else
@@ -150,10 +158,15 @@ void daemonize();
 int main(int argc, char** argv)
 try
 {
+  openlog("nproxy", LOG_NDELAY | LOG_PID, LOG_DAEMON);
+
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
     ("powerdns-address", po::value<string>(), "IP address of PowerDNS server")
+    ("chroot", po::value<string>(), "chroot to this directory for additional security")
+    ("setuid", po::value<int>(), "setuid to this numerical user id")
+    ("setgid", po::value<int>(), "setgid to this numerical user id")
     ("origin-address", po::value<string>()->default_value("::"), "Source address for notifications to PowerDNS")
     ("listen-address", po::value<vector<string> >(), "IP addresses to listen on")
     ("daemon,d", po::value<bool>()->default_value(true), "operate in the background")
@@ -184,7 +197,7 @@ try
 
   // create sockets to listen on
   
-  cerr<<"Binding sockets\n";
+  syslogFmt(boost::format("Starting up"));
   for(vector<string>::const_iterator address = addresses.begin(); address != addresses.end(); ++address) {
     ComboAddress local(*address, 53);
     int sock = socket(local.sin4.sin_family, SOCK_DGRAM, 0);
@@ -195,6 +208,7 @@ try
       throw runtime_error("Binding socket for incoming packets to '"+ local.toStringWithPort()+"': "+stringerror());
 
     g_fdm.addReadFD(sock, handleOutsideUDPPacket); // add to fdmultiplexer for each socket
+    syslogFmt(boost::format("Listening for external notifications on address %s") % local.toStringWithPort());
   }
 
   // create socket that talks to inner PowerDNS
@@ -210,18 +224,35 @@ try
 
   ComboAddress pdns(g_vm["powerdns-address"].as<string>(), 53);
   if(connect(g_pdnssocket, (struct sockaddr*) &pdns, pdns.getSocklen()) < 0) 
-    throw runtime_error("Failed to connect PowerDNS socket to address "+pdns.toString()+": "+stringerror());
+    throw runtime_error("Failed to connect PowerDNS socket to address "+pdns.toStringWithPort()+": "+stringerror());
+
+  syslogFmt(boost::format("Sending notifications to internal address %s") % pdns.toStringWithPort());
 
   g_fdm.addReadFD(g_pdnssocket, handleInsideUDPPacket);
 
   if(g_vm.count("chroot")) {
     if(chroot(g_vm["chroot"].as<string>().c_str()) < 0)
       throw runtime_error("while chrooting to "+g_vm["chroot"].as<string>());
+    syslogFmt(boost::format("Changed root to directory '%s'") % g_vm["chroot"].as<string>());
+  }
+
+  if(g_vm.count("setuid")) {
+    if(setuid(g_vm["setuid"].as<int>()) < 0)
+      throw runtime_error("while changing uid to "+g_vm["setuid"].as<int>());
+    syslogFmt(boost::format("Changed uid to %d") % g_vm["setuid"].as<int>());
+  }
+
+  if(g_vm.count("setgid")) {
+    if(setuid(g_vm["setgid"].as<int>()) < 0)
+      throw runtime_error("while changing gid to "+g_vm["setgid"].as<int>());
+    syslogFmt(boost::format("Changed gid to %d") % g_vm["setgid"].as<int>());
   }
 
   if(g_vm["daemon"].as<bool>()) {
+    syslogFmt(boost::format("Daemonizing"));
     daemonize();
   }
+  syslogFmt(boost::format("Program operational"));
 
 
   // start loop
@@ -233,13 +264,17 @@ try
     expireOldNotifications();
   }
 }
+catch(boost::program_options::error& e) 
+{
+  syslogFmt(boost::format("Error parsing command line options: %s") % e.what());
+}
 catch(exception& e)
 {
-  cerr<<"Fatal: "<<e.what()<<endl;
+  syslogFmt(boost::format("Fatal: %s") % e.what());
 }
 catch(AhuException& e)
 {
-  cerr<<"Fatal: "<<e.reason<<endl;
+  syslogFmt(boost::format("Fatal: %s") % e.reason);
 }
 
 /* added so we don't have to link in most of powerdns */
