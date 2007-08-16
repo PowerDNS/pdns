@@ -488,12 +488,24 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
   DNSBackend *db=0;
   DomainInfo di;
+  di.serial = 0;
   if(!B.getDomainInfo(p->qdomain, di) || !(db=di.backend)) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
     return trySuperMaster(p);
   }
     
-  if(!db->isMaster(p->qdomain, p->getRemote())) {
+  string authServer(p->getRemote());
+  if(p->getRemote() == arg()["trusted-notification-proxy"]) {
+    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
+    if(di.masters.empty()) {
+      L<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
+      return RCode::Refused;
+    }
+
+    authServer = *di.masters.begin();
+
+  }
+  else if(!db->isMaster(p->qdomain, p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
@@ -505,16 +517,15 @@ int PacketHandler::processNotify(DNSPacket *p)
 
   Resolver resolver;
   try {
-    resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);
+    resolver.getSoaSerial(authServer, p->qdomain, &theirserial);
   }
   catch(ResolverException& re) {
     L<<Logger::Error<<re.reason<<endl;
     return RCode::ServFail;
   }
-	
 
   if(theirserial<=di.serial) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from master "<<p->getRemote()<<", we are up to date: "<<
+    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<< authServer <<", we are up to date: "<<
       theirserial<<"<="<<di.serial<<endl;
     return RCode::NoError;
   }
@@ -522,7 +533,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received valid NOTIFY for "<<p->qdomain<<" (id="<<di.id<<") from master "<<p->getRemote()<<": "<<
       theirserial<<" > "<<di.serial<<endl;
 
-    Communicator.addSuckRequest(p->qdomain, p->getRemote(),true); // priority
+    Communicator.addSuckRequest(p->qdomain, authServer, true); // priority
   }
   return -1; 
 }
@@ -910,7 +921,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     S.ringAccount("servfail-queries",p->qdomain);
   }
   catch(exception &e) {
-    L<<Logger::Error<<"Exception building anser packet ("<<e.what()<<") sending out servfail"<<endl;
+    L<<Logger::Error<<"Exception building answer packet ("<<e.what()<<") sending out servfail"<<endl;
     delete r;
     r=p->replyPacket();  // generate an empty reply packet    
     r->setRcode(RCode::ServFail);

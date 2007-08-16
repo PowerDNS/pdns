@@ -109,6 +109,8 @@ void declareArguments()
   arg().set("soa-retry-default","Default SOA retry")="3600";
   arg().set("soa-expire-default","Default SOA expire")="604800";
 
+  arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
+
   arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
   arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
