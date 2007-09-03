@@ -225,10 +225,9 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
 void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 {
   SOAData soadata;
+  shared_ptr<State> state = s_state;
 
-  //  Lock l(&s_state_lock); // we don't really change the zone map, just flip a bit
-
-  for(id_zone_map_t::iterator i = s_state->id_zone_map.begin(); i != s_state->id_zone_map.end() ; ++i) {
+  for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
     if(!i->second.d_masters.empty())
       continue;
     soadata.serial=0;
@@ -243,8 +242,10 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     di.last_check=i->second.d_lastcheck;
     di.backend=this;
     di.kind=DomainInfo::Master;
-    if(!i->second.d_lastnotified)            // don't do notification storm on startup 
-      i->second.d_lastnotified=soadata.serial;
+    if(!i->second.d_lastnotified)  {          // don't do notification storm on startup 
+      Lock l(&s_state_lock);
+      s_state->id_zone_map[i->first].d_lastnotified=soadata.serial;
+    }
     else
       if(soadata.serial!=i->second.d_lastnotified)
 	changedDomains->push_back(di);

@@ -110,7 +110,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     di.kind=DomainInfo::Slave;
   }
   else if(iequals(type,"MASTER"))
-    di.kind=DomainInfo::Slave;
+    di.kind=DomainInfo::Master;
   else 
     di.kind=DomainInfo::Native;
   
