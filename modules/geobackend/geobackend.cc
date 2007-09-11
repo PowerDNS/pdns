@@ -319,7 +319,7 @@ void GeoBackend::loadIPLocationMap() {
 	// Stat file to see if it has changed since last read
 	struct stat stbuf;
 	if (stat(filename.c_str(), &stbuf) != 0 || !S_ISREG(stbuf.st_mode)) {
-		const string errormsg = "stat() failed, or " + filename + "is no regular file.";
+		const string errormsg = "stat() failed, or " + filename + " is no regular file.";
 		if (lastDiscoverTime == 0)	// We have no older map, bail out
 			throw AhuException(errormsg);
 		else {
