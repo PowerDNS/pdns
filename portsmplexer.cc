@@ -91,10 +91,14 @@ int PortsFDMultiplexer::run(struct timeval* now)
 
   gettimeofday(now,0);
   
-  if(ret < 0 && errno!=EINTR && errno!=ETIME)
-    throw FDMultiplexerException("completion port_getn returned error: "+stringerror());
+  if(ret < 0) {
+    if(errno!=EINTR && errno!=ETIME)
+      throw FDMultiplexerException("completion port_getn returned error: "+stringerror());
+    // EINTR and ETIME are not really errors
+    return 0;
+  }
 
-  if((ret < 0 && errno==ETIME) || numevents==0) // nothing
+  if(!numevents) // nothing
     return 0;
 
   d_inrun=true;
