@@ -55,6 +55,8 @@ void *WebServer::serveConnection(void *p)
     client->setTimeout(5);
     client->getLine(line);
     stripLine(line);
+    if(line.empty())
+      throw Exception("Invalid web request");
     //    L<<"page: "<<line<<endl;
 
     vector<string> parts;

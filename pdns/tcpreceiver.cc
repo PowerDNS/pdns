@@ -87,9 +87,9 @@ int readnWithTimeout(int fd, void* buffer, unsigned int n, bool throwOnEOF=true)
       if(errno==EAGAIN) {
 	ret=waitForData(fd, 5);
 	if(ret < 0)
-	  throw AhuException("Waiting for data read");
+	  throw runtime_error("Waiting for data read");
 	if(!ret)
-	  throw AhuException("Timeout reading data");
+	  throw runtime_error("Timeout reading data");
 	continue;
       }
       else
@@ -120,9 +120,9 @@ void writenWithTimeout(int fd, const void *buffer, unsigned int n)
       if(errno==EAGAIN) {
 	ret=waitForRWData(fd, false, 5, 0);
 	if(ret < 0)
-	  throw AhuException("Waiting for data write");
+	  throw runtime_error("Waiting for data write");
 	if(!ret)
-	  throw AhuException("Timeout writing data");
+	  throw runtime_error("Timeout writing data");
 	continue;
       }
       else
