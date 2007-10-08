@@ -91,10 +91,16 @@ int PortsFDMultiplexer::run(struct timeval* now)
 
   gettimeofday(now,0);
   
-  if(ret < 0) {
-    if(errno!=EINTR && errno!=ETIME)
+  /* port_getn has an unusual API - (ret == -1, errno == ETIME) can
+     mean partial success; you must check (*numevents) in this case
+     and process anything in there, otherwise you'll never see any
+     events from that object again. We don't care about pure timeouts
+     (ret == -1, errno == ETIME, *numevents == 0) so we don't bother
+     with that case. */
+  if(ret < 0 && errno!=ETIME) {
+    if(errno!=EINTR)
       throw FDMultiplexerException("completion port_getn returned error: "+stringerror());
-    // EINTR and ETIME are not really errors
+    // EINTR is not really an error
     return 0;
   }
 
