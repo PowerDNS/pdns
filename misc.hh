@@ -19,6 +19,7 @@
 #ifndef MISC_HH
 #define MISC_HH
 #include <stdint.h>
+#include <cstring>
 
 #if 0
 #define RDTSC(qp) \
@@ -234,7 +235,7 @@ inline bool dns_isspace(char c)
   return c==' ' || c=='\t' || c=='\r' || c=='\n';
 }
 
-inline const char dns_tolower(char c)
+inline char dns_tolower(char c)
 {
   if(c>='A' && c<='Z')
     c+='a'-'A';

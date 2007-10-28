@@ -397,12 +397,12 @@ Resolver::res_t Resolver::result()
   if(mdp->d_header.id != d_randomid) {
     throw ResolverException("Remote nameserver replied with wrong id");
   }
-  if(mdp->d_header.rcode)
+  if(mdp->d_header.rcode) {
     if(d_inaxfr)
       throw ResolverException("Remote nameserver unable/unwilling to AXFR with us: RCODE="+itoa(mdp->d_header.rcode));
     else
       throw ResolverException("Remote nameserver reported error: RCODE="+itoa(mdp->d_header.rcode));
-  
+  }
     if(!d_inaxfr) {
       if(mdp->d_header.qdcount!=1)
 	throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp->d_header.qdcount)+")");

@@ -18,6 +18,7 @@
 */
 #include "dynmessenger.hh"
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cerrno>
 #include <iostream>
