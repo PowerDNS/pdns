@@ -1,5 +1,6 @@
 #include "powerldap.hh"
-
+// for timeval
+#include <sys/time.h>
 
 
 PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )

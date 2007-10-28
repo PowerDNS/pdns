@@ -69,6 +69,8 @@ dnslog_SOURCES=dnslog.cc misc.cc  qtype.cc anadns.hh \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	unix_utility.cc utility.hh		
 
+#socketbench_SOURCES=socketbench.cc qtype.cc misc.cc unix_utility.cc\
+#	 logger.cc statbag.cc epollmplexer.cc
 
 dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh  \

@@ -82,7 +82,6 @@ public:
   struct QuestionData
   {
     Question *Q;
-    time_t created;
     void (*callback)(const AnswerData &);
     int id;
   };

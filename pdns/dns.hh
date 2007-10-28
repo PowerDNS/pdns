@@ -115,7 +115,7 @@ struct EDNS0Record
 #pragma pack (pop)
 #endif 
 
-typedef enum  {
+enum  {
         ns_t_invalid = 0,       /* Cookie. */
         ns_t_a = 1,             /* Host address. */
         ns_t_ns = 2,            /* Authoritative server. */
@@ -137,7 +137,7 @@ typedef enum  {
         ns_t_afsdb = 18,        /* AFS cell database. */
         ns_t_x25 = 19,          /* X_25 calling address. */
         ns_t_isdn = 20,         /* ISDN calling address. */
-	ns_t_rt = 21,           /* Router. */
+        ns_t_rt = 21,           /* Router. */
         ns_t_nsap = 22,         /* NSAP address. */
         ns_t_nsap_ptr = 23,     /* Reverse NSAP lookup (deprecated). */
         ns_t_sig = 24,          /* Security signature. */
