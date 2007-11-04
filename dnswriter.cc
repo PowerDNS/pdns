@@ -98,6 +98,20 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
   startRecord("", ns_t_opt, ttl, udpsize, ADDITIONAL);
 }
 
+void DNSPacketWriter::xfr48BitInt(uint64_t val)
+{
+  unsigned char bytes[6];
+  bytes[5] = val % 0xff; val /= 0xff;  // untested code! XXX FIXME
+  bytes[4] = val % 0xff; val /= 0xff;
+  bytes[3] = val % 0xff; val /= 0xff;
+  bytes[2] = val % 0xff; val /= 0xff;
+  bytes[1] = val % 0xff; val /= 0xff;
+  bytes[0] = val % 0xff; val /= 0xff;
+
+  d_record.insert(d_record.end(), bytes, bytes + 6);
+}
+
+
 void DNSPacketWriter::xfr32BitInt(uint32_t val)
 {
   int rval=htonl(val);

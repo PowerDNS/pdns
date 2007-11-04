@@ -28,6 +28,26 @@ RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_st
 {
 }
 
+void RecordTextReader::xfr48BitInt(uint64_t &val)
+{
+  xfr64BitInt(val);
+}
+
+void RecordTextReader::xfr64BitInt(uint64_t &val)
+{
+  skipSpaces();
+
+  if(!isdigit(d_string.at(d_pos)))
+    throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+
+  char *endptr;
+  unsigned long ret=strtoull(d_string.c_str() + d_pos, &endptr, 10);
+  val=ret;
+  
+  d_pos = endptr - d_string.c_str();
+}
+
+
 void RecordTextReader::xfr32BitInt(uint32_t &val)
 {
   skipSpaces();
@@ -41,6 +61,8 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
   
   d_pos = endptr - d_string.c_str();
 }
+
+
 
 void RecordTextReader::xfrTime(uint32_t &val)
 {
@@ -264,7 +286,7 @@ RecordTextWriter::RecordTextWriter(string& str) : d_string(str)
   d_string.clear();
 }
 
-void RecordTextWriter::xfr32BitInt(const uint32_t& val)
+void RecordTextWriter::xfr48BitInt(const uint64_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
@@ -272,6 +294,12 @@ void RecordTextWriter::xfr32BitInt(const uint32_t& val)
 }
 
 
+void RecordTextWriter::xfr32BitInt(const uint32_t& val)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+  d_string+=lexical_cast<string>(val);
+}
 
 void RecordTextWriter::xfrType(const uint16_t& val)
 {
