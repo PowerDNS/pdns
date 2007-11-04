@@ -8599,7 +8599,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  <term>KEY (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The LOC record is fully supported. For its syntax, see RFC 2535.
+	      The KEY record is fully supported. For its syntax, see RFC 2535.
 	    </para>
 	  </listitem>      
 	</varlistentry>
