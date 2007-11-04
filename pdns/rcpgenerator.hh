@@ -41,6 +41,8 @@ class RecordTextReader
 {
 public:
   RecordTextReader(const string& str, const string& zone="");
+  void xfr64BitInt(uint64_t& val);
+  void xfr48BitInt(uint64_t& val);
   void xfr32BitInt(uint32_t& val);
   void xfr16BitInt(uint16_t& val);
   void xfr8BitInt(uint8_t& val);
@@ -67,6 +69,7 @@ class RecordTextWriter
 {
 public:
   RecordTextWriter(string& str);
+  void xfr48BitInt(const uint64_t& val);
   void xfr32BitInt(const uint32_t& val);
   void xfr16BitInt(const uint16_t& val);
   void xfr8BitInt(const uint8_t& val);

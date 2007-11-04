@@ -70,6 +70,8 @@ public:
   uint32_t get32BitInt();
   uint16_t get16BitInt();
   uint8_t get8BitInt();
+  
+  void xfr48BitInt(uint64_t& val);
 
   void xfr32BitInt(uint32_t& val)
   {

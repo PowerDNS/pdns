@@ -65,6 +65,7 @@ public:
   /** Should the packet have grown too big for the writer's liking, rollback removes the record currently being written */
   void rollback();
 
+  void xfr48BitInt(uint64_t val);
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
   void xfrType(uint16_t val)
