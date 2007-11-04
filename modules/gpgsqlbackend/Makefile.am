@@ -7,7 +7,7 @@ INCLUDES=-I@PGSQL_incdir@
 libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \
 		spgsql.hh spgsql.cc
 
-libgpgsqlbackend_la_LDFLAGS=@PGSQL_lib@ -Wl,-Bstatic -lpq \
+libgpgsqlbackend_la_LDFLAGS=-module -avoid-version @PGSQL_lib@ -Wl,-Bstatic -lpq \
 	-Wl,-Bdynamic 
 
 libgpgsqlbackend_la_LIBADD=-lssl -lcrypt -lcrypto

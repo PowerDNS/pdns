@@ -9,7 +9,7 @@ libgmysqlbackend_la_SOURCES=gmysqlbackend.cc gmysqlbackend.hh \
 		smysql.hh smysql.cc
 
 
-libgmysqlbackend_la_LDFLAGS=-module -lmysqlclient 
+libgmysqlbackend_la_LDFLAGS=-module -avoid-version -lmysqlclient
 
 #	-Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
 

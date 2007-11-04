@@ -9,4 +9,4 @@ libgsqlitebackend_la_SOURCES=gsqlitebackend.cc gsqlitebackend.hh \
                 ssqlite.hh ssqlite.cc
 
 
-libgsqlitebackend_la_LDFLAGS=-module -lsqlite
+libgsqlitebackend_la_LDFLAGS=-module -avoid-version -lsqlite
