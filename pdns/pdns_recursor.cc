@@ -1033,6 +1033,7 @@ void makeUDPServerSockets()
 #ifndef WIN32
 void daemonize(void)
 {
+  s_rcc.d_dontclose=true;
   if(fork())
     exit(0); // bye bye
   

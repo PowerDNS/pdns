@@ -32,6 +32,7 @@ public:
   std::string recv(std::string* remote=0);
 
   int d_fd;
+  bool d_dontclose;
 private:
   struct sockaddr_un d_local;
 };
