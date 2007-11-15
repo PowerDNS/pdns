@@ -628,6 +628,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
     
     r=p->replyPacket();  // generate an empty reply packet
+    if(p->d.rd && d_doRecursion && DP->recurseFor(p))  // make sure we set ra if rd was set, and we'll do it
+      r->d.ra=true;
+
 
     if(p->qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::NotImp);
