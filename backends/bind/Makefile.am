@@ -8,6 +8,7 @@ bindparser.hh ../../unix_utility.cc
 
 libbind2backend_la_CXXFLAGS=$(AM_CXXFLAGS)
 libbind2backend_la_CFLAGS=$(AM_CFLAGS)
+libbind2backend_la_LDFLAGS=-module -avoid-version
 
 bin_PROGRAMS = zone2sql zone2ldap
 
