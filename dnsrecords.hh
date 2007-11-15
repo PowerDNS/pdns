@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2005 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -84,6 +84,22 @@ public:
 private:
   uint16_t d_preference, d_weight, d_port;
   string d_target;
+};
+
+class TSIGRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(TSIG)
+
+  string d_algoName;
+  uint64_t d_time; // 48 bits
+  uint16_t d_fudge;
+  //  uint16_t d_macSize;
+  string d_mac;
+  uint16_t d_origID;
+  uint16_t d_eRcode;
+  // uint16_t d_otherLen
+  string d_otherData;
 };
 
 
