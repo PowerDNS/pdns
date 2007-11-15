@@ -117,6 +117,7 @@ public:
   }
 
   void xfrBlob(string& blob);
+  void xfrBlob(string& blob, int length);
   void xfrHexBlob(string& blob);
 
   static uint16_t get16BitInt(const vector<unsigned char>&content, uint16_t& pos);

@@ -85,7 +85,7 @@ public:
 
   void xfrLabel(const string& label, bool compress=false);
   void xfrText(const string& text, bool multi=false);
-  void xfrBlob(const string& blob);
+  void xfrBlob(const string& blob, int len=-1);
   void xfrHexBlob(const string& blob);
 
   uint16_t d_pos;

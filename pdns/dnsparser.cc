@@ -450,6 +450,14 @@ void PacketReader::xfrBlob(string& blob)
   d_pos = d_startrecordpos + d_recordlen;
 }
 
+void PacketReader::xfrBlob(string& blob, int length)
+{
+  blob.assign(&d_content.at(d_pos), &d_content.at(d_pos + length ) );
+
+  d_pos += length;
+}
+
+
 void PacketReader::xfrHexBlob(string& blob)
 {
   xfrBlob(blob);

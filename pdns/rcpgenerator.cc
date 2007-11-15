@@ -178,7 +178,7 @@ void RecordTextReader::xfrLabel(string& val, bool)
   }
 }
 
-void RecordTextReader::xfrBlob(string& val)
+void RecordTextReader::xfrBlob(string& val, int)
 {
   skipSpaces();
   int pos=(int)d_pos;
@@ -398,7 +398,7 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
   //  d_string.append(1,'.');
 }
 
-void RecordTextWriter::xfrBlob(const string& val)
+void RecordTextWriter::xfrBlob(const string& val, int)
 {
   if(!d_string.empty())
     d_string.append(1,' ');

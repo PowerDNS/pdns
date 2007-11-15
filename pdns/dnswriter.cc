@@ -238,7 +238,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
  out:;
 }
 
-void DNSPacketWriter::xfrBlob(const string& blob)
+void DNSPacketWriter::xfrBlob(const string& blob, int  )
 {
   const uint8_t* ptr=reinterpret_cast<const uint8_t*>(blob.c_str());
 
