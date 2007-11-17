@@ -35,6 +35,10 @@ statmap_t statmap;
 int main(int argc, char** argv)
 try
 {
+  if(argc!=2) {
+    cerr<<"Syntax: dnsscope filename.pcap"<<endl;
+    exit(1);
+  }
   PcapPacketReader pr(argv[1]);
   PcapPacketWriter* pw=0;
 
