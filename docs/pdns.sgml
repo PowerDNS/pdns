@@ -9196,6 +9196,89 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       </para>
     </sect1>
   </chapter>
+  <chapter id="tools"><title>Other tools included with PowerDNS</title>
+    <para>
+      PowerDNS comes with several tools that can be used to do various DNS related things.
+    </para>
+    <sect1 id="nproxy"><title>Notification proxy (nproxy)</title>
+      <para>
+	Available in PowerDNS 2.9.22 and later.
+      </para>
+      <para>
+	For additional security, operators may prefer to have a 'hidden slave' that sits behind a strong firewall. This slave pulls
+	in zones from the outside world, and stores them in a database. This database is then used by publicly accessible nameservers
+	to publish zone data.
+      </para>
+      <para>
+	For proper slave operation, master nameservers send out notifications to inform slaves of updates. This is not normally a problem,
+	but when operating with a hidden slave behind a firewall, notification packets can't reach the slave.
+      </para>
+      <para>
+	For this purpose, the PowerDNS also supplies a notification proxy. It sits outside the firewall, and accepts notifications from
+	remote master servers. It interprets and validates these packets, and then sends on a new notification to the hidden slave.
+      </para>
+      <para>
+	The hidden slave then promptly retrieves an updated zone from the master.
+      </para>
+      <para>
+	The notification proxy, called <command>nproxy</command>, can be configured using the following settings:
+      </para>
+      <para>
+      <variablelist>
+	<varlistentry>
+	  <term>chroot</term>
+	  <listitem>
+	    <para>
+		Change root to this directory for additional security.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>daemon</term>
+	  <listitem>
+	    <para>
+		Run in the background. Defaults to true, can be turned off using '--daemon=no'.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>listen-address</term>
+	  <listitem>
+	    <para>
+		Public addresses (IPv4 and IPv6) to listen on for incoming notification packets. Defaults to "all addresses", but it is highly recommended to specify
+		addresses here. 
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>origin-address</term>
+	  <listitem>
+	    <para>
+		Can be used to pin the address the nproxy uses to communicate with the hidden slave. Highly recommended. Corresponds to the PowerDNS settting 
+		<command>trusted-notification-proxy</command>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>powerdns-address</term>
+	  <listitem>
+	    <para>
+		IP address (IPv4 or IPv6) of the hidden slave, to which notifications should be relayed. This setting is mandatory, and has no default.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>setuid and setgid</term>
+	  <listitem>
+	    <para>
+		Change to these numerical user-id and/or group-id, dropping root privileges, for additional security.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	</variablelist>
+      </para>
+    </sect1>
+  </chapter>
   <chapter id="analysis"><title>Tools to analyse DNS traffic</title>
     <para>
       DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since 2.9.18, PowerDNS comes
@@ -10416,12 +10499,16 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 	    where type='%s' and name='%s'
 	  </screen>
 	  Do not wrap statements in quotes as this will not work.
-	  Besides the query related settings, the following configuration options are available:
+	  Besides the query related settings, the following configuration
+	  options are available, where one should substitute 'gmysql',
+	  'gpgsql', 'godbc' or 'goracle' for the prefix 'backend'. So
+	  'backend-dbname' can stand for 'gpgsql-dbname' or 'gmysql-dbname'
+	  etc.
 	</para>
 	<para>
           <variablelist>
             <varlistentry>
-              <term>gpgsql-dbname</term>
+              <term>backend-dbname</term>
               <listitem>
                 <para>
                   Database name to connect to
@@ -10429,11 +10516,19 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>gpgsql-host</term>
+              <term>backend-host</term>
               <listitem>
                 <para>
                   Database host to connect to. WARNING: When specified as a hostname a chicken/egg situation might arise where the database
 		  is needed to resolve the IP address of the database. It is best to supply an IP address of the database here.
+                </para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>backend-port</term>
+              <listitem>
+                <para>
+                  Database port to connect to. 
                 </para>
               </listitem>
             </varlistentry>
@@ -10446,7 +10541,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>gpgsql-password</term>
+              <term>backend-password</term>
               <listitem>
                 <para>
                   Password to connect with
@@ -10454,7 +10549,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>gpgsql-user</term>
+              <term>backend-user</term>
               <listitem>
                 <para>
                   PgSQL user to connect as
