@@ -198,8 +198,8 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
 {
 	string filter, attr, qesc;
-	char** attributes = ldap_attrany + 1;   // skip associatedDomain
-	char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
+	const char** attributes = ldap_attrany + 1;   // skip associatedDomain
+	const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
 	qesc = toLower( m_pldap->escape( qname ) );
@@ -209,14 +209,14 @@ void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPac
 	{
 		attr = qtype.getName() + "Record";
 		filter = "&(" + filter + ")(" + attr + "=*)";
-		attronly[0] = (char*) attr.c_str();
+		attronly[0] = attr.c_str();
 		attributes = attronly;
 	}
 
 	filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
 	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
+	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
 
@@ -226,8 +226,8 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 	int len;
 	vector<string> parts;
 	string filter, attr, qesc;
-	char** attributes = ldap_attrany + 1;   // skip associatedDomain
-	char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
+	const char** attributes = ldap_attrany + 1;   // skip associatedDomain
+	const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
 	qesc = toLower( m_pldap->escape( qname ) );
@@ -253,7 +253,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 		{
 			attr = qtype.getName() + "Record";
 			filter = "&(" + filter + ")(" + attr + "=*)";
-			attronly[0] = (char*) attr.c_str();
+			attronly[0] = attr.c_str();
 			attributes = attronly;
 		}
 	}
@@ -261,7 +261,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 	filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
 	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, (const char**) attributes );
+	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attributes );
 }
 
 
@@ -269,8 +269,8 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
 {
 	string filter, attr, qesc, dn;
-	char** attributes = ldap_attrany + 1;   // skip associatedDomain
-	char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
+	const char** attributes = ldap_attrany + 1;   // skip associatedDomain
+	const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 	vector<string>::reverse_iterator i;
 	vector<string> parts;
 
@@ -282,7 +282,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 	{
 		attr = qtype.getName() + "Record";
 		filter = "&(" + filter + ")(" + attr + "=*)";
-		attronly[0] = (char*) attr.c_str();
+		attronly[0] = attr.c_str();
 		attributes = attronly;
 	}
 
@@ -295,7 +295,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 	}
 
 	DLOG( L << Logger::Debug << m_myname << " Search = basedn: " << dn + getArg( "basedn" ) << ", filter: " << filter << ", qtype: " << qtype.getName() << endl );
-	m_msgid = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, (const char**) attributes );
+	m_msgid = m_pldap->search( dn + getArg( "basedn" ), LDAP_SCOPE_BASE, filter, attributes );
 }
 
 
@@ -491,12 +491,12 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 {
 	string filter;
 	SOAData sd;
-	char* attronly[] = { "sOARecord", NULL };
+	const char* attronly[] = { "sOARecord", NULL };
 
 
 	// search for SOARecord of domain
 	filter = "(&(associatedDomain=" + toLower( m_pldap->escape( domain ) ) + ")(SOARecord=*))";
-	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, (const char**) attronly );
+	m_msgid = m_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
 	m_pldap->getSearchEntry( m_msgid, m_result );
 
 	if( m_result.count( "sOARecord" ) && !m_result["sOARecord"].empty() )

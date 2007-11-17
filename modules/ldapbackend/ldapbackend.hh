@@ -49,7 +49,7 @@ using std::vector;
 
 
 
-static char* ldap_attrany[] = {
+static const char* ldap_attrany[] = {
 	"associatedDomain",
 	"dNSTTL",
 	"aRecord",
