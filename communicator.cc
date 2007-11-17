@@ -55,6 +55,7 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
 
 void CommunicatorClass::suck(const string &domain,const string &remote)
 {
+  L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   uint32_t domain_id;
   PacketHandler P;
 
@@ -288,7 +289,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
 }  
 
-int CommunicatorClass::doNotifications()
+time_t CommunicatorClass::doNotifications()
 {
   ComboAddress from;
   Utility::socklen_t fromlen=sizeof(from);
@@ -423,7 +424,7 @@ void CommunicatorClass::mainloop(void)
     int rc;
     time_t next;
 
-    int tick;
+    time_t tick;
 
     for(;;) {
       slaveRefresh(&P);
@@ -432,9 +433,10 @@ void CommunicatorClass::mainloop(void)
       tick=min(doNotifications(),
 	       d_tickinterval);
 
+      L<<Logger::Error<<"tick = "<<tick<<", d_tickinterval = "<<d_tickinterval<<endl;
       next=time(0)+tick;
 
-      while(time(0)<next) {
+      while(time(0) < next) {
 	rc=d_any_sem.tryWait();
 
 	if(rc)

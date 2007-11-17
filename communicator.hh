@@ -131,7 +131,7 @@ public:
     d_tickinterval=60;
     d_masterschanged=d_slaveschanged=true;
   }
-  int doNotifications();    
+  time_t doNotifications();    
   void go()
   {
     pthread_t tid;
@@ -163,7 +163,7 @@ private:
   bool d_havepriosuckrequest;
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
-  int d_tickinterval;
+  time_t d_tickinterval;
   NotificationQueue d_nq;
   bool d_masterschanged, d_slaveschanged;
 };
