@@ -269,7 +269,7 @@ void *TCPNameserver::doConnection(void *data)
       if(packet->parse(mesg, pktlen)<0)
 	break;
       
-      if(packet->qtype.getCode()==QType::AXFR) {
+      if(packet->qtype.getCode()==QType::AXFR || packet->qtype.getCode()==QType::IXFR ) {
 	if(doAXFR(packet->qdomain, packet, fd)) 
 	  S.inc("tcp-answers");  
 	continue;
