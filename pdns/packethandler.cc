@@ -495,7 +495,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
     
   string authServer(p->getRemote());
-  if(p->getRemote() == arg()["trusted-notification-proxy"]) {
+  if(arg().contains("trusted-notification-proxy", p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
       L<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
