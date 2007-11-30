@@ -53,7 +53,16 @@ struct Bind2DNSRecord
       return true;
     return tie(qtype,content, ttl) < tie(rhs.qtype, rhs.content, rhs.ttl);
   }
+  bool operator<(const string &b) const
+  {
+    return qname < b;
+  }
 };
+
+inline bool operator<(const string &a, const Bind2DNSRecord &b)
+{
+  return a < b.qname;
+}
 
 
 /** Class which describes all metadata of a domain for storage by the Bind2Backend, and also contains a pointer to a vector of Bind2DNSRecord's */
