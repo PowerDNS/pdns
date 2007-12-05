@@ -433,7 +433,7 @@ void CommunicatorClass::mainloop(void)
       tick=min(doNotifications(),
 	       d_tickinterval);
 
-      L<<Logger::Error<<"tick = "<<tick<<", d_tickinterval = "<<d_tickinterval<<endl;
+      //      L<<Logger::Error<<"tick = "<<tick<<", d_tickinterval = "<<d_tickinterval<<endl;
       next=time(0)+tick;
 
       while(time(0) < next) {
