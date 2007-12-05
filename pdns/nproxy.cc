@@ -67,16 +67,23 @@ try
   nif.origID = mdp.d_header.id;
 
 
-  if(mdp.d_header.opcode == Opcode::Query && !mdp.d_header.qr && mdp.d_answers.empty() && mdp.d_qname == "pdns.nproxy." && mdp.d_qtype == QType::TXT) {
+  if(mdp.d_header.opcode == Opcode::Query && !mdp.d_header.qr && mdp.d_answers.empty() && mdp.d_qname == "pdns.nproxy." && 
+     (mdp.d_qtype == QType::TXT || mdp.d_qtype ==QType::A)) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
     pw.getHeader()->id = mdp.d_header.id;
     pw.getHeader()->rd = mdp.d_header.rd;
     pw.getHeader()->qr = 1;
 
-    pw.startRecord(mdp.d_qname, QType::TXT);
-    TXTRecordContent trc("\"OK\"");
-    trc.toPacket(pw);
+    pw.startRecord(mdp.d_qname, mdp.d_qtype);
+    if(mdp.d_qtype == QType::TXT) {
+      TXTRecordContent trc("\"OK\"");
+      trc.toPacket(pw);
+    }
+    else if(mdp.d_qtype == QType::A) {
+      ARecordContent arc("1.2.3.4");
+      arc.toPacket(pw);
+    }
     pw.commit();
     sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*)&nif.source, sizeof(nif.source));
     return;
