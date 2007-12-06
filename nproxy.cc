@@ -85,7 +85,10 @@ try
       arc.toPacket(pw);
     }
     pw.commit();
-    sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*)&nif.source, sizeof(nif.source));
+
+    if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*)&nif.source, socklen) < 0) {
+      syslogFmt(boost::format("Unable to send health check response to external nameserver %s - %s") % nif.source.toStringWithPort() % stringerror());
+    }
     return;
   }
 
