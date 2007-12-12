@@ -199,6 +199,9 @@ bool PipeBackend::get(DNSResourceRecord &r)
          L<<Logger::Error<<kBackendId<<" coprocess returned emtpy line in query for "<<d_qname<<endl;
          throw AhuException("Format error communicating with coprocess");
       }
+      else if(parts[0]=="FAIL") {
+         throw DBException("coprocess returned a FAIL");
+      }
       else if(parts[0]=="END") {
          return false;
       }
@@ -216,9 +219,15 @@ bool PipeBackend::get(DNSResourceRecord &r)
          r.qtype=parts[3];
          r.ttl=atoi(parts[4].c_str());
          r.domain_id=atoi(parts[5].c_str());
-
-	 if(parts[3]!="MX")
-	   r.content=parts[6];
+ 
+	 if(parts[3]!="MX") {
+	   r.content.clear();
+	   for(int n=6; n < parts.size(); ++n) {
+	     if(n!=6)
+	       r.content.append(1,' ');
+	     r.content.append(parts[n]);
+	   }
+	 }
 	 else {
 	   if(parts.size()<8) {
             L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX line in data section for query for "<<d_qname<<endl;
@@ -227,6 +236,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
 	   
 	   r.priority=atoi(parts[6].c_str());
 	   r.content=parts[7];
+
 	 }
          break;
       }
