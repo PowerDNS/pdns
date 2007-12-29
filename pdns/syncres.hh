@@ -372,7 +372,6 @@ private:
   static bool s_log;
   bool d_cacheonly;
   bool d_nocache;
-  LWRes d_lwr;
 
   struct GetBestNSAnswer
   {
