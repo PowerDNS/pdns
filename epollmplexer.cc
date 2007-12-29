@@ -112,27 +112,25 @@ int EpollFDMultiplexer::run(struct timeval* now)
   gettimeofday(now,0);
   
   if(ret < 0 && errno!=EINTR)
-    throw FDMultiplexerException("select returned error: "+stringerror());
+    throw FDMultiplexerException("epoll returned error: "+stringerror());
 
   if(ret < 1) // thanks AB!
     return 0;
 
   d_inrun=true;
-
   for(int n=0; n < ret; ++n) {
     d_iter=d_readCallbacks.find(d_eevents[n].data.fd);
     
     if(d_iter != d_readCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      continue; // so we don't refind ourselves as writable!
     }
-
     d_iter=d_writeCallbacks.find(d_eevents[n].data.fd);
     
     if(d_iter != d_writeCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
     }
   }
-
   d_inrun=false;
   return 0;
 }

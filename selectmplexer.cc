@@ -81,6 +81,7 @@ int SelectFDMultiplexer::run(struct timeval* now)
 
     if(FD_ISSET(d_iter->first, &readfds)) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      continue;  // so we don't refind ourselves as writable
     }
   }
 
