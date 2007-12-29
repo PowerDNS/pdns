@@ -145,11 +145,12 @@ int asendtcp(const string& data, Socket* sock)
   PacketID pident;
   pident.sock=sock;
   pident.outMSG=data;
-
+  
   g_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
   string packet;
 
-  int ret=MT->waitEvent(pident,&packet,1);
+  int ret=MT->waitEvent(pident, &packet, 1);
+
   if(!ret || ret==-1) { // timeout
     g_fdm->removeWriteFD(sock->getHandle());
   }
@@ -416,8 +417,9 @@ void primeHints(void)
   set<DNSResourceRecord>nsset;
 
   if(::arg()["hint-file"].empty()) {
-    static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53",
-		       "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+    static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", 
+			     "192.112.36.4", "128.63.2.53",
+			     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
     DNSResourceRecord arr, nsrr;
     arr.qtype=QType::A;
     arr.ttl=time(0)+3600000;
@@ -1198,7 +1200,6 @@ void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
 void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID* pid=any_cast<PacketID>(&var);
-  
   int ret=send(fd, pid->outMSG.c_str() + pid->outPos, pid->outMSG.size() - pid->outPos,0);
   if(ret > 0) {
     pid->outPos+=ret;
