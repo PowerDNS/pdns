@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2005 PowerDNS.COM BV
+    Copyright (C) 2002 - 2007 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -52,32 +52,17 @@ public:
 };
 
 //! LWRes class 
-class LWRes
+class LWResult
 {
 public:
-  LWRes();
-  ~LWRes();
-  string i;
-
   typedef vector<DNSResourceRecord> res_t;
 
-  int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now);
-  vector<DNSResourceRecord> result();
+  vector<DNSResourceRecord> d_result;
   int d_rcode;
   bool d_aabit, d_tcbit;
   uint32_t d_usec;
-private:
-  int d_sock;
-  unsigned char *d_buf;
-  int getLength();
-  int d_len;
-  int d_soacount;
-  string d_domain;
-  int d_type;
-  int d_timeout;
-  ComboAddress d_ip;
-  bool d_inaxfr;
-  int d_bufsize;
 };
+
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult* res);
 
 #endif // PDNS_LWRES_HH

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2006  PowerDNS.COM BV
+    Copyright (C) 2003 - 2007  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -197,13 +197,13 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   int res=0;
   if(!(d_nocache && qtype.getCode()==QType::NS && qname==".")) {
     if(d_cacheonly) { // very limited OOB support
+      LWResult lwr;
       LOG<<prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl;
       string authname(qname);
       domainmap_t::const_iterator iter=getBestAuthZone(&authname);
       if(iter != s_domainmap.end()) {
 	string server=iter->second.d_server;
 	if(server.empty()) {
-	  LWRes::res_t result;
 	  ret.clear();
 	  doOOBResolve(qname, qtype, ret, depth, res);
 	  return res;
@@ -211,11 +211,11 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 	else {
 	  LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<<server<<"' for zone '"<<authname<<"'"<<endl;
 	  ComboAddress remoteIP(server, 53);
-	  res=d_lwr.asyncresolve(remoteIP, qname, qtype.getCode(), false, &d_now);    
-	  // filter out the good stuff from d_lwr.result()
-	  LWRes::res_t result=d_lwr.result();
 
-	  for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
+	  res=asyncresolve(remoteIP, qname, qtype.getCode(), false, &d_now, &lwr);    
+	  // filter out the good stuff from lwr.result()
+
+	  for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
 	    if(i->d_place == DNSResourceRecord::ANSWER)
 	      ret.push_back(*i);
 	  }
@@ -598,7 +598,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     prefix.append(depth, ' ');
   }
   
-  LWRes::res_t result;
+  LWResult::res_t result;
 
   LOG<<prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact"<<endl;
 
@@ -628,11 +628,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       bool doTCP=false;
       int resolveret;
 
+      LWResult lwr;
       if(tns->empty()) {
 	LOG<<prefix<<qname<<": Domain is out-of-band"<<endl;
-	doOOBResolve(qname, qtype, result, depth, d_lwr.d_rcode);
-	d_lwr.d_tcbit=false;
-	d_lwr.d_aabit=true;
+	doOOBResolve(qname, qtype, result, depth, lwr.d_rcode);
+	lwr.d_tcbit=false;
+	lwr.d_aabit=true;
       }
       else {
 	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl;
@@ -658,6 +659,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  LOG<<endl;
 
 	}
+
 	for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
 	  LOG<<prefix<<qname<<": Trying IP "<< remoteIP->toString() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 	  extern NetmaskGroup* g_dontQuery;
@@ -678,7 +680,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      s_tcpoutqueries++; d_tcpoutqueries++;
 	    }
 	    
-	    resolveret=d_lwr.asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, &d_now);    // <- we go out on the wire!
+	    resolveret=asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, &d_now, &lwr);    // <- we go out on the wire!
 	    if(resolveret != 1) {
 	      if(resolveret==0) {
 		LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;
@@ -691,7 +693,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      }
 	      else {
 		s_unreachables++; d_unreachables++;
-		LOG<<prefix<<qname<<": error resolving "<< (doTCP ? "over TCP" : "") << endl;
+		LOG<<prefix<<qname<<": error resolving"<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl;
 	      }
 	      
 	      if(resolveret!=-2) { // don't account for resource limits, they are our own fault
@@ -714,9 +716,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	if(remoteIP == remoteIPs.end())  // we tried all IP addresses, none worked
 	  continue; 
 	
-	result=d_lwr.result();
-      
-	if(d_lwr.d_tcbit) {
+	if(lwr.d_tcbit) {
 	  if(!doTCP) {
 	    doTCP=true;
 	    LOG<<prefix<<qname<<": truncated bit set, retrying via TCP"<<endl;
@@ -726,26 +726,26 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  return RCode::ServFail;
 	}
 	
-	if(d_lwr.d_rcode==RCode::ServFail) {
+	if(lwr.d_rcode==RCode::ServFail) {
 	  LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling IP or NS"<<endl;
 	  s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
 	  continue;
 	}
-	LOG<<prefix<<qname<<": Got "<<(unsigned int)result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<d_lwr.d_rcode<<", in "<<d_lwr.d_usec/1000<<"ms"<<endl;
+	LOG<<prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", in "<<lwr.d_usec/1000<<"ms"<<endl;
 
 	/*  // for you IPv6 fanatics :-)
 	if(remoteIP->sin4.sin_family==AF_INET6)
-	  d_lwr.d_usec/=3;
+	  lwr.d_usec/=3;
 	*/
 
-	s_nsSpeeds[*tns].submit(*remoteIP, d_lwr.d_usec, &d_now);
+	s_nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
       }
 
       typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;
       tcache_t tcache;
 
       // reap all answers from this packet that are acceptable
-      for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
+      for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
 	LOG<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
 	if(i->qtype.getCode()==QType::ANY) {
 	  LOG<<"NO! - we don't accept 'ANY' data"<<endl;
@@ -753,7 +753,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	}
 	  
 	if(dottedEndsOn(i->qname, auth)) {
-	  if(d_lwr.d_aabit && d_lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth)) {
+	  if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth)) {
 	    LOG<<"NO! Is from delegation-only zone"<<endl;
 	    s_nodelegated++;
 	    return RCode::NXDomain;
@@ -787,7 +787,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
 	}
 
-	RC.replace(d_now.tv_sec, i->first.first, i->first.second, i->second, d_lwr.d_aabit);
+	RC.replace(d_now.tv_sec, i->first.first, i->first.second, i->second, lwr.d_aabit);
       }
       set<string, CIStringCompare> nsset;  
       LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
@@ -795,9 +795,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       bool done=false, realreferral=false, negindic=false;
       string newauth, soaname, newtarget;
 
-      for(LWRes::res_t::const_iterator i=result.begin();i!=result.end();++i) {
+      for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
 	if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
-	   d_lwr.d_rcode==RCode::NXDomain) {
+	   lwr.d_rcode==RCode::NXDomain) {
 	  LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"'"<<endl;
 	  ret.push_back(*i);
 
@@ -818,7 +818,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	// for ANY answers we *must* have an authoritive answer
 	else if(i->d_place==DNSResourceRecord::ANSWER && !Utility::strcasecmp(i->qname.c_str(),qname.c_str()) && 
 		( (i->qtype==qtype) ||
-		                      ( qtype==QType(QType::ANY) && d_lwr.d_aabit)))  {
+		                      ( qtype==QType(QType::ANY) && lwr.d_aabit)))  {
 	  
 	  LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
 
@@ -836,7 +836,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  nsset.insert(i->content);
 	}
 	else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
-	   d_lwr.d_rcode==RCode::NoError) {
+	   lwr.d_rcode==RCode::NoError) {
 	  LOG<<prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+i->qtype.getName()+"'") <<endl;
 	  ret.push_back(*i);
 	  
@@ -856,7 +856,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	LOG<<prefix<<qname<<": status=got results, this level of recursion done"<<endl;
 	return 0;
       }
-      if(d_lwr.d_rcode==RCode::NXDomain) {
+      if(lwr.d_rcode==RCode::NXDomain) {
 	LOG<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return RCode::NXDomain;
       }
@@ -874,7 +874,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	set<GetBestNSAnswer>beenthere2;
 	return doResolve(newtarget, qtype, ret, depth + 1, beenthere2);
       }
-      if(nsset.empty() && !d_lwr.d_rcode) {
+      if(nsset.empty() && !lwr.d_rcode) {
 	LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
 	return 0;
       }
@@ -885,7 +885,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	break; 
       }
       else if(isCanonical(*tns)) {
-	goto wasLame;;
+	goto wasLame;
       }
     }
   }
