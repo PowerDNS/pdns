@@ -9765,7 +9765,7 @@ while(&lt;&gt;)
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Case</entry><entry>Depends</entry></row>
 	      <row><entry>Module name</entry><entry>built in</entry></row>
-	      <row><entry>Lauch name</entry><entry>random</entry></row>
+	      <row><entry>Launch name</entry><entry>random</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -9812,7 +9812,7 @@ while(&lt;&gt;)
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>Insensitive</entry></row>
 	      <row><entry>Module name</entry><entry>pdns</entry></row>
-	      <row><entry>Lauch name</entry><entry>pdns</entry></row>
+	      <row><entry>Launch name</entry><entry>pdns</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -9993,7 +9993,7 @@ CREATE TABLE Zones (
 	      <row><entry>Case</entry><entry>All lower</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
 	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>
-	      <row><entry>Lauch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
+	      <row><entry>Launch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -10004,7 +10004,7 @@ CREATE TABLE Zones (
       </para>		
       <para>
 	The template queries are expanded using the C function 'snprintf' which implies that substitutions are performed on the basis of %-place holders. 
-	To place a a % in a query which will not be substituted, use %%. Make sure to fill out the search key, often called 'name' in lower case!
+	To place a % in a query which will not be substituted, use %%. Make sure to fill out the search key, often called 'name' in lower case!
       </para>
       <para>
 	There are in fact two backends, one for PostgreSQL and one for MySQL but they accept the same settings and use almost exactly the same database schema.
