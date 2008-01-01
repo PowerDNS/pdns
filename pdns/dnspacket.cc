@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2001 - 2007  PowerDNS.COM BV
+    Copyright (C) 2001 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -87,7 +87,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   qtype=orig.qtype;
   qclass=orig.qclass;
   qdomain=orig.qdomain;
-
+  d_maxreplylen = orig.d_maxreplylen;
   rrs=orig.rrs;
 
   d_wrapped=orig.d_wrapped;
@@ -380,6 +380,7 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_tcp = d_tcp;
   r->qdomain = qdomain;
   r->qtype = qtype;
+  r->d_maxreplylen = d_maxreplylen;
   return r;
 }
 
@@ -406,7 +407,13 @@ try
       << getRemote() << endl;
     return -1;
   }
-  MOADNSParser mdp(string(mesg, length));
+  MOADNSParser mdp(stringbuffer);
+  MOADNSParser::EDNSOpts edo;
+  if(mdp.getEDNSOpts(&edo)) {
+    d_maxreplylen=edo.d_packetsize;
+  }
+  else
+    d_maxreplylen=512;
 
   memcpy((void *)&d,(const void *)stringbuffer.c_str(),12);
   qdomain=mdp.d_qname;
@@ -426,6 +433,11 @@ try
 }
 catch(exception& e) {
   return -1;
+}
+
+int DNSPacket::getMaxReplyLen()
+{
+  return d_maxreplylen;
 }
 
 //! Use this to set where this packet was received from or should be sent to
