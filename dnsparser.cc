@@ -258,7 +258,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 
 bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
 {
-  if(d_header.arcount && !d_answers.empty()) {
+  if(d_header.arcount && !d_answers.empty() && d_answers.back().first.d_type == QType::OPT) {
     eo->d_packetsize=d_answers.back().first.d_class;
 
     EDNS0Record stuff;
