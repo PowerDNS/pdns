@@ -182,7 +182,9 @@ inline int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       if(i->second.ttd>time(0)) { // it is still fresh
 	(*statnumhit)++;
 	d_hit++;
-	cached->parse(i->second.value.c_str(),i->second.value.size());  
+	if(cached->parse(i->second.value.c_str(), i->second.value.size()) < 0) {
+	  return -1;
+	}
 	cached->spoofQuestion(p->qdomain); // for correct case
 	return 1;
       }
