@@ -138,7 +138,7 @@ public:
   DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
 
   void commitD(); //!< copies 'd' into the stringbuffer
-
+  int getMaxReplyLen(); //!< retrieve the maximum length of the packet we should send in response
   //////// DATA !
 
   ComboAddress remote;
@@ -161,7 +161,7 @@ private:
   int d_socket; // 4
 
   string stringbuffer; // this is where everything lives 4
-
+  int d_maxreplylen;
   vector<DNSResourceRecord> rrs; // 4
 };
 

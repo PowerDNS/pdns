@@ -42,7 +42,7 @@ extern StatBag S;
     own backend, see the documentation for the DNSBackend class.
 
     \section copyright Copyright and License
-    PowerDNS is (C) 2005 PowerDNS.COM BV. It is distributed according to the terms of the General Public License version 2.
+    PowerDNS is (C) 2001-2008 PowerDNS.COM BV. It is distributed according to the terms of the General Public License version 2.
 
     \section overview High level overview
 
@@ -180,9 +180,9 @@ void UDPNameserver::send(DNSPacket *p)
 {
   const char *buffer=p->getData();
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->remote.toString() <<" ("<<p->len<<" octets)"<<endl);
-  if(p->len>512) {
+  if(p->len > p->getMaxReplyLen()) {
     shared_ptr<DNSPacket> sharedp(new DNSPacket(*p));
-    sharedp->truncate(512);
+    sharedp->truncate(p->getMaxReplyLen());
     buffer=sharedp->getData();
     if(sendto(sharedp->getSocket(),buffer,sharedp->len,0,(struct sockaddr *)(&sharedp->remote), sharedp->remote.getSocklen())<0) 
       L<<Logger::Error<<"Error sending reply with sendto (socket="<<sharedp->getSocket()<<"): "<<strerror(errno)<<endl;
