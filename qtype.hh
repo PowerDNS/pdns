@@ -72,7 +72,8 @@ public:
 
   static int chartocode(const char *p); //!< convert a character string to a code
   
-  enum typeenum {A=1,NS=2,CNAME=5,SOA=6, MR=9, PTR=12,HINFO=13,MX=15,TXT=16,RP=17,AFSDB=18,KEY=25,AAAA=28,LOC=29,SRV=33,NAPTR=35, SPF=99, AXFR=252, IXFR=251, ANY=255, URL=256, MBOXFW=257, CURL=258} types;
+  enum typeenum {A=1,NS=2,CNAME=5,SOA=6, MR=9, PTR=12,HINFO=13,MX=15,TXT=16,RP=17,AFSDB=18,KEY=25,AAAA=28,LOC=29,SRV=33,NAPTR=35, OPT=41,
+		 SPF=99, AXFR=252, IXFR=251, ANY=255, URL=256, MBOXFW=257, CURL=258} types;
 private:
   short int code;
   typedef pair<string,int> namenum; 
