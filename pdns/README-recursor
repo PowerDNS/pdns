@@ -39,7 +39,7 @@ $ CXXFLAGS=-I./boost_1_33_1/ make all
 
 PLATFORM SPECIFIC NOTES
 -----------------------
-When compiling on Solaris, use:
+When compiling on Solaris 8, use:
 $ CPPFLAGS=-DSOLARIS8 ... gmake 
 
 where ... stands for any possible CXXFLAGS or PROFILEFLAGS, see below.
