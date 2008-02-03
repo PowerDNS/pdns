@@ -56,7 +56,9 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
   bool packetMeritsRecursion=d_doRecursion && q->d.rd;
 
   char ckey[512];
-  int len=q->qdomain.length();
+  unsigned int len=q->qdomain.length();
+  if(len > sizeof(ckey))
+    return;
   memcpy(ckey,q->qdomain.c_str(),len); // add TOLOWER HERE FIXME XXX
   ckey[len]='|';
   ckey[len+1]=packetMeritsRecursion ? 'r' : 'n';
@@ -87,8 +89,10 @@ void PacketCache::insert(const char *packet, int length)
   bool packetMeritsRecursion=d_doRecursion && p.d.rd;
 
   char ckey[512];
-  int len=p.qdomain.length();
-  memcpy(ckey,p.qdomain.c_str(),len); // add TOLOWER HERE FIXME XXX
+  unsigned int len=p.qdomain.length();
+  if(len > sizeof(ckey))
+    return;
+  memcpy(ckey, p.qdomain.c_str(), len); // add TOLOWER HERE FIXME XXX
   ckey[len]='|';
   ckey[len+1]=packetMeritsRecursion ? 'r' : 'n';
   ckey[len+2]=(p.qtype.getCode()>>8) & 0xff;
