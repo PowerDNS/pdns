@@ -688,7 +688,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 		s_outgoingtimeouts++;
 	      }
 	      else if(resolveret==-2) {
-		LOG<<prefix<<qname<<": hit a local resource limit resolving "<< (doTCP ? "over TCP" : "")<<endl;
+		LOG<<prefix<<qname<<": hit a local resource limit resolving "<< (doTCP ? "over TCP" : "")<<", probable error: "<<stringerror()<<endl;
 		g_stats.resourceLimits++;
 	      }
 	      else {
