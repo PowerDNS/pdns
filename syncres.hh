@@ -212,7 +212,7 @@ class SyncRes
 public:
   explicit SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 						 d_now(now),
-						 d_cacheonly(false), d_nocache(false) { }
+						 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) { }
   int beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -231,6 +231,12 @@ public:
   {
     d_nocache=state;
   }
+
+  void setDoEDNS0(bool state=true)
+  {
+    d_doEDNS0=state;
+  }
+
   static unsigned int s_queries;
   static unsigned int s_outgoingtimeouts;
   static unsigned int s_throttledqueries;
@@ -372,6 +378,7 @@ private:
   static bool s_log;
   bool d_cacheonly;
   bool d_nocache;
+  bool d_doEDNS0;
 
   struct GetBestNSAnswer
   {

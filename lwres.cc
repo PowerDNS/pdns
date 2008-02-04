@@ -40,7 +40,7 @@
 
 //! returns -2 for OS limits error, -1 for permanent error that has to do with remote, 0 for timeout, 1 for success
 /** Never throws! */
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult *lwr)
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool doEDNS0, struct timeval* now, LWResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -50,6 +50,11 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
   pw.getHeader()->rd=0;
   pw.getHeader()->id=Utility::random();
+
+  if(doEDNS0 && !doTCP) {
+    pw.addOpt(1200, 0, 0); // 1200 bytes answer size
+    pw.commit();
+  }
   lwr->d_rcode=0;
 
   int ret;
