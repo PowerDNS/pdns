@@ -285,7 +285,7 @@ void DNSPacketWriter::commit()
 
   d_stuff=0;
 
-  // write out d_record
+  // write out pending d_record
   d_content.insert(d_content.end(), d_record.begin(), d_record.end());
 
   dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
