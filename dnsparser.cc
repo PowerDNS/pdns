@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2007  PowerDNS.COM BV
+    Copyright (C) 2005 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -19,6 +19,7 @@
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace boost;
 
@@ -53,9 +54,9 @@ public:
     string tmp((char*)&*d_record.begin(), d_record.size());
     vector<string> parts;
     stringtok(parts, tmp);
-    if(parts.size()!=3)
+    if(parts.size()!=3 && !(parts.size()==2 && equals(parts[1],"0")) )
       throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+lexical_cast<string>(parts.size())+": "+tmp );
-    const string& relevant=parts[2];
+    const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)
       throw runtime_error("invalid unknown record");
