@@ -212,7 +212,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 	  LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<<server<<"' for zone '"<<authname<<"'"<<endl;
 	  ComboAddress remoteIP(server, 53);
 
-	  res=asyncresolve(remoteIP, qname, qtype.getCode(), false, &d_now, &lwr);    
+	  res=asyncresolve(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);    
 	  // filter out the good stuff from lwr.result()
 
 	  for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
@@ -680,7 +680,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      s_tcpoutqueries++; d_tcpoutqueries++;
 	    }
 	    
-	    resolveret=asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, &d_now, &lwr);    // <- we go out on the wire!
+	    resolveret=asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, d_doEDNS0, &d_now, &lwr);    // <- we go out on the wire!
 	    if(resolveret != 1) {
 	      if(resolveret==0) {
 		LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;
@@ -746,6 +746,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 
       // reap all answers from this packet that are acceptable
       for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
+	if(i->qtype.getCode() == QType::OPT) {
+	  LOG<<prefix<<qname<<": skipping OPT answer '"<<i->qname<<"' from '"<<auth<<"' nameservers" <<endl;
+	  continue;
+	}
 	LOG<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
 	if(i->qtype.getCode()==QType::ANY) {
 	  LOG<<"NO! - we don't accept 'ANY' data"<<endl;

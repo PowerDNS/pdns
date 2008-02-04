@@ -33,7 +33,6 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
-#include "htimer.hh"
 
 #include "mtasker.hh"
 #include <utility>
@@ -1127,6 +1126,7 @@ try
   }
   if(now.tv_sec - last_rootupdate > 7200) {
     SyncRes sr(now);
+    sr.setDoEDNS0(true);
     vector<DNSResourceRecord> ret;
 
     sr.setNoCache();
