@@ -92,6 +92,175 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-recursor-3-1-5"><title>Recursor version 3.1.5 (UNRELEASED)</title>
+	<para>
+	  UNRELEASED.
+	</para>
+	<para>
+	  Much like 3.1.4, this release does not add major features. Instead, performance has been improved significantly (estimated at around 20%), and many rare
+	  and not so rare issues were addressed. Most importantly, multi-part TXT records now work as expected - the only significant bug found in 15 months.
+	</para>
+	<para>
+	  Additionally, newer releases of the G++ compiler required some fixes.
+	</para>
+	<para>
+	  Security related issues:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The Recursor will by default no longer query private-space nameservers. This closes a slight security risk and simultaneously
+		improves performance and stability. For more information, see <command>dont-query</command> in <xref linkend="recursor-settings">.
+		Implemented in c923.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  Performance:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The DNS packet writing and parsing infrastructure performance was improved in several ways, see commits 
+		C925, C926, C928, C931, C1021, C1050, 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Remove multithreading overhead from the Recursor (c999).
+	      </para>
+	    </listitem>
+	    
+	  </itemizedlist>
+	</para>
+	<para>
+	Bug fixes:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Applied fix for t110 ('PowerDNS should change directory to '/' in chroot), implemented in c944.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Applied fix for t111, t112 and t153 - large (multipart) TXT records are now retrieved 
+	      and served properly. Fix in c996.
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
+	      Solaris compilation instructions in Recursor documentation were wrong, leading to an instant crash on startup.
+	      Luckily nobody reads the documentation, except for Marcus Goller who found the error. Fixed in c1124.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      On Solaris, finally fix the issue where queries get distributed strangely over CPUs, or not get distributed at all.
+	      Much debugging and analysing performed by Alex Kiernan, who also supplied fixes. Implemented in c1091, c1093.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Various fixes for modern G++ versions, most spotted by Marcus Rueckert (commits C964, C965, C1028, C1052)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Recursor would not properly clean up pidfile and control socket, closing t120, code in c988, c1098 (spotted by Leo Baltus)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Recursor can now serve multi-line records from its limited authoritative server (c1014).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      When parsing zones, the 'm' time specification stands for minutes, not months! Closing Debian bug 406462 (c1026)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Authoritative zone parser did not support '@' in the content of records. Spotted by Marco Davids, fixed in c1030.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Authoritative zone parser could be confused by trailing TABs on record lines (c1062).
+	      
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      EINTR error code could block entire server if received at the wrong time. Spotted by Arnoud Bakker, fix in c1059.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Fix crash on NetBSD on Alpha CPUs, might improve startup behaviour on empty caches on other architectures as well (c1061).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Outbound TCP queries were being performed sub-optimally because of an interaction with the 'Mplexer'. Fixes in c1115, c1116.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>
+	New features:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Implemented <command>rec_control</command> command <command>get uptime</command>, as suggested by Niels Bakker (c935). Added 
+	      to default rrdtool scripts in c940.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      The Recursor Authorative component, meant for having the Recursor serve some zones authoritatively, now supports $INCLUDE and 
+	      $GENERATE. Implemented in c951 and c952, c967 (discovered by Thomas Rietz), 
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Implemented <command>forward-zones-file</command> option in order to support larger amounts of zones which should
+	      be forwarded to another nameserver (c963).
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>
+	General improvements:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Ruben Kerkhof fixed up weird permission bits as well as our SGML documentation code in c936 and c937.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      <command>rec_control</command> now has a timeout in case the Recursor does not respond. Implemented in c945.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      (Error) messages are now logged with saner priorities (c955).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Outbound query IP interface stemmed from 1997 (!) and was in dire need of a cleanup (c1117).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      L.ROOT-SERVERS.NET moved (c1118).
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      </sect2>
       <sect2 id="changelog-2-9-21"><title>PowerDNS Authoritative Server version 2.9.21</title>
 	<para>
 	  Released the 21st of April 2007.
