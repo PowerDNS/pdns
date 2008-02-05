@@ -36,3 +36,7 @@ publish:
 	exit.powerdns.com:/opt/websites/downloads.powerdns.com/www/documentation/
 	ssh exit.powerdns.com ln -s /opt/websites/downloads.powerdns.com/www/documentation/images \
 	/opt/websites/downloads.powerdns.com/www/documentation/html/
+
+publish2:
+	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \
+	ds9a.nl:/var/www/ds9a.nl/tmp/pdns-docs/
