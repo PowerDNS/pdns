@@ -209,7 +209,8 @@ public:
 
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
-      returnSocket(*fd);
+      //      returnSocket(*fd);
+      Utility::closesocket(*fd);
       if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
 	return -2;
       return -1;
