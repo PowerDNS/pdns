@@ -8217,6 +8217,10 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	    <listitem><para>
 		Amount of logging. Higher is more. Do not set below 3
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>master [,=on].</term>
+	    <listitem><para>
+	    Turn on master support. Boolean.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>max-queue-length=...</term>
 	    <listitem><para>
 	      If this many packets are waiting for database attention, consider the situation hopeless and respawn.
