@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2007  PowerDNS.COM BV
+    Copyright (C) 2003 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -420,21 +420,33 @@ void primeHints(void)
     static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", 
 			     "192.112.36.4", "128.63.2.53",
 			     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
-    DNSResourceRecord arr, nsrr;
+    static const char *ip6s[]={
+      "2001:503:ba3e::2:30", NULL, NULL, NULL, NULL,
+      "2001:500:2f::f", NULL, "2001:500:1::803f:235", NULL,
+      "2001:503:c27::2:30", NULL, NULL, NULL
+    };
+    DNSResourceRecord arr, aaaarr, nsrr;
     arr.qtype=QType::A;
-    arr.ttl=time(0)+3600000;
+    aaaarr.qtype=QType::AAAA;
     nsrr.qtype=QType::NS;
-    nsrr.ttl=time(0)+3600000;
+    arr.ttl=aaaarr.ttl=nsrr.ttl=time(0)+3600000;
     
     for(char c='a';c<='m';++c) {
       static char templ[40];
       strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
       *templ=c;
-      arr.qname=nsrr.content=templ;
+      aaaarr.qname=arr.qname=nsrr.content=templ;
       arr.content=ips[c-'a'];
       set<DNSResourceRecord> aset;
       aset.insert(arr);
       RC.replace(time(0), string(templ), QType(QType::A), aset, true); // auth, nuke it all
+      if (ip6s[c-'a'] != NULL) {
+        aaaarr.content=ip6s[c-'a'];
+
+        set<DNSResourceRecord> aaaaset;
+        aaaaset.insert(aaaarr);
+        RC.replace(time(0), string(templ), QType(QType::AAAA), aaaaset, true);
+      }
       
       nsset.insert(nsrr);
     }
@@ -442,7 +454,6 @@ void primeHints(void)
   else {
     ZoneParserTNG zpt(::arg()["hint-file"]);
     DNSResourceRecord rr;
-    set<DNSResourceRecord> aset;
 
     while(zpt.get(rr)) {
       rr.ttl+=time(0);
@@ -450,8 +461,11 @@ void primeHints(void)
 	set<DNSResourceRecord> aset;
 	aset.insert(rr);
 	RC.replace(time(0), rr.qname, QType(QType::A), aset, true); // auth, etc see above
-      }
-      if(rr.qtype.getCode()==QType::NS) {
+      } else if(rr.qtype.getCode()==QType::AAAA) {
+	set<DNSResourceRecord> aaaaset;
+	aaaaset.insert(rr);
+	RC.replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, true);
+      } else if(rr.qtype.getCode()==QType::NS) {
 	rr.content=toLower(rr.content);
 	nsset.insert(rr);
       }
