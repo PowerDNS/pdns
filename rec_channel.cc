@@ -1,6 +1,7 @@
 #include "rec_channel.hh"
 #include <sys/socket.h>
 #include <cerrno>
+#include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
