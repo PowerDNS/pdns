@@ -196,7 +196,9 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 
   if(d_cachecache.first!=d_cachecache.second) { 
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
-      if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY) {
+      if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY || 
+	 (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )
+	 ) {
 	typedef cache_t::nth_index<1>::type sequence_t;
 	sequence_t& sidx=d_cache.get<1>();
 	sequence_t::iterator si=d_cache.project<1>(i);
@@ -216,7 +218,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 	  else
 	    sidx.relocate(sidx.end(), si); 
 	}
-	if(qt.getCode()!=QType::ANY) // normally if we have a hit, we are done
+	if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
 	  break;
       }
 
@@ -251,7 +253,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   if(qt.getCode()==QType::SOA || qt.getCode()==QType::CNAME)  // you can only have one (1) each of these
     ce.d_records.clear();
 
-  if(auth && !ce.d_auth) {
+  if(auth /* && !ce.d_auth */ ) {
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
     isNew=true;           // data should be sorted again

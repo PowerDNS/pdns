@@ -70,6 +70,7 @@ QType::QType()
       insert("URL",256);
       insert("MBOXFW",257);
       insert("CURL",258);
+      insert("ADDR",259);
     }
 }
 
