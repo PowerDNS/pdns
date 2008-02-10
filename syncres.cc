@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2007  PowerDNS.COM BV
+    Copyright (C) 2003 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -267,35 +267,24 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
   typedef vector<ComboAddress> ret_t;
   ret_t ret;
 
-  if(!doResolve(qname,QType(QType::A), res,depth+1,beenthere) && !res.empty()) {
+  if(!doResolve(qname, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A), res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
     for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
-      if(i->qtype.getCode()==QType::A) {
+      if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
 	ret.push_back(ComboAddress(i->content, 53));
       }
-    }
-  }
-
-  if(s_doIPv6) {
-    typedef set<DNSResourceRecord> ipv6_t;
-    ipv6_t ipv6;
-    if(RC.get(d_now.tv_sec, qname, QType(QType::AAAA), &ipv6) > 0) {
-      for(ipv6_t::const_iterator i=ipv6.begin(); i != ipv6.end(); ++i) 
-	ret.push_back(ComboAddress(i->content, 53));
     }
   }
   
   if(ret.size() > 1) {
     random_shuffle(ret.begin(), ret.end());
 
-    // move 'best' address up front
-    nsspeeds_t::iterator best=s_nsSpeeds.find(qname);
+    // move 'best' address for this nameserver name up front
+    nsspeeds_t::iterator best = s_nsSpeeds.find(qname);  
 
     if(best != s_nsSpeeds.end())
-      for(ret_t::iterator i=ret.begin(); i != ret.end(); ++i) {
-	//	cerr<<"Is "<<i->toString()<<" equal to "<<best->second.d_best.toString()<<"?\n";
-	if(*i==best->second.d_best) {
+      for(ret_t::iterator i=ret.begin(); i != ret.end(); ++i) {  
+	if(*i==best->second.d_best) {  // got the fastest one
 	  if(i!=ret.begin()) {
-	    //	    cerr<<"Moving "<<best->second.d_best.toString()<<" up front!\n";
 	    *i=*ret.begin();
 	    *ret.begin()=best->second.d_best;
 	  }
@@ -323,17 +312,18 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
     if(RC.get(d_now.tv_sec, subdomain, QType(QType::NS), &ns) > 0) {
       for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
 	if(k->ttl > (unsigned int)d_now.tv_sec ) { 
-	  set<DNSResourceRecord>aset;
+	  set<DNSResourceRecord> aset;
 
 	  DNSResourceRecord rr=*k;
 	  rr.content=k->content;
-	  if(!dottedEndsOn(rr.content, subdomain) || RC.get(d_now.tv_sec, rr.content, QType(QType::A), s_log ? &aset : 0) > 5) {
+	  if(!dottedEndsOn(rr.content, subdomain) || RC.get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
+							    s_log ? &aset : 0) > 5) {
 	    bestns.insert(rr);
 	    
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<dottedEndsOn(rr.content, subdomain);
 	    if(!aset.empty()) {
-	      LOG<<", in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl;
+	      LOG<<",  in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl;
 	    }
 	    else {
 	      LOG<<", not in cache / did not look at cache"<<endl;
@@ -680,7 +670,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      s_tcpoutqueries++; d_tcpoutqueries++;
 	    }
 	    
-	    resolveret=asyncresolve(*remoteIP, qname, qtype.getCode(), doTCP, d_doEDNS0, &d_now, &lwr);    // <- we go out on the wire!
+	    resolveret=asyncresolve(*remoteIP, qname, 
+				    (qtype.getCode() == QType::ADDR ? QType::ANY : qtype.getCode()), 
+				    doTCP, d_doEDNS0, &d_now, &lwr);    // <- we go out on the wire!
 	    if(resolveret != 1) {
 	      if(resolveret==0) {
 		LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;
@@ -688,7 +680,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 		s_outgoingtimeouts++;
 	      }
 	      else if(resolveret==-2) {
-		LOG<<prefix<<qname<<": hit a local resource limit resolving "<< (doTCP ? "over TCP" : "")<<", probable error: "<<stringerror()<<endl;
+		LOG<<prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl;
 		g_stats.resourceLimits++;
 	      }
 	      else {
@@ -821,9 +813,14 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	}
 	// for ANY answers we *must* have an authoritive answer
 	else if(i->d_place==DNSResourceRecord::ANSWER && !Utility::strcasecmp(i->qname.c_str(),qname.c_str()) && 
-		( (i->qtype==qtype) ||
-		                      ( qtype==QType(QType::ANY) && lwr.d_aabit)))  {
-	  
+		(i->qtype==qtype || 
+		 (
+		  lwr.d_aabit && 
+		     ( qtype == QType(QType::ADDR) && (i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) ) || qtype==QType(QType::ANY) 
+		  )   
+		 ) 
+		)   {
+	
 	  LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
 
 	  done=true;
@@ -933,9 +930,7 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 	host=string(k->content.c_str() + fields[3].first, fields[3].second - fields[3].first);
       else 
 	continue;
-      doResolve(host, QType(QType::A), addit, 1, beenthere);
-      if(*l_doIPv6AP)
-	doResolve(host, QType(QType::AAAA), addit, 1, beenthere);
+      doResolve(host, *l_doIPv6AP ? QType(QType::ADDR) : QType(QType::A), addit, 1, beenthere);
     }
   
   sort(addit.begin(), addit.end());
