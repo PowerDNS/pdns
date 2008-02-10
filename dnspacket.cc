@@ -287,7 +287,9 @@ void DNSPacket::wrapup(void)
 
   stable_sort(rrs.begin(),rrs.end(),rrcomp);
 
-  if(!d_tcp && !arg().mustDo("no-shuffle")) {
+  static bool mustShuffle =arg().mustDo("no-shuffle");
+
+  if(!d_tcp && !mustShuffle) {
     shuffle(rrs);
   }
   d_wrapped=true;
