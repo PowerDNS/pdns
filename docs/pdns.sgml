@@ -101,7 +101,10 @@
 	  and not so rare issues were addressed. Most importantly, multi-part TXT records now work as expected - the only significant bug found in 15 months.
 	</para>
 	<para>
-	  Additionally, newer releases of the G++ compiler required some fixes.
+	   Perhaps important, this version can properly benefit from all IPv4 and IPv6 addresses in use at the root-servers as of early February 2008.
+	</para>
+	<para>
+	  Additionally, newer releases of the G++ compiler required some fixes (see t173).
 	</para>
 	<para>
 	  Security related issues:
@@ -142,6 +145,19 @@
 	  </listitem>
 	  <listitem>
 	    <para>
+	    Some routing conditions could cause UDP connected sockets to generate an error which PowerDNS did not deal with properly, leading
+	    to a leaked file descriptor. As these run out over time, the recursor could crash. This would also happen for IPv6 queries
+	    on a host with no IPv6 connectivity. Thanks to Kai of xs4all and Wichert Akkerman for
+	    reporting this issue. Fix in c1133. 
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	    Empty unknown record types can now be stored without generating a scary error (c1129)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
 	      Applied fix for t111, t112 and t153 - large (multipart) TXT records are now retrieved 
 	      and served properly. Fix in c996.
 	    </para>
@@ -161,7 +177,8 @@
 	  </listitem>
 	  <listitem>
 	    <para>
-	      Various fixes for modern G++ versions, most spotted by Marcus Rueckert (commits C964, C965, C1028, C1052)
+	      Various fixes for modern G++ versions, most spotted by Marcus Rueckert (commits C964, C965, C1028, C1052), and
+	      Ruben Kerkhoff (c1136, closing t175).
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -236,6 +253,13 @@
 	  <listitem>
 	    <para>
 	      Ruben Kerkhof fixed up weird permission bits as well as our SGML documentation code in c936 and c937.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	    Now perform EDNS0 root refreshing queries, so as to benefit from all returned addresses. Relevant since early February 2008 when the root-servers
+	    started to respond with IPv6 addresses, which made the default non-EDNS0 maximum packet length reply no longer contain all records. Implemented in c1130.
+	    Thanks to dns-operations AT mail.oarc.isc.org for quick suggestions on how to deal with this change.
 	    </para>
 	  </listitem>
 	  <listitem>
