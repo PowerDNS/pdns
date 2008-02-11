@@ -6289,7 +6289,7 @@ name         IN            A        1.2.3.4
   </Chapter>
 
   <Chapter id="configuring-db-connection">
-    <title>Configure database connectivity</title>
+    <title>Configuring basic database connectivity</title>
     <para>
       This chapter shows you how to configure the Generic MySQL backend, which we like a lot. But feel free to use any of the myriad
       other backends.
@@ -6338,7 +6338,7 @@ name         IN            A        1.2.3.4
     <para>
       General MySQL knowledge is assumed in this chapter, please do not interpret these commands as DBA advice!
     </para>
-    <sect1 id="configuring-mysql"><title>Configuring MySQL</title>
+    <sect1 id="configuring-mysql"><title>Example: configuring MySQL</title>
       <para>
 	Connect to MySQL as a user with sufficient privileges and issue the following commands:
 	<screen>
