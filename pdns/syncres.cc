@@ -588,13 +588,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     prefix.append(depth, ' ');
   }
   
-  LWResult::res_t result;
-
   LOG<<prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact"<<endl;
 
   for(;;) { // we may get more specific nameservers
-    result.clear();
-
     vector<string> rnameservers=shuffleInSpeedOrder(nameservers, s_log ? (prefix+qname+": ") : string() );
 
     for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
@@ -621,7 +617,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       LWResult lwr;
       if(tns->empty()) {
 	LOG<<prefix<<qname<<": Domain is out-of-band"<<endl;
-	doOOBResolve(qname, qtype, result, depth, lwr.d_rcode);
+	doOOBResolve(qname, qtype, lwr.d_result, depth, lwr.d_rcode);
 	lwr.d_tcbit=false;
 	lwr.d_aabit=true;
       }
