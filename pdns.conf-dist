@@ -125,7 +125,7 @@
 # log-failed-updates=
 
 #################################
-# logfile	Logfile to use
+# logfile	Logfile to use (Windows only)
 #
 # logfile=pdns.log
 
@@ -280,12 +280,17 @@
 # strict-rfc-axfrs=no
 
 #################################
+# trusted-notification-proxy	IP address of incoming notification proxy
+#
+# trusted-notification-proxy=
+
+#################################
 # urlredirector	Where we send hosts to that need to be url redirected
 #
 # urlredirector=127.0.0.1
 
 #################################
-# use-logfile	Use a log file
+# use-logfile	Use a log file (Windows only)
 #
 # use-logfile=no
 
