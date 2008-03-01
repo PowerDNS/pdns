@@ -1,6 +1,6 @@
- /*
+/*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002-2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -32,6 +32,7 @@
 #include "resolver.hh"
 #include "communicator.hh"
 #include "dnsproxy.hh"
+
 
 extern StatBag S;
 extern PacketCache PC;  
@@ -263,6 +264,7 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 
   string subdomain=target;
   string::size_type pos;
+
   while((pos=subdomain.find("."))!=string::npos) {
     subdomain=subdomain.substr(pos+1);
     // DLOG();
@@ -304,10 +306,11 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
       }
     }
     if(found) {
-      DLOG(L<<"Wildcard match on '"<<string("*.")+subdomain<<"'"<<endl);
+      DLOG(L<<"Wildcard match on '"<<string("*.")+subdomain<<"'"<<", retargeted="<<retargeted<<endl);
       return retargeted ? 2 : 1;
     }
   }
+  DLOG(L<<"Returning no hit for '"<<string("*.")+subdomain<<"'"<<endl);
   return 0;
 }
 
@@ -384,8 +387,12 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
         
     bool shortcut=p->qtype.getCode()!=QType::SOA && p->qtype.getCode()!=QType::ANY;
     int hits=0;
+    bool relevantNS=false;
 
     while(B.get(rr)) {
+      if(rr.qtype.getCode() == QType::NS && p->qtype.getCode() != QType::NS) { // possible retargeting
+	relevantNS=true;
+      }
       if(rr.qtype.getCode()!=QType::NS || p->qtype.getCode()==QType::NS)
 	hits++;
       if(!rfound && rr.qtype.getCode()==QType::CNAME) {
@@ -398,7 +405,7 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
 	r->addRecord(rr);
       }
     }
-    if(hits && !found && !rfound && shortcut ) { // we found matching qnames but not a qtype
+    if(hits && !relevantNS && !found && !rfound && shortcut ) { // we found matching qnames but not a qtype
       DLOG(L<<"Found matching qname, but not the qtype"<<endl);
       return 2;
     }
@@ -680,6 +687,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	rr.domain_id=sd.domain_id;
 	rr.d_place=DNSResourceRecord::AUTHORITY;
 	r->addRecord(rr);
+	if(mret == 2)
+	  goto sendit;
       }
     }
 
