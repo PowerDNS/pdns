@@ -24,7 +24,7 @@
 #include <ctime>
 #include <iostream>
 #include <sstream>
-
+#include "config.h"
 #ifndef WIN32
 # include <syslog.h>
 #include <pthread.h>
