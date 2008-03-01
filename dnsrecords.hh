@@ -74,6 +74,40 @@ private:
   string d_mxname;
 };
 
+class KXRecordContent : public DNSRecordContent
+{
+public:
+  KXRecordContent(uint16_t preference, const string& exchanger);
+
+  includeboilerplate(KX)
+
+private:
+  uint16_t d_preference;
+  string d_exchanger;
+};
+
+class IPSECKEYRecordContent : public DNSRecordContent
+{
+public:
+  IPSECKEYRecordContent(uint16_t preference, uint8_t gatewaytype, uint8_t algo, const std::string& gateway, const std::string &publickey);
+
+  includeboilerplate(IPSECKEY)
+
+private:
+  uint8_t d_preference, d_gatewaytype, d_algorithm;
+  string d_gateway, d_publickey;
+};
+
+class DHCIDRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(DHCID)
+
+private:
+  string d_content;
+};
+
+
 class SRVRecordContent : public DNSRecordContent
 {
 public:
