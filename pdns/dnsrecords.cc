@@ -215,6 +215,24 @@ boilerplate_conv(MX, ns_t_mx,
 		 conv.xfrLabel(d_mxname, true);
 		 )
 
+boilerplate_conv(KX, ns_t_mx, 
+		 conv.xfr16BitInt(d_preference);
+		 conv.xfrLabel(d_exchanger, false);
+		 )
+
+boilerplate_conv(IPSECKEY, 45,  /* ns_t_ipsec */
+		 conv.xfr8BitInt(d_preference);
+		 conv.xfr8BitInt(d_gatewaytype);
+		 conv.xfr8BitInt(d_algorithm);
+		 conv.xfrLabel(d_gateway, false);
+		 conv.xfrBlob(d_publickey);
+		 )
+
+boilerplate_conv(DHCID, 49, 
+		 conv.xfrBlob(d_content);
+		 )
+
+
 boilerplate_conv(AFSDB, ns_t_afsdb, 
 		 conv.xfr16BitInt(d_subtype);
 		 conv.xfrLabel(d_hostname);
