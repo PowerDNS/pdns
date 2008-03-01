@@ -840,8 +840,8 @@ bool Bind2Backend::handle::get(DNSResourceRecord &r)
 
 bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
 {
-  DLOG(L << "Bind2Backend get() was called for "<<qtype.getName() << " record  for "<<
-       qname<<"- "<<d_records->size()<<" available!"<<endl);
+  DLOG(L << "Bind2Backend get() was called for "<<qtype.getName() << " record for '"<<
+       qname<<"' - "<<d_records->size()<<" available in total!"<<endl);
   
   if(d_iter==d_end_iter) {
     return false;
