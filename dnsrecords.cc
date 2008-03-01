@@ -215,7 +215,7 @@ boilerplate_conv(MX, ns_t_mx,
 		 conv.xfrLabel(d_mxname, true);
 		 )
 
-boilerplate_conv(KX, ns_t_mx, 
+boilerplate_conv(KX, ns_t_kx, 
 		 conv.xfr16BitInt(d_preference);
 		 conv.xfrLabel(d_exchanger, false);
 		 )
