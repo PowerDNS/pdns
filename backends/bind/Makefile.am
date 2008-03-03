@@ -12,6 +12,8 @@ libbind2backend_la_LDFLAGS=-module -avoid-version
 
 bin_PROGRAMS = zone2sql zone2ldap
 
+EXTRA_DIST=bindparser.cc
+
 zone2sql_SOURCES=bindparser.yy bindlexer.l \
 ../../arguments.cc ../../logger.cc zone2sql.cc ../../statbag.cc ../../misc.cc \
 ../../unix_utility.cc ../../qtype.cc ../../dnspacket.cc \
