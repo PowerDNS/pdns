@@ -1542,7 +1542,7 @@ void parseAuthAndForwards()
       //      cerr<<"Inserting '"<<domain<<"' to '"<<ad.d_server<<"'\n";
       SyncRes::s_domainmap[parts[0]]=ad;
     }
-    L<<Logger::Warning<<"Done parsing " << SyncRes::s_domainmap.size() - before<<" forwarding instructions"<<endl;
+    L<<Logger::Warning<<"Done parsing " << SyncRes::s_domainmap.size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-files"]<<"'"<<endl;
   }
 
   if(::arg().mustDo("export-etc-hosts")) {
@@ -1618,8 +1618,29 @@ int serviceMain(int argc, char*argv[])
     "according to the terms of the GPL version 2."<<endl;
   
   L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
-  
-  if(!::arg()["allow-from"].empty()) {
+
+  if(!::arg()["allow-from-file"].empty()) {
+    string line;
+    g_allowFrom=new NetmaskGroup;
+    ifstream ifs(::arg()["allow-from-file"].c_str());
+    if(!ifs) {
+	throw AhuException("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
+    }
+
+    string::size_type pos;
+    while(getline(ifs,line)) {
+      pos=line.find('#');
+      if(pos!=string::npos)
+        line.resize(pos);
+      trim(line);
+      if(line.empty())
+        continue;
+
+      g_allowFrom->addMask(line);
+    }
+    L<<Logger::Warning<<"Done parsing " << g_allowFrom->size() <<" allow-from ranges from file '"<<::arg()["allow-from-file"]<<"' - overriding 'allow-from' setting"<<endl;
+  }
+  else if(!::arg()["allow-from"].empty()) {
     g_allowFrom=new NetmaskGroup;
     vector<string> ips;
     stringtok(ips, ::arg()["allow-from"], ", ");
@@ -1635,6 +1656,7 @@ int serviceMain(int argc, char*argv[])
   else if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
     L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
   
+
   if(!::arg()["dont-query"].empty()) {
     g_dontQuery=new NetmaskGroup;
     vector<string> ips;
@@ -1860,6 +1882,7 @@ int main(int argc, char **argv)
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
+    ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
