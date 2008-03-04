@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2007  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -262,6 +262,11 @@ public:
     return (ip & d_mask) == (ntohl(d_network.sin4.sin_addr.s_addr) & d_mask);
   }
 
+  string toString() const
+  {
+    return d_network.toString()+"/"+boost::lexical_cast<string>(d_bits);
+  }
+
 private:
   ComboAddress d_network;
   uint32_t d_mask;
@@ -293,6 +298,23 @@ public:
   {
     return d_masks.empty();
   }
+
+  unsigned int size()
+  {
+    return (unsigned int)d_masks.size();
+  }
+
+  string toString() const
+  {
+    ostringstream str;
+    for(container_t::const_iterator iter = d_masks.begin(); iter != d_masks.end(); ++iter) {
+      if(iter != d_masks.begin())
+	str <<", ";
+      str<<iter->toString();
+    }
+    return str.str();
+  }
+
 
 private:
   typedef vector<Netmask> container_t;

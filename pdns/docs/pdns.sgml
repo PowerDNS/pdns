@@ -7293,6 +7293,17 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>allow-from-file</term>
+	    <listitem>
+	      <para>
+		Like <command>allow-from</command>, except reading from file. Overrides the 'allow-from' setting. 
+		To use this feature, supply one netmask per line, with optional comments preceeded by a #.
+		Available since 3.1.5.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
 	    <term>auth-can-lower-ttl</term>
 	    <listitem>
 	      <para>
