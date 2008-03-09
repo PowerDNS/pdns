@@ -49,6 +49,11 @@ using std::vector;
 
 
 
+/*
+ *  Known DNS RR types
+ *  Types which aren't active are currently not supported by PDNS
+ */
+
 static const char* ldap_attrany[] = {
 	"associatedDomain",
 	"dNSTTL",
@@ -61,15 +66,27 @@ static const char* ldap_attrany[] = {
 	"mXRecord",
 	"tXTRecord",
 	"rPRecord",
+	"aFSDBRecord",
 //	"SigRecord",
-//	"KeyRecord",
+	"KeyRecord",
+//	"gPosRecord",
 	"aAAARecord",
 	"lOCRecord",
-//	"nXTRecord",
 	"sRVRecord",
 	"nAPTRRecord",
-//	"kXRecord",
-//	"certRecord",
+	"kXRecord",
+	"certRecord",
+//	"a6Record",
+//	"dNameRecord",
+//	"aPLRecord",
+	"dSRecord",
+	"sSHFPRecord",
+	"iPSecKeyRecord",
+	"rRSIGRecord",
+	"nSECRecord",
+	"dNSKeyRecord",
+	"dHCIDRecord",
+	"sPFRecord",
 	"modifyTimestamp",
 	NULL
 };

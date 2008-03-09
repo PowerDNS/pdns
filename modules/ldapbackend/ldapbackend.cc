@@ -131,7 +131,7 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 	qesc = toLower( m_pldap->escape( target ) );
 
 	// search for SOARecord of target
-	filter = strbind( ":target:", "associatedDomain=" + qesc, getArg( "filter-axfr" ) );
+	filter = strbind( ":target:", "&(associatedDomain=" + qesc + ")(sOARecord=*)", getArg( "filter-axfr" ) );
 	m_msgid = m_pldap->search( dn, LDAP_SCOPE_SUBTREE, filter, (const char**) ldap_attrany );
 	m_pldap->getSearchEntry( m_msgid, m_result, true );
 
