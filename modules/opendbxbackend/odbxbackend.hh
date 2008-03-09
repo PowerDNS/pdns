@@ -45,8 +45,8 @@ using std::vector;
 
 
 
-bool checkSlave( u_int32_t last, u_int32_t notified, SOAData* sd, DomainInfo* di );
-bool checkMaster( u_int32_t last, u_int32_t notified, SOAData* sd, DomainInfo* di );
+bool checkSlave( uint32_t last, uint32_t notified, SOAData* sd, DomainInfo* di );
+bool checkMaster( uint32_t last, uint32_t notified, SOAData* sd, DomainInfo* di );
 
 
 class OdbxBackend : public DNSBackend
@@ -65,7 +65,7 @@ class OdbxBackend : public DNSBackend
 
 	string escape( const string& str, QueryType type );
 	bool connectTo( const vector<string>& host, QueryType type );
-	bool getDomainList( const string& query, vector<DomainInfo>* list, bool (*check_fcn)(u_int32_t,u_int32_t,SOAData*,DomainInfo*) );
+	bool getDomainList( const string& query, vector<DomainInfo>* list, bool (*check_fcn)(uint32_t,uint32_t,SOAData*,DomainInfo*) );
 	bool execStmt( const char* stmt, unsigned long length, QueryType type );
 	bool getRecord( QueryType type );
 
@@ -76,6 +76,7 @@ public:
 	~OdbxBackend();
 
 	void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+	bool getSOA( const string& domain, SOAData& sd, DNSPacket* p );
 	bool list( const string& target, int domain_id );
 	bool get( DNSResourceRecord& rr );
 
@@ -92,8 +93,8 @@ public:
 	void getUpdatedMasters( vector<DomainInfo>* updated );
 	void getUnfreshSlaveInfos( vector<DomainInfo>* unfresh );
 
-	void setFresh( u_int32_t domain_id );
-	void setNotified( u_int32_t domain_id, u_int32_t serial );
+	void setFresh( uint32_t domain_id );
+	void setNotified( uint32_t domain_id, uint32_t serial );
 };
 
 
@@ -116,15 +117,16 @@ public:
 		declare( suffix, "username","User for connecting to the DBMS","powerdns");
 		declare( suffix, "password","Password for connecting to the DBMS","");
 
-		declare( suffix, "sql-list", "AXFR query", "SELECT \"domain_id\", \"name\", \"type\", \"ttl\", \"prio\", \"content\" FROM \"records\" WHERE \"domain_id\"=:id" );
+		declare( suffix, "sql-list", "AXFR query", "SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"domain_id\"=:id" );
 
-		declare( suffix, "sql-lookup", "Lookup query","SELECT \"domain_id\", \"name\", \"type\", \"ttl\", \"prio\", \"content\" FROM \"records\" WHERE \"name\"=':name'" );
-		declare( suffix, "sql-lookupid", "Lookup query with id","SELECT \"domain_id\", \"name\", \"type\", \"ttl\", \"prio\", \"content\" FROM \"records\" WHERE \"domain_id\"=:id AND \"name\"=':name'" );
-		declare( suffix, "sql-lookuptype", "Lookup query with type","SELECT \"domain_id\", \"name\", \"type\", \"ttl\", \"prio\", \"content\" FROM \"records\" WHERE \"name\"=':name' AND \"type\"=':type'" );
-		declare( suffix, "sql-lookuptypeid", "Lookup query with type and id","SELECT \"domain_id\", \"name\", \"type\", \"ttl\", \"prio\", \"content\" FROM \"records\" WHERE \"domain_id\"=:id AND \"name\"=':name' AND \"type\"=':type'" );
+		declare( suffix, "sql-lookup", "Lookup query","SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"name\"=':name'" );
+		declare( suffix, "sql-lookupid", "Lookup query with id","SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"domain_id\"=:id AND r.\"name\"=':name'" );
+		declare( suffix, "sql-lookuptype", "Lookup query with type","SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"name\"=':name' AND r.\"type\"=':type'" );
+		declare( suffix, "sql-lookuptypeid", "Lookup query with type and id","SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"domain_id\"=:id AND r.\"name\"=':name' AND r.\"type\"=':type'" );
+		declare( suffix, "sql-lookupsoa","Lookup query for SOA record","SELECT d.\"id\", d.\"auto_serial\", r.\"content\" FROM \"records\" r JOIN \"domains\" d ON r.\"domain_id\"=d.\"id\" WHERE r.\"name\"=':name' AND r.\"type\"='SOA' AND d.\"status\"='A'" );
 
-		declare( suffix, "sql-zonedelete","Delete all records for this zone","DELETE FROM \"records\" WHERE \"domain_id\"=:id" );
-		declare( suffix, "sql-zoneinfo","Get domain info","SELECT d.\"id\", d.\"name\", d.\"type\", d.\"master\", d.\"last_check\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"name\"=':name' AND d.\"status\"='A'" );
+		declare( suffix, "sql-zonedelete","Delete all records for this zone","DELETE FROM \"records\" r WHERE r.\"domain_id\"=:id" );
+		declare( suffix, "sql-zoneinfo","Get domain info","SELECT d.\"id\", d.\"name\", d.\"type\", d.\"master\", d.\"last_check\", d.\"auto_serial\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"name\"=':name' AND d.\"status\"='A'" );
 
 		declare( suffix, "sql-transactbegin", "Start transaction", "BEGIN" );
 		declare( suffix, "sql-transactend", "Finish transaction", "COMMIT" );
@@ -133,14 +135,14 @@ public:
 		declare( suffix, "sql-insert-slave","Add slave domain", "INSERT INTO \"domains\" ( \"name\", \"type\", \"master\", \"account\" ) VALUES ( '%s', 'SLAVE', '%s', '%s' )" );
 		declare( suffix, "sql-insert-record","Feed record into table", "INSERT INTO \"records\" ( \"domain_id\", \"name\", \"type\", \"ttl\", \"prio\", \"content\" ) VALUES ( %d, '%s', '%s', %d, %d, '%s' )" );
 
-		declare( suffix, "sql-update-serial", "Set zone to notified", "UPDATE \"domains\" SET \"notified_serial\"=%d WHERE \"id\"=%d" );
-		declare( suffix, "sql-update-lastcheck", "Set time of last check", "UPDATE \"domains\" SET \"last_check\"=%d WHERE \"id\"=%d" );
+		declare( suffix, "sql-update-serial", "Set zone to notified", "UPDATE \"domains\" d SET d.\"notified_serial\"=%d WHERE d.\"id\"=%d" );
+		declare( suffix, "sql-update-lastcheck", "Set time of last check", "UPDATE \"domains\" d SET d.\"last_check\"=%d WHERE d.\"id\"=%d" );
 
-		declare( suffix, "sql-master", "Get master record for zone", "SELECT \"master\" FROM \"domains\" WHERE \"name\"=':name' AND \"status\"='A' AND \"type\"='SLAVE'" );
-		declare( suffix, "sql-supermaster","Get supermaster info", "SELECT \"account\" FROM \"supermasters\" WHERE \"ip\"=':ip' AND \"nameserver\"=':ns'" );
+		declare( suffix, "sql-master", "Get master record for zone", "SELECT d.\"master\" FROM \"domains\" d WHERE d.\"name\"=':name' AND d.\"status\"='A' AND d.\"type\"='SLAVE'" );
+		declare( suffix, "sql-supermaster","Get supermaster info", "SELECT s.\"account\" FROM \"supermasters\" s WHERE s.\"ip\"=':ip' AND s.\"nameserver\"=':ns'" );
 
-		declare( suffix, "sql-infoslaves", "Get all unfresh slaves", "SELECT d.\"id\", d.\"name\", d.\"master\", d.\"notified_serial\", d.\"last_check\", r.\"change_date\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"status\"='A' AND d.\"type\"='SLAVE'" );
-		declare( suffix, "sql-infomasters", "Get all updated masters", "SELECT d.\"id\", d.\"name\", d.\"master\", d.\"notified_serial\", d.\"last_check\", r.\"change_date\", r.\"content\" FROM \"domains\" d JOIN \"records\" r ON d.\"id\"=r.\"domain_id\" WHERE d.\"status\"='A' AND d.\"type\"='MASTER' AND r.\"type\"='SOA'" );
+		declare( suffix, "sql-infoslaves", "Get all unfresh slaves", "SELECT d.\"id\", d.\"name\", d.\"master\", d.\"last_check\", d.\"notified_serial\", d.\"auto_serial\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"status\"='A' AND d.\"type\"='SLAVE'" );
+		declare( suffix, "sql-infomasters", "Get all updated masters", "SELECT d.\"id\", d.\"name\", d.\"master\", d.\"last_check\", d.\"notified_serial\", d.\"auto_serial\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"status\"='A' AND d.\"type\"='MASTER'" );
 
 		declare( suffix, "host", "depricated, use host-read and host-write instead","" );
 	}

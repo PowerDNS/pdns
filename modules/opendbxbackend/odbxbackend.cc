@@ -106,14 +106,29 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 			di.backend = this;
 			di.serial = 0;
 
-			if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
+			if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
 			{
-				di.id = strtol( tmp, NULL, 10 );
+				SOAData sd;
+
+				sd.serial = 0;
+				fillSOAData( string( tmp, odbx_field_length( m_result, 6 ) ), sd );
+
+				if( sd.serial == 0 && ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
+				{
+					sd.serial = strtol( tmp, NULL, 10 );
+				}
+
+				di.serial = sd.serial;
 			}
 
-			if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
+			if( ( tmp = odbx_field_value( m_result, 4 ) ) != NULL )
 			{
-				di.zone = string( tmp, odbx_field_length( m_result, 1 ) );
+				di.last_check = strtol( tmp, NULL, 10 );
+			}
+
+			if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
+			{
+				stringtok(di.masters, string( tmp, odbx_field_length( m_result, 3 ) ), ", \t");
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
@@ -128,24 +143,14 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 				}
 			}
 
-			if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
+			if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
 			{
-				string masters = string( tmp, odbx_field_length( m_result, 3 ) );
-				stringtok(di.masters, masters, ", \t");
+				di.zone = string( tmp, odbx_field_length( m_result, 1 ) );
 			}
 
-			if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
+			if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
 			{
-				di.last_check = strtol( tmp, NULL, 10 );
-			}
-
-			if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
-			{
-				SOAData sd;
-
-				sd.serial = 0;
-				fillSOAData( string( tmp, odbx_field_length( m_result, 6 ) ), sd );
-				di.serial = sd.serial;
+				di.id = strtol( tmp, NULL, 10 );
 			}
 		}
 		while( getRecord( READ ) );
@@ -153,6 +158,65 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 	catch( exception& e )
 	{
 		L.log( m_myname + " getDomainInfo: Caught STL exception - " + e.what(),  Logger::Error );
+		return false;
+	}
+
+	return true;
+}
+
+
+
+bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
+{
+	const char* tmp;
+
+
+	try
+	{
+		DLOG( L.log( m_myname + " getSOA()", Logger::Debug ) );
+
+		string stmt = getArg( "sql-lookupsoa" );
+		string& stmtref = strbind( ":name", escape( toLower( domain ), READ ), stmt );
+
+		if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
+		if( !getRecord( READ ) ) { return false; }
+
+		do
+		{
+			sd.serial = 0;
+
+			if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
+			{
+				fillSOAData( string( tmp, odbx_field_length( m_result, 2 ) ), sd );
+			}
+
+			if( sd.serial == 0 && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
+			{
+				sd.serial = strtol( tmp, NULL, 10 );
+			}
+
+			if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
+			{
+				sd.domain_id = strtol( tmp, NULL, 10 );
+			}
+
+			if( sd.nameserver.empty() )
+			{
+				sd.nameserver = arg()["default-soa-name"];
+			}
+
+			if( sd.hostmaster.empty() )
+			{
+				sd.hostmaster = "hostmaster." + domain;
+			}
+
+			sd.db = this;
+		}
+		while( getRecord( READ ) );
+	}
+	catch( exception& e )
+	{
+		L.log( m_myname + " getSOA: Caught STL exception - " + e.what(),  Logger::Error );
 		return false;
 	}
 
@@ -211,7 +275,7 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
 
 		m_result = NULL;
 		m_qname = qname;
-		
+
 		if( zoneid < 0 )
 		{
 			if( qtype.getCode() == QType::ANY )
@@ -231,7 +295,7 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
 				stmt = getArg( "sql-lookuptypeid" );
 				stmtref = strbind( ":type", qtype.getName(), stmt );
 			}
- 			
+
 			size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
 
 			if( len < 0 )
@@ -306,7 +370,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
 			if( ( tmp = odbx_field_value( m_result, 4 ) ) != NULL )
 			{
-				rr.priority = (u_int16_t) strtoul( tmp, NULL, 10 );
+				rr.priority = (uint16_t) strtoul( tmp, NULL, 10 );
 			}
 
 			if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
@@ -327,7 +391,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 }
 
 
-void OdbxBackend::setFresh( u_int32_t domain_id )
+void OdbxBackend::setFresh( uint32_t domain_id )
 {
 	size_t len;
 
@@ -370,7 +434,7 @@ void OdbxBackend::setFresh( u_int32_t domain_id )
 
 
 
-void OdbxBackend::setNotified( u_int32_t domain_id, u_int32_t serial )
+void OdbxBackend::setNotified( uint32_t domain_id, uint32_t serial )
 {
 	try
 	{

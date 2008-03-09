@@ -20,6 +20,13 @@ bool OdbxBackend::connectTo( const vector<string>& hosts, QueryType type )
 		m_handle[type] = NULL;
 	}
 
+	if( type == WRITE && getArg( "backend" ) == "sqlite" )
+	{
+		L.log( m_myname + " Using same SQLite connection for reading and writeing to '" + hosts[odbx_host_index[READ]] + "'", Logger::Notice );
+		m_handle[WRITE] = m_handle[READ];
+		return true;
+	}
+
 	for( i = 0; i < hosts.size(); i++ )
 	{
 		h = ( idx + i ) % hosts.size();
@@ -156,10 +163,10 @@ string OdbxBackend::escape( const string& str, QueryType type )
 
 
 
-bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, bool (*check_fcn)(u_int32_t,u_int32_t,SOAData*,DomainInfo*) )
+bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, bool (*check_fcn)(uint32_t,uint32_t,SOAData*,DomainInfo*) )
 {
 	const char* tmp;
-	u_int32_t nlast, nserial;
+	uint32_t nlast, nserial;
 	DomainInfo di;
 	SOAData sd;
 
@@ -188,12 +195,12 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
 		if( ( tmp = odbx_field_value( m_result, 4 ) ) != NULL )
 		{
-			nlast = strtol( tmp, NULL, 10 );
+			nserial = strtol( tmp, NULL, 10 );
 		}
 
 		if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
 		{
-			nserial = strtol( tmp, NULL, 10 );
+			nlast = strtol( tmp, NULL, 10 );
 		}
 
 		if( (*check_fcn)( nlast, nserial, &sd, &di ) )
@@ -228,9 +235,9 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
 
 
-bool checkSlave( u_int32_t nlast, u_int32_t nserial, SOAData* sd, DomainInfo* di )
+bool checkSlave( uint32_t nlast, uint32_t nserial, SOAData* sd, DomainInfo* di )
 {
-	if( nlast + sd->refresh < (u_int32_t) time( 0 ) )
+	if( nlast + sd->refresh < (uint32_t) time( 0 ) )
 	{
 		di->kind = DomainInfo::Slave;
 		return true;
@@ -241,7 +248,7 @@ bool checkSlave( u_int32_t nlast, u_int32_t nserial, SOAData* sd, DomainInfo* di
 
 
 
-bool checkMaster( u_int32_t nlast, u_int32_t nserial, SOAData* sd, DomainInfo* di )
+bool checkMaster( uint32_t nlast, uint32_t nserial, SOAData* sd, DomainInfo* di )
 {
 	if( nserial != sd->serial )
 	{
