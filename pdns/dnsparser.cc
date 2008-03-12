@@ -472,7 +472,7 @@ string simpleCompress(const string& label, const string& root)
   string ret;
   ret.reserve(label.size()+4);
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-    if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + i->first, label.length() - i->first)) {
+    if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + i->first, 1 + label.length() - i->first)) { // also match trailing 0, hence '1 +'
       const char rootptr[2]={0xc0,0x11};
       ret.append(rootptr, 2);
       return ret;
