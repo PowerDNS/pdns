@@ -67,7 +67,7 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_stuff = 0; 
   d_rollbackmarker=d_content.size();
 
-  if(d_qname == d_recordqname) {  // don't do the whole label compression thing if we *know* we can get away with "see question"
+  if(iequals(d_qname,d_recordqname)) {  // don't do the whole label compression thing if we *know* we can get away with "see question"
     static char marker[2]={0xc0, 0x0c};
     d_content.insert(d_content.end(), &marker[0], &marker[2]);
   }
@@ -153,7 +153,7 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const stri
 {
   DNSPacketWriter::lmap_t::iterator ret;
   for(ret=lmap.begin(); ret != lmap.end(); ++ret)
-    if(ret->first == label)
+    if(iequals(ret->first,label))
       break;
   return ret;
 }
