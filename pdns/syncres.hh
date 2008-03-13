@@ -479,6 +479,7 @@ struct RecursorStats
   uint64_t clientParseError;
   uint64_t serverParseError;
   uint64_t unexpectedCount;
+  uint64_t caseMismatchCount;
   uint64_t spoofCount;
   uint64_t resourceLimits;
   uint64_t ipv6queries;

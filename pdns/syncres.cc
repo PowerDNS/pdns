@@ -803,7 +803,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  replacing_insert(s_negcache, ne);
 	  negindic=true;
 	}
-	else if(i->d_place==DNSResourceRecord::ANSWER && i->qname==qname && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
+	else if(i->d_place==DNSResourceRecord::ANSWER && iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
 	  ret.push_back(*i);
 	  newtarget=i->content;
 	}

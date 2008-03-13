@@ -189,6 +189,7 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("qa-latency", &g_stats.avgLatencyUsec);
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
+  addGetStat("case-mismatches", &g_stats.caseMismatchCount);
   addGetStat("spoof-prevents", &g_stats.spoofCount);
 
   addGetStat("nsset-invalidations", &g_stats.nsSetInvalidations);
