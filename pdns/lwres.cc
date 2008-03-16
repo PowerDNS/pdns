@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2007 PowerDNS.COM BV
+    Copyright (C) 2002 - 2008 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -36,7 +36,21 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include "logger.hh"
+#include "dns_random.hh"
 #include <boost/scoped_array.hpp>
+#include <boost/algorithm/string.hpp>
+
+string dns0x20(const std::string& in)
+{
+  string ret(in);
+  string::size_type len=ret.size();
+  for(string::size_type pos = 0 ; pos < len; ++pos) {
+    if(isalpha(in[pos]) && dns_random(2))
+      ret[pos]^=0x20;
+  }
+  //  cerr<<"'"<<in<<"' -> '"<<ret<<"'\n";
+  return ret;
+}
 
 //! returns -2 for OS limits error, -1 for permanent error that has to do with remote, 0 for timeout, 1 for success
 /** Never throws! */
@@ -46,10 +60,11 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   int bufsize=1500;
   scoped_array<unsigned char> buf(new unsigned char[bufsize]);
   vector<uint8_t> vpacket;
+  //  string mapped0x20=dns0x20(domain);
   DNSPacketWriter pw(vpacket, domain, type);
 
   pw.getHeader()->rd=0;
-  pw.getHeader()->id=Utility::random();
+  pw.getHeader()->id=dns_random(0xffff);
 
   if(doEDNS0 && !doTCP) {
     pw.addOpt(1200, 0, 0); // 1200 bytes answer size
@@ -140,11 +155,17 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       }
       goto out;
     }
-    
+
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
       DNSResourceRecord rr;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;
+      /* 
+      if(i->first.d_label == mapped0x20)
+	rr.qname=domain;
+      else
+	rr.qname=i->first.d_label;
+      */
       rr.ttl=i->first.d_ttl;
       rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
       rr.d_place=(DNSResourceRecord::Place) i->first.d_place;

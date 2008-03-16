@@ -34,6 +34,7 @@
 #include "lwres.hh"
 #include "recursor_cache.hh"
 #include "dnsparser.hh"
+#include "dns_random.hh"
 
 extern MemRecursorCache RC;
 
@@ -276,7 +277,7 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
   }
   
   if(ret.size() > 1) {
-    random_shuffle(ret.begin(), ret.end());
+    random_shuffle(ret.begin(), ret.end(), dns_random);
 
     // move 'best' address for this nameserver name up front
     nsspeeds_t::iterator best = s_nsSpeeds.find(qname);  
@@ -542,7 +543,7 @@ inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> 
     rnameservers.push_back(*i);
     speeds[*i]=s_nsSpeeds[*i].get(&d_now);
   }
-  random_shuffle(rnameservers.begin(),rnameservers.end());
+  random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
   speedOrder so(speeds);
   stable_sort(rnameservers.begin(),rnameservers.end(), so);
   
