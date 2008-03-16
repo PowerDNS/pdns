@@ -7370,6 +7370,17 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>entropy-source</term>
+	    <listitem>
+	      <para>
+		From version 3.1.5 onwards, PowerDNS can read entropy from a (hardware) source. This is used for generating random numbers
+		which are very hard to predict. Generally on UNIX platforms, this source will be 
+		<filename>/dev/urandom</filename>, which will always supply random numbers, even if entropy is lacking. 
+		Change to <filename>/dev/random</filename> if PowerDNS should block waiting for enough entropy to arrive.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>export-etc-hosts</term>
 	    <listitem>
 	      <para>
@@ -10570,7 +10581,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 		<para>
 		  Called to determine if a certain host is a supermaster for a certain domain name.
 		  Default: <command>
-		    select account from supermasters where ip='%s' and nameserver='%s'");
+		    select account from supermasters where ip='%s' and nameserver='%s');
 		  </command>
 		</para>
 	      </listitem>
@@ -13428,6 +13439,39 @@ POSSIBILITY OF SUCH DAMAGES.
 </para><para>
 		     END OF TERMS AND CONDITIONS
       </para>
+  </appendix>
+  <appendix id="further-copyrights"><title>Further copyright statements</title>
+    <sect1><title>AES implementation by Brian Gladman</title>
+    <para>
+      Since version 3.1.5, PowerDNS contains AES code by Brian Gladman, to which
+      the following applies:
+    </para>
+    <para>
+ Copyright &copy; 1998-2007, Brian Gladman, Worcester, UK. All rights reserved.
+    </para>
+    <para>
+     LICENSE TERMS
+    </para>
+    <para>
+ The free distribution and use of this software is allowed (with or without
+ changes) provided that:
+ </para><para>
+  1. source code distributions include the above copyright notice, this
+     list of conditions and the following disclaimer;
+ </para><para>
+  2. binary distributions include the above copyright notice, this list
+     of conditions and the following disclaimer in their documentation;
+ </para><para>
+  3. the name of the copyright holder is not used to endorse products
+     built using this software without specific written permission.
+ </para><para>
+ DISCLAIMER
+ </para><para>
+ This software is provided 'as is' with no explicit or implied warranties
+ in respect of its properties, including, but not limited to, correctness
+ and/or fitness for purpose.
+ </para><para>
+</sect1>
   </appendix>
 
   </book>
