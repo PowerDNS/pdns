@@ -11535,7 +11535,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	</warning>
       </para>
       <para>
-	The main author for this module is Norbert Sendetzky who also has his own <ulink url="http://www.linuxnetworks.de/pdnsldap/index.html">PowerDNS-LDAP page</ulink>.
+	The main author for this module is Norbert Sendetzky.
       </para>
       <para>
 	He also maintains the <ulink url="http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend">LDAP backends documentation</ulink> there. The information 
@@ -11550,121 +11550,38 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Master</entry><entry>No</entry></row>
 	      <row><entry>Slave</entry><entry>No</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
-	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
+	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
       </para>
+
+    </sect1>
+    <sect1 id="opendbx"><Title>OpenDBX backend</title>
       <para>
-	As of 2.9.6, PowerDNS comes with an LDAP backend. The code for this was submitted by Norbert Sendetzky.
+	<warning>
+	  <para>
+	    The full OpenDBX documentation can be found on <ulink url="http://www.linuxnetworks.de/doc/index.php/PowerDNS_OpenDBX_Backend">its own page</ulink>. The information in this chapter
+	    may be outdated!
+	  </para>
+	</warning>
       </para>
       <para>
-	The following settings are available to configure the LDAP backend:
-	<variablelist>
-	  <varlistentry>
-	    <term>ldap-host</term>
-	    <listitem>
-	      <para>
-		LDAP host to connect to, defaults to localhost.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>ldap-port</term>
-	    <listitem>
-	      <para>
-		LDAP port to connect to, defaults to 389.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>ldap-basedn</term>
-	    <listitem>
-	      <para>
-		Root for DNS searches. Must be configured before the LDAP backend will work.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>ldap-binddn</term>
-	    <listitem>
-	      <para>
-		Distinguished Name to bind with to the LDAP server. Defaults to the empty string for anonymous bind.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>ldap-secret</term>
-	    <listitem>
-	      <para>
-		Secret to bind with to LDAP server. Defaults to the empty string for anonymous bind.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>ldap-default-ttl</term>
-	    <listitem>
-	      <para>
-		TTL for records with no dnsttl attribute. Defaults to 86400 seconds.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
+	The main author for this module is Norbert Sendetzky.
       </para>
       <para>
-	The schema used is that defined by RFC 1279 and is present in OpenLDAP under the name 'cosine.schema'.
-	An example LDIF file:
-	<screen>
-# zone related things including SOA, NS and MX records
-
-dn: dc=example
-objectclass: top
-objectclass: dnsdomain
-objectclass: domainrelatedobject
-dc: example
-soarecord: ns.example.dom hostmaster@example.dom 2002010401 1800 3600 604800 84600
-nsrecord: ns.example.dom
-mxrecord: 10 mail.example.dom
-mxrecord: 20 mail2.example.dom
-associateddomain: example.dom
-
-
-# Simple record (mail.example.dom has address 172.168.0.2)
-
-dn: dc=mail,dc=example
-objectclass: top
-objectclass: dnsdomain
-objectclass: domainrelatedobject
-dc: mail
-arecord: 172.168.0.2
-associateddomain: mail.example.dom
-
-# There may more than one entry per record
-# This is also applicable to all other records including "associateddomain"
-# but not for a CNAME record
-
-dn: dc=server,dc=snapcount
-objectclass: top
-objectclass: dnsdomain
-objectclass: domainrelatedobject
-dc: server
-arecord: 10.1.0.1
-arecord: 172.168.0.1
-associateddomain: server.example.dom
-
-
-# domain alias ({mail2,ns}.example.dom is CNAME for server.example.dom)
-# cnamerecord must only contain one entry
-
-dn: dc=backup,dc=snapcount
-objectclass: top
-objectclass: dnsdomain
-objectclass: domainrelatedobject
-dc: server
-cnamerecord: server.example.dom
-associateddomain: mail2.example.dom
-associateddomain: ns.example.dom
-</screen>
+	<table>
+	  <title>OpenDBX backend capabilities</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row><entry>Native</entry><entry>Yes</entry></row>
+	      <row><entry>Master</entry><entry>Yes</entry></row>
+	      <row><entry>Slave</entry><entry>Yes</entry></row>
+	      <row><entry>Superslave</entry><entry>Yes</entry></row>
+	      <row><entry>Autoserial</entry><entry>Yes (since 2.9.22)</entry></row>
+	    </tbody>
+	  </tgroup>
+	</table>
       </para>
     </sect1>
   </appendix>
