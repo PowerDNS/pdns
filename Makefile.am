@@ -38,7 +38,8 @@ backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
 base64.cc sillyrecords.cc \
 base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
-rcpgenerator.cc	 dnsparser.cc
+rcpgenerator.cc	dnsparser.cc \
+aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
@@ -110,11 +111,6 @@ dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
 	utility.hh dnsparser.hh sillyrecords.cc
 
-
-
-
-# INCLUDES=-I/usr/include/mysql
-
 rec_control_SOURCES=rec_channel.cc rec_channel.hh rec_control.cc arguments.cc arguments.hh
 
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
@@ -122,7 +118,8 @@ logger.cc statbag.cc arguments.cc  lwres.cc pdns_recursor.cc lwres.hh \
 mtasker.hh syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
-rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh
+rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
+aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c
 
 if NEDMALLOC
 pdns_recursor_SOURCES += ext/nedmalloc/malloc.c

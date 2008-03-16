@@ -25,6 +25,7 @@
 #endif // WIN32
 
 #include "utility.hh" 
+#include "dns_random.hh"
 #include <iostream>
 #include <errno.h>
 #include <map>
@@ -1590,6 +1591,8 @@ void parseAuthAndForwards()
   }
 }
 
+void seedRandom(const string& source);
+
 int serviceMain(int argc, char*argv[])
 {
   L.setName("pdns_recursor");
@@ -1604,7 +1607,7 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
   }
 
-  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2007 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2008 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
   L<<", gcc "__VERSION__;
 #endif // add other compilers here
@@ -1618,6 +1621,8 @@ int serviceMain(int argc, char*argv[])
     "according to the terms of the GPL version 2."<<endl;
   
   L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
+  
+  seedRandom(::arg()["entropy-source"]);
 
   if(!::arg()["allow-from-file"].empty()) {
     string line;
@@ -1823,6 +1828,36 @@ void doWindowsServiceArguments(RecursorService& recursor)
 }
 #endif
 
+void seedRandom(const string& source)
+{
+  L<<Logger::Warning<<"Reading random entropy from '"<<source<<"'"<<endl;
+
+  int fd=open(source.c_str(), O_RDONLY);
+  if(fd < 0) {
+    L<<Logger::Error<<"Unable to open source of random '"<<source<<"': "<<stringerror()<<endl;
+    exit(EXIT_FAILURE);
+  }
+  char seed[128];
+  int ret;
+  int pos=0;
+  while(pos!=sizeof(seed)) {
+    ret = read(fd, seed+pos, sizeof(seed)-pos);
+    if(ret < 0) { 
+      L<<Logger::Error<<"Unable to read random seed from "<<source<<": "<<stringerror()<<endl;
+      close(fd);
+      exit(EXIT_FAILURE);
+    }
+    if(!ret) {
+      L<<Logger::Error<<"Unable to read random seed from "<<source<<": end of file"<<endl;
+      close(fd);
+      exit(EXIT_FAILURE);
+    }
+    pos+=ret;
+  }
+  close(fd);
+  dns_random_init(seed);
+}
+
 int main(int argc, char **argv) 
 {
   //  HTimer mtimer("main");
@@ -1842,7 +1877,6 @@ int main(int argc, char **argv)
 #endif // WIN32
 
   try {
-    Utility::srandom(time(0));
     ::arg().set("stack-size","stack size per mthread")="200000";
     ::arg().set("soa-minimum-ttl","Don't change")="0";
     ::arg().set("soa-serial-offset","Don't change")="0";
@@ -1883,6 +1917,7 @@ int main(int argc, char **argv)
     ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
+    ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
@@ -1926,6 +1961,7 @@ int main(int argc, char **argv)
       cout<<::arg().configstring()<<endl;
       exit(0);
     }
+
 
 #ifndef WIN32
     serviceMain(argc, argv);
