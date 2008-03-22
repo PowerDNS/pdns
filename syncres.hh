@@ -326,7 +326,7 @@ public:
 
   struct AuthDomain
   {
-    string d_server;
+    vector<ComboAddress> d_servers;
     typedef multi_index_container <
       DNSResourceRecord,
       indexed_by < 

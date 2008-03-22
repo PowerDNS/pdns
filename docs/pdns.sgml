@@ -7405,6 +7405,10 @@ local0.err                        /var/log/pdns.err
 		Comma separated list of 'zonename=IP' pairs. Queries for zones listed here will be forwarded to the IP address listed.
 		<command>forward-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1</command>. Available since 3.1.
 	      </para>
+	      <para>
+		Since version 3.1.5, multiple IP addresses can be specified. Additionally, port numbers other than 53 can be configured.
+		Sample syntax: <command>forward-zones=ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530</command>,
+		or on the command line: <command>--forward-zones="ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530"</command>,
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
@@ -7412,7 +7416,7 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		Same as <command>forward-zones</command>, parsed from a file. Only 1 zone is allowed per line, specified as follows:
-		<command>ds9a.nl=213.244.168.210</command>. Available since 3.1.5.
+		<command>ds9a.nl=213.244.168.210, 1.2.3.4:5300</command>. No comments are allowed. Available since 3.1.5. 
 	      </para>
 	    </listitem>
 	  </varlistentry>

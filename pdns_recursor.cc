@@ -1422,6 +1422,24 @@ static void makeIPToNamesZone(const vector<string>& parts)
 
 void parseAuthAndForwards();
 
+void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, bool verbose=true)
+{
+  vector<string> servers;
+  stringtok(servers, input, sepa);
+  ad.d_servers.clear();
+  for(vector<string>::const_iterator iter = servers.begin(); iter != servers.end(); ++iter) {
+    if(verbose && iter != servers.begin()) 
+      L<<", ";
+    pair<string,string> ipport=splitField(*iter, ':');
+    ComboAddress addr(ipport.first, ipport.second.empty() ? 53 : lexical_cast<uint16_t>(ipport.second));
+    if(verbose)
+      L<<addr.toStringWithPort();
+    ad.d_servers.push_back(addr);
+  }
+  if(verbose)
+    L<<endl;
+}
+
 string reloadAuthAndForwards()
 {
   SyncRes::domainmap_t original=SyncRes::s_domainmap;
@@ -1507,8 +1525,8 @@ void parseAuthAndForwards()
 	}
       }
       else {
-	L<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' to IP '"<<headers.second<<"'"<<endl;
-	ad.d_server=headers.second;
+	L<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' to: ";
+	convertServersForAD(headers.second, ad, ";");
       }
       
       SyncRes::s_domainmap[headers.first]=ad;
@@ -1526,24 +1544,27 @@ void parseAuthAndForwards()
     shared_ptr<FILE> fp=shared_ptr<FILE>(rfp, fclose);
     
     char line[1024];
-    vector<string> parts;
     int linenum=0;
     uint64_t before = SyncRes::s_domainmap.size();
     while(linenum++, fgets(line, sizeof(line)-1, fp.get())) {
-      parts.clear();
-      stringtok(parts,line,"=, ");
-      if(parts.empty())
-	continue;
-      if(parts.size()<2) 
+      string domain, instructions;
+      tie(domain, instructions)=splitField(line, '=');
+      trim(domain);
+      trim(instructions);
+
+      if(domain.empty()) 
 	throw AhuException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
-      trim(parts[0]);
-      trim(parts[1]);
-      parts[0]=toCanonic("", parts[0]);
-      ad.d_server=parts[1];
-      //      cerr<<"Inserting '"<<domain<<"' to '"<<ad.d_server<<"'\n";
-      SyncRes::s_domainmap[parts[0]]=ad;
+
+      try {
+	convertServersForAD(instructions, ad, ",; ", false);
+      }
+      catch(...) {
+	throw AhuException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+      }
+
+      SyncRes::s_domainmap[toCanonic("", domain)]=ad;
     }
-    L<<Logger::Warning<<"Done parsing " << SyncRes::s_domainmap.size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-files"]<<"'"<<endl;
+    L<<Logger::Warning<<"Done parsing " << SyncRes::s_domainmap.size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-file"]<<"'"<<endl;
   }
 
   if(::arg().mustDo("export-etc-hosts")) {

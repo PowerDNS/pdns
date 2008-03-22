@@ -203,15 +203,15 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
       string authname(qname);
       domainmap_t::const_iterator iter=getBestAuthZone(&authname);
       if(iter != s_domainmap.end()) {
-	string server=iter->second.d_server;
-	if(server.empty()) {
+	const vector<ComboAddress>& servers = iter->second.d_servers;
+	if(servers.empty()) {
 	  ret.clear();
 	  doOOBResolve(qname, qtype, ret, depth, res);
 	  return res;
 	}
 	else {
-	  LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<<server<<"' for zone '"<<authname<<"'"<<endl;
-	  ComboAddress remoteIP(server, 53);
+	  const ComboAddress remoteIP = servers.front();
+	  LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl;
 
 	  res=asyncresolve(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);    
 	  // filter out the good stuff from lwr.result()
@@ -372,12 +372,17 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(string* qname)
 string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
-
   string authdomain(qname);
   
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
   if(iter!=s_domainmap.end()) {
-    nsset.insert(iter->second.d_server); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
+    if( iter->second.d_servers.empty() )
+      nsset.insert(string()); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
+    else {
+      for(vector<ComboAddress>::const_iterator server=iter->second.d_servers.begin(); server != iter->second.d_servers.end(); ++server)
+	nsset.insert(server->toStringWithPort());
+    }
+
     return authdomain;
   }
 
@@ -625,8 +630,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       else {
 	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl;
 	if(!isCanonical(*tns)) {
-	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver"<<endl;
-	  remoteIPs.push_back(ComboAddress(*tns, 53));
+	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver(s)"<<endl;
+
+	  pair<string,string> ipport=splitField(*tns, ':');
+	  ComboAddress addr(ipport.first, ipport.second.empty() ? 53 : lexical_cast<uint16_t>(ipport.second));
+
+	  remoteIPs.push_back(addr);
 	}
 	else
 	  remoteIPs=getAs(*tns, depth+1, beenthere);
@@ -648,7 +657,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	}
 
 	for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-	  LOG<<prefix<<qname<<": Trying IP "<< remoteIP->toString() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
+	  LOG<<prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
 	  extern NetmaskGroup* g_dontQuery;
 	  
 	  if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
