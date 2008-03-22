@@ -1,7 +1,7 @@
 PDNS_RECURSOR(1)
 ================
 bert hubert <bert.hubert@netherlabs.nl>
-v3.0, 19 April 2006
+v3.0, 22 March 2008
 
 NAME
 ----
@@ -77,6 +77,9 @@ For authoritative listing of options, consult the documentation referenced above
 --delegation-only::
 	Which domains we only accept delegations from
 
+--entropy-source::
+	Where to read new entropy from, defaults to /dev/urandom.
+
 --export-etc-hosts::
            If set, this flag will export the host names and IP addresses
            mentioned in /etc/hosts. Available since 3.1.
@@ -86,13 +89,13 @@ For authoritative listing of options, consult the documentation referenced above
 --forward-zones::
            Comma separated list of 'zonename=IP' pairs. Queries for zones
            listed here will be forwarded to the IP address listed.
-           auth-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1.
-           Available since 3.1.
+           forward-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1.
+           Available since 3.1. For more details, see the manual.
 
 --forward-zones-file::
            listed here will be forwarded to the IP address listed.
            One zone per line, like: ds9a.nl=213.244.168.210
-           Available since 3.1.5
+           Available since 3.1.5. For more details, see the manual.
 
 --hint-file::
 	If set, load root hints from this file
