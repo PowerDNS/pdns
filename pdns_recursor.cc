@@ -404,8 +404,7 @@ static void setSendBuffer(int fd, uint32_t size)
 string s_pidfname;
 static void writePid(void)
 {
-  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
-  ofstream of(s_pidfname.c_str());
+  ofstream of(s_pidfname.c_str(), ios_base::app);
   if(of)
     of<< Utility::getpid() <<endl;
   else
@@ -1050,7 +1049,6 @@ void makeUDPServerSockets()
 #ifndef WIN32
 void daemonize(void)
 {
-  s_rcc.d_dontclose=true;
   if(fork())
     exit(0); // bye bye
   
@@ -1728,6 +1726,10 @@ int serviceMain(int argc, char*argv[])
   
   makeUDPServerSockets();
   makeTCPServerSockets();
+
+  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
+  if(!s_pidfname.empty())
+    unlink(s_pidfname.c_str()); // remove possible old pid file 
   
 #ifndef WIN32
   if(::arg().mustDo("fork")) {
@@ -1737,7 +1739,6 @@ int serviceMain(int argc, char*argv[])
 #endif
   
   MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
-  makeControlChannelSocket();        
   PacketID pident;
   primeHints();    
   L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
@@ -1752,6 +1753,7 @@ int serviceMain(int argc, char*argv[])
   signal(SIGPIPE,SIG_IGN);
   writePid();
 #endif
+  makeControlChannelSocket();        
   g_fdm=getMultiplexer();
   
   for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
