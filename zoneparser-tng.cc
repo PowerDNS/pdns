@@ -376,10 +376,14 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     for(string::size_type n = 0; n < soaparts.size(); ++n) {
       if(n)
 	rr.content.append(1,' ');
+
       if(n > 1)
 	rr.content+=lexical_cast<string>(makeTTLFromZone(soaparts[n]));
       else
 	rr.content+=soaparts[n];
+
+      if(n==6)
+	d_defaultttl=makeTTLFromZone(soaparts[n]);
     }
     break;
   default:;
