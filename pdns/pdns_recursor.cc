@@ -1493,7 +1493,7 @@ void parseAuthAndForwards()
 	while(zpt.get(rr)) {
 	  try {
 	    string tmp=DNSRR2String(rr);
-	    rr=String2DNSRR(rr.qname, rr.qtype, tmp, 3600);
+	    rr=String2DNSRR(rr.qname, rr.qtype, tmp, rr.ttl);
 	  }
 	  catch(exception &e) {
 	    throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
@@ -1837,7 +1837,7 @@ void seedRandom(const string& source)
     L<<Logger::Error<<"Unable to open source of random '"<<source<<"': "<<stringerror()<<endl;
     exit(EXIT_FAILURE);
   }
-  char seed[128];
+  char seed[16];
   int ret;
   int pos=0;
   while(pos!=sizeof(seed)) {
