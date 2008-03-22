@@ -14,7 +14,6 @@ using namespace std;
 RecursorControlChannel::RecursorControlChannel()
 {
   d_fd=-1;
-  d_dontclose=false;
   *d_local.sun_path=0;
 }
 
@@ -22,7 +21,7 @@ RecursorControlChannel::~RecursorControlChannel()
 {
   if(d_fd > 0)
     close(d_fd);
-  if(*d_local.sun_path && !d_dontclose)
+  if(*d_local.sun_path)
     unlink(d_local.sun_path);
 }
 
