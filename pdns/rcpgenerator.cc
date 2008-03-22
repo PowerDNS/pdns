@@ -62,8 +62,6 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
   d_pos = endptr - d_string.c_str();
 }
 
-
-
 void RecordTextReader::xfrTime(uint32_t &val)
 {
   struct tm tm;
@@ -156,7 +154,7 @@ void RecordTextReader::xfrLabel(string& val, bool)
 
   const char* strptr=d_string.c_str();
   while(d_pos < d_end) {
-    if(dns_isspace(strptr[d_pos]))
+    if(strptr[d_pos]!='\r' && dns_isspace(strptr[d_pos]))
       break;
 
     if(strptr[d_pos]=='\\' && d_pos < d_end - 1 && strptr[d_pos+1]!='.')  // leave the \. escape around
