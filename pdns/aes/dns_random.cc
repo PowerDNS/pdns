@@ -1,5 +1,6 @@
 #include "aescpp.h"
 #include <iostream>
+#include <cstring>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
