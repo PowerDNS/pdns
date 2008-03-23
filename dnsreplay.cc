@@ -45,6 +45,7 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include "sstuff.hh"
 #include "anadns.hh"
 #include <boost/program_options.hpp>
+#include "dnsrecords.hh"
 
 // this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
 #undef L
@@ -70,7 +71,7 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 
-const struct timeval operator*(int fact, const struct timeval& rhs)
+const struct timeval operator*(float fact, const struct timeval& rhs)
 {
   //  cout<<"In: "<<rhs.tv_sec<<" + "<<rhs.tv_usec<<"\n";
   struct timeval ret;
@@ -310,13 +311,15 @@ void measureResultAndClean(const QuestionIdentifier& qi)
     }
 
     if(!g_quiet) {
-      cout<<"orig:\n";
+      cout<<"orig: rcode="<<qd.d_origRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
 	cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
-      cout<<"new:\n";
+      cout<<"new: rcode="<<qd.d_newRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
-      cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+	cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
       cout<<"\n";
+      cout<<"-\n";
+
     }
   }
   
@@ -563,7 +566,7 @@ try
     ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
-    ("speedup", po::value<uint16_t>()->default_value(1), "replay at this speedup");
+    ("speedup", po::value<float>()->default_value(1), "replay at this speedup");
 
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -583,6 +586,8 @@ try
   po::notify(g_vm);
 
 
+  reportAllTypes();
+
   if (g_vm.count("help")) {
     cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
     cerr << desc << "\n";
@@ -601,7 +606,7 @@ try
   g_rdSelector = g_vm["recursive"].as<bool>();
   g_quiet = g_vm["quiet"].as<bool>();
 
-  uint16_t speedup=g_vm["speedup"].as<uint16_t>();
+  float speedup=g_vm["speedup"].as<float>();
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
   s_socket= new Socket(InterNetwork, Datagram);
