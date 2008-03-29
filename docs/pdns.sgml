@@ -94,14 +94,17 @@
       </para>
       <sect2 id="changelog-recursor-3-1-5"><title>Recursor version 3.1.5 (UNRELEASED)</title>
 	<para>
-	  UNRELEASED.
+	  UNRELEASED - rc1 available.
 	</para>
 	<para>
-	  Much like 3.1.4, this release does not add major features. Instead, performance has been improved significantly (estimated at around 20%), and many rare
-	  and not so rare issues were addressed. Most importantly, multi-part TXT records now work as expected - the only significant bug found in 15 months.
+	  Much like 3.1.4, this release does not add a lot of major features. Instead, performance has been improved significantly (estimated at around 20%), and many rare
+	  and not so rare issues were addressed. Multi-part TXT records now work as expected - the only significant functional bug found in 15 months. One of the oldest
+	  feature requests was fulfilled: version 3.1.5 can finally forward queries for designated domains to multiple servers, on differing port numbers if needed. 
+	  Previously only one forwarder address was supported. This lack held back a number of migrations to PowerDNS.
 	</para>
 	<para>
-	   Perhaps important, this version can properly benefit from all IPv4 and IPv6 addresses in use at the root-servers as of early February 2008.
+	   Perhaps important, this version can properly benefit from all IPv4 and IPv6 addresses in use at the root-servers as of early February 2008. In order to implement this,
+	   changes were made to how the Recursor deals internally with A and AAAA queries for nameservers, see below for more details.
 	</para>
 	<para>
 	  Additionally, newer releases of the G++ compiler required some fixes (see t173).
@@ -116,6 +119,16 @@
 		Implemented in c923.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		Applied fix for t110 ('PowerDNS should change directory to '/' in chroot), implemented in c944.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		.
+	      </para>
+	    </listitem>
 	  </itemizedlist>
 	</para>
 	<para>
@@ -124,7 +137,7 @@
 	    <listitem>
 	      <para>
 		The DNS packet writing and parsing infrastructure performance was improved in several ways, see commits 
-		C925, C926, C928, C931, C1021, C1050, 
+		C925, C926, C928, C931, C1021, C1050.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -132,7 +145,6 @@
 		Remove multithreading overhead from the Recursor (c999).
 	      </para>
 	    </listitem>
-	    
 	  </itemizedlist>
 	</para>
 	<para>
@@ -140,7 +152,24 @@
 	<itemizedlist>
 	  <listitem>
 	    <para>
-	      Applied fix for t110 ('PowerDNS should change directory to '/' in chroot), implemented in c944.
+	      Built-in authoritative server now properly derives the TTL from the SOA record if not specified. Implemented in c1165. 
+	      Additionally, even when TTL was specified for the built-in authoritative server, it was ignored. Reported by Stefan Schmidt,
+	      closing t147.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Empty TXT record components can now be served. Implemented in c1166, closing t178.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      The Recursor would not properly override old data with new, sometimes serving old and new data concurrently. Fixed in c1137.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      SOA records with embedded carriage-return characters are now parsed correctly. Implemented in c1167, closing t162.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -245,6 +274,19 @@
 	      be forwarded to another nameserver (c963).
 	    </para>
 	  </listitem>
+	  <listitem>
+	    <para>
+	      Both <command>forward-zones</command> and <command>forward-zones-file</command> can now specify multiple forwarders per domain,
+	      implemented in c1168, closing t81. Additionally, both these settings can also specify non-standard port numbers, as suggested in ticket
+	      t122. Patch authored by Aaron Thompson, with additional work by Augie Schwer.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Sten Spans contributed <command>allow-from-file</command>, implemented in c1150. This feature allows the Recursor to read
+	      access rules from a (large) file.
+	    </para>
+	  </listitem>
 	</itemizedlist>
       </para>
       <para>
@@ -257,9 +299,16 @@
 	  </listitem>
 	  <listitem>
 	    <para>
-	    Now perform EDNS0 root refreshing queries, so as to benefit from all returned addresses. Relevant since early February 2008 when the root-servers
-	    started to respond with IPv6 addresses, which made the default non-EDNS0 maximum packet length reply no longer contain all records. Implemented in c1130.
-	    Thanks to dns-operations AT mail.oarc.isc.org for quick suggestions on how to deal with this change.
+	      Full IPv6 parity. If configured to use IPv6 for outgoing queries (using <command>query-local-address6=::0</command> for example), IPv6 and IPv4 
+	      addresses are finally treated 100% identically, instead of 'mostly'. This feature is implemented using 'ANY' queries to find A and AAAA addresses
+	      in one query, which is a new approach. Treat with caution.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Now perform EDNS0 root refreshing queries, so as to benefit from all returned addresses. Relevant since early February 2008 when the root-servers
+	      started to respond with IPv6 addresses, which made the default non-EDNS0 maximum packet length reply no longer contain all records. Implemented in c1130.
+	      Thanks to dns-operations AT mail.oarc.isc.org for quick suggestions on how to deal with this change.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -6164,7 +6213,6 @@ name         IN            A        1.2.3.4
       <para>
 	  PowerDNS support for Windows is, as of 1.99.12, very recent and therefore quite 'beta'. For reliability, we currently advise the use of 
 	  the Unix versions. Furthermore there is no support for master or slave operation in the ODBC backend, which is the only one provided currently. 
-	  This will be fixed soon.
       </para>
     </note>
     </para>
@@ -6184,12 +6232,6 @@ name         IN            A        1.2.3.4
     </para>
 	</listitem>
       </itemizedlist>
-  </para>
-
-  <para>
-    If your system meets these requirements, download the installer from <ulink url="http://www.powerdns.com/pdns/">http://www.powerdns.com/pdns/</ulink>.
-    After downloading the file begin the installation procedure by starting <filename>powerdns-VERSION.exe</filename>.
-
   </para>
 
   <para>
