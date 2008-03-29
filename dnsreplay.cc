@@ -397,7 +397,7 @@ void pruneQids()
   gettimeofday(&now, 0);
 
   for(qids_t::iterator i=qids.begin(); i!=qids.end(); ) {
-    if(DiffTime(i->d_resentTime, now) < 60)
+    if(DiffTime(i->d_resentTime, now) < 10)
       ++i;
     else {
       s_idmanager.releaseID(i->d_assignedID);
@@ -457,8 +457,6 @@ Orig    9           21      29     36         47        57       66    72
   cerr<<headerfmt;
   cerr<<(datafmt % "Orig"   % s_questions % origWaitingFor  % s_orignever  % s_origanswers % 0 % s_origtimedout  % 0 % 0);
   cerr<<(datafmt % "Refer." % s_questions % weWaitingFor    % s_wenever    % s_weanswers   % 0 % s_wetimedout    % 0 % 0);
-
-
 
   cerr<<weWaitingFor<<" queries that could still come in on time, "<<qids.size()<<" outstanding"<<endl;
   
@@ -529,7 +527,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
 	  s_norecursionavailable++;
 	  qd.d_norecursionavailable=true;
 	}
-	qids.replace(i,qd);
+	qids.replace(i, qd);
 
 	if(qd.d_newRcode!=-1) {
 	  //	    cout<<"Removing entry "<<qi<<", is done [in main loop]"<<endl;
@@ -581,10 +579,8 @@ try
   p.add("target-ip", 1);
   p.add("target-port", 1);
 
-
   po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
   po::notify(g_vm);
-
 
   reportAllTypes();
 
@@ -630,18 +626,23 @@ try
     if(!((once++)%100)) 
       houseKeeping();
     
-    while(pr.d_pheader.ts < mental_time) {
+    struct timeval packet_ts;
+    packet_ts.tv_sec = 0; 
+    packet_ts.tv_usec = 0; 
+    while(packet_ts < mental_time) {
       if(!pr.getUDPPacket())
 	goto out;
       
+      packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
+      packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
+
       if(sendPacketFromPR(pr, remote))
 	count++;
     } 
-
     if(packetLimit && count > packetLimit) 
       break;
 
-    mental_time=pr.d_pheader.ts;
+    mental_time=packet_ts;
     struct timeval then, now;
     gettimeofday(&then,0);
 
