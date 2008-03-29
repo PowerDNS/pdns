@@ -1,7 +1,0 @@
-DESTDIR=${install_dir} make install
-mkdir -p $install_dir/usr/share/applications
-mkdir -p $install_dir/usr/share/man
-files=$(find ${install_dir}/usr/share/man -name '*.bz2')
-if [[ "$files" ]]; then echo "$files"|xargs bunzip2 -q; fi
-files=$(find ${install_dir}/usr/share/man -name '*.[0-9]')
-if [[ "$files" ]]; then echo "$files"|xargs gzip -9;fi
