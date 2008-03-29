@@ -26,8 +26,14 @@ struct pdns_pcap_file_header {
 };
 
 
+struct pdns_timeval
+{
+  uint32_t tv_sec;
+  uint32_t tv_usec;
+};
+
 struct pdns_pcap_pkthdr {
-  struct timeval ts;      /* time stamp */
+  struct pdns_timeval ts;      /* time stamp */
   uint32_t caplen;     /* length of portion present */
   uint32_t len;        /* length this packet (off wire) */
 };
