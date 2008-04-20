@@ -136,11 +136,12 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     }
   }
 
+  lwr->d_usec=dt.udiff();
+  *now=dt.getTimeval();
+
   if(ret <= 0) // includes 'timeout'
     return ret;
 
-  lwr->d_usec=dt.udiff();
-  *now=dt.getTimeval();
   lwr->d_result.clear();
   try {
     MOADNSParser mdp((const char*)buf.get(), len);
