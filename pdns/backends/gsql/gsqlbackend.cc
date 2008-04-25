@@ -366,7 +366,10 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   SSql::row_t row;
   if(d_db->getRow(row)) {
     r.content=row[0];
-    r.ttl=atol(row[1].c_str());
+    if (row[1].empty())
+        r.ttl = arg().asNum( "default-ttl" );
+    else 
+        r.ttl=atol(row[1].c_str());
     r.priority=atol(row[2].c_str());
     if(!d_qname.empty())
       r.qname=d_qname;
