@@ -271,7 +271,7 @@ public:
     
     int tries=10;
     while(--tries) {
-      uint16_t port=1025+Utility::random()%64510;
+      uint16_t port=1025+dns_random(64510);
       if(tries==1)  // fall back to kernel 'random'
 	port=0;
       
