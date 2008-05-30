@@ -184,11 +184,17 @@ bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
 		do
 		{
 			sd.serial = 0;
+			sd.ttl = m_default_ttl;
+
+			if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
+			{
+				fillSOAData( string( tmp, odbx_field_length( m_result, 3 ) ), sd );
+			}
 
 			if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
 			{
-				fillSOAData( string( tmp, odbx_field_length( m_result, 2 ) ), sd );
-			}
+				sd.ttl = strtoul( tmp, NULL, 10 );
+			} 
 
 			if( sd.serial == 0 && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
 			{

@@ -123,9 +123,9 @@ public:
 		declare( suffix, "sql-lookupid", "Lookup query with id","SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"domain_id\"=:id AND r.\"name\"=':name'" );
 		declare( suffix, "sql-lookuptype", "Lookup query with type","SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"name\"=':name' AND r.\"type\"=':type'" );
 		declare( suffix, "sql-lookuptypeid", "Lookup query with type and id","SELECT r.\"domain_id\", r.\"name\", r.\"type\", r.\"ttl\", r.\"prio\", r.\"content\" FROM \"records\" r WHERE r.\"domain_id\"=:id AND r.\"name\"=':name' AND r.\"type\"=':type'" );
-		declare( suffix, "sql-lookupsoa","Lookup query for SOA record","SELECT d.\"id\", d.\"auto_serial\", r.\"content\" FROM \"records\" r JOIN \"domains\" d ON r.\"domain_id\"=d.\"id\" WHERE r.\"name\"=':name' AND r.\"type\"='SOA' AND d.\"status\"='A'" );
+		declare( suffix, "sql-lookupsoa","Lookup query for SOA record","SELECT d.\"id\", d.\"auto_serial\", r.\"ttl\", r.\"content\" FROM \"records\" r JOIN \"domains\" d ON r.\"domain_id\"=d.\"id\" WHERE r.\"name\"=':name' AND r.\"type\"='SOA' AND d.\"status\"='A'" );
 
-		declare( suffix, "sql-zonedelete","Delete all records for this zone","DELETE FROM \"records\" r WHERE r.\"domain_id\"=:id" );
+		declare( suffix, "sql-zonedelete","Delete all records for this zone","DELETE FROM \"records\" WHERE \"domain_id\"=:id" );
 		declare( suffix, "sql-zoneinfo","Get domain info","SELECT d.\"id\", d.\"name\", d.\"type\", d.\"master\", d.\"last_check\", d.\"auto_serial\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"name\"=':name' AND d.\"status\"='A'" );
 
 		declare( suffix, "sql-transactbegin", "Start transaction", "BEGIN" );
@@ -135,8 +135,8 @@ public:
 		declare( suffix, "sql-insert-slave","Add slave domain", "INSERT INTO \"domains\" ( \"name\", \"type\", \"master\", \"account\" ) VALUES ( '%s', 'SLAVE', '%s', '%s' )" );
 		declare( suffix, "sql-insert-record","Feed record into table", "INSERT INTO \"records\" ( \"domain_id\", \"name\", \"type\", \"ttl\", \"prio\", \"content\" ) VALUES ( %d, '%s', '%s', %d, %d, '%s' )" );
 
-		declare( suffix, "sql-update-serial", "Set zone to notified", "UPDATE \"domains\" d SET d.\"notified_serial\"=%d WHERE d.\"id\"=%d" );
-		declare( suffix, "sql-update-lastcheck", "Set time of last check", "UPDATE \"domains\" d SET d.\"last_check\"=%d WHERE d.\"id\"=%d" );
+		declare( suffix, "sql-update-serial", "Set zone to notified", "UPDATE \"domains\" SET \"notified_serial\"=%d WHERE \"id\"=%d" );
+		declare( suffix, "sql-update-lastcheck", "Set time of last check", "UPDATE \"domains\" SET \"last_check\"=%d WHERE \"id\"=%d" );
 
 		declare( suffix, "sql-master", "Get master record for zone", "SELECT d.\"master\" FROM \"domains\" d WHERE d.\"name\"=':name' AND d.\"status\"='A' AND d.\"type\"='SLAVE'" );
 		declare( suffix, "sql-supermaster","Get supermaster info", "SELECT s.\"account\" FROM \"supermasters\" s WHERE s.\"ip\"=':ip' AND s.\"nameserver\"=':ns'" );
