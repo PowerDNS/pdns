@@ -118,6 +118,8 @@ private:
   pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   string d_cachedqname;
   bool d_cachecachevalid;
+  bool attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored);
+
 };
 string DNSRR2String(const DNSResourceRecord& rr);
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd);
