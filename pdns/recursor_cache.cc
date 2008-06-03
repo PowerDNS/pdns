@@ -228,6 +228,34 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   return -1;
 }
  
+bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored)
+{
+  if(!stored.d_auth) {
+//    cerr<<"feel free to scribble non-auth data!"<<endl;
+    return false;
+  }
+
+  if(qt.getCode()!=QType::NS) {
+  //  cerr<<"Not NS record"<<endl;
+    return false;
+  }
+  if(content.size()!=stored.d_records.size()) {
+  //  cerr<<"Not equal number of records"<<endl;
+    return false;
+  }
+  if(stored.d_records.empty())
+    return false;
+
+  if(stored.d_records.begin()->d_ttd > content.begin()->ttl) {
+    // cerr<<"attempt to LOWER TTL - fine by us"<<endl;
+    return false;
+  }
+
+
+ // cerr<<"Returning true - update attempt!\n";
+  return true;
+}
+
 /* the code below is rather tricky - it basically replaces the stuff cached for qname by content, but it is special
    cased for when inserting identical records with only differing ttls, in which case the entry is not
    touched, but only given a new ttd */
@@ -253,7 +281,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   if(qt.getCode()==QType::SOA || qt.getCode()==QType::CNAME)  // you can only have one (1) each of these
     ce.d_records.clear();
 
-  if(auth /* && !ce.d_auth */ ) {
+  if(auth && !attemptToRefreshNSTTL(qt, content, ce) ) {
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
     isNew=true;           // data should be sorted again
