@@ -169,7 +169,7 @@ enum  {
 #ifdef WIN32
 #define BYTE_ORDER 1
 #define LITTLE_ENDIAN 1
-#elif __FreeBSD__
+#elif __FreeBSD__ || __APPLE__
 #include <machine/endian.h>
 #elif __linux__
 # include <endian.h>
