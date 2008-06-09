@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2007 PowerDNS.COM BV
+    Copyright (C) 2002 - 2008 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -37,6 +37,7 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include <boost/shared_ptr.hpp>
+#include "dns_random.hh"
 
 using namespace boost;
 
@@ -65,7 +66,7 @@ void Resolver::makeSocket(int type)
 
   int tries=10;
   while(--tries) {
-    sin.sin_port = htons(10000+(random()%10000));
+    sin.sin_port = htons(10000+(dns_random(10000)));
   
     if (bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
       break;
@@ -153,7 +154,7 @@ void Resolver::sendResolve(const string &ip, const char *domain, int type)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
-  pw.getHeader()->id = d_randomid = random();
+  pw.getHeader()->id = d_randomid = dns_random(0xffff);
 
   d_domain=domain;
   d_type=type;
@@ -300,7 +301,7 @@ int Resolver::axfr(const string &ip, const char *domain)
   
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::AXFR);
-  pw.getHeader()->id = d_randomid = random();
+  pw.getHeader()->id = d_randomid = dns_random(0xffff);
 
   uint16_t replen=htons(packet.size());
   Utility::iovec iov[2];
