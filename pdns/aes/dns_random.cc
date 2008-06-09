@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <limits>
 #include "dns_random.hh"
 
 using namespace std;
