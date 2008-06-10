@@ -581,7 +581,12 @@ struct TCacheComp
   }
 };
 
-
+static bool magicAddrMatch(const QType& query, const QType& answer)
+{
+  if(query.getCode() != QType::ADDR)
+    return false;
+  return answer.getCode() == QType::A || answer.getCode() == QType::AAAA;
+}
 
 /** returns -1 in case of no results, rcode otherwise */
 int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, 
@@ -673,6 +678,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    s_outqueries++; d_outqueries++;
 	  TryTCP:
 	    if(doTCP) {
+	      LOG<<prefix<<qname<<": using TCP with "<< remoteIP->toStringWithPort() <<endl;
 	      s_tcpoutqueries++; d_tcpoutqueries++;
 	    }
 	    
@@ -819,14 +825,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	}
 	// for ANY answers we *must* have an authoritive answer
 	else if(i->d_place==DNSResourceRecord::ANSWER && !Utility::strcasecmp(i->qname.c_str(),qname.c_str()) && 
-		(i->qtype==qtype || 
-		 (
-		  lwr.d_aabit && 
-		     ( qtype == QType(QType::ADDR) && (i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) ) || qtype==QType(QType::ANY) 
-		  )   
-		 ) 
-		)   {
-	
+		(
+		 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) )
+		) 
+	       )   
+	  {
+	  
 	  LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
 
 	  done=true;
