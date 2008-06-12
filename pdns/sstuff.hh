@@ -137,6 +137,18 @@ public:
   }
 
   //! Bind the socket to a specified endpoint
+  void bind(const struct sockaddr_in &local)
+  {
+    int tmp=1;
+    if(setsockopt(d_socket,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
+      throw NetworkError(string("Setsockopt failed: ")+strerror(errno));
+
+    if(::bind(d_socket,(struct sockaddr *)&local,sizeof(local))<0)
+      throw NetworkError(strerror(errno));
+  }
+
+
+  //! Bind the socket to a specified endpoint
   void bind(const IPEndpoint &ep)
   {
     struct sockaddr_in local;
@@ -145,12 +157,7 @@ public:
     local.sin_addr.s_addr=ep.address.byte;
     local.sin_port=htons(ep.port);
     
-    int tmp=1;
-    if(setsockopt(d_socket,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
-      throw NetworkError(string("Setsockopt failed: ")+strerror(errno));
-
-    if(::bind(d_socket,(struct sockaddr *)&local,sizeof(local))<0)
-      throw NetworkError(strerror(errno));
+    bind(local);
   }
 
   //! Connect the socket to a specified endpoint
