@@ -57,6 +57,7 @@
 #include "iputils.hh"
 #include "mplexer.hh"
 #include "config.h"
+#include "lua-pdns-recursor.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -66,6 +67,7 @@ StatBag S;
 FDMultiplexer* g_fdm;
 unsigned int g_maxTCPPerClient;
 bool g_logCommonErrors;
+shared_ptr<PowerDNSLua> g_pdl;
 using namespace boost;
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
@@ -534,7 +536,14 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    int res=sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+    int res;
+
+    if(!g_pdl.get() || !g_pdl->prequery(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) 
+       res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+
+    if(g_pdl.get() && (res < 0 || res == RCode::NXDomain || res == RCode::ServFail)) {
+      g_pdl->nxdomain(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
+    }
 
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
@@ -1610,6 +1619,35 @@ void parseAuthAndForwards()
   }
 }
 
+string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
+{
+  string fname=::arg()["lua-dns-script"];
+  try {
+    if(begin==end) {
+      if(!fname.empty()) 
+	g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
+      else
+	throw runtime_error("Asked to relead lua scripts, but no name passed and no default ('lua-dns-script') defined");
+    }
+    else {
+      fname=*begin;
+      if(fname.empty()) {
+	g_pdl.reset();
+	L<<Logger::Error<<"Unloaded current lua script"<<endl;
+	return "unloaded current lua script\n";
+      }
+      else
+	g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
+    }
+  }
+  catch(exception& e) {
+    L<<Logger::Error<<"Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
+    return string("Retaining current script, error from '"+fname+"': "+string(e.what())+"\n");
+  }
+  L<<Logger::Warning<<"(Re)loaded lua script from '"<<fname<<"'"<<endl;
+  return "ok - loaded script from '"+fname+"'\n";
+}
+
 void seedRandom(const string& source);
 
 int serviceMain(int argc, char*argv[])
@@ -1718,6 +1756,19 @@ int serviceMain(int argc, char*argv[])
   }
   
   parseAuthAndForwards();
+
+  try {
+    if(!::arg()["lua-dns-script"].empty()) {
+      g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(::arg()["lua-dns-script"]));
+      L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+    }
+    
+  }
+  catch(exception &e) {
+    L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
+    exit(99);
+  }
+
   
   g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
   if(!g_stats.remotes.empty())
@@ -1886,6 +1937,7 @@ int main(int argc, char **argv)
   //  HTimer mtimer("main");
   //  mtimer.start();
 
+
   g_stats.startupTime=time(0);
   reportBasicTypes();
 
@@ -1952,6 +2004,7 @@ int main(int argc, char **argv)
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
+    ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatability" )= "off"; 
 
     ::arg().setCmd("help","Provide a helpful message");

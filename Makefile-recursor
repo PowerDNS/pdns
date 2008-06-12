@@ -14,8 +14,7 @@ PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
 arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o malloc.o selectmplexer.o sillyrecords.o \
-dns_random.o aescrypt.o aeskey.o aes_modes.o aestab.o
-
+dns_random.o aescrypt.o aeskey.o aes_modes.o aestab.o lua-pdns-recursor.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
 
@@ -25,14 +24,22 @@ all: message pdns_recursor rec_control
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
 
+ifeq ($(LUA), 1)
+	LUALIBS=-llua5.1
+	CXXFLAGS+=-I/usr/include/lua5.1 -DPDNS_ENABLE_LUA
+endif
+
+
 ifeq ($(STATIC),semi)
-        STATICFLAGS=-Wl,-Bstatic -lstdc++ -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
+        STATICFLAGS=-Wl,-Bstatic -lstdc++ $(LUALIBS) -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
         LINKCC=$(CC)
-endif
-ifeq ($(STATIC),full)
-        STATICFLAGS=-lstdc++ -lm -static
+elseifeq ($(STATIC),full)
+        STATICFLAGS=-lstdc++ -lm $(LUALIBS) -static 
         LINKCC=$(CC)
+else
+	LDFLAGS += $(LUALIBS)
 endif
+
 
 LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
 

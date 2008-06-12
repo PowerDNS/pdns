@@ -298,6 +298,16 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="wipe-cache") 
     return doWipeCache(begin, end);
 
+  if(cmd=="reload-lua-script") 
+    return doReloadLuaScript(begin, end);
+
+  if(cmd=="unload-lua-script") {
+    vector<string> empty;
+    empty.push_back(string());
+    return doReloadLuaScript(empty.begin(), empty.end());
+  }
+
+
   if(cmd=="top-remotes")
     return doTopRemotes();
 

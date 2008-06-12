@@ -501,6 +501,8 @@ struct RecursorStats
   }
 };
 
+string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
+
 extern RecursorStats g_stats;
 
 
