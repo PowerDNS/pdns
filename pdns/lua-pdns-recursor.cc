@@ -11,6 +11,7 @@ extern "C" {
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 using namespace std;
 
@@ -30,22 +31,16 @@ extern "C" int netmaskMatchLua(lua_State *lua)
   return 1;
 }
 
-PowerDNSLua::PowerDNSLua()
+PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
   d_lua = lua_open();
   luaopen_base(d_lua);
   lua_settop(d_lua, 0);
-  if(luaL_dofile(d_lua,  "./script.lua")) {
-    cerr<<"Error loading LUA file: ";
-    if (lua_isstring(d_lua, -1)) 
-      cerr<<lua_tostring(d_lua, -1);
-    cerr<<endl;
-
-    d_failed=true;
-  }
+  if(luaL_dofile(d_lua,  fname.c_str())) 
+    throw runtime_error(string("Error loading LUA file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
+  
   lua_pushcfunction(d_lua, netmaskMatchLua);
   lua_setglobal(d_lua, "matchnetmask");
-  d_failed=false;
 }
 
 bool PowerDNSLua::nxdomain(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
@@ -60,13 +55,9 @@ bool PowerDNSLua::prequery(const ComboAddress& remote, const string& query, cons
 
 bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
-  if(d_failed)
-    return false;
-
-  /* the function name */
   lua_getglobal(d_lua,  func.c_str());
   if(!lua_isfunction(d_lua, -1)) {
-    cerr<<"No such function '"<<func<<"'\n";
+    //  cerr<<"No such function '"<<func<<"'\n";
     lua_pop(d_lua, 1);
     return false;
   }

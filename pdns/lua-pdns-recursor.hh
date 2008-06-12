@@ -8,7 +8,7 @@ struct lua_State;
 class PowerDNSLua
 {
 public:
-  PowerDNSLua();
+  explicit PowerDNSLua(const std::string& fname);
   ~PowerDNSLua();
   void reload();
   bool prequery(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret);
