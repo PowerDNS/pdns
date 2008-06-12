@@ -1,4 +1,39 @@
 #include "lua-pdns-recursor.hh"
+
+#ifdef PDNS_ENABLE_LUA
+#define PDNS_DO_LUA
+#endif
+
+#ifdef LIBDIR
+#define PDNS_DO_LUA
+#endif
+
+#if !defined(PDNS_DO_LUA) && !defined(LIBDIR)
+
+// stub implementation
+
+PowerDNSLua::PowerDNSLua(const std::string& fname)
+{
+  throw runtime_error("Lua support disabled");
+}
+
+bool PowerDNSLua::nxdomain(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+{
+  return false;
+}
+
+bool PowerDNSLua::prequery(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+{
+  return false;
+}
+
+PowerDNSLua::~PowerDNSLua()
+{
+
+}
+
+#else
+
 extern "C" {
 #undef L
 /* Include the Lua API header files. */
@@ -35,6 +70,8 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
   d_lua = lua_open();
   luaopen_base(d_lua);
+  luaopen_string(d_lua);
+
   lua_settop(d_lua, 0);
   if(luaL_dofile(d_lua,  fname.c_str())) 
     throw runtime_error(string("Error loading LUA file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
@@ -95,12 +132,18 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     
     rr.qtype = QType((int)(lua_tonumber(d_lua, -1)));
     lua_pop(d_lua, 1);
-    
-    lua_pushnumber(d_lua, 2); // 4 is now '1'
+    lua_pushnumber(d_lua, 2); // 4 is now '2'
     lua_gettable(d_lua, 3);  // replace by the second entry of our table we hope
-    
     rr.content= lua_tostring(d_lua,  -1);
-    lua_pop(d_lua, 2); // content + table
+    lua_pop(d_lua, 1); // content 
+
+    lua_pushnumber(d_lua, 3); // 4 is now '3'
+    lua_gettable(d_lua, 3);  // replace by the second entry of our table we hope
+    rr.ttl = (uint32_t)lua_tonumber(d_lua,  -1);
+    lua_pop(d_lua, 1); // content 
+    
+
+    lua_pop(d_lua, 1); // table
 
     //    cerr<<"Adding content '"<<rr.content<<"'\n";
     ret.push_back(rr);
@@ -118,16 +161,6 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
 
 PowerDNSLua::~PowerDNSLua()
 {
-  cerr<<"Destructor called"<<endl;
-  /* Remember to destroy the Lua State */
   lua_close(d_lua);
-  cerr<<"Done destroying"<<endl;
 }
-
-/*
-int main()
-{
-  PowerDNSLua pdl;
-  pdl.nxdomain(ComboAddress("127.0.0.1"), "ds9a.nl", QType(QType::A));
-}
-*/
+#endif
