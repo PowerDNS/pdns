@@ -8,6 +8,9 @@ CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
 LINKCC=$(CXX)
 CC?=gcc
 
+LUA_CPPFLAGS_CONFIG ?= -I/usr/include/lua5.1
+LUA_LIBS_CONFIG ?= -llua5.1
+
 # static dependencies
 
 PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
@@ -25,8 +28,8 @@ all: message pdns_recursor rec_control
 -include sysdeps/$(shell uname).inc
 
 ifeq ($(LUA), 1)
-	LUALIBS=-llua5.1
-	CXXFLAGS+=-I/usr/include/lua5.1 -DPDNS_ENABLE_LUA
+	LUALIBS=$(LUA_LIBS_CONFIG)
+	CXXFLAGS+=$(LUA_CPPFLAGS_CONFIG) -DPDNS_ENABLE_LUA
 endif
 
 

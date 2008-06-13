@@ -1636,8 +1636,10 @@ string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::c
 	L<<Logger::Error<<"Unloaded current lua script"<<endl;
 	return "unloaded current lua script\n";
       }
-      else
+      else {
 	g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
+	::arg().set("lua-dns-script")=fname;
+      }
     }
   }
   catch(exception& e) {
