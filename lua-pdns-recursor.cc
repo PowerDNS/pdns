@@ -1,14 +1,6 @@
 #include "lua-pdns-recursor.hh"
 
-#ifdef PDNS_ENABLE_LUA
-#define PDNS_DO_LUA
-#endif
-
-#ifdef LIBDIR
-#define PDNS_DO_LUA
-#endif
-
-#if !defined(PDNS_DO_LUA) && !defined(LIBDIR)
+#if !defined(PDNS_ENABLE_LUA) && !defined(LIBDIR)
 
 // stub implementation
 

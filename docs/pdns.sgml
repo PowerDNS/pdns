@@ -92,9 +92,80 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3-1-5"><title>Recursor version 3.1.5 (UNRELEASED)</title>
+      <sect2 id="changelog-recursor-3-1-7"><title>Recursor version 3.1.7 (UNRELEASED)</title>
 	<para>
-	  UNRELEASED - rc1 available.
+	  UNRELEASED
+	</para>
+	<para>
+	  This version contains a small number of fixes, some more important than others:
+	</para>
+	<para>
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      In 3.1.5 and 3.1.6, an authoritative server could continue to renew its authority, even though a domain had been delegated
+	      to other servers in the meantime. 
+	    </para>
+	    <para>
+	      In the rare cases where this happened, and the old servers were not shut down, the observed effect is that users were fed outdated data.
+	    </para>
+	    <para>
+	      Bug spotted and analysed by Darren Gamble, fix in c1182 and c1183.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Thanks to long time PowerDNS contributor Stefan Arentz, for the first time, Mac OS X 10.5 users can compile and run the PowerDNS Recursor! 
+	      Patch in c1185.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Sten Spans spotted that for outgoing TCP/IP queries, the <command>query-local-address</command> setting was not honored. Fixed in c1190.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Marcus Rueckert of OpenSUSE reported that very recent gcc versions emitted a (correct) warning on an overly complicated line
+	      in syncres.cc, fixed in c1189.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+	</para>
+      </sect2>
+
+      <sect2 id="changelog-recursor-3-1-6"><title>Recursor version 3.1.6</title>
+	<para>
+	  Released on the 1st of May 2008.
+	</para>
+	<para>
+	  This version fixes two important problems, each on its own important enough to justify a quick upgrade.
+	</para>
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Version 3.1.5 had problems resolving several slightly misconfigured domains, including for a time 'juniper.net'. Nameserver timeouts were not being 
+	      processed correctly, leading PowerDNS to not update the internal clock, which in turn meant
+	      that any queries immediately following an error would time out as well. Because of retries, this would usually not be a problem except on very busy servers, 
+	      for domains with different nameservers at different levels of the DNS-hierarchy, like 'juniper.net'.
+	    </para>
+	    <para>
+	      This issue was fixed rapidly because of the help of <ulink url="http://www.xs4all.nl">XS4ALL</ulink> (Eric Veldhuyzen, Kai Storbeck), 
+	      Brad Dameron and Kees Monshouwer. Fix in c1178.
+	    </para>
+	  </listitem>	
+	  <listitem>
+	    <para>
+	      The new high-quality random generator was not used for all random numbers, especially in source port selection. This means that 3.1.5 is still 
+	      a lot more secure than 3.1.4 was, and its algorithms more secure than most other nameservers, but it also means 3.1.5 is not as secure as it could be.
+	      A quick upgrade is recommended. Discovered by Thomas Biege of Novell (SUSE), fixed in c1179.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </sect2>
+      <sect2 id="changelog-recursor-3-1-5"><title>Recursor version 3.1.5</title>
+	<para>
+	  Released on the 31st of March 2008.
 	</para>
 	<para>
 	  Much like 3.1.4, this release does not add a lot of major features. Instead, performance has been improved significantly (estimated at around 20%), and many rare
@@ -103,15 +174,46 @@
 	  Previously only one forwarder address was supported. This lack held back a number of migrations to PowerDNS.
 	</para>
 	<para>
-	   Perhaps important, this version can properly benefit from all IPv4 and IPv6 addresses in use at the root-servers as of early February 2008. In order to implement this,
+	  We would like to thank Amit Klein of Trusteer for bringing a serious           
+	  vulnerability to our attention which would enable a smart attacker to          
+	  'spoof' previous versions of the PowerDNS Recursor into accepting possibly     
+	  mallicious data.     
+	</para>
+	<para>
+	  Details can be found on <ulink url="http://www.trusteer.com/docs/powerdnsrecursor.html">this Trusteer page</ulink>.
+	</para>
+	<para>
+	  It is recommended that all users of the PowerDNS Recursor upgrade to 3.1.5
+	  as soon as practicable, while we simultaneously note that busy servers are
+	  less susceptible to the attack, but not immune.
+	</para>
+	<para>
+	  The PowerDNS Security Advisory can be found in <xref linkend="powerdns-advisory-2008-01">.
+	</para>
+	<para>
+	   This version can properly benefit from all IPv4 and IPv6 addresses in use at the root-servers as of early February 2008. In order to implement this,
 	   changes were made to how the Recursor deals internally with A and AAAA queries for nameservers, see below for more details.
 	</para>
 	<para>
 	  Additionally, newer releases of the G++ compiler required some fixes (see t173).
 	</para>
 	<para>
+	  This release was made possible by the help of Wichert Akkerman, Winfried Angele, Arnoud Bakker (Fox-IT), Niels Bakker (no relation!), 
+	  Leo Baltus (Nederlandse Publieke Omroep), Marco Davids (SIDN), David Gavarret (Neuf Cegetel), Peter Gervai, Marcus Goller (UPC), 
+	  Matti Hiljanen (Saunalahti/Elisa), Ruben Kerkhoff, 
+ 	  Alex Kiernan, Amit Klein (Trusteer), Kenneth Marshall (Rice University), Thomas Rietz, Marcus Rueckert (OpenSUSE), Augie Schwer (Sonix), Sten Spans (Bit), Stefan Schmidt (Freenet.de), 
+	  Kai Storbeck (xs4all), 
+	  Alex Trull, Andrew Turnbull (No Wires LTD) and Aaron Thompson, and many more who filed bugs anonymously, or who we forgot to mention.
+	</para>
+	<para>
 	  Security related issues:
 	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Amit Klein has informed us that System random generator output can be predicted based on its past behaviour, allowing a smart attacker to 'spoof' 
+		our nameserver. Full details in <xref linkend="powerdns-advisory-2008-01">.
+	      </para>
+	    </listitem> 
 	    <listitem>
 	      <para>
 		The Recursor will by default no longer query private-space nameservers. This closes a slight security risk and simultaneously
@@ -124,11 +226,7 @@
 		Applied fix for t110 ('PowerDNS should change directory to '/' in chroot), implemented in c944.
 	      </para>
 	    </listitem>
-	    <listitem>
-	      <para>
-		.
-	      </para>
-	    </listitem>
+
 	  </itemizedlist>
 	</para>
 	<para>
@@ -159,7 +257,7 @@
 	  </listitem>
 	  <listitem>
 	    <para>
-	      Empty TXT record components can now be served. Implemented in c1166, closing t178.
+	      Empty TXT record components can now be served. Implemented in c1166, closing t178. Spotted by Matti Hiljanen.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -212,7 +310,7 @@
 	  </listitem>
 	  <listitem>
 	    <para>
-	      Recursor would not properly clean up pidfile and control socket, closing t120, code in c988, c1098 (spotted by Leo Baltus)
+	      Recursor would not properly clean up pidfile and control socket, closing t120, code in c988, c1098 (part of fix by Matti Hiljanen, spotted by Leo Baltus)
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -5685,9 +5783,12 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
-	As of the 11th of November 2006, no actual security problems with PowerDNS 2.9.18, Recursor 3.1.4, or later are known about.  This page 
+	As of the 31st of March 2008, no actual security problems with PowerDNS 2.9.18, Recursor 3.1.5, or later are known about.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailinglists.
+      </para>
+      <para>
+	Version 3.1.4 and earlier of the PowerDNS recursor were vulnerable to a spoofing attack. For more detail, see <xref linkend="powerdns-advisory-2008-01">.
       </para>
       <para>
 	Version 3.1.3 and earlier of the PowerDNS recursor contain two security issues, both of which can lead to a denial of service, both of which can be triggered
@@ -5918,6 +6019,131 @@ name         IN            A        1.2.3.4
       </para>
       <para>
 	PowerDNS would recurse endlessly on encountering a CNAME loop consisting entirely of zero second CNAME records, eventually exceeding resources and crashing.
+      </para>
+    </sect1>
+    <sect1 id="powerdns-advisory-2008-01">
+      <title>PowerDNS Security Advisory 2008-01: System random generator can be predicted, leading to the potential to 'spoof' PowerDNS Recursor</title>
+      <para>
+	<table>
+	  <title>PowerDNS Security Advisory</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row>
+		<entry>
+		  CVE
+		</entry>
+		<entry>
+		  Not yet assigned
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Date
+		</entry>
+		<entry>
+		  31st of March 2008
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Affects
+		</entry>
+		<entry>
+		  PowerDNS Recursor versions 3.1.4 and earlier, on most operating systems
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Not affected
+		</entry>
+		<entry>
+		  No versions of the PowerDNS Authoritative Server ('pdns_server') are affected.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Severity 
+		</entry>
+		<entry>
+		  Moderate
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Impact
+		</entry>
+		<entry>
+		  Data manipulation; client redirection
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Exploit
+		</entry>
+		<entry>
+		  This problem can be triggered by sending queries for specifically configured domains, sending
+		  spoofed answer packets immediately afterwards.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Solution
+		</entry>
+		<entry>
+		  Upgrade to PowerDNS Recursor 3.1.5, or apply changesets C1159, C1160 and C1164.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Workaround
+		</entry>
+		<entry>
+		  None known. Exposure can be limited by configuring the <command>allow-from</command> setting so only trusted users
+		  can query your nameserver.
+		</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	We would like to thank Amit Klein of Trusteer for bringing a serious           
+	vulnerability to our attention which would enable a smart attacker to          
+	'spoof' previous versions of the PowerDNS Recursor into accepting possibly     
+	mallicious data.     
+      </para>
+      <para>
+	Details can be found on <ulink url="http://www.trusteer.com/docs/powerdnsrecursor.html">
+	  this Trusteer page</ulink>.
+      </para>
+      <para>
+	This security problem was announced in <ulink url="http://mailman.powerdns.com/pipermail/pdns-users/2008-March/005279.html">this email message</ulink>.
+      </para>
+      <para>
+	It is recommended that all users of the PowerDNS Recursor upgrade to 3.1.5
+	as soon as practicable, while we simultaneously note that busy servers are
+	less susceptible to the attack, but not immune.
+      </para>
+      <para>
+	The vulnerability is present on all operating systems where the behaviour      
+	of the libc random() function can be predicted based on its past output.     
+	This includes at least all known versions of Linux, as well as Microsoft       
+	Windows, and probably FreeBSD and Solaris.
+      </para>
+      <para>
+	The magnitude of this vulnerability depends on internal details of the         
+	system random() generator. For Linux, the mathematics of the random            
+	generator are complex, but well understood and Amit Klein has written and      
+	published a proof of concept that can succesfully predict its output after     
+	uninterrupted observation of 40-50 DNS queries.
+      </para>
+      <para>
+	Because the observation needs to be uninterrupted, busy PowerDNS Recursor      
+	instances are harder to subvert - other data is highly likely to be            
+	interleaved with traffic generated by an attacker. 
+      </para>
+      <para>
+	Nevertheless, operators are urged to update at their earliest convenience.
       </para>
     </sect1>
     <sect1 id="thanks-to"><title>Acknowledgements</title>
@@ -7918,6 +8144,101 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       <para>
 	Finally, 12% of queries were not performed because identical queries had gone out previously, saving load servers worldwide.
       </para>
+    </sect1>
+    <sect1 id="recursor-scripting"><title>Scripting</title>
+      <para>
+	As of version 3.1.7 of the PowerDNS Recursor, it is possible to modify resolving behaviour using simple scripts written in the <ulink url="http://www.lua.org">Lua</ulink>
+	programming language.
+      </para>
+      <para>
+	<warning>
+	  <para>
+	    This functionality is expected to change from version to version as additional scripting needs become apparant!
+	  </para>
+	</warning>
+      </para>
+      <para>
+	These scripts can be used to quickly override dangerous domains, for load balancing or for legal or commercial purposes.
+      </para>
+      <para>
+	As of 3.1.7, queries can be intercepted in two places: before the resolving logic starts to work, plus after the resolving process failed to find
+	a correct answer for a domain.
+      </para>
+      <sect2>
+	<title>Configuring Lua scripts</title>
+	<para>
+	  In order to load scripts, the PowerDNS Recursor must have 'lua' support built in. The packages distributed from the PowerDNS website have this language
+	  enabled, other distributions may differ.
+	</para>
+	<para>
+	  If lua support is available, a script can be configured either via the configuration file, or at runtime via the <command>rec_control</command> tool.
+	  Scripts can be reloaded or unloaded at runtime with no interruption in operations. If a new script contains syntax errors, the old script remains in force.
+	</para>
+	<para>
+	  On the commandline, or in the configuration file, the setting <command>lua-dns-script</command> can be used to supply a full path to a 'lua' script.
+	</para>
+	<para>
+	  At runtime, <command>rec_control reload-lua-script</command> can be used to either reload the script from its current location, or, when passed
+	  a new filename, load one from a new location. A failure to parse the new script will leave the old script in working order.
+	</para>
+	<para>
+	  Finally, <command>rec_control unload-lua-script</command> can be used to remove the currently installed script, and revert to unmodified behaviour.
+	</para>
+      </sect2>
+      <sect2><title>Writing Lua PowerDNS Recursor scripts</title>
+	<para>
+	  Once a script is loaded, PowerDNS looks for two functions: <function>prequery</function> and <function>nxdomain</function>. Either or both of these
+	  can be absent, in which case the corresponding functionality is disabled.
+	</para>
+	<para>
+	  <function>prequery</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
+	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
+	</para>
+	<para>
+	  <function>nxdomain</function> is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain
+	  or the specific record does not exist. This can be used for various purposes.
+	</para>
+	<para>
+	  Both functions are passed the IP address of the requestor, plus the name and type being requested. In return, these functions indicate if they
+	  have taken over the request, or want to let normal proceedings take their course.
+	</para>
+	<para>
+	  If a function has taken over a request, it should return 'true', and specify a table with records to be put in the answer section of a packet. 
+	  Returning 'false' and an empty table signifies that the function chose not to intervene.
+	</para>
+	<para>
+	  A minimal sample script:
+	</para>
+	<para>
+	  <screen>
+function nxdomain ( ip, domain, qtype )
+  print ("nxhandler called for: ", ip, domain, qtype)
+
+  ret={}
+  if qtype ~= 1 then return false, ret end  --  only A records
+  if not string.match(domain, "^www.") then return false, ret end  -- only things that start with www.
+  if not matchnetmask(ip, "192.168.0.0/16")  then return false, ret -- only interfere with local queries
+
+  ret[0]={1, "127.1.2.3", 3600}    -- add IN A 127.1.2.3
+  ret[1]={1  "127.3.2.1", 3600}    -- add IN A 127.3.2.1
+  return true, ret                 -- return true, plus records
+end
+	  </screen>
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      Please do NOT use the above sample script in production! Responsible NXDomain redirection requires more attention to detail.
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  In this sample, the numerical identifier of the A record (1) is used. Later versions of PowerDNS may support a model where labels can be described non-numerically.
+	  Additionally, the answer content format is (nearly) identical to the storage in the PowerDNS Authoritative Server database, or as in zone files. 
+	  The exception is that, unlike in the datbase, there is no 'prio' field, which means that an MX record with priority 25 pointing to 'smtp.mailserver.com' would be encoded as
+	  '25 smtp.mailserver.com.'.
+	</para>
+      </sect2>
     </sect1>
     <sect1 id="recursor-design-and-engineering">
       <title>Design and Engineering of the PowerDNS Recursor</title>
