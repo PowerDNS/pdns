@@ -84,9 +84,9 @@ bool PowerDNSLua::nxdomain(const ComboAddress& remote, const string& query, cons
   return passthrough("nxdomain", remote, query, qtype, ret, res);
 }
 
-bool PowerDNSLua::prequery(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::preresolve(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
-  return passthrough("prequery", remote, query, qtype, ret, res);
+  return passthrough("preresolve", remote, query, qtype, ret, res);
 }
 
 bool PowerDNSLua::getFromTable(const std::string& key, std::string& value)
@@ -138,12 +138,13 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     throw runtime_error(error);
     return false;
   }
-  res = (int)lua_tonumber(d_lua, 1); // new rcode
-  if(res < 0) {
+  int newres = (int)lua_tonumber(d_lua, 1); // new rcode
+  if(newres < 0) {
     //    cerr << "handler did not handle"<<endl;
     lua_pop(d_lua, 2);
     return false;
   }
+  res=newres;
 
   /* get the result */
   DNSResourceRecord rr;
@@ -156,8 +157,15 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   /*           1       2   3   4   */
   /* stack:  boolean table key row */
 
-  lua_pushnil(d_lua);  /* first key */
-  while (lua_next(d_lua, 2) != 0) {
+#ifndef LUA_VERSION_NUM
+  int tableLen = luaL_getn(d_lua, 2);
+#else
+  int tableLen = lua_objlen(d_lua, 2);
+#endif
+
+  for(int n=1; n < tableLen + 1; ++n) {
+    lua_pushnumber(d_lua, n);
+    lua_gettable(d_lua, 2);
 
     uint32_t tmpnum;
     if(!getFromTable("qtype", tmpnum)) 
@@ -180,7 +188,7 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     /* removes 'value'; keeps 'key' for next iteration */
     lua_pop(d_lua, 1); // table
 
-    //    cerr<<"Adding content '"<<rr.content<<"'\n";
+    //    cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
     ret.push_back(rr);
   }
 
