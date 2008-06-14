@@ -65,7 +65,11 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   luaopen_string(d_lua);
 
   lua_settop(d_lua, 0);
+#ifndef LUA_VERSION_NUM
+  if(lua_dofile(d_lua,  fname.c_str())) 
+#else
   if(luaL_dofile(d_lua,  fname.c_str())) 
+#endif
     throw runtime_error(string("Error loading LUA file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
   
   lua_pushcfunction(d_lua, netmaskMatchLua);
@@ -82,6 +86,36 @@ bool PowerDNSLua::prequery(const ComboAddress& remote, const string& query, cons
   return passthrough("prequery", remote, query, qtype, ret, res);
 }
 
+bool PowerDNSLua::getFromTable(const std::string& key, std::string& value)
+{
+  lua_pushstring(d_lua, key.c_str()); // 4 is now '1'
+  lua_gettable(d_lua, -2);  // replace by the first entry of our table we hope
+
+  bool ret=false;
+  if(!lua_isnil(d_lua, -1)) {
+    value = lua_tostring(d_lua, -1);
+    ret=true;
+  }
+  lua_pop(d_lua, 1);
+  return ret;
+}
+
+
+bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
+{
+  lua_pushstring(d_lua, key.c_str()); // 4 is now '1'
+  lua_gettable(d_lua, -2);  // replace by the first entry of our table we hope
+
+  bool ret=false;
+  if(!lua_isnil(d_lua, -1)) {
+    value = lua_tonumber(d_lua, -1);
+    ret=true;
+  }
+  lua_pop(d_lua, 1);
+  return ret;
+}
+
+
 bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
   lua_getglobal(d_lua,  func.c_str());
@@ -96,11 +130,14 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   lua_pushnumber(d_lua,  qtype.getCode() );
 
   lua_call(d_lua,  3, 2);
-  if(!lua_toboolean(d_lua, 1)) {
+  res = lua_tonumber(d_lua, 1); // new rcode
+  if(res < 0) {
     //    cerr << "handler did not handle"<<endl;
     lua_pop(d_lua, 2);
     return false;
   }
+  else
+    cerr<<"res = "<<res<<endl;
 
   /* get the result */
   DNSResourceRecord rr;
@@ -110,31 +147,31 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
 
   ret.clear();
 
-  //  cerr<<"Think there are "<<lua_objlen(d_lua, 2)<<" records\n";
+  /*           1       2   3   4   */
+  /* stack:  boolean table key row */
 
-  /*           1       2   */
-  /* stack:  boolean table */
+  lua_pushnil(d_lua);  /* first key */
+  while (lua_next(d_lua, 2) != 0) {
 
-  for(unsigned int n = 0 ; n <= lua_objlen(d_lua, 2); ++n) {
-    lua_pushnumber(d_lua, n); // becomes 3
-    lua_gettable(d_lua, 2);  // 3 gone, replaced by table[0] - which is again a table
+    uint32_t tmpnum;
+    if(!getFromTable("qtype", tmpnum)) 
+      rr.qtype=QType::A;
+    else
+      rr.qtype=tmpnum;
 
-    lua_pushnumber(d_lua, 1); // 4 is now '1'
-    lua_gettable(d_lua, 3);  // replace by the first entry of our table we hope
-    
-    rr.qtype = QType((int)(lua_tonumber(d_lua, -1)));
-    lua_pop(d_lua, 1);
-    lua_pushnumber(d_lua, 2); // 4 is now '2'
-    lua_gettable(d_lua, 3);  // replace by the second entry of our table we hope
-    rr.content= lua_tostring(d_lua,  -1);
-    lua_pop(d_lua, 1); // content 
+    getFromTable("content", rr.content);
+    if(!getFromTable("ttl", rr.ttl))
+      rr.ttl=3600;
 
-    lua_pushnumber(d_lua, 3); // 4 is now '3'
-    lua_gettable(d_lua, 3);  // replace by the second entry of our table we hope
-    rr.ttl = (uint32_t)lua_tonumber(d_lua,  -1);
-    lua_pop(d_lua, 1); // content 
-    
+    if(!getFromTable("qname", rr.qname))
+      rr.qname = query;
 
+    if(!getFromTable("place", tmpnum))
+      rr.d_place = DNSResourceRecord::ANSWER;
+    else
+      rr.d_place = (DNSResourceRecord::Place) tmpnum;
+
+    /* removes 'value'; keeps 'key' for next iteration */
     lua_pop(d_lua, 1); // table
 
     //    cerr<<"Adding content '"<<rr.content<<"'\n";
@@ -142,11 +179,6 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   }
 
   lua_pop(d_lua, 2);
-
-  //  printf("\nBack to C again: %s, type %d\n\n", rr.content.c_str(), rr.qtype.getCode());
-
-  res=0;
-
 
   return true;
 }
