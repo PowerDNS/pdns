@@ -61,16 +61,19 @@ extern "C" int netmaskMatchLua(lua_State *lua)
 PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
   d_lua = lua_open();
+
+#ifndef LUA_VERSION_NUM
   luaopen_base(d_lua);
   luaopen_string(d_lua);
 
-  lua_settop(d_lua, 0);
-#ifndef LUA_VERSION_NUM
   if(lua_dofile(d_lua,  fname.c_str())) 
 #else
+  luaL_openlibs(d_lua);
   if(luaL_dofile(d_lua,  fname.c_str())) 
 #endif
     throw runtime_error(string("Error loading LUA file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
+
+  lua_settop(d_lua, 0);
   
   lua_pushcfunction(d_lua, netmaskMatchLua);
   lua_setglobal(d_lua, "matchnetmask");
@@ -108,7 +111,7 @@ bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
 
   bool ret=false;
   if(!lua_isnil(d_lua, -1)) {
-    value = lua_tonumber(d_lua, -1);
+    value = (uint32_t)lua_tonumber(d_lua, -1);
     ret=true;
   }
   lua_pop(d_lua, 1);
@@ -129,15 +132,18 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   lua_pushstring(d_lua,  query.c_str() );
   lua_pushnumber(d_lua,  qtype.getCode() );
 
-  lua_call(d_lua,  3, 2);
-  res = lua_tonumber(d_lua, 1); // new rcode
+  if(lua_pcall(d_lua,  3, 2, 0)) { // error 
+    string error=string("lua error: ")+lua_tostring(d_lua, -1);
+    lua_pop(d_lua, 1);
+    throw runtime_error(error);
+    return false;
+  }
+  res = (int)lua_tonumber(d_lua, 1); // new rcode
   if(res < 0) {
     //    cerr << "handler did not handle"<<endl;
     lua_pop(d_lua, 2);
     return false;
   }
-  else
-    cerr<<"res = "<<res<<endl;
 
   /* get the result */
   DNSResourceRecord rr;
