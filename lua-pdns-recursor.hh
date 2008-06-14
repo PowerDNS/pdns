@@ -16,6 +16,8 @@ public:
 private:
   lua_State* d_lua;
   bool passthrough(const string& func, const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res);
+  bool getFromTable(const std::string& key, std::string& value);
+  bool getFromTable(const std::string& key, uint32_t& value);
   bool d_failed;
 };
 
