@@ -8167,8 +8167,9 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       <sect2>
 	<title>Configuring Lua scripts</title>
 	<para>
-	  In order to load scripts, the PowerDNS Recursor must have 'lua' support built in. The packages distributed from the PowerDNS website have this language
-	  enabled, other distributions may differ.
+	  In order to load scripts, the PowerDNS Recursor must have Lua support built in. The packages distributed from the PowerDNS website have this language
+	  enabled, other distributions may differ. To compile with Lua support, use: <literal>LUA=1 make</literal> or <literal>LUA=1 gmake</literal>
+	  as the case may be. Paths to the Lua include files and binaries may be found near the top of the <filename>Makefile</filename>.
 	</para>
 	<para>
 	  If lua support is available, a script can be configured either via the configuration file, or at runtime via the <command>rec_control</command> tool.
@@ -8187,11 +8188,11 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       </sect2>
       <sect2><title>Writing Lua PowerDNS Recursor scripts</title>
 	<para>
-	  Once a script is loaded, PowerDNS looks for two functions: <function>prequery</function> and <function>nxdomain</function>. Either or both of these
+	  Once a script is loaded, PowerDNS looks for two functions: <function>preresolve</function> and <function>nxdomain</function>. Either or both of these
 	  can be absent, in which case the corresponding functionality is disabled.
 	</para>
 	<para>
-	  <function>prequery</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
+	  <function>preresolve</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
 	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
 	</para>
 	<para>
@@ -8216,16 +8217,13 @@ function nxdomain ( ip, domain, qtype )
 
   ret={}
   if qtype ~= 1 then return -1, ret end  --  only A records
-  if not string.gmatch(domain, "^www.") then return -1, ret end  -- only things that start with www.
+  if not string.find(domain, "^www.") then return -1, ret end  -- only things that start with www.
   if not matchnetmask(ip, "10.0.0.0/8")  then return -1, ret end -- only interfere with local queries
-  ret[0]={qtype=1, content="127.1.2.3"}    -- add IN A 127.1.2.3
-  ret[1]={qtype=1, content="127.3.2.1"}    -- add IN A 127.3.2.1
-  return 0, ret                 -- return true, plus records
+  ret[1]={qtype=1, content="127.1.2.3"}    -- add IN A 127.1.2.3
+  ret[2]={qtype=1, content="127.3.2.1"}    -- add IN A 127.3.2.1
+  return 0, ret                 -- return no error, plus records
 end
 	  </screen>
-	</para>
-	<para>
-	  For Lua 5.0, use <function>string.find</function> instead of <function>string.gmatch</function>.
 	</para>
 	<para>
 	  <warning>
@@ -8286,11 +8284,21 @@ end
 	      <listitem>
 		<para>
 		  Time to live of a record. Defaults to 3600. Be sure not to specify differing TTLs within answers with an identical qname. While this
-		  can be encoded in DNS, results may be undesired.
+		  will be encoded in DNS, actual results may be undesired.
 		</para>
 	      </listitem>
 	    </varlistentry>
 	  </variablelist>
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      The result table must have indexes that start at 1! Otherwise the first or confusingly the last entry of the table will
+	      be ignored. A useful technique is to return data using: 
+	      <literal>return 0, {{qtype=1, content="1.2.3.4"}, {qtype=1, content="4.3.2.1"}}</literal> as this will get the numbering
+	      right automatically.
+	    </para>
+	  </warning>
 	</para>
       </sect2>
     </sect1>

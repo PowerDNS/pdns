@@ -538,11 +538,12 @@ void startDoResolve(void *p)
 
     int res;
 
-    if(!g_pdl.get() || !g_pdl->prequery(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) {
+    if(!g_pdl.get() || !g_pdl->preresolve(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) {
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
-       if(g_pdl.get() && (res < 0 || res == RCode::NXDomain || res == RCode::ServFail)) {
-	 g_pdl->nxdomain(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
+       if(g_pdl.get()) {
+	 if(res == RCode::NXDomain)
+	   g_pdl->nxdomain(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
        }
     }
 
