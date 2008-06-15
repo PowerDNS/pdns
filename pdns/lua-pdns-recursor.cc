@@ -45,14 +45,19 @@ using namespace std;
 extern "C" int netmaskMatchLua(lua_State *lua)
 {
   bool result=false;
-  if(lua_gettop(lua) == 2) {
+  if(lua_gettop(lua) >= 2) {
     string ip=lua_tostring(lua, 1);
-    string netmask=lua_tostring(lua, 2);
-
-    Netmask nm(netmask);
-    ComboAddress ca(ip);
-    
-    result = nm.match(ip);
+    for(int n=2 ; n <= lua_gettop(lua); ++n) { 
+      string netmask=lua_tostring(lua, n);
+      
+      Netmask nm(netmask);
+      ComboAddress ca(ip);
+      
+      result = nm.match(ip);
+      if(result)
+	break;
+      
+    }
   }
   lua_pushboolean(lua, result);
   return 1;
@@ -77,6 +82,16 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   
   lua_pushcfunction(d_lua, netmaskMatchLua);
   lua_setglobal(d_lua, "matchnetmask");
+  lua_newtable(d_lua);
+
+  for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
+    lua_pushnumber(d_lua, iter->second);
+    lua_setfield(d_lua, -2, iter->first.c_str());
+  }
+  lua_pushnumber(d_lua, 3);
+  lua_setfield(d_lua, -2, "NXDOMAIN");
+  lua_setglobal(d_lua, "pdns");
+
 }
 
 bool PowerDNSLua::nxdomain(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)

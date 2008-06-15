@@ -37,6 +37,22 @@ $ CXXFLAGS=-I./boost_1_33_1/ make all
 
 5) (g)make install
 
+(use gmake on many BSD variant and Solaris, regular make on Linux)
+
+OPTIONAL LUA SCRIPTING
+----------------------
+To benefit from Lua scripting, as described on
+http://doc.powerdns.com/recursor-scripting.html please compile like this:
+
+$ LUA=1 (g)make
+or even
+
+$ LUA=1 LUA_CPPFLAGS_CONFIG=-I/usr/local/include/lua5.1 LUA_LIBS_CONFIG=-llua5.1\
+	(g)make
+
+Use the _CONFIG settings to point out to PowerDNS where your Lua
+installation resides. PowerDNS supports both Lua 5.0 and 5.1.
+
 PLATFORM SPECIFIC NOTES
 -----------------------
 When compiling on Solaris 8, use:
