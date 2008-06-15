@@ -14,7 +14,7 @@ bool PowerDNSLua::nxdomain(const ComboAddress& remote, const string& query, cons
   return false;
 }
 
-bool PowerDNSLua::prequery(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::preresolve(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
   return false;
 }
