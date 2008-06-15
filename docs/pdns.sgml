@@ -97,8 +97,22 @@
 	  UNRELEASED
 	</para>
 	<para>
-	  This version contains a small number of fixes, some more important than others:
+	  This version contains powerful scripting abilities, allowing operators to modify DNS responses in many
+	  interesting ways. Among other things, these abilities can be used to filter out malware domains, to perform 
+	  load balancing, to comply with legal and other requirements and finally, to implement 'NXDOMAIN' redirection.
 	</para>
+	<para>
+	  It is hoped that the addition of Lua scripting will enable responsible DNS modification for those that need it.
+	</para>
+	<para>
+	  For more details about the Lua scripting, which can be modified, loaded and unloaded at runtime, see <xref linkend="recursor-scripting">.
+	  Many thanks are due to the #lua irc channel, for excellent near-realtime Lua support. In addition, a number of PowerDNS users have been
+	  enthousiastically testing prereleases of the scripting support, and have found and solved many issues.
+	</para>
+	<para>
+	  In addition, 3.1.7 fixes a number of bugs:
+	</para>
+	    
 	<para>
 	<itemizedlist>
 	  <listitem>
@@ -8204,7 +8218,8 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  have taken over the request, or want to let normal proceedings take their course.
 	</para>
 	<para>
-	  If a function has taken over a request, it should return an rcode (usually 0), and specify a table with records to be put in the answer section of a packet. 
+	  If a function has taken over a request, it should return an rcode (usually 0), and specify a table with records to be put in the answer section 
+	  of a packet. An interesting rcode is NXDOMAIN (3, or <function>pdns.NXDOMAIN</function>), which specifies the non-existence of a domain.
 	  Returning -1 and an empty table signifies that the function chose not to intervene.
 	</para>
 	<para>
@@ -8216,11 +8231,11 @@ function nxdomain ( ip, domain, qtype )
   print ("nxhandler called for: ", ip, domain, qtype)
 
   ret={}
-  if qtype ~= 1 then return -1, ret end  --  only A records
+  if qtype ~= pdns.A then return -1, ret end  --  only A records
   if not string.find(domain, "^www.") then return -1, ret end  -- only things that start with www.
   if not matchnetmask(ip, "10.0.0.0/8")  then return -1, ret end -- only interfere with local queries
-  ret[1]={qtype=1, content="127.1.2.3"}    -- add IN A 127.1.2.3
-  ret[2]={qtype=1, content="127.3.2.1"}    -- add IN A 127.3.2.1
+  ret[1]={qtype=pdns.A, content="127.1.2.3"}    -- add IN A 127.1.2.3
+  ret[2]={qtype=pdns.A, content="127.3.2.1"}    -- add IN A 127.3.2.1
   return 0, ret                 -- return no error, plus records
 end
 	  </screen>
@@ -8233,16 +8248,19 @@ end
 	  </warning>
 	</para>
 	<para>
-	  In this sample, the numerical identifier of the A record (1) is used. Later versions of PowerDNS may support a model where labels can be described non-numerically.
-	  Additionally, the answer content format is (nearly) identical to the storage in the PowerDNS Authoritative Server database, or as in zone files. 
-	  The exception is that, unlike in the datbase, there is no 'prio' field, which means that an MX record with priority 25 pointing to 'smtp.mailserver.com' would be encoded as
+	  Note that the domain is passed to the Lua function terminated by a '.'.
+	  A more complete sample script is provided as <filename>powerdns-example-script.lua</filename> in the PowerDNS Recursor distribution.
+	</para>
+	<para>
+	  The answer content format is (nearly) identical to the storage in the PowerDNS Authoritative Server database, or as in zone files. 
+	  The exception is that, unlike in the database, there is no 'prio' field, which means that an MX record with priority 25 pointing to 'smtp.mailserver.com' would be encoded as
 	  '25 smtp.mailserver.com.'.
 	</para>
 	<para>
-	  Useful return 'rcodes' include 0 for "no error" and 3 for "NXDOMAIN".
+	  Useful return 'rcodes' include 0 for "no error" and <function>pdns.NXDOMAIN</function> for "NXDOMAIN".
 	</para>
 	<para>
-	  Useful fields that can be set in the return table include:
+	  Fields that can be set in the return table include:
 	  <variablelist>
 	    <varlistentry>
 	      <term>content</term>
@@ -8275,7 +8293,8 @@ end
 	      <term>qtype</term>
 	      <listitem>
 		<para>
-		  Currently the numerical qtype of the answer, defaulting to '1' which is an A record. '2' is an NS record, '5' a CNAME and '15' an MX record.
+		  Currently the numerical qtype of the answer, defaulting to '1' which is an A record. Can be also be specified as 
+		  <function>pdns.A</function>, or <function>pdns.CNAME</function> etc.
 		</para>
 	      </listitem>
 	    </varlistentry>
