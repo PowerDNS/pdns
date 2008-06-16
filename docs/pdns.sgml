@@ -8233,7 +8233,7 @@ function nxdomain ( ip, domain, qtype )
   ret={}
   if qtype ~= pdns.A then return -1, ret end  --  only A records
   if not string.find(domain, "^www.") then return -1, ret end  -- only things that start with www.
-  if not matchnetmask(ip, "10.0.0.0/8")  then return -1, ret end -- only interfere with local queries
+  if not matchnetmask(ip, "10.0.0.0/8", "192.168.0.0/16")  then return -1, ret end -- only interfere with local queries
   ret[1]={qtype=pdns.A, content="127.1.2.3"}    -- add IN A 127.1.2.3
   ret[2]={qtype=pdns.A, content="127.3.2.1"}    -- add IN A 127.3.2.1
   return 0, ret                 -- return no error, plus records
@@ -8318,6 +8318,10 @@ end
 	      right automatically.
 	    </para>
 	  </warning>
+	</para>
+	<para>
+	  Finally, the function <function>matchnetmask(ip, netmask1, netmask2..)</function> is available to match incoming queries against
+	  a number of netmasks. If any of these matches, the function returns true.
 	</para>
       </sect2>
     </sect1>
@@ -8634,7 +8638,7 @@ end
 	Since 2.9.21, PowerDNS supports multiple masters. For the BIND backend, the native BIND configuration language suffices to specify
 	multiple masters, for SQL based backends, list all master servers separated by commas in the 'master' field of the domains table.
       </para>
-      <sect2 id=supermaster><title>Supermaster automatic provisioning of slaves</title>
+      <sect2 id="supermaster"><title>Supermaster automatic provisioning of slaves</title>
 	<para>
 	  PDNS can recognize so called 'supermasters'. A supermaster is a host which is master for domains and for which we are to be a slave. When
 	  a master (re)loads a domain, it sends out a notification to its slaves. Normally, such a notification is only accepted if PDNS already 
@@ -8645,8 +8649,23 @@ end
 	  is bonafide, PDNS can provision the domain automatically, and configure itself as a slave for that zone.
 	</para>
 	<para>
-	  To enable this feature, a backend needs to know about the IP address of the supermaster, and how PDNS will be listed in the set of
-	  NS records remotely, and the 'account' name of your supermaster. There is no need to fill this out but it does help keep track of
+	  Before a supermaster notification succeeds, the following conditions must be met:
+	  <itemizedlist>
+	    <listitem><para>
+		The supermaster must carry a SOA record for the notified domain
+	    </para></listitem>
+	    <listitem><para>
+		The supermaster IP must be present in the 'supermaster' table
+	    </para></listitem>
+	    <listitem><para>
+		The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that 
+		goes with the IP address in the supermaster table
+	    </para></listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	  So, to benefit from this feature, a backend needs to know about the IP address of the supermaster, and how PDNS will be listed in the set of
+	  NS records remotely, and the 'account' name of your supermaster. There is no need to fill the account name out but it does help keep track of
 	  where a domain comes from.
 	</para>
       </sect2>
@@ -11966,11 +11985,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
     </sect1>
     <sect1 id="xdbbackend"><Title>XDB Backend</title>
       <para>
-	Special purpose backend for grandiose performance. Can talk to Tridge's Trivial Database, or to regular *db tables on disk. Currently only sparsely
-	documented. Very useful if you need to do &gt;50.000 queries/second, which we actually measured on the .ORG zone.
-      </para>
-      <para>
-	More documentation will follow.
+	No longer part of PowerDNS.
       </para>
     </sect1>
     <sect1 id="ldap"><Title>LDAP backend</title>
@@ -12032,6 +12047,50 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	</table>
       </para>
     </sect1>
+    <sect1 id="geo"><Title>Geo backend</title>
+      <para>
+	<warning>
+	  <para>
+	    This section is a subset of the full documentation which can be found in <filename>modules/geobackend/README</filename> of
+	    the PowerDNS distribution.
+	  </para>
+	</warning>
+      </para>
+      <para>
+	The main author for this module is Mark Bergsma.
+      </para>
+      <para>
+	<table>
+	  <title>Geo backend capabilities</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row><entry>Native</entry><entry>Partial</entry></row>
+	      <row><entry>Master</entry><entry>No</entry></row>
+	      <row><entry>Slave</entry><entry>No</entry></row>
+	      <row><entry>Superslave</entry><entry>No</entry></row>
+	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	The Geo Backend can be used to distribute queries globally using an IP-address/country mapping table, several of which are freely available
+	online or can be acquired for a small fee.
+      </para>
+      <para>
+	This allows visitors to be sent to a server close to them, with no appreciable delay, as would otherwise be incurred with a protocol level redirect.
+	Additionally, the Geo Backend can be used to provide service over several clusters, any of which can be taken out of use easily, for example 
+	for maintenance purposes.
+      </para>
+      <para>
+	The Geo Backend is in wide use, for example by the Wikimedia foundation, which uses it to power the Wikipedia global load balancing.
+      </para>
+      <para>
+	More details can be found <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/geobackend/README">here</ulink>, or in
+	<filename>modules/geobackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
+      </para>
+    </sect1>
+
   </appendix>
 <appendix id="pdns-internals"><title>PDNS internals</title>
     <para>
