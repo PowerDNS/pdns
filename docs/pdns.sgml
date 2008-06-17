@@ -140,6 +140,13 @@
 	  </listitem>
 	  <listitem>
 	    <para>
+	      <command>rec_control wipe-cache</command> now also wipes domains from the negative cache, hurrying up the expiry
+	      of negatively cached records. Suggested by Simon Kirby, implemented in c1204.
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
 	      Marcus Rueckert of OpenSUSE reported that very recent gcc versions emitted a (correct) warning on an overly complicated line
 	      in syncres.cc, fixed in c1189.
 	    </para>

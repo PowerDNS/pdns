@@ -90,11 +90,16 @@ string doDumpCache(T begin, T end)
 template<typename T>
 string doWipeCache(T begin, T end)
 {
-  int count=0;
-  for(T i=begin; i != end; ++i)
+  int count=0, countNeg=0;
+  for(T i=begin; i != end; ++i) {
     count+=RC.doWipeCache(toCanonic("", *i));
+    string canon=toCanonic("", *i);
+    countNeg+=SyncRes::s_negcache.count(tie(canon));
+    pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::s_negcache.equal_range(tie(canon));
+    SyncRes::s_negcache.erase(range.first, range.second);
+  }
 
-  return "wiped "+lexical_cast<string>(count)+" records\n";
+  return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
 }
 
 template<typename T>
