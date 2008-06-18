@@ -42,23 +42,42 @@ extern "C" {
 
 using namespace std;
 
+bool netmaskMatchTable(lua_State* lua, const std::string& ip)
+{
+  lua_pushnil(lua);  /* first key */
+  while (lua_next(lua, 2) != 0) {
+    string netmask=lua_tostring(lua, -1);
+    Netmask nm(netmask);
+    ComboAddress ca(ip);
+    lua_pop(lua, 1);
+    
+    if(nm.match(ip)) 
+      return true;
+  }
+  return false;
+}
+
 extern "C" int netmaskMatchLua(lua_State *lua)
 {
   bool result=false;
   if(lua_gettop(lua) >= 2) {
     string ip=lua_tostring(lua, 1);
-    for(int n=2 ; n <= lua_gettop(lua); ++n) { 
-      string netmask=lua_tostring(lua, n);
-      
-      Netmask nm(netmask);
-      ComboAddress ca(ip);
-      
-      result = nm.match(ip);
-      if(result)
-	break;
-      
+    if(lua_istable(lua, 2)) {
+      result = netmaskMatchTable(lua, ip);
+    }
+    else {
+      for(int n=2 ; n <= lua_gettop(lua); ++n) { 
+	string netmask=lua_tostring(lua, n);
+	Netmask nm(netmask);
+	ComboAddress ca(ip);
+	
+	result = nm.match(ip);
+	if(result)
+	  break;
+      }
     }
   }
+  
   lua_pushboolean(lua, result);
   return 1;
 }
