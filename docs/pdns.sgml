@@ -151,6 +151,13 @@
 	      in syncres.cc, fixed in c1189.
 	    </para>
 	  </listitem>
+	  <listitem>
+	    <para>
+	      Stefan Schmidt discovered that the netmask matching code, used by the new Lua scripts, but also by all other parts of PowerDNS, had problems
+	      with explicit '/32' matches. Fixed in c1205.
+	    </para>
+	  </listitem>
+
 	</itemizedlist>
 	</para>
       </sect2>
@@ -7983,8 +7990,7 @@ local0.err                        /var/log/pdns.err
 		<para>
 		  <warning>
 		    <para>
-		    In PowerDNS versions 3.0.0 and 3.0.1 this command is slightly buggy and might cause your nameserver to crash if the first
-		    query after wiping the cache is for the domain you just wiped.
+		      As of 3.1.7, this command also wipes the negative query cache for the specified domain.
 		    </para>
 		  </warning>
 		  <warning>
