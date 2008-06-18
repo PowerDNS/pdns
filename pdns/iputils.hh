@@ -207,6 +207,8 @@ public:
       d_bits = (uint8_t) atoi(split.second.c_str());
       if(d_bits<32)
 	d_mask=~(0xFFFFFFFF>>d_bits);
+      else
+	d_mask=0xFFFFFFFF;
     }
     else if(d_network.sin4.sin_family==AF_INET) {
       d_bits = 32;
