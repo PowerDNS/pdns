@@ -42,6 +42,85 @@ PacketCache::PacketCache()
   statnumentries=S.getPointer("packetcache-size");
 }
 
+int PacketCache::get(DNSPacket *p, DNSPacket *cached)
+{
+  extern StatBag S;
+  if(!((d_hit+d_miss)%5000)) {
+    cleanup();
+  }
+
+  if(d_ttl<0) 
+    getTTLS();
+
+  if(d_doRecursion && p->d.rd) { // wants recursion
+    if(!d_recursivettl) {
+      (*statnummiss)++;
+      d_miss++;
+      return 0;
+    }
+  }
+  else { // does not
+    if(!d_ttl) {
+      (*statnummiss)++;
+      d_miss++;
+      return 0;
+    }
+  }
+    
+  bool packetMeritsRecursion=d_doRecursion && p->d.rd;
+  char ckey[512];
+  int len=p->qdomain.length();
+  memcpy(ckey,p->qdomain.c_str(),len); // add TOLOWER HERE FIXME XXX
+  ckey[len]='|';
+  ckey[len+1]=packetMeritsRecursion ? 'r' : 'n';
+  ckey[len+2]=(p->qtype.getCode()>>8)&0xff;
+  ckey[len+3]=(p->qtype.getCode())&0xff;
+  string key;
+
+  key.assign(ckey,p->qdomain.length()+4);
+  //  cout<<"key lookup: '"<<key<<"'"<<endl;
+  //  string key=toLower(p->qdomain+"|"+(packetMeritsRecursion ? "R" : "N")+ "|"+p->qtype.getName());
+
+  if(ntohs(p->d.qdcount)!=1) // we get confused by packets with more than one question
+    return 0;
+
+  {
+    TryReadLock l(&d_mut); // take a readlock here
+    if(!l.gotIt()) {
+      S.inc("deferred-cache-lookup");
+      return 0;
+    }
+
+    if(!((d_hit+d_miss)%1000)) {
+      *statnumentries=d_map.size(); // needs lock
+    }
+    cmap_t::const_iterator i;
+    if((i=d_map.find(key))!=d_map.end()) { // HIT!
+
+      if(i->second.ttd>time(0)) { // it is still fresh
+	(*statnumhit)++;
+	d_hit++;
+	if(cached->parse(i->second.value.c_str(), i->second.value.size()) < 0) {
+	  return -1;
+	}
+	cached->spoofQuestion(p->qdomain); // for correct case
+	return 1;
+      }
+    }
+  }
+  (*statnummiss)++;
+  d_miss++;
+  return 0; // bummer
+}
+
+void PacketCache::getTTLS()
+{
+  d_ttl=arg().asNum("cache-ttl");
+  d_recursivettl=arg().asNum("recursive-cache-ttl");
+
+  d_doRecursion=arg().mustDo("recursor"); 
+}
+
 
 void PacketCache::insert(DNSPacket *q, DNSPacket *r)
 {
@@ -70,41 +149,6 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
   insert(key,r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl);
 }
 
-void PacketCache::getTTLS()
-{
-  d_ttl=arg().asNum("cache-ttl");
-  d_recursivettl=arg().asNum("recursive-cache-ttl");
-
-  d_doRecursion=arg().mustDo("recursor"); 
-}
-
-void PacketCache::insert(const char *packet, int length) 
-{
-  if(d_ttl<0)
-    getTTLS();
-
-  DNSPacket p;
-  p.parse(packet,length);
-
-  bool packetMeritsRecursion=d_doRecursion && p.d.rd;
-
-  char ckey[512];
-  unsigned int len=p.qdomain.length();
-  if(len > sizeof(ckey))
-    return;
-  memcpy(ckey, p.qdomain.c_str(), len); // add TOLOWER HERE FIXME XXX
-  ckey[len]='|';
-  ckey[len+1]=packetMeritsRecursion ? 'r' : 'n';
-  ckey[len+2]=(p.qtype.getCode()>>8) & 0xff;
-  ckey[len+3]=(p.qtype.getCode()) & 0xff;
-  string key;
-  key.assign(ckey,p.qdomain.length()+4);
-  //  string key=toLower(p.qdomain+"|"+(packetMeritsRecursion ? "R" : "N")+"|"+p.qtype.getName());
-
-  string buffer;
-  buffer.assign(packet,length);
-  insert(key,buffer, packetMeritsRecursion ? d_recursivettl : d_ttl);
-}
 
 void PacketCache::insert(const string &key, const string &packet, unsigned int ttl)
 {
