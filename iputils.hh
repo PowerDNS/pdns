@@ -214,8 +214,10 @@ public:
       d_bits = 32;
       d_mask = 0xFFFFFFFF;
     }
-    else 
+    else {
       d_bits=128;
+      d_mask=0;  // silence silly warning - d_mask is unused for IPv6
+    }
   }
 
   bool match(const ComboAddress& ip) const
