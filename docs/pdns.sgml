@@ -144,6 +144,14 @@
 	      of negatively cached records. Suggested by Simon Kirby, implemented in c1204.
 	    </para>
 	  </listitem>
+	  <listitem>
+	    <para>
+	      When a forwarder server is configured for a domain, using the <command>forward-zones</command> setting, this server IP address was
+	      filtered using the <command>dont-query</command> setting, which is generally not what is desired: the server to which queries are
+	      forwarded will often live in private IP space, and the operator should be trusted to know what he is doing. Reported and argued by Simon
+	      Kirby, fix in c1211.
+	    </para>
+	  </listitem>
 
 	  <listitem>
 	    <para>

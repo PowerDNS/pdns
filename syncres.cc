@@ -624,6 +624,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       remoteIPs_t::const_iterator remoteIP;
       bool doTCP=false;
       int resolveret;
+      bool pierceDontQuery=false;
 
       LWResult lwr;
       if(tns->empty()) {
@@ -634,16 +635,20 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       }
       else {
 	LOG<<prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl;
+
 	if(!isCanonical(*tns)) {
 	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver(s)"<<endl;
 
 	  pair<string,string> ipport=splitField(*tns, ':');
 	  ComboAddress addr(ipport.first, ipport.second.empty() ? 53 : lexical_cast<uint16_t>(ipport.second));
-
+	  
 	  remoteIPs.push_back(addr);
+	  pierceDontQuery=true;
 	}
-	else
+	else {
 	  remoteIPs=getAs(*tns, depth+1, beenthere);
+	  pierceDontQuery=false;
+	}
 
 	if(remoteIPs.empty()) {
 	  LOG<<prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl;
@@ -670,7 +675,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    s_throttledqueries++; d_throttledqueries++;
 	    continue;
 	  } 
-	  else if(g_dontQuery && g_dontQuery->match(&*remoteIP)) {
+	  else if(!pierceDontQuery && g_dontQuery && g_dontQuery->match(&*remoteIP)) {
 	    LOG<<prefix<<qname<<": not sending query to " << remoteIP->toString() << ", blocked by 'dont-query' setting" << endl;
 	    continue;
 	  }
