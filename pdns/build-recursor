@@ -1,6 +1,8 @@
 #!/bin/sh
 cd pdns-recursor-$1
 dh_make -e bert.hubert@netherlabs.nl -b  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
+export LUA=1
+export STATIC=semi
 fakeroot debian/rules binary
 fakeroot rpmbuild -bb ../pdns-recursor.spec
  

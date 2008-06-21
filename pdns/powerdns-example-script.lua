@@ -1,11 +1,10 @@
 function preresolve ( ip, domain, qtype )
 	print ("prequery handler called for: ", ip, domain, qtype)
 
-	if domain == "www.ds9c.nl." 
+	if domain == "www.powerdns.org." 
 	then
 		ret={}
-		ret[1]= {qtype=pdns.A, content="9.8.7.6", ttl=3601}
-		ret[2]= {qtype=pdns.A, content="1.2.3.4", ttl=3601}
+		ret[1]= {qtype=pdns.A, content="85.17.219.141", ttl=86400}
 		print "dealing!"
 		return 0, ret
 	elseif domain == "www.baddomain.com."
@@ -31,7 +30,7 @@ function nxdomain ( ip, domain, qtype )
 	if qtype ~= pdns.A then return -1, {} end  --  only A records
 	if not string.find(domain, "^www.") then return -1, {} end  -- only things that start with www.
 	
-	if matchnetmask(ip, "10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12", "::/0")
+	if matchnetmask(ip, {"127.0.0.1/32", "10.1.0.0/16"}) -- , "192.168.0.0/16", "172.16.0.0/12", "::/0")
 	then 
 		print "dealing"
 		ret={}
