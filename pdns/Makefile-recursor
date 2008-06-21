@@ -39,11 +39,13 @@ endif
 
 
 ifeq ($(STATIC),semi)
-        STATICFLAGS=-Wl,-Bstatic -lstdc++ $(LUALIBS) -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
-        LINKCC=$(CC)
-elseifeq ($(STATIC),full)
-        STATICFLAGS=-lstdc++ -lm $(LUALIBS) -static 
-        LINKCC=$(CC)
+	STATICFLAGS=-Wl,-Bstatic -lstdc++ $(LUALIBS) -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
+	LINKCC=$(CC)
+	LDFLAGS += -ldl
+else ifeq ($(STATIC),full)
+	STATICFLAGS=-lstdc++ -lm $(LUALIBS) -static 
+	LDFLAGS += -ldl
+	LINKCC=$(CC)
 else
 	LDFLAGS += $(LUALIBS)
 endif
