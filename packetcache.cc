@@ -21,6 +21,7 @@
 #include "arguments.hh"
 #include "statbag.hh"
 #include <map>
+#include <boost/algorithm/string.hpp>
 
 extern StatBag S;
 
@@ -129,7 +130,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   if(!ttl)
     return;
   
-  //  cerr<<"Inserting, cet: "<<(int)cet<<endl;
+  //  cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", value: '"<< (cet ? value : "PACKET") <<"', qtype: "<<qtype.getName()<<endl;
 
   CacheEntry val;
   val.ttd=time(0)+ttl;
@@ -157,7 +158,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
 int PacketCache::purge(const string &match)
 {
   WriteLock l(&d_mut);
-  int delcount;
+  int delcount=0;
 
   if(match.empty()) {
     delcount = d_map.size();
@@ -170,13 +171,71 @@ int PacketCache::purge(const string &match)
      pertains 'www.powerdns.com' but we also want to be able to delete everything
      in the powerdns.com zone, so: 'powerdns.com' and '*.powerdns.com'.
 
-     However, we do NOT want to delete 'usepowerdns.com!'
+     However, we do NOT want to delete 'usepowerdns.com!, nor 'powerdnsiscool.com'
+
+     So, at first shot, store in reverse label order:
+
+     'be.someotherdomain'
+     'com.powerdns'
+     'com.powerdns.images'
+     'com.powerdns.www'
+     'com.powerdnsiscool'
+     'com.usepowerdns.www'
+
+     If we get a request to remove 'everything above powerdns.com', we do a search for 'com.powerdns' which is guaranteed to come first (it is shortest!)
+     Then we delete everything that is either equal to 'com.powerdns' or begins with 'com.powerdns.' This trailing dot saves us 
+     from deleting 'com.powerdnsiscool'.
+
+     We can stop the process once we reach something that doesn't match.
+
+     Ok - fine so far, except it doesn't work! Let's say there *is* no 'com.powerdns' in cache!
+
+     In that case our request doesn't find anything.. now what.
+     lower_bound to the rescue! It finds the place where 'com.powerdns' *would* be.
+     
+     Ok - next step, can we get away with simply reversing the string?
+
+     'moc.sndrewop'
+     'moc.sndrewop.segami'
+     'moc.sndrewop.www'
+     'moc.loocsidnsrewop'
+     'moc.dnsrewopesu.www'
+
+     Ok - next step, can we get away with only reversing the comparison?
+
+     'powerdns.com'
+     'images.powerdns.com'
+     '   www.powerdns.com'
+     'powerdnsiscool.com'
+     'www.userpowerdns.com'
+
   */
+  if(ends_with(match, "$")) {
+    string suffix(match);
+    suffix.resize(suffix.size()-1);
 
-  delcount=d_map.count(tie(match));
-  pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(match));
-  d_map.erase(range.first, range.second);
+    //    cerr<<"Begin dump!"<<endl;
+    cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix));
+    cmap_t::const_iterator start=iter;
+    string dotsuffix = "."+suffix;
 
+    for(; iter != d_map.end(); ++iter) {
+      if(!iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
+	//	cerr<<"Stopping!"<<endl;
+	break;
+      }
+      //      cerr<<"Will erase '"<<iter->qname<<"'\n";
+
+      delcount++;
+    }
+    //    cerr<<"End dump!"<<endl;
+    d_map.erase(start, iter);
+  }
+  else {
+    delcount=d_map.count(tie(match));
+    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(match));
+    d_map.erase(range.first, range.second);
+  }
   *statnumentries=d_map.size();
   return delcount;
 }
