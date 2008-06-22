@@ -15,6 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "packetcache.hh"
 #include "utility.hh"
 #include "resolver.hh"
 #include <pthread.h>
@@ -61,14 +62,14 @@ void Resolver::makeSocket(int type)
   memset((char *)&sin,0, sizeof(sin));
   
   sin.sin_family = AF_INET;
-  if(!IpToU32(arg()["query-local-address"], &sin.sin_addr.s_addr))
-    throw AhuException("Unable to resolve local address '"+ arg()["query-local-address"] +"'"); 
+  if(!IpToU32(::arg()["query-local-address"], &sin.sin_addr.s_addr))
+    throw AhuException("Unable to resolve local address '"+ ::arg()["query-local-address"] +"'"); 
 
   int tries=10;
   while(--tries) {
     sin.sin_port = htons(10000+(dns_random(10000)));
   
-    if (bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
+    if (::bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
       break;
 
   }
@@ -228,11 +229,11 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
     throw ResolverException("Unable to make a TCP socket for resolver: "+stringerror());
 
   // Use query-local-address as source IP for queries, if specified.
-  string querylocaladdress(arg()["query-local-address"]);
+  string querylocaladdress(::arg()["query-local-address"]);
   if (!querylocaladdress.empty()) {
     ComboAddress fromaddr(querylocaladdress, 0);
 
-    if (bind(d_sock, (struct sockaddr *)&fromaddr, fromaddr.getSocklen()) < 0) {
+    if (::bind(d_sock, (struct sockaddr *)&fromaddr, fromaddr.getSocklen()) < 0) {
       Utility::closesocket(d_sock);
       d_sock=-1;
       throw ResolverException("Binding to query-local-address: "+stringerror());

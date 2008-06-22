@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2004  PowerDNS.COM BV
+    Copyright (C) 2004 - 2008 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -15,6 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "packetcache.hh"
 #include "utility.hh"
 #include "dnsproxy.hh"
 #include "ahuexception.hh"
@@ -23,7 +24,7 @@
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
-#include "packetcache.hh"
+
 
 extern StatBag S;
 extern PacketCache PC;
@@ -50,7 +51,7 @@ DNSProxy::DNSProxy(const string &remote)
   for(;n<10;n++) {
     sin.sin_port = htons(10000+( Utility::random()%50000));
     
-    if(bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
+    if(::bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
       break;
   }
   if(n==10) {
