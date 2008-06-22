@@ -49,6 +49,31 @@ using namespace boost;
     first marks and then sweeps, a second lock is present to prevent simultaneous inserts and deletes.
 */
 
+struct CIBackwardsStringCompare: public binary_function<string, string, bool>  
+{
+  bool operator()(const string& a, const string& b) const
+  {
+    const unsigned char *p1 = (const unsigned char *) a.c_str() + a.length();
+    const unsigned char *p2 = (const unsigned char *) b.c_str() + b.length();
+    int result;
+    
+    if (p1 == p2) {
+      return 0;
+    }
+    
+    while ((result = dns_tolower (*p1--) - dns_tolower (*p2--)) == 0)
+      if (p1 == (unsigned char*)a.c_str() || p2 == (unsigned char*) b.c_str())
+	break;
+    
+    if(result==0) { // one of our strings ended, the shortest one is smaller then
+      return a.length() < b.length();
+    }
+
+    return result < 0;
+  }
+};
+
+
 class PacketCache
 {
 public:
@@ -96,7 +121,7 @@ private:
 			member<CacheEntry,int, &CacheEntry::zoneID>,
 			member<CacheEntry,bool, &CacheEntry::meritsRecursion>
                       >,
-		  composite_key_compare<CIStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool> >
+		  composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool> >
                 >,
                sequenced<>
                >
