@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2005  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -15,6 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "packetcache.hh"
 #include "utility.hh"
 #include "dynhandler.hh"
 #include "statbag.hh"
@@ -164,7 +165,7 @@ string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid)
     if(*p==parts[1])
       break;
   if(*p) {
-    arg().set(parts[1])=parts[2];
+    ::arg().set(parts[1])=parts[2];
     return "done";
   }
   else

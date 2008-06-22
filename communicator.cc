@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
+#include "packetcache.hh"
 #include "utility.hh"
 #include <errno.h>
 #include "communicator.hh"
@@ -197,7 +197,7 @@ bool CommunicatorClass::notifyDomain(const string &domain)
 
 void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
 {
-  if(!arg().mustDo("master"))
+  if(!::arg().mustDo("master"))
     return; 
 
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
@@ -369,7 +369,7 @@ void CommunicatorClass::makeNotifySocket()
   sin.sin_family = AF_INET;
 
   // Bind to a specific IP (query-local-address) if specified
-  string querylocaladdress(arg()["query-local-address"]);
+  string querylocaladdress(::arg()["query-local-address"]);
   if (querylocaladdress=="") {
     sin.sin_addr.s_addr = INADDR_ANY;
   }
@@ -390,7 +390,7 @@ void CommunicatorClass::makeNotifySocket()
   for(;n<10;n++) {
     sin.sin_port = htons(10000+(Utility::random()%50000));
     
-    if(bind(d_nsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
+    if(::bind(d_nsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
       break;
   }
   if(n==10) {
@@ -418,7 +418,7 @@ void CommunicatorClass::mainloop(void)
 #endif // WIN32
     L<<Logger::Error<<"Master/slave communicator launching"<<endl;
     PacketHandler P;
-    d_tickinterval=arg().asNum("slave-cycle-interval");
+    d_tickinterval=::arg().asNum("slave-cycle-interval");
     makeNotifySocket();
 
     int rc;

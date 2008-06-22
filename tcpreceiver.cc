@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002-2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -15,6 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "packetcache.hh"
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
@@ -34,7 +35,7 @@
 #include "lock.hh"
 #include "logger.hh"
 #include "arguments.hh"
-#include "packetcache.hh"
+
 #include "packethandler.hh"
 #include "statbag.hh"
 #include "resolver.hh"
@@ -195,7 +196,7 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
   Utility::setNonBlocking(sock);
   ServiceTuple st;
   st.port=53;
-  parseService(arg()["recursor"],st);
+  parseService(::arg()["recursor"],st);
 
   try {
     ComboAddress recursor(st.host, st.port);
@@ -337,10 +338,10 @@ void *TCPNameserver::doConnection(void *data)
 
 bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 {
-  if(arg().mustDo("disable-axfr"))
+  if(::arg().mustDo("disable-axfr"))
     return false;
 
-  if( arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->remote ) )
+  if( ::arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->remote ) )
     return true;
 
   extern CommunicatorClass Communicator;
@@ -438,7 +439,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 
   int count=0;
   int chunk=100; // FIXME: this should probably be autosizing
-  if(arg().mustDo("strict-rfc-axfrs"))
+  if(::arg().mustDo("strict-rfc-axfrs"))
     chunk=1;
 
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
@@ -482,15 +483,15 @@ TCPNameserver::~TCPNameserver()
 
 TCPNameserver::TCPNameserver()
 {
-//  sem_init(&d_connectionroom_sem,0,arg().asNum("max-tcp-connections"));
-  d_connectionroom_sem = new Semaphore( arg().asNum( "max-tcp-connections" ));
+//  sem_init(&d_connectionroom_sem,0,::arg().asNum("max-tcp-connections"));
+  d_connectionroom_sem = new Semaphore( ::arg().asNum( "max-tcp-connections" ));
 
   s_timeout=10;
   vector<string>locals;
-  stringtok(locals,arg()["local-address"]," ,");
+  stringtok(locals,::arg()["local-address"]," ,");
 
   vector<string>locals6;
-  stringtok(locals6,arg()["local-ipv6"]," ,");
+  stringtok(locals6,::arg()["local-ipv6"]," ,");
 
   if(locals.empty() && locals6.empty())
     throw AhuException("No local address specified");
@@ -498,7 +499,7 @@ TCPNameserver::TCPNameserver()
   d_highfd=0;
 
   vector<string> parts;
-  stringtok( parts, arg()["allow-axfr-ips"], ", \t" ); // is this IP on the guestlist?
+  stringtok( parts, ::arg()["allow-axfr-ips"], ", \t" ); // is this IP on the guestlist?
   for( vector<string>::const_iterator i = parts.begin(); i != parts.end(); ++i ) {
     d_ng.addMask( *i );
   }
@@ -514,7 +515,7 @@ TCPNameserver::TCPNameserver()
     if(s<0) 
       throw AhuException("Unable to acquire TCP socket: "+stringerror());
 
-    ComboAddress local(*laddr, arg().asNum("local-port"));
+    ComboAddress local(*laddr, ::arg().asNum("local-port"));
       
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -522,7 +523,7 @@ TCPNameserver::TCPNameserver()
       exit(1);  
     }
 
-    if(bind(s, (sockaddr*)&local, local.getSocklen())<0) {
+    if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to TCP socket");
     }
@@ -541,7 +542,7 @@ TCPNameserver::TCPNameserver()
     if(s<0) 
       throw AhuException("Unable to acquire TCPv6 socket: "+stringerror());
 
-    ComboAddress local(*laddr, arg().asNum("local-port"));
+    ComboAddress local(*laddr, ::arg().asNum("local-port"));
 
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {

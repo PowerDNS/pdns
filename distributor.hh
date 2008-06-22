@@ -151,7 +151,7 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
 
     // this is so gross
 #ifndef SMTPREDIR 
-    int queuetimeout=arg().asNum("queue-limit"); 
+    int queuetimeout=::arg().asNum("queue-limit"); 
 #endif 
     // ick ick ick!
 
@@ -287,8 +287,8 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
   if(!(nextid%50)) {
     int val;
     numquestions.getValue( &val );
-    if(val>arg().asNum("max-queue-length")) {
-      L<<Logger::Error<<val<<" questions waiting for database attention. Limit is "<<arg().asNum("max-queue-length")<<", respawning"<<endl;
+    if(val>::arg().asNum("max-queue-length")) {
+      L<<Logger::Error<<val<<" questions waiting for database attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
       exit(1);
     }
   }
