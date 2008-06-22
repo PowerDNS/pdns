@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2005 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -15,7 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
+#include "packetcache.hh"
 #include "utility.hh"
 
 #ifdef HAVE_CONFIG_H
@@ -38,7 +38,7 @@
 #include "dnspacket.hh"
 #include "logger.hh"
 #include "statbag.hh"
-#include "packetcache.hh"
+
 
 extern StatBag S;
 
@@ -240,8 +240,8 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
   static int *qcachehit=S.getPointer("query-cache-hit");
   static int *qcachemiss=S.getPointer("query-cache-miss");
 
-  static int negqueryttl=arg().asNum("negquery-cache-ttl");
-  static int queryttl=arg().asNum("query-cache-ttl");
+  static int negqueryttl=::arg().asNum("negquery-cache-ttl");
+  static int queryttl=::arg().asNum("query-cache-ttl");
 
   if(!negqueryttl && !queryttl) {
     (*qcachemiss)++;
@@ -251,9 +251,7 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
   string content;
   //  L<<Logger::Warning<<"looking up: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
 
-  string key=q.qname+"|Q|"+q.qtype.getName()+"|"+itoa(q.zoneId); // perhaps work around g++ 2.95 bug
-
-  bool ret=PC.getKey(key, content);   // think about lowercasing here
+  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, content, q.zoneId);   // think about lowercasing here
 
   if(!ret) {
     (*qcachemiss)++;
@@ -270,21 +268,21 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
 void UeberBackend::addNegCache(const Question &q)
 {
   extern PacketCache PC;
-  static int negqueryttl=arg().asNum("negquery-cache-ttl");
+  static int negqueryttl=::arg().asNum("negquery-cache-ttl");
   if(!negqueryttl)
     return;
   //  L<<Logger::Warning<<"negative inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
-  PC.insert(q.qname+"|Q|"+q.qtype.getName()+"|"+itoa(q.zoneId),"",negqueryttl);
+  PC.insert(q.qname, q.qtype, PacketCache::NEGCACHE, "", negqueryttl, q.zoneId);
 }
 
 void UeberBackend::addOneCache(const Question &q, const DNSResourceRecord &rr)
 {
   extern PacketCache PC;
-  static int queryttl=arg().asNum("query-cache-ttl");
+  static int queryttl=::arg().asNum("query-cache-ttl");
   if(!queryttl)
     return;
 
-  PC.insert(q.qname+"|Q|"+q.qtype.getName()+"|"+itoa(q.zoneId),rr.serialize(),queryttl);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, rr.serialize(), queryttl, q.zoneId);
 }
 
 
