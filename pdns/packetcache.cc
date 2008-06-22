@@ -27,7 +27,6 @@ extern StatBag S;
 PacketCache::PacketCache()
 {
   pthread_rwlock_init(&d_mut,0);
-  pthread_mutex_init(&d_dellock,0);
   d_hit=d_miss=0;
 
   d_ttl=-1;
@@ -146,61 +145,40 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
     cmap_t::iterator place;
     tie(place, success)=d_map.insert(val);
     //    cerr<<"Insert succeeded: "<<success<<endl;
-    //    if(!success)
-    //      cerr<<"Replace: "<<d_map.replace(place, val)<<endl;
+    if(!success)
+      d_map.replace(place, val);
     
   }
   else 
     S.inc("deferred-cache-inserts"); 
 }
 
-/** purges entries from the packetcache. If prefix ends on a $, it is treated as a suffix */
-int PacketCache::purge(const string &f_prefix)
+/** purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
+int PacketCache::purge(const string &match)
 {
-  Lock pl(&d_dellock);
+  WriteLock l(&d_mut);
+  int delcount;
 
-  string prefix(f_prefix);
-  if(prefix.empty()) {
-    cmap_t *tmp=new cmap_t;
-    {
-      DTime dt;
-      dt.set();
-      WriteLock l(&d_mut);
-      tmp->swap(d_map);
-      L<<Logger::Error<<"cache clean time: "<<dt.udiff()<<"usec"<<endl;
-    }
-
-    int size=tmp->size();
-    delete tmp;
-
+  if(match.empty()) {
+    delcount = d_map.size();
+    d_map.clear();
     *statnumentries=0;
-    return size;
+    return delcount;
   }
 
-  bool suffix=false;
-  if(prefix[prefix.size()-1]=='$') {
-    prefix=prefix.substr(0,prefix.size()-1);
-    suffix=true;
-  }
-  string check=prefix+"|";
+  /* ok, the suffix delete plan. We want to be able to delete everything that 
+     pertains 'www.powerdns.com' but we also want to be able to delete everything
+     in the powerdns.com zone, so: 'powerdns.com' and '*.powerdns.com'.
 
-  vector<cmap_t::iterator> toRemove;
+     However, we do NOT want to delete 'usepowerdns.com!'
+  */
 
-  ReadLock l(&d_mut);
+  delcount=d_map.count(tie(match));
+  pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(match));
+  d_map.erase(range.first, range.second);
 
-  for(cmap_t::iterator i=d_map.begin();i!=d_map.end();++i) {
-    string::size_type pos=i->qname.find(check);
-
-    if(!pos || (suffix && pos!=string::npos)) 
-      toRemove.push_back(i);
-  }
-
-  l.upgrade();  
-
-  for(vector<cmap_t::iterator>::const_iterator i=toRemove.begin();i!=toRemove.end();++i) 
-    d_map.erase(*i);
   *statnumentries=d_map.size();
-  return toRemove.size();
+  return delcount;
 }
 
 bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion)
@@ -211,7 +189,6 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     return false;
   }
 
-  // needs to do ttl check here
   uint16_t qt = qtype.getCode();
   cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion));
   time_t now=time(0);
@@ -233,7 +210,6 @@ map<char,int> PacketCache::getCounts()
   return ret;
 }
 
-
 int PacketCache::size()
 {
   ReadLock l(&d_mut);
@@ -243,7 +219,6 @@ int PacketCache::size()
 /** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-  Lock pl(&d_dellock); // ALWAYS ACQUIRE DELLOCK FIRST
   WriteLock l(&d_mut);
 
   *statnumentries=d_map.size();

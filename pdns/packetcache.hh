@@ -106,7 +106,6 @@ private:
   cmap_t d_map;
 
   pthread_rwlock_t d_mut;
-  pthread_mutex_t d_dellock;
 
   int d_hit;
   int d_miss;
