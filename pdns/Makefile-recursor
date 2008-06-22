@@ -21,7 +21,7 @@ LUA_LIBS_CONFIG ?= -llua5.1
 PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
 arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
-rec_channel.o rec_channel_rec.o malloc.o selectmplexer.o sillyrecords.o \
+rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
 dns_random.o aescrypt.o aeskey.o aes_modes.o aestab.o lua-pdns-recursor.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o 
@@ -41,13 +41,12 @@ endif
 ifeq ($(STATIC),semi)
 	STATICFLAGS=-Wl,-Bstatic -lstdc++ $(LUALIBS) -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
 	LINKCC=$(CC)
-	LDFLAGS += -ldl
+	LDFLAGS += malloc.o -ldl -lm
 else ifeq ($(STATIC),full)
-	STATICFLAGS=-lstdc++ -lm $(LUALIBS) -static 
-	LDFLAGS += -ldl
+	STATICFLAGS=-lstdc++ $(LUALIBS) -ldl -lm -static 
 	LINKCC=$(CC)
 else
-	LDFLAGS += $(LUALIBS)
+	LDFLAGS += malloc.o $(LUALIBS)
 endif
 
 
@@ -94,7 +93,7 @@ dep:
 optional:
 	mkdir optional
 
-pdns_recursor: optional $(OPTIONALS) $(PDNS_RECURSOR_OBJECTS) 
+pdns_recursor: optional $(OPTIONALS) $(PDNS_RECURSOR_OBJECTS) malloc.o
 	$(LINKCC) $(PDNS_RECURSOR_OBJECTS) $(wildcard optional/*.o) $(LDFLAGS) -o $@
 
 rec_control: $(REC_CONTROL_OBJECTS)
