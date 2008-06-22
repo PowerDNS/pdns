@@ -20,7 +20,7 @@
 #ifndef COMMON_STARTUP_HH
 #define COMMON_STARTUP_HH
 
-
+#include "packetcache.hh"
 #include "utility.hh"
 #include "arguments.hh"
 #include "communicator.hh"
