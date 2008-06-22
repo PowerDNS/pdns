@@ -15,6 +15,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "packetcache.hh"
 #include "utility.hh"
 #include <string>
 #include <sys/types.h>
@@ -45,12 +46,12 @@ extern string s_programname;
 PacketHandler::PacketHandler():B(s_programname)
 {
   s_count++;
-  d_doFancyRecords = (arg()["fancy-records"]!="no");
-  d_doWildcards = (arg()["wildcards"]!="no");
-  d_doCNAME = (arg()["skip-cname"]=="no");
-  d_doRecursion= arg().mustDo("recursor");
-  d_logDNSDetails= arg().mustDo("log-dns-details");
-  d_doIPv6AdditionalProcessing = arg().mustDo("do-ipv6-additional-processing");
+  d_doFancyRecords = (::arg()["fancy-records"]!="no");
+  d_doWildcards = (::arg()["wildcards"]!="no");
+  d_doCNAME = (::arg()["skip-cname"]=="no");
+  d_doRecursion= ::arg().mustDo("recursor");
+  d_logDNSDetails= ::arg().mustDo("log-dns-details");
+  d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
 }
 
 DNSBackend *PacketHandler::getBackend()
@@ -84,7 +85,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
     r->addRecord(rr);
   }
 
-  if(boost::iequals(arg()["send-root-referral"], "lean"))
+  if(boost::iequals(::arg()["send-root-referral"], "lean"))
      return;
 
   // add the additional stuff
@@ -118,7 +119,7 @@ int PacketHandler::findMboxFW(DNSPacket *p, DNSPacket *r, string &target)
 
   if(wedoforward) {
     r->clearRecords();
-    rr.content=arg()["smtpredirector"];
+    rr.content=::arg()["smtpredirector"];
     rr.priority=25;
     rr.ttl=7200;
     rr.qtype=QType::MX;
@@ -143,7 +144,7 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
       r->clearRecords();
     found=true;
     DLOG(L << "Found a URL!" << endl);
-    rr.content=arg()["urlredirector"];
+    rr.content=::arg()["urlredirector"];
     rr.qtype=QType::A; 
     rr.qname=target;
 	  
@@ -162,7 +163,7 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
       r->clearRecords();
     found=true;
     DLOG(L << "Found a CURL!" << endl);
-    rr.content=arg()["urlredirector"];
+    rr.content=::arg()["urlredirector"];
     rr.qtype=1; // A
     rr.qname=target;
     rr.ttl=300;
@@ -212,7 +213,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
   
   // modes: anonymous, powerdns only, full, spoofed
-  const string mode=arg()["version-string"];
+  const string mode=::arg()["version-string"];
   if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
     if(mode.empty() || mode=="full") 
       rr.content="Served by POWERDNS "VERSION" $Id$";
@@ -279,7 +280,7 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 	rr.qname=target;
 
 	if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
-	  rr.content=arg()["urlredirector"];
+	  rr.content=::arg()["urlredirector"];
 	  rr.qtype=QType::A; 
 	}
 
@@ -297,8 +298,8 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 	  retargeted=true;
 	}
       }
-      else if(d_doFancyRecords && arg().mustDo("wildcard-url") && p->qtype.getCode()==QType::A && rr.qtype.getName()=="URL") {
-	rr.content=arg()["urlredirector"];
+      else if(d_doFancyRecords && ::arg().mustDo("wildcard-url") && p->qtype.getCode()==QType::A && rr.qtype.getName()=="URL") {
+	rr.content=::arg()["urlredirector"];
 	rr.qtype=QType::A; 
 	rr.qname=target;
 	
@@ -351,7 +352,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 	bool foundOne=false;
 	while(B.get(rr)) {
 	  foundOne=true;
-	  if(rr.domain_id!=i->domain_id && arg()["out-of-zone-additional-processing"]=="no") {
+	  if(rr.domain_id!=i->domain_id && ::arg()["out-of-zone-additional-processing"]=="no") {
 	    DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
 	    continue; // not adding out-of-zone additional data
 	  }
@@ -489,7 +490,7 @@ int PacketHandler::processNotify(DNSPacket *p)
      We determine the SOA at our (known) master
      if master is higher -> do stuff
   */
-  if(!arg().mustDo("slave")) {
+  if(!::arg().mustDo("slave")) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::NotImp;
   }
@@ -502,7 +503,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
     
   string authServer(p->getRemote());
-  if(arg().contains("trusted-notification-proxy", p->getRemote())) {
+  if(::arg().contains("trusted-notification-proxy", p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
       L<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
@@ -601,14 +602,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // XXX FIXME do this in DNSPacket::parse ?
 
     if(!validDNSName(p->qdomain)) {
-      if(arg().mustDo("log-dns-details"))
+      if(::arg().mustDo("log-dns-details"))
         L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': dropping"<<endl;
       S.inc("corrupt-packets");
       return 0;
     }
     if(p->d.opcode) { // non-zero opcode (again thanks RA!)
       if(p->d.opcode==Opcode::Update) {
-	if(arg().mustDo("log-failed-updates"))
+	if(::arg().mustDo("log-failed-updates"))
 	  L<<Logger::Notice<<"Received an UPDATE opcode from "<<p->getRemote()<<" for "<<p->qdomain<<", sending NOTIMP"<<endl;
 	r=p->replyPacket(); 
 	r->setRcode(RCode::NotImp); // notimp;
@@ -733,7 +734,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	  DLOG(L<<"Found a direct answer: "<<rr.content<<endl);
 	  found=true;
 	  if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
-	    rr.content=arg()["urlredirector"];
+	    rr.content=::arg()["urlredirector"];
 	    rr.qtype=QType::A; 
 	    rr.qname=target;
 	  }
@@ -781,7 +782,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     int zoneId;
     zoneId=-1;
     
-    if(p->d.rd && d_doRecursion && arg().mustDo("allow-recursion-override"))
+    if(p->d.rd && d_doRecursion && ::arg().mustDo("allow-recursion-override"))
       weAuth=getAuth(p, &sd, target, &zoneId);
     else
       weAuth=false;
@@ -815,7 +816,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	    p->getRemote()<< (p->d.rd ? " (recursion was desired)" : "") <<endl;
 
 	r->setA(false);
-	if(arg().mustDo("send-root-referral")) {
+	if(::arg().mustDo("send-root-referral")) {
 	  DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
 	  addRootReferral(r);
 	}

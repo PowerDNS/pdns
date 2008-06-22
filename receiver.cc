@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2007  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -16,6 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "packetcache.hh"
 
 #include <cstdio>
 #include <signal.h>
@@ -51,7 +52,6 @@
 #include "packethandler.hh"
 #include "statbag.hh"
 #include "tcpreceiver.hh"
-#include "packetcache.hh"
 #include "ws.hh"
 #include "misc.hh"
 #include "dynlistener.hh"
@@ -123,7 +123,7 @@ static void takedown(int i)
 
 static void writePid(void)
 {
-  string fname=arg()["socket-dir"]+"/"+s_programname+".pid";
+  string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   ofstream of(fname.c_str());
   if(of)
     of<<getpid()<<endl;
@@ -204,9 +204,9 @@ static int guardian(int argc, char **argv)
       char **const newargv=new char*[argc+2];
       int n;
 
-      if(arg()["config-name"]!="") {
-	progname+="-"+arg()["config-name"];
-	L<<Logger::Error<<"Virtual configuration name: "<<arg()["config-name"]<<endl;
+      if(::arg()["config-name"]!="") {
+	progname+="-"+::arg()["config-name"];
+	L<<Logger::Error<<"Virtual configuration name: "<<::arg()["config-name"]<<endl;
       }
 
       newargv[0]=strdup(const_cast<char *>((progname+"-instance").c_str()));
@@ -321,35 +321,35 @@ static int guardian(int argc, char **argv)
 static void UNIX_declareArguments()
 {
   static char pietje[128]="!@@SYSCONFDIR@@:";
-  arg().set("config-dir","Location of configuration directory (pdns.conf)")=
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=
     strcmp(pietje+1,"@@SYSCONFDIR@@:") ? pietje+strlen("@@SYSCONFDIR@@:")+1 : SYSCONFDIR;
   
-  arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
-  arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
-  arg().set("module-dir","Default directory for modules")=LIBDIR;
-  arg().set("chroot","If set, chroot to this directory for more security")="";
-  arg().set("logging-facility","Log under a specific facility")="";
-  arg().set("daemon","Operate as a daemon")="no";
+  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+  ::arg().set("module-dir","Default directory for modules")=LIBDIR;
+  ::arg().set("chroot","If set, chroot to this directory for more security")="";
+  ::arg().set("logging-facility","Log under a specific facility")="";
+  ::arg().set("daemon","Operate as a daemon")="no";
 
 }
 
 static void loadModules()
 {
-  if(!arg()["load-modules"].empty()) { 
+  if(!::arg()["load-modules"].empty()) { 
     vector<string>modules;
     
-    stringtok(modules,arg()["load-modules"],",");
+    stringtok(modules,::arg()["load-modules"],",");
     
     for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i) {
       bool res;
       const string &module=*i;
       
       if(module.find(".")==string::npos)
-	res=UeberBackend::loadmodule(arg()["module-dir"]+"/lib"+module+"backend.so");
+	res=UeberBackend::loadmodule(::arg()["module-dir"]+"/lib"+module+"backend.so");
       else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
 	res=UeberBackend::loadmodule(module);
       else
-	res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
+	res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
       
       if(res==false) {
 	L<<Logger::Error<<"receiver unable to load module "<<module<<endl;
@@ -405,38 +405,38 @@ int main(int argc, char **argv)
     declareArguments();
     UNIX_declareArguments();
       
-    arg().laxParse(argc,argv); // do a lax parse
+    ::arg().laxParse(argc,argv); // do a lax parse
     
-    if(arg()["config-name"]!="") 
-      s_programname+="-"+arg()["config-name"];
+    if(::arg()["config-name"]!="") 
+      s_programname+="-"+::arg()["config-name"];
     
     (void)theL(s_programname);
     
-    string configname=arg()["config-dir"]+"/"+s_programname+".conf";
+    string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
 
-    if(!arg().mustDo("config") && !arg().mustDo("no-config")) // "config" == print a configuration file
-      arg().laxFile(configname.c_str());
+    if(!::arg().mustDo("config") && !::arg().mustDo("no-config")) // "config" == print a configuration file
+      ::arg().laxFile(configname.c_str());
     
-    arg().laxParse(argc,argv); // reparse so the commandline still wins
-    if(!arg()["logging-facility"].empty()) {
-      boost::optional<int> val=logFacilityToLOG(arg().asNum("logging-facility") );
+    ::arg().laxParse(argc,argv); // reparse so the commandline still wins
+    if(!::arg()["logging-facility"].empty()) {
+      boost::optional<int> val=logFacilityToLOG(::arg().asNum("logging-facility") );
       if(val)
 	theL().setFacility(*val);
       else
-	L<<Logger::Error<<"Unknown logging facility "<<arg().asNum("logging-facility") <<endl;
+	L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
     }
 
-    L.setLoglevel((Logger::Urgency)(arg().asNum("loglevel")));
-    L.toConsole((Logger::Urgency)(arg().asNum("loglevel")));  
+    L.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
-    if(arg().mustDo("help") || arg().mustDo("config")) {
-      arg().set("daemon")="no";
-      arg().set("guardian")="no";
+    if(::arg().mustDo("help") || ::arg().mustDo("config")) {
+      ::arg().set("daemon")="no";
+      ::arg().set("guardian")="no";
     }
 
-    if(arg().mustDo("guardian") && !isGuarded(argv)) {
-      if(arg().mustDo("daemon")) {
+    if(::arg().mustDo("guardian") && !isGuarded(argv)) {
+      if(::arg().mustDo("daemon")) {
 	L.toConsole(Logger::Critical);
 	daemonize();
       }
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
       cerr<<"Um, we did get here!"<<endl;
     }
 
-    if(arg().mustDo("version")) {
+    if(::arg().mustDo("version")) {
       cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__;
 #ifdef __GNUC__ 
       cerr<<" with gcc version "<<__VERSION__;
@@ -457,27 +457,27 @@ int main(int argc, char **argv)
     // we really need to do work - either standalone or as an instance
     
     loadModules();
-    BackendMakers().launch(arg()["launch"]); // vrooooom!
+    BackendMakers().launch(::arg()["launch"]); // vrooooom!
 
-    if(!arg().getCommands().empty()) {
+    if(!::arg().getCommands().empty()) {
       cerr<<"Fatal: non-option on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
       exit(99);
     }
 
 
     
-    if(arg().mustDo("help")) {
+    if(::arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
-      cerr<<arg().helpstring(arg()["help"])<<endl;
+      cerr<<::arg().helpstring(::arg()["help"])<<endl;
       exit(99);
     }
     
-    if(arg().mustDo("config")) {
-      cout<<arg().configstring()<<endl;
+    if(::arg().mustDo("config")) {
+      cout<<::arg().configstring()<<endl;
       exit(99);
     }
 
-    if(arg().mustDo("list-modules")) {
+    if(::arg().mustDo("list-modules")) {
       vector<string>modules=BackendMakers().getModules();
       cerr<<"Modules available:"<<endl;
       for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i)
@@ -486,7 +486,7 @@ int main(int argc, char **argv)
       exit(99);
     }
 
-    if(!arg().asNum("local-port")) {
+    if(!::arg().asNum("local-port")) {
       L<<Logger::Error<<"Unable to launch, binding to no port or port 0 makes no sense"<<endl;
       exit(99); // this isn't going to fix itself either
     }
@@ -494,7 +494,7 @@ int main(int argc, char **argv)
       L<<Logger::Error<<"Unable to launch, no backends configured for querying"<<endl;
       exit(99); // this isn't going to fix itself either
     }    
-    if(arg().mustDo("daemon")) {
+    if(::arg().mustDo("daemon")) {
       L.toConsole(Logger::None);
       if(!isGuarded(argv))
 	daemonize();
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
     else {
       L<<Logger::Warning<<"This is a standalone pdns"<<endl; 
       
-      if(arg().mustDo("control-console"))
+      if(::arg().mustDo("control-console"))
 	dl=new DynListener();
       else
 	dl=new DynListener(s_programname);
@@ -530,13 +530,13 @@ int main(int argc, char **argv)
 
     
     // reparse, with error checking
-    if(!arg().mustDo("no-config"))
-      arg().file(configname.c_str());
-    arg().parse(argc,argv);
+    if(!::arg().mustDo("no-config"))
+      ::arg().file(configname.c_str());
+    ::arg().parse(argc,argv);
     UeberBackend::go();
     N=new UDPNameserver; // this fails when we are not root, throws exception
     
-    if(!arg().mustDo("disable-tcp"))
+    if(!::arg().mustDo("disable-tcp"))
       TN=new TCPNameserver; 
   }
   catch(const ArgException &A) {
@@ -563,12 +563,12 @@ int main(int argc, char **argv)
     mainthread();
   }
   catch(AhuException &AE) {
-    if(!arg().mustDo("daemon"))
+    if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because: "<<AE.reason<<endl;
     L<<Logger::Error<<"Exiting because: "<<AE.reason<<endl;
   }      
   catch(exception &e) {
-    if(!arg().mustDo("daemon"))
+    if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because of STL error: "<<e.what()<<endl;
     L<<Logger::Error<<"Exiting because of STL error: "<<e.what()<<endl;
   }
