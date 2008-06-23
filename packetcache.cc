@@ -45,7 +45,7 @@ PacketCache::PacketCache()
 int PacketCache::get(DNSPacket *p, DNSPacket *cached)
 {
   extern StatBag S;
-  if(!((d_hit+d_miss)%5000)) {
+  if(!((d_hit+d_miss)%15000)) {
     cleanup();
   }
 
@@ -121,7 +121,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
 
   bool packetMeritsRecursion=d_doRecursion && q->d.rd;
 
-  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl);  // XXX FIXME forgets meritsRecursion
+  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, packetMeritsRecursion);
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
@@ -130,7 +130,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   if(!ttl)
     return;
   
-  //  cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", value: '"<< (cet ? value : "PACKET") <<"', qtype: "<<qtype.getName()<<endl;
+  //  cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", value: '"<< (cet ? value : "PACKET") <<"', qtype: "<<qtype.getName()<<", ttl: "<<ttl<<endl;
 
   CacheEntry val;
   val.ttd=time(0)+ttl;
@@ -225,7 +225,7 @@ int PacketCache::purge(const vector<string> &matches)
 	  //	cerr<<"Stopping!"<<endl;
 	  break;
 	}
-	//      cerr<<"Will erase '"<<iter->qname<<"'\n";
+	//	cerr<<"Will erase '"<<iter->qname<<"'\n";
 
 	delcount++;
       }
