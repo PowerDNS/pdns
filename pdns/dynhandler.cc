@@ -116,7 +116,7 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
   int ret;
 
   if(parts.size()>1)
-    ret=PC.purge(parts[1]);
+    ret=PC.purge(parts);
   else
     ret=PC.purge();
   os<<ret;
