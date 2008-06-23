@@ -28,9 +28,9 @@ end
 function nxdomain ( ip, domain, qtype )
 	print ("nxhandler called for: ", ip, domain, qtype, pdns.AAAA)
 	if qtype ~= pdns.A then return -1, {} end  --  only A records
-	if not string.find(domain, "^www.") then return -1, {} end  -- only things that start with www.
+	if not string.find(domain, "^www%.") then return -1, {} end  -- only things that start with www.
 	
-	if matchnetmask(ip, {"127.0.0.1/32", "10.1.0.0/16"}) -- , "192.168.0.0/16", "172.16.0.0/12", "::/0")
+	if matchnetmask(ip, {"127.0.0.1/32", "10.1.0.0/16"}) 
 	then 
 		print "dealing"
 		ret={}
