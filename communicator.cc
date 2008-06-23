@@ -221,7 +221,9 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   
   for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
     extern PacketCache PC;
-    PC.purge(i->zone); // fixes cvstrac ticket #30
+    vector<string> topurge;
+    topurge.push_back(i->zone);
+    PC.purge(topurge); // fixes cvstrac ticket #30
     queueNotifyDomain(i->zone,P->getBackend());
     i->backend->setNotified(i->id,i->serial); 
   }

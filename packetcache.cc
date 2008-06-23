@@ -155,12 +155,12 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
 }
 
 /** purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
-int PacketCache::purge(const string &match)
+int PacketCache::purge(const vector<string> &matches)
 {
   WriteLock l(&d_mut);
   int delcount=0;
-
-  if(match.empty()) {
+  
+  if(matches.empty()) {
     delcount = d_map.size();
     d_map.clear();
     *statnumentries=0;
@@ -210,31 +210,33 @@ int PacketCache::purge(const string &match)
      'www.userpowerdns.com'
 
   */
-  if(ends_with(match, "$")) {
-    string suffix(match);
-    suffix.resize(suffix.size()-1);
+  for(vector<string>::const_iterator match = ++matches.begin(); match != matches.end() ; ++match) {
+    if(ends_with(*match, "$")) {
+      string suffix(*match);
+      suffix.resize(suffix.size()-1);
 
-    //    cerr<<"Begin dump!"<<endl;
-    cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix));
-    cmap_t::const_iterator start=iter;
-    string dotsuffix = "."+suffix;
+      //    cerr<<"Begin dump!"<<endl;
+      cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix));
+      cmap_t::const_iterator start=iter;
+      string dotsuffix = "."+suffix;
 
-    for(; iter != d_map.end(); ++iter) {
-      if(!iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
-	//	cerr<<"Stopping!"<<endl;
-	break;
+      for(; iter != d_map.end(); ++iter) {
+	if(!iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
+	  //	cerr<<"Stopping!"<<endl;
+	  break;
+	}
+	//      cerr<<"Will erase '"<<iter->qname<<"'\n";
+
+	delcount++;
       }
-      //      cerr<<"Will erase '"<<iter->qname<<"'\n";
-
-      delcount++;
+      //    cerr<<"End dump!"<<endl;
+      d_map.erase(start, iter);
     }
-    //    cerr<<"End dump!"<<endl;
-    d_map.erase(start, iter);
-  }
-  else {
-    delcount=d_map.count(tie(match));
-    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(match));
-    d_map.erase(range.first, range.second);
+    else {
+      delcount=d_map.count(tie(*match));
+      pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(*match));
+      d_map.erase(range.first, range.second);
+    }
   }
   *statnumentries=d_map.size();
   return delcount;
