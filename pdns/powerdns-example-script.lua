@@ -4,7 +4,7 @@ function preresolve ( ip, domain, qtype )
 	if domain == "www.powerdns.org." 
 	then
 		ret={}
-		ret[1]= {qtype=pdns.A, content="85.17.219.141", ttl=86400}
+		ret[1]= {qtype=pdns.A, content="85.17.220.215", ttl=86400}
 		print "dealing!"
 		return 0, ret
 	elseif domain == "www.baddomain.com."
