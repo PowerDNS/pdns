@@ -1,4 +1,4 @@
-VERSION=3.1.7-rc3
+VERSION=3.1.7
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
@@ -35,6 +35,7 @@ cp aes/*.{c,cc,h} $DIRNAME
 cp pdns-recursor.init.d $DIRNAME
 cp docs/pdns_recursor.1 docs/rec_control.1 $DIRNAME
 cp configure-recursor $DIRNAME/configure
+cp powerdns-example-script.lua $DIRNAME
 
 mkdir -p $DIRNAME/sysdeps
 cp  sysdeps-recursor/* $DIRNAME/sysdeps
