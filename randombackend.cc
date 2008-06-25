@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -23,6 +23,9 @@
 #include "dnspacket.hh"
 #include "ahuexception.hh"
 #include "logger.hh"
+#include <boost/algorithm/string.hpp>
+
+using boost::iequals;
 
 /* FIRST PART */
 class RandomBackend : public DNSBackend
@@ -40,7 +43,7 @@ public:
     
   void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
   {
-    if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || qdomain!=d_ourname)  // we only know about random.powerdns.com A
+    if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || !iequals(qdomain, d_ourname))  // we only know about random.powerdns.com A
       d_answer="";                                                  // no answer
     else {
       ostringstream os;
