@@ -131,8 +131,9 @@ void *DynListener::theListenerHelper(void *p)
 
 string DynListener::getLine()
 {
-  char mesg[512];
-  memset(mesg,0,sizeof(mesg));
+  vector<char> mesg;
+  mesg.resize(1024000);
+
   int len;
     
   sockaddr_un remote;
@@ -146,24 +147,37 @@ string DynListener::getLine()
 	  L<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<strerror(errno)<<endl;
 	continue;
       }
-      if((len=recv(d_client,mesg,512,0))<0) {
+      if((len=recv(d_client, &mesg[0], mesg.size(),0))<0) {
 	L<<Logger::Error<<"Unable to receive packet from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
 	close(d_client);
 	continue;
       }
+      
+      if(len == (int)mesg.size()) {
+	L<<Logger::Error<<"Line on controlsocket ("<<d_client<<") was too long"<<endl;
+	close(d_client);
+	continue;
+      }
+
+      mesg[len]=0;
       break;
     }
   }
   else {
     if(isatty(0))
       write(1, "% ", 2);
-    if((len=read(0,mesg,512))<0) 
+    if((len= read(0, &mesg[0], mesg.size())) < 0) 
       throw AhuException("Reading from the control pipe: "+stringerror());
     else if(len==0)
       throw AhuException("Guardian exited - going down as well");
+
+    if(len == (int)mesg.size()) {
+      throw AhuException("Line on control console was too long");
+    }
+    mesg[len]=0;
   }
   
-  return mesg;
+  return &mesg[0];
 }
 
 void DynListener::sendLine(const string &l)
