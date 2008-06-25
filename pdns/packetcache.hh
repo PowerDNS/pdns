@@ -51,25 +51,18 @@ using namespace boost;
 
 struct CIBackwardsStringCompare: public binary_function<string, string, bool>  
 {
-  bool operator()(const string& a, const string& b) const
+  bool operator()(const string& str_a, const string& str_b) const
   {
-    const unsigned char *p1 = (const unsigned char *) a.c_str() + a.length();
-    const unsigned char *p2 = (const unsigned char *) b.c_str() + b.length();
-    int result;
+    string::const_reverse_iterator ra, rb;
+    char a=0, b=0;
+    for(ra = str_a.rbegin(), rb = str_b.rbegin();
+	ra < str_a.rend() && rb < str_b.rend() && (a=dns_tolower(*ra)) == (b=dns_tolower(*rb));
+	ra++, rb++);
     
-    if (p1 == p2) {
-      return 0;
-    }
-    
-    while ((result = dns_tolower (*p1--) - dns_tolower (*p2--)) == 0)
-      if (p1 == (unsigned char*)a.c_str() || p2 == (unsigned char*) b.c_str())
-	break;
-    
-    if(result==0) { // one of our strings ended, the shortest one is smaller then
-      return a.length() < b.length();
-    }
+    if (ra < str_a.rend() && rb==str_b.rend()) { a=*(ra++); b=0; }
+    if (rb < str_b.rend() && ra==str_a.rend()) { b=*(rb++); a=0; }
 
-    return result < 0;
+    return a < b;
   }
 };
 
