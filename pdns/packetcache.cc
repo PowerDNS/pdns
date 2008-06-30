@@ -45,7 +45,7 @@ PacketCache::PacketCache()
 int PacketCache::get(DNSPacket *p, DNSPacket *cached)
 {
   extern StatBag S;
-  if(!((d_hit+d_miss)%15000)) {
+  if(!((d_hit+d_miss)%150000)) {
     cleanup();
   }
 
@@ -79,7 +79,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       return 0;
     }
 
-    if(!((d_hit+d_miss)%1000)) {
+    if(!((d_hit+d_miss)%30000)) {
       *statnumentries=d_map.size(); // needs lock
     }
     string value;
