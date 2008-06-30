@@ -42,11 +42,13 @@ ifeq ($(STATIC),semi)
 	STATICFLAGS=-Wl,-Bstatic -lstdc++ $(LUALIBS) -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
 	LINKCC=$(CC)
 	LDFLAGS += malloc.o -ldl -lm
-else ifeq ($(STATIC),full)
+else 
+   ifeq ($(STATIC),full)
 	STATICFLAGS=-lstdc++ $(LUALIBS) -ldl -lm -static 
 	LINKCC=$(CC)
-else
+   else
 	LDFLAGS += malloc.o $(LUALIBS)
+   endif
 endif
 
 
