@@ -463,8 +463,6 @@ int main(int argc, char **argv)
       cerr<<"Fatal: non-option on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
       exit(99);
     }
-
-
     
     if(::arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
@@ -498,6 +496,12 @@ int main(int argc, char **argv)
       L.toConsole(Logger::None);
       if(!isGuarded(argv))
 	daemonize();
+    }
+
+    if(::arg()["server-id"].empty()) {
+      char tmp[128];
+      gethostname(tmp, sizeof(tmp)-1);
+      ::arg().set("server-id")=tmp;
     }
 
     if(isGuarded(argv)) {

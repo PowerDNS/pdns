@@ -53,7 +53,8 @@ public:
   void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=1, Place place=ANSWER);
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
-  void addOpt(int udpsize, int extRCode, int Z);
+  typedef vector<pair<uint16_t,std::string> > optvect_t;
+  void addOpt(int udpsize, int extRCode, int Z, const optvect_t& options=optvect_t());
 
   /** needs to be called after the last record is added, but can be called again and again later on. Is called internally by startRecord too.
       The content of the vector<> passed to the constructor is inconsistent until commit is called.

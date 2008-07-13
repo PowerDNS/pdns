@@ -511,8 +511,8 @@ void startDoResolve(void *p)
 
   try {
     uint16_t maxudpsize=512;
-    MOADNSParser::EDNSOpts edo;
-    if(dc->d_mdp.getEDNSOpts(&edo)) {
+    EDNSOpts edo;
+    if(getEDNSOpts(dc->d_mdp, &edo)) {
       maxudpsize=edo.d_packetsize;
     }
     
@@ -1995,7 +1995,7 @@ int main(int argc, char **argv)
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="0";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
-    ::arg().set("server-id", "Returned when queried for 'server.id' TXT, defaults to hostname")="";
+    ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";

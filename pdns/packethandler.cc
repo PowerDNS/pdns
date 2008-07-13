@@ -796,6 +796,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       else noCache=true;
     }
     
+    if(!noCache)
+      noCache = !p->couldBeCached();
+
     string::size_type pos;
     
     DLOG(L<<"Nothing found so far for '"<<target<<"', do we even have authority over this domain?"<<endl);
@@ -924,8 +927,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return 0;
 
     r->wrapup(); // needed for inserting in cache
-    if(!noCache)
+    if(!noCache) {
       PC.insert(p,r); // in the packet cache
+    }
   }
   catch(DBException &e) {
     L<<Logger::Error<<"Database module reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;

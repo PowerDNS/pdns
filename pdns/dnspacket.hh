@@ -139,6 +139,9 @@ public:
 
   void commitD(); //!< copies 'd' into the stringbuffer
   int getMaxReplyLen(); //!< retrieve the maximum length of the packet we should send in response
+
+  bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
+
   //////// DATA !
 
   ComboAddress remote;
@@ -162,6 +165,8 @@ private:
 
   string stringbuffer; // this is where everything lives 4
   int d_maxreplylen;
+  string d_ednsping;
+  bool d_wantsnsid;
   vector<DNSResourceRecord> rrs; // 4
 };
 

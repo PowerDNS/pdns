@@ -132,7 +132,9 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
 DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, 
 					       PacketReader& pr)
 {
-  typemap_t::const_iterator i=getTypemap().find(make_pair(dr.d_class, dr.d_type));
+  uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
+
+  typemap_t::const_iterator i=getTypemap().find(make_pair(searchclass, dr.d_type));
   if(i==getTypemap().end() || !i->second) {
     return new UnknownRecordContent(dr, pr);
   }
@@ -257,24 +259,6 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   }
 }
 
-bool MOADNSParser::getEDNSOpts(EDNSOpts* eo)
-{
-  if(d_header.arcount && !d_answers.empty() && d_answers.back().first.d_type == QType::OPT) {
-    eo->d_packetsize=d_answers.back().first.d_class;
-
-    EDNS0Record stuff;
-    uint32_t ttl=ntohl(d_answers.back().first.d_ttl);
-    memcpy(&stuff, &ttl, sizeof(stuff));
-
-    eo->d_extRCode=stuff.extRCode;
-    eo->d_version=stuff.version;
-    eo->d_Z=stuff.Z;
-
-    return true;
-  }
-  else
-    return false;
-}
 
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
@@ -447,7 +431,10 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
 
 void PacketReader::xfrBlob(string& blob)
 {
-  blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
+  if(d_recordlen)
+    blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
+  else
+    blob.clear();
 
   d_pos = d_startrecordpos + d_recordlen;
 }
