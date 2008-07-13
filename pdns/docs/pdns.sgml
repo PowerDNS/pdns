@@ -92,9 +92,9 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3-1-7"><title>Recursor version 3.1.7 (UNRELEASED)</title>
+      <sect2 id="changelog-recursor-3-1-7"><title>Recursor version 3.1.7</title>
 	<para>
-	  UNRELEASED
+	  Released the 25th of June 2008.
 	</para>
 	<para>
 	  This version contains powerful scripting abilities, allowing operators to modify DNS responses in many
