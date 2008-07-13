@@ -298,16 +298,7 @@ public:
     return pr;
   }
 
-  struct EDNSOpts
-  {
-    uint16_t d_packetsize;
-    uint8_t d_extRCode, d_version;
-    uint16_t d_Z;
-  };
-
-  //! Convenience function that fills out EDNS0 options, and returns true if there are any
-  bool getEDNSOpts(EDNSOpts* eo);
-
+  
 private:
   void getDnsrecordheader(struct dnsrecordheader &ah);
   void init(const char *packet, unsigned int len);

@@ -81,7 +81,7 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_sor=d_content.size() + d_stuff; // start of real record 
 }
 
-void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
+void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z, const vector<pair<uint16_t,string> >& options)
 {
   uint32_t ttl=0;
 
@@ -90,12 +90,17 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z)
   stuff.extRCode=extRCode;
   stuff.version=0;
   stuff.Z=htons(Z);
-  
+
   memcpy(&ttl, &stuff, sizeof(stuff));
 
   ttl=ntohl(ttl); // will be reversed later on
   
   startRecord("", ns_t_opt, ttl, udpsize, ADDITIONAL);
+  for(optvect_t::const_iterator iter = options.begin(); iter != options.end(); ++iter) {
+    xfr16BitInt(iter->first);
+    xfr16BitInt(iter->second.length());
+    xfrBlob(iter->second);
+  } 
 }
 
 void DNSPacketWriter::xfr48BitInt(uint64_t val)

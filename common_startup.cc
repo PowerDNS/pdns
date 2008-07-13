@@ -104,7 +104,7 @@ void declareArguments()
   ::arg().set("negquery-cache-ttl","Seconds to store packets in the PacketCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";
-
+  ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
@@ -122,8 +122,6 @@ void declareArguments()
 
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
 }
-
-
 
 void declareStats(void)
 {
@@ -241,7 +239,7 @@ void *qthread(void *p)
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->getRemote());
 
-    if((P->d.opcode != Opcode::Notify) && PC.get(P,&cached)) { // short circuit - does the PacketCache recognize this question?
+    if((P->d.opcode != Opcode::Notify) && P->couldBeCached() && PC.get(P,&cached)) { // short circuit - does the PacketCache recognize this question?
       cached.setRemote(&P->remote);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
       cached.spoofID(P->d.id);                                        // inlined 

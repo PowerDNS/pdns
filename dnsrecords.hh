@@ -197,7 +197,7 @@ class OPTRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(OPT)
-
+  void getData(vector<pair<uint16_t, string> > &opts);
 private:
   string d_data;
 };
@@ -421,6 +421,18 @@ void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
 {                                                                 \
   CONV;                                                           \
 }                                                                 \
+
+struct EDNSOpts
+{
+  uint16_t d_packetsize;
+  uint8_t d_extRCode, d_version;
+  uint16_t d_Z;
+  vector<pair<uint16_t, string> > d_options;
+};
+//! Convenience function that fills out EDNS0 options, and returns true if there are any
+
+class MOADNSParser;
+bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo);
 
 void reportBasicTypes();
 void reportOtherTypes();

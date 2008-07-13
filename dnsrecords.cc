@@ -187,10 +187,28 @@ boilerplate_conv(RP, ns_t_rp,
 		 );
 
 
-boilerplate_conv(OPT, ns_t_opt,
-		 conv.xfrText(d_data)
+boilerplate_conv(OPT, ns_t_opt, 
+		   conv.xfrBlob(d_data)
 		 );
 
+void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
+{
+  string::size_type pos=0;
+  uint16_t code, len;
+  while(d_data.size() >= 4 + pos) {
+    code = 0xff * d_data[pos] + d_data[pos+1];
+    len = 0xff * d_data[pos+2] + d_data[pos+3];
+    pos+=4;
+
+    if(pos + len > d_data.size())
+      break;
+
+    string field(d_data.c_str() + pos, len);
+    pos+=len;
+
+    options.push_back(make_pair(code, field));
+  }
+}
 
 boilerplate_conv(TSIG, ns_t_tsig, 
 		 conv.xfrLabel(d_algoName);
@@ -319,6 +337,33 @@ boilerplate_conv(DNSKEY, 48,
 		 conv.xfr8BitInt(d_algorithm); 
 		 conv.xfrBlob(d_key);
 		 )
+
+
+bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
+{
+  if(mdp.d_header.arcount && !mdp.d_answers.empty() && 
+     mdp.d_answers.back().first.d_type == QType::OPT) {
+    eo->d_packetsize=mdp.d_answers.back().first.d_class;
+    
+    EDNS0Record stuff;
+    uint32_t ttl=ntohl(mdp.d_answers.back().first.d_ttl);
+    memcpy(&stuff, &ttl, sizeof(stuff));
+
+    eo->d_extRCode=stuff.extRCode;
+    eo->d_version=stuff.version;
+    eo->d_Z=stuff.Z;
+    
+    OPTRecordContent* orc = 
+      dynamic_cast<OPTRecordContent*>(mdp.d_answers.back().first.d_content.get());
+
+    orc->getData(eo->d_options);
+
+    return true;
+  }
+  else
+    return false;
+}
+
 
 void reportBasicTypes()
 {

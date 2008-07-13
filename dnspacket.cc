@@ -38,12 +38,14 @@
 #include "arguments.hh"
 #include "dnswriter.hh"
 #include "dnsparser.hh"
+#include "dnsrecords.hh"
 
 DNSPacket::DNSPacket() 
 {
   d_wrapped=false;
   d_compress=true;
   d_tcp=false;
+  d_wantsnsid=false;
 }
 
 string DNSPacket::getString()
@@ -88,6 +90,8 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   qclass=orig.qclass;
   qdomain=orig.qdomain;
   d_maxreplylen = orig.d_maxreplylen;
+  d_ednsping = orig.d_ednsping;
+  d_wantsnsid = orig.d_wantsnsid;
   rrs=orig.rrs;
 
   d_wrapped=orig.d_wrapped;
@@ -263,6 +267,11 @@ void DNSPacket::setCompress(bool compress)
   rrs.reserve(200);
 }
 
+bool DNSPacket::couldBeCached()
+{
+  return d_ednsping.empty() && !d_wantsnsid;
+}
+
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
@@ -304,7 +313,16 @@ void DNSPacket::wrapup(void)
   pw.getHeader()->id=d.id;
   pw.getHeader()->rd=d.rd;
 
-  if(!rrs.empty()) {
+  DNSPacketWriter::optvect_t opts;
+  if(d_wantsnsid) {
+    opts.push_back(make_pair(3, ::arg()["server-id"]));
+  }
+
+  if(!d_ednsping.empty()) {
+    opts.push_back(make_pair(4, d_ednsping));
+  }
+
+  if(!rrs.empty() || !opts.empty()) {
     try {
       for(pos=rrs.begin(); pos < rrs.end(); ++pos) {
 	// this needs to deal with the 'prio' mismatch!
@@ -320,6 +338,9 @@ void DNSPacket::wrapup(void)
 	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
 	drc->toPacket(pw);
       }
+      if(!opts.empty())
+	pw.addOpt(2800, 0, 0, opts);
+
       pw.commit();
     }
     catch(exception& e) {
@@ -383,6 +404,8 @@ DNSPacket *DNSPacket::replyPacket() const
   r->qdomain = qdomain;
   r->qtype = qtype;
   r->d_maxreplylen = d_maxreplylen;
+  r->d_ednsping = d_ednsping;
+  r->d_wantsnsid = d_wantsnsid;
   return r;
 }
 
@@ -402,20 +425,41 @@ int DNSPacket::parse(const char *mesg, int length)
 try
 {
   stringbuffer.assign(mesg,length); 
-
+  
   len=length;
   if(length < 12) { 
     L << Logger::Warning << "Ignoring packet: too short from "
       << getRemote() << endl;
     return -1;
   }
+
   MOADNSParser mdp(stringbuffer);
-  MOADNSParser::EDNSOpts edo;
-  if(mdp.getEDNSOpts(&edo)) {
+  EDNSOpts edo;
+
+  // ANY OPTION WHICH *MIGHT* BE SET DOWN BELOW SHOULD BE CLEARED FIRST!
+
+  d_wantsnsid=false;
+  d_ednsping.clear();
+
+  if(getEDNSOpts(mdp, &edo)) {
     d_maxreplylen=edo.d_packetsize;
+
+    for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
+	iter != edo.d_options.end(); 
+	++iter) {
+      if(iter->first == 3) {// 'EDNS NSID'
+	d_wantsnsid=1;
+      }
+      else if(iter->first == 4) {// 'EDNS PING'
+	d_ednsping = iter->second;
+      }
+      else
+	; // cerr<<"Have an option #"<<iter->first<<endl;
+    }
   }
-  else
+  else  {
     d_maxreplylen=512;
+  }
 
   memcpy((void *)&d,(const void *)stringbuffer.c_str(),12);
   qdomain=mdp.d_qname;
