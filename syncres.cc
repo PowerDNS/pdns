@@ -320,7 +320,6 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
 	  if(!dottedEndsOn(rr.content, subdomain) || RC.get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
 							    s_log ? &aset : 0) > 5) {
 	    bestns.insert(rr);
-	    
 	    LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl;
 	    LOG<<prefix<<qname<<": within bailiwick: "<<dottedEndsOn(rr.content, subdomain);
 	    if(!aset.empty()) {
