@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2007  PowerDNS.COM BV
+    Copyright (C) 2005 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -234,6 +234,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   if(parts.empty())
     goto retry;
 
+  if(parts[0].first != parts[0].second && makeString(d_line, parts[0])[0]==';') // line consisting of nothing but comments
+    goto retry;
+
   if(d_line[0]=='$') { 
     string command=makeString(d_line, parts[0]);
     if(iequals(command,"$TTL") && parts.size() > 1)
@@ -330,7 +333,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     }
   }
   if(!haveQTYPE) 
-    throw exception("Malformed line '"+d_line+"'");
+    throw exception("Malformed line "+lexical_cast<string>(d_filestates.top().d_lineno)+" of '"+d_filestates.top().d_filename+"': "+d_line+"'");
 
   rr.content=d_line.substr(range.first);
 
@@ -343,7 +346,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
       while(getLine()) {
-	chomp(d_line,"\r\n ");
+	chomp(d_line,"\t\r\n ");
 	chopComment(d_line);
 	trim(d_line);
 	
