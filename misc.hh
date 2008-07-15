@@ -384,7 +384,8 @@ inline string toCanonic(const string& zone, const string& domain)
     return domain;
   string ret=domain;
   ret.append(1,'.');
-  ret.append(zone);
+  if(!zone.empty() && zone[0]!='.')
+    ret.append(zone);
   return ret;
 }
 
