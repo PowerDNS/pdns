@@ -127,14 +127,13 @@ zone_command:
 	{
 		s_di.name=stripDot($2);
 		free($2);
-		
 		parent->commit(s_di);
 		s_di.clear();
 	}
 	|	
 	ZONETOK quotedname AWORD zone_block
 	{
-	        s_di.name=$2;
+	        s_di.name=stripDot($2);
 		free($2);
 		parent->commit(s_di);
 		s_di.clear();
