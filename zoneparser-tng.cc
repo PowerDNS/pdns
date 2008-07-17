@@ -100,9 +100,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
       break;
 
     default:
-      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' on line "+
-				     lexical_cast<string>(d_filestates.top().d_lineno)+" of file '"+
-				     d_filestates.top().d_filename+"'");
+      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' "+getLineOfFile());
     }
   return val;
 }
@@ -218,7 +216,10 @@ bool findAndElide(string& line, char c)
   return false;
 }
 
-
+string ZoneParserTNG::getLineOfFile()
+{
+  return "on line "+lexical_cast<string>(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
+}
 
 bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
@@ -264,8 +265,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       goto retry;
     }
     else
-      throw exception("Can't parse zone line '"+d_line+"' on line "+lexical_cast<string>(d_filestates.top().d_lineno)+
-		      " of file '"+d_filestates.top().d_filename);
+      throw exception("Can't parse zone line '"+d_line+"' "+getLineOfFile());
     goto retry;
   }
 
@@ -286,7 +286,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   d_prevqname=rr.qname;
 
   if(parts.empty()) 
-    throw exception("Line with too little parts");
+    throw exception("Line with too little parts "+getLineOfFile());
 
   string nextpart;
   
@@ -326,14 +326,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       continue;
     }
     catch(...) {
-      throw runtime_error("Parsing zone content on line "+
-			  lexical_cast<string>(d_filestates.top().d_lineno)+
-			  " of file '"+d_filestates.top().d_filename+"': '"+nextpart+
+      throw runtime_error("Parsing zone content "+getLineOfFile()+
+			  ": '"+nextpart+
 			  "' doesn't look like a qtype, stopping loop");
     }
   }
   if(!haveQTYPE) 
-    throw exception("Malformed line "+lexical_cast<string>(d_filestates.top().d_lineno)+" of '"+d_filestates.top().d_filename+"': "+d_line+"'");
+    throw exception("Malformed line "+getLineOfFile()+": '"+d_line+"'");
 
   rr.content=d_line.substr(range.first);
 
