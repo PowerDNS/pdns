@@ -40,6 +40,7 @@ private:
   bool getTemplateLine();
   void stackFile(const std::string& fname);
   unsigned makeTTLFromZone(const std::string& str);
+  string getLineOfFile();
   string d_reldir;
   string d_line;
   string d_prevqname;
