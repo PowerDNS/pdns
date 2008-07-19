@@ -236,10 +236,10 @@
 	<para>
 	  This release was made possible by the help of Wichert Akkerman, Winfried Angele, Arnoud Bakker (Fox-IT), Niels Bakker (no relation!), 
 	  Leo Baltus (Nederlandse Publieke Omroep), Marco Davids (SIDN), David Gavarret (Neuf Cegetel), Peter Gervai, Marcus Goller (UPC), 
-	  Matti Hiljanen (Saunalahti/Elisa), Ruben Kerkhoff, 
- 	  Alex Kiernan, Amit Klein (Trusteer), Kenneth Marshall (Rice University), Thomas Rietz, Marcus Rueckert (OpenSUSE), Augie Schwer (Sonix), Sten Spans (Bit), Stefan Schmidt (Freenet.de), 
+	  Matti Hiljanen (Saunalahti/Elisa), Ruben Kerkhof, 
+ 	  Alex Kiernan, Amit Klein (Trusteer), Kenneth Marshall (Rice University), Thomas Rietz, Marcus Rueckert (OpenSUSE), Augie Schwer (Sonix), Sten Spans (Bit), Stefan Schmidt (Freenet), 
 	  Kai Storbeck (xs4all), 
-	  Alex Trull, Andrew Turnbull (No Wires LTD) and Aaron Thompson, and many more who filed bugs anonymously, or who we forgot to mention.
+	  Alex Trull, Andrew Turnbull (No Wires) and Aaron Thompson, and many more who filed bugs anonymously, or who we forgot to mention.
 	</para>
 	<para>
 	  Security related issues:
@@ -341,7 +341,7 @@
 	  <listitem>
 	    <para>
 	      Various fixes for modern G++ versions, most spotted by Marcus Rueckert (commits C964, C965, C1028, C1052), and
-	      Ruben Kerkhoff (c1136, closing t175).
+	      Ruben Kerkhof (c1136, closing t175).
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -3252,7 +3252,7 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		All SQL queries in the generic backends are now available for configuration. (Martin Klebermass/bert hubert).
+		All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, bert hubert).
 		See <xref linkend="generic-mypgsql-backends">.
 	      </para>
 	    </listitem>
@@ -6189,7 +6189,7 @@ name         IN            A        1.2.3.4
 	  <listitem><para>Dave Aaldering</para></listitem>
 	  <listitem><para>Wichert Akkerman</para></listitem>
 	  <listitem><para>Antony Antony</para></listitem>
-	  <listitem><para>Mike Benoit (NetNation Communication Inc.)</para></listitem>
+	  <listitem><para>Mike Benoit (NetNation Communication Inc)</para></listitem>
 	  <listitem><para>Peter van Dijk</para></listitem>
 	  <listitem><para>Koos van den Hout</para></listitem>
 	  <listitem><para>Andre Koopal</para></listitem>
