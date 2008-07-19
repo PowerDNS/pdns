@@ -1,0 +1,10 @@
+#!/bin/sh
+(./extract  < pdns.txt | grep -v ^The | egrep -iv '>|\]|;|:|!|NameIndex|Fancy Record|Name \(Name|Cloos|Considerations in|Webserver|Webforwards|On Mac|Operation On|Scripting as|Security as|Press ok|Caution|Enable|Time to|System|Compilation|Backend|Unix|Windows|sql|Library|Linux|License|Zone|Slave|Warning|Jabber|PowerDNS|Editor|Microsoft|Thanks|CoolThreads|Null|^Note|^See |UltraSPARC|^Sender|Solaris|Universal|Naming Authority|Random|Rain Forest|Query|Active|Recursion|Questions|Prerelease|Preq|Pipebackend|Pipe backend|Press Add|BindBackend|Release|Miscell|Packet|Open Source|Open Root|OpenBSD|Responsible|Download|Debian|Oracle|Daemon|Gladman List|Gladman Since|FreeBSD|Dynamic|Authoritative|Added Generic|Algorithm|Answers Each|Language Settings|Guardian|Statistics|Hardware|Bert Hubert|Bind Backend|Secure|Credits|Configuring|Socket|Worldnic'
+echo James H. Cloos Jr
+echo Tsjoi Tsim
+echo Rene van der Meijden
+echo Marc Laros
+echo Hans Veldhuijzen van Zanten
+echo Remco van Mook ) | sort -u | # perl -pi -e 's/^(.*) (\w+)$/$2 $1/g' | sort | perl -pi -e 's/^(\w+) (.*)$/$2 $1/g' |
+sed 's/$/,/g' | tr "\n" " " |  sed 's/, $//' | sed 's/ We, /, /' 
+
