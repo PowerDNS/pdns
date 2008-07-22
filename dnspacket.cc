@@ -450,7 +450,7 @@ try
       if(iter->first == 3) {// 'EDNS NSID'
 	d_wantsnsid=1;
       }
-      else if(iter->first == 4) {// 'EDNS PING'
+      else if(iter->first == 5) {// 'EDNS PING'
 	d_ednsping = iter->second;
       }
       else
