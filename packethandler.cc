@@ -603,9 +603,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(!validDNSName(p->qdomain)) {
       if(::arg().mustDo("log-dns-details"))
-        L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': dropping"<<endl;
+        L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
-      return 0;
+      r=p->replyPacket(); 
+      r->setRcode(RCode::ServFail);
+      return r;
     }
     if(p->d.opcode) { // non-zero opcode (again thanks RA!)
       if(p->d.opcode==Opcode::Update) {
