@@ -317,10 +317,7 @@ bool ArgvMap::file(const char *fname, bool lax)
       line=line.substr(0,pos);
 
     // strip trailing spaces
-    trim_right(line);
-    // strip leading spaces
-    if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
-      line=line.substr(pos);
+    trim(line);
 
     parseOne(string("--")+line,"",lax);
     line="";
