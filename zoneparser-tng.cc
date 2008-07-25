@@ -29,7 +29,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), d_zonename(zname), d_defaultttl(3600)
+ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), 
+											       d_zonename(zname), d_defaultttl(3600), 
+											       d_havedollarttl(false)
 {
   d_zonename = toCanonic("", d_zonename);
   stackFile(fname);
@@ -227,7 +229,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   if(!getTemplateLine() && !getLine())
     return false;
 
-  chomp(d_line, " \r\n\x1a");
+  boost::trim_right_if(d_line, is_any_of(" \r\n\x1a"));
 
   parts_t parts;
   vstringtok(parts, d_line);
@@ -240,8 +242,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
   if(d_line[0]=='$') { 
     string command=makeString(d_line, parts[0]);
-    if(iequals(command,"$TTL") && parts.size() > 1)
+    if(iequals(command,"$TTL") && parts.size() > 1) {
       d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, parts[1]), is_any_of(";")));
+      d_havedollarttl=true;
+    }
     else if(iequals(command,"$INCLUDE") && parts.size() > 1) {
       string fname=unquotify(makeString(d_line, parts[1]));
       if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
@@ -345,7 +349,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
       while(getLine()) {
-	chomp(d_line,"\t\r\n ");
+	trim_right(d_line);
 	chopComment(d_line);
 	trim(d_line);
 	
@@ -384,7 +388,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       else
 	rr.content+=soaparts[n];
 
-      if(n==6)
+      if(n==6 && !d_havedollarttl)
 	d_defaultttl=makeTTLFromZone(soaparts[n]);
     }
     break;
