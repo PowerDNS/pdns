@@ -24,6 +24,7 @@
 #include <iostream>
 #include <string>
 #include "tcpreceiver.hh"
+#include "sstuff.hh"
 
 #include <errno.h>
 #include <signal.h>
@@ -88,19 +89,19 @@ int readnWithTimeout(int fd, void* buffer, unsigned int n, bool throwOnEOF=true)
       if(errno==EAGAIN) {
 	ret=waitForData(fd, 5);
 	if(ret < 0)
-	  throw runtime_error("Waiting for data read");
+	  throw NetworkError("Waiting for data read");
 	if(!ret)
-	  throw runtime_error("Timeout reading data");
+	  throw NetworkError("Timeout reading data");
 	continue;
       }
       else
-	throw AhuException("Reading data: "+stringerror());
+	throw NetworkError("Reading data: "+stringerror());
     }
     if(!ret) {
       if(!throwOnEOF && n == bytes)
 	return 0;
       else
-	throw AhuException("Did not fulfill read from TCP due to EOF");
+	throw NetworkError("Did not fulfill read from TCP due to EOF");
     }
     
     ptr += ret;
@@ -121,16 +122,16 @@ void writenWithTimeout(int fd, const void *buffer, unsigned int n)
       if(errno==EAGAIN) {
 	ret=waitForRWData(fd, false, 5, 0);
 	if(ret < 0)
-	  throw runtime_error("Waiting for data write");
+	  throw NetworkError("Waiting for data write");
 	if(!ret)
-	  throw runtime_error("Timeout writing data");
+	  throw NetworkError("Timeout writing data");
 	continue;
       }
       else
-	throw AhuException("Writing data: "+stringerror());
+	throw NetworkError("Writing data: "+stringerror());
     }
     if(!ret) {
-      throw AhuException("Did not fulfill TCP write due to EOF");
+      throw NetworkError("Did not fulfill TCP write due to EOF");
     }
     
     ptr += ret;
@@ -148,22 +149,22 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 #else
   if((err=connect(clisock, remote, socklen))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) 
 #endif // WIN32
-    throw AhuException("connect: "+stringerror());
+    throw NetworkError("connect: "+stringerror());
 
   if(!err)
     goto done;
   
   err=waitForRWData(fd, false, 5, 0);
   if(err == 0)
-    throw AhuException("Timeout connecting to remote");
+    throw NetworkError("Timeout connecting to remote");
   if(err < 0)
-    throw AhuException("Error connecting to remote");
+    throw NetworkError("Error connecting to remote");
 
   if(getsockopt(fd, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-    throw AhuException("Error connecting to remote: "+stringerror()); // Solaris
+    throw NetworkError("Error connecting to remote: "+stringerror()); // Solaris
 
   if(err)
-    throw AhuException("Error connecting to remote: "+string(strerror(err)));
+    throw NetworkError("Error connecting to remote: "+string(strerror(err)));
 
  done:
   ;
@@ -183,15 +184,15 @@ try
 {
   readnWithTimeout(fd, mesg, pktlen);
 }
-catch(AhuException& ae) {
-    throw AhuException("Error reading DNS data from TCP client "+remote.toString()+": "+ae.reason);
+catch(NetworkError& ae) {
+  throw NetworkError("Error reading DNS data from TCP client "+remote.toString()+": "+ae.what());
 }
 
 static void proxyQuestion(shared_ptr<DNSPacket> packet)
 {
   int sock=socket(AF_INET, SOCK_STREAM, 0);
   if(sock < 0)
-    throw AhuException("Error making TCP connection socket to recursor: "+stringerror());
+    throw NetworkError("Error making TCP connection socket to recursor: "+stringerror());
 
   Utility::setNonBlocking(sock);
   ServiceTuple st;
@@ -221,9 +222,9 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
     
     writenWithTimeout(packet->getSocket(), answer, len);
   }
-  catch(AhuException& ae) {
+  catch(NetworkError& ae) {
     close(sock);
-    throw AhuException("While proxying a question to recursor "+st.host+": " +ae.reason);
+    throw NetworkError("While proxying a question to recursor "+st.host+": " +ae.what());
   }
   close(sock);
   return;
