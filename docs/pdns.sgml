@@ -7950,6 +7950,14 @@ local0.err                        /var/log/pdns.err
 	      </listitem>
 	    </varlistentry>	  
 	    <varlistentry>
+	      <term>get-parameter parameter1 parameter2 ../term>
+	      <listitem>
+		<para>
+		  Retrieve a configuration parameter. All parameters from the configuration and command line can be queried.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
 	      <term>ping</term>
 	      <listitem>
 		<para>
