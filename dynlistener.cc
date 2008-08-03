@@ -186,6 +186,12 @@ string DynListener::getLine()
 	continue;
       }
 
+      if(!d_tcprange.match(&remote)) {
+	writen2(d_client, "Access denied to "+remote.toString()+"\n");
+	close(d_client);
+	continue;
+      }
+
       boost::shared_ptr<FILE> fp=boost::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
       if(d_tcp) {
 	if(!fgets(&mesg[0], mesg.size(), fp.get())) {
