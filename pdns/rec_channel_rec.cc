@@ -10,11 +10,13 @@
 #include <boost/optional.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "logger.hh"
 #include "dnsparser.hh"
+#include "arguments.hh"
 #ifndef WIN32
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -68,6 +70,26 @@ string doGet(T begin, T end)
   }
   return ret;
 }
+
+template<typename T>
+string doGetParameter(T begin, T end)
+{
+  string ret;
+  string parm;
+  for(T i=begin; i != end; ++i) {
+    if(::arg().parmIsset(*i)) {
+      parm=::arg()[*i];
+      replace_all(parm, "\\", "\\\\");
+      replace_all(parm, "\"", "\\\"");
+      replace_all(parm, "\n", "\\n");
+      ret += *i +"=\""+ parm +"\"\n";
+    }
+    else
+      ret += *i +" not known\n";
+  }
+  return ret;
+}
+
 
 template<typename T>
 string doDumpCache(T begin, T end)
@@ -288,6 +310,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="get") 
     return doGet(begin, end);
+
+  if(cmd=="get-parameter") 
+    return doGetParameter(begin, end);
+
 
   if(cmd=="quit") {
     *command=&doExit;
