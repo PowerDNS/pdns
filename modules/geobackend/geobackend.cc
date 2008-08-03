@@ -18,8 +18,10 @@
 #include <pdns/misc.hh>
 #include <pdns/lock.hh>
 #include <pdns/dnspacket.hh>
-
+#include <boost/algorithm/string.hpp>
 #include "geobackend.hh"
+
+using boost::trim_right;
 
 // Static members
 
@@ -344,7 +346,7 @@ void GeoBackend::loadIPLocationMap() {
 	
 	while (getline(ifs, line)) {
 		linenr++;		
-		chomp(line, " \t");	// Erase whitespace
+		trim_right(line);	// Erase whitespace
 		
 		if (line[0] == '#')
 			continue;	// Skip comments
@@ -489,7 +491,7 @@ void GeoBackend::loadDirectorMap(GeoRecord &gr) {
 	
 	string line;
 	while(getline(ifs, line)) {
-		chomp(line, " \t");	// Erase whitespace
+		trim_right(line);	// Erase whitespace
 
 		if (line.empty() || line[0] == '#')
 			continue;	// Skip empty lines and comments
@@ -497,7 +499,7 @@ void GeoBackend::loadDirectorMap(GeoRecord &gr) {
 		// Parse $RECORD
 		if (line.substr(0, 7) == "$RECORD") {
 			gr.qname = line.substr(8);
-			chomp(gr.qname, " \t");
+			trim_right(gr.qname);
 			if (gr.qname[gr.qname.size()-1] != '.')
 				gr.qname += '.' + zoneName;
 			else {
@@ -512,7 +514,7 @@ void GeoBackend::loadDirectorMap(GeoRecord &gr) {
 		// Parse $ORIGIN
 		if (line.substr(0, 7) == "$ORIGIN") {
 			gr.origin = line.substr(8);
-			chomp(gr.origin, " \t.");
+			trim_right(gr.origin);
 			gr.origin.insert(0, ".");
 			continue;
 		}	
