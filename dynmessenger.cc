@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -68,26 +68,39 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   
 }
 
+DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
+{
+  *d_local.sun_path=0;
+  d_s=socket(AF_INET, SOCK_STREAM,0);
+  
+  if(d_s<0) {
+    throw AhuException(string("socket")+strerror(errno));
+  }
+  
+  if(connect(d_s, (sockaddr*)&remote, remote.getSocklen())<0) {
+    close(d_s);
+    throw AhuException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
+  }
+
+  string login=secret+"\n";
+  writen2(d_s, login);
+}
+
 DynMessenger::~DynMessenger()
 {
-  if(unlink(d_local.sun_path)<0)
+  if(*d_local.sun_path && unlink(d_local.sun_path)<0)
     cerr<<"Warning: unable to unlink local unix domain endpoint: "<<strerror(errno)<<endl;
   close(d_s);
 }   
 
 int DynMessenger::send(const string &msg) const
 {
-  if(::send(d_s,msg.c_str(),msg.size()+1,0)<0) {
+  if(writen2(d_s, msg+"\n") < 0) { // sue me
     perror("sendto");
     return -1;
   }
   return 0;
 }
-
-/*
-       int  recvfrom(int  s,  void  *buf,  size_t len, int flags,
-       struct sockaddr *from, socklen_t *fromlen);
-*/
 
 string DynMessenger::receive() const 
 {

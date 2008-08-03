@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -26,7 +26,8 @@
 #include <errno.h>
 #include <iostream>
 #include <sstream>
-
+#include "iputils.hh"
+#include <boost/utility.hpp>
 #ifndef WIN32
 #include <unistd.h>
 #include <sys/un.h>
@@ -38,10 +39,11 @@
 
 using namespace std;
 
-class DynListener
+class DynListener : public boost::noncopyable
 {
 public:
-  DynListener(const string &pname="");
+  explicit DynListener(const string &pname="");
+  explicit DynListener(const ComboAddress& addr);
   ~DynListener();
   void go();
   void theListener();
@@ -50,13 +52,15 @@ public:
   typedef string g_funk_t(const vector<string> &parts, Utility::pid_t ppid); // guido!
   typedef map<string,g_funk_t *> g_funkdb_t;
   
-  void registerFunc(const string &name, g_funk_t *gf);
-  void registerRestFunc(g_funk_t *gf);
+  static void registerFunc(const string &name, g_funk_t *gf);
+  static void registerRestFunc(g_funk_t *gf);
 private:
-  DynListener(const DynListener &);
-  DynListener& operator=(const DynListener &); 
   void sendLine(const string &line);
   string getLine();
+
+  void listenOnUnixDomain(const std::string& fname);
+  void listenOnTCP(const ComboAddress&);
+  void createSocketAndBind(int family, struct sockaddr*local, size_t len);
 
 #ifndef WIN32
   struct sockaddr_un d_remote;
@@ -65,16 +69,17 @@ private:
 #endif // WIN32
   
   Utility::socklen_t d_addrlen;
-
+  NetmaskGroup d_tcprange;
   int d_s;
   int d_client;
   pthread_t d_tid;
-  bool d_udp;
+  bool d_nonlocal;
+  bool d_tcp;
   pid_t d_ppid;
   
   string d_socketname;
-  g_funkdb_t d_funcdb;
-  g_funk_t* d_restfunc;
-
+  ComboAddress d_socketaddress;
+  static g_funkdb_t s_funcdb;
+  static g_funk_t* s_restfunc;
 };
 #endif /* PDNS_DYNLISTENER */

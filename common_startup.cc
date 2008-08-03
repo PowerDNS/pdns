@@ -36,7 +36,6 @@ ArgvMap &arg()
   return theArg;
 }
 
-
 void declareArguments()
 {
   ::arg().set("local-port","The port on which we listen")="53";
@@ -81,6 +80,11 @@ void declareArguments()
   ::arg().setSwitch("disable-axfr","Disable zonetransfers but do allow TCP queries")="no";
   ::arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="0.0.0.0/0";
   ::arg().set("slave-cycle-interval","Reschedule failed SOA serial checks once every .. seconds")="60";
+
+  ::arg().set("tcp-control-address","If set, PowerDNS can be controlled over TCP on this address")="";
+  ::arg().set("tcp-control-port","If set, PowerDNS can be controlled over TCP on this address")="53000";
+  ::arg().set("tcp-control-secret","If set, PowerDNS can be controlled over TCP after passing this secret")="";
+  ::arg().set("tcp-control-range","If set, remote control of PowerDNS is possible over these networks only")="127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
   
   ::arg().setSwitch("slave","Act as a slave")="no";
   ::arg().setSwitch("master","Act as a master")="no";

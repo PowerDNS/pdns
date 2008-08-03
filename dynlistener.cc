@@ -1,6 +1,6 @@
  /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2006  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -23,7 +23,8 @@
 #include <dlfcn.h>
 #include <pthread.h>
 #include <unistd.h>
-
+#include <boost/algorithm/string.hpp>
+#include <boost/shared_ptr.hpp>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
@@ -35,7 +36,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-
+#include <boost/algorithm/string.hpp> 
 #include "misc.hh"
 #include "dns.hh"
 #include "arguments.hh"
@@ -45,9 +46,10 @@
 #include "logger.hh"
 #include "statbag.hh"
 
-
-
 extern StatBag S;
+
+DynListener::g_funkdb_t DynListener::s_funcdb;
+DynListener::g_funk_t* DynListener::s_restfunc;
 
 DynListener::~DynListener()
 {
@@ -55,24 +57,85 @@ DynListener::~DynListener()
     unlink(d_socketname.c_str());
 }
 
-DynListener::DynListener(const string &pname)
+void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t len)
 {
-  d_restfunc=0;
-  string programname(pname);
+  d_s=socket(family, SOCK_STREAM,0);
 
-  if(!programname.empty()) {
-    struct sockaddr_un local;
-    d_s=socket(AF_UNIX,SOCK_STREAM,0);
-
-    if(d_s<0) {
-      L<<Logger::Error<<"Creating socket for dynlistener: "<<strerror(errno)<<endl;;
-      exit(1);
-    }
-
-    int tmp=1;
-    if(setsockopt(d_s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
-      throw AhuException(string("Setsockopt failed: ")+strerror(errno));
+  if(d_s < 0) {
+    L<<Logger::Error<<"Creating socket for dynlistener: "<<strerror(errno)<<endl;;
+    exit(1);
+  }
+  
+  int tmp=1;
+  if(setsockopt(d_s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
+    throw AhuException(string("Setsockopt failed: ")+strerror(errno));
     
+  if(bind(d_s, local, len) < 0) {
+    L<<Logger::Critical<<"Binding to dynlistener: "<<strerror(errno)<<endl;
+    exit(1);
+  }
+
+  listen(d_s,10);
+}
+
+void DynListener::listenOnUnixDomain(const string& fname)
+{
+  int err=unlink(fname.c_str());
+  if(err < 0 && errno!=ENOENT) {
+    L<<Logger::Critical<<"Unable to remove (previous) controlsocket: "<<strerror(errno)<<endl;
+    exit(1);
+  }
+
+  struct sockaddr_un local;
+  memset(&local,0,sizeof(local));
+  local.sun_family=AF_UNIX;
+  strncpy(local.sun_path, fname.c_str(), fname.length());
+  
+  createSocketAndBind(AF_UNIX, (struct sockaddr*)& local, sizeof(local));
+  d_socketname=fname;
+  if(!arg()["setgid"].empty()) {
+    if(chown(fname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
+      L<<Logger::Error<<"Unable to change group ownership of controlsocket: "<<strerror(errno)<<endl;
+    if(chmod(fname.c_str(),0660)<0)
+      L<<Logger::Error<<"Unable to change group access mode of controlsocket: "<<strerror(errno)<<endl;
+  }
+  
+  
+  L<<Logger::Warning<<"Listening on controlsocket in '"<<fname<<"'"<<endl;
+  d_nonlocal=true;
+}
+
+void DynListener::listenOnTCP(const ComboAddress& local)
+{
+  createSocketAndBind(AF_INET, (struct sockaddr*)& local, local.getSocklen());
+  d_socketaddress=local;
+  L<<Logger::Warning<<"Listening on controlsocket on '"<<local.toStringWithPort()<<"'"<<endl;
+  d_nonlocal=true;
+
+  if(!::arg()["tcp-control-range"].empty()) {
+    vector<string> ips;
+    stringtok(ips, ::arg()["tcp-control-range"], ", ");
+    L<<Logger::Warning<<"Only allowing TCP control from: ";
+    for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
+      d_tcprange.addMask(*i);
+      if(i!=ips.begin())
+	L<<Logger::Warning<<", ";
+      L<<Logger::Warning<<*i;
+    }
+    L<<Logger::Warning<<endl;
+  }
+}
+
+
+DynListener::DynListener(const ComboAddress& local)
+{
+  listenOnTCP(local);
+  d_tcp=true;
+}
+
+DynListener::DynListener(const string &progname)
+{
+  if(!progname.empty()) {
     string socketname=arg()["socket-dir"]+"/";
     cleanSlashes(socketname);
     
@@ -83,37 +146,12 @@ DynListener::DynListener(const string &pname)
       exit(1);
     }
     
-    socketname+=programname+".controlsocket";
-    int err=unlink(socketname.c_str());
-    if(err < 0 && errno!=ENOENT) {
-      L<<Logger::Critical<<"Unable to remove (previous) controlsocket: "<<strerror(errno)<<endl;
-      exit(1);
-    }
-    memset(&local,0,sizeof(local));
-    local.sun_family=AF_UNIX;
-    strcpy(local.sun_path,socketname.c_str());
-    
-    if(bind(d_s, (sockaddr*)&local,sizeof(local))<0) {
-      L<<Logger::Critical<<"Binding to dynlistener '"<<socketname<<"': "<<strerror(errno)<<endl;
-      exit(1);
-    }
-    d_socketname=socketname;
-    if(!arg()["setgid"].empty()) {
-      if(chown(socketname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
-	L<<Logger::Error<<"Unable to change group ownership of controlsocket: "<<strerror(errno)<<endl;
-      if(chmod(socketname.c_str(),0660)<0)
-	L<<Logger::Error<<"Unable to change group access mode of controlsocket: "<<strerror(errno)<<endl;
-    }
-      
-
-    L<<Logger::Warning<<"Listening on controlsocket in '"<<socketname<<"'"<<endl;
-    d_udp=true;
-    listen(d_s,10);
+    socketname+=progname+".controlsocket";
+    listenOnUnixDomain(socketname);
   }
   else
-    d_udp=false;
-
-
+    d_nonlocal=false; // we listen on stdin!
+  d_tcp=false;
 }
 
 void DynListener::go()
@@ -135,11 +173,11 @@ string DynListener::getLine()
   mesg.resize(1024000);
 
   int len;
-    
-  sockaddr_un remote;
-  socklen_t remlen=sizeof(remote);
 
-  if(d_udp) {
+  ComboAddress remote;
+  socklen_t remlen=remote.getSocklen();
+
+  if(d_nonlocal) {
     for(;;) {
       d_client=accept(d_s,(sockaddr*)&remote,&remlen);
       if(d_client<0) {
@@ -147,19 +185,35 @@ string DynListener::getLine()
 	  L<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<strerror(errno)<<endl;
 	continue;
       }
-      if((len=recv(d_client, &mesg[0], mesg.size(),0))<0) {
-	L<<Logger::Error<<"Unable to receive packet from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
+
+      boost::shared_ptr<FILE> fp=boost::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
+      if(d_tcp) {
+	if(!fgets(&mesg[0], mesg.size(), fp.get())) {
+	  L<<Logger::Error<<"Unable to receive password from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
+	  close(d_client);
+	  continue;
+	}
+	string password(&mesg[0]);
+	boost::trim(password);
+	if(password.empty() || password!=arg()["tcp-control-secret"]) {
+	  L<<Logger::Error<<"Wrong password on TCP control socket"<<endl;
+	  writen2(d_client, "Wrong password");
+
+	  close(d_client);
+	  continue;
+	}
+      }
+      if(!fgets(&mesg[0], mesg.size(), fp.get())) {
+	L<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
 	close(d_client);
 	continue;
       }
       
-      if(len == (int)mesg.size()) {
+      if(strlen(&mesg[0]) == mesg.size()) {
 	L<<Logger::Error<<"Line on controlsocket ("<<d_client<<") was too long"<<endl;
 	close(d_client);
 	continue;
       }
-
-      mesg[len]=0;
       break;
     }
   }
@@ -182,11 +236,12 @@ string DynListener::getLine()
 
 void DynListener::sendLine(const string &l)
 {
-  if(d_udp) {
+  if(d_nonlocal) {
     unsigned int sent=0;
     int ret;
-    while(sent<l.length()) {
-      ret=send(d_client,l.c_str()+sent,l.length()-sent,0); 
+    while(sent < l.length()) {
+      ret=send(d_client, l.c_str()+sent, l.length()-sent, 0); 
+
       if(ret<0 || !ret) {
 	L<<Logger::Error<<"Error sending data to pdns_control: "<<stringerror()<<endl;
 	break;
@@ -206,12 +261,12 @@ void DynListener::sendLine(const string &l)
 
 void DynListener::registerFunc(const string &name, g_funk_t *gf)
 {
-  d_funcdb[name]=gf;
+  s_funcdb[name]=gf;
 }
 
 void DynListener::registerRestFunc(g_funk_t *gf)
 {
-  d_restfunc=gf;
+  s_restfunc=gf;
 }
 
 void DynListener::theListener()
@@ -219,9 +274,10 @@ void DynListener::theListener()
   try {
     map<string,string> parameters;
 
-    for(;;) {
+    for(int n=0;;++n) {
+      //      cerr<<"Reading new line, "<<d_client<<endl;
       string line=getLine();
-      chomp(line,"\n");
+      boost::trim_right(line);
 
       vector<string>parts;
       stringtok(parts,line," ");
@@ -230,15 +286,15 @@ void DynListener::theListener()
 	continue;
       }
       parts[0] = toUpper( parts[0] );
-      if(!d_funcdb[parts[0]]) {
-	if(d_restfunc) 
-	  sendLine((*d_restfunc)(parts,d_ppid));
+      if(!s_funcdb[parts[0]]) {
+	if(s_restfunc) 
+	  sendLine((*s_restfunc)(parts,d_ppid));
 	else
 	  sendLine("Unknown command: '"+parts[0]+"'");
 	continue;
       }
 
-      sendLine((*d_funcdb[parts[0]])(parts,d_ppid));
+      sendLine((*s_funcdb[parts[0]])(parts,d_ppid));
     }
   }
   catch(AhuException &AE)
