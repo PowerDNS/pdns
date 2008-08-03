@@ -117,7 +117,7 @@ void UDPNameserver::bindIPv4()
     locala.sin_port=htons(arg().asNum("local-port"));
     
     if(bind(s, (sockaddr*)&locala,sizeof(locala))<0) {
-      L<<Logger::Error<<"binding UDP socket to '"+localname+"': "<<strerror(errno)<<endl;
+      L<<Logger::Error<<"binding UDP socket to '"+localname+"' port "+lexical_cast<string>(ntohs(locala.sin_port))+": "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to UDP socket");
     }
     d_highfd=max(s,d_highfd);
