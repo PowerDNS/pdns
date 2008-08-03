@@ -177,6 +177,10 @@ vstringtok (Container &container, string const &in,
   }
 }
 
+int writen2(int fd, const void *buf, size_t count);
+inline int writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
+
+
 const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);
 bool IpToU32(const string &str, uint32_t *ip);
@@ -290,17 +294,6 @@ inline double getTime()
   Utility::gettimeofday(&now,0);
   
   return now.tv_sec+now.tv_usec/1000000.0;
-}
-
-
-inline void chomp( string& line, const string& delim )
-{
-	string::size_type pos;
-
-	if( ( pos = line.find_last_not_of( delim ) ) != string::npos )
-	{
-		line.resize( pos + 1 );
-	}
 }
 
 inline void unixDie(const string &why)

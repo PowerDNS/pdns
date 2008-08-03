@@ -39,6 +39,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <fstream>
+#include <boost/algorithm/string.hpp>
 
 #include "config.h"
 #include "dns.hh"
@@ -61,6 +62,7 @@
 #include "utility.hh"
 #include "common_startup.hh"
 #include "dnsrecords.hh"
+
 
 time_t s_starttime;
 
@@ -153,7 +155,7 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
       break;
     response+=mesg;
   }
-  chomp(response,"\n");
+  boost::trim_right(response);
   return response;
 }
 
@@ -518,21 +520,25 @@ int main(int argc, char **argv)
       
       writePid();
     }
-    dl->registerFunc("SHOW",&DLShowHandler);
-    dl->registerFunc("RPING",&DLPingHandler);
-    dl->registerFunc("QUIT",&DLRQuitHandler);
-    dl->registerFunc("UPTIME",&DLUptimeHandler);
-    dl->registerFunc("NOTIFY-HOST",&DLNotifyHostHandler);
-    dl->registerFunc("NOTIFY",&DLNotifyHandler);
-    dl->registerFunc("RELOAD",&DLReloadHandler);
-    dl->registerFunc("REDISCOVER",&DLRediscoverHandler);
-    dl->registerFunc("VERSION",&DLVersionHandler);
-    dl->registerFunc("PURGE",&DLPurgeHandler);
-    dl->registerFunc("CCOUNTS",&DLCCHandler);
-    dl->registerFunc("SET",&DLSettingsHandler);
-    dl->registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
+    DynListener::registerFunc("SHOW",&DLShowHandler);
+    DynListener::registerFunc("RPING",&DLPingHandler);
+    DynListener::registerFunc("QUIT",&DLRQuitHandler);
+    DynListener::registerFunc("UPTIME",&DLUptimeHandler);
+    DynListener::registerFunc("NOTIFY-HOST",&DLNotifyHostHandler);
+    DynListener::registerFunc("NOTIFY",&DLNotifyHandler);
+    DynListener::registerFunc("RELOAD",&DLReloadHandler);
+    DynListener::registerFunc("REDISCOVER",&DLRediscoverHandler);
+    DynListener::registerFunc("VERSION",&DLVersionHandler);
+    DynListener::registerFunc("PURGE",&DLPurgeHandler);
+    DynListener::registerFunc("CCOUNTS",&DLCCHandler);
+    DynListener::registerFunc("SET",&DLSettingsHandler);
+    DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
 
-    
+    if(!::arg()["tcp-control-address"].empty()) {
+      DynListener* dlTCP=new DynListener(ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));
+      dlTCP->go();
+    }
+
     // reparse, with error checking
     if(!::arg().mustDo("no-config"))
       ::arg().file(configname.c_str());

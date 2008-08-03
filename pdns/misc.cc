@@ -42,12 +42,37 @@
 #include "ahuexception.hh"
 #include <sys/types.h>
 #include "utility.hh"
+#include <boost/algorithm/string.hpp>
+
+int writen2(int fd, const void *buf, size_t count)
+{
+  const char *ptr = (char*)buf;
+  const char *eptr = ptr + count;
+  
+  int res;
+  while(ptr != eptr) {
+    res = ::write(fd, ptr, eptr - ptr);
+    if(res < 0) {
+      if (errno == EAGAIN)
+	throw std::runtime_error("used writen2 on non-blocking socket, got EAGAIN");
+      else
+	unixDie("failed in writen2");
+    }
+    else if (res == 0)
+      throw std::runtime_error("could not write all bytes, got eof in writen2");
+    
+    ptr += res;
+  }
+  
+  return count;
+}
+
 
 string nowTime()
 {
   time_t now=time(0);
   string t=ctime(&now);
-  chomp(t,"\n");
+  boost::trim_right(t);
   return t;
 }
 

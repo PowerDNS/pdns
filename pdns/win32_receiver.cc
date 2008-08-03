@@ -242,19 +242,19 @@ int main(int argc, char **argv)
       else
 	dl=new DynListener(s_programname);
       
-    dl->registerFunc("SHOW",&DLShowHandler);
-    dl->registerFunc("RPING",&DLPingHandler);
-    dl->registerFunc("QUIT",&DLRQuitHandler);
-    dl->registerFunc("UPTIME",&DLUptimeHandler);
-    dl->registerFunc("NOTIFY-HOST",&DLNotifyHostHandler);
-    dl->registerFunc("NOTIFY",&DLNotifyHandler);
-    dl->registerFunc("RELOAD",&DLReloadHandler);
-    dl->registerFunc("REDISCOVER",&DLRediscoverHandler);
-    dl->registerFunc("VERSION",&DLVersionHandler);
-    dl->registerFunc("PURGE",&DLPurgeHandler);
-    dl->registerFunc("CCOUNTS",&DLCCHandler);
-    dl->registerFunc("SET",&DLSettingsHandler);
-    dl->registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
+    DynListener::registerFunc("SHOW",&DLShowHandler);
+    DynListener::registerFunc("RPING",&DLPingHandler);
+    DynListener::registerFunc("QUIT",&DLRQuitHandler);
+    DynListener::registerFunc("UPTIME",&DLUptimeHandler);
+    DynListener::registerFunc("NOTIFY-HOST",&DLNotifyHostHandler);
+    DynListener::registerFunc("NOTIFY",&DLNotifyHandler);
+    DynListener::registerFunc("RELOAD",&DLReloadHandler);
+    DynListener::registerFunc("REDISCOVER",&DLRediscoverHandler);
+    DynListener::registerFunc("VERSION",&DLVersionHandler);
+    DynListener::registerFunc("PURGE",&DLPurgeHandler);
+    DynListener::registerFunc("CCOUNTS",&DLCCHandler);
+    DynListener::registerFunc("SET",&DLSettingsHandler);
+    DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
 
       
     // reparse, with error checking

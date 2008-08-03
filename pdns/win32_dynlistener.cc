@@ -32,7 +32,7 @@
 
 #include <sys/stat.h>
 #include <fcntl.h>
-
+#include <boost/algorithm/string.hpp>
 #include "misc.hh"
 #include "dns.hh"
 #include "arguments.hh"
@@ -140,7 +140,7 @@ void DynListener::theListener()
 
     for(;;) {
       string line=getLine();
-      chomp(line,"\n");
+      boost::trim_right(line);
 
       vector<string>parts;
       stringtok(parts,line," ");

@@ -35,11 +35,12 @@
 #endif // WIN32
 
 #include <errno.h>
+#include "iputils.hh"
 #include "ahuexception.hh"
 
 using namespace std;
 
-//! The DynMessenger can send messages to UNIX domain sockets
+//! The DynMessenger can send messages to UNIX domain sockets and TCP sockets
 class DynMessenger
 {
   int d_s;
@@ -52,14 +53,13 @@ class DynMessenger
   HANDLE m_pipeHandle; // Named pipe handle.
 
 #endif // WIN32
-  
-
   DynMessenger(const DynMessenger &); // NOT IMPLEMENTED
   
 public:
   // CREATORS
 
   DynMessenger(const string &ldir, const string &filename);  //!< Create a DynMessenger sending to this file
+  DynMessenger(const ComboAddress& remote, const string &password);  //!< Create a DynMessenger sending to this file
   ~DynMessenger();
 
   // ACCESSORS
