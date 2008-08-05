@@ -513,7 +513,7 @@ void startDoResolve(void *p)
     uint16_t maxudpsize=512;
     EDNSOpts edo;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
-      maxudpsize=edo.d_packetsize;
+      maxudpsize=max(edo.d_packetsize, (uint16_t)1280);
     }
     
     vector<DNSResourceRecord> ret;
