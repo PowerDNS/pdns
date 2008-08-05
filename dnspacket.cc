@@ -442,7 +442,7 @@ try
   d_ednsping.clear();
 
   if(getEDNSOpts(mdp, &edo)) {
-    d_maxreplylen=edo.d_packetsize;
+    d_maxreplylen=max(edo.d_packetsize, (uint16_t)1280);
 
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
 	iter != edo.d_options.end(); 
