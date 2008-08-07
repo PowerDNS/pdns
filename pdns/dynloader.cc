@@ -95,7 +95,6 @@ int main(int argc, char **argv)
 
   try {
     string command=commands[0];
-
     shared_ptr<DynMessenger> D;
     if(arg()["remote-address"].empty())
       D=shared_ptr<DynMessenger>(new DynMessenger(localdir,socketname));
@@ -105,7 +104,7 @@ int main(int argc, char **argv)
 	port  = lexical_cast<uint16_t>(arg()["remote-port"]);
       }
       catch(...) {
-	cerr<<"Unable to convert '"<<port<<"' to a port number for connecting to remote PowerDNS\n";
+	cerr<<"Unable to convert '"<<arg()["remote-port"]<<"' to a port number for connecting to remote PowerDNS\n";
 	exit(99);
       }
       
