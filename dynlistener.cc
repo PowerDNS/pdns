@@ -186,7 +186,7 @@ string DynListener::getLine()
 	continue;
       }
 
-      if(!d_tcprange.match(&remote)) {
+      if(!d_tcp && d_tcprange.match(&remote)) {
 	writen2(d_client, "Access denied to "+remote.toString()+"\n");
 	close(d_client);
 	continue;
