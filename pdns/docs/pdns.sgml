@@ -340,7 +340,33 @@
 	  </itemizedlist>
 	</para>
       </sect2>
-
+      <sect2 id="changelog-auth-2-9-21-1"><title>Authoritative Server version 2.9.21.1</title>
+	<para>
+	  Released on the 6th of August 2008.
+	</para>
+	<para>
+	  This release consists of a single patch to PowerDNS Authoritative Server version 2.9.21. 
+	  Brian J. Dowling of Simplicity Communications has discovered a security implication of 
+	  the previous PowerDNS behaviour to drop queries it considers malformed. We are grateful that
+	  Brian notified us quickly about this problem.
+	</para>
+	<para>
+	  This issue has been assigned CVE-2008-3337. The single patch is in c1239. More detail can be found in
+	  <xref linkend="powerdns-advisory-2008-02">.
+	</para>
+	<para>
+	  The implication is that while the PowerDNS Authoritative server itself does not face a security risk because
+	  of dropping these malformed queries, other resolving nameservers run a higher risk of accepting spoofed
+	  answers for domains being hosted by PowerDNS Authoritative Servers before 2.9.21.1.
+	</para>
+	<para>
+	  While the dropping of queries does not aid sophisticated spoofing attempts, it does facilitate simpler attacks.
+	</para>
+	<para>
+	  It may be good to know that several large sites already run with this patch applied, as it has been in the 
+	  public codebase for some weeks already.
+	</para>
+      </sect2>
       <sect2 id="changelog-recursor-3-1-7"><title>Recursor version 3.1.7</title>
 	<para>
 	  Released the 25th of June 2008.
@@ -6068,7 +6094,7 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
-	As of the 31st of March 2008, no actual security problems with PowerDNS 2.9.18, Recursor 3.1.5, or later are known about.  This page 
+	As of the 6th of August 2008, no actual security problems with PowerDNS 2.9.21.1, Recursor 3.1.5, or later are known about.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailinglists.
       </para>
@@ -6083,6 +6109,11 @@ name         IN            A        1.2.3.4
       <para>
 	Version 3.0 of the PowerDNS recursor contains a denial of service bug which can be exploited remotely. This bug, which we believe to only lead to a crash,
 	has been fixed in 3.0.1. There are no guarantees however, so an upgrade from 3.0 is highly recommended.
+      </para>
+      <para>
+	All versions of PowerDNS before 2.9.21.1 do not respond to certain queries. This in itself is not a problem, but since the discovery by Dan Kaminsky
+	of a new spoofing technique, this silence for queries PowerDNS considers invalid, within a valid domain, allows attackers more chances
+	to feed *other* resolvers bad data.
       </para>
       <para>
 	All versions of PowerDNS before 2.9.18 contain the following two bugs, which only apply to installations running with the LDAP backend, or installations providing recursion
@@ -6431,6 +6462,105 @@ name         IN            A        1.2.3.4
 	Nevertheless, operators are urged to update at their earliest convenience.
       </para>
     </sect1>
+    <sect1 id="powerdns-advisory-2008-02">
+      <title>PowerDNS Security Advisory 2008-02: By not responding to certain queries, domains become easier to spoof</title>
+      <para>
+	<table>
+	  <title>PowerDNS Security Advisory</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row>
+		<entry>
+		  CVE
+		</entry>
+		<entry>
+		  CVE-2008-3337
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Date
+		</entry>
+		<entry>
+		  6th of August 2008
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Affects
+		</entry>
+		<entry>
+		  PowerDNS Authoritative Server 2.9.21 and earlier
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Not affected
+		</entry>
+		<entry>
+		  No versions of the PowerDNS Recursor ('pdns_recursor') are affected.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Severity 
+		</entry>
+		<entry>
+		  Moderate
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Impact
+		</entry>
+		<entry>
+		  Data manipulation; client redirection
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Exploit
+		</entry>
+		<entry>
+		  Domains with servers that drop certain queries can be spoofed using simpler measures than would 
+		  usually be required
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Solution
+		</entry>
+		<entry>
+		  Upgrade to PowerDNS Authoritative Server 2.9.21.1, or apply c1239. 
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Workaround
+		</entry>
+		<entry>
+		  None known. 
+		</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	Brian J. Dowling of Simplicity Communications has discovered a security implication of 
+	the previous PowerDNS behaviour to drop queries it considers malformed. We are grateful that
+	Brian notified us quickly about this problem.
+      </para>
+      <para>
+	The implication is that while the PowerDNS Authoritative server itself does not face a security risk because
+	of dropping these malformed queries, other resolving nameservers run a higher risk of accepting spoofed
+	answers for domains being hosted by PowerDNS Authoritative Servers before 2.9.21.1.
+      </para>
+      <para>
+	While the dropping of queries does not aid sophisticated spoofing attempts, it does facilitate simpler attacks.
+      </para>
+    </sect1>
+
     <sect1 id="thanks-to"><title>Acknowledgements</title>
       <para>
 	PowerDNS is grateful for the help of the following people or institutions:
