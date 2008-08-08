@@ -1655,7 +1655,7 @@ string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::c
   return "ok - loaded script from '"+fname+"'\n";
 }
 
-void seedRandom(const string& source);
+
 
 int serviceMain(int argc, char*argv[])
 {
@@ -1910,35 +1910,6 @@ void doWindowsServiceArguments(RecursorService& recursor)
 }
 #endif
 
-void seedRandom(const string& source)
-{
-  L<<Logger::Warning<<"Reading random entropy from '"<<source<<"'"<<endl;
-
-  int fd=open(source.c_str(), O_RDONLY);
-  if(fd < 0) {
-    L<<Logger::Error<<"Unable to open source of random '"<<source<<"': "<<stringerror()<<endl;
-    exit(EXIT_FAILURE);
-  }
-  char seed[16];
-  int ret;
-  int pos=0;
-  while(pos!=sizeof(seed)) {
-    ret = read(fd, seed+pos, sizeof(seed)-pos);
-    if(ret < 0) { 
-      L<<Logger::Error<<"Unable to read random seed from "<<source<<": "<<stringerror()<<endl;
-      close(fd);
-      exit(EXIT_FAILURE);
-    }
-    if(!ret) {
-      L<<Logger::Error<<"Unable to read random seed from "<<source<<": end of file"<<endl;
-      close(fd);
-      exit(EXIT_FAILURE);
-    }
-    pos+=ret;
-  }
-  close(fd);
-  dns_random_init(seed);
-}
 
 int main(int argc, char **argv) 
 {
