@@ -383,5 +383,5 @@ inline string toCanonic(const string& zone, const string& domain)
 }
 
 string stripDot(const string& dom);
-
+void seedRandom(const string& source);
 #endif

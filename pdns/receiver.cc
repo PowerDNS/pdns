@@ -458,6 +458,8 @@ int main(int argc, char **argv)
     
     // we really need to do work - either standalone or as an instance
     
+    seedRandom(::arg()["entropy-source"]);
+    
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
 

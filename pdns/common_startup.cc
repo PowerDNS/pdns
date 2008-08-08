@@ -125,6 +125,7 @@ void declareArguments()
   ::arg().set("setgid","If set, change group id to this gid for more security")="";
 
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
+  ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
 }
 
 void declareStats(void)
