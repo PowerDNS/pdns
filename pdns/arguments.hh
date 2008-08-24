@@ -106,7 +106,8 @@ public:
   const vector<string>&getCommands();
 private:
   void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
-  map<string,string> params;
+  typedef map<string,string> params_t;
+  params_t params;
   map<string,string> helpmap;
   map<string,string> d_typeMap;
   vector<string> d_cmds;
