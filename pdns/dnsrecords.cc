@@ -21,6 +21,11 @@
 
 boilerplate_conv(A, ns_t_a, conv.xfrIP(d_ip));
 
+ARecordContent::ARecordContent(uint32_t ip) : DNSRecordContent(ns_t_a)
+{
+  d_ip = ip;
+}
+
 uint32_t ARecordContent::getIP() const
 {
   return d_ip;

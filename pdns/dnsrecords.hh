@@ -54,6 +54,7 @@ private:
 class ARecordContent : public DNSRecordContent
 {
 public:
+  explicit ARecordContent(uint32_t ip);
   includeboilerplate(A);
   void doRecordCheck(const DNSRecord& dr);
   uint32_t getIP() const;
