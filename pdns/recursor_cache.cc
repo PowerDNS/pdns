@@ -42,10 +42,16 @@ DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const strin
   rr.qtype=qt;
   rr.qname=qname;
 
-  if(rr.qtype.getCode()==QType::A) {
+  if(rr.qtype.getCode()==QType::A && serial.size()==4) {
     uint32_t ip;
     memcpy((char*)&ip, serial.c_str(), 4);
     rr.content=U32ToIP(ntohl(ip));
+  }
+  else if(rr.qtype.getCode()==QType::AAAA && serial.size()==16) {
+    ComboAddress tmp;
+    tmp.sin4.sin_family=AF_INET6;
+    memcpy(tmp.sin6.sin6_addr.s6_addr, serial.c_str(), 16);
+    rr.content=tmp.toString();
   }
   else if(rr.qtype.getCode()==QType::CNAME || rr.qtype.getCode()==QType::NS || rr.qtype.getCode()==QType::PTR) {
     unsigned int frompos=0;
@@ -84,6 +90,10 @@ string DNSRR2String(const DNSResourceRecord& rr)
     uint32_t ip;
     IpToU32(rr.content, &ip);
     return string((char*)&ip, 4);
+  }
+  else if(type==QType::AAAA) {
+    ComboAddress ca(rr.content);
+    return string((char*)&ca.sin6.sin6_addr.s6_addr, 16);
   }
   else if(type==QType::NS || type==QType::CNAME)
       return simpleCompress(rr.content, rr.qname);
@@ -324,13 +334,14 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
       }
     }
   }
+
   if(isNew) {
     sort(ce.d_records.begin(), ce.d_records.end());
   }
-
+  
   if(ce.d_records.capacity() != ce.d_records.size())
     vector<StoredRecord>(ce.d_records).swap(ce.d_records);
-
+  
   d_cache.replace(stored, ce);
 }
 
