@@ -76,10 +76,14 @@ string & ArgvMap::setSwitch(const string &var, const string &help)
 
 bool ArgvMap::contains(const string &var, const string &val)
 {
+  params_t::const_iterator param = params.find(var);
+  if(param == params.end() || param->second.empty())  {
+    return false;
+  }
   vector<string> parts;
   vector<string>::const_iterator i;
   
-  stringtok( parts, params[var], ", \t" );
+  stringtok( parts, param->second, ", \t" );
   for( i = parts.begin(); i != parts.end(); i++ ) {
     if( *i == val ) {
       return true;
@@ -88,7 +92,6 @@ bool ArgvMap::contains(const string &var, const string &val)
 
   return false;
 }
-
 
 string ArgvMap::helpstring(string prefix)
 {
