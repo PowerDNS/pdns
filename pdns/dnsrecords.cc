@@ -210,7 +210,6 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
 
     string field(d_data.c_str() + pos, len);
     pos+=len;
-
     options.push_back(make_pair(code, field));
   }
 }
@@ -357,10 +356,10 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
     eo->d_extRCode=stuff.extRCode;
     eo->d_version=stuff.version;
     eo->d_Z=stuff.Z;
-    
     OPTRecordContent* orc = 
       dynamic_cast<OPTRecordContent*>(mdp.d_answers.back().first.d_content.get());
-
+    if(!orc)
+      return false;
     orc->getData(eo->d_options);
 
     return true;

@@ -1504,6 +1504,7 @@ void parseAuthAndForwards()
   SyncRes::s_domainmap.clear(); // this makes us idempotent
 
   TXTRecordContent::report();
+  OPTRecordContent::report();
 
   typedef vector<string> parts_t;
   parts_t parts;  
