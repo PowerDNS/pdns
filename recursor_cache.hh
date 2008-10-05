@@ -39,6 +39,7 @@ public:
   void doSlash(int perc);
   void doDumpAndClose(int fd);
   int doWipeCache(const string& name, uint16_t qtype=0xffff);
+  bool doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL);
   uint64_t cacheHits, cacheMisses;
   bool d_followRFC2181;
 
