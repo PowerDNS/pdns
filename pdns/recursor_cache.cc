@@ -233,7 +233,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
       }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
-    return (unsigned int)ttd-now;
+    return (int)ttd-now;
   }
   return -1;
 }
@@ -361,6 +361,34 @@ int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
   }
   return count;
 }
+
+bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL)
+{
+  cache_t::iterator iter = d_cache.find(tie(name, qtype));
+  if(iter == d_cache.end()) 
+    return false;
+
+  int32_t ttl = iter->getTTD() - now;
+  if(ttl < 0) 
+    return false;  // would be dead anyhow
+
+  if(ttl > newTTL) {
+    d_cachecachevalid=false;
+
+    ttl = newTTL;
+    uint32_t newTTD = now + ttl;
+    
+    CacheEntry ce = *iter;
+    for(vector<StoredRecord>::iterator j = ce.d_records.begin() ; j != ce.d_records.end(); ++j)  {
+      j->d_ttd = newTTD;
+    }
+    
+    d_cache.replace(iter, ce);
+    return true;
+  }
+  return false;
+}
+
 
 void MemRecursorCache::doDumpAndClose(int fd)
 {
