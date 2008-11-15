@@ -79,7 +79,7 @@ extern StatBag S;
 void UDPNameserver::bindIPv4()
 {
   vector<string>locals;
-  stringtok(locals,arg()["local-address"]," ,");
+  stringtok(locals,::arg()["local-address"]," ,");
 
   if(locals.empty())
     throw AhuException("No local address specified");
@@ -114,15 +114,15 @@ void UDPNameserver::bindIPv4()
       locala.sin_addr.s_addr=*(int*)h->h_addr;
     }
 
-    locala.sin_port=htons(arg().asNum("local-port"));
+    locala.sin_port=htons(::arg().asNum("local-port"));
     
-    if(bind(s, (sockaddr*)&locala,sizeof(locala))<0) {
+    if(::bind(s, (sockaddr*)&locala,sizeof(locala))<0) {
       L<<Logger::Error<<"binding UDP socket to '"+localname+"' port "+lexical_cast<string>(ntohs(locala.sin_port))+": "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to UDP socket");
     }
     d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
-    L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin_addr)<<":"<<arg().asNum("local-port")<<endl;
+    L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
     FD_SET(s, &d_rfds);
   }
 }
@@ -131,7 +131,7 @@ void UDPNameserver::bindIPv6()
 {
 #if !WIN32 && HAVE_IPV6
   vector<string>locals;
-  stringtok(locals,arg()["local-ipv6"]," ,");
+  stringtok(locals,::arg()["local-ipv6"]," ,");
 
   if(locals.empty())
     return;
@@ -148,7 +148,7 @@ void UDPNameserver::bindIPv6()
       L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-ipv6 option"<<endl;
     }
     
-    ComboAddress locala(localname, arg().asNum("local-port"));
+    ComboAddress locala(localname, ::arg().asNum("local-port"));
 
     if(bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to UDP ipv6 socket: "<<strerror(errno)<<endl;
@@ -156,7 +156,7 @@ void UDPNameserver::bindIPv6()
     }
     d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
-    L<<Logger::Error<<"UDPv6 server bound to ["<<localname<<"]:"<<arg().asNum("local-port")<<endl;
+    L<<Logger::Error<<"UDPv6 server bound to ["<<localname<<"]:"<<::arg().asNum("local-port")<<endl;
     FD_SET(s, &d_rfds);
   }
 #endif // WIN32
@@ -166,12 +166,12 @@ UDPNameserver::UDPNameserver()
 {
   d_highfd=0;
   FD_ZERO(&d_rfds);  
-  if(!arg()["local-address"].empty())
+  if(!::arg()["local-address"].empty())
     bindIPv4();
-  if(!arg()["local-ipv6"].empty())
+  if(!::arg()["local-ipv6"].empty())
     bindIPv6();
 
-  if(arg()["local-address"].empty() && arg()["local-ipv6"].empty()) 
+  if(::arg()["local-address"].empty() && ::arg()["local-ipv6"].empty()) 
     L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;
     
 }
