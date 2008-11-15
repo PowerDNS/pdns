@@ -68,7 +68,6 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
   }
     
   bool packetMeritsRecursion=d_doRecursion && p->d.rd;
-
   if(ntohs(p->d.qdcount)!=1) // we get confused by packets with more than one question
     return 0;
 
@@ -85,7 +84,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     string value;
 
     if(getEntry(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion)) {
-      //      cerr<<"Packet cache hit!"<<endl;
+      //      cerr<<"Packet cache hit for '"<<p->qdomain<<"', merits: "<<packetMeritsRecursion<<endl;
       (*d_statnumhit)++;
       d_hit++;
       if(cached->parse(value.c_str(), value.size()) < 0) {
@@ -95,7 +94,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       return 1;
     }
   }
-  //   cerr<<"Packet cache miss"<<endl;
+  //  cerr<<"Packet cache miss for '"<<p->qdomain<<"', merits: "<<packetMeritsRecursion<<endl;
   (*d_statnummiss)++;
   d_miss++;
   return 0; // bummer
@@ -121,7 +120,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
 
   bool packetMeritsRecursion=d_doRecursion && q->d.rd;
 
-  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, packetMeritsRecursion);
+  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, -1, packetMeritsRecursion);
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
@@ -131,7 +130,6 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
     return;
   
   //  cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", value: '"<< (cet ? value : "PACKET") <<"', qtype: "<<qtype.getName()<<", ttl: "<<ttl<<endl;
-
   CacheEntry val;
   val.ttd=time(0)+ttl;
   val.qname=qname;
