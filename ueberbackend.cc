@@ -237,8 +237,8 @@ void UeberBackend::cleanup()
 int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
 {
   extern PacketCache PC;
-  static int *qcachehit=S.getPointer("query-cache-hit");
-  static int *qcachemiss=S.getPointer("query-cache-miss");
+  static unsigned int *qcachehit=S.getPointer("query-cache-hit");
+  static unsigned int *qcachemiss=S.getPointer("query-cache-miss");
 
   static int negqueryttl=::arg().asNum("negquery-cache-ttl");
   static int queryttl=::arg().asNum("query-cache-ttl");

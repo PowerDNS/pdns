@@ -51,7 +51,7 @@ string StatBag::directory()
   string dir;
   ostringstream o;
   lock();
-  for(map<string,int *>::const_iterator i=d_stats.begin();
+  for(map<string, unsigned int *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
     {
@@ -67,7 +67,7 @@ vector<string>StatBag::getEntries()
 {
   vector<string> ret;
   lock();
-  for(map<string,int *>::const_iterator i=d_stats.begin();
+  for(map<string, unsigned int *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
       ret.push_back(i->first);
@@ -88,7 +88,7 @@ string StatBag::getDescrip(const string &item)
 void StatBag::declare(const string &key, const string &descrip)
 {
   lock();
-  int *i=new int(0);
+  unsigned int *i=new unsigned int(0);
   d_stats[key]=i;
   d_keyDescrips[key]=descrip;
   unlock();
@@ -157,7 +157,7 @@ string StatBag::getValueStrZero(const string &key)
   return o.str();
 }
 
-int *StatBag::getPointer(const string &key)
+unsigned int *StatBag::getPointer(const string &key)
 {
   exists(key);
   return d_stats[key];
@@ -165,7 +165,7 @@ int *StatBag::getPointer(const string &key)
 
 StatBag::~StatBag()
 {
-  for(map<string,int *>::const_iterator i=d_stats.begin();
+  for(map<string,unsigned int *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
     {
