@@ -26,6 +26,11 @@
 #include <iostream>
 #include "misc.hh"
 #include "ahuexception.hh"
+#ifndef WIN32
+# include <sys/types.h>
+# include <pwd.h>
+# include <grp.h>
+#endif
 
 using namespace std;
 
@@ -88,6 +93,11 @@ public:
   bool parmIsset(const string &var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string &var); //!< if a switch is given, if we must do something (--help)
   int asNum(const string &var); //!< return a variable value as a number
+#ifndef WIN32
+  mode_t asMode(const string &var); //<!< return value interprepted as octal number
+  uid_t asUid(const string &var); //!< return user id, resolves if necessary
+  gid_t asGid(const string &var); //!< return group id, resolves if necessary
+#endif
   double asDouble(const string &var); //!< return a variable value as a number
   string &set(const string &); //!< Gives a writable reference and allocates space for it
   string &set(const string &, const string &); //!< Does the same but also allows to specify a help message
@@ -96,6 +106,7 @@ public:
   string helpstring(string prefix=""); //!< generates the --help
   string configstring(); //!< generates the --mkconfig
   bool contains(const string &var, const string &val);
+  bool isEmpty(const string &var); //<! checks if variable has value
 
   vector<string>list();
   string getHelp(const string &item);
