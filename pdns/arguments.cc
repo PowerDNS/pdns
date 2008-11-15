@@ -163,20 +163,113 @@ const string & ArgvMap::operator[](const string &arg)
   return params[arg];
 }
 
+#ifndef WIN32
+mode_t ArgvMap::asMode(const string &arg) 
+{
+  mode_t mode;
+  const char *cptr_orig;
+  char *cptr_ret = NULL;
+
+  if(!parmIsset(arg))
+   throw ArgException(string("Undefined but needed argument: '")+arg+"'");
+
+  cptr_orig = params[arg].c_str();
+  mode = static_cast<mode_t>(strtol(cptr_orig, &cptr_ret, 8));
+  if (mode == 0 && cptr_ret == cptr_orig) 
+    throw ArgException("'" + arg + string("' contains invalid octal mode"));
+   return mode;
+}
+
+gid_t ArgvMap::asGid(const string &arg)
+{
+  gid_t gid;
+  const char *cptr_orig;
+  char *cptr_ret = NULL;
+
+  if(!parmIsset(arg))
+   throw ArgException(string("Undefined but needed argument: '")+arg+"'");
+
+  cptr_orig = params[arg].c_str();
+  gid = static_cast<gid_t>(strtol(cptr_orig, &cptr_ret, 0));
+  if (gid == 0 && cptr_ret == cptr_orig) {
+    // try to resolve
+    struct group *group = getgrnam(params[arg].c_str());
+    if (group == NULL)
+     throw ArgException("'" + arg + string("' contains invalid group"));
+    gid = group->gr_gid;
+   }
+   return gid;
+}
+
+uid_t ArgvMap::asUid(const string &arg)
+{
+  uid_t uid;
+  const char *cptr_orig;
+  char *cptr_ret = NULL;
+
+  if(!parmIsset(arg))
+   throw ArgException(string("Undefined but needed argument: '")+arg+"'");
+
+  cptr_orig = params[arg].c_str();
+  uid = static_cast<uid_t>(strtol(cptr_orig, &cptr_ret, 0));
+  if (uid == 0 && cptr_ret == cptr_orig) {
+    // try to resolve
+    struct passwd *pwent = getpwnam(params[arg].c_str());
+    if (pwent == NULL)
+     throw ArgException("'" + arg + string("' contains invalid group"));
+    uid = pwent->pw_uid;
+   }
+   return uid;
+}
+#endif
+
 int ArgvMap::asNum(const string &arg)
 {
+  int retval;
+  const char *cptr_orig;
+  char *cptr_ret = NULL;
+
   if(!parmIsset(arg))
     throw ArgException(string("Undefined but needed argument: '")+arg+"'");
 
-  return atoi(params[arg].c_str());
+  // treat empty values as zeros
+  if (params[arg].empty())
+   return 0;
+
+  cptr_orig = params[arg].c_str();
+  retval = static_cast<int>(strtol(cptr_orig, &cptr_ret, 0));
+  if (!retval && cptr_ret == cptr_orig)
+   throw ArgException("'"+arg+string("' is not valid number"));
+
+  return retval;
+}
+
+bool ArgvMap::isEmpty(const string &arg) 
+{
+   if(!parmIsset(arg))
+    return true;
+   return params[arg].empty();
 }
 
 double ArgvMap::asDouble(const string &arg)
 {
+  double retval;
+  const char *cptr_orig;
+  char *cptr_ret = NULL;
+
   if(!parmIsset(arg))
     throw ArgException(string("Undefined but needed argument: '")+arg+"'");
 
-  return atof(params[arg].c_str());
+  if (params[arg].empty())
+   return 0.0;
+
+  cptr_orig = params[arg].c_str();
+  retval = strtod(cptr_orig, &cptr_ret);
+ 
+  if (retval == 0 && cptr_ret == cptr_orig)
+   throw ArgException("'"+arg+string("' is not valid double"));
+
+  return retval;
 }
 
 ArgvMap::ArgvMap()
