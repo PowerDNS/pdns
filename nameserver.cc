@@ -150,7 +150,7 @@ void UDPNameserver::bindIPv6()
     
     ComboAddress locala(localname, ::arg().asNum("local-port"));
 
-    if(bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
+    if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to UDP ipv6 socket: "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to UDP ipv6 socket");
     }
