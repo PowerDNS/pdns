@@ -247,7 +247,7 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   string format;
   char output[1024];
 
-  d_db->setLog(arg().mustDo("query-logging"));
+  d_db->setLog(::arg().mustDo("query-logging"));
 
   string lcqname=toLower(qname);
   
@@ -367,7 +367,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   if(d_db->getRow(row)) {
     r.content=row[0];
     if (row[1].empty())
-        r.ttl = arg().asNum( "default-ttl" );
+        r.ttl = ::arg().asNum( "default-ttl" );
     else 
         r.ttl=atol(row[1].c_str());
     r.priority=atol(row[2].c_str());
