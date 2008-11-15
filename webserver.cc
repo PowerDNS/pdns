@@ -171,7 +171,7 @@ void *WebServer::serveConnection(void *p)
   catch(Exception &e) {
     L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"STL Exception in webserver: "<<e.what()<<endl;
   }
   catch(...) {
@@ -215,7 +215,7 @@ void WebServer::go()
   catch(Exception &e) {
     L<<Logger::Error<<"Fatal error in main webserver thread: "<<e.reason<<endl;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"STL Exception in main webserver thread: "<<e.what()<<endl;
   }
   catch(...) {

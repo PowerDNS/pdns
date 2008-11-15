@@ -52,7 +52,7 @@ try
   cerr<<"Received notification response with code: "<<mdp.d_header.rcode<<endl;
   cerr<<"For: '"<<mdp.d_qname<<"'"<<endl;
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
