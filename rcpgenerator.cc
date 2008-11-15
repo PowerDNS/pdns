@@ -108,9 +108,9 @@ void RecordTextReader::xfrIP(uint32_t &val)
     }
     else if(dns_isspace(d_string.at(d_pos))) 
       break;
-    else
-      throw RecordTextException("unable to parse IP address, strange character: "+d_string.at(d_pos));
-
+    else {
+      throw RecordTextException(string("unable to parse IP address, strange character: ")+d_string.at(d_pos));
+    }
     d_pos++;
     if(d_pos == d_string.length())
       break;
