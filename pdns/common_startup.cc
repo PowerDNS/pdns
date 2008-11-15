@@ -181,9 +181,9 @@ int isGuarded(char **argv)
 
 void sendout(const DNSDistributor::AnswerData &AD)
 {
-  static int &numanswered=*S.getPointer("udp-answers");
-  static int &numanswered4=*S.getPointer("udp4-answers");
-  static int &numanswered6=*S.getPointer("udp6-answers");
+  static unsigned int &numanswered=*S.getPointer("udp-answers");
+  static unsigned int &numanswered4=*S.getPointer("udp4-answers");
+  static unsigned int &numanswered6=*S.getPointer("udp6-answers");
 
   if(!AD.A)
     return;
@@ -213,14 +213,14 @@ void *qthread(void *p)
   DNSPacket question;
   DNSPacket cached;
 
-  int &numreceived=*S.getPointer("udp-queries");
-  int &numanswered=*S.getPointer("udp-answers");
+  unsigned int &numreceived=*S.getPointer("udp-queries");
+  unsigned int &numanswered=*S.getPointer("udp-answers");
 
-  int &numreceived4=*S.getPointer("udp4-queries");
-  int &numanswered4=*S.getPointer("udp4-answers");
+  unsigned int &numreceived4=*S.getPointer("udp4-queries");
+  unsigned int &numanswered4=*S.getPointer("udp4-answers");
 
-  int &numreceived6=*S.getPointer("udp6-queries");
-  int &numanswered6=*S.getPointer("udp6-answers");
+  unsigned int &numreceived6=*S.getPointer("udp6-queries");
+  unsigned int &numanswered6=*S.getPointer("udp6-answers");
   numreceived=-1;
   int diff;
 

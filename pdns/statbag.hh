@@ -58,7 +58,7 @@ private:
 //! use this to gather and query statistics
 class StatBag
 {
-  map<string,int *> d_stats;
+  map<string, unsigned int *> d_stats;
   map<string, string> d_keyDescrips;
   map<string,StatRing>d_rings;
   bool d_doRings;
@@ -96,7 +96,7 @@ public:
   void set(const string &key, int value); //!< set this key's value
   int read(const string &key); //!< read the value behind this key
   int readZero(const string &key); //!< read the value behind this key, and zero it afterwards
-  int *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
+  unsigned int *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards
 

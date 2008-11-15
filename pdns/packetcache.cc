@@ -37,9 +37,9 @@ PacketCache::PacketCache()
   S.declare("packetcache-miss");
   S.declare("packetcache-size");
 
-  statnumhit=S.getPointer("packetcache-hit");
-  statnummiss=S.getPointer("packetcache-miss");
-  statnumentries=S.getPointer("packetcache-size");
+  d_statnumhit=S.getPointer("packetcache-hit");
+  d_statnummiss=S.getPointer("packetcache-miss");
+  d_statnumentries=S.getPointer("packetcache-size");
 }
 
 int PacketCache::get(DNSPacket *p, DNSPacket *cached)
@@ -54,14 +54,14 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
 
   if(d_doRecursion && p->d.rd) { // wants recursion
     if(!d_recursivettl) {
-      (*statnummiss)++;
+      (*d_statnummiss)++;
       d_miss++;
       return 0;
     }
   }
   else { // does not
     if(!d_ttl) {
-      (*statnummiss)++;
+      (*d_statnummiss)++;
       d_miss++;
       return 0;
     }
@@ -80,13 +80,13 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     }
 
     if(!((d_hit+d_miss)%30000)) {
-      *statnumentries=d_map.size(); // needs lock
+      *d_statnumentries=d_map.size(); // needs lock
     }
     string value;
 
     if(getEntry(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion)) {
       //      cerr<<"Packet cache hit!"<<endl;
-      (*statnumhit)++;
+      (*d_statnumhit)++;
       d_hit++;
       if(cached->parse(value.c_str(), value.size()) < 0) {
 	return -1;
@@ -96,7 +96,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     }
   }
   //   cerr<<"Packet cache miss"<<endl;
-  (*statnummiss)++;
+  (*d_statnummiss)++;
   d_miss++;
   return 0; // bummer
 }
@@ -163,7 +163,7 @@ int PacketCache::purge(const vector<string> &matches)
   if(matches.empty()) {
     delcount = d_map.size();
     d_map.clear();
-    *statnumentries=0;
+    *d_statnumentries=0;
     return delcount;
   }
 
@@ -238,7 +238,7 @@ int PacketCache::purge(const vector<string> &matches)
       d_map.erase(range.first, range.second);
     }
   }
-  *statnumentries=d_map.size();
+  *d_statnumentries=d_map.size();
   return delcount;
 }
 
@@ -282,12 +282,12 @@ void PacketCache::cleanup()
 {
   WriteLock l(&d_mut);
 
-  *statnumentries=d_map.size();
+  *d_statnumentries=d_map.size();
 
   unsigned int maxCached=::arg().asNum("max-cache-entries");
   unsigned int toTrim=0;
   
-  unsigned int cacheSize=*statnumentries;
+  unsigned int cacheSize=*d_statnumentries;
 
   if(maxCached && cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
@@ -324,6 +324,6 @@ void PacketCache::cleanup()
 
   }
   //  cerr<<"erased: "<<erased<<endl;
-  *statnumentries=d_map.size();
+  *d_statnumentries=d_map.size();
   DLOG(L<<"Done with cache clean"<<endl);
 }
