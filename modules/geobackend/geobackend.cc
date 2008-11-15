@@ -514,7 +514,7 @@ void GeoBackend::loadDirectorMap(GeoRecord &gr) {
 		// Parse $ORIGIN
 		if (line.substr(0, 7) == "$ORIGIN") {
 			gr.origin = line.substr(8);
-			trim_right(gr.origin);
+			trim_right_if(gr.origin, boost::is_any_of(" \t."));
 			gr.origin.insert(0, ".");
 			continue;
 		}	
