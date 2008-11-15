@@ -568,7 +568,7 @@ void startDoResolve(void *p)
       
       if(ret.size()) {
 	shuffle(ret);
-
+	
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
 	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
 	  
@@ -666,7 +666,7 @@ void startDoResolve(void *p)
   catch(MOADNSException& e) {
     L<<Logger::Error<<"DNS parser error: "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
   }
-  catch(exception& e) {
+  catch(std::exception& e) {
     L<<Logger::Error<<"STL error: "<<e.what()<<endl;
   }
   catch(...) {
@@ -1183,7 +1183,7 @@ void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
     s_rcc.send(answer, &remote);
     command();
   }
-  catch(exception& e) {
+  catch(std::exception& e) {
     L<<Logger::Error<<"Error dealing with control socket request: "<<e.what()<<endl;
   }
   catch(AhuException& ae) {
@@ -1486,7 +1486,7 @@ string reloadAuthAndForwards()
     SyncRes::s_negcache.clear(); 
     return "ok\n";
   }
-  catch(exception& e) {
+  catch(std::exception& e) {
     L<<Logger::Error<<"Had error reloading zones, keeping original data: "<<e.what()<<endl;
   }
   catch(AhuException& ae) {
@@ -1526,7 +1526,7 @@ void parseAuthAndForwards()
 	    string tmp=DNSRR2String(rr);
 	    rr=String2DNSRR(rr.qname, rr.qtype, tmp, rr.ttl);
 	  }
-	  catch(exception &e) {
+	  catch(std::exception &e) {
 	    throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
 	  }
 	  catch(...) {
@@ -1648,7 +1648,7 @@ string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::c
       }
     }
   }
-  catch(exception& e) {
+  catch(std::exception& e) {
     L<<Logger::Error<<"Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
     return string("Retaining current script, error from '"+fname+"': "+string(e.what())+"\n");
   }
@@ -1772,7 +1772,7 @@ int serviceMain(int argc, char*argv[])
     }
     
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
     exit(99);
   }
@@ -1958,6 +1958,12 @@ int main(int argc, char **argv)
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
 #endif
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
+#ifndef WIN32
+    ::arg().set("socket-owner","Owner of socket")="";
+    ::arg().set("socket-group","Group of socket")="";
+    ::arg().set("socket-mode", "Permissions for socket")="";
+#endif
+    
     ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
@@ -2032,7 +2038,7 @@ int main(int argc, char **argv)
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
     ret=EXIT_FAILURE;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
     ret=EXIT_FAILURE;
   }

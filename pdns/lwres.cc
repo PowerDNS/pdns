@@ -181,7 +181,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     
     return 1;
   }
-  catch(exception &mde) {
+  catch(std::exception &mde) {
     if(::arg().mustDo("log-common-errors"))
       L<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl;
   }
