@@ -54,39 +54,39 @@ int main(int argc, char **argv)
   string localdir;
 
   static char pietje[128]="!@@SYSCONFDIR@@:";
-  arg().set("config-dir","Location of configuration directory (pdns.conf)")=
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=
     strcmp(pietje+1,"@@SYSCONFDIR@@:") ? pietje+strlen("@@SYSCONFDIR@@:")+1 : SYSCONFDIR;
   
-  arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
-  arg().set("remote-address","Remote address to query");
-  arg().set("remote-port","Remote port to query")="53000";
-  arg().set("secret","Secret needed to connect to remote PowerDNS");
+  ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+  ::arg().set("remote-address","Remote address to query");
+  ::arg().set("remote-port","Remote port to query")="53000";
+  ::arg().set("secret","Secret needed to connect to remote PowerDNS");
 
-  arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
-  arg().set("chroot","")="";
-  arg().setCmd("help","Provide a helpful message");
-  arg().laxParse(argc,argv);
+  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().set("chroot","")="";
+  ::arg().setCmd("help","Provide a helpful message");
+  ::arg().laxParse(argc,argv);
 
-  if(arg().mustDo("help")) {
+  if(::arg().mustDo("help")) {
     cerr<<"syntax:"<<endl<<endl;
-    cerr<<arg().helpstring(arg()["help"])<<endl;
+    cerr<<::arg().helpstring(::arg()["help"])<<endl;
     exit(99);
   }
 
-  if(arg()["config-name"]!="") 
-    s_programname+="-"+arg()["config-name"];
+  if(::arg()["config-name"]!="") 
+    s_programname+="-"+::arg()["config-name"];
 
-  string configname=arg()["config-dir"]+"/"+s_programname+".conf";
+  string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
   
-  arg().laxFile(configname.c_str());
-  string socketname=arg()["socket-dir"]+"/"+s_programname+".controlsocket";
-  if(arg()["chroot"].empty())
+  ::arg().laxFile(configname.c_str());
+  string socketname=::arg()["socket-dir"]+"/"+s_programname+".controlsocket";
+  if(::arg()["chroot"].empty())
     localdir="/tmp";
   else
     localdir=dirname(strdup(socketname.c_str()));
 
-  const vector<string>&commands=arg().getCommands();
+  const vector<string>&commands=::arg().getCommands();
 
   if(commands.empty()) {
     cerr<<"No command passed"<<endl;
@@ -96,19 +96,19 @@ int main(int argc, char **argv)
   try {
     string command=commands[0];
     shared_ptr<DynMessenger> D;
-    if(arg()["remote-address"].empty())
+    if(::arg()["remote-address"].empty())
       D=shared_ptr<DynMessenger>(new DynMessenger(localdir,socketname));
     else {
       uint16_t port;
       try {
-	port  = lexical_cast<uint16_t>(arg()["remote-port"]);
+	port  = lexical_cast<uint16_t>(::arg()["remote-port"]);
       }
       catch(...) {
-	cerr<<"Unable to convert '"<<arg()["remote-port"]<<"' to a port number for connecting to remote PowerDNS\n";
+	cerr<<"Unable to convert '"<<::arg()["remote-port"]<<"' to a port number for connecting to remote PowerDNS\n";
 	exit(99);
       }
       
-      D=shared_ptr<DynMessenger>(new DynMessenger(ComboAddress(arg()["remote-address"], port), arg()["secret"]));
+      D=shared_ptr<DynMessenger>(new DynMessenger(ComboAddress(::arg()["remote-address"], port), ::arg()["secret"]));
     }
 
     string message;
