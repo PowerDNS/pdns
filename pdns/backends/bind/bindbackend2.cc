@@ -603,7 +603,7 @@ void Bind2Backend::loadConfig(string* status)
 	    L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
 	    rejected++;
 	  }
-	  catch(exception &ae) {
+	  catch(std::exception &ae) {
 	    ostringstream msg;
 	    msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
 
@@ -718,7 +718,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     msg<<" error at "+nowTime()+" parsing '"<<bbd->d_name<<"' from file '"<<bbd->d_filename<<"': "<<ae.reason;
     bbd->d_status=msg.str();
   }
-  catch(exception &ae) {
+  catch(std::exception &ae) {
     ostringstream msg;
     msg<<" error at "+nowTime()+" parsing '"<<bbd->d_name<<"' from file '"<<bbd->d_filename<<"': "<<ae.what();
     bbd->d_status=msg.str();

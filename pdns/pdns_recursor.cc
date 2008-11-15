@@ -880,7 +880,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         try {
 	   questionExpand(data, len, qname, sizeof(qname), type);  
         }
-        catch(exception &e)
+        catch(std::exception &e)
         {
            throw MOADNSException(e.what());
         }

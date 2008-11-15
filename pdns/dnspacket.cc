@@ -343,7 +343,7 @@ void DNSPacket::wrapup(void)
 
       pw.commit();
     }
-    catch(exception& e) {
+    catch(std::exception& e) {
       L<<Logger::Error<<"Exception: "<<e.what()<<endl;
       throw;
     }
@@ -477,7 +477,7 @@ try
   qclass=mdp.d_qclass;
   return 0;
 }
-catch(exception& e) {
+catch(std::exception& e) {
   return -1;
 }
 

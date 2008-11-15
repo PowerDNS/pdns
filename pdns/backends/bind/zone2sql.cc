@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 	      callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
 	    num_domainsdone++;
 	  }
-	  catch(exception &ae) {
+	  catch(std::exception &ae) {
 	    if(!::arg().mustDo("on-error-resume-next"))
 	      throw;
 	    else
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
     cerr<<"\nFatal error: "<<ae.reason<<endl;
     return 0;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     cerr<<"died because of STL error: "<<e.what()<<endl;
     exit(0);
   }
