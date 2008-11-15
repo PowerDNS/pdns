@@ -379,7 +379,7 @@ try
   }
 
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cerr<<"Receiver thread died: "<<e.what()<<endl;
   exit(1);
@@ -664,7 +664,7 @@ try
   receiveFromReference();
   printStats();
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }

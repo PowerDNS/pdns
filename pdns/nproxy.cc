@@ -110,7 +110,7 @@ try
   g_nifs[nif.resentID] = nif;
 
 }
-catch(exception &e)
+catch(std::exception &e)
 {
   syslogFmt(boost::format("Error parsing packet from external nameserver: %s") % e.what());
 }
@@ -159,7 +159,7 @@ try
   g_nifs.erase(mdp.d_header.id);
 
 }
-catch(exception &e)
+catch(std::exception &e)
 {
   syslogFmt(boost::format("Error parsing packet from internal nameserver: %s") % e.what());
 }
@@ -293,7 +293,7 @@ catch(boost::program_options::error& e)
 {
   syslogFmt(boost::format("Error parsing command line options: %s") % e.what());
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   syslogFmt(boost::format("Fatal: %s") % e.what());
 }
