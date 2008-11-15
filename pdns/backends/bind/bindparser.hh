@@ -38,6 +38,7 @@ public:
     d_ino=0;
   }
   string name;
+  string viewName;
   string filename;
   vector<string> masters;
   string type;
