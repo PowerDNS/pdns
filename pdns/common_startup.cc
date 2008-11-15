@@ -248,6 +248,7 @@ void *qthread(void *p)
       cached.setRemote(&P->remote);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
       cached.spoofID(P->d.id);                                        // inlined 
+      cached.setMaxReplyLen(P->getMaxReplyLen());
       cached.d.rd=P->d.rd; // copy in recursion desired bit 
       cached.commitD(); // commit d to the packet                        inlined
 

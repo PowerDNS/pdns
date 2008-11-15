@@ -486,6 +486,11 @@ int DNSPacket::getMaxReplyLen()
   return d_maxreplylen;
 }
 
+void DNSPacket::setMaxReplyLen(int bytes)
+{
+  d_maxreplylen=bytes;
+}
+
 //! Use this to set where this packet was received from or should be sent to
 void DNSPacket::setRemote(const ComboAddress *s)
 {

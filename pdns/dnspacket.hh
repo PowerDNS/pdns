@@ -139,6 +139,7 @@ public:
 
   void commitD(); //!< copies 'd' into the stringbuffer
   int getMaxReplyLen(); //!< retrieve the maximum length of the packet we should send in response
+  void setMaxReplyLen(int bytes); //!< set the max reply len (used when retrieving from the packet cache, and this changed)
 
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
 
