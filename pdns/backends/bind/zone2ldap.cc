@@ -236,7 +236,7 @@ int main( int argc, char* argv[] )
 		cerr << "Fatal error: " << ae.reason << endl;
 		return 1;
 	}
-	catch( exception &e )
+	catch( std::exception &e )
 	{
 		cerr << "Died because of STL error: " << e.what() << endl;
 		return 1;
