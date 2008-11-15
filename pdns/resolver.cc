@@ -184,8 +184,8 @@ int Resolver::receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrl
   FD_SET(d_sock, &rd);
 
   struct timeval timeout;
-  timeout.tv_sec=1;
-  timeout.tv_usec=500000;
+  timeout.tv_sec=0;
+  timeout.tv_usec=750000;
 
   int res=select(d_sock+1,&rd,0,0,&timeout);
 
