@@ -246,7 +246,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     L<<Logger::Warning<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
       " checking"<<endl;
-
+  map<string, int> skipMasters;
   for(vector<DomainInfo>::iterator i=sdomains.begin();i!=sdomains.end();++i) {
     Resolver resolver;   
     resolver.makeUDPSocket();  
@@ -261,8 +261,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     random_shuffle(i->masters.begin(), i->masters.end());
     for(vector<string>::const_iterator iter = i->masters.begin(); iter != i->masters.end(); ++iter) {
       try {
-	resolver.getSoaSerial(*iter, i->zone, &theirserial);
+	if(skipMasters[*iter] > 5)
+	  throw AhuException("Skipping query to '"+*iter+"' because of previous timeouts in this cycle");
 	
+	resolver.getSoaSerial(*iter, i->zone, &theirserial);
+	skipMasters[*iter]=0;	
 	if(theirserial<i->serial) {
 	  L<<Logger::Error<<"Domain "<<i->zone<<" more recent than master, our serial "<<ourserial<<" > their serial "<<theirserial<<endl;
 	  i->backend->setFresh(i->id);
@@ -278,6 +281,9 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 	break;
       }
       catch(ResolverException &re) {
+	if(re.reason.find("Timeout") != string::npos)
+	  skipMasters[*iter]++;
+
 	L<<Logger::Error<<"Error trying to retrieve/refresh '"+i->zone+"': "+re.reason<<endl;
 	if(next(iter) != i->masters.end()) 
 	  L<<Logger::Error<<"Trying next master '"<<*next(iter)<<"' for '"+i->zone+"'"<<endl;
