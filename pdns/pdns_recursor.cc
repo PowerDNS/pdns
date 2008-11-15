@@ -317,10 +317,11 @@ int asendto(const char *data, int len, int flags,
 
   for(; chain.first != chain.second; chain.first++) {
     if(chain.first->key.fd > -1) { // don't chain onto existing chained waiter!
+      /*
       cerr<<"Orig: "<<pident.domain<<", "<<pident.remote.toString()<<", id="<<id<<endl;
       cerr<<"Had hit: "<< chain.first->key.domain<<", "<<chain.first->key.remote.toString()<<", id="<<chain.first->key.id
 	  <<", count="<<chain.first->key.chain.size()<<", origfd: "<<chain.first->key.fd<<endl;
-      
+      */
       chain.first->key.chain.insert(id); // we can chain
       *fd=-1;                            // gets used in waitEvent / sendEvent later on
       return 1;
@@ -1245,15 +1246,13 @@ void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
 // resend event to everybody chained onto it
 void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& content)
 {
-
   if(iter->key.chain.empty())
     return;
-
-  cerr<<"doResends called!\n";
+  //  cerr<<"doResends called!\n";
   for(PacketID::chain_t::iterator i=iter->key.chain.begin(); i != iter->key.chain.end() ; ++i) {
     resend.fd=-1;
     resend.id=*i;
-    cerr<<"\tResending "<<content.size()<<" bytes for fd="<<resend.fd<<" and id="<<resend.id<<endl;
+    //    cerr<<"\tResending "<<content.size()<<" bytes for fd="<<resend.fd<<" and id="<<resend.id<<endl;
 
     MT->sendEvent(resend, &content);
     g_stats.chainResends++;
