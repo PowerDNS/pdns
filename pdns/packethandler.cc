@@ -196,7 +196,7 @@ int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
   DNSResourceRecord rr;
 
   if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "PowerDNS $Id$";
+    rr.content = "\"PowerDNS\" \"$Id$\"";
     rr.ttl = 5;
     rr.qname=target;
     rr.qtype=13; // hinfo
