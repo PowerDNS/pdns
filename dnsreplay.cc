@@ -65,6 +65,7 @@ using namespace std;
 
 StatBag S;
 bool g_quiet=true;
+int g_timeoutMsec=0; 
 
 namespace po = boost::program_options;
 
@@ -336,7 +337,8 @@ try
   string packet;
   IPEndpoint remote;
 
-  int res=waitForData(s_socket->getHandle(), 0, 25000);
+  int res=waitForData(s_socket->getHandle(), g_timeoutMsec/1000, 1000*(g_timeoutMsec%1000));
+  
   if(res < 0 || res==0)
     return;
 
@@ -570,7 +572,8 @@ try
     ("packet-limit", po::value<uint32_t>()->default_value(0), "stop after this many packets")
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
-    ("speedup", po::value<float>()->default_value(1), "replay at this speedup");
+    ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
+    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many millyseconds for a reply");
 
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -610,6 +613,7 @@ try
   g_quiet = g_vm["quiet"].as<bool>();
 
   float speedup=g_vm["speedup"].as<float>();
+  g_timeoutMsec=g_vm["timeout-msec"].as<uint32_t>();
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
   s_socket= new Socket(InterNetwork, Datagram);
