@@ -188,10 +188,10 @@ void fillSOAData(const string &content, SOAData &data)
   // fill out data with some plausible defaults:
   // 10800 3600 604800 3600
   data.serial=0;
-  data.refresh=arg().asNum("soa-refresh-default");
-  data.retry=arg().asNum("soa-retry-default");
-  data.expire=arg().asNum("soa-expire-default");
-  data.default_ttl=arg().asNum("soa-minimum-ttl");
+  data.refresh=::arg().asNum("soa-refresh-default");
+  data.retry=::arg().asNum("soa-retry-default");
+  data.expire=::arg().asNum("soa-expire-default");
+  data.default_ttl=::arg().asNum("soa-minimum-ttl");
 
   vector<string>parts;
   stringtok(parts,content);
@@ -296,7 +296,7 @@ void DNSPacket::wrapup(void)
 
   stable_sort(rrs.begin(),rrs.end(),rrcomp);
 
-  static bool mustShuffle =arg().mustDo("no-shuffle");
+  static bool mustShuffle =::arg().mustDo("no-shuffle");
 
   if(!d_tcp && !mustShuffle) {
     shuffle(rrs);
