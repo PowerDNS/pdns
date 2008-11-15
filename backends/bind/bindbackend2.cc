@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -344,7 +344,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   else if(bdr.qname.length() > bb2.d_name.length())
     bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
   else
-    throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', zone='" + s_state->id_zone_map[id].d_name+"'");
+    throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'");
 
   bdr.qname.swap(bdr.qname);
 
