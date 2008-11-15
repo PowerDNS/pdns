@@ -241,7 +241,22 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
     }
     Answer *a;
 
-    a=b->question(q);
+    try {
+      a=b->question(q); // a can be NULL!
+    }
+    catch(const AhuException &e) {
+      L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
+      delete b;
+      b=0;
+      return 0;
+    }
+    catch(...) {
+      L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
+      delete b;
+      b=0;
+      return 0;
+    }
+
 
     AnswerData AD;
     AD.A=a;
