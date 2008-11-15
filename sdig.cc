@@ -30,11 +30,13 @@ try
   pw.startRecord("powerdns.com", DNSRecordContent::TypeToNumber("NS"));
   NSRecordContent nrc2("ns2.powerdns.com");
   nrc2.toPacket(pw);
-
-  //  pw.addOpt(2800, 0, 0x8000);
   */
 
-  //  pw.commit();
+  DNSPacketWriter::optvect_t opts;
+  string ping("hallo!");
+  //  opts.push_back(make_pair(5, ping));
+  pw.addOpt(5200, 0, 0x8000, opts);
+  pw.commit();
 
   Socket sock(InterNetwork, Datagram);
   IPEndpoint dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
@@ -46,7 +48,7 @@ try
 
   MOADNSParser mdp(reply);
   cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
-  cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd;
+  cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
@@ -54,8 +56,23 @@ try
     cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
   }
 
+  EDNSOpts edo;
+  if(getEDNSOpts(mdp, &edo)) {
+    
+    cerr<<"Have "<<edo.d_options.size()<<" options!"<<endl;
+    for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
+	iter != edo.d_options.end(); 
+	++iter) {
+      if(iter->first == 1) {// 'EDNS PING'
+	cerr<<"Have ednsping: '"<<iter->second<<"'\n";
+	if(iter->second == ping) 
+	  cerr<<"It is correct!"<<endl;
+      }
+    }
+
+  }
 }
-catch(exception &e)
+catch(std::exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }

@@ -464,7 +464,7 @@ void CommunicatorClass::mainloop(void)
     Utility::sleep(1);
     exit(0);
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"Communicator thread died because of STL error: "<<e.what()<<endl;
     exit(0);
   }
