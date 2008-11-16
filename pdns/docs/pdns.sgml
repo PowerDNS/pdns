@@ -110,8 +110,8 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Implemented a notification proxy, see <xref linkend="nproxy">. This work was sponsored by UPC Broadband. Implemented in commits c1075, c1077, c1082, 
-		c1083, c1085, c1086.
+		Implemented a notification proxy, see <xref linkend="nproxy">. This work was sponsored by UPC Broadband. Implemented in commits C1075, C1077, C1082, 
+		C1083, C1085 and C1086.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -291,12 +291,6 @@
 		Our statistics counters did not wrap correctly after the 2.15 billion mark. Spotted by Stefan Schmidt, reported in t179, fixed in c1284.
 	      </para>
 	    </listitem>
-
-	    <listitem>
-	      <para>
-		Trailing tabs no longer confuse the configuration file parser (c1242).
-	      </para>
-	    </listitem>
 	    <listitem>
 	      <para>
 		Bindbackend could sometimes generate very strange error messages while processing a malformed zone file. Sometimes such error messages
@@ -311,8 +305,7 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Zoneparser improvements mean $TTL and $INCLUDES now work a lot better. Additionally, trailing spaces
-		no longer confuse the parser. Implemented in C1056, C1062.
+		Zoneparser improvements mean $TTL and $INCLUDES now work a lot better. Implemented in C1056, C1062.
 	      </para>
 	    </listitem>
 	    <listitem>
