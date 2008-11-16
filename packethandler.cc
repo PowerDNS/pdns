@@ -190,23 +190,6 @@ int PacketHandler::doFancyRecords(DNSPacket *p, DNSPacket *r, string &target)
   return 0;
 }
 
-int PacketHandler::doDNSCheckRequest(DNSPacket *p, DNSPacket *r, string &target)
-{
-  int result = 0;
-  DNSResourceRecord rr;
-
-  if (p->qclass == 3 && p->qtype.getName() == "HINFO") {
-    rr.content = "\"PowerDNS\" \"$Id$\"";
-    rr.ttl = 5;
-    rr.qname=target;
-    rr.qtype=13; // hinfo
-    r->addRecord(rr);
-    result = 1;
-  }
-  
-  return result;
-}
-
 /** This catches version requests. Returns 1 if it was handled, 0 if it wasn't */
 int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
@@ -658,9 +641,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     string target=p->qdomain;
     bool noCache=false;
 
-    if (doDNSCheckRequest(p, r, target))
-      goto sendit;
-    
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
 
