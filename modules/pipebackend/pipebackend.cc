@@ -52,7 +52,7 @@ void CoWrapper::launch()
       return;
 
    d_cp=new CoProcess(d_command, d_timeout); 
-   d_cp->send("HELO\t"+lexical_cast<string>(arg().asNum("pipebackend-abi-version")));
+   d_cp->send("HELO\t"+lexical_cast<string>(::arg().asNum("pipebackend-abi-version")));
    string banner;
    d_cp->receive(banner); 
    L<<Logger::Error<<"Backend launched with banner: "<<banner<<endl;
@@ -109,7 +109,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
    try {
       d_disavow=false;
       if(d_regex && !d_regex->match(qname+";"+qtype.getName())) { 
-         if(arg().mustDo("query-logging"))
+         if(::arg().mustDo("query-logging"))
             L<<Logger::Error<<"Query for '"<<qname<<"' type '"<<qtype.getName()<<"' failed regex '"<<d_regexstr<<"'"<<endl;
          d_disavow=true; // don't pass to backend
       } else {
@@ -127,10 +127,10 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
          query<<"Q\t"<<qname<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<remoteIP;
 
          // add the local-ip-address if pipebackend-abi-version is set to 2
-         if (arg().asNum("pipebackend-abi-version") == 2) 
+         if (::arg().asNum("pipebackend-abi-version") == 2) 
             query<<"\t"<<localIP;
 
-         if(arg().mustDo("query-logging"))
+         if(::arg().mustDo("query-logging"))
             L<<Logger::Error<<"Query: '"<<query.str()<<"'"<<endl;
          d_coproc->send(query.str());
       }
