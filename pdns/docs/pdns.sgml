@@ -92,7 +92,7 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-2-9-22"><title>Authoritative Server version 2.9.22</title>
+      <sect2 id="changelog-auth-2-9-22"><title>Authoritative Server version 2.9.22 (UNRELEASED)</title>
 	<para>
 	  <warning>
 	    <para>
@@ -101,69 +101,141 @@
 	  </warning>
 	</para>
 	<para>
+	  New features:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		DNSSEC records were part of 2.9.21, but were not actually hooked up. Please note that while PowerDNS can serve most DNSSEC records,
-		it does not do DNSSEC processing. Implemented in C1046.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Andre Lorbach of Adiscon discovered the microsoft windows 2003 nameserver
-		adds out of zone data to zonetransfers, which we need to ignore, instead of
-		rejecting the entire zone. Implemented in C1048.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Direct queries for 'fancy records' would lead to errors, such queries now fail early. Spotted by Jorn Ekkelenkamp, implemented in C1051.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Address issues found by more recent g++ versions. Spotted and/or fixed by Jorn Ekkelenkamp (c1051), Marcus Rueckert (c1094), Norbert Sendetzky (c1107),
-		Serge Belyshev (c1171).
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		The Intel C Compiler implements certain things differently, causing the master/slave communicator to malfunction. Spotted by Marcus Rueckert, implemented 
-		in C1052, plus fallout in C1105.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Zone2sql now reads source files in performance enhancing inode order. Additionally, zone2sql no longer dies on a missing zone file if 
-		<command>--on-error-resume-next</command> was specified. Finally, statistics of zone2sql confersion have been improved. Implemented in C1055.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Zoneparser improvements mean $TTL and $INCLUDES now work a lot better. Additionally, trailing spaces
-		no longer confuse the parser. Implemented in C1056, C1062.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Jelte Jansen of Stichting NLNetLabs discovered PowerDNS couldn't operate as a root-server! Fixed in C1057.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Move from select() to poll()-based multiplexing, allowing PowerDNS to listen on more than 1024 sockets simultaneously. 
-		One big PowerDNS user needs this. Implemented in C1072.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		'DPS' discovered there was a rare opportunity for PowerDNS to lock up waiting for new data. Addressed in C1076.
+		<command>pdns_control</command> can now also work over TCP/IP. Sponsored by iDirect. Commits C1246, C1251, C1254, C1255.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
 		Implemented a notification proxy, see <xref linkend="nproxy">. This work was sponsored by UPC Broadband. Implemented in commits c1075, c1077, c1082, 
 		c1083, c1085, c1086.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		IXFR queries are now supported in the sense that we treat them as AXFR queries, silencing warnings in other nameservers. Suggested in t131.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The PIPE backend has been extended by David Apgar to allow the reporting of errors using the 'FAIL' command, plus
+		support for responses with whitespace. Implemented in c1114.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS Authoritative server now parses incoming EDNS options, like maximum allowed packet size. Implemented in c1123 and c1281.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Added support for DHCID, IPSECKEY and KX records, thanks Norbert Sendetzky for the hint. Implemented in c1144.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Norbert Sendetzky has has added support for all record types supported by PowerDNS to the LDAPBackend. Furthermore, the detection
+		of OpenLDAP in autoconf has been improved. Finally, debian has supplied some fixes to PowerLDAP. Implemented in c1152 and c1153.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Implemented EDNS NSID option for retrieving the nameserver ID out of band. Defaults to hostname, can be specified using the
+		<command>server-id</command> setting. Code in c1232.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Implemented experimental EDNS PING for enhanced forgery resilience. Code in c1232.
+	      </para>
+	    </listitem>
+
+	  </itemizedlist>
+	</para>
+	<para>
+	  Performance:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Improve packet generation performance, in some cases by 25%. Code in C1258, C1259.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Improved access list checking performance. c1261.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS Authoritative caches were completely redone, and are now based on the same cache that is in the resolver. This work has been sponsored
+		by Directi. In large benchmarks, PowerDNS performance has improved by an order of magnitude or more. This new version allows for near-instantaneous
+		cache purging, plus very rapid purging based on suffix. Purge commands can also be batched. This work is partially based on an innovative
+		reverse-string comparison function authored by Aki Tuomi.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		BIND backend speedups in c1108, measured at around a 20% improvement, possibly more on very large setups.
+	      </para>
+	    </listitem>
+
+	  </itemizedlist>
+	</para>
+	<para>
+	  Bugs fixed:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Tyler Hall discovered the PowerDNS configuration file parser had problems with trailing tabs. This turned out to be a wider problem in PowerDNS.
+		Buggy code replaced by a library call in c1237 and c1240.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Connection reset by peer events in the TCP nameserver no longer lead to the cycling of database connections. Code in c1241.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		PowerDNS used to ignore certain queries it could not answer. These queries are no longer ignored, but get a SERVFAIL response. Implemented in c1239.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Fix subtle CNAME and wildcard interactions reported by 'zzyzz', implemented in c1147.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		The generic backends did not honour the <command>default-ttl</command> setting. Spotted and implemented by Matti Hiljanen.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Matti Hiljanen discovered that the OpenDBX backend did not fill out the SOA ttl value properly. Matti also improved the SQL statements
+		for better compatability. Implemented in c1181.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Treat invalid WWW requests better. Spotted by Maikel Verheijen, implemented in c1092.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Documentation errors and typos, spotted by Marco Davids (c1097) and Rejo Zengers (c1119)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Properly fill out the 'recursion available'-flag. Spotted by Augie Schwer in t167.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -182,129 +254,27 @@
 		BIND backend could crash on processing information about slave zones to be checked. Spotted by Stefan Schmidt, fixed in C1089.
 	      </para>
 	    </listitem>
+
 	    <listitem>
 	      <para>
-		Fix typo in geobackend, closing t157, implemented in C1090.
+		Jelte Jansen of Stichting NLNetLabs discovered PowerDNS in BIND mode couldn't operate as a root-server! Fixed in C1057.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Fix handling of TCP timeouts to not cause a reload of the backends. Implemented in c1092.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Treat invalid WWW requests better. Spotted by Maikel Verheijen, implemented in c1092.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Documentation errors and typos, spotted by Marco Davids (c1097) and Rejo Zengers (c1119)
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Properly fill out the 'recursion available'-flag. Spotted by Augie Schwer in t167.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Initial work on TSIG support - not done yet. Spurred on by Marco Davids.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		IXFR queries are now support in the sense that we treat them as AXFR queries, silencing warning in other nameservers. Suggested in t131.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		BIND backend speedups in c1108, measured at around a 20% improvement, possibly more on very large setups.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		The PIPE backend has been extended by David Apgar to allow the reporting of errors using the 'FAIL' command, plus
-		support for responses with whitespace. Implemented in c1114.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		PowerDNS Authoritative server now parses incoming EDNS options, like maximum allowed packet size. Implemented in c1123.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Embarrassingly, the 'master' configuration setting was not documented in the list of all settings! 
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Added support for DHCID, IPSECKEY and KX records, thanks Norbert Sendetzky for the hint. Implemented in c1144.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Fix subtle CNAME and wildcard interactions reported by 'zzyzz', implemented in c1147.
+		'DPS' discovered there was a rare opportunity for PowerDNS to lock up waiting for new data. Addressed in C1076.
 	      </para>
 	    </listitem>
 
 	    <listitem>
 	      <para>
-		Norbert Sendetzky has has added support for all record types supported by PowerDNS to the LDAPBackend. Furthermore, the detection
-		of OpenLDAP in autoconf has been improved. Finally, debian has supplied some fixes to PowerLDAP. Implemented in c1152 and c1153.
+		Make singlethreaded mode more resilient against errors. c1272.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Norbert has updated OpenDBX so that SQLite reads and writes no longer deadlock, plus compliation fixes on Solaris, plus the addition
-		of autoserials to backends that support triggers. Implemented in c1154.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Labels are compressed more efficiently (case-insensitively), leading to smaller packets. Implemented in c1156.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Random generator is now based on AES, improving the security of certain proxy operations. This is the same random generator that is in 
-		the recursor.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		The generic backends did not honour the <command>default-ttl</command> setting. Spotted and implemented by Matti Hiljanen.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Matti Hiljanen discovered that the OpenDBX backend did not fill out the SOA ttl value properly. Matti also improved the SQL statements
-		for better compatability. Implemented in c1181.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Documentation for 'supermaster' mode was improved due to popular demand.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		PowerDNS Authoritative caches were completely redone, and are now based on the same cache that is in the resolver. This work has been sponsored
-		by Directi. In large benchmarks, PowerDNS performance has improved by an order of magnitude or more. This new version allows for near-instantaneous
-		cache purging, plus very rapid purging based on suffix. Purge commands can also be batched. This work is partially based on an innovative
-		reverse-string comparison function authored by Aki Tuomi.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Implemented EDNS NSID option for retrieving the nameserver ID out of band. Defaults to hostname, can be specified using the
-		<command>server-id</command> setting. Code in c1232.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-		Implemented experimental EDNS PING for enhanced forgery resilience. Code in c1232.
+		DNSSEC records were part of 2.9.21, but were not actually hooked up. Please note that while PowerDNS can serve most DNSSEC records,
+		it does not do DNSSEC processing. Implemented in C1046.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -318,23 +288,152 @@
 
 	    <listitem>
 	      <para>
+		Our statistics counters did not wrap correctly after the 2.15 billion mark. Spotted by Stefan Schmidt, reported in t179, fixed in c1284.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Trailing tabs no longer confuse the configuration file parser (c1242).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Bindbackend could sometimes generate very strange error messages while processing a malformed zone file. Sometimes such error messages
+		could cause a crash (reported on HP-UX). Addressed by c1279. This could not be triggered remotely. Closes ticket t203.
+	      </para>
+	    </listitem>
+
+	  </itemizedlist>
+	</para>
+	<para>
+	  Improvements:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Zoneparser improvements mean $TTL and $INCLUDES now work a lot better. Additionally, trailing spaces
+		no longer confuse the parser. Implemented in C1056, C1062.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Direct queries for 'fancy records' would lead to errors, such queries now fail early. Spotted by Jorn Ekkelenkamp, implemented in C1051.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fix typo in geobackend, closing t157, implemented in C1090.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Initial work on TSIG support - not done yet. Spurred on by Marco Davids.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Embarrassingly, the 'master' configuration setting was not documented in the list of all settings! 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Norbert has updated OpenDBX so that SQLite reads and writes no longer deadlock, plus compliation fixes on Solaris, plus the addition
+		of autoserials to backends that support triggers. Implemented in c1154.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Random generator is now based on AES, improving the security of certain proxy operations. This is the same random generator that is in 
+		the recursor. Implemented in c1256.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Documentation for 'supermaster' mode was improved due to popular demand.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		When binding to a UDP port failed, supply a more precise error message (c1245)
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
 		The zoneparser error messages were vastly improved, partially inspired by Shawn's cowboy migration. Code in c1235.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Tyler Hall discovered the PowerDNS configuration file parser had problems with trailing tabs. This turned out to be a wider problem in PowerDNS.
-		Buggy code replaced by a library call in c1237 and c1240.
+		Labels are compressed more efficiently (case-insensitively), leading to smaller packets. Implemented in c1156.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Fix handling of TCP timeouts to not cause a reload of the backends. Implemented in c1092.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Move from select() to poll()-based multiplexing, allowing PowerDNS to listen on more than 1024 sockets simultaneously. 
+		One big PowerDNS user needs this. Implemented in C1072.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		PowerDNS used to ignore certain queries it could not answer. These queries are no longer ignored, but get a SERVFAIL response. Implemented in c1239.
+		Zone2sql now reads source files in performance enhancing inode order. Additionally, zone2sql no longer dies on a missing zone file if 
+		<command>--on-error-resume-next</command> was specified. Finally, statistics of zone2sql confersion have been improved. Implemented in C1055.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Address issues found by more recent g++ versions. Spotted and/or fixed by Jorn Ekkelenkamp (c1051), Marcus Rueckert (c1094), Norbert Sendetzky (c1107),
+		Serge Belyshev (c1171).
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-		Connection reset by peer events in the TCP nameserver no longer lead to the cycling of database connections. Code in c1241.
+		The Intel C Compiler implements certain things differently, causing the master/slave communicator to malfunction. Spotted by Marcus Rueckert, implemented 
+		in C1052, plus fallout in C1105.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS can now be compiled with Boost 1.37.0.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Andre Lorbach of Adiscon discovered the microsoft windows 2003 nameserver
+		adds out of zone data to zonetransfers, which we need to ignore, instead of
+		rejecting the entire zone. Implemented in C1048.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		PowerDNS now skips remote master servers which consistently generate timeout messages, improving the master checking cycle time tremendously.
+		Developed in cooperation with Tyler Hall. Implemented in c1278.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		When binding to a UDP port failed, supply a more precise error message (c1245)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>dnsreplay</command> now waits for the final answers to arrive, making it possible to process even small pcap files and
+		get meaningful statistics. c1268.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		<command>dnsreplay</command> has a more sane default timeout now, which can be configured too. Suggested by Augie Schwer in t163, implemented in c1287.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
