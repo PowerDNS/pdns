@@ -105,7 +105,7 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		<command>pdns_control</command> can now also work over TCP/IP. Sponsored by iDirect. Commits C1246, C1251, C1254, C1255.
+		<command>pdns_control</command> can now also work over TCP/IP. Sponsored by Directi. Commits C1246, C1251, C1254, C1255.
 	      </para>
 	    </listitem>
 	    <listitem>
