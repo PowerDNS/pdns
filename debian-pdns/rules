@@ -2,8 +2,8 @@
 
 tmpdir		:= $(shell pwd)/debian-pdns/tmp
 be_tmpdir	:= $(shell pwd)/debian-pdns/tmp-backend
-backends	:= opendbx ldap mysql pipe xdb gmysql gpgsql gsqlite gsqlite3
-debs		:= opendbx ldap mysql pipe xdb pgsql sqlite sqlite3
+backends	:= opendbx ldap mysql pipe gmysql gpgsql gsqlite gsqlite3
+debs		:= opendbx ldap mysql pipe pgsql sqlite sqlite3
 
 binary-doc:
 	-make -C pdns/docs html/index.html
@@ -42,7 +42,7 @@ binary-doc:
 
 
 build-static stamp-build-static:
-		./configure LIBS="-lkrb5 -lk5crypto -lpgport -lgssapi_krb5 -lkrb5support -lgssapi_krb5 -lcom_err -lnsl -lresolv" \
+		./configure \
 		CC="ccache gcc" CXX="ccache g++"\
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
@@ -50,6 +50,7 @@ build-static stamp-build-static:
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
+		--with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \
 		--with-modules="mysql gmysql gpgsql pipe pdns gsqlite gsqlite3 geo" \
 		--with-dynmodules="" \
 		--enable-static-binaries 
@@ -78,7 +79,6 @@ binary-main-prepare:
 	make DESTDIR="$(tmpdir)" install
 
 	rm -f "$(tmpdir)"/usr/bin/binpatch
-	rm -f "$(tmpdir)"/usr/bin/xdb-fill
 	rm -f "$(tmpdir)"/usr/bin/zone2ldap
 	rm -rf "$(tmpdir)"/usr/lib
 
@@ -133,9 +133,6 @@ binary-backend: stamp-build
 	install -d -m 755 -o root -g root "$(tmpdir)"
 	make DESTDIR="$(tmpdir)" install
 
-	strip --remove-section=.comment --remove-section=.note \
-		--strip-unneeded "$(tmpdir)"/usr/lib/powerdns/*.so \
-		"$(tmpdir)"/usr/bin/xdb-fill
 	chmod 644 "$(tmpdir)"/usr/lib/powerdns/*
 
 	set -e ; for be in $(debs) ; do \

@@ -1,9 +1,10 @@
 #!/bin/sh
-LIBS="-lkrb5 -lk5crypto -lpgport -lgssapi_krb5 -lkrb5support -lgssapi_krb5 -lcom_err -lnsl -lresolv" \
+#LIBS="-lkrb5 -lk5crypto -lpgport -lgssapi_krb5 -lkrb5support -lgssapi_krb5 -lcom_err -lnsl -lresolv" \
 CC="ccache gcc" CXX="ccache g++" ./configure \
 		--with-modules="mysql gmysql gpgsql gsqlite gsqlite3 pipe pdns geo" \
 	--with-dynmodules="" \
 	--enable-static-binaries \
+	--with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \
 	--prefix=/usr \
 	--sysconfdir=/etc/powerdns \
 	--mandir=/usr/man/ \
