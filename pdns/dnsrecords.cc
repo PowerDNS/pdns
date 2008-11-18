@@ -342,8 +342,13 @@ boilerplate_conv(DNSKEY, 48,
 		 conv.xfrBlob(d_key);
 		 )
 
-boilerplate_conv(URL, 256, 
+// "fancy records" 
+boilerplate_conv(URL, QType::URL, 
 		 conv.xfrLabel(d_url);
+		 )
+
+boilerplate_conv(MBOXFW, QType::MBOXFW, 
+		 conv.xfrLabel(d_mboxfw);
 		 )
 
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
@@ -409,6 +414,7 @@ void reportOtherTypes()
 void reportFancyTypes()
 {
   URLRecordContent::report();
+  MBOXFWRecordContent::report();
 }
 
 void reportAllTypes()

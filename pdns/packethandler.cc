@@ -658,16 +658,17 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(mret==2) { // there is some data, but not of the correct type
       r->clearRecords();
-
-      if(d_doFancyRecords) { // MBOXFW, URL <- fake records, emulated with MX and A
-	DLOG(L<<"There is some data, but not of the correct type, checking fancy records"<<endl);
-	int res=doFancyRecords(p,r,target);
-	if(res) { // had a result
-	  if(res<0) // it was an error
-	    r->setRcode(RCode::ServFail);
-	  goto sendit;  
-	}
+    }
+    if(d_doFancyRecords) { // MBOXFW, URL <- fake records, emulated with MX and A
+      DLOG(L<<"There is some data, but not of the correct type, checking fancy records"<<endl);
+      int res=doFancyRecords(p,r,target);
+      if(res) { // had a result
+	if(res<0) // it was an error
+	  r->setRcode(RCode::ServFail);
+	goto sendit;  
       }
+    }
+    if(mret == 2) {
       DLOG(L<<"There is some data, but not of the correct type, adding SOA for NXRECORDSET"<<endl);
       SOAData sd;
       if(getAuth(p, &sd, target, 0)) {
