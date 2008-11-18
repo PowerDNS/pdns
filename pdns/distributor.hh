@@ -138,7 +138,7 @@ template<class Answer, class Question, class Backend>Distributor<Answer,Question
     Utility::usleep(50000); // we've overloaded mysql in the past :-)
   }
 
-  L<<"Done launching threads, ready to distribute questions"<<endl;
+  L<<Logger::Warning<<"Done launching threads, ready to distribute questions"<<endl;
 }
 
 // start of a new thread
