@@ -260,12 +260,30 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
   return ret;
 }
 
-// FIXME: must be converted to boost multi index
 map<char,int> PacketCache::getCounts()
 {
   ReadLock l(&d_mut);
 
   map<char,int>ret;
+  int recursivePackets=0, nonRecursivePackets=0, queryCacheEntries=0, negQueryCacheEntries=0;
+
+  enum CacheEntryType { PACKETCACHE, QUERYCACHE, NEGCACHE};
+  for(cmap_t::const_iterator iter = d_map.begin() ; iter != d_map.end(); ++iter) {
+    if(iter->ctype == PACKETCACHE)
+      if(iter->meritsRecursion)
+	recursivePackets++;
+      else
+	nonRecursivePackets++;
+    else if(iter->ctype == QUERYCACHE)
+      queryCacheEntries++;
+    else if(iter->ctype == NEGCACHE)
+      negQueryCacheEntries++;
+  }
+
+  ret['!']=negQueryCacheEntries;
+  ret['Q']=queryCacheEntries;
+  ret['n']=nonRecursivePackets;
+  ret['r']=recursivePackets;
   return ret;
 }
 
