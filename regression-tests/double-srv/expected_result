@@ -1,4 +1,4 @@
 0	_double._tcp.dc.test.com.	IN	SRV	3600	0 100 389 server1.test.com.
 0	_double._tcp.dc.test.com.	IN	SRV	3600	1 100 389 server1.test.com.
-Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='_double._tcp.dc.test.com.', qtype=SRV

@@ -1,3 +1,3 @@
 0	text.example.com.	IN	TXT	120	"Hi, this is some text"
-Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='text.example.com.', qtype=TXT

@@ -1,4 +1,4 @@
 0	outpost.example.com.	IN	A	120	192.168.2.1
 0	www.example.com.	IN	CNAME	120	outpost.example.com.
-Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.example.com.', qtype=A

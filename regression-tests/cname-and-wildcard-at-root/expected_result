@@ -1,3 +1,3 @@
 1	wtest.com.	IN	SOA	3600	ns1.wtest.com. ahu.example.com. 2005092501 28800 7200 604800 86400
-Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='secure.wtest.com.', qtype=A

@@ -8,5 +8,5 @@
 2	smtp-servers.example.com.	IN	A	120	192.168.0.2
 2	smtp-servers.example.com.	IN	A	120	192.168.0.3
 2	smtp-servers.example.com.	IN	A	120	192.168.0.4
-Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='example.com.', qtype=ANY

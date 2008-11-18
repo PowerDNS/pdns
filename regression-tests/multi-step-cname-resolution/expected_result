@@ -2,5 +2,5 @@
 0	start2.example.com.	IN	CNAME	120	start3.example.com.
 0	start3.example.com.	IN	CNAME	120	start4.example.com.
 0	start4.example.com.	IN	A	120	192.168.2.2
-Rcode: 0, RD: 0, TC: 0, AA: 1, opcode: 0
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='start1.example.com.', qtype=A
