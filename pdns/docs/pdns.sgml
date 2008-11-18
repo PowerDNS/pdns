@@ -101,6 +101,16 @@
 	  </warning>
 	</para>
 	<para>
+	  This is a huge release, spanning almost 18 months of development. Besides fixing a lot of bugs, of note is the addition of the so called 'Notification Proxy',
+	  which allows PowerDNS to function as a master server behind a firewall, plus the huge performance improvement of the internal caches.
+	</para>
+	<para>
+	  This work has been made possible by UPC Broadband and Directi, respectively. 
+	</para>
+	<para>
+	  Finally, the release candidates of this version have been tested &amp; improved by Jorn Ekkelenkamp, Ton van Rosmalen and (your name here!).
+	</para>
+	<para>
 	  New features:
 	  <itemizedlist>
 	    <listitem>
@@ -430,6 +440,23 @@
 	      </para>
 	    </listitem>
 	  </itemizedlist>
+	</para>
+      </sect2>
+      <sect2 id="changelog-auth-2-9-21-2"><title>Authoritative Server version 2.9.21.2</title>
+	<para>
+	  Released on the 18th of November 2008.
+	</para>
+	<para>
+	  This release consists of a single patch to PowerDNS Authoritative Server version 2.9.21.1.
+	  In some configurations, notably with configuration option 'distributor-threads=1', the PowerDNS Authoritative Server
+	  crashes easily in some error conditions.
+	</para>
+	<para>
+	  All users are urged to upgrade. Even though PowerDNS restarts itself on encountering such error conditions, and even
+	  though most PowerDNS configurations do not run in single threaded mode, an upgrade is recommended.
+	</para>
+	<para>
+	  More detail can be found in <xref linkend="powerdns-advisory-2008-03">.
 	</para>
       </sect2>
       <sect2 id="changelog-auth-2-9-21-1"><title>Authoritative Server version 2.9.21.1</title>
@@ -6186,6 +6213,17 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
+	If you have a security problem to report, please email us at both <email>powerdns@powerdns.com</email> and at
+	<email>ahu@ds9a.nl</email>. We adhere to the <ulink url="http://www.wiretrip.net/rfp/policy.html">Rain Forest Puppy
+	  Full Disclosure Policy (RFPolicy) v2.0</ulink> and we ask you to do the same. In particular, please do not mail security
+	issues to public lists unless we do not get back to you in a timely manner.
+      </para>
+      <para>
+	We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. 
+	This license is included in the distribution and in this documentation, see <xref linkend="license">.
+      </para>
+
+      <para>
 	As of the 6th of August 2008, no actual security problems with PowerDNS 2.9.21.1, Recursor 3.1.5, or later are known about.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailinglists.
@@ -6229,15 +6267,6 @@ name         IN            A        1.2.3.4
       <para>
 	All versions of PowerDNS before 2.9.17 are known to suffer from remote denial of service problems which can disrupt operation. Please upgrade
 	to 2.9.17 as this page will only contain detailed security information from 2.9.17 onwards.
-      </para>
-      <para>
-	If you have a security problem to report, please email us at both <email>powerdns@powerdns.com</email> and at
-	<email>ahu@ds9a.nl</email>. We adhere to the <ulink url="http://www.wiretrip.net/rfp/policy.html">Rain Forest Puppy
-	  Full Disclosure Policy (RFPolicy) v2.0</ulink> and we ask you to do the same.
-      </para>
-      <para>
-	We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. 
-	This license is included in the distribution and in this documentation, see <xref linkend="license">.
       </para>
     </sect1>
     <sect1 id="powerdns-advisory-2006-01">
@@ -6650,6 +6679,101 @@ name         IN            A        1.2.3.4
       </para>
       <para>
 	While the dropping of queries does not aid sophisticated spoofing attempts, it does facilitate simpler attacks.
+      </para>
+    </sect1>
+    <sect1 id="powerdns-advisory-2008-03">
+      <title>PowerDNS Security Advisory 2008-02: Some PowerDNS Configurations can be forced to restart remotely</title>
+      <para>
+	<table>
+	  <title>PowerDNS Security Advisory</title>
+	  <tgroup cols=2>
+	    <tbody>
+	      <row>
+		<entry>
+		  CVE
+		</entry>
+		<entry>
+		  Not yet assigned
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Date
+		</entry>
+		<entry>
+		  18th of November 2008
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Affects
+		</entry>
+		<entry>
+		  PowerDNS Authoritative Server 2.9.21.1 and earlier
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Not affected
+		</entry>
+		<entry>
+		  No versions of the PowerDNS Recursor ('pdns_recursor') are affected. Versions not running in single threaded mode ('distributor-threads=1') are probably not affected.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Severity 
+		</entry>
+		<entry>
+		  Moderate
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Impact
+		</entry>
+		<entry>
+		  Denial of Service
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Exploit
+		</entry>
+		<entry>
+		  Send PowerDNS an CH HINFO query.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Solution
+		</entry>
+		<entry>
+		  Upgrade to PowerDNS Authoritative Server 2.9.21.2, or wait for 2.9.22.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Workaround
+		</entry>
+		<entry>
+		  Remove 'distributor-threads=1' if this is set.
+		</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	Daniel Drown discovered that his PowerDNS 2.9.21.1 installation crashed on receiving a HINFO CH query. In his enthousiasm, he shared
+	his discovery with the world, forcing a rapid over the weekend release cycle.
+      </para>
+      <para>
+	While we thank Daniel for his discovery, please study our security policy as outlined in <xref linkend="security-policy"> before making vulnerabilities public.
+      </para>
+      <para>
+	It is  believed that this issue only impacts PowerDNS Authoritative Servers operating with 'distributor-threads=1', but even on other configurations a database reconnect
+	occurs on receiving a CH HINFO query. 
       </para>
     </sect1>
 
