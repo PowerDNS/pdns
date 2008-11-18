@@ -74,8 +74,6 @@ void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t 
     L<<Logger::Critical<<"Binding to dynlistener: "<<strerror(errno)<<endl;
     exit(1);
   }
-
-  listen(d_s,10);
 }
 
 void DynListener::listenOnUnixDomain(const string& fname)
@@ -100,6 +98,7 @@ void DynListener::listenOnUnixDomain(const string& fname)
       L<<Logger::Error<<"Unable to change group access mode of controlsocket: "<<strerror(errno)<<endl;
   }
   
+  listen(d_s, 10);
   
   L<<Logger::Warning<<"Listening on controlsocket in '"<<fname<<"'"<<endl;
   d_nonlocal=true;
@@ -108,6 +107,8 @@ void DynListener::listenOnUnixDomain(const string& fname)
 void DynListener::listenOnTCP(const ComboAddress& local)
 {
   createSocketAndBind(AF_INET, (struct sockaddr*)& local, local.getSocklen());
+  listen(d_s, 10);
+
   d_socketaddress=local;
   L<<Logger::Warning<<"Listening on controlsocket on '"<<local.toStringWithPort()<<"'"<<endl;
   d_nonlocal=true;
