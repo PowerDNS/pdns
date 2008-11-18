@@ -342,6 +342,9 @@ boilerplate_conv(DNSKEY, 48,
 		 conv.xfrBlob(d_key);
 		 )
 
+boilerplate_conv(URL, 256, 
+		 conv.xfrLabel(d_url);
+		 )
 
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
@@ -401,6 +404,11 @@ void reportOtherTypes()
    NSECRecordContent::report();
    TSIGRecordContent::report();
    OPTRecordContent::report();
+}
+
+void reportFancyTypes()
+{
+  URLRecordContent::report();
 }
 
 void reportAllTypes()
