@@ -22,6 +22,7 @@
 #include "misc.hh"
 #include "arguments.hh"
 #include "dns.hh"
+#include <boost/format.hpp>
 
 extern StatBag S;
 
@@ -103,12 +104,12 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
 
   int printed=0;
   for(vector<pair<string,int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
-    ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<<setprecision(2)<<i->second*100.0/tot<<"%</td>"<<endl;
+    ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<< (boost::format("%.01f") % (i->second*100.0/tot))<<"%</td>"<<endl;
     printed+=i->second;
   }
   ret<<"<tr><td colspan=3></td></tr>"<<endl;
   if(printed!=tot)
-    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<<setprecision(2)<<(tot-printed)*100.0/tot<<"%</b></td>"<<endl;
+    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< (boost::format("%.01f") % ((tot-printed)*100.0/tot))<<"%</b></td>"<<endl;
 
   ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</td><td align=right><b>100%</b></td>";
   ret<<"</table><p>"<<endl;
