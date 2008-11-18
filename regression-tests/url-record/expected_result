@@ -1,0 +1,3 @@
+0	images.test.com.	IN	A	3600	127.0.0.1
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='images.test.com.', qtype=A
