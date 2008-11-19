@@ -515,6 +515,16 @@ do
 	        moduleobjects="$moduleobjects ../modules/${a}backend/$b"
 	done
 	modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
+
+	if test ${a} == "gpgsql"; then
+		case "$host_os" in
+		freebsd*)
+			;;
+		*)
+			modulelibs="$modulelibs -lresolv -lnsl"
+			;;
+		esac
+	fi
 done
 
 for a in $dynmodules
