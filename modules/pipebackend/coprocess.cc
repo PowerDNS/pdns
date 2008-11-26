@@ -74,8 +74,10 @@ void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
 CoProcess::~CoProcess()
 {
   int status;
-  if(!waitpid(d_pid, &status, WNOHANG)) 
+  if(!waitpid(d_pid, &status, WNOHANG)) {
     kill(d_pid, 9);
+    waitpid(d_pid, &status, 0);
+  }
   
   close(d_fd1[1]);
   fclose(d_fp);
