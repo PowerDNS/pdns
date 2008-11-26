@@ -108,7 +108,7 @@
 	  This work has been made possible by UPC Broadband and Directi, respectively. 
 	</para>
 	<para>
-	  Finally, the release candidates of this version have been tested &amp; improved by Jorn Ekkelenkamp, Ton van Rosmalen and (your name here!).
+	  Finally, the release candidates of this version have been tested &amp; improved by Jorn Ekkelenkamp, Ton van Rosmalen, Jeff Sipek, and (your name here!).
 	</para>
 	<para>
 	  New features:
@@ -209,7 +209,11 @@
 		Connection reset by peer events in the TCP nameserver no longer lead to the cycling of database connections. Code in c1241.
 	      </para>
 	    </listitem>
-
+	    <listitem>
+	      <para>
+		Webserver no longer prints '1e2%'. Finally closes t26. Much friendly nagging for over 3 years by Jeff Sipek, code in c1303.
+	      </para>
+	    </listitem>
 	    <listitem>
 	      <para>
 		PowerDNS used to ignore certain queries it could not answer. These queries are no longer ignored, but get a SERVFAIL response. Implemented in c1239.
