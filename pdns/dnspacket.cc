@@ -344,7 +344,7 @@ void DNSPacket::wrapup(void)
       pw.commit();
     }
     catch(std::exception& e) {
-      L<<Logger::Error<<"Exception: "<<e.what()<<endl;
+      L<<Logger::Warning<<"Exception: "<<e.what()<<endl;
       throw;
     }
   }
@@ -415,6 +415,23 @@ void DNSPacket::spoofQuestion(const string &qd)
   for(string::size_type i=0;i<label.size();++i)
     stringbuffer[i+sizeof(d)]=label[i];
   d_wrapped=true; // if we do this, don't later on wrapup
+}
+
+int DNSPacket::noparse(const char *mesg, int length)
+{
+  stringbuffer.assign(mesg,length); 
+  
+  len=length;
+  if(length < 12) { 
+    L << Logger::Warning << "Ignoring packet: too short from "
+      << getRemote() << endl;
+    return -1;
+  }
+  d_wantsnsid=false;
+  d_ednsping.clear();
+  d_maxreplylen=512;
+  memcpy((void *)&d,(const void *)stringbuffer.c_str(),12);
+  return 0;
 }
 
 /** This function takes data from the network, possibly received with recvfrom, and parses
