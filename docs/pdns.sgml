@@ -10978,7 +10978,7 @@ while(&lt;&gt;)
 	    <tbody>
 	      <row><entry>Native</entry><entry>Yes</entry></row>
 	      <row><entry>Master</entry><entry>No</entry></row>
-	      <row><entry>Slave</entry><entry>No</entry></row>
+	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>Insensitive</entry></row>
@@ -11248,6 +11248,7 @@ CREATE TABLE Zones (
   Active tinyint(4) NOT NULL default '0',
   TimeToLive int(11) NOT NULL default '0',
   OwnerId varchar(255) NOT NULL default '',
+  Master varchar(255) NOT NULL default '',
   PRIMARY KEY  (Id),
   UNIQUE KEY Name (Name),
   KEY NameIndex (Name)
@@ -11300,6 +11301,22 @@ CREATE TABLE Zones (
                 </para>
               </listitem>
             </varlistentry>
+            <varlistentry>
+              <term>pdns-soa-refresh</term>
+              <listitem>
+                <para>
+                  Pdns SOA refresh in seconds
+                </para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>pdns-max-slave-records</term>
+              <listitem>
+                <para>
+                  Maximal records to transfer
+                </para>
+              </listitem>
+             </varlistentry>
           </variablelist>
 	</para>
       <sect2><title>Notes</title>
