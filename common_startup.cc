@@ -64,6 +64,7 @@ void declareArguments()
   ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
   ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";
   ::arg().set("distributor-threads","Default number of Distributor (backend) threads to start")="3";
+  ::arg().set("receiver-threads","Default number of Distributor (backend) threads to start")="1";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   ::arg().set("lazy-recursion","Only recurse if question cannot be answered locally")="yes";
@@ -202,12 +203,13 @@ void sendout(const DNSDistributor::AnswerData &AD)
   delete AD.A;  
 }
 
+static DNSDistributor* g_distributor;
+static pthread_mutex_t d_distributorlock =PTHREAD_MUTEX_INITIALIZER;
+static bool g_mustlockdistributor;
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for futher processing
-void *qthread(void *p)
+void *qthread(void *number)
 {
-  DNSDistributor *D=static_cast<DNSDistributor *>(p);
-
   DNSPacket *P;
 
   DNSPacket question;
@@ -225,13 +227,15 @@ void *qthread(void *p)
   int diff;
 
   for(;;) {
-    if(!((numreceived++)%50)) { // maintenance tasks
-      S.set("latency",(int)avg_latency);
-      int qcount, acount;
-      D->getQueueSizes(qcount, acount);
-      S.set("qsize-q",qcount);
+    if(number==0) {
+      if(!((numreceived++)%50)) { // maintenance tasks
+	S.set("latency",(int)avg_latency);
+	int qcount, acount;
+	g_distributor->getQueueSizes(qcount, acount);
+	S.set("qsize-q",qcount);
+      }
     }
-    
+
     if(!(P=N->receive(&question))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
@@ -264,8 +268,12 @@ void *qthread(void *p)
 
       continue;
     }
-
-    D->question(P, &sendout); // otherwise, give to the distributor
+    if(g_mustlockdistributor) {
+      Lock l(&d_distributorlock);
+      g_distributor->question(P, &sendout); // otherwise, give to the distributor
+    }
+    else
+      g_distributor->question(P, &sendout); // otherwise, give to the distributor
   }
   return 0;
 }
@@ -318,8 +326,12 @@ void mainthread()
     TN->go(); // tcp nameserver launch
     
   //  fork(); (this worked :-))
-  DNSDistributor *D= new DNSDistributor(::arg().asNum("distributor-threads")); // the big dispatcher!
-  pthread_create(&qtid,0,qthread,static_cast<void *>(D)); // receives packets
+  g_distributor = new DNSDistributor(::arg().asNum("distributor-threads")); // the big dispatcher!
+  if(::arg().asNum("receiver-threads") > 1) {
+    g_mustlockdistributor=true;
+  }
+  for(int n=0; n < ::arg().asNum("receiver-threads"); ++n)
+    pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
 
   void *p;
   pthread_join(qtid, &p);
