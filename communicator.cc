@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002-2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -44,7 +44,7 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
 
   if(priority) {
     d_suckdomains.push_front(sr);
-    d_havepriosuckrequest=true;
+    //  d_havepriosuckrequest=true;
   }
   else 
     d_suckdomains.push_back(sr);
