@@ -86,7 +86,7 @@ install: all
 	$(OS_SPECIFIC_INSTALL)	
 
 clean:
-	-rm -f dep *.o *~ pdns_recursor rec_control optional/*.o
+	-rm -f dep *.o *~ pdns_recursor rec_control *.gcda *.gcno optional/*.gcda optional/*.gcno optional/*.o
 	
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.c *.hh > $@
