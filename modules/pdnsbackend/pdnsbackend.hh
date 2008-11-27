@@ -21,6 +21,15 @@ class PdnsBackend : public DNSBackend
       bool list(const string &target, int inZoneId);
       bool get(DNSResourceRecord& outRecord);
       bool getSOA(const string &name, SOAData &soadata);
+      
+      bool isMaster(const string &name, const string &ip);
+      void getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains);
+      bool getDomainInfo(const string &domain, DomainInfo &di);
+      bool startTransaction(const string &qname, int domain_id=-1);
+      bool feedRecord(const DNSResourceRecord &rr);
+      bool commitTransaction();
+      bool abortTransaction();
+      void setFresh(u_int32_t domain_id);
 
       static DNSBackend *maker();
   
@@ -28,9 +37,11 @@ class PdnsBackend : public DNSBackend
 
       MYSQL        d_database;
       MYSQL_RES*   d_result;
-  string       d_suffix;
+      string       d_suffix;
+      int          d_axfrcount;
       
       void Query(const string& inQuery);
+      void Execute(const string& inStatement);
       string sqlEscape(const string &nanme);
 
 };

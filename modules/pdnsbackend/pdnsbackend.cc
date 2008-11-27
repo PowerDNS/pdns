@@ -87,6 +87,22 @@ void PdnsBackend::Query(const string& inQuery)
    }
 }
 
+void PdnsBackend::Execute(const string& inStatement)
+{
+   //
+   // Cleanup the previous result, if it exists.
+   //
+
+   if (d_result != NULL) {
+      mysql_free_result(d_result);
+      d_result = NULL;
+   }
+   
+   if (mysql_query(&d_database, inStatement.c_str()) != 0) {
+      throw AhuException(string("mysql_query failed")+string(mysql_error(&d_database)));
+   }
+}
+
 void PdnsBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int zoneId )
 {
   string query;
@@ -96,9 +112,11 @@ void PdnsBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   // suport wildcard searches
   
   if (qname[0]!='%') {
-     query="select r.Content,r.TimeToLive,r.Priority,r.Type,r.ZoneId,r.Name,r.ChangeDate from Records r,Zones z where r.Name='";
+     query  ="select r.Content,r.TimeToLive,r.Priority,r.Type,r.ZoneId,r.Name,r.ChangeDate ";
+     query +="from Records r left join Zones z on r.ZoneId = z.Id where r.Name='";
   } else {
-     query="select r.Content,r.TimeToLive,r.Priority,r.Type,r.ZoneId,r.Name,r.ChangeDate from Records r,Zones z where r.Name like '";
+     query  ="select r.Content,r.TimeToLive,r.Priority,r.Type,r.ZoneId,r.Name,r.ChangeDate ";
+     query +="from Records r left join Zones z on r.ZoneId = z.Id where r.Name like '";
   }
 
   if (qname.find_first_of("'\\")!=string::npos)
@@ -121,7 +139,7 @@ void PdnsBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   }
   
   // XXX Make this optional, because it adds an extra load to the db
-  query += " and r.Active <> 0 and r.ZoneId = z.Id and z.Active <> 0";
+  query += " and r.Active <> 0 and z.Active <> 0";
   
   DLOG(L<< backendName<<" Query: '" << query << "'"<<endl);
 
@@ -172,6 +190,203 @@ bool PdnsBackend::getSOA(const string& inZoneName, SOAData& outSoaData)
    }
    
    return theResult;
+}
+
+bool PdnsBackend::isMaster(const string &name, const string &ip)
+{
+   bool theResult = false;
+   MYSQL_ROW theRow = NULL;
+   string master;
+   
+   ostringstream o;
+   o << "select Master from Zones where Master != '' and Name='"<<sqlEscape(name)<<"'";
+   
+   this->Query(o.str());
+   
+   theRow = mysql_fetch_row(d_result);
+   if (theRow != NULL)
+   {
+      master = theRow[0];
+   }
+   
+   if(master == ip)
+      theResult = true;
+   
+   return theResult;
+}
+
+void PdnsBackend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
+{
+   MYSQL_ROW theRow = NULL;
+   
+   string o = "select Id,Name,Master,UNIX_TIMESTAMP(ChangeDate) from Zones where Master != ''";
+   
+   this->Query(o);
+   
+   vector<DomainInfo>allSlaves;
+   while((theRow = mysql_fetch_row(d_result)) != NULL) {
+      DomainInfo di;
+      
+      di.id         = atol(theRow[0]);
+      di.zone       = theRow[1];
+      stringtok(di.masters, theRow[2], ", \t");
+      di.last_check = atol(theRow[3]);
+      di.backend    = this;
+      di.kind       = DomainInfo::Slave;
+      allSlaves.push_back(di);
+   }
+   
+   for(vector<DomainInfo>::iterator i=allSlaves.begin(); i!=allSlaves.end();i++) {
+      SOAData sd;
+      sd.serial=0;
+      sd.refresh=0;
+      getSOA(i->zone,sd);
+      if((time_t)(i->last_check+sd.refresh) < time(0)) {
+         i->serial=sd.serial;
+         unfreshDomains->push_back(*i);
+      }
+   }
+}
+
+bool PdnsBackend::getDomainInfo(const string &domain, DomainInfo &di)
+{
+   bool theResult = false;
+   MYSQL_ROW theRow = NULL;
+   vector<string> masters;
+   
+   ostringstream o;
+   o << "select Id,Name,Master,UNIX_TIMESTAMP(ChangeDate) from Zones WHERE Name='" << sqlEscape(domain) << "'";
+   
+   this->Query(o.str());
+   
+   theRow = mysql_fetch_row(d_result);
+   if (theRow != NULL)
+   {
+      di.id         = atol(theRow[0]);
+      di.zone       = theRow[1];
+      di.last_check = atol(theRow[3]);
+      di.backend    = this;
+      
+      /* We have to store record in local variabel... theRow[2] == NULL makes it empty in di.master = theRow[2]???? */
+      if(theRow[2] != NULL)
+	 stringtok(masters, theRow[2], " ,\t");
+      
+      if (masters.empty())
+      {
+         di.kind = DomainInfo::Native;
+      }
+      else
+      {
+         di.serial = 0;
+         try {
+            SOAData sd;
+            if(!getSOA(domain,sd))
+               L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+            di.serial = sd.serial;
+         }
+         catch (AhuException &ae) {
+            L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+         }
+         
+         di.kind   = DomainInfo::Slave;
+         di.masters = masters;
+      }
+      
+      theResult = true;
+   }
+      
+   return theResult;
+}
+
+bool PdnsBackend::startTransaction(const string &qname, int domain_id)
+{
+   ostringstream o;
+   o << "delete from Records where ZoneId=" << domain_id;
+
+   this->Execute("begin");
+   this->Execute(o.str());
+   
+   d_axfrcount = 0;
+   
+   return true;
+}
+
+bool PdnsBackend::feedRecord(const DNSResourceRecord &rr)
+{    
+   int qcode = rr.qtype.getCode();
+   
+   /* Check max records to transfer except for SOA and NS records */
+   if((qcode != QType::SOA) && (qcode != QType::NS))
+   {
+      if (d_axfrcount == atol(arg()["pdns-"+d_suffix+"max-slave-records"].c_str())  - 1)
+      {
+         L<<Logger::Warning<<backendName<<" Maximal AXFR records reached: "<<arg()["pdns-"+d_suffix+"max-slave-records"]
+                           <<". Skipping rest of records"<<endl;
+      }
+      
+      if (d_axfrcount >= atol(arg()["pdns-"+d_suffix+"max-slave-records"].c_str())) {
+         return true;
+      }
+      
+      d_axfrcount++; // increase AXFR count for pdns-max-slave-records
+   }
+   
+   /* SOA is not be feeded into Records.. update serial instead */
+   if(qcode == QType::SOA)
+   {
+      string::size_type emailpos = rr.content.find(" ", 0) + 1;
+      string::size_type serialpos = rr.content.find(" ", emailpos) + 1;
+      string::size_type other = rr.content.find(" ", serialpos);
+      string serial = rr.content.substr(serialpos, other - serialpos);
+      
+      ostringstream q;
+      q << "update Zones set Serial=" << serial << " where Id=" << rr.domain_id;
+      
+      this->Execute(q.str());
+      
+      return true;
+   }
+   
+   ostringstream o;
+   o << "insert into Records (ZoneId, Name, Type, Content, TimeToLive, Priority, Flags, Active) values ("
+     << rr.domain_id << ","
+     << "'" << toLower(sqlEscape(rr.qname)).c_str() << "',"
+     << "'" << sqlEscape(rr.qtype.getName()).c_str() << "',"
+     << "'" << sqlEscape(rr.content).c_str() << "',"
+     << rr.ttl << ","
+     << rr.priority << ","
+     << "4" << ","
+     << "1)";
+   
+   this->Execute(o.str());
+   
+   return true;
+}
+
+bool PdnsBackend::commitTransaction()
+{
+	 this->Execute("commit");
+	 
+	 d_axfrcount = 0;
+	 
+	 return true;
+}
+
+bool PdnsBackend::abortTransaction()
+{
+	 this->Execute("rollback");
+	 
+	 d_axfrcount = 0;
+	 
+	 return true;
+}
+
+void PdnsBackend::setFresh(u_int32_t domain_id)
+{
+   ostringstream o;
+   o << "update Zones set ChangeDate = NOW() where Id=" << domain_id;
+   
+   this->Execute(o.str());
 }
 
 //! For the dynamic loader
@@ -240,6 +455,7 @@ class PDNSFactory : public BackendFactory
 	 declare(suffix,"password","Pdns backend password to connect with","");
 	 declare(suffix,"socket","Pdns backend socket to connect to","");
 	 declare(suffix,"soa-refresh","Pdns SOA refresh in seconds","");
+	 declare(suffix,"max-slave-records","Pdns backend maximal records to transfer", "100");
       }
       
       DNSBackend *make(const string &suffix="")
