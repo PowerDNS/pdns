@@ -66,7 +66,7 @@ class PacketCache
 {
 public:
   PacketCache();
-  enum CacheEntryType { PACKETCACHE, QUERYCACHE, NEGCACHE};
+  enum CacheEntryType { PACKETCACHE, QUERYCACHE};
 
   void insert(DNSPacket *q, DNSPacket *r);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
