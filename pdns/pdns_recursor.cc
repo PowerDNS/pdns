@@ -84,7 +84,7 @@ string s_programname="pdns_recursor";
 typedef vector<int> g_tcpListenSockets_t;
 g_tcpListenSockets_t g_tcpListenSockets;
 int g_tcpTimeout;
-
+map<int, ComboAddress> g_listenSocketsAddresses;
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
   {}
@@ -539,12 +539,12 @@ void startDoResolve(void *p)
 
     int res;
 
-    if(!g_pdl.get() || !g_pdl->preresolve(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) {
+    if(!g_pdl.get() || !g_pdl->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) {
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
        if(g_pdl.get()) {
 	 if(res == RCode::NXDomain)
-	   g_pdl->nxdomain(dc->d_remote, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
+	   g_pdl->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
        }
     }
 
@@ -1047,9 +1047,9 @@ void makeUDPServerSockets()
       throw AhuException("Resolver binding to server socket on port "+ lexical_cast<string>(st.port) +" for "+ st.host+": "+stringerror());
     
     Utility::setNonBlocking(fd);
-    //    g_fdm->addReadFD(fd, handleNewUDPQuestion);
-    deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
 
+    deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
+    g_listenSocketsAddresses[fd]=sin;
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
