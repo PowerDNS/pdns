@@ -249,7 +249,7 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
   }
 
   string content;
-  //  L<<Logger::Warning<<"looking up: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
+  //  L<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
 
   bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, content, q.zoneId);   // think about lowercasing here
 
@@ -257,9 +257,8 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
     (*qcachemiss)++;
     return -1;
   }
-
   (*qcachehit)++;
-  if(content.empty())
+  if(content.empty()) // negatively cached
     return 0;
   rr.unSerialize(content);
   return 1;
@@ -272,7 +271,7 @@ void UeberBackend::addNegCache(const Question &q)
   if(!negqueryttl)
     return;
   //  L<<Logger::Warning<<"negative inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
-  PC.insert(q.qname, q.qtype, PacketCache::NEGCACHE, "", negqueryttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, q.zoneId);
 }
 
 void UeberBackend::addOneCache(const Question &q, const DNSResourceRecord &rr)
@@ -281,7 +280,7 @@ void UeberBackend::addOneCache(const Question &q, const DNSResourceRecord &rr)
   static int queryttl=::arg().asNum("query-cache-ttl");
   if(!queryttl)
     return;
-
+  //  L<<Logger::Warning<<"inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
   PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, rr.serialize(), queryttl, q.zoneId);
 }
 
@@ -356,13 +355,12 @@ bool UeberBackend::get(DNSResourceRecord &rr)
     d_negcached=true; // ugly, confusing 
     return true;
   }
-
   if(!d_handle.get(rr)) {
     if(!d_ancount && !d_handle.qname.empty()) // don't cache axfr
       addNegCache(d_question);
 
     if(d_ancount==1) {
-      addOneCache(d_question,lastrr);
+      addOneCache(d_question, lastrr);
     }
 
     return false;

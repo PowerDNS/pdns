@@ -71,6 +71,8 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
   if(ntohs(p->d.qdcount)!=1) // we get confused by packets with more than one question
     return 0;
 
+  string value;
+  bool haveSomething;
   {
     TryReadLock l(&d_mut); // take a readlock here
     if(!l.gotIt()) {
@@ -81,19 +83,18 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     if(!((d_hit+d_miss)%30000)) {
       *d_statnumentries=d_map.size(); // needs lock
     }
-    string value;
-
-    if(getEntry(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion)) {
-      //      cerr<<"Packet cache hit for '"<<p->qdomain<<"', merits: "<<packetMeritsRecursion<<endl;
-      (*d_statnumhit)++;
-      d_hit++;
-      if(cached->parse(value.c_str(), value.size()) < 0) {
-	return -1;
-      }
-      cached->spoofQuestion(p->qdomain); // for correct case
-      return 1;
-    }
+    haveSomething=getEntry(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion);
   }
+  if(haveSomething) {
+    (*d_statnumhit)++;
+    d_hit++;
+    if(cached->noparse(value.c_str(), value.size()) < 0) {
+      return 0;
+    }
+    cached->spoofQuestion(p->qdomain); // for correct case
+    return 1;
+  }
+
   //  cerr<<"Packet cache miss for '"<<p->qdomain<<"', merits: "<<packetMeritsRecursion<<endl;
   (*d_statnummiss)++;
   d_miss++;
@@ -267,19 +268,19 @@ map<char,int> PacketCache::getCounts()
   map<char,int>ret;
   int recursivePackets=0, nonRecursivePackets=0, queryCacheEntries=0, negQueryCacheEntries=0;
 
-  enum CacheEntryType { PACKETCACHE, QUERYCACHE, NEGCACHE};
   for(cmap_t::const_iterator iter = d_map.begin() ; iter != d_map.end(); ++iter) {
     if(iter->ctype == PACKETCACHE)
       if(iter->meritsRecursion)
 	recursivePackets++;
       else
 	nonRecursivePackets++;
-    else if(iter->ctype == QUERYCACHE)
-      queryCacheEntries++;
-    else if(iter->ctype == NEGCACHE)
-      negQueryCacheEntries++;
+    else if(iter->ctype == QUERYCACHE) {
+      if(iter->value.empty())
+	negQueryCacheEntries++;
+      else
+	queryCacheEntries++;
+    }
   }
-
   ret['!']=negQueryCacheEntries;
   ret['Q']=queryCacheEntries;
   ret['n']=nonRecursivePackets;
