@@ -9,12 +9,12 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   throw runtime_error("Lua support disabled");
 }
 
-bool PowerDNSLua::nxdomain(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
   return false;
 }
 
-bool PowerDNSLua::preresolve(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
   return false;
 }
@@ -113,14 +113,14 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
 
 }
 
-bool PowerDNSLua::nxdomain(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
-  return passthrough("nxdomain", remote, query, qtype, ret, res);
+  return passthrough("nxdomain", remote, local, query, qtype, ret, res);
 }
 
-bool PowerDNSLua::preresolve(const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
-  return passthrough("preresolve", remote, query, qtype, ret, res);
+  return passthrough("preresolve", remote, local, query, qtype, ret, res);
 }
 
 bool PowerDNSLua::getFromTable(const std::string& key, std::string& value)
@@ -153,7 +153,7 @@ bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
 }
 
 
-bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
   lua_getglobal(d_lua,  func.c_str());
   if(!lua_isfunction(d_lua, -1)) {
@@ -163,11 +163,12 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   }
   /* the first argument */
   lua_pushstring(d_lua,  remote.toString().c_str() );
+  lua_pushstring(d_lua,  local.toString().c_str() );
   lua_pushstring(d_lua,  query.c_str() );
   lua_pushnumber(d_lua,  qtype.getCode() );
 
-  if(lua_pcall(d_lua,  3, 2, 0)) { // error 
-    string error=string("lua error: ")+lua_tostring(d_lua, -1);
+  if(lua_pcall(d_lua,  4, 2, 0)) { // error 
+    string error=string("lua error in '"+func+"': ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);
     return false;

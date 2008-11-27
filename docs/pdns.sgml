@@ -8843,7 +8843,8 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	</para>
 	<para>
 	  Both functions are passed the IP address of the requestor, plus the name and type being requested. In return, these functions indicate if they
-	  have taken over the request, or want to let normal proceedings take their course.
+	  have taken over the request, or want to let normal proceedings take their course. Beyond version 3.1.7, the IP address on which the question was received
+	  is inserted immediately after the IP address of the requestor - so in that case there are 4 parameters.
 	</para>
 	<para>
 	  If a function has taken over a request, it should return an rcode (usually 0), and specify a table with records to be put in the answer section 
