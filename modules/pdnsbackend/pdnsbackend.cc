@@ -159,7 +159,7 @@ bool PdnsBackend::list(const string &target, int inZoneId)
    return true;
 }
 
-bool PdnsBackend::getSOA(const string& inZoneName, SOAData& outSoaData)
+bool PdnsBackend::getSOA(const string& inZoneName, SOAData& outSoaData, DNSPacket*)
 {
    bool theResult = false;
    MYSQL_ROW theRow = NULL;

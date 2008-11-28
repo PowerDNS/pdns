@@ -20,7 +20,7 @@ class PdnsBackend : public DNSBackend
       void lookup(const QType &, const string &qdomain, DNSPacket *p = 0, int zoneId = -1);
       bool list(const string &target, int inZoneId);
       bool get(DNSResourceRecord& outRecord);
-      bool getSOA(const string &name, SOAData &soadata);
+      bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
       
       bool isMaster(const string &name, const string &ip);
       void getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains);
