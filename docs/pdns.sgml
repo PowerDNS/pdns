@@ -10678,17 +10678,6 @@ end
 	The PipeBackend allows for easy dynamic resolution based on a 'Coprocess' which can be written in any
 	programming language that can read a question on standard input and answer on standard output. 
       </para>
-    <para>
-      <note>
-	<para>
-	  The Pipe Backend currently does not function under FreeBSD 4.x and 5.x, probably due to unfavorable interactions between
-	  its threading implementation and the fork system call.
-	</para>
-	<para>
-	  Interestingly, the Linux PowerDNS binary running under the Linuxulator on FreeBSD does work.
-	</para>
-      </note>
-    </para>
       <para>
 	To configure, the following settings are available:
 	<variablelist>
@@ -10718,7 +10707,12 @@ end
 		would be presented to the regex as 'www.powerdns.com;A'. A matching regex would be '^www.powerdns.com;.*$'.
 	      </para>
 	      <para>
-		To match only ANY and A queries for www.powerdns.com, use '^www.powerdns.com;(A|ANY)$'. Available since 2.8.
+		To match only ANY and A queries for www.powerdns.com, use '^www.powerdns.com;(A|ANY)$'. Please be aware that the
+		single quotes used in this document should not be present in the configuration file, and only on the command line. 
+		In the configuration file, the previous example would be stored as: pipe-regex=^www.powerdns.com;(A|ANY)$
+	      </para>
+	      <para>
+		Available since 2.8.
 	      </para>
 	    </listitem>
 	  </varlistentry>
