@@ -39,7 +39,7 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <stdexcept>
-
+#include "logger.hh"
 using namespace std;
 
 bool netmaskMatchTable(lua_State* lua, const std::string& ip)
@@ -57,7 +57,9 @@ bool netmaskMatchTable(lua_State* lua, const std::string& ip)
   return false;
 }
 
-extern "C" int netmaskMatchLua(lua_State *lua)
+extern "C" {
+
+int netmaskMatchLua(lua_State *lua)
 {
   bool result=false;
   if(lua_gettop(lua) >= 2) {
@@ -82,6 +84,16 @@ extern "C" int netmaskMatchLua(lua_State *lua)
   return 1;
 }
 
+int logLua(lua_State *lua)
+{
+  if(lua_gettop(lua) >= 1) {
+    string message=lua_tostring(lua, 1);
+    theL()<<Logger::Error<<"From Lua script: "<<message<<endl;
+  }
+  return 0;
+}
+}
+
 PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
   d_lua = lua_open();
@@ -101,6 +113,10 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   
   lua_pushcfunction(d_lua, netmaskMatchLua);
   lua_setglobal(d_lua, "matchnetmask");
+
+  lua_pushcfunction(d_lua, logLua);
+  lua_setglobal(d_lua, "pdnslog");
+
   lua_newtable(d_lua);
 
   for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
@@ -110,7 +126,6 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_pushnumber(d_lua, 3);
   lua_setfield(d_lua, -2, "NXDOMAIN");
   lua_setglobal(d_lua, "pdns");
-
 }
 
 bool PowerDNSLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)

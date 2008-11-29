@@ -108,7 +108,34 @@
 	  This work has been made possible by UPC Broadband and Directi, respectively. 
 	</para>
 	<para>
-	  Finally, the release candidates of this version have been tested &amp; improved by Jorn Ekkelenkamp, Ton van Rosmalen, Jeff Sipek, and (your name here!).
+	  Finally, the release candidates of this version have been tested &amp; improved by Jorn Ekkelenkamp, Ton van Rosmalen, Jeff Sipek, Tyler Hall, Christof Meerwald,
+	  Stefan Schmidt, 
+	</para>
+	<para>
+	  Fixed between rc1 and rc2, but not an issue in 2.9.21.
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		<command>pdns_control ccounts</command> again outputs proper cache statistics. Implemented in c1304.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Negative query caching was reinstated, leading to 6 times less backend queries than rc1 on the Express.powerdns.com servers.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Packetcache no longer needlessly parses outgoing packets before sending them. 
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fancy records work again. This work has been sponsored by ISP Services. Implemented in c1302 and c1299.
+	      </para>
+	    </listitem>
+
+	  </itemizedlist>
 	</para>
 	<para>
 	  New features:
@@ -163,6 +190,11 @@
 		Implemented experimental EDNS PING for enhanced forgery resilience. Code in c1232.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		
+	      </para>
+	    </listitem>
 
 	  </itemizedlist>
 	</para>
@@ -189,6 +221,12 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		Installations which run with very high cache hitrates can now benefit from multiple CPUs by setting <command>receiver-threads</command> to the number
+		of desired CPUs to utilize in cache operations. Implemented in c1316.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
 		BIND backend speedups in c1108, measured at around a 20% improvement, possibly more on very large setups.
 	      </para>
 	    </listitem>
@@ -209,6 +247,12 @@
 		Connection reset by peer events in the TCP nameserver no longer lead to the cycling of database connections. Code in c1241.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		FreeBSD compilation with Generic PostgreSQL backend was fixed. Reported by Wouter de Jong of WideXS, fixed in c1305, closes t95.
+	      </para>
+	    </listitem>
+
 	    <listitem>
 	      <para>
 		Webserver no longer prints '1e2%'. Finally closes t26. Much friendly nagging for over 3 years by Jeff Sipek, code in c1303.
@@ -311,6 +355,17 @@
 		could cause a crash (reported on HP-UX). Addressed by c1279. This could not be triggered remotely. Closes ticket t203.
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+		Pipe backend did not clean up killed coprocesses. Found and fixed by Daniel Drown
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Installations with tens of thousands of slave domains would never complete the cycle to check the freshness of all zones 
+		as each incoming notification disrupted this cycle. Addressed in cooperation with Tyler Hall of EditDNS.
+	      </para>
+	    </listitem>
 
 	  </itemizedlist>
 	</para>
@@ -380,6 +435,11 @@
 	    <listitem>
 	      <para>
 		Fix handling of TCP timeouts to not cause a reload of the backends. Implemented in c1092.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		TCP Receiver no longer spams the log with common network errors. Implemented in c1306.
 	      </para>
 	    </listitem>
 
@@ -8949,9 +9009,13 @@ end
 	  </warning>
 	</para>
 	<para>
-	  Finally, the function <function>matchnetmask(ip, netmask1, netmask2..)</function> (or <function>matchnetmask(ip, {netmask1, netmask2})</function>) is available to match incoming queries against
+	  The function <function>matchnetmask(ip, netmask1, netmask2..)</function> (or <function>matchnetmask(ip, {netmask1, netmask2})</function>) is available to match incoming queries against
 	  a number of netmasks. If any of these matches, the function returns true.
 	</para>
+	<para>
+	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since 3.1.8.
+	</para>
+
       </sect2>
     </sect1>
     <sect1 id="recursor-design-and-engineering">
