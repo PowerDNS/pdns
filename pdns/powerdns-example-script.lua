@@ -1,6 +1,6 @@
 function preresolve ( remoteip, localip, domain, qtype )
 	print ("prequery handler called for: ", remoteip, localip, domain, qtype)
-
+	pdnslog("a test message.. received query from "..remoteip.." on "..localip);
 	if domain == "www.powerdns.org." 
 	then
 		ret={}

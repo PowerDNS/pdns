@@ -1632,7 +1632,7 @@ string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::c
       if(!fname.empty()) 
 	g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
       else
-	throw runtime_error("Asked to relead lua scripts, but no name passed and no default ('lua-dns-script') defined");
+	throw runtime_error("Asked to reload lua scripts, but no name passed and no default ('lua-dns-script') defined");
     }
     else {
       fname=*begin;
