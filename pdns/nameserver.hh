@@ -110,7 +110,8 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 	// XXX FIXME this code could be using recvmsg + ip_pktinfo on platforms that support it
 	
 	if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) &remote, &addrlen))<0) {
-	  L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+	  if(errno != EAGAIN)
+	    L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
 	  return 0;
 	}
 	break;
@@ -124,7 +125,8 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 
     len=0;
     if((len=recvfrom(sock,mesg,512,0,(sockaddr*) &remote, &addrlen))<0) {
-      L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+      if(errno != EAGAIN)
+	L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
       return 0;
     }
   }
