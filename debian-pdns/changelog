@@ -1,3 +1,15 @@
+pdns (2.9.22-rc3-1) unstable; urgency=medium
+
+  * fill in the blanks
+
+ -- bert hubert <bert.hubert@netherlabs.nl>  Sat, 6 Dec 2008 23:23:33 +0100
+
+pdns (2.9.22-rc2-1) unstable; urgency=medium
+
+  * fill in the blanks
+
+ -- bert hubert <bert.hubert@netherlabs.nl>  Sun, 29 Nov 2008 23:23:33 +0100
+
 pdns (2.9.22-rc1-1) unstable; urgency=medium
 
   * fill in the blanks
