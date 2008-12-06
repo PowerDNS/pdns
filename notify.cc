@@ -27,12 +27,16 @@ try
   if(sock < 0)
     throw runtime_error("Creating socket for incoming packets: "+stringerror());
 
-  ComboAddress pdns("127.0.0.1", 53);
+  ComboAddress local("127.0.0.1", (int)0);
+  if(::bind(sock, (struct sockaddr*) &local, local.getSocklen()) < 0) 
+    throw runtime_error("Failed to bind local socket to address "+local.toString()+": "+stringerror());
+
+  ComboAddress pdns(argv[1], 53);
   if(connect(sock, (struct sockaddr*) &pdns, pdns.getSocklen()) < 0) 
     throw runtime_error("Failed to connect PowerDNS socket to address "+pdns.toString()+": "+stringerror());
   
   vector<uint8_t> outpacket;
-  DNSPacketWriter pw(outpacket, argv[1], QType::SOA, 1, Opcode::Notify);
+  DNSPacketWriter pw(outpacket, argv[2], QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = random();
 
 
