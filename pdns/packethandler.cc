@@ -454,7 +454,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
   string account;
   DNSBackend *db;
   if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &account, &db)) {
-   L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<endl;
+    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<endl;
     return RCode::Refused;
   }
   db->createSlaveDomain(p->getRemote(),p->qdomain,account);
