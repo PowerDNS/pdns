@@ -111,9 +111,7 @@ void daemonize(void)
   }
 }
 
-
 static int cpid;
-
 static void takedown(int i)
 {
   if(cpid) {
@@ -133,8 +131,9 @@ static void writePid(void)
     L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
 }
 
-int d_fd1[2], d_fd2[2];
-FILE *d_fp;
+int g_fd1[2], g_fd2[2];
+FILE *g_fp;
+pthread_mutex_t g_guardian_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static string DLRestHandler(const vector<string>&parts, pid_t ppid)
 {
@@ -147,10 +146,17 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
   }
   line.append(1,'\n');
   
-  write(d_fd1[1],line.c_str(),line.size()+1);
+  Lock l(&g_guardian_lock);
+
+  try {
+    writen2(g_fd1[1],line.c_str(),line.size()+1);
+  }
+  catch(AhuException &ae) {
+    return "Error communicating with instance: "+ae.reason;
+  }
   char mesg[512];
   string response;
-  while(fgets(mesg,sizeof(mesg),d_fp)) {
+  while(fgets(mesg,sizeof(mesg),g_fp)) {
     if(*mesg=='\n')
       break;
     response+=mesg;
@@ -161,9 +167,8 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
 
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
 {
-  kill(cpid,SIGKILL); // why?
-  kill(cpid,SIGKILL); // why?
-  
+  kill(cpid, SIGKILL); // why?
+  kill(cpid, SIGKILL); // why?
   sleep(1);
   return "ok";
 }
@@ -187,14 +192,22 @@ static int guardian(int argc, char **argv)
   bool first=true;
   cpid=0;
 
+  pthread_mutex_lock(&g_guardian_lock);
+
   for(;;) {
     int pid;
     setStatus("Launching child");
-
-    if(pipe(d_fd1)<0 || pipe(d_fd2)<0) {
+    
+    if(pipe(g_fd1)<0 || pipe(g_fd2)<0) {
       L<<Logger::Critical<<"Unable to open pipe for coprocess: "<<strerror(errno)<<endl;
       exit(1);
     }
+
+    if(!(g_fp=fdopen(g_fd2[0],"r"))) {
+      L<<Logger::Critical<<"Unable to associate a file pointer with pipe: "<<stringerror()<<endl;
+      exit(1);
+    }
+    setbuf(g_fp,0); // no buffering please, confuses select
 
     if(!(pid=fork())) { // child
       signal(SIGTERM, SIG_DFL);
@@ -218,17 +231,17 @@ static int guardian(int argc, char **argv)
       newargv[n]=0;
       
       L<<Logger::Error<<"Guardian is launching an instance"<<endl;
-      close(d_fd1[1]);
-      close(d_fd2[0]);
+      close(g_fd1[1]);
+      fclose(g_fp); // this closes g_fd2[0] for us
 
-      if(d_fd1[0]!= infd) {
-	dup2(d_fd1[0], infd);
-	close(d_fd1[0]);
+      if(g_fd1[0]!= infd) {
+	dup2(g_fd1[0], infd);
+	close(g_fd1[0]);
       }
 
-      if(d_fd2[1]!= outfd) {
-	dup2(d_fd2[1], outfd);
-	close(d_fd2[1]);
+      if(g_fd2[1]!= outfd) {
+	dup2(g_fd2[1], outfd);
+	close(g_fd2[1]);
       }
       if(execvp(argv[0], newargv)<0) {
 	L<<Logger::Error<<"Unable to execvp '"<<argv[0]<<"': "<<strerror(errno)<<endl;
@@ -242,13 +255,8 @@ static int guardian(int argc, char **argv)
       // never reached
     }
     else if(pid>0) { // parent
-      close(d_fd1[0]);
-      close(d_fd2[1]);
-      if(!(d_fp=fdopen(d_fd2[0],"r"))) {
-	L<<Logger::Critical<<"Unable to associate a file pointer with pipe: "<<stringerror()<<endl;
-	exit(1);
-      }
-      setbuf(d_fp,0); // no buffering please, confuses select
+      close(g_fd1[0]);
+      close(g_fd2[1]);
 
       if(first) {
 	first=false;
@@ -260,7 +268,7 @@ static int guardian(int argc, char **argv)
 
 	writePid();
       }
-
+      pthread_mutex_unlock(&g_guardian_lock);  
       int status;
       cpid=pid;
       for(;;) {
@@ -276,13 +284,16 @@ static int guardian(int argc, char **argv)
 	else { // child is alive
 	  // execute some kind of ping here 
 	  if(DLQuitPlease())
-	    takedown(1);
+	    takedown(1); // needs a parameter..
 	  setStatus("Child running on pid "+itoa(pid));
 	  sleep(1);
 	}
       }
-      close(d_fd1[1]);
-      fclose(d_fp);
+
+      pthread_mutex_lock(&g_guardian_lock);
+      close(g_fd1[1]);
+      fclose(g_fp);
+      g_fp=0;
 
       if(WIFEXITED(status)) {
 	int ret=WEXITSTATUS(status);
