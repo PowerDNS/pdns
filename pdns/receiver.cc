@@ -570,7 +570,7 @@ int main(int argc, char **argv)
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
   
-  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2008 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2009 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
   L<<", gcc "__VERSION__;
 #endif // add other compilers here
