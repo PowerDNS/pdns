@@ -199,6 +199,8 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   PacketReader pr(d_content);
   bool validPacket=false;
   try {
+    d_qtype = d_qclass = 0; // sometimes replies come in with no question, don't present garbage then
+
     for(n=0;n < d_header.qdcount; ++n) {
       d_qname=pr.getLabel();
       d_qtype=pr.get16BitInt();
