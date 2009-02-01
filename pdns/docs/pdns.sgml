@@ -92,24 +92,24 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-2-9-22"><title>Authoritative Server version 2.9.22 (UNRELEASED)</title>
+      <sect2 id="changelog-auth-2-9-22"><title>Authoritative Server version 2.9.22</title>
 	<para>
 	  <warning>
 	    <para>
-	      UNRELEASED!
+	      Released on the 27th of January 2009.
 	    </para>
 	  </warning>
 	</para>
 	<para>
-	  This is a huge release, spanning almost 18 months of development. Besides fixing a lot of bugs, of note is the addition of the so called 'Notification Proxy',
+	  This is a huge release, spanning almost 20 months of development. Besides fixing a lot of bugs, of note is the addition of the so called 'Notification Proxy',
 	  which allows PowerDNS to function as a master server behind a firewall, plus the huge performance improvement of the internal caches.
 	</para>
 	<para>
 	  This work has been made possible by UPC Broadband and Directi, respectively. 
 	</para>
 	<para>
-	  Finally, the release candidates of this version have been tested &amp; improved by Jorn Ekkelenkamp, Ton van Rosmalen, Jeff Sipek, Tyler Hall, Christof Meerwald,
-	  Stefan Schmidt, 
+	  Finally, the release candidates of this version have been tested &amp; improved by Jorn Ekkelenkamp, Ton van Rosmalen, Jeff Sipek, Tyler Hall, Christof Meerwald and
+	  Stefan Schmidt.
 	</para>
 	<para>
 	  Fixed between rc1 and rc2, but not an issue in 2.9.21.
@@ -121,7 +121,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-		Negative query caching was reinstated, leading to 6 times less backend queries than rc1 on the Express.powerdns.com servers.
+		Negative query caching was reinstated, leading to 6 times fewer backend queries than rc1 on the Express.powerdns.com servers.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -190,12 +190,6 @@
 		Implemented experimental EDNS PING for enhanced forgery resilience. Code in c1232.
 	      </para>
 	    </listitem>
-	    <listitem>
-	      <para>
-		
-	      </para>
-	    </listitem>
-
 	  </itemizedlist>
 	</para>
 	<para>
@@ -244,6 +238,13 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		David Apgar of Yahoo discovered that our 'guardian' method of restarting PowerDNS in case of problems was not fool proof, and submitted a fix.
+		A variation of this fix can be found in c1323. Also reported by Directi.
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
 		Connection reset by peer events in the TCP nameserver no longer lead to the cycling of database connections. Code in c1241.
 	      </para>
 	    </listitem>
@@ -277,7 +278,7 @@
 	    <listitem>
 	      <para>
 		Matti Hiljanen discovered that the OpenDBX backend did not fill out the SOA ttl value properly. Matti also improved the SQL statements
-		for better compatability. Implemented in c1181.
+		for better compatibility. Implemented in c1181.
 	      </para>
 	    </listitem>
 
@@ -379,6 +380,12 @@
 	    </listitem>
 	    <listitem>
 	      <para>
+		No longer report temporary recvfrom errors, which used to spam the log on many systems. Addressed in c1320.
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
 		Direct queries for 'fancy records' would lead to errors, such queries now fail early. Spotted by Jorn Ekkelenkamp, implemented in C1051.
 	      </para>
 	    </listitem>
@@ -452,7 +459,7 @@
 	    <listitem>
 	      <para>
 		Zone2sql now reads source files in performance enhancing inode order. Additionally, zone2sql no longer dies on a missing zone file if 
-		<command>--on-error-resume-next</command> was specified. Finally, statistics of zone2sql confersion have been improved. Implemented in C1055.
+		<command>--on-error-resume-next</command> was specified. Finally, statistics of zone2sql conversion have been improved. Implemented in C1055.
 	      </para>
 	    </listitem>
 
@@ -3988,7 +3995,7 @@ pdns[17495]: AXFR done for 'forfun.net', zone committed
 	      <para>
 		<command>pdns_control</command> now uses the rarely seen SOCK_STREAM Unix Domain socket variety so it can transport
 		large amounts of text, which is needed for the <command>bind-domain-status</command> command, for which see
-		<xref linkend="bind-control-commands">. This breaks compatability with older pdns_control and pdns_server binaries!
+		<xref linkend="bind-control-commands">. This breaks compatibility with older pdns_control and pdns_server binaries!
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -13063,7 +13070,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	<command>skip-cname</command> option.
       </para>
       <para>
-	PDNS breaks strict RFC compatability by not always checking for the presence of a SOA record first. This is unlikely to lead to 
+	PDNS breaks strict RFC compatibility by not always checking for the presence of a SOA record first. This is unlikely to lead to 
 	problems though.
       </para>
   </sect1>
