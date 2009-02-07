@@ -237,6 +237,8 @@ public:
     d_doEDNS0=state;
   }
 
+  int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult* res);
+
   static unsigned int s_queries;
   static unsigned int s_outgoingtimeouts;
   static unsigned int s_throttledqueries;
@@ -321,8 +323,19 @@ public:
     ComboAddress d_best;
   };
 
-  typedef map<string, DecayingEwmaCollection , CIStringCompare> nsspeeds_t;
+  typedef map<string, DecayingEwmaCollection, CIStringCompare> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
+
+  struct EDNSStatus
+  {
+    EDNSStatus() : mode(UNKNOWN), modeSetAt(0), EDNSPingHitCount(0) {}
+    enum EDNSMode { CONFIRMEDPINGER=-1, UNKNOWN=0, EDNSNOPING=1, EDNSPINGOK=2, EDNSIGNORANT=3, NOEDNS=4 } mode;
+    time_t modeSetAt;
+    int EDNSPingHitCount;
+  };
+
+  typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
+  static ednsstatus_t s_ednsstatus;
 
   struct AuthDomain
   {
@@ -487,6 +500,9 @@ struct RecursorStats
   uint64_t nsSetInvalidations;
   uint64_t shunted;
   uint64_t noShuntCNAME, noShuntExpired, noShuntSize, noShuntNoMatch, noShuntWrongType, noShuntWrongQuestion;
+  uint64_t ednsPingMatches;
+  uint64_t ednsPingMismatches;
+  uint64_t noPingOutQueries, noEdnsOutQueries;
   time_t startupTime;
 
   typedef vector<ComboAddress> remotes_t;

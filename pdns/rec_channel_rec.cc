@@ -246,6 +246,12 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("unreachables", &SyncRes::s_unreachables);
   addGetStat("chain-resends", &g_stats.chainResends);
 
+  addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
+  addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
+
+  addGetStat("noping-outqueries", &g_stats.noPingOutQueries);
+  addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
+
   addGetStat("uptime", calculateUptime);
 
 #ifndef WIN32
