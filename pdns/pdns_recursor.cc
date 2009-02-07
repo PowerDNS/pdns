@@ -1270,7 +1270,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   socklen_t addrlen=sizeof(fromaddr);
 
   len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
-  //  HTimerSentinel hts=s_timer.getSentinel();
+
   if(len < (int)sizeof(dnsheader)) {
     if(len < 0)
       ; //      cerr<<"Error on fd "<<fd<<": "<<stringerror()<<"\n";
@@ -1295,15 +1295,18 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   dnsheader dh;
   memcpy(&dh, data, sizeof(dh));
   
-  if(!dh.qdcount) // UPC, Nominum?
-    return;
-  
   if(dh.qr) {
     PacketID pident;
     pident.remote=fromaddr;
     pident.id=dh.id;
     pident.fd=fd;
-    pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
+    if(!dh.qdcount) { // UPC, Nominum, very old BIND on FormErr, NSD
+      pident.domain.clear();
+      pident.type = 0;
+    }
+    else {
+      pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
+    }
     string packet;
     packet.assign(data, len);
 
@@ -1312,11 +1315,11 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       doResends(iter, pident, packet);
     }
 
-    //    s_timer.stop();
+  retryWithName:
+
     if(!MT->sendEvent(pident, &packet)) {
-      //      s_timer.start();
 //      if(g_logCommonErrors)
-//        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toString()<<": "<<pident.type<<endl;
+//      L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toString()<<": "<<pident.type<<endl;
       g_stats.unexpectedCount++;
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
@@ -1324,10 +1327,19 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 	   !Utility::strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
 	  mthread->key.nearMisses++;
 	}
+
+	// be a bit paranoid here since we're weakening our matching
+	if(pident.domain.empty() && !mthread->key.domain.empty() && !pident.type && mthread->key.type && 
+	   pident.id  == mthread->key.id && mthread->key.remote == pident.remote) {
+	    cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
+	  pident.domain = mthread->key.domain;
+	  pident.type = mthread->key.type;
+	  g_stats.unexpectedCount--;
+	  goto retryWithName;
+	}
       }
     }
     else if(fd >= 0) {
-      //      s_timer.start();
       g_udpclientsocks.returnSocket(fd);
     }
   }
