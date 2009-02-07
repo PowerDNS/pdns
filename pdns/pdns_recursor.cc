@@ -1108,6 +1108,9 @@ void doStats(void)
     L<<Logger::Warning<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
     L<<Logger::Warning<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<MT->numProcesses()<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
+
+    L<<Logger::Warning<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
+      g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
   }
   else if(statsWanted) 
     L<<Logger::Warning<<"stats: no stats yet!"<<endl;
@@ -1331,7 +1334,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 	// be a bit paranoid here since we're weakening our matching
 	if(pident.domain.empty() && !mthread->key.domain.empty() && !pident.type && mthread->key.type && 
 	   pident.id  == mthread->key.id && mthread->key.remote == pident.remote) {
-	    cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
+	  //	    cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
 	  pident.domain = mthread->key.domain;
 	  pident.type = mthread->key.type;
 	  g_stats.unexpectedCount--;

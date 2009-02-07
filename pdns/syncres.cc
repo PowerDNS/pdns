@@ -40,6 +40,8 @@ extern MemRecursorCache RC;
 
 SyncRes::negcache_t SyncRes::s_negcache;    
 SyncRes::nsspeeds_t SyncRes::s_nsSpeeds;    
+SyncRes::ednsstatus_t SyncRes::s_ednsstatus;
+
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
@@ -187,6 +189,126 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   return true;
 }
 
+int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult* res) 
+{
+  /* what is your QUEST?
+     the goal is to get as many remotes as possible on the highest level of hipness: EDNS PING responders.
+     The levels are:
+
+     -1) CONFIRMEDPINGER: Confirmed pinger!
+     0) UNKNOWN Unknown state 
+     1) EDNSNOPING: Honors EDNS0 if no PING is included
+     2) EDNSPINGOK: Ignores EDNS0+PING, but does generate EDNS0 response
+     3) EDNSIGNORANT: Ignores EDNS0+PING, gives replies without EDNS0 nor PING
+     4) NOEDNS: Generates FORMERR on EDNS queries
+
+     Everybody starts out assumed to be '0'.
+     If '-1', send out EDNS0+Ping
+        If we get a FormErr, ignore
+	If we get a incorrect PING, ignore
+	If we get no PING, ignore
+     If '0', send out EDNS0+Ping
+        If we get a pure EDNS response, you are downgraded to '2'. 
+        If you FORMERR us, go to '1', 
+        If no EDNS in response, go to '3' - 3 and 0 are really identical, except confirmed
+	If with correct PING, upgrade to -1
+     If '1', send out EDNS0, no PING
+        If FORMERR, downgrade to 4
+     If '2', keep on including EDNS0+PING, just don't expect PING to be correct
+        If PING correct, move to '0', and cheer in the log file!
+     If '3', keep on including EDNS0+PING, see what happens
+        Same behaviour as 0 
+     If '4', send bare queries
+  */
+
+  SyncRes::EDNSStatus& ednsstatus=SyncRes::s_ednsstatus[ip];
+
+  if(ednsstatus.modeSetAt && ednsstatus.modeSetAt + 3600 < d_now.tv_sec) {
+    s_ednsstatus[ip]=EDNSStatus();
+    //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl;
+  }
+
+  SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus.mode;
+  SyncRes::EDNSStatus::EDNSMode oldmode = mode;
+  int EDNSLevel=0;
+
+  int ret;
+  for(int tries = 0; tries < 2; ++tries) {
+    //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
+
+    if(mode==EDNSStatus::CONFIRMEDPINGER || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode==EDNSStatus::EDNSIGNORANT)
+      EDNSLevel = 2;
+    else if(mode==EDNSStatus::EDNSNOPING) {
+      EDNSLevel = 1;
+      g_stats.noPingOutQueries++;
+    }
+    else if(mode==EDNSStatus::NOEDNS) {
+      g_stats.noEdnsOutQueries++;
+      EDNSLevel = 0;
+    }
+
+    ret=asyncresolve(ip, domain, type, doTCP, EDNSLevel, now, res);
+    if(ret == 0 || ret < 0) {
+      //      cerr<<"Transport error or timeout (ret="<<ret<<"), no change in mode"<<endl;
+      return ret;
+    }
+
+    if(mode== EDNSStatus::CONFIRMEDPINGER) {  // confirmed pinger!
+      if(!res->d_pingCorrect) {
+	L<<Logger::Error<<"Confirmed EDNS-PING enabled host "<<ip.toString()<<" did not send back correct ping"<<endl;
+	// perhaps lower some kind of count here, don't want to punnish a downgrader too long!
+	ret = 0;
+	res->d_rcode = RCode::ServFail;
+	g_stats.ednsPingMismatches++;
+      }
+      else {
+	g_stats.ednsPingMatches++;
+	ednsstatus.modeSetAt=d_now.tv_sec; // only the very best mode self-perpetuates
+      }
+    }
+    else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode == EDNSStatus::EDNSIGNORANT ) {
+      if(res->d_rcode == RCode::FormErr)  {
+	//	cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl;
+	mode = EDNSStatus::EDNSNOPING;
+	continue;
+      }
+      else if(!res->d_pingCorrect && res->d_haveEDNS) 
+	mode = EDNSStatus::EDNSPINGOK;
+      else if(res->d_pingCorrect) {
+	L<<Logger::Warning<<"We welcome "<<ip.toString()<<" to the land of EDNS-PING!"<<endl;
+	mode = EDNSStatus::CONFIRMEDPINGER;
+	g_stats.ednsPingMatches++;
+      }
+      else if(!res->d_haveEDNS) {
+	if(mode != EDNSStatus::EDNSIGNORANT) {
+	  mode = EDNSStatus::EDNSIGNORANT;
+	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer, moving to mode 3"<<endl;
+	}
+      }
+    }
+    else if(mode==EDNSStatus::EDNSNOPING) {
+      if(res->d_rcode == RCode::FormErr) {
+	//	cerr<<"Downgrading to mode 4, FORMERR!"<<endl;
+	mode = EDNSStatus::NOEDNS;
+	continue;
+      }
+    }
+    else if(mode==EDNSStatus::EDNSPINGOK) {
+      if(res->d_pingCorrect) {
+	// an upgrade!
+	L<<Logger::Warning<<"We welcome "<<ip.toString()<<" to the land of EDNS-PING!"<<endl;
+	mode = EDNSStatus::CONFIRMEDPINGER;
+      }
+    }
+    if(oldmode != mode)
+      ednsstatus.modeSetAt=d_now.tv_sec;
+    //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", EDNS-PING correct: "<<res->d_pingCorrect<<", new mode: "<<mode<<endl;  
+    
+    return ret;
+  }
+  return ret;
+}
+
 int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
@@ -213,7 +335,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 	  const ComboAddress remoteIP = servers.front();
 	  LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl;
 
-	  res=asyncresolve(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);    
+	  res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, &d_now, &lwr);    
 	  // filter out the good stuff from lwr.result()
 
 	  for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
@@ -686,9 +808,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      s_tcpoutqueries++; d_tcpoutqueries++;
 	    }
 	    
-	    resolveret=asyncresolve(*remoteIP, qname, 
+	    resolveret=asyncresolveWrapper(*remoteIP, qname, 
 				    (qtype.getCode() == QType::ADDR ? QType::ANY : qtype.getCode()), 
-				    doTCP, d_doEDNS0, &d_now, &lwr);    // <- we go out on the wire!
+				    doTCP, &d_now, &lwr);    // <- we go out on the wire!
 	    if(resolveret != 1) {
 	      if(resolveret==0) {
 		LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;

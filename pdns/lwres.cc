@@ -20,6 +20,7 @@
 #include "utility.hh"
 #include "lwres.hh"
 #include <iostream>
+#include "dnsrecords.hh"
 #include <errno.h>
 #include "misc.hh"
 #include <algorithm>
@@ -52,9 +53,11 @@ string dns0x20(const std::string& in)
   return ret;
 }
 
-//! returns -2 for OS limits error, -1 for permanent error that has to do with remote, 0 for timeout, 1 for success
-/** Never throws! */
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool doEDNS0, struct timeval* now, LWResult *lwr)
+//! returns -2 for OS limits error, -1 for permanent error that has to do with remote **transport**, 0 for timeout, 1 for success
+/** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
+    Never throws! 
+ */
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, int EDNS0Level, struct timeval* now, LWResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -65,12 +68,24 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
   pw.getHeader()->rd=0;
   pw.getHeader()->id=dns_random(0xffff);
+  
+  string ping;
 
-  if(doEDNS0 && !doTCP) {
-    pw.addOpt(1200, 0, 0); // 1200 bytes answer size
+  uint32_t nonce=dns_random(0xffffffff);
+  ping.assign((char*) &nonce, 4);
+
+  if(EDNS0Level && !doTCP) {
+    DNSPacketWriter::optvect_t opts;
+    if(EDNS0Level > 1) {
+      opts.push_back(make_pair(5, ping));
+    }
+
+    pw.addOpt(1200, 0, 0, opts); // 1200 bytes answer size
     pw.commit();
   }
-  lwr->d_rcode=0;
+  lwr->d_rcode = 0;
+  lwr->d_pingCorrect = false;
+  lwr->d_haveEDNS = false;
 
   int ret;
 
@@ -142,6 +157,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     }
   }
 
+  
   lwr->d_usec=dt.udiff();
   *now=dt.getTimeval();
 
@@ -155,6 +171,10 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     lwr->d_tcbit=mdp.d_header.tc;
     lwr->d_rcode=mdp.d_header.rcode;
     
+    if(mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
+      return 1; // this is "success", the error is set in lwr->d_rcode
+    }
+
     if(Utility::strcasecmp(domain.c_str(), mdp.d_qname.c_str())) { 
       if(domain.find((char)0)==string::npos) {// embedded nulls are too noisy
 	L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
@@ -178,12 +198,29 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
       lwr->d_result.push_back(rr);
     }
-    
+
+    EDNSOpts edo;
+    if(EDNS0Level > 1 && getEDNSOpts(mdp, &edo)) {
+      lwr->d_haveEDNS = true;
+      for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
+	  iter != edo.d_options.end(); 
+	  ++iter) {
+	if(iter->first == 5 || iter->first == 4) {// 'EDNS PING'
+	  if(iter->second == ping)  {
+	    lwr->d_pingCorrect = true;
+	  }
+	}
+      }
+    }
+        
     return 1;
   }
   catch(std::exception &mde) {
     if(::arg().mustDo("log-common-errors"))
       L<<Logger::Notice<<"Unable to parse packet from remote server "<<ip.toString()<<": "<<mde.what()<<endl;
+    lwr->d_rcode = RCode::FormErr;
+    g_stats.serverParseError++; 
+    return 1; // success - oddly enough
   }
   catch(...) {
     L<<Logger::Notice<<"Unknown error parsing packet from remote server"<<endl;
@@ -192,7 +229,8 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   g_stats.serverParseError++; 
   
  out:
-  lwr->d_rcode=RCode::ServFail;
+  if(!lwr->d_rcode)
+    lwr->d_rcode=RCode::ServFail;
 
   return -1;
 }

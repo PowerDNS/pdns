@@ -61,8 +61,10 @@ public:
   int d_rcode;
   bool d_aabit, d_tcbit;
   uint32_t d_usec;
+  bool d_pingCorrect;
+  bool d_haveEDNS;
 };
 
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool doEDNS0, struct timeval* now, LWResult* res);
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, int EDNS0Level, struct timeval* now, LWResult* res);
 
 #endif // PDNS_LWRES_HH
