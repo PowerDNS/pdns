@@ -237,7 +237,11 @@ public:
     d_doEDNS0=state;
   }
 
+
+
   int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult* res);
+  
+  static void doEDNSDumpAndClose(int fd);
 
   static unsigned int s_queries;
   static unsigned int s_outgoingtimeouts;

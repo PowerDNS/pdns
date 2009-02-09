@@ -110,6 +110,25 @@ string doDumpCache(T begin, T end)
 }
 
 template<typename T>
+string doDumpEDNSStatus(T begin, T end)
+{
+  T i=begin;
+  string fname;
+
+  if(i!=end) 
+    fname=*i;
+
+  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+  if(fd < 0) 
+    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+
+  SyncRes::doEDNSDumpAndClose(fd);
+
+  return "done\n";
+}
+
+
+template<typename T>
 string doWipeCache(T begin, T end)
 {
   int count=0, countNeg=0;
@@ -328,6 +347,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="dump-cache") 
     return doDumpCache(begin, end);
+
+  if(cmd=="dump-ednsstatus" || cmd=="dump-edns") 
+    return doDumpEDNSStatus(begin, end);
+
 
   if(cmd=="slash-cache") 
     return doSlashCache(begin, end);

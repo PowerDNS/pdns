@@ -189,6 +189,16 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   return true;
 }
 
+void SyncRes::doEDNSDumpAndClose(int fd)
+{
+  FILE* fp=fdopen(fd, "w");
+  fprintf(fp,"IP Address\tMode\tMode last updated at\n");
+  for(ednsstatus_t::const_iterator iter = s_ednsstatus.begin(); iter != s_ednsstatus.end(); ++iter) {
+    fprintf(fp, "%s\t%d\t%s", iter->first.toString().c_str(), (int)iter->second.mode, ctime(&iter->second.modeSetAt));
+  }
+  fclose(fp);
+}
+
 int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult* res) 
 {
   /* what is your QUEST?
@@ -233,7 +243,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
   int EDNSLevel=0;
 
   int ret;
-  for(int tries = 0; tries < 2; ++tries) {
+  for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
 
     if(mode==EDNSStatus::CONFIRMEDPINGER || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode==EDNSStatus::EDNSIGNORANT)
