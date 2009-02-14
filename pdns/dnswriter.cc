@@ -3,6 +3,7 @@
 #include "dnsparser.hh"
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
   : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass)
@@ -148,9 +149,14 @@ void DNSPacketWriter::xfrText(const string& text, bool)
   }
   else 
     for(; beg!=tok.end(); ++beg){
-      d_record.push_back(beg->length());
-      const uint8_t* ptr=(uint8_t*)(beg->c_str());
-      d_record.insert(d_record.end(), ptr, ptr+beg->length());
+      if(beg->empty()) 
+	d_record.push_back(0);
+      else 
+	for (unsigned int i = 0; i < beg->length(); i += 0xff){
+	  d_record.push_back(min(0xffU, beg->length()-i));
+	  const uint8_t* ptr=(uint8_t*)(beg->c_str()) + i;
+	  d_record.insert(d_record.end(), ptr, ptr+min(0xffU, beg->length()-i));
+	}
     }
 }
 
