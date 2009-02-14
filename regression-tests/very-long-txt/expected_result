@@ -1,0 +1,3 @@
+0	very-long-txt.test.com.	IN	TXT	3600	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you" " won't believe how long!"
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='very-long-txt.test.com.', qtype=TXT
