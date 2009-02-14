@@ -499,6 +499,10 @@ int main(int argc, char **argv)
       exit(99);
     }
 
+    if(::arg().mustDo("fancy-records")) {
+      reportFancyTypes();
+    }
+
     if(!::arg().asNum("local-port")) {
       L<<Logger::Error<<"Unable to launch, binding to no port or port 0 makes no sense"<<endl;
       exit(99); // this isn't going to fix itself either
