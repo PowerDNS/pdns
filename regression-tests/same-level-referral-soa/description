@@ -1,0 +1,2 @@
+A referral with the same name as the NS record itself, but now for a SOA
+record. This broke in 2.9.22.
