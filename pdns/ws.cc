@@ -104,12 +104,12 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
 
   int printed=0;
   for(vector<pair<string,int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
-    ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<< (boost::format("%.01f") % (i->second*100.0/tot))<<"%</td>"<<endl;
+    ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/tot)<<"</td>"<<endl;
     printed+=i->second;
   }
   ret<<"<tr><td colspan=3></td></tr>"<<endl;
   if(printed!=tot)
-    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< (boost::format("%.01f") % ((tot-printed)*100.0/tot))<<"%</b></td>"<<endl;
+    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< StatWebServer::makePercentage((tot-printed)*100.0/tot)<<"</b></td>"<<endl;
 
   ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</td><td align=right><b>100%</b></td>";
   ret<<"</table><p>"<<endl;
@@ -134,6 +134,11 @@ void StatWebServer::printargs(ostringstream &ret)
   for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
     ret<<"<tr><td>"<<*i<<"</td><td>"<<arg()[*i]<<"</td><td>"<<arg().getHelp(*i)<<"</td>"<<endl;
   }
+}
+
+string StatWebServer::makePercentage(const double& val)
+{
+  return (boost::format("%.01f%%") % val).str();
 }
 
 string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr, bool *custom)
@@ -178,18 +183,18 @@ string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr,
     "<br>"<<endl;
   
   if(sws->d_cachemisses.get10()+sws->d_cachehits.get10()>0)
-    ret<<"Cache hitrate, 1, 5, 10 minute averages: "<<setprecision(2)<<
-      (sws->d_cachehits.get1()*100.0)/((sws->d_cachehits.get1())+(sws->d_cachemisses.get1()))<<"%, "<<
-      (sws->d_cachehits.get5()*100.0)/((sws->d_cachehits.get5())+(sws->d_cachemisses.get5()))<<"%, "<<
-      (sws->d_cachehits.get10()*100.0)/((sws->d_cachehits.get10())+(sws->d_cachemisses.get10()))<<
-      "%<br>"<<endl;
+    ret<<"Cache hitrate, 1, 5, 10 minute averages: "<<
+      makePercentage((sws->d_cachehits.get1()*100.0)/((sws->d_cachehits.get1())+(sws->d_cachemisses.get1())))<<", "<<
+      makePercentage((sws->d_cachehits.get5()*100.0)/((sws->d_cachehits.get5())+(sws->d_cachemisses.get5())))<<", "<<
+      makePercentage((sws->d_cachehits.get10()*100.0)/((sws->d_cachehits.get10())+(sws->d_cachemisses.get10())))<<
+      "<br>"<<endl;
 
   if(sws->d_qcachemisses.get10()+sws->d_qcachehits.get10()>0)
     ret<<"Backend query cache hitrate, 1, 5, 10 minute averages: "<<setprecision(2)<<
-      (sws->d_qcachehits.get1()*100.0)/((sws->d_qcachehits.get1())+(sws->d_qcachemisses.get1()))<<"%, "<<
-      (sws->d_qcachehits.get5()*100.0)/((sws->d_qcachehits.get5())+(sws->d_qcachemisses.get5()))<<"%, "<<
-      (sws->d_qcachehits.get10()*100.0)/((sws->d_qcachehits.get10())+(sws->d_qcachemisses.get10()))<<
-      "%<br>"<<endl;
+      makePercentage((sws->d_qcachehits.get1()*100.0)/((sws->d_qcachehits.get1())+(sws->d_qcachemisses.get1())))<<", "<<
+      makePercentage((sws->d_qcachehits.get5()*100.0)/((sws->d_qcachehits.get5())+(sws->d_qcachemisses.get5())))<<", "<<
+      makePercentage((sws->d_qcachehits.get10()*100.0)/((sws->d_qcachehits.get10())+(sws->d_qcachemisses.get10())))<<
+      "<br>"<<endl;
 
   ret<<"Backend query load, 1, 5, 10 minute averages: "<<setprecision(3)<<
     sws->d_qcachemisses.get1()<<", "<<
