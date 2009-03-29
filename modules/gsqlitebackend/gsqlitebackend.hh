@@ -18,7 +18,7 @@ protected:
 public:
   //! Constructs the backend, throws an exception if it failed..
   gSQLiteBackend( const std::string & mode, const std::string & suffix );
-
+  virtual string sqlEscape(const string &name);
 };
 
 #endif // GSQLITEBACKEND_HH

@@ -19,7 +19,7 @@
 #include "pdns/arguments.hh"
 #include "ssqlite.hh"
 #include "gsqlitebackend.hh"
-
+#include <boost/algorithm/string.hpp>
 
 // Connects to the database.
 gSQLiteBackend::gSQLiteBackend( const std::string & mode, const std::string & suffix ) : GSQLBackend( mode, suffix )
@@ -99,6 +99,11 @@ public:
     L<<Logger::Warning << "This is module gsqlite reporting" << std::endl;
   }
 };
+
+string gSQLiteBackend::sqlEscape(const string &name)
+{
+  return boost::replace_all_copy(name, "'", "''");
+}
 
 
 //! Reports the backendloader to the UeberBackend.
