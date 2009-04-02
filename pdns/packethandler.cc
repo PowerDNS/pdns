@@ -256,6 +256,8 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
     B.lookup(QType(QType::ANY), searchstr,p); // start our search at the backend
 
     while(B.get(rr)) { // read results
+      if(retargeted)
+	continue;
       found=true;
       if((p->qtype.getCode()==QType::ANY || rr.qtype==p->qtype) || rr.qtype.getCode()==QType::CNAME) {
 	rr.qname=target;
@@ -812,7 +814,10 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	}
       }
       else if(!p->d.rd) {
-	addRootReferral(r);
+	if(::arg().mustDo("send-root-referral")) { // addresses ticket 223
+	  DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
+	  addRootReferral(r);
+	}
 	goto sendit;
       }
 				       
@@ -837,7 +842,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	  
 	if(!Utility::strcasecmp(subdomain.c_str(),sd.qname.c_str())) // about to break out of our zone
 	  break; 
-
+	
 	B.lookup("NS", subdomain,p,zoneId);  // start our search at the backend
 	
 	while(B.get(rr)) {
