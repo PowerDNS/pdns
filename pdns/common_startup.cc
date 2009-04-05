@@ -251,9 +251,9 @@ void *qthread(void *number)
     if((P->d.opcode != Opcode::Notify) && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
       cached.setRemote(&P->remote);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
-      cached.spoofID(P->d.id);                                        // inlined 
       cached.setMaxReplyLen(P->getMaxReplyLen());
       cached.d.rd=P->d.rd; // copy in recursion desired bit 
+      cached.d.id=P->d.id;
       cached.commitD(); // commit d to the packet                        inlined
 
       N->send(&cached);   // answer it then                              inlined

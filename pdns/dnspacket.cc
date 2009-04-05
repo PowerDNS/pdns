@@ -514,13 +514,6 @@ void DNSPacket::setRemote(const ComboAddress *s)
   remote=*s;
 }
 
-void DNSPacket::spoofID(uint16_t id)
-{
-  stringbuffer[1]=(id>>8)&0xff; 
-  stringbuffer[0]=id&0xff;
-  d.id=id;
-}
-
 void DNSPacket::setSocket(Utility::sock_t sock)
 {
   d_socket=sock;

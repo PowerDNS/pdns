@@ -117,8 +117,8 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 
     d_conntrack[id]=ce;
   }
-  p->spoofID(id^d_xor);
-
+  p->d.id=id^d_xor;
+  p->commitD();
   char *buffer=const_cast<char *>(p->getRaw());
   int len=p->len;
   if(send(d_sock,buffer,len,0)<0) { // zoom

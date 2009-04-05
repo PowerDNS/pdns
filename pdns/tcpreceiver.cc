@@ -282,7 +282,10 @@ void *TCPNameserver::doConnection(void *data)
 
       if(!packet->d.rd && (PC.get(packet.get(), cached.get()))) { // short circuit - does the PacketCache recognize this question?
 	cached->setRemote(&packet->remote);
-	cached->spoofID(packet->d.id);
+	cached->d.id=packet->d.id;
+	cached->d.rd=packet->d.rd; // copy in recursion desired bit 
+	cached->commitD(); // commit d to the packet                        inlined
+
 	sendPacket(cached, fd);
 	S.inc("tcp-answers");
 	continue;
