@@ -57,7 +57,7 @@ string dns0x20(const std::string& in)
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, int EDNS0Level, struct timeval* now, LWResult *lwr)
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -66,7 +66,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   //  string mapped0x20=dns0x20(domain);
   DNSPacketWriter pw(vpacket, domain, type);
 
-  pw.getHeader()->rd=0;
+  pw.getHeader()->rd=sendRDQuery;
   pw.getHeader()->id=dns_random(0xffff);
   
   string ping;

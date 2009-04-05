@@ -65,6 +65,6 @@ public:
   bool d_haveEDNS;
 };
 
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, int EDNS0Level, struct timeval* now, LWResult* res);
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult* res);
 
 #endif // PDNS_LWRES_HH

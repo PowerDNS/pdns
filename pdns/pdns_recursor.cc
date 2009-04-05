@@ -284,6 +284,8 @@ public:
 	  break;
       }
       else {
+	if(!sin6)
+	  break;
 	sin6->sin6.sin6_port = htons(port); 
 	
 	if (::bind(ret, (struct sockaddr *)&*sin6, sin6->getSocklen()) >= 0) 
@@ -1448,16 +1450,47 @@ static void makeIPToNamesZone(const vector<string>& parts)
 
 void parseAuthAndForwards();
 
+/* mission in life: parse three cases
+   1) 1.2.3.4
+   2) 1.2.3.4:5300
+   3) 2001::1
+   4) [2002::1]:53
+*/
+
+ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
+{
+  if(input.find(':') == string::npos || input.empty()) // common case
+    return ComboAddress(input, port);
+
+  pair<string,string> both;
+
+  try { // case 2
+    both=splitField(input,':');
+    uint16_t newport=boost::lexical_cast<uint16_t>(both.second);
+    return ComboAddress(both.first, newport);
+  } 
+  catch(...){}
+
+  if(input[0]=='[') { // case 4
+    both=splitField(input.substr(1),']');
+    return ComboAddress(both.first, both.second.empty() ? port : boost::lexical_cast<uint16_t>(both.second.substr(1)));
+  }
+
+  return ComboAddress(input, port); // case 3
+}
+
+
 void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, bool verbose=true)
 {
   vector<string> servers;
   stringtok(servers, input, sepa);
   ad.d_servers.clear();
+
   for(vector<string>::const_iterator iter = servers.begin(); iter != servers.end(); ++iter) {
     if(verbose && iter != servers.begin()) 
       L<<", ";
-    pair<string,string> ipport=splitField(*iter, ':');
-    ComboAddress addr(ipport.first, ipport.second.empty() ? 53 : lexical_cast<uint16_t>(ipport.second));
+
+    ComboAddress addr=parseIPAndPort(*iter, 53);
     if(verbose)
       L<<addr.toStringWithPort();
     ad.d_servers.push_back(addr);

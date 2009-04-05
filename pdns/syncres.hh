@@ -239,7 +239,7 @@ public:
 
 
 
-  int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
   
   static void doEDNSDumpAndClose(int fd);
 
@@ -537,4 +537,5 @@ replacing_insert(Index& i,const typename Index::value_type& x)
 
 
 std::string reloadAuthAndForwards();
+ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 #endif

@@ -199,7 +199,7 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   fclose(fp);
 }
 
-int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, struct timeval* now, LWResult* res) 
+int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res) 
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of hipness: EDNS PING responders.
@@ -257,7 +257,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
       EDNSLevel = 0;
     }
 
-    ret=asyncresolve(ip, domain, type, doTCP, EDNSLevel, now, res);
+    ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, res);
     if(ret == 0 || ret < 0) {
       //      cerr<<"Transport error or timeout (ret="<<ret<<"), no change in mode"<<endl;
       return ret;
@@ -278,7 +278,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode == EDNSStatus::EDNSIGNORANT ) {
       if(res->d_rcode == RCode::FormErr)  {
-	//	cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl;
+	// cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl;
 	mode = EDNSStatus::EDNSNOPING;
 	continue;
       }
@@ -345,7 +345,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 	  const ComboAddress remoteIP = servers.front();
 	  LOG<<prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl;
 
-	  res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, &d_now, &lwr);    
+	  res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);    
 	  // filter out the good stuff from lwr.result()
 
 	  for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
@@ -756,7 +756,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       bool doTCP=false;
       int resolveret;
       bool pierceDontQuery=false;
-
+      bool sendRDQuery=false;
       LWResult lwr;
       if(tns->empty()) {
 	LOG<<prefix<<qname<<": Domain is out-of-band"<<endl;
@@ -770,11 +770,11 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	if(!isCanonical(*tns)) {
 	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver(s)"<<endl;
 
-	  pair<string,string> ipport=splitField(*tns, ':');
-	  ComboAddress addr(ipport.first, ipport.second.empty() ? 53 : lexical_cast<uint16_t>(ipport.second));
+	  ComboAddress addr=parseIPAndPort(*tns, 53);
 	  
 	  remoteIPs.push_back(addr);
 	  pierceDontQuery=true;
+	  //	  sendRDQuery=true;
 	}
 	else {
 	  remoteIPs=getAs(*tns, depth+1, beenthere);
@@ -820,7 +820,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    
 	    resolveret=asyncresolveWrapper(*remoteIP, qname, 
 				    (qtype.getCode() == QType::ADDR ? QType::ANY : qtype.getCode()), 
-				    doTCP, &d_now, &lwr);    // <- we go out on the wire!
+					   doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
 	    if(resolveret != 1) {
 	      if(resolveret==0) {
 		LOG<<prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl;
