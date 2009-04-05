@@ -20,7 +20,7 @@
 #define MISC_HH
 #include <stdint.h>
 #include <cstring>
-
+#include <cstdio>
 #if 0
 #include <iostream>
 using std::cout;
