@@ -565,11 +565,13 @@ void Bind2Backend::loadConfig(string* status)
 
 	// overwrite what we knew about the domain
 	bbd->d_name=i->name;
+
+	bool filenameChanged = (bbd->d_filename!=i->filename);
 	bbd->d_filename=i->filename;
 	bbd->d_masters=i->masters;
 	
-	if(!bbd->d_loaded || !bbd->current()) {
-	  //	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
+	if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
+	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 	  
 	  try {
 	    // we need to allocate a new vector so we don't kill the original, which is still in use!
@@ -589,7 +591,7 @@ void Bind2Backend::loadConfig(string* status)
 	    staging->id_zone_map[bbd->d_id].setCtime();
 	    staging->id_zone_map[bbd->d_id].d_loaded=true; 
 	    staging->id_zone_map[bbd->d_id].d_status="parsed into memory at "+nowTime();
-
+	    
 	    contents.clear();
 	    //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
 	  }
