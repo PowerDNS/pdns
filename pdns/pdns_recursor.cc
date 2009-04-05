@@ -1485,7 +1485,7 @@ string reloadAuthAndForwards()
       L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
     
     ::arg().preParseFile(configname.c_str(), "auth-zones");
-    ::arg().preParseFile(configname.c_str(), "export-etc-hosts");
+    ::arg().preParseFile(configname.c_str(), "export-etc-hosts", "off");
     ::arg().preParseFile(configname.c_str(), "serve-rfc1918");
     
     parseAuthAndForwards();
