@@ -59,6 +59,7 @@ bool SyncRes::s_log;
 #define LOG if(s_log) L<<Logger::Warning
 
 SyncRes::throttle_t SyncRes::s_throttle;
+bool SyncRes::s_noEDNSPing;
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
@@ -234,9 +235,12 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
   SyncRes::EDNSStatus& ednsstatus=SyncRes::s_ednsstatus[ip];
 
   if(ednsstatus.modeSetAt && ednsstatus.modeSetAt + 3600 < d_now.tv_sec) {
-    s_ednsstatus[ip]=EDNSStatus();
+    ednsstatus=SyncRes::EDNSStatus();
     //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl;
   }
+
+  if(s_noEDNSPing && ednsstatus.mode == EDNSStatus::UNKNOWN)
+    ednsstatus.mode = EDNSStatus::EDNSNOPING;
 
   SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus.mode;
   SyncRes::EDNSStatus::EDNSMode oldmode = mode;

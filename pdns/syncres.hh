@@ -340,6 +340,7 @@ public:
 
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
   static ednsstatus_t s_ednsstatus;
+  static bool s_noEDNSPing;
 
   struct AuthDomain
   {
