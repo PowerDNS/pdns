@@ -99,7 +99,7 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
   char* pBuf = (char*)&cBuf;
 
   // Decoding management...
-  short iBitGroup = 0, iInNum = 0;
+  int iBitGroup = 0, iInNum = 0;
 
   // While there are characters to process...
   //
@@ -113,13 +113,19 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
   // to be returned as the original message.
   int iInSize = strInput.size();
   unsigned char cChar = '\0';
+  uint8_t pad = 0;
   while ( iInNum < iInSize ) {
     // Fill the decode buffer with 4 groups of 6 bits
     cBuf = 0; // clear
+    pad = 0;
     for ( iBitGroup = 0; iBitGroup < 4; ++iBitGroup ) {
       if ( iInNum < iInSize ) {
 	// Decode a character
+       if(strInput.at(iInNum)=='=')
+         pad++;
+
 	cChar = B64Decode1(strInput.at(iInNum++));
+
       } // if
       else {
 	// Decode a padded zero
@@ -160,6 +166,8 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
     strOutput += pBuf[1];
     strOutput += pBuf[0];
   } // while
+  if(pad)
+    strOutput.resize(strOutput.length()-pad);
 
   return 1;
 }
