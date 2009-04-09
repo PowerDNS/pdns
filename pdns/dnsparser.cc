@@ -443,9 +443,13 @@ void PacketReader::xfrBlob(string& blob)
 
 void PacketReader::xfrBlob(string& blob, int length)
 {
-  blob.assign(&d_content.at(d_pos), &d_content.at(d_pos + length ) );
-
-  d_pos += length;
+  if(length) {
+    blob.assign(&d_content.at(d_pos), &d_content.at(d_pos + length ) );
+    
+    d_pos += length;
+  }
+  else 
+    blob.clear();
 }
 
 
