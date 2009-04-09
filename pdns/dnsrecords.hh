@@ -125,6 +125,7 @@ class TSIGRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(TSIG)
+  TSIGRecordContent() : DNSRecordContent(QType::TSIG) {}
 
   string d_algoName;
   uint64_t d_time; // 48 bits

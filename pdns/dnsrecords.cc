@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2008  PowerDNS.COM BV
+    Copyright (C) 2005 - 2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -389,7 +389,7 @@ void reportBasicTypes()
   PTRRecordContent::report();
   DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
-  DNSRecordContent::regist(1, 255, 0, 0, "ANY");
+  DNSRecordContent::regist(1, QType::ANY, 0, 0, "ANY");
 }
 
 void reportOtherTypes()
@@ -407,7 +407,7 @@ void reportOtherTypes()
    SSHFPRecordContent::report();
    CERTRecordContent::report();
    NSECRecordContent::report();
-   TSIGRecordContent::report();
+   DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    OPTRecordContent::report();
 }
 
