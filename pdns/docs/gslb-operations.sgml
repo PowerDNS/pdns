@@ -6,7 +6,7 @@
 <title>The case for PowerDNS</title>
 <author>PowerDNS BV (bert hubert &lt;bert@trilab.com&gt;) &nl;
 Trilab BV</author>
-<date>v1.0 $Date: 2002/11/27 15:18:34 $</date>
+<date>v1.0 $Date$</date>
 <abstract>
 This document describes what Global Server Load Balancing is, and how
 PowerDNS can be employed in a GSLB configuration
