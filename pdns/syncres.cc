@@ -270,7 +270,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
     if(mode== EDNSStatus::CONFIRMEDPINGER) {  // confirmed pinger!
       if(!res->d_pingCorrect) {
 	L<<Logger::Error<<"Confirmed EDNS-PING enabled host "<<ip.toString()<<" did not send back correct ping"<<endl;
-	// perhaps lower some kind of count here, don't want to punnish a downgrader too long!
+	//	perhaps lower some kind of count here, don't want to punnish a downgrader too long!
 	ret = 0;
 	res->d_rcode = RCode::ServFail;
 	g_stats.ednsPingMismatches++;
@@ -282,7 +282,12 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode == EDNSStatus::EDNSIGNORANT ) {
       if(res->d_rcode == RCode::FormErr)  {
-	// cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl;
+	//	cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl;
+	mode = EDNSStatus::EDNSNOPING;
+	continue;
+      }
+      else if(mode==EDNSStatus::UNKNOWN && (res->d_rcode == RCode::Refused || res->d_rcode == RCode::NotImp) ) { // this "fixes" F5
+	//	cerr<<"Downgrading an unknown status to EDNSNOPING because of RCODE="<<res->d_rcode<<endl;
 	mode = EDNSStatus::EDNSNOPING;
 	continue;
       }
@@ -302,7 +307,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
     }
     else if(mode==EDNSStatus::EDNSNOPING) {
       if(res->d_rcode == RCode::FormErr) {
-	//	cerr<<"Downgrading to mode 4, FORMERR!"<<endl;
+	//		cerr<<"Downgrading to mode 4, FORMERR!"<<endl;
 	mode = EDNSStatus::NOEDNS;
 	continue;
       }
@@ -316,7 +321,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
     }
     if(oldmode != mode)
       ednsstatus.modeSetAt=d_now.tv_sec;
-    //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", EDNS-PING correct: "<<res->d_pingCorrect<<", new mode: "<<mode<<endl;  
+    //        cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", EDNS-PING correct: "<<res->d_pingCorrect<<", new mode: "<<mode<<endl;  
     
     return ret;
   }
