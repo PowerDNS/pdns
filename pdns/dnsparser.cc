@@ -220,6 +220,8 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       else 
 	dr.d_place=DNSRecord::Additional;
       
+      unsigned int recordStartPos=pr.d_pos;
+
       string label=pr.getLabel();
       
       pr.getDnsrecordheader(ah);
@@ -232,6 +234,9 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 
       dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
       d_answers.push_back(make_pair(dr, pr.d_pos));
+
+      if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
+	d_tsigPos = recordStartPos + sizeof(struct dnsheader);
     }
 
 #if 0    

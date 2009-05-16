@@ -93,9 +93,10 @@ public:
   
   dnsheader* getHeader();
   void getRecords(string& records);
+  const vector<uint8_t>& getRecordBeingWritten() { return d_record; }
 
 private:
-  vector<uint8_t>& d_content;
+  vector <uint8_t>& d_content;
   vector <uint8_t> d_record;
   string d_qname;
   uint16_t d_qtype, d_qclass;
