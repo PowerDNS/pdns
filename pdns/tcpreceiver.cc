@@ -349,8 +349,19 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
   if(::arg().mustDo("disable-axfr"))
     return false;
 
-  if( ::arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->remote ) )
+  if(!::arg().mustDo("per-zone-axfr-acls") && (::arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->remote )))
     return true;
+
+  if(::arg().mustDo("per-zone-axfr-acls")) {
+    SOAData sd;
+    sd.db=(DNSBackend *)-1;
+    if(s_P->getBackend()->getSOA(q->qdomain,sd)) {
+      DNSBackend *B=sd.db;
+      if (B->checkACL(string("allow-axfr"), q->qdomain, q->getRemote())) {
+	return true;
+      }
+    }  
+  }
 
   extern CommunicatorClass Communicator;
 
