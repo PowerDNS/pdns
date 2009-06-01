@@ -7935,8 +7935,8 @@ local0.err                        /var/log/pdns.err
       </para>
       <para>
 	This only is a problem when first doing a query for a record, adding it, and immediately doing a query for that record again. It may
-	then take up to 60 seconds to appear. Changes to existing records however do not fall under the negative query ttl (
-	<command>negquery-cache-ttl</command>), but under the generic <command>query-ttl</command> which defaults to 20 seconds.
+	then take up to 60 seconds to appear. Changes to existing records however do not fall under the negative query ttl 
+	(<command>negquery-cache-ttl</command>), but under the generic <command>query-cache-ttl</command> which defaults to 20 seconds.
       </para>
       <para>
 	The default values should work fine for many sites. When tuning, keep in mind that the Query Cache mostly saves database access 
