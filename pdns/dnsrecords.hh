@@ -447,6 +447,7 @@ struct EDNSOpts
   uint8_t d_extRCode, d_version;
   uint16_t d_Z;
   vector<pair<uint16_t, string> > d_options;
+  enum zFlags { DNSSECOK=32768 };
 };
 //! Convenience function that fills out EDNS0 options, and returns true if there are any
 

@@ -20,6 +20,7 @@
 #include "dnsparser.hh"
 #include "misc.hh"
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 #include "base64.hh"
 using namespace boost;
@@ -75,9 +76,9 @@ void RecordTextReader::xfrTime(uint32_t &val)
 	 &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
 
   tm.tm_year-=1900;
-  tm.tm_min-=1;
+  tm.tm_mon-=1;
   
-  val=(uint32_t)mktime(&tm);
+  val=(uint32_t)timegm(&tm);
 }
 
 void RecordTextReader::xfrIP(uint32_t &val)
@@ -176,16 +177,32 @@ void RecordTextReader::xfrLabel(string& val, bool)
   }
 }
 
+static bool isbase64(char c)
+{
+  if(dns_isspace(c))
+    return true;
+  if(c >= '0' && c <= '9')
+    return true;
+  if(c >= 'a' && c <= 'z') 
+    return true;
+  if(c >= 'A' && c <= 'Z') 
+    return true;
+  if(c=='+' || c=='/' || c=='=')
+    return true;
+  return false;
+}
+
 void RecordTextReader::xfrBlob(string& val, int)
 {
   skipSpaces();
   int pos=(int)d_pos;
   const char* strptr=d_string.c_str();
-  while(d_pos < d_end && !dns_isspace(strptr[d_pos]))
+  while(d_pos < d_end && isbase64(strptr[d_pos]))
     d_pos++;
-
+  
   string tmp;
   tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
+  boost::erase_all(tmp," ");
   val.clear();
   B64Decode(tmp, val);
 }

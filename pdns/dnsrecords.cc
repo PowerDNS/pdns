@@ -363,7 +363,7 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 
     eo->d_extRCode=stuff.extRCode;
     eo->d_version=stuff.version;
-    eo->d_Z=stuff.Z;
+    eo->d_Z = ntohs(stuff.Z);
     OPTRecordContent* orc = 
       dynamic_cast<OPTRecordContent*>(mdp.d_answers.back().first.d_content.get());
     if(!orc)
