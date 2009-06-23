@@ -304,7 +304,7 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
     numquestions.getValue( &val );
     if(val>::arg().asNum("max-queue-length")) {
       L<<Logger::Error<<val<<" questions waiting for database attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
-      exit(1);
+      _exit(1);
     }
   }
 
