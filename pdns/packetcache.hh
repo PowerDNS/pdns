@@ -62,10 +62,11 @@ struct CIBackwardsStringCompare: public binary_function<string, string, bool>
 };
 
 
-class PacketCache
+class PacketCache : public boost::noncopyable
 {
 public:
   PacketCache();
+  ~PacketCache();
   enum CacheEntryType { PACKETCACHE, QUERYCACHE};
 
   void insert(DNSPacket *q, DNSPacket *r);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources

@@ -42,6 +42,11 @@ PacketCache::PacketCache()
   d_statnumentries=S.getPointer("packetcache-size");
 }
 
+PacketCache::~PacketCache()
+{
+  WriteLock l(&d_mut);
+}
+
 int PacketCache::get(DNSPacket *p, DNSPacket *cached)
 {
   extern StatBag S;
