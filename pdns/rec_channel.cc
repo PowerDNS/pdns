@@ -133,7 +133,7 @@ static int waitForData(int fd, int seconds, int useconds)
   FD_ZERO( &readfds );
   FD_SET( fd, &readfds );
 
-  ret = select( fd + 1, &readfds, NULL, NULL, &tv );
+  ret = select( fd + 1, &readfds, NULL, NULL, (seconds + useconds) ? &tv : 0 );
   if ( ret == 0 )
     errno = ETIMEDOUT;
 
@@ -141,14 +141,14 @@ static int waitForData(int fd, int seconds, int useconds)
 }
 
 
-string RecursorControlChannel::recv(std::string* remote)
+string RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
 {
   char buffer[16384];
   ssize_t len;
   struct sockaddr_un remoteaddr;
   socklen_t addrlen=sizeof(remoteaddr);
     
-  if((waitForData(d_fd, 5, 0 ) != 1) || (len=::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0)
+  if((waitForData(d_fd, timeout, 0 ) != 1) || (len=::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0)
     throw AhuException("Unable to receive message over control channel: "+string(strerror(errno)));
 
   if(remote)

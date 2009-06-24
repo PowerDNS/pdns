@@ -35,7 +35,7 @@ static void initArguments(int argc, char** argv)
 
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
   arg().set("socket-pid","When controlling multiple recursors, the target pid")="";
-
+  arg().set("timeout", "Number of seconds to wait for the recursor to respond")="5";
   arg().setCmd("help","Provide this helpful message");
 
   arg().laxParse(argc,argv);  
@@ -67,7 +67,7 @@ try
     command+=commands[i];
   }
   rccS.send(command);
-  string receive=rccS.recv();
+  string receive=rccS.recv(0, arg().asNum("timeout"));
   cout<<receive;
   return 0;
 }
