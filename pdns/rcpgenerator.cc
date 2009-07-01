@@ -330,7 +330,7 @@ void RecordTextWriter::xfrIP(const uint32_t& val)
     d_string.append(1,' ');
 
   char tmp[17];
-  uint32_t ip=htonl(val);
+  uint32_t ip=val;
   uint8_t vals[4];
 
   memcpy(&vals[0], &ip, sizeof(ip));

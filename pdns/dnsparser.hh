@@ -81,6 +81,7 @@ public:
   void xfrIP(uint32_t& val)
   {
     xfr32BitInt(val);
+    val=htonl(val);
   }
 
   void xfrTime(uint32_t& val)
@@ -149,7 +150,7 @@ public:
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
   virtual void toPacket(DNSPacketWriter& pw)=0;
-  virtual string serialize(const string& qname)
+  virtual string serialize(const string& qname) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
     string empty;
