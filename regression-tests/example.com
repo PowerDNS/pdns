@@ -12,6 +12,7 @@ $ORIGIN example.com.
 @			IN	NS	ns2.example.com.
 @			IN	MX	10	smtp-servers.example.com.
 @			IN	MX	15	smtp-servers.test.com.
+@			IN	DNSKEY  256 3 5 AwEAAarTiHhPgvD28WCN8UBXcEcf8f+OF+d/bEoN6zTuHl/oVra5/qfonhYK/RjI74RzHc2wli9TpXOWycQV3YSfpFZ9z+GB/bbsvBon1XMyNf5KXuOwRdHZXIZh1cku3AcIyNroD26MPkbFLHY0+xRI+7u7OsQ6nYcPBpqDiJnB2BMh
 ;
 ns1			IN	A	192.168.1.1
 ns2			IN	A	192.168.1.2
