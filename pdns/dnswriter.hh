@@ -38,7 +38,7 @@ using namespace std;
 
 */
 
-class DNSPacketWriter
+class DNSPacketWriter : public boost::noncopyable
 {
 
 public:
@@ -95,6 +95,11 @@ public:
   void getRecords(string& records);
   const vector<uint8_t>& getRecordBeingWritten() { return d_record; }
 
+  void setCanonic(bool val) 
+  {
+    d_canonic=val;
+  }
+
 private:
   vector <uint8_t>& d_content;
   vector <uint8_t> d_record;
@@ -108,5 +113,6 @@ private:
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
   Place d_recordplace;
+  bool d_canonic;
 };
 #endif

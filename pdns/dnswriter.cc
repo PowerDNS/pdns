@@ -6,7 +6,7 @@
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
-  : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass)
+  : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass), d_canonic(false)
 {
   d_content.clear();
   dnsheader dnsheader;
@@ -199,7 +199,11 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
   parts_t parts;
 
-  if(label.size()==1 && label[0]=='.') { // otherwise we encode '..'
+  if(d_canonic)
+    compress=false;
+
+  string::size_type labellen = label.size();
+  if(labellen==1 && label[0]=='.') { // otherwise we encode '..'
     d_record.push_back(0);
     return;
   }
@@ -209,11 +213,19 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
   unsigned int pos=d_content.size() + d_record.size() + d_stuff; 
   string chopped;
+  bool deDot = labellen && (label[labellen-1]=='.'); // make sure we don't store trailing dots in the labelmap
+
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-    chopped.assign(label.c_str() + i->first);
+    if(deDot)
+      chopped.assign(label.c_str() + i->first, labellen - i->first -1);
+    else
+      chopped.assign(label.c_str() + i->first);
+
     lmap_t::iterator li=d_labelmap.end();
     // see if we've written out this domain before
+    //    cerr<<"Searching for compression pointer to '"<<chopped<<"', "<<d_labelmap.size()<<" cmp-records"<<endl;
     if(compress && (li=find(d_labelmap, chopped))!=d_labelmap.end()) {   
+      //      cerr<<"\tFound a compression pointer to '"<<chopped<<"': "<<li->second<<endl;
       uint16_t offset=li->second;
       offset|=0xc000;
       d_record.push_back((char)(offset >> 8));
@@ -221,8 +233,10 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
       goto out;                                 // skip trailing 0 in case of compression
     }
 
-    if(li==d_labelmap.end() && pos< 16384)
+    if(li==d_labelmap.end() && pos< 16384) {
+      //      cerr<<"\tStoring a compression pointer to '"<<chopped<<"': "<<pos<<endl;
       d_labelmap.push_back(make_pair(chopped, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
+    }
 
     if(unescaped) {
       string part(label.c_str() + i -> first, i->second - i->first);
