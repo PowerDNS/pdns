@@ -74,7 +74,7 @@ void PortsFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
   if(!cbmap.erase(fd))
     throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
 
-  if(port_dissociate(d_portfd, PORT_SOURCE_FD, fd) < 0)
+  if(port_dissociate(d_portfd, PORT_SOURCE_FD, fd) < 0 && errno != ENOENT) // it appears under some circumstances, ENOENT will be returned, without this being an error. Apache has this same "fix"
     throw FDMultiplexerException("Removing fd from port set: "+stringerror());
 }
 
