@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ # -I/usr/include/lua5.1
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1
 AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
 
 EXTRA_DIST = docs/Makefile docs/expand \
@@ -130,7 +130,7 @@ endif
 
 #../modules/gmysqlbackend/smysql.cc 
 
-pdns_recursor_LDFLAGS=  # -llua5.1 
+pdns_recursor_LDFLAGS= -llua5.1 
 pdns_recursor_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
