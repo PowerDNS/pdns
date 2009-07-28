@@ -6,6 +6,7 @@
 #include "qtype.hh"
 #include "misc.hh"
 #include <iostream>
+
 #include <boost/utility.hpp>
 #undef L
 #include <boost/multi_index_container.hpp>
@@ -28,7 +29,10 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
   MemRecursorCache() : d_followRFC2181(false), d_cachecachevalid(false)
-  {}
+  {
+    pthread_rwlock_init(&s_rwlock, 0);
+    //    cerr<<"ce: "<<sizeof(CacheEntry)<<", sr: "<<sizeof(struct StoredRecord)<<endl;
+  }
   unsigned int size();
   unsigned int bytes();
   int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
@@ -62,32 +66,14 @@ private:
 
   };
 
-  struct predicate
-  {
-    predicate(uint32_t limit) : d_limit(limit)
-    {
-    }
-    
-    bool operator()(const StoredRecord& sr) const
-    {
-      return sr.d_ttd <= d_limit;
-    }
-    uint32_t d_limit;
-  };
-
-  //   typedef __gnu_cxx::hash_map<string, vector<StoredRecord> > cache_t;
   struct CacheEntry
   {
-    string d_qname;
-    uint16_t d_qtype;
-    bool d_auth;
-
     CacheEntry(const tuple<string, uint16_t>& key, const vector<StoredRecord>& records, bool auth) : 
       d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_records(records)
     {}
 
     typedef vector<StoredRecord> records_t;
-    records_t d_records;
+
     uint32_t getTTD() const
     {
       if(d_records.size()==1)
@@ -98,6 +84,11 @@ private:
 	earliest=min(earliest, i->d_ttd);
       return earliest;
     }
+
+    string d_qname;
+    uint16_t d_qtype;
+    bool d_auth;
+    records_t d_records;
   };
 
   typedef multi_index_container<
@@ -120,6 +111,8 @@ private:
   string d_cachedqname;
   bool d_cachecachevalid;
   bool attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored);
+
+  static pthread_rwlock_t s_rwlock;
 
 };
 string DNSRR2String(const DNSResourceRecord& rr);
