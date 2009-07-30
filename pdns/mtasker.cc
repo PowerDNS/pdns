@@ -301,6 +301,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(unsigned int now)
     for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
       if(i->ttd && (unsigned int)i->ttd < now) {
 	d_waitstatus=TimeOut;
+	d_eventkey=i->key;        // pass waitEvent the exact key it was woken for
 	ucontext_t* uc = i->context;
 	ttdindex.erase(i++);                  // removes the waitpoint 
 

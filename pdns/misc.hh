@@ -22,14 +22,6 @@
 #include <cstring>
 
 #if 0
-#define RDTSC(qp) \
-do { \
-  unsigned long lowPart, highPart;					\
-  __asm__ __volatile__("cpuid"); \
-  __asm__ __volatile__("rdtsc" : "=a" (lowPart), "=d" (highPart)); \
-    qp = (((unsigned long long) highPart) << 32) | lowPart; \
-} while (0)
-
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -386,6 +378,12 @@ inline string toCanonic(const string& zone, const string& domain)
   ret.append(1,'.');
   ret.append(zone);
   return ret;
+}
+
+inline void setSocketReusable(int fd)
+{
+  int tmp=1;
+  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp));
 }
 
 string stripDot(const string& dom);
