@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2006  PowerDNS.COM BV
+    Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -15,10 +15,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
-
-
 #include "arguments.hh"
+#include <boost/algorithm/string.hpp>
+using namespace boost;
 
 const ArgvMap::param_t::const_iterator ArgvMap::begin()
 {
@@ -259,8 +258,8 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg)
   string::size_type pos;
 
   while(getline(f,pline)) {
-    chomp(pline," \t\r\n");   // strip trailing white spaces
-
+    trim_right(pline);
+    
     if(pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
       continue;
@@ -273,7 +272,7 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg)
       line=line.substr(0,pos);
 
     // strip trailing spaces
-    chomp(line," \t");
+    trim_right(line);
 
     // strip leading spaces
     if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
@@ -301,7 +300,7 @@ bool ArgvMap::file(const char *fname, bool lax)
   string::size_type pos;
 
   while(getline(f,pline)) {
-    chomp(pline," \t\r\n");   // strip trailing white spaces
+    trim_right(pline);
     if(pline.empty())
       continue;
 
@@ -318,11 +317,7 @@ bool ArgvMap::file(const char *fname, bool lax)
       line=line.substr(0,pos);
 
     // strip trailing spaces
-    chomp(line," \t");
-
-    // strip leading spaces
-    if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
-      line=line.substr(pos);
+    trim(line);
 
     parseOne(string("--")+line,"",lax);
     line="";

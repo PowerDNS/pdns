@@ -29,7 +29,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), d_zonename(zname), d_defaultttl(3600)
+ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), 
+											       d_zonename(zname), d_defaultttl(3600), 
+											       d_havedollarttl(false)
 {
   d_zonename = toCanonic("", d_zonename);
   stackFile(fname);
@@ -100,9 +102,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
       break;
 
     default:
-      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' on line "+
-				     lexical_cast<string>(d_filestates.top().d_lineno)+" of file '"+
-				     d_filestates.top().d_filename+"'");
+      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' "+getLineOfFile());
     }
   return val;
 }
@@ -218,7 +218,10 @@ bool findAndElide(string& line, char c)
   return false;
 }
 
-
+string ZoneParserTNG::getLineOfFile()
+{
+  return "on line "+lexical_cast<string>(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
+}
 
 bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
@@ -226,7 +229,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   if(!getTemplateLine() && !getLine())
     return false;
 
-  chomp(d_line, " \r\n\x1a");
+  boost::trim_right_if(d_line, is_any_of(" \r\n\x1a"));
 
   parts_t parts;
   vstringtok(parts, d_line);
@@ -236,8 +239,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
   if(d_line[0]=='$') { 
     string command=makeString(d_line, parts[0]);
-    if(iequals(command,"$TTL") && parts.size() > 1)
+    if(iequals(command,"$TTL") && parts.size() > 1) {
       d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, parts[1]), is_any_of(";")));
+      d_havedollarttl=true;
+    }
     else if(iequals(command,"$INCLUDE") && parts.size() > 1) {
       string fname=unquotify(makeString(d_line, parts[1]));
       if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
@@ -261,8 +266,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       goto retry;
     }
     else
-      throw exception("Can't parse zone line '"+d_line+"' on line "+lexical_cast<string>(d_filestates.top().d_lineno)+
-		      " of file '"+d_filestates.top().d_filename);
+      throw exception("Can't parse zone line '"+d_line+"' "+getLineOfFile());
     goto retry;
   }
 
@@ -283,7 +287,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   d_prevqname=rr.qname;
 
   if(parts.empty()) 
-    throw exception("Line with too little parts");
+    throw exception("Line with too little parts "+getLineOfFile());
 
   string nextpart;
   
@@ -323,14 +327,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       continue;
     }
     catch(...) {
-      throw runtime_error("Parsing zone content on line "+
-			  lexical_cast<string>(d_filestates.top().d_lineno)+
-			  " of file '"+d_filestates.top().d_filename+"': '"+nextpart+
+       throw runtime_error("Parsing zone content "+getLineOfFile()+
+ 			  ": '"+nextpart+
 			  "' doesn't look like a qtype, stopping loop");
     }
   }
   if(!haveQTYPE) 
-    throw exception("Malformed line '"+d_line+"'");
+    throw exception("Malformed line "+getLineOfFile()+": '"+d_line+"'");
 
   rr.content=d_line.substr(range.first);
 
@@ -382,7 +385,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
       else
 	rr.content+=soaparts[n];
 
-      if(n==6)
+      if(n==6 && !d_havedollarttl)
 	d_defaultttl=makeTTLFromZone(soaparts[n]);
     }
     break;

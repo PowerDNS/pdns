@@ -40,11 +40,13 @@ private:
   bool getTemplateLine();
   void stackFile(const std::string& fname);
   unsigned makeTTLFromZone(const std::string& str);
+  string getLineOfFile();
   string d_reldir;
   string d_line;
   string d_prevqname;
   string d_zonename;
   int d_defaultttl;
+  bool d_havedollarttl;
   uint32_t d_templatecounter, d_templatestop, d_templatestep;
   string d_templateline;
   parts_t d_templateparts;
