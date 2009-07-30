@@ -1,4 +1,4 @@
-VERSION=3.1.7
+VERSION=3.1.7.1
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
