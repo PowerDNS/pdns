@@ -245,9 +245,9 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
   }
 }
 
-bool ArgvMap::preParseFile(const char *fname, const string &arg)
+bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
 {
-  params[arg].clear();
+  params[arg]=theDefault;
 
   ifstream f(fname);
   if(!f)
