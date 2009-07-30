@@ -933,7 +933,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",p->qdomain);
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"Exception building answer packet ("<<e.what()<<") sending out servfail"<<endl;
     delete r;
     r=p->replyPacket();  // generate an empty reply packet    

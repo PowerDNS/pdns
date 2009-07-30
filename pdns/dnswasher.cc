@@ -74,7 +74,7 @@ try
   cerr<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
     pr.d_nonetheripudp<<" unknown encaps"<<endl;
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }

@@ -203,7 +203,7 @@ void DNSProxy::mainloop(void)
   catch(AhuException &ae) {
     L<<Logger::Error<<"Fatal error in DNS proxy: "<<ae.reason<<endl;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"Communicator thread died because of STL error: "<<e.what()<<endl;
   }
   catch( ... )

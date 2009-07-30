@@ -596,7 +596,7 @@ int serviceMain( int argc, char *argv[] )
   catch(AhuException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
   }
   catch(...) {
@@ -717,7 +717,7 @@ int main(int argc, char **argv)
   catch(AhuException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
   }
   catch(...) {

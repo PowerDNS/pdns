@@ -567,7 +567,7 @@ int main(int argc, char **argv)
       cerr<<"Exiting because: "<<AE.reason<<endl;
     L<<Logger::Error<<"Exiting because: "<<AE.reason<<endl;
   }      
-  catch(exception &e) {
+  catch(std::exception &e) {
     if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because of STL error: "<<e.what()<<endl;
     L<<Logger::Error<<"Exiting because of STL error: "<<e.what()<<endl;

@@ -89,7 +89,7 @@ try
   cerr<<"Out: "<<argv[1]<<" IN "<<argv[2]<<" "<<regen->getZoneRepresentation()<<endl;
 #endif
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<"\n";
 }

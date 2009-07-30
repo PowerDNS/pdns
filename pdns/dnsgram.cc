@@ -154,7 +154,7 @@ try
 	  parseErrors++;
 	  continue;
 	}
-	catch(exception& e) {
+	catch(std::exception& e) {
 	  cerr << e.what() << endl;
 	  continue;
 	}
@@ -187,7 +187,7 @@ try
     }
   }
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }

@@ -78,7 +78,7 @@ try
   }
 
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cout<<"Fatal: "<<e.what()<<endl;
 }

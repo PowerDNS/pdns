@@ -323,7 +323,7 @@ void *TCPNameserver::doConnection(void *data)
     s_P = 0; // on next call, backend will be recycled
     L<<Logger::Error<<"TCP nameserver had error, cycling backend: "<<ae.reason<<endl;
   }
-  catch(exception &e) {
+  catch(std::exception &e) {
     L<<Logger::Error<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
   }
   catch( ... )

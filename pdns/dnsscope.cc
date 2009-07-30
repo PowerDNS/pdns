@@ -114,7 +114,7 @@ try
 	dnserrors++;
 	continue;
       }
-      catch(exception& e) {
+      catch(std::exception& e) {
 	if(pw)
 	  pw->write();
 	bogus++;
@@ -211,7 +211,7 @@ try
   if(totpackets)
     cerr<<"Average response time: "<<tottime/totpackets<<" usec"<<endl;
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
 }
