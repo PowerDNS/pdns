@@ -151,9 +151,9 @@ void DNSPacketWriter::xfrText(const string& text, bool)
 	d_record.push_back(0);
       else 
 	for (unsigned int i = 0; i < beg->length(); i += 0xff){
-	  d_record.push_back(min(0xffU, beg->length()-i));
+	  d_record.push_back(min((string::size_type)0xffU, beg->length()-i));
 	  const uint8_t* ptr=(uint8_t*)(beg->c_str()) + i;
-	  d_record.insert(d_record.end(), ptr, ptr+min(0xffU, beg->length()-i));
+	  d_record.insert(d_record.end(), ptr, ptr+min((string::size_type)0xffU, beg->length()-i));
 	}
     }
 }
