@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2006  PowerDNS.COM BV
+    Copyright (C) 2002-2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -378,12 +378,6 @@ inline string toCanonic(const string& zone, const string& domain)
   ret.append(1,'.');
   ret.append(zone);
   return ret;
-}
-
-inline void setSocketReusable(int fd)
-{
-  int tmp=1;
-  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp));
 }
 
 string stripDot(const string& dom);

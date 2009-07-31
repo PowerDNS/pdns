@@ -201,7 +201,7 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     lua_pushnumber(d_lua, n);
     lua_gettable(d_lua, 2);
 
-    uint32_t tmpnum;
+    uint32_t tmpnum=0; // silly gcc warning
     if(!getFromTable("qtype", tmpnum)) 
       rr.qtype=QType::A;
     else
