@@ -1,4 +1,5 @@
 #include "base64.hh"
+#include <stdint.h>
 
 namespace anonpdns {
 char B64Decode1(char cInChar)
