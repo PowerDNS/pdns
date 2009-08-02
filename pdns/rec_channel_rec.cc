@@ -1,4 +1,3 @@
-#include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
@@ -233,7 +232,7 @@ RecursorControlParser::RecursorControlParser()
 #endif
 }
 
-static void doExit()
+static void doExitGeneric(bool nicely)
 {
   L<<Logger::Error<<"Exiting on user request"<<endl;
   extern RecursorControlChannel s_rcc;
@@ -242,7 +241,20 @@ static void doExit()
   extern string s_pidfname;
   if(!s_pidfname.empty()) 
     unlink(s_pidfname.c_str()); // we can at least try..
-  _exit(1);
+  if(nicely)
+    exit(1);
+  else
+    _exit(1);
+}
+
+static void doExit()
+{
+  doExitGeneric(false);
+}
+
+static void doExitNicely()
+{
+  doExitGeneric(true);
 }
 
 string doTopRemotes()
@@ -293,6 +305,12 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     *command=&doExit;
     return "bye\n";
   }
+
+  if(cmd=="quit-nicely") {
+    *command=&doExitNicely;
+    return "bye nicely\n";
+  }
+
 
   if(cmd=="dump-cache") 
     return doDumpCache(begin, end);

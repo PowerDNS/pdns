@@ -19,18 +19,18 @@ to use it, try:
 
 1) head to http://sourceforge.net/project/showfiles.php?group_id=7586 and
 download the latest boost tar.bz2 or tar.gz, perhaps from:
-http://surfnet.dl.sourceforge.net/sourceforge/boost/boost_1_33_1.tar.bz2
+http://downloads.sourceforge.net/project/boost/boost/1.39.0/boost_1_39_0.tar.bz2?use_mirror=ovh
 (use the first link if this one doesn't work)
 
 2) untar it:
 
-$ tar xjf boost_1_33_1.tar.bz2
+$ tar xjf boost_1_39_0.tar.bz2
 
 3) Compile the PowerDNS recursor using:
 
-$ CXXFLAGS=-I./boost_1_33_1/ ./configure
-$ CXXFLAGS=-I./boost_1_33_1/ make clean 
-$ CXXFLAGS=-I./boost_1_33_1/ make all
+$ CXXFLAGS=-I./boost_1_39_0/ ./configure
+$ CXXFLAGS=-I./boost_1_39_0/ make clean 
+$ CXXFLAGS=-I./boost_1_39_0/ make all
 (the 'clean' is needed to have make pick up the new boost)
 
 4) Run ./pdns_recursor and you should be set!
@@ -70,8 +70,8 @@ For the utmost in performance, compile like this:
 Then run the program for a bit, in as much of a real-life setting as you
 have available. Then run:
 
-   $ rec_control quit
-   bye 
+   $ rec_control quit-nicely
+   bye nicely
 
 Then do:
 
@@ -79,11 +79,11 @@ Then do:
 
 The resulting binary is up to 20% faster in our tests.
 
-Do run with g++ 4.1 if you can, it is the best.
+Do run with g++ 4.4.1 if you can, it is the best.
 
 RUNNING ON A DIFFERENT MACHINE
 ------------------------------
-To prevent hassles with g++ 4.1 dependencies, you can build like this:
+To prevent hassles with g++/c++ dependencies, you can build like this:
    $ STATIC=semi make all
 
 PROBLEMS
