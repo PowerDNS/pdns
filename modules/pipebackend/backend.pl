@@ -31,6 +31,19 @@ while(<>)
 
 	my ($type,$qname,$qclass,$qtype,$id,$ip)=split(/\t/);
 
+	if(($qtype eq "SOA" || $qtype eq "ANY") && $qname eq "example.com") {
+		print STDERR "$$ Sent SOA records\n";
+		print "DATA	$qname	$qclass	SOA	3600	-1	ahu.example.com ns1.example.com 2008080300 1800 3600 604800 3600\n";
+	}
+	if(($qtype eq "NS" || $qtype eq "ANY") && $qname eq "example.com") {
+		print STDERR "$$ Sent NS records\n";
+		print "DATA	$qname	$qclass	NS	3600	-1	ns1.example.com\n";
+		print "DATA	$qname	$qclass	NS	3600	-1	ns2.example.com\n";
+	}
+	if(($qtype eq "TXT" || $qtype eq "ANY") && $qname eq "example.com") {
+		print STDERR "$$ Sent NS records\n";
+		print "DATA	$qname	$qclass	TXT	3600	-1	\"hallo allemaal!\"\n";
+	}
 	if(($qtype eq "A" || $qtype eq "ANY") && $qname eq "webserver.example.com") {
 		print STDERR "$$ Sent A records\n";
 		print "DATA	$qname	$qclass	A	3600	-1	1.2.3.4\n";
