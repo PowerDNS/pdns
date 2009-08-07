@@ -70,7 +70,7 @@ static bool isTimeSpec(const string& nextpart)
     if(iter+1 != nextpart.end())
       return false;
     char c=tolower(*iter);
-    return (c=='m' || c=='h' || c=='d' || c=='w' || c=='y');
+    return (c=='s' || c=='m' || c=='h' || c=='d' || c=='w' || c=='y');
   }
   return true;
 }
@@ -85,6 +85,8 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   char lc=toupper(str[str.length()-1]);
   if(!isdigit(lc))
     switch(lc) {
+    case 'S':
+      break;
     case 'M':
       val*=60; // minutes, not months!
       break;
