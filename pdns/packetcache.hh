@@ -82,6 +82,7 @@ public:
 
   map<char,int> getCounts();
 private:
+  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, bool meritsRecursion=false);
   struct CacheEntry
   {
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false;}
@@ -120,8 +121,7 @@ private:
 
   pthread_rwlock_t d_mut;
 
-  int d_hit;
-  int d_miss;
+  unsigned int d_ops;
   int d_ttl;
   int d_recursivettl;
   bool d_doRecursion;
