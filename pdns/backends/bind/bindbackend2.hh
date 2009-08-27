@@ -84,6 +84,7 @@ public:
   unsigned int d_id;  //!< internal id of the domain
   time_t d_lastcheck; //!< last time domain was checked for freshness
   vector<string> d_masters;     //!< IP address of the master of this domain
+  set<string> d_also_notify; //!< IP list of hosts to also notify
 
   uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
 
@@ -120,6 +121,8 @@ public:
   bool feedRecord(const DNSResourceRecord &r);
   bool commitTransaction();
   bool abortTransaction();
+
+  void alsoNotifies(const string &domain, set<string> *ips);
 
   typedef map<string, int, CIStringCompare> name_id_map_t;
   typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
@@ -183,6 +186,8 @@ private:
 
   static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
   string d_logprefix;
+
+  set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
 
   int d_transaction_id;
   string d_transaction_tmpname;

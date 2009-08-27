@@ -21,6 +21,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <set>
 
 using namespace std;
 
@@ -34,6 +35,7 @@ public:
   {
     name=filename=type="";
     masters.clear();
+    alsoNotify.clear();
     d_dev=0;
     d_ino=0;
   }
@@ -41,6 +43,7 @@ public:
   string viewName;
   string filename;
   vector<string> masters;
+  set<string> alsoNotify;
   string type;
     
   dev_t d_dev;
@@ -78,11 +81,13 @@ class BindParser
   const string &getDirectory();
   const vector<BindDomainInfo>& getDomains();
   void setVerbose(bool verbose);
+  void addAlsoNotify(const string &host);
+  set<string> & getAlsoNotify() { return this->alsoNotify; } 
 private:
   string d_dir;
   bool d_verbose;
   typedef map<string,string> zonedomain_t;
-
+  set<string> alsoNotify;
   vector<BindDomainInfo> d_zonedomains;
 };
 

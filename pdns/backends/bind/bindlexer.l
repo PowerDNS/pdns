@@ -109,6 +109,7 @@ zone			return ZONETOK;
 
 file			return FILETOK;
 options                 return OPTIONSTOK;
+also-notify		return ALSONOTIFYTOK;
 acl                     return ACLTOK;
 logging                 return LOGGINGTOK;
 directory               return DIRECTORYTOK;

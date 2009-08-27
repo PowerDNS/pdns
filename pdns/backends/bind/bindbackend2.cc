@@ -228,7 +228,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
   shared_ptr<State> state = s_state;
 
   for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
-    if(!i->second.d_masters.empty())
+    if(!i->second.d_masters.empty() && this->alsoNotify.empty() && i->second.d_also_notify.empty())
       continue;
     soadata.serial=0;
     try {
@@ -307,6 +307,22 @@ bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
   return false;
 }
 
+void Bind2Backend::alsoNotifies(const string &domain, set<string> *ips)
+{
+  shared_ptr<State> state = s_state;
+  // combine global list with local list
+  for(set<string>::iterator i = this->alsoNotify.begin(); i != this->alsoNotify.end(); i++) {
+    (*ips).insert(*i);
+  }
+  for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
+    if(i->second.d_name==domain) {
+      for(set<string>::iterator it = i->second.d_also_notify.begin(); it != i->second.d_also_notify.end(); it++) {
+        (*ips).insert(*it);
+      }
+      return;
+    }
+  }   
+}
 
 //! lowercase, strip trailing .
 static string canonic(string ret)
@@ -512,7 +528,8 @@ void Bind2Backend::loadConfig(string* status)
     }
       
     vector<BindDomainInfo> domains=BP.getDomains();
-    
+    this->alsoNotify = BP.getAlsoNotify();
+
     s_binddirectory=BP.getDirectory();
     //    ZP.setDirectory(d_binddirectory);
 
@@ -569,6 +586,7 @@ void Bind2Backend::loadConfig(string* status)
 	bool filenameChanged = (bbd->d_filename!=i->filename);
 	bbd->d_filename=i->filename;
 	bbd->d_masters=i->masters;
+	bbd->d_also_notify=i->alsoNotify;
 	
 	if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
 	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;

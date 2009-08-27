@@ -284,6 +284,11 @@ void UeberBackend::addOneCache(const Question &q, const DNSResourceRecord &rr)
   PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, rr.serialize(), queryttl, q.zoneId);
 }
 
+void UeberBackend::alsoNotifies(const string &domain, set<string> *ips)
+{
+  for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
+    (*i)->alsoNotifies(domain,ips);
+}
 
 UeberBackend::~UeberBackend()
 {

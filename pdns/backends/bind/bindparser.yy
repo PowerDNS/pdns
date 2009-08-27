@@ -72,6 +72,11 @@ void BindParser::setDirectory(const string &dir)
 	bind_directory=d_dir.c_str();
 }
 
+void BindParser::addAlsoNotify(const string & host)
+{
+	alsoNotify.insert(host);
+}
+
 const string &BindParser::getDirectory()
 {
 	return d_dir;
@@ -101,7 +106,7 @@ void BindParser::commit(BindDomainInfo DI)
 %}
 
 %token AWORD QUOTEDWORD OBRACE EBRACE SEMICOLON ZONETOK FILETOK OPTIONSTOK
-%token DIRECTORYTOK ACLTOK LOGGINGTOK CLASSTOK TYPETOK MASTERTOK
+%token DIRECTORYTOK ACLTOK LOGGINGTOK CLASSTOK TYPETOK MASTERTOK ALSONOTIFYTOK
 
 %%
 
@@ -147,6 +152,7 @@ options_command:
 	LOGGINGTOK OBRACE options_commands EBRACE
 	;
 
+
 acl_command:
 	ACLTOK quotedname acl_block | 	ACLTOK filename acl_block
 	;
@@ -168,7 +174,7 @@ options_commands:
 	options_command SEMICOLON options_commands
 	;
 
-options_command: command | options_directory_command
+options_command: command | options_directory_command | also_notify_command
 	;
 
 options_directory_command: DIRECTORYTOK quotedname
@@ -178,7 +184,20 @@ options_directory_command: DIRECTORYTOK quotedname
 	}
 	;
 
+also_notify_command: ALSONOTIFYTOK OBRACE also_notify_list EBRACE 
+	;
 
+also_notify_list: 
+	|
+	also_notify SEMICOLON also_notify_list
+	;
+
+also_notify: AWORD
+ 	{
+		parent->addAlsoNotify($1);
+		free($1);
+	}
+	;
 terms: /* empty */
 	|
 	terms term
@@ -199,11 +218,26 @@ zone_commands:
 	zone_commands zone_command SEMICOLON
 	;
 
-zone_command: command | zone_file_command | zone_type_command | zone_masters_command
+zone_command: command | zone_file_command | zone_type_command | zone_masters_command | zone_also_notify_command
 	;
 
 zone_masters_command: MASTERTOK OBRACE masters EBRACE
 	;
+
+zone_also_notify_command: ALSONOTIFYTOK OBRACE zone_also_notify_list EBRACE
+	;
+
+zone_also_notify_list:
+        |
+        zone_also_notify SEMICOLON zone_also_notify_list
+        ;
+
+zone_also_notify: AWORD
+        {
+                s_di.alsoNotify.insert($1);
+                free($1);
+        }
+        ;
 
 masters: /* empty */
 	| 
