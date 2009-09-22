@@ -30,7 +30,7 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 public:
   MemRecursorCache() : d_followRFC2181(false), d_cachecachevalid(false)
   {
-    pthread_rwlock_init(&s_rwlock, 0);
+//    pthread_rwlock_init(&s_rwlock, 0);
     //    cerr<<"ce: "<<sizeof(CacheEntry)<<", sr: "<<sizeof(struct StoredRecord)<<endl;
   }
   unsigned int size();
