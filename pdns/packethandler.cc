@@ -781,8 +781,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       else noCache=true;
     }
     
-    if(!noCache)
-      noCache = !p->couldBeCached();
 
     string::size_type pos;
     
@@ -915,6 +913,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return 0;
 
     r->wrapup(); // needed for inserting in cache
+    if(!noCache)
+      noCache = !p->couldBeCached();
+
     if(!noCache) {
       PC.insert(p,r); // in the packet cache
     }
