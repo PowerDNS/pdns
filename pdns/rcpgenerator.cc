@@ -154,6 +154,7 @@ void RecordTextReader::xfrLabel(string& val, bool)
   val.reserve(d_end - d_pos);
 
   const char* strptr=d_string.c_str();
+  string::size_type begin_pos = d_pos;
   while(d_pos < d_end) {
     if(strptr[d_pos]!='\r' && dns_isspace(strptr[d_pos]))
       break;
@@ -161,9 +162,10 @@ void RecordTextReader::xfrLabel(string& val, bool)
     if(strptr[d_pos]=='\\' && d_pos < d_end - 1 && strptr[d_pos+1]!='.')  // leave the \. escape around
       d_pos++;
 
-    val.append(1, strptr[d_pos]);      
     d_pos++;
   }
+
+  val.append(strptr+begin_pos, strptr+d_pos);      
 
   if(val.empty())
     val=d_zone;
