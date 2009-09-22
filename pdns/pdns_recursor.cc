@@ -66,6 +66,7 @@ StatBag S;
 
 FDMultiplexer* g_fdm;
 unsigned int g_maxTCPPerClient;
+unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
 shared_ptr<PowerDNSLua> g_pdl;
 using namespace boost;
@@ -84,6 +85,7 @@ string s_programname="pdns_recursor";
 typedef vector<int> g_tcpListenSockets_t;
 g_tcpListenSockets_t g_tcpListenSockets;
 int g_tcpTimeout;
+
 map<int, ComboAddress> g_listenSocketsAddresses;
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
@@ -151,7 +153,7 @@ int asendtcp(const string& data, Socket* sock)
   g_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
   string packet;
 
-  int ret=MT->waitEvent(pident, &packet, 1);
+  int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
 
   if(!ret || ret==-1) { // timeout
     g_fdm->removeWriteFD(sock->getHandle());
@@ -173,7 +175,7 @@ int arecvtcp(string& data, int len, Socket* sock)
   pident.inNeeded=len;
   g_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
 
-  int ret=MT->waitEvent(pident,&data,1);
+  int ret=MT->waitEvent(pident, &data, g_networkTimeoutMsec);
   if(!ret || ret==-1) { // timeout
     g_fdm->removeReadFD(sock->getHandle());
   }
@@ -339,14 +341,16 @@ int asendto(const char *data, int len, int flags,
   
   g_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
   ret=send(*fd, data, len, 0);
+  int tmp = errno;
   if(ret < 0)
     g_udpclientsocks.returnSocket(*fd);
+  errno = tmp; // this is for logging purposes only
   return ret;
 }
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, 
-	      uint16_t id, const string& domain, uint16_t qtype, int fd, unsigned int now)
+	      uint16_t id, const string& domain, uint16_t qtype, int fd, struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit) 
@@ -360,7 +364,7 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
   pident.remote=fromaddr;
 
   string packet;
-  int ret=MT->waitEvent(pident, &packet, 1, now);
+  int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
 
   if(ret > 0) {
     if(packet.empty()) // means "error"
@@ -1810,6 +1814,7 @@ int serviceMain(int argc, char*argv[])
     SyncRes::s_serverID=tmp;
   }
   
+  g_networkTimeoutMsec = ::arg().asNum("network-timeout");
   parseAuthAndForwards();
 
   try {
@@ -1894,7 +1899,7 @@ int serviceMain(int argc, char*argv[])
   bool listenOnTCP(true);
   
   for(;;) {
-    while(MT->schedule(g_now.tv_sec)); // housekeeping, let threads do their thing
+    while(MT->schedule(&g_now)); // housekeeping, let threads do their thing
       
     if(!(counter%500)) {
       MT->makeThread(houseKeeping,0);
@@ -1992,6 +1997,7 @@ int main(int argc, char **argv)
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
+    ::arg().set("network-timeout", "Wait this nummer of milliseconds for network i/o")="1500";
 #ifdef WIN32
     ::arg().set("quiet","Suppress logging of questions and answers")="off";
     ::arg().setSwitch( "register-service", "Register the service" )= "no";

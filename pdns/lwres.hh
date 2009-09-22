@@ -43,7 +43,7 @@ using namespace std;
 int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id, 
 	    const string& domain, uint16_t qtype,  int* fd);
 int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id, 
-	      const string& domain, uint16_t, int fd, unsigned int now);
+	      const string& domain, uint16_t, int fd, struct timeval* now);
 
 class LWResException : public AhuException
 {

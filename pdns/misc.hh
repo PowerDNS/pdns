@@ -303,6 +303,12 @@ inline float makeFloat(const struct timeval& tv)
 {
   return tv.tv_sec + tv.tv_usec/1000000.0f;
 }
+
+inline bool operator<(const struct timeval& lhs, const struct timeval& rhs) 
+{
+  return make_pair(lhs.tv_sec, lhs.tv_usec) < make_pair(rhs.tv_sec, rhs.tv_usec);
+}
+
 struct CIStringCompare: public binary_function<string, string, bool>  
 {
   bool operator()(const string& a, const string& b) const

@@ -99,10 +99,6 @@ const struct timeval operator*(float fact, const struct timeval& rhs)
 }
 
 
-bool operator<(const struct timeval& lhs, const struct timeval& rhs) 
-{
-  return make_pair(lhs.tv_sec, lhs.tv_usec) < make_pair(rhs.tv_sec, rhs.tv_usec);
-}
 
 
 class DNSIDManager : public boost::noncopyable

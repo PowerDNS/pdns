@@ -158,7 +158,7 @@ int main()
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer 
 */
 
-template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeout, unsigned int now)
+template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeoutMsec, struct timeval* now)
 {
   if(d_waiters.count(key)) { // there was already an exact same waiter
     return -1;
@@ -166,12 +166,21 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
 
   Waiter w;
   w.context=new ucontext_t;
-  w.ttd=0;
-  if(timeout)
-    w.ttd= timeout + (now ? now : time(0));
+  w.ttd.tv_sec = 0; w.ttd.tv_usec = 0;
+  if(timeoutMsec) {
+    struct timeval increment;
+    increment.tv_sec = timeoutMsec / 1000;
+    increment.tv_usec = 1000 * (timeoutMsec % 1000);
+    if(now) 
+      w.ttd = increment + *now;
+    else {
+      struct timeval realnow;
+      gettimeofday(&realnow, 0);
+      w.ttd = increment + realnow;
+    }
+  }
 
   w.tid=d_tid;
-  
   w.key=key;
 
   d_waiters.insert(w);
@@ -267,7 +276,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
     \return Returns if there is more work scheduled and recalling schedule now would be useful
       
 */
-template<class Key, class Val>bool MTasker<Key,Val>::schedule(unsigned int now)
+template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  now)
 {
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
@@ -291,15 +300,18 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(unsigned int now)
     return true;
   }
   if(!d_waiters.empty()) {
+    struct timeval rnow;
     if(!now)
-      now=time(0);
+      gettimeofday(&rnow, 0);
+    else
+      rnow = *now;
 
     typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
     //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
     waiters_by_ttd_index_t& ttdindex=boost::multi_index::get<KeyTag>(d_waiters);
 
     for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
-      if(i->ttd && (unsigned int)i->ttd < now) {
+      if(i->ttd.tv_sec && i->ttd < rnow) {
 	d_waitstatus=TimeOut;
 	d_eventkey=i->key;        // pass waitEvent the exact key it was woken for
 	ucontext_t* uc = i->context;
@@ -311,7 +323,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(unsigned int now)
 	}
 	delete uc;
       }
-      else if(i->ttd)
+      else if(i->ttd.tv_sec)
 	break;
     }
   }
