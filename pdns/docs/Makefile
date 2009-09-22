@@ -32,9 +32,9 @@ html.tar.gz: html/index.html
 	asciidoc -b xhtml11 -d manpage  $<
                         
 publish:
-	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \
-	exit.powerdns.com:/opt/websites/downloads.powerdns.com/www/documentation/
-	ssh exit.powerdns.com ln -s /opt/websites/downloads.powerdns.com/www/documentation/images \
+	rsync --copy-links --delete -avrze 'ssh -p 2222' ./html pdns.txt pdns.pdf \
+	localhost:/opt/websites/downloads.powerdns.com/www/documentation/
+	ssh localhost -p 2222 ln -s /opt/websites/downloads.powerdns.com/www/documentation/images \
 	/opt/websites/downloads.powerdns.com/www/documentation/html/
 
 publish2:

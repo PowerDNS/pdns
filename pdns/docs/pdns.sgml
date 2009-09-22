@@ -92,6 +92,93 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-recursor-3-1-7-1"><title>Recursor version 3.1.7.1</title>
+	<para>
+	  <warning>
+	    <para>
+	      Released on the 2nd of August 2008.
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  This release consists entirely of fixes for tiny bugs that have been reported over the past year. In
+	  addition, compatibility has been restored with the latest versions of the gcc compiler and the 'boost' libraries.
+	</para>
+	<para>
+	  No features have been added, but some debugging code that very slightly impacted performance (and polluted the 
+	  console when operating in the foreground) has been removed.
+	</para>
+	<para>
+	  FreeBSD users may want to upgrade because of a very remote chance of 3.1.7 and previous crashing once every few years.
+	  For other operators not currently experiencing problems, there is no reason to upgrade.
+	</para>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		Improved error messages when parsing zones for authoritative serving (c1235).
+	      </para>
+	    </listitem>
+	  
+	    <listitem>
+	      <para>
+		Better resilience against whitespace in configuration (changesets C1237, C1240, C1242)
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Slight performance increase (c1378)
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Fix rare case where timeouts were not being reported to the right query-thread (c1260)
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Fix compilation against newer versions of the Boost C++ libraries (c1381)
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		Close very rare issue with TCP/IP close reporting ECONNRESET on FreeBSD. Reported by Andrei Poelov in t192.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Silence debugging output (c1286).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Fix compilation against newer versions of gcc (c1384)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		No longer set export-etc-hosts to 'on' on reload-zones. Discovered by Paul Cairney, closes t225.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Sane default for the maximum cache size in the Recursor, suggested by Roel van der Made (c1354).
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		No longer exit because of the changed behaviour of the Solaris 'completion ports' in more recent versions of Solaris. Fix in c1372, reported by Jan Gyselinck.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </sect2>
+
       <sect2 id="changelog-auth-2-9-22"><title>Authoritative Server version 2.9.22</title>
 	<para>
 	  <warning>
