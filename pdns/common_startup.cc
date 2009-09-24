@@ -228,8 +228,8 @@ void *qthread(void *number)
   int diff;
 
   for(;;) {
-    if(number==0) {
-      if(!((numreceived++)%50)) { // maintenance tasks
+    if(number==0) { // only run on main thread
+      if(!((numreceived++)%250)) { // maintenance tasks
 	S.set("latency",(int)avg_latency);
 	int qcount, acount;
 	g_distributor->getQueueSizes(qcount, acount);
