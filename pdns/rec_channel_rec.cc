@@ -128,16 +128,18 @@ string doDumpEDNSStatus(T begin, T end)
 }
 
 
+/* disabled for now! needs multithreading work! (unsure why) FIXME XXX */
 template<typename T>
 string doWipeCache(T begin, T end)
 {
+  return "disabled";
   int count=0, countNeg=0;
   for(T i=begin; i != end; ++i) {
     count+=RC.doWipeCache(toCanonic("", *i));
     string canon=toCanonic("", *i);
-    countNeg+=SyncRes::s_negcache.count(tie(canon));
-    pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::s_negcache.equal_range(tie(canon));
-    SyncRes::s_negcache.erase(range.first, range.second);
+    // countNeg+=SyncRes::s_negcache.count(tie(canon));
+    //pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::s_negcache.equal_range(tie(canon));
+    //    SyncRes::s_negcache.erase(range.first, range.second);
   }
 
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
@@ -207,6 +209,21 @@ static string doCurrentQueries()
   return ostr.str();
 }
 
+uint64_t getNegCacheSize()
+{
+  Lock l(&SyncRes::s_negcachelock);
+
+  return SyncRes::s_negcache.size();
+}
+
+uint64_t getNsSpeedsSize()
+{
+  Lock l(&SyncRes::s_nsSpeedslock);
+
+  return SyncRes::s_nsSpeeds.size();
+}
+
+
 RecursorControlParser::RecursorControlParser()
 {
   addGetStat("questions", &g_stats.qcounter);
@@ -251,9 +268,10 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("noshunt-wrong-question", &g_stats.noShuntWrongQuestion);
   addGetStat("noshunt-wrong-type", &g_stats.noShuntWrongType);
 
-  addGetStat("negcache-entries", boost::bind(&SyncRes::negcache_t::size, ref(SyncRes::s_negcache)));
+  addGetStat("negcache-entries", boost::bind(getNegCacheSize));
   addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
-  addGetStat("nsspeeds-entries", boost::bind(&SyncRes::nsspeeds_t::size, ref(SyncRes::s_nsSpeeds)));
+
+  addGetStat("negcache-entries", boost::bind(getNsSpeedsSize));
 
   addGetStat("concurrent-queries", boost::bind(&MTasker<PacketID,string>::numProcesses, ref(MT)));
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
@@ -280,7 +298,7 @@ RecursorControlParser::RecursorControlParser()
 #endif
 }
 
-static void doExit()
+static void doExitGeneric(bool nicely)
 {
   L<<Logger::Error<<"Exiting on user request"<<endl;
   extern RecursorControlChannel s_rcc;
@@ -289,8 +307,22 @@ static void doExit()
   extern string s_pidfname;
   if(!s_pidfname.empty()) 
     unlink(s_pidfname.c_str()); // we can at least try..
-  _exit(1);
+  if(nicely)
+    exit(1);
+  else
+    _exit(1);
 }
+
+static void doExit()
+{
+  doExitGeneric(false);
+}
+
+static void doExitNicely()
+{
+  doExitGeneric(true);
+}
+
 
 string doTopRemotes()
 {
@@ -344,6 +376,12 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     *command=&doExit;
     return "bye\n";
   }
+  
+  if(cmd=="quit-nicely") {
+    *command=&doExitNicely;
+    return "bye nicely\n";
+  }
+  
 
   if(cmd=="dump-cache") 
     return doDumpCache(begin, end);
@@ -374,8 +412,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="current-queries")
     return doCurrentQueries();
   
-  if(cmd=="ping")
+  if(cmd=="ping") {
     return "pong\n";
+  }
 
   if(cmd=="reload-zones") {
     return reloadAuthAndForwards();

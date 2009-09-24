@@ -34,7 +34,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
-
+#include "misc.hh"
 #include "mtasker.hh"
 #include <utility>
 #include "arguments.hh"
@@ -64,7 +64,8 @@
 StatBag S;
 #endif
 
-FDMultiplexer* g_fdm;
+__thread FDMultiplexer* t_fdm;
+__thread int t_id;
 unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
@@ -83,10 +84,11 @@ NetmaskGroup* g_allowFrom;
 NetmaskGroup* g_dontQuery;
 string s_programname="pdns_recursor";
 typedef vector<int> g_tcpListenSockets_t;
-g_tcpListenSockets_t g_tcpListenSockets;
+g_tcpListenSockets_t g_tcpListenSockets; // is shared per thread!!
 int g_tcpTimeout;
-
-map<int, ComboAddress> g_listenSocketsAddresses;
+//MemcachedCommunicator* g_mc;
+// DHCPCommunicator* g_dc;
+map<int, ComboAddress> g_listenSocketsAddresses; // is shared per thread!
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
   {}
@@ -113,23 +115,6 @@ struct DNSComboWriter {
 };
 
 
-#ifndef WIN32
-#ifndef __FreeBSD__
-extern "C" {
-  int sem_init(sem_t*, int, unsigned int){return 0;}
-  int sem_wait(sem_t*){return 0;}
-  int sem_trywait(sem_t*){return 0;}
-  int sem_post(sem_t*){return 0;}
-  int sem_getvalue(sem_t*, int*){return 0;}
-  pthread_t pthread_self(void){return (pthread_t) 0;}
-  int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr){ return 0; }
-  int pthread_mutex_lock(pthread_mutex_t *mutex){ return 0; }
-  int pthread_mutex_unlock(pthread_mutex_t *mutex) { return 0; }
-  int pthread_mutex_destroy(pthread_mutex_t *mutex) { return 0; }
-}
-#endif // __FreeBSD__
-#endif // WIN32
-
 ArgvMap &arg()
 {
   static ArgvMap theArg;
@@ -139,7 +124,7 @@ ArgvMap &arg()
 struct timeval g_now;
 typedef vector<int> tcpserversocks_t;
 
-MT_t* MT; // the big MTasker
+__thread MT_t* MT; // the big MTasker
 
 void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
@@ -150,13 +135,13 @@ int asendtcp(const string& data, Socket* sock)
   pident.sock=sock;
   pident.outMSG=data;
   
-  g_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
+  t_fdm->addWriteFD(sock->getHandle(), handleTCPClientWritable, pident);
   string packet;
 
   int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
 
   if(!ret || ret==-1) { // timeout
-    g_fdm->removeWriteFD(sock->getHandle());
+    t_fdm->removeWriteFD(sock->getHandle());
   }
   else if(packet.size() !=data.size()) { // main loop tells us what it sent out, or empty in case of an error
     return -1;
@@ -173,11 +158,11 @@ int arecvtcp(string& data, int len, Socket* sock)
   PacketID pident;
   pident.sock=sock;
   pident.inNeeded=len;
-  g_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
+  t_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
 
-  int ret=MT->waitEvent(pident, &data, g_networkTimeoutMsec);
+  int ret=MT->waitEvent(pident,&data, g_networkTimeoutMsec);
   if(!ret || ret==-1) { // timeout
-    g_fdm->removeReadFD(sock->getHandle());
+    t_fdm->removeReadFD(sock->getHandle());
   }
   else if(data.empty()) {// error, EOF or other
     return -1;
@@ -196,10 +181,11 @@ class UDPClientSocks
 {
   unsigned int d_numsocks;
   unsigned int d_maxsocks;
-
+  pthread_mutex_t d_lock;
 public:
   UDPClientSocks() : d_numsocks(0), d_maxsocks(5000)
   {
+    pthread_mutex_init(&d_lock, 0);
   }
 
   typedef set<int> socks_t;
@@ -221,6 +207,8 @@ public:
       return -1;
     }
 
+    Lock l(&d_lock);
+
     d_socks.insert(*fd);
     d_numsocks++;
     return 0;
@@ -228,24 +216,25 @@ public:
 
   void returnSocket(int fd)
   {
+    Lock l(&d_lock);
     socks_t::iterator i=d_socks.find(fd);
     if(i==d_socks.end()) {
       throw AhuException("Trying to return a socket (fd="+lexical_cast<string>(fd)+") not in the pool");
     }
-    returnSocket(i);
+    returnSocketLocked(i);
   }
 
   // return a socket to the pool, or simply erase it
-  void returnSocket(socks_t::iterator& i)
+  void returnSocketLocked(socks_t::iterator& i)
   {
     if(i==d_socks.end()) {
       throw AhuException("Trying to return a socket not in the pool");
     }
     try {
-      g_fdm->removeReadFD(*i);
+      t_fdm->removeReadFD(*i);
     }
     catch(FDMultiplexerException& e) {
-      // we sometimes return a socket that has not yet been assigned to g_fdm
+      // we sometimes return a socket that has not yet been assigned to t_fdm
     }
     Utility::closesocket(*i);
     
@@ -254,7 +243,7 @@ public:
   }
 
   // returns -1 for errors which might go away, throws for ones that won't
-  int makeClientSocket(int family)
+  static int makeClientSocket(int family)
   {
     int ret=(int)socket(family, SOCK_DGRAM, 0);
     if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
@@ -300,8 +289,6 @@ public:
     Utility::setNonBlocking(ret);
     return ret;
   }
-
-
 } g_udpclientsocks;
 
 
@@ -339,11 +326,14 @@ int asendto(const char *data, int len, int flags,
   pident.fd=*fd;
   pident.id=id;
   
-  g_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
-  ret=send(*fd, data, len, 0);
+  t_fdm->addReadFD(*fd, handleUDPServerResponse, pident);
+  ret = send(*fd, data, len, 0);
+
   int tmp = errno;
+
   if(ret < 0)
     g_udpclientsocks.returnSocket(*fd);
+
   errno = tmp; // this is for logging purposes only
   return ret;
 }
@@ -424,6 +414,62 @@ void primeHints(void)
 {
   // prime root cache
   set<DNSResourceRecord>nsset;
+#if 0
+  {
+    time_t now = time(0);
+
+    string templ;
+    DNSResourceRecord arr;
+   
+    arr.qtype=QType::AAAA;
+    arr.ttl=now+3600;
+    arr.content="::1";
+    
+    DTime dt;
+    dt.set();
+    for(int n = 0 ; n < 500000; ++n) {
+      set<DNSResourceRecord> aset;
+      arr.qname=templ="blah"+lexical_cast<string>(n)+".testdomain.com";
+      aset.insert(arr);
+      RC.replace(now, templ, QType(QType::AAAA), aset, true); // auth, nuke it all
+    }
+    cerr<<"fill1 secs: "<<dt.udiff()/1000000.0<<endl;
+
+    arr.content="::2";
+    dt.set();
+    for(int n = 0 ; n < 500000; ++n) {
+      set<DNSResourceRecord> aset;
+      arr.qname=templ="blah"+lexical_cast<string>(n)+".testdomain.com";
+      aset.insert(arr);
+      RC.replace(now, templ, QType(QType::AAAA), aset, true); // auth, nuke it all
+    }
+    cerr<<"refill secs: "<<dt.udiff()/1000000.0<<endl;
+
+
+    dt.set();
+    for(int n = 0 ; n < 500000; ++n) {
+      set<DNSResourceRecord> aset;
+      templ="blah"+lexical_cast<string>(n)+".testdomain.com";
+      RC.get(now, templ, QType(QType::AAAA), &aset); // auth, nuke it all
+    }
+    cerr<<"get secs: "<<dt.udiff()/1000000.0<<endl;
+    vector<string> names;
+    for(int n = 0 ; n < 500000; ++n) {
+      templ="blah"+lexical_cast<string>(n)+".testdomain.com";
+      names.push_back(templ);
+    }
+    random_shuffle(names.begin(), names.end());
+    cerr<<"go!"<<endl;
+    dt.set();
+    for(int n = 0 ; n < 500000; ++n) {
+      vector<DNSResourceRecord> avect;
+      RC.get2(now, names[n], QType(QType::AAAA), &avect); // auth, nuke it all
+    }
+    cerr<<"get2 secs: "<<dt.udiff()/1000000.0<<endl;
+
+    //    exit(1);
+  }
+#endif
 
   if(::arg()["hint-file"].empty()) {
     static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", 
@@ -531,12 +577,13 @@ void startDoResolve(void *p)
     pw.getHeader()->aa=0;
     pw.getHeader()->ra=1;
     pw.getHeader()->qr=1;
+    pw.getHeader()->tc=0;
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
 
     SyncRes sr(dc->d_now);
     if(!g_quiet)
-      L<<Logger::Error<<"["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
+      L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
 
     sr.setId(MT->getTid());
@@ -576,6 +623,7 @@ void startDoResolve(void *p)
       if(ret.size()) {
 	shuffle(ret);
 	
+//	for(int n=0; n< 50 && packet.size() < 65506; ++n) 
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
 	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
 	  
@@ -627,7 +675,7 @@ void startDoResolve(void *p)
       // update tcp connection status, either by closing or moving to 'BYTE0'
 
       if(hadError) {
-	g_fdm->removeReadFD(dc->d_socket);
+	t_fdm->removeReadFD(dc->d_socket);
 	TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
       }
       else {
@@ -637,13 +685,13 @@ void startDoResolve(void *p)
 	tc.remote=dc->d_remote;
 	Utility::gettimeofday(&g_now, 0); // needs to be updated
 	tc.startTime=g_now.tv_sec;
-	g_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
-	g_fdm->setReadTTD(tc.fd, g_now, g_tcpTimeout);
+	t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
+	t_fdm->setReadTTD(tc.fd, g_now, g_tcpTimeout);
       }
     }
     
     if(!g_quiet) {
-      L<<Logger::Error<<"["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
+      L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
@@ -708,7 +756,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     if(!bytes || bytes < 0) {
       TCPConnection tmp(*conn); 
-      g_fdm->removeReadFD(fd);
+      t_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();
       return;
     }
@@ -724,7 +772,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(g_logCommonErrors)
 	L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected after first byte"<<endl;
       TCPConnection tmp(*conn); 
-      g_fdm->removeReadFD(fd);
+      t_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();  // conn loses validity here..
       return;
     }
@@ -734,7 +782,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if(!bytes || bytes < 0) {
       L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected while reading question body"<<endl;
       TCPConnection tmp(*conn);
-      g_fdm->removeReadFD(fd);
+      t_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();  // conn loses validity here..
 
       return;
@@ -742,7 +790,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     conn->bytesread+=bytes;
     if(conn->bytesread==conn->qlen) {
       TCPConnection tconn(*conn); 
-      g_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
+      t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
 
       DNSComboWriter* dc=0;
       try {
@@ -805,11 +853,11 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
     tc.remote=addr;
     tc.startTime=g_now.tv_sec;
     TCPConnection::s_currentConnections++;
-    g_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
+    t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
 
     struct timeval now;
     Utility::gettimeofday(&now, 0);
-    g_fdm->setReadTTD(tc.fd, now, g_tcpTimeout);
+    t_fdm->setReadTTD(tc.fd, now, g_tcpTimeout);
   }
 }
  
@@ -1013,6 +1061,8 @@ void makeTCPServerSockets()
   }
 }
 
+
+
 void makeUDPServerSockets()
 {
   vector<string>locals;
@@ -1040,7 +1090,8 @@ void makeUDPServerSockets()
 	throw AhuException("Unable to resolve local address for UDP server on '"+ st.host +"'"); 
     }
     
-    int fd=socket(sin.sin4.sin_family, SOCK_DGRAM,0);
+    int fd=socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
+
     if(fd < 0) {
       throw AhuException("Making a UDP server socket for resolver: "+netstringerror());
     }
@@ -1055,7 +1106,7 @@ void makeUDPServerSockets()
     Utility::setNonBlocking(fd);
 
     deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
-    g_listenSocketsAddresses[fd]=sin;
+    //    g_listenSocketsAddresses[fd]=sin;  // XXX FIXME ERASED BECAUSE OF MULTITHREADING
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
@@ -1106,10 +1157,10 @@ void usr2Handler(int)
 void doStats(void)
 {
   if(g_stats.qcounter && (RC.cacheHits + RC.cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
-    L<<Logger::Warning<<"stats: "<<g_stats.qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
-     <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
-    L<<Logger::Warning<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "
-     <<SyncRes::s_nsSpeeds.size()<<endl; // ", bytes: "<<RC.bytes()<<endl;
+    //L<<Logger::Warning<<"stats: "<<g_stats.qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
+    L<<Logger::Warning<<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
+    //    L<<Logger::Warning<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "
+    // <<endl; // <<SyncRes::s_nsSpeeds.size()<<endl; // ", bytes: "<<RC.bytes()<<endl;
     L<<Logger::Warning<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Warning<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
@@ -1138,6 +1189,7 @@ try
     dt.setTimeval(now);
     RC.doPrune();
     
+#if 0
     typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
     negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(SyncRes::s_negcache);
 
@@ -1150,7 +1202,7 @@ try
 	SyncRes::s_nsSpeeds.erase(i++);
       else
 	++i;
-
+#endif
     //   cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
 //    cout<<"Prune took "<<dt.udiff()<<"usec\n";
     last_prune=time(0);
@@ -1217,7 +1269,7 @@ void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
       PacketID pid=*pident;
       string msg=pident->inMSG;
       
-      g_fdm->removeReadFD(fd);
+      t_fdm->removeReadFD(fd);
       MT->sendEvent(pid, &msg); 
     }
     else {
@@ -1226,7 +1278,7 @@ void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     PacketID tmp=*pident;
-    g_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
+    t_fdm->removeReadFD(fd); // pident might now be invalid (it isn't, but still)
     string empty;
     MT->sendEvent(tmp, &empty); // this conveys error status
   }
@@ -1240,13 +1292,13 @@ void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var)
     pid->outPos+=ret;
     if(pid->outPos==pid->outMSG.size()) {
       PacketID tmp=*pid;
-      g_fdm->removeWriteFD(fd);
+      t_fdm->removeWriteFD(fd);
       MT->sendEvent(tmp, &tmp.outMSG);  // send back what we sent to convey everything is ok
     }
   }
   else {  // error or EOF
     PacketID tmp(*pid);
-    g_fdm->removeWriteFD(fd);
+    t_fdm->removeWriteFD(fd);
     string sent;
     MT->sendEvent(tmp, &sent);         // we convey error status by sending empty string
   }
@@ -1524,7 +1576,7 @@ string reloadAuthAndForwards()
     ::arg().preParseFile(configname.c_str(), "auth-zones");
     ::arg().preParseFile(configname.c_str(), "export-etc-hosts", "off");
     ::arg().preParseFile(configname.c_str(), "serve-rfc1918");
-    
+
     parseAuthAndForwards();
     
     // purge again - new zones need to blank out the cache
@@ -1534,7 +1586,7 @@ string reloadAuthAndForwards()
     }
 
     // this is pretty blunt
-    SyncRes::s_negcache.clear(); 
+    // SyncRes::s_negcache.clear();  /// XXX FIXME removed because of multithreading (unsure why)
     return "ok\n";
   }
   catch(std::exception& e) {
@@ -1707,7 +1759,7 @@ string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::c
   return "ok - loaded script from '"+fname+"'\n";
 }
 
-
+void* recursorThread(void*);
 
 int serviceMain(int argc, char*argv[])
 {
@@ -1805,7 +1857,9 @@ int serviceMain(int argc, char*argv[])
     SyncRes::s_doIPv6=true;
     L<<Logger::Error<<"Enabling IPv6 transport for outgoing queries"<<endl;
   }
+  
   SyncRes::s_noEDNSPing = ::arg().mustDo("disable-edns-ping");
+
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
   SyncRes::s_serverID=::arg()["server-id"];
   if(SyncRes::s_serverID.empty()) {
@@ -1815,6 +1869,7 @@ int serviceMain(int argc, char*argv[])
   }
   
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
+
   parseAuthAndForwards();
 
   try {
@@ -1838,6 +1893,9 @@ int serviceMain(int argc, char*argv[])
   makeUDPServerSockets();
   makeTCPServerSockets();
 
+//  g_mc = new MemcachedCommunicator("127.0.0.1");
+  //  g_dc = new DHCPCommunicator("10.0.0.11");
+
   s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file 
@@ -1848,9 +1906,7 @@ int serviceMain(int argc, char*argv[])
     L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
   }
 #endif
-  
-  MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
-  PacketID pident;
+
   primeHints();    
   L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 #ifndef WIN32
@@ -1865,10 +1921,49 @@ int serviceMain(int argc, char*argv[])
   writePid();
 #endif
   makeControlChannelSocket();        
-  g_fdm=getMultiplexer();
+
+  pthread_t tid;
+  L<<Logger::Warning<<"Launching "<<::arg().asNum("threads")<<" threads"<<endl;
+  for(int n=0; n < ::arg().asNum("threads"); ++n) {
+    pthread_create(&tid, 0, recursorThread, (void*)n);
+  }
+  void* res;
+  pthread_join(tid, &res);
+  return 0;
+}
+
+void* recursorThread(void* ptr)
+try
+{
+#if 0
+  DTime dt;
+  time_t now=time(0);
+
+  string templ;
+  vector<string> names;
+  for(int n = 0 ; n < 500000; ++n) {
+    templ="blah"+lexical_cast<string>(n)+".testdomain.com";
+    names.push_back(templ);
+  }
+  random_shuffle(names.begin(), names.end());
+  cerr<<"go!"<<endl;
+  dt.set();
+  for(int n = 0 ; n < 500000; ++n) {
+    vector<DNSResourceRecord> avect;
+    RC.get2(now, names[n], QType(QType::AAAA), &avect); // auth, nuke it all
+  }
+  cerr<<"get2 secs: "<<dt.udiff()/1000000.0<<endl;
+#endif 
+  t_id=(int) ptr;
+  MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
+  
+  
+  PacketID pident;
+
+  t_fdm=getMultiplexer();
   
   for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
-    g_fdm->addReadFD(i->first, i->second);
+    t_fdm->addReadFD(i->first, i->second);
   
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -1886,7 +1981,7 @@ int serviceMain(int argc, char*argv[])
   }
   
   Utility::dropPrivs(newuid, newgid);
-  g_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
+  t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
 #endif 
   
   counter=0;
@@ -1901,19 +1996,19 @@ int serviceMain(int argc, char*argv[])
   for(;;) {
     while(MT->schedule(&g_now)); // housekeeping, let threads do their thing
       
-    if(!(counter%500)) {
+    if(!t_id && !(counter%500)) {
       MT->makeThread(houseKeeping,0);
     }
 
     if(!(counter%55)) {
       typedef vector<pair<int, FDMultiplexer::funcparam_t> > expired_t;
-      expired_t expired=g_fdm->getTimeouts(g_now);
+      expired_t expired=t_fdm->getTimeouts(g_now);
 	
       for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
 	TCPConnection conn=any_cast<TCPConnection>(i->second);
 	if(g_logCommonErrors)
 	  L<<Logger::Warning<<"Timeout from remote TCP client "<< conn.remote.toString() <<endl;
-	g_fdm->removeReadFD(i->first);
+	t_fdm->removeReadFD(i->first);
 	conn.closeAndCleanup();
       }
     }
@@ -1925,25 +2020,38 @@ int serviceMain(int argc, char*argv[])
     }
 
     Utility::gettimeofday(&g_now, 0);
-    g_fdm->run(&g_now);
+    t_fdm->run(&g_now);
     Utility::gettimeofday(&g_now, 0);
 
     if(listenOnTCP) {
       if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown
 	for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	  g_fdm->removeReadFD(*i);
+	  t_fdm->removeReadFD(*i);
 	listenOnTCP=false;
       }
     }
     else {
       if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
 	for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	  g_fdm->addReadFD(*i, handleNewTCPQuestion);
+	  t_fdm->addReadFD(*i, handleNewTCPQuestion);
 	listenOnTCP=true;
       }
     }
   }
 }
+catch(AhuException &ae) {
+  L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
+  return 0;
+}
+catch(std::exception &e) {
+   L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
+   return 0;
+}
+catch(...) {
+   L<<Logger::Error<<"any other exception in main: "<<endl;
+   return 0;
+}
+
 #ifdef WIN32
 void doWindowsServiceArguments(RecursorService& recursor)
 {
@@ -1966,10 +2074,6 @@ void doWindowsServiceArguments(RecursorService& recursor)
 
 int main(int argc, char **argv) 
 {
-  //  HTimer mtimer("main");
-  //  mtimer.start();
-
-
   g_stats.startupTime=time(0);
   reportBasicTypes();
 
@@ -1998,6 +2102,7 @@ int main(int argc, char **argv)
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
     ::arg().set("network-timeout", "Wait this nummer of milliseconds for network i/o")="1500";
+    ::arg().set("threads", "Launch this number of threads")="2";
 #ifdef WIN32
     ::arg().set("quiet","Suppress logging of questions and answers")="off";
     ::arg().setSwitch( "register-service", "Register the service" )= "no";

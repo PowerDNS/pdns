@@ -35,12 +35,20 @@
 #include "recursor_cache.hh"
 #include "dnsparser.hh"
 #include "dns_random.hh"
+#include "lock.hh"
 
 extern MemRecursorCache RC;
 
+pthread_mutex_t SyncRes::s_negcachelock =  PTHREAD_MUTEX_INITIALIZER;
 SyncRes::negcache_t SyncRes::s_negcache;    
+
+
+pthread_mutex_t SyncRes::s_nsSpeedslock =  PTHREAD_MUTEX_INITIALIZER;
 SyncRes::nsspeeds_t SyncRes::s_nsSpeeds;    
+
+pthread_mutex_t SyncRes::s_ednslock =  PTHREAD_MUTEX_INITIALIZER;
 SyncRes::ednsstatus_t SyncRes::s_ednsstatus;
+
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_queries;
@@ -190,13 +198,18 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   return true;
 }
 
+
+
 void SyncRes::doEDNSDumpAndClose(int fd)
 {
   FILE* fp=fdopen(fd, "w");
   fprintf(fp,"IP Address\tMode\tMode last updated at\n");
+
+  Lock l(&SyncRes::s_ednslock);
   for(ednsstatus_t::const_iterator iter = s_ednsstatus.begin(); iter != s_ednsstatus.end(); ++iter) {
     fprintf(fp, "%s\t%d\t%s", iter->first.toString().c_str(), (int)iter->second.mode, ctime(&iter->second.modeSetAt));
   }
+
   fclose(fp);
 }
 
@@ -232,17 +245,21 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
      If '4', send bare queries
   */
 
-  SyncRes::EDNSStatus& ednsstatus=SyncRes::s_ednsstatus[ip];
+  SyncRes::EDNSStatus* ednsstatus;
+  {
+    Lock l(&SyncRes::s_ednslock);
+    ednsstatus = &SyncRes::s_ednsstatus[ip];
+  }
 
-  if(ednsstatus.modeSetAt && ednsstatus.modeSetAt + 3600 < d_now.tv_sec) {
-    ednsstatus=SyncRes::EDNSStatus();
+  if(ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
+    *ednsstatus=SyncRes::EDNSStatus();
     //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl;
   }
 
-  if(s_noEDNSPing && ednsstatus.mode == EDNSStatus::UNKNOWN)
-    ednsstatus.mode = EDNSStatus::EDNSNOPING;
+  if(s_noEDNSPing && ednsstatus->mode == EDNSStatus::UNKNOWN)
+    ednsstatus->mode = EDNSStatus::EDNSNOPING;
 
-  SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus.mode;
+  SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
   SyncRes::EDNSStatus::EDNSMode oldmode = mode;
   int EDNSLevel=0;
 
@@ -277,7 +294,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
       }
       else {
 	g_stats.ednsPingMatches++;
-	ednsstatus.modeSetAt=d_now.tv_sec; // only the very best mode self-perpetuates
+	ednsstatus->modeSetAt=d_now.tv_sec; // only the very best mode self-perpetuates
       }
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode == EDNSStatus::EDNSIGNORANT ) {
@@ -320,7 +337,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
       }
     }
     if(oldmode != mode)
-      ednsstatus.modeSetAt=d_now.tv_sec;
+      ednsstatus->modeSetAt=d_now.tv_sec;
     //        cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", EDNS-PING correct: "<<res->d_pingCorrect<<", new mode: "<<mode<<endl;  
     
     return ret;
@@ -419,6 +436,8 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
   
   if(ret.size() > 1) {
     random_shuffle(ret.begin(), ret.end(), dns_random);
+
+    Lock l(&SyncRes::s_nsSpeedslock);
 
     // move 'best' address for this nameserver name up front
     nsspeeds_t::iterator best = s_nsSpeeds.find(qname);  
@@ -575,6 +594,9 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   return false;
 }
 
+
+
+
 bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   bool giveNegative=false;
@@ -589,6 +611,10 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   QType sqt(qtype);
   uint32_t sttl=0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"'\n";
+
+
+  
+  Lock l(&s_negcachelock); // protects s_negcache
 
   pair<negcache_t::const_iterator, negcache_t::const_iterator> range=s_negcache.equal_range(tie(qname));
   negcache_t::iterator ni;
@@ -686,6 +712,7 @@ inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> 
 
   for(set<string, CIStringCompare>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
+    Lock l(&SyncRes::s_nsSpeedslock);
     speeds[*i]=s_nsSpeeds[*i].get(&d_now);
   }
   random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
@@ -727,6 +754,8 @@ static bool magicAddrMatch(const QType& query, const QType& answer)
     return false;
   return answer.getCode() == QType::A || answer.getCode() == QType::AAAA;
 }
+
+double g_avgLatency;
 
 /** returns -1 in case of no results, rcode otherwise */
 int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, 
@@ -846,7 +875,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      }
 	      
 	      if(resolveret!=-2) { // don't account for resource limits, they are our own fault
-		s_nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
+		{
+		  Lock l(&SyncRes::s_nsSpeedslock);
+		  s_nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
+		}
 		if(resolveret==-1)
 		  s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable
 		else
@@ -886,7 +918,11 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	if(remoteIP->sin4.sin_family==AF_INET6)
 	  lwr.d_usec/=3;
 	*/
+	//	cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
+	double fract = 0.001;
+	g_avgLatency = (1-fract) * g_avgLatency + fract * lwr.d_usec;
 
+	Lock l(&SyncRes::s_nsSpeedslock);
 	s_nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
       }
 
@@ -961,7 +997,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  ne.d_name=qname;
 	  ne.d_qtype=QType(0); // this encodes 'whole record'
 	  
-	  replacing_insert(s_negcache, ne);
+	  {
+	    Lock l(&s_negcachelock);
+	    replacing_insert(s_negcache, ne);
+	  }
 	  negindic=true;
 	}
 	else if(i->d_place==DNSResourceRecord::ANSWER && iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -1002,6 +1041,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  ne.d_name=qname;
 	  ne.d_qtype=qtype;
 	  if(qtype.getCode()) {  // prevents us from blacking out a whole domain
+	    Lock l(&s_negcachelock);
 	    replacing_insert(s_negcache, ne);
 	  }
 	  negindic=true;

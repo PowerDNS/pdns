@@ -3,8 +3,10 @@ SBINDIR=/usr/sbin/
 BINDIR=/usr/bin/
 CONFIGDIR="/etc/powerdns/"
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Wall -DBOOST_SP_DISABLE_THREADS $(OPTFLAGS) $(PROFILEFLAGS)
-CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS)
+CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) -pthread
+CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) -pthread
+LDFLAGS:=$(LDFLAGS) -pthread
+
 LINKCC=$(CXX)
 CC?=gcc
 
@@ -42,13 +44,13 @@ endif
 ifeq ($(STATIC),semi)
 	STATICFLAGS=-Wl,-Bstatic -lstdc++ $(LUALIBS) -lgcc -Wl,-Bdynamic -static-libgcc -lm -lc
 	LINKCC=$(CC)
-	LDFLAGS += malloc.o -ldl -lm
+	LDFLAGS += -ldl -lm
 else 
    ifeq ($(STATIC),full)
 	STATICFLAGS=-lstdc++ $(LUALIBS) -ldl -lm -static 
 	LINKCC=$(CC)
    else
-	LDFLAGS += malloc.o $(LUALIBS)
+	LDFLAGS +=  $(LUALIBS)
    endif
 endif
 
@@ -96,7 +98,7 @@ dep:
 optional:
 	mkdir optional
 
-pdns_recursor: optional $(OPTIONALS) $(PDNS_RECURSOR_OBJECTS) malloc.o
+pdns_recursor: optional $(OPTIONALS) $(PDNS_RECURSOR_OBJECTS) 
 	$(LINKCC) $(PDNS_RECURSOR_OBJECTS) $(wildcard optional/*.o) $(LDFLAGS) -o $@
 
 rec_control: $(REC_CONTROL_OBJECTS)

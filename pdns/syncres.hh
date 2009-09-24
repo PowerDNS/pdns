@@ -19,6 +19,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
+#include "lock.hh"
 
 void primeHints(void);
 
@@ -31,18 +32,21 @@ struct NegCacheEntry
 };
 
 
-template<class Thing> class Throttle
+template<class Thing> class Throttle : public boost::noncopyable
 {
 public:
   Throttle()
   {
+    pthread_mutex_init(&d_lock, NULL);
     d_limit=3;
     d_ttl=60;
     d_last_clean=time(0);
   }
   bool shouldThrottle(time_t now, const Thing& t)
   {
+    Lock l(&d_lock);
     if(now > d_last_clean + 300 ) {
+
       d_last_clean=now;
       for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) {
 	if( i->second.ttd < now) {
@@ -64,6 +68,7 @@ public:
   }
   void throttle(time_t now, const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
   {
+    Lock l(&d_lock);
     typename cont_t::iterator i=d_cont.find(t);
     entry e={ now+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
 
@@ -76,6 +81,7 @@ public:
   
   unsigned int size()
   {
+    Lock l(&d_lock);
     return (unsigned int)d_cont.size();
   }
 private:
@@ -89,6 +95,7 @@ private:
   };
   typedef map<Thing,entry> cont_t;
   cont_t d_cont;
+  pthread_mutex_t d_lock;
 };
 
 
@@ -207,12 +214,16 @@ private:
 };
 
 
-class SyncRes
+class SyncRes : public boost::noncopyable
 {
 public:
   explicit SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 						 d_now(now),
-						 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) { }
+						 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) 
+  { 
+
+  }
+
   int beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
@@ -276,6 +287,7 @@ public:
     >
   >negcache_t;
   static negcache_t s_negcache;    
+  static pthread_mutex_t s_negcachelock;
 
   //! This represents a number of decaying Ewmas, used to store performance per namerserver-name. 
   /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
@@ -329,6 +341,7 @@ public:
 
   typedef map<string, DecayingEwmaCollection, CIStringCompare> nsspeeds_t;
   static nsspeeds_t s_nsSpeeds;
+  static pthread_mutex_t s_nsSpeedslock;
 
   struct EDNSStatus
   {
@@ -339,7 +352,10 @@ public:
   };
 
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
+
   static ednsstatus_t s_ednsstatus;
+  static pthread_mutex_t s_ednslock;
+
   static bool s_noEDNSPing;
 
   struct AuthDomain
@@ -369,6 +385,7 @@ public:
   struct timeval d_now;
   static unsigned int s_maxnegttl;
   static string s_serverID;
+
 private:
   struct GetBestNSAnswer;
   int doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
@@ -479,7 +496,7 @@ struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>
 };
 extern MemRecursorCache RC;
 typedef MTasker<PacketID,string> MT_t;
-extern MT_t* MT;
+extern __thread MT_t* MT;
 
 struct RecursorStats
 {
