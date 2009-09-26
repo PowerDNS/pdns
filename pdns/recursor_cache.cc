@@ -172,8 +172,6 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   unsigned int ttd=0;
   {
     WriteLock wl(&s_rwlock);
-
-    
     //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
 
     if(!d_cachecachevalid || Utility::strcasecmp(d_cachedqname.c_str(), qname.c_str())) {
@@ -183,11 +181,10 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
       d_cachecachevalid=true;
     }
     else
+      //    cerr<<"had cache cache hit!"<<endl;
       ;
   }
   ReadLock l(&s_rwlock);
-  //    cerr<<"had cache cache hit!"<<endl;
-
 
   if(res)
     res->clear();
@@ -213,7 +210,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 	if(res) {
 
 
-#if 0 // XXX FIXME removed because of threading (unsure why)
+#if 0 // XXX FIXME removed because of threading - sidx should not be touched holding just a readlock!
 	  if(res->empty())
 	    sidx.relocate(sidx.begin(), si); 
 	  else

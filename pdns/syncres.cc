@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2008  PowerDNS.COM BV
+    Copyright (C) 2003 - 2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -41,7 +41,6 @@ extern MemRecursorCache RC;
 
 pthread_mutex_t SyncRes::s_negcachelock =  PTHREAD_MUTEX_INITIALIZER;
 SyncRes::negcache_t SyncRes::s_negcache;    
-
 
 pthread_mutex_t SyncRes::s_nsSpeedslock =  PTHREAD_MUTEX_INITIALIZER;
 SyncRes::nsspeeds_t SyncRes::s_nsSpeeds;    

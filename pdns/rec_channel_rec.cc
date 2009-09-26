@@ -127,19 +127,17 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
-
-/* disabled for now! needs multithreading work! (unsure why) FIXME XXX */
 template<typename T>
 string doWipeCache(T begin, T end)
 {
-  return "disabled";
   int count=0, countNeg=0;
   for(T i=begin; i != end; ++i) {
     count+=RC.doWipeCache(toCanonic("", *i));
     string canon=toCanonic("", *i);
-    // countNeg+=SyncRes::s_negcache.count(tie(canon));
-    //pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::s_negcache.equal_range(tie(canon));
-    //    SyncRes::s_negcache.erase(range.first, range.second);
+    Lock l(&SyncRes::s_negcachelock);
+    countNeg+=SyncRes::s_negcache.count(tie(canon));
+    pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::s_negcache.equal_range(tie(canon));
+    SyncRes::s_negcache.erase(range.first, range.second);
   }
 
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";

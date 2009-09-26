@@ -1585,7 +1585,8 @@ string reloadAuthAndForwards()
     }
 
     // this is pretty blunt
-    // SyncRes::s_negcache.clear();  /// XXX FIXME removed because of multithreading (unsure why)
+    Lock l(&SyncRes::s_negcachelock);
+    SyncRes::s_negcache.clear();  
     return "ok\n";
   }
   catch(std::exception& e) {
