@@ -1415,7 +1415,6 @@ FDMultiplexer* getMultiplexer()
       i != FDMultiplexer::getMultiplexerMap().end(); ++i) {
     try {
       ret=i->second();
-      L<<Logger::Error<<"Enabled '"<<ret->getName()<<"' multiplexer"<<endl;
       return ret;
     }
     catch(FDMultiplexerException &fe) {
@@ -1961,7 +1960,10 @@ try
   PacketID pident;
 
   t_fdm=getMultiplexer();
-  
+  if(!t_id) 
+    L<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
+
+
   for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
     t_fdm->addReadFD(i->first, i->second);
   
