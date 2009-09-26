@@ -616,34 +616,34 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   QType sqt(qtype);
   uint32_t sttl=0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"'\n";
-
-
   
-  Lock l(&s_negcachelock); // protects s_negcache
-
-  pair<negcache_t::const_iterator, negcache_t::const_iterator> range=s_negcache.equal_range(tie(qname));
-  negcache_t::iterator ni;
-  for(ni=range.first; ni != range.second; ni++) {
-    // we have something
-    if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
-      res=0;
-      if((uint32_t)d_now.tv_sec < ni->d_ttd) {
-	sttl=ni->d_ttd - d_now.tv_sec;
-	if(ni->d_qtype.getCode()) {
-	  LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
-	  res = RCode::NoError;
+  {
+    Lock l(&s_negcachelock); // protects s_negcache
+    
+    pair<negcache_t::const_iterator, negcache_t::const_iterator> range=s_negcache.equal_range(tie(qname));
+    negcache_t::iterator ni;
+    for(ni=range.first; ni != range.second; ni++) {
+      // we have something
+      if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
+	res=0;
+	if((uint32_t)d_now.tv_sec < ni->d_ttd) {
+	  sttl=ni->d_ttd - d_now.tv_sec;
+	  if(ni->d_qtype.getCode()) {
+	    LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
+	    res = RCode::NoError;
+	  }
+	  else {
+	    LOG<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
+	    res= RCode::NXDomain; 
+	  }
+	  giveNegative=true;
+	  sqname=ni->d_qname;
+	  sqt=QType::SOA;
+	  break;
 	}
 	else {
-	  LOG<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
-	  res= RCode::NXDomain; 
+	  LOG<<prefix<<qname<<": Entire record '"<<qname<<"' was negatively cached, but entry expired"<<endl;
 	}
-	giveNegative=true;
-	sqname=ni->d_qname;
-	sqt=QType::SOA;
-	break;
-      }
-      else {
-	LOG<<prefix<<qname<<": Entire record '"<<qname<<"' was negatively cached, but entry expired"<<endl;
       }
     }
   }
