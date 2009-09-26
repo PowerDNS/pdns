@@ -109,18 +109,23 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   }
   else {
     try {
-      if(ip.sin4.sin_family != AF_INET) // sstuff isn't yet ready for IPv6
-	return -1;
-      Socket s(InterNetwork, Stream);
-      IPEndpoint ie(U32ToIP(ntohl(ip.sin4.sin_addr.s_addr)), 53);   // WRONG WRONG WRONG XXX FIXME
+      Socket s((AddressFamily)ip.sin4.sin_family, Stream);
+
       s.setNonBlocking();
-      string bindIP=::arg()["query-local-address"];
+      string bindIP;
+      if(ip.sin4.sin_family == AF_INET) 
+	bindIP = ::arg()["query-local-address"];
+      else
+	bindIP = ::arg()["query-local-address6"];
+
       if(!bindIP.empty()) {
 	ComboAddress local(bindIP);
-	s.bind(local.sin4);
+	s.bind(local);
       }
 
-      s.connect(ie);
+      ComboAddress remote = ip;
+      remote.sin4.sin_port = htons(53);      
+      s.connect(remote);
       
       uint16_t tlen=htons(vpacket.size());
       char *lenP=(char*)&tlen;

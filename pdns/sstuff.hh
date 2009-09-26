@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include "iputils.hh"
 #include <errno.h>
 #include <sys/types.h>
 #ifndef WIN32
@@ -16,6 +17,7 @@
 #include <fcntl.h>
 #include <stdexcept>
 #include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 #include <csignal>
 using namespace std;
 using namespace boost;
@@ -31,66 +33,15 @@ public:
 };
 
 
-//! Representation of an IP Address
-class IPAddress
-{
-public:
-  uint32_t byte; 
-
-  //! The default IPAddress is 0.0.0.0
-  IPAddress()
-  {
-    byte=0;
-  }
-  //! Construct an IP address based on a string representation of one
-  IPAddress(const string &remote)
-  {
-    struct in_addr addr;
-    if(!Utility::inet_aton(remote.c_str(), &addr))
-      throw NetworkError("Could not convert '"+remote+"' to an IP address");
-    byte=addr.s_addr;
-  }
-
-  //! Return an IP address as a printable string
-  string asString() const
-  {
-    ostringstream o;
-    const unsigned char *n=reinterpret_cast<const unsigned char*>(&byte);
-    o<<(unsigned int)*n++<<".";
-    o<<(unsigned int)*n++<<".";
-    o<<(unsigned int)*n++<<".";
-    o<<(int)*n++;
-    return o.str();
-  }
-};
-
-typedef uint16_t IPPort;
-
-//! Defines an IP Endpoint which consists of an IP address and a port number
-class IPEndpoint
-{
-public:
-
-  IPEndpoint(){}   //!< Empty IPEndpoint
-  IPEndpoint(const string &remote, IPPort aport=0) : address(remote), port(aport){} //!< Construct a fully configured endpoint
-  IPAddress address;
-  IPPort port;
-  enum PortTypes {ANY=0};
-};
-
-
-enum AddressFamily {InterNetwork=AF_INET}; //!< Supported address families
+enum AddressFamily {InterNetwork=AF_INET, InterNetwork6 = AF_INET6}; //!< Supported address families
 enum SocketType {Datagram=SOCK_DGRAM,Stream=SOCK_STREAM}; //!< Supported socket families
 typedef int ProtocolType; //!< Supported protocol types
 
 //! Representation of a Socket and many of the Berkeley functions available
-class Socket
+class Socket : public boost::noncopyable
 {
 private:
-  Socket(const Socket &);
-  Socket &operator=(const Socket &);
-
-  Socket(int fd)
+  explicit Socket(int fd)
   {
     d_buflen=4096;
     d_buffer=new char[d_buflen];
@@ -137,21 +88,21 @@ public:
   }
 
   //! Bind the socket to a specified endpoint
-  void bind(const struct sockaddr_in &local)
+  void bind(const ComboAddress &local)
   {
     int tmp=1;
-    if(setsockopt(d_socket,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
+    if(setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
       throw NetworkError(string("Setsockopt failed: ")+strerror(errno));
 
-    if(::bind(d_socket,(struct sockaddr *)&local,sizeof(local))<0)
+    if(::bind(d_socket,(struct sockaddr *)&local, local.getSocklen())<0)
       throw NetworkError(strerror(errno));
   }
 
-
+#if 0
   //! Bind the socket to a specified endpoint
-  void bind(const IPEndpoint &ep)
+  void bind(const ComboAddress &ep)
   {
-    struct sockaddr_in local;
+    ComboAddress local;
     memset(reinterpret_cast<char *>(&local),0,sizeof(local));
     local.sin_family=d_family;
     local.sin_addr.s_addr=ep.address.byte;
@@ -159,17 +110,11 @@ public:
     
     bind(local);
   }
-
+#endif
   //! Connect the socket to a specified endpoint
-  void connect(const IPEndpoint &ep)
+  void connect(const ComboAddress &ep)
   {
-    struct sockaddr_in remote;
-    memset(reinterpret_cast<char *>(&remote),0,sizeof(remote));
-    remote.sin_family=d_family;
-    remote.sin_addr.s_addr=ep.address.byte;
-    remote.sin_port=htons(ep.port);
-    
-    if(::connect(d_socket,(struct sockaddr *)&remote,sizeof(remote)) < 0 && errno != EINPROGRESS)
+    if(::connect(d_socket,(struct sockaddr *)&ep, ep.getSocklen()) < 0 && errno != EINPROGRESS)
       throw NetworkError(strerror(errno));
   }
 
@@ -178,20 +123,17 @@ public:
   /** For datagram sockets, receive a datagram and learn where it came from
       \param dgram Will be filled with the datagram
       \param ep Will be filled with the origin of the datagram */
-  void recvFrom(string &dgram, IPEndpoint &ep)
+  void recvFrom(string &dgram, ComboAddress &ep)
   {
-    struct sockaddr_in remote;
-    socklen_t remlen=sizeof(remote);
+    socklen_t remlen=sizeof(ep);
     int bytes;
-    if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&remote, &remlen))<0)
+    if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&ep , &remlen)) <0)
       throw NetworkError(strerror(errno));
     
     dgram.assign(d_buffer,bytes);
-    ep.address.byte=remote.sin_addr.s_addr;
-    ep.port=ntohs(remote.sin_port);
   }
 
-  bool recvFromAsync(string &dgram, IPEndpoint &ep)
+  bool recvFromAsync(string &dgram, ComboAddress &ep)
   {
     struct sockaddr_in remote;
     socklen_t remlen=sizeof(remote);
@@ -205,8 +147,6 @@ public:
       }
     }
     dgram.assign(d_buffer,bytes);
-    ep.address.byte=remote.sin_addr.s_addr;
-    ep.port=ntohs(remote.sin_port);
     return true;
   }
 
@@ -215,14 +155,9 @@ public:
   /** For datagram sockets, send a datagram to a destination
       \param dgram The datagram
       \param ep The intended destination of the datagram */
-  void sendTo(const string &dgram, const IPEndpoint &ep)
+  void sendTo(const string &dgram, const ComboAddress &ep)
   {
-    struct sockaddr_in remote;
-    remote.sin_family=d_family;
-    remote.sin_addr.s_addr=ep.address.byte;
-    remote.sin_port=ntohs(ep.port);
-
-    if(sendto(d_socket, dgram.c_str(), (int)dgram.size(), 0, (sockaddr *)&remote, sizeof(remote))<0)
+    if(sendto(d_socket, dgram.c_str(), (int)dgram.size(), 0, (sockaddr *)&ep, ep.getSocklen())<0)
       throw NetworkError(strerror(errno));
   }
 
@@ -343,59 +278,5 @@ private:
   int d_family;
 };
 
-//! Convenience class built on top of Socket for writing UDP servers
-class UDPListener
-{
-public:
-  //! Constructor taking an IPEndpoint describing on what addresses to listen
-  UDPListener(const IPEndpoint &ep)
-  {
-    d_ep=ep;
-    initSocket();
-  }
-  //! Constructor taking only a port number, binding to all interfaces
-  UDPListener(IPPort port)
-  {
-    d_ep.address.byte=0; // =IPAddress::ANY;
-    d_ep.port=port;
-    initSocket();
-  }
-  //! For clients mostly, binds to all interfaces using a kernel assigned port number
-  UDPListener()
-  {
-    d_ep.address.byte=0; // =IPEndpoint::ANY;
-    d_ep.port=0;
-    initSocket();
-  }
-  ~UDPListener()
-  {
-    delete d_socket;
-  }
-  //! Returns a datagram and reports its origin
-  void recvFrom(string &dgram, IPEndpoint &remote)
-  {
-    d_socket->recvFrom(dgram,remote);
-  }
-
-  //! Sends a datagram to a remote
-  void sendTo(const string &dgram, const IPEndpoint &remote)
-  {
-    d_socket->sendTo(dgram,remote);
-  }
-
-private:
-  void initSocket()
-  {
-    d_socket=new Socket(InterNetwork, Datagram);
-    d_socket->bind(d_ep);
-  }
-
-private:
-  UDPListener(const UDPListener &);
-  UDPListener &operator=(const UDPListener &);
-  IPEndpoint d_ep;
-  Socket *d_socket;
-
-};
 
 #endif

@@ -31,15 +31,15 @@ try
   NSRecordContent nrc2("ns2.powerdns.com");
   nrc2.toPacket(pw);
   */
-  /*
+    string ping("hallo!");
   DNSPacketWriter::optvect_t opts;
-  string ping("hallo!");
-  //  opts.push_back(make_pair(5, ping));
+
+  opts.push_back(make_pair(5, ping));
   pw.addOpt(5200, 0, 0x8000, opts);
   pw.commit();
-  */
+
   Socket sock(InterNetwork, Datagram);
-  IPEndpoint dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+  ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
   sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
   
   string reply;
@@ -54,7 +54,7 @@ try
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
     cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
   }
-#if 0
+
   EDNSOpts edo;
   if(getEDNSOpts(mdp, &edo)) {
     
@@ -62,15 +62,18 @@ try
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
 	iter != edo.d_options.end(); 
 	++iter) {
-      if(iter->first == 1) {// 'EDNS PING'
+      if(iter->first == 5) {// 'EDNS PING'
 	cerr<<"Have ednsping: '"<<iter->second<<"'\n";
 	if(iter->second == ping) 
 	  cerr<<"It is correct!"<<endl;
       }
+      else {
+	cerr<<"Have unknown option "<<(int)iter->first<<endl;
+      }
     }
 
   }
-#endif
+
 }
 catch(std::exception &e)
 {

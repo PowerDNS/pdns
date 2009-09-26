@@ -415,6 +415,12 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   return res<0 ? RCode::ServFail : res;
 }
 
+// for testing purpoises
+static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
+{
+  return !(a.sin4.sin_family < a.sin4.sin_family);
+}
+
 /** This function explicitly goes out for A addresses, but if configured to use IPv6 as well, will also return any IPv6 addresses in the cache
     Additionally, it will return the 'best' address up front, and the rest shufled
 */
@@ -453,7 +459,7 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
 	}
       }
   }
-    
+
   return ret;
 }
 
@@ -1067,7 +1073,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	}
 	LOG<<prefix<<qname<<": status=got a CNAME referral, starting over with "<<newtarget<<endl;
 
-	set<GetBestNSAnswer>beenthere2;
+	set<GetBestNSAnswer> beenthere2;
 	return doResolve(newtarget, qtype, ret, depth + 1, beenthere2);
       }
       if(nsset.empty() && !lwr.d_rcode) {
