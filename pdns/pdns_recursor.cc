@@ -48,6 +48,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
+#include <netinet/tcp.h>
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
@@ -83,12 +84,12 @@ bool g_quiet;
 NetmaskGroup* g_allowFrom;
 NetmaskGroup* g_dontQuery;
 string s_programname="pdns_recursor";
-typedef vector<int> g_tcpListenSockets_t;
-g_tcpListenSockets_t g_tcpListenSockets; // is shared per thread!!
+typedef vector<int> tcpListenSockets_t;
+tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
 int g_tcpTimeout;
 //MemcachedCommunicator* g_mc;
 // DHCPCommunicator* g_dc;
-map<int, ComboAddress> g_listenSocketsAddresses; // is shared per thread!
+map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
   {}
@@ -1106,7 +1107,7 @@ void makeUDPServerSockets()
     Utility::setNonBlocking(fd);
 
     deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
-    //    g_listenSocketsAddresses[fd]=sin;  // XXX FIXME ERASED BECAUSE OF MULTITHREADING
+    g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
@@ -2027,15 +2028,15 @@ try
     Utility::gettimeofday(&g_now, 0);
 
     if(listenOnTCP) {
-      if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown
-	for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+      if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown, too many connections
+	for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
 	  t_fdm->removeReadFD(*i);
 	listenOnTCP=false;
       }
     }
     else {
       if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
-	for(g_tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+	for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
 	  t_fdm->addReadFD(*i, handleNewTCPQuestion);
 	listenOnTCP=true;
       }
