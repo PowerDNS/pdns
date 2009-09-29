@@ -1955,7 +1955,7 @@ try
   }
   cerr<<"get2 secs: "<<dt.udiff()/1000000.0<<endl;
 #endif 
-  t_id=(int) ptr;
+  t_id=(int) (long) ptr;
   MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
   
   
