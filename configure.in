@@ -214,6 +214,9 @@ do
 		gmysql )
 			needmysql=yes
 		;;
+		mydns )
+			needmysql=yes
+		;;
 		gpgsql )
 			needpgsql=yes
 		;;
@@ -545,4 +548,4 @@ modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/odbcbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile 
 modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile
-modules/goraclebackend/Makefile )
+modules/goraclebackend/Makefile modules/mydnsbackend/Makefile)
