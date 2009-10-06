@@ -283,8 +283,8 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   shared_ptr<State> state = s_state;
-  for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
-    if(i->second.d_name==domain) {
+  for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) { // why is this a linear scan??
+    if(iequals(i->second.d_name,domain)) {
       di.id=i->first;
       di.zone=domain;
       di.masters=i->second.d_masters;
