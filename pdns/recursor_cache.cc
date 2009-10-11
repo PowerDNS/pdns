@@ -9,7 +9,7 @@
 #include "recursor_cache.hh"
 
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 
 #include "config.h"
 

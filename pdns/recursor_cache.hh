@@ -22,7 +22,7 @@
 #undef max
 
 #define L theL()
-using namespace boost;
+#include "namespaces.hh"
 using namespace ::boost::multi_index;
 
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache

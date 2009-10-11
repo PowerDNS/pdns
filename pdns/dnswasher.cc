@@ -15,7 +15,7 @@ otherwise, obfuscate the response IP address
 #include "statbag.hh"
 #include "dnspcap.hh"
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace std;
 
 StatBag S;

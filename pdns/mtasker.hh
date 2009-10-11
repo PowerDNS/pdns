@@ -32,7 +32,7 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
-using namespace boost;
+#include "namespaces.hh"
 using namespace ::boost::multi_index;
 
 struct KeyTag {};

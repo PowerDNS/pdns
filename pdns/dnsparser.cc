@@ -21,7 +21,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-using namespace boost;
+#include "namespaces.hh"
 
 class UnknownRecordContent : public DNSRecordContent
 {

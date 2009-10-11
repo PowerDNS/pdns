@@ -59,7 +59,7 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace ::boost::multi_index;
 using namespace std;
 

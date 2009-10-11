@@ -7,7 +7,7 @@
 #include "utility.hh" 
 
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace std;
 
 static FDMultiplexer* make()

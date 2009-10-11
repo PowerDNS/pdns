@@ -1,7 +1,7 @@
 #ifndef PDNS_RECURSOR_MEMCACHED_HH
 #define PDNS_RECURSOR_MEMCACHED_HH
 #include <string>
-#include <stdint.h>
+
 
 class MemcachedCommunicator
 {

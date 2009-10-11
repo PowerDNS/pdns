@@ -11,7 +11,7 @@
 #endif
 #include <sys/time.h>
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace std;
 
 class KqueueFDMultiplexer : public FDMultiplexer

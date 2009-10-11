@@ -41,7 +41,7 @@
 #include "statbag.hh"
 #include "resolver.hh"
 #include "communicator.hh"
-using namespace boost;
+#include "namespaces.hh"
 
 extern PacketCache PC;
 extern StatBag S;

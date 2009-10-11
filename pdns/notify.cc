@@ -12,7 +12,7 @@
 
 #include "mplexer.hh"
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace ::boost::multi_index;
 using namespace std;
 

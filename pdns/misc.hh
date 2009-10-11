@@ -18,7 +18,7 @@
 */
 #ifndef MISC_HH
 #define MISC_HH
-#include <stdint.h>
+#include <inttypes.h>
 #include <cstring>
 #include <cstdio>
 #if 0

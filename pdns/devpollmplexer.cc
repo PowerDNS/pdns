@@ -7,7 +7,7 @@
 #include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace std;
 
 class DevPollFDMultiplexer : public FDMultiplexer

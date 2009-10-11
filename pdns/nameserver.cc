@@ -33,7 +33,7 @@
 #include "arguments.hh"
 #include "statbag.hh"
 
-using namespace boost;
+#include "namespaces.hh"
 
 extern StatBag S;
 

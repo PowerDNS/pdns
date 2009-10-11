@@ -11,7 +11,7 @@
 #include <algorithm>
 #include "anadns.hh"
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace std;
 
 StatBag S;

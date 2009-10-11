@@ -481,7 +481,7 @@ try
   memcpy((void *)&d,(const void *)stringbuffer.c_str(),12);
   qdomain=mdp.d_qname;
   if(!qdomain.empty()) // strip dot
-    erase_tail(qdomain, 1);
+    boost::erase_tail(qdomain, 1);
 
   if(!ntohs(d.qdcount)) {
     if(!d_tcp) {

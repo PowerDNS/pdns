@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <stdexcept>
-#include <stdint.h>
+
 #include "md5.hh"
 
 using namespace std;

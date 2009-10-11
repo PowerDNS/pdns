@@ -2,7 +2,7 @@
 #define _MD5_H
 
 #include <string>
-#include <stdint.h>
+
 
 
 class MD5Summer

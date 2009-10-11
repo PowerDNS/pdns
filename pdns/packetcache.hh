@@ -28,7 +28,7 @@
 using namespace std;
 using namespace ::boost::multi_index;
 
-using namespace boost;
+#include "namespaces.hh"
 #include "dnspacket.hh"
 #include "lock.hh"
 #include "statbag.hh"

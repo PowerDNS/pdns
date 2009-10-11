@@ -9,7 +9,7 @@
 #include <sys/epoll.h>
 #endif
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace std;
 
 class EpollFDMultiplexer : public FDMultiplexer

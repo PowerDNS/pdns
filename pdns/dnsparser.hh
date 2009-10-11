@@ -48,7 +48,7 @@
 */
     
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 
 class MOADNSException : public runtime_error
 {

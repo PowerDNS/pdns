@@ -7,7 +7,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/regex.hpp>
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 
 #define decl(x,y) typeof((y)) (x) = (y)
 

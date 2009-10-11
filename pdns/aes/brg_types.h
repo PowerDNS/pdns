@@ -47,7 +47,7 @@ extern "C" {
 #  include <stddef.h>
 #  define ptrint_t intptr_t
 #elif defined( __GNUC__ ) && ( __GNUC__ >= 3 )
-#  include <stdint.h>
+#  include <inttypes.h>
 #  define ptrint_t intptr_t
 #else
 #  define ptrint_t int

@@ -17,7 +17,7 @@
 */
 #include "arguments.hh"
 #include <boost/algorithm/string.hpp>
-using namespace boost;
+#include "namespaces.hh"
 
 const ArgvMap::param_t::const_iterator ArgvMap::begin()
 {

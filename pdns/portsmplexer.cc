@@ -11,7 +11,7 @@
 #include <sys/port_impl.h>
 #endif
 
-using namespace boost;
+#include "namespaces.hh"
 using namespace std;
 
 class PortsFDMultiplexer : public FDMultiplexer

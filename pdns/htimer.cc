@@ -5,7 +5,7 @@
 HTimer::timers_t HTimer::s_timers;
 
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 
 
 /* idea: nested timers, where the hierarchy of nesting is constructed at runtime. Each timer can have multiple

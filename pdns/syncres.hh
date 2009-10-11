@@ -525,6 +525,7 @@ struct RecursorStats
   uint64_t ednsPingMatches;
   uint64_t ednsPingMismatches;
   uint64_t noPingOutQueries, noEdnsOutQueries;
+  uint64_t packetCacheHits;
   time_t startupTime;
 
   typedef vector<ComboAddress> remotes_t;
@@ -556,4 +557,5 @@ replacing_insert(Index& i,const typename Index::value_type& x)
 
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
+ComboAddress getQueryLocalAddress(int family);
 #endif

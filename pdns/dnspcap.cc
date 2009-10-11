@@ -3,7 +3,7 @@
 #include <boost/format.hpp>
 #include <fcntl.h>
 
-using namespace boost;
+#include "namespaces.hh"
 PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
 {
   d_fp=fopen(fname.c_str(),"r");

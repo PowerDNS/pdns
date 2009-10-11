@@ -20,7 +20,7 @@
 #include <boost/utility.hpp>
 #include <csignal>
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 
 
 class NetworkError : public runtime_error

@@ -3,7 +3,7 @@
 #include <string>
 #include <map>
 #if !defined SOLARIS8 && !defined WIN32
-#include <stdint.h>
+
 #elif defined WIN32
 #include "utility.hh"
 #endif

@@ -38,7 +38,7 @@
 #include "statbag.hh"
 #include "misc.hh"
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 
 ArgvMap &arg()
 {

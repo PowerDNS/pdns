@@ -26,7 +26,7 @@
 #include <set>
 
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
   RNAME##RecordContent(const string& zoneData);                                                  \

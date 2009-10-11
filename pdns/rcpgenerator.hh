@@ -23,7 +23,7 @@
 #include <string>
 #include <stdexcept>
 #if !defined SOLARIS8 && !defined WIN32
-# include <stdint.h>
+
 #elif defined WIN32
 # include "utility.hh"
 #endif
