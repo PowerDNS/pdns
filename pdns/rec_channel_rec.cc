@@ -23,7 +23,7 @@
 #endif
 
 using namespace std;
-using namespace boost;
+#include "namespaces.hh"
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
 map<string, function< uint32_t() > >  d_get32bitmembers;
@@ -76,6 +76,7 @@ string doGetParameter(T begin, T end)
 {
   string ret;
   string parm;
+  using boost::replace_all;
   for(T i=begin; i != end; ++i) {
     if(::arg().parmIsset(*i)) {
       parm=::arg()[*i];
@@ -230,7 +231,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("cache-hits", &RC.cacheHits);
   addGetStat("cache-misses", &RC.cacheMisses);
 
-  addGetStat("cache-entries", boost::bind(&MemRecursorCache::size, ref(RC)));
+  addGetStat("cache-entries", boost::bind(&MemRecursorCache::size, boost::ref(RC)));
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
@@ -267,11 +268,11 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("noshunt-wrong-type", &g_stats.noShuntWrongType);
 
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
-  addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, ref(SyncRes::s_throttle)));
+  addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, boost::ref(SyncRes::s_throttle)));
 
   addGetStat("negcache-entries", boost::bind(getNsSpeedsSize));
 
-  addGetStat("concurrent-queries", boost::bind(&MTasker<PacketID,string>::numProcesses, ref(MT)));
+  addGetStat("concurrent-queries", boost::bind(&MTasker<PacketID,string>::numProcesses, boost::ref(MT)));
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);

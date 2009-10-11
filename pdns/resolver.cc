@@ -40,7 +40,7 @@
 #include <boost/shared_ptr.hpp>
 #include "dns_random.hh"
 
-using namespace boost;
+#include "namespaces.hh"
 
 void Resolver::makeUDPSocket()
 {
@@ -418,7 +418,7 @@ Resolver::res_t Resolver::result()
     for(MOADNSParser::answers_t::const_iterator i=mdp->d_answers.begin(); i!=mdp->d_answers.end(); ++i) {          
       rr.qname = i->first.d_label;
       if(!rr.qname.empty())
-	erase_tail(rr.qname, 1); // strip .
+	boost::erase_tail(rr.qname, 1); // strip .
       rr.qtype = i->first.d_type;
       rr.ttl = i->first.d_ttl;
       rr.content = i->first.d_content->getZoneRepresentation();
@@ -426,7 +426,7 @@ Resolver::res_t Resolver::result()
       uint16_t qtype=rr.qtype.getCode();
 
       if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
-	erase_tail(rr.content, 1);
+	boost::erase_tail(rr.content, 1);
 
       if(rr.qtype.getCode() == QType::MX) {
 	vector<string> parts;
