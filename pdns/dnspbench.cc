@@ -8,10 +8,10 @@ Logger L("dnspbench");
 #include "dnsrecords.hh"
 
 #include "statbag.hh"
-#include <stdint.h>
+
 #include <set>
 
-using namespace boost;
+#include "namespaces.hh"
 
 
 StatBag S;

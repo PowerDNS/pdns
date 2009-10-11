@@ -137,6 +137,9 @@ void DNSPacketWriter::xfr8BitInt(uint8_t val)
 
 void DNSPacketWriter::xfrText(const string& text, bool)
 {
+  using boost::escaped_list_separator;
+  using boost::tokenizer;
+
   escaped_list_separator<char> sep('\\', ' ' , '"');
   tokenizer<escaped_list_separator<char> > tok(text, sep);
 
@@ -240,7 +243,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 
     if(unescaped) {
       string part(label.c_str() + i -> first, i->second - i->first);
-      replace_all(part, "\\.", ".");
+      boost::replace_all(part, "\\.", ".");
       d_record.push_back(part.size());
       unsigned int len=d_record.size();
       d_record.resize(len + part.size());
