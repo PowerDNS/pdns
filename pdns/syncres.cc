@@ -717,8 +717,12 @@ inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> 
 
   for(set<string, CIStringCompare>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
-    Lock l(&SyncRes::s_nsSpeedslock);
-    speeds[*i]=s_nsSpeeds[*i].get(&d_now);
+    double speed;
+    {
+      Lock l(&SyncRes::s_nsSpeedslock);
+      speed=s_nsSpeeds[*i].get(&d_now);
+    }
+    speeds[*i]=speed;
   }
   random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
   speedOrder so(speeds);
