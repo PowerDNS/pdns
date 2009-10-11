@@ -24,8 +24,10 @@
  #include "recursorservice.hh"
 #endif // WIN32
 
+#include <boost/foreach.hpp>
 #include "utility.hh" 
 #include "dns_random.hh"
+#include "md5.hh"
 #include <iostream>
 #include <errno.h>
 #include <map>
@@ -71,12 +73,13 @@ unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
 shared_ptr<PowerDNSLua> g_pdl;
-using namespace boost;
+#include "namespaces.hh"
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
 #include <pthread.h>
 #include <semaphore.h>
 #endif
+map<string, string> g_packetCache;
 
 MemRecursorCache RC;
 RecursorStats g_stats;
@@ -91,7 +94,8 @@ int g_tcpTimeout;
 // DHCPCommunicator* g_dc;
 map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), d_tcp(false), d_socket(-1)
+  DNSComboWriter(const char* data, uint16_t len, const std::string& hash, const struct timeval& now) : d_mdp(data, len), d_now(now), 
+												       d_hash(hash), d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
   void setRemote(ComboAddress* sa)
@@ -111,6 +115,7 @@ struct DNSComboWriter {
 
   struct timeval d_now;
   ComboAddress d_remote;
+  string d_hash;
   bool d_tcp;
   int d_socket;
 };
@@ -172,6 +177,22 @@ int arecvtcp(string& data, int len, Socket* sock)
   return ret;
 }
 
+vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6; 
+ComboAddress g_local4("0.0.0.0"), g_local6("::");
+ComboAddress getQueryLocalAddress(int family)
+{
+  if(family==AF_INET) {
+    if(g_localQueryAddresses4.empty())
+      return g_local4;
+    return g_localQueryAddresses4[dns_random(g_localQueryAddresses4.size())];
+  }
+  else {
+    if(g_localQueryAddresses6.empty())
+      return g_local6;
+    return g_localQueryAddresses6[dns_random(g_localQueryAddresses6.size())];
+  }
+
+}
 
 void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
 
@@ -252,37 +273,17 @@ public:
     
     if(ret<0) 
       throw AhuException("Making a socket for resolver: "+stringerror());
-    
-    static optional<ComboAddress> sin4;
-    if(!sin4) {
-      sin4=ComboAddress(::arg()["query-local-address"]);
-    }
-    static optional<ComboAddress> sin6;
-    if(!sin6) {
-      if(!::arg()["query-local-address6"].empty())
-	sin6=ComboAddress(::arg()["query-local-address6"]);
-    }
+
     
     int tries=10;
     while(--tries) {
       uint16_t port=1025+dns_random(64510);
       if(tries==1)  // fall back to kernel 'random'
 	port=0;
-      
-      if(family==AF_INET) {
-	sin4->sin4.sin_port = htons(port); 
-	
-	if (::bind(ret, (struct sockaddr *)&*sin4, sin4->getSocklen()) >= 0) 
-	  break;
-      }
-      else {
-	if(!sin6)
-	  break;
-	sin6->sin6.sin6_port = htons(port); 
-	
-	if (::bind(ret, (struct sockaddr *)&*sin6, sin6->getSocklen()) >= 0) 
-	  break;
-      }
+
+      ComboAddress sin=getQueryLocalAddress(family);
+      if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0) 
+	break;
     }
     if(!tries)
       throw AhuException("Resolver binding to local query client socket: "+stringerror());
@@ -601,7 +602,6 @@ void startDoResolve(void *p)
 	   g_pdl->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
        }
     }
-
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
@@ -650,6 +650,10 @@ void startDoResolve(void *p)
   sendit:;
     if(!dc->d_tcp) {
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
+      if(pw.getHeader()->rcode==RCode::NoError || pw.getHeader()->rcode==RCode::NXDomain )
+	g_packetCache[dc->d_hash]=string((const char*)&*packet.begin(), packet.size());
+      else 
+	; //	cerr<<"rcode:" <<(int)pw.getHeader()->rcode<<endl;
     }
     else {
       char buf[2];
@@ -795,7 +799,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       DNSComboWriter* dc=0;
       try {
-	dc=new DNSComboWriter(tconn.data, tconn.qlen, g_now);
+	dc=new DNSComboWriter(tconn.data, tconn.qlen, string(), g_now);
       }
       catch(MOADNSException &mde) {
 	g_stats.clientParseError++; 
@@ -900,6 +904,7 @@ string questionExpand(const char* packet, uint16_t len, uint16_t& type)
   return tmp;
 }
 
+
 void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   //  static HTimer s_timer("udp new question processing");
@@ -930,60 +935,25 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       else {
 	++g_stats.qcounter;
-#if 0
-	uint16_t type;
-	char qname[256];
-        try {
-	   questionExpand(data, len, qname, sizeof(qname), type);  
-        }
-        catch(std::exception &e)
-        {
-           throw MOADNSException(e.what());
-        }
+	uint16_t tmp = dh->id;
+	dh->id=0;
 	
-	// must all be same length answers right now!
-	if((type==QType::A || type==QType::AAAA) && dh->arcount==0 && dh->ancount==0 && dh->nscount ==0 && ntohs(dh->qdcount)==1 ) {
-	  char *record[10];
-	  uint16_t rlen[10];
-	  uint32_t ttd[10];
-	  int count;
-	  if((count=RC.getDirect(g_now.tv_sec, qname, QType(type), ttd, record, rlen))) { 
-	    if(len + count*(sizeof(dnsrecordheader) + 2 + rlen[0]) > 512)
-	      goto slow;
+	MD5Summer md5s;
+	md5s.feed(data, len);
+	string hash = md5s.get();
+	//	cerr<<"hash: "<<makeHexDump(hash)<<endl;
+	dh->id=tmp;
 
-	    random_shuffle(record, &record[count]);
-	    dh->qr=1;
-	    dh->ra=1;
-	    dh->ancount=ntohs(count);
-	    for(int n=0; n < count ; ++n) {
-	      memcpy(data+len, "\xc0\x0c", 2); // answer label pointer
-	      len+=2;
-	      struct dnsrecordheader drh;
-	      drh.d_type=htons(type);
-	      drh.d_class=htons(1);
-	      drh.d_ttl=htonl(ttd[n] - g_now.tv_sec);
-	      drh.d_clen=htons(rlen[n]);
-	      memcpy(data+len, &drh, sizeof(drh));
-	      len+=sizeof(drh);
-	      memcpy(data+len, record[n], rlen[n]);
-	      len+=rlen[n];
-	    }
-	    RDTSC(tsc2);      	    
-	    g_stats.shunted++;
-	    sendto(fd, data, len, 0, (struct sockaddr *)(&fromaddr), fromaddr.getSocklen());
-//	    cerr<<"shunted: " << (tsc2-tsc1) / 3000.0 << endl;
-	    return;
-	  }
+	if(g_packetCache.count(hash)) {
+	  g_stats.packetCacheHits++;
+	  SyncRes::s_queries++;
+	  string reply=g_packetCache[hash]; 
+	  ((struct dnsheader*)reply.c_str())->id=tmp;
+	  sendto(fd, reply.c_str(), reply.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
+	  return;
 	}
-	else {
-	  if(type!=QType::A && type!=QType::AAAA)
-    	    g_stats.noShuntWrongType++;
-          else
-            g_stats.noShuntWrongQuestion++;
-        }
-      slow:
-#endif
-	DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
+
+	DNSComboWriter* dc = new DNSComboWriter(data, len, hash, g_now);
 	dc->setSocket(fd);
 	dc->setRemote(&fromaddr);
 
@@ -1159,7 +1129,7 @@ void doStats(void)
 {
   if(g_stats.qcounter && (RC.cacheHits + RC.cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     //L<<Logger::Warning<<"stats: "<<g_stats.qcounter<<" questions, "<<RC.size()<<" cache entries, "<<SyncRes::s_negcache.size()<<" negative entries, "
-    L<<Logger::Warning<<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
+    L<<Logger::Warning<<"stats: " <<(int)((RC.cacheHits*100.0)/(RC.cacheHits+RC.cacheMisses))<<"% cache hits"<<endl;
     //    L<<Logger::Warning<<"stats: throttle map: "<<SyncRes::s_throttle.size()<<", ns speeds: "
     // <<endl; // <<SyncRes::s_nsSpeeds.size()<<endl; // ", bytes: "<<RC.bytes()<<endl;
     L<<Logger::Warning<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
@@ -1169,6 +1139,7 @@ void doStats(void)
 
     L<<Logger::Warning<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
       g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
+    L<<Logger::Warning<<"stats: "<<g_stats.packetCacheHits<<" packet cache hits ("<<(int)(100.0*g_stats.packetCacheHits/SyncRes::s_queries) << "%)"<<endl;
   }
   else if(statsWanted) 
     L<<Logger::Warning<<"stats: no stats yet!"<<endl;
@@ -1854,9 +1825,26 @@ int serviceMain(int argc, char*argv[])
 
   RC.d_followRFC2181=::arg().mustDo("auth-can-lower-ttl");
   
-  if(!::arg()["query-local-address6"].empty()) {
-    SyncRes::s_doIPv6=true;
-    L<<Logger::Error<<"Enabling IPv6 transport for outgoing queries"<<endl;
+  try {
+    vector<string> addrs;  
+    if(!::arg()["query-local-address6"].empty()) {
+      SyncRes::s_doIPv6=true;
+      L<<Logger::Error<<"Enabling IPv6 transport for outgoing queries"<<endl;
+      
+      stringtok(addrs, ::arg()["query-local-address6"], ", ;");
+      BOOST_FOREACH(const string& addr, addrs) {
+	g_localQueryAddresses6.push_back(ComboAddress(addr));
+      }
+    }
+    addrs.clear();
+    stringtok(addrs, ::arg()["query-local-address"], ", ;");
+    BOOST_FOREACH(const string& addr, addrs) {
+      g_localQueryAddresses4.push_back(ComboAddress(addr));
+    }
+  }
+  catch(std::exception& e) {
+    L<<Logger::Error<<"Assigning local query addresses: "<<e.what();
+    exit(99);
   }
   
   SyncRes::s_noEDNSPing = ::arg().mustDo("disable-edns-ping");

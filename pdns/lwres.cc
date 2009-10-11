@@ -112,17 +112,10 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       Socket s((AddressFamily)ip.sin4.sin_family, Stream);
 
       s.setNonBlocking();
-      string bindIP;
-      if(ip.sin4.sin_family == AF_INET) 
-	bindIP = ::arg()["query-local-address"];
-      else
-	bindIP = ::arg()["query-local-address6"];
+      ComboAddress local = getQueryLocalAddress(ip.sin4.sin_family);
 
-      if(!bindIP.empty()) {
-	ComboAddress local(bindIP);
-	s.bind(local);
-      }
-
+      s.bind(local);
+	
       ComboAddress remote = ip;
       remote.sin4.sin_port = htons(53);      
       s.connect(remote);
