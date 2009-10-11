@@ -1848,6 +1848,7 @@ int serviceMain(int argc, char*argv[])
   }
   
   SyncRes::s_noEDNSPing = ::arg().mustDo("disable-edns-ping");
+  SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
 
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
   SyncRes::s_serverID=::arg()["server-id"];
@@ -2142,7 +2143,8 @@ int main(int argc, char **argv)
     ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatability" )= "off"; 
-    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing" )= ""; 
+    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing" )= "no"; 
+    ::arg().setSwitch( "disable-edns", "Disable EDNS" )= ""; 
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string ("VERSION")");

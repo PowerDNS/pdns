@@ -357,6 +357,7 @@ public:
   static pthread_mutex_t s_ednslock;
 
   static bool s_noEDNSPing;
+  static bool s_noEDNS;
 
   struct AuthDomain
   {

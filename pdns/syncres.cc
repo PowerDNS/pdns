@@ -67,6 +67,7 @@ bool SyncRes::s_log;
 
 SyncRes::throttle_t SyncRes::s_throttle;
 bool SyncRes::s_noEDNSPing;
+bool SyncRes::s_noEDNS;
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
@@ -243,6 +244,11 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
         Same behaviour as 0 
      If '4', send bare queries
   */
+
+  if(s_noEDNS) {
+    g_stats.noEdnsOutQueries++;
+    return asyncresolve(ip, domain, type, doTCP, sendRDQuery, 0, now, res);
+  }
 
   SyncRes::EDNSStatus* ednsstatus;
   {
