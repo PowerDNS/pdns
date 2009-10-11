@@ -5,7 +5,8 @@ rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh ahuexception.hh \
 mplexer.hh win32_mtasker.hh win32_utility.cc ntservice.hh singleton.hh \
-recursorservice.hh dns_random.hh lua-pdns-recursor.hh"
+recursorservice.hh dns_random.hh lua-pdns-recursor.hh namespaces.hh \
+md5.hh"
 
 CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
@@ -13,7 +14,8 @@ recursor_cache.cc  dnsparser.cc dnswriter.cc  dnsrecords.cc  rcpgenerator.cc  \
 base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
 selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 win32_mtasker.cc win32_rec_channel.cc win32_logger.cc ntservice.cc \
-recursorservice.cc sillyrecords.cc lua-pdns-recursor.cc randomhelper.cc"
+recursorservice.cc sillyrecords.cc lua-pdns-recursor.cc randomhelper.cc \
+md5.cc devpollmplexer.cc"
 
 cd docs
 make pdns_recursor.1 rec_control.1
