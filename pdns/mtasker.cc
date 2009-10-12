@@ -24,7 +24,7 @@
     support for waiting on events which can return values.
 
     \section copyright Copyright and License
-    MTasker is (c) 2002 - 2006 by bert hubert. It is licensed to you under the terms of the GPL version 2.
+    MTasker is (c) 2002 - 2009 by bert hubert. It is licensed to you under the terms of the GPL version 2.
 
     \section overview High level overview
     MTasker is designed to support very simple cooperative multitasking to facilitate writing 
@@ -255,12 +255,8 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   uc->uc_stack.ss_sp = new char[d_stacksize];
   
   uc->uc_stack.ss_size = d_stacksize;
-#ifdef SOLARIS8
-  uc->uc_stack.ss_sp = (void*)(((char*)uc->uc_stack.ss_sp)+d_stacksize);
-  makecontext (uc,(void (*)(...))threadWrapper, 5, this, start, d_maxtid, val);
-#else
   makecontext (uc, (void (*)(void))threadWrapper, 4, this, start, d_maxtid, val);
-#endif
+
   d_threads[d_maxtid]=uc;
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
 }
@@ -289,11 +285,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
     return true;
   }
   if(!d_zombiesQueue.empty()) {
-#ifdef SOLARIS8
-    delete[] (((char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp)-d_stacksize);
-#else
     delete[] (char *)d_threads[d_zombiesQueue.front()]->uc_stack.ss_sp;
-#endif
     delete d_threads[d_zombiesQueue.front()];
     d_threads.erase(d_zombiesQueue.front());
     d_zombiesQueue.pop();
