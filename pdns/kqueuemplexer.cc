@@ -93,7 +93,7 @@ int KqueueFDMultiplexer::run(struct timeval* now)
   ts.tv_nsec=500000000U;
 
   int ret=kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
-  gettimeofday(now,0);
+  gettimeofday(now,0); // MANDATORY!
   
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("kqueue returned error: "+stringerror());
