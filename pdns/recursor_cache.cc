@@ -13,8 +13,6 @@ using namespace std;
 
 #include "config.h"
 
-pthread_rwlock_t MemRecursorCache::s_rwlock;
-
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
 {
   DNSResourceRecord rr;
@@ -106,7 +104,7 @@ unsigned int MemRecursorCache::bytes()
 
 int MemRecursorCache::getDirect(time_t now, const char* qname, const QType& qt, uint32_t ttd[10], char* data[10], uint16_t len[10])
 {
-  ReadLock rl(&s_rwlock);
+  ReadLock rl(&d_rwlock);
 
   if(!d_cachecachevalid || Utility::strcasecmp(d_cachedqname.c_str(), qname)) {
 //    cerr<<"had cache cache miss for '"<<qname<<"'"<<endl;
@@ -171,7 +169,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 {
   unsigned int ttd=0;
   {
-    WriteLock wl(&s_rwlock);
+    WriteLock wl(&d_rwlock);
     //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
 
     if(!d_cachecachevalid || Utility::strcasecmp(d_cachedqname.c_str(), qname.c_str())) {
@@ -184,7 +182,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
       //    cerr<<"had cache cache hit!"<<endl;
       ;
   }
-  ReadLock l(&s_rwlock);
+  ReadLock l(&d_rwlock);
 
   if(res)
     res->clear();
@@ -231,7 +229,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
  
 bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored)
 {
-  //  WriteLock wl(&s_rwlock); (holds the lock already)
+  //  WriteLock wl(&d_rwlock); (holds the lock already)
   if(!stored.d_auth) {
 //    cerr<<"feel free to scribble non-auth data!"<<endl;
     return false;
@@ -263,7 +261,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResou
    touched, but only given a new ttd */
 void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth)
 {
-  WriteLock wl(&s_rwlock);
+  WriteLock wl(&d_rwlock);
   d_cachecachevalid=false;
   tuple<string, uint16_t> key=make_tuple(qname, qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
@@ -360,7 +358,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
 
 int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
 {
-  WriteLock wl(&s_rwlock);
+  WriteLock wl(&d_rwlock);
   int count=0;
   d_cachecachevalid=false;
   pair<cache_t::iterator, cache_t::iterator> range;
@@ -378,7 +376,7 @@ int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
 
 bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL)
 {
-  WriteLock wl(&s_rwlock);
+  WriteLock wl(&d_rwlock);
   cache_t::iterator iter = d_cache.find(tie(name, qtype));
   if(iter == d_cache.end()) 
     return false;
@@ -407,7 +405,7 @@ bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype
 
 void MemRecursorCache::doDumpAndClose(int fd)
 {
-  WriteLock wl(&s_rwlock);
+  WriteLock wl(&d_rwlock);
   FILE* fp=fdopen(fd, "w");
   if(!fp) {
     close(fd);
@@ -439,7 +437,7 @@ void MemRecursorCache::doSlash(int perc)
 
 void MemRecursorCache::doPrune(void)
 {
-  WriteLock wl(&s_rwlock);
+  WriteLock wl(&d_rwlock);
   uint32_t now=(uint32_t)time(0);
   d_cachecachevalid=false;
 
