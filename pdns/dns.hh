@@ -248,5 +248,5 @@ struct dnsheader {
 
 #define L theL()
 extern time_t s_starttime;
-
+std::string questionExpand(const char* packet, uint16_t len, uint16_t& type);
 #endif

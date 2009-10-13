@@ -29,7 +29,7 @@ nameserver.hh packetcache.hh packethandler.hh qtype.hh statbag.hh \
 ueberbackend.hh pdns.conf-dist ws.hh ws.cc webserver.cc webserver.hh \
 session.cc session.hh misc.cc misc.hh receiver.cc ueberbackend.cc \
 dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
-resolver.hh resolver.cc communicator.cc communicator.hh dnsproxy.cc \
+resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.hh dnsproxy.cc \
 dnsproxy.hh randombackend.cc unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
 backends/bind/bindbackend2.cc  \
@@ -41,7 +41,7 @@ base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
 rcpgenerator.cc	dnsparser.cc dns_random.hh aes/aescpp.h \
 aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
-randomhelper.cc
+randomhelper.cc 
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
@@ -126,7 +126,8 @@ dnswriter.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerat
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
-lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc
+lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
+recpacketcache.cc recpacketcache.hh dns.cc
 
 if NEDMALLOC
 pdns_recursor_SOURCES += ext/nedmalloc/malloc.c

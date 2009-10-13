@@ -25,9 +25,9 @@
 #endif // WIN32
 
 #include <boost/foreach.hpp>
+#include "recpacketcache.hh"
 #include "utility.hh" 
 #include "dns_random.hh"
-#include "md5.hh"
 #include <iostream>
 #include <errno.h>
 #include <map>
@@ -73,13 +73,15 @@ unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
 shared_ptr<PowerDNSLua> g_pdl;
+RecursorPacketCache g_packetCache;
+
 #include "namespaces.hh"
 
 #ifdef __FreeBSD__           // see cvstrac ticket #26
 #include <pthread.h>
 #include <semaphore.h>
 #endif
-map<string, string> g_packetCache;
+
 
 MemRecursorCache RC;
 RecursorStats g_stats;
@@ -94,8 +96,8 @@ int g_tcpTimeout;
 // DHCPCommunicator* g_dc;
 map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const std::string& hash, const struct timeval& now) : d_mdp(data, len), d_now(now), 
-												       d_hash(hash), d_tcp(false), d_socket(-1)
+  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), 
+												        d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
   void setRemote(ComboAddress* sa)
@@ -115,7 +117,6 @@ struct DNSComboWriter {
 
   struct timeval d_now;
   ComboAddress d_remote;
-  string d_hash;
   bool d_tcp;
   int d_socket;
 };
@@ -602,6 +603,7 @@ void startDoResolve(void *p)
 	   g_pdl->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
        }
     }
+    uint32_t minTTL=numeric_limits<uint32_t>::max();
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
@@ -621,13 +623,14 @@ void startDoResolve(void *p)
 	break;
       }
       
+
       if(ret.size()) {
 	shuffle(ret);
 	
 //	for(int n=0; n< 50 && packet.size() < 65506; ++n) 
 	for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
 	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
-	  
+	  minTTL = min(minTTL, i->ttl);
 	  if(i->qtype.getCode() == QType::A) { // blast out A record w/o doing whole dnswriter thing
 	    uint32_t ip=0;
 	    IpToU32(i->content, &ip);
@@ -650,10 +653,11 @@ void startDoResolve(void *p)
   sendit:;
     if(!dc->d_tcp) {
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
-      if(pw.getHeader()->rcode==RCode::NoError || pw.getHeader()->rcode==RCode::NXDomain )
-	g_packetCache[dc->d_hash]=string((const char*)&*packet.begin(), packet.size());
-      else 
-	; //	cerr<<"rcode:" <<(int)pw.getHeader()->rcode<<endl;
+      g_packetCache.insertResponsePacket(string((const char*)&*packet.begin(), packet.size()), g_now.tv_sec, 
+					 min(minTTL, 
+					     pw.getHeader()->rcode == RCode::ServFail ? (uint32_t)60 : (uint32_t) 3600
+					     )
+					 );
     }
     else {
       char buf[2];
@@ -799,7 +803,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       DNSComboWriter* dc=0;
       try {
-	dc=new DNSComboWriter(tconn.data, tconn.qlen, string(), g_now);
+	dc=new DNSComboWriter(tconn.data, tconn.qlen, g_now);
       }
       catch(MOADNSException &mde) {
 	g_stats.clientParseError++; 
@@ -866,43 +870,6 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   }
 }
  
-void questionExpand(const char* packet, uint16_t len, char* qname, int maxlen, uint16_t& type)
-{
-  type=0;
-  const unsigned char* end=(const unsigned char*)packet+len;
-  unsigned char* lbegin=(unsigned char*)packet+12;
-  unsigned char* pos=lbegin;
-  unsigned char labellen;
-
-  // 3www4ds9a2nl0
-  char *dst=qname;
-  char* lend=dst + maxlen;
-  
-  if(!*pos)
-    *dst++='.';
-
-  while((labellen=*pos++) && pos < end) { // "scan and copy"
-    if(dst >= lend)
-      throw runtime_error("Label length exceeded destination length");
-    for(;labellen;--labellen)
-      *dst++ = *pos++;
-    *dst++='.';
-  }
-  *dst=0;
-
-  if(pos + labellen + 2 <= end)  // is this correct XXX FIXME?
-    type=(*pos)*256 + *(pos+1);
-
-
-  //  cerr<<"Returning: '"<< string(tmp+1, pos) <<"'\n";
-}
-
-string questionExpand(const char* packet, uint16_t len, uint16_t& type)
-{
-  char tmp[512];
-  questionExpand(packet, len, tmp, sizeof(tmp), type);
-  return tmp;
-}
 
 
 void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
@@ -935,25 +902,16 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       else {
 	++g_stats.qcounter;
-	uint16_t tmp = dh->id;
-	dh->id=0;
-	
-	MD5Summer md5s;
-	md5s.feed(data, len);
-	string hash = md5s.get();
-	//	cerr<<"hash: "<<makeHexDump(hash)<<endl;
-	dh->id=tmp;
 
-	if(g_packetCache.count(hash)) {
+	string response;
+	if(g_packetCache.getResponsePacket(string(data, len), g_now.tv_sec, &response)) {
 	  g_stats.packetCacheHits++;
 	  SyncRes::s_queries++;
-	  string reply=g_packetCache[hash]; 
-	  ((struct dnsheader*)reply.c_str())->id=tmp;
-	  sendto(fd, reply.c_str(), reply.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
+	  sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
 	  return;
 	}
 
-	DNSComboWriter* dc = new DNSComboWriter(data, len, hash, g_now);
+	DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
 	dc->setSocket(fd);
 	dc->setRemote(&fromaddr);
 
@@ -1657,9 +1615,9 @@ void parseAuthAndForwards()
 
   if(::arg().mustDo("export-etc-hosts")) {
     string line;
-    string fname;
+    string fname=::arg()["etc-hosts-file"];
     
-    ifstream ifs("/etc/hosts");
+    ifstream ifs(fname.c_str());
     if(!ifs) {
       L<<Logger::Warning<<"Could not open /etc/hosts for reading"<<endl;
       return;
@@ -2014,7 +1972,7 @@ try
 
     Utility::gettimeofday(&g_now, 0);
     t_fdm->run(&g_now);
-    Utility::gettimeofday(&g_now, 0);
+    // 'run' updates g_now for us
 
     if(listenOnTCP) {
       if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown, too many connections
@@ -2139,6 +2097,7 @@ int main(int argc, char **argv)
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-file", "File with domain=ip pairs for forwarding")="";
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
+    ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
