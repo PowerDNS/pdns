@@ -50,6 +50,7 @@ SyncRes::ednsstatus_t SyncRes::s_ednsstatus;
 
 
 unsigned int SyncRes::s_maxnegttl;
+unsigned int SyncRes::s_maxcachettl;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
@@ -945,7 +946,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       tcache_t tcache;
 
       // reap all answers from this packet that are acceptable
-      for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
+      for(LWResult::res_t::iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
 	if(i->qtype.getCode() == QType::OPT) {
 	  LOG<<prefix<<qname<<": skipping OPT answer '"<<i->qname<<"' from '"<<auth<<"' nameservers" <<endl;
 	  continue;
@@ -964,11 +965,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  }
 	  else {
 	    LOG<<"YES!"<<endl;
+
+	    i->ttl=min(s_maxcachettl, i->ttl);
 	    
 	    DNSResourceRecord rr=*i;
 	    rr.d_place=DNSResourceRecord::ANSWER;
 
-	    rr.ttl=min(86400*14U, rr.ttl); // limit TTL to two weeks
 	    rr.ttl += d_now.tv_sec;
 
 	    if(rr.qtype.getCode() == QType::NS) // people fiddle with the case

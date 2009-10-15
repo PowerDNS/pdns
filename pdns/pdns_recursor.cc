@@ -1809,6 +1809,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
 
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
+  SyncRes::s_maxcachettl=::arg().asNum("max-cache-ttl");
   SyncRes::s_serverID=::arg()["server-id"];
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
@@ -2082,6 +2083,7 @@ int main(int argc, char **argv)
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
+    ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";

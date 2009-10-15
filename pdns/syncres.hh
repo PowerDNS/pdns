@@ -385,6 +385,7 @@ public:
   static throttle_t s_throttle;
   struct timeval d_now;
   static unsigned int s_maxnegttl;
+  static unsigned int s_maxcachettl;
   static string s_serverID;
 
 private:
