@@ -422,6 +422,7 @@ Resolver::res_t Resolver::result()
       rr.qtype = i->first.d_type;
       rr.ttl = i->first.d_ttl;
       rr.content = i->first.d_content->getZoneRepresentation();
+      rr.priority = 0;
       
       uint16_t qtype=rr.qtype.getCode();
 
