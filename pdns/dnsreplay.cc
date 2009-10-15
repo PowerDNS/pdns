@@ -331,8 +331,7 @@ void receiveFromReference()
 try
 {
   string packet;
-  IPEndpoint remote;
-
+  ComboAddress remote;
   int res=waitForData(s_socket->getHandle(), g_timeoutMsec/1000, 1000*(g_timeoutMsec%1000));
   
   if(res < 0 || res==0)
@@ -478,7 +477,7 @@ Orig    9           21      29     36         47        57       66    72
 
 bool g_rdSelector;
 
-bool sendPacketFromPR(PcapPacketReader& pr, const IPEndpoint& remote)
+bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
 {
   //  static struct timeval lastsent;
 
@@ -616,7 +615,7 @@ try
 
   s_socket->setNonBlocking();
   
-  IPEndpoint remote(g_vm["target-ip"].as<string>(), 
+  ComboAddress remote(g_vm["target-ip"].as<string>(), 
 		    g_vm["target-port"].as<uint16_t>());
 
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
