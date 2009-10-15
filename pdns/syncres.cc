@@ -1143,12 +1143,14 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
       doResolve(host, *l_doIPv6AP ? QType(QType::ADDR) : QType(QType::A), addit, 1, beenthere);
     }
   
-  sort(addit.begin(), addit.end());
-  addit.erase(unique(addit.begin(), addit.end(), uniqueComp), addit.end());
-  for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
-    if(k->qtype.getCode()==QType::A || k->qtype.getCode()==QType::AAAA) {
-      k->d_place=DNSResourceRecord::ADDITIONAL;
-      ret.push_back(*k);
+  if(!addit.empty()) {
+    sort(addit.begin(), addit.end());
+    addit.erase(unique(addit.begin(), addit.end(), uniqueComp), addit.end());
+    for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
+      if(k->qtype.getCode()==QType::A || k->qtype.getCode()==QType::AAAA) {
+	k->d_place=DNSResourceRecord::ADDITIONAL;
+	ret.push_back(*k);
+      }
     }
   }
   LOG<<d_prefix<<qname<<": Done with additional processing"<<endl;
