@@ -23,6 +23,9 @@
 #include <errno.h>
 #include "misc.hh"
 #include "ahuexception.hh"
+
+extern bool g_singleThreaded;
+
 class Lock
 {
   pthread_mutex_t *d_lock;
@@ -30,11 +33,16 @@ public:
 
   Lock(pthread_mutex_t *lock) : d_lock(lock)
   {
+    if(g_singleThreaded)
+      return;
     if((errno=pthread_mutex_lock(d_lock)))
       throw AhuException("error acquiring lock: "+stringerror());
   }
   ~Lock()
   {
+    if(g_singleThreaded)
+      return;
+
     pthread_mutex_unlock(d_lock);
   }
 };
@@ -46,12 +54,18 @@ public:
 
   WriteLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
+    if(g_singleThreaded)
+      return;
+
     if((errno=pthread_rwlock_wrlock(d_lock))) {
       throw AhuException("error acquiring rwlock wrlock: "+stringerror());
     }
   }
   ~WriteLock()
   {
+    if(g_singleThreaded)
+      return;
+
     pthread_rwlock_unlock(d_lock);
   }
 };
@@ -64,6 +78,9 @@ public:
 
   TryWriteLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
+    if(g_singleThreaded)
+      return;
+
     d_havelock=false;
     if((errno=pthread_rwlock_trywrlock(d_lock)) && errno!=EBUSY)
       throw AhuException("error acquiring rwlock tryrwlock: "+stringerror());
@@ -71,11 +88,17 @@ public:
   }
   ~TryWriteLock()
   {
+    if(g_singleThreaded)
+      return;
+
     if(d_havelock)
       pthread_rwlock_unlock(d_lock);
   }
   bool gotIt()
   {
+    if(g_singleThreaded)
+      return true;
+
     return d_havelock;
   }
 };
@@ -88,7 +111,9 @@ public:
 
   TryReadLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    
+    if(g_singleThreaded)
+      return;
+
     d_havelock=false;
     if((errno=pthread_rwlock_tryrdlock(d_lock)) && errno!=EBUSY)
       throw AhuException("error acquiring rwlock tryrdlock: "+stringerror());
@@ -96,11 +121,17 @@ public:
   }
   ~TryReadLock()
   {
+    if(g_singleThreaded)
+      return;
+
     if(d_havelock)
       pthread_rwlock_unlock(d_lock);
   }
   bool gotIt()
   {
+    if(g_singleThreaded)
+      return true;
+
     return d_havelock;
   }
 };
@@ -113,21 +144,27 @@ public:
 
   ReadLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
+    if(g_singleThreaded)
+      return;
+
     if((errno=pthread_rwlock_rdlock(d_lock)))
       throw AhuException("error acquiring rwlock tryrwlock: "+stringerror());
   }
   ~ReadLock()
   {
+    if(g_singleThreaded)
+      return;
+
     pthread_rwlock_unlock(d_lock);
   }
   
   void upgrade()
   {
+    if(g_singleThreaded)
+      return;
+
     pthread_rwlock_unlock(d_lock);
     pthread_rwlock_wrlock(d_lock);
   }
-
 };
-
-
 #endif

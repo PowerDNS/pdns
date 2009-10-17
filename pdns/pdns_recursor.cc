@@ -67,6 +67,7 @@
 StatBag S;
 #endif
 
+bool g_singleThreaded;
 __thread FDMultiplexer* t_fdm;
 __thread int t_id;
 unsigned int g_maxTCPPerClient;
@@ -880,10 +881,8 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   char data[1500];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
-  //  uint64_t tsc1, tsc2;
 
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-    //    RDTSC(tsc1);      
     g_stats.addRemote(fromaddr);
 
     if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
@@ -1871,13 +1870,20 @@ int serviceMain(int argc, char*argv[])
 #endif
   makeControlChannelSocket();        
 
-  pthread_t tid;
-  L<<Logger::Warning<<"Launching "<<::arg().asNum("threads")<<" threads"<<endl;
-  for(int n=0; n < ::arg().asNum("threads"); ++n) {
-    pthread_create(&tid, 0, recursorThread, (void*)n);
+  if(::arg().asNum("threads")==1) {
+    L<<Logger::Warning<<"Operating unthreaded"<<endl;
+    g_singleThreaded=true;
+    recursorThread(0);
   }
-  void* res;
-  pthread_join(tid, &res);
+  else {
+    pthread_t tid;
+    L<<Logger::Warning<<"Launching "<<::arg().asNum("threads")<<" threads"<<endl;
+    for(int n=0; n < ::arg().asNum("threads"); ++n) {
+      pthread_create(&tid, 0, recursorThread, (void*)n);
+    }
+    void* res;
+    pthread_join(tid, &res);
+  }
   return 0;
 }
 
