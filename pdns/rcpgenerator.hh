@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2005 - 2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -19,7 +19,7 @@
 
 #ifndef PDNS_RCPGENERATOR_HH
 #define PDNS_RCPGENERATOR_HH
-
+#include <inttypes.h>
 #include <string>
 #include <stdexcept>
 #if !defined SOLARIS8 && !defined WIN32

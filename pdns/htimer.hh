@@ -1,6 +1,6 @@
 #ifndef PDNS_HTIMER_HH
 #define PDNS_HTIMER_HH
-
+#include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 #include <map>

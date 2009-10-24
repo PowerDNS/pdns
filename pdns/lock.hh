@@ -78,8 +78,10 @@ public:
 
   TryWriteLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    if(g_singleThreaded)
+    if(g_singleThreaded) {
+      d_havelock=true;
       return;
+    }
 
     d_havelock=false;
     if((errno=pthread_rwlock_trywrlock(d_lock)) && errno!=EBUSY)
@@ -111,10 +113,11 @@ public:
 
   TryReadLock(pthread_rwlock_t *lock) : d_lock(lock)
   {
-    if(g_singleThreaded)
+    if(g_singleThreaded) {
+      d_havelock=true;
       return;
+    }
 
-    d_havelock=false;
     if((errno=pthread_rwlock_tryrdlock(d_lock)) && errno!=EBUSY)
       throw AhuException("error acquiring rwlock tryrdlock: "+stringerror());
     d_havelock=(errno==0);
