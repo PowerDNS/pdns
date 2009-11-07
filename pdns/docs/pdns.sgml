@@ -92,11 +92,45 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-recursor-3-2"><title>Recursor version 3.2 (UNRELEASED)</title>
+	<para>
+	  <warning>
+	    <para>
+	      UNRELEASED!
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+			Multithreading, for benefiting from multiple CPUs or cores.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Packet cache, for much enhanced performance.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Solaris 9 '/dev/poll' support added, Solaris 8 now deprecated
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Solaris compilation improvements (out of the box, no handwork needed).
+	      </para>
+	    </listitem>
+	    </itemizedlist>	
+	    </para>	
+      </sect2>
+
       <sect2 id="changelog-recursor-3-1-7-1"><title>Recursor version 3.1.7.1</title>
 	<para>
 	  <warning>
 	    <para>
-	      Released on the 2nd of August 2008.
+	      Released on the 2nd of August 2009.
 	    </para>
 	  </warning>
 	</para>
