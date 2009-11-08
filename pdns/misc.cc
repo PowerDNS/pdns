@@ -44,6 +44,8 @@
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
 
+bool g_singleThreaded;
+
 int writen2(int fd, const void *buf, size_t count)
 {
   const char *ptr = (char*)buf;

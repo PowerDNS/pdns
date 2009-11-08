@@ -67,7 +67,6 @@
 StatBag S;
 #endif
 
-bool g_singleThreaded;
 __thread FDMultiplexer* t_fdm;
 __thread int t_id;
 unsigned int g_maxTCPPerClient;
