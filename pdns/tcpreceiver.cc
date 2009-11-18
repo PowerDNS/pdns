@@ -25,7 +25,7 @@
 #include <string>
 #include "tcpreceiver.hh"
 #include "sstuff.hh"
-
+#include <boost/foreach.hpp>
 #include <errno.h>
 #include <signal.h>
 
@@ -526,7 +526,6 @@ TCPNameserver::TCPNameserver()
 #ifndef WIN32
   signal(SIGPIPE,SIG_IGN);
 #endif // WIN32
-  FD_ZERO(&d_rfds);  
 
   for(vector<string>::const_iterator laddr=locals.begin();laddr!=locals.end();++laddr) {
     int s=socket(AF_INET,SOCK_STREAM,0); 
@@ -550,7 +549,13 @@ TCPNameserver::TCPNameserver()
     listen(s,128);
     L<<Logger::Error<<"TCP server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
-    FD_SET(s, &d_rfds);
+    struct pollfd pfd;
+    memset(&pfd, 0, sizeof(pfd));
+    pfd.fd = s;
+    pfd.events = POLLIN;
+
+    d_prfds.push_back(pfd);
+
     d_highfd=max(s,d_highfd);
   }
 
@@ -577,8 +582,14 @@ TCPNameserver::TCPNameserver()
     listen(s,128);
     L<<Logger::Error<<"TCPv6 server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
-    FD_SET(s, &d_rfds);
-    d_highfd=max(s,d_highfd);
+
+    struct pollfd pfd;
+    memset(&pfd, 0, sizeof(pfd));
+    pfd.fd = s;
+    pfd.events = POLLIN;
+
+    d_prfds.push_back(pfd);
+    d_highfd=max(s, d_highfd);
   }
 #endif // WIN32
 }
@@ -596,16 +607,14 @@ void TCPNameserver::thread()
       struct sockaddr_in remote;
       Utility::socklen_t addrlen=sizeof(remote);
 
-      fd_set rfds=d_rfds; 
-
-      int ret=select(d_highfd+1, &rfds, 0, 0,  0); // blocks, forever if need be
+      int ret=poll(&d_prfds[0], d_prfds.size(), -1); // blocks, forever if need be
       if(ret <= 0)
 	continue;
 
       int sock=-1;
-      for(vector<int>::const_iterator i=d_sockets.begin();i!=d_sockets.end();++i) {
-	if(FD_ISSET(*i, &rfds)) {
-	  sock=*i;
+      BOOST_FOREACH(const struct pollfd& pfd, d_prfds) {
+	if(pfd.revents == POLLIN) {
+	  sock = pfd.fd;
 	  addrlen=sizeof(remote);
 
 	  if((fd=accept(sock, (sockaddr*)&remote, &addrlen))<0) {

@@ -25,6 +25,7 @@
 #include "packethandler.hh"
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <poll.h>
 
 #ifndef WIN32
 # include <sys/select.h>
@@ -64,7 +65,7 @@ private:
 
   vector<int>d_sockets;
   int d_highfd;
-  fd_set d_rfds;
+  vector<struct pollfd> d_prfds;
   static int s_timeout;
 };
 
