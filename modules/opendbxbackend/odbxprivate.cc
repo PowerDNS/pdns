@@ -167,9 +167,8 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 {
 	const char* tmp;
 	uint32_t nlast, nserial;
-	DomainInfo di;
-	SOAData sd;
 
+	SOAData sd;
 
 	DLOG( L.log( m_myname + " getDomainList()", Logger::Debug ) );
 
@@ -178,6 +177,7 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
 	do
 	{
+		DomainInfo di;
 		nlast = 0;
 		nserial = 0;
 		sd.serial = 0;
