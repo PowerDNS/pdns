@@ -699,7 +699,7 @@ bool OdbxBackend::startTransaction( const string& domain, int zoneid )
 			return false;
 		}
 
-		string& stmtref = const_cast<string&>( getArg( "sql-transactbegin" ) );
+		string stmtref =  getArg( "sql-transactbegin" );
 		if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
 
 		size_t len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
