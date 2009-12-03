@@ -386,6 +386,9 @@ public:
   struct timeval d_now;
   static unsigned int s_maxnegttl;
   static unsigned int s_maxcachettl;
+  static unsigned int s_packetcachettl;
+  static unsigned int s_packetcacheservfailttl;
+  static bool s_nopacketcache;
   static string s_serverID;
 
 private:

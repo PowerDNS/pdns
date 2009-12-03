@@ -653,11 +653,13 @@ void startDoResolve(void *p)
   sendit:;
     if(!dc->d_tcp) {
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
-      g_packetCache.insertResponsePacket(string((const char*)&*packet.begin(), packet.size()), g_now.tv_sec, 
-					 min(minTTL, 
-					     pw.getHeader()->rcode == RCode::ServFail ? (uint32_t)60 : (uint32_t) 3600
-					     )
-					 );
+      if(!SyncRes::s_nopacketcache) {
+        g_packetCache.insertResponsePacket(string((const char*)&*packet.begin(), packet.size()), g_now.tv_sec, 
+					   min(minTTL, 
+					       pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
+					       )
+					  );
+      }
     }
     else {
       char buf[2];
@@ -902,7 +904,10 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	++g_stats.qcounter;
 
 	string response;
-	if(g_packetCache.getResponsePacket(string(data, len), g_now.tv_sec, &response)) {
+	if(!SyncRes::s_nopacketcache && g_packetCache.getResponsePacket(string(data, len), g_now.tv_sec, &response)) {
+	  if(!g_quiet)
+	    L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+
 	  g_stats.packetCacheHits++;
 	  SyncRes::s_queries++;
 	  sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
@@ -1806,8 +1811,12 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_noEDNSPing = ::arg().mustDo("disable-edns-ping");
   SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
 
+  SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
+
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
   SyncRes::s_maxcachettl=::arg().asNum("max-cache-ttl");
+  SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
+  SyncRes::s_packetcacheservfailttl=::arg().asNum("packetcache-servfail-ttl");
   SyncRes::s_serverID=::arg()["server-id"];
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
@@ -2089,6 +2098,8 @@ int main(int argc, char **argv)
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
+    ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
+    ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";
@@ -2111,6 +2122,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatability" )= "off"; 
     ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing" )= "no"; 
     ::arg().setSwitch( "disable-edns", "Disable EDNS" )= ""; 
+    ::arg().setSwitch( "disable-packetcache", "Disable packetcahe" )= "no"; 
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string ("VERSION")");

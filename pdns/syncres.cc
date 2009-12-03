@@ -51,6 +51,8 @@ SyncRes::ednsstatus_t SyncRes::s_ednsstatus;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxcachettl;
+unsigned int SyncRes::s_packetcachettl;
+unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
@@ -59,6 +61,7 @@ unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_nodelegated;
 unsigned int SyncRes::s_unreachables;
 bool SyncRes::s_doIPv6;
+bool SyncRes::s_nopacketcache;
 
 SyncRes::domainmap_t SyncRes::s_domainmap;
 string SyncRes::s_serverID;
