@@ -143,7 +143,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   pair<AuthDomain::records_t::const_iterator, AuthDomain::records_t::const_iterator> range;
 
   range=iter->second.d_records.equal_range(tie(qname)); // partial lookup
-  
+
   ret.clear();
   AuthDomain::records_t::const_iterator ziter;
   bool somedata=false;
@@ -173,7 +173,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
 
   string nsdomain(qname);
 
-  while(chopOffDotted(nsdomain) && nsdomain!=iter->first) {
+  while(chopOffDotted(nsdomain) && !iequals(nsdomain, iter->first)) {
     range=iter->second.d_records.equal_range(make_tuple(nsdomain,QType(QType::NS))); 
     if(range.first==range.second)
       continue;
@@ -184,7 +184,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
       ret.push_back(rr);
     }
   }
-  if(ret.empty()) {
+  if(ret.empty()) { 
     LOG<<prefix<<qname<<": no NS match in zone '"<<authdomain<<"' either, handing out SOA"<<endl;
     ziter=iter->second.d_records.find(make_tuple(authdomain, QType(QType::SOA)));
     if(ziter!=iter->second.d_records.end()) {
