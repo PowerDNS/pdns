@@ -19,7 +19,8 @@ bin_PROGRAMS = pdns_control
 endif
 
 
-EXTRA_PROGRAMS=pdns_recursor sdig speedtest dnspbench pdns_control dnsscope dnsgram dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify
+EXTRA_PROGRAMS=pdns_recursor sdig speedtest dnspbench pdns_control dnsscope dnsgram \
+ dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -29,7 +30,7 @@ nameserver.hh packetcache.hh packethandler.hh qtype.hh statbag.hh \
 ueberbackend.hh pdns.conf-dist ws.hh ws.cc webserver.cc webserver.hh \
 session.cc session.hh misc.cc misc.hh receiver.cc ueberbackend.cc \
 dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
-resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.hh dnsproxy.cc \
+resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.cc communicator.hh dnsproxy.cc \
 dnsproxy.hh randombackend.cc unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
 backends/bind/bindbackend2.cc  \
@@ -45,7 +46,7 @@ randomhelper.cc
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
-pdns_server_INCLUDES=
+pdns_server_INCLUDES=inflighter.cc
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -63,6 +64,10 @@ dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
 
 dnswasher_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
+
+#inflighter_SOURCES=inflighter.cc misc.cc unix_utility.cc qtype.cc logger.cc statbag.cc
+#inflighter_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
+
 
 # unix_utility.cc
 

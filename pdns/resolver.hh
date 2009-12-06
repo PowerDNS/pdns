@@ -57,10 +57,11 @@ public:
   void makeTCPSocket(const string &ip, uint16_t port=53);
   int notify(int sock, const string &domain, const string &ip, uint16_t id);
   int resolve(const string &ip, const char *domain, int type);
-  void sendResolve(const string &ip, const char *domain, int type);
+  uint16_t sendResolve(const string &ip, const char *domain, int type);
+  bool tryGetSOASerial(string* theirDomain, uint32_t* theirSerial, uint16_t* id);
 
   int receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrlen);
-  char* sendReceive(const string &ip, uint16_t remotePort, const char *packet, int length, unsigned int *replylen);
+  
   void getSoaSerial(const string &, const string &, uint32_t *);
   int axfrChunk(Resolver::res_t &res);
   vector<DNSResourceRecord> result();

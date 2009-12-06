@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2008 PowerDNS.COM BV
+    Copyright (C) 2002 - 2009 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -25,6 +25,7 @@
 #include "misc.hh"
 #include <algorithm>
 #include <sstream>
+#include "dnsrecords.hh"
 #include <cstring>
 #include <string>
 #include <vector>
@@ -113,30 +114,6 @@ void Resolver::timeoutReadn(char *buffer, int bytes)
   }
 }
 
-char* Resolver::sendReceive(const string &ip, uint16_t remotePort, const char *packet, int length, unsigned int *replen)
-{
-  makeTCPSocket(ip, remotePort);
-
-  if(sendData(packet,length,d_sock)<0) 
-    throw ResolverException("Unable to send packet to remote nameserver "+ip+": "+stringerror());
-
-  int plen=getLength();
-  if(plen<0)
-    throw ResolverException("EOF trying to get length of answer from remote TCP server");
-
-  char *answer=new char[plen];
-  try {
-    timeoutReadn(answer,plen);
-    *replen=plen;
-    return answer;
-  }
-  catch(...) {
-    delete answer;
-    throw; // whop!
-  }
-  return 0;
-}
-
 int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t id)
 {
   vector<uint8_t> packet;
@@ -151,7 +128,7 @@ int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t 
   return true;
 }
 
-void Resolver::sendResolve(const string &ip, const char *domain, int type)
+uint16_t Resolver::sendResolve(const string &ip, const char *domain, int type)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
@@ -175,20 +152,49 @@ void Resolver::sendResolve(const string &ip, const char *domain, int type)
   if(sendto(d_sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to ask query of "+st.host+":"+itoa(st.port)+": "+stringerror());
   }
+  return d_randomid;
+}
+
+bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint16_t* id)
+{
+  Utility::setNonBlocking( d_sock );
+  
+  if(waitForData(d_sock, 0, 500000) == 0)
+    return false;
+  
+  int err;
+  ComboAddress fromaddr;
+  socklen_t addrlen=fromaddr.getSocklen();
+  err = recvfrom(d_sock, reinterpret_cast< char * >( d_buf ), 512, 0,(struct sockaddr*)(&fromaddr), &addrlen);
+  if(err < 0) {
+    if(errno == EAGAIN)
+      return false;
+    
+    throw ResolverException("recvfrom error waiting for answer: "+stringerror());
+  }
+  
+  MOADNSParser mdp((char*)d_buf, err);
+  *id=mdp.d_header.id;
+  *domain = stripDot(mdp.d_qname);
+  
+  if(mdp.d_answers.empty())
+    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' produced no results");
+  
+  if(mdp.d_qtype != QType::SOA || mdp.d_answers.begin()->first.d_type != QType::SOA) 
+    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' returned wrong record type");
+
+  shared_ptr<SOARecordContent> rrc=boost::dynamic_pointer_cast<SOARecordContent>(mdp.d_answers.begin()->first.d_content);
+
+  *theirSerial=rrc->d_st.serial;
+  
+  
+  return true;
 }
 
 int Resolver::receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrlen)
 {
-  fd_set rd;
-  FD_ZERO(&rd);
-  FD_SET(d_sock, &rd);
-
-  struct timeval timeout;
-  timeout.tv_sec=0;
-  timeout.tv_usec=750000;
-
-  int res=select(d_sock+1,&rd,0,0,&timeout);
-
+  int res=waitForData(d_sock, 0, 7500000); 
+  
   if(!res) {
     throw ResolverException("Timeout waiting for answer");
   }
@@ -256,36 +262,27 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
   if(!err)
     goto done;
 
-  fd_set rset,wset;
-  struct timeval tval;
-
-  FD_ZERO(&rset);
-  FD_SET(d_sock, &rset);
-  wset=rset;
-  tval.tv_sec=10;
-  tval.tv_usec=0;
-
-  if(!select(d_sock+1,&rset,&wset,0,tval.tv_sec ? &tval : 0)) {
+  err=waitForRWData(d_sock, false, 10, 0); // wait for writeability
+  
+  if(!err) {
     Utility::closesocket(d_sock); // timeout
     d_sock=-1;
     errno=ETIMEDOUT;
     
     throw ResolverException("Timeout connecting to server");
   }
-  
-  if(FD_ISSET(d_sock, &rset) || FD_ISSET(d_sock, &wset))
-    {
+  else if(err < 0) {
+    throw ResolverException("Error connecting: "+string(strerror(err)));
+  }
+  else {
     Utility::socklen_t len=sizeof(err);
-      if(getsockopt(d_sock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-	throw ResolverException("Error connecting: "+stringerror()); // Solaris
+    if(getsockopt(d_sock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
+      throw ResolverException("Error connecting: "+stringerror()); // Solaris
 
-      if(err)
-	throw ResolverException("Error connecting: "+string(strerror(err)));
-
-    }
-  else
-    throw ResolverException("nonblocking connect failed");
-
+    if(err)
+      throw ResolverException("Error connecting: "+string(strerror(err)));
+  }
+  
  done:
   Utility::setBlocking( d_sock );
   // d_sock now connected
@@ -315,15 +312,8 @@ int Resolver::axfr(const string &ip, const char *domain)
   if(ret<0)
     throw ResolverException("Error sending question to "+ip+": "+stringerror());
 
-  fd_set rd;
-  FD_ZERO(&rd);
-  FD_SET(d_sock, &rd);
-
-  struct timeval timeout;
-  timeout.tv_sec=10;
-  timeout.tv_usec=0;
-
-  int res=select(d_sock+1,&rd,0,0,&timeout);
+  int res = waitForData(d_sock, 10, 0);
+  
   if(!res)
     throw ResolverException("Timeout waiting for answer from "+ip+" during AXFR");
   if(res<0)
