@@ -4,7 +4,7 @@ AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
 EXTRA_DIST = docs/Makefile docs/expand \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
 docs/powerdns-overview.sgml docs/powerdns-technical.sgml  \
-docs/pdns.sgml mtasker.cc \
+docs/pdns.sgml mtasker.cc inflighter.cc \
 docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
 
 noinst_SCRIPTS = pdns
@@ -42,11 +42,10 @@ base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
 rcpgenerator.cc	dnsparser.cc dns_random.hh aes/aescpp.h \
 aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
-randomhelper.cc 
+randomhelper.cc namespaces.hh
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@
-pdns_server_INCLUDES=inflighter.cc
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
