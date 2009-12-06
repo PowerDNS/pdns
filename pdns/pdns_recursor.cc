@@ -1544,9 +1544,10 @@ void parseAuthAndForwards()
 
   typedef vector<string> parts_t;
   parts_t parts;  
-  for(int n=0; n < 2 ; ++n ) {
+  const char *option_names[3]={"auth-zones", "forward-zones", "forward-zones-recurse"};
+  for(int n=0; n < 3 ; ++n ) {
     parts.clear();
-    stringtok(parts, ::arg()[n ? "forward-zones" : "auth-zones"], ",\t\n\r");
+    stringtok(parts, ::arg()[option_names[n]], ",\t\n\r");
     for(parts_t::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
       SyncRes::AuthDomain ad;
       pair<string,string> headers=splitField(*iter, '=');
@@ -1554,28 +1555,37 @@ void parseAuthAndForwards()
       trim(headers.second);
       headers.first=toCanonic("", headers.first);
       if(n==0) {
-	L<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
-	ZoneParserTNG zpt(headers.second, headers.first);
-	DNSResourceRecord rr;
-	while(zpt.get(rr)) {
-	  try {
-	    string tmp=DNSRR2String(rr);
-	    rr=String2DNSRR(rr.qname, rr.qtype, tmp, rr.ttl);
-	  }
-	  catch(std::exception &e) {
-	    throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
-	  }
-	  catch(...) {
-	    throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
-	  }
+        L<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
+        ZoneParserTNG zpt(headers.second, headers.first);
+        DNSResourceRecord rr;
+        while(zpt.get(rr)) {
+          try {
+            string tmp=DNSRR2String(rr);
+            rr=String2DNSRR(rr.qname, rr.qtype, tmp, rr.ttl);
+          }
+          catch(std::exception &e) {
+            throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
+          }
+          catch(...) {
+            throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
+          }
 
-	  ad.d_records.insert(rr);
-
-	}
+          ad.d_records.insert(rr);
+        }
       }
       else {
-	L<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' to: ";
-	convertServersForAD(headers.second, ad, ";");
+        L<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' ";
+        if(n == 2) {
+          L<<"with recursion ";
+          ad.d_rdForward = 1;
+        }
+        else ad.d_rdForward = 0;
+        L<<"to: ";
+        
+        convertServersForAD(headers.second, ad, ";");
+        if(n == 2) {
+          ad.d_rdForward = 1;
+        }
       }
       
       SyncRes::s_domainmap[headers.first]=ad;
@@ -1600,7 +1610,12 @@ void parseAuthAndForwards()
       tie(domain, instructions)=splitField(line, '=');
       trim(domain);
       trim(instructions);
-
+      if(boost::starts_with(domain,"+")) {
+        domain=domain.c_str()+1;
+        ad.d_rdForward = true;
+      }
+      else
+        ad.d_rdForward = false;
       if(domain.empty()) 
 	throw AhuException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
 
@@ -2113,6 +2128,7 @@ int main(int argc, char **argv)
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
+    ::arg().set("forward-zones-recurse", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-file", "File with domain=ip pairs for forwarding")="";
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";

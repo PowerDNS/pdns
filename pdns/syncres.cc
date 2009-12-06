@@ -554,7 +554,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStrin
       nsset.insert(string()); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
     else {
       for(vector<ComboAddress>::const_iterator server=iter->second.d_servers.begin(); server != iter->second.d_servers.end(); ++server)
-	nsset.insert(server->toStringWithPort());
+	nsset.insert((iter->second.d_rdForward ? "+" : "-") + server->toStringWithPort()); // add a '+' if the rd bit should be set
     }
 
     return authdomain;
@@ -827,11 +827,15 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	if(!isCanonical(*tns)) {
 	  LOG<<prefix<<qname<<": Domain has hardcoded nameserver(s)"<<endl;
 
-	  ComboAddress addr=parseIPAndPort(*tns, 53);
+	  string txtAddr = *tns;
+	  if(!tns->empty()) {
+	    sendRDQuery = txtAddr[0] == '+';
+	    txtAddr=txtAddr.c_str()+1;
+	  }
+	  ComboAddress addr=parseIPAndPort(txtAddr, 53);
 	  
 	  remoteIPs.push_back(addr);
 	  pierceDontQuery=true;
-	  //	  sendRDQuery=true;
 	}
 	else {
 	  remoteIPs=getAs(*tns, depth+1, beenthere);

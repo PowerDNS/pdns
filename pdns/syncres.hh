@@ -362,6 +362,7 @@ public:
   struct AuthDomain
   {
     vector<ComboAddress> d_servers;
+    bool d_rdForward;
     typedef multi_index_container <
       DNSResourceRecord,
       indexed_by < 
