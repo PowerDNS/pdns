@@ -396,12 +396,12 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doWipeCache(begin, end);
 
   if(cmd=="reload-lua-script") 
-    return doReloadLuaScript(begin, end);
+    return doQueueReloadLuaScript(begin, end);
 
   if(cmd=="unload-lua-script") {
     vector<string> empty;
     empty.push_back(string());
-    return doReloadLuaScript(empty.begin(), empty.end());
+    return doQueueReloadLuaScript(empty.begin(), empty.end());
   }
 
 

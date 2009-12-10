@@ -68,11 +68,13 @@ StatBag S;
 #endif
 
 __thread FDMultiplexer* t_fdm;
-__thread int t_id;
+__thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
-shared_ptr<PowerDNSLua> g_pdl;
+__thread shared_ptr<PowerDNSLua>* t_pdl;
+unsigned int g_luaReloadCounter;
+
 RecursorPacketCache g_packetCache;
 
 #include "namespaces.hh"
@@ -595,13 +597,13 @@ void startDoResolve(void *p)
 
     int res;
 
-    if(!g_pdl.get() || !g_pdl->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) {
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
-       if(g_pdl.get()) {
-	 if(res == RCode::NXDomain)
-	   g_pdl->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
-       }
+      if(t_pdl->get()) {
+        if(res == RCode::NXDomain)
+          (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
+      }
     }
     uint32_t minTTL=numeric_limits<uint32_t>::max();
     if(res<0) {
@@ -1676,36 +1678,37 @@ void parseAuthAndForwards()
   }
 }
 
-string doReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
+string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
 {
-  string fname=::arg()["lua-dns-script"];
+  if(begin != end) 
+    ::arg().set("lua-dns-script") = *begin;
+    
+  g_luaReloadCounter = 0;
+  return "ok, reload/unload queued\n";
+}  
+  
+
+void doReloadLuaScript()
+{
+  string fname= ::arg()["lua-dns-script"];
   try {
-    if(begin==end) {
-      if(!fname.empty()) 
-	g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
-      else
-	throw runtime_error("Asked to reload lua scripts, but no name passed and no default ('lua-dns-script') defined");
+    if(fname.empty()) {
+      t_pdl->reset();
+      L<<Logger::Error<<t_id<<" Unloaded current lua script"<<endl;
     }
     else {
-      fname=*begin;
-      if(fname.empty()) {
-	g_pdl.reset();
-	L<<Logger::Error<<"Unloaded current lua script"<<endl;
-	return "unloaded current lua script\n";
-      }
-      else {
-	g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
-	::arg().set("lua-dns-script")=fname;
-      }
+      *t_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
     }
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
-    return string("Retaining current script, error from '"+fname+"': "+string(e.what())+"\n");
+    L<<Logger::Error<<t_id<<" Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
   }
-  L<<Logger::Warning<<"(Re)loaded lua script from '"<<fname<<"'"<<endl;
-  return "ok - loaded script from '"+fname+"'\n";
+    
+  L<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
 }
+
+
+
 
 void* recursorThread(void*);
 
@@ -1745,7 +1748,7 @@ int serviceMain(int argc, char*argv[])
     g_allowFrom=new NetmaskGroup;
     ifstream ifs(::arg()["allow-from-file"].c_str());
     if(!ifs) {
-	throw AhuException("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
+      throw AhuException("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
     }
 
     string::size_type pos;
@@ -1769,7 +1772,7 @@ int serviceMain(int argc, char*argv[])
     for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
       g_allowFrom->addMask(*i);
       if(i!=ips.begin())
-	L<<Logger::Warning<<", ";
+        L<<Logger::Warning<<", ";
       L<<Logger::Warning<<*i;
     }
     L<<Logger::Warning<<endl;
@@ -1842,19 +1845,7 @@ int serviceMain(int argc, char*argv[])
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   parseAuthAndForwards();
-
-  try {
-    if(!::arg()["lua-dns-script"].empty()) {
-      g_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(::arg()["lua-dns-script"]));
-      L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
-    }
-    
-  }
-  catch(std::exception &e) {
-    L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
-    exit(99);
-  }
-
+ 
   
   g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
   if(!g_stats.remotes.empty())
@@ -1933,6 +1924,21 @@ try
   cerr<<"get2 secs: "<<dt.udiff()/1000000.0<<endl;
 #endif 
   t_id=(int) (long) ptr;
+  
+  t_pdl = new shared_ptr<PowerDNSLua>();
+  g_luaReloadCounter = t_id + 1;
+  try {
+    if(!::arg()["lua-dns-script"].empty()) {
+      *t_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(::arg()["lua-dns-script"]));
+      L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+    }
+    
+  }
+  catch(std::exception &e) {
+    L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
+    exit(99);
+  }
+  
   MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
   
   
@@ -1946,23 +1952,26 @@ try
   for(deferredAdd_t::const_iterator i=deferredAdd.begin(); i!=deferredAdd.end(); ++i) 
     t_fdm->addReadFD(i->first, i->second);
   
-  int newgid=0;
-  if(!::arg()["setgid"].empty())
-    newgid=Utility::makeGidNumeric(::arg()["setgid"]);
-  int newuid=0;
-  if(!::arg()["setuid"].empty())
-    newuid=Utility::makeUidNumeric(::arg()["setuid"]);
+  if(!t_id) {
+    int newgid=0;
+    if(!::arg()["setgid"].empty())
+      newgid=Utility::makeGidNumeric(::arg()["setgid"]);
+    int newuid=0;
+    if(!::arg()["setuid"].empty())
+      newuid=Utility::makeUidNumeric(::arg()["setuid"]);
   
 #ifndef WIN32
-  if (!::arg()["chroot"].empty()) {
-    if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
-      L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
-      exit(1);
+    if (!::arg()["chroot"].empty()) {
+      if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
+        L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
+        exit(1);
+      }
     }
-  }
   
-  Utility::dropPrivs(newuid, newgid);
-  t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
+    Utility::dropPrivs(newuid, newgid);
+  
+    t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
+  }
 #endif 
   
   counter=0;
@@ -1995,6 +2004,11 @@ try
     }
       
     counter++;
+
+    if(g_luaReloadCounter == t_id) {
+      g_luaReloadCounter++;
+      doReloadLuaScript();
+    }
 
     if(statsWanted) {
       doStats();
