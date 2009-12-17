@@ -182,19 +182,26 @@ int arecvtcp(string& data, int len, Socket* sock)
 
 vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6; 
 ComboAddress g_local4("0.0.0.0"), g_local6("::");
-ComboAddress getQueryLocalAddress(int family)
+
+ComboAddress getQueryLocalAddress(int family, uint16_t port)
 {
+  ComboAddress ret;
   if(family==AF_INET) {
-    if(g_localQueryAddresses4.empty())
-      return g_local4;
-    return g_localQueryAddresses4[dns_random(g_localQueryAddresses4.size())];
+    if(g_localQueryAddresses4.empty()) 
+      ret = g_local4;
+    else 
+      ret = g_localQueryAddresses4[dns_random(g_localQueryAddresses4.size())];
+    ret.sin4.sin_port = htons(port);
   }
   else {
     if(g_localQueryAddresses6.empty())
-      return g_local6;
-    return g_localQueryAddresses6[dns_random(g_localQueryAddresses6.size())];
+      ret = g_local6;
+    else
+      ret = g_localQueryAddresses6[dns_random(g_localQueryAddresses6.size())];
+      
+    ret.sin6.sin6_port = htons(port);
   }
-
+  return ret;
 }
 
 void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
@@ -280,11 +287,15 @@ public:
     
     int tries=10;
     while(--tries) {
-      uint16_t port=1025+dns_random(64510);
+      uint16_t port;
+      
       if(tries==1)  // fall back to kernel 'random'
-	port=0;
+	port = 0;
+      else
+        port = 1025 + dns_random(64510);
+      
+      ComboAddress sin=getQueryLocalAddress(family, port); // does htons for us
 
-      ComboAddress sin=getQueryLocalAddress(family);
       if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0) 
 	break;
     }

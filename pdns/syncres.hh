@@ -563,5 +563,5 @@ replacing_insert(Index& i,const typename Index::value_type& x)
 
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
-ComboAddress getQueryLocalAddress(int family);
+ComboAddress getQueryLocalAddress(int family, uint16_t port);
 #endif
