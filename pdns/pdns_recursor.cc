@@ -96,7 +96,9 @@ tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is f
 int g_tcpTimeout;
 //MemcachedCommunicator* g_mc;
 // DHCPCommunicator* g_dc;
+
 map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
+
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), 
 												        d_tcp(false), d_socket(-1)
@@ -660,7 +662,7 @@ void startDoResolve(void *p)
 	  }
 	}
 
-	pw.commit();
+      pw.commit();
       }
     }
   sendit:;
@@ -688,36 +690,36 @@ void startDoResolve(void *p)
       bool hadError=true;
 
       if(ret == 0) 
-	L<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
+        L<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
       else if(ret < 0 )  
-	L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
+        L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
       else if((unsigned int)ret != 2 + packet.size())
-	L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
+        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<ret<<")"<<endl;
       else
-	hadError=false;
+        hadError=false;
       
       // update tcp connection status, either by closing or moving to 'BYTE0'
-
+    
       if(hadError) {
-	t_fdm->removeReadFD(dc->d_socket);
-	TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
+        // no need to remove us from FDM, we weren't there
+        TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
       }
       else {
-	TCPConnection tc;
-	tc.fd=dc->d_socket;
-	tc.state=TCPConnection::BYTE0;
-	tc.remote=dc->d_remote;
-	Utility::gettimeofday(&g_now, 0); // needs to be updated
-	tc.startTime=g_now.tv_sec;
-	t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
-	t_fdm->setReadTTD(tc.fd, g_now, g_tcpTimeout);
+        TCPConnection tc;
+        tc.fd=dc->d_socket;
+        tc.state=TCPConnection::BYTE0;
+        tc.remote=dc->d_remote;
+        Utility::gettimeofday(&g_now, 0); // needs to be updated
+        tc.startTime=g_now.tv_sec;
+        t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
+        t_fdm->setReadTTD(tc.fd, g_now, g_tcpTimeout);
       }
     }
     
     if(!g_quiet) {
       L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
-	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
+      sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
 
     sr.d_outqueries ? RC.cacheMisses++ : RC.cacheHits++; 
@@ -1718,10 +1720,60 @@ void doReloadLuaScript()
   L<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
 }
 
-
-
-
 void* recursorThread(void*);
+
+void parseACLs()
+{
+  static bool l_initialized;
+  if(l_initialized) {
+    string configname=::arg()["config-dir"]+"/recursor.conf";
+    cleanSlashes(configname);
+    
+    if(!::arg().preParseFile(configname.c_str(), "allow-from-file")) 
+      L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
+    
+    ::arg().preParseFile(configname.c_str(), "allow-from");
+  }
+  l_initialized = true;
+  if(!::arg()["allow-from-file"].empty()) {
+    string line;
+    NetmaskGroup* allowFrom=new NetmaskGroup;
+    ifstream ifs(::arg()["allow-from-file"].c_str());
+    if(!ifs) {
+      throw AhuException("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
+    }
+
+    string::size_type pos;
+    while(getline(ifs,line)) {
+      pos=line.find('#');
+      if(pos!=string::npos)
+        line.resize(pos);
+      trim(line);
+      if(line.empty())
+        continue;
+
+      allowFrom->addMask(line);
+    }
+    g_allowFrom = allowFrom;
+    L<<Logger::Warning<<"Done parsing " << g_allowFrom->size() <<" allow-from ranges from file '"<<::arg()["allow-from-file"]<<"' - overriding 'allow-from' setting"<<endl;
+  }
+  else if(!::arg()["allow-from"].empty()) {
+    NetmaskGroup* allowFrom=new NetmaskGroup;
+    vector<string> ips;
+    stringtok(ips, ::arg()["allow-from"], ", ");
+    L<<Logger::Warning<<"Only allowing queries from: ";
+    for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
+      allowFrom->addMask(*i);
+      if(i!=ips.begin())
+        L<<Logger::Warning<<", ";
+      L<<Logger::Warning<<*i;
+    }
+    L<<Logger::Warning<<endl;
+    g_allowFrom = allowFrom;
+  }
+  else if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
+    L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
+}
 
 int serviceMain(int argc, char*argv[])
 {
@@ -1754,44 +1806,8 @@ int serviceMain(int argc, char*argv[])
   
   seedRandom(::arg()["entropy-source"]);
 
-  if(!::arg()["allow-from-file"].empty()) {
-    string line;
-    g_allowFrom=new NetmaskGroup;
-    ifstream ifs(::arg()["allow-from-file"].c_str());
-    if(!ifs) {
-      throw AhuException("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
-    }
-
-    string::size_type pos;
-    while(getline(ifs,line)) {
-      pos=line.find('#');
-      if(pos!=string::npos)
-        line.resize(pos);
-      trim(line);
-      if(line.empty())
-        continue;
-
-      g_allowFrom->addMask(line);
-    }
-    L<<Logger::Warning<<"Done parsing " << g_allowFrom->size() <<" allow-from ranges from file '"<<::arg()["allow-from-file"]<<"' - overriding 'allow-from' setting"<<endl;
-  }
-  else if(!::arg()["allow-from"].empty()) {
-    g_allowFrom=new NetmaskGroup;
-    vector<string> ips;
-    stringtok(ips, ::arg()["allow-from"], ", ");
-    L<<Logger::Warning<<"Only allowing queries from: ";
-    for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
-      g_allowFrom->addMask(*i);
-      if(i!=ips.begin())
-        L<<Logger::Warning<<", ";
-      L<<Logger::Warning<<*i;
-    }
-    L<<Logger::Warning<<endl;
-  }
-  else if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
-    L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
+  parseACLs();
   
-
   if(!::arg()["dont-query"].empty()) {
     g_dontQuery=new NetmaskGroup;
     vector<string> ips;

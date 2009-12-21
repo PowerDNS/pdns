@@ -404,6 +404,17 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doQueueReloadLuaScript(empty.begin(), empty.end());
   }
 
+  if(cmd=="reload-acls") {
+    try {
+      parseACLs();
+    } 
+    catch(exception& e) 
+    {
+      return e.what() + string("\n");
+    }
+    return "ok\n";
+  }
+
 
   if(cmd=="top-remotes")
     return doTopRemotes();

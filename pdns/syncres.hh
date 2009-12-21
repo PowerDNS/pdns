@@ -547,7 +547,7 @@ struct RecursorStats
 };
 
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
-
+void parseACLs();
 extern RecursorStats g_stats;
 
 
