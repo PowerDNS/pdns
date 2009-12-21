@@ -15,6 +15,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
 	       const string &password)
 {
   mysql_init(&d_db);
+  mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, "client");
   if (!mysql_real_connect(&d_db, host.empty() ? 0 : host.c_str(), 
 			  user.empty() ? 0 : user.c_str(), 
 			  password.empty() ? 0 : password.c_str(),

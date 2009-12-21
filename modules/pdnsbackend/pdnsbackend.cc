@@ -39,6 +39,7 @@ PdnsBackend::PdnsBackend(const string &suffix)
    : d_result(NULL)
 {
    mysql_init(&d_database);
+   mysql_options(&d_database, MYSQL_READ_DEFAULT_GROUP, "client");
    d_suffix=suffix;
    MYSQL* theDatabase = mysql_real_connect
       (
