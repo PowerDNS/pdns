@@ -170,7 +170,7 @@ case "$1" in
 
 
 	*)
-	echo pdns [start\|stop\|force-reload\|restart\|status\|dump\|show\|mrtg\|cricket\|monitor]
+	echo pdns [start\|stop\|force-reload\|reload\|restart\|status\|dump\|show\|mrtg\|cricket\|monitor]
 
 	;;
 esac
