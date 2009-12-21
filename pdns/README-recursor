@@ -62,6 +62,8 @@ where ... stands for any possible CXXFLAGS or PROFILEFLAGS, see below.
 
 PERFORMANCE
 -----------
+When on Intel/AMD, by ALL means use a 64-bit binary (not just a 64-bit
+kernel). This speeds up most things by at least a factor 2.
 
 For the utmost in performance, compile like this:
 
@@ -75,7 +77,7 @@ have available. Then run:
 
 Then do:
 
-   $ PROFILEFLAGS=-fprofile-use make clean all
+   $ PROFILEFLAGS=-fprofile-use make binclean all
 
 The resulting binary is up to 20% faster in our tests.
 

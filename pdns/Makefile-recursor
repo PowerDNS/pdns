@@ -81,8 +81,11 @@ install: all
 	cp pdns_recursor.1 rec_control.1 $(DESTDIR)/usr/share/man/man1
 	$(OS_SPECIFIC_INSTALL)	
 
-clean:
-	-rm -f dep *.o *~ pdns_recursor rec_control *.gcda *.gcno optional/*.gcda optional/*.gcno optional/*.o
+clean: binclean
+	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
+
+binclean:
+	-rm -f *.o  pdns_recursor rec_control optional/*.o
 	
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.c *.hh > $@
