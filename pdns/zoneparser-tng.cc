@@ -286,7 +286,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   if(rr.qname=="@")
     rr.qname=d_zonename;
   else if(!isCanonical(rr.qname)) {
-    rr.qname.append(1,'.');
+    if(d_zonename.empty() || d_zonename[0]!='.') // prevent us from adding a double dot
+      rr.qname.append(1,'.');
+    
     rr.qname.append(d_zonename);
   }
   d_prevqname=rr.qname;
