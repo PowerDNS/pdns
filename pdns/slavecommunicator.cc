@@ -150,7 +150,6 @@ struct SlaveSenderReceiver
   void deliverAnswer(DomainInfo& i, uint32_t serial)
   {
     d_serials[i.id]=serial;
-    //cerr<<"Got a serial of "<<serial<<" for "<<i.zone<<endl;
   }
   
   Resolver d_resolver;
@@ -192,7 +191,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
   }
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_serials.size()<<" zones"<<endl;
-  int suckRequests=0;
+
   BOOST_FOREACH(DomainInfo& di, sdomains) {
     if(!ssr.d_serials.count(di.id)) 
       continue;
@@ -209,9 +208,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     else {
       L<<Logger::Warning<<"Domain "<< di.zone<<" is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
       addSuckRequest(di.zone, *di.masters.begin());
-      suckRequests++;
     }
   }
-  L<<Logger::Warning<<"Attempted "<<suckRequests<<" zone transfers"<<endl;
 }  
 

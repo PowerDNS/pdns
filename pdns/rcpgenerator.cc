@@ -23,7 +23,7 @@
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include "base64.hh"
-using namespace boost;
+#include "namespaces.hh"
 
 RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_string(str), d_zone(zone), d_pos(0), d_end(str.size())
 {
@@ -77,7 +77,6 @@ void RecordTextReader::xfrTime(uint32_t &val)
 
   tm.tm_year-=1900;
   tm.tm_mon-=1;
-  
   val=(uint32_t)timegm(&tm);
 }
 
