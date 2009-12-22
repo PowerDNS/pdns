@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2008  PowerDNS.COM BV
+    Copyright (C) 2002-2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -34,6 +34,10 @@
 #include "communicator.hh"
 #include "dnsproxy.hh"
 
+/*
+#undef DLOG
+#define DLOG(x) x
+*/
 
 extern StatBag S;
 extern PacketCache PC;  
@@ -618,12 +622,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r; 
     }
 
-    // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
+    DLOG(L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl);
     
     r=p->replyPacket();  // generate an empty reply packet
     if(p->d.rd && d_doRecursion && DP->recurseFor(p))  // make sure we set ra if rd was set, and we'll do it
       r->d.ra=true;
-
 
     if(p->qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::NotImp);
@@ -657,6 +660,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       goto sendit;
     }
     mret=makeCanonic(p, r, target); // traverse CNAME chain until we have a useful record (may actually give the correct answer!)
+    DLOG(L<<Logger::Warning<<"MakeCanonic returned "<<mret<<endl);
 
     if(mret==2) { // there is some data, but not of the correct type
       r->clearRecords();
@@ -688,8 +692,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(mret == 1) 
       goto sendit; // this might be the end of it (client requested a CNAME, or we found the answer already)
-
-    
+      
     // now ready to start the real direct search
 
     if(p->qtype.getCode()==QType::SOA || p->qtype.getCode()==QType::ANY) { // this is special
@@ -744,8 +747,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       }
       if(found) 
 	goto sendit;
-      
     }
+    else
+      noSameLevelNS = false; // who knows.. this probably closes ticket 224. this code is a mess
     
     // not found yet, try wildcards (we only try here in case of recursion - we should check before we hand off)
 
@@ -823,7 +827,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       S.ringAccount("remotes-unauth",p->getRemote());
     }
     else {
-      DLOG(L<<Logger::Warning<<"We ARE authoritative for a subdomain of '"<<target<<"' ("<<sd.qname<<"), perhaps we have a suitable NS record then"<<endl);
+      DLOG(L<<Logger::Warning<<"We ARE authoritative for a subdomain of '"<<target<<"' ("<<sd.qname<<"), perhaps we have a suitable NS record then, no same: "<<noSameLevelNS<<endl);
       subdomain=target;
       found=0;
       pos=0; 
