@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2008  PowerDNS.COM BV
+    Copyright (C) 2002-2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -467,7 +467,18 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   while(B->get(rr)) {
     if(rr.qtype.getCode()==6)
       continue; // skip SOA - would indicate end of AXFR
-
+    else if(rr.qtype.getCode() == QType::URL && ::arg().mustDo("fancy-records")) {
+      rr.qtype = QType::A;
+      rr.content = ::arg()["urlredirector"];
+    }
+    else if(rr.qtype.getCode() == QType::MBOXFW && ::arg().mustDo("fancy-records")) {
+      rr.qtype = QType::MX;
+      rr.content = ::arg()["smtpredirector"];
+      rr.priority = 25;
+      string::size_type pos = rr.qname.find('@');
+      if(pos != string::npos)
+	rr.qname = rr.qname.substr(pos + 1); // trim off p to and including @
+    }
     outpacket->addRecord(rr);
 
     if(!((++count)%chunk)) {
