@@ -1,0 +1,3 @@
+#!/bin/sh
+
+#cleandig example.com AXFR @$nameserver

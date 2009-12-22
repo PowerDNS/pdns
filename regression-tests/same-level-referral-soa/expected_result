@@ -1,4 +1,4 @@
 1	france.example.com.	IN	NS	120	ns1.otherprovider.net.
 1	france.example.com.	IN	NS	120	ns2.otherprovider.net.
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
-Reply to question for qname='france.example.com.', qtype=A
+Reply to question for qname='france.example.com.', qtype=SOA
