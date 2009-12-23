@@ -102,69 +102,6 @@ unsigned int MemRecursorCache::bytes()
   return ret;
 }
 
-int MemRecursorCache::getDirect(time_t now, const char* qname, const QType& qt, uint32_t ttd[10], char* data[10], uint16_t len[10])
-{
-  ReadLock rl(&d_rwlock);
-
-  if(!d_cachecachevalid || Utility::strcasecmp(d_cachedqname.c_str(), qname)) {
-//    cerr<<"had cache cache miss for '"<<qname<<"'"<<endl;
-    d_cachedqname=qname;
-    d_cachecache=d_cache.equal_range(tie(qname));
-    d_cachecachevalid=true;
-  }
-  else
-    ;
-  //    cerr<<"had cache cache hit!"<<endl;
-
-  if(d_cachecache.first == d_cachecache.second) {
-    g_stats.noShuntNoMatch++;
-    return false;
-  }
-
-  pair<cache_t::iterator, cache_t::iterator> range = d_cachecache;
-  
-  unsigned int n=0;
-  for(;range.first != range.second; ++range.first) {
-    if(range.first->d_qtype == QType::CNAME) { // if we see a cname, we need the whole shebang (for now)
-      g_stats.noShuntCNAME++;
-      return false;
-    }
-    if(range.first->d_qtype != qt.getCode())
-      continue;
-    if(range.first->getTTD() < (unsigned int) now) {
-      g_stats.noShuntExpired++;
-      return false;
-    }
-    
-    if(range.first->d_records.empty() || range.first->d_records.size() > 9 ) {
-      g_stats.noShuntSize++;
-      return false;
-    }
-    
-    size_t limit=range.first->d_records.size();
-    n=0;
-    for(; n < limit; ++n) {
-      data[n]=(char*)range.first->d_records[n].d_string.c_str();
-      len[n]=range.first->d_records[n].d_string.length();
-      ttd[n]=range.first->d_records[n].d_ttd;
-    }
-    if(n<10) {
-      data[n]=0;
-      typedef cache_t::nth_index<1>::type sequence_t;
-      sequence_t& sidx=d_cache.get<1>();
-      sequence_t::iterator si=d_cache.project<1>(range.first);
-      sidx.relocate(sidx.end(), si); // move it in the LRU list 
-      // can't yet return, need to figure out if there isn't a CNAME that messes things up
-    }
-    else
-      return false;
-  }
-  if(!n)
-    g_stats.noShuntNoMatch++;
-  return n;
-
-}
-
 int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
   unsigned int ttd=0;
@@ -172,7 +109,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
     WriteLock wl(&d_rwlock);
     //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
 
-    if(!d_cachecachevalid || Utility::strcasecmp(d_cachedqname.c_str(), qname.c_str())) {
+    if(!d_cachecachevalid || !boost::iequals(d_cachedqname, qname)) {
       //    cerr<<"had cache cache miss"<<endl;
       d_cachedqname=qname;
       d_cachecache=d_cache.equal_range(tie(qname));
