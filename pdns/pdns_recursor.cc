@@ -1337,7 +1337,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
 	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
-	   boost::iequals(pident.domain, mthread->key.domain)) {
+	   pdns_iequals(pident.domain, mthread->key.domain)) {
 	  mthread->key.nearMisses++;
 	}
 

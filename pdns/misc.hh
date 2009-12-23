@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2006  PowerDNS.COM BV
+    Copyright (C) 2002-2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -21,6 +21,7 @@
 #include <inttypes.h>
 #include <cstring>
 #include <cstdio>
+#include <boost/algorithm/string.hpp>
 #if 0
 #include <iostream>
 using std::cout;
@@ -309,54 +310,45 @@ inline bool operator<(const struct timeval& lhs, const struct timeval& rhs)
   return make_pair(lhs.tv_sec, lhs.tv_usec) < make_pair(rhs.tv_sec, rhs.tv_usec);
 }
 
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b) 
+{
+  string::size_type aLen = a.length(), bLen = b.length(), n;
+  const char *aPtr = a.c_str(), *bPtr = b.c_str();
+  int result;
+  
+  for(n = 0 ; n < aLen && n < bLen ; ++n) {
+      if((result = dns_tolower(*aPtr++) - dns_tolower(*bPtr++))) {
+	return result < 0;
+      }
+  }
+  if(n == aLen && n == bLen) // strings are equal (in length)
+    return 0; 
+  if(n == aLen) // first string was shorter
+    return true; 
+  return false;
+}
+
+inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
+
+inline bool pdns_iequals(const std::string& a, const std::string& b) 
+{
+  string::size_type aLen = a.length(), bLen = b.length(), n;
+  const char *aPtr = a.c_str(), *bPtr = b.c_str();
+  
+  for(n = 0 ; n < aLen && n < bLen ; ++n) {
+      if(dns_tolower(*aPtr++) != dns_tolower(*bPtr++))
+	return false;
+  }
+  return aLen == bLen; // strings are equal (in length)
+}
+
+
 struct CIStringCompare: public binary_function<string, string, bool>  
 {
   bool operator()(const string& a, const string& b) const
   {
-    const unsigned char *p1 = (const unsigned char *) a.c_str();
-    const unsigned char *p2 = (const unsigned char *) b.c_str();
-    int result;
-    
-    if (p1 == p2)
-      return 0;
-    
-    while ((result = dns_tolower (*p1) - dns_tolower (*p2++)) == 0)
-      if (*p1++ == '\0')
-	break;
-    
-    return result < 0;
-  }
-
-  bool operator()(const string& a, const char* b) const
-  {
-    const unsigned char *p1 = (const unsigned char *) a.c_str();
-    const unsigned char *p2 = (const unsigned char *) b;
-    int result;
-    
-    if (p1 == p2)
-      return 0;
-    
-    while ((result = dns_tolower (*p1) - dns_tolower (*p2++)) == 0)
-      if (*p1++ == '\0')
-	break;
-    
-    return result < 0;
-  }
-
-  bool operator()(const char* a, const string& b) const
-  {
-    const unsigned char *p1 = (const unsigned char *) a;
-    const unsigned char *p2 = (const unsigned char *) b.c_str();
-    int result;
-    
-    if (p1 == p2)
-      return 0;
-    
-    while ((result = dns_tolower (*p1) - dns_tolower (*p2++)) == 0)
-      if (*p1++ == '\0')
-	break;
-    
-    return result < 0;
+    return pdns_ilexicographical_compare(a, b);
   }
 };
 

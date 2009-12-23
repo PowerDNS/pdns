@@ -109,7 +109,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
     WriteLock wl(&d_rwlock);
     //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
 
-    if(!d_cachecachevalid || !boost::iequals(d_cachedqname, qname)) {
+    if(!d_cachecachevalid || !pdns_iequals(d_cachedqname, qname)) {
       //    cerr<<"had cache cache miss"<<endl;
       d_cachedqname=qname;
       d_cachecache=d_cache.equal_range(tie(qname));

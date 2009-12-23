@@ -108,7 +108,7 @@ try
 	    g_skipped++;
 	    continue;
 	  }
-	  if(iequals(mdp.d_qname,"ycjnakisys1m.post.yamaha.co.jp."))
+	  if(pdns_iequals(mdp.d_qname,"ycjnakisys1m.post.yamaha.co.jp."))
 	    cerr<<"hit: "<<mdp.d_qtype<<", rd="<<mdp.d_header.rd<< ", id="<<mdp.d_header.id<<", qr="<<mdp.d_header.qr<<"\n";
 
 	  if(lastreport.tv_sec == 0) {

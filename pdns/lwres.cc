@@ -173,7 +173,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       return 1; // this is "success", the error is set in lwr->d_rcode
     }
 
-    if(!boost::iequals(domain, mdp.d_qname)) { 
+    if(!pdns_iequals(domain, mdp.d_qname)) { 
       if(domain.find((char)0)==string::npos) {// embedded nulls are too noisy
 	L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
 	g_stats.unexpectedCount++;

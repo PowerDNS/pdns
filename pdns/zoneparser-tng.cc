@@ -244,20 +244,20 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
   if(d_line[0]=='$') { 
     string command=makeString(d_line, parts[0]);
-    if(iequals(command,"$TTL") && parts.size() > 1) {
+    if(pdns_iequals(command,"$TTL") && parts.size() > 1) {
       d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, parts[1]), is_any_of(";")));
       d_havedollarttl=true;
     }
-    else if(iequals(command,"$INCLUDE") && parts.size() > 1) {
+    else if(pdns_iequals(command,"$INCLUDE") && parts.size() > 1) {
       string fname=unquotify(makeString(d_line, parts[1]));
       if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
 	fname=d_reldir+"/"+fname;
       stackFile(fname);
     }
-    else if(iequals(command, "$ORIGIN") && parts.size() > 1) {
+    else if(pdns_iequals(command, "$ORIGIN") && parts.size() > 1) {
       d_zonename = toCanonic("", makeString(d_line, parts[1]));
     }
-    else if(iequals(command, "$GENERATE") && parts.size() > 2) {
+    else if(pdns_iequals(command, "$GENERATE") && parts.size() > 2) {
       // $GENERATE 1-127 $ CNAME $.0
       string range=makeString(d_line, parts[1]);
       d_templatestep=1;
@@ -314,7 +314,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
     // cout<<"Next part: '"<<nextpart<<"'"<<endl;
     
-    if(boost::iequals(nextpart, "IN")) {
+    if(pdns_iequals(nextpart, "IN")) {
       // cout<<"Ignoring 'IN'\n";
       continue;
     }

@@ -224,7 +224,7 @@ int PacketCache::purge(const vector<string> &matches)
       string dotsuffix = "."+suffix;
 
       for(; iter != d_map.end(); ++iter) {
-	if(!iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
+	if(!pdns_iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
 	  //	cerr<<"Stopping!"<<endl;
 	  break;
 	}

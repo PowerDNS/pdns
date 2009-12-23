@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2008  PowerDNS.COM BV
+    Copyright (C) 2005 - 2009  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -427,7 +427,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       // XXX FIXME THIS MIGHT BE VERY SLOW!
       ret.reserve(ret.size() + labellen + 2);
       for(string::size_type n = 0 ; n < labellen; ++n, frompos++) {
-	if(content.at(frompos)=='.')
+	if(content.at(frompos)=='.' || content.at(frompos)=='\\')
 	  ret.append(1, '\\');
 	ret.append(1, content[frompos]);
       }

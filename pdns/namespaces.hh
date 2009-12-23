@@ -27,7 +27,6 @@ using boost::trim;
 using boost::trim_left;
 using boost::trim_right;
 using boost::is_any_of;
-using boost::iequals;
 using boost::trim_right_copy_if;
 using boost::equals;
 using boost::ends_with;

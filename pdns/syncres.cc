@@ -77,8 +77,8 @@ bool SyncRes::s_noEDNS;
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
 {
   s_queries++;
-  if( (qtype.getCode()==QType::PTR && iequals(qname, "1.0.0.127.in-addr.arpa.")) ||
-      (qtype.getCode()==QType::A && qname.length()==10 && iequals(qname, "localhost."))) {
+  if( (qtype.getCode()==QType::PTR && pdns_iequals(qname, "1.0.0.127.in-addr.arpa.")) ||
+      (qtype.getCode()==QType::A && qname.length()==10 && pdns_iequals(qname, "localhost."))) {
     ret.clear();
     DNSResourceRecord rr;
     rr.qname=qname;
@@ -94,7 +94,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
   }
 
   if(qclass==3 && qtype.getCode()==QType::TXT && 
-        (iequals(qname, "version.bind.") || iequals(qname, "id.server.") || iequals(qname, "version.pdns.") ) 
+        (pdns_iequals(qname, "version.bind.") || pdns_iequals(qname, "id.server.") || pdns_iequals(qname, "version.pdns.") ) 
      ) {
     ret.clear();
     DNSResourceRecord rr;
@@ -102,7 +102,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     rr.qtype=qtype;
     rr.qclass=qclass;
     rr.ttl=86400;
-    if(iequals(qname,"version.bind.")  || iequals(qname,"version.pdns."))
+    if(pdns_iequals(qname,"version.bind.")  || pdns_iequals(qname,"version.pdns."))
       rr.content="\""+::arg()["version-string"]+"\"";
     else
       rr.content="\""+s_serverID+"\"";
@@ -173,7 +173,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
 
   string nsdomain(qname);
 
-  while(chopOffDotted(nsdomain) && !iequals(nsdomain, iter->first)) {
+  while(chopOffDotted(nsdomain) && !pdns_iequals(nsdomain, iter->first)) {
     range=iter->second.d_records.equal_range(make_tuple(nsdomain,QType(QType::NS))); 
     if(range.first==range.second)
       continue;
@@ -757,9 +757,9 @@ struct TCacheComp
 {
   bool operator()(const pair<string, QType>& a, const pair<string, QType>& b) const
   {
-    if(boost::ilexicographical_compare(a.first, b.first))
+    if(pdns_ilexicographical_compare(a.first, b.first))
       return true;
-    if(boost::ilexicographical_compare(b.first, a.first))   
+    if(pdns_ilexicographical_compare(b.first, a.first))   
       return false;
       
     return a.second < b.second;
@@ -1026,12 +1026,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  }
 	  negindic=true;
 	}
-	else if(i->d_place==DNSResourceRecord::ANSWER && iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
+	else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
 	  ret.push_back(*i);
 	  newtarget=i->content;
 	}
 	// for ANY answers we *must* have an authoritive answer
-	else if(i->d_place==DNSResourceRecord::ANSWER && boost::iequals(i->qname, qname) && 
+	else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && 
 		(
 		 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) )
 		) 
@@ -1080,7 +1080,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	return RCode::NXDomain;
       }
       if(!newtarget.empty()) {
-	if(iequals(newtarget,qname)) {
+	if(pdns_iequals(newtarget,qname)) {
 	  LOG<<prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl;
 	  return RCode::ServFail;
 	}

@@ -89,7 +89,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
     r->addRecord(rr);
   }
 
-  if(boost::iequals(::arg()["send-root-referral"], "lean"))
+  if(pdns_iequals(::arg()["send-root-referral"], "lean"))
      return;
 
   // add the additional stuff
@@ -842,7 +842,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	  continue;
 	}
 	  
-	if(boost::iequals(subdomain,sd.qname)) // about to break out of our zone
+	if(pdns_iequals(subdomain,sd.qname)) // about to break out of our zone
 	  break; 
 	
 	B.lookup("NS", subdomain,p,zoneId);  // start our search at the backend
