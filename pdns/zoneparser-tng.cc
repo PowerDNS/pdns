@@ -314,7 +314,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 
     // cout<<"Next part: '"<<nextpart<<"'"<<endl;
     
-    if(!Utility::strcasecmp(nextpart.c_str(), "IN")) {
+    if(boost::iequals(nextpart, "IN")) {
       // cout<<"Ignoring 'IN'\n";
       continue;
     }

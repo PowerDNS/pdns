@@ -1270,8 +1270,6 @@ void doResends(MT_t::waiters_t::iterator& iter, PacketID resend, const string& c
 
 void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
-  //  static HTimer s_timer("udp server response processing");
-
   PacketID pid=any_cast<PacketID>(var);
   int len;
   char data[1500];
@@ -1314,7 +1312,13 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       pident.type = 0;
     }
     else {
-      pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
+      try {
+	pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
+      }
+      catch(std::exception& e) {
+	L<<Logger::Warning<<"Error in packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr) << ": "<<e.what() << endl;
+	return;
+      }
     }
     string packet;
     packet.assign(data, len);
@@ -1333,7 +1337,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
 	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
-	   !Utility::strcasecmp(pident.domain.c_str(), mthread->key.domain.c_str())) {
+	   boost::iequals(pident.domain, mthread->key.domain)) {
 	  mthread->key.nearMisses++;
 	}
 

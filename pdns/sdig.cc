@@ -31,12 +31,14 @@ try
   NSRecordContent nrc2("ns2.powerdns.com");
   nrc2.toPacket(pw);
   */
+
     string ping("hallo!");
-  DNSPacketWriter::optvect_t opts;
+/*  DNSPacketWriter::optvect_t opts;
 
   opts.push_back(make_pair(5, ping));
   pw.addOpt(5200, 0, 0x8000, opts);
   pw.commit();
+*/
 
   Socket sock(InterNetwork, Datagram);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));

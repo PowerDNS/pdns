@@ -14,10 +14,8 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+// #include <boost/thread/shared_mutex.hpp>
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 103300
-#include <boost/multi_index/hashed_index.hpp>
-#endif
 
 #undef max
 
@@ -113,7 +111,7 @@ private:
   bool attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored);
 
   pthread_rwlock_t d_rwlock;
-
+  // boost::shared_mutex d_smutex;
 };
 string DNSRR2String(const DNSResourceRecord& rr);
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd);

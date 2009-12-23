@@ -187,9 +187,6 @@ public:
   //! Sets the random seed.
   static void srandom( unsigned int seed );
 
-  //! Compares two strings and ignores case.
-  static int strcasecmp( const char *s1, const char *s2 );
-
   //! Drops the program's privileges.
   static void dropPrivs( int uid, int gid );
   

@@ -842,7 +842,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 	  continue;
 	}
 	  
-	if(!Utility::strcasecmp(subdomain.c_str(),sd.qname.c_str())) // about to break out of our zone
+	if(boost::iequals(subdomain,sd.qname)) // about to break out of our zone
 	  break; 
 	
 	B.lookup("NS", subdomain,p,zoneId);  // start our search at the backend

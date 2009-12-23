@@ -176,12 +176,6 @@ void Utility::srandom( unsigned int seed )
   ::srandom(seed);
 }
 
-// Compares two string, ignoring the case.
-int Utility::strcasecmp( const char *s1, const char *s2 )
-{
-  return ::strcasecmp( s1, s2 );
-}
-
 
 // Writes a vector.
 int Utility::writev(int socket, const iovec *vector, size_t count )

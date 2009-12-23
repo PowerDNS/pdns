@@ -77,8 +77,8 @@ bool SyncRes::s_noEDNS;
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
 {
   s_queries++;
-  if( (qtype.getCode()==QType::PTR && !Utility::strcasecmp(qname.c_str(), "1.0.0.127.in-addr.arpa.")) ||
-      (qtype.getCode()==QType::A && qname.length()==10 && !Utility::strcasecmp(qname.c_str(), "localhost."))) {
+  if( (qtype.getCode()==QType::PTR && iequals(qname, "1.0.0.127.in-addr.arpa.")) ||
+      (qtype.getCode()==QType::A && qname.length()==10 && iequals(qname, "localhost."))) {
     ret.clear();
     DNSResourceRecord rr;
     rr.qname=qname;
@@ -94,7 +94,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
   }
 
   if(qclass==3 && qtype.getCode()==QType::TXT && 
-        (!Utility::strcasecmp(qname.c_str(), "version.bind.") || !Utility::strcasecmp(qname.c_str(), "id.server.") || !Utility::strcasecmp(qname.c_str(), "version.pdns.") ) 
+        (iequals(qname, "version.bind.") || iequals(qname, "id.server.") || iequals(qname, "version.pdns.") ) 
      ) {
     ret.clear();
     DNSResourceRecord rr;
@@ -102,7 +102,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     rr.qtype=qtype;
     rr.qclass=qclass;
     rr.ttl=86400;
-    if(!Utility::strcasecmp(qname.c_str(),"version.bind.")  || !Utility::strcasecmp(qname.c_str(),"version.pdns."))
+    if(iequals(qname,"version.bind.")  || iequals(qname,"version.pdns."))
       rr.content="\""+::arg()["version-string"]+"\"";
     else
       rr.content="\""+s_serverID+"\"";
@@ -757,12 +757,11 @@ struct TCacheComp
 {
   bool operator()(const pair<string, QType>& a, const pair<string, QType>& b) const
   {
-    int cmp=Utility::strcasecmp(a.first.c_str(), b.first.c_str());
-    if(cmp < 0)
+    if(boost::ilexicographical_compare(a.first, b.first))
       return true;
-    if(cmp > 0)
+    if(boost::ilexicographical_compare(b.first, a.first))   
       return false;
-
+      
     return a.second < b.second;
   }
 };
@@ -1032,7 +1031,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	  newtarget=i->content;
 	}
 	// for ANY answers we *must* have an authoritive answer
-	else if(i->d_place==DNSResourceRecord::ANSWER && !Utility::strcasecmp(i->qname.c_str(),qname.c_str()) && 
+	else if(i->d_place==DNSResourceRecord::ANSWER && boost::iequals(i->qname, qname) && 
 		(
 		 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) )
 		) 

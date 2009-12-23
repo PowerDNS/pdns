@@ -475,10 +475,9 @@ struct PacketID
     if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
       return false;
 
-    int cmp=Utility::strcasecmp(domain.c_str(), b.domain.c_str());
-    if(cmp < 0)
+    if(boost::ilexicographical_compare(domain, b.domain))
       return true;
-    if(cmp > 0)
+    if(boost::ilexicographical_compare(b.domain, domain))
       return false;
 
     return tie(fd, id) < tie(b.fd, b.id);
@@ -496,8 +495,7 @@ struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>
     if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
       return false;
 
-    int cmp=Utility::strcasecmp(a.domain.c_str(), b.domain.c_str());
-    return cmp < 0;
+    return boost::ilexicographical_compare(a.domain, b.domain);
   }
 };
 extern MemRecursorCache RC;

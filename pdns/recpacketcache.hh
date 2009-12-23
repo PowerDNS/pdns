@@ -49,6 +49,8 @@ inline bool RecursorPacketCache::Entry::operator<(const struct RecursorPacketCac
   string qname=questionExpand(d_packet.c_str(), d_packet.length(), qtype);
   string rhsqname=questionExpand(rhs.d_packet.c_str(), rhs.d_packet.length(), rhsqtype);
 
+  // qtype is only known *after* questionExpand..
+
   return tie(qtype, qname) < tie(rhsqtype, rhsqname);
 }
 

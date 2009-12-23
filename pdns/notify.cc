@@ -74,12 +74,6 @@ int Utility::inet_pton( int af, const char *src, void *dst )
   return ::inet_pton(af, src, dst);
 }
 
-// Compares two string, ignoring the case.
-int Utility::strcasecmp( const char *s1, const char *s2 )
-{
-  return ::strcasecmp( s1, s2 );
-}
-
 // Returns the current time.
 int Utility::gettimeofday( struct timeval *tv, void *tz )
 {
