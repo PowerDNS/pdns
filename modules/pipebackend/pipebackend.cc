@@ -119,7 +119,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
          
          if (pkt_p) {
             localIP=pkt_p->getLocal();
-	    remoteIP=pkt_p->getRemote();
+            remoteIP=pkt_p->getRemote();
          }
 
          // pipebackend-abi-version = 1
@@ -220,24 +220,24 @@ bool PipeBackend::get(DNSResourceRecord &r)
          r.ttl=atoi(parts[4].c_str());
          r.domain_id=atoi(parts[5].c_str());
  
-	 if(parts[3]!="MX") {
-	   r.content.clear();
-	   for(int n=6; n < parts.size(); ++n) {
-	     if(n!=6)
-	       r.content.append(1,' ');
-	     r.content.append(parts[n]);
-	   }
-	 }
-	 else {
-	   if(parts.size()<8) {
+         if(parts[3]!="MX") {
+           r.content.clear();
+           for(int n=6; n < parts.size(); ++n) {
+             if(n!=6)
+               r.content.append(1,' ');
+             r.content.append(parts[n]);
+           }
+         }
+         else {
+           if(parts.size()<8) {
             L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX line in data section for query for "<<d_qname<<endl;
             throw AhuException("Format error communicating with coprocess in data section of MX record");
-	   }
-	   
-	   r.priority=atoi(parts[6].c_str());
-	   r.content=parts[7];
+           }
+           
+           r.priority=atoi(parts[6].c_str());
+           r.content=parts[7];
 
-	 }
+         }
          break;
       }
       else

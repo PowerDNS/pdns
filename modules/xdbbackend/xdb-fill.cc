@@ -69,7 +69,7 @@ typedef void insertFunc(int domain_id, const string &qname, const string &qtype,
 void walk(FILE *fp, insertFunc *ifp)
 {
   char line[1024];
-  // 0	'ORG'	'SOA'	'A.GTLD-SERVERS.NET. NSTLD.VERISIGN-GRS.COM. 2002100700 1800 900 604800 86400'	0	3600
+  // 0        'ORG'	'SOA'	'A.GTLD-SERVERS.NET. NSTLD.VERISIGN-GRS.COM. 2002100700 1800 900 604800 86400'	0	3600
   int count=0;
   while(fgets(line,1023,fp)) {
     if(!((count++)%10000))

@@ -10,8 +10,8 @@ class SPgSQL : public SSql
 {
 public:
   SPgSQL(const string &database, const string &host="", const string& port="",
-	 const string &msocket="",const string &user="", 
-	 const string &password="");
+         const string &msocket="",const string &user="", 
+         const string &password="");
 
   ~SPgSQL();
   

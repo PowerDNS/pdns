@@ -47,9 +47,9 @@ public:
     /*
     if(arg().mustDo("query-logging")) {
       if(ret)
-	L<<Logger::Error<<"Raw Answer: '"<<d_answer<<"'"<<endl;
+        L<<Logger::Error<<"Raw Answer: '"<<d_answer<<"'"<<endl;
       else
-	L<<Logger::Error<<"No answer"<<endl;
+        L<<Logger::Error<<"No answer"<<endl;
     }
     */
 
@@ -62,11 +62,11 @@ public:
       int len=rr.unSerialize(d_answer);
       d_answer=d_answer.substr(len);
       if(d_qtype.getCode()==QType::ANY || rr.qtype==d_qtype) {
-	/*
-	if(arg().mustDo("query-logging")) {
-	  L<<Logger::Error<<"Real answer: "<<rr.qtype.getName()<<"/"<<rr.content<<endl;
-	*/
-	return true;
+        /*
+        if(arg().mustDo("query-logging")) {
+          L<<Logger::Error<<"Real answer: "<<rr.qtype.getName()<<"/"<<rr.content<<endl;
+        */
+        return true;
       }
     }
     return false;                                                   // no more data

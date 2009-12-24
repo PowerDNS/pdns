@@ -15,8 +15,8 @@ XGDBMWrapper::XGDBMWrapper(const string &fname, Mode mode)
 {
   if(!s_db) {
     s_db = gdbm_open(const_cast<char *>(fname.c_str()), 2048,
-		  mode==ReadWrite ? GDBM_WRITER|GDBM_WRCREAT|GDBM_FAST : GDBM_READER,
-		  0666 , 0); 
+        	  mode==ReadWrite ? GDBM_WRITER|GDBM_WRCREAT|GDBM_FAST : GDBM_READER,
+        	  0666 , 0); 
     if(!s_db) 
       throw XDBException("Unable to open database: "+string(strerror(errno)));
   }

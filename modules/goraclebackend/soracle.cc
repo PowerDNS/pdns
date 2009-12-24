@@ -27,9 +27,9 @@ string SOracle::getOracleError()
     if (errcode) {
       char *p = (char*) msg;
       while (*p++ != 0x00) {
-	if (*p == '\n' || *p == '\r') {
-	  *p = ';';
-	}
+        if (*p == '\n' || *p == '\r') {
+          *p = ';';
+        }
       }
       
       mReason = (char*) msg;
@@ -39,8 +39,8 @@ string SOracle::getOracleError()
 }
 
 SOracle::SOracle(const string &database, 
-		 const string &user, 
-		 const string &password)
+        	 const string &user, 
+        	 const string &password)
 {
    d_environmentHandle = NULL;
    d_errorHandle = NULL;
@@ -68,7 +68,7 @@ SOracle::SOracle(const string &database,
    const char *username = user.c_str();
 
    err = OCILogon(d_environmentHandle, d_errorHandle, &d_serviceContextHandle, (OraText*) username, strlen(username),
-		  (OraText*) password.c_str(),  strlen(password.c_str()), (OraText*) database.c_str(), strlen(database.c_str()));
+        	  (OraText*) password.c_str(),  strlen(password.c_str()), (OraText*) database.c_str(), strlen(database.c_str()));
    
    if (err) 
      throw sPerrorException("Loging in to Oracle gave error: " + getOracleError());
@@ -142,13 +142,13 @@ int SOracle::doQuery(const string &query)
     return 0;
 
   int err = OCIHandleAlloc(d_environmentHandle, (dvoid **) &d_handle, OCI_HTYPE_STMT, 0, NULL);
-	 
+         
   if (err) {
     throw sPerrorException("Allocating a query handle: "+getOracleError());
   }
 
   err = OCIStmtPrepare(d_handle, d_errorHandle, (text*) query.c_str(), strlen(query.c_str()),
-		       OCI_NTV_SYNTAX, OCI_DEFAULT);
+        	       OCI_NTV_SYNTAX, OCI_DEFAULT);
   
   if (err) {
     throw sPerrorException("Preparing statement: "+getOracleError());
@@ -156,8 +156,8 @@ int SOracle::doQuery(const string &query)
 
   ub4 prefetch=1000;
   err=OCIAttrSet(d_handle, (ub4) OCI_HTYPE_STMT,
-	     (dvoid *) &prefetch, (ub4) sizeof(ub4), 
-	     (ub4) OCI_ATTR_PREFETCH_ROWS, d_errorHandle);
+             (dvoid *) &prefetch, (ub4) sizeof(ub4), 
+             (ub4) OCI_ATTR_PREFETCH_ROWS, d_errorHandle);
 
   if (err) {
     throw sPerrorException("setting prefetch: "+getOracleError());
@@ -172,7 +172,7 @@ int SOracle::doQuery(const string &query)
     //    cerr<<"bind: "<<n<<endl;
     OCIDefine *theDefineHandle = NULL; 
     err = OCIDefineByPos(d_handle, &theDefineHandle, d_errorHandle, n+1, d_fields[n].content,
-			 sizeof(d_fields[n].content) - 1, SQLT_STR, (dvoid*) &d_fields[n].indicator, NULL, NULL, OCI_DEFAULT);
+        		 sizeof(d_fields[n].content) - 1, SQLT_STR, (dvoid*) &d_fields[n].indicator, NULL, NULL, OCI_DEFAULT);
     
     if (err) {
       throw sPerrorException("Error binding returns: "+getOracleError());
@@ -182,7 +182,7 @@ int SOracle::doQuery(const string &query)
   //  cerr<<"Done binding fields"<<endl;
 
   d_queryResult = OCIStmtExecute(d_serviceContextHandle, d_handle, d_errorHandle, 1, 0,
-				 (OCISnapshot *)NULL, (OCISnapshot*) NULL, OCI_DEFAULT);
+        			 (OCISnapshot *)NULL, (OCISnapshot*) NULL, OCI_DEFAULT);
   
   if (d_queryResult != OCI_SUCCESS && d_queryResult != OCI_SUCCESS_WITH_INFO && d_queryResult != OCI_NO_DATA) {
     throw sPerrorException("executing oracle query: "+getOracleError());
@@ -219,9 +219,9 @@ bool SOracle::getRow(row_t &row)
   else {
     for(int n=0;n < d_numfields ;++n)
       if(!d_fields[n].indicator)
-	row.push_back(d_fields[n].content);
+        row.push_back(d_fields[n].content);
       else
-	row.push_back("");
+        row.push_back("");
   }
 
   d_queryResult = OCIStmtFetch(d_handle, d_errorHandle, 1, 0, 0);
@@ -263,9 +263,9 @@ int main(int argc, char **argv)
       SSql::row_t row;
       
       while(s.getRow(row)) {
-	for(SSql::row_t::const_iterator j=row.begin();j!=row.end();++j)
-	  cout <<"'"<< *j<<"', ";
-	cout<<"\n";
+        for(SSql::row_t::const_iterator j=row.begin();j!=row.end();++j)
+          cout <<"'"<< *j<<"', ";
+        cout<<"\n";
       }
     }
     time_t spent=time(0)-then;

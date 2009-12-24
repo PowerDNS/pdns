@@ -316,23 +316,23 @@ void DB2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_
    {
       case kForwardQuery:
       case kForwardWildcardQuery:
-	 strncpy(mParamName, qname.c_str(), sizeof(mParamName));
+         strncpy(mParamName, qname.c_str(), sizeof(mParamName));
          strncpy(mParamType, qtype.getName().c_str(), sizeof(mParamType));
          //cerr << ">>>>>>>>  Name = " << mParamName << " Type = " << mParamType << endl;
-	 break;
+         break;
 
       case kForwardByZoneQuery:
-	 strncpy(mParamName, qname.c_str(), sizeof(mParamName));
-	 strncpy(mParamType, qtype.getName().c_str(), sizeof(mParamType));	 
-	 mParamZoneId = zoneId;
+         strncpy(mParamName, qname.c_str(), sizeof(mParamName));
+         strncpy(mParamType, qtype.getName().c_str(), sizeof(mParamType));	 
+         mParamZoneId = zoneId;
          //cerr << ">>>>>>>>  Name = " << mParamName << " Type = " << mParamType << " ZoneId = " << mParamZoneId << endl;
-	 break;
+         break;
 
       case kForwardAnyQuery:
       case kForwardWildcardAnyQuery:
-	 strncpy(mParamName, qname.c_str(), sizeof(mParamName));
+         strncpy(mParamName, qname.c_str(), sizeof(mParamName));
          //cerr << ">>>>>>>>  Name = " << mParamName << endl;
-	 break;
+         break;
    }
 
    //
@@ -596,14 +596,14 @@ class DB2Factory : public BackendFactory
   
       void declareArguments(const string &suffix="")
       {
-	 declare(suffix,"server","Server","powerdns");
-	 declare(suffix,"user","User","powerdns");
-	 declare(suffix,"password","Password","powerdns");
+         declare(suffix,"server","Server","powerdns");
+         declare(suffix,"user","User","powerdns");
+         declare(suffix,"password","Password","powerdns");
       }
       
       DNSBackend *make(const string &suffix="")
       {
-	 return new DB2Backend(suffix);
+         return new DB2Backend(suffix);
       }
 };
 
@@ -615,8 +615,8 @@ class DB2Loader
 
       Loader()
       {
-	 BackendMakers().report(new DB2Factory);
-	 L << Logger::Notice << kBackendName << " This is the DB2 module version "VERSION" ("__DATE__", "__TIME__") reporting" << endl;
+         BackendMakers().report(new DB2Factory);
+         L << Logger::Notice << kBackendName << " This is the DB2 module version "VERSION" ("__DATE__", "__TIME__") reporting" << endl;
       }
 };
 

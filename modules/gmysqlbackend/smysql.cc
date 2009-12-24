@@ -12,7 +12,7 @@ using namespace std;
 bool SMySQL::s_dolog;
 
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user, 
-	       const string &password)
+               const string &password)
 {
   mysql_init(&d_db);
   mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, "client");
@@ -20,11 +20,11 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
   
   if (!mysql_real_connect(&d_db, host.empty() ? 0 : host.c_str(), 
-			  user.empty() ? 0 : user.c_str(), 
-			  password.empty() ? 0 : password.c_str(),
-			  database.c_str(), port,
-			  msocket.empty() ? 0 : msocket.c_str(),
-			  0)) {
+        		  user.empty() ? 0 : user.c_str(), 
+        		  password.empty() ? 0 : password.c_str(),
+        		  database.c_str(), port,
+        		  msocket.empty() ? 0 : msocket.c_str(),
+        		  0)) {
 
     throw sPerrorException("Unable to connect to database");
   }
@@ -126,7 +126,7 @@ int main()
       const SSql::row_t &row=juh[i];
 
       for(SSql::row_t::const_iterator j=row.begin();j!=row.end();++j)
-	cout <<"'"<< *j<<"', ";
+        cout <<"'"<< *j<<"', ";
       cout<<endl;
     }
   }

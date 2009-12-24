@@ -21,11 +21,11 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
 {
   try {
     setDB(new SPgSQL(getArg("dbname"),
-		  getArg("host"),
-		  getArg("port"),
-		  getArg("socket"),
-		  getArg("user"),
-		  getArg("password")));
+        	  getArg("host"),
+        	  getArg("port"),
+        	  getArg("socket"),
+        	  getArg("user"),
+        	  getArg("password")));
     
   }
   

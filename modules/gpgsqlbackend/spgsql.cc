@@ -12,7 +12,7 @@ using namespace std;
 bool SPgSQL::s_dolog;
 
 SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &msocket, const string &user, 
-	       const string &password)
+               const string &password)
 {
   d_db=0;
   string connectstr;
@@ -39,7 +39,7 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
     }
     catch(...) {
       if(d_db)
-	PQfinish(d_db);
+        PQfinish(d_db);
       throw;
     }
   }

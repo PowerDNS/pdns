@@ -99,7 +99,7 @@ void CoProcess::checkStatus()
       string reason="CoProcess died on receiving signal "+itoa(sig);
 #ifdef WCOREDUMP
       if(WCOREDUMP(status)) 
-	reason+=". Dumped core";
+        reason+=". Dumped core";
 #endif
       
       throw AhuException(reason);

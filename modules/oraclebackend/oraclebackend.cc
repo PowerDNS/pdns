@@ -93,19 +93,19 @@ OracleBackend::OracleBackend(const string &suffix)
   
       err = OCIInitialize(OCI_THREADED, 0,  NULL, NULL, NULL);
       if (err) {
-	 throw OracleException("OCIInitialize");
+         throw OracleException("OCIInitialize");
       }
 
       err = OCIEnvInit(&mEnvironmentHandle, OCI_DEFAULT, 0, 0);
       if (err) {
-	 throw OracleException("OCIEnvInit");
+         throw OracleException("OCIEnvInit");
       }
   
       // Allocate an error handle
       
       err = OCIHandleAlloc(mEnvironmentHandle, (dvoid**) &mErrorHandle, OCI_HTYPE_ERROR, 0, NULL);
       if (err) {
-	 throw OracleException("OCIHandleAlloc");
+         throw OracleException("OCIHandleAlloc");
       }
   
       // Logon to the database
@@ -115,136 +115,136 @@ OracleBackend::OracleBackend(const string &suffix)
       const char *database = getArg("database").c_str();
 
       err = OCILogon(mEnvironmentHandle, mErrorHandle, &mServiceContextHandle, (OraText*) username, strlen(username),
-		     (OraText*) password,  strlen(password), (OraText*) database, strlen(database));
+        	     (OraText*) password,  strlen(password), (OraText*) database, strlen(database));
       
       if (err) {
-	 throw OracleException(mErrorHandle);
+         throw OracleException(mErrorHandle);
       }
 
       // Allocate the statement handles, and prepare the statements
 
       for (int i = 0; i < kNumQueries; i++)
       {
-	 err = OCIHandleAlloc(mEnvironmentHandle, (dvoid **) &mStatementHandles[i], OCI_HTYPE_STMT, 0, NULL);
-	 
-	 if (err) {
-	    throw OracleException(mErrorHandle);
-	 }
+         err = OCIHandleAlloc(mEnvironmentHandle, (dvoid **) &mStatementHandles[i], OCI_HTYPE_STMT, 0, NULL);
+         
+         if (err) {
+            throw OracleException(mErrorHandle);
+         }
 
-	 err = OCIStmtPrepare(mStatementHandles[i], mErrorHandle, (text*) mQueries[i], strlen(mQueries[i]),
+         err = OCIStmtPrepare(mStatementHandles[i], mErrorHandle, (text*) mQueries[i], strlen(mQueries[i]),
            OCI_NTV_SYNTAX, OCI_DEFAULT);
 
-	 if (err) {
-	    throw OracleException(mErrorHandle);
-	 }
+         if (err) {
+            throw OracleException(mErrorHandle);
+         }
 
-	 // Bind query arguments
-	 OCIBind *theBindHandle = NULL;
+         // Bind query arguments
+         OCIBind *theBindHandle = NULL;
 
          // Only the kListQuery and kForwardQueryByZone have an :id field
 
-	 if (i == kListQuery || i == kForwardQueryByZone)
-	 {
-	    err = OCIBindByName(mStatementHandles[i], &theBindHandle, mErrorHandle, (OraText*) ":id", strlen(":id"),
-				(ub1 *) &mQueryId, sizeof(mQueryId), SQLT_INT, NULL, NULL, 0, 0, NULL, OCI_DEFAULT);
-	    
-	    if (err) {
-	       throw OracleException(mErrorHandle);
-	    }	    
-	 }
+         if (i == kListQuery || i == kForwardQueryByZone)
+         {
+            err = OCIBindByName(mStatementHandles[i], &theBindHandle, mErrorHandle, (OraText*) ":id", strlen(":id"),
+        			(ub1 *) &mQueryId, sizeof(mQueryId), SQLT_INT, NULL, NULL, 0, 0, NULL, OCI_DEFAULT);
+            
+            if (err) {
+               throw OracleException(mErrorHandle);
+            }	    
+         }
 
          // For all the other queries, except for kList Query we have more complex bindings
 
-	 if (i != kListQuery)
-	 {
+         if (i != kListQuery)
+         {
             // All queries have a name: field.
 
-	    if (i < kListQuery)
-	    {
-	       err = OCIBindByName(mStatementHandles[i], &theBindHandle, mErrorHandle, (OraText*) ":name", strlen(":name"),
-				   (ub1 *) mQueryName, sizeof(mQueryName), SQLT_STR, NULL, NULL, 0, 0, NULL, OCI_DEFAULT);
-	       
-	       if (err) {
-		  throw OracleException(mErrorHandle);
-	       }
-	    }
-	    
+            if (i < kListQuery)
+            {
+               err = OCIBindByName(mStatementHandles[i], &theBindHandle, mErrorHandle, (OraText*) ":name", strlen(":name"),
+        			   (ub1 *) mQueryName, sizeof(mQueryName), SQLT_STR, NULL, NULL, 0, 0, NULL, OCI_DEFAULT);
+               
+               if (err) {
+        	  throw OracleException(mErrorHandle);
+               }
+            }
+            
             // Only these queries have a type: field
 
-	    if (i == kForwardQuery || i == kForwardQueryByZone || i == kForwardWildcardQuery )
-	    {
-	       err = OCIBindByName(mStatementHandles[i], &theBindHandle, mErrorHandle, (OraText*) ":type", strlen(":type"),
-				   (ub1 *) mQueryType, sizeof(mQueryType), SQLT_STR, NULL, NULL, 0, 0, NULL, OCI_DEFAULT);
-	       
-	       if (err) {
-		  throw OracleException(mErrorHandle);
-	       }	    
-	    }
-	 }
-	 
-	 // Define the output
-	 OCIDefine *theDefineHandle;
+            if (i == kForwardQuery || i == kForwardQueryByZone || i == kForwardWildcardQuery )
+            {
+               err = OCIBindByName(mStatementHandles[i], &theBindHandle, mErrorHandle, (OraText*) ":type", strlen(":type"),
+        			   (ub1 *) mQueryType, sizeof(mQueryType), SQLT_STR, NULL, NULL, 0, 0, NULL, OCI_DEFAULT);
+               
+               if (err) {
+        	  throw OracleException(mErrorHandle);
+               }	    
+            }
+         }
+         
+         // Define the output
+         OCIDefine *theDefineHandle;
 
-	 mResultContentIndicator = mResultTTLIndicator = mResultPriorityIndicator = mResultTypeIndicator
+         mResultContentIndicator = mResultTTLIndicator = mResultPriorityIndicator = mResultTypeIndicator
            = mResultDomainIdIndicator = mResultChangeDateIndicator = 0;
 
-	 theDefineHandle = NULL; 
-	 err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 1, mResultContent,
+         theDefineHandle = NULL; 
+         err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 1, mResultContent,
            sizeof(mResultContent) - 1, SQLT_STR, (dvoid*) &mResultContentIndicator, NULL, NULL, OCI_DEFAULT);
-	 
-	 if (err) {
-	    throw OracleException(mErrorHandle);
-	 }
+         
+         if (err) {
+            throw OracleException(mErrorHandle);
+         }
 
-	 theDefineHandle = NULL;
-	 err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 2, &mResultTTL,
+         theDefineHandle = NULL;
+         err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 2, &mResultTTL,
            sizeof(mResultTTL), SQLT_INT, (dvoid*) &mResultTTLIndicator, NULL, NULL, OCI_DEFAULT);
-	 
-	 if (err) {
-	   throw OracleException(mErrorHandle);
-	 }
-	 theDefineHandle = NULL;
-	 err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 3, &mResultPriority,
+         
+         if (err) {
+           throw OracleException(mErrorHandle);
+         }
+         theDefineHandle = NULL;
+         err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 3, &mResultPriority,
            sizeof(mResultPriority), SQLT_INT, (dvoid*) &mResultPriorityIndicator, NULL, NULL, OCI_DEFAULT);
-	 
-	 if (err) {
-	    throw OracleException(mErrorHandle);
-	 }
-	 
-	 theDefineHandle = NULL;
-	 err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 4, mResultType,
+         
+         if (err) {
+            throw OracleException(mErrorHandle);
+         }
+         
+         theDefineHandle = NULL;
+         err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 4, mResultType,
            sizeof(mResultType) - 1, SQLT_STR, (dvoid*) &mResultTypeIndicator, NULL, NULL, OCI_DEFAULT);
-	 
-	 if (err) {
-	    throw OracleException(mErrorHandle);
-	 }
+         
+         if (err) {
+            throw OracleException(mErrorHandle);
+         }
 
-	 theDefineHandle = NULL;
-	 err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 5, &mResultDomainId,
+         theDefineHandle = NULL;
+         err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 5, &mResultDomainId,
            sizeof(mResultDomainId), SQLT_INT, (dvoid*) &mResultDomainIdIndicator, NULL, NULL, OCI_DEFAULT);
-	 
-	 if (err) {
-	    throw OracleException(mErrorHandle);
-	 }
-	 
-	 theDefineHandle = NULL;
-	 err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 6, &mResultChangeDate,
+         
+         if (err) {
+            throw OracleException(mErrorHandle);
+         }
+         
+         theDefineHandle = NULL;
+         err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 6, &mResultChangeDate,
            sizeof(mResultChangeDate), SQLT_INT, (dvoid*) &mResultChangeDateIndicator, NULL, NULL, OCI_DEFAULT);
-	 
-	 if (err) {
-	    throw OracleException(mErrorHandle);
-	 }
+         
+         if (err) {
+            throw OracleException(mErrorHandle);
+         }
 
-	 if (i == kListQuery)
-	 {
-	    theDefineHandle = NULL; 
-	    err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 7, mResultName,
+         if (i == kListQuery)
+         {
+            theDefineHandle = NULL; 
+            err = OCIDefineByPos(mStatementHandles[i], &theDefineHandle, mErrorHandle, 7, mResultName,
               sizeof(mResultName) - 1, SQLT_STR, (dvoid*) &mResultNameIndicator, NULL, NULL, OCI_DEFAULT);
-	    
-	    if (err) {
-	       throw OracleException(mErrorHandle);
-	    }
-	 }
+            
+            if (err) {
+               throw OracleException(mErrorHandle);
+            }
+         }
       }      
 
    }
@@ -284,9 +284,9 @@ void OracleBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pk
        theQueryType = kForwardAnyQuery;
      } else {
        if (zoneId != -1) {
-	 theQueryType = kForwardQueryByZone;
+         theQueryType = kForwardQueryByZone;
        } else {
-	 theQueryType = kForwardQuery;
+         theQueryType = kForwardQuery;
        }
      }
    }
@@ -302,36 +302,36 @@ void OracleBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pk
    {
       case kForwardQuery:
       case kForwardWildcardQuery:
-	 strncpy(mQueryName, qname.c_str(), sizeof(mQueryName));
-	 strncpy(mQueryType, qtype.getName().c_str(), sizeof(mQueryType));
+         strncpy(mQueryName, qname.c_str(), sizeof(mQueryName));
+         strncpy(mQueryType, qtype.getName().c_str(), sizeof(mQueryType));
          if (mDebugQueries) {
             printf(">>> :name = '%s' :type = '%s'\n", mQueryName, mQueryType);
          }
-	 break;
+         break;
 
       case kForwardQueryByZone:
-	 strncpy(mQueryName, qname.c_str(), sizeof(mQueryName));
-	 strncpy(mQueryType, qtype.getName().c_str(), sizeof(mQueryType));	 
-	 mQueryId = zoneId;
+         strncpy(mQueryName, qname.c_str(), sizeof(mQueryName));
+         strncpy(mQueryType, qtype.getName().c_str(), sizeof(mQueryType));	 
+         mQueryId = zoneId;
          if (mDebugQueries) {
             printf(">>> :name = '%s' :type = '%s' :id = '%d'\n", mQueryName, mQueryType, mQueryId);
          }
-	 break;
+         break;
 
       case kForwardAnyQuery:
       case kForwardWildcardAnyQuery:
-	 strncpy(mQueryName, qname.c_str(), sizeof(mQueryName));
+         strncpy(mQueryName, qname.c_str(), sizeof(mQueryName));
          if (mDebugQueries) {
             printf(">>> :name = '%s'\n", mQueryName);
          }
-	 break;
+         break;
 
    }
 
    if(mUpperCase == true) {
       char *p = mQueryName;
       while (*p != 0x00) {
-	 *p++ = std::toupper(*p);
+         *p++ = std::toupper(*p);
       }
    }
    
@@ -351,7 +351,7 @@ void OracleBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pk
         (OCISnapshot *)NULL, (OCISnapshot*) NULL, OCI_DEFAULT);
    
       if (mQueryResult != OCI_SUCCESS && mQueryResult != OCI_SUCCESS_WITH_INFO && mQueryResult != OCI_NO_DATA) {
-	 throw OracleException(mErrorHandle);
+         throw OracleException(mErrorHandle);
       }
    }
    
@@ -392,7 +392,7 @@ bool OracleBackend::list(const string &target, int domain_id)
         (OCISnapshot *)NULL, (OCISnapshot*) NULL, OCI_DEFAULT);
    
       if (mQueryResult != OCI_SUCCESS && mQueryResult != OCI_SUCCESS_WITH_INFO && mQueryResult != OCI_NO_DATA) {
-	 throw OracleException(mErrorHandle);
+         throw OracleException(mErrorHandle);
       }
    }
 
@@ -432,7 +432,7 @@ bool OracleBackend::get(DNSResourceRecord &theRecord)
    {
       mQueryResult = OCIStmtFetch(mStatementHandles[mActiveQuery], mErrorHandle, 1, 0, 0);
       if (mQueryResult != OCI_SUCCESS && mQueryResult != OCI_SUCCESS_WITH_INFO && mQueryResult != OCI_NO_DATA) {
-	 new OracleException(mErrorHandle);  // ? - ahu
+         new OracleException(mErrorHandle);  // ? - ahu
       }
     }
    catch (OracleException &theException)
@@ -515,11 +515,11 @@ class OracleFactory : public BackendFactory
 
       DNSBackend *make(const string &suffix="")
       {
-	try {
-	  return new OracleBackend(suffix);
-	}
-	catch(...) {}
-	return 0;
+        try {
+          return new OracleBackend(suffix);
+        }
+        catch(...) {}
+        return 0;
       }
 };
 
@@ -533,8 +533,8 @@ class OracleLoader
       
       OracleLoader()
       {
-	BackendMakers().report(new OracleFactory);
-	L << Logger::Warning << kModuleId << "Oracle Backend loaded." << endl;
+        BackendMakers().report(new OracleFactory);
+        L << Logger::Warning << kModuleId << "Oracle Backend loaded." << endl;
       }
       
 };

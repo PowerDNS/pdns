@@ -22,43 +22,43 @@ class OracleException
       
       OracleException()
       {
-	 mReason = "Unspecified";
+         mReason = "Unspecified";
       }
       
       OracleException(string theReason)
       {
-	 mReason = theReason;
+         mReason = theReason;
       }
 
       OracleException(OCIError *theErrorHandle)
       {
-	 mReason = "ORA-UNKNOWN";
+         mReason = "ORA-UNKNOWN";
 
-	 if (theErrorHandle != NULL)
-	 {
-	    text  msg[512];
-	    sb4   errcode = 0;
+         if (theErrorHandle != NULL)
+         {
+            text  msg[512];
+            sb4   errcode = 0;
    
-	    memset((void *) msg, (int)'\0', (size_t)512);
+            memset((void *) msg, (int)'\0', (size_t)512);
    
-	    OCIErrorGet((dvoid *) theErrorHandle,1, NULL, &errcode, msg, sizeof(msg), OCI_HTYPE_ERROR);
-	    if (errcode)
+            OCIErrorGet((dvoid *) theErrorHandle,1, NULL, &errcode, msg, sizeof(msg), OCI_HTYPE_ERROR);
+            if (errcode)
             {
-	      char *p = (char*) msg;
-	       while (*p++ != 0x00) {
-		  if (*p == '\n' || *p == '\r') {
-		    *p = ';';
-		  }
-		}
-		
-		mReason = (char*) msg;
-	    }
-	 }
+              char *p = (char*) msg;
+               while (*p++ != 0x00) {
+        	  if (*p == '\n' || *p == '\r') {
+        	    *p = ';';
+        	  }
+        	}
+        	
+        	mReason = (char*) msg;
+            }
+         }
       }
 
       string Reason()
       {
-	 return mReason;
+         return mReason;
       }
       
       string mReason;

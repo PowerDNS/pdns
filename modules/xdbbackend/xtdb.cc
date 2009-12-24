@@ -20,8 +20,8 @@ XTDBWrapper::XTDBWrapper(const string &fname)
   Lock l(&s_lock);
   if(!s_db) {
     s_db = tdb_open(const_cast<char *>(fname.c_str()), 5213331,
-		  TDB_NOLOCK,
-		  O_RDWR | O_CREAT , 0600); 
+        	  TDB_NOLOCK,
+        	  O_RDWR | O_CREAT , 0600); 
     if(!s_db) 
       throw XDBException("Unable to open database: "+string(strerror(errno)));
   }

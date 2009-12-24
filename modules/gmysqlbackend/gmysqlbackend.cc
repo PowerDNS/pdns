@@ -22,11 +22,11 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
 {
   try {
     setDB(new SMySQL(getArg("dbname"),
-		     getArg("host"),
-		     getArgAsNum("port"),
-		     getArg("socket"),
-		     getArg("user"),
-		     getArg("password")));
+        	     getArg("host"),
+        	     getArgAsNum("port"),
+        	     getArg("socket"),
+        	     getArg("user"),
+        	     getArg("password")));
     
   }
   

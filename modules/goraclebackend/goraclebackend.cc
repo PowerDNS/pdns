@@ -22,8 +22,8 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
 {
   try {
     setDB(new SOracle(getArg("tnsname"),
-		     getArg("user"),
-		     getArg("password")));
+        	     getArg("user"),
+        	     getArg("password")));
     
   }
   
