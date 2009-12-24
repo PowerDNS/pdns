@@ -51,8 +51,8 @@ struct CIBackwardsStringCompare: public binary_function<string, string, bool>
     string::const_reverse_iterator ra, rb;
     char a=0, b=0;
     for(ra = str_a.rbegin(), rb = str_b.rbegin();
-	ra < str_a.rend() && rb < str_b.rend() && (a=dns_tolower(*ra)) == (b=dns_tolower(*rb));
-	ra++, rb++);
+        ra < str_a.rend() && rb < str_b.rend() && (a=dns_tolower(*ra)) == (b=dns_tolower(*rb));
+        ra++, rb++);
     
     if (ra < str_a.rend() && rb==str_b.rend()) { a=*(ra++); b=0; }
     if (rb < str_b.rend() && ra==str_a.rend()) { b=*(rb++); a=0; }
@@ -106,11 +106,11 @@ private:
                         CacheEntry,
                         member<CacheEntry,string,&CacheEntry::qname>,
                         member<CacheEntry,uint16_t,&CacheEntry::qtype>,
-			member<CacheEntry,uint16_t, &CacheEntry::ctype>,
-			member<CacheEntry,int, &CacheEntry::zoneID>,
-			member<CacheEntry,bool, &CacheEntry::meritsRecursion>
+        		member<CacheEntry,uint16_t, &CacheEntry::ctype>,
+        		member<CacheEntry,int, &CacheEntry::zoneID>,
+        		member<CacheEntry,bool, &CacheEntry::meritsRecursion>
                       >,
-		  composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool> >
+        	  composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool> >
                 >,
                sequenced<>
                >

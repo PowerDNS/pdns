@@ -13,7 +13,7 @@
 using namespace std;
 int main()
 {
-	ostringstream str;
-	str << "Everything is ok!"<< boost::lexical_cast<string>("") <<"\n";
-	exit(0);
+        ostringstream str;
+        str << "Everything is ok!"<< boost::lexical_cast<string>("") <<"\n";
+        exit(0);
 }

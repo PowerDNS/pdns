@@ -124,22 +124,22 @@ void HuffmanCodec::decode(const string &compressed, string &out)
 
     for(mlen=d_min;mlen<=cleft && mlen<=d_max;++mlen) {
       if(d_rdict[mlen].empty())
-	continue;
+        continue;
 
       i=d_rdict[mlen].find(full.substr(pos,mlen));
 
       if(i!=d_rdict[mlen].end()) { // match 
-	if(!i->second) {
-	  d_last_compressed=compressed;
-	  d_last_out=out;
-	  return;
-	}
+        if(!i->second) {
+          d_last_compressed=compressed;
+          d_last_out=out;
+          return;
+        }
 
-	out.append(1,i->second);
+        out.append(1,i->second);
 
-	pos+=mlen;
-	cleft-=mlen;
-	break;
+        pos+=mlen;
+        cleft-=mlen;
+        break;
       }
     }
   }

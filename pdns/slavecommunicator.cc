@@ -80,20 +80,20 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     while(resolver.axfrChunk(recs)) {
       if(first) {
-	L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
-	di.backend->startTransaction(domain, domain_id);
-	first=false;
+        L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
+        di.backend->startTransaction(domain, domain_id);
+        first=false;
       }
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
-	if(!endsOn(i->qname, domain)) { 
-	  L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"' during AXFR of zone '"<<domain<<"', ignoring"<<endl;
-	  continue;
-	}
-	i->domain_id=domain_id;
-	if(i->qtype.getCode()>=1024)
-	  throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
+        if(!endsOn(i->qname, domain)) { 
+          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"' during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+          continue;
+        }
+        i->domain_id=domain_id;
+        if(i->qtype.getCode()>=1024)
+          throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
 
-	di.backend->feedRecord(*i);
+        di.backend->feedRecord(*i);
       }
     }
     di.backend->commitTransaction();

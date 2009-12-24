@@ -68,7 +68,7 @@ bool NTService::registerService( const std::string & description, bool registerL
     return false; // Could not open the Service Control Manager.
 
   GetModuleFileName( NULL, temp, sizeof( temp ));
-	
+        
   str << temp << " --ntservice";
   
   if ( CreateService( 
@@ -86,7 +86,7 @@ bool NTService::registerService( const std::string & description, bool registerL
     NULL,
     NULL ) == NULL  )
   {
-	if(GetLastError() != ERROR_SERVICE_EXISTS)
+        if(GetLastError() != ERROR_SERVICE_EXISTS)
       return false; // Don't we all like functions with 43 billion parameters?
   }
   CloseServiceHandle( sc );

@@ -69,13 +69,13 @@ int netmaskMatchLua(lua_State *lua)
     }
     else {
       for(int n=2 ; n <= lua_gettop(lua); ++n) { 
-	string netmask=lua_tostring(lua, n);
-	Netmask nm(netmask);
-	ComboAddress ca(ip);
-	
-	result = nm.match(ip);
-	if(result)
-	  break;
+        string netmask=lua_tostring(lua, n);
+        Netmask nm(netmask);
+        ComboAddress ca(ip);
+        
+        result = nm.match(ip);
+        if(result)
+          break;
       }
     }
   }

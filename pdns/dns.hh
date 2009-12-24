@@ -112,8 +112,8 @@ struct dnsrecordheader
 
 struct EDNS0Record 
 { 
-	uint8_t extRCode, version; 
-	uint16_t Z; 
+        uint8_t extRCode, version; 
+        uint16_t Z; 
 } GCCPACKATTRIBUTE;
 #ifdef _MSC_VER
 #pragma pack (pop)

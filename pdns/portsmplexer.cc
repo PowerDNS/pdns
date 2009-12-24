@@ -115,8 +115,8 @@ int PortsFDMultiplexer::run(struct timeval* now)
     if(d_iter != d_readCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
       if(d_readCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, 
-			POLLIN, 0) < 0)
-	throw FDMultiplexerException("Unable to add fd back to ports (read): "+stringerror());
+        		POLLIN, 0) < 0)
+        throw FDMultiplexerException("Unable to add fd back to ports (read): "+stringerror());
       continue; // so we don't find ourselves as writable again
     }
 
@@ -125,8 +125,8 @@ int PortsFDMultiplexer::run(struct timeval* now)
     if(d_iter != d_writeCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
       if(d_writeCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, 
-			POLLOUT, 0) < 0)
-	throw FDMultiplexerException("Unable to add fd back to ports (write): "+stringerror());
+        		POLLOUT, 0) < 0)
+        throw FDMultiplexerException("Unable to add fd back to ports (write): "+stringerror());
     }
 
   }

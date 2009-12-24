@@ -162,10 +162,10 @@ void Session::doConnect(uint32_t ip, int port)
     {
     Utility::socklen_t len=sizeof(err);
       if(getsockopt(clisock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-	throw SessionException("Error connecting: "+stringerror()); // Solaris
+        throw SessionException("Error connecting: "+stringerror()); // Solaris
 
       if(err)
-	throw SessionException("Error connecting: "+string(strerror(err)));
+        throw SessionException("Error connecting: "+string(strerror(err)));
 
     }
   else
@@ -191,24 +191,24 @@ bool Session::putLine(const string &s)
       tval.tv_usec=0;
       
       if(!select(clisock+1,0,&wset,0,tval.tv_sec ? &tval : 0))
-	throw SessionTimeoutException("timeout writing line");
+        throw SessionTimeoutException("timeout writing line");
 
       if(FD_ISSET(clisock, &wset))
-	{
+        {
         Utility::socklen_t len=sizeof(err);
-	  if(getsockopt(clisock, SOL_SOCKET,SO_ERROR,(char *) &err,&len)<0)
-	    throw SessionException(+strerror(err)); // Solaris..
-	  
-	  if(err)
-	    throw SessionException(strerror(err));
-	}
+          if(getsockopt(clisock, SOL_SOCKET,SO_ERROR,(char *) &err,&len)<0)
+            throw SessionException(+strerror(err)); // Solaris..
+          
+          if(err)
+            throw SessionException(strerror(err));
+        }
       else
-	throw SessionException("nonblocking write failed"+string(strerror(errno)));
+        throw SessionException("nonblocking write failed"+string(strerror(errno)));
 
       err=send(clisock,s.c_str()+written,length-written,0);
 
       if(err<0)
-	return false;
+        return false;
       
       written+=err;
     }
@@ -243,10 +243,10 @@ int Session::timeoutRead(int s, char *buf, size_t len)
     {
     Utility::socklen_t len=sizeof(err);
       if(getsockopt(clisock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-	throw SessionException(strerror(errno)); // Solaris..
+        throw SessionException(strerror(errno)); // Solaris..
       
       if(err)
-	throw SessionException(strerror(err));
+        throw SessionException(strerror(err));
     }
   else
     throw SessionException("nonblocking read failed"+string(strerror(errno)));
@@ -261,7 +261,7 @@ Session::haveLine()
 {
   return (wroffset!=rdoffset && (strnchr(rdbuf+rdoffset,'\n',wroffset-rdoffset)!=NULL));
 }
-	
+        
 
 bool 
 Session::getLine(string &line)
@@ -278,47 +278,47 @@ Session::getLine(string &line)
   for(;;)
     {
       if(wroffset==rdoffset)
-	{
-	  wroffset=rdoffset=0;
-	}
+        {
+          wroffset=rdoffset=0;
+        }
 
       if(wroffset!=rdoffset && (p=strnchr(rdbuf+rdoffset,'\n',wroffset-rdoffset))) // we have a full line in store, return that 
-	{
-	  // from rdbuf+rdoffset to p should become the new line
+        {
+          // from rdbuf+rdoffset to p should become the new line
 
-	  linelength=p-(rdbuf+rdoffset); 
-	  
-	  *p=0; // terminate
-	  
-	  line=rdbuf+rdoffset;
-	  line+="\n";
-	  
-	  rdoffset+=linelength+1;
+          linelength=p-(rdbuf+rdoffset); 
+          
+          *p=0; // terminate
+          
+          line=rdbuf+rdoffset;
+          line+="\n";
+          
+          rdoffset+=linelength+1;
 
-	  return true;
-	}
+          return true;
+        }
       // we need more data before we can return a line
 
       if(wroffset==d_bufsize) // buffer is full, flush to left
-	{
-	  if(!rdoffset) // line too long!
-	    {
-	      // FIXME: do stuff
-	      close();
-	      return false;
-	    }
+        {
+          if(!rdoffset) // line too long!
+            {
+              // FIXME: do stuff
+              close();
+              return false;
+            }
 
-	  memmove(rdbuf,rdbuf+rdoffset,wroffset-rdoffset);
-	  wroffset-=rdoffset;
-	  rdoffset=0;
-	}
+          memmove(rdbuf,rdbuf+rdoffset,wroffset-rdoffset);
+          wroffset-=rdoffset;
+          rdoffset=0;
+        }
       bytes=timeoutRead(clisock,rdbuf+wroffset,d_bufsize-wroffset);
 
       if(bytes<0)
-	  throw SessionException("error on read from socket: "+string(strerror(errno)));
+          throw SessionException("error on read from socket: "+string(strerror(errno)));
 
       if(bytes==0)
-	throw SessionException("Remote closed connection");
+        throw SessionException("Remote closed connection");
 
       wroffset+=bytes;
     }
@@ -374,7 +374,7 @@ Session *Server::accept()
     {
       //      L<<Logger::Error<<"accept() returned: "<<strerror(errno)<<endl;
       if(errno==EMFILE) {
-	throw SessionException("Out of file descriptors - won't recover from that");
+        throw SessionException("Out of file descriptors - won't recover from that");
       }
 
     }

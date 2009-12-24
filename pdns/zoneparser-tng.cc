@@ -30,8 +30,8 @@
 #include <boost/lexical_cast.hpp>
 
 ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), 
-											       d_zonename(zname), d_defaultttl(3600), 
-											       d_havedollarttl(false)
+        										       d_zonename(zname), d_defaultttl(3600), 
+        										       d_havedollarttl(false)
 {
   d_zonename = toCanonic("", d_zonename);
   stackFile(fname);
@@ -135,47 +135,47 @@ bool ZoneParserTNG::getTemplateLine()
     for(string::size_type pos = 0; pos < part.size() ; ++pos) {
       char c=part[pos];
       if(inescape) {
-	outpart.append(1, c);
-	inescape=false;
-	continue;
+        outpart.append(1, c);
+        inescape=false;
+        continue;
       }
-	
+        
       if(part[pos]=='\\') {
-	inescape=true;
-	continue;
+        inescape=true;
+        continue;
       }
       if(c=='$') {
-	if(pos + 1 == part.size() || part[pos+1]!='{') {  // a trailing $, or not followed by {
-	  outpart.append(lexical_cast<string>(d_templatecounter));
-	  continue;
-	}
-	
-	// need to deal with { case 
-	
-	pos+=2;
-	string::size_type startPos=pos;
-	for(; pos < part.size() && part[pos]!='}' ; ++pos)
-	  ;
-	
-	if(pos == part.size()) // partial spec
-	  break;
+        if(pos + 1 == part.size() || part[pos+1]!='{') {  // a trailing $, or not followed by {
+          outpart.append(lexical_cast<string>(d_templatecounter));
+          continue;
+        }
+        
+        // need to deal with { case 
+        
+        pos+=2;
+        string::size_type startPos=pos;
+        for(; pos < part.size() && part[pos]!='}' ; ++pos)
+          ;
+        
+        if(pos == part.size()) // partial spec
+          break;
 
-	// we are on the '}'
+        // we are on the '}'
 
-	string spec(part.c_str() + startPos, part.c_str() + pos);
-	int offset=0, width=0;
-	char radix='d';
-	sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
+        string spec(part.c_str() + startPos, part.c_str() + pos);
+        int offset=0, width=0;
+        char radix='d';
+        sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
 
-	char format[12];
-	snprintf(format, sizeof(format) - 1, "%%0%d%c", width, radix); // make into printf-style format
+        char format[12];
+        snprintf(format, sizeof(format) - 1, "%%0%d%c", width, radix); // make into printf-style format
 
-	char tmp[80];
-	snprintf(tmp, sizeof(tmp)-1, format, d_templatecounter + offset); // and do the actual printing
-	outpart+=tmp;
+        char tmp[80];
+        snprintf(tmp, sizeof(tmp)-1, format, d_templatecounter + offset); // and do the actual printing
+        outpart+=tmp;
       }
       else
-	outpart.append(1, c);
+        outpart.append(1, c);
     }
     retline+=outpart;
   }
@@ -251,7 +251,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     else if(pdns_iequals(command,"$INCLUDE") && parts.size() > 1) {
       string fname=unquotify(makeString(d_line, parts[1]));
       if(!fname.empty() && fname[0]!='/' && !d_reldir.empty())
-	fname=d_reldir+"/"+fname;
+        fname=d_reldir+"/"+fname;
       stackFile(fname);
     }
     else if(pdns_iequals(command, "$ORIGIN") && parts.size() > 1) {
@@ -335,8 +335,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     }
     catch(...) {
       throw runtime_error("Parsing zone content "+getLineOfFile()+
-			  ": '"+nextpart+
-			  "' doesn't look like a qtype, stopping loop");
+        		  ": '"+nextpart+
+        		  "' doesn't look like a qtype, stopping loop");
     }
   }
   if(!haveQTYPE) 
@@ -353,14 +353,14 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
       while(getLine()) {
-	trim_right(d_line);
-	chopComment(d_line);
-	trim(d_line);
-	
-	bool ended = findAndElide(d_line, ')');
-	rr.content+=" "+d_line;
-	if(ended)
-	  break;
+        trim_right(d_line);
+        chopComment(d_line);
+        trim(d_line);
+        
+        bool ended = findAndElide(d_line, ')');
+        rr.content+=" "+d_line;
+        if(ended)
+          break;
       }
     }
   }
@@ -385,15 +385,15 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     rr.content.clear();
     for(string::size_type n = 0; n < soaparts.size(); ++n) {
       if(n)
-	rr.content.append(1,' ');
+        rr.content.append(1,' ');
 
       if(n > 1)
-	rr.content+=lexical_cast<string>(makeTTLFromZone(soaparts[n]));
+        rr.content+=lexical_cast<string>(makeTTLFromZone(soaparts[n]));
       else
-	rr.content+=soaparts[n];
+        rr.content+=soaparts[n];
 
       if(n==6 && !d_havedollarttl)
-	d_defaultttl=makeTTLFromZone(soaparts[n]);
+        d_defaultttl=makeTTLFromZone(soaparts[n]);
     }
     break;
   default:;

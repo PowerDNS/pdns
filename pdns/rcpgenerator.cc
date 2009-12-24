@@ -72,8 +72,8 @@ void RecordTextReader::xfrTime(uint32_t &val)
   xfrLabel(tmp); // ends on number, so this works 
 
   sscanf(tmp.c_str(), "%04d%02d%02d" "%02d%02d%02d", 
-	 &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
-	 &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
+         &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
+         &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
 
   tm.tm_year-=1900;
   tm.tm_mon-=1;
@@ -98,13 +98,13 @@ void RecordTextReader::xfrIP(uint32_t &val)
       octet=0;
       count++;
       if(count > 3)
-	break;
+        break;
     }
     else if(isdigit(d_string.at(d_pos))) {
       octet*=10;
       octet+=d_string.at(d_pos) - '0';
       if(octet > 255)
-	throw RecordTextException("unable to parse IP address");
+        throw RecordTextException("unable to parse IP address");
     }
     else if(dns_isspace(d_string.at(d_pos))) 
       break;
@@ -260,7 +260,7 @@ void RecordTextReader::xfrText(string& val, bool multi)
     val.append(1, '"');
     while(++d_pos < d_end && d_string[d_pos]!='"') {
       if(d_string[d_pos]=='\\' && d_pos+1!=d_end) {
-	val.append(1, d_string[d_pos++]);
+        val.append(1, d_string[d_pos++]);
       }
       val.append(1, d_string[d_pos]);
     }
@@ -377,8 +377,8 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   
   char tmp[16];
   snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
-	   tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
-	   tm.tm_hour, tm.tm_min, tm.tm_sec);
+           tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
+           tm.tm_hour, tm.tm_min, tm.tm_sec);
   
   d_string += tmp;
 }
@@ -405,11 +405,11 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
     d_string.reserve(d_string.size()+val.size()+3);
     for(string::size_type pos=0; pos < val.size() ; ++pos)
       if(dns_isspace(val[pos]))
-	d_string+="\\ ";
+        d_string+="\\ ";
       else if(val[pos]=='\\')
-	d_string.append(1,'\\');
+        d_string.append(1,'\\');
       else
-	d_string.append(1,val[pos]);
+        d_string.append(1,val[pos]);
   }
   //  d_string.append(1,'.');
 }

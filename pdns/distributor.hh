@@ -179,7 +179,7 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
         delete q;
         S.inc("timedout-packets");
         continue;
-      }	
+      }        
 #endif  
       // this is the only point where we interact with the backend (synchronous)
       try {
@@ -188,12 +188,12 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
       }
       catch(const AhuException &e) {
         L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
-	delete b;
+        delete b;
         return 0;
       }
       catch(...) {
         L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
-	delete b;
+        delete b;
         return 0;
       }
 
@@ -203,21 +203,21 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
       tuple_t tuple(QD,AD);
 
       if(QD.callback) {
-	QD.callback(AD);
+        QD.callback(AD);
       }
       else {
-	pthread_mutex_lock(&us->a_lock);
+        pthread_mutex_lock(&us->a_lock);
 
-	us->answers.push_back(tuple);
-	pthread_mutex_unlock(&us->a_lock);
+        us->answers.push_back(tuple);
+        pthread_mutex_unlock(&us->a_lock);
       
-	//	  L<<"We have an answer to send! Trying to get to to_mut lock"<<endl;
-	pthread_mutex_lock(&us->to_mut); 
-	// L<<"Yes, we got the lock, we can transmit! First we post"<<endl;
-	us->numanswers.post();
-	// L<<"And now we broadcast!"<<endl;
-	pthread_cond_broadcast(&us->to_cond); // for timeoutWait(); 
-	pthread_mutex_unlock(&us->to_mut);
+        //	  L<<"We have an answer to send! Trying to get to to_mut lock"<<endl;
+        pthread_mutex_lock(&us->to_mut); 
+        // L<<"Yes, we got the lock, we can transmit! First we post"<<endl;
+        us->numanswers.post();
+        // L<<"And now we broadcast!"<<endl;
+        pthread_cond_broadcast(&us->to_cond); // for timeoutWait(); 
+        pthread_mutex_unlock(&us->to_mut);
       }
     }
     
@@ -334,11 +334,11 @@ template<class Answer, class Question,class Backend>Answer* Distributor<Answer,Q
       // search if the answer is there
       tuple_t tuple=answers.front();
       if(tuple.first==q)
-	{
-	  answers.pop_front();
-	  pthread_mutex_unlock(&a_lock);
-	  return tuple.second.A;
-	}
+        {
+          answers.pop_front();
+          pthread_mutex_unlock(&a_lock);
+          return tuple.second.A;
+        }
       // if not, loop again
       pthread_mutex_unlock(&a_lock);
       numanswers.post();

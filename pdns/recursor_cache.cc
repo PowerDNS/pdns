@@ -37,12 +37,12 @@ DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const strin
 
     while((labellen=serial.at(frompos++))) {
       if((labellen & 0xc0) == 0xc0) {
-	string encoded=simpleCompress(qname);
-	uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)serial.at(frompos++) - sizeof(dnsheader)-5;
+        string encoded=simpleCompress(qname);
+        uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)serial.at(frompos++) - sizeof(dnsheader)-5;
 
-	simpleExpandTo(encoded, offset, rr.content);
-	//	cerr<<"Oops, fallback, content so far: '"<<rr.content<<"', offset: "<<offset<<", '"<<qname<<"', "<<qt.getName()<<"\n";
-	break;
+        simpleExpandTo(encoded, offset, rr.content);
+        //	cerr<<"Oops, fallback, content so far: '"<<rr.content<<"', offset: "<<offset<<", '"<<qname<<"', "<<qt.getName()<<"\n";
+        break;
       }
       rr.content.append(serial.c_str()+frompos, labellen);
       frompos+=labellen;
@@ -127,33 +127,33 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   if(d_cachecache.first!=d_cachecache.second) { 
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
       if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY || 
-	 (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )
-	 ) {
-	typedef cache_t::nth_index<1>::type sequence_t;
-	//	sequence_t& sidx=d_cache.get<1>();
-	sequence_t::iterator si=d_cache.project<1>(i);
-	
-	for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
-	  if(k->d_ttd < 1000000000 || k->d_ttd > (uint32_t) now) {  // FIXME what does the 100000000 number mean?
-	    ttd=k->d_ttd;
-	    if(res) {
-	      DNSResourceRecord rr=String2DNSRR(qname, QType(i->d_qtype),  k->d_string, ttd); 
-	      res->insert(rr);
-	    }
-	  }
-	}
-	if(res) {
+         (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )
+         ) {
+        typedef cache_t::nth_index<1>::type sequence_t;
+        //	sequence_t& sidx=d_cache.get<1>();
+        sequence_t::iterator si=d_cache.project<1>(i);
+        
+        for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
+          if(k->d_ttd < 1000000000 || k->d_ttd > (uint32_t) now) {  // FIXME what does the 100000000 number mean?
+            ttd=k->d_ttd;
+            if(res) {
+              DNSResourceRecord rr=String2DNSRR(qname, QType(i->d_qtype),  k->d_string, ttd); 
+              res->insert(rr);
+            }
+          }
+        }
+        if(res) {
 
 
 #if 0 // XXX FIXME removed because of threading - sidx should not be touched holding just a readlock!
-	  if(res->empty())
-	    sidx.relocate(sidx.begin(), si); 
-	  else
-	    sidx.relocate(sidx.end(), si); 
+          if(res->empty())
+            sidx.relocate(sidx.begin(), si); 
+          else
+            sidx.relocate(sidx.end(), si); 
 #endif
-	}
-	if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
-	  break;
+        }
+        if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
+          break;
       }
 
     //    cerr<<"time left : "<<ttd - now<<", "<< (res ? res->size() : 0) <<"\n";
@@ -224,7 +224,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     vector<StoredRecord>::iterator j;
     for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) 
       if((time_t)j->d_ttd > now) 
-	break;
+        break;
     if(j != ce.d_records.end()) { // we still have valid data, ignore unauth data
       //      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
       return;
@@ -252,32 +252,32 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
       range=equal_range(ce.d_records.begin(), ce.d_records.end(), dr);
 
       if(range.first != range.second && (range.first != ce.d_records.begin() || range.second != ce.d_records.end())) {
-	//	cerr<<"\t\tIncomplete match! Must nuke"<<endl;
-	ce.d_records.clear();
-	range.first = range.second = ce.d_records.begin();
+        //	cerr<<"\t\tIncomplete match! Must nuke"<<endl;
+        ce.d_records.clear();
+        range.first = range.second = ce.d_records.begin();
       }
 
       if(range.first != range.second) {
-	//	cerr<<"\t\tMay need to modify TTL of stored record\n";
-	for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j) {
-	  /* see http://mailman.powerdns.com/pipermail/pdns-users/2006-May/003413.html */
-	  if(j->d_ttd > (unsigned int) now && i->ttl > j->d_ttd && qt.getCode()==QType::NS && auth) { // don't allow auth servers to *raise* TTL of an NS recor
-	    //	    cerr<<"\t\tNot doing so, trying to raise TTL NS\n";
-	    continue;
-	  }
-	  if(i->ttl > j->d_ttd || (auth && d_followRFC2181) ) { // authoritative packets can override the TTL to be lower
-	    //	    cerr<<"\t\tUpdating the ttl, diff="<<j->d_ttd - i->ttl<<endl;;
-	    j->d_ttd=i->ttl;
-	  }
-	  else {
-	    //	    cerr<<"\t\tNOT updating the ttl, old= " <<j->d_ttd - now <<", new: "<<i->ttl - now <<endl;
-	  }
-	}
+        //	cerr<<"\t\tMay need to modify TTL of stored record\n";
+        for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j) {
+          /* see http://mailman.powerdns.com/pipermail/pdns-users/2006-May/003413.html */
+          if(j->d_ttd > (unsigned int) now && i->ttl > j->d_ttd && qt.getCode()==QType::NS && auth) { // don't allow auth servers to *raise* TTL of an NS recor
+            //	    cerr<<"\t\tNot doing so, trying to raise TTL NS\n";
+            continue;
+          }
+          if(i->ttl > j->d_ttd || (auth && d_followRFC2181) ) { // authoritative packets can override the TTL to be lower
+            //	    cerr<<"\t\tUpdating the ttl, diff="<<j->d_ttd - i->ttl<<endl;;
+            j->d_ttd=i->ttl;
+          }
+          else {
+            //	    cerr<<"\t\tNOT updating the ttl, old= " <<j->d_ttd - now <<", new: "<<i->ttl - now <<endl;
+          }
+        }
       }
       else {
-	//	cerr<<"\t\tThere was no exact copy of this record, so adding & sorting\n";
-	ce.d_records.push_back(dr);
-	sort(ce.d_records.begin(), ce.d_records.end());
+        //	cerr<<"\t\tThere was no exact copy of this record, so adding & sorting\n";
+        ce.d_records.push_back(dr);
+        sort(ce.d_records.begin(), ce.d_records.end());
       }
     }
   }
@@ -356,11 +356,11 @@ void MemRecursorCache::doDumpAndClose(int fd)
   for(sequence_t::const_iterator i=sidx.begin(); i != sidx.end(); ++i) {
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j != i->d_records.end(); ++j) {
       try {
-	DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
-	fprintf(fp, "%s %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
+        DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
+        fprintf(fp, "%s %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
       }
       catch(...) {
-	fprintf(fp, "; error printing '%s'\n", i->d_qname.c_str());
+        fprintf(fp, "; error printing '%s'\n", i->d_qname.c_str());
       }
     }
   }

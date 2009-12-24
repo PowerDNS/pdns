@@ -139,9 +139,9 @@ int DNSProxy::getID_locked()
     }
     else if(i->second.created<time(0)-60) {
       if(i->second.created)
-	L<<Logger::Warning<<"Recursive query for remote "<<
-	  sockAddrToString((struct sockaddr_in *)&i->second.remote)<<" with internal id "<<n<<
-	  " was not answered by backend within timeout, reusing id"<<endl;
+        L<<Logger::Warning<<"Recursive query for remote "<<
+          sockAddrToString((struct sockaddr_in *)&i->second.remote)<<" with internal id "<<n<<
+          " was not answered by backend within timeout, reusing id"<<endl;
       
       return n;
     }
@@ -157,46 +157,46 @@ void DNSProxy::mainloop(void)
     for(;;) {
       len=recv(d_sock, buffer, sizeof(buffer),0); // answer from our backend
       if(len<12) {
-	if(len<0)
-	  L<<Logger::Error<<"Error receiving packet from recursor backend: "<<stringerror()<<endl;
-	else if(len==0)
-	  L<<Logger::Error<<"Error receiving packet from recursor backend, EOF"<<endl;
-	else
-	  L<<Logger::Error<<"Short packet from recursor backend, "<<len<<" bytes"<<endl;
-	
-	continue;
+        if(len<0)
+          L<<Logger::Error<<"Error receiving packet from recursor backend: "<<stringerror()<<endl;
+        else if(len==0)
+          L<<Logger::Error<<"Error receiving packet from recursor backend, EOF"<<endl;
+        else
+          L<<Logger::Error<<"Short packet from recursor backend, "<<len<<" bytes"<<endl;
+        
+        continue;
       }
       (*d_resanswers)++;
       (*d_udpanswers)++;
       dnsheader d;
       memcpy(&d,buffer,sizeof(d));
       {
-	Lock l(&d_lock);
+        Lock l(&d_lock);
 #ifdef WORDS_BIGENDIAN
-	// this is needed because spoof ID down below does not respect the native byteorder
-	d.id = ( 256 * (uint16_t)buffer[1] ) + (uint16_t)buffer[0];  
+        // this is needed because spoof ID down below does not respect the native byteorder
+        d.id = ( 256 * (uint16_t)buffer[1] ) + (uint16_t)buffer[0];  
 #endif
-	map_t::iterator i=d_conntrack.find(d.id^d_xor);
-	if(i==d_conntrack.end()) {
-	  L<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d.id^d_xor)<<
-	    ". Contrack table size="<<d_conntrack.size()<<endl;
-	  continue;
-	}
-	else if(i->second.created==0) {
-	  L<<Logger::Error<<"Received packet from recursor backend with id "<<(d.id^d_xor)<<" which is a duplicate"<<endl;
-	  continue;
-	}
-	d.id=i->second.id;
-	memcpy(buffer,&d,sizeof(d));  // commit spoofed id
+        map_t::iterator i=d_conntrack.find(d.id^d_xor);
+        if(i==d_conntrack.end()) {
+          L<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d.id^d_xor)<<
+            ". Contrack table size="<<d_conntrack.size()<<endl;
+          continue;
+        }
+        else if(i->second.created==0) {
+          L<<Logger::Error<<"Received packet from recursor backend with id "<<(d.id^d_xor)<<" which is a duplicate"<<endl;
+          continue;
+        }
+        d.id=i->second.id;
+        memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-	sendto(i->second.outsock,buffer,len,0,(struct sockaddr*)&i->second.remote,i->second.addrlen);
-	
-	DNSPacket p,q;
-	p.parse(buffer,len);
-	q.parse(buffer,len);
-	
-	PC.insert(&q, &p);
-	i->second.created=0;
+        sendto(i->second.outsock,buffer,len,0,(struct sockaddr*)&i->second.remote,i->second.addrlen);
+        
+        DNSPacket p,q;
+        p.parse(buffer,len);
+        q.parse(buffer,len);
+        
+        PC.insert(&q, &p);
+        i->second.created=0;
       }
     }
   }

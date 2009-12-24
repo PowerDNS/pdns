@@ -252,12 +252,12 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
 
     for(typename waiters_by_ttd_index_t::iterator i=ttdindex.begin(); i != ttdindex.end(); ) {
       if(i->ttd && (unsigned int)i->ttd < now) {
-	d_waitstatus=TimeOut;
-	SwitchToFiber(i->context);
-	ttdindex.erase(i++);                  // removes the waitpoint 
+        d_waitstatus=TimeOut;
+        SwitchToFiber(i->context);
+        ttdindex.erase(i++);                  // removes the waitpoint 
       }
       else if(i->ttd)
-	break;
+        break;
     }
   }
   return false;

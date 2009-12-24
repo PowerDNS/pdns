@@ -46,14 +46,14 @@ public:
 
     if(h) {
       for(char **h_addr_list=h->h_addr_list;*h_addr_list;++h_addr_list) {
-	ostringstream os;
-	unsigned char *p=reinterpret_cast<unsigned char *>(*h_addr_list);
-	os<<(int)*p++<<".";
-	os<<(int)*p++<<".";
-	os<<(int)*p++<<".";
-	os<<(int)*p++;
+        ostringstream os;
+        unsigned char *p=reinterpret_cast<unsigned char *>(*h_addr_list);
+        os<<(int)*p++<<".";
+        os<<(int)*p++<<".";
+        os<<(int)*p++<<".";
+        os<<(int)*p++;
 
-	addresses.push_back(os.str());
+        addresses.push_back(os.str());
       }
     }
 
@@ -186,11 +186,11 @@ time_t CommunicatorClass::doNotifications()
   while(d_nq.getOne(domain, ip, &id, purged)) {
     if(!purged) {
       try {
-	d_nresolver.notify(d_nsock, domain, ip, id);
-	drillHole(domain, ip);
+        d_nresolver.notify(d_nsock, domain, ip, id);
+        drillHole(domain, ip);
       }
       catch(ResolverException &re) {
-	L<<Logger::Error<<"Error trying to resolve '"+ip+"' for notifying '"+domain+"' to server: "+re.reason<<endl;
+        L<<Logger::Error<<"Error trying to resolve '"+ip+"' for notifying '"+domain+"' to server: "+re.reason<<endl;
       }
     }
     else
@@ -240,7 +240,7 @@ void CommunicatorClass::makeNotifySocket()
     h=gethostbyname(querylocaladdress.c_str());
     if(!h) {
       Utility::closesocket(d_nsock);
-      d_nsock=-1;	
+      d_nsock=-1;        
       throw AhuException("Unable to resolve query local address");
     }
 

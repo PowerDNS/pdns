@@ -24,8 +24,8 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,
-	   d_UpdateSerialOfZoneQuery.c_str(),
-	   serial, domain_id);
+           d_UpdateSerialOfZoneQuery.c_str(),
+           serial, domain_id);
 
   try {
     d_db->doCommand(output);
@@ -39,8 +39,8 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,d_UpdateLastCheckofZoneQuery.c_str(),
-	   time(0),
-	   domain_id);
+           time(0),
+           domain_id);
 
   try {
     d_db->doCommand(output);
@@ -54,8 +54,8 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,
-	   d_MasterOfDomainsZoneQuery.c_str(),
-	   sqlEscape(domain).c_str());
+           d_MasterOfDomainsZoneQuery.c_str(),
+           sqlEscape(domain).c_str());
   try {
     d_db->doQuery(output, d_result);
   }
@@ -75,7 +75,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
      id,name,master IP,serial */
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
-	   sqlEscape(domain).c_str());
+           sqlEscape(domain).c_str());
   try {
     d_db->doQuery(output,d_result);
   }
@@ -99,9 +99,9 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     try {
       SOAData sd;
       if(!getSOA(domain,sd)) 
-	L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+        L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
       else
-	di.serial=sd.serial;
+        di.serial=sd.serial;
     }
     catch(AhuException &ae){
       L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
@@ -211,7 +211,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   setArgPrefix(mode+suffix);
   d_db=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
-		  
+        	  
   d_noWildCardNoIDQuery=getArg("basic-query");
   d_noWildCardIDQuery=getArg("id-query");
   d_wildCardNoIDQuery=getArg("wildcard-query");
@@ -251,17 +251,17 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
     // qtype qname domain_id
     if(domain_id<0) {
       if(qname[0]=='%')
-	format=d_wildCardNoIDQuery;
+        format=d_wildCardNoIDQuery;
       else
-	format=d_noWildCardNoIDQuery;
+        format=d_noWildCardNoIDQuery;
 
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(), sqlEscape(lcqname).c_str());
     }
     else {
       if(qname[0]!='%')
-	format=d_noWildCardIDQuery;
+        format=d_noWildCardIDQuery;
       else
-	format=d_wildCardIDQuery;
+        format=d_wildCardIDQuery;
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(),sqlEscape(lcqname).c_str(),domain_id);
     }
   }
@@ -270,17 +270,17 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
     // qname domain_id
     if(domain_id<0) {
       if(qname[0]=='%')
-	format=d_wildCardANYNoIDQuery;
+        format=d_wildCardANYNoIDQuery;
       else
-	format=d_noWildCardANYNoIDQuery;
+        format=d_noWildCardANYNoIDQuery;
 
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str());
     }
     else {
       if(qname[0]!='%')
-	format=d_noWildCardANYIDQuery;
+        format=d_noWildCardANYIDQuery;
       else
-	format=d_wildCardANYIDQuery;
+        format=d_wildCardANYIDQuery;
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str(),domain_id);
     }
   }
@@ -409,10 +409,10 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
-	   sqlEscape(r.content).c_str(),
-	   r.ttl, r.priority,
-	   sqlEscape(r.qtype.getName()).c_str(),
-	   r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
+           sqlEscape(r.content).c_str(),
+           r.ttl, r.priority,
+           sqlEscape(r.qtype.getName()).c_str(),
+           r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
   try {
     d_db->doCommand(output);
   }

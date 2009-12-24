@@ -56,9 +56,9 @@ int writen2(int fd, const void *buf, size_t count)
     res = ::write(fd, ptr, eptr - ptr);
     if(res < 0) {
       if (errno == EAGAIN)
-	throw std::runtime_error("used writen2 on non-blocking socket, got EAGAIN");
+        throw std::runtime_error("used writen2 on non-blocking socket, got EAGAIN");
       else
-	unixDie("failed in writen2");
+        unixDie("failed in writen2");
     }
     else if (res == 0)
       throw std::runtime_error("could not write all bytes, got eof in writen2");
@@ -235,15 +235,15 @@ int sendData(const char *buffer, int replen, int outsock)
     while (replen) {
       ret = write(outsock, buffer, replen);
       if(ret < 0) {
-	if(errno==EAGAIN) { // wait, we might've exhausted the window
-	  while(waitForRWData(outsock, false, 1, 0)==0)
-	    ;
-	  continue;
-	}
-	return ret;
+        if(errno==EAGAIN) { // wait, we might've exhausted the window
+          while(waitForRWData(outsock, false, 1, 0)==0)
+            ;
+          continue;
+        }
+        return ret;
       }
       if(!ret)
-	return -1; // "EOF == error"
+        return -1; // "EOF == error"
       replen -= ret;
       buffer += ret;
     }
@@ -427,7 +427,7 @@ string netstringerror()
   char buf[512];
   int err=WSAGetLastError();
   if(FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
-		     0, buf, sizeof(buf)-1, NULL)) {
+        	     0, buf, sizeof(buf)-1, NULL)) {
     return string(buf);
   }
   else {
@@ -473,10 +473,10 @@ string U32ToIP(uint32_t val)
 {
   char tmp[17];
   snprintf(tmp, sizeof(tmp)-1, "%u.%u.%u.%u", 
-	   (val >> 24)&0xff,
-	   (val >> 16)&0xff,
-	   (val >>  8)&0xff,
-	   (val      )&0xff);
+           (val >> 24)&0xff,
+           (val >> 16)&0xff,
+           (val >>  8)&0xff,
+           (val      )&0xff);
   return tmp;
 }
 

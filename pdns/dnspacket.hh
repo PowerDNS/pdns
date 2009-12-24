@@ -19,9 +19,9 @@
 
 #if __GNUC__ == 2
 #if __GNUC_MINOR__ < 95
-	#error Your compiler is too old! Try g++ 3.3 or higher
+        #error Your compiler is too old! Try g++ 3.3 or higher
 #else
-	#warning There are known problems with PowerDNS binaries compiled by gcc version 2.95 and 2.96!
+        #warning There are known problems with PowerDNS binaries compiled by gcc version 2.95 and 2.96!
 #endif
 #endif
 

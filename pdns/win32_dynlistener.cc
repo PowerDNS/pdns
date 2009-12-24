@@ -145,16 +145,16 @@ void DynListener::theListener()
       vector<string>parts;
       stringtok(parts,line," ");
       if(parts.empty()) {
-	sendLine("Empty line");
-	continue;
+        sendLine("Empty line");
+        continue;
       }
       parts[0] = toUpper( parts[0] ); 
       if(!d_funcdb[parts[0]]) {
-	if(d_restfunc) 
-	  sendLine((*d_restfunc)(parts,d_ppid));
-	else
-	  sendLine("Unknown command: '"+parts[0]+"'");
-	continue;
+        if(d_restfunc) 
+          sendLine((*d_restfunc)(parts,d_ppid));
+        else
+          sendLine("Unknown command: '"+parts[0]+"'");
+        continue;
       }
 
       sendLine((*d_funcdb[parts[0]])(parts,d_ppid));

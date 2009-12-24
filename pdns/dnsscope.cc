@@ -58,67 +58,67 @@ try
 
   while(pr.getUDPPacket()) {
     if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
-	ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
+        ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
         pr.d_len > 12) {
       try {
-	MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+        MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
 
-	lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
-	highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
+        lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
+        highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
-	string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
-	
-	QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
+        string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
+        
+        QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
 
-	if(!mdp.d_header.qr) {
-	  //	  cout<<"Question for '"<< name <<"'\n";
+        if(!mdp.d_header.qr) {
+          //	  cout<<"Question for '"<< name <<"'\n";
 
-	  QuestionData& qd=statmap[qi];
-	  
-	  if(!qd.d_firstquestiontime.tv_sec)
-	    qd.d_firstquestiontime=pr.d_pheader.ts;
-	  qd.d_qcount++;
-	}
-	else  {  // NO ERROR or NXDOMAIN
-	  QuestionData& qd=statmap[qi];
+          QuestionData& qd=statmap[qi];
+          
+          if(!qd.d_firstquestiontime.tv_sec)
+            qd.d_firstquestiontime=pr.d_pheader.ts;
+          qd.d_qcount++;
+        }
+        else  {  // NO ERROR or NXDOMAIN
+          QuestionData& qd=statmap[qi];
 
-	  if(!qd.d_qcount)
-	    untracked++;
+          if(!qd.d_qcount)
+            untracked++;
 
-	  qd.d_answercount++;
-	  //	  cout<<"Answer to '"<< name <<"': RCODE="<<(int)mdp.d_rcode<<", "<<mdp.d_answers.size()<<" answers\n";
-	  if(qd.d_qcount) {
-	    uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
-	                    (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
-	    //	    cout<<"Took: "<<usecs<<"usec\n";
-	    if(usecs<2049000)
-	      cumul[usecs]++;
-	    else
-	      reallylate++;
+          qd.d_answercount++;
+          //	  cout<<"Answer to '"<< name <<"': RCODE="<<(int)mdp.d_rcode<<", "<<mdp.d_answers.size()<<" answers\n";
+          if(qd.d_qcount) {
+            uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
+                            (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
+            //	    cout<<"Took: "<<usecs<<"usec\n";
+            if(usecs<2049000)
+              cumul[usecs]++;
+            else
+              reallylate++;
 
-	    
-	    if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
-	      errorresult++;
-	  }
+            
+            if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
+              errorresult++;
+          }
 
-	  if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
-	    statmap.erase(statmap.find(qi));
- 	}
+          if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
+            statmap.erase(statmap.find(qi));
+         }
 
-	rcodes[mdp.d_header.rcode]++;
+        rcodes[mdp.d_header.rcode]++;
       }
       catch(MOADNSException& mde) {
-	//	cerr<<"error parsing packet: "<<mde.what()<<endl;
-	if(pw)
-	  pw->write();
-	dnserrors++;
-	continue;
+        //	cerr<<"error parsing packet: "<<mde.what()<<endl;
+        if(pw)
+          pw->write();
+        dnserrors++;
+        continue;
       }
       catch(std::exception& e) {
-	if(pw)
-	  pw->write();
-	bogus++;
-	continue;
+        if(pw)
+          pw->write();
+        bogus++;
+        continue;
       }
     }
   }
@@ -194,16 +194,16 @@ try
 
     for(done_t::iterator j=done.begin(); j!=done.end(); ++j)
       if(!j->second && i->first > j->first) {
-	j->second=true;
+        j->second=true;
 
-	perc=sum*100.0/totpackets;
-	if(j->first < 1024)
-	  cout<< perc <<"% of questions answered within " << j->first << " usec (";
-	else
-	  cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
-	
-	cout<<perc-lastperc<<"%)\n";
-	lastperc=sum*100.0/totpackets;
+        perc=sum*100.0/totpackets;
+        if(j->first < 1024)
+          cout<< perc <<"% of questions answered within " << j->first << " usec (";
+        else
+          cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
+        
+        cout<<perc-lastperc<<"%)\n";
+        lastperc=sum*100.0/totpackets;
       }
   }
 

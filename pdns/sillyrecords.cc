@@ -29,7 +29,7 @@ static uint8_t precsize_aton(const char **strptr)
     if (isdigit(*cp)) {
       cmval = (*cp++ - '0') * 10;
       if (isdigit(*cp)) {
-	cmval += (*cp++ - '0');
+        cmval += (*cp++ - '0');
       }
     }
   }
@@ -87,10 +87,10 @@ latlon2ul(const char **latlonstrptr, int *which)
     if (isdigit(*cp)) {
       secsfrac = (*cp++ - '0') * 100;
       if (isdigit(*cp)) {
-	secsfrac += (*cp++ - '0') * 10;
-	if (isdigit(*cp)) {
-	  secsfrac += (*cp++ - '0');
-	}
+        secsfrac += (*cp++ - '0') * 10;
+        if (isdigit(*cp)) {
+          secsfrac += (*cp++ - '0');
+        }
       }
     }
   }
@@ -239,7 +239,7 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& zone) : 
     if (isdigit(*cp)) {
       altfrac = (*cp++ - '0') * 10;
       if (isdigit(*cp)) {
-	altfrac += (*cp++ - '0');
+        altfrac += (*cp++ - '0');
       }
     }
   }
@@ -314,13 +314,13 @@ string LOCRecordContent::getZoneRepresentation() const
   double remlong=60.0*(longitude-(int)longitude);
   char ret[80];
   snprintf(ret,sizeof(ret)-1,"%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm",
-	   abs((int)latitude), abs((int) ((latitude-(int)latitude)*60)),
-	   fabs((double)((remlat-(int)remlat)*60.0)),
-	   latitude>0 ? 'N' : 'S',
-	   abs((int)longitude), abs((int) ((longitude-(int)longitude)*60)),
-	   fabs((double)((remlong-(int)remlong)*60.0)),
-	   longitude>0 ? 'E' : 'W',
-	   altitude, size, horizpre, vertpre);
+           abs((int)latitude), abs((int) ((latitude-(int)latitude)*60)),
+           fabs((double)((remlat-(int)remlat)*60.0)),
+           latitude>0 ? 'N' : 'S',
+           abs((int)longitude), abs((int) ((longitude-(int)longitude)*60)),
+           fabs((double)((remlong-(int)remlong)*60.0)),
+           longitude>0 ? 'E' : 'W',
+           altitude, size, horizpre, vertpre);
 
   return ret;
 }

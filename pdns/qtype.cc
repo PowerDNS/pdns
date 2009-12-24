@@ -171,13 +171,13 @@ int DNSResourceRecord::unSerialize(const string &source)
     chunk="";
     for(;m<source.size();++m) {
       if(source[m]=='\\' && m+1<source.size()) 
-	chunk.append(1,source[++m]);
+        chunk.append(1,source[++m]);
       else if(source[m]=='|') {
-	++m;
-	break;
+        ++m;
+        break;
       }
       else 
-	chunk.append(1,source[m]);
+        chunk.append(1,source[m]);
     }
     switch(n) {
     case 0:

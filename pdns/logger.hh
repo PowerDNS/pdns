@@ -47,7 +47,7 @@ public:
 
   //! The urgency of a log message
   enum Urgency {All=99999,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
-		Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
+        	Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
 
 #else
   Logger( const string &, int facility = 0 ); //!< pass the identification you wish to appear in the log
@@ -61,7 +61,7 @@ public:
     Critical= EVENTLOG_ERROR_TYPE, 
     Error   = EVENTLOG_ERROR_TYPE, 
     Warning = EVENTLOG_WARNING_TYPE,
-		Notice  = EVENTLOG_INFORMATION_TYPE,
+        	Notice  = EVENTLOG_INFORMATION_TYPE,
     Info    = EVENTLOG_INFORMATION_TYPE, 
     Debug   = EVENTLOG_INFORMATION_TYPE, 
     None    = -1

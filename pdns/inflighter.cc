@@ -48,11 +48,11 @@ private:
     TTDItem,
     indexed_by<
       ordered_unique<
-	member<TTDItem, typename SenderReceiver::Identifier, &TTDItem::id>
+        member<TTDItem, typename SenderReceiver::Identifier, &TTDItem::id>
       >,
       ordered_non_unique<
-	tag<TimeTag>,
-	member<TTDItem, struct timeval, &TTDItem::ttd>
+        tag<TimeTag>,
+        member<TTDItem, struct timeval, &TTDItem::ttd>
       >
     >
   >ttdwatch_t; 
@@ -92,40 +92,40 @@ template<typename Container, typename SendReceive> void Inflighter<Container, Se
     }
     int processed=0;
     if(!d_ttdWatch.empty()) {
-      // cerr<<"Have "<< d_ttdWatch.size() <<" queries in flight"<<endl;	    
+      // cerr<<"Have "<< d_ttdWatch.size() <<" queries in flight"<<endl;            
       typename SendReceive::Answer answer;
       typename SendReceive::Identifier id;
       
       while(d_sr.receive(id, answer)) {
-	typename ttdwatch_t::iterator ival = d_ttdWatch.find(id);
+        typename ttdwatch_t::iterator ival = d_ttdWatch.find(id);
         if(ival != d_ttdWatch.end()) {
-	  ++processed;
-	  // cerr<<"Received expected item with id '"<<id<<"' and value '"<<item<<"'"<<endl;
-	  d_sr.deliverAnswer(*ival->iter, answer);
-	  d_ttdWatch.erase(ival);
-	  break; // we can send new questions!
-	}
-	else {
-	 // cerr<<"UNEXPECTED ANSWER!"<<endl;
-	  d_unexpectedResponse++;
-	}
+          ++processed;
+          // cerr<<"Received expected item with id '"<<id<<"' and value '"<<item<<"'"<<endl;
+          d_sr.deliverAnswer(*ival->iter, answer);
+          d_ttdWatch.erase(ival);
+          break; // we can send new questions!
+        }
+        else {
+         // cerr<<"UNEXPECTED ANSWER!"<<endl;
+          d_unexpectedResponse++;
+        }
       }
     
       
       if(!processed) { // no new responses, time for some cleanup
         struct timeval now;
         gettimeofday(&now, 0);
-	
-	typedef typename ttdwatch_t::template index<TimeTag>::type waiters_by_ttd_index_t;
-	waiters_by_ttd_index_t& waiters_index = boost::multi_index::get<TimeTag>(d_ttdWatch);
+        
+        typedef typename ttdwatch_t::template index<TimeTag>::type waiters_by_ttd_index_t;
+        waiters_by_ttd_index_t& waiters_index = boost::multi_index::get<TimeTag>(d_ttdWatch);
 
         for(typename waiters_by_ttd_index_t::iterator valiter = waiters_index.begin(); valiter != waiters_index.end(); ) {
           if(valiter->ttd.tv_sec < now.tv_sec || (valiter->ttd.tv_sec == now.tv_sec && valiter->ttd.tv_usec < now.tv_usec)) {
             waiters_index.erase(valiter++);
-	   // cerr<<"Have timeout"<<endl;
+           // cerr<<"Have timeout"<<endl;
           }
-	  else 
-	    break;
+          else 
+            break;
         }
       }
     }
@@ -186,7 +186,7 @@ struct SendReceive
       int len = recv(d_socket, buf, sizeof(buf), 0);
       string msg(buf, len);
       if(sscanf(msg.c_str(), "%d %d", &id, &i) != 2) {
-	throw runtime_error("Invalid input");
+        throw runtime_error("Invalid input");
       }
       return 1;
     }

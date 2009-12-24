@@ -39,21 +39,21 @@ char B64Decode1(char cInChar)
       // Not from '0' to '9'...
       iIndex = 'Z' - cInChar;
       if ( iIndex > 0x3F ) {
-	// Not from 'A' to 'Z'...
-	iIndex = 'z' - cInChar;
-	if ( iIndex > 0x3F ) {
-	  // Invalid character...cannot
-	  // decode!
-	  iIndex = 0x80; // set the high bit
-	} // if
-	else {
-	  // From 'a' to 'z'
-	  iIndex = (('z' - iIndex) - 'a') + 26;
-	} // else
+        // Not from 'A' to 'Z'...
+        iIndex = 'z' - cInChar;
+        if ( iIndex > 0x3F ) {
+          // Invalid character...cannot
+          // decode!
+          iIndex = 0x80; // set the high bit
+        } // if
+        else {
+          // From 'a' to 'z'
+          iIndex = (('z' - iIndex) - 'a') + 26;
+        } // else
       } // if
       else {
-	// From 'A' to 'Z'
-	iIndex = ('Z' - iIndex) - 'A';
+        // From 'A' to 'Z'
+        iIndex = ('Z' - iIndex) - 'A';
       } // else
     } // if
     else {
@@ -121,41 +121,41 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
     pad = 0;
     for ( iBitGroup = 0; iBitGroup < 4; ++iBitGroup ) {
       if ( iInNum < iInSize ) {
-	// Decode a character
+        // Decode a character
        if(strInput.at(iInNum)=='=')
          pad++;
 
-	cChar = B64Decode1(strInput.at(iInNum++));
+        cChar = B64Decode1(strInput.at(iInNum++));
 
       } // if
       else {
-	// Decode a padded zero
-	cChar = '\0';
+        // Decode a padded zero
+        cChar = '\0';
       } // else
 
       // Check for valid decode
       if ( cChar > 0x7F )
-	return -1;
+        return -1;
 
       // Adjust the bits
       switch ( iBitGroup ) {
       case 0:
-	// The first group is copied into
-	// the least significant 6 bits of
-	// the decode buffer...these 6 bits
-	// will eventually shift over to be
-	// the most significant bits of the
-	// third byte.
-	cBuf = cBuf | cChar;
-	break;
+        // The first group is copied into
+        // the least significant 6 bits of
+        // the decode buffer...these 6 bits
+        // will eventually shift over to be
+        // the most significant bits of the
+        // third byte.
+        cBuf = cBuf | cChar;
+        break;
 
       default:
-	// For groupings 1-3, simply shift
-	// the bits in the decode buffer over
-	// by 6 and insert the 6 from the
-	// current decode character.
-	cBuf = (cBuf << 6) | cChar;
-	break;
+        // For groupings 1-3, simply shift
+        // the bits in the decode buffer over
+        // by 6 and insert the 6 from the
+        // current decode character.
+        cBuf = (cBuf << 6) | cChar;
+        break;
 
       } // switch
     } // for
@@ -192,13 +192,13 @@ std::string Base64Encode (const std::string& vby)
       unsigned char by1 = 0, by2 = 0, by3 = 0;
       by1 = vby[i];
       if (i + 1 < vby.size ())
-	{
-	  by2 = vby[i + 1];
-	};
+        {
+          by2 = vby[i + 1];
+        };
       if (i + 2 < vby.size ())
-	{
-	  by3 = vby[i + 2];
-	}
+        {
+          by3 = vby[i + 2];
+        }
       unsigned char by4 = 0, by5 = 0, by6 = 0, by7 = 0;
       by4 = by1 >> 2;
       by5 = ((by1 & 0x3) << 4) | (by2 >> 4);
@@ -207,25 +207,25 @@ std::string Base64Encode (const std::string& vby)
       retval += B64Encode1 (by4);
       retval += B64Encode1 (by5);
       if (i + 1 < vby.size ())
-	{
-	  retval += B64Encode1 (by6);
-	}
+        {
+          retval += B64Encode1 (by6);
+        }
       else
-	{
-	  retval += "=";
-	};
+        {
+          retval += "=";
+        };
       if (i + 2 < vby.size ())
-	{
-	  retval += B64Encode1 (by7);
-	}
+        {
+          retval += B64Encode1 (by7);
+        }
       else
-	{
-	  retval += "=";
-	};
+        {
+          retval += "=";
+        };
       /*      if ((i % (76 / 4 * 3)) == 0)
-	{
-	  retval += "\r\n";
-	  }*/
+        {
+          retval += "\r\n";
+          }*/
     };
   return retval;
 };

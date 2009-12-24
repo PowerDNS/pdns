@@ -260,7 +260,7 @@ inline const string toLowerCanonic(const string &upper)
     for(i = 0; i < limit ; i++) {
       c = dns_tolower(upper[i]);
       if(c != upper[i])
-	reply[i] = c;
+        reply[i] = c;
     }   
     if(upper[i-1]=='.')
       reply.resize(i-1);
@@ -274,11 +274,11 @@ inline const string toLowerCanonic(const string &upper)
 // Make s uppercase:
 inline string toUpper( const string& s )
 {
-	string r(s);
-	for( unsigned int i = 0; i < s.length(); i++ ) {
-		r[i] = toupper( r[i] );
-	}
-	return r;
+        string r(s);
+        for( unsigned int i = 0; i < s.length(); i++ ) {
+        	r[i] = toupper( r[i] );
+        }
+        return r;
 }
 
 inline double getTime()
@@ -319,7 +319,7 @@ inline bool pdns_ilexicographical_compare(const std::string& a, const std::strin
   
   for(n = 0 ; n < aLen && n < bLen ; ++n) {
       if((result = dns_tolower(*aPtr++) - dns_tolower(*bPtr++))) {
-	return result < 0;
+        return result < 0;
       }
   }
   if(n == aLen && n == bLen) // strings are equal (in length)
@@ -338,7 +338,7 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
   
   for(n = 0 ; n < aLen && n < bLen ; ++n) {
       if(dns_tolower(*aPtr++) != dns_tolower(*bPtr++))
-	return false;
+        return false;
   }
   return aLen == bLen; // strings are equal (in length)
 }

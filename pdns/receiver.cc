@@ -220,13 +220,13 @@ static int guardian(int argc, char **argv)
       int n;
 
       if(::arg()["config-name"]!="") {
-	progname+="-"+::arg()["config-name"];
-	L<<Logger::Error<<"Virtual configuration name: "<<::arg()["config-name"]<<endl;
+        progname+="-"+::arg()["config-name"];
+        L<<Logger::Error<<"Virtual configuration name: "<<::arg()["config-name"]<<endl;
       }
 
       newargv[0]=strdup(const_cast<char *>((progname+"-instance").c_str()));
       for(n=1;n<argc;n++) {
-	newargv[n]=argv[n];
+        newargv[n]=argv[n];
       }
       newargv[n]=0;
       
@@ -235,21 +235,21 @@ static int guardian(int argc, char **argv)
       fclose(g_fp); // this closes g_fd2[0] for us
 
       if(g_fd1[0]!= infd) {
-	dup2(g_fd1[0], infd);
-	close(g_fd1[0]);
+        dup2(g_fd1[0], infd);
+        close(g_fd1[0]);
       }
 
       if(g_fd2[1]!= outfd) {
-	dup2(g_fd2[1], outfd);
-	close(g_fd2[1]);
+        dup2(g_fd2[1], outfd);
+        close(g_fd2[1]);
       }
       if(execvp(argv[0], newargv)<0) {
-	L<<Logger::Error<<"Unable to execvp '"<<argv[0]<<"': "<<strerror(errno)<<endl;
-	char **p=newargv;
-	while(*p)
-	  L<<Logger::Error<<*p++<<endl;
+        L<<Logger::Error<<"Unable to execvp '"<<argv[0]<<"': "<<strerror(errno)<<endl;
+        char **p=newargv;
+        while(*p)
+          L<<Logger::Error<<*p++<<endl;
 
-	exit(1);
+        exit(1);
       }
       L<<Logger::Error<<"execvp returned!!"<<endl;
       // never reached
@@ -259,35 +259,35 @@ static int guardian(int argc, char **argv)
       close(g_fd2[1]);
 
       if(first) {
-	first=false;
-	signal(SIGTERM, takedown);
+        first=false;
+        signal(SIGTERM, takedown);
 
-	signal(SIGHUP, SIG_IGN);
-	signal(SIGUSR1, SIG_IGN);
-	signal(SIGUSR2, SIG_IGN);
+        signal(SIGHUP, SIG_IGN);
+        signal(SIGUSR1, SIG_IGN);
+        signal(SIGUSR2, SIG_IGN);
 
-	writePid();
+        writePid();
       }
       pthread_mutex_unlock(&g_guardian_lock);  
       int status;
       cpid=pid;
       for(;;) {
-	int ret=waitpid(pid,&status,WNOHANG);
+        int ret=waitpid(pid,&status,WNOHANG);
 
-	if(ret<0) {
-	  L<<Logger::Error<<"In guardian loop, waitpid returned error: "<<strerror(errno)<<endl;
-	  L<<Logger::Error<<"Dying"<<endl;
-	  exit(1);
-	}
-	else if(ret) // something exited
-	  break;
-	else { // child is alive
-	  // execute some kind of ping here 
-	  if(DLQuitPlease())
-	    takedown(1); // needs a parameter..
-	  setStatus("Child running on pid "+itoa(pid));
-	  sleep(1);
-	}
+        if(ret<0) {
+          L<<Logger::Error<<"In guardian loop, waitpid returned error: "<<strerror(errno)<<endl;
+          L<<Logger::Error<<"Dying"<<endl;
+          exit(1);
+        }
+        else if(ret) // something exited
+          break;
+        else { // child is alive
+          // execute some kind of ping here 
+          if(DLQuitPlease())
+            takedown(1); // needs a parameter..
+          setStatus("Child running on pid "+itoa(pid));
+          sleep(1);
+        }
       }
 
       pthread_mutex_lock(&g_guardian_lock);
@@ -296,31 +296,31 @@ static int guardian(int argc, char **argv)
       g_fp=0;
 
       if(WIFEXITED(status)) {
-	int ret=WEXITSTATUS(status);
+        int ret=WEXITSTATUS(status);
 
-	if(ret==99) {
-	  L<<Logger::Error<<"Child requested a stop, exiting"<<endl;
-	  exit(1);
-	}
-	setStatus("Child died with code "+itoa(ret));
-	L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<endl;
-	L<<Logger::Error<<"Respawning"<<endl;
+        if(ret==99) {
+          L<<Logger::Error<<"Child requested a stop, exiting"<<endl;
+          exit(1);
+        }
+        setStatus("Child died with code "+itoa(ret));
+        L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<endl;
+        L<<Logger::Error<<"Respawning"<<endl;
 
-	sleep(1);
-	continue;
+        sleep(1);
+        continue;
       }
       if(WIFSIGNALED(status)) {
-	int sig=WTERMSIG(status);
-	setStatus("Child died because of signal "+itoa(sig));
-	L<<Logger::Error<<"Our pdns instance ("<<pid<<") exited after signal "<<sig<<endl;
+        int sig=WTERMSIG(status);
+        setStatus("Child died because of signal "+itoa(sig));
+        L<<Logger::Error<<"Our pdns instance ("<<pid<<") exited after signal "<<sig<<endl;
 #ifdef WCOREDUMP
-	if(WCOREDUMP(status)) 
-	  L<<Logger::Error<<"Dumped core"<<endl;
+        if(WCOREDUMP(status)) 
+          L<<Logger::Error<<"Dumped core"<<endl;
 #endif
 
-	L<<Logger::Error<<"Respawning"<<endl;
-	sleep(1);
-	continue;
+        L<<Logger::Error<<"Respawning"<<endl;
+        sleep(1);
+        continue;
       }
       L<<Logger::Error<<"No clue what happened! Respawning"<<endl;
     }
@@ -358,15 +358,15 @@ static void loadModules()
       const string &module=*i;
       
       if(module.find(".")==string::npos)
-	res=UeberBackend::loadmodule(::arg()["module-dir"]+"/lib"+module+"backend.so");
+        res=UeberBackend::loadmodule(::arg()["module-dir"]+"/lib"+module+"backend.so");
       else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
-	res=UeberBackend::loadmodule(module);
+        res=UeberBackend::loadmodule(module);
       else
-	res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
+        res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
       
       if(res==false) {
-	L<<Logger::Error<<"receiver unable to load module "<<module<<endl;
-	exit(1);
+        L<<Logger::Error<<"receiver unable to load module "<<module<<endl;
+        exit(1);
       }
     }
   }
@@ -435,9 +435,9 @@ int main(int argc, char **argv)
     if(!::arg()["logging-facility"].empty()) {
       boost::optional<int> val=logFacilityToLOG(::arg().asNum("logging-facility") );
       if(val)
-	theL().setFacility(*val);
+        theL().setFacility(*val);
       else
-	L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
+        L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
     }
 
     L.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
@@ -450,8 +450,8 @@ int main(int argc, char **argv)
 
     if(::arg().mustDo("guardian") && !isGuarded(argv)) {
       if(::arg().mustDo("daemon")) {
-	L.toConsole(Logger::Critical);
-	daemonize();
+        L.toConsole(Logger::Critical);
+        daemonize();
       }
       guardian(argc, argv);  
       // never get here, guardian will reinvoke process
@@ -494,7 +494,7 @@ int main(int argc, char **argv)
       vector<string>modules=BackendMakers().getModules();
       cerr<<"Modules available:"<<endl;
       for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i)
-	cout<<*i<<endl;
+        cout<<*i<<endl;
 
       exit(99);
     }
@@ -514,7 +514,7 @@ int main(int argc, char **argv)
     if(::arg().mustDo("daemon")) {
       L.toConsole(Logger::None);
       if(!isGuarded(argv))
-	daemonize();
+        daemonize();
     }
 
     if(::arg()["server-id"].empty()) {
@@ -531,9 +531,9 @@ int main(int argc, char **argv)
       L<<Logger::Warning<<"This is a standalone pdns"<<endl; 
       
       if(::arg().mustDo("control-console"))
-	dl=new DynListener();
+        dl=new DynListener();
       else
-	dl=new DynListener(s_programname);
+        dl=new DynListener(s_programname);
       
       writePid();
     }

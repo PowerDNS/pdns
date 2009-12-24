@@ -62,7 +62,7 @@ public:
     ~Guard()
     {
       if(*d_guard)
-	delete *d_guard;
+        delete *d_guard;
     }
     
   private:

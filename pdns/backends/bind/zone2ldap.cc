@@ -45,207 +45,207 @@ map<string,bool> g_objects;
 
 static void callback_simple( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
 {
-	string host;
-	string::size_type pos;
-	vector<string> parts;
-	string domain2 = stripDot( domain );
+        string host;
+        string::size_type pos;
+        vector<string> parts;
+        string domain2 = stripDot( domain );
 
 
-	if( ( pos = domain2.rfind( g_zonename ) ) == string::npos )
-	{
-		cerr << "Domain " << domain2 << " not part of " << g_zonename << endl;
-		return;
-	}
+        if( ( pos = domain2.rfind( g_zonename ) ) == string::npos )
+        {
+        	cerr << "Domain " << domain2 << " not part of " << g_zonename << endl;
+        	return;
+        }
 
-	host = stripDot( domain2.substr( 0, pos ) );
+        host = stripDot( domain2.substr( 0, pos ) );
 
-	cout << "dn: dc=";
-	if( !host.empty() ) { cout << host << ",dc="; }
-	cout << g_zonename << "," << g_basedn << endl;
+        cout << "dn: dc=";
+        if( !host.empty() ) { cout << host << ",dc="; }
+        cout << g_zonename << "," << g_basedn << endl;
 
-	if( host.empty() ) { host = g_zonename; }
+        if( host.empty() ) { host = g_zonename; }
 
-	if( !g_objects[domain2] )
-	{
-		g_objects[domain2] = true;
+        if( !g_objects[domain2] )
+        {
+        	g_objects[domain2] = true;
 
-		cout << "changetype: add" << endl;
-		cout << "objectclass: dnsdomain2" << endl;
-		cout << "objectclass: domainrelatedobject" << endl;
-		cout << "dc: " << host << endl;
-		if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
-		cout << "associateddomain: " << domain2 << endl;
-	}
-	else
-	{
-		cout << "changetype: modify" << endl;
-		cout << "add: " << qtype << "Record" << endl;
-	}
+        	cout << "changetype: add" << endl;
+        	cout << "objectclass: dnsdomain2" << endl;
+        	cout << "objectclass: domainrelatedobject" << endl;
+        	cout << "dc: " << host << endl;
+        	if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
+        	cout << "associateddomain: " << domain2 << endl;
+        }
+        else
+        {
+        	cout << "changetype: modify" << endl;
+        	cout << "add: " << qtype << "Record" << endl;
+        }
 
-	cout << qtype << "Record: ";
-	if( prio != 0 ) { cout << prio << " "; }
-	cout << stripDot( content ) << endl << endl;
+        cout << qtype << "Record: ";
+        if( prio != 0 ) { cout << prio << " "; }
+        cout << stripDot( content ) << endl << endl;
 }
 
 
 
 static void callback_tree( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
 {
-	unsigned int i;
-	string dn, net;
-	vector<string> parts;
-	string domain2 = stripDot( domain );
+        unsigned int i;
+        string dn, net;
+        vector<string> parts;
+        string domain2 = stripDot( domain );
 
-	stringtok( parts, domain2, "." );
-	if( parts.empty() ) { return; }
+        stringtok( parts, domain2, "." );
+        if( parts.empty() ) { return; }
 
-	for( i = parts.size() - 1; i > 0; i-- )
-	{
-		net = parts[i] + net;
-		dn = "dc=" + parts[i] + "," + dn;
+        for( i = parts.size() - 1; i > 0; i-- )
+        {
+        	net = parts[i] + net;
+        	dn = "dc=" + parts[i] + "," + dn;
 
-		if( !g_objects[net] )
-		{
-			g_objects[net] = true;
+        	if( !g_objects[net] )
+        	{
+        		g_objects[net] = true;
 
-			cout << "dn: " << dn << g_basedn << endl;
-			cout << "changetype: add" << endl;
-			cout << "objectclass: dnsdomain2" << endl;
-			cout << "objectclass: domainrelatedobject" << endl;
-			cout << "dc: " << parts[i] << endl;
-			cout << "associateddomain: " << net << endl << endl;
-		}
+        		cout << "dn: " << dn << g_basedn << endl;
+        		cout << "changetype: add" << endl;
+        		cout << "objectclass: dnsdomain2" << endl;
+        		cout << "objectclass: domainrelatedobject" << endl;
+        		cout << "dc: " << parts[i] << endl;
+        		cout << "associateddomain: " << net << endl << endl;
+        	}
 
-		net = "." + net;
-	}
+        	net = "." + net;
+        }
 
-	cout << "dn: " << "dc=" << parts[0] << "," << dn << g_basedn << endl;
+        cout << "dn: " << "dc=" << parts[0] << "," << dn << g_basedn << endl;
 
-	if( !g_objects[domain2] )
-	{
-		g_objects[domain2] = true;
+        if( !g_objects[domain2] )
+        {
+        	g_objects[domain2] = true;
 
-		cout << "changetype: add" << endl;
-		cout << "objectclass: dnsdomain2" << endl;
-		cout << "objectclass: domainrelatedobject" << endl;
-		cout << "dc: " << parts[0] << endl;
-		if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
-		cout << "associateddomain: " << domain2 << endl;
-	}
-	else
-	{
-		cout << "changetype: modify" << endl;
-		cout << "add: " << qtype << "Record" << endl;
-	}
+        	cout << "changetype: add" << endl;
+        	cout << "objectclass: dnsdomain2" << endl;
+        	cout << "objectclass: domainrelatedobject" << endl;
+        	cout << "dc: " << parts[0] << endl;
+        	if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
+        	cout << "associateddomain: " << domain2 << endl;
+        }
+        else
+        {
+        	cout << "changetype: modify" << endl;
+        	cout << "add: " << qtype << "Record" << endl;
+        }
 
-	cout << qtype << "Record: ";
-	if( prio != 0 ) { cout << prio << " "; }
-	cout << stripDot( content ) << endl << endl;
+        cout << qtype << "Record: ";
+        if( prio != 0 ) { cout << prio << " "; }
+        cout << stripDot( content ) << endl << endl;
 }
 
 
 
 int main( int argc, char* argv[] )
 {
-	BindParser BP;
-	vector<string> parts;
+        BindParser BP;
+        vector<string> parts;
 
 
-	try
-	{
+        try
+        {
 #if __GNUC__ >= 3
-		ios_base::sync_with_stdio( false );
+        	ios_base::sync_with_stdio( false );
 #endif
-		reportAllTypes();
-		args.setCmd( "help", "Provide a helpful message" );
-		args.setSwitch( "verbose", "Verbose comments on operation" ) = "no";
-		args.setSwitch( "resume", "Continue after errors" ) = "no";
-		args.setSwitch( "dnsttl", "Add dnsttl attribute to every entry" ) = "no";
-		args.set( "named-conf", "Bind 8 named.conf to parse" ) = "";
-		args.set( "zone-file", "Zone file to parse" ) = "";
-		args.set( "zone-name", "Specify a zone name if zone is set" ) = "";
-		args.set( "basedn", "Base DN to store objects below" ) = "ou=hosts,o=mycompany,c=de";
-		args.set( "layout", "How to arrange entries in the directory (simple or as tree)" ) = "simple";
+        	reportAllTypes();
+        	args.setCmd( "help", "Provide a helpful message" );
+        	args.setSwitch( "verbose", "Verbose comments on operation" ) = "no";
+        	args.setSwitch( "resume", "Continue after errors" ) = "no";
+        	args.setSwitch( "dnsttl", "Add dnsttl attribute to every entry" ) = "no";
+        	args.set( "named-conf", "Bind 8 named.conf to parse" ) = "";
+        	args.set( "zone-file", "Zone file to parse" ) = "";
+        	args.set( "zone-name", "Specify a zone name if zone is set" ) = "";
+        	args.set( "basedn", "Base DN to store objects below" ) = "ou=hosts,o=mycompany,c=de";
+        	args.set( "layout", "How to arrange entries in the directory (simple or as tree)" ) = "simple";
 
-		args.parse( argc, argv );
+        	args.parse( argc, argv );
 
-		if( argc < 2 || args.mustDo( "help" ) )
-		{
-			cerr << "Syntax:" << endl << endl;
-			cerr << args.helpstring() << endl;
-			exit( 1 );
-		}
+        	if( argc < 2 || args.mustDo( "help" ) )
+        	{
+        		cerr << "Syntax:" << endl << endl;
+        		cerr << args.helpstring() << endl;
+        		exit( 1 );
+        	}
 
-		g_basedn = args["basedn"];
-		g_dnsttl = args.mustDo( "dnsttl" );
-		typedef boost::function<void(unsigned int, const string &, const string &, const string &, int, int)> callback_t;
-		callback_t callback = callback_simple;
-		if( args["layout"] == "tree" )
-		{
-			callback=callback_tree;
-		}
+        	g_basedn = args["basedn"];
+        	g_dnsttl = args.mustDo( "dnsttl" );
+        	typedef boost::function<void(unsigned int, const string &, const string &, const string &, int, int)> callback_t;
+        	callback_t callback = callback_simple;
+        	if( args["layout"] == "tree" )
+        	{
+        		callback=callback_tree;
+        	}
 
-		if( !args["named-conf"].empty() )
-		{
-			BP.setVerbose( args.mustDo( "verbose" ) );
-			BP.parse( args["named-conf"] );
-//			ZP.setDirectory( BP.getDirectory() );
-			const vector<BindDomainInfo> &domains = BP.getDomains();
+        	if( !args["named-conf"].empty() )
+        	{
+        		BP.setVerbose( args.mustDo( "verbose" ) );
+        		BP.parse( args["named-conf"] );
+//        		ZP.setDirectory( BP.getDirectory() );
+        		const vector<BindDomainInfo> &domains = BP.getDomains();
 
-			for( vector<BindDomainInfo>::const_iterator i = domains.begin(); i != domains.end(); i++ )
-			{
-				try
-				{
-					if( i->name != "." && i->name != "localhost" && i->name != "0.0.127.in-addr.arpa" )
-					{
-						cerr << "Parsing file: " << i->filename << ", domain: " << i->name << endl;
-						g_zonename = i->name;
-						ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
-						DNSResourceRecord rr;
-						while(zpt.get(rr))
-							callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
-					}
-				}
-				catch( AhuException &ae )
-				{
-					cerr << "Fatal error: " << ae.reason << endl;
-					if( !args.mustDo( "resume" ) )
-					{
-						return 1;
-					}
-				}
-			}
-		}
-		else
-		{
-			if( args["zone-file"].empty() || args["zone-name"].empty() )
-			{
-					cerr << "Error: At least zone-file and zone-name are required" << endl;
-					return 1;
-			}
+        		for( vector<BindDomainInfo>::const_iterator i = domains.begin(); i != domains.end(); i++ )
+        		{
+        			try
+        			{
+        				if( i->name != "." && i->name != "localhost" && i->name != "0.0.127.in-addr.arpa" )
+        				{
+        					cerr << "Parsing file: " << i->filename << ", domain: " << i->name << endl;
+        					g_zonename = i->name;
+        					ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+        					DNSResourceRecord rr;
+        					while(zpt.get(rr))
+        						callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+        				}
+        			}
+        			catch( AhuException &ae )
+        			{
+        				cerr << "Fatal error: " << ae.reason << endl;
+        				if( !args.mustDo( "resume" ) )
+        				{
+        					return 1;
+        				}
+        			}
+        		}
+        	}
+        	else
+        	{
+        		if( args["zone-file"].empty() || args["zone-name"].empty() )
+        		{
+        				cerr << "Error: At least zone-file and zone-name are required" << endl;
+        				return 1;
+        		}
 
-			g_zonename = args["zone-name"];
-			ZoneParserTNG zpt(args["zone-file"], args["zone-name"]);
-			DNSResourceRecord rr;
-			while(zpt.get(rr))
-				callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
-		}
-	}
-	catch( AhuException &ae )
-	{
-		cerr << "Fatal error: " << ae.reason << endl;
-		return 1;
-	}
-	catch( std::exception &e )
-	{
-		cerr << "Died because of STL error: " << e.what() << endl;
-		return 1;
-	}
-	catch( ... )
-	{
-		cerr << "Died because of unknown exception" << endl;
-		return 1;
-	}
+        		g_zonename = args["zone-name"];
+        		ZoneParserTNG zpt(args["zone-file"], args["zone-name"]);
+        		DNSResourceRecord rr;
+        		while(zpt.get(rr))
+        			callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+        	}
+        }
+        catch( AhuException &ae )
+        {
+        	cerr << "Fatal error: " << ae.reason << endl;
+        	return 1;
+        }
+        catch( std::exception &e )
+        {
+        	cerr << "Died because of STL error: " << e.what() << endl;
+        	return 1;
+        }
+        catch( ... )
+        {
+        	cerr << "Died because of unknown exception" << endl;
+        	return 1;
+        }
 
-	return 0;
+        return 0;
 }

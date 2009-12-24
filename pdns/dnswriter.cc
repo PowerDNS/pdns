@@ -151,13 +151,13 @@ void DNSPacketWriter::xfrText(const string& text, bool)
   else 
     for(; beg!=tok.end(); ++beg){
       if(beg->empty()) 
-	d_record.push_back(0);
+        d_record.push_back(0);
       else 
-	for (unsigned int i = 0; i < beg->length(); i += 0xff){
-	  d_record.push_back(min((string::size_type)0xffU, beg->length()-i));
-	  const uint8_t* ptr=(uint8_t*)(beg->c_str()) + i;
-	  d_record.insert(d_record.end(), ptr, ptr+min((string::size_type)0xffU, beg->length()-i));
-	}
+        for (unsigned int i = 0; i < beg->length(); i += 0xff){
+          d_record.push_back(min((string::size_type)0xffU, beg->length()-i));
+          const uint8_t* ptr=(uint8_t*)(beg->c_str()) + i;
+          d_record.insert(d_record.end(), ptr, ptr+min((string::size_type)0xffU, beg->length()-i));
+        }
     }
 }
 
@@ -249,7 +249,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
       d_record.resize(len + part.size());
 
       memcpy(((&*d_record.begin()) + len), part.c_str(), part.size());
-      pos+=(part.size())+1;			 
+      pos+=(part.size())+1;        		 
     }
     else {
       d_record.push_back((char)(i->second - i->first));

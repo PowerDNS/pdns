@@ -101,7 +101,7 @@ map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads
 
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), 
-												        d_tcp(false), d_socket(-1)
+        											        d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
   void setRemote(ComboAddress* sa)
@@ -237,7 +237,7 @@ public:
       //      returnSocket(*fd);
       Utility::closesocket(*fd);
       if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
-	return -2;
+        return -2;
       return -1;
     }
 
@@ -292,14 +292,14 @@ public:
       uint16_t port;
       
       if(tries==1)  // fall back to kernel 'random'
-	port = 0;
+        port = 0;
       else
         port = 1025 + dns_random(64510);
       
       ComboAddress sin=getQueryLocalAddress(family, port); // does htons for us
 
       if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0) 
-	break;
+        break;
     }
     if(!tries)
       throw AhuException("Resolver binding to local query client socket: "+stringerror());
@@ -313,7 +313,7 @@ public:
 /* these two functions are used by LWRes */
 // -2 is OS error, -1 is error that depends on the remote, > 0 is success
 int asendto(const char *data, int len, int flags, 
-	    const ComboAddress& toaddr, uint16_t id, const string& domain, uint16_t qtype, int* fd) 
+            const ComboAddress& toaddr, uint16_t id, const string& domain, uint16_t qtype, int* fd) 
 {
 
   PacketID pident;
@@ -329,7 +329,7 @@ int asendto(const char *data, int len, int flags,
       /*
       cerr<<"Orig: "<<pident.domain<<", "<<pident.remote.toString()<<", id="<<id<<endl;
       cerr<<"Had hit: "<< chain.first->key.domain<<", "<<chain.first->key.remote.toString()<<", id="<<chain.first->key.id
-	  <<", count="<<chain.first->key.chain.size()<<", origfd: "<<chain.first->key.fd<<endl;
+          <<", count="<<chain.first->key.chain.size()<<", origfd: "<<chain.first->key.fd<<endl;
       */
       chain.first->key.chain.insert(id); // we can chain
       *fd=-1;                            // gets used in waitEvent / sendEvent later on
@@ -358,7 +358,7 @@ int asendto(const char *data, int len, int flags,
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, 
-	      uint16_t id, const string& domain, uint16_t qtype, int fd, struct timeval* now)
+              uint16_t id, const string& domain, uint16_t qtype, int fd, struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit) 
@@ -491,8 +491,8 @@ void primeHints(void)
 
   if(::arg()["hint-file"].empty()) {
     static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", 
-			     "192.112.36.4", "128.63.2.53",
-			     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
+        		     "192.112.36.4", "128.63.2.53",
+        		     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
     static const char *ip6s[]={
       "2001:503:ba3e::2:30", NULL, NULL, NULL, NULL,
       "2001:500:2f::f", NULL, "2001:500:1::803f:235", NULL,
@@ -531,16 +531,16 @@ void primeHints(void)
     while(zpt.get(rr)) {
       rr.ttl+=time(0);
       if(rr.qtype.getCode()==QType::A) {
-	set<DNSResourceRecord> aset;
-	aset.insert(rr);
-	RC.replace(time(0), rr.qname, QType(QType::A), aset, true); // auth, etc see above
+        set<DNSResourceRecord> aset;
+        aset.insert(rr);
+        RC.replace(time(0), rr.qname, QType(QType::A), aset, true); // auth, etc see above
       } else if(rr.qtype.getCode()==QType::AAAA) {
-	set<DNSResourceRecord> aaaaset;
-	aaaaset.insert(rr);
-	RC.replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, true);
+        set<DNSResourceRecord> aaaaset;
+        aaaaset.insert(rr);
+        RC.replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, true);
       } else if(rr.qtype.getCode()==QType::NS) {
-	rr.content=toLower(rr.content);
-	nsset.insert(rr);
+        rr.content=toLower(rr.content);
+        nsset.insert(rr);
       }
     }
   }
@@ -628,39 +628,39 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
       switch(res) {
       case RCode::ServFail:
-	g_stats.servFails++;
-	break;
+        g_stats.servFails++;
+        break;
       case RCode::NXDomain:
-	g_stats.nxDomains++;
-	break;
+        g_stats.nxDomains++;
+        break;
       case RCode::NoError:
-	g_stats.noErrors++;
-	break;
+        g_stats.noErrors++;
+        break;
       }
       
 
       if(ret.size()) {
-	shuffle(ret);
-	
-//	for(int n=0; n< 50 && packet.size() < 65506; ++n) 
-	for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
-	  pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
-	  minTTL = min(minTTL, i->ttl);
-	  if(i->qtype.getCode() == QType::A) { // blast out A record w/o doing whole dnswriter thing
-	    uint32_t ip=0;
-	    IpToU32(i->content, &ip);
-	    pw.xfr32BitInt(htonl(ip));
-	  } else {
-	    shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content)); 
-	    drc->toPacket(pw);
-	  }
-	  if(!dc->d_tcp && pw.size() > maxudpsize) {
-	    pw.rollback();
-	    if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
-	      pw.getHeader()->tc=1;
-	    goto sendit; // need to jump over pw.commit
-	  }
-	}
+        shuffle(ret);
+        
+//        for(int n=0; n< 50 && packet.size() < 65506; ++n) 
+        for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
+          pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
+          minTTL = min(minTTL, i->ttl);
+          if(i->qtype.getCode() == QType::A) { // blast out A record w/o doing whole dnswriter thing
+            uint32_t ip=0;
+            IpToU32(i->content, &ip);
+            pw.xfr32BitInt(htonl(ip));
+          } else {
+            shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content)); 
+            drc->toPacket(pw);
+          }
+          if(!dc->d_tcp && pw.size() > maxudpsize) {
+            pw.rollback();
+            if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
+              pw.getHeader()->tc=1;
+            goto sendit; // need to jump over pw.commit
+          }
+        }
 
       pw.commit();
       }
@@ -670,10 +670,10 @@ void startDoResolve(void *p)
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
       if(!SyncRes::s_nopacketcache) {
         g_packetCache.insertResponsePacket(string((const char*)&*packet.begin(), packet.size()), g_now.tv_sec, 
-					   min(minTTL, 
-					       pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
-					       )
-					  );
+        				   min(minTTL, 
+        				       pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
+        				       )
+        				  );
       }
     }
     else {
@@ -796,7 +796,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     if(!bytes || bytes < 0) {
       if(g_logCommonErrors)
-	L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected after first byte"<<endl;
+        L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected after first byte"<<endl;
       TCPConnection tmp(*conn); 
       t_fdm->removeReadFD(fd);
       tmp.closeAndCleanup();  // conn loses validity here..
@@ -820,30 +820,30 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       DNSComboWriter* dc=0;
       try {
-	dc=new DNSComboWriter(tconn.data, tconn.qlen, g_now);
+        dc=new DNSComboWriter(tconn.data, tconn.qlen, g_now);
       }
       catch(MOADNSException &mde) {
-	g_stats.clientParseError++; 
-	if(g_logCommonErrors)
-	  L<<Logger::Error<<"Unable to parse packet from TCP client "<< tconn.remote.toString() <<endl;
-	tconn.closeAndCleanup();
-	return;
+        g_stats.clientParseError++; 
+        if(g_logCommonErrors)
+          L<<Logger::Error<<"Unable to parse packet from TCP client "<< tconn.remote.toString() <<endl;
+        tconn.closeAndCleanup();
+        return;
       }
       
       dc->setSocket(tconn.fd);
       dc->d_tcp=true;
       dc->setRemote(&tconn.remote);
       if(dc->d_mdp.d_header.qr) {
-	delete dc;
-	L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-	tconn.closeAndCleanup();
-	return;
+        delete dc;
+        L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+        tconn.closeAndCleanup();
+        return;
       }
       else {
-	++g_stats.qcounter;
-	++g_stats.tcpqcounter;
-	MT->makeThread(startDoResolve, dc); // deletes dc
-	return;
+        ++g_stats.qcounter;
+        ++g_stats.tcpqcounter;
+        MT->makeThread(startDoResolve, dc); // deletes dc
+        return;
       }
     }
   }
@@ -859,7 +859,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
     g_stats.addRemote(addr);
     if(g_allowFrom && !g_allowFrom->match(&addr)) {
       if(!g_quiet) 
-	L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
+        L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedTCP++;
       Utility::closesocket(newsock);
@@ -903,7 +903,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
     if(g_allowFrom && !g_allowFrom->match(&fromaddr)) {
       if(!g_quiet) 
-	L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
+        L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedUDP++;
       return;
@@ -912,36 +912,36 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dnsheader* dh=(dnsheader*)data;
       
       if(dh->qr) {
-	if(g_logCommonErrors)
-	  L<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
+        if(g_logCommonErrors)
+          L<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
-	++g_stats.qcounter;
+        ++g_stats.qcounter;
 
-	string response;
-	if(!SyncRes::s_nopacketcache && g_packetCache.getResponsePacket(string(data, len), g_now.tv_sec, &response)) {
-	  if(!g_quiet)
-	    L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+        string response;
+        if(!SyncRes::s_nopacketcache && g_packetCache.getResponsePacket(string(data, len), g_now.tv_sec, &response)) {
+          if(!g_quiet)
+            L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
 
-	  g_stats.packetCacheHits++;
-	  SyncRes::s_queries++;
-	  sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
-	  return;
-	}
+          g_stats.packetCacheHits++;
+          SyncRes::s_queries++;
+          sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
+          return;
+        }
 
-	DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
-	dc->setSocket(fd);
-	dc->setRemote(&fromaddr);
+        DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
+        dc->setSocket(fd);
+        dc->setRemote(&fromaddr);
 
-	dc->d_tcp=false;
+        dc->d_tcp=false;
 
-	MT->makeThread(startDoResolve, (void*) dc); // deletes dc
+        MT->makeThread(startDoResolve, (void*) dc); // deletes dc
       }
     }
     catch(MOADNSException& mde) {
       g_stats.clientParseError++; 
       if(g_logCommonErrors)
-	L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
+        L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
     }
   }
 }
@@ -970,7 +970,7 @@ void makeTCPServerSockets()
     if(!IpToU32(st.host, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
       if(Utility::inet_pton(AF_INET6, st.host.c_str(), &sin.sin6.sin6_addr) <= 0)
-	throw AhuException("Unable to resolve local address for TCP server on '"+ st.host +"'"); 
+        throw AhuException("Unable to resolve local address for TCP server on '"+ st.host +"'"); 
     }
 
     fd=socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
@@ -986,7 +986,7 @@ void makeTCPServerSockets()
 #ifdef TCP_DEFER_ACCEPT
     if(setsockopt(fd, SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
       if(i==locals.begin())
-	L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
+        L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
 #endif
 
@@ -1034,7 +1034,7 @@ void makeUDPServerSockets()
     if(!IpToU32(st.host.c_str() , (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
       if(Utility::inet_pton(AF_INET6, st.host.c_str(), &sin.sin6.sin6_addr) <= 0)
-	throw AhuException("Unable to resolve local address for UDP server on '"+ st.host +"'"); 
+        throw AhuException("Unable to resolve local address for UDP server on '"+ st.host +"'"); 
     }
     
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
@@ -1147,9 +1147,9 @@ try
     time_t limit=now.tv_sec-300;
     for(SyncRes::nsspeeds_t::iterator i = SyncRes::s_nsSpeeds.begin() ; i!= SyncRes::s_nsSpeeds.end(); )
       if(i->second.stale(limit))
-	SyncRes::s_nsSpeeds.erase(i++);
+        SyncRes::s_nsSpeeds.erase(i++);
       else
-	++i;
+        ++i;
 #endif
     //   cerr<<"Pruned "<<pruned<<" records, left "<<SyncRes::s_negcache.size()<<"\n";
 //    cout<<"Prune took "<<dt.udiff()<<"usec\n";
@@ -1284,8 +1284,8 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     else {
       g_stats.serverParseError++; 
       if(g_logCommonErrors)
-	L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr) <<
-	  ": packet smalller than DNS header"<<endl;
+        L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr) <<
+          ": packet smalller than DNS header"<<endl;
     }
 
     g_udpclientsocks.returnSocket(fd);
@@ -1313,11 +1313,11 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     }
     else {
       try {
-	pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
+        pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
       }
       catch(std::exception& e) {
-	L<<Logger::Warning<<"Error in packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr) << ": "<<e.what() << endl;
-	return;
+        L<<Logger::Warning<<"Error in packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr) << ": "<<e.what() << endl;
+        return;
       }
     }
     string packet;
@@ -1336,20 +1336,20 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       g_stats.unexpectedCount++;
       
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
-	if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
-	   pdns_iequals(pident.domain, mthread->key.domain)) {
-	  mthread->key.nearMisses++;
-	}
+        if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
+           pdns_iequals(pident.domain, mthread->key.domain)) {
+          mthread->key.nearMisses++;
+        }
 
-	// be a bit paranoid here since we're weakening our matching
-	if(pident.domain.empty() && !mthread->key.domain.empty() && !pident.type && mthread->key.type && 
-	   pident.id  == mthread->key.id && mthread->key.remote == pident.remote) {
-	  //	    cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
-	  pident.domain = mthread->key.domain;
-	  pident.type = mthread->key.type;
-	  g_stats.unexpectedCount--;
-	  goto retryWithName;
-	}
+        // be a bit paranoid here since we're weakening our matching
+        if(pident.domain.empty() && !mthread->key.domain.empty() && !pident.type && mthread->key.type && 
+           pident.id  == mthread->key.id && mthread->key.remote == pident.remote) {
+          //	    cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
+          pident.domain = mthread->key.domain;
+          pident.type = mthread->key.type;
+          g_stats.unexpectedCount--;
+          goto retryWithName;
+        }
       }
     }
     else if(fd >= 0) {
@@ -1515,7 +1515,7 @@ string reloadAuthAndForwards()
   
     for(SyncRes::domainmap_t::const_iterator i = SyncRes::s_domainmap.begin(); i != SyncRes::s_domainmap.end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-	RC.doWipeCache(j->qname);
+        RC.doWipeCache(j->qname);
     }
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
@@ -1533,7 +1533,7 @@ string reloadAuthAndForwards()
     // purge again - new zones need to blank out the cache
     for(SyncRes::domainmap_t::const_iterator i = SyncRes::s_domainmap.begin(); i != SyncRes::s_domainmap.end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-	RC.doWipeCache(j->qname);
+        RC.doWipeCache(j->qname);
     }
 
     // this is pretty blunt
@@ -1636,13 +1636,13 @@ void parseAuthAndForwards()
       else
         ad.d_rdForward = false;
       if(domain.empty()) 
-	throw AhuException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+        throw AhuException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
 
       try {
-	convertServersForAD(instructions, ad, ",; ", false);
+        convertServersForAD(instructions, ad, ",; ", false);
       }
       catch(...) {
-	throw AhuException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+        throw AhuException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
       SyncRes::s_domainmap[toCanonic("", domain)]=ad;
@@ -1664,17 +1664,17 @@ void parseAuthAndForwards()
     while(getline(ifs,line)) {
       pos=line.find('#');
       if(pos!=string::npos)
-	line.resize(pos);
+        line.resize(pos);
       trim(line);
       if(line.empty())
-	continue;
+        continue;
       parts.clear();
       stringtok(parts, line, "\t\r\n ");
       if(parts[0].find(':')!=string::npos)
-	continue;
+        continue;
       
       for(unsigned int n=1; n < parts.size(); ++n)
-	makeNameToIPZone(parts[n], parts[0]);
+        makeNameToIPZone(parts[n], parts[0]);
       makeIPToNamesZone(parts);
     }
   }
@@ -1820,7 +1820,7 @@ int serviceMain(int argc, char*argv[])
     for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
       g_dontQuery->addMask(*i);
       if(i!=ips.begin())
-	L<<Logger::Warning<<", ";
+        L<<Logger::Warning<<", ";
       L<<Logger::Warning<<*i;
     }
     L<<Logger::Warning<<endl;
@@ -1843,7 +1843,7 @@ int serviceMain(int argc, char*argv[])
       
       stringtok(addrs, ::arg()["query-local-address6"], ", ;");
       BOOST_FOREACH(const string& addr, addrs) {
-	g_localQueryAddresses6.push_back(ComboAddress(addr));
+        g_localQueryAddresses6.push_back(ComboAddress(addr));
       }
     }
     addrs.clear();
@@ -2024,13 +2024,13 @@ try
     if(!(counter%55)) {
       typedef vector<pair<int, FDMultiplexer::funcparam_t> > expired_t;
       expired_t expired=t_fdm->getTimeouts(g_now);
-	
+        
       for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
-	TCPConnection conn=any_cast<TCPConnection>(i->second);
-	if(g_logCommonErrors)
-	  L<<Logger::Warning<<"Timeout from remote TCP client "<< conn.remote.toString() <<endl;
-	t_fdm->removeReadFD(i->first);
-	conn.closeAndCleanup();
+        TCPConnection conn=any_cast<TCPConnection>(i->second);
+        if(g_logCommonErrors)
+          L<<Logger::Warning<<"Timeout from remote TCP client "<< conn.remote.toString() <<endl;
+        t_fdm->removeReadFD(i->first);
+        conn.closeAndCleanup();
       }
     }
       
@@ -2051,16 +2051,16 @@ try
 
     if(listenOnTCP) {
       if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown, too many connections
-	for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	  t_fdm->removeReadFD(*i);
-	listenOnTCP=false;
+        for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+          t_fdm->removeReadFD(*i);
+        listenOnTCP=false;
       }
     }
     else {
       if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
-	for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	  t_fdm->addReadFD(*i, handleNewTCPQuestion);
-	listenOnTCP=true;
+        for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+          t_fdm->addReadFD(*i, handleNewTCPQuestion);
+        listenOnTCP=true;
       }
     }
   }
@@ -2221,7 +2221,7 @@ int main(int argc, char **argv)
     serviceMain(argc, argv);
 #else
     doWindowsServiceArguments(service);
-	L.toNTLog();
+        L.toNTLog();
     RecursorService::instance()->start( argc, argv, ::arg().mustDo( "ntservice" )); 
 #endif
 

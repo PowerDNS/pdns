@@ -78,7 +78,7 @@ static const string EncodeDNSLabel(const string& input)
 {  
   typedef vector<string> parts_t;  
   parts_t parts;  
-  stringtok(parts,input,".");   	  	 
+  stringtok(parts,input,".");             	 
   string ret;  
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {  
     ret.append(1,(char)i->length());  
@@ -130,7 +130,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
 }
 
 DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, 
-					       PacketReader& pr)
+        				       PacketReader& pr)
 {
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
@@ -143,7 +143,7 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr,
 }
 
 DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
-					       const string& content)
+        				       const string& content)
 {
   zmakermap_t::const_iterator i=getZmakermap().find(make_pair(qclass, qtype));
   if(i==getZmakermap().end()) {
@@ -214,11 +214,11 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       DNSRecord dr;
       
       if(n < d_header.ancount)
-	dr.d_place=DNSRecord::Answer;
+        dr.d_place=DNSRecord::Answer;
       else if(n < d_header.ancount + d_header.nscount)
-	dr.d_place=DNSRecord::Nameserver;
+        dr.d_place=DNSRecord::Nameserver;
       else 
-	dr.d_place=DNSRecord::Additional;
+        dr.d_place=DNSRecord::Additional;
       
       unsigned int recordStartPos=pr.d_pos;
 
@@ -236,32 +236,32 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
       if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
-	d_tsigPos = recordStartPos + sizeof(struct dnsheader);
+        d_tsigPos = recordStartPos + sizeof(struct dnsheader);
     }
 
 #if 0    
     if(pr.d_pos!=contentlen) {
       throw MOADNSException("Packet ("+d_qname+"|#"+lexical_cast<string>(d_qtype)+") has trailing garbage ("+ lexical_cast<string>(pr.d_pos) + " < " + 
-			    lexical_cast<string>(contentlen) + ")");
+        		    lexical_cast<string>(contentlen) + ")");
     }
 #endif 
   }
   catch(out_of_range &re) {
     if(validPacket && d_header.tc) { // don't sweat it over truncated packets, but do adjust an, ns and arcount
       if(n < d_header.ancount) {
-	d_header.ancount=n; d_header.nscount = d_header.arcount = 0;
+        d_header.ancount=n; d_header.nscount = d_header.arcount = 0;
       }
       else if(n < d_header.ancount + d_header.nscount) {
-	d_header.nscount = n - d_header.ancount; d_header.arcount=0;
+        d_header.nscount = n - d_header.ancount; d_header.arcount=0;
       }
       else {
-	d_header.arcount = n - d_header.ancount - d_header.nscount;
+        d_header.arcount = n - d_header.ancount - d_header.nscount;
       }
     }
     else {
       throw MOADNSException("Error parsing packet of "+lexical_cast<string>(len)+" bytes (rd="+
-			    lexical_cast<string>(d_header.rd)+
-			    "), out of bounds: "+string(re.what()));
+        		    lexical_cast<string>(d_header.rd)+
+        		    "), out of bounds: "+string(re.what()));
     }
   }
 }
@@ -415,21 +415,21 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
 
     if(!labellen) {
       if(ret.empty())
-      	ret.append(1,'.');
+              ret.append(1,'.');
       break;
     }
     if((labellen & 0xc0) == 0xc0) {
       uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
-      //	cout<<"This is an offset, need to go to: "<<offset<<endl;
+      //        cout<<"This is an offset, need to go to: "<<offset<<endl;
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
     else {
       // XXX FIXME THIS MIGHT BE VERY SLOW!
       ret.reserve(ret.size() + labellen + 2);
       for(string::size_type n = 0 ; n < labellen; ++n, frompos++) {
-	if(content.at(frompos)=='.' || content.at(frompos)=='\\')
-	  ret.append(1, '\\');
-	ret.append(1, content[frompos]);
+        if(content.at(frompos)=='.' || content.at(frompos)=='\\')
+          ret.append(1, '\\');
+        ret.append(1, content[frompos]);
       }
       ret.append(1,'.');
     }

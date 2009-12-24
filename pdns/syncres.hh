@@ -49,11 +49,11 @@ public:
 
       d_last_clean=now;
       for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) {
-	if( i->second.ttd < now) {
-	  d_cont.erase(i++);
-	}
-	else
-	  ++i;
+        if( i->second.ttd < now) {
+          d_cont.erase(i++);
+        }
+        else
+          ++i;
       }
     }
 
@@ -218,8 +218,8 @@ class SyncRes : public boost::noncopyable
 {
 public:
   explicit SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-						 d_now(now),
-						 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) 
+        					 d_now(now),
+        					 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) 
   { 
 
   }
@@ -298,29 +298,29 @@ public:
     {
       collection_t::iterator pos;
       for(pos=d_collection.begin(); pos != d_collection.end(); ++pos)
-	if(pos->first==remote)
-	  break;
+        if(pos->first==remote)
+          break;
       if(pos!=d_collection.end()) {
-	pos->second.submit(usecs, now);
+        pos->second.submit(usecs, now);
       }
       else {
-	DecayingEwma de;
-	de.submit(usecs, now);
-	d_collection.push_back(make_pair(remote, de));
+        DecayingEwma de;
+        de.submit(usecs, now);
+        d_collection.push_back(make_pair(remote, de));
       }
     }
 
     double get(struct timeval* now)
     {
       if(d_collection.empty())
-	return 0;
+        return 0;
       double ret=numeric_limits<double>::max();
       double tmp;
       for(collection_t::iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) {
-	if((tmp=pos->second.get(now)) < ret) {
-	  ret=tmp;
-	  d_best=pos->first;
-	}
+        if((tmp=pos->second.get(now)) < ret) {
+          ret=tmp;
+          d_best=pos->first;
+        }
       }
       
       return ret;
@@ -329,8 +329,8 @@ public:
     bool stale(time_t limit) const
     {
       for(collection_t::const_iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) 
-	if(!pos->second.stale(limit))
-	  return false;
+        if(!pos->second.stale(limit))
+          return false;
       return true;
     }
 
@@ -368,8 +368,8 @@ public:
       indexed_by < 
         ordered_non_unique< 
           composite_key< DNSResourceRecord,
-		         member<DNSResourceRecord, string, &DNSResourceRecord::qname>,
-		         member<DNSResourceRecord, QType, &DNSResourceRecord::qtype>
+        	         member<DNSResourceRecord, string, &DNSResourceRecord::qname>,
+        	         member<DNSResourceRecord, QType, &DNSResourceRecord::qtype>
                        >,
           composite_key_compare<CIStringCompare, std::less<QType> >
         >
@@ -395,7 +395,7 @@ public:
 private:
   struct GetBestNSAnswer;
   int doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
-		  int depth, set<GetBestNSAnswer>&beenthere);
+        	  int depth, set<GetBestNSAnswer>&beenthere);
   int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
   bool doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(string* qname);
@@ -428,9 +428,9 @@ private:
     bool operator<(const GetBestNSAnswer &b) const
     {
       if(qname<b.qname)
-	return true;
+        return true;
       if(qname==b.qname)
-	return bestns<b.bestns;
+        return bestns<b.bestns;
       return false;
     }
   };

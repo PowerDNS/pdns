@@ -228,19 +228,19 @@ int main(int argc, char **argv)
       vector<string>modules=BackendMakers().getModules();
       cerr<<"Modules available:"<<endl;
       for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i)
-	cout<<*i<<endl;
+        cout<<*i<<endl;
 
       exit(99);
     }
     if(!BackendMakers().numLauncheable()) {
       L<<Logger::Error<<"Unable to launch, no backends configured for querying"<<endl;
-	exit(99); // this isn't going to fix itself either
+        exit(99); // this isn't going to fix itself either
     }
 
       if(arg().mustDo("control-console"))
-	dl=new DynListener();
+        dl=new DynListener();
       else
-	dl=new DynListener(s_programname);
+        dl=new DynListener(s_programname);
       
     DynListener::registerFunc("SHOW",&DLShowHandler);
     DynListener::registerFunc("RPING",&DLPingHandler);

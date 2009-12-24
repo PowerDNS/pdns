@@ -90,14 +90,14 @@ void *WebServer::serveConnection(void *p)
     map<string,string>varmap;
 
     for(vector<string>::const_iterator i=variables.begin();
-	i!=variables.end();++i) {
+        i!=variables.end();++i) {
 
       parts.clear();
       stringtok(parts,*i,"=");
       if(parts.size()>1)
-	varmap[parts[0]]=parts[1];
+        varmap[parts[0]]=parts[1];
       else
-	varmap[parts[0]]="";
+        varmap[parts[0]]="";
 
     }
 
@@ -110,16 +110,16 @@ void *WebServer::serveConnection(void *p)
 
       //      L<<Logger::Error<<"got line: '"<<line<<"'"<<endl;
       if(!toLower(line).find("authorization: basic ")) {
-	string cookie=line.substr(21);
-	string plain;
+        string cookie=line.substr(21);
+        string plain;
 
-	B64Decode(cookie,plain);
-	vector<string>cparts;
-	stringtok(cparts,plain,":");
-	//	L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
-	if(cparts.size()==2 && !strcmp(cparts[1].c_str(),d_password.c_str())) { // this gets rid of terminating zeros
-	  authOK=1;
-	}
+        B64Decode(cookie,plain);
+        vector<string>cparts;
+        stringtok(cparts,plain,":");
+        //	L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
+        if(cparts.size()==2 && !strcmp(cparts[1].c_str(),d_password.c_str())) { // this gets rid of terminating zeros
+          authOK=1;
+        }
       }
     }while(!line.empty());
 
@@ -142,9 +142,9 @@ void *WebServer::serveConnection(void *p)
       string ret=(*fptr)(varmap, d_that, &custom);
 
       if(!custom) {
-	client->putLine("HTTP/1.1 200 OK\n");
-	client->putLine("Connection: close\n");
-	client->putLine("Content-type: text/html\n\n");
+        client->putLine("HTTP/1.1 200 OK\n");
+        client->putLine("Connection: close\n");
+        client->putLine("Content-type: text/html\n\n");
       }
       client->putLine(ret);
     }

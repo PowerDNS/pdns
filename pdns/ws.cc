@@ -29,7 +29,7 @@ extern StatBag S;
 StatWebServer::StatWebServer()
 {
   d_start=time(0);
-	d_min10=d_min5=d_min1=0;
+        d_min10=d_min5=d_min1=0;
 }
 
 void StatWebServer::go()

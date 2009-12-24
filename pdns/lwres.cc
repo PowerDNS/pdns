@@ -98,14 +98,14 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       g_stats.ipv6queries++;
 
     if((ret=asendto((const char*)&*vpacket.begin(), (int)vpacket.size(), 0, ip, pw.getHeader()->id, 
-		    domain, type, &queryfd)) < 0) {
+        	    domain, type, &queryfd)) < 0) {
       return ret; // passes back the -2 EMFILE
     }
   
     // sleep until we see an answer to this, interface to mtasker
     
     ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize-1,0, ip, &len, pw.getHeader()->id, 
-		  domain, type, queryfd, now);
+        	  domain, type, queryfd, now);
   }
   else {
     try {
@@ -115,7 +115,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       ComboAddress local = getQueryLocalAddress(ip.sin4.sin_family, 0);
 
       s.bind(local);
-	
+        
       ComboAddress remote = ip;
       remote.sin4.sin_port = htons(53);      
       s.connect(remote);
@@ -127,24 +127,24 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       
       ret=asendtcp(packet, &s);
       if(!(ret>0))           
-	return ret;
+        return ret;
       
       packet.clear();
       ret=arecvtcp(packet, 2, &s);
       if(!(ret > 0))
-	return ret;
+        return ret;
       
       memcpy(&tlen, packet.c_str(), 2);
       len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
       
       ret=arecvtcp(packet, len, &s);
       if(!(ret > 0))
-	return ret;
+        return ret;
       
       if(len > bufsize) {
-	bufsize=len;
-	scoped_array<unsigned char> narray(new unsigned char[bufsize]);
-	buf.swap(narray);
+        bufsize=len;
+        scoped_array<unsigned char> narray(new unsigned char[bufsize]);
+        buf.swap(narray);
       }
       memcpy(buf.get(), packet.c_str(), len);
 
@@ -175,8 +175,8 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
     if(!pdns_iequals(domain, mdp.d_qname)) { 
       if(domain.find((char)0)==string::npos) {// embedded nulls are too noisy
-	L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
-	g_stats.unexpectedCount++;
+        L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
+        g_stats.unexpectedCount++;
       }
       goto out;
     }
@@ -187,9 +187,9 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       rr.qname=i->first.d_label;
       /* 
       if(i->first.d_label == mapped0x20)
-	rr.qname=domain;
+        rr.qname=domain;
       else
-	rr.qname=i->first.d_label;
+        rr.qname=i->first.d_label;
       */
       rr.ttl=i->first.d_ttl;
       rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
@@ -201,13 +201,13 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     if(EDNS0Level > 1 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
       for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-	  iter != edo.d_options.end(); 
-	  ++iter) {
-	if(iter->first == 5 || iter->first == 4) {// 'EDNS PING'
-	  if(iter->second == ping)  {
-	    lwr->d_pingCorrect = true;
-	  }
-	}
+          iter != edo.d_options.end(); 
+          ++iter) {
+        if(iter->first == 5 || iter->first == 4) {// 'EDNS PING'
+          if(iter->second == ping)  {
+            lwr->d_pingCorrect = true;
+          }
+        }
       }
     }
         

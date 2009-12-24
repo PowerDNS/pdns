@@ -67,7 +67,7 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
     uint8_t val=bitmap[2+n];
     for(int bit = 0; bit < 8 ; ++bit , val>>=1)
       if(val & 1) {
-	ret->d_set.insert((7-bit) + 8*(n));
+        ret->d_set.insert((7-bit) + 8*(n));
       }
   }
   
@@ -181,7 +181,7 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
     uint8_t val=bitmap[2+n];
     for(int bit = 0; bit < 8 ; ++bit , val>>=1)
       if(val & 1) {
-	ret->d_set.insert((7-bit) + 8*(n));
+        ret->d_set.insert((7-bit) + 8*(n));
       }
   }
   
@@ -209,9 +209,9 @@ string NSEC3RecordContent::getZoneRepresentation() const
 
 
 boilerplate_conv(NSEC3PARAM, 51, 
-		 conv.xfr8BitInt(d_algorithm); 
-		 conv.xfr8BitInt(d_flags); 
-		 conv.xfr16BitInt(d_iterations); 
-		 conv.xfr8BitInt(d_saltlength); 
-		 conv.xfrHexBlob(d_salt);
-		 )
+        	 conv.xfr8BitInt(d_algorithm); 
+        	 conv.xfr8BitInt(d_flags); 
+        	 conv.xfr16BitInt(d_iterations); 
+        	 conv.xfr8BitInt(d_saltlength); 
+        	 conv.xfrHexBlob(d_salt);
+        	 )

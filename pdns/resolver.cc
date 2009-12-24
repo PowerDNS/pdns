@@ -397,10 +397,10 @@ Resolver::res_t Resolver::result()
   }
     if(!d_inaxfr) {
       if(mdp->d_header.qdcount!=1)
-	throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp->d_header.qdcount)+")");
+        throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp->d_header.qdcount)+")");
       
       if(mdp->d_qname != d_domain+".")
-	throw ResolverException(string("resolver: received an answer to another question (")+mdp->d_qname+"!="+d_domain+".)");
+        throw ResolverException(string("resolver: received an answer to another question (")+mdp->d_qname+"!="+d_domain+".)");
     }
     
     vector<DNSResourceRecord> ret; 
@@ -408,7 +408,7 @@ Resolver::res_t Resolver::result()
     for(MOADNSParser::answers_t::const_iterator i=mdp->d_answers.begin(); i!=mdp->d_answers.end(); ++i) {          
       rr.qname = i->first.d_label;
       if(!rr.qname.empty())
-	boost::erase_tail(rr.qname, 1); // strip .
+        boost::erase_tail(rr.qname, 1); // strip .
       rr.qtype = i->first.d_type;
       rr.ttl = i->first.d_ttl;
       rr.content = i->first.d_content->getZoneRepresentation();
@@ -417,20 +417,20 @@ Resolver::res_t Resolver::result()
       uint16_t qtype=rr.qtype.getCode();
 
       if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
-	boost::erase_tail(rr.content, 1);
+        boost::erase_tail(rr.content, 1);
 
       if(rr.qtype.getCode() == QType::MX) {
-	vector<string> parts;
-	stringtok(parts, rr.content);
-	rr.priority = atoi(parts[0].c_str());
-	if(parts.size() > 1)
-	  rr.content=parts[1];
+        vector<string> parts;
+        stringtok(parts, rr.content);
+        rr.priority = atoi(parts[0].c_str());
+        if(parts.size() > 1)
+          rr.content=parts[1];
       } else if(rr.qtype.getCode() == QType::SRV) {
-	rr.priority = atoi(rr.content.c_str());
-	vector<pair<string::size_type, string::size_type> > fields;
-	vstringtok(fields, rr.content, " ");
-	if(fields.size()==4)
-	  rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
+        rr.priority = atoi(rr.content.c_str());
+        vector<pair<string::size_type, string::size_type> > fields;
+        vstringtok(fields, rr.content, " ");
+        if(fields.size()==4)
+          rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
       }
       ret.push_back(rr);
     }

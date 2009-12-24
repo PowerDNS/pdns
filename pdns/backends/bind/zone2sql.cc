@@ -85,21 +85,21 @@ static void callback(unsigned int domain_id,const string &domain, const string &
       dirty_hack_num++;
       cerr<<"Second SOA in zone, raised domain_id"<<endl;
       if(mode==POSTGRES || mode==ORACLE) {
-	if(g_intransaction && ::arg().mustDo("transactions")) {
-	  cout<<"COMMIT WORK;"<<endl;
-	}
-	if(::arg().mustDo("transactions")) {
-	  if(mode==POSTGRES)
-	    cout<<"BEGIN TRANSACTION;"<<endl;
-	  g_intransaction=1;
-	}
-	
-	if(mode==POSTGRES) {
-	  cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(stripDot(domain)))<<",'NATIVE');"<<endl;
-	}
-	else if(mode==ORACLE) {
-	  cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(domain))<<",'NATIVE');"<<endl;
-	}
+        if(g_intransaction && ::arg().mustDo("transactions")) {
+          cout<<"COMMIT WORK;"<<endl;
+        }
+        if(::arg().mustDo("transactions")) {
+          if(mode==POSTGRES)
+            cout<<"BEGIN TRANSACTION;"<<endl;
+          g_intransaction=1;
+        }
+        
+        if(mode==POSTGRES) {
+          cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(stripDot(domain)))<<",'NATIVE');"<<endl;
+        }
+        else if(mode==ORACLE) {
+          cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(domain))<<",'NATIVE');"<<endl;
+        }
       }
     }
     SOAData soadata;
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
     if(::arg().mustDo("oracle")) {
       mode=ORACLE;
       if(!::arg().mustDo("transactions"))
-	cout<<"set autocommit on;"<<endl;
+        cout<<"set autocommit on;"<<endl;
     }
 
 
@@ -233,10 +233,10 @@ int main(int argc, char **argv)
       vector<BindDomainInfo> domains=BP.getDomains();
       struct stat st;
       for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) {
-	if(stat(i->filename.c_str(), &st) == 0) {
-	  i->d_dev = st.st_dev;
-	  i->d_ino = st.st_ino;
-	}
+        if(stat(i->filename.c_str(), &st) == 0) {
+          i->d_dev = st.st_dev;
+          i->d_ino = st.st_ino;
+        }
       }
       
       sort(domains.begin(), domains.end()); // put stuff in inode order
@@ -246,66 +246,66 @@ int main(int argc, char **argv)
       //      ZP.setDirectory(BP.getDirectory());
     
       for(vector<BindDomainInfo>::const_iterator i=domains.begin();
-	  i!=domains.end();
-	  ++i)
-	{
-	  try {
-	    if(mode==POSTGRES || mode==ORACLE) {
-	      if(g_intransaction && ::arg().mustDo("transactions")) {
-		cout<<"COMMIT WORK;"<<endl;
-	      }
-	      if(::arg().mustDo("transactions")) {
-		if(mode==POSTGRES)
-		  cout<<"BEGIN TRANSACTION;"<<endl;
-		g_intransaction=1;
-	      }
+          i!=domains.end();
+          ++i)
+        {
+          try {
+            if(mode==POSTGRES || mode==ORACLE) {
+              if(g_intransaction && ::arg().mustDo("transactions")) {
+        	cout<<"COMMIT WORK;"<<endl;
+              }
+              if(::arg().mustDo("transactions")) {
+        	if(mode==POSTGRES)
+        	  cout<<"BEGIN TRANSACTION;"<<endl;
+        	g_intransaction=1;
+              }
 
-	      if(mode==POSTGRES) {
-		if(::arg().mustDo("slave")) {
-		  if(i->masters.empty())
-		    cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
-		  else {
-		    string masters;
-		    for(vector<string>::const_iterator iter = i->masters.begin(); iter != i->masters.end(); ++iter) {
-		      if(iter != i->masters.begin())
-			masters.append(1, ' ');
-		      masters+=*iter;
-		    }
-		    cout<<"insert into domains (name,type,master) values ("<<sqlstr(i->name)<<",'SLAVE'"<<", '"<<masters<<"');"<<endl;
-		  }
-		}
-		else
-		  cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
-	      }
-	      else if(mode==ORACLE) {
-		cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(i->name))<<",'NATIVE');"<<endl;
-	      }
-	      lastsoa_qname=i->name;
-	    }
-	    ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
-	    DNSResourceRecord rr;
-	    while(zpt.get(rr)) 
-	      callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
-	    num_domainsdone++;
-	  }
-	  catch(std::exception &ae) {
-	    if(!::arg().mustDo("on-error-resume-next"))
-	      throw;
-	    else
-	      cerr<<endl<<ae.what()<<endl;
-	  }
+              if(mode==POSTGRES) {
+        	if(::arg().mustDo("slave")) {
+        	  if(i->masters.empty())
+        	    cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
+        	  else {
+        	    string masters;
+        	    for(vector<string>::const_iterator iter = i->masters.begin(); iter != i->masters.end(); ++iter) {
+        	      if(iter != i->masters.begin())
+        		masters.append(1, ' ');
+        	      masters+=*iter;
+        	    }
+        	    cout<<"insert into domains (name,type,master) values ("<<sqlstr(i->name)<<",'SLAVE'"<<", '"<<masters<<"');"<<endl;
+        	  }
+        	}
+        	else
+        	  cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
+              }
+              else if(mode==ORACLE) {
+        	cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(i->name))<<",'NATIVE');"<<endl;
+              }
+              lastsoa_qname=i->name;
+            }
+            ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+            DNSResourceRecord rr;
+            while(zpt.get(rr)) 
+              callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+            num_domainsdone++;
+          }
+          catch(std::exception &ae) {
+            if(!::arg().mustDo("on-error-resume-next"))
+              throw;
+            else
+              cerr<<endl<<ae.what()<<endl;
+          }
 
-	  catch(AhuException &ae) {
-	    if(!::arg().mustDo("on-error-resume-next"))
-	      throw;
-	    else
-	      cerr<<ae.reason<<endl;
-	  }
+          catch(AhuException &ae) {
+            if(!::arg().mustDo("on-error-resume-next"))
+              throw;
+            else
+              cerr<<ae.reason<<endl;
+          }
 
-	  dirty_hack_num++;
-	  if(!tick || !((count++)%tick))
-	    cerr<<"\r"<<count*100/numdomains<<"% done ("<<i->filename<<")\033\133\113";
-	}
+          dirty_hack_num++;
+          if(!tick || !((count++)%tick))
+            cerr<<"\r"<<count*100/numdomains<<"% done ("<<i->filename<<")\033\133\113";
+        }
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
@@ -313,7 +313,7 @@ int main(int argc, char **argv)
       DNSResourceRecord rr;
       dirty_hack_num=-1; // trigger first SOA output
       while(zpt.get(rr)) 
-	callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+        callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
       num_domainsdone=1;
     }
     cerr<<num_domainsdone<<" domains were fully parsed, containing "<<num_records<<" records\n";

@@ -161,10 +161,10 @@ typedef multi_index_container<
   QuestionData, 
   indexed_by<
              ordered_unique<tag<QuestionTag>, BOOST_MULTI_INDEX_MEMBER(QuestionData, QuestionIdentifier, d_qi) > ,
-	     ordered_unique<tag<AssignedIDTag>,  BOOST_MULTI_INDEX_MEMBER(QuestionData, int, d_assignedID) >
+             ordered_unique<tag<AssignedIDTag>,  BOOST_MULTI_INDEX_MEMBER(QuestionData, int, d_assignedID) >
             >
 > qids_t;
-					 
+        				 
 qids_t qids;
 
 
@@ -201,30 +201,30 @@ void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlo
     double dt=DiffTime(i->d_resentTime, now);
     if(dt < 2.0) {
       if(i->d_newRcode == -1) 
-	weOutstanding++;
+        weOutstanding++;
       if(i->d_origRcode == -1)
-	origOutstanding++;
+        origOutstanding++;
     }
     else {
       if(i->d_newRcode == -1) {
-	weSlow++;
-	if(!i->d_newlate) {
-	  QuestionData qd=*i;
-	  qd.d_newlate=true;
-	  qids.replace(i, qd);
+        weSlow++;
+        if(!i->d_newlate) {
+          QuestionData qd=*i;
+          qd.d_newlate=true;
+          qids.replace(i, qd);
 
-	  s_wetimedout++;
-	}
+          s_wetimedout++;
+        }
       }
       if(i->d_origRcode == -1) {
-	origSlow++;
-	if(!i->d_origlate) {
-	  QuestionData qd=*i;
-	  qd.d_origlate=true;
-	  qids.replace(i, qd);
+        origSlow++;
+        if(!i->d_origlate) {
+          QuestionData qd=*i;
+          qd.d_origlate=true;
+          qids.replace(i, qd);
 
-	  s_origtimedout++;
-	}
+          s_origtimedout++;
+        }
       }
     }
   }
@@ -267,7 +267,7 @@ void measureResultAndClean(const QuestionIdentifier& qi)
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
   compactAnswerSet(qd.d_newAnswers, canonicNew);
-	
+        
   if(!g_quiet) {
     cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
     cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
@@ -284,35 +284,35 @@ void measureResultAndClean(const QuestionIdentifier& qi)
     
     if(qd.d_norecursionavailable)
       if(!g_quiet)
-	cout<<"\t* original nameserver did not provide recursion for this question *"<<endl;
+        cout<<"\t* original nameserver did not provide recursion for this question *"<<endl;
     if(qd.d_origRcode == qd.d_newRcode ) {
       if(!g_quiet)
-	cout<<"\t* mostly correct *"<<endl;
+        cout<<"\t* mostly correct *"<<endl;
       s_mostly++;
     }
 
     if(!isRcodeOk(qd.d_origRcode) && isRcodeOk(qd.d_newRcode)) {
       if(!g_quiet)
-	cout<<"\t* we better *"<<endl;
+        cout<<"\t* we better *"<<endl;
       s_webetter++;
     }
     if(isRcodeOk(qd.d_origRcode) && !isRcodeOk(qd.d_newRcode) && !isRootReferral(qd.d_origAnswers)) {
       if(!g_quiet)
-	cout<<"\t* orig better *"<<endl;
+        cout<<"\t* orig better *"<<endl;
       s_origbetter++;
       if(!g_quiet) 
-	if(s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype)).second) {
-	  cout<<"orig better: " << qi.d_qname<<" "<< qi.d_qtype<<endl;
-	}
+        if(s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype)).second) {
+          cout<<"orig better: " << qi.d_qname<<" "<< qi.d_qtype<<endl;
+        }
     }
 
     if(!g_quiet) {
       cout<<"orig: rcode="<<qd.d_origRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
-	cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
       cout<<"new: rcode="<<qd.d_newRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
-	cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_label<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
       cout<<"\n";
       cout<<"-\n";
 
@@ -342,17 +342,17 @@ try
       s_weanswers++;
       MOADNSParser mdp(packet.c_str(), packet.length());
       if(!mdp.d_header.qr) {
-	cout<<"Received a question from our reference nameserver!"<<endl;
-	continue;
+        cout<<"Received a question from our reference nameserver!"<<endl;
+        continue;
       }
 
       typedef qids_t::index<AssignedIDTag>::type qids_by_id_index_t;
       qids_by_id_index_t& idindex=qids.get<AssignedIDTag>();
       qids_by_id_index_t::const_iterator found=idindex.find(ntohs(mdp.d_header.id));
       if(found == idindex.end()) {
-//	cout<<"Received an answer ("<<mdp.d_qname<<") from reference nameserver with id "<<mdp.d_header.id<<" which we can't match to a question!"<<endl;
-	s_weunmatched++;
-	continue;
+//        cout<<"Received an answer ("<<mdp.d_qname<<") from reference nameserver with id "<<mdp.d_header.id<<" which we can't match to a question!"<<endl;
+        s_weunmatched++;
+        continue;
       }
       QuestionIdentifier qi=found->d_qi;
       QuestionData qd=*found;
@@ -361,8 +361,8 @@ try
       qd.d_newRcode=mdp.d_header.rcode;
       idindex.replace(found, qd);
       if(qd.d_origRcode!=-1) {
-	//      cout<<"Removing entry "<<i->first<<", is done [in socket]"<<endl;
-	measureResultAndClean(qi);
+        //      cout<<"Removing entry "<<i->first<<", is done [in socket]"<<endl;
+        measureResultAndClean(qi);
       }
     }
     catch(MOADNSException &e)
@@ -401,7 +401,7 @@ void pruneQids()
        s_wenever++;
       }
       if(i->d_origRcode==-1) {
-	s_orignever++;
+        s_orignever++;
       }
 
       qids.erase(i++);
@@ -504,10 +504,10 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
     if(!mdp.d_header.qr) {
       s_questions++;
       if(qids.count(qi)) {
-	if(!g_quiet)
-	  cout<<"Saw an exact duplicate question, "<<qi<< endl;
-	s_duplicates++;
-	return sent;
+        if(!g_quiet)
+          cout<<"Saw an exact duplicate question, "<<qi<< endl;
+        s_duplicates++;
+        return sent;
       }
       // new question!
       qd.d_qi=qi;
@@ -519,31 +519,31 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
       s_origanswers++;
       
       if(qids.count(qi)) {
-	qids_t::const_iterator i=qids.find(qi);
-	QuestionData qd=*i;
+        qids_t::const_iterator i=qids.find(qi);
+        QuestionData qd=*i;
 
-	//	  cout<<"Matched answer "<<qi<<endl;
-	qd.d_origAnswers=mdp.d_answers;
-	qd.d_origRcode=mdp.d_header.rcode;
-	
-	if(!dh->ra) {
-	  s_norecursionavailable++;
-	  qd.d_norecursionavailable=true;
-	}
-	qids.replace(i, qd);
+        //	  cout<<"Matched answer "<<qi<<endl;
+        qd.d_origAnswers=mdp.d_answers;
+        qd.d_origRcode=mdp.d_header.rcode;
+        
+        if(!dh->ra) {
+          s_norecursionavailable++;
+          qd.d_norecursionavailable=true;
+        }
+        qids.replace(i, qd);
 
-	if(qd.d_newRcode!=-1) {
-	  //	    cout<<"Removing entry "<<qi<<", is done [in main loop]"<<endl;
+        if(qd.d_newRcode!=-1) {
+          //	    cout<<"Removing entry "<<qi<<", is done [in main loop]"<<endl;
 
-	  measureResultAndClean(qi);
-	}
-	
-	return sent;
+          measureResultAndClean(qi);
+        }
+        
+        return sent;
       }
       else {
-	s_origunmatched++;
-	if(!g_quiet)
-	  cout<<"Unmatched original answer "<<qi<<endl;
+        s_origunmatched++;
+        if(!g_quiet)
+          cout<<"Unmatched original answer "<<qi<<endl;
       }
     }
   }
@@ -616,7 +616,7 @@ try
   s_socket->setNonBlocking();
   
   ComboAddress remote(g_vm["target-ip"].as<string>(), 
-		    g_vm["target-port"].as<uint16_t>());
+        	    g_vm["target-port"].as<uint16_t>());
 
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
 
@@ -637,13 +637,13 @@ try
     packet_ts.tv_usec = 0; 
     while(packet_ts < mental_time) {
       if(!pr.getUDPPacket())
-	goto out;
+        goto out;
       
       packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
       packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
 
       if(sendPacketFromPR(pr, remote))
-	count++;
+        count++;
     } 
     if(packetLimit && count > packetLimit) 
       break;

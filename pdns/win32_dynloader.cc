@@ -78,15 +78,15 @@ int main(int argc, char **argv)
     string message;
     for(vector<string>::const_iterator i=commands.begin();i!=commands.end();++i) {
       if(i!=commands.begin())
-	      message+=" ";
+              message+=" ";
       message+=*i;
     }
     
     if( command=="show") {
       message="SHOW ";
       for(unsigned int n=1;n<commands.size();n++) {
-	message+=commands[n];
-	message+=" ";
+        message+=commands[n];
+        message+=" ";
       }
     }
     else if(command=="list") {

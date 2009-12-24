@@ -102,19 +102,19 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 
     for(vector<int>::const_iterator i=d_sockets.begin();i!=d_sockets.end();++i) {
       if(FD_ISSET(*i, &rfds)) {
-	sock=*i;
-	addrlen=sizeof(remote);
-	
-	len=0;
+        sock=*i;
+        addrlen=sizeof(remote);
+        
+        len=0;
 
-	// XXX FIXME this code could be using recvmsg + ip_pktinfo on platforms that support it
-	
-	if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) &remote, &addrlen))<0) {
-	  if(errno != EAGAIN)
-	    L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
-	  return 0;
-	}
-	break;
+        // XXX FIXME this code could be using recvmsg + ip_pktinfo on platforms that support it
+        
+        if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) &remote, &addrlen))<0) {
+          if(errno != EAGAIN)
+            L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+          return 0;
+        }
+        break;
       }
     }
     if(sock==-1)
@@ -126,7 +126,7 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     len=0;
     if((len=recvfrom(sock,mesg,512,0,(sockaddr*) &remote, &addrlen))<0) {
       if(errno != EAGAIN)
-	L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+        L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
       return 0;
     }
   }

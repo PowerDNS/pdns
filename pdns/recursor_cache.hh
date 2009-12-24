@@ -75,11 +75,11 @@ private:
     uint32_t getTTD() const
     {
       if(d_records.size()==1)
-	return d_records.begin()->d_ttd;
+        return d_records.begin()->d_ttd;
 
       uint32_t earliest=numeric_limits<uint32_t>::max();
       for(records_t::const_iterator i=d_records.begin(); i != d_records.end(); ++i)
-	earliest=min(earliest, i->d_ttd);
+        earliest=min(earliest, i->d_ttd);
       return earliest;
     }
 

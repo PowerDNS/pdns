@@ -66,8 +66,8 @@ public:
       //cout<<i->domain<<" "<<domain<<endl;
 
       if(i->id==id && i->ip==remote && i->domain==domain) {
-	d_nqueue.erase(i);
-	return true;
+        d_nqueue.erase(i);
+        return true;
       }
     }
     return false;
@@ -77,18 +77,18 @@ public:
   {
     for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
       if(i->next <= time(0)) {
-	i->attempts++;
-	purged=false;
-	i->next=time(0)+1+(1<<i->attempts);
-	domain=i->domain;
-	ip=i->ip;
-	*id=i->id;
-	purged=false;
-	if(i->attempts>4) {
-	  purged=true;
-	  d_nqueue.erase(i);
-	}
-	return true;
+        i->attempts++;
+        purged=false;
+        i->next=time(0)+1+(1<<i->attempts);
+        domain=i->domain;
+        ip=i->ip;
+        *id=i->id;
+        purged=false;
+        if(i->attempts>4) {
+          purged=true;
+          d_nqueue.erase(i);
+        }
+        return true;
       }
     return false;
   }

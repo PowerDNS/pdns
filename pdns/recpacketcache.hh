@@ -43,7 +43,7 @@ inline bool RecursorPacketCache::Entry::operator<(const struct RecursorPacketCac
      (d_packet[12] && rhs.d_packet[12]) &&
      (d_packet[13] < rhs.d_packet[13]))
     return true;
-							 
+        						 
   
   uint16_t qtype, rhsqtype;
   string qname=questionExpand(d_packet.c_str(), d_packet.length(), qtype);

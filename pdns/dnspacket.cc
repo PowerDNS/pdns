@@ -151,10 +151,10 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
   if(d_compress)
     for(vector<DNSResourceRecord>::const_iterator i=rrs.begin();i!=rrs.end();++i) 
       if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {
-	if(rr.qtype.getCode()!=QType::MX && rr.qtype.getCode()!=QType::SRV)
-	  return;
-	if(rr.priority==i->priority)
-	  return;
+        if(rr.qtype.getCode()!=QType::MX && rr.qtype.getCode()!=QType::SRV)
+          return;
+        if(rr.priority==i->priority)
+          return;
       }
 
   rrs.push_back(rr);
@@ -249,11 +249,11 @@ vector<DNSResourceRecord*> DNSPacket::getAPRecords()
       ++i)
     {
       if(i->d_place!=DNSResourceRecord::ADDITIONAL && 
-	 (i->qtype.getCode()==15 || 
-	  i->qtype.getCode()==2 )) // CNAME or MX or NS
-	{
-	  arrs.push_back(&*i);
-	}
+         (i->qtype.getCode()==15 || 
+          i->qtype.getCode()==2 )) // CNAME or MX or NS
+        {
+          arrs.push_back(&*i);
+        }
     }
 
   return arrs;
@@ -325,21 +325,21 @@ void DNSPacket::wrapup(void)
   if(!rrs.empty() || !opts.empty()) {
     try {
       for(pos=rrs.begin(); pos < rrs.end(); ++pos) {
-	// this needs to deal with the 'prio' mismatch!
-	if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
-	  pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
-	}
-	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
-	if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
-	  pos->content="\""+pos->content+"\"";
-	}
-	if(pos->content.empty())  // empty contents confuse the MOADNS setup
-	  pos->content=".";
-	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
-	drc->toPacket(pw);
+        // this needs to deal with the 'prio' mismatch!
+        if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
+          pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
+        }
+        pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
+        if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
+          pos->content="\""+pos->content+"\"";
+        }
+        if(pos->content.empty())  // empty contents confuse the MOADNS setup
+          pos->content=".";
+        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
+        drc->toPacket(pw);
       }
       if(!opts.empty())
-	pw.addOpt(2800, 0, 0, opts);
+        pw.addOpt(2800, 0, 0, opts);
 
       pw.commit();
     }
@@ -462,16 +462,16 @@ try
     d_maxreplylen=max(edo.d_packetsize, (uint16_t)1280);
 
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-	iter != edo.d_options.end(); 
-	++iter) {
+        iter != edo.d_options.end(); 
+        ++iter) {
       if(iter->first == 3) {// 'EDNS NSID'
-	d_wantsnsid=1;
+        d_wantsnsid=1;
       }
       else if(iter->first == 5) {// 'EDNS PING'
-	d_ednsping = iter->second;
+        d_ednsping = iter->second;
       }
       else
-	; // cerr<<"Have an option #"<<iter->first<<endl;
+        ; // cerr<<"Have an option #"<<iter->first<<endl;
     }
   }
   else  {

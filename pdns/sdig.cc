@@ -62,15 +62,15 @@ try
     
     cerr<<"Have "<<edo.d_options.size()<<" options!"<<endl;
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-	iter != edo.d_options.end(); 
-	++iter) {
+        iter != edo.d_options.end(); 
+        ++iter) {
       if(iter->first == 5) {// 'EDNS PING'
-	cerr<<"Have ednsping: '"<<iter->second<<"'\n";
-	if(iter->second == ping) 
-	  cerr<<"It is correct!"<<endl;
+        cerr<<"Have ednsping: '"<<iter->second<<"'\n";
+        if(iter->second == ping) 
+          cerr<<"It is correct!"<<endl;
       }
       else {
-	cerr<<"Have unknown option "<<(int)iter->first<<endl;
+        cerr<<"Have unknown option "<<(int)iter->first<<endl;
       }
     }
 

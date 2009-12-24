@@ -248,7 +248,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     }
     else
       if(soadata.serial!=i->second.d_lastnotified)
-	changedDomains->push_back(di);
+        changedDomains->push_back(di);
   }
 }
 
@@ -293,11 +293,11 @@ bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
       di.kind=i->second.d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave;
       di.serial=0;
       try {
-	SOAData sd;
-	sd.serial=0;
-	
-	getSOA(i->second.d_name,sd); // we might not *have* a SOA yet
-	di.serial=sd.serial;
+        SOAData sd;
+        sd.serial=0;
+        
+        getSOA(i->second.d_name,sd); // we might not *have* a SOA yet
+        di.serial=sd.serial;
       }
       catch(...){}
 
@@ -431,11 +431,11 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
   if(parts.size() > 1) {
     for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
       if(state->name_id_map.count(*i)) {
-	BB2DomainInfo& bbd=state->id_zone_map[state->name_id_map[*i]];  // XXX s_name_id_map needs trick as well
-	ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
+        BB2DomainInfo& bbd=state->id_zone_map[state->name_id_map[*i]];  // XXX s_name_id_map needs trick as well
+        ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
     }
       else
-	ret<< *i << " no such domain\n";
+        ret<< *i << " no such domain\n";
     }    
   }
   else
@@ -457,7 +457,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
   for(id_zone_map_t::iterator j = state->id_zone_map.begin(); j != state->id_zone_map.end(); ++j) 
     if(!j->second.d_loaded)
       ret<<j->second.d_name<<"\t"<<j->second.d_status<<endl;
-	
+        
   return ret.str();
 }
 
@@ -544,100 +544,100 @@ void Bind2Backend::loadConfig(string* status)
     for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) 
     {
       if(stat(i->filename.c_str(), &st) == 0) {
-	i->d_dev = st.st_dev;
-	i->d_ino = st.st_ino;
+        i->d_dev = st.st_dev;
+        i->d_ino = st.st_ino;
       }
     }
 
     sort(domains.begin(), domains.end()); // put stuff in inode order
 
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
-	i!=domains.end();
-	++i) 
+        i!=domains.end();
+        ++i) 
       {
-	if(i->type!="master" && i->type!="slave") {
-	  L<<Logger::Warning<<d_logprefix<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
-	  continue;
-	}
+        if(i->type!="master" && i->type!="slave") {
+          L<<Logger::Warning<<d_logprefix<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+          continue;
+        }
 
-	BB2DomainInfo* bbd=0;
+        BB2DomainInfo* bbd=0;
 
-	if(!s_state->name_id_map.count(i->name)) { // is it fully new?
-	  bbd=&staging->id_zone_map[domain_id];
-	  bbd->d_id=domain_id++;
-	
-	  // this isn't necessary, we do this on the actual load
-	  //	  bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);
+        if(!s_state->name_id_map.count(i->name)) { // is it fully new?
+          bbd=&staging->id_zone_map[domain_id];
+          bbd->d_id=domain_id++;
+        
+          // this isn't necessary, we do this on the actual load
+          //	  bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);
 
-	  bbd->setCheckInterval(getArgAsNum("check-interval"));
-	  bbd->d_lastnotified=0;
-	  bbd->d_loaded=false;
-	}
-	else {  // no, we knew about it already
-	  staging->id_zone_map[s_state->name_id_map[i->name]] = s_state->id_zone_map[s_state->name_id_map[i->name]]; // these should all be read-only on s_state
-	  bbd = &staging->id_zone_map[s_state->name_id_map[i->name]];
-	}
-	
-	staging->name_id_map[i->name]=bbd->d_id; // fill out name -> id map
+          bbd->setCheckInterval(getArgAsNum("check-interval"));
+          bbd->d_lastnotified=0;
+          bbd->d_loaded=false;
+        }
+        else {  // no, we knew about it already
+          staging->id_zone_map[s_state->name_id_map[i->name]] = s_state->id_zone_map[s_state->name_id_map[i->name]]; // these should all be read-only on s_state
+          bbd = &staging->id_zone_map[s_state->name_id_map[i->name]];
+        }
+        
+        staging->name_id_map[i->name]=bbd->d_id; // fill out name -> id map
 
-	// overwrite what we knew about the domain
-	bbd->d_name=i->name;
+        // overwrite what we knew about the domain
+        bbd->d_name=i->name;
 
-	bool filenameChanged = (bbd->d_filename!=i->filename);
-	bbd->d_filename=i->filename;
-	bbd->d_masters=i->masters;
-	bbd->d_also_notify=i->alsoNotify;
-	
-	if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
-	  L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
-	  
-	  try {
-	    // we need to allocate a new vector so we don't kill the original, which is still in use!
-	    bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>); 
+        bool filenameChanged = (bbd->d_filename!=i->filename);
+        bbd->d_filename=i->filename;
+        bbd->d_masters=i->masters;
+        bbd->d_also_notify=i->alsoNotify;
+        
+        if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
+          L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
+          
+          try {
+            // we need to allocate a new vector so we don't kill the original, which is still in use!
+            bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>); 
 
-	    ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
-	    DNSResourceRecord rr;
-	    while(zpt.get(rr)) {
-	      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
-	    }
+            ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+            DNSResourceRecord rr;
+            while(zpt.get(rr)) {
+              insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
+            }
 
-	    //	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
-	    //	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
+            //	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
+            //	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
 
-	    sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
-	    
-	    staging->id_zone_map[bbd->d_id].setCtime();
-	    staging->id_zone_map[bbd->d_id].d_loaded=true; 
-	    staging->id_zone_map[bbd->d_id].d_status="parsed into memory at "+nowTime();
-	    
-	    contents.clear();
-	    //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
-	  }
-	  catch(AhuException &ae) {
-	    ostringstream msg;
-	    msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
+            sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
+            
+            staging->id_zone_map[bbd->d_id].setCtime();
+            staging->id_zone_map[bbd->d_id].d_loaded=true; 
+            staging->id_zone_map[bbd->d_id].d_status="parsed into memory at "+nowTime();
+            
+            contents.clear();
+            //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
+          }
+          catch(AhuException &ae) {
+            ostringstream msg;
+            msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
 
-	    if(status)
-	      *status+=msg.str();
-	    staging->id_zone_map[bbd->d_id].d_status=msg.str();
-	    L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
-	    rejected++;
-	  }
-	  catch(std::exception &ae) {
-	    ostringstream msg;
-	    msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
+            if(status)
+              *status+=msg.str();
+            staging->id_zone_map[bbd->d_id].d_status=msg.str();
+            L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
+            rejected++;
+          }
+          catch(std::exception &ae) {
+            ostringstream msg;
+            msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
 
-	    if(status)
-	      *status+=msg.str();
-	    staging->id_zone_map[bbd->d_id].d_status=msg.str();
-	    L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
-	    rejected++;
-	  }
-	}
-	/*
-	vector<vector<BBResourceRecord> *>&tmp=d_zone_id_map[bbd.d_id];  // shrink trick
-	vector<vector<BBResourceRecord> *>(tmp).swap(tmp);
-	*/
+            if(status)
+              *status+=msg.str();
+            staging->id_zone_map[bbd->d_id].d_status=msg.str();
+            L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
+            rejected++;
+          }
+        }
+        /*
+        vector<vector<BBResourceRecord> *>&tmp=d_zone_id_map[bbd.d_id];  // shrink trick
+        vector<vector<BBResourceRecord> *>(tmp).swap(tmp);
+        */
       }
 
     // figure out which domains were new and which vanished
@@ -664,14 +664,14 @@ void Bind2Backend::loadConfig(string* status)
     // now remove from the s_state->id_zone_map
     for(id_zone_map_t::iterator j=s_state->id_zone_map.begin();j!=s_state->id_zone_map.end();++j) { // O(N*M)
       for(vector<string>::const_iterator k=diff.begin();k!=diff.end();++k)
-	if(j->second.d_name==*k) {
-	  L<<Logger::Error<<"Removing records from zone '"<<j->second.d_name<<"' from memory"<<endl;
+        if(j->second.d_name==*k) {
+          L<<Logger::Error<<"Removing records from zone '"<<j->second.d_name<<"' from memory"<<endl;
 
-	  j->second.d_loaded=false;
-	  nukeZoneRecords(&j->second);
+          j->second.d_loaded=false;
+          nukeZoneRecords(&j->second);
 
-	  break;
-	}
+          break;
+        }
     }
 #endif
 
@@ -928,8 +928,8 @@ bool Bind2Backend::isMaster(const string &name, const string &ip)
   for(id_zone_map_t::iterator j=s_state->id_zone_map.begin();j!=s_state->id_zone_map.end();++j) {
     if(j->second.d_name==name) {
       for(vector<string>::const_iterator iter = j->second.d_masters.begin(); iter != j->second.d_masters.end(); ++iter)
-	if(*iter==ip)
-	  return true;
+        if(*iter==ip)
+          return true;
     }
   }
   return false;
@@ -1026,7 +1026,7 @@ class Bind2Factory : public BackendFactory
       void declareArguments(const string &suffix="")
       {
          declare(suffix,"config","Location of named.conf","");
-	 //         declare(suffix,"example-zones","Install example zones","no");
+         //         declare(suffix,"example-zones","Install example zones","no");
          declare(suffix,"check-interval","Interval for zonefile changes","0");
          declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
          declare(suffix,"supermasters","List of IP-addresses of supermasters","");

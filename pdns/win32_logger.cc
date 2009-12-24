@@ -71,7 +71,7 @@ void Logger::toFile( const string & filename )
 void Logger::toNTLog( void )
 {
   m_eventLogHandle = RegisterEventSource( NULL, 
-	  NTService::instance()->getServiceName().c_str());
+          NTService::instance()->getServiceName().c_str());
 }
 
 void Logger::open()

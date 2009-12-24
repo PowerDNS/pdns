@@ -73,7 +73,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
 {  
   // nobody reads what we output, but it appears to be the magic that shuts some nameservers up
   static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
-		     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+        	     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   static char templ[40];
   strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
 
@@ -151,7 +151,7 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
     rr.content=::arg()["urlredirector"];
     rr.qtype=QType::A; 
     rr.qname=target;
-	  
+          
     r->addRecord(rr);
   }  
 
@@ -229,7 +229,7 @@ bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int
     if( B.getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
       if(zoneId)
-	*zoneId = sd->domain_id;
+        *zoneId = sd->domain_id;
       return true;
     }
   }
@@ -261,36 +261,36 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 
     while(B.get(rr)) { // read results
       if(retargeted)
-	continue;
+        continue;
       found=true;
       if((p->qtype.getCode()==QType::ANY || rr.qtype==p->qtype) || rr.qtype.getCode()==QType::CNAME) {
-	rr.qname=target;
+        rr.qname=target;
 
-	if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
-	  rr.content=::arg()["urlredirector"];
-	  rr.qtype=QType::A; 
-	}
+        if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
+          rr.content=::arg()["urlredirector"];
+          rr.qtype=QType::A; 
+        }
 
-	r->addRecord(rr);  // and add
-	if(rr.qtype.getCode()==QType::CNAME) {
-	  if(target==rr.content) {
-	    L<<Logger::Error<<"Ignoring wildcard CNAME '"<<rr.qname<<"' pointing at itself"<<endl;
-	    r->setRcode(RCode::ServFail);
-	    continue;
-	  }
-	  
-	  DLOG(L<<Logger::Error<<"Retargeting because of wildcard cname, from "<<target<<" to "<<rr.content<<endl);
-	  
-	  target=rr.content; // retarget 
-	  retargeted=true;
-	}
+        r->addRecord(rr);  // and add
+        if(rr.qtype.getCode()==QType::CNAME) {
+          if(target==rr.content) {
+            L<<Logger::Error<<"Ignoring wildcard CNAME '"<<rr.qname<<"' pointing at itself"<<endl;
+            r->setRcode(RCode::ServFail);
+            continue;
+          }
+          
+          DLOG(L<<Logger::Error<<"Retargeting because of wildcard cname, from "<<target<<" to "<<rr.content<<endl);
+          
+          target=rr.content; // retarget 
+          retargeted=true;
+        }
       }
       else if(d_doFancyRecords && ::arg().mustDo("wildcard-url") && p->qtype.getCode()==QType::A && rr.qtype.getName()=="URL") {
-	rr.content=::arg()["urlredirector"];
-	rr.qtype=QType::A; 
-	rr.qname=target;
-	
-	r->addRecord(rr);
+        rr.content=::arg()["urlredirector"];
+        rr.qtype=QType::A; 
+        rr.qname=target;
+        
+        r->addRecord(rr);
       }
     }
     if(found) {
@@ -318,35 +318,35 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
     vector<DNSResourceRecord> crrs;
 
     for(vector<DNSResourceRecord *>::const_iterator i=arrs.begin();
-	i!=arrs.end();	++i) 
+        i!=arrs.end();	++i) 
       crrs.push_back(**i);
 
     // we now have a copy, push_back on packet might reallocate!
 
     for(vector<DNSResourceRecord>::const_iterator i=crrs.begin();
-	i!=crrs.end();
-	++i) {
+        i!=crrs.end();
+        ++i) {
       
       if(r->d.aa && !i->qname.empty() && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer, except for root referral
-	r->d.aa=false;
-	//	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
+        r->d.aa=false;
+        //	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
 
       QType qtypes[2];
       qtypes[0]="A"; qtypes[1]="AAAA";
       for(int n=0 ; n < d_doIPv6AdditionalProcessing + 1; ++n) {
-	B.lookup(qtypes[n],i->content,p);  
-	bool foundOne=false;
-	while(B.get(rr)) {
-	  foundOne=true;
-	  if(rr.domain_id!=i->domain_id && ::arg()["out-of-zone-additional-processing"]=="no") {
-	    DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
-	    continue; // not adding out-of-zone additional data
-	  }
-	  
-	  rr.d_place=DNSResourceRecord::ADDITIONAL;
-	  r->addRecord(rr);
-	}
+        B.lookup(qtypes[n],i->content,p);  
+        bool foundOne=false;
+        while(B.get(rr)) {
+          foundOne=true;
+          if(rr.domain_id!=i->domain_id && ::arg()["out-of-zone-additional-processing"]=="no") {
+            DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
+            continue; // not adding out-of-zone additional data
+          }
+          
+          rr.d_place=DNSResourceRecord::ADDITIONAL;
+          r->addRecord(rr);
+        }
       }
     }
   }
@@ -379,18 +379,18 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
 
     while(B.get(rr)) {
       if(rr.qtype.getCode() == QType::NS && p->qtype.getCode() != QType::NS) { // possible retargeting
-	relevantNS=true;
+        relevantNS=true;
       }
       if(rr.qtype.getCode()!=QType::NS || p->qtype.getCode()==QType::NS)
-	hits++;
+        hits++;
       if(!rfound && rr.qtype.getCode()==QType::CNAME) {
-	found=true;
-	r->addRecord(rr);
-	target=rr.content; // for retargeting
+        found=true;
+        r->addRecord(rr);
+        target=rr.content; // for retargeting
       }
       if(shortcut && !found && rr.qtype==p->qtype) {
-	rfound=true;
-	r->addRecord(rr);
+        rfound=true;
+        r->addRecord(rr);
       }
     }
     if(hits && !relevantNS && !found && !rfound && shortcut ) { // we found matching qnames but not a qtype
@@ -403,7 +403,7 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
 
     if(found) {
       if(p->qtype.getCode()==QType::CNAME) // they really wanted a CNAME!
-	return 1;
+        return 1;
       DLOG(L<<"Looping because of a CNAME to "<<target<<endl);
       found=false;
     }
@@ -542,9 +542,9 @@ bool validDNSName(const string &name)
   for(pos=0; pos < length; ++pos) {
     c=name[pos];
     if(!((c >= 'a' && c <= 'z') ||
-	 (c >= 'A' && c <= 'Z') ||
-	 (c >= '0' && c <= '9') ||
-	 c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@'))
+         (c >= 'A' && c <= 'Z') ||
+         (c >= '0' && c <= '9') ||
+         c =='-' || c == '_' || c=='*' || c=='.' || c=='/' || c=='@'))
       return false;
   }
   return true;
@@ -598,21 +598,21 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     if(p->d.opcode) { // non-zero opcode (again thanks RA!)
       if(p->d.opcode==Opcode::Update) {
-	if(::arg().mustDo("log-failed-updates"))
-	  L<<Logger::Notice<<"Received an UPDATE opcode from "<<p->getRemote()<<" for "<<p->qdomain<<", sending NOTIMP"<<endl;
-	r=p->replyPacket(); 
-	r->setRcode(RCode::NotImp); // notimp;
-	return r; 
+        if(::arg().mustDo("log-failed-updates"))
+          L<<Logger::Notice<<"Received an UPDATE opcode from "<<p->getRemote()<<" for "<<p->qdomain<<", sending NOTIMP"<<endl;
+        r=p->replyPacket(); 
+        r->setRcode(RCode::NotImp); // notimp;
+        return r; 
       }
       else if(p->d.opcode==Opcode::Notify) {
-	int res=processNotify(p);
-	if(res>=0) {
-	  DNSPacket *r=p->replyPacket();
-	  r->setRcode(res);
-	  r->setOpcode(Opcode::Notify);
-	  return r;
-	}
-	return 0;
+        int res=processNotify(p);
+        if(res>=0) {
+          DNSPacket *r=p->replyPacket();
+          r->setRcode(res);
+          r->setOpcode(Opcode::Notify);
+          return r;
+        }
+        return 0;
       }
       
       L<<Logger::Error<<"Received an unknown opcode "<<p->d.opcode<<" from "<<p->getRemote()<<" for "<<p->qdomain<<endl;
@@ -669,24 +669,24 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       DLOG(L<<"There is some data, but not of the correct type, checking fancy records"<<endl);
       int res=doFancyRecords(p,r,target);
       if(res) { // had a result
-	if(res<0) // it was an error
-	  r->setRcode(RCode::ServFail);
-	goto sendit;  
+        if(res<0) // it was an error
+          r->setRcode(RCode::ServFail);
+        goto sendit;  
       }
     }
     if(mret == 2) {
       DLOG(L<<"There is some data, but not of the correct type, adding SOA for NXRECORDSET"<<endl);
       SOAData sd;
       if(getAuth(p, &sd, target, 0)) {
-	rr.qname=sd.qname;
-	rr.qtype=QType::SOA;
-	rr.content=serializeSOAData(sd);
-	rr.ttl=sd.ttl;
-	rr.domain_id=sd.domain_id;
-	rr.d_place=DNSResourceRecord::AUTHORITY;
-	r->addRecord(rr);
-	if(mret == 2)
-	  goto sendit;
+        rr.qname=sd.qname;
+        rr.qtype=QType::SOA;
+        rr.content=serializeSOAData(sd);
+        rr.ttl=sd.ttl;
+        rr.domain_id=sd.domain_id;
+        rr.d_place=DNSResourceRecord::AUTHORITY;
+        r->addRecord(rr);
+        if(mret == 2)
+          goto sendit;
       }
     }
 
@@ -698,16 +698,16 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(p->qtype.getCode()==QType::SOA || p->qtype.getCode()==QType::ANY) { // this is special
 
       if(B.getSOA(target,sd,p)) {
-	rr.qname=target;
-	rr.qtype=QType::SOA;
-	rr.content=serializeSOAData(sd);
-	rr.ttl=sd.ttl;
-	rr.domain_id=sd.domain_id;
-	rr.d_place=DNSResourceRecord::ANSWER;
-	r->addRecord(rr);
-	if(p->qtype.getCode()==QType::SOA) { // we are done
-	  goto sendit;
-	}
+        rr.qname=target;
+        rr.qtype=QType::SOA;
+        rr.content=serializeSOAData(sd);
+        rr.ttl=sd.ttl;
+        rr.domain_id=sd.domain_id;
+        rr.d_place=DNSResourceRecord::ANSWER;
+        r->addRecord(rr);
+        if(p->qtype.getCode()==QType::SOA) { // we are done
+          goto sendit;
+        }
       }
     }
     noSameLevelNS=true;
@@ -716,37 +716,37 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       B.lookup(QType(QType::ANY), target,p);
       
       while(B.get(rr)) {
-	if(rr.qtype.getCode()==QType::SOA) // skip any direct SOA responses as they may be different
-	  continue;
-	if(rr.qtype==p->qtype || p->qtype.getCode()==QType::ANY ) {
-	  DLOG(L<<"Found a direct answer: "<<rr.content<<endl);
-	  found=true;
-	  if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
-	    rr.content=::arg()["urlredirector"];
-	    rr.qtype=QType::A; 
-	    rr.qname=target;
-	  }
+        if(rr.qtype.getCode()==QType::SOA) // skip any direct SOA responses as they may be different
+          continue;
+        if(rr.qtype==p->qtype || p->qtype.getCode()==QType::ANY ) {
+          DLOG(L<<"Found a direct answer: "<<rr.content<<endl);
+          found=true;
+          if(d_doFancyRecords && p->qtype.getCode()==QType::ANY && (rr.qtype.getCode()==QType::URL || rr.qtype.getCode()==QType::CURL)) {
+            rr.content=::arg()["urlredirector"];
+            rr.qtype=QType::A; 
+            rr.qname=target;
+          }
 
-	  r->addRecord(rr);  // and add
-	}
-	else
-	  if(rr.qtype.getCode()==QType::NS)
-	    noSameLevelNS=false;
+          r->addRecord(rr);  // and add
+        }
+        else
+          if(rr.qtype.getCode()==QType::NS)
+            noSameLevelNS=false;
       }
       
       if(p->qtype.getCode()==QType::ANY) {
-	if(d_doFancyRecords) { 
-	  int res=findMboxFW(p,r,target);
-	  if(res<0)
-	    L<<Logger::Error<<"Error finding a mailbox record after an ANY query"<<endl;
-	  if(res>0) {
-	    DLOG(L<<Logger::Error<<"Frobbed an MX in!"<<endl);
-	    found=true;
-	  }
-	}
+        if(d_doFancyRecords) { 
+          int res=findMboxFW(p,r,target);
+          if(res<0)
+            L<<Logger::Error<<"Error finding a mailbox record after an ANY query"<<endl;
+          if(res>0) {
+            DLOG(L<<Logger::Error<<"Frobbed an MX in!"<<endl);
+            found=true;
+          }
+        }
       }
       if(found) 
-	goto sendit;
+        goto sendit;
     }
     else
       noSameLevelNS = false; // who knows.. this probably closes ticket 224. this code is a mess
@@ -756,12 +756,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(mret != 2 && p->d.rd && d_doRecursion && d_doWildcards) { 
       int res=doWildcardRecords(p,r,target);
       if(res) { // had a result
-	// FIXME: wildCard may retarget us in the future
-	if(res==1)  // had a straight result
-	  goto sendit;  
-	if(res==2)
-	  goto retargeted;
-	goto sendit;  
+        // FIXME: wildCard may retarget us in the future
+        if(res==1)  // had a straight result
+          goto sendit;  
+        if(res==2)
+          goto retargeted;
+        goto sendit;  
       }
     }
 
@@ -778,9 +778,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(p->d.rd && d_doRecursion && !weAuth) {
       if(DP->recurseFor(p)) {
-	*shouldRecurse=true;
-	delete r;
-	return 0;
+        *shouldRecurse=true;
+        delete r;
+        return 0;
       }
       else noCache=true;
     }
@@ -800,29 +800,29 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(!weAuth) {
       DLOG(L<<Logger::Warning<<"We're not authoritative"<<endl);
       if(p->d.rd || target==p->qdomain) { // only servfail if we didn't follow a CNAME
-	DLOG(L<<Logger::Warning<<"Adding SERVFAIL as we did not followed a CNAME"<<endl);
-	if(d_logDNSDetails)
-	  L<<Logger::Warning<<"Not authoritative for '"<< target<<"', sending servfail to "<<
-	    p->getRemote()<< (p->d.rd ? " (recursion was desired)" : "") <<endl;
+        DLOG(L<<Logger::Warning<<"Adding SERVFAIL as we did not followed a CNAME"<<endl);
+        if(d_logDNSDetails)
+          L<<Logger::Warning<<"Not authoritative for '"<< target<<"', sending servfail to "<<
+            p->getRemote()<< (p->d.rd ? " (recursion was desired)" : "") <<endl;
 
-	r->setA(false);
-	if(::arg().mustDo("send-root-referral")) {
-	  DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
-	  addRootReferral(r);
-	}
-	else {
-	  DLOG(L<<Logger::Warning<<"Adding SERVFAIL"<<endl);
-	  r->setRcode(RCode::ServFail);  // 'sorry' 
-	}
+        r->setA(false);
+        if(::arg().mustDo("send-root-referral")) {
+          DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
+          addRootReferral(r);
+        }
+        else {
+          DLOG(L<<Logger::Warning<<"Adding SERVFAIL"<<endl);
+          r->setRcode(RCode::ServFail);  // 'sorry' 
+        }
       }
       else if(!p->d.rd) {
-	if(::arg().mustDo("send-root-referral")) { // addresses ticket 223
-	  DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
-	  addRootReferral(r);
-	}
-	goto sendit;
+        if(::arg().mustDo("send-root-referral")) { // addresses ticket 223
+          DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
+          addRootReferral(r);
+        }
+        goto sendit;
       }
-				       
+        			       
       S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
       S.ringAccount("remotes-unauth",p->getRemote());
     }
@@ -833,80 +833,80 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       pos=0; 
       
       do {
-	if(pos) // skip dot
-	  pos++;
-	
-	subdomain=subdomain.substr(pos);
-	if(noSameLevelNS) { // skip first lookup if it is known not to exist
-	  noSameLevelNS=false;
-	  continue;
-	}
-	  
-	if(pdns_iequals(subdomain,sd.qname)) // about to break out of our zone
-	  break; 
-	
-	B.lookup("NS", subdomain,p,zoneId);  // start our search at the backend
-	
-	while(B.get(rr)) {
-	  if(target==p->qdomain && !found) { // don't strip data if we've been retargeted!
-	    DLOG(L<<Logger::Warning<<"Clearing records - we've discovered we are auth (see cs 947)"<<endl);
-	    r->clearRecords(); // we need to start out with an empty slate
-	  }
-	  found=true;
-	  rr.d_place=DNSResourceRecord::AUTHORITY; // this for the authority section
-	  r->addRecord(rr);
-	}
-	if(found || (!subdomain.empty() && subdomain[0]=='.')) {  // this catches '..'
-	  r->setA(false);  // send out an NS referral, which should be unauth
-	  break;
-	}
+        if(pos) // skip dot
+          pos++;
+        
+        subdomain=subdomain.substr(pos);
+        if(noSameLevelNS) { // skip first lookup if it is known not to exist
+          noSameLevelNS=false;
+          continue;
+        }
+          
+        if(pdns_iequals(subdomain,sd.qname)) // about to break out of our zone
+          break; 
+        
+        B.lookup("NS", subdomain,p,zoneId);  // start our search at the backend
+        
+        while(B.get(rr)) {
+          if(target==p->qdomain && !found) { // don't strip data if we've been retargeted!
+            DLOG(L<<Logger::Warning<<"Clearing records - we've discovered we are auth (see cs 947)"<<endl);
+            r->clearRecords(); // we need to start out with an empty slate
+          }
+          found=true;
+          rr.d_place=DNSResourceRecord::AUTHORITY; // this for the authority section
+          r->addRecord(rr);
+        }
+        if(found || (!subdomain.empty() && subdomain[0]=='.')) {  // this catches '..'
+          r->setA(false);  // send out an NS referral, which should be unauth
+          break;
+        }
       }while((pos=subdomain.find("."))!=string::npos);
       
       if(!found) {
-	// try wildcards then 
-	if(d_doWildcards) { 
-	  int res=doWildcardRecords(p,r,target);
+        // try wildcards then 
+        if(d_doWildcards) { 
+          int res=doWildcardRecords(p,r,target);
 
-	  if(res==1)  // had a straight result
-	    goto sendit; 
-	  if(res==2)
-	    goto retargeted;
-	}
+          if(res==1)  // had a straight result
+            goto sendit; 
+          if(res==2)
+            goto retargeted;
+        }
 
-	// we have authority but no answer, so we add the SOA for negative caching
-	rr.qname=sd.qname;
-	rr.qtype=QType::SOA;
-	rr.content=serializeSOAData(sd);
-	rr.ttl=sd.ttl;
-	rr.domain_id=sd.domain_id;
-	rr.d_place=DNSResourceRecord::AUTHORITY;
-	r->addRecord(rr);
+        // we have authority but no answer, so we add the SOA for negative caching
+        rr.qname=sd.qname;
+        rr.qtype=QType::SOA;
+        rr.content=serializeSOAData(sd);
+        rr.ttl=sd.ttl;
+        rr.domain_id=sd.domain_id;
+        rr.d_place=DNSResourceRecord::AUTHORITY;
+        r->addRecord(rr);
 
 
-	// need to send NXDOMAIN if there are 0 records for whatever type for target
-	
-	B.lookup("ANY",target,p);
-	while(B.get(rr))
-	  found=true;
-	
-	if(!found) {
-	  SOAData sd2;
-	  if(B.getSOA(target,sd2,p)) // is there a SOA perhaps? (which may not appear in an ANY query)
-	    found=true;
-	}
+        // need to send NXDOMAIN if there are 0 records for whatever type for target
+        
+        B.lookup("ANY",target,p);
+        while(B.get(rr))
+          found=true;
+        
+        if(!found) {
+          SOAData sd2;
+          if(B.getSOA(target,sd2,p)) // is there a SOA perhaps? (which may not appear in an ANY query)
+            found=true;
+        }
 
-	if(!found) { 
-	  if(d_logDNSDetails)
-	    L<<Logger::Notice<<"Authoritative NXDOMAIN to "<< p->getRemote() <<" for '"<<target<<"' ("<<p->qtype.getName()<<")"<<endl;
+        if(!found) { 
+          if(d_logDNSDetails)
+            L<<Logger::Notice<<"Authoritative NXDOMAIN to "<< p->getRemote() <<" for '"<<target<<"' ("<<p->qtype.getName()<<")"<<endl;
 
-	  r->setRcode(RCode::NXDomain); 
-	  S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
-	}
-	else {
-	  if(d_logDNSDetails)
-	    L<<Logger::Notice<<"Authoritative empty NO ERROR to "<< p->getRemote() <<" for '"<<target<<"' ("<<p->qtype.getName()<<"), other types do exist"<<endl;
-	  S.ringAccount("noerror-queries",p->qdomain+"/"+p->qtype.getName());
-	}
+          r->setRcode(RCode::NXDomain); 
+          S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
+        }
+        else {
+          if(d_logDNSDetails)
+            L<<Logger::Notice<<"Authoritative empty NO ERROR to "<< p->getRemote() <<" for '"<<target<<"' ("<<p->qtype.getName()<<"), other types do exist"<<endl;
+          S.ringAccount("noerror-queries",p->qdomain+"/"+p->qtype.getName());
+        }
       }
     }
     

@@ -151,7 +151,7 @@ void BackendMakerClass::launch(const string &instr)
       // this is *so* userfriendly
       load(module);
       if(d_repository.find(module)==d_repository.end())
-	throw ArgException("Trying to launch unknown backend '"+module+"'");
+        throw ArgException("Trying to launch unknown backend '"+module+"'");
     }
     d_repository[module]->declareArguments(name);
     d_instances.push_back(make_pair(module,name));
@@ -173,7 +173,7 @@ vector<DNSBackend *>BackendMakerClass::all()
     for(vector<pair<string,string> >::const_iterator i=d_instances.begin();i!=d_instances.end();++i) {
       DNSBackend *made=d_repository[i->first]->make(i->second);
       if(!made)
-	throw AhuException("Unable to launch backend '"+i->first+"'");
+        throw AhuException("Unable to launch backend '"+i->first+"'");
 
       ret.push_back(made);
     }
@@ -242,7 +242,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   
     while(this->get(i)) {
       if(i.last_modified>newest)
-	newest=i.last_modified;
+        newest=i.last_modified;
     }
 
     sd.serial=newest; // +arg().asNum("soa-serial-offset");

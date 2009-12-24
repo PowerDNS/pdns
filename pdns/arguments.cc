@@ -105,7 +105,7 @@ string ArgvMap::helpstring(string prefix)
       i++)
     {
       if(!prefix.empty() && i->first.find(prefix)) // only print items with prefix
-	continue;
+        continue;
 
       help+="  --";
       help+=i->first;
@@ -113,12 +113,12 @@ string ArgvMap::helpstring(string prefix)
       string type=d_typeMap[i->first];
 
       if(type=="Parameter")
-	help+="=...";
+        help+="=...";
       else if(type=="Switch")
-	{
-	  help+=" | --"+i->first+"=yes";
-	  help+=" | --"+i->first+"=no";
-	}
+        {
+          help+=" | --"+i->first+"=yes";
+          help+=" | --"+i->first+"=no";
+        }
       
 
       help+="\n\t";
@@ -139,7 +139,7 @@ string ArgvMap::configstring()
       i++)
     {
       if(d_typeMap[i->first]=="Command")
-	continue;
+        continue;
 
       help+="#################################\n";
       help+="# ";
@@ -316,7 +316,7 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
       params[var]=val;
     else
       if(!lax)
-	throw ArgException("Trying to set unexisting parameter '"+var+"'");
+        throw ArgException("Trying to set unexisting parameter '"+var+"'");
   }
 }
 

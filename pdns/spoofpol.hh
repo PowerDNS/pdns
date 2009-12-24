@@ -10,9 +10,9 @@ class SpoofPolicy
 {
 public:
   void report(const ComboAddress& remote, 
-	      const std::string& auth, 
-	      int policy,
-	      const struct timeval& );
+              const std::string& auth, 
+              int policy,
+              const struct timeval& );
   int getPolicy(const ComboAddress& remote, const std::string& aith, const struct timeval& );
 
 private:

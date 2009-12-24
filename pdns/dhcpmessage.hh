@@ -70,7 +70,7 @@ extern "C" {
 // RFC 2132, 9.14
 #define DHCP_OPTION_CLIENT_IDENTIFIER   61
 // RFC 4039
-#define DHCP_OPTION_RAPID_COMMIT	80
+#define DHCP_OPTION_RAPID_COMMIT        80
 
 #define BOOTP_CLIENT_PORT       68
 #define BOOTP_SERVER_PORT       67
@@ -123,13 +123,13 @@ void dm_init(struct dhcp_message *msg);
 void dm_finish_options(struct dhcp_message *msg);
 
 void dm_add_option(struct dhcp_message *msg, u_int8_t option,
-		   u_int8_t length, void *opt);
+        	   u_int8_t length, void *opt);
 
 u_int8_t *dm_next_option(struct dhcp_message *msg);
 
 
 int dm_parse_msg_raw(char *dframe, int plen,
-		     struct in_addr *from_ip, struct dhcp_message *msg);
+        	     struct in_addr *from_ip, struct dhcp_message *msg);
 
 }
 

@@ -62,23 +62,23 @@ void CommunicatorClass::mainloop(void)
       next=time(0)+tick;
 
       while(time(0) < next) {
-	rc=d_any_sem.tryWait();
+        rc=d_any_sem.tryWait();
 
-	if(rc)
-	  Utility::sleep(1);
-	else { 
-	  if(!d_suck_sem.tryWait()) {
-	    SuckRequest sr;
-	    {
-	      Lock l(&d_lock);
-	      sr=d_suckdomains.front();
-	      d_suckdomains.pop_front();
-	    }
-	    suck(sr.domain,sr.master);
-	  }
-	}
-	// this gets executed at least once every second
-	doNotifications();
+        if(rc)
+          Utility::sleep(1);
+        else { 
+          if(!d_suck_sem.tryWait()) {
+            SuckRequest sr;
+            {
+              Lock l(&d_lock);
+              sr=d_suckdomains.front();
+              d_suckdomains.pop_front();
+            }
+            suck(sr.domain,sr.master);
+          }
+        }
+        // this gets executed at least once every second
+        doNotifications();
       }
     }
   }

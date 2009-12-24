@@ -420,7 +420,7 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordCo
   }                                                                                                \
   catch(RecordTextException& rtr) {                                                                \
     throw MOADNSException("Parsing record content: "+string(rtr.what()));                          \
-  }												   \
+  }        											   \
 }                                                                                                  \
                                                                                                    \
 string RNAME##RecordContent::getZoneRepresentation() const                                         \

@@ -196,7 +196,7 @@ public:
   {
     for(namemap_t::const_iterator i=getNamemap().begin(); i!=getNamemap().end();++i)
       if(pdns_iequals(i->second, name))
-	return i->first.second;
+        return i->first.second;
 
     throw runtime_error("Unknown DNS type '"+name+"'");
   }

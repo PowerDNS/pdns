@@ -80,7 +80,7 @@ struct Numeric : public cond
 
     for(decl(i,s.begin());i!=s.end();++i)
       if(!isdigit(*i))
-	return false;
+        return false;
     return true;
   }
   shared_ptr<cond> copy() const
@@ -211,7 +211,7 @@ public:
   {
     for(decl(i,d_content.begin());i!=d_content.end();++i)
       if(!correct(i->first))
-	throw runtime_error("variable '"+i->first+"' violates constraints with value '"+i->second.d_value+"'");
+        throw runtime_error("variable '"+i->first+"' violates constraints with value '"+i->second.d_value+"'");
     
   }
 

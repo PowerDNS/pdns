@@ -66,6 +66,6 @@ private:
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
-  string d_DeleteZoneQuery;		
+  string d_DeleteZoneQuery;        	
   string d_CheckACLQuery;   
 };

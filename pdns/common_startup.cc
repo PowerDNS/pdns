@@ -230,10 +230,10 @@ void *qthread(void *number)
   for(;;) {
     if(number==0) { // only run on main thread
       if(!((numreceived++)%250)) { // maintenance tasks
-	S.set("latency",(int)avg_latency);
-	int qcount, acount;
-	g_distributor->getQueueSizes(qcount, acount);
-	S.set("qsize-q",qcount);
+        S.set("latency",(int)avg_latency);
+        int qcount, acount;
+        g_distributor->getQueueSizes(qcount, acount);
+        S.set("qsize-q",qcount);
       }
     }
 
@@ -263,9 +263,9 @@ void *qthread(void *number)
       
       numanswered++;
       if(P->remote.sin4.sin_family==AF_INET)
-	numanswered4++;
+        numanswered4++;
       else
-	numanswered6++;
+        numanswered6++;
 
       continue;
     }
@@ -294,7 +294,7 @@ void mainthread()
 
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
-	gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
+        gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
        L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);

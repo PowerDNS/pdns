@@ -30,7 +30,7 @@ void dm_init(struct dhcp_message *msg) {
 }
 
 void dm_add_option(struct dhcp_message *msg, u_int8_t option,
-		   u_int8_t length, void *opt) {
+        	   u_int8_t length, void *opt) {
   u_int8_t *pos = msg->pos;
 
   if (&msg->options[MAX_OPT_LEN] - pos < length + 2) abort();
@@ -67,10 +67,10 @@ u_int8_t *dm_next_option(struct dhcp_message *msg) {
     if (msg->currentblock < msg->overload) { // currentblock: 0,1,3
       msg->currentblock = (dhcp_overload_opts)(msg->currentblock+1);
       if (msg->overload & DHCP_OVERLOAD_FILE & msg->currentblock) {
-	pos = &msg->file[0];
+        pos = &msg->file[0];
         msg->last = &msg->file[128];
       } else { // SNAME or BOTH
-	pos = &msg->sname[0];
+        pos = &msg->sname[0];
         msg->last = &msg->sname[64];
         msg->currentblock = DHCP_OVERLOAD_BOTH; // definitely last block
       }
@@ -156,7 +156,7 @@ string DHCPCommunicator::getMac(const std::string& ip)
     memcpy((char*)&msg.op, packet, ret);
     char mac[19];
     snprintf(mac, 19, "%02x:%02x:%02x:%02x:%02x:%02x", msg.chaddr[0], msg.chaddr[1], msg.chaddr[2], 
-	     msg.chaddr[3], msg.chaddr[4], msg.chaddr[5]);
+             msg.chaddr[3], msg.chaddr[4], msg.chaddr[5]);
     return mac;
   }
 
@@ -167,7 +167,7 @@ string DHCPCommunicator::getMac(const std::string& ip)
 #if 0
 
 int dm_parse_msg_raw(char *dframe, int plen,
-		     struct in_addr *from_ip, struct dhcp_message *msg) {
+        	     struct in_addr *from_ip, struct dhcp_message *msg) {
   struct iphdr *ip;
   struct udphdr *udp;
   int iphlen, udplen;

@@ -157,7 +157,7 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
     uint8_t val=bitmap[2+n];
     for(int bit = 0; bit < 8 ; ++bit , val>>=1)
       if(val & 1) {
-	ret->d_set.insert((7-bit) + 8*(n));
+        ret->d_set.insert((7-bit) + 8*(n));
       }
   }
   
@@ -187,14 +187,14 @@ boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
 
 boilerplate_conv(RP, ns_t_rp,
-		 conv.xfrLabel(d_mbox);   
-		 conv.xfrLabel(d_info)
-		 );
+        	 conv.xfrLabel(d_mbox);   
+        	 conv.xfrLabel(d_info)
+        	 );
 
 
 boilerplate_conv(OPT, ns_t_opt, 
-		   conv.xfrBlob(d_data)
-		 );
+        	   conv.xfrBlob(d_data)
+        	 );
 
 void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
 {
@@ -215,57 +215,57 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
 }
 
 boilerplate_conv(TSIG, ns_t_tsig, 
-		 conv.xfrLabel(d_algoName);
-		 conv.xfr48BitInt(d_time);
-		 conv.xfr16BitInt(d_fudge);
-		 uint16_t size=d_mac.size();
-		 conv.xfr16BitInt(size);
-		 conv.xfrBlob(d_mac, size);
-		 conv.xfr16BitInt(d_origID);
-		 conv.xfr16BitInt(d_eRcode);
-		 size=d_otherData.size();
-		 conv.xfr16BitInt(size);
-		 conv.xfrBlob(d_otherData, size);
-		 );
+        	 conv.xfrLabel(d_algoName);
+        	 conv.xfr48BitInt(d_time);
+        	 conv.xfr16BitInt(d_fudge);
+        	 uint16_t size=d_mac.size();
+        	 conv.xfr16BitInt(size);
+        	 conv.xfrBlob(d_mac, size);
+        	 conv.xfr16BitInt(d_origID);
+        	 conv.xfr16BitInt(d_eRcode);
+        	 size=d_otherData.size();
+        	 conv.xfr16BitInt(size);
+        	 conv.xfrBlob(d_otherData, size);
+        	 );
 
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(ns_t_mx), d_preference(preference), d_mxname(mxname)
 {
 }
 
 boilerplate_conv(MX, ns_t_mx, 
-		 conv.xfr16BitInt(d_preference);
-		 conv.xfrLabel(d_mxname, true);
-		 )
+        	 conv.xfr16BitInt(d_preference);
+        	 conv.xfrLabel(d_mxname, true);
+        	 )
 
 boilerplate_conv(KX, ns_t_kx, 
-		 conv.xfr16BitInt(d_preference);
-		 conv.xfrLabel(d_exchanger, false);
-		 )
+        	 conv.xfr16BitInt(d_preference);
+        	 conv.xfrLabel(d_exchanger, false);
+        	 )
 
 boilerplate_conv(IPSECKEY, 45,  /* ns_t_ipsec */
-		 conv.xfr8BitInt(d_preference);
-		 conv.xfr8BitInt(d_gatewaytype);
-		 conv.xfr8BitInt(d_algorithm);
-		 conv.xfrLabel(d_gateway, false);
-		 conv.xfrBlob(d_publickey);
-		 )
+        	 conv.xfr8BitInt(d_preference);
+        	 conv.xfr8BitInt(d_gatewaytype);
+        	 conv.xfr8BitInt(d_algorithm);
+        	 conv.xfrLabel(d_gateway, false);
+        	 conv.xfrBlob(d_publickey);
+        	 )
 
 boilerplate_conv(DHCID, 49, 
-		 conv.xfrBlob(d_content);
-		 )
+        	 conv.xfrBlob(d_content);
+        	 )
 
 
 boilerplate_conv(AFSDB, ns_t_afsdb, 
-		 conv.xfr16BitInt(d_subtype);
-		 conv.xfrLabel(d_hostname);
-		 )
+        	 conv.xfr16BitInt(d_subtype);
+        	 conv.xfrLabel(d_hostname);
+        	 )
 
 
 boilerplate_conv(NAPTR, ns_t_naptr,
-		 conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
-		 conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
-		 conv.xfrLabel(d_replacement);
-		 )
+        	 conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
+        	 conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
+        	 conv.xfrLabel(d_replacement);
+        	 )
 
 
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const string& target) 
@@ -273,9 +273,9 @@ SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_
 {}
 
 boilerplate_conv(SRV, ns_t_srv, 
-		 conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
-		 conv.xfrLabel(d_target);
-		 )
+        	 conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
+        	 conv.xfrLabel(d_target);
+        	 )
 
 
 
@@ -286,70 +286,70 @@ SOARecordContent::SOARecordContent(const string& mname, const string& rname, con
 }
 
 boilerplate_conv(SOA, ns_t_soa, 
-		 conv.xfrLabel(d_mname, true);
-		 conv.xfrLabel(d_rname, true);
-		 conv.xfr32BitInt(d_st.serial);
-		 conv.xfr32BitInt(d_st.refresh);
-		 conv.xfr32BitInt(d_st.retry);
-		 conv.xfr32BitInt(d_st.expire);
-		 conv.xfr32BitInt(d_st.minimum);
-		 );
+        	 conv.xfrLabel(d_mname, true);
+        	 conv.xfrLabel(d_rname, true);
+        	 conv.xfr32BitInt(d_st.serial);
+        	 conv.xfr32BitInt(d_st.refresh);
+        	 conv.xfr32BitInt(d_st.retry);
+        	 conv.xfr32BitInt(d_st.expire);
+        	 conv.xfr32BitInt(d_st.minimum);
+        	 );
 #undef KEY
 boilerplate_conv(KEY, ns_t_key, 
-		 conv.xfr16BitInt(d_flags); 
-		 conv.xfr8BitInt(d_protocol); 
-		 conv.xfr8BitInt(d_algorithm); 
-		 conv.xfrBlob(d_certificate);
-		 );
+        	 conv.xfr16BitInt(d_flags); 
+        	 conv.xfr8BitInt(d_protocol); 
+        	 conv.xfr8BitInt(d_algorithm); 
+        	 conv.xfrBlob(d_certificate);
+        	 );
 
 boilerplate_conv(CERT, 37, 
-		 conv.xfr16BitInt(d_type); 
-		 conv.xfr16BitInt(d_tag); 
-		 conv.xfr8BitInt(d_algorithm); 
-		 conv.xfrBlob(d_certificate);
-		 )
+        	 conv.xfr16BitInt(d_type); 
+        	 conv.xfr16BitInt(d_tag); 
+        	 conv.xfr8BitInt(d_algorithm); 
+        	 conv.xfrBlob(d_certificate);
+        	 )
 #undef DS
 boilerplate_conv(DS, 43, 
-		 conv.xfr16BitInt(d_tag); 
-		 conv.xfr8BitInt(d_algorithm); 
-		 conv.xfr8BitInt(d_digesttype); 
-		 conv.xfrHexBlob(d_digest);
-		 )
+        	 conv.xfr16BitInt(d_tag); 
+        	 conv.xfr8BitInt(d_algorithm); 
+        	 conv.xfr8BitInt(d_digesttype); 
+        	 conv.xfrHexBlob(d_digest);
+        	 )
 
 boilerplate_conv(SSHFP, 44, 
-		 conv.xfr8BitInt(d_algorithm); 
-		 conv.xfr8BitInt(d_fptype); 
-		 conv.xfrHexBlob(d_fingerprint);
-		 )
+        	 conv.xfr8BitInt(d_algorithm); 
+        	 conv.xfr8BitInt(d_fptype); 
+        	 conv.xfrHexBlob(d_fingerprint);
+        	 )
 
 boilerplate_conv(RRSIG, 46, 
-		 conv.xfrType(d_type); 
-  		 conv.xfr8BitInt(d_algorithm); 
-  		 conv.xfr8BitInt(d_labels); 
+        	 conv.xfrType(d_type); 
+          	 conv.xfr8BitInt(d_algorithm); 
+          	 conv.xfr8BitInt(d_labels); 
 
-  		 conv.xfr32BitInt(d_originalttl); 
-  		 conv.xfrTime(d_sigexpire); 
-  		 conv.xfrTime(d_siginception); 
-		 conv.xfr16BitInt(d_tag); 
-		 conv.xfrLabel(d_signer);
-		 conv.xfrBlob(d_signature);
-		 )
-		 
+          	 conv.xfr32BitInt(d_originalttl); 
+          	 conv.xfrTime(d_sigexpire); 
+          	 conv.xfrTime(d_siginception); 
+        	 conv.xfr16BitInt(d_tag); 
+        	 conv.xfrLabel(d_signer);
+        	 conv.xfrBlob(d_signature);
+        	 )
+        	 
 boilerplate_conv(DNSKEY, 48, 
-		 conv.xfr16BitInt(d_flags); 
-		 conv.xfr8BitInt(d_protocol); 
-		 conv.xfr8BitInt(d_algorithm); 
-		 conv.xfrBlob(d_key);
-		 )
+        	 conv.xfr16BitInt(d_flags); 
+        	 conv.xfr8BitInt(d_protocol); 
+        	 conv.xfr8BitInt(d_algorithm); 
+        	 conv.xfrBlob(d_key);
+        	 )
 
 // "fancy records" 
 boilerplate_conv(URL, QType::URL, 
-		 conv.xfrLabel(d_url);
-		 )
+        	 conv.xfrLabel(d_url);
+        	 )
 
 boilerplate_conv(MBOXFW, QType::MBOXFW, 
-		 conv.xfrLabel(d_mboxfw);
-		 )
+        	 conv.xfrLabel(d_mboxfw);
+        	 )
 
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {

@@ -73,7 +73,7 @@ public:
     int s=(int)::accept(d_socket,(sockaddr *)&remote, &remlen);
     if(s<0) {
       if(errno==EAGAIN)
-	return 0;
+        return 0;
 
       throw NetworkError("Accepting a connection: "+string(strerror(errno)));
     }
@@ -140,10 +140,10 @@ public:
     int bytes;
     if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&remote, &remlen))<0) {
       if(errno!=EAGAIN) {
-	throw NetworkError(strerror(errno));
+        throw NetworkError(strerror(errno));
       }
       else {
-	return false;
+        return false;
       }
     }
     dgram.assign(d_buffer,bytes);
@@ -174,9 +174,9 @@ public:
     do {
       res=::send(d_socket, ptr, toWrite, 0);
       if(res<0) 
-	throw NetworkError("Writing to a socket: "+string(strerror(errno)));
+        throw NetworkError("Writing to a socket: "+string(strerror(errno)));
       if(!res)
-	throw NetworkError("EOF on socket");
+        throw NetworkError("EOF on socket");
       toWrite-=res;
       ptr+=res;
     }while(toWrite);
@@ -235,7 +235,7 @@ public:
     while((c=getChar())!=-1) {
       data+=(char)c;
       if(c=='\n')
-	break;
+        break;
     }
   }
 

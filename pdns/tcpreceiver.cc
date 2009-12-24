@@ -87,21 +87,21 @@ int readnWithTimeout(int fd, void* buffer, unsigned int n, bool throwOnEOF=true)
     ret=read(fd, ptr, bytes);
     if(ret < 0) {
       if(errno==EAGAIN) {
-	ret=waitForData(fd, 5);
-	if(ret < 0)
-	  throw NetworkError("Waiting for data read");
-	if(!ret)
-	  throw NetworkError("Timeout reading data");
-	continue;
+        ret=waitForData(fd, 5);
+        if(ret < 0)
+          throw NetworkError("Waiting for data read");
+        if(!ret)
+          throw NetworkError("Timeout reading data");
+        continue;
       }
       else
-	throw NetworkError("Reading data: "+stringerror());
+        throw NetworkError("Reading data: "+stringerror());
     }
     if(!ret) {
       if(!throwOnEOF && n == bytes)
-	return 0;
+        return 0;
       else
-	throw NetworkError("Did not fulfill read from TCP due to EOF");
+        throw NetworkError("Did not fulfill read from TCP due to EOF");
     }
     
     ptr += ret;
@@ -120,15 +120,15 @@ void writenWithTimeout(int fd, const void *buffer, unsigned int n)
     ret=write(fd, ptr, bytes);
     if(ret < 0) {
       if(errno==EAGAIN) {
-	ret=waitForRWData(fd, false, 5, 0);
-	if(ret < 0)
-	  throw NetworkError("Waiting for data write");
-	if(!ret)
-	  throw NetworkError("Timeout writing data");
-	continue;
+        ret=waitForRWData(fd, false, 5, 0);
+        if(ret < 0)
+          throw NetworkError("Waiting for data write");
+        if(!ret)
+          throw NetworkError("Timeout writing data");
+        continue;
       }
       else
-	throw NetworkError("Writing data: "+stringerror());
+        throw NetworkError("Writing data: "+stringerror());
     }
     if(!ret) {
       throw NetworkError("Did not fulfill TCP write due to EOF");
@@ -246,19 +246,19 @@ void *TCPNameserver::doConnection(void *data)
       ComboAddress remote;
       socklen_t remotelen=sizeof(remote);
       if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
-	L<<Logger::Error<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
-	break;
+        L<<Logger::Error<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
+        break;
       }
 
       uint16_t pktlen;
       if(!readnWithTimeout(fd, &pktlen, 2, false))
-	break;
+        break;
       else
-	pktlen=ntohs(pktlen);
+        pktlen=ntohs(pktlen);
 
       if(pktlen>511) {
-	L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
-	break;
+        L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
+        break;
       }
       
       getQuestion(fd,mesg,pktlen,remote);
@@ -269,47 +269,47 @@ void *TCPNameserver::doConnection(void *data)
       packet->d_tcp=true;
       packet->setSocket(fd);
       if(packet->parse(mesg, pktlen)<0)
-	break;
+        break;
       
       if(packet->qtype.getCode()==QType::AXFR || packet->qtype.getCode()==QType::IXFR ) {
-	if(doAXFR(packet->qdomain, packet, fd)) 
-	  S.inc("tcp-answers");  
-	continue;
+        if(doAXFR(packet->qdomain, packet, fd)) 
+          S.inc("tcp-answers");  
+        continue;
       }
 
       shared_ptr<DNSPacket> reply; 
       shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
 
       if(!packet->d.rd && (PC.get(packet.get(), cached.get()))) { // short circuit - does the PacketCache recognize this question?
-	cached->setRemote(&packet->remote);
-	cached->d.id=packet->d.id;
-	cached->d.rd=packet->d.rd; // copy in recursion desired bit 
-	cached->commitD(); // commit d to the packet                        inlined
+        cached->setRemote(&packet->remote);
+        cached->d.id=packet->d.id;
+        cached->d.rd=packet->d.rd; // copy in recursion desired bit 
+        cached->commitD(); // commit d to the packet                        inlined
 
-	sendPacket(cached, fd);
-	S.inc("tcp-answers");
-	continue;
+        sendPacket(cached, fd);
+        S.inc("tcp-answers");
+        continue;
       }
-	
+        
       {
-	Lock l(&s_plock);
-	if(!s_P) {
-	  L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
-	  s_P=new PacketHandler;
-	}
-	bool shouldRecurse;
+        Lock l(&s_plock);
+        if(!s_P) {
+          L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
+          s_P=new PacketHandler;
+        }
+        bool shouldRecurse;
 
-	reply=shared_ptr<DNSPacket>(s_P->questionOrRecurse(packet.get(), &shouldRecurse)); // we really need to ask the backend :-)
+        reply=shared_ptr<DNSPacket>(s_P->questionOrRecurse(packet.get(), &shouldRecurse)); // we really need to ask the backend :-)
 
-	if(shouldRecurse) {
-	  proxyQuestion(packet);
-	  continue;
-	}
+        if(shouldRecurse) {
+          proxyQuestion(packet);
+          continue;
+        }
       }
 
       if(!reply)  // unable to write an answer?
-	break;
-	
+        break;
+        
       S.inc("tcp-answers");
       sendPacket(reply, fd);
     }
@@ -358,7 +358,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     if(s_P->getBackend()->getSOA(q->qdomain,sd)) {
       DNSBackend *B=sd.db;
       if (B->checkACL(string("allow-axfr"), q->qdomain, q->getRemote())) {
-	return true;
+        return true;
       }
     }  
   }
@@ -477,7 +477,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       rr.priority = 25;
       string::size_type pos = rr.qname.find('@');
       if(pos != string::npos)
-	rr.qname = rr.qname.substr(pos + 1); // trim off p to and including @
+        rr.qname = rr.qname.substr(pos + 1); // trim off p to and including @
     }
     outpacket->addRecord(rr);
 
@@ -620,37 +620,37 @@ void TCPNameserver::thread()
 
       int ret=poll(&d_prfds[0], d_prfds.size(), -1); // blocks, forever if need be
       if(ret <= 0)
-	continue;
+        continue;
 
       int sock=-1;
       BOOST_FOREACH(const struct pollfd& pfd, d_prfds) {
-	if(pfd.revents == POLLIN) {
-	  sock = pfd.fd;
-	  addrlen=sizeof(remote);
+        if(pfd.revents == POLLIN) {
+          sock = pfd.fd;
+          addrlen=sizeof(remote);
 
-	  if((fd=accept(sock, (sockaddr*)&remote, &addrlen))<0) {
-	    L<<Logger::Error<<"TCP question accept error: "<<strerror(errno)<<endl;
-	    
-	    if(errno==EMFILE) {
-	      L<<Logger::Error<<Logger::NTLog<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
-	      exit(1);
-	    }
-	  }
-	  else {
-	    pthread_t tid;
-	    d_connectionroom_sem->wait(); // blocks if no connections are available
+          if((fd=accept(sock, (sockaddr*)&remote, &addrlen))<0) {
+            L<<Logger::Error<<"TCP question accept error: "<<strerror(errno)<<endl;
+            
+            if(errno==EMFILE) {
+              L<<Logger::Error<<Logger::NTLog<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
+              exit(1);
+            }
+          }
+          else {
+            pthread_t tid;
+            d_connectionroom_sem->wait(); // blocks if no connections are available
 
-	    int room;
-	    d_connectionroom_sem->getValue( &room);
-	    if(room<1)
-	      L<<Logger::Warning<<Logger::NTLog<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
+            int room;
+            d_connectionroom_sem->getValue( &room);
+            if(room<1)
+              L<<Logger::Warning<<Logger::NTLog<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
 
-	    if(pthread_create(&tid, 0, &doConnection, (void *)fd)) {
-	      L<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
-	      d_connectionroom_sem->post();
-	    }
-	  }
-	}
+            if(pthread_create(&tid, 0, &doConnection, (void *)fd)) {
+              L<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
+              d_connectionroom_sem->post();
+            }
+          }
+        }
       }
     }
   }

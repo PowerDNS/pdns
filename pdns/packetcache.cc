@@ -224,13 +224,13 @@ int PacketCache::purge(const vector<string> &matches)
       string dotsuffix = "."+suffix;
 
       for(; iter != d_map.end(); ++iter) {
-	if(!pdns_iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
-	  //	cerr<<"Stopping!"<<endl;
-	  break;
-	}
-	//	cerr<<"Will erase '"<<iter->qname<<"'\n";
+        if(!pdns_iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
+          //	cerr<<"Stopping!"<<endl;
+          break;
+        }
+        //	cerr<<"Will erase '"<<iter->qname<<"'\n";
 
-	delcount++;
+        delcount++;
       }
       //    cerr<<"End dump!"<<endl;
       d_map.erase(start, iter);
@@ -285,14 +285,14 @@ map<char,int> PacketCache::getCounts()
   for(cmap_t::const_iterator iter = d_map.begin() ; iter != d_map.end(); ++iter) {
     if(iter->ctype == PACKETCACHE)
       if(iter->meritsRecursion)
-	recursivePackets++;
+        recursivePackets++;
       else
-	nonRecursivePackets++;
+        nonRecursivePackets++;
     else if(iter->ctype == QUERYCACHE) {
       if(iter->value.empty())
-	negQueryCacheEntries++;
+        negQueryCacheEntries++;
       else
-	queryCacheEntries++;
+        queryCacheEntries++;
     }
   }
   ret['!']=negQueryCacheEntries;
