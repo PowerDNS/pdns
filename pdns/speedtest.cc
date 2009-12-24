@@ -110,7 +110,7 @@ struct MakeARecordTestMM
   void operator()() const
   {
       DNSRecordContent*drc = DNSRecordContent::mastermake(QType::A, 1, 
-							  "1.2.3.4");
+        						  "1.2.3.4");
       delete drc;
   }
 };
@@ -174,7 +174,7 @@ struct GenericRecordTest
   string getName() const
   {
     return (boost::format("%d %s records") % d_records % 
-	    DNSRecordContent::NumberToType(d_type)).str();
+            DNSRecordContent::NumberToType(d_type)).str();
   }
 
   void operator()() const
@@ -184,7 +184,7 @@ struct GenericRecordTest
     for(int records = 0; records < d_records; records++) {
       pw.startRecord("outpost.ds9a.nl", d_type);
       DNSRecordContent*drc = DNSRecordContent::mastermake(d_type, 1, 
-							  d_content);
+        						  d_content);
       drc->toPacket(pw);
       delete drc;
     }
@@ -260,7 +260,7 @@ vector<uint8_t> makeRootReferral()
 
   // nobody reads what we output, but it appears to be the magic that shuts some nameservers up
   static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "128.8.10.90", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
-		     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+        	     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   static char templ[40];
   strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
   
@@ -331,6 +331,22 @@ struct RootRefTest
 
 };
 
+struct StackMallocTest
+{
+  string getName() const
+  {
+    return "stack allocation";
+  }
+
+  void operator()() const
+  {
+    char *buffer= new char[200000];
+    delete buffer;
+  }
+
+};
+
+
 struct EmptyQueryTest
 {
   string getName() const
@@ -359,6 +375,52 @@ struct TypicalRefTest
 
 };
 
+struct TCacheComp
+{
+  bool operator()(const pair<string, QType>& a, const pair<string, QType>& b) const
+  {
+    int cmp=strcasecmp(a.first.c_str(), b.first.c_str());
+    if(cmp < 0)
+      return true;
+    if(cmp > 0)
+      return false;
+
+    return a.second < b.second;
+  }
+};
+
+struct NegCacheEntry
+{
+  string d_name;
+  QType d_qtype;
+  string d_qname;
+  uint32_t d_ttd;
+};
+
+struct timeval d_now;
+
+static bool magicAddrMatch(const QType& query, const QType& answer)
+{
+  if(query.getCode() != QType::ADDR)
+    return false;
+  return answer.getCode() == QType::A || answer.getCode() == QType::AAAA;
+}
+
+
+bool moreSpecificThan(const string& a, const string &b)
+{
+  static string dot(".");
+  int counta=(a!=dot), countb=(b!=dot);
+  
+  for(string::size_type n=0;n<a.size();++n)
+    if(a[n]=='.')
+      counta++;
+  for(string::size_type n=0;n<b.size();++n)
+    if(b[n]=='.')
+      countb++;
+  return counta>countb;
+}
+
 
 struct ParsePacketTest
 {
@@ -374,10 +436,177 @@ struct ParsePacketTest
   void operator()() const
   {
     MOADNSParser mdp((const char*)&*d_packet.begin(), d_packet.size());
+    typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;
+    tcache_t tcache;
+    
+    struct {
+            vector<DNSResourceRecord> d_result;
+            bool d_aabit;
+            int d_rcode;
+    } lwr;
+    DNSResourceRecord rr;
+    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+      DNSResourceRecord rr;
+      rr.qtype=i->first.d_type;
+      rr.qname=i->first.d_label;
+    
+      rr.ttl=i->first.d_ttl;
+      rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
+      rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
+      lwr.d_result.push_back(rr);
+    }
+
+    
+    
+
+      // reap all answers from this packet that are acceptable
+      for(vector<DNSResourceRecord>::iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
+        if(i->qtype.getCode() == QType::OPT) {
+          // <<prefix<<qname<<": skipping OPT answer '"<<i->qname<<"' from '"<<auth<<"' nameservers" <<endl;
+          continue;
+        }
+        // LOG<<prefix<<qname<<": accept answer '"<<i->qname<<"|"<<i->qtype.getName()<<"|"<<i->content<<"' from '"<<auth<<"' nameservers? ";
+        if(i->qtype.getCode()==QType::ANY) {
+          // LOG<<"NO! - we don't accept 'ANY' data"<<endl;
+          continue;
+        }
+        string auth(".");
+        if(dottedEndsOn(i->qname, auth)) {
+          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && 0) {
+            // LOG<<"NO! Is from delegation-only zone"<<endl;
+            // s_nodelegated++;
+            return; // RCode::NXDomain;
+          }
+          else {
+            // LOG<<"YES!"<<endl;
+
+          //  i->ttl=min(s_maxcachettl, i->ttl);
+            
+            DNSResourceRecord rr=*i;
+            rr.d_place=DNSResourceRecord::ANSWER;
+
+            // rr.ttl += d_now.tv_sec;
+
+            if(rr.qtype.getCode() == QType::NS) // people fiddle with the case
+              rr.content=toLower(rr.content); // this must stay! (the cache can't be case-insensitive on the RHS of records)
+            tcache[make_pair(i->qname,i->qtype)].insert(rr);
+          }
+        }	  
+        else
+          ; // LOG<<"NO!"<<endl;
+      }
+    
+      // supplant
+      for(tcache_t::iterator i=tcache.begin();i!=tcache.end();++i) {
+        if(i->second.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
+          uint32_t lowestTTL=numeric_limits<uint32_t>::max();
+          for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
+            lowestTTL=min(lowestTTL, j->ttl);
+          
+          for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
+            ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
+        }
+
+        // RC.replace(d_now.tv_sec, i->first.first, i->first.second, i->second, lwr.d_aabit);
+      }
+      set<string, CIStringCompare> nsset;  
+      // LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
+
+      bool done=false, realreferral=false, negindic=false;
+      string newauth, soaname, newtarget;
+      string qname(".");
+      vector<DNSResourceRecord> ret;
+      QType qtype(QType::A);
+      string auth(".");
+ 
+      for(vector<DNSResourceRecord>::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
+        if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
+           lwr.d_rcode==RCode::NXDomain) {
+          // LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"'"<<endl;
+          ret.push_back(*i);
+
+          NegCacheEntry ne;
+
+          ne.d_qname=i->qname;
+          ne.d_ttd=d_now.tv_sec + min(i->ttl, 3600U); // controversial
+          ne.d_name=qname;
+          ne.d_qtype=QType(0); // this encodes 'whole record'
+          
+          {
+            // Lock l(&s_negcachelock);
+            // replacing_insert(s_negcache, ne);
+          }
+          negindic=true;
+        }
+        else if(i->d_place==DNSResourceRecord::ANSWER && iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
+          ret.push_back(*i);
+          newtarget=i->content;
+        }
+        // for ANY answers we *must* have an authoritive answer
+        else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && 
+        	(
+        	 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) )
+        	) 
+               )   
+          {
+          
+          // LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
+
+          done=true;
+          ret.push_back(*i);
+        }
+        else if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::NS) { 
+          if(moreSpecificThan(i->qname,auth)) {
+            newauth=i->qname;
+            // LOG<<prefix<<qname<<": got NS record '"<<i->qname<<"' -> '"<<i->content<<"'"<<endl;
+            realreferral=true;
+          }
+          else 
+            ;// // LOG<<prefix<<qname<<": got upwards/level NS record '"<<i->qname<<"' -> '"<<i->content<<"', had '"<<auth<<"'"<<endl;
+          nsset.insert(i->content);
+        }
+        else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
+           lwr.d_rcode==RCode::NoError) {
+          // LOG<<prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+i->qtype.getName()+"'") <<endl;
+          ret.push_back(*i);
+          
+          NegCacheEntry ne;
+          ne.d_qname=i->qname;
+          ne.d_ttd=d_now.tv_sec + i->ttl;
+          ne.d_name=qname;
+          ne.d_qtype=qtype;
+          if(qtype.getCode()) {  // prevents us from blacking out a whole domain
+           // Lock l(&s_negcachelock);
+            // replacing_insert(s_negcache, ne);
+          }
+          negindic=true;
+        }
+      }
+
   }
   const vector<uint8_t>& d_packet;
   std::string d_name;
 };
+
+struct ParsePacketBareTest
+{
+  explicit ParsePacketBareTest(const vector<uint8_t>& packet, const std::string& name) 
+    : d_packet(packet), d_name(name)
+  {}
+
+  string getName() const
+  {
+    return "parse '"+d_name+"' bare";
+  }
+
+  void operator()() const
+  {
+    MOADNSParser mdp((const char*)&*d_packet.begin(), d_packet.size());
+  }
+  const vector<uint8_t>& d_packet;
+  std::string d_name;
+};
+
 
 struct SimpleCompressTest
 {
@@ -417,6 +646,54 @@ struct VectorExpandTest
 
 };
 
+
+
+struct IEqualsTest
+{
+  string getName() const
+  {
+    return "iequals test";
+  }
+
+  void operator()() const
+  {
+      static string a("www.ds9a.nl"), b("www.lwn.net");
+      bool ret = iequals(a, b);
+  }
+
+};
+
+struct MyIEqualsTest
+{
+  string getName() const
+  {
+    return "pdns_iequals test";
+  }
+
+  void operator()() const
+  {
+      static string a("www.ds9a.nl"), b("www.lwn.net");
+      bool ret = pdns_iequals(a, b);
+  }
+
+};
+
+
+struct StrcasecmpTest
+{
+  string getName() const
+  {
+    return "strcasecmp test";
+  }
+
+  void operator()() const
+  {
+      static string a("www.ds9a.nl"), b("www.lwn.net");
+      bool ret = strcasecmp(a.c_str(), b.c_str());
+  }
+};
+
+
 struct NOPTest
 {
   string getName() const
@@ -438,9 +715,16 @@ try
   reportAllTypes();
   signal(SIGVTALRM, alarmHandler);
   
-  //  doRun(NOPTest());
+  doRun(NOPTest());
+  
+  doRun(IEqualsTest());
+  doRun(MyIEqualsTest());
+  doRun(StrcasecmpTest());
+
+  doRun(StackMallocTest());
 
   vector<uint8_t> packet = makeRootReferral();
+  doRun(ParsePacketBareTest(packet, "root-referral"));
   doRun(ParsePacketTest(packet, "root-referral"));
 
   doRun(RootRefTest());
@@ -454,11 +738,13 @@ try
 
   packet = makeTypicalReferral();
   cerr<<"typical referral size: "<<packet.size()<<endl;
-  doRun(ParsePacketTest(packet, "typical-referral"));
+  doRun(ParsePacketBareTest(packet, "typical-referral"));
 
+  doRun(ParsePacketTest(packet, "typical-referral"));
 
   doRun(SimpleCompressTest("www.france.ds9a.nl"));
 
+  
   doRun(VectorExpandTest());
 
   doRun(ARecordTest(1));
