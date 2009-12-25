@@ -105,7 +105,7 @@ string doDumpCache(T begin, T end)
   if(fd < 0) 
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
 
-  RC.doDumpAndClose(fd); 
+  t_RC->doDumpAndClose(fd); // RC MULTI FIXME
 
   return "done\n";
 }
@@ -133,12 +133,11 @@ string doWipeCache(T begin, T end)
 {
   int count=0, countNeg=0;
   for(T i=begin; i != end; ++i) {
-    count+=RC.doWipeCache(toCanonic("", *i));
+    count+=t_RC->doWipeCache(toCanonic("", *i));  // RC MULTI FIXME
     string canon=toCanonic("", *i);
-    Lock l(&SyncRes::s_negcachelock);
-    countNeg+=SyncRes::s_negcache.count(tie(canon));
-    pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::s_negcache.equal_range(tie(canon));
-    SyncRes::s_negcache.erase(range.first, range.second);
+    countNeg+=SyncRes::t_sstorage->negcache.count(tie(canon));
+    pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::t_sstorage->negcache.equal_range(tie(canon));
+    SyncRes::t_sstorage->negcache.erase(range.first, range.second);
   }
 
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
@@ -147,7 +146,7 @@ string doWipeCache(T begin, T end)
 template<typename T>
 string doSlashCache(T begin, T end)
 {
-  RC.doSlash(10);
+  t_RC->doSlash(10); // RC MULTI FIXME
 
   return "done\n";
 }
@@ -210,16 +209,12 @@ static string doCurrentQueries()
 
 uint64_t getNegCacheSize()
 {
-  Lock l(&SyncRes::s_negcachelock);
-
-  return SyncRes::s_negcache.size();
+  return SyncRes::t_sstorage->negcache.size();
 }
 
 uint64_t getNsSpeedsSize()
 {
-  Lock l(&SyncRes::s_nsSpeedslock);
-
-  return SyncRes::s_nsSpeeds.size();
+  return SyncRes::t_sstorage->nsSpeeds.size();
 }
 
 
@@ -228,10 +223,10 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("questions", &g_stats.qcounter);
   addGetStat("tcp-questions", &g_stats.tcpqcounter);
 
-  addGetStat("cache-hits", &RC.cacheHits);
-  addGetStat("cache-misses", &RC.cacheMisses);
+  addGetStat("cache-hits", &t_RC->cacheHits);  // RC MULTI FIXME
+  addGetStat("cache-misses", &t_RC->cacheMisses); // RC MULTI FIXME
 
-  addGetStat("cache-entries", boost::bind(&MemRecursorCache::size, boost::ref(RC)));
+  addGetStat("cache-entries", boost::bind(&MemRecursorCache::size, boost::ref(*t_RC)));  // RC MULTI FIXME
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
@@ -268,7 +263,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("noshunt-wrong-type", &g_stats.noShuntWrongType);
 
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
-  addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, boost::ref(SyncRes::s_throttle)));
+  addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, boost::ref(SyncRes::t_sstorage->throttle)));
 
   addGetStat("negcache-entries", boost::bind(getNsSpeedsSize));
 
@@ -352,6 +347,9 @@ string doTopRemotes()
   return ret.str();
 }
 
+static void nopFunction()
+{}
+
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
@@ -423,6 +421,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doCurrentQueries();
   
   if(cmd=="ping") {
+    broadcastFunction(nopFunction);
     return "pong\n";
   }
 

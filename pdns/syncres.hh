@@ -19,9 +19,10 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
-#include "lock.hh"
 
 void primeHints(void);
+
+
 
 struct NegCacheEntry
 {
@@ -37,14 +38,12 @@ template<class Thing> class Throttle : public boost::noncopyable
 public:
   Throttle()
   {
-    pthread_mutex_init(&d_lock, NULL);
     d_limit=3;
     d_ttl=60;
     d_last_clean=time(0);
   }
   bool shouldThrottle(time_t now, const Thing& t)
   {
-    Lock l(&d_lock);
     if(now > d_last_clean + 300 ) {
 
       d_last_clean=now;
@@ -68,7 +67,6 @@ public:
   }
   void throttle(time_t now, const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
   {
-    Lock l(&d_lock);
     typename cont_t::iterator i=d_cont.find(t);
     entry e={ now+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
 
@@ -81,7 +79,6 @@ public:
   
   unsigned int size()
   {
-    Lock l(&d_lock);
     return (unsigned int)d_cont.size();
   }
 private:
@@ -95,7 +92,6 @@ private:
   };
   typedef map<Thing,entry> cont_t;
   cont_t d_cont;
-  pthread_mutex_t d_lock;
 };
 
 
@@ -166,54 +162,6 @@ private:
 };
 
 
-class PulseRate
-{
-public:
-  PulseRate() :  d_val(0.0) 
-  {
-    Utility::gettimeofday(&d_last, 0);
-  }
-
-  PulseRate(const PulseRate& orig) : d_last(orig.d_last), d_val(orig.d_val)
-  {
-  }
-
-  void pulse(const struct timeval& now)
-  {
-    //    cout<<"about to submit: "<< 1000.0*makeFloat(now - d_last)<<"\n";
-    submit((int)(1000.0*(makeFloat(now-d_last))), now);
-  }
-
-  optional<float> get(struct timeval& now, unsigned int limit) const
-  {
-    optional<float> ret;
-    float diff=makeFloat(now - d_last);
-    if(diff < limit)
-      ret=d_val;
-    return ret;
-  }
-
-  bool stale(time_t limit) const
-  {
-    return limit > d_last.tv_sec;
-  }
-
-private:
-  void submit(int val, const struct timeval& now)
-  {
-    float diff= makeFloat(d_last - now);
-
-    d_last=now;
-    double factor=exp(diff/2.0)/2.0; // might be '0.5', or 0.0001
-    d_val=(float)((1-factor)*val+ (float)factor*d_val); 
-  }
-
-  PulseRate& operator=(const PulseRate&);
-  struct timeval d_last;          // stores time
-  float d_val;
-};
-
-
 class SyncRes : public boost::noncopyable
 {
 public:
@@ -221,7 +169,9 @@ public:
         					 d_now(now),
         					 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) 
   { 
-
+    if(!t_sstorage) {
+      t_sstorage = new StaticStorage();
+    }
   }
 
   int beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
@@ -285,9 +235,9 @@ public:
            member<NegCacheEntry, uint32_t, &NegCacheEntry::d_ttd>
        >
     >
-  >negcache_t;
-  static negcache_t s_negcache;    
-  static pthread_mutex_t s_negcachelock;
+  > negcache_t;
+  
+  
 
   //! This represents a number of decaying Ewmas, used to store performance per namerserver-name. 
   /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
@@ -340,8 +290,7 @@ public:
   };
 
   typedef map<string, DecayingEwmaCollection, CIStringCompare> nsspeeds_t;
-  static nsspeeds_t s_nsSpeeds;
-  static pthread_mutex_t s_nsSpeedslock;
+  
 
   struct EDNSStatus
   {
@@ -353,8 +302,7 @@ public:
 
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
 
-  static ednsstatus_t s_ednsstatus;
-  static pthread_mutex_t s_ednslock;
+  
 
   static bool s_noEDNSPing;
   static bool s_noEDNS;
@@ -380,10 +328,10 @@ public:
   
 
   typedef map<string, AuthDomain, CIStringCompare> domainmap_t;
-  static domainmap_t s_domainmap;
+  
 
   typedef Throttle<tuple<ComboAddress,string,uint16_t> > throttle_t;
-  static throttle_t s_throttle;
+  
   struct timeval d_now;
   static unsigned int s_maxnegttl;
   static unsigned int s_maxcachettl;
@@ -391,6 +339,15 @@ public:
   static unsigned int s_packetcacheservfailttl;
   static bool s_nopacketcache;
   static string s_serverID;
+
+  struct StaticStorage {
+    negcache_t negcache;    
+    nsspeeds_t nsSpeeds;
+    ednsstatus_t ednsstatus;
+    throttle_t throttle;
+    domainmap_t* domainmap;
+  };
+  static __thread StaticStorage* t_sstorage;
 
 private:
   struct GetBestNSAnswer;
@@ -409,10 +366,6 @@ private:
   inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
   vector<ComboAddress> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
-
-  SyncRes(const SyncRes&);
-  SyncRes& operator=(const SyncRes&);
-
 
 private:
   string d_prefix;
@@ -498,7 +451,7 @@ struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>
     return pdns_ilexicographical_compare(a.domain, b.domain);
   }
 };
-extern MemRecursorCache RC;
+extern __thread MemRecursorCache* t_RC;
 typedef MTasker<PacketID,string> MT_t;
 extern __thread MT_t* MT;
 
@@ -507,7 +460,6 @@ struct RecursorStats
   uint64_t servFails;
   uint64_t nxDomains;
   uint64_t noErrors;
-  PulseRate queryrate;
   uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
   uint64_t avgLatencyUsec;
   uint64_t qcounter;
@@ -562,4 +514,7 @@ replacing_insert(Index& i,const typename Index::value_type& x)
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
+typedef boost::function<void(void)> pipefunc_t;
+void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
+SyncRes::domainmap_t* parseAuthAndForwards();
 #endif

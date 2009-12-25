@@ -37,17 +37,7 @@
 #include "dns_random.hh"
 #include "lock.hh"
 
-extern MemRecursorCache RC;
-
-pthread_mutex_t SyncRes::s_negcachelock =  PTHREAD_MUTEX_INITIALIZER;
-SyncRes::negcache_t SyncRes::s_negcache;    
-
-pthread_mutex_t SyncRes::s_nsSpeedslock =  PTHREAD_MUTEX_INITIALIZER;
-SyncRes::nsspeeds_t SyncRes::s_nsSpeeds;    
-
-pthread_mutex_t SyncRes::s_ednslock =  PTHREAD_MUTEX_INITIALIZER;
-SyncRes::ednsstatus_t SyncRes::s_ednsstatus;
-
+__thread SyncRes::StaticStorage* SyncRes::t_sstorage;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxcachettl;
@@ -63,13 +53,11 @@ unsigned int SyncRes::s_unreachables;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 
-SyncRes::domainmap_t SyncRes::s_domainmap;
 string SyncRes::s_serverID;
 bool SyncRes::s_log;
 
 #define LOG if(s_log) L<<Logger::Warning
 
-SyncRes::throttle_t SyncRes::s_throttle;
 bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
 
@@ -135,7 +123,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   string authdomain(qname);
 
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
-  if(iter==s_domainmap.end()) {
+  if(iter==t_sstorage->domainmap->end()) {
     LOG<<prefix<<qname<<": auth storage has no zone for this query!"<<endl;
     return false;
   }
@@ -209,8 +197,7 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   FILE* fp=fdopen(fd, "w");
   fprintf(fp,"IP Address\tMode\tMode last updated at\n");
 
-  Lock l(&SyncRes::s_ednslock);
-  for(ednsstatus_t::const_iterator iter = s_ednsstatus.begin(); iter != s_ednsstatus.end(); ++iter) {
+  for(ednsstatus_t::const_iterator iter = t_sstorage->ednsstatus.begin(); iter != t_sstorage->ednsstatus.end(); ++iter) {
     fprintf(fp, "%s\t%d\t%s", iter->first.toString().c_str(), (int)iter->second.mode, ctime(&iter->second.modeSetAt));
   }
 
@@ -255,10 +242,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
   }
 
   SyncRes::EDNSStatus* ednsstatus;
-  {
-    Lock l(&SyncRes::s_ednslock);
-    ednsstatus = &SyncRes::s_ednsstatus[ip];
-  }
+  ednsstatus = &t_sstorage->ednsstatus[ip];
 
   if(ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
     *ednsstatus=SyncRes::EDNSStatus();
@@ -369,7 +353,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
       LOG<<prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl;
       string authname(qname);
       domainmap_t::const_iterator iter=getBestAuthZone(&authname);
-      if(iter != s_domainmap.end()) {
+      if(iter != t_sstorage->domainmap->end()) {
         const vector<ComboAddress>& servers = iter->second.d_servers;
         if(servers.empty()) {
           ret.clear();
@@ -452,12 +436,10 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
   if(ret.size() > 1) {
     random_shuffle(ret.begin(), ret.end(), dns_random);
 
-    Lock l(&SyncRes::s_nsSpeedslock);
-
     // move 'best' address for this nameserver name up front
-    nsspeeds_t::iterator best = s_nsSpeeds.find(qname);  
+    nsspeeds_t::iterator best = SyncRes::t_sstorage->nsSpeeds.find(qname);  
 
-    if(best != s_nsSpeeds.end())
+    if(best != t_sstorage->nsSpeeds.end())
       for(ret_t::iterator i=ret.begin(); i != ret.end(); ++i) {  
         if(*i==best->second.d_best) {  // got the fastest one
           if(i!=ret.begin()) {
@@ -485,14 +467,14 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
     LOG<<prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl;
     set<DNSResourceRecord> ns;
     *flawedNSSet = false;
-    if(RC.get(d_now.tv_sec, subdomain, QType(QType::NS), &ns) > 0) {
+    if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), &ns) > 0) {
       for(set<DNSResourceRecord>::const_iterator k=ns.begin();k!=ns.end();++k) {
         if(k->ttl > (unsigned int)d_now.tv_sec ) { 
           set<DNSResourceRecord> aset;
 
           DNSResourceRecord rr=*k;
           rr.content=k->content;
-          if(!dottedEndsOn(rr.content, subdomain) || RC.get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
+          if(!dottedEndsOn(rr.content, subdomain) || t_RC->get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
         						    s_log ? &aset : 0) > 5) {
             bestns.insert(rr);
             LOG<<prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl;
@@ -535,8 +517,8 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(string* qname)
 {
   SyncRes::domainmap_t::const_iterator ret;
   do {
-    ret=s_domainmap.find(*qname);
-    if(ret!=s_domainmap.end()) 
+    ret=t_sstorage->domainmap->find(*qname);
+    if(ret!=t_sstorage->domainmap->end()) 
       break;
   }while(chopOffDotted(*qname));
   return ret;
@@ -549,7 +531,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStrin
   string authdomain(qname);
   
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
-  if(iter!=s_domainmap.end()) {
+  if(iter!=t_sstorage->domainmap->end()) {
     if( iter->second.d_servers.empty() )
       nsset.insert(string()); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
     else {
@@ -587,7 +569,7 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   
   LOG<<prefix<<qname<<": Looking for CNAME cache hit of '"<<(qname+"|CNAME")<<"'"<<endl;
   set<DNSResourceRecord> cset;
-  if(RC.get(d_now.tv_sec, qname,QType(QType::CNAME),&cset) > 0) {
+  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME),&cset) > 0) {
 
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       if(j->ttl>(unsigned int) d_now.tv_sec) {
@@ -627,41 +609,38 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   uint32_t sttl=0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"'\n";
   
-  {
-    Lock l(&s_negcachelock); // protects s_negcache
-    
-    pair<negcache_t::const_iterator, negcache_t::const_iterator> range=s_negcache.equal_range(tie(qname));
-    negcache_t::iterator ni;
-    for(ni=range.first; ni != range.second; ni++) {
-      // we have something
-      if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
-        res=0;
-        if((uint32_t)d_now.tv_sec < ni->d_ttd) {
-          sttl=ni->d_ttd - d_now.tv_sec;
-          if(ni->d_qtype.getCode()) {
-            LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
-            res = RCode::NoError;
-          }
-          else {
-            LOG<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
-            res= RCode::NXDomain; 
-          }
-          giveNegative=true;
-          sqname=ni->d_qname;
-          sqt=QType::SOA;
-          break;
+  pair<negcache_t::const_iterator, negcache_t::const_iterator> range=t_sstorage->negcache.equal_range(tie(qname));
+  negcache_t::iterator ni;
+  for(ni=range.first; ni != range.second; ni++) {
+    // we have something
+    if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
+      res=0;
+      if((uint32_t)d_now.tv_sec < ni->d_ttd) {
+        sttl=ni->d_ttd - d_now.tv_sec;
+        if(ni->d_qtype.getCode()) {
+          LOG<<prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
+          res = RCode::NoError;
         }
         else {
-          LOG<<prefix<<qname<<": Entire record '"<<qname<<"' was negatively cached, but entry expired"<<endl;
+          LOG<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
+          res= RCode::NXDomain; 
         }
+        giveNegative=true;
+        sqname=ni->d_qname;
+        sqt=QType::SOA;
+        break;
+      }
+      else {
+        LOG<<prefix<<qname<<": Entire record '"<<qname<<"' was negatively cached, but entry expired"<<endl;
       }
     }
   }
 
+
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
 
-  if(RC.get(d_now.tv_sec, sqname, sqt, &cset) > 0) {
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset) > 0) {
     LOG<<prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ";
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG<<j->content;
@@ -728,10 +707,7 @@ inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> 
   for(set<string, CIStringCompare>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
     rnameservers.push_back(*i);
     double speed;
-    {
-      Lock l(&SyncRes::s_nsSpeedslock);
-      speed=s_nsSpeeds[*i].get(&d_now);
-    }
+    speed=t_sstorage->nsSpeeds[*i].get(&d_now);
     speeds[*i]=speed;
   }
   random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
@@ -796,7 +772,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         LOG<<prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl;
         if(auth!="." && flawedNSSet) {
           LOG<<prefix<<qname<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl;
-          if(RC.doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
+          if(t_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
             g_stats.nsSetInvalidations++;
         }
         return -1;
@@ -861,7 +837,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           LOG<<prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl;
           extern NetmaskGroup* g_dontQuery;
           
-          if(s_throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
+          if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
             LOG<<prefix<<qname<<": query throttled "<<endl;
             s_throttledqueries++; d_throttledqueries++;
             continue;
@@ -898,13 +874,13 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               
               if(resolveret!=-2) { // don't account for resource limits, they are our own fault
         	{
-        	  Lock l(&SyncRes::s_nsSpeedslock);
-        	  s_nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
+        	  
+        	  t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
         	}
         	if(resolveret==-1)
-        	  s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable
+        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable
         	else
-        	  s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 20, 5);  // timeout
+        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 20, 5);  // timeout
               }
               continue;
             }
@@ -912,7 +888,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             break;  // this IP address worked!
           wasLame:; // well, it didn't
             LOG<<prefix<<qname<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl;
-            s_throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
+            t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
           }
         }
         
@@ -931,7 +907,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         
         if(lwr.d_rcode==RCode::ServFail) {
           LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling IP or NS"<<endl;
-          s_throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
+          t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
           continue;
         }
         LOG<<prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", in "<<lwr.d_usec/1000<<"ms"<<endl;
@@ -944,8 +920,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         double fract = 0.001;
         g_avgLatency = (1-fract) * g_avgLatency + fract * lwr.d_usec;
 
-        Lock l(&SyncRes::s_nsSpeedslock);
-        s_nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
+        t_sstorage->nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
       }
 
       typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;
@@ -999,7 +974,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
         }
 
-        RC.replace(d_now.tv_sec, i->first.first, i->first.second, i->second, lwr.d_aabit);
+        t_RC->replace(d_now.tv_sec, i->first.first, i->first.second, i->second, lwr.d_aabit);
       }
       set<string, CIStringCompare> nsset;  
       LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
@@ -1020,10 +995,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           ne.d_name=qname;
           ne.d_qtype=QType(0); // this encodes 'whole record'
           
-          {
-            Lock l(&s_negcachelock);
-            replacing_insert(s_negcache, ne);
-          }
+          replacing_insert(t_sstorage->negcache, ne);
+          
           negindic=true;
         }
         else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
@@ -1064,8 +1037,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           ne.d_name=qname;
           ne.d_qtype=qtype;
           if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-            Lock l(&s_negcachelock);
-            replacing_insert(s_negcache, ne);
+            replacing_insert(t_sstorage->negcache, ne);
           }
           negindic=true;
         }
