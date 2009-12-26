@@ -75,6 +75,9 @@ unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
 __thread shared_ptr<PowerDNSLua>* t_pdl;
 
+RecursorControlChannel s_rcc; // only active in thread 0
+
+// for communicating with our threads
 struct ThreadPipeSet
 {
   int writeToThread;
@@ -83,12 +86,11 @@ struct ThreadPipeSet
   int readFromThread;
 };
 
-vector<ThreadPipeSet> g_pipes;
+vector<ThreadPipeSet> g_pipes; // effectively readonly after startup
 
-SyncRes::domainmap_t* g_initialDomainMap;
+SyncRes::domainmap_t* g_initialDomainMap; // new threads needs this to be setup
 
 #include "namespaces.hh"
-
 
 __thread MemRecursorCache* t_RC;
 static __thread RecursorPacketCache* t_packetCache;
@@ -104,11 +106,14 @@ string s_programname="pdns_recursor";
 typedef vector<int> tcpListenSockets_t;
 tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
 int g_tcpTimeout;
-
+struct timeval g_now; // timestamp, updated (too) frequently
 map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
+
+__thread MT_t* MT; // the big MTasker
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10"
 
+//! used to send information to a newborn mthread
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), 
         											        d_tcp(false), d_socket(-1)
@@ -142,10 +147,6 @@ ArgvMap &arg()
   return theArg;
 }
 
-struct timeval g_now;
-typedef vector<int> tcpserversocks_t;
-
-__thread MT_t* MT; // the big MTasker
 
 void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
 
@@ -195,6 +196,7 @@ int arecvtcp(string& data, int len, Socket* sock)
 vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6; 
 ComboAddress g_local4("0.0.0.0"), g_local6("::");
 
+//! pick a random query local address
 ComboAddress getQueryLocalAddress(int family, uint16_t port)
 {
   ComboAddress ret;
@@ -217,6 +219,32 @@ ComboAddress getQueryLocalAddress(int family, uint16_t port)
 }
 
 void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t&);
+
+void setSocketBuffer(int fd, int optname, uint32_t size)
+{
+  uint32_t psize=0;
+  socklen_t len=sizeof(psize);
+  
+  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
+    L<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
+    return; 
+  }
+
+  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
+    L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+}
+
+
+static void setSocketReceiveBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_RCVBUF, size);
+}
+
+static void setSocketSendBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_SNDBUF, size);
+}
+
 
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it
@@ -316,7 +344,6 @@ public:
 
 static __thread UDPClientSocks* t_udpclientsocks;
 
-
 /* these two functions are used by LWRes */
 // -2 is OS error, -1 is error that depends on the remote, > 0 is success
 int asendto(const char *data, int len, int flags, 
@@ -400,30 +427,6 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
   return ret;
 }
 
-void setSocketBuffer(int fd, int optname, uint32_t size)
-{
-  uint32_t psize=0;
-  socklen_t len=sizeof(psize);
-  
-  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
-    L<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
-    return; 
-  }
-
-  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
-}
-
-
-static void setSocketReceiveBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_RCVBUF, size);
-}
-
-static void setSocketSendBuffer(int fd, uint32_t size)
-{
-  setSocketBuffer(fd, SO_SNDBUF, size);
-}
 
 string s_pidfname;
 static void writePid(void)
@@ -531,7 +534,6 @@ void startDoResolve(void *p)
       if(ret.size()) {
         shuffle(ret);
         
-//        for(int n=0; n< 50 && packet.size() < 65506; ++n) 
         for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
           pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
           minTTL = min(minTTL, i->ttl);
@@ -643,8 +645,6 @@ void startDoResolve(void *p)
     L<<Logger::Error<<"Any other exception in a resolver context"<<endl;
   }
 }
-
-RecursorControlChannel s_rcc;
 
 void makeControlChannelSocket()
 {
@@ -1339,8 +1339,6 @@ void doReloadLuaScript()
   L<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
 }
 
-  
-
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
 {
   if(begin != end) 
@@ -1353,7 +1351,7 @@ string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<strin
 
 void* recursorThread(void*);
 
-void supplantACLs(NetmaskGroup *ng)
+void pleaseSupplantACLs(NetmaskGroup *ng)
 {
   t_allowFrom = ng;
 }
@@ -1415,7 +1413,7 @@ void parseACLs()
   }
   
   g_initialAllowFrom = allowFrom;
-  broadcastFunction(boost::bind(supplantACLs, allowFrom));
+  broadcastFunction(boost::bind(pleaseSupplantACLs, allowFrom));
   delete oldAllowFrom;
   
   l_initialized = true;
@@ -1568,6 +1566,7 @@ int serviceMain(int argc, char*argv[])
   }
   return 0;
 }
+
 
 void* recursorThread(void* ptr)
 try
