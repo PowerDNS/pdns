@@ -7,15 +7,10 @@
 
 RecursorPacketCache::RecursorPacketCache()
 {
-  pthread_rwlock_init(&d_rwlock, 0);
 }
 
 bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time_t now, std::string* responsePacket)
 {
-  TryReadLock l(&d_rwlock);
-  if(!l.gotIt())
-    return false; 
-
   struct Entry e;
   e.d_packet=queryPacket;
   
@@ -31,10 +26,6 @@ bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time
 
 void RecursorPacketCache::insertResponsePacket(const std::string& responsePacket, time_t now, uint32_t ttl)
 {
-  TryWriteLock l(&d_rwlock);
-  if(!l.gotIt())
-    return;
-    
   struct Entry e;
   e.d_packet = responsePacket;
   e.d_ttd = now+ttl;
@@ -46,4 +37,5 @@ void RecursorPacketCache::insertResponsePacket(const std::string& responsePacket
   else 
     d_packetCache.insert(e);
 }
+
 
