@@ -57,7 +57,7 @@ string dns0x20(const std::string& in)
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResultResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -183,6 +183,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
       DNSResourceRecord rr;
+      rr.priority = 0;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;
       /* 

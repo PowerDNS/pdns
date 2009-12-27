@@ -956,6 +956,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 
             if(rr.qtype.getCode() == QType::NS) // people fiddle with the case
               rr.content=toLower(rr.content); // this must stay! (the cache can't be case-insensitive on the RHS of records)
+            
             tcache[make_pair(i->qname,i->qtype)].insert(rr);
           }
         }	  
@@ -1029,7 +1030,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
            lwr.d_rcode==RCode::NoError) {
           LOG<<prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+i->qtype.getName()+"'") <<endl;
-          ret.push_back(*i);
+          if(!newtarget.empty())
+            ret.push_back(*i);
           
           NegCacheEntry ne;
           ne.d_qname=i->qname;
