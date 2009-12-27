@@ -57,7 +57,7 @@ string dns0x20(const std::string& in)
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResultResult *lwr)
+int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -186,12 +186,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       rr.priority = 0;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;
-      /* 
-      if(i->first.d_label == mapped0x20)
-        rr.qname=domain;
-      else
-        rr.qname=i->first.d_label;
-      */
+    
       rr.ttl=i->first.d_ttl;
       rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
       rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
