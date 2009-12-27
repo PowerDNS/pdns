@@ -244,6 +244,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
     if(unescaped) {
       string part(label.c_str() + i -> first, i->second - i->first);
       boost::replace_all(part, "\\.", ".");
+      boost::replace_all(part, "\\\\", "\\"); 
       d_record.push_back(part.size());
       unsigned int len=d_record.size();
       d_record.resize(len + part.size());
