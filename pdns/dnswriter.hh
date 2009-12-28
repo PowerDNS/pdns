@@ -115,4 +115,7 @@ private:
   Place d_recordplace;
   bool d_canonic;
 };
+
+typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
+bool labeltokUnescape(labelparts_t& parts, const string& label);
 #endif

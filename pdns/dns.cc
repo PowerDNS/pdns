@@ -48,7 +48,7 @@ private:
 bool dnspacketLessThan(const std::string& a, const std::string& b)
 {
   if(a.length() < 12 || b.length() < 12) 
-    throw runtime_error("Error parsing question in incoming packet: packet too short");
+    throw runtime_error("Error parsing question in dnspacket comparison: packet too short");
     
   // we find: 3www4ds9a2nl0XXYY, where XX and YY are each 2 bytes describing class and type
   
@@ -104,7 +104,6 @@ string questionExpand(const char* packet, uint16_t len, uint16_t& type)
   
   if(!*pos)
     ret.assign(1, '.');
-
   
   while((labellen=*pos++) && pos < end) { // "scan and copy"
     if(pos + labellen > end)

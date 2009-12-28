@@ -170,9 +170,7 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const stri
   return ret;
 }
 
-typedef vector<pair<string::size_type, string::size_type> > parts_t;
-
-bool labeltokUnescape(parts_t& parts, const string& label)
+bool labeltokUnescape(labelparts_t& parts, const string& label)
 {
   string::size_type epos = label.size(), lpos(0), pos;
   bool unescapedSomething = false;
@@ -200,7 +198,7 @@ bool labeltokUnescape(parts_t& parts, const string& label)
 // this is the absolute hottest function in the pdns recursor 
 void DNSPacketWriter::xfrLabel(const string& label, bool compress)
 {
-  parts_t parts;
+  labelparts_t parts;
 
   if(d_canonic)
     compress=false;
@@ -218,7 +216,7 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
   string chopped;
   bool deDot = labellen && (label[labellen-1]=='.'); // make sure we don't store trailing dots in the labelmap
 
-  for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
+  for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
     if(deDot)
       chopped.assign(label.c_str() + i->first, labellen - i->first -1);
     else
@@ -245,6 +243,8 @@ void DNSPacketWriter::xfrLabel(const string& label, bool compress)
       string part(label.c_str() + i -> first, i->second - i->first);
       boost::replace_all(part, "\\.", ".");
       boost::replace_all(part, "\\\\", "\\"); 
+      if(part.size() > 255)
+          throw MOADNSException("DNSPacketWriter::xfrLabel() tried to write an overly large label");
       d_record.push_back(part.size());
       unsigned int len=d_record.size();
       d_record.resize(len + part.size());

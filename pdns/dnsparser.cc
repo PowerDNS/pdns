@@ -74,19 +74,31 @@ private:
   vector<uint8_t> d_record;
 };
 
-static const string EncodeDNSLabel(const string& input)  
+// transit between human dns label and packet, terribad!
+static const string EncodeDNSLabel(const string& input) 
 {  
-  typedef vector<string> parts_t;  
-  parts_t parts;  
-  stringtok(parts,input,".");             	 
-  string ret;  
-  for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {  
-    ret.append(1,(char)i->length());  
-    ret.append(*i);  
-  }  
-  ret.append(1,(char)0);  
-  return ret;  
+  labelparts_t parts;
+  bool unescapedSomething = labeltokUnescape(parts, input);
+  string ret;
+  if(!unescapedSomething) {
+    for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
+      ret.append(1, i->second);
+      ret.append(i->first, i->second);
+    }
+
+  } else {
+    for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
+      string part(i->first, i->second);
+      boost::replace_all(part, "\\\\", "\\"); 
+      boost::replace_all(part, "\\.", ".");   
+    
+      ret.append(1, part.length());
+      ret.append(part);
+    }  
+  }    
+  ret.append(1, 0);
 }  
+
 
 shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, uint16_t qtype, const string& serialized)
 {
