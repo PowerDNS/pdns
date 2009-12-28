@@ -220,9 +220,9 @@ bool PipeBackend::get(DNSResourceRecord &r)
          r.ttl=atoi(parts[4].c_str());
          r.domain_id=atoi(parts[5].c_str());
  
-         if(parts[3]!="MX") {
+         if(parts[3]!="MX" && parts[3] != "SRV") {
            r.content.clear();
-           for(int n=6; n < parts.size(); ++n) {
+           for(unsigned int n=6; n < parts.size(); ++n) {
              if(n!=6)
                r.content.append(1,' ');
              r.content.append(parts[n]);
@@ -230,13 +230,12 @@ bool PipeBackend::get(DNSResourceRecord &r)
          }
          else {
            if(parts.size()<8) {
-            L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX line in data section for query for "<<d_qname<<endl;
-            throw AhuException("Format error communicating with coprocess in data section of MX record");
+            L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX/SRV line in data section for query for "<<d_qname<<endl;
+            throw AhuException("Format error communicating with coprocess in data section of MX/SRV record");
            }
            
            r.priority=atoi(parts[6].c_str());
            r.content=parts[7];
-
          }
          break;
       }
