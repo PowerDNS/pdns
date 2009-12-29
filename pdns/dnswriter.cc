@@ -170,6 +170,7 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const stri
   return ret;
 }
 
+//! tokenize a label into parts, the parts describe a begin offset and an end offset
 bool labeltokUnescape(labelparts_t& parts, const string& label)
 {
   string::size_type epos = label.size(), lpos(0), pos;
