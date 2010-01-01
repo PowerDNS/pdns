@@ -1,6 +1,6 @@
 #define SYSCONFDIR "/etc/powerdns/" 
 #define LOCALSTATEDIR "/var/run/" 
-#define VERSION "3.1.8-testing"
+#define VERSION "3.2-testing"
 #define RECURSOR
 #ifndef WIN32
 
