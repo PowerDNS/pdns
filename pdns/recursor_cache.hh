@@ -28,8 +28,7 @@ class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 public:
   MemRecursorCache() : d_followRFC2181(false), d_cachecachevalid(false)
   {
-    pthread_rwlock_init(&d_rwlock, 0);
-    //    cerr<<"ce: "<<sizeof(CacheEntry)<<", sr: "<<sizeof(struct StoredRecord)<<endl;
+    cacheHits = cacheMisses = 0;
   }
   unsigned int size();
   unsigned int bytes();
@@ -109,9 +108,6 @@ private:
   string d_cachedqname;
   bool d_cachecachevalid;
   bool attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored);
-
-  pthread_rwlock_t d_rwlock;
-  // boost::shared_mutex d_smutex;
 };
 string DNSRR2String(const DNSResourceRecord& rr);
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd);

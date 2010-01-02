@@ -5,7 +5,6 @@
 #include "dnsrecords.hh"
 #include "arguments.hh"
 #include "syncres.hh"
-#include "lock.hh"
 #include "recursor_cache.hh"
 
 using namespace std;
@@ -105,21 +104,17 @@ unsigned int MemRecursorCache::bytes()
 int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
 {
   unsigned int ttd=0;
-  {
-    WriteLock wl(&d_rwlock);
-    //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
+  //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
 
-    if(!d_cachecachevalid || !pdns_iequals(d_cachedqname, qname)) {
-      //    cerr<<"had cache cache miss"<<endl;
-      d_cachedqname=qname;
-      d_cachecache=d_cache.equal_range(tie(qname));
-      d_cachecachevalid=true;
-    }
-    else
-      //    cerr<<"had cache cache hit!"<<endl;
-      ;
+  if(!d_cachecachevalid || !pdns_iequals(d_cachedqname, qname)) {
+    //    cerr<<"had cache cache miss"<<endl;
+    d_cachedqname=qname;
+    d_cachecache=d_cache.equal_range(tie(qname));
+    d_cachecachevalid=true;
   }
-  ReadLock l(&d_rwlock);
+  else
+    //    cerr<<"had cache cache hit!"<<endl;
+    ;
 
   if(res)
     res->clear();
@@ -130,7 +125,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
          (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )
          ) {
         typedef cache_t::nth_index<1>::type sequence_t;
-        //	sequence_t& sidx=d_cache.get<1>();
+        sequence_t& sidx=d_cache.get<1>();
         sequence_t::iterator si=d_cache.project<1>(i);
         
         for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
@@ -143,14 +138,10 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
           }
         }
         if(res) {
-
-
-#if 0 // XXX FIXME removed because of threading - sidx should not be touched holding just a readlock!
           if(res->empty())
             sidx.relocate(sidx.begin(), si); 
           else
             sidx.relocate(sidx.end(), si); 
-#endif
         }
         if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
           break;
@@ -166,7 +157,6 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
  
 bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored)
 {
-  //  WriteLock wl(&d_rwlock); (holds the lock already)
   if(!stored.d_auth) {
 //    cerr<<"feel free to scribble non-auth data!"<<endl;
     return false;
@@ -198,7 +188,6 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResou
    touched, but only given a new ttd */
 void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth)
 {
-  WriteLock wl(&d_rwlock);
   d_cachecachevalid=false;
   tuple<string, uint16_t> key=make_tuple(qname, qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
@@ -295,7 +284,6 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
 
 int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
 {
-  WriteLock wl(&d_rwlock);
   int count=0;
   d_cachecachevalid=false;
   pair<cache_t::iterator, cache_t::iterator> range;
@@ -313,7 +301,6 @@ int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
 
 bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL)
 {
-  WriteLock wl(&d_rwlock);
   cache_t::iterator iter = d_cache.find(tie(name, qtype));
   if(iter == d_cache.end()) 
     return false;
@@ -342,7 +329,6 @@ bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype
 
 void MemRecursorCache::doDumpAndClose(int fd)
 {
-  WriteLock wl(&d_rwlock);
   FILE* fp=fdopen(fd, "w");
   if(!fp) {
     close(fd);
@@ -374,7 +360,6 @@ void MemRecursorCache::doSlash(int perc)
 
 void MemRecursorCache::doPrune(void)
 {
-  WriteLock wl(&d_rwlock);
   uint32_t now=(uint32_t)time(0);
   d_cachecachevalid=false;
 
