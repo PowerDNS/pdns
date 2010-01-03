@@ -1127,8 +1127,8 @@ void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
   }
   
   void *resp = (*func)();
-  delete resp;
-  if(write(g_pipes[t_id].writeFromThread, &ptr, sizeof(ptr)) != sizeof(ptr))
+  
+  if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp))
     unixDie("write to thread pipe returned wrong size or error");
   
   delete func;
@@ -1601,6 +1601,10 @@ int serviceMain(int argc, char*argv[])
   makeControlChannelSocket();        
 
   makeThreadPipes();
+  
+  g_tcpTimeout=::arg().asNum("client-tcp-timeout");
+  g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+  
   int numThreads = ::arg().asNum("threads");
   if(numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
@@ -1619,7 +1623,6 @@ int serviceMain(int argc, char*argv[])
   }
   return 0;
 }
-
 
 void* recursorThread(void* ptr)
 try
@@ -1686,8 +1689,6 @@ try
 #endif 
   
   unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
-  g_tcpTimeout=::arg().asNum("client-tcp-timeout");
-  g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   
   bool listenOnTCP(true);
 
