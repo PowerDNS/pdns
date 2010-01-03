@@ -19,7 +19,7 @@ bin_PROGRAMS = pdns_control
 endif
 
 
-EXTRA_PROGRAMS=pdns_recursor sdig speedtest dnspbench pdns_control dnsscope dnsgram \
+EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest dnspbench pdns_control dnsscope dnsgram \
  dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
@@ -50,6 +50,11 @@ pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREAD
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc
+
+tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
+	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
+	logger.cc statbag.cc qtype.cc sillyrecords.cc md5.cc
+
 
 speedtest_SOURCES=speedtest.cc dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
