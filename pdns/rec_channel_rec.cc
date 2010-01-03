@@ -128,28 +128,33 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
+static void* pleaseWipeCache(const std::string& canon)
+{
+  return new uint64_t(t_RC->doWipeCache(canon));
+}
+
+
+static void* pleaseWipeAndCountNegCache(const std::string& canon)
+{
+  uint64_t res = SyncRes::t_sstorage->negcache.count(tie(canon));
+  pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::t_sstorage->negcache.equal_range(tie(canon));
+  SyncRes::t_sstorage->negcache.erase(range.first, range.second);
+  return new uint64_t(res);
+}
+
 template<typename T>
 string doWipeCache(T begin, T end)
 {
   int count=0, countNeg=0;
   for(T i=begin; i != end; ++i) {
-    count+=t_RC->doWipeCache(toCanonic("", *i));  // RC MULTI FIXME
     string canon=toCanonic("", *i);
-    countNeg+=SyncRes::t_sstorage->negcache.count(tie(canon));
-    pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::t_sstorage->negcache.equal_range(tie(canon));
-    SyncRes::t_sstorage->negcache.erase(range.first, range.second);
+    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
+    countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
   }
 
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
 }
 
-template<typename T>
-string doSlashCache(T begin, T end)
-{
-  t_RC->doSlash(10); // RC MULTI FIXME
-
-  return "done\n";
-}
 
 #if 0  // broken!
 uint32_t getQueryRate()
@@ -185,7 +190,7 @@ static uint64_t calculateUptime()
   return time(0) - g_stats.startupTime;
 }
 
-static string doCurrentQueries()
+static void* pleaseGetCurrentQueries()
 {
   ostringstream ostr;
 
@@ -204,17 +209,83 @@ static string doCurrentQueries()
              );
   }
   ostr <<" - done\n";
-  return ostr.str();
+  return new string(ostr.str());
+}
+
+static string doCurrentQueries()
+{
+  return broadcastAccFunction<string>(pleaseGetCurrentQueries);
+}
+
+void* pleaseGetThrottleSize()
+{
+  return new uint64_t(SyncRes::t_sstorage->throttle.size());
+}
+
+static uint64_t getThrottleSize()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetThrottleSize);
+}
+
+void* pleaseGetNegCacheSize()
+{
+  uint64_t tmp=SyncRes::t_sstorage->negcache.size();
+  return new uint64_t(tmp);
 }
 
 uint64_t getNegCacheSize()
 {
-  return SyncRes::t_sstorage->negcache.size();
+  return broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize);
+}
+
+void* pleaseGetNsSpeedsSize()
+{
+  return new uint64_t(SyncRes::t_sstorage->nsSpeeds.size());
 }
 
 uint64_t getNsSpeedsSize()
 {
-  return SyncRes::t_sstorage->nsSpeeds.size();
+  return broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize);
+}
+
+void* pleaseGetConcurrentQueries()
+{
+  return new uint64_t(MT->numProcesses()); 
+}
+
+static uint64_t getConcurrentQueries()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries);
+}
+
+void* pleaseGetCacheSize()
+{
+  return new uint64_t(t_RC->size());
+}
+
+uint64_t doGetCacheSize()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetCacheSize);
+}
+
+void* pleaseGetCacheHits()
+{
+  return new uint64_t(t_RC->cacheHits);
+}
+
+uint64_t doGetCacheHits()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
+}
+
+void* pleaseGetCacheMisses()
+{
+  return new uint64_t(t_RC->cacheMisses);
+}
+
+uint64_t doGetCacheMisses()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
 }
 
 
@@ -223,10 +294,10 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("questions", &g_stats.qcounter);
   addGetStat("tcp-questions", &g_stats.tcpqcounter);
 
-  addGetStat("cache-hits", &t_RC->cacheHits);  // RC MULTI FIXME
-  addGetStat("cache-misses", &t_RC->cacheMisses); // RC MULTI FIXME
+  addGetStat("cache-hits", doGetCacheHits);
+  addGetStat("cache-misses", doGetCacheMisses); 
 
-  addGetStat("cache-entries", boost::bind(&MemRecursorCache::size, boost::ref(*t_RC)));  // RC MULTI FIXME
+  addGetStat("cache-entries", doGetCacheSize); 
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
@@ -263,11 +334,11 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("noshunt-wrong-type", &g_stats.noShuntWrongType);
 
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
-  addGetStat("throttle-entries", boost::bind(&SyncRes::throttle_t::size, boost::ref(SyncRes::t_sstorage->throttle)));
+  addGetStat("throttle-entries", boost::bind(getThrottleSize)); 
 
-  addGetStat("negcache-entries", boost::bind(getNsSpeedsSize));
+  addGetStat("nsspeeds-entries", boost::bind(getNsSpeedsSize));
 
-  addGetStat("concurrent-queries", boost::bind(&MTasker<PacketID,string>::numProcesses, boost::ref(MT)));
+  addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
@@ -347,8 +418,10 @@ string doTopRemotes()
   return ret.str();
 }
 
-static void nopFunction()
-{}
+static void* nopFunction()
+{
+  return new string("pong\n");
+}
 
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
@@ -387,9 +460,6 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doDumpEDNSStatus(begin, end);
 
 
-  if(cmd=="slash-cache") 
-    return doSlashCache(begin, end);
-
   if(cmd=="wipe-cache") 
     return doWipeCache(begin, end);
 
@@ -421,8 +491,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doCurrentQueries();
   
   if(cmd=="ping") {
-    broadcastFunction(nopFunction);
-    return "pong\n";
+    return broadcastAccFunction<string>(nopFunction);
   }
 
   if(cmd=="reload-zones") {

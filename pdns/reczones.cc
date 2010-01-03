@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2009  PowerDNS.COM BV
+    Copyright (C) 2003 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -151,7 +151,7 @@ static void makeIPToNamesZone(SyncRes::domainmap_t* newMap, const vector<string>
       ad.d_records.insert(rr);
     }
 
-  if(newMap->count(rr.qname)) {  // MULTI OOPS
+  if(newMap->count(rr.qname)) {  
     L<<Logger::Warning<<"Will not overwrite zone '"<<rr.qname<<"' already loaded"<<endl;
   }
   else {
@@ -212,19 +212,22 @@ void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, cons
     L<<endl;
 }
 
-void pleaseWipeCache(const std::string& qname)
+void* pleaseWipeCache(const std::string& qname)
 {
   t_RC->doWipeCache(qname); 
+  return 0;
 }
 
-void pleaseWipeNegCache()
+void* pleaseWipeNegCache()
 {
   SyncRes::t_sstorage->negcache.clear();   
+  return 0;
 }
 
-void pleaseUseNewSDomainsMap(SyncRes::domainmap_t* newmap)
+void* pleaseUseNewSDomainsMap(SyncRes::domainmap_t* newmap)
 {
   SyncRes::t_sstorage->domainmap = newmap;
+  return 0;
 }
 
 string reloadAuthAndForwards()
@@ -331,7 +334,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         }
       }
       
-      (*newMap)[headers.first]=ad; // XX MULTI FIXME
+      (*newMap)[headers.first]=ad; 
     }
   }
   

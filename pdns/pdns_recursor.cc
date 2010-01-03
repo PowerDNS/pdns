@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2009  PowerDNS.COM BV
+    Copyright (C) 2003 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -985,19 +985,29 @@ void usr2Handler(int)
 
 void doStats(void)
 {
-  if(g_stats.qcounter && (t_RC->cacheHits + t_RC->cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {  // RC  FIXME
-    L<<Logger::Warning<<"stats: "<<g_stats.qcounter<<" questions, "<<t_RC->size()<<" cache entries, "<<SyncRes::t_sstorage->negcache.size()<<" negative entries, " << endl;// NEGCACHE MULTI FIXME
-    L<<Logger::Warning<<"stats: " <<(int)((t_RC->cacheHits*100.0)/(t_RC->cacheHits+t_RC->cacheMisses))<<"% cache hits"<<endl; // RC MULTI FIXME
-    L<<Logger::Warning<<"stats: throttle map: "<<SyncRes::t_sstorage->throttle.size()<<", ns speeds: "
-      <<SyncRes::t_sstorage->nsSpeeds.size()<<endl;  // FIXME NSSPEEDS MULTI
+
+  if(g_stats.qcounter && (t_RC->cacheHits + t_RC->cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {  // this only runs once thread 0 has had hits
+    uint64_t cacheHits = broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
+    uint64_t cacheMisses = broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
+    
+    L<<Logger::Warning<<"stats: "<<g_stats.qcounter<<" questions, "<<
+      broadcastAccFunction<uint64_t>(pleaseGetCacheSize)<< " cache entries, "<<
+      broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize)<<" negative entries, "<<
+      (int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits"<<endl; 
+    
+    L<<Logger::Warning<<"stats: throttle map: "
+      << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) <<", ns speeds: "
+      << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize)<<endl;  
     L<<Logger::Warning<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     L<<Logger::Warning<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
-    L<<Logger::Warning<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<MT->numProcesses()<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
+    L<<Logger::Warning<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
+      broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
     L<<Logger::Warning<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
       g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
-    L<<Logger::Warning<<"stats: "<<g_stats.packetCacheHits<<" packet cache hits ("<<(int)(100.0*g_stats.packetCacheHits/SyncRes::s_queries) << "%)"<<endl;
+    // L<<Logger::Warning<<"stats: "<<
+     // cacheHits <<" packet cache hits ("<<(int)(100.0*cacheHits/SyncRes::s_queries) << "%)"<<endl;
   }
   else if(statsWanted) 
     L<<Logger::Warning<<"stats: no stats yet!"<<endl;
@@ -1032,9 +1042,11 @@ try
 
     last_prune=time(0);
   }
-  if(now.tv_sec - last_stat>1800) { 
-    doStats();
-    last_stat=time(0);
+  if(!t_id) {
+    if(now.tv_sec - last_stat>1800) { 
+      doStats();
+      last_stat=time(0);
+    }
   }
   if(now.tv_sec - last_rootupdate > 7200) {
     SyncRes sr(now);
@@ -1081,8 +1093,6 @@ void makeThreadPipes()
 
 void broadcastFunction(const pipefunc_t& func, bool skipSelf)
 {
-  typedef pair<int, int> fdss_t;
-  
   unsigned int n = 0;
   BOOST_FOREACH(ThreadPipeSet& tps, g_pipes) 
   {
@@ -1107,19 +1117,60 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
   }
 }
 
+
+
 void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
 {
   pipefunc_t* func;
   if(read(fd, &func, sizeof(func)) != sizeof(func)) { // fd == readToThread 
     unixDie("read from thread pipe returned wrong size or error");
   }
-  (*func)();
-  string* ptr = new string("ok");
+  
+  void *resp = (*func)();
+  delete resp;
   if(write(g_pipes[t_id].writeFromThread, &ptr, sizeof(ptr)) != sizeof(ptr))
     unixDie("write to thread pipe returned wrong size or error");
-    
+  
   delete func;
 }
+
+template<class T> T broadcastAccFunction(const pipefunc_t& func, bool skipSelf)
+{
+  unsigned int n = 0;
+  T ret=T();
+  BOOST_FOREACH(ThreadPipeSet& tps, g_pipes) 
+  {
+    if(n++ == t_id) {
+      if(!skipSelf) {
+        T* resp = (T*)func(); // don't write to ourselves!
+        if(resp) {
+          //~ cerr <<"got direct: " << *resp << endl;
+          ret += *resp;
+          delete resp;
+        }
+      }
+      continue;
+    }
+      
+    pipefunc_t *funcptr = new pipefunc_t(func);
+    if(write(tps.writeToThread, &funcptr, sizeof(funcptr)) != sizeof(funcptr))
+      unixDie("write to thread pipe returned wrong size or error");
+    
+    T* resp;
+    if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
+      unixDie("read from thread pipe returned wrong size or error");
+    
+    if(resp) {
+      //~ cerr <<"got response: " << *resp << endl;
+      ret += *resp;
+      delete resp;
+    }
+  }
+  return ret;
+}
+
+template string broadcastAccFunction(const pipefunc_t& fun, bool skipSelf); // explicit instantiation
+template uint64_t broadcastAccFunction(const pipefunc_t& fun, bool skipSelf); // explicit instantiation
 
 void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
@@ -1320,7 +1371,7 @@ FDMultiplexer* getMultiplexer()
 }
 
   
-void doReloadLuaScript()
+void* doReloadLuaScript()
 {
   string fname= ::arg()["lua-dns-script"];
   try {
@@ -1337,6 +1388,7 @@ void doReloadLuaScript()
   }
     
   L<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
+  return 0;
 }
 
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
@@ -1351,9 +1403,10 @@ string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<strin
 
 void* recursorThread(void*);
 
-void pleaseSupplantACLs(NetmaskGroup *ng)
+void* pleaseSupplantACLs(NetmaskGroup *ng)
 {
   t_allowFrom = ng;
+  return 0;
 }
 
 void parseACLs()
@@ -1433,7 +1486,7 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
   }
 
-  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2009 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2010 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
   L<<", gcc "__VERSION__;
 #endif // add other compilers here
@@ -1515,7 +1568,7 @@ int serviceMain(int argc, char*argv[])
 
   g_initialDomainMap = parseAuthAndForwards();
  
-  g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries"));
+  //  g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries")); XXX FIXME NEEDS TO BE REDONE FOR "MULTITHREADING"
   if(!g_stats.remotes.empty())
     memset(&g_stats.remotes[0], 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));
   g_logCommonErrors=::arg().mustDo("log-common-errors");
@@ -1632,21 +1685,18 @@ try
   }
 #endif 
   
-  counter=0;
   unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
-  
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   
   bool listenOnTCP(true);
 
-  
-  
+  counter=0; // used to periodically execute certain tasks
   for(;;) {
     while(MT->schedule(&g_now)); // housekeeping, let threads do their thing
       
-    if(!t_id && !(counter%500)) {
-      MT->makeThread(houseKeeping,0);
+    if(!(counter%500)) {
+      MT->makeThread(houseKeeping, 0);
     }
 
     if(!(counter%55)) {
@@ -1664,7 +1714,7 @@ try
       
     counter++;
 
-    if(statsWanted) {
+    if(!t_id && statsWanted) {
       doStats();
     }
 

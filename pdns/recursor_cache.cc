@@ -353,11 +353,6 @@ void MemRecursorCache::doDumpAndClose(int fd)
   fclose(fp);
 }
 
-void MemRecursorCache::doSlash(int perc)
-{
-  doPrune();
-}
-
 void MemRecursorCache::doPrune(void)
 {
   uint32_t now=(uint32_t)time(0);

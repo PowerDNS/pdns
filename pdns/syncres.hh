@@ -237,8 +237,6 @@ public:
     >
   > negcache_t;
   
-  
-
   //! This represents a number of decaying Ewmas, used to store performance per namerserver-name. 
   /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
       d_best is filled out with the best address for this collection */
@@ -514,7 +512,19 @@ replacing_insert(Index& i,const typename Index::value_type& x)
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
-typedef boost::function<void(void)> pipefunc_t;
+typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
+
+
+template<class T> T broadcastAccFunction(const pipefunc_t& func, bool skipSelf=false);
+
 SyncRes::domainmap_t* parseAuthAndForwards();
+
+void* pleaseGetNsSpeedsSize();
+void* pleaseGetCacheSize();
+void* pleaseGetNegCacheSize();
+void* pleaseGetCacheHits();
+void* pleaseGetCacheMisses();
+void* pleaseGetConcurrentQueries();
+void* pleaseGetThrottleSize();
 #endif
