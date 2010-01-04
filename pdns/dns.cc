@@ -47,6 +47,7 @@ private:
 //! compares two dns packets, skipping the header, but including the question and the qtype
 bool dnspacketLessThan(const std::string& a, const std::string& b)
 {
+  
   if(a.length() < 12 || b.length() < 12) 
     throw runtime_error("Error parsing question in dnspacket comparison: packet too short");
     
@@ -81,12 +82,9 @@ bool dnspacketLessThan(const std::string& a, const std::string& b)
   
   if(aLabelLen || bLabelLen) //
     throw runtime_error("Error in label comparison routing, should not happen");
-        
-  uint16_t aQtype = aSafe[aPos+2]*256 + aSafe[aPos + 3];
-  uint16_t bQtype = bSafe[bPos+2]*256 + bSafe[bPos + 3];
-  
-  //~ cerr<<"qtypes: "<<aQtype<<", "<<bQtype<<endl;
-  
+      
+  uint16_t aQtype = aSafe[aPos]*256 + aSafe[aPos + 1];
+  uint16_t bQtype = bSafe[bPos]*256 + bSafe[bPos + 1];
   return aQtype < bQtype;
 }
 
