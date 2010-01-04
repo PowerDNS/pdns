@@ -1134,7 +1134,12 @@ void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
   delete func;
 }
 
-template<class T> T broadcastAccFunction(const pipefunc_t& func, bool skipSelf)
+template<class T> void *voider(const boost::function<T*()>& func)
+{
+  return func();
+}
+
+template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf)
 {
   unsigned int n = 0;
   T ret=T();
@@ -1152,7 +1157,7 @@ template<class T> T broadcastAccFunction(const pipefunc_t& func, bool skipSelf)
       continue;
     }
       
-    pipefunc_t *funcptr = new pipefunc_t(func);
+    pipefunc_t *funcptr = new pipefunc_t(boost::bind(voider<T>, func));
     if(write(tps.writeToThread, &funcptr, sizeof(funcptr)) != sizeof(funcptr))
       unixDie("write to thread pipe returned wrong size or error");
     
@@ -1169,8 +1174,8 @@ template<class T> T broadcastAccFunction(const pipefunc_t& func, bool skipSelf)
   return ret;
 }
 
-template string broadcastAccFunction(const pipefunc_t& fun, bool skipSelf); // explicit instantiation
-template uint64_t broadcastAccFunction(const pipefunc_t& fun, bool skipSelf); // explicit instantiation
+template string broadcastAccFunction(const boost::function<string*()>& fun, bool skipSelf); // explicit instantiation
+template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun, bool skipSelf); // explicit instantiation
 
 void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {

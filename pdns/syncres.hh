@@ -516,15 +516,15 @@ typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
 
 
-template<class T> T broadcastAccFunction(const pipefunc_t& func, bool skipSelf=false);
+template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
 
 SyncRes::domainmap_t* parseAuthAndForwards();
 
-void* pleaseGetNsSpeedsSize();
-void* pleaseGetCacheSize();
-void* pleaseGetNegCacheSize();
-void* pleaseGetCacheHits();
-void* pleaseGetCacheMisses();
-void* pleaseGetConcurrentQueries();
-void* pleaseGetThrottleSize();
+uint64_t* pleaseGetNsSpeedsSize();
+uint64_t* pleaseGetCacheSize();
+uint64_t* pleaseGetNegCacheSize();
+uint64_t* pleaseGetCacheHits();
+uint64_t* pleaseGetCacheMisses();
+uint64_t* pleaseGetConcurrentQueries();
+uint64_t* pleaseGetThrottleSize();
 #endif

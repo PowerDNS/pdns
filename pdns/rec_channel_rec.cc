@@ -128,13 +128,13 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
-static void* pleaseWipeCache(const std::string& canon)
+static uint64_t* pleaseWipeCache(const std::string& canon)
 {
   return new uint64_t(t_RC->doWipeCache(canon));
 }
 
 
-static void* pleaseWipeAndCountNegCache(const std::string& canon)
+static uint64_t* pleaseWipeAndCountNegCache(const std::string& canon)
 {
   uint64_t res = SyncRes::t_sstorage->negcache.count(tie(canon));
   pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::t_sstorage->negcache.equal_range(tie(canon));
@@ -190,7 +190,7 @@ static uint64_t calculateUptime()
   return time(0) - g_stats.startupTime;
 }
 
-static void* pleaseGetCurrentQueries()
+static string* pleaseGetCurrentQueries()
 {
   ostringstream ostr;
 
@@ -217,7 +217,7 @@ static string doCurrentQueries()
   return broadcastAccFunction<string>(pleaseGetCurrentQueries);
 }
 
-void* pleaseGetThrottleSize()
+uint64_t* pleaseGetThrottleSize()
 {
   return new uint64_t(SyncRes::t_sstorage->throttle.size());
 }
@@ -227,7 +227,7 @@ static uint64_t getThrottleSize()
   return broadcastAccFunction<uint64_t>(pleaseGetThrottleSize);
 }
 
-void* pleaseGetNegCacheSize()
+uint64_t* pleaseGetNegCacheSize()
 {
   uint64_t tmp=SyncRes::t_sstorage->negcache.size();
   return new uint64_t(tmp);
@@ -238,7 +238,7 @@ uint64_t getNegCacheSize()
   return broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize);
 }
 
-void* pleaseGetNsSpeedsSize()
+uint64_t* pleaseGetNsSpeedsSize()
 {
   return new uint64_t(SyncRes::t_sstorage->nsSpeeds.size());
 }
@@ -248,7 +248,7 @@ uint64_t getNsSpeedsSize()
   return broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize);
 }
 
-void* pleaseGetConcurrentQueries()
+uint64_t* pleaseGetConcurrentQueries()
 {
   return new uint64_t(MT->numProcesses()); 
 }
@@ -258,7 +258,7 @@ static uint64_t getConcurrentQueries()
   return broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries);
 }
 
-void* pleaseGetCacheSize()
+uint64_t* pleaseGetCacheSize()
 {
   return new uint64_t(t_RC->size());
 }
@@ -268,7 +268,7 @@ uint64_t doGetCacheSize()
   return broadcastAccFunction<uint64_t>(pleaseGetCacheSize);
 }
 
-void* pleaseGetCacheHits()
+uint64_t* pleaseGetCacheHits()
 {
   return new uint64_t(t_RC->cacheHits);
 }
@@ -278,7 +278,7 @@ uint64_t doGetCacheHits()
   return broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
 }
 
-void* pleaseGetCacheMisses()
+uint64_t* pleaseGetCacheMisses()
 {
   return new uint64_t(t_RC->cacheMisses);
 }
@@ -418,7 +418,7 @@ string doTopRemotes()
   return ret.str();
 }
 
-static void* nopFunction()
+static string* nopFunction()
 {
   return new string("pong\n");
 }
