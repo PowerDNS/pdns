@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2009 PowerDNS.COM BV
+    Copyright (C) 2002 - 2010 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -174,10 +174,10 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     }
 
     if(!pdns_iequals(domain, mdp.d_qname)) { 
-      if(domain.find((char)0)==string::npos) {// embedded nulls are too noisy
+      if(!mdp.d_qname.empty() && domain.find((char)0) == string::npos) {// embedded nulls are too noisy, plus empty domains are too
         L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
-        g_stats.unexpectedCount++;
       }
+      g_stats.unexpectedCount++;
       goto out;
     }
 
