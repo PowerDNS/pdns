@@ -7,6 +7,7 @@
 
 RecursorPacketCache::RecursorPacketCache()
 {
+  d_hits = d_misses = 0;
 }
 
 bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time_t now, std::string* responsePacket)
@@ -19,8 +20,10 @@ bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time
     uint16_t id = ((struct dnsheader*)queryPacket.c_str())->id;
     *responsePacket = iter->d_packet;
     ((struct dnsheader*)responsePacket->c_str())->id=id;
+    d_hits++;
     return true;
   }
+  d_misses++;
   return false;
 }
 
@@ -38,4 +41,7 @@ void RecursorPacketCache::insertResponsePacket(const std::string& responsePacket
     d_packetCache.insert(e);
 }
 
-
+uint64_t RecursorPacketCache::size()
+{
+  return d_packetCache.size();
+}

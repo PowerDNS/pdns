@@ -14,6 +14,7 @@
 #include <boost/utility.hpp>
 #include "sstuff.hh"
 #include "recursor_cache.hh"
+#include "recpacketcache.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/optional.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -21,8 +22,6 @@
 #include "iputils.hh"
 
 void primeHints(void);
-
-
 
 struct NegCacheEntry
 {
@@ -450,6 +449,7 @@ struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>
   }
 };
 extern __thread MemRecursorCache* t_RC;
+extern __thread RecursorPacketCache* t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
 extern __thread MT_t* MT;
 
@@ -527,4 +527,7 @@ uint64_t* pleaseGetCacheHits();
 uint64_t* pleaseGetCacheMisses();
 uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
+uint64_t* pleaseGetPacketCacheHits();
+uint64_t* pleaseGetPacketCacheSize();
+
 #endif

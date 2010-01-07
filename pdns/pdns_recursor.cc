@@ -93,7 +93,7 @@ SyncRes::domainmap_t* g_initialDomainMap; // new threads needs this to be setup
 #include "namespaces.hh"
 
 __thread MemRecursorCache* t_RC;
-static __thread RecursorPacketCache* t_packetCache;
+__thread RecursorPacketCache* t_packetCache;
 RecursorStats g_stats;
 bool g_quiet;
 
@@ -985,7 +985,9 @@ void usr2Handler(int)
 
 void doStats(void)
 {
-
+  static time_t lastOutputTime;
+  static uint64_t lastQueryCount;
+  
   if(g_stats.qcounter && (t_RC->cacheHits + t_RC->cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {  // this only runs once thread 0 has had hits
     uint64_t cacheHits = broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
     uint64_t cacheMisses = broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
@@ -1004,10 +1006,18 @@ void doStats(void)
     L<<Logger::Warning<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
       broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
-    L<<Logger::Warning<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
-      g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
-    // L<<Logger::Warning<<"stats: "<<
-     // cacheHits <<" packet cache hits ("<<(int)(100.0*cacheHits/SyncRes::s_queries) << "%)"<<endl;
+    //L<<Logger::Warning<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
+      //g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
+    
+    L<<Logger::Warning<<"stats: " <<  broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize) <<
+    " packet cache entries, "<<(int)(100.0*broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits)/SyncRes::s_queries) << "% packet cache hits"<<endl;
+    
+    time_t now = time(0);
+    if(lastOutputTime && lastQueryCount && now != lastOutputTime) {
+      L<<Logger::Warning<<"stats: "<< (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) <<" qps (average over "<< (now - lastOutputTime) << " seconds)"<<endl;
+    }
+    lastOutputTime = now;
+    lastQueryCount = SyncRes::s_queries;
   }
   else if(statsWanted) 
     L<<Logger::Warning<<"stats: no stats yet!"<<endl;

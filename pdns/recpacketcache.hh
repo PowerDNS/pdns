@@ -15,6 +15,9 @@ public:
   void insertResponsePacket(const std::string& responsePacket, time_t now, uint32_t ttd);
   
   void prune();
+  uint64_t d_hits, d_misses;
+  uint64_t size();
+
 private:
 
   struct Entry 

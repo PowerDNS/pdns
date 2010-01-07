@@ -289,6 +289,39 @@ uint64_t doGetCacheMisses()
 }
 
 
+
+
+uint64_t* pleaseGetPacketCacheSize()
+{
+  return new uint64_t(t_packetCache->size());
+}
+
+uint64_t doGetPacketCacheSize()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
+}
+
+uint64_t* pleaseGetPacketCacheHits()
+{
+  return new uint64_t(t_packetCache->d_hits);
+}
+
+uint64_t doGetPacketCacheHits()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
+}
+
+uint64_t* pleaseGetPacketCacheMisses()
+{
+  return new uint64_t(t_packetCache->d_misses);
+}
+
+uint64_t doGetPacketCacheMisses()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheMisses);
+}
+
+
 RecursorControlParser::RecursorControlParser()
 {
   addGetStat("questions", &g_stats.qcounter);
@@ -296,8 +329,14 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("cache-hits", doGetCacheHits);
   addGetStat("cache-misses", doGetCacheMisses); 
-
   addGetStat("cache-entries", doGetCacheSize); 
+  
+  addGetStat("packetcache-hits", doGetPacketCacheHits);
+  addGetStat("packetcache-misses", doGetPacketCacheMisses); 
+  addGetStat("packetcache-entries", doGetPacketCacheSize); 
+  
+  
+  
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
