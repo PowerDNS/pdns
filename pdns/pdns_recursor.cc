@@ -804,16 +804,21 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         ++g_stats.qcounter;
 
         string response;
-        if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(string(data, len), g_now.tv_sec, &response)) {
-          if(!g_quiet)
-            L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
-
-          g_stats.packetCacheHits++;
-          SyncRes::s_queries++;
-          sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
-          return;
+        try {
+          if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(string(data, len), g_now.tv_sec, &response)) {
+            if(!g_quiet)
+              L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+  
+            g_stats.packetCacheHits++;
+            SyncRes::s_queries++;
+            sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
+            return;
+          }
+        } 
+        catch(std::exception& e) {
+          L<<Logger::Error<<t_id<< " packetcache error because of packet from "<<fromaddr.toStringWithPort()<<endl;
+          L<<Logger::Error<<t_id<< makeHexDump(string(data, len)) <<endl;
         }
-
         DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
         dc->setSocket(fd);
         dc->setRemote(&fromaddr);
