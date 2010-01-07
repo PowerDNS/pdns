@@ -314,7 +314,7 @@ inline bool pdns_ilexicographical_compare(const std::string& a, const std::strin
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b) 
 {
   string::size_type aLen = a.length(), bLen = b.length(), n;
-  const char *aPtr = a.c_str(), *bPtr = b.c_str();
+  const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
   int result;
   
   for(n = 0 ; n < aLen && n < bLen ; ++n) {
