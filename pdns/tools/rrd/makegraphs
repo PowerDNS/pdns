@@ -35,22 +35,26 @@ function makeGraphs()
 	-v "packets" \
 	DEF:clientparseerrors=pdns_recursor.rrd:client-parse-errors:AVERAGE  \
 	DEF:serverparseerrors=pdns_recursor.rrd:server-parse-errors:AVERAGE  \
+	DEF:unexpected=pdns_recursor.rrd:unexpected-packets:AVERAGE  \
         LINE1:clientparseerrors#0000ff:"bad packets from clients" \
-        LINE1:serverparseerrors#00ff00:"bad packets from servers" 
+        LINE1:serverparseerrors#00ff00:"bad packets from servers" \
+        LINE1:unexpected#ff0000:"unexpected packets from servers"         
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/latencies-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-t "Questions answered within latency" \
 	-v "questions" \
 	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
+        DEF:answers00=pdns_recursor.rrd:packetcache-hits:AVERAGE \
         DEF:answers01=pdns_recursor.rrd:answers0-1:AVERAGE \
         DEF:answers110=pdns_recursor.rrd:answers1-10:AVERAGE \
         DEF:answers10100=pdns_recursor.rrd:answers10-100:AVERAGE \
         DEF:answers1001000=pdns_recursor.rrd:answers100-1000:AVERAGE \
         DEF:answersslow=pdns_recursor.rrd:answers-slow:AVERAGE \
         LINE1:questions#0000ff:"questions/s" \
-        AREA:answers01#00ff00:"<1 ms" \
+        AREA:answers00#00ff00:"<<1 ms" \
+        STACK:answers01#00fff0:"<1 ms" \
         STACK:answers110#0000ff:"<10 ms" \
-        STACK:answers10100#00ffff:"<100 ms" \
+        STACK:answers10100#ff9900:"<100 ms" \
         STACK:answers1001000#ffff00:"<1000 ms" \
         STACK:answersslow#ff0000:">1000 ms"       
 
@@ -85,13 +89,15 @@ function makeGraphs()
 	-t "Cache sizes" \
 	-v "entries" \
 	DEF:cacheentries=pdns_recursor.rrd:cache-entries:AVERAGE  \
+	DEF:packetcacheentries=pdns_recursor.rrd:packetcache-entries:AVERAGE  \
 	DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
 	DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
 	DEF:throttleentries=pdns_recursor.rrd:throttle-entries:AVERAGE  \
         LINE1:cacheentries#ff0000:"cache entries" \
+        LINE1:packetcacheentries#ffff00:"packet cache entries" \
         LINE1:negcacheentries#0000ff:"negative cache entries" \
         LINE1:nsspeedsentries#00ff00:"NS speeds entries" \
-        LINE1:throttleentries#00ff00:"throttle map entries" 
+        LINE1:throttleentries#00fff0:"throttle map entries" 
         
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/caches2-$2.png -w $WSIZE -h $HSIZE -l 0\
@@ -115,15 +121,19 @@ function makeGraphs()
 	-t "cache hits, cpu load" \
 	DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
 	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
+	DEF:packetcachehits=pdns_recursor.rrd:packetcache-hits:AVERAGE  \
+	DEF:packetcachemisses=pdns_recursor.rrd:packetcache-misses:AVERAGE  \
 	DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
 	DEF:sysmsec=pdns_recursor.rrd:sys-msec:AVERAGE \
 	DEF:musermsec=pdns_recursor.rrd:user-msec:MAX \
 	DEF:msysmsec=pdns_recursor.rrd:sys-msec:MAX \
 	CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/ \
+	CDEF:packetperc=packetcachehits,100,*,packetcachehits,packetcachemisses,+,/ \
 	CDEF:userperc=usermsec,10,/ \
 	CDEF:sysperc=sysmsec,10,/ \
 	CDEF:totmperc=musermsec,msysmsec,+,10,/ \
         LINE1:perc#0000ff:"percentage cache hits"  \
+        LINE1:packetperc#ff00ff:"percentage packetcache hits"  \
         LINE1:totmperc#ffff00:"max cpu use" \
         AREA:userperc#ff0000:"user cpu percentage" \
         STACK:sysperc#00ff00:"system cpu percentage" \
@@ -132,6 +142,11 @@ function makeGraphs()
         GPRINT:perc:AVERAGE:"avg %-3.1lf%%\t" \
         GPRINT:perc:LAST:"last %-3.1lf%%\t" \
         GPRINT:perc:MAX:"max %-3.1lf%%" \
+        COMMENT:"\l" \
+        COMMENT:"Pkt hits   " \
+        GPRINT:packetperc:AVERAGE:"avg %-3.1lf%%\t" \
+        GPRINT:packetperc:LAST:"last %-3.1lf%%\t" \
+        GPRINT:packetperc:MAX:"max %-3.1lf%%" \
         COMMENT:"\l" \
         COMMENT:"System cpu " \
         GPRINT:sysperc:AVERAGE:"avg %-3.1lf%%\t" \
