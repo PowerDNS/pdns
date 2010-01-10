@@ -11,6 +11,7 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -55,6 +56,23 @@ optional<uint64_t> get(const string& name)
   return ret;
 }
 
+string getAllStats()
+{
+  string ret;
+  pair<string, const uint32_t*> the32bits;
+  pair<string, const uint64_t*> the64bits;
+  pair<string, function< uint32_t() > >  the32bitmembers;
+  BOOST_FOREACH(the32bits, d_get32bitpointers) {
+    ret += the32bits.first + "\t" + lexical_cast<string>(*the32bits.second) + "\n";
+  }
+  BOOST_FOREACH(the64bits, d_get64bitpointers) {
+    ret += the64bits.first + "\t" + lexical_cast<string>(*the64bits.second) + "\n";
+  }
+  BOOST_FOREACH(the32bitmembers, d_get32bitmembers) {
+    ret += the32bitmembers.first + "\t" + lexical_cast<string>(the32bitmembers.second()) + "\n";
+  }
+  return ret;
+}
 
 template<typename T>
 string doGet(T begin, T end)
@@ -154,20 +172,6 @@ string doWipeCache(T begin, T end)
 
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
 }
-
-
-#if 0  // broken!
-uint32_t getQueryRate()
-{
-  struct timeval now;
-  gettimeofday(&now, 0);
-  optional<float> delay=g_stats.queryrate.get(now, 10);
-  if(delay)
-    return (uint32_t)(1000000/(*delay));
-  else
-    return 0;
-}
-#endif 
 
 #ifndef WIN32
 static uint64_t getSysTimeMsec()
@@ -364,14 +368,6 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("resource-limits", &g_stats.resourceLimits);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
   
-  addGetStat("shunted-queries", &g_stats.shunted);
-  addGetStat("noshunt-size", &g_stats.noShuntSize);
-  addGetStat("noshunt-expired", &g_stats.noShuntExpired);
-  addGetStat("noshunt-nomatch", &g_stats.noShuntNoMatch);
-  addGetStat("noshunt-cname", &g_stats.noShuntCNAME);
-  addGetStat("noshunt-wrong-question", &g_stats.noShuntWrongQuestion);
-  addGetStat("noshunt-wrong-type", &g_stats.noShuntWrongType);
-
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
   addGetStat("throttle-entries", boost::bind(getThrottleSize)); 
 
@@ -474,9 +470,12 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   string cmd=toLower(words[0]);
   vector<string>::const_iterator begin=words.begin()+1, end=words.end();
 
+  if(cmd=="get-all")
+    return getAllStats();
+
   if(cmd=="get") 
     return doGet(begin, end);
-
+  
   if(cmd=="get-parameter") 
     return doGetParameter(begin, end);
 

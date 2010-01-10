@@ -474,8 +474,6 @@ struct RecursorStats
   uint64_t ipv6queries;
   uint64_t chainResends;
   uint64_t nsSetInvalidations;
-  uint64_t shunted;
-  uint64_t noShuntCNAME, noShuntExpired, noShuntSize, noShuntNoMatch, noShuntWrongType, noShuntWrongQuestion;
   uint64_t ednsPingMatches;
   uint64_t ednsPingMismatches;
   uint64_t noPingOutQueries, noEdnsOutQueries;
