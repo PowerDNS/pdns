@@ -816,8 +816,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         } 
         catch(std::exception& e) {
-          L<<Logger::Error<<t_id<< " packetcache error because of packet from "<<fromaddr.toStringWithPort()<<endl;
-          L<<Logger::Error<<t_id<< makeHexDump(string(data, len)) <<endl;
+          throw MOADNSException(e.what()); // translate
         }
         DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
         dc->setSocket(fd);
@@ -1326,6 +1325,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
         pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
       }
       catch(std::exception& e) {
+        g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
         L<<Logger::Warning<<"Error in packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr) << ": "<<e.what() << endl;
         return;
       }
@@ -1341,10 +1341,8 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   retryWithName:
 
     if(!MT->sendEvent(pident, &packet)) {
-//      if(g_logCommonErrors)
-//      L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toString()<<": "<<pident.type<<endl;
-      g_stats.unexpectedCount++;
       
+      // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
         if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
            pdns_iequals(pident.domain, mthread->key.domain)) {
@@ -1357,10 +1355,12 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
           //	    cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
           pident.domain = mthread->key.domain;
           pident.type = mthread->key.type;
-          g_stats.unexpectedCount--;
           goto retryWithName;
         }
       }
+      g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
+      if(g_logCommonErrors)
+        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toString()<<": "<<pident.domain<<", "<<pident.type<<endl;
     }
     else if(fd >= 0) {
       t_udpclientsocks->returnSocket(fd);

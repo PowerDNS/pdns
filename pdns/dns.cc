@@ -47,7 +47,6 @@ private:
 //! compares two dns packets, skipping the header, but including the question and the qtype
 bool dnspacketLessThan(const std::string& a, const std::string& b)
 {
-  
   if(a.length() < 12 || b.length() < 12) 
     throw runtime_error("Error parsing question in dnspacket comparison: packet too short");
     

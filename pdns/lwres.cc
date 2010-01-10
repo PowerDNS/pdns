@@ -177,7 +177,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       if(!mdp.d_qname.empty() && domain.find((char)0) == string::npos) {// embedded nulls are too noisy, plus empty domains are too
         L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
       }
-      g_stats.unexpectedCount++;
+      // unexpected count has already been done @ pdns_recursor.cc
       goto out;
     }
 
