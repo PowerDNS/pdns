@@ -468,6 +468,21 @@ struct TCPConnection
 unsigned int TCPConnection::s_currentConnections; 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
+void updateRcodeStats(int res)
+{
+  switch(res) {
+  case RCode::ServFail:
+    g_stats.servFails++;
+    break;
+  case RCode::NXDomain:
+    g_stats.nxDomains++;
+    break;
+  case RCode::NoError:
+    g_stats.noErrors++;
+    break;
+  }
+}
+
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
@@ -518,19 +533,8 @@ void startDoResolve(void *p)
     }
     else {
       pw.getHeader()->rcode=res;
-      switch(res) {
-      case RCode::ServFail:
-        g_stats.servFails++;
-        break;
-      case RCode::NXDomain:
-        g_stats.nxDomains++;
-        break;
-      case RCode::NoError:
-        g_stats.noErrors++;
-        break;
-      }
-      
-
+      updateRcodeStats(res);
+    
       if(ret.size()) {
         shuffle(ret);
         
@@ -812,6 +816,8 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_stats.packetCacheHits++;
             SyncRes::s_queries++;
             sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
+            if(response.length() >= sizeof(struct dnsheader))
+              updateRcodeStats(((struct dnsheader*)response.c_str())->rcode);
             return;
           }
         } 
