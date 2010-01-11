@@ -1038,11 +1038,11 @@ void doStats(void)
 static void houseKeeping(void *)
 try
 {
-  static time_t last_stat, last_rootupdate, last_prune;
+  static __thread time_t last_stat, last_rootupdate, last_prune;
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
-  if(now.tv_sec - last_prune > 300) { 
+  if(now.tv_sec - last_prune > 300 + 3*t_id) { 
     DTime dt;
     dt.setTimeval(now);
     t_RC->doPrune(); // this function is local to a thread, so fine anyhow
@@ -1059,7 +1059,7 @@ try
         SyncRes::t_sstorage->nsSpeeds.erase(i++);
       else
         ++i;
-
+//    L<<Logger::Warning<<"Spent "<<dt.udiff()/1000<<" msec cleaning"<<endl;
     last_prune=time(0);
   }
   if(!t_id) {
