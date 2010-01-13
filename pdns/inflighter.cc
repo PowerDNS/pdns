@@ -80,7 +80,7 @@ template<typename Container, typename SendReceive> void Inflighter<Container, Se
     int burst = 0;
     while(d_iter != d_container.end() && d_ttdWatch.size() < d_maxInFlight) { 
       TTDItem ttdi;
-      ttdi.iter = ++d_iter;
+      ttdi.iter = d_iter++;
       ttdi.id = d_sr.send(*ttdi.iter);
       gettimeofday(&ttdi.ttd, 0);
       ttdi.ttd.tv_sec += d_timeoutSeconds;
