@@ -31,14 +31,16 @@ function makeGraphs()
         LINE1:unauthtcp#00ff00:"tcp unauth/s" 
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/packet-errors-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Parsing errors per second" \
+	-t "Packet errors per second" \
 	-v "packets" \
 	DEF:clientparseerrors=pdns_recursor.rrd:client-parse-errors:AVERAGE  \
 	DEF:serverparseerrors=pdns_recursor.rrd:server-parse-errors:AVERAGE  \
 	DEF:unexpected=pdns_recursor.rrd:unexpected-packets:AVERAGE  \
+	DEF:udpoverruns=pdns_recursor.rrd:udp-overruns:AVERAGE  \
         LINE1:clientparseerrors#0000ff:"bad packets from clients" \
         LINE1:serverparseerrors#00ff00:"bad packets from servers" \
-        LINE1:unexpected#ff0000:"unexpected packets from servers"         
+        LINE1:unexpected#ff0000:"unexpected packets from servers" \
+        LINE1:udpoverruns#ff00ff:"udp overruns from remotes"       
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/latencies-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-t "Questions answered within latency" \
@@ -118,25 +120,15 @@ function makeGraphs()
         
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/hitrate-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-v "percentage" \
-	-t "cache hits, cpu load" \
+	-t "cache hits" \
 	DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
 	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
 	DEF:packetcachehits=pdns_recursor.rrd:packetcache-hits:AVERAGE  \
 	DEF:packetcachemisses=pdns_recursor.rrd:packetcache-misses:AVERAGE  \
-	DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
-	DEF:sysmsec=pdns_recursor.rrd:sys-msec:AVERAGE \
-	DEF:musermsec=pdns_recursor.rrd:user-msec:MAX \
-	DEF:msysmsec=pdns_recursor.rrd:sys-msec:MAX \
 	CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/ \
 	CDEF:packetperc=packetcachehits,100,*,packetcachehits,packetcachemisses,+,/ \
-	CDEF:userperc=usermsec,10,/ \
-	CDEF:sysperc=sysmsec,10,/ \
-	CDEF:totmperc=musermsec,msysmsec,+,10,/ \
         LINE1:perc#0000ff:"percentage cache hits"  \
         LINE1:packetperc#ff00ff:"percentage packetcache hits"  \
-        LINE1:totmperc#ffff00:"max cpu use" \
-        AREA:userperc#ff0000:"user cpu percentage" \
-        STACK:sysperc#00ff00:"system cpu percentage" \
         COMMENT:"\l" \
         COMMENT:"Cache hits " \
         GPRINT:perc:AVERAGE:"avg %-3.1lf%%\t" \
@@ -147,6 +139,21 @@ function makeGraphs()
         GPRINT:packetperc:AVERAGE:"avg %-3.1lf%%\t" \
         GPRINT:packetperc:LAST:"last %-3.1lf%%\t" \
         GPRINT:packetperc:MAX:"max %-3.1lf%%" \
+        COMMENT:"\l" 
+
+  rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/cpuload-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-v "percentage" \
+	-t "cpu load" \
+	DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
+	DEF:sysmsec=pdns_recursor.rrd:sys-msec:AVERAGE \
+	DEF:musermsec=pdns_recursor.rrd:user-msec:MAX \
+	DEF:msysmsec=pdns_recursor.rrd:sys-msec:MAX \
+	CDEF:userperc=usermsec,10,/ \
+	CDEF:sysperc=sysmsec,10,/ \
+	CDEF:totmperc=musermsec,msysmsec,+,10,/ \
+        LINE1:totmperc#ffff00:"max cpu use" \
+        AREA:userperc#ff0000:"user cpu percentage" \
+        STACK:sysperc#00ff00:"system cpu percentage" \
         COMMENT:"\l" \
         COMMENT:"System cpu " \
         GPRINT:sysperc:AVERAGE:"avg %-3.1lf%%\t" \
@@ -156,7 +163,9 @@ function makeGraphs()
         COMMENT:"User cpu   " \
         GPRINT:userperc:AVERAGE:"avg %-3.1lf%%\t" \
         GPRINT:userperc:LAST:"last %-3.1lf%%\t" \
-        GPRINT:userperc:MAX:"max %-3.1lf%%"
+        GPRINT:userperc:MAX:"max %-3.1lf%%" \
+        COMMENT:"\l"        
+
 
 }
 	

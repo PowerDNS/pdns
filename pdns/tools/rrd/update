@@ -21,15 +21,17 @@ rec_control --socket-dir=$SOCKETDIR  GET $VARIABLES |
   do
 	  read $a
   done
-  rrdtool update pdns_recursor.rrd \
-	-t \
-	$(for a in $VARIABLES 
+  rrdtool update pdns_recursor.rrd  \
+	-t "udp-overruns:"$(for a in $VARIABLES 
 	do
 		echo -n $a:
 	done | sed 's/:$//' ) \
 $TSTAMP$(
+	echo -n : 
+	netstat -s | grep "packet receive error" | awk '{printf $1}' 
 	for a in $UVARIABLES
 	do
 		echo -n :${!a}
-	done)
+	done
+	)
 )
