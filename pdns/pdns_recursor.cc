@@ -1042,11 +1042,11 @@ try
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
-  if(now.tv_sec - last_prune > 300 + 3*t_id) { 
+  if(now.tv_sec - last_prune > (time_t)(300 + 3*t_id)) { 
     DTime dt;
     dt.setTimeval(now);
     t_RC->doPrune(); // this function is local to a thread, so fine anyhow
-    t_packetCache->doPruneTo();
+    t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries"));
     
     typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
     negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(SyncRes::t_sstorage->negcache); 
@@ -1860,6 +1860,7 @@ int main(int argc, char **argv)
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
+    ::arg().set("max-packetcache-entries", "maximum number of seconds to keep a cached entry in packetcache")="500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
