@@ -14,7 +14,6 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
-// #include <boost/thread/shared_mutex.hpp>
 #include <boost/version.hpp>
 
 #undef max

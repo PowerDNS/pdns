@@ -404,6 +404,7 @@ void MemRecursorCache::doPrune(void)
   //  if(toTrim)
   //    cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n";
 
+  toTrim -= erased;
 
   eiter=iter=sidx.begin();
   std::advance(eiter, toTrim);
