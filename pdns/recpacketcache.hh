@@ -6,13 +6,22 @@
 #include "dns.hh"
 #include "namespaces.hh"
 #include <iostream>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
 
+
+using namespace ::boost::multi_index;
+
+//! Stores whole packets, ready for lobbing back at the client. Not threadsafe.
 class RecursorPacketCache
 {
 public:
   RecursorPacketCache();
   bool getResponsePacket(const std::string& queryPacket, time_t now, std::string* responsePacket);
   void insertResponsePacket(const std::string& responsePacket, time_t now, uint32_t ttd);
+  void doPruneTo(unsigned int maxSize=250000);
   
   void prune();
   uint64_t d_hits, d_misses;
@@ -27,8 +36,18 @@ private:
 
     inline bool operator<(const struct Entry& rhs) const;
   };
-  typedef std::set<struct Entry> packetCache_t;
-  packetCache_t d_packetCache;
+ 
+ 
+  
+  typedef multi_index_container<
+    Entry,
+    indexed_by  <
+                  ordered_unique<identity<Entry> >, 
+                  sequenced<> 
+               >
+  > packetCache_t;
+  
+   packetCache_t d_packetCache;
 };
 
 // needs to take into account: qname, qtype, opcode, rd, qdcount, EDNS size

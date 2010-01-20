@@ -1046,6 +1046,7 @@ try
     DTime dt;
     dt.setTimeval(now);
     t_RC->doPrune(); // this function is local to a thread, so fine anyhow
+    t_packetCache->doPruneTo();
     
     typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
     negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(SyncRes::t_sstorage->negcache); 
