@@ -471,6 +471,7 @@ struct RecursorStats
   uint64_t caseMismatchCount;
   uint64_t spoofCount;
   uint64_t resourceLimits;
+  uint64_t overCapacityDrops;
   uint64_t ipv6queries;
   uint64_t chainResends;
   uint64_t nsSetInvalidations;

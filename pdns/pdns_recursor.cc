@@ -106,6 +106,7 @@ string s_programname="pdns_recursor";
 typedef vector<int> tcpListenSockets_t;
 tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
 int g_tcpTimeout;
+unsigned int g_maxMThreads;
 struct timeval g_now; // timestamp, updated (too) frequently
 map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
 
@@ -749,6 +750,12 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   socklen_t addrlen=sizeof(addr);
   int newsock=(int)accept(fd, (struct sockaddr*)&addr, &addrlen);
   if(newsock>0) {
+    if(MT->numProcesses() > g_maxMThreads) {
+      g_stats.overCapacityDrops++;
+      Utility::closesocket(newsock);
+      return;
+    }
+
     g_stats.addRemote(addr);
     if(t_allowFrom && !t_allowFrom->match(&addr)) {
       if(!g_quiet) 
@@ -787,7 +794,9 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
+  
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+
     g_stats.addRemote(fromaddr);
 
     if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
@@ -824,6 +833,11 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         catch(std::exception& e) {
           throw MOADNSException(e.what()); // translate
         }
+        if(MT->numProcesses() > g_maxMThreads) {
+          g_stats.overCapacityDrops++;
+          return;
+        }
+  
         DNSComboWriter* dc = new DNSComboWriter(data, len, g_now);
         dc->setSocket(fd);
         dc->setRemote(&fromaddr);
@@ -1528,6 +1542,13 @@ int serviceMain(int argc, char*argv[])
   
   L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
   
+  #if 0
+  unsigned int maxFDs, curFDs;
+  getFDLimits(curFDs, maxFDs);
+  if(curFDs < 2048) 
+    L<<Logger::Warning<<"Only "<<curFDs<<" file descriptors available (out of: "<<maxFDs<<"), may not be suitable for high performance"<<endl;
+  #endif
+  
   seedRandom(::arg()["entropy-source"]);
 
   parseACLs();
@@ -1631,6 +1652,7 @@ int serviceMain(int argc, char*argv[])
   
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
+  g_maxMThreads=::arg().asNum("max-mthreads");
   
   int numThreads = ::arg().asNum("threads");
   if(numThreads == 1) {
@@ -1854,6 +1876,7 @@ int main(int argc, char **argv)
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
     ::arg().set("query-local-address6","Source IPv6 address for sending queries")="";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
+    ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
