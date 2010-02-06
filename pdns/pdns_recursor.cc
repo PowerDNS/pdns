@@ -1648,14 +1648,14 @@ int serviceMain(int argc, char*argv[])
   writePid();
 #endif
   makeControlChannelSocket();        
-
+  g_numThreads = ::arg().asNum("threads");
+  
   makeThreadPipes();
   
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   g_maxMThreads=::arg().asNum("max-mthreads");
-  
-  g_numThreads = ::arg().asNum("threads");
+
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
     recursorThread(0);
