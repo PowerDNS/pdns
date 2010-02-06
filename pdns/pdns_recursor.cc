@@ -74,6 +74,7 @@ unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
 __thread shared_ptr<PowerDNSLua>* t_pdl;
+__thread RemoteKeeper* t_remotes;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 
@@ -758,7 +759,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       return;
     }
 
-    g_stats.addRemote(addr);
+    t_remotes->addRemote(addr);
     if(t_allowFrom && !t_allowFrom->match(&addr)) {
       if(!g_quiet) 
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
@@ -799,7 +800,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
 
-    g_stats.addRemote(fromaddr);
+    t_remotes->addRemote(fromaddr);
 
     if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
       if(!g_quiet) 
@@ -1175,6 +1176,14 @@ template<class T> void *voider(const boost::function<T*()>& func)
   return func();
 }
 
+vector<ComboAddress>& operator+=(vector<ComboAddress>&a, const vector<ComboAddress>& b)
+{
+  a.insert(a.end(), b.begin(), b.end());
+  return a;
+}
+
+
+
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf)
 {
   unsigned int n = 0;
@@ -1212,6 +1221,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
 
 template string broadcastAccFunction(const boost::function<string*()>& fun, bool skipSelf); // explicit instantiation
 template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun, bool skipSelf); // explicit instantiation
+template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress> *()>& fun, bool skipSelf); // explicit instantiation
 
 void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
@@ -1617,9 +1627,7 @@ int serviceMain(int argc, char*argv[])
 
   g_initialDomainMap = parseAuthAndForwards();
  
-  //  g_stats.remotes.resize(::arg().asNum("remotes-ringbuffer-entries")); XXX FIXME NEEDS TO BE REDONE FOR "MULTITHREADING"
-  if(!g_stats.remotes.empty())
-    memset(&g_stats.remotes[0], 0, g_stats.remotes.size() * sizeof(RecursorStats::remotes_t::value_type));
+    
   g_logCommonErrors=::arg().mustDo("log-common-errors");
   
   makeUDPServerSockets();
@@ -1702,6 +1710,13 @@ try
     L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
     exit(99);
   }
+  
+  t_remotes = new RemoteKeeper();
+  t_remotes->remotes.resize(::arg().asNum("remotes-ringbuffer-entries") / g_numThreads); 
+  
+  if(!t_remotes->remotes.empty())
+    memset(&t_remotes->remotes[0], 0, t_remotes->remotes.size() * sizeof(RemoteKeeper::remotes_t::value_type));
+  
   
   MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
   

@@ -432,14 +432,20 @@ static void doExitNicely()
   doExitGeneric(true);
 }
 
+vector<ComboAddress>* pleaseGetRemotes()
+{
+  return new vector<ComboAddress>(t_remotes->remotes);
+}
 
 string doTopRemotes()
 {
   typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
   counts_t counts;
-  
+
+  vector<ComboAddress> remotes=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRemotes);
+    
   unsigned int total=0;
-  for(RecursorStats::remotes_t::const_iterator i=g_stats.remotes.begin(); i != g_stats.remotes.end(); ++i)
+  for(RemoteKeeper::remotes_t::const_iterator i = remotes.begin(); i != remotes.end(); ++i)
     if(i->sin4.sin_family) {
       total++;
       counts[*i]++;

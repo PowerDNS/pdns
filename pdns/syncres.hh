@@ -453,6 +453,7 @@ extern __thread RecursorPacketCache* t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
 extern __thread MT_t* MT;
 
+
 struct RecursorStats
 {
   uint64_t servFails;
@@ -480,7 +481,10 @@ struct RecursorStats
   uint64_t noPingOutQueries, noEdnsOutQueries;
   uint64_t packetCacheHits;
   time_t startupTime;
+};
 
+struct RemoteKeeper
+{
   typedef vector<ComboAddress> remotes_t;
   remotes_t remotes;
   int d_remotepos;
@@ -492,7 +496,7 @@ struct RecursorStats
     remotes[(d_remotepos++) % remotes.size()]=remote;
   }
 };
-
+extern __thread RemoteKeeper* t_remotes;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
 extern RecursorStats g_stats;
