@@ -101,6 +101,7 @@
 	  </warning>
 	</para>
 	<para>
+	Improvements:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
@@ -109,12 +110,134 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-			Packet cache, for much enhanced performance.
+			Added ability to read a configuration item of a running PowerDNS Recursor using 'rec_control get-all' (c1243), suggested by Wouter de Jong.
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
-			Solaris 9 '/dev/poll' support added, Solaris 8 now deprecated
+			Speedups in packet generation (Commits C1258, C1259, C1262)
+	      </para>
+	    </listitem>
+    	    <listitem>
+	      <para>
+			TCP deferred accept() filter is turned on again for slight DoS protection. Code in c1414.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			PowerDNS Recursor can now do TCP/IP queries to remote IPv6 addresses (c1412).
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			Solaris 9 '/dev/poll' support added, Solaris 8 now deprecated. Changes in c1421, c1422, c1424, c1413.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+			Lua functions now also get sent the address _to_ which a question was sent. Implemented in c1309 and c1315.
+			WARNING: This breaks unmodified Lua scripts!
+	      </para>
+	    </listitem>
+    	    <listitem>
+	      <para>
+			Maximum cache sizes now default to a sensible value. Suggested by Roel van der Made, implemented in c1354.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Domains can now be forwarded to IPv6 addresses too, using either ::1 syntax or [::1]:25. Thanks to Wijnand Modderman for discovering this issue, fixed in c1349.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Lua scripts can now load libraries at runtime, for example to calculate md5 hashes. Code by Winfried Angele in c1405.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+			Periodic statistics output now includes average queries per second, as well as packet cache numbers (c1493).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			New metrics are available for graphing (DOCUMENTATION FORTHCOMING), plus added to the default graphs (c1495, c1498, c1503)
+	      </para>
+	      
+	    </listitem>
+    	    <listitem>
+	      <para>
+			Fix errors/crashes on more recent versions of Solaris 10, where the ports functions could return ENOENT under some circumstances. Reported and debugged by
+			Jan Gyselinck, fixed in c1372.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	  New features:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+			Add pdnslog() function for Lua scripts, so errors or other messages can be logged properly.
+	      </para>
+	    </listitem>
+    	    <listitem>
+	      <para>
+			rec_control now accepts a --timeout parameter, which can be useful when reloading huge Lua scripts. Implemented in c1366.
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+			'rec_control get-all' now retrieves all statistics in one call (c1496).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Domains can now be forwarded with the 'recursion-desired' bit on or off. Feature suggested by Darren Gamble, implemented in c1451. DOCUMENTATION FORTHCOMING!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Access control lists can now be reloaded at runtime (implemented in c1457).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			PowerDNS Recursor can now use a pool of query-local-addresses to further increase resilience against spoofing. Suggested by Ad Spelt, implemented in c1426.
+			DOCUMENTATION FORTHCOMING!
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			PowerDNS Recursor now also has a packet cache, greatly speeding up operations. Implemented in c1426, c1433 and further.
+			DOCUMENTATION FORTHCOMING!
+	      </para>
+	    </listitem>
+    	    <listitem>
+	      <para>
+			Cache can be limited in how long it stores records, for BIND compatibility. Patch by Winfried Angele in c1438.
+				DOCUMENTATION FORTHCOMING!
+	      </para>
+	    </listitem>
+
+	  </itemizedlist>
+	  Compiler/Operating system/Library updates:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+			PowerDNS Recursor can now compile against newer versions of Boost. Reported &amp; fixed by Darix in c1274. Further fixes in c1275, c1276, c1277, c1283.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Fix compatibility with newer versions of GCC (closes ticket t227, spotted by Ruben Kerkhof, code in c1345, more fixes in commit C1394, C1416, C1440).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Fix up Makefile for older versions of Make (c1229)
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -122,6 +245,89 @@
 			Solaris compilation improvements (out of the box, no handwork needed).
 	      </para>
 	    </listitem>
+    	    <listitem>
+	      <para>
+			Solaris 9 MTasker compilation fixes, as suggested by John Levon. Changes in c1431.
+	      </para>
+	    </listitem>
+
+	    
+	  </itemizedlist>
+	  Bug fixes:
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+			Configuration parser is now resistant against trailing tabs and other whitespace (c1242)
+	      </para>
+	    </listitem>
+	  
+	    <listitem>
+	      <para>
+			Fix typo in a Lua error message. Close t210, as reported by Stefan Schmidt (c1319).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Profiled-build instructions were broken, discovered &amp; fixes suggested by Stefan Schmidt. t239, fix in c1462.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Fix up duplicate SOA from a remote authoritative server from showing up in our output (c1475).
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			All security fixes from 3.1.7.2 are included.
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			Under highly exceptional circumstances on FreeBSD the PowerDNS Recursor could crash because of a TCP/IP error. 
+			Reported and fixed by Andrei Poelov in t192, fixed in c1280.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			PowerDNS Recursor can be a root-server again. Error spotted by the ever vigilant Darren Gamble (t229), fix in c1458.
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			Rare TCP/IP errors no longer lead to PowerDNS Recursor logging errors or becoming confused. Debugged by Josh Berry of Plusnet PLC. Code in c1457.
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			Do not hammer parent servers in case child zones are misconfigured, requery at most once every 10 seconds. Reported &amp; investigated by
+			Stefan Schmidt and Andreas Jakum, fixed in c1265.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Properly process answers from remote authoritative servers that send error answers without including the original question (c1329, c1327).
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			No longer spontaneously turn on 'export-etc-hosts' after reloading zones. Discovered by Paul Cairney, reported in t225, addressed in c1348.
+	      </para>
+	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			Make timeouts for queries to remote authoritative servers configurable with millisecond granularity. In addition, the old code turned out to consider the timeout
+			expired when the integral number of seconds since 1970 increased by 1 - which *on average* is after 500ms. This might have caused spurious timeouts! New default
+			timeout is 1500ms. Code in c1402. DOCUMENTATION FORTHCOMING!
+	      </para>
+	    </listitem>
+
+	    
 	    </itemizedlist>	
 	    </para>	
       </sect2>
@@ -11361,7 +11567,30 @@ while(&lt;&gt;)
 	</para>
 	</sect3>
       </sect2>
-		  
+      <sect2><title id="implement-the-any-query">Notes</title>
+	<para>
+	  Besides regular query types, the DNS also knows the 'ANY' query type. When a server receives 
+	  a question for this ANY type, it should reply with all record types available.
+	</para>
+	<para>
+	  Backends should therefore implement being able to answer 'ANY' queries in this way, and supply all
+	  record types they have when they receive such an 'ANY' query. This is reflected in the sample script above, 
+	  which for every qtype answers if the type matches, or if the query is for 'ANY'.
+	</para>
+	<para>
+	  However, since backends need to implement the ANY query anyhow, PowerDNS makes use of this. Since almost all
+	  DNS queries internally need to be translated first into a CNAME query and then into the actual query, possibly 
+	  followed by a SOA or NS query (this is how DNS works internally), it makes sense for PowerDNS to speed this up,
+	  and just ask the ANY query of a backend.
+	</para>
+	<para>
+	  When it has done so, it gets the data about SOA, CNAME and NS records in one go. This speeds things up tremendously.
+	</para>
+	<para>
+	  The upshot of the above is that for any backend, including the PIPE backend, implementing the ANY query is NOT optional.
+	  And in fact, a backend may see almost exclusively ANY queries. This is not a bug.
+	</para>
+      </sect2>
     </sect1>
     <sect1 id="mysqlbackend"><Title>MySQL backend</title>
       <para>
