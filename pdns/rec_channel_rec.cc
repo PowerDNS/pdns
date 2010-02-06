@@ -110,6 +110,11 @@ string doGetParameter(T begin, T end)
 }
 
 
+static uint64_t* pleaseDump(int fd)
+{
+  return new uint64_t(t_RC->doDump(fd));
+}
+
 template<typename T>
 string doDumpCache(T begin, T end)
 {
@@ -122,10 +127,14 @@ string doDumpCache(T begin, T end)
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0) 
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
-
-  t_RC->doDumpAndClose(fd); // RC MULTI FIXME
-
-  return "done\n";
+  uint64_t total = 0;
+  try {
+    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDump, fd));
+  }
+  catch(...){}
+  
+  close(fd);
+  return "dumped "+lexical_cast<string>(total)+" records\n";
 }
 
 template<typename T>

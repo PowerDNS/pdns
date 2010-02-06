@@ -327,20 +327,21 @@ bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype
 }
 
 
-void MemRecursorCache::doDumpAndClose(int fd)
+uint64_t MemRecursorCache::doDump(int fd)
 {
-  FILE* fp=fdopen(fd, "w");
-  if(!fp) {
-    close(fd);
-    return;
+  FILE* fp=fdopen(dup(fd), "w");
+  if(!fp) { // dup probably failed
+    return 0;
   }
-
+  fprintf(fp, "; dump from thread follows\n;\n");
   typedef cache_t::nth_index<1>::type sequence_t;
   sequence_t& sidx=d_cache.get<1>();
 
+  uint64_t count=0;
   time_t now=time(0);
   for(sequence_t::const_iterator i=sidx.begin(); i != sidx.end(); ++i) {
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j != i->d_records.end(); ++j) {
+      count++;
       try {
         DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
         fprintf(fp, "%s %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
@@ -351,6 +352,7 @@ void MemRecursorCache::doDumpAndClose(int fd)
     }
   }
   fclose(fp);
+  return count;
 }
 
 void MemRecursorCache::doPrune(void)
