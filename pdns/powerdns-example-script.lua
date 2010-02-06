@@ -1,6 +1,6 @@
-function preresolve ( remoteip, localip, domain, qtype )
-	print ("prequery handler called for: ", remoteip, localip, domain, qtype)
-	pdnslog("a test message.. received query from "..remoteip.." on "..localip);
+function preresolve ( remoteip, domain, qtype )
+	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
+	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress());
 	if domain == "www.powerdns.org." 
 	then
 		ret={}
@@ -25,8 +25,8 @@ function preresolve ( remoteip, localip, domain, qtype )
 	end
 end
 
-function nxdomain ( remoteip, localip, domain, qtype )
-	print ("nxhandler called for: ", remoteip, localip, domain, qtype, pdns.AAAA)
+function nxdomain ( remoteip, domain, qtype )
+	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
 	if qtype ~= pdns.A then return -1, {} end  --  only A records
 	if not string.find(domain, "^www%.") then return -1, {} end  -- only things that start with www.
 	

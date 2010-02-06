@@ -84,6 +84,15 @@ int netmaskMatchLua(lua_State *lua)
   return 1;
 }
 
+int getLocalAddressLua(lua_State* lua)
+{
+  lua_getfield(lua, LUA_REGISTRYINDEX, "__PowerDNSLua"); 
+  PowerDNSLua* pl = (PowerDNSLua*)lua_touserdata(lua, -1);
+  
+  lua_pushstring(lua, pl->getLocal().toString().c_str());
+  return 1;
+}
+
 int logLua(lua_State *lua)
 {
   if(lua_gettop(lua) >= 1) {
@@ -117,6 +126,9 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_pushcfunction(d_lua, logLua);
   lua_setglobal(d_lua, "pdnslog");
 
+  lua_pushcfunction(d_lua, getLocalAddressLua);
+  lua_setglobal(d_lua, "getlocaladdress");
+
   lua_newtable(d_lua);
 
   for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
@@ -126,6 +138,9 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_pushnumber(d_lua, 3);
   lua_setfield(d_lua, -2, "NXDOMAIN");
   lua_setglobal(d_lua, "pdns");
+  
+  lua_pushlightuserdata(d_lua, (void*)this); 
+  lua_setfield(d_lua, LUA_REGISTRYINDEX, "__PowerDNSLua");
 }
 
 bool PowerDNSLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
@@ -176,13 +191,14 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     lua_pop(d_lua, 1);
     return false;
   }
+  
+  d_local = local;
   /* the first argument */
   lua_pushstring(d_lua,  remote.toString().c_str() );
-  lua_pushstring(d_lua,  local.toString().c_str() );
   lua_pushstring(d_lua,  query.c_str() );
   lua_pushnumber(d_lua,  qtype.getCode() );
 
-  if(lua_pcall(d_lua,  4, 2, 0)) { // error 
+  if(lua_pcall(d_lua,  3, 2, 0)) { // error 
     string error=string("lua error in '"+func+"': ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);
@@ -217,7 +233,7 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     lua_pushnumber(d_lua, n);
     lua_gettable(d_lua, 2);
 
-    uint32_t tmpnum;
+    uint32_t tmpnum=0;
     if(!getFromTable("qtype", tmpnum)) 
       rr.qtype=QType::A;
     else
