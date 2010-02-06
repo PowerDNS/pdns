@@ -112,6 +112,8 @@ map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads
 
 __thread MT_t* MT; // the big MTasker
 
+unsigned int g_numThreads;
+
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10"
 
 //! used to send information to a newborn mthread
@@ -1056,11 +1058,11 @@ try
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
-  if(now.tv_sec - last_prune > (time_t)(300 + 3*t_id)) { 
+  if(now.tv_sec - last_prune > (time_t)(5 + t_id)) { 
     DTime dt;
     dt.setTimeval(now);
     t_RC->doPrune(); // this function is local to a thread, so fine anyhow
-    t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries"));
+    t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
     
     typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
     negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(SyncRes::t_sstorage->negcache); 
@@ -1107,8 +1109,7 @@ catch(AhuException& ae)
 
 void makeThreadPipes()
 {
-  int numThreads = ::arg().asNum("threads");
-  for(int n=0; n < numThreads; ++n) {
+  for(unsigned int n=0; n < g_numThreads; ++n) {
     struct ThreadPipeSet tps;
     int fd[2];
     if(pipe(fd) < 0)
@@ -1654,15 +1655,15 @@ int serviceMain(int argc, char*argv[])
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   g_maxMThreads=::arg().asNum("max-mthreads");
   
-  int numThreads = ::arg().asNum("threads");
-  if(numThreads == 1) {
+  g_numThreads = ::arg().asNum("threads");
+  if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
     recursorThread(0);
   }
   else {
     pthread_t tid;
-    L<<Logger::Warning<<"Launching "<< numThreads <<" threads"<<endl;
-    for(int n=0; n < numThreads; ++n) {
+    L<<Logger::Warning<<"Launching "<< g_numThreads <<" threads"<<endl;
+    for(unsigned int n=0; n < g_numThreads; ++n) {
       pthread_create(&tid, 0, recursorThread, (void*)n);
     }
     void* res;

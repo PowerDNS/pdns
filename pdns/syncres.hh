@@ -496,7 +496,7 @@ struct RecursorStats
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
 extern RecursorStats g_stats;
-
+extern unsigned int g_numThreads;
 
 template<typename Index>
 std::pair<typename Index::iterator,bool>

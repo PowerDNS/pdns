@@ -358,7 +358,7 @@ void MemRecursorCache::doPrune(void)
   uint32_t now=(uint32_t)time(0);
   d_cachecachevalid=false;
 
-  unsigned int maxCached=::arg().asNum("max-cache-entries");
+  unsigned int maxCached=::arg().asNum("max-cache-entries") / g_numThreads;
   unsigned int toTrim=0;
   
   unsigned int cacheSize=d_cache.size();
@@ -366,7 +366,7 @@ void MemRecursorCache::doPrune(void)
   if(maxCached && cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
   }
-
+  
   //  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
 
   typedef cache_t::nth_index<1>::type sequence_t;
@@ -374,13 +374,12 @@ void MemRecursorCache::doPrune(void)
 
   unsigned int tried=0, lookAt, erased=0;
 
-  // two modes - if toTrim is 0, just look through 10000 records and nuke everything that is expired
+  // two modes - if toTrim is 0, just look through 0.1% of all records and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
   if(toTrim)
     lookAt=5*toTrim;
   else
-    lookAt=cacheSize/10;
-
+    lookAt=cacheSize/1000;
 
   sequence_t::iterator iter=sidx.begin(), eiter;
   for(; iter != sidx.end() && tried < lookAt ; ++tried) {
