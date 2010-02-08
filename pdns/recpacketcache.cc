@@ -85,7 +85,7 @@ void RecursorPacketCache::doPruneTo(unsigned int maxCached)
   if(toTrim)
     lookAt=5*toTrim;
   else
-    lookAt=cacheSize/10;
+    lookAt=cacheSize/1000;
 
 
   sequence_t::iterator iter=sidx.begin(), eiter;
