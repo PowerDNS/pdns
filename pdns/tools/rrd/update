@@ -1,17 +1,55 @@
-#!/bin/bash
-#SOCKETDIR=/home/ahu/work/pdns/trunk/pdns/pdns/pdns-recursor-3.2-testing
+#!/usr/bin/env bash
 SOCKETDIR=/var/run/
-
 TSTAMP=$(date +%s)
 
-VARIABLES="questions tcp-questions cache-entries packetcache-entries concurrent-queries\
-	   nxdomain-answers noerror-answers\
-	   servfail-answers tcp-outqueries\
-	   outgoing-timeouts nsspeeds-entries negcache-entries all-outqueries throttled-out\
-	   packetcache-hits packetcache-misses  \
-	   cache-hits cache-misses answers0-1 answers1-10 answers10-100 answers100-1000 answers-slow\
-	qa-latency throttle-entries sys-msec user-msec unauthorized-udp unauthorized-tcp client-parse-errors\
-	server-parse-errors uptime unexpected-packets resource-limits over-capacity-drops"
+OS=`uname`
+if [ "$OS" == "Linux" ]
+then
+#    echo "Using Linux netstat directive"
+    NETSTAT_GREP="packet receive error"
+elif [ "$OS" == "FreeBSD" ]
+then
+#    echo "Using FreeBSD netstat directive"
+    NETSTAT_GREP="dropped due to full socket buffers"
+else
+    echo "Unsupported OS found, please report to the PowerDNS team."
+    exit 1
+fi
+
+
+VARIABLES="questions                    \
+           tcp-questions                \
+           cache-entries                \
+           packetcache-entries          \
+           concurrent-queries           \
+	   nxdomain-answers             \
+           noerror-answers              \
+	   servfail-answers             \
+           tcp-outqueries               \
+	   outgoing-timeouts            \
+           nsspeeds-entries             \
+           negcache-entries             \
+           all-outqueries               \
+           throttled-out                \
+	   packetcache-hits             \
+           packetcache-misses           \
+	   cache-hits                   \
+           cache-misses                 \
+           answers0-1                   \
+           answers1-10                  \
+           answers10-100                \
+           answers100-1000              \
+           answers-slow                 \
+ 	   qa-latency                   \
+           throttle-entries             \
+           sys-msec user-msec           \
+           unauthorized-udp             \
+           unauthorized-tcp             \
+           client-parse-errors          \
+	   server-parse-errors          \
+           uptime unexpected-packets    \
+           resource-limits              \
+           over-capacity-drops"
 
 UVARIABLES=$(echo $VARIABLES | tr '[a-z]' '[A-Z]' | tr - _ )
 
@@ -28,7 +66,7 @@ rec_control --socket-dir=$SOCKETDIR  GET $VARIABLES |
 	done | sed 's/:$//' ) \
 $TSTAMP$(
 	echo -n : 
-	netstat -s | grep "packet receive error" | awk '{printf $1}' 
+	netstat -s | grep "$NETSTAT_GREP" | awk '{printf $1}' 
 	for a in $UVARIABLES
 	do
 		echo -n :${!a}
