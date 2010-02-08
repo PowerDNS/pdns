@@ -657,10 +657,6 @@ void startDoResolve(void *p)
 void makeControlChannelSocket()
 {
   string sockname=::arg()["socket-dir"]+"/pdns_recursor.controlsocket";
-  if(::arg().mustDo("fork")) {
-    sockname+="."+lexical_cast<string>(Utility::getpid());
-    L<<Logger::Warning<<"Forked control socket name: "<<sockname<<endl;
-  }
   s_rcc.listen(sockname);
 }
 
@@ -1642,13 +1638,6 @@ int serviceMain(int argc, char*argv[])
     unlink(s_pidfname.c_str()); // remove possible old pid file 
   
 #ifndef WIN32
-  if(::arg().mustDo("fork")) {
-    fork();
-    L<<Logger::Warning<<"This is forked pid "<<getpid()<<endl;
-  }
-#endif
-
-#ifndef WIN32
   if(::arg().mustDo("daemon")) {
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
@@ -1913,7 +1902,6 @@ int main(int argc, char **argv)
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
     ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=LOCAL_NETS; 
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
-    ::arg().set("fork", "If set, fork the daemon for possible double performance")="no";
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
