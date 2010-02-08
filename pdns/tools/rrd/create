@@ -32,6 +32,8 @@ DS:qa-latency:GAUGE:600:0:10000000 \
 DS:user-msec:COUNTER:600:0:2000 \
 DS:uptime:GAUGE:600:0:U \
 DS:unexpected-packets:COUNTER:600:0:1000000 \
+DS:resource-limits:COUNTER:600:0:1000000 \
+DS:over-capacity-drops:COUNTER:600:0:1000000 \
 DS:client-parse-errors:COUNTER:600:0:1000000 \
 DS:server-parse-errors:COUNTER:600:0:1000000 \
 DS:unauthorized-udp:COUNTER:600:0:1000000 \

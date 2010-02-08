@@ -1,6 +1,6 @@
 #!/bin/bash
-SOCKETDIR=/home/ahu/work/pdns/trunk/pdns/pdns/pdns-recursor-3.2-testing
-#SOCKETDIR=/var/run/
+#SOCKETDIR=/home/ahu/work/pdns/trunk/pdns/pdns/pdns-recursor-3.2-testing
+SOCKETDIR=/var/run/
 
 TSTAMP=$(date +%s)
 
@@ -11,7 +11,7 @@ VARIABLES="questions tcp-questions cache-entries packetcache-entries concurrent-
 	   packetcache-hits packetcache-misses  \
 	   cache-hits cache-misses answers0-1 answers1-10 answers10-100 answers100-1000 answers-slow\
 	qa-latency throttle-entries sys-msec user-msec unauthorized-udp unauthorized-tcp client-parse-errors\
-	server-parse-errors uptime unexpected-packets"
+	server-parse-errors uptime unexpected-packets resource-limits over-capacity-drops"
 
 UVARIABLES=$(echo $VARIABLES | tr '[a-z]' '[A-Z]' | tr - _ )
 

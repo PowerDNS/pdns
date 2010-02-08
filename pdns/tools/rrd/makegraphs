@@ -42,6 +42,15 @@ function makeGraphs()
         LINE1:unexpected#ff0000:"unexpected packets from servers" \
         LINE1:udpoverruns#ff00ff:"udp overruns from remotes"       
 
+  rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/limits-$2.png -w $WSIZE -h $HSIZE -l 0\
+	-t "Limitations per second" \
+	-v "events" \
+	DEF:resourcelimits=pdns_recursor.rrd:resource-limits:AVERAGE  \
+	DEF:overcapacities=pdns_recursor.rrd:over-capacity-drops:AVERAGE  \
+        LINE1:resourcelimits#ff0000:"outqueries dropped because of resource limits" \
+        LINE1:overcapacities#0000ff:"questions dropped because of mthread limit"      
+
+
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/latencies-$2.png -w $WSIZE -h $HSIZE -l 0\
 	-t "Questions answered within latency" \
 	-v "questions" \
