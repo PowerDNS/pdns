@@ -9453,10 +9453,19 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  <function>nxdomain</function> is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain
 	  or the specific record does not exist. This can be used for various purposes.
 	</para>
+	
 	<para>
 	  Both functions are passed the IP address of the requestor, plus the name and type being requested. In return, these functions indicate if they
 	  have taken over the request, or want to let normal proceedings take their course. Beyond version 3.1.7, the IP address on which the question was received
 	  is inserted immediately after the IP address of the requestor - so in that case there are 4 parameters.
+	</para>
+	<para>
+	  <warning>
+	    <para>
+	      In development versions of the PowerDNS Recursor, versions which were never released except as for testing purposes, these functions had a fourth parameter: localip
+	      This parameter has been replaced by <function>getlocaladdress()</function>, for which see below.
+	    </para>
+	  </warning>
 	</para>
 	<para>
 	  If a function has taken over a request, it should return an rcode (usually 0), and specify a table with records to be put in the answer section 
@@ -9565,9 +9574,13 @@ end
 	  a number of netmasks. If any of these matches, the function returns true.
 	</para>
 	<para>
-	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since 3.1.8.
+	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since 3.2.
 	</para>
-
+	<para>
+	  To retrieve the IP address on which a query was received, use <function>getlocaladdress()</function>. Available since 3.2.
+	  
+	</para>
+	
       </sect2>
     </sect1>
     <sect1 id="recursor-design-and-engineering">
