@@ -830,6 +830,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
             if(response.length() >= sizeof(struct dnsheader))
               updateRcodeStats(((struct dnsheader*)response.c_str())->rcode);
+            g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0); // we assume 0 usec
             return;
           }
         } 
@@ -1056,6 +1057,7 @@ static void houseKeeping(void *)
 try
 {
   static __thread time_t last_stat, last_rootupdate, last_prune;
+  static __thread int cleanCounter=0;
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
@@ -1070,13 +1072,15 @@ try
 
     negcache_by_ttd_index_t::iterator i=ttdindex.lower_bound(now.tv_sec);
     ttdindex.erase(ttdindex.begin(), i);
-
-    time_t limit=now.tv_sec-300;
-    for(SyncRes::nsspeeds_t::iterator i = SyncRes::t_sstorage->nsSpeeds.begin() ; i!= SyncRes::t_sstorage->nsSpeeds.end(); )
-      if(i->second.stale(limit))
-        SyncRes::t_sstorage->nsSpeeds.erase(i++);
-      else
-        ++i;
+    
+    if(!((cleanCounter++)%40)) {  // this is a full scan!
+      time_t limit=now.tv_sec-300;
+      for(SyncRes::nsspeeds_t::iterator i = SyncRes::t_sstorage->nsSpeeds.begin() ; i!= SyncRes::t_sstorage->nsSpeeds.end(); )
+        if(i->second.stale(limit))
+          SyncRes::t_sstorage->nsSpeeds.erase(i++);
+        else
+          ++i;
+    }
 //    L<<Logger::Warning<<"Spent "<<dt.udiff()/1000<<" msec cleaning"<<endl;
     last_prune=time(0);
   }
