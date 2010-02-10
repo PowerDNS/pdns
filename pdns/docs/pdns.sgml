@@ -96,16 +96,67 @@
 	<para>
 	  <warning>
 	    <para>
-	      UNRELEASED!
+	      UNRELEASED! RC1 available.
 	    </para>
 	  </warning>
 	</para>
 	<para>
+	  <warning>
+	    <para>
+	      Lua scripts from version 3.1.7.* are fully compatible with version 3.2. However, scripts written for development snapshot releases, are NOT.
+	      Please see <xref linkend="recursor-scripting"> for details!
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  The 3.2 release is the first major release of the PowerDNS Recursor in a long time. Partly this is because 3.1.7.* functioned very well,
+	  and delivered satisfying performance, partly this is because in order to really move forward, some heavy lifting had to be done.
+	</para>
+	<para>
+	  As always, we are grateful for the large PowerDNS community that is actively involved in improving the quality of our software, be it by submitting
+	  patches, by testing development versions of our software or helping debug interesting issues. We specifically want to thank Stefan Schmidt and Florian Weimer, 
+	  who both over the years have helped tremendously in keeping PowerDNS fast, stable and secure.
+	</para>
+	<para>
+	  This version of the PowerDNS Recursor contains a rather novel form of lock-free multithreading, a situation that comes close to the old '--fork' trick,
+	  but allows the Recursor to fully utilize multiple CPUs, while delivering unified statistics and operational control.
+	</para>
+	<para>
+	  In effect, this delivers the best of both worlds: near linear scaling, with almost no administrative overhead.
+	</para>
+	<para>
+	  Compared to 'regular multithreading', whereby threads cooperate more closely, more memory is used, since each thread maintains its own DNS cache. 
+	  However, given the economics, and the relatively limited total amount of memory needed for high performance, this price is well worth it.
+	</para>
+	<para>
+	  In practical numbers, over 40,000 queries/second sustained performance has now been measured by a third party, with a 100.0% packet response rate. This means that the needs
+	  of around 400,000 residential connections can now be met by a single commodity server.
+	</para>
+	<para>
+	  In addition to the above, the PowerDNS Recursor is now providing resolver service for many more Internet users than ever before. This has brought with it 
+	  24/7 Service Level Agreements, and 24/7 operational monitoring by networking personnel at some of the largest telecommunications companies in the world.
+	</para>
+	<para>
+	  In order to facilitate such operation, more statistics are now provided that allow the visual verification of proper PowerDNS Recursor operation. As an example of this
+	  there are now graphs that plot how many queries were dropped by the operating system because of a CPU overload, plus statistics that can be monitored to determine
+	  if the PowerDNS deployment is under a spoofing attack.
+	</para>
+	<para>
+	  All in all, this is a large and important PowerDNS Release, paving the way for further innovation.
+	</para>
+	<para>
+	<note>
+	  <para>
+	    This release removes support for the 'fork' multi-processor option. In addition, the default is now to spawn two threads. This has been done
+	    in such a way that total memory usage will remain identical, so each thread will use half of the allocated maximum number of cache entries. 
+	</para>
+	</note>
 	Improvements:
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-			Multithreading, for benefiting from multiple CPUs or cores.
+			Multithreading, allowing near linear scaling to multiple CPUs or cores. Configured using 'threads=' (many commits). 
+			This also deprecates the '--fork' option.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -137,8 +188,7 @@
 
 	    <listitem>
 	      <para>
-			Lua functions now also get sent the address _to_ which a question was sent. Implemented in c1309 and c1315.
-			WARNING: This breaks unmodified Lua scripts!
+			Lua functions can now also see the address _to_ which a question was sent, using getlocaladdress(). Implemented in c1309 and c1315.
 	      </para>
 	    </listitem>
     	    <listitem>
@@ -221,6 +271,19 @@
 				DOCUMENTATION FORTHCOMING!
 	      </para>
 	    </listitem>
+	    <listitem>
+	      <para>
+			Cache cleaning turned out to be scanning more of the cache than necessary for cache maintenance. In
+			addition, far more frequent but smaller cache cleanups improve responsiveness. Thanks to Winfried Angele for
+			discovering this issue. (commits C1501, C1507)
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Performance graphs enhanced with separate CPU load and cache effectiveness plots, plus 
+			display of various overload situations (commits C1503)
+	      </para>
+	    </listitem>
 
 	  </itemizedlist>
 	  Compiler/Operating system/Library updates:
@@ -237,7 +300,12 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-			Fix up Makefile for older versions of Make (c1229)
+			Rrdtool update graph is now compatible with FreeBSD out of the box. Thanks to Bryan Seitz (c1517).
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Fix up Makefile for older versions of Make (c1229).
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -255,6 +323,14 @@
 	  </itemizedlist>
 	  Bug fixes:
 	  <itemizedlist>
+	    <listitem>
+	      <para>
+			Under rare circumstances, the recursor could crash on 64 bit Linux systems running glibc 2.7, as found in Debian Lenny.
+			These circumstances became a lot less rare for the 3.2 release. Discovered by Andreas Jakum and debugged by #powerdns, fix in
+			c1519.
+	      </para>
+	    </listitem>
+	  
 	    <listitem>
 	      <para>
 			Configuration parser is now resistant against trailing tabs and other whitespace (c1242)
@@ -318,6 +394,13 @@
 			No longer spontaneously turn on 'export-etc-hosts' after reloading zones. Discovered by Paul Cairney, reported in t225, addressed in c1348.
 	      </para>
 	    </listitem>
+	    
+	    <listitem>
+	      <para>
+			Very abrupt server failure of large numbers of high-volume authoritative servers could trigger an out of memory situation. Addressed in c1505.
+	      </para>
+	    </listitem>
+
 	    
 	    <listitem>
 	      <para>
