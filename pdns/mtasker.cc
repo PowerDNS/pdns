@@ -241,6 +241,17 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
   return 1;
 }
 
+inline pair<uint32_t, uint32_t> splitPointer(void *ptr)
+{
+  uint64_t ll = (uint64_t) ptr;
+  return make_pair(ll >> 32, ll & 0xffffffff);
+}
+
+inline void* joinPtr(uint32_t val1, uint32_t val2)
+{
+  return (void*)(((uint64_t)val1 << 32) | (uint64_t)val2);
+}
+
 //! launches a new thread
 /** The kernel can call this to make a new thread, which starts at the function start and gets passed the val void pointer.
     \param start Pointer to the function which will form the start of the thread
@@ -255,7 +266,10 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   uc->uc_stack.ss_sp = new char[d_stacksize];
   
   uc->uc_stack.ss_size = d_stacksize;
-  makecontext (uc, (void (*)(void))threadWrapper, 4, this, start, d_maxtid, val);
+  pair<uint32_t, uint32_t> valpair = splitPointer(val);
+  pair<uint32_t, uint32_t> thispair = splitPointer(this);
+
+  makecontext (uc, (void (*)(void))threadWrapper, 6, thispair.first, thispair.second, start, d_maxtid, valpair.first, valpair.second);
 
   d_threads[d_maxtid]=uc;
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
@@ -356,8 +370,10 @@ template<class Key, class Val>void MTasker<Key,Val>::getEvents(std::vector<Key>&
 }
 
 
-template<class Key, class Val>void MTasker<Key,Val>::threadWrapper(MTasker *self, tfunc_t *tf, int tid, void* val)
+template<class Key, class Val>void MTasker<Key,Val>::threadWrapper(uint32_t self1, uint32_t self2, tfunc_t *tf, int tid, uint32_t val1, uint32_t val2)
 {
+  void* val = joinPtr(val1, val2); 
+  MTasker* self = (MTasker*) joinPtr(self1, self2);
   (*tf)(val);
   self->d_zombiesQueue.push(tid);
   

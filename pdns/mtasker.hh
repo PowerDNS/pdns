@@ -101,7 +101,7 @@ public:
   int getTid(); 
 
 private:
-  static void threadWrapper(MTasker *self, tfunc_t *tf, int tid, void* val);
+  static void threadWrapper(uint32_t self1, uint32_t self2, tfunc_t *tf, int tid, uint32_t val1, uint32_t val2);
   EventKey d_eventkey;   // for waitEvent, contains exact key it was awoken for
 };
 #include "mtasker.cc"
