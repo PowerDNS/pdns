@@ -2,7 +2,7 @@
 
 Buildroot: /tmp/pdns/
 Name: pdns-recursor
-Version: 3.1.7
+Version: 3.2rc1
 Release: 1
 Summary: extremely powerful and versatile recursing nameserver
 License: GPL
@@ -18,7 +18,7 @@ AutoReqProv: no
 rm -rf $RPM_BUILD_ROOT
 export PATH=/opt/gcc-4.1.1/bin:${PATH}
 export LD_LIBRARY_PATH=/opt/gcc-4.1.1/lib
-CC=gcc CXXFLAGS=-I/home/ahu/download/boost-06-03-30-0000/ make STATIC=semi
+CC=gcc make STATIC=semi
 
 %install
 DESTDIR=$RPM_BUILD_ROOT make install
