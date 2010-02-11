@@ -1,15 +1,15 @@
-#include "mplexer.hh"
-#include "sstuff.hh"
-#include <iostream>
-#include <unistd.h>
-#include "misc.hh"
-#include <boost/lexical_cast.hpp>
-#include "syncres.hh"
-
 #if defined(__sun__) && defined(__svr4__)
 #include <port.h>
 #include <sys/port_impl.h>
 #endif
+#include <unistd.h>
+#include "mplexer.hh"
+#include "sstuff.hh"
+#include <iostream>
+
+#include "misc.hh"
+#include <boost/lexical_cast.hpp>
+#include "syncres.hh"
 
 #include "namespaces.hh"
 using namespace std;
