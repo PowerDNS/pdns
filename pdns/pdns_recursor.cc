@@ -1648,7 +1648,26 @@ int serviceMain(int argc, char*argv[])
   signal(SIGPIPE,SIG_IGN);
   writePid();
 #endif
-  makeControlChannelSocket();        
+  makeControlChannelSocket();
+  
+  int newgid=0;
+  if(!::arg()["setgid"].empty())
+    newgid=Utility::makeGidNumeric(::arg()["setgid"]);
+  int newuid=0;
+  if(!::arg()["setuid"].empty())
+    newuid=Utility::makeUidNumeric(::arg()["setuid"]);
+
+#ifndef WIN32
+  if (!::arg()["chroot"].empty()) {
+    if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
+      L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
+      exit(1);
+    }
+  }
+
+  Utility::dropPrivs(newuid, newgid);
+  
+  
   g_numThreads = ::arg().asNum("threads");
   
   makeThreadPipes();
@@ -1725,23 +1744,7 @@ try
     t_fdm->addReadFD(i->first, i->second);
   
   if(!t_id) {
-    int newgid=0;
-    if(!::arg()["setgid"].empty())
-      newgid=Utility::makeGidNumeric(::arg()["setgid"]);
-    int newuid=0;
-    if(!::arg()["setuid"].empty())
-      newuid=Utility::makeUidNumeric(::arg()["setuid"]);
-  
-#ifndef WIN32
-    if (!::arg()["chroot"].empty()) {
-      if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
-        L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
-        exit(1);
-      }
-    }
-  
-    Utility::dropPrivs(newuid, newgid);
-  
+    
     t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
   }
 #endif 
