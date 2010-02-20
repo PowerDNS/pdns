@@ -159,7 +159,7 @@ function makeGraphs()
 	DEF:msysmsec=pdns_recursor.rrd:sys-msec:MAX \
 	CDEF:userperc=usermsec,10,/ \
 	CDEF:sysperc=sysmsec,10,/ \
-	CDEF:totmperc=musermsec,msysmsec,+,10,/ \
+	CDEF:totmperc=usermsec,sysmsec,+,10,/ \
         LINE1:totmperc#ffff00:"max cpu use" \
         AREA:userperc#ff0000:"user cpu percentage" \
         STACK:sysperc#00ff00:"system cpu percentage" \

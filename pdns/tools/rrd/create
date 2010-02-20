@@ -29,7 +29,7 @@ DS:answers100-1000:COUNTER:600:0:100000 \
 DS:answers-slow:COUNTER:600:0:100000 \
 DS:udp-overruns:COUNTER:600:0:100000 \
 DS:qa-latency:GAUGE:600:0:10000000 \
-DS:user-msec:COUNTER:600:0:2000 \
+DS:user-msec:COUNTER:600:0:64000 \
 DS:uptime:GAUGE:600:0:U \
 DS:unexpected-packets:COUNTER:600:0:1000000 \
 DS:resource-limits:COUNTER:600:0:1000000 \
@@ -38,7 +38,7 @@ DS:client-parse-errors:COUNTER:600:0:1000000 \
 DS:server-parse-errors:COUNTER:600:0:1000000 \
 DS:unauthorized-udp:COUNTER:600:0:1000000 \
 DS:unauthorized-tcp:COUNTER:600:0:1000000 \
-DS:sys-msec:COUNTER:600:0:2000 \
+DS:sys-msec:COUNTER:600:0:6400 \
 	RRA:AVERAGE:0.5:1:9600  \
 	RRA:AVERAGE:0.5:4:9600 	\
 	RRA:AVERAGE:0.5:24:6000	\
