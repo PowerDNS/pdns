@@ -37,7 +37,7 @@
 #include "dns_random.hh"
 #include "lock.hh"
 
-__thread SyncRes::StaticStorage* SyncRes::t_sstorage;
+__thread SyncRes::StaticStorage* t_sstorage;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxcachettl;
@@ -60,6 +60,15 @@ bool SyncRes::s_log;
 
 bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
+
+SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
+        					 d_now(now),
+        					 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) 
+{ 
+  if(!t_sstorage) {
+    t_sstorage = new StaticStorage();
+  }
+}
 
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
@@ -437,7 +446,7 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
     random_shuffle(ret.begin(), ret.end(), dns_random);
 
     // move 'best' address for this nameserver name up front
-    nsspeeds_t::iterator best = SyncRes::t_sstorage->nsSpeeds.find(qname);  
+    nsspeeds_t::iterator best = t_sstorage->nsSpeeds.find(qname);  
 
     if(best != t_sstorage->nsSpeeds.end())
       for(ret_t::iterator i=ret.begin(); i != ret.end(); ++i) {  

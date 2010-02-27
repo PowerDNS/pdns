@@ -163,9 +163,9 @@ static uint64_t* pleaseWipeCache(const std::string& canon)
 
 static uint64_t* pleaseWipeAndCountNegCache(const std::string& canon)
 {
-  uint64_t res = SyncRes::t_sstorage->negcache.count(tie(canon));
-  pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=SyncRes::t_sstorage->negcache.equal_range(tie(canon));
-  SyncRes::t_sstorage->negcache.erase(range.first, range.second);
+  uint64_t res = t_sstorage->negcache.count(tie(canon));
+  pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=t_sstorage->negcache.equal_range(tie(canon));
+  t_sstorage->negcache.erase(range.first, range.second);
   return new uint64_t(res);
 }
 
@@ -232,7 +232,7 @@ static string doCurrentQueries()
 
 uint64_t* pleaseGetThrottleSize()
 {
-  return new uint64_t(SyncRes::t_sstorage->throttle.size());
+  return new uint64_t(t_sstorage->throttle.size());
 }
 
 static uint64_t getThrottleSize()
@@ -242,7 +242,7 @@ static uint64_t getThrottleSize()
 
 uint64_t* pleaseGetNegCacheSize()
 {
-  uint64_t tmp=SyncRes::t_sstorage->negcache.size();
+  uint64_t tmp=t_sstorage->negcache.size();
   return new uint64_t(tmp);
 }
 
@@ -253,7 +253,7 @@ uint64_t getNegCacheSize()
 
 uint64_t* pleaseGetNsSpeedsSize()
 {
-  return new uint64_t(SyncRes::t_sstorage->nsSpeeds.size());
+  return new uint64_t(t_sstorage->nsSpeeds.size());
 }
 
 uint64_t getNsSpeedsSize()

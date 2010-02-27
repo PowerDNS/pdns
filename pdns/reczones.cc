@@ -220,24 +220,24 @@ void* pleaseWipeCache(const std::string& qname)
 
 void* pleaseWipeNegCache()
 {
-  SyncRes::t_sstorage->negcache.clear();   
+  t_sstorage->negcache.clear();   
   return 0;
 }
 
 void* pleaseUseNewSDomainsMap(SyncRes::domainmap_t* newmap)
 {
-  SyncRes::t_sstorage->domainmap = newmap;
+  t_sstorage->domainmap = newmap;
   return 0;
 }
 
 string reloadAuthAndForwards()
 {
-  SyncRes::domainmap_t* original=SyncRes::t_sstorage->domainmap;  
+  SyncRes::domainmap_t* original=t_sstorage->domainmap;  
   
   try {
     L<<Logger::Warning<<"Reloading zones, purging data from cache"<<endl;
   
-    for(SyncRes::domainmap_t::const_iterator i = SyncRes::t_sstorage->domainmap->begin(); i != SyncRes::t_sstorage->domainmap->end(); ++i) {
+    for(SyncRes::domainmap_t::const_iterator i = t_sstorage->domainmap->begin(); i != t_sstorage->domainmap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
 	broadcastFunction(boost::bind(pleaseWipeCache, j->qname));
     }

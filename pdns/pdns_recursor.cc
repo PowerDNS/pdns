@@ -792,10 +792,8 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   char data[1500];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
-
   
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-
     t_remotes->addRemote(fromaddr);
 
     if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
@@ -852,6 +850,9 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(g_logCommonErrors)
         L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
     }
+  }
+  else {
+    // cerr<<t_id<<" had error: "<<stringerror()<<endl;
   }
 }
 
@@ -1057,6 +1058,8 @@ try
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
+//  clog<<"* "<<t_id<<" "<<(void*)&last_stat<<"\t"<<(unsigned int)last_stat<<endl;
+
   if(now.tv_sec - last_prune > (time_t)(5 + t_id)) { 
     DTime dt;
     dt.setTimeval(now);
@@ -1064,28 +1067,30 @@ try
     t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
     
     typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
-    negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(SyncRes::t_sstorage->negcache); 
+    negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(t_sstorage->negcache); 
 
     negcache_by_ttd_index_t::iterator i=ttdindex.lower_bound(now.tv_sec);
     ttdindex.erase(ttdindex.begin(), i);
     
     if(!((cleanCounter++)%40)) {  // this is a full scan!
       time_t limit=now.tv_sec-300;
-      for(SyncRes::nsspeeds_t::iterator i = SyncRes::t_sstorage->nsSpeeds.begin() ; i!= SyncRes::t_sstorage->nsSpeeds.end(); )
+      for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); )
         if(i->second.stale(limit))
-          SyncRes::t_sstorage->nsSpeeds.erase(i++);
+          t_sstorage->nsSpeeds.erase(i++);
         else
           ++i;
     }
 //    L<<Logger::Warning<<"Spent "<<dt.udiff()/1000<<" msec cleaning"<<endl;
     last_prune=time(0);
   }
+  
   if(!t_id) {
-    if(now.tv_sec - last_stat>1800) { 
+    if(now.tv_sec - last_stat > 1800) { 
       doStats();
       last_stat=time(0);
     }
   }
+  
   if(now.tv_sec - last_rootupdate > 7200) {
     SyncRes sr(now);
     sr.setDoEDNS0(true);
@@ -1699,7 +1704,7 @@ try
 {
   t_id=(int) (long) ptr;
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
-  SyncRes::t_sstorage->domainmap = g_initialDomainMap;
+  t_sstorage->domainmap = g_initialDomainMap;
   t_allowFrom = g_initialAllowFrom;
   t_udpclientsocks = new UDPClientSocks();
   primeHints();
@@ -1755,7 +1760,7 @@ try
 
   counter=0; // used to periodically execute certain tasks
   for(;;) {
-    while(MT->schedule(&g_now)); // housekeeping, let threads do their thing
+    while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
       
     if(!(counter%500)) {
       MT->makeThread(houseKeeping, 0);

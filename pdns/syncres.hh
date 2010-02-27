@@ -164,14 +164,7 @@ private:
 class SyncRes : public boost::noncopyable
 {
 public:
-  explicit SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-        					 d_now(now),
-        					 d_cacheonly(false), d_nocache(false), d_doEDNS0(false) 
-  { 
-    if(!t_sstorage) {
-      t_sstorage = new StaticStorage();
-    }
-  }
+  explicit SyncRes(const struct timeval& now);
 
   int beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
   void setId(int id)
@@ -344,7 +337,6 @@ public:
     throttle_t throttle;
     domainmap_t* domainmap;
   };
-  static __thread StaticStorage* t_sstorage;
 
 private:
   struct GetBestNSAnswer;
@@ -386,6 +378,8 @@ private:
   };
 
 };
+extern __thread SyncRes::StaticStorage* t_sstorage;
+
 class Socket;
 /* external functions, opaque to us */
 int asendtcp(const string& data, Socket* sock);
