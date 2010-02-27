@@ -161,7 +161,12 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-			Added ability to read a configuration item of a running PowerDNS Recursor using 'rec_control get-all' (c1243), suggested by Wouter de Jong.
+			Added ability to read a configuration item of a running PowerDNS Recursor using 'rec_control get-parameter' (c1243), suggested by Wouter de Jong.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+			Added ability to read all statistics in one go of a running PowerDNS Recursor using 'rec_control get-all' (c1496), suggested by Michael Renner.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -214,7 +219,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>
-			New metrics are available for graphing (DOCUMENTATION FORTHCOMING), plus added to the default graphs (c1495, c1498, c1503)
+			New metrics are available for graphing, plus added to the default graphs (c1495, c1498, c1503)
 	      </para>
 	      
 	    </listitem>
@@ -237,15 +242,10 @@
 			rec_control now accepts a --timeout parameter, which can be useful when reloading huge Lua scripts. Implemented in c1366.
 	      </para>
 	    </listitem>
-
 	    <listitem>
 	      <para>
-			'rec_control get-all' now retrieves all statistics in one call (c1496).
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
-			Domains can now be forwarded with the 'recursion-desired' bit on or off. Feature suggested by Darren Gamble, implemented in c1451. DOCUMENTATION FORTHCOMING!
+			Domains can now be forwarded with the 'recursion-desired' bit on or off, using either <command>forward-zones-recurse</command> or by prefixing
+			the name of a zone with a '+' in <command>forward-zones-file</command>. Feature suggested by Darren Gamble, implemented in c1451. 
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -256,19 +256,16 @@
 	    <listitem>
 	      <para>
 			PowerDNS Recursor can now use a pool of query-local-addresses to further increase resilience against spoofing. Suggested by Ad Spelt, implemented in c1426.
-			DOCUMENTATION FORTHCOMING!
 	      </para>
 	    </listitem>
 	    <listitem>
 	      <para>
 			PowerDNS Recursor now also has a packet cache, greatly speeding up operations. Implemented in c1426, c1433 and further.
-			DOCUMENTATION FORTHCOMING!
 	      </para>
 	    </listitem>
     	    <listitem>
 	      <para>
-			Cache can be limited in how long it stores records, for BIND compatibility. Patch by Winfried Angele in c1438.
-				DOCUMENTATION FORTHCOMING!
+			Cache can be limited in how long it maximally stores records, for BIND compatibility (TTL limiting), by setting <command>max-cache-ttl</command>.Idea by Winfried Angele, implemented in c1438.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -290,7 +287,7 @@
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-			PowerDNS Recursor can now compile against newer versions of Boost. Reported &amp; fixed by Darix in c1274. Further fixes in c1275, c1276, c1277, c1283.
+			PowerDNS Recursor can now compile against newer versions of Boost (verified up to and including 1.42.0). Reported &amp; fixed by Darix in c1274. Further fixes in c1275, c1276, c1277, c1283.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -406,7 +403,8 @@
 	      <para>
 			Make timeouts for queries to remote authoritative servers configurable with millisecond granularity. In addition, the old code turned out to consider the timeout
 			expired when the integral number of seconds since 1970 increased by 1 - which *on average* is after 500ms. This might have caused spurious timeouts! New default
-			timeout is 1500ms. Code in c1402. DOCUMENTATION FORTHCOMING!
+			timeout is 1500ms. See <command>network-timeout</command> setting for more details. 
+			Code in c1402.
 	      </para>
 	    </listitem>
 
@@ -8445,7 +8443,7 @@ local0.err                        /var/log/pdns.err
     </para>
   </chapter>
 
-  <chapter id="performance"><title>Performance</title>
+  <chapter id="performance"><title>Authoritative Server Performance</title>
     <sect1><title>General advice</title>
     <para>
       In general, best performance is achieved on recent Linux 2.6 kernels and using MySQL, although many of the largest PowerDNS 
@@ -8754,11 +8752,7 @@ local0.err                        /var/log/pdns.err
       the nameserver to handle recursive queries.
     </para>
     <para>
-      As of 2.9.5, the recursing component of PowerDNS is a bit young and relatively untested but we hope people will want to use it anyhow. As an alternative,
-      we highly advise the use of the DJBDNS dnscache (<ULINK URL="http://cr.yp.to/djbdns/dnscache.html" TYPE="alternate">http://cr.yp.to/djbdns/dnscache.html</ULINK>).
-    </para>
-    <para>
-      Take care not to point <command>recursor</command> to PDNS, which leads to a very tight packet loop!
+      Take care not to point <command>recursor</command> to the PowerDNS Authoritative Server itself, which leads to a very tight packet loop!
     </para>
     <para>
       By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
@@ -8805,10 +8799,10 @@ local0.err                        /var/log/pdns.err
       </para>
     </sect1>
   </chapter>
-  <chapter id="built-in-recursor"><title>PowerDNS resolver/recursing nameserver</title>
+  <chapter id="built-in-recursor"><title>PowerDNS Recursor: a high performance resolving nameserver</title>
     <para>
       The PowerDNS recursor is part of the source tarball of the main PowerDNS distribution, but it is released separately. Starting from
-      the version 3.0 pre-releases, there are zero known bugs or issues with the recursor. It is known to power the resolving needs of over 2 million
+      the version 3.0 pre-releases, there are zero known bugs or issues with the recursor. It is known to power the resolving needs of over 100 million
       internet connections.
     </para>
     <para>
@@ -8821,7 +8815,7 @@ local0.err                        /var/log/pdns.err
 	    Uses MTasker (<ulink url="http://ds9a.nl/mtasker">homepage</ulink>)
 	  </para></listitem>
 	<listitem><para>
-	    Can handle thousands of concurrent questions. A dual Xeon 3GHz has been measured functioning very well at 9000 real life replayed
+	    Can handle thousands of concurrent questions. A quad Xeon 3GHz has been measured functioning very well at 40000 real life replayed
 	    packets per second, with 40% cpu idle. More testing equipment is needed to max out the recursor.
 	  </para></listitem>
 	<listitem><para>
@@ -8836,7 +8830,7 @@ local0.err                        /var/log/pdns.err
 	    which are sadly very frequent.
 	  </para></listitem>
 	<listitem><para>
-	    Special support for FreeBSD, Linux and Solaris stateful multiplexing (kqueue, epoll, completion ports).
+	    Special support for FreeBSD, Linux and Solaris stateful multiplexing (kqueue, epoll, completion ports, /dev/poll).
 	  </para></listitem>
 	<listitem><para>
 	    Very fast, and contains innovative query-throttling code to save time talking to obsolete or broken nameservers.
@@ -8958,6 +8952,14 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>disable-packetcache</term>
+	    <listitem>
+	      <para>
+		Turn off the packet cache. Useful when running with Lua scripts that can not be cached. Available since 3.2.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>dont-query</term>
 	    <listitem>
 	      <para>
@@ -8993,6 +8995,7 @@ local0.err                        /var/log/pdns.err
 	      <para>
 		If running on an SMP system with enough memory, this feature forks PowerDNS so it benefits from two processors. Experimental. Renames
 		controlsockets, so care is needed to connect to the right one using <command>rec_control</command>, using <command>--socket-pid</command>.
+		Available in versions of the Recursor before 3.2, replaced by the 'threads' setting.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -9007,6 +9010,10 @@ local0.err                        /var/log/pdns.err
 		Since version 3.1.5, multiple IP addresses can be specified. Additionally, port numbers other than 53 can be configured.
 		Sample syntax: <command>forward-zones=ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530</command>,
 		or on the command line: <command>--forward-zones="ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530"</command>,
+	      </para>
+	      <para>
+		Forwarded queries have the 'recursion desired' bit set to 0, meaning that this setting is intended to forward queries to authoritative servers.
+	      </para>
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
@@ -9016,9 +9023,21 @@ local0.err                        /var/log/pdns.err
 		Same as <command>forward-zones</command>, parsed from a file. Only 1 zone is allowed per line, specified as follows:
 		<command>ds9a.nl=213.244.168.210, 1.2.3.4:5300</command>. No comments are allowed. Available since 3.1.5. 
 	      </para>
+	      <para>
+		Since 3.2, zones prefixed with a '+' are forwarded with the recursion-desired bit set to one, for which see 'forward-zones-recurse'. Default behaviour without '+'
+		is as with 'forward-zones'.
+	      </para>
 	    </listitem>
 	  </varlistentry>
-
+	  <varlistentry>
+	    <term>forward-zones-recurse</term>
+	    <listitem>	      
+	      <para>
+		Like regular 'forward-zones' (see above), but forwarded queries have the 'recursion desired' bit set to 1, meaning that this setting is intended to forward queries 
+		to authoritative servers or to resolving servers. Available since 3.2.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	  <varlistentry>
 	    <term>hint-file</term>
 	    <listitem>
@@ -9070,7 +9089,24 @@ local0.err                        /var/log/pdns.err
 	    <term>max-cache-entries</term>
 	    <listitem>
 	      <para>
-		Maximum number of cache entries. 1 million will generally suffice for most installations.
+		Maximum number of DNS cache entries. 1 million will generally suffice for most installations.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  
+	  <varlistentry>
+	    <term>max-packetcache-entries</term>
+	    <listitem>
+	      <para>
+		Maximum number of Packet Cache entries. 1 million will generally suffice for most installations. Available since 3.2.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>max-cache-ttl</term>
+	    <listitem>
+	      <para>
+		Maximum number of seconds to cache an item in the DNS cache, no matter what the original TTL specified. Available since 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -9102,10 +9138,34 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>network-timeout</term>
+	    <listitem>
+	      <para>
+		Number of milliseconds to wait for a remote authoritative server to respond. Defaults to 1500 msec, available since 3.2.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>packetcache-ttl</term>
+	    <listitem>
+	      <para>
+		Maximum number of seconds to cache an item in the packet cache, no matter what the original TTL specified. Available since 3.2.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>packetcache-servfail-ttl</term>
+	    <listitem>
+	      <para>
+		Maximum number of seconds to cache a 'server failure' answer in the packet cache. Available since 3.2.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
 	    <term>query-local-address</term>
 	    <listitem>
 	      <para>
-		Send out local queries from this address. Useful for anycast.
+		Send out local queries from this address, or addresses. Since 3.2, by adding multiple addresses, increased spoofing resilience is achieved. Addresses can be separated by a comma.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -9113,8 +9173,8 @@ local0.err                        /var/log/pdns.err
 	    <term>query-local-address6</term>
 	    <listitem>
 	      <para>
-		Send out local IPv6 queries from this address. Disabled by default, which also disables
-		outgoing IPv6 support. A useful setting is <command>::0</command>.
+		Send out local IPv6 queries from this address or addresses Disabled by default, which also disables
+		outgoing IPv6 support. Since version 3.2, multiple addresses can be specified, separated by a comma.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -9244,10 +9304,18 @@ local0.err                        /var/log/pdns.err
 	      </listitem>
 	    </varlistentry>	  
 	    <varlistentry>
+	      <term>get-all</term>
+	      <listitem>
+		<para>
+		  Retrieve all statistics in one go. Available since 3.2.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+	    <varlistentry>
 	      <term>get-parameter parameter1 parameter2 ../term>
 	      <listitem>
 		<para>
-		  Retrieve a configuration parameter. All parameters from the configuration and command line can be queried.
+		  Retrieve a configuration parameter. All parameters from the configuration and command line can be queried. Available since 3.2.
 		</para>
 	      </listitem>
 	    </varlistentry>	  
@@ -9328,13 +9396,18 @@ local0.err                        /var/log/pdns.err
 	<itemizedlist>
 	  <listitem>
 	    <para>
-	      Limit the size of the cache to a sensible value. Cache hit rate does not improve meaningfully beyond 4 million <command>max-cache-entries</command>,
-	      reducing the memory footprint reduces CPU cache misses.
+	      Limit the size of the caches to a sensible value. Cache hit rate does not improve meaningfully beyond 4 million <command>max-cache-entries</command>,
+	      reducing the memory footprint reduces CPU cache misses. See below for more information about the various caches.
 	    </para>
 	  </listitem>
 	  <listitem>
 	    <para>
 	      Compile using g++ 4.1 or later. This compiler really does a good job on PowerDNS, much better than 3.4 or 4.0.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      On AMD/Intel hardware, wherever possible, run a 64-bit binary. This delivers a nearly twofold performance increase. On UltraSPARC, there is no need to run with 64 bits.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -9362,13 +9435,95 @@ local0.err                        /var/log/pdns.err
 	  </listitem>
 	  <listitem>
 	    <para>
-	      If you need it, try <command>--fork</command>, this will fork the daemon into two halves, allowing it to benefit from a second CPU.
+	      For older versions &lt;3.2: If you need it, try <command>--fork</command>, this will fork the daemon into two halves, allowing it to benefit from a second CPU.
 	      This feature almost doubles performance, but is a bit of a hack. 
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      for 3.2 and higher, set 'threads' to your number of CPUs.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      For best PowerDNS Recursor performance, use a recent version of your operating system, since this generally
+	      offers the best event multiplexer implementation available (kqueue, epoll, ports or /dev/poll). 
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      A Recursor under high load puts a severe stress on any stateful (connection tracking) firewall, so much
+	      so that the firewall may fail.
+	    </para>
+	    <para>
+	      Specifically, many Linux distributions run with a connection tracking firewall configured. For high load operation (thousands of queries/second), 
+	      It is advised to either turn off iptables 
+	      completely, or use the 'NOTRACK' feature to make sure DNS traffic bypasses the connection tracking.
+	    </para>
+	    <para>
+	      Sample Linux command lines would be:
+	      <screen>
+	      # iptables -t raw -I OUTPUT -p udp --dport 53 -j NOTRACK
+	      # iptables -t raw -I PREROUTING -p udp --sport 53 -j NOTRACK
+	      # iptables -I INPUT -p udp --dport 53 -j ACCEPT
+	      # iptables -I INPUT -p udp --sport 53 -j ACCEPT
+	      # iptables -I OUTPUT -p udp --dport 53 -j ACCEPT
+
+              # # optionally
+	      # ip6tables -t raw -I OUTPUT -p udp --dport 53 -j NOTRACK
+	      # ip6tables -t raw -I PREROUTING -p udp --sport 53 -j NOTRACK
+	      # ip6tables -I INPUT -p udp --dport 53 -j ACCEPT
+	      # ip6tables -I INPUT -p udp --sport 53 -j ACCEPT
+	      # ip6tables -I OUTPUT -p udp --dport 53 -j ACCEPT
+	      </screen>
 	    </para>
 	  </listitem>
 	</itemizedlist>
 	Following the instructions above, you should be able to attain very high query rates.
       </para>
+      <sect2 id="recursor-caches"><title>Recursor Caches</title>
+	<para>
+	  The PowerDNS Recursor contains a number of caches, or information stores:
+	  <variablelist>
+	    <varlistentry>
+	      <term>Nameserver speeds cache</term>
+	      <listitem>
+	      <para>
+		The "NSSpeeds" cache contains the average latency to all remote authoritative servers.
+	      </para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>Negative cache</term>
+	      <listitem>
+	      <para>
+		The "Negcache" contains all domains known not to exist, or record types not to exist for a domain.
+	      </para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>Recursor Cache</term>
+	      <listitem>
+	      <para>
+		The Recursor Cache contains all DNS knowledge gathered over time.
+	      </para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>Packet Cache</term>
+	      <listitem>
+	      <para>
+		The Packet Cache contains previous answers sent to clients. If a question comes in that matches a previous answer, this is sent back directly.
+	      </para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	</para>
+	<para>
+	  The Packet Cache is consulted first, immediately after receiving a packet. This means that a high hitrate for the Packet Cache automatically lowers the cache hitrate of 
+	  subsequent caches. This explains why releases 3.2 and beyond see dramatically lower DNS cache hitrates, since this is the first version with a Packet Cache.
+	</para>
+      </sect2>
     </sect1>
     <sect1 id="recursor-details"><title>Details</title>
       <sect2 id="anti-spoofing"><title>Anti-spoofing</title>
@@ -9420,7 +9575,7 @@ local0.err                        /var/log/pdns.err
     </sect1>
     <sect1 id="recursor-stats"><title>Statistics</title>
       <para>
-	The <command>rec_control get</command> command can be used to query the following keys, either single keys or multiple keys 
+	The <command>rec_control get</command> command can be used to query the following statistics, either single keys or multiple statistics
 	at once:
 	  <screen>
 all-outqueries      counts the number of outgoing UDP queries since starting
@@ -9436,13 +9591,18 @@ chain-resends       number of queries chained to existing outstanding query
 client-parse-errors counts number of client packets that could not be parsed
 concurrent-queries  shows the number of MThreads currently running
 dlg-only-drops      number of records dropped because of delegation only setting
+ipv6-outqueries     number of outgoing queries over IPv6
 negcache-entries    shows the number of entries in the Negative answer cache
 noerror-answers     counts the number of times it answered NOERROR since starting
 nsspeeds-entries    shows the number of entries in the NS speeds map
 nsset-invalidations number of times an nsset was dropped because it no longer worked
 nxdomain-answers    counts the number of times it answered NXDOMAIN since starting
 outgoing-timeouts   counts the number of timeouts on outgoing UDP queries since starting
-qa-latency          shows the current latency average
+over-capacity-drops Questions dropped because over maximum concurrent query limit (since 3.2)
+packetcache-entries Size of packet cache (since 3.2)
+packetcache-hits    Packet cache hits (since 3.2)
+packetcache-misses  Packet cache misses (since 3.2)
+qa-latency          shows the current latency average, in microseconds
 questions           counts all End-user initiated queries with the RD bit set
 resource-limits     counts number of queries that could not be performed because of resource limits
 server-parse-errors counts number of server replied packets that could not be parsed
@@ -9461,7 +9621,10 @@ uptime              number of seconds process has been running (since 3.1.5)
 user-msec           number of CPU milliseconds spent in 'user' mode
 	  </screen>
 	In the <filename>rrd/</filename> subdirectory a number of rrdtool scripts is provided to make nice
-	graphs of all these numbers.
+	graphs of all these numbers. Use <command>rec_control get-all</command> to get all statistics in one go.
+      </para>
+      <para>
+	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100+1000 + packetcache-hits + over-capacity-drops = questions.
       </para>
       <para>
 	Every half our or so, the recursor outputs a line with statistics. More infrastructure is planned so as to allow
