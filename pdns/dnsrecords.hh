@@ -328,6 +328,14 @@ public:
   struct soatimes d_st;
 };
 
+class HIPRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(HIP)
+  HIPRecordContent(uint8_t algorithm, const string& hit, const string& key);
+};
+
+
 class NSECRecordContent : public DNSRecordContent
 {
 public:
