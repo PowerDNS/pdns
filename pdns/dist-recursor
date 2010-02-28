@@ -1,4 +1,4 @@
-VERSION=3.2-rc1
+VERSION=3.2-rc2
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
@@ -39,6 +39,7 @@ cp configure-recursor $DIRNAME/configure
 cp powerdns-example-script.lua $DIRNAME
 
 mkdir -p $DIRNAME/sysdeps
+rm -f sysdeps-recursor/*~
 cp  sysdeps-recursor/* $DIRNAME/sysdeps
 cp "PowerDNS Recursor.vcproj" $DIRNAME/
 tar cf $DIRNAME.tar $DIRNAME

@@ -1900,7 +1900,7 @@ int main(int argc, char **argv)
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
-    ::arg().set("max-packetcache-entries", "maximum number of seconds to keep a cached entry in packetcache")="500000";
+    ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
@@ -1914,8 +1914,8 @@ int main(int argc, char **argv)
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
-    ::arg().set("forward-zones-recurse", "Zones for which we forward queries, comma separated domain=ip pairs")="";
-    ::arg().set("forward-zones-file", "File with domain=ip pairs for forwarding")="";
+    ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs")="";
+    ::arg().set("forward-zones-file", "File with (+)domain=ip pairs for forwarding")="";
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
