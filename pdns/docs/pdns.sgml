@@ -151,6 +151,27 @@
 	    in such a way that total memory usage will remain identical, so each thread will use half of the allocated maximum number of cache entries. 
 	</para>
 	</note>
+	Changes between RC1 and RC2:
+	<itemizedlist>
+	  <listitem><para>
+	    Compilation on Solaris 10 has been fixed (various patchlevels had different issues), code in c1522.
+	  </para></listitem>
+	  <listitem><para>
+	    Compatibility with CentOS4/RHEL4 has been restored, the gcc and glibc versions shipped with this distribution contain a Thread Local Storage bug 
+	    which we now work around. Thanks to Darren Gamble and Imre Gergely for debugging this issue, code in c1527.
+	  </para></listitem>
+	  <listitem><para>
+	    A failed setuid operation, because of misconfiguration, would result in a crash instead of an error message. Fixed in c1523.
+	  </para></listitem>
+	  <listitem><para>
+	    Imre Gergely discovered our rrd graphs had not been changed for the new multithreaded world, and did not allow scaling beyond 200% cpu use. In addition,
+	    CPU usage graphs did not add up correctly. Implemented in c1524.
+	  </para></listitem>
+	   <listitem><para>
+	    Andreas Jakum discovered the description of 'max-packetcache-entries' and 'forward-zones-recurse' was wrong in the output of '--help' and '--config'. 
+	    In addition, some stray backup files made it into the RC1 release. Addressed in c1529.
+	  </para></listitem>
+	</itemizedlist>
 	Improvements:
 	  <itemizedlist>
 	    <listitem>
