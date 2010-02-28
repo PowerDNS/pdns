@@ -405,8 +405,15 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
     subdomain=getBestNSNamesFromCache(subdomain, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
 
     if(nsset.empty()) { // must've lost root records
-      LOG<<prefix<<qname<<": our root expired, repriming from hints and retrying"<<endl;
-      primeHints();
+      set<DNSResourceRecord> rootset;
+      /* this additional test is needed since getBestNSNamesFromCache sometimes returns that no
+         useful NS records were found, even without the root being expired. This might for example
+         be the case when the . records are not acceptable because they are part of a loop, a loop
+         caused by the invalidation of an nsset during the resolution algorithm */
+      if(t_RC->get(d_now.tv_sec, ".", QType(QType::NS), &rootset) <= 0) {
+        L<<Logger::Warning<<prefix<<qname<<": our root expired, repriming from hints and retrying"<<endl;
+        primeHints();
+      }
     }
   }
 
