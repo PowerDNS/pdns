@@ -8399,6 +8399,10 @@ local0.err                        /var/log/pdns.err
 	      When running with master or slave support, be aware that many operating systems need access to specific libraries
 	      (ofen <filename>/lib/libnss*</filename>) in order to support resolution of domain names! You can also hardlink these.
 	    </para>
+	    <para>
+	      In addition, make sure that <filename>/dev/log</filename> is available from within the chroot. Logging will silently fail
+	      over time otherwise (on logrotate).
+	    </para>
 	  </warning>
 	</para><para>
 	  The default PDNS configuration is best chrooted to <filename>./</filename>, which boils down to the configured location
@@ -8918,6 +8922,10 @@ local0.err                        /var/log/pdns.err
 	  <varlistentry><term>chroot</term>
 	    <listitem><para>
 		If set, chroot to this directory for more security. See <xref linkend="security">.
+	      </para>
+		<para>
+		Make sure that <filename>/dev/log</filename> is available from within the chroot. Logging will silently fail
+		over time otherwise (on logrotate).
 	      </para></listitem></varlistentry>
 	  <varlistentry>
 	    <term>client-tcp-timeout</term>
