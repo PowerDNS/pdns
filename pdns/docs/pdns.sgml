@@ -9265,6 +9265,15 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>socket-owner, socket-group, socket-mode</term>
+	    <listitem>
+	      <para>
+		Owner, group and mode of the controlsocket. Owner and group can be specified by name, mode is in octal.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
 	    <term>spoof-nearmiss-max</term>
 	    <listitem>
 	      <para>

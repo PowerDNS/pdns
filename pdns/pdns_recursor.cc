@@ -658,6 +658,25 @@ void makeControlChannelSocket()
 {
   string sockname=::arg()["socket-dir"]+"/pdns_recursor.controlsocket";
   s_rcc.listen(sockname);
+  
+#ifndef WIN32
+  int sockowner = -1;
+  int sockgroup = -1;
+
+  if (!::arg().isEmpty("socket-group"))
+    sockgroup=::arg().asGid("socket-group");
+  if (!::arg().isEmpty("socket-owner"))
+    sockowner=::arg().asUid("socket-owner");
+  
+  if (sockgroup > -1 || sockowner > -1)
+    chown(sockname.c_str(), sockowner, sockgroup);
+
+  // do mode change if socket-mode is given
+  if(!::arg().isEmpty("socket-mode")) {
+    mode_t sockmode=::arg().asMode("socket-mode");
+    chmod(sockname.c_str(), sockmode);
+  }
+#endif
 }
 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
