@@ -1932,6 +1932,12 @@ int main(int argc, char **argv)
     L.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
 
+    if(::arg().mustDo("config")) {
+      cout<<::arg().configstring()<<endl;
+      exit(0);
+    }
+
+
     string configname=::arg()["config-dir"]+"/recursor.conf";
     cleanSlashes(configname);
 
@@ -1951,12 +1957,6 @@ int main(int argc, char **argv)
       cerr<<"version: "VERSION<<endl;
       exit(99);
     }
-
-    if(::arg().mustDo("config")) {
-      cout<<::arg().configstring()<<endl;
-      exit(0);
-    }
-
 
 #ifndef WIN32
     serviceMain(argc, argv);

@@ -96,7 +96,7 @@
 	<para>
 	  <warning>
 	    <para>
-	      UNRELEASED! RC1 available.
+	      UNRELEASED! RC2 available.
 	    </para>
 	  </warning>
 	</para>
@@ -162,6 +162,9 @@
 	  </para></listitem>
 	  <listitem><para>
 	    A failed setuid operation, because of misconfiguration, would result in a crash instead of an error message. Fixed in c1523.
+	  </para></listitem>
+	  <listitem><para>
+	    Imre Gergely discovered that PowerDNS was doing spurious root repriming when invalidating nssets. Fixed in c1531.
 	  </para></listitem>
 	  <listitem><para>
 	    Imre Gergely discovered our rrd graphs had not been changed for the new multithreaded world, and did not allow scaling beyond 200% cpu use. In addition,
@@ -9297,6 +9300,29 @@ local0.err                        /var/log/pdns.err
 	</variablelist>
       <para>
     </sect1>
+    <sect1 id="recursor-command-line"><title>pdns_recursor command line</title>
+    <para>
+      All configuration settings from the previous section can also be passed on the command line, and
+      will override the configuration file. In addition, the following options make sense on the command line:
+      <variablelist>
+	<varlistentry>
+	  <term>--config</term>
+	  <listitem>
+	    <para>
+	      Emit a default configuration file.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>--help</term>
+	  <listitem>
+	    <para>
+	      Output all configuration settings and command line flags.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>  
+    </para>
     <sect1 id="rec-control"><title>Controlling and querying the recursor</title>
       <para>
 	To control and query the PowerDNS recursor, the tool <filename>rec_control</filename> is provided. This program
