@@ -358,6 +358,9 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       tie(domain, instructions)=splitField(line, '=');
       trim(domain);
       trim(instructions);
+      if(domain.empty() && instructions.empty()) { // empty line
+        continue;
+      }
       if(boost::starts_with(domain,"+")) {
         domain=domain.c_str()+1;
         ad.d_rdForward = true;
@@ -365,7 +368,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       else
         ad.d_rdForward = false;
       if(domain.empty()) {
-	delete newMap;
+        delete newMap;
         throw AhuException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
@@ -373,7 +376,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         convertServersForAD(instructions, ad, ",; ", false);
       }
       catch(...) {
-	delete newMap;
+        delete newMap;
         throw AhuException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
