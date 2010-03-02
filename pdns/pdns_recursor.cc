@@ -1487,7 +1487,7 @@ void parseACLs()
     ifstream ifs(::arg()["allow-from-file"].c_str());
     if(!ifs) {
       delete allowFrom; 
-      throw AhuException("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
+      throw runtime_error("Could not open '"+::arg()["allow-from-file"]+"': "+stringerror());
     }
 
     string::size_type pos;
