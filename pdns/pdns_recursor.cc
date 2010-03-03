@@ -18,6 +18,7 @@
 
 #ifndef WIN32
 # include <netdb.h>
+# include <sys/stat.h>
 # include <unistd.h>
 #else 
  #include "ntservice.hh"
@@ -668,8 +669,11 @@ void makeControlChannelSocket()
   if (!::arg().isEmpty("socket-owner"))
     sockowner=::arg().asUid("socket-owner");
   
-  if (sockgroup > -1 || sockowner > -1)
-    chown(sockname.c_str(), sockowner, sockgroup);
+  if (sockgroup > -1 || sockowner > -1) {
+    if(chown(sockname.c_str(), sockowner, sockgroup) < 0) {
+      unixDie("Failed to chown control socket");
+    }
+  }
 
   // do mode change if socket-mode is given
   if(!::arg().isEmpty("socket-mode")) {
