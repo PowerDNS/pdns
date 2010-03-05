@@ -89,7 +89,7 @@ int PortsFDMultiplexer::run(struct timeval* now)
   unsigned int numevents=1;
   int ret= port_getn(d_portfd, d_pevents.get(), min(PORT_MAX_LIST, s_maxevents), &numevents, &timeout);
 
-  gettimeofday(now,0);
+
   
   /* port_getn has an unusual API - (ret == -1, errno == ETIME) can
      mean partial success; you must check (*numevents) in this case
@@ -101,9 +101,10 @@ int PortsFDMultiplexer::run(struct timeval* now)
     if(errno!=EINTR)
       throw FDMultiplexerException("completion port_getn returned error: "+stringerror());
     // EINTR is not really an error
+    gettimeofday(now,0);
     return 0;
   }
-
+  gettimeofday(now,0);
   if(!numevents) // nothing
     return 0;
 
