@@ -474,6 +474,7 @@ struct RecursorStats
   uint64_t ednsPingMismatches;
   uint64_t noPingOutQueries, noEdnsOutQueries;
   uint64_t packetCacheHits;
+  uint64_t noPacketError;
   time_t startupTime;
 };
 

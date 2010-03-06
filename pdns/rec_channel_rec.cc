@@ -376,6 +376,7 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("resource-limits", &g_stats.resourceLimits);
   addGetStat("over-capacity-drops", &g_stats.overCapacityDrops);
+  addGetStat("no-packet-error", &g_stats.noPacketError);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
   
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));

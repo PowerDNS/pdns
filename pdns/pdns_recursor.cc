@@ -876,6 +876,8 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     // cerr<<t_id<<" had error: "<<stringerror()<<endl;
+    if(errno == EAGAIN)
+      g_stats.noPacketError++;
   }
 }
 
