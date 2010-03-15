@@ -653,6 +653,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       goto sendit;
 
     int mret;
+
   retargeted:;
     if(retargetcount++>10) {
       L<<Logger::Error<<"Detected wildcard CNAME loop involving '"<<target<<"'"<<endl;
@@ -662,7 +663,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     mret=makeCanonic(p, r, target); // traverse CNAME chain until we have a useful record (may actually give the correct answer!)
     DLOG(L<<Logger::Warning<<"MakeCanonic returned "<<mret<<endl);
 
-    if(mret==2) { // there is some data, but not of the correct type
+    if(mret==2 && retargetcount==1) { // there is some data, but not of the correct type
       r->clearRecords();
     }
     if(d_doFancyRecords) { // MBOXFW, URL <- fake records, emulated with MX and A

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig yo.test.test.com AAAA

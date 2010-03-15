@@ -1,0 +1,4 @@
+0	yo.test.test.com.	IN	CNAME	3600	server1.test.com.
+1	test.com.	IN	SOA	3600	ns1.test.com. ahu.example.com. 2005092501 28800 7200 604800 86400
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='yo.test.test.com.', qtype=AAAA

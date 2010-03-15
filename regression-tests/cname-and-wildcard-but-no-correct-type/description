@@ -1,0 +1,3 @@
+If a CNAME wildcard is present, and it matches, but points to a record that
+does not have the requested type, a CNAME should be emitted plus a SOA to
+indicate no match with the right record
