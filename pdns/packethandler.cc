@@ -393,7 +393,7 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
         r->addRecord(rr);
       }
     }
-    if(hits && !relevantNS && !found && !rfound && shortcut ) { // we found matching qnames but not a qtype
+    if(!numloops && hits && !relevantNS && !found && !rfound && shortcut ) { // we found matching qnames but not a qtype
       DLOG(L<<"Found matching qname, but not the qtype"<<endl);
       return 2;
     }
