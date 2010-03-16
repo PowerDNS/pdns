@@ -26,7 +26,7 @@ struct QuestionData
   int d_qcount;
   int d_answercount;
 
-  struct timeval d_firstquestiontime;
+  struct pdns_timeval d_firstquestiontime;
 };
 
 typedef map<QuestionIdentifier, QuestionData> statmap_t;
