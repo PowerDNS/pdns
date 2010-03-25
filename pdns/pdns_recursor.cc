@@ -443,8 +443,8 @@ static void writePid(void)
     L<<Logger::Error<<"Requested to write pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
 }
 
-
-map<ComboAddress, uint32_t> g_tcpClientCounts;
+typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
+tcpClientCounts_t __thread* t_tcpClientCounts;
 
 struct TCPConnection
 {
@@ -459,8 +459,8 @@ struct TCPConnection
   static void closeAndCleanup(int fd, const ComboAddress& remote) 
   {
     Utility::closesocket(fd);
-    if(!g_tcpClientCounts[remote]--) 
-      g_tcpClientCounts.erase(remote);
+    if(!(*t_tcpClientCounts)[remote]--) 
+      t_tcpClientCounts->erase(remote);
     s_currentConnections--;
   }
   void closeAndCleanup()
@@ -787,13 +787,12 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       Utility::closesocket(newsock);
       return;
     }
-    
-    if(g_maxTCPPerClient && g_tcpClientCounts.count(addr) && g_tcpClientCounts[addr] >= g_maxTCPPerClient) {
+    if(g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
       Utility::closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       return;
     }
-    g_tcpClientCounts[addr]++;
+    (*t_tcpClientCounts)[addr]++;
     Utility::setNonBlocking(newsock);
     TCPConnection tc;
     tc.fd=newsock;
@@ -1403,7 +1402,6 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   retryWithName:
 
     if(!MT->sendEvent(pident, &packet)) {
-      
       // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
       for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
         if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
@@ -1414,10 +1412,10 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
         // be a bit paranoid here since we're weakening our matching
         if(pident.domain.empty() && !mthread->key.domain.empty() && !pident.type && mthread->key.type && 
            pident.id  == mthread->key.id && mthread->key.remote == pident.remote) {
-          //	    cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
+          // cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
           pident.domain = mthread->key.domain;
           pident.type = mthread->key.type;
-          goto retryWithName;
+          goto retryWithName; // note that this only passes on an error, lwres will still reject the packet
         }
       }
       g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
@@ -1732,6 +1730,7 @@ try
   t_sstorage->domainmap = g_initialDomainMap;
   t_allowFrom = g_initialAllowFrom;
   t_udpclientsocks = new UDPClientSocks();
+  t_tcpClientCounts = new tcpClientCounts_t();
   primeHints();
   
   t_packetCache = new RecursorPacketCache();
