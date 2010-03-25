@@ -254,9 +254,19 @@ void RecordTextReader::xfrText(string& val, bool multi)
       val.append(1, ' ');
 
     skipSpaces();
-    if(d_string[d_pos]!='"')
+    if(d_string[d_pos]!='"') { // special case 'plenus' - without quotes
+      string::size_type pos = d_pos;
+      while(pos != d_end && isalnum(d_string[pos]))
+        pos++;
+      if(pos == d_end) {
+        val.append(1, '"');
+        val.append(d_string.c_str() + d_pos, d_end - d_pos);
+        val.append(1, '"');
+        d_pos = d_end;
+        break;
+      }
       throw RecordTextException("Data field in DNS should start with quote (\") at position "+lexical_cast<string>(d_pos)+" of '"+d_string+"'");
-
+    }
     val.append(1, '"');
     while(++d_pos < d_end && d_string[d_pos]!='"') {
       if(d_string[d_pos]=='\\' && d_pos+1!=d_end) {
