@@ -158,23 +158,23 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored)
 {
   if(!stored.d_auth) {
-//    cerr<<"feel free to scribble non-auth data!"<<endl;
+    //~ cerr<<"feel free to scribble non-auth data!"<<endl;
     return false;
   }
 
   if(qt.getCode()!=QType::NS) {
-  //  cerr<<"Not NS record"<<endl;
+    //~ cerr<<"Not NS record"<<endl;
     return false;
   }
   if(content.size()!=stored.d_records.size()) {
-  //  cerr<<"Not equal number of records"<<endl;
+    //~ cerr<<"Not equal number of records"<<endl;
     return false;
   }
   if(stored.d_records.empty())
     return false;
 
   if(stored.d_records.begin()->d_ttd > content.begin()->ttl) {
-    // cerr<<"attempt to LOWER TTL - fine by us"<<endl;
+    //~ cerr<<"attempt to LOWER TTL - fine by us"<<endl;
     return false;
   }
 
@@ -202,7 +202,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   StoredRecord dr;
   CacheEntry ce=*stored;
 
-  //  cerr<<"storing "<< qname+"|"+qt.getName()<<" -> '"<<content.begin()->content<<"', isnew="<<isNew<<", auth="<<auth<<", ce.auth="<<ce.d_auth<<"\n";
+  //~ cerr<<"asked to store "<< qname+"|"+qt.getName()<<" -> '"<<content.begin()->content<<"', isnew="<<isNew<<", auth="<<auth<<", ce.auth="<<ce.d_auth<<"\n";
 
   if(qt.getCode()==QType::SOA || qt.getCode()==QType::CNAME)  { // you can only have one (1) each of these
     //    cerr<<"\tCleaning out existing store because of SOA and CNAME\n";
@@ -222,16 +222,19 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
       ce.d_auth = false;  // new data won't be auth
     }
   }
-#if 0
+
   if(auth && !attemptToRefreshNSTTL(qt, content, ce) ) {
-    cerr<<"\tGot auth data, and it was not refresh attempt of an NS record, nuking storage"<<endl;
+    // cerr<<"\tGot auth data, and it was not refresh attempt of an NS record, nuking storage"<<endl;
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
     isNew=true;           // data should be sorted again
   }
-#endif
-  //  cerr<<"\tHave "<<content.size()<<" records to store\n";
+  else
+    ; //cerr<<"\tNot nuking"<<endl;
+
+  // cerr<<"\tHave "<<content.size()<<" records to store\n";
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
+    // cerr<<"To store: "<<i->content<<endl;
     dr.d_ttd=i->ttl;
     dr.d_string=DNSRR2String(*i);
     
@@ -240,31 +243,25 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     else {
       range=equal_range(ce.d_records.begin(), ce.d_records.end(), dr);
 
-      if(range.first != range.second && (range.first != ce.d_records.begin() || range.second != ce.d_records.end())) {
-        //	cerr<<"\t\tIncomplete match! Must nuke"<<endl;
-        ce.d_records.clear();
-        range.first = range.second = ce.d_records.begin();
-      }
-
       if(range.first != range.second) {
-        //	cerr<<"\t\tMay need to modify TTL of stored record\n";
+       // cerr<<"\t\tMay need to modify TTL of stored record\n";
         for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j) {
           /* see http://mailman.powerdns.com/pipermail/pdns-users/2006-May/003413.html */
-          if(j->d_ttd > (unsigned int) now && i->ttl > j->d_ttd && qt.getCode()==QType::NS && auth) { // don't allow auth servers to *raise* TTL of an NS recor
-            //	    cerr<<"\t\tNot doing so, trying to raise TTL NS\n";
+          if(j->d_ttd > (unsigned int) now && i->ttl > j->d_ttd && qt.getCode()==QType::NS && auth) { // don't allow auth servers to *raise* TTL of an NS record
+            //~ cerr<<"\t\tNot doing so, trying to raise TTL NS\n";
             continue;
           }
           if(i->ttl > j->d_ttd || (auth && d_followRFC2181) ) { // authoritative packets can override the TTL to be lower
-            //	    cerr<<"\t\tUpdating the ttl, diff="<<j->d_ttd - i->ttl<<endl;;
+            //~ cerr<<"\t\tUpdating the ttl, diff="<<j->d_ttd - i->ttl<<endl;;
             j->d_ttd=i->ttl;
           }
           else {
-            //	    cerr<<"\t\tNOT updating the ttl, old= " <<j->d_ttd - now <<", new: "<<i->ttl - now <<endl;
+            //~ cerr<<"\t\tNOT updating the ttl, old= " <<j->d_ttd - now <<", new: "<<i->ttl - now <<endl;
           }
         }
       }
       else {
-        //	cerr<<"\t\tThere was no exact copy of this record, so adding & sorting\n";
+        //~ cerr<<"\t\tThere was no exact copy of this record, so adding & sorting\n";
         ce.d_records.push_back(dr);
         sort(ce.d_records.begin(), ce.d_records.end());
       }
