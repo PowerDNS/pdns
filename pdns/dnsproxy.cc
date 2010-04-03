@@ -110,8 +110,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 
     ConntrackEntry ce;
     ce.id       = p->d.id;
-    memcpy((void *)&ce.remote,(void *)&p->remote, p->remote.getSocklen()); 
-    ce.addrlen  = p->remote.getSocklen();
+    ce.remote = p->remote;
     ce.outsock  = p->getSocket();
     ce.created  = time( NULL );
 
@@ -189,7 +188,7 @@ void DNSProxy::mainloop(void)
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-        sendto(i->second.outsock,buffer,len,0,(struct sockaddr*)&i->second.remote,i->second.addrlen);
+        sendto(i->second.outsock, buffer, len, 0, (struct sockaddr*)&i->second.remote, i->second.remote.getSocklen());
         
         DNSPacket p,q;
         p.parse(buffer,len);
