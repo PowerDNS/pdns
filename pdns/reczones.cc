@@ -36,8 +36,9 @@ void primeHints(void)
     static const char *ip6s[]={
       "2001:503:ba3e::2:30", NULL, NULL, NULL, NULL,
       "2001:500:2f::f", NULL, "2001:500:1::803f:235", NULL,
-      "2001:503:c27::2:30", NULL, NULL, NULL
+      "2001:503:c27::2:30", "2001:7fd::1", "2001:500:3::42", "2001:dc3::35"
     };
+    
     DNSResourceRecord arr, aaaarr, nsrr;
     arr.qtype=QType::A;
     aaaarr.qtype=QType::AAAA;

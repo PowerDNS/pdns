@@ -199,7 +199,7 @@ int arecvtcp(string& data, int len, Socket* sock)
 }
 
 vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6; 
-ComboAddress g_local4("0.0.0.0"), g_local6("::");
+const ComboAddress g_local4("0.0.0.0"), g_local6("::");
 
 //! pick a random query local address
 ComboAddress getQueryLocalAddress(int family, uint16_t port)
