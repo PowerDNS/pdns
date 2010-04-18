@@ -28,6 +28,7 @@ class DNSPacket;
 #include <sys/types.h>
 #include "ahuexception.hh"
 #include <set>
+#include <iostream>
 
 #ifndef WIN32
 # include <sys/socket.h>
@@ -72,6 +73,13 @@ public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
   virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
+
+  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string qname, std::string& before, std::string& after)
+  {
+    std::cerr<<"Default beforeAndAfter called!"<<std::endl;
+    return false;
+  }
+
   //! Initiates a list of the specified domain
   /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
       if the backend does not consider itself responsible for the id passed.

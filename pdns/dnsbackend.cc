@@ -208,6 +208,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   this->lookup(QType(QType::SOA),domain,p);
 
   DNSResourceRecord rr;
+  rr.auth = true; 
 
   int hits=0;
 
