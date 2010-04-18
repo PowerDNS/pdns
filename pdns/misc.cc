@@ -621,3 +621,34 @@ string stripDot(const string& dom)
 
   return dom.substr(0,dom.size()-1);
 }
+
+
+string labelReverse(const std::string& qname)
+{
+  if(qname.empty())
+    return qname;
+
+  vector<string> labels;
+  stringtok(labels, qname, ".");
+  if(labels.size()==1)
+    return qname;
+
+  string ret;
+  for(vector<string>::const_reverse_iterator iter = labels.rbegin(); iter != labels.rend(); ++iter) {
+    if(iter != labels.rbegin())
+      ret.append(1,'.');
+    ret+=*iter;
+  }
+  return ret;
+}
+
+// do NOT feed trailing dots!
+// www.powerdns.com, powerdns.com -> www
+string makeRelative(const std::string& fqdn, const std::string& zone)
+{
+  if(zone.empty())
+    return fqdn;  
+  if(fqdn != zone)
+    return fqdn.substr(0, fqdn.size() - zone.length() - 1); // strip domain name
+  return "";
+}
