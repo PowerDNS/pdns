@@ -90,93 +90,6 @@ private:
 };
 
 
-void NSECRecordContent::report(void)
-{
-  regist(1, 47, &make, &make, "NSEC");
-}
-
-DNSRecordContent* NSECRecordContent::make(const string& content)
-{
-  return new NSECRecordContent(content);
-}
-
-NSECRecordContent::NSECRecordContent(const string& content, const string& zone) : DNSRecordContent(47)
-{
-  RecordTextReader rtr(content, zone);
-  rtr.xfrLabel(d_next);
-
-  while(!rtr.eof()) {
-    uint16_t type;
-    rtr.xfrType(type);
-    d_set.insert(type);
-  }
-}
-
-void NSECRecordContent::toPacket(DNSPacketWriter& pw)
-{
-  pw.xfrLabel(d_next);
-
-  uint8_t res[34];
-  memset(res, 0, sizeof(res));
-
-  set<uint16_t>::const_iterator i;
-  for(i=d_set.begin(); i != d_set.end() && *i<255; ++i){
-    res[2+*i/8] |= 1 << (7-(*i%8));
-  }
-  int len=0;
-  if(!d_set.empty()) 
-    len=1+*--i/8;
-
-  res[1]=len;
-
-  string tmp;
-  tmp.assign(res, res+len+2);
-  pw.xfrBlob(tmp);
-}
-
-NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
-{
-  NSECRecordContent* ret=new NSECRecordContent();
-  pr.xfrLabel(ret->d_next);
-  string bitmap;
-  pr.xfrBlob(bitmap);
-  
-  // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
-  
-  if(bitmap.size() < 2)
-    throw MOADNSException("NSEC record with impossibly small bitmap");
-  
-  if(bitmap[0])
-    throw MOADNSException("Can't deal with NSEC mappings > 255 yet");
-  
-  unsigned int len=bitmap[1];
-  if(bitmap.size()!=2+len)
-    throw MOADNSException("Can't deal with multi-part NSEC mappings yet");
-  
-  for(unsigned int n=0 ; n < len ; ++n) {
-    uint8_t val=bitmap[2+n];
-    for(int bit = 0; bit < 8 ; ++bit , val>>=1)
-      if(val & 1) {
-        ret->d_set.insert((7-bit) + 8*(n));
-      }
-  }
-  
-  return ret;
-}
-
-string NSECRecordContent::getZoneRepresentation() const
-{
-  string ret;
-  RecordTextWriter rtw(ret);
-  rtw.xfrLabel(d_next);
-  
-  for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
-    ret+=" ";
-    ret+=NumberToType(*i);
-  }
-  
-  return ret;
-}
 
 boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
 boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
@@ -309,6 +222,7 @@ boilerplate_conv(CERT, 37,
         	 conv.xfrBlob(d_certificate);
         	 )
 #undef DS
+DSRecordContent::DSRecordContent() : DNSRecordContent(43) {}
 boilerplate_conv(DS, 43, 
         	 conv.xfr16BitInt(d_tag); 
         	 conv.xfr8BitInt(d_algorithm); 
@@ -335,12 +249,59 @@ boilerplate_conv(RRSIG, 46,
         	 conv.xfrBlob(d_signature);
         	 )
         	 
+RRSIGRecordContent::RRSIGRecordContent() : DNSRecordContent(46) {}
+
 boilerplate_conv(DNSKEY, 48, 
         	 conv.xfr16BitInt(d_flags); 
         	 conv.xfr8BitInt(d_protocol); 
         	 conv.xfr8BitInt(d_algorithm); 
         	 conv.xfrBlob(d_key);
         	 )
+DNSKEYRecordContent::DNSKEYRecordContent() : DNSRecordContent(48) {}
+
+uint16_t DNSKEYRecordContent::getTag()
+{
+  string data=this->serialize("");
+  const unsigned char* key=(const unsigned char*)data.c_str();
+  unsigned int keysize=data.length();
+
+  unsigned long ac;     /* assumed to be 32 bits or larger */
+  unsigned int i;                /* loop index */
+  
+  for ( ac = 0, i = 0; i < keysize; ++i )
+    ac += (i & 1) ? key[i] : key[i] << 8;
+  ac += (ac >> 16) & 0xFFFF;
+  return ac & 0xFFFF;
+}
+
+void DNSKEYRecordContent::getExpLen(uint16_t& startPos, uint16_t& expLen) const
+{
+  unsigned char* decoded=(unsigned char*) d_key.c_str();
+  if(decoded[0] != 0) {
+    startPos=1;
+    expLen=decoded[0];
+  }
+  else {
+    startPos=3;
+    expLen=decoded[1]*0xff + decoded[2]; // XXX FIXME
+  }
+}
+
+string DNSKEYRecordContent::getExponent() const
+{
+  uint16_t startPos, expLen;
+  getExpLen(startPos, expLen);
+  return d_key.substr(startPos, expLen);
+}
+
+string DNSKEYRecordContent::getModulus() const
+{
+  uint16_t startPos, expLen;
+  getExpLen(startPos, expLen);
+
+  return d_key.substr(startPos+expLen);
+}
+
 
 // "fancy records" 
 boilerplate_conv(URL, QType::URL, 
@@ -407,6 +368,8 @@ void reportOtherTypes()
    SSHFPRecordContent::report();
    CERTRecordContent::report();
    NSECRecordContent::report();
+   NSEC3RecordContent::report();
+   NSEC3PARAMRecordContent::report();
    DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    OPTRecordContent::report();
 }

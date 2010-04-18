@@ -22,6 +22,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include "base32.hh"
 #include "base64.hh"
 #include "namespaces.hh"
 
@@ -243,6 +244,15 @@ void RecordTextReader::xfrHexBlob(string& val)
 
   HEXDecode(d_string.c_str()+pos, d_string.c_str() + d_pos, val);
 }
+
+void RecordTextWriter::xfrBase32HexBlob(const string& val)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+
+  d_string.append(toBase32Hex(val));
+}
+
 
 void RecordTextReader::xfrText(string& val, bool multi)
 {

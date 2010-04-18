@@ -20,7 +20,7 @@ endif
 
 
 EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest dnspbench pdns_control dnsscope dnsgram \
- dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify
+ dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify 
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -42,7 +42,7 @@ base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
 rcpgenerator.cc	dnsparser.cc dns_random.hh aes/aescpp.h \
 aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
-randomhelper.cc namespaces.hh
+randomhelper.cc namespaces.hh nsecrecords.cc base32.cc
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@

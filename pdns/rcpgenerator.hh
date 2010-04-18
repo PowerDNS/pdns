@@ -54,6 +54,8 @@ public:
   void xfrLabel(string& val, bool compress=false);
   void xfrText(string& val, bool multi=false);
   void xfrHexBlob(string& val);
+
+
   void xfrBlob(string& val, int len=-1);
 
   bool eof();
@@ -75,6 +77,7 @@ public:
   void xfr8BitInt(const uint8_t& val);
   void xfrIP(const uint32_t& val);
   void xfrTime(const uint32_t& val);
+  void xfrBase32HexBlob(const string& val);
 
   void xfrType(const uint16_t& val);
   void xfrLabel(const string& val, bool compress=false);
