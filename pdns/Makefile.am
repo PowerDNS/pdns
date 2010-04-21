@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -I./polarssl-0.13.1/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -Iext/polarssl/include
 AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
 
 EXTRA_DIST = docs/Makefile docs/expand \
@@ -45,14 +45,14 @@ aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dnsseckeeper.cc dnssecinfra.cc
 
 #
-pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lpolarssl-0.13.1/library -lpolarssl -lboost_filesystem-mt
+pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library -lpolarssl -lboost_filesystem-mt
 
 pdnssec_SOURCES=pdnssec.cc dnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
         base32.cc 
 
-pdnssec_LDFLAGS=-Lpolarssl-0.13.1/library/ -lboost_filesystem-mt -lpolarssl -lboost_program_options-mt
+pdnssec_LDFLAGS=-Lext/polarssl/library/ -lboost_filesystem-mt -lpolarssl -lboost_program_options-mt
                         
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
