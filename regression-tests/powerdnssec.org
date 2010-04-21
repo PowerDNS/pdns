@@ -1,0 +1,25 @@
+powerdnssec.org.		3600	IN SOA	powerdnssec1.ds9a.nl. ahu.ds9a.nl. (
+					2009071301 ; serial
+					14400       ; refresh (2 hours 30 minutes)
+					3600        ; retry (7 minutes 30 seconds)
+					604800     ; expire (1 week)
+					3600       ; minimum (7 minutes 30 seconds)
+					)
+				DNSKEY 256 3 5 AwEAAaRcWjp4NAslI+fNyRS8+shWWl6kC+EaCJHdCxsfJFufgZImVd5OdMooQ6mYHaYP0wpE++71anehnKnGCfmJqjBHOwspDu9FqdH8gDzAQn6o4gmcGpkioQPX2rVewL8d9kKEXQxrK9b6SwIv1lDKjYjOr0cYd0BxqOBK0J4pWvc3
+				DNSKEY 257 3 5 AwEAAZVtlHc8O4TVmlGx/PGJTc7hbVjMR7RywxLuAm1dqgyHvgNRD7chYLsALOdZKW6VRvusbyhoOPilnh8XpucBDqjGD6lIemsURz7drZEqcLupVA0TPxXABZ6auJ3jumqIhSOcLj9rpSwI4xuWt0yu6LR9tL2q8+A0yEZxcAaKS+Wq0fExJ93NxgXl1/fY+JcYQvonjd31GxXXef9uf0exXyzowh5h8+IIBETU+ZiYVB5BqiwkICZL/OX57idm99ycA2/tIen66F8u2ueTvgPcecnoqHvW0MtLQKzeNmqdGNthHhV5di0SZdMZQeo/izs68uN2WzqQDZy9Ec2JwBTbxWE=
+				DNSKEY 256 3 5 AwEAAaO/lyG+NL/1juVFiaKd9UfxdkmvlmbtJOYDiKpn8AxQ6VDFCq+XQ3lGXB+QEwWD8idnGL3mNRqFtZgm4AdzU/bU590Dv+Na35rhiez27CePlmwRUQ1bLmQZON1Ix8+k+psPdP0LEezbOYx+6Rag5BJqekD56mMj0/hXy5dlUtNB
+			3600	NS	powerdnssec1.ds9a.nl.
+			3600	NS	powerdnssec2.ds9a.nl.
+			3600	MX	10	powerdns.easy-server.com.
+			3600	A	212.123.148.70
+www.powerdnssec.org.	3600	CNAME	powerdnssec.org.
+webserver		3600	A	1.2.3.4
+smtp			3600	A	4.3.2.1
+localhost		3600	A	127.0.0.1
+			3600	AAAA	::1
+ipv6			3600	AAAA	2001:888:1036:0:208:a1ff:fe19:f000
+zbefore.a.powerdnssec.org.		3600	TXT	"before"
+after.powerdnssec.org.		3600	TXT	"after"
+zzz.powerdnssec.org.		3600	TXT	"this is the end.."
+
+
