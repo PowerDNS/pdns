@@ -78,7 +78,7 @@ void RecordTextReader::xfrTime(uint32_t &val)
 
   tm.tm_year-=1900;
   tm.tm_mon-=1;
-//  val=(uint32_t)timegm(&tm); XXX FIXME disabled for Solaris
+  val=(uint32_t)timegm(&tm); XXX FIXME disabled for Solaris
 }
 
 void RecordTextReader::xfrIP(uint32_t &val)
