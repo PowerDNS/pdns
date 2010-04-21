@@ -196,7 +196,8 @@ void DNSSECKeeper::addZone(const std::string& name)
 {
   mkdir((d_dirname+"/"+name).c_str(), 0700);
   mkdir((d_dirname+"/"+name+"/ksks").c_str(), 0700);
-  mkdir((d_dirname+"/"+name+"/zsks").c_str(), 0700);
+  if(mkdir((d_dirname+"/"+name+"/zsks").c_str(), 0700) < 0)
+    unixDie("Making directory for keys in '"+d_dirname+"'");
 
   DNSSECPrivateKey dpk;
   dpk.d_key.create(2048); // for testing, 1024
