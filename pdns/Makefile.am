@@ -7,17 +7,18 @@ docs/powerdns-overview.sgml docs/powerdns-technical.sgml  \
 docs/pdns.sgml mtasker.cc inflighter.cc \
 docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
 
+SUBDIRS= ext/polarssl backends 
+
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
 if RECURSOR
 sbin_PROGRAMS = pdns_server pdns_recursor
-bin_PROGRAMS = pdns_control  rec_control
+bin_PROGRAMS = pdns_control  rec_control pdnssec
 else
 sbin_PROGRAMS = pdns_server 
-bin_PROGRAMS = pdns_control  
+bin_PROGRAMS = pdns_control pdnssec 
 endif
-
 
 EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest dnspbench pdns_control dnsscope dnsgram \
  dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify pdnssec
@@ -42,7 +43,8 @@ base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
 rcpgenerator.cc	dnsparser.cc dns_random.hh aes/aescpp.h \
 aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
-randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dnsseckeeper.cc dnssecinfra.cc
+randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dnsseckeeper.cc dnssecinfra.cc \
+dnsseckeeper.hh dnssecinfra.hh base32.hh
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library -lpolarssl -lboost_filesystem-mt
@@ -146,10 +148,6 @@ aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
 lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc
 
-if NEDMALLOC
-pdns_recursor_SOURCES += ext/nedmalloc/malloc.c
-endif
-
 #../modules/gmysqlbackend/smysql.cc 
 
 pdns_recursor_LDFLAGS= -llua5.1 
@@ -163,4 +161,4 @@ pdns_control_LDFLAGS=@THREADFLAGS@
 
 # binpatch_SOURCES=binpatch.cc 
 
-SUBDIRS= backends .
+

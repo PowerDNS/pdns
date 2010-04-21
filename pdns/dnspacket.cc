@@ -523,7 +523,7 @@ try
 
   if(getEDNSOpts(mdp, &edo)) {
     d_maxreplylen=max(edo.d_packetsize, (uint16_t)1280);
-    cerr<<edo.d_Z<<endl;
+//    cerr<<edo.d_Z<<endl;
     if(edo.d_Z & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
 
