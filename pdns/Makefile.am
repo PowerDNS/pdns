@@ -20,7 +20,7 @@ endif
 
 
 EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest dnspbench pdns_control dnsscope dnsgram \
- dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify 
+ dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify pdnssec
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -46,6 +46,14 @@ randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dnsseckeeper.cc dnssecinf
 
 #
 pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lpolarssl-0.13.1/library -lpolarssl -lboost_filesystem-mt
+
+pdnssec_SOURCES=pdnssec.cc dnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
+        misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
+	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
+        base32.cc 
+
+pdnssec_LDFLAGS=-Lpolarssl-0.13.1/library/ -lboost_filesystem-mt -lpolarssl -lboost_program_options-mt
+                        
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \

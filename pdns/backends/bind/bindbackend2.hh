@@ -39,10 +39,11 @@ using namespace boost;
 struct Bind2DNSRecord
 {
   string qname;
-  uint32_t ttl;
   string content;
+  uint32_t ttl;
   uint16_t qtype;
   uint16_t priority;
+  bool auth; 
   bool operator<(const Bind2DNSRecord& rhs) const
   {
     if(qname < rhs.qname)
@@ -94,6 +95,7 @@ public:
   shared_ptr<vector<Bind2DNSRecord> > d_records;  //!< the actual records belonging to this domain
 private:
   time_t getCtime();
+
   time_t d_checkinterval;
 };
 
@@ -106,7 +108,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
-
+  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string qname, std::string& before, std::string& after);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int id);
   bool get(DNSResourceRecord &);

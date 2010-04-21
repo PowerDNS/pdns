@@ -28,6 +28,7 @@
 #include <sstream>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 using namespace std;
 
 #include "dns.hh"
@@ -367,6 +368,10 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   if(!records.empty() && bdr.qname==(records.end()-1)->qname)
     bdr.qname=(records.end()-1)->qname;
 
+  //  cerr<<"Before reverse: '"<<bdr.qname<<"', ";
+  bdr.qname=labelReverse(bdr.qname);
+  //  cerr<<"After: '"<<bdr.qname<<"'"<<endl;
+
   bdr.qtype=qtype.getCode();
   bdr.content=content; 
 
@@ -604,7 +609,36 @@ void Bind2Backend::loadConfig(string* status)
             //	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
             //	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
 
+	    cerr<<"Start loadconfig sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;
             sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
+	    cerr<<"Done loadconfig sorting"<<endl;
+	    
+	    shared_ptr<vector<Bind2DNSRecord> > records=staging->id_zone_map[bbd->d_id].d_records;
+    
+	    pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
+	    string sqname;
+	    BOOST_FOREACH(Bind2DNSRecord& bdr, *records) {
+	      bdr.auth=true;
+	      if(bdr.qtype == QType::DS) // as are delegation signer records
+		continue;
+
+	      sqname = labelReverse(bdr.qname);
+	      //	      cerr<<"sqname: '"<<sqname<<"'\n";
+	      do {
+		if(sqname.empty()) // this is auth of course!
+		  continue; 
+
+		range=equal_range(records->begin(), records->end(), sqname);
+		if(range.first != range.second) {
+		  for(vector<Bind2DNSRecord>::const_iterator iter = range.first ; iter != range.second; ++iter) {
+		    if(iter->qtype == QType::NS) {
+		      //		      cerr<<"Have an NS hit for '"<<labelReverse(bdr.qname)<<"' on '"<<iter->qname<<"'"<<endl;
+		      bdr.auth=false;
+		    }
+		  }
+		}
+	      } while(chopOff(sqname));
+	    }
             
             staging->id_zone_map[bbd->d_id].setCtime();
             staging->id_zone_map[bbd->d_id].d_loaded=true; 
@@ -718,10 +752,12 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     while(zpt.get(rr)) {
       insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
     }
-        
+    cerr<<"Start sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;        
     sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
+    cerr<<"Sorting done"<<endl;
     staging->id_zone_map[bbd->d_id].setCtime();
     
+
     contents.clear();
 
     s_state->id_zone_map[bbd->d_id]=staging->id_zone_map[bbd->d_id]; // move over
@@ -745,7 +781,70 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
   }
 }
 
+string dotConcat(const std::string& a, const std::string &b)
+{
+  if(a.empty() || b.empty())
+    return a+b;
+  else 
+    return a+"."+b;
+}
 
+bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string qname, std::string& before, std::string& after)
+{
+  shared_ptr<State> state = s_state;
+
+  BB2DomainInfo& bbd = state->id_zone_map[id];
+  string domain=toLower(qname);
+
+  if(domain == bbd.d_name)
+    domain.clear();
+  else 
+    domain = domain.substr(0, domain.size() - bbd.d_name.length() - 1); // strip domain name
+
+  string lname = labelReverse(domain);
+
+  cout<<"starting lower bound for: '"<<domain<<"', search is for: '"<<lname<<"'"<<endl;
+
+  vector<Bind2DNSRecord>::const_iterator iter = lower_bound(bbd.d_records->begin(), bbd.d_records->end(), lname);
+
+  
+  while(iter != bbd.d_records->begin() && !(iter-1)->auth && (iter-1)->qtype!=QType::NS) {
+    cerr<<"Going backwards.."<<endl;
+    iter--;
+  }
+  
+  if(iter == bbd.d_records->end()) {
+    cerr<<"Didn't find anything"<<endl;
+    return false;
+  }
+  if(iter != bbd.d_records->begin()) {
+    cerr<<"\tFound: '"<<(iter-1)->qname<<"', auth = "<<(iter-1)->auth<<"\n";
+    before = dotConcat(labelReverse((iter - 1)->qname), bbd.d_name);
+  }
+  else {
+    cerr<<"PANIC! Wanted something before the first record!"<<endl;
+    before.clear();
+  }
+
+  cerr<<"Now upper bound"<<endl;
+  iter = upper_bound(bbd.d_records->begin(), bbd.d_records->end(), lname);
+
+  while(iter!=bbd.d_records->end() && (!iter->auth && iter->qtype != QType::NS))
+    iter++;
+
+  if(iter == bbd.d_records->end()) {
+    cerr<<"\tFound the end!"<<endl;
+    after = dotConcat(labelReverse(bbd.d_records->begin()->qname), bbd.d_name);
+  } else {
+    cerr<<"\tFound: '"<<iter->qname<<"'"<<endl;
+    after = dotConcat(labelReverse((iter)->qname), bbd.d_name);
+  }
+
+  cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
+  return true;
+ 
+  
+}
 
 void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_p, int zoneId )
 {
@@ -806,17 +905,20 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
 
   pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
 
-  //  cout<<"starting equal range for: '"<<d_handle.qname<<"'"<<endl;
   
-  string lname=toLower(d_handle.qname);
+  
+  string lname=labelReverse(toLower(d_handle.qname));
+  cout<<"starting equal range for: '"<<d_handle.qname<<"', search is for: '"<<lname<<"'"<<endl;
   range=equal_range(d_handle.d_records->begin(), d_handle.d_records->end(), lname);
   d_handle.mustlog = mustlog;
   
   if(range.first==range.second) {
+    cerr<<"Found nothign!"<<endl;
     d_handle.d_list=false;
     return;
   }
   else {
+    cerr<<"Found something!"<<endl;
     d_handle.d_iter=range.first;
     d_handle.d_end_iter=range.second;
   }
@@ -858,6 +960,7 @@ bool Bind2Backend::handle::get(DNSResourceRecord &r)
     return get_normal(r);
 }
 
+//#define DLOG(x) x
 bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
 {
   DLOG(L << "Bind2Backend get() was called for "<<qtype.getName() << " record for '"<<
@@ -883,6 +986,11 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   r.qtype=(d_iter)->qtype;
   r.ttl=(d_iter)->ttl;
   r.priority=(d_iter)->priority;
+
+  if(!d_iter->auth)
+    cerr<<"Warning! Unauth response!"<<endl;
+  r.auth = d_iter->auth;
+
   d_iter++;
 
   return true;
@@ -910,12 +1018,13 @@ bool Bind2Backend::list(const string &target, int id)
 bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 {
   if(d_qname_iter!=d_qname_end) {
-    r.qname=d_qname_iter->qname.empty() ? domain : (d_qname_iter->qname+"."+domain);
+    r.qname=d_qname_iter->qname.empty() ? domain : (labelReverse(d_qname_iter->qname)+"."+domain);
     r.domain_id=id;
     r.content=(d_qname_iter)->content;
     r.qtype=(d_qname_iter)->qtype;
     r.ttl=(d_qname_iter)->ttl;
     r.priority=(d_qname_iter)->priority;
+    r.auth = d_qname_iter->auth;
     d_qname_iter++;
     return true;
   }
