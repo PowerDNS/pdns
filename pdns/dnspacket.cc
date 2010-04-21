@@ -364,7 +364,6 @@ void DNSPacket::wrapup(void)
           pos->content=".";
         shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
 
-#if 0
 	if(d_dnssecOk) {
 	  if(pos != d_rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
 	    addSignature(::arg()["key-repository"], signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
@@ -377,7 +376,6 @@ void DNSPacket::wrapup(void)
 	  if(pos->auth)
 	    toSign.push_back(drc);
 	}
-#endif
 	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
 
         drc->toPacket(pw);
@@ -394,12 +392,10 @@ void DNSPacket::wrapup(void)
 	  break;
 	}
       }
-#if 0
       if(d_dnssecOk && !(d_tcp && d_rrs.rbegin()->qtype.getCode() == QType::SOA && d_rrs.rbegin()->priority == 1234)) {
 	cerr<<"Last signature.. "<<d_tcp<<", "<<d_rrs.rbegin()->priority<<", "<<d_rrs.rbegin()->qtype.getCode()<<", "<< d_rrs.size()<<endl;
 	addSignature(::arg()["key-repository"], signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
       }
-#endif
 
       if(!opts.empty() || d_dnssecOk)
 	pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);

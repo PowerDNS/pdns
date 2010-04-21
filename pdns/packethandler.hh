@@ -89,9 +89,23 @@ private:
   int findUrl(DNSPacket *p, DNSPacket *r, string &target);
   int doFancyRecords(DNSPacket *p, DNSPacket *r, string &target);
   int doVersionRequest(DNSPacket *p, DNSPacket *r, string &target);
+  int doDNSKEYRequest(DNSPacket *p, DNSPacket *r);
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r);
+  bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
+  void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
+  void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, DNSPacket *r, int mode);
+  void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
+  void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);
+  void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);
+  vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target);
+  bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
+
+  vector<DNSResourceRecord> getBestWildcard(DNSPacket *p, SOAData& sd, const string &target);
+  bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted);
+  bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname);
+  void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
   
   static int s_count;
   bool d_doFancyRecords;
