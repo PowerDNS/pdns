@@ -6,8 +6,6 @@ PREFIX=polarssl_
 
 all:
 	cd library  && make all && cd ..
-	cd programs && make all && cd ..
-	cd tests && make all && cd ..
 
 install:
 	mkdir -p $(DESTDIR)/include/polarssl
@@ -27,8 +25,16 @@ install:
 
 clean:
 	cd library  && make clean && cd ..
-	cd programs && make clean && cd ..
-	cd tests && make clean && cd ..
 
 check:
 	( cd tests && make check )
+
+distdir:
+	mkdir -p $(distdir)
+	cp ChangeLog LICENSE  Makefile  README  $(distdir)
+	mkdir $(distdir)/library
+	mkdir -p $(distdir)/include/polarssl
+	cp library/Makefile library/*.c $(distdir)/library
+	cp include/polarssl/*.h $(distdir)/include/polarssl
+
+	
