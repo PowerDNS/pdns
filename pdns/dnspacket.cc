@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2001 - 2008  PowerDNS.COM BV
+    Copyright (C) 2001 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -28,8 +28,10 @@
 #include <errno.h>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <polarssl/havege.h>
 #include <algorithm>
-
+#include <boost/foreach.hpp>
+#include "dnsseckeeper.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "ahuexception.hh"
@@ -39,6 +41,8 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
+#include <polarssl/rsa.h> 
+#include "dnssecinfra.hh" 
 
 DNSPacket::DNSPacket() 
 {
@@ -46,6 +50,7 @@ DNSPacket::DNSPacket()
   d_compress=true;
   d_tcp=false;
   d_wantsnsid=false;
+  d_dnssecOk=false;
 }
 
 string DNSPacket::getString()
@@ -92,7 +97,8 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_maxreplylen = orig.d_maxreplylen;
   d_ednsping = orig.d_ednsping;
   d_wantsnsid = orig.d_wantsnsid;
-  rrs=orig.rrs;
+  d_dnssecOk = orig.d_dnssecOk;
+  d_rrs=orig.d_rrs;
 
   d_wrapped=orig.d_wrapped;
 
@@ -143,13 +149,13 @@ void DNSPacket::setOpcode(uint16_t opcode)
 
 void DNSPacket::clearRecords()
 {
-  rrs.clear();
+  d_rrs.clear();
 }
 
 void DNSPacket::addRecord(const DNSResourceRecord &rr)
 {
   if(d_compress)
-    for(vector<DNSResourceRecord>::const_iterator i=rrs.begin();i!=rrs.end();++i) 
+    for(vector<DNSResourceRecord>::const_iterator i=d_rrs.begin();i!=d_rrs.end();++i) 
       if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {
         if(rr.qtype.getCode()!=QType::MX && rr.qtype.getCode()!=QType::SRV)
           return;
@@ -157,7 +163,7 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
           return;
       }
 
-  rrs.push_back(rr);
+  d_rrs.push_back(rr);
 }
 
 // the functions below update the 'arcount' and 'ancount', plus they serialize themselves to the stringbuffer
@@ -244,8 +250,8 @@ vector<DNSResourceRecord*> DNSPacket::getAPRecords()
 {
   vector<DNSResourceRecord*> arrs;
 
-  for(vector<DNSResourceRecord>::iterator i=rrs.begin();
-      i!=rrs.end();
+  for(vector<DNSResourceRecord>::iterator i=d_rrs.begin();
+      i!=d_rrs.end();
       ++i)
     {
       if(i->d_place!=DNSResourceRecord::ADDITIONAL && 
@@ -260,11 +266,26 @@ vector<DNSResourceRecord*> DNSPacket::getAPRecords()
 
 }
 
+vector<DNSResourceRecord*> DNSPacket::getAnswerRecords()
+{
+  vector<DNSResourceRecord*> arrs;
+
+  for(vector<DNSResourceRecord>::iterator i=d_rrs.begin();
+      i!=d_rrs.end();
+      ++i)
+    {
+      if(i->d_place!=DNSResourceRecord::ADDITIONAL) 
+	arrs.push_back(&*i);
+    }
+  return arrs;
+}
+
+
 void DNSPacket::setCompress(bool compress)
 {
   d_compress=compress;
   stringbuffer.reserve(65000);
-  rrs.reserve(200);
+  d_rrs.reserve(200);
 }
 
 bool DNSPacket::couldBeCached()
@@ -287,19 +308,19 @@ void DNSPacket::wrapup(void)
 
   vector<DNSResourceRecord> additional;
 
-  int ipos=rrs.size();
-  rrs.resize(rrs.size()+additional.size());
-  copy(additional.begin(), additional.end(), rrs.begin()+ipos);
+  int ipos=d_rrs.size();
+  d_rrs.resize(d_rrs.size()+additional.size());
+  copy(additional.begin(), additional.end(), d_rrs.begin()+ipos);
 
   // we now need to order rrs so that the different sections come at the right place
   // we want a stable sort, based on the d_place field
 
-  stable_sort(rrs.begin(),rrs.end(),rrcomp);
+  stable_sort(d_rrs.begin(),d_rrs.end(),rrcomp);
 
   static bool mustShuffle =::arg().mustDo("no-shuffle");
 
   if(!d_tcp && !mustShuffle) {
-    shuffle(rrs);
+    shuffle(d_rrs);
   }
   d_wrapped=true;
 
@@ -322,26 +343,69 @@ void DNSPacket::wrapup(void)
     opts.push_back(make_pair(4, d_ednsping));
   }
 
-  if(!rrs.empty() || !opts.empty()) {
+  if(!d_rrs.empty() || !opts.empty()) {
     try {
-      for(pos=rrs.begin(); pos < rrs.end(); ++pos) {
+      string signQName, wildcardQName;
+      uint16_t signQType=0;
+      uint32_t signTTL=0;
+      DNSPacketWriter::Place signPlace=DNSPacketWriter::ANSWER;
+      vector<shared_ptr<DNSRecordContent> > toSign;
+
+      for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
         // this needs to deal with the 'prio' mismatch!
         if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
           pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
         }
-        pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
+
         if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
           pos->content="\""+pos->content+"\"";
         }
         if(pos->content.empty())  // empty contents confuse the MOADNS setup
           pos->content=".";
         shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
+
+#if 0
+	if(d_dnssecOk) {
+	  if(pos != d_rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
+	    addSignature(::arg()["key-repository"], signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
+	  }
+	  signQName= pos->qname;
+	  wildcardQName = pos->wildcardname;
+	  signQType = pos ->qtype.getCode();
+	  signTTL = pos->ttl;
+	  signPlace = (DNSPacketWriter::Place) pos->d_place;
+	  if(pos->auth)
+	    toSign.push_back(drc);
+	}
+#endif
+	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
+
         drc->toPacket(pw);
+	
+	if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) {
+	  cerr<<"Truncating!"<<endl;
+	  pw.rollback();
+	  if(pos->d_place == DNSResourceRecord::ANSWER) {
+	    cerr<<"Set TC bit"<<endl;
+	    pw.getHeader()->tc=1;
       }
-      if(!opts.empty())
-        pw.addOpt(2800, 0, 0, opts);
+	  goto noCommit;
+
+	  break;
+	}
+      }
+#if 0
+      if(d_dnssecOk && !(d_tcp && d_rrs.rbegin()->qtype.getCode() == QType::SOA && d_rrs.rbegin()->priority == 1234)) {
+	cerr<<"Last signature.. "<<d_tcp<<", "<<d_rrs.rbegin()->priority<<", "<<d_rrs.rbegin()->qtype.getCode()<<", "<< d_rrs.size()<<endl;
+	addSignature(::arg()["key-repository"], signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
+      }
+#endif
+
+      if(!opts.empty() || d_dnssecOk)
+	pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
 
       pw.commit();
+    noCommit:;
     }
     catch(std::exception& e) {
       L<<Logger::Warning<<"Exception: "<<e.what()<<endl;
@@ -406,6 +470,7 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_maxreplylen = d_maxreplylen;
   r->d_ednsping = d_ednsping;
   r->d_wantsnsid = d_wantsnsid;
+  r->d_dnssecOk = d_dnssecOk;
   return r;
 }
 
@@ -456,10 +521,15 @@ try
   // ANY OPTION WHICH *MIGHT* BE SET DOWN BELOW SHOULD BE CLEARED FIRST!
 
   d_wantsnsid=false;
+  d_dnssecOk=false;
   d_ednsping.clear();
+
 
   if(getEDNSOpts(mdp, &edo)) {
     d_maxreplylen=max(edo.d_packetsize, (uint16_t)1280);
+    cerr<<edo.d_Z<<endl;
+    if(edo.d_Z & EDNSOpts::DNSSECOK)
+      d_dnssecOk=true;
 
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
         iter != edo.d_options.end(); 

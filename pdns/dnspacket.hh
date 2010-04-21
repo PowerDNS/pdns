@@ -133,6 +133,7 @@ public:
   void truncate(int new_length); // has documentation in source
 
   vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
+  vector<DNSResourceRecord*> getAnswerRecords(); //!< get a vector with DNSResourceRecords that are answers
   void setCompress(bool compress);
 
   DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
@@ -154,7 +155,7 @@ public:
 
   string qdomain;  //!< qname of the question 4 - unsure how this is used
   bool d_tcp;
-
+  bool d_dnssecOk;
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
@@ -168,7 +169,8 @@ private:
   int d_maxreplylen;
   string d_ednsping;
   bool d_wantsnsid;
-  vector<DNSResourceRecord> rrs; // 4
+
+  vector<DNSResourceRecord> d_rrs; // 4
 };
 
 

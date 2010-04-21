@@ -150,12 +150,14 @@ public:
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
   virtual void toPacket(DNSPacketWriter& pw)=0;
-  virtual string serialize(const string& qname) // it would rock if this were const, but it is too hard
+  virtual string serialize(const string& qname, bool canonic=false) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
     string empty;
     DNSPacketWriter pw(packet, empty, 1);
-    
+    if(canonic)
+      pw.setCanonic(true);
+
     pw.startRecord(qname, d_qtype);
     this->toPacket(pw);
     pw.commit();
@@ -211,6 +213,17 @@ public:
 
   explicit DNSRecordContent(uint16_t type) : d_qtype(type)
   {}
+  
+  
+  DNSRecordContent& operator=(const DNSRecordContent& orig) 
+  {
+    const_cast<uint16_t&>(d_qtype) = orig.d_qtype; // **COUGH**
+    label = orig.label;
+    header = orig.header;
+    return *this;
+  }
+
+  
   const uint16_t d_qtype;
 
 protected:
