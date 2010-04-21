@@ -1090,11 +1090,12 @@ try
     t_RC->doPrune(); // this function is local to a thread, so fine anyhow
     t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
     
-    typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
-    negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(t_sstorage->negcache); 
-
-    negcache_by_ttd_index_t::iterator i=ttdindex.lower_bound(now.tv_sec);
-    ttdindex.erase(ttdindex.begin(), i);
+    {
+      typedef SyncRes::negcache_t::nth_index<1>::type negcache_by_ttd_index_t;
+      negcache_by_ttd_index_t& ttdindex=boost::multi_index::get<1>(t_sstorage->negcache); 
+      negcache_by_ttd_index_t::iterator i=ttdindex.lower_bound(now.tv_sec);
+      ttdindex.erase(ttdindex.begin(), i);
+    }
     
     if(!((cleanCounter++)%40)) {  // this is a full scan!
       time_t limit=now.tv_sec-300;
