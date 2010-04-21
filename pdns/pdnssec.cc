@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     cmds = g_vm["commands"].as<vector<string> >();
 
   if(cmds.empty() || g_vm.count("help")) {
-    cerr<<"Usage: \npdnssec [options] [show-zone] [sign-zone] [show-keys] [update-zone-keys]\n";
+    cerr<<"Usage: \npdnssec [options] [show-zone] [sign-zone] [update-zone-keys]\n";
     cerr<<desc<<endl;
     return 0;
   }
@@ -48,6 +48,11 @@ int main(int argc, char** argv)
   DNSSECKeeper dk(g_vm["key-repository"].as<string>());
 
   if(cmds[0] == "update-zone-keys") {
+    if(cmds.size() != 2) {
+      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
+      return 0;
+    }
+
     const string& zone=cmds[1];
     DNSSECPrivateKey dpk;
     
@@ -86,7 +91,11 @@ int main(int argc, char** argv)
     }
 
   }
-  else if(cmds[0] == "show-keys") {
+  else if(cmds[0] == "show-zone") {
+    if(cmds.size() != 2) {
+      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
+      return 0;
+    }
     const string& zone=cmds[1];
     DNSSECPrivateKey dpk;
     
@@ -96,8 +105,11 @@ int main(int argc, char** argv)
     else {
       cerr<<"KSK present:"<<endl;
       cerr<<"Tag = "<<dpk.getDNSKEY().getTag()<<endl;
-      cerr<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY()).getZoneRepresentation() << endl;
+      cerr<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< dpk.getDNSKEY().getZoneRepresentation() << endl;
+      cerr<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY()).getZoneRepresentation() << endl << endl;
     }
+    
+    
     DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
 
     int inforce=0;
@@ -115,7 +127,7 @@ int main(int argc, char** argv)
   }
   else if(cmds[0] == "sign-zone") {
     if(cmds.size() != 2) {
-      cerr << "Error: sign-zone takes exactly 1 parameter"<<endl;
+      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;
     }
     const string& zone=cmds[1];
