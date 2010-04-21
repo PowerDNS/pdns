@@ -92,11 +92,11 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3-2"><title>Recursor version 3.2 (UNRELEASED)</title>
+      <sect2 id="changelog-recursor-3-2"><title>Recursor version 3.2</title>
 	<para>
 	  <warning>
 	    <para>
-	      UNRELEASED! RC2 available.
+	      Released on the 7th of March 2010.
 	    </para>
 	  </warning>
 	</para>
@@ -151,6 +151,25 @@
 	    in such a way that total memory usage will remain identical, so each thread will use half of the allocated maximum number of cache entries. 
 	</para>
 	</note>
+	Changes between RC2 and -release:
+	<itemizedlist>
+	  <listitem><para>
+	    'Make install' when an existing configuration file contained a 'fork' statement has been fixed. Spotted by Darren Gamble, code in c1534.
+	  </para></listitem>
+	  <listitem><para>
+	    Reloading a non-existant allow-from-file caused the control thread to stop working. Spotted by Imre Gergely, code in c1532.
+	  </para></listitem>
+	   <listitem><para>
+	    Parser got confused by reading en empty line in auth-forward-zones. Spotted by Imre Gergely, code in c1533.
+	  </para></listitem>
+	   <listitem><para>
+	    David Gavarret discovered undocumented and not-working settings to set the owner, group and access modes of the control socket. Code by Aki Tuomi 
+	    and documentation in c1535. Fixup in c1536 for FreeBSD as found by Ralf van der Enden.
+	  </para></listitem>
+	   <listitem><para>
+	    Tiny improvement possibly solving an issue on Solaris 10's completion port event multiplexer (c1537).
+	  </para></listitem>
+	</itemizedlist>
 	Changes between RC1 and RC2:
 	<itemizedlist>
 	  <listitem><para>
@@ -175,6 +194,7 @@
 	    In addition, some stray backup files made it into the RC1 release. Addressed in c1529.
 	  </para></listitem>
 	</itemizedlist>
+	Full release notes follow, including some overlap with the incremental release notes above.
 	Improvements:
 	  <itemizedlist>
 	    <listitem>
@@ -261,6 +281,10 @@
 			Add pdnslog() function for Lua scripts, so errors or other messages can be logged properly.
 	      </para>
 	    </listitem>
+	    <listitem><para>
+	     New settings to set the owner, group and access modes of the control socket (socket-owner, socket-group, socket-mode). Code by Aki Tuomi 
+	      and documentation in c1535. Fixup in c1536 for FreeBSD as found by Ralf van der Enden.
+	    </para></listitem>
     	    <listitem>
 	      <para>
 			rec_control now accepts a --timeout parameter, which can be useful when reloading huge Lua scripts. Implemented in c1366.
@@ -351,7 +375,9 @@
 			c1519.
 	      </para>
 	    </listitem>
-	  
+	   <listitem><para>
+	    Imre Gergely discovered that PowerDNS was doing spurious root repriming when invalidating nssets. Fixed in c1531.
+	  </para></listitem>
 	    <listitem>
 	      <para>
 			Configuration parser is now resistant against trailing tabs and other whitespace (c1242)
@@ -9087,6 +9113,8 @@ local0.err                        /var/log/pdns.err
 		for IPv4 specify like this: <command>1.2.3.4:5300</command>, for IPv6: <command>[::1]:5300</command>. Port specifications are available since
 		3.1.2.
 	      </para>
+	      <para><warning><para>When binding to wildcard addresses, UNIX semantics mean that answers may not be sent
+	 	from the address a query was received on. It is highly recommended to bind to explicit addresses.</para></warning></para>
 	    </listitem>
 	  </varlistentry>
 
