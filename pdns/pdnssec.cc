@@ -1,4 +1,5 @@
 #include "dnsseckeeper.hh"
+#include "dnssecinfra.hh"
 #include "statbag.hh"
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
@@ -93,9 +94,9 @@ int main(int argc, char** argv)
       cerr << "No KSK for zone '"<<zone<<"'."<<endl;
     }
     else {
-      cerr<<"ZSK present:"<<endl;
+      cerr<<"KSK present:"<<endl;
       cerr<<"Tag = "<<dpk.getDNSKEY().getTag()<<endl;
-      
+      cerr<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY()).getZoneRepresentation() << endl;
     }
     DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
 
