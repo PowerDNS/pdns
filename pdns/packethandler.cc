@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2009  PowerDNS.COM BV
+    Copyright (C) 2002-2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -466,6 +466,9 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
 {
+  if(!p->d_dnssecOk)
+    return;
+  
   cerr<<"Should add NSEC covering '"<<target<<"' from zone '"<<auth<<"', mode = "<<mode<<endl;
   SOAData sd;
   sd.db=(DNSBackend *)-1; // force uncached answer
