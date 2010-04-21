@@ -17,6 +17,7 @@
 */
 #include "packetcache.hh"
 #include "utility.hh"
+#include "dnssecinfra.hh"
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -428,6 +429,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   soa.content=serializeSOAData(sd);
   soa.ttl=sd.ttl;
   soa.domain_id=sd.domain_id;
+  soa.auth = true;
   soa.d_place=DNSResourceRecord::ANSWER;
     
   if(!sd.db || sd.db==(DNSBackend *)-1) {
@@ -451,8 +453,9 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   /* write first part of answer */
 
   DLOG(L<<"Sending out SOA"<<endl);
+  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
   outpacket->addRecord(soa); // AXFR format begins and ends with a SOA record, so we add one
-  sendPacket(outpacket, outsock);
+  //  sendPacket(outpacket, outsock);
 
   /* now write all other records */
 
@@ -461,24 +464,23 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(::arg().mustDo("strict-rfc-axfrs"))
     chunk=1;
 
-  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
+
   outpacket->setCompress(false);
+  outpacket->d_dnssecOk=true; // WRONG
+
+  typedef map<string, set<uint16_t>, CanonicalCompare> nsecrepo_t;
+  nsecrepo_t nsecrepo;
 
   while(B->get(rr)) {
-    if(rr.qtype.getCode()==6)
+    if(rr.auth || rr.qtype.getCode() == QType::NS)
+      nsecrepo[rr.qname].insert(rr.qtype.getCode());
+    if(rr.qtype.getCode() == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
-    else if(rr.qtype.getCode() == QType::URL && ::arg().mustDo("fancy-records")) {
-      rr.qtype = QType::A;
-      rr.content = ::arg()["urlredirector"];
+
+    if(rr.qtype.getCode() == QType::NS) {
+      cerr<<rr.qname<<" NS, auth="<<rr.auth<<endl;
     }
-    else if(rr.qtype.getCode() == QType::MBOXFW && ::arg().mustDo("fancy-records")) {
-      rr.qtype = QType::MX;
-      rr.content = ::arg()["smtpredirector"];
-      rr.priority = 25;
-      string::size_type pos = rr.qname.find('@');
-      if(pos != string::npos)
-        rr.qname = rr.qname.substr(pos + 1); // trim off p to and including @
-    }
+
     outpacket->addRecord(rr);
 
     if(!((++count)%chunk)) {
@@ -488,9 +490,33 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 
       outpacket=shared_ptr<DNSPacket>(q->replyPacket());
       outpacket->setCompress(false);
+      outpacket->d_dnssecOk=true; // WRONG
       // FIXME: Subsequent messages SHOULD NOT have a question section, though the final message MAY.
     }
   }
+
+  for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
+    cerr<<"Adding for '"<<iter->first<<"'\n";
+    NSECRecordContent nrc;
+    nrc.d_set = iter->second;
+    nrc.d_set.insert(QType::RRSIG);
+    nrc.d_set.insert(QType::NSEC);
+    if(boost::next(iter) != nsecrepo.end()) {
+      nrc.d_next = boost::next(iter)->first;
+    }
+    else
+      nrc.d_next=nsecrepo.begin()->first;
+
+    rr.qname = iter->first;
+
+    rr.ttl = 3600;
+    rr.content = nrc.getZoneRepresentation();
+    rr.qtype = QType::NSEC;
+    rr.d_place = DNSResourceRecord::ANSWER;
+    outpacket->addRecord(rr);
+    count++;
+  }
+
   if(count) {
     sendPacket(outpacket, outsock);
   }
@@ -498,6 +524,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
+  soa.priority=1234;
   outpacket->addRecord(soa);
   sendPacket(outpacket, outsock);
   DLOG(L<<"last packet - close"<<endl);
