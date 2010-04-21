@@ -61,9 +61,9 @@ int main(int argc, char** argv)
       cerr<<"There were ZSKs already for zone '"<<zone<<"': "<<endl;
       
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-	cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<", "<<value.first.beginValidity<<" - "<<value.first.endValidity<<endl;
-	if(value.second) 
-	  inforce++;
+        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<", "<<value.first.beginValidity<<" - "<<value.first.endValidity<<endl;
+        if(value.second) 
+          inforce++;
       }
     }
       
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     }
 
   }
-  if(cmds[0] == "show-keys") {
+  else if(cmds[0] == "show-keys") {
     const string& zone=cmds[1];
     DNSSECPrivateKey dpk;
     
@@ -106,13 +106,17 @@ int main(int argc, char** argv)
     else {  
       cerr << "ZSKs for zone '"<<zone<<"':"<<endl;
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-	cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<", "<< humanTime(value.first.beginValidity)<<" - "<<humanTime(value.first.endValidity)<<endl;
-	if(value.second) 
-	  inforce++;
+        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<", "<< humanTime(value.first.beginValidity)<<" - "<<humanTime(value.first.endValidity)<<endl;
+        if(value.second) 
+        inforce++;
       }
     }
   }
   else if(cmds[0] == "sign-zone") {
+    if(cmds.size() != 2) {
+      cerr << "Error: sign-zone takes exactly 1 parameter"<<endl;
+      return 0;
+    }
     const string& zone=cmds[1];
     DNSSECPrivateKey dpk;
     
