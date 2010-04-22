@@ -214,7 +214,7 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
     rr.ttl=3600;
     rr.qname=p->qdomain;
     rr.content=dpk.getDNSKEY().getZoneRepresentation(); 
-    
+    rr.auth = true;
     r->addRecord(rr);
     haveOne=true;
   }
