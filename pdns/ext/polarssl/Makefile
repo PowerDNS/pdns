@@ -1,8 +1,11 @@
 all:
-	cd library  && make all && cd ..
+	cd library  && $(MAKE) all && cd ..
 
 clean:
-	cd library  && make clean && cd ..
+	cd library  && $(MAKE) clean && cd ..
+
+install:
+	
 
 distdir:
 	mkdir -p $(distdir)
