@@ -1,12 +1,2 @@
 #!/bin/sh
-echo Please ignore this warning when you see it:
-echo warning: AC_TRY_RUN called without default to allow cross compiling
-echo
-
-
-aclocal
-autoheader
-libtoolize
-automake --add-missing --copy --foreign 
-autoconf
-
+autoreconf

@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -Iext/polarssl/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -Iext/polarssl/include $(BOOST_CPPFLAGS)
 AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
 
 EXTRA_DIST = docs/Makefile docs/expand \
@@ -47,14 +47,14 @@ randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dnsseckeeper.cc dnssecinf
 dnsseckeeper.hh dnssecinfra.hh base32.hh
 
 #
-pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library -lpolarssl -lboost_filesystem-mt -lboost_system-mt
+pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS)
 
 pdnssec_SOURCES=pdnssec.cc dnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
         base32.cc 
 
-pdnssec_LDFLAGS=-Lext/polarssl/library/ -lboost_filesystem-mt -lboost_system-mt -lpolarssl -lboost_program_options-mt
+pdnssec_LDFLAGS=-Lext/polarssl/library/ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
                         
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
@@ -103,19 +103,19 @@ dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	unix_utility.cc utility.hh sillyrecords.cc	
 
-dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ -lboost_program_options
+dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
 
 nproxy_SOURCES=nproxy.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	sillyrecords.cc selectmplexer.cc  mplexer.hh
 
-nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ -lboost_program_options
+nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
 
 notify_SOURCES=notify.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	sillyrecords.cc selectmplexer.cc 
 
-notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ -lboost_program_options
+notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
 
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
@@ -146,7 +146,7 @@ base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_chann
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
 lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
-recpacketcache.cc recpacketcache.hh dns.cc
+recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc
 
 #../modules/gmysqlbackend/smysql.cc 
 
