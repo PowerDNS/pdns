@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2007  PowerDNS.COM BV
+    Copyright (C) 2002 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -47,6 +47,7 @@ using namespace std;
 
 using namespace boost;
 StatBag S;
+bool g_doDNSSEC;
 
 static const string sqlstr(const string &name)
 {
@@ -123,18 +124,43 @@ static void callback(unsigned int domain_id,const string &domain, const string &
 
   lastsoa_domain_id=dirty_hack_num;
 
-  if(mode==MYSQL) {
-    cout<<"insert into records (domain_id, name,type,content,ttl,prio) values ("<< dirty_hack_num<<", "<<
-      sqlstr(stripDot(domain))<<", "<<
-      sqlstr(qtype)<<", "<<
-      sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<<");\n";
+  bool auth = true;
+  if(qtype == "NS" && !pdns_iequals(stripDot(domain), lastsoa_qname)) {
+    // cerr<<"'"<<domain<<"' != '"<<lastsoa_qname<<"'\n";
+    auth=false;
   }
-  if(mode==POSTGRES) {
-    cout<<"insert into records (domain_id, name,type,content,ttl,prio) select id ,"<<
-      sqlstr(toLower(stripDot(domain)))<<", "<<
-      sqlstr(qtype)<<", "<<
-      sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
-      " from domains where name="<<toLower(sqlstr(lastsoa_qname))<<";\n";
+
+  if(mode==MYSQL) {
+    if(!g_doDNSSEC) {
+      
+      cout<<"insert into records (domain_id, name, type,content,ttl,prio) values ("<< dirty_hack_num<<", "<<
+        sqlstr(stripDot(domain))<<", "<<
+        sqlstr(qtype)<<", "<<
+        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<<");\n";
+    } else {
+      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio) values ("<< dirty_hack_num<<", "<<
+        sqlstr(stripDot(domain))<<", "<<
+        sqlstr(toLower(labelReverse(domain)))<<", "<< auth <<" ,"<<
+        sqlstr(qtype)<<", "<<
+        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<<");\n";
+    }
+  }
+  else if(mode==POSTGRES) {
+    if(!g_doDNSSEC) {
+      cout<<"insert into records (domain_id, name,type,content,ttl,prio) select id ,"<<
+        sqlstr(toLower(stripDot(domain)))<<", "<<
+        sqlstr(qtype)<<", "<<
+        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
+        " from domains where name="<<toLower(sqlstr(lastsoa_qname))<<";\n";
+    } else
+    {
+      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio) select id ,"<<
+        sqlstr(toLower(stripDot(domain)))<<", "<<
+        sqlstr(toLower(labelReverse(domain)))<<", "<<auth<<", "<<
+        sqlstr(qtype)<<", "<<
+        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
+        " from domains where name="<<toLower(sqlstr(lastsoa_qname))<<";\n";
+    }
   }
   else if(mode==ORACLE) {
     cout<<"insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
@@ -179,6 +205,7 @@ int main(int argc, char **argv)
     ::arg().setCmd("oracle","Output in format suitable for the oraclebackend");
     ::arg().setCmd("bare","Output in a bare format, suitable for further parsing");
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
+    ::arg().setSwitch("dnssec","Add DNSSEC related data")="no";
     ::arg().setSwitch("slave","Keep BIND slaves as slaves")="no";
     ::arg().setSwitch("transactions","If target SQL supports it, use transactions")="no";
     ::arg().setSwitch("on-error-resume-next","Continue after errors")="no";
@@ -218,10 +245,14 @@ int main(int argc, char **argv)
         cout<<"set autocommit on;"<<endl;
     }
 
+    g_doDNSSEC=::arg().mustDo("dnssec");
+      
 
     dirty_hack_num=::arg().asNum("start-id");
     namedfile=::arg()["named-conf"];
     zonefile=::arg()["zone"];
+
+    
 
     int count=0, num_domainsdone=0;
 
@@ -311,7 +342,7 @@ int main(int argc, char **argv)
     else {
       ZoneParserTNG zpt(zonefile, ::arg()["zone-name"]);
       DNSResourceRecord rr;
-      dirty_hack_num=-1; // trigger first SOA output
+      dirty_hack_num=::arg().asNum("start-id"); // trigger first SOA output
       while(zpt.get(rr)) 
         callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
       num_domainsdone=1;
