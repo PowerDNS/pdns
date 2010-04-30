@@ -628,15 +628,20 @@ string labelReverse(const std::string& qname)
   if(qname.empty())
     return qname;
 
+
+  bool dotName = qname.find('.') != string::npos;
+
   vector<string> labels;
-  stringtok(labels, qname, ".");
+  stringtok(labels, qname, ". ");
   if(labels.size()==1)
     return qname;
+
+
 
   string ret;
   for(vector<string>::const_reverse_iterator iter = labels.rbegin(); iter != labels.rend(); ++iter) {
     if(iter != labels.rbegin())
-      ret.append(1,'.');
+      ret.append(1, dotName ? ' ' : '.');
     ret+=*iter;
   }
   return ret;
