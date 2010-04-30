@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002-2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -108,7 +108,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
-  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string qname, std::string& before, std::string& after);
+  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string& qname, std::string& before, std::string& after);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int id);
   bool get(DNSResourceRecord &);

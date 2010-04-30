@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002-2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -74,7 +74,7 @@ public:
   virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
 
-  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string qname, std::string& before, std::string& after)
+  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string& qname, std::string& before, std::string& after)
   {
     std::cerr<<"Default beforeAndAfter called!"<<std::endl;
     return false;

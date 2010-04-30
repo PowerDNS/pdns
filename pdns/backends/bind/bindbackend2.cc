@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2008  PowerDNS.COM BV
+    Copyright (C) 2002 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -789,7 +789,7 @@ string dotConcat(const std::string& a, const std::string &b)
     return a+"."+b;
 }
 
-bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string qname, std::string& before, std::string& after)
+bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string& qname, std::string& before, std::string& after)
 {
   shared_ptr<State> state = s_state;
 

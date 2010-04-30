@@ -39,6 +39,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   void setNotified(uint32_t domain_id, uint32_t serial);
+  bool getBeforeAndAfterNames(uint32_t id, const std::string& qname, std::string& before, std::string& after);
 private:
   string d_qname;
   QType d_qtype;
@@ -66,6 +67,6 @@ private:
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
-  string d_DeleteZoneQuery;        	
+  string d_DeleteZoneQuery;		
   string d_CheckACLQuery;   
 };
