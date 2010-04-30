@@ -54,8 +54,7 @@ pdnssec_SOURCES=pdnssec.cc dnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh d
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
         base32.cc 
 
-pdnssec_LDFLAGS=-Lext/polarssl/library/ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
-                        
+pdnssec_LDFLAGS=-Lext/polarssl/library/ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
