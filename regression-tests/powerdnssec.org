@@ -18,5 +18,10 @@ ipv6			3600	AAAA	2001:888:1036:0:208:a1ff:fe19:f000
 zbefore.a.powerdnssec.org.		3600	TXT	"before"
 after.powerdnssec.org.		3600	TXT	"after"
 zzz.powerdnssec.org.		3600	TXT	"this is the end.."
+delegated			3600	IN	NS ns1.delegated
+delegated			3600	IN	NS ns2.delegated
+ns1.delegated			3600	IN	A	1.2.3.4
+ns2.delegated			3600	IN	A	4.3.2.1
+
 
 

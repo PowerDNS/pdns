@@ -38,16 +38,16 @@ $ nameserver=127.0.0.1 ./runtests
 
 Run PowerDNS as:
 
-$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ 
---no-shuffle --launch=gmysql --gmysql-dbname=pdnstest --gmysql-user=root
---fancy-records --query-logging --send-root-referral --loglevel=9
+$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+--no-shuffle --launch=gmysql --gmysql-dbname=pdnstest --gmysql-user=root \
+--fancy-records --query-logging --send-root-referral --loglevel=9 \
 --cache-ttl=0
 
 or:
 
-$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ 
---no-shuffle --launch=bind --bind-config=./named.conf
---fancy-records --query-logging --send-root-referral --loglevel=9
+$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+--no-shuffle --launch=bind --bind-config=./named.conf                \
+--fancy-records --query-logging --send-root-referral --loglevel=9    \
 --cache-ttl=0
 
 
