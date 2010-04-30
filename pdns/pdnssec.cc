@@ -73,8 +73,8 @@ int main(int argc, char** argv)
       }
     }
       
-    if(inforce == 2) {
-      cerr << "Two ZSKs were active already, not generating a third" << endl;
+    if(inforce >= 2) {
+      cerr << "Two or more ZSKs were active already, not generating a third" << endl;
       return 0;
     }
     dk.addZSKFor(zone);
