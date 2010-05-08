@@ -190,11 +190,6 @@ void UeberBackend::setStatus(const string &st)
   s_status=st;
 }
 
-UeberBackend::UeberBackend()
-{
-  UeberBackend("default");
-}
-
 UeberBackend::UeberBackend(const string &pname)
 {
   programname=pname;

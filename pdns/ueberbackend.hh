@@ -36,7 +36,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #endif // WIN32
-
+#include <boost/utility.hpp>
 #include "dnspacket.hh"
 #include "dnsbackend.hh"
 
@@ -51,11 +51,10 @@ class BackendReporter;
     The UeberBackend is transparent for exceptions, which should fall straight through.
 */
 
-class UeberBackend : public DNSBackend
+class UeberBackend : public DNSBackend, public boost::noncopyable
 {
 public:
-  UeberBackend();
-  UeberBackend(const string &);
+  UeberBackend(const string &pname="default");
   ~UeberBackend();
   typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
@@ -64,7 +63,7 @@ public:
   /** contains BackendReporter objects, which contain maker functions and information about
       weather a module has already been reported to existing instances of the UeberBackend
   */
-  static vector<BackendReporter>backendmakers;
+//  static vector<BackendReporter>backendmakers;
 
   /** Tracks all created UeberBackend instances for us. We use this vector to notify
       existing threads of new modules 
@@ -79,10 +78,9 @@ public:
   static void *DynListener(void *);
   static void go(void);
 
-  
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
-  vector<DNSBackend*>backends; 
+  vector<DNSBackend*> backends; 
 
   void die();
   void cleanup();
