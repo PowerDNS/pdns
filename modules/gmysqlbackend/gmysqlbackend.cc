@@ -63,6 +63,22 @@ public:
     declare(suffix,"wildcard-any-id-query","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name from records where name like '%s' and domain_id='%d'");
 
     declare(suffix,"list-query","AXFR query", "select content,ttl,prio,type,domain_id,name from records where domain_id='%d'");
+  
+    // and now with auth
+    declare(suffix,"basic-query-auth","Basic query","select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name='%s'");
+    declare(suffix,"id-query-auth","Basic with ID query","select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name='%s' and domain_id=%d");
+    declare(suffix,"wildcard-query-auth","Wildcard query","select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name like '%s'");
+    declare(suffix,"wildcard-id-query-auth","Wildcard with ID query","select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name like '%s' and domain_id='%d'");
+
+    declare(suffix,"any-query-auth","Any query","select content,ttl,prio,type,domain_id,name, auth from records where name='%s'");
+    declare(suffix,"any-id-query-auth","Any with ID query","select content,ttl,prio,type,domain_id,name, auth from records where name='%s' and domain_id=%d");
+    declare(suffix,"wildcard-any-query-auth","Wildcard ANY query","select content,ttl,prio,type,domain_id,name, auth from records where name like '%s'");
+    declare(suffix,"wildcard-any-id-query-auth","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name, auth from records where name like '%s' and domain_id='%d'");
+
+    declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, auth from records where domain_id='%d'");
+    
+    
+    
     declare(suffix,"master-zone-query","Data", "select master from domains where name='%s' and type='SLAVE'");
 
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type from domains where name='%s'");
@@ -71,6 +87,12 @@ public:
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver='%s'");
     declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')");
     declare(suffix,"insert-record-query","", "insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')");
+    
+    declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select max(ordername) from records where ordername < '%s' and auth=1 and domain_id=%d");
+    declare(suffix,"get-order-after-query","DNSSEC Ordering Query, afer", "select min(ordername) from records where ordername > '%s' and auth=1 and domain_id=%d");
+    declare(suffix,"set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername='%s',auth=%d where name='%s' and domain_id='%d'");
+    
+    
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");
     declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
