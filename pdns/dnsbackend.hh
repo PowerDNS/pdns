@@ -74,7 +74,7 @@ public:
   virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
 
-  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string& qname, std::string& before, std::string& after)
+  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
   {
     std::cerr<<"Default beforeAndAfter called!"<<std::endl;
     return false;

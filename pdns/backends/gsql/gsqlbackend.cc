@@ -211,18 +211,20 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   setArgPrefix(mode+suffix);
   d_db=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
-		  
-  d_noWildCardNoIDQuery=getArg("basic-query");
-  d_noWildCardIDQuery=getArg("id-query");
-  d_wildCardNoIDQuery=getArg("wildcard-query");
-  d_wildCardIDQuery=getArg("wildcard-id-query");
+	
+  d_dnssecQueries = mustDo("dnssec");
+  string authswitch = d_dnssecQueries ? "-auth" : "";	  
+  d_noWildCardNoIDQuery=getArg("basic-query"+authswitch);
+  d_noWildCardIDQuery=getArg("id-query"+authswitch);
+  d_wildCardNoIDQuery=getArg("wildcard-query"+authswitch);
+  d_wildCardIDQuery=getArg("wildcard-id-query"+authswitch);
 
-  d_noWildCardANYNoIDQuery=getArg("any-query");
-  d_noWildCardANYIDQuery=getArg("any-id-query");
-  d_wildCardANYNoIDQuery=getArg("wildcard-any-query");
-  d_wildCardANYIDQuery=getArg("wildcard-any-id-query");
+  d_noWildCardANYNoIDQuery=getArg("any-query"+authswitch);
+  d_noWildCardANYIDQuery=getArg("any-id-query"+authswitch);
+  d_wildCardANYNoIDQuery=getArg("wildcard-any-query"+authswitch);
+  d_wildCardANYIDQuery=getArg("wildcard-any-id-query"+authswitch);
   
-  d_listQuery=getArg("list-query");
+  d_listQuery=getArg("list-query"+authswitch);
 
   d_MasterOfDomainsZoneQuery=getArg("master-zone-query");
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
@@ -235,25 +237,38 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
   d_CheckACLQuery=getArg("check-acl-query");
+  
+  d_beforeOrderQuery = getArg("get-order-before-query");
+  d_afterOrderQuery = getArg("get-order-after-query");
+  d_setOrderAuthQuery = getArg("set-order-and-auth-query");
 }
 
-bool GSQLBackend::getBeforeAndAfterNames(uint32_t id, const std::string& qname, std::string& before, std::string& after)
+bool GSQLBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
 {
   cerr<<"gsql before/after called for id="<<id<<", qname="<<qname<<endl;
   string lcqname=toLower(qname);
+
+  if(lcqname == zonename)  // XXX FIXME NEED A CALL THAT DOES THIS RIGHT
+    lcqname.clear();
+  else 
+    lcqname = lcqname.substr(0, lcqname.size() - zonename.length() - 1); // strip domain name
   
   lcqname=labelReverse(lcqname);
 
   SSql::row_t row;
 
-  d_db->doQuery("select min(ordername) from records where ordername > '"+sqlEscape(lcqname)+"' and auth=1");
+  char output[1024];
+  snprintf(output, sizeof(output)-1, d_afterOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
+  
+  d_db->doQuery(output);
   while(d_db->getRow(row)) {
-    after=labelReverse(row[0]);
+    after=labelReverse(row[0])+"."+zonename;
   }
 
-  d_db->doQuery("select max(ordername) from records where ordername < '"+sqlEscape(lcqname)+"' and auth=1");
+  snprintf(output, sizeof(output)-1, d_beforeOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
+  d_db->doQuery(output);
   while(d_db->getRow(row)) {
-    before=labelReverse(row[0]);
+    before=labelReverse(row[0])+"."+zonename;
   }
 
   return false;
@@ -275,17 +290,17 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
     // qtype qname domain_id
     if(domain_id<0) {
       if(qname[0]=='%')
-	format=d_wildCardNoIDQuery;
+        format=d_wildCardNoIDQuery;
       else
-	format=d_noWildCardNoIDQuery;
+        format=d_noWildCardNoIDQuery;
 
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(), sqlEscape(lcqname).c_str());
     }
     else {
       if(qname[0]!='%')
-	format=d_noWildCardIDQuery;
+        format=d_noWildCardIDQuery;
       else
-	format=d_wildCardIDQuery;
+        format=d_wildCardIDQuery;
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(),sqlEscape(lcqname).c_str(),domain_id);
     }
   }
@@ -294,17 +309,17 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
     // qname domain_id
     if(domain_id<0) {
       if(qname[0]=='%')
-	format=d_wildCardANYNoIDQuery;
+        format=d_wildCardANYNoIDQuery;
       else
-	format=d_noWildCardANYNoIDQuery;
+        format=d_noWildCardANYNoIDQuery;
 
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str());
     }
     else {
       if(qname[0]!='%')
-	format=d_noWildCardANYIDQuery;
+        format=d_noWildCardANYIDQuery;
       else
-	format=d_wildCardANYIDQuery;
+        format=d_wildCardANYIDQuery;
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str(),domain_id);
     }
   }
@@ -421,6 +436,9 @@ bool GSQLBackend::get(DNSResourceRecord &r)
       r.qname=row[5];
     r.qtype=row[3];
     r.last_modified=0;
+    
+    if(d_dnssecQueries)
+      r.auth = !row[6].empty() && row[6][0]=='1';
     
     r.domain_id=atoi(row[4].c_str());
     return true;

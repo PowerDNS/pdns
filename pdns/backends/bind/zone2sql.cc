@@ -138,9 +138,10 @@ static void callback(unsigned int domain_id,const string &domain, const string &
         sqlstr(qtype)<<", "<<
         sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<<");\n";
     } else {
+    
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio) values ("<< dirty_hack_num<<", "<<
         sqlstr(stripDot(domain))<<", "<<
-        sqlstr(toLower(labelReverse(domain)))<<", "<< auth <<" ,"<<
+        sqlstr(toLower(labelReverse(makeRelative(domain, lastsoa_qname))))<<", "<< auth <<" ,"<<
         sqlstr(qtype)<<", "<<
         sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<<");\n";
     }
@@ -154,9 +155,10 @@ static void callback(unsigned int domain_id,const string &domain, const string &
         " from domains where name="<<toLower(sqlstr(lastsoa_qname))<<";\n";
     } else
     {
+      cerr<<"makeRelative('"<<stripDot(domain)<<"', '"<<lastsoa_qname<<"');"<<endl;
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio) select id ,"<<
         sqlstr(toLower(stripDot(domain)))<<", "<<
-        sqlstr(toLower(labelReverse(domain)))<<", "<<auth<<", "<<
+        sqlstr(toLower(labelReverse(makeRelative(stripDot(domain), lastsoa_qname))))<<", "<<auth<<", "<<
         sqlstr(qtype)<<", "<<
         sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
         " from domains where name="<<toLower(sqlstr(lastsoa_qname))<<";\n";
@@ -245,14 +247,14 @@ int main(int argc, char **argv)
         cout<<"set autocommit on;"<<endl;
     }
 
+    cerr<<"mode = POSTGRES: "<< (mode == POSTGRES) <<endl;
+
     g_doDNSSEC=::arg().mustDo("dnssec");
       
 
     dirty_hack_num=::arg().asNum("start-id");
     namedfile=::arg()["named-conf"];
     zonefile=::arg()["zone"];
-
-    
 
     int count=0, num_domainsdone=0;
 
@@ -283,33 +285,33 @@ int main(int argc, char **argv)
           try {
             if(mode==POSTGRES || mode==ORACLE) {
               if(g_intransaction && ::arg().mustDo("transactions")) {
-        	cout<<"COMMIT WORK;"<<endl;
+                cout<<"COMMIT WORK;"<<endl;
               }
               if(::arg().mustDo("transactions")) {
-        	if(mode==POSTGRES)
-        	  cout<<"BEGIN TRANSACTION;"<<endl;
-        	g_intransaction=1;
+                if(mode==POSTGRES)
+                  cout<<"BEGIN TRANSACTION;"<<endl;
+                g_intransaction=1;
               }
 
               if(mode==POSTGRES) {
-        	if(::arg().mustDo("slave")) {
-        	  if(i->masters.empty())
-        	    cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
-        	  else {
-        	    string masters;
-        	    for(vector<string>::const_iterator iter = i->masters.begin(); iter != i->masters.end(); ++iter) {
-        	      if(iter != i->masters.begin())
-        		masters.append(1, ' ');
-        	      masters+=*iter;
-        	    }
-        	    cout<<"insert into domains (name,type,master) values ("<<sqlstr(i->name)<<",'SLAVE'"<<", '"<<masters<<"');"<<endl;
-        	  }
-        	}
-        	else
-        	  cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
+                if(::arg().mustDo("slave")) {
+                  if(i->masters.empty())
+                    cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
+                  else {
+                    string masters;
+                    for(vector<string>::const_iterator iter = i->masters.begin(); iter != i->masters.end(); ++iter) {
+                      if(iter != i->masters.begin())
+                        masters.append(1, ' ');
+                      masters+=*iter;
+                      }
+                    cout<<"insert into domains (name,type,master) values ("<<sqlstr(i->name)<<",'SLAVE'"<<", '"<<masters<<"');"<<endl;
+                  }
+                }
+                else
+                  cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
               }
               else if(mode==ORACLE) {
-        	cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(i->name))<<",'NATIVE');"<<endl;
+                cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(i->name))<<",'NATIVE');"<<endl;
               }
               lastsoa_qname=i->name;
             }

@@ -789,7 +789,7 @@ string dotConcat(const std::string& a, const std::string &b)
     return a+"."+b;
 }
 
-bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string& qname, std::string& before, std::string& after)
+bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
 {
   shared_ptr<State> state = s_state;
 
