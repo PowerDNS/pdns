@@ -1,5 +1,5 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -Iext/polarssl/include $(BOOST_CPPFLAGS)
-AM_CPPFLAGS=-Ibackends/bind @THREADFLAGS@
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -Iext/polarssl/include
+AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
 EXTRA_DIST = docs/Makefile docs/expand \
 docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
@@ -47,7 +47,10 @@ randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dnsseckeeper.cc dnssecinf
 dnsseckeeper.hh dnssecinfra.hh base32.hh
 
 #
-pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS)
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) -Lext/polarssl/library
+pdns_server_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl
+  
+
 
 pdnssec_SOURCES=pdnssec.cc dnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -59,7 +62,8 @@ pdnssec_SOURCES=pdnssec.cc dnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh d
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
 	dynlistener.cc
 
-pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ 
+pdnssec_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -107,20 +111,22 @@ dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	unix_utility.cc utility.hh sillyrecords.cc	
 
-dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
+dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_PROGRAM_OPTION_LDFLAGS)
+dnsreplay_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
 
 nproxy_SOURCES=nproxy.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	sillyrecords.cc selectmplexer.cc  mplexer.hh
 
-nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
+nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_PROGRAM_OPTION_LDFLAGS)
+nproxy_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
 
 notify_SOURCES=notify.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
 	sillyrecords.cc selectmplexer.cc 
 
-notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
-
+notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_PROGRAM_OPTION_LDFLAGS)
+notify_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTION_LIBS)
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
