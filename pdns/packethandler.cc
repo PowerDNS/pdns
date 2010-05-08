@@ -286,10 +286,12 @@ vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData
   DNSResourceRecord rr;
   string subdomain(target);
   do {
+    if(subdomain == sd.qname) // stop at SOA
+      break;
     B.lookup(QType(QType::NS), subdomain, p, sd.domain_id);
     while(B.get(rr)) {
       if(!rr.auth)
-	ret.push_back(rr);
+        ret.push_back(rr);
     }
     if(!ret.empty())
       return ret;
@@ -306,11 +308,14 @@ vector<DNSResourceRecord> PacketHandler::getBestWildcard(DNSPacket *p, SOAData& 
     B.lookup(QType(QType::ANY), "*."+subdomain, p, sd.domain_id);
     while(B.get(rr)) {
       if(rr.qtype == p->qtype ||rr.qtype.getCode() == QType::CNAME )
-	ret.push_back(rr);
+        ret.push_back(rr);
     }
     
     if(!ret.empty())
       return ret;
+    
+    if(subdomain == sd.qname) // stop at SOA
+      break;
   } 
 
   return ret;
@@ -483,8 +488,8 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
 
   string before,after;
   cerr<<"Calling getBeforeandAfter!"<<endl;
-  sd.db->getBeforeAndAfterNames(sd.domain_id, target, before, after); 
-  cerr<<"Done calling"<<endl;
+  sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after); 
+  cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
 
   // this stuff is wrong
   
@@ -495,7 +500,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   if(mode == 1)  {
     emitNSEC(before, after, target, r, mode);
 
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, before, after); 
+    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after); 
     emitNSEC(auth, after, auth, r, mode);
   }
 
@@ -809,7 +814,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   getAuth(p, &sd, p->qdomain, 0);
 
   string before,after;
-  sd.db->getBeforeAndAfterNames(sd.domain_id, p->qdomain, before, after); 
+  sd.db->getBeforeAndAfterNames(sd.domain_id, sd.qname, p->qdomain, before, after); 
 
   nrc.d_next=after;
 
@@ -1050,13 +1055,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(!getAuth(p, &sd, target, 0)) {
       r->setA(false);
       if(::arg().mustDo("send-root-referral")) {
-	DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
-	addRootReferral(r);
+        DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
+        addRootReferral(r);
       }
       else {
-	DLOG(L<<Logger::Warning<<"Adding SERVFAIL"<<endl);
-	r->setRcode(RCode::ServFail);  // 'sorry' 
-    }
+        DLOG(L<<Logger::Warning<<"Adding SERVFAIL"<<endl);
+        r->setRcode(RCode::ServFail);  // 'sorry' 
+      }
           goto sendit;
       }
       
@@ -1092,12 +1097,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     
     while(B.get(rr)) {
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
-	weDone=1;
+        weDone=1;
       if((rr.qtype == p->qtype || rr.qtype.getCode() == QType::NS) && !rr.auth) 
-	weHaveUnauth=1;
+        weHaveUnauth=1;
 
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
-	weRedirected=1;
+        weRedirected=1;
       rrset.push_back(rr);
     }
 
@@ -1105,55 +1110,55 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(rrset.empty()) {
       // try wildcards, and if they don't work, go look for NS records
-      cerr<<"Found nothing in the ANY, but let's try the NS set"<<endl;
+      cerr<<"Found nothing in the ANY, but let's try wildcards.."<<endl;
       bool wereRetargeted;
       if(tryWildcard(p, r, sd, target, wereRetargeted)) {
-	if(wereRetargeted) {
-	  retargetcount++;
-	  goto retargeted;
-      }
-	goto sendit;
-    }
-    
-      if(!tryReferral(p, r, sd, target))
-	makeNXDomain(p, r, target, sd);
-
+        if(wereRetargeted) {
+          retargetcount++;
+          goto retargeted;
+        }
         goto sendit;
       }
+      cerr<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl;
+      if(!tryReferral(p, r, sd, target))
+        makeNXDomain(p, r, target, sd);
+
+      goto sendit;
+    }
         			       
     if(weRedirected) {
       BOOST_FOREACH(rr, rrset) {
-	if(rr.qtype.getCode() == QType::CNAME) {
-	  r->addRecord(rr);
-	  target = rr.content;
-	  retargetcount++;
-	  goto retargeted;
-    }
+        if(rr.qtype.getCode() == QType::CNAME) {
+          r->addRecord(rr);
+          target = rr.content;
+          retargetcount++;
+          goto retargeted;
         }
+      }
           
-          }
+    }
     else if(weDone) {
       BOOST_FOREACH(rr, rrset) {
-	if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
+        if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
           r->addRecord(rr);
-        }
+      }
 
       if(p->qtype.getCode() == QType::ANY) {
-	completeANYRecords(p, r, sd, target);
-        }
+        completeANYRecords(p, r, sd, target);
+      }
 
       goto sendit;
-        }
+    }
     else if(weHaveUnauth) {
       cerr<<"Have unauth data, so need to hunt for best NS records"<<endl;
       if(tryReferral(p, r, sd, target))
-	goto sendit;
+        goto sendit;
       cerr<<"Should not get here!!"<<endl;
-        }
-        else {
+    }
+    else {
       cerr<<"Have some data, but not the right data"<<endl;
       makeNOError(p, r, target, sd);
-      }
+    }
     
   sendit:;
     if(doAdditionalProcessingAndDropAA(p,r)<0)
