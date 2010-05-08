@@ -52,9 +52,14 @@ pdns_server_LDFLAGS= @moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREAD
 pdnssec_SOURCES=pdnssec.cc dnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
-        base32.cc 
+        base32.cc  ueberbackend.cc dnsbackend.cc arguments.cc packetcache.cc dnspacket.cc  \
+        backends/bind/bindbackend2.cc  \
+	backends/bind/bindparser.cc backends/bind/bindlexer.c \
+	backends/gsql/gsqlbackend.cc \
+	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
+	dynlistener.cc
 
-pdnssec_LDFLAGS=-Lext/polarssl/library/ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl $(BOOST_FILESYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
