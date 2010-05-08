@@ -88,24 +88,30 @@ void loadMainConfig()
   UeberBackend::go();
 }
 
-void listZones()
+void orderZone(const std::string& zone)
 {
   loadMainConfig();
-  cerr<<"hier1 launcheable: "<<BackendMakers().numLauncheable()<<endl;
-  
-  cerr<<"new"<<endl;
+    
   UeberBackend* B = new UeberBackend("default");
   SOAData sd;
-  cerr<<"hier2 "<<(void*)B<<endl;
-  if(!B->getSOA("powerdnssec.org", sd)) {
+  
+  if(!B->getSOA(zone, sd)) {
     cerr<<"No SOA!"<<endl;
   } 
   cerr<<"ID: "<<sd.domain_id<<endl;
-  sd.db->list("powerdnssec.org", sd.domain_id);
+  sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
+
+  set<string> qnames;
   
   while(sd.db->get(rr)) {
-    cerr<<rr.qname<<endl;
+  //  cerr<<rr.qname<<endl;
+    qnames.insert(rr.qname);
+  }
+  
+  BOOST_FOREACH(const string& qname, qnames)
+  {
+    sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, true);
   }
   cerr<<"Done listing"<<endl;
 }
@@ -139,8 +145,12 @@ try
 
   DNSSECKeeper dk(g_vm["key-repository"].as<string>());
 
-  if(cmds[0] == "list-zones") {
-    listZones();
+  if(cmds[0] == "order-zone") {
+    if(cmds.size() != 2) {
+      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
+      return 0;
+    }
+    orderZone(cmds[1]);
   }
   else if(cmds[0] == "update-zone-keys") {
     if(cmds.size() != 2) {

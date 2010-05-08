@@ -80,6 +80,11 @@ public:
     return false;
   }
 
+  virtual bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
+  {
+    return false;
+  }
+
   //! Initiates a list of the specified domain
   /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
       if the backend does not consider itself responsible for the id passed.
