@@ -76,20 +76,29 @@ struct DNSSECPrivateKey
   
   RSAContext d_key;
   DNSKEYRecordContent getDNSKEY();
-  time_t beginValidity, endValidity; // wart
 };
 
 class DNSSECKeeper
 {
 public:
+  struct KeyMetaData
+  {
+    time_t beginValidity, endValidity; // wart  
+    bool active;
+    string fname;
+  };  
+public:
   explicit DNSSECKeeper(const std::string& dirname) : d_dirname(dirname){}
   bool haveKSKFor(const std::string& zone, DNSSECPrivateKey* ksk=0);
   
-  typedef std::vector<std::pair<DNSSECPrivateKey, bool> > zskset_t;
+  typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > zskset_t;
   zskset_t getZSKsFor(const std::string& zone, bool all=false);
-  void addZSKFor(const std::string& fname, bool next=false);
+  void addZSKFor(const std::string& zname, bool next=false);
+  void deleteZSKFor(const std::string& zname, const std::string& fname);
 
   void addZone(const std::string& fname);
+
+  
 
 private:
   std::string d_dirname;

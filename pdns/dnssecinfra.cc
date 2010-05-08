@@ -216,13 +216,13 @@ DNSKEYRecordContent getDNSKEYFor(const std::string& keyRepositoryDir, const std:
   if(!withKSK) {
     DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(qname);
     BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-      if(value.second) {
-	cerr<<"Found a ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
-	*rc=value.first.d_key;
-	return value.first.getDNSKEY();
+      if(value.second.active) {
+        cerr<<"Found a ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
+        *rc=value.first.d_key;
+        return value.first.getDNSKEY();
       }
       else 
-	cerr<<"Found an expired ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
+        cerr<<"Found an expired ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
     }
     cerr<<"withKSK was not true, but found nothing!"<<endl;
     exit(1);

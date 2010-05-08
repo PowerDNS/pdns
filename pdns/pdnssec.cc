@@ -3,12 +3,26 @@
 #include "statbag.hh"
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
+#include "dnsbackend.hh"
+#include "ueberbackend.hh"
+#include "arguments.hh"
+#include "packetcache.hh"
+
+StatBag S;
+PacketCache PC;
 
 using namespace boost;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
-StatBag S;
+string s_programname="pdns_server";
+
+ArgvMap &arg()
+{
+  static ArgvMap arg;
+  return arg;
+}
+
 
 string humanTime(time_t t)
 {
@@ -19,7 +33,85 @@ string humanTime(time_t t)
   return ret;
 }
 
+void loadMainConfig()
+{
+   static char pietje[128]="!@@SYSCONFDIR@@:";
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=
+    strcmp(pietje+1,"@@SYSCONFDIR@@:") ? pietje+strlen("@@SYSCONFDIR@@:")+1 : SYSCONFDIR;
+  
+  ::arg().set("launch","Which backends to launch");
+  
+  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().setCmd("help","Provide a helpful message");
+  //::arg().laxParse(argc,argv);
+
+  if(::arg().mustDo("help")) {
+    cerr<<"syntax:"<<endl<<endl;
+    cerr<<::arg().helpstring(::arg()["help"])<<endl;
+    exit(99);
+  }
+
+  if(::arg()["config-name"]!="") 
+    s_programname+="-"+::arg()["config-name"];
+
+  string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
+  cleanSlashes(configname);
+
+  cerr<<"configname: '"<<configname<<"'\n";
+  
+  ::arg().laxFile(configname.c_str());
+
+
+  BackendMakers().launch(::arg()["launch"]); // vrooooom!
+  ::arg().laxFile(configname.c_str());    
+  cerr<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
+
+
+  S.declare("qsize-q","Number of questions waiting for database attention");
+    
+  S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
+  S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
+          
+  S.declare("query-cache-hit","Number of hits on the query cache");
+  S.declare("query-cache-miss","Number of misses on the query cache");
+  ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
+  ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
+  ::arg().set("recursive-cache-ttl","Seconds to store packets in the PacketCache")="10";
+  ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";              
+  ::arg().set("negquery-cache-ttl","Seconds to store packets in the PacketCache")="60";
+  ::arg().set("query-cache-ttl","Seconds to store packets in the PacketCache")="20";              
+  ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
+  ::arg().set("soa-retry-default","Default SOA retry")="3600";
+  ::arg().set("soa-expire-default","Default SOA expire")="604800";
+    ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
+  ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";    
+  UeberBackend::go();
+}
+
+void listZones()
+{
+  loadMainConfig();
+  cerr<<"hier1 launcheable: "<<BackendMakers().numLauncheable()<<endl;
+  
+  cerr<<"new"<<endl;
+  UeberBackend* B = new UeberBackend("default");
+  SOAData sd;
+  cerr<<"hier2 "<<(void*)B<<endl;
+  if(!B->getSOA("powerdnssec.org", sd)) {
+    cerr<<"No SOA!"<<endl;
+  } 
+  cerr<<"ID: "<<sd.domain_id<<endl;
+  sd.db->list("powerdnssec.org", sd.domain_id);
+  DNSResourceRecord rr;
+  
+  while(sd.db->get(rr)) {
+    cerr<<rr.qname<<endl;
+  }
+  cerr<<"Done listing"<<endl;
+}
+
 int main(int argc, char** argv)
+try
 {
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -47,7 +139,10 @@ int main(int argc, char** argv)
 
   DNSSECKeeper dk(g_vm["key-repository"].as<string>());
 
-  if(cmds[0] == "update-zone-keys") {
+  if(cmds[0] == "list-zones") {
+    listZones();
+  }
+  else if(cmds[0] == "update-zone-keys") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;
@@ -63,13 +158,22 @@ int main(int argc, char** argv)
     DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
 
     int inforce=0;
+    time_t now = time(&now);
+    
+    
     if(!zskset.empty())  {
       cerr<<"There were ZSKs already for zone '"<<zone<<"': "<<endl;
       
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<", "<<value.first.beginValidity<<" - "<<value.first.endValidity<<endl;
-        if(value.second) 
+        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<<humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        if(value.second.active) 
           inforce++;
+        if(value.second.endValidity < now - 2*86400) { // 'expired more than two days ago'  
+          cerr<<"\tThis key is no longer used and too old to keep around, deleting!\n";
+          dk.deleteZSKFor(zone, value.second.fname);
+        } else if(value.second.endValidity < now) { // 'expired more than two days ago'  
+          cerr<<"\tThis key is no longer in active use, but needs to linger\n";
+        }
       }
     }
       
@@ -87,7 +191,7 @@ int main(int argc, char** argv)
 
     cerr<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
     BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-      cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<endl;
+      cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
     }
 
   }
@@ -112,16 +216,13 @@ int main(int argc, char** argv)
     
     DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
 
-    int inforce=0;
     if(zskset.empty())  {
       cerr << "No ZSKs for zone '"<<zone<<"'."<<endl;
     }
     else {  
       cerr << "ZSKs for zone '"<<zone<<"':"<<endl;
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<", "<< humanTime(value.first.beginValidity)<<" - "<<humanTime(value.first.endValidity)<<endl;
-        if(value.second) 
-        inforce++;
+        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<< humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
       }
     }
   }
@@ -162,7 +263,7 @@ int main(int argc, char** argv)
 
     cerr<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
     BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-      cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second<<endl;
+      cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
     }
   }
   else {
@@ -170,4 +271,7 @@ int main(int argc, char** argv)
     return 1;
   }
   return 0;
+}
+catch(AhuException& ae) {
+  cerr<<"Error: "<<ae.reason<<endl;
 }

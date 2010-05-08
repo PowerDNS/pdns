@@ -133,8 +133,12 @@ void DNSSECKeeper::addZSKFor(const std::string& name, bool next)
 bool zskSortByDates(const DNSSECKeeper::zskset_t::value_type& a, const DNSSECKeeper::zskset_t::value_type& b)
 {
   return 
-    tie(a.first.beginValidity, a.first.endValidity) < 
-    tie(b.first.beginValidity, b.first.endValidity);
+    tie(a.second.beginValidity, a.second.endValidity) < 
+    tie(b.second.beginValidity, b.second.endValidity);
+}
+void DNSSECKeeper::deleteZSKFor(const std::string& zname, const std::string& fname)
+{
+  unlink((d_dirname +"/"+ zname +"/zsks/"+fname).c_str());
 }
 
 DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool all)
@@ -174,11 +178,13 @@ DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool al
       ts1.tm_mon--;
       ts2.tm_mon--;
 
-      dpk.beginValidity=timegm(&ts1);
-      dpk.endValidity=timegm(&ts2);
+      KeyMetaData kmd;
+      kmd.beginValidity=timegm(&ts1);
+      kmd.endValidity=timegm(&ts2);
       time_t now=time(0);
-
-      zskset.push_back(make_pair(dpk, now > dpk.beginValidity && now < dpk.endValidity));
+      kmd.active = now > kmd.beginValidity && now < kmd.endValidity;
+      kmd.fname = dir_itr->leaf();
+      zskset.push_back(make_pair(dpk, kmd));
     }
     sort(zskset.begin(), zskset.end(), zskSortByDates);
   }
