@@ -1,6 +1,6 @@
 INCLUDES=-I../.. -I ../../ext/polarssl/include
 noinst_LTLIBRARIES = libbind2backend.la
-AM_CPPFLAGS=@THREADFLAGS@
+AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@
 
 libbind2backend_la_SOURCES=bindbackend2.cc bindbackend2.hh bindparser.yy \
 bindlexer.l ../../zoneparser-tng.cc ../../misc.cc  \
@@ -27,9 +27,11 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l \
 ../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc ../../sillyrecords.cc \
 ../../nsecrecords.cc ../../dnssecinfra.cc ../../dnsseckeeper.cc ../../base32.cc
 
-zone2ldap_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -L../../ext/polarssl/library -lpolarssl
+zone2ldap_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) -L../../ext/polarssl/library
+zone2ldap_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl
 
-zone2sql_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -L../../ext/polarssl/library -lpolarssl
+zone2sql_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) -L../../ext/polarssl/library
+zone2sql_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl
 
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
