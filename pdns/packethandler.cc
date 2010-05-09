@@ -539,7 +539,7 @@ bool PacketHandler::doDNSSECProcessing(DNSPacket *p, DNSPacket *r)
     while(B.get(rr)) {
       rr.d_place=DNSResourceRecord::ANSWER;
       if(splitField(rr.content, ' ').first==i->qtype.getName())
-	r->addRecord(rr);
+        r->addRecord(rr);
     }
   }
   
@@ -577,8 +577,8 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
       }
 
       if(rr.qtype.getCode()==QType::DS && p->qtype.getCode() == QType::NS && p->d_dnssecOk) {
-	sawDS = true;
-	r->addRecord(rr);
+        sawDS = true;
+        r->addRecord(rr);
       }
 
       if(rr.qtype.getCode()!=QType::NS || p->qtype.getCode()==QType::NS)
@@ -589,9 +589,9 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
         target=rr.content; // for retargeting
       }
       if(shortcut && !found && rr.qtype==p->qtype) {
-	if(!rr.auth) {
-	  
-	}
+        if(!rr.auth) {
+        // no idea why this if is here
+        }
 	  
         rfound=true;
         r->addRecord(rr);
@@ -791,7 +791,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     if(!rr.auth) 
       continue;
     
-    // this needs to deal with the 'prio' mismatch!
+    // this deals with the 'prio' mismatch!
     if(rr.qtype.getCode()==QType::MX || rr.qtype.getCode() == QType::SRV) {  
       rr.content = lexical_cast<string>(rr.priority) + " " + rr.content;
     }
@@ -807,7 +807,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     nrc.d_set.insert(rr.qtype.getCode());
   }
 
-  // now get the fucking NSEC too..
+  // now get the fucking NSEC too (since we must sign it!)
 
   SOAData sd;
   sd.db=(DNSBackend *)-1; // force uncached answer
@@ -842,7 +842,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
       rr.content=rrc.getZoneRepresentation();
       r->addRecord(rr);
       if(iter.first != QType::DNSKEY)
-	break;
+        break;
     }
   }
 }
@@ -918,7 +918,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
 void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target)
 {
   if(!p->d_dnssecOk)
-    cerr<<"Need to add all the RRSIGs too for '"<<target<<"'"<<endl;
+    cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
   //  cerr<<"Need to add all the NSEC too.."<<endl; /// XXX FIXME THE ABOVE IF IS WEIRD
   addNSEC(p, r, target, sd.qname, 2); 
 }
@@ -1029,8 +1029,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       r->setRcode(RCode::ServFail);
       return r;
     }
-
-    bool found=false;
     
     string target=p->qdomain;
     bool noCache=false;
@@ -1081,14 +1079,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::NSEC && p->d_dnssecOk) {
       addNSEC(p, r, target, "", 2); // only NSEC please
-        goto sendit;
+      goto sendit;
     }
     
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::RRSIG && p->d_dnssecOk) {
       synthesiseRRSIGs(p, r);
-        goto sendit;  
-      }
+      goto sendit;  
+    }
 
     // see what we get..
     B.lookup(QType(QType::ANY), target, p, sd.domain_id);
