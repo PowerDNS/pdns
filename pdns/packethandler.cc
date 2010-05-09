@@ -38,10 +38,10 @@
 #include "communicator.hh"
 #include "dnsproxy.hh"
 
-/*
+#if 0
 #undef DLOG
 #define DLOG(x) x
-*/
+#endif 
 
 extern StatBag S;
 extern PacketCache PC;  
@@ -1049,7 +1049,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       r->setRcode(RCode::ServFail);
       return r;
     }
-
+    
     if(!getAuth(p, &sd, target, 0)) {
       r->setA(false);
       if(::arg().mustDo("send-root-referral")) {
@@ -1060,21 +1060,21 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         DLOG(L<<Logger::Warning<<"Adding SERVFAIL"<<endl);
         r->setRcode(RCode::ServFail);  // 'sorry' 
       }
-          goto sendit;
-      }
-      
+      goto sendit;
+    }
+    DLOG(L<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
     // we know we have authority
 
-    if(p->qtype.getCode() == QType::SOA) {
-      	rr.qname=sd.qname;
-        rr.qtype=QType::SOA;
-        rr.content=serializeSOAData(sd);
-        rr.ttl=sd.ttl;
-        rr.domain_id=sd.domain_id;
-        rr.d_place=DNSResourceRecord::ANSWER;
-        r->addRecord(rr);
-          goto sendit;
-        }
+    if(p->qtype.getCode() == QType::SOA && pdns_iequals(sd.qname, p->qdomain)) {
+     	rr.qname=sd.qname;
+      rr.qtype=QType::SOA;
+      rr.content=serializeSOAData(sd);
+      rr.ttl=sd.ttl;
+      rr.domain_id=sd.domain_id;
+      rr.d_place=DNSResourceRecord::ANSWER;
+      r->addRecord(rr);
+      goto sendit;
+    }
 
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::NSEC && p->d_dnssecOk) {
