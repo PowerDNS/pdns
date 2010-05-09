@@ -254,3 +254,15 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   return true;
 }
 
+bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
+{
+  string lcqname=toLower(qname);
+  lcqname=makeRelative(qname, zonename);
+  
+  lcqname=labelReverse(lcqname);
+  bool ret = this->getBeforeAndAfterNamesAbsolute(id, lcqname, before, after);
+  
+  before=dotConcat(labelReverse(before), zonename);
+  after=dotConcat(labelReverse(after), zonename);
+  return ret;
+}

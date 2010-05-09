@@ -382,5 +382,6 @@ string stripDot(const string& dom);
 void seedRandom(const string& source);
 string makeRelative(const std::string& fqdn, const std::string& zone);
 string labelReverse(const std::string& qname);
+std::string dotConcat(const std::string& a, const std::string &b);
 
 #endif

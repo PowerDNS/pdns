@@ -781,26 +781,14 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
   }
 }
 
-string dotConcat(const std::string& a, const std::string &b)
-{
-  if(a.empty() || b.empty())
-    return a+b;
-  else 
-    return a+"."+b;
-}
 
-bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
+
+bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& before, std::string& after)
 {
   shared_ptr<State> state = s_state;
 
   BB2DomainInfo& bbd = state->id_zone_map[id];
   string domain=toLower(qname);
-
-  if(domain == bbd.d_name)
-    domain.clear();
-  else 
-    domain = domain.substr(0, domain.size() - bbd.d_name.length() - 1); // strip domain name
-
   string lname = labelReverse(domain);
 
   cout<<"starting lower bound for: '"<<domain<<"', search is for: '"<<lname<<"'"<<endl;
@@ -819,7 +807,7 @@ bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string& zonena
   }
   if(iter != bbd.d_records->begin()) {
     cerr<<"\tFound: '"<<(iter-1)->qname<<"', auth = "<<(iter-1)->auth<<"\n";
-    before = dotConcat(labelReverse((iter - 1)->qname), bbd.d_name);
+    before = (iter - 1)->qname;
   }
   else {
     cerr<<"PANIC! Wanted something before the first record!"<<endl;
@@ -837,7 +825,7 @@ bool Bind2Backend::getBeforeAndAfterNames(uint32_t id, const std::string& zonena
     after = dotConcat(labelReverse(bbd.d_records->begin()->qname), bbd.d_name);
   } else {
     cerr<<"\tFound: '"<<iter->qname<<"'"<<endl;
-    after = dotConcat(labelReverse((iter)->qname), bbd.d_name);
+    after = (iter)->qname;
   }
 
   cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";

@@ -257,17 +257,11 @@ bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string
   return true;
 }
 
-bool GSQLBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
+
+bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& before, std::string& after)
 {
   cerr<<"gsql before/after called for id="<<id<<", qname="<<qname<<endl;
   string lcqname=toLower(qname);
-
-  if(lcqname == zonename)  // XXX FIXME NEED A CALL THAT DOES THIS RIGHT
-    lcqname.clear();
-  else 
-    lcqname = lcqname.substr(0, lcqname.size() - zonename.length() - 1); // strip domain name
-  
-  lcqname=labelReverse(lcqname);
 
   SSql::row_t row;
 
@@ -276,16 +270,16 @@ bool GSQLBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonenam
   
   d_db->doQuery(output);
   while(d_db->getRow(row)) {
-    after=labelReverse(row[0])+"."+zonename;
+    after=row[0];
   }
 
   snprintf(output, sizeof(output)-1, d_beforeOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
   d_db->doQuery(output);
   while(d_db->getRow(row)) {
-    before=labelReverse(row[0])+"."+zonename;
+    before=row[0];
   }
 
-  return false;
+  return true;
 }
 
 

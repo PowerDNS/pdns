@@ -39,7 +39,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   void setNotified(uint32_t domain_id, uint32_t serial);
-  bool getBeforeAndAfterNames(uint32_t id, const std::string& zname, const std::string& qname, std::string& before, std::string& after);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& before, std::string& after);
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
 
 private:

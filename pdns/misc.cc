@@ -657,3 +657,11 @@ string makeRelative(const std::string& fqdn, const std::string& zone)
     return fqdn.substr(0, fqdn.size() - zone.length() - 1); // strip domain name
   return "";
 }
+
+string dotConcat(const std::string& a, const std::string &b)
+{
+  if(a.empty() || b.empty())
+    return a+b;
+  else 
+    return a+"."+b;
+}
