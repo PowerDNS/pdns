@@ -139,8 +139,7 @@ dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 dnsgram_SOURCES=dnsgram.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
 	base64.cc base64.hh dnswriter.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
-	utility.hh dnsparser.hh sillyrecords.cc
-
+	utility.hh dnsparser.hh sillyrecords.cc nsecrecords.cc base32.cc
 
 dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \

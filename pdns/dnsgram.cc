@@ -16,27 +16,34 @@ using namespace std;
 
 StatBag S;
 
+struct tm* pdns_localtime_r(const uint32_t* then, struct tm* tm)
+{
+  time_t t = *then;
+  
+  return localtime_r(&t, tm);
+}
+
 int32_t g_clientQuestions, g_clientResponses, g_serverQuestions, g_serverResponses, g_skipped;
-struct timeval g_lastanswerTime, g_lastquestionTime;
-void makeReport(const struct timeval& tv)
+struct pdns_timeval g_lastanswerTime, g_lastquestionTime;
+void makeReport(const struct pdns_timeval& tv)
 {
   int64_t clientdiff = g_clientQuestions - g_clientResponses;
   int64_t serverdiff = g_serverQuestions - g_serverResponses;
 
   if(clientdiff > 5 && clientdiff > 0.02*g_clientQuestions) {
     char tmp[80];
-    struct tm tm=*localtime_r(&tv.tv_sec, &tm);
+    struct tm tm=*pdns_localtime_r(&tv.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
 
     cout << tmp << ": Resolver dropped too many questions (" 
          << g_clientQuestions <<" vs " << g_clientResponses << "), diff: " <<clientdiff<<endl;
 
-    tm=*localtime_r(&g_lastanswerTime.tv_sec, &tm);
+    tm=*pdns_localtime_r(&g_lastanswerTime.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
     
     cout<<"Last answer: "<<tmp<<"."<<g_lastanswerTime.tv_usec/1000000.0<<endl;
 
-    tm=*localtime_r(&g_lastquestionTime.tv_sec, &tm);
+    tm=*pdns_localtime_r(&g_lastquestionTime.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
     
     cout<<"Last question: "<<tmp<<"."<<g_lastquestionTime.tv_usec/1000000.0<<endl;
@@ -44,18 +51,18 @@ void makeReport(const struct timeval& tv)
 
   if(serverdiff > 5 && serverdiff > 0.02*g_serverQuestions) {
     char tmp[80];
-    struct tm tm=*localtime_r(&tv.tv_sec, &tm);
+    struct tm tm=*pdns_localtime_r(&tv.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
 
     cout << tmp << ": Auth server dropped too many questions (" 
          << g_serverQuestions <<" vs " << g_serverResponses << "), diff: " <<serverdiff<<endl;
 
-    tm=*localtime_r(&g_lastanswerTime.tv_sec, &tm);
+    tm=*pdns_localtime_r(&g_lastanswerTime.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
     
     cout<<"Last answer: "<<tmp<<"."<<g_lastanswerTime.tv_usec/1000000.0<<endl;
 
-    tm=*localtime_r(&g_lastquestionTime.tv_sec, &tm);
+    tm=*pdns_localtime_r(&g_lastquestionTime.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
     
     cout<<"Last question: "<<tmp<<"."<<g_lastquestionTime.tv_usec/1000000.0<<endl;
@@ -88,7 +95,7 @@ try
     /* we measure every 60 seconds, each interval with 10% less answers than questions is interesting */
     /* report chunked */
     
-    struct timeval lastreport={0, 0};
+    struct pdns_timeval lastreport={0, 0};
     
     typedef set<pair<string, uint16_t> > queries_t;
     queries_t questions, answers;
