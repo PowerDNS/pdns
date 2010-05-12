@@ -20,7 +20,7 @@ sbin_PROGRAMS = pdns_server
 bin_PROGRAMS = pdns_control pdnssec 
 endif
 
-EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest dnspbench pdns_control dnsscope dnsgram \
+EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest pdns_control dnsscope dnsgram \
  dnsdemog dnswasher dnsreplay dnsscan dnslog nproxy notify pdnssec
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
@@ -77,10 +77,6 @@ tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.
 speedtest_SOURCES=speedtest.cc dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	qtype.cc sillyrecords.cc logger.cc statbag.cc
-
-dnspbench_SOURCES=dnspbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
-	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc logger.cc \
-	statbag.cc qtype.cc sillyrecords.cc 
 
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
