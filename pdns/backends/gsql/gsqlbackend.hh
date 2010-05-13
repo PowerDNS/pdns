@@ -41,6 +41,8 @@ public:
   void setNotified(uint32_t domain_id, uint32_t serial);
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& before, std::string& after);
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
+  virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
+
 
 private:
   string d_qname;

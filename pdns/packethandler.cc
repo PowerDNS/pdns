@@ -464,6 +464,34 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   r->addRecord(rr);
 }
 
+void PacketHandler::emitNSEC3(NSEC3PARAMRecordContent *ns3rc, const std::string& auth, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
+{
+  cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"'"<<endl;
+  NSEC3RecordContent n3rc;
+  n3rc.d_set.insert(QType::RRSIG);
+  n3rc.d_set.insert(QType::NSEC3);
+  n3rc.d_salt=ns3rc->d_salt;
+  n3rc.d_iterations = ns3rc->d_iterations;
+  n3rc.d_algorithm = 1;
+
+  DNSResourceRecord rr;
+  B.lookup(QType(QType::ANY), begin);
+  while(B.get(rr)) {
+    n3rc.d_set.insert(rr.qtype.getCode());    
+  }
+  
+  n3rc.d_nexthash=end;
+
+  rr.qname=dotConcat(toBase32Hex(begin), auth);
+  rr.ttl=3600;
+  rr.qtype=QType::NSEC3;
+  rr.content=n3rc.getZoneRepresentation();
+  cerr<<"nsec3: '"<<rr.content<<"'"<<endl;
+  rr.d_place = (mode == 2 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
+  rr.auth = true;
+  r->addRecord(rr);
+}
+
 
 
 
@@ -491,8 +519,21 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   cerr<<"NSEC3 generator called!"<<endl;
   cerr<<nsec3param.content<<endl;
   NSEC3PARAMRecordContent *ns3rc=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, nsec3param.content));
-  cerr<<"NSEC3 hash, "<<ns3rc->d_iterations<<" iterations, salt '"<<makeHexDump(ns3rc->d_salt)<<"': "<<toBase32Hex(hashQNameWithSalt(ns3rc->d_iterations, ns3rc->d_salt, p->qdomain))<<endl;
-  
+  string hashed=toBase32Hex(hashQNameWithSalt(ns3rc->d_iterations, ns3rc->d_salt, p->qdomain));
+  cerr<<"NSEC3 hash, "<<ns3rc->d_iterations<<" iterations, salt '"<<makeHexDump(ns3rc->d_salt)<<"': "<<hashed<<endl;
+
+  SOAData sd;
+  sd.db = (DNSBackend*)-1;
+  if(!B.getSOA(auth, sd)) {
+    cerr<<"Could not get SOA for domain in NSEC3\n";
+    return;
+  }
+
+  string before,after;
+  cerr<<"Calling getBeforeandAfterAbsolute!"<<endl;
+  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, before, after); 
+  cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
+  emitNSEC3( ns3rc, auth, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
 }
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)

@@ -245,19 +245,21 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
 {
+  string ins=toLower(labelReverse(makeRelative(qname, zonename)));
+  return this->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, ins, auth);
+}
+
+bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth)
+{
   char output[1024];
   // ordername='%s',auth=%d where name='%s' and domain_id='%d'
   
-  string ins=toLower(labelReverse(makeRelative(qname, zonename)));
-  snprintf(output, sizeof(output)-1, d_setOrderAuthQuery.c_str(), sqlEscape(ins).c_str(), auth, sqlEscape(qname).c_str(), domain_id);
+  snprintf(output, sizeof(output)-1, d_setOrderAuthQuery.c_str(), sqlEscape(ordername).c_str(), auth, sqlEscape(qname).c_str(), domain_id);
   cerr<<"sql: '"<<output<<"'\n";
   
   d_db->doCommand(output);
-
   return true;
 }
-
-
 bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& before, std::string& after)
 {
   cerr<<"gsql before/after called for id="<<id<<", qname="<<qname<<endl;

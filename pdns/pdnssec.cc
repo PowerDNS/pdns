@@ -116,9 +116,10 @@ void orderZone(const std::string& zone)
   salt.assign(tmp, 2);
   BOOST_FOREACH(const string& qname, qnames)
   {
-    
-    cerr<<"'"<<qname<<"' -> '"<<toBase32Hex(hashQNameWithSalt(100, salt, qname)) <<"'"<<endl;
-    sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, true);
+    string hashed=toBase32Hex(hashQNameWithSalt(100, salt, qname));
+    cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
+	sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, true);
+    // sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, true);
   }
   cerr<<"Done listing"<<endl;
 }

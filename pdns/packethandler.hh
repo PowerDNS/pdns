@@ -47,6 +47,7 @@ using namespace std;
     a complete reply.
 
 */
+class NSEC3PARAMRecordContent;
 
 class PacketHandler
 {
@@ -98,6 +99,8 @@ private:
   void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
   void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, const DNSResourceRecord& nsec3param, int mode);
   void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, DNSPacket *r, int mode);
+  void emitNSEC3(NSEC3PARAMRecordContent *ns3rc, const std::string& auth, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
+
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);
   void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);
