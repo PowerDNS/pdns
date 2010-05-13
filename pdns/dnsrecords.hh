@@ -378,7 +378,16 @@ private:
 class NSEC3PARAMRecordContent : public DNSRecordContent
 {
 public:
-  includeboilerplate(NSEC3PARAM)
+  static void report(void);
+  NSEC3PARAMRecordContent() : DNSRecordContent(51)
+  {}
+  NSEC3PARAMRecordContent(const string& content, const string& zone="");
+
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
+  static DNSRecordContent* make(const string& content);
+  string getZoneRepresentation() const;
+  void toPacket(DNSPacketWriter& pw);
+
 
   uint8_t d_algorithm, d_flags;
   uint16_t d_iterations;

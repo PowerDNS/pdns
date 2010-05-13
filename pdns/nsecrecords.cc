@@ -181,7 +181,7 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
     uint8_t val=bitmap[2+n];
     for(int bit = 0; bit < 8 ; ++bit , val>>=1)
       if(val & 1) {
-	ret->d_set.insert((7-bit) + 8*(n));
+        ret->d_set.insert((7-bit) + 8*(n));
       }
   }
   
@@ -208,10 +208,55 @@ string NSEC3RecordContent::getZoneRepresentation() const
 }
 
 
-boilerplate_conv(NSEC3PARAM, 51, 
-		 conv.xfr8BitInt(d_algorithm); 
-		 conv.xfr8BitInt(d_flags); 
-		 conv.xfr16BitInt(d_iterations); 
-		 conv.xfr8BitInt(d_saltlength); 
-		 conv.xfrHexBlob(d_salt);
-		 )
+void NSEC3PARAMRecordContent::report(void)
+{
+  regist(1, 51, &make, &make, "NSEC3PARAM");
+}
+
+DNSRecordContent* NSEC3PARAMRecordContent::make(const string& content)
+{
+  return new NSEC3PARAMRecordContent(content);
+}
+
+NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const string& zone) : DNSRecordContent(51)
+{
+  RecordTextReader rtr(content, zone);
+  rtr.xfr8BitInt(d_algorithm); 
+	rtr.xfr8BitInt(d_flags); 
+	rtr.xfr16BitInt(d_iterations); 
+  rtr.xfrHexBlob(d_salt);
+}
+
+void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw) 
+{
+  pw.xfr8BitInt(d_algorithm); 
+	pw.xfr8BitInt(d_flags); 
+	pw.xfr16BitInt(d_iterations); 
+  pw.xfr8BitInt(d_salt.length());
+  cerr<<"salt: '"<<makeHexDump(d_salt)<<"', "<<d_salt.length()<<endl;
+  pw.xfrBlob(d_salt);
+}
+
+NSEC3PARAMRecordContent::DNSRecordContent* NSEC3PARAMRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
+{
+  NSEC3PARAMRecordContent* ret=new NSEC3PARAMRecordContent();
+  pr.xfr8BitInt(ret->d_algorithm); 
+	pr.xfr8BitInt(ret->d_flags); 
+	pr.xfr16BitInt(ret->d_iterations); 
+  pr.xfr8BitInt(ret->d_saltlength);
+  pr.xfrHexBlob(ret->d_salt);
+ 
+  return ret;
+}
+
+string NSEC3PARAMRecordContent::getZoneRepresentation() const
+{
+  string ret;
+  RecordTextWriter rtw(ret);
+  rtw.xfr8BitInt(d_algorithm); 
+	rtw.xfr8BitInt(d_flags); 
+	rtw.xfr16BitInt(d_iterations); 
+  rtw.xfrHexBlob(d_salt);
+  return ret;
+}
+
