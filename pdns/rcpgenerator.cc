@@ -245,6 +245,17 @@ void RecordTextReader::xfrHexBlob(string& val)
   HEXDecode(d_string.c_str()+pos, d_string.c_str() + d_pos, val);
 }
 
+void RecordTextReader::xfrBase32HexBlob(string& val)
+{
+  skipSpaces();
+  int pos=(int)d_pos;
+  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
+    d_pos++;
+
+  val=fromBase32Hex(string(d_string.c_str()+pos, d_pos-pos));
+}
+
+
 void RecordTextWriter::xfrBase32HexBlob(const string& val)
 {
   if(!d_string.empty())

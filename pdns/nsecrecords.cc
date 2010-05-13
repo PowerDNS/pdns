@@ -108,8 +108,8 @@ NSEC3RecordContent::NSEC3RecordContent(const string& content, const string& zone
   rtr.xfr16BitInt(d_iterations);
 
   rtr.xfrHexBlob(d_salt);
-  rtr.xfrHexBlob(d_nexthash);
-
+  rtr.xfrBase32HexBlob(d_nexthash);
+  
   while(!rtr.eof()) {
     uint16_t type;
     rtr.xfrType(type);
@@ -127,7 +127,7 @@ void NSEC3RecordContent::toPacket(DNSPacketWriter& pw)
 
   pw.xfr8BitInt(d_nexthash.length());
   pw.xfrBlob(d_nexthash);
-
+  
   uint8_t res[34];
   memset(res, 0, sizeof(res));
 
@@ -157,8 +157,9 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
   pr.xfrBlob(ret->d_salt, len);
 
   pr.xfr8BitInt(len);
+  
   pr.xfrBlob(ret->d_nexthash, len);
-
+  
   string bitmap;
   pr.xfrBlob(bitmap);
   
@@ -171,11 +172,11 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
     throw MOADNSException("NSEC3 record with impossibly small bitmap");
   
   if(bitmap[0])
-    throw MOADNSException("Can't deal with NSEC mappings > 255 yet");
+    throw MOADNSException("Can't deal with NSEC3 mappings > 255 yet");
   
   unsigned int bitmaplen=bitmap[1];
   if(bitmap.size()!=2+bitmaplen)
-    throw MOADNSException("Can't deal with multi-part NSEC mappings yet");
+    throw MOADNSException("Can't deal with multi-part NSEC3 mappings yet");
   
   for(unsigned int n=0 ; n < bitmaplen ; ++n) {
     uint8_t val=bitmap[2+n];
@@ -198,7 +199,6 @@ string NSEC3RecordContent::getZoneRepresentation() const
 
   rtw.xfrHexBlob(d_salt);
   rtw.xfrBase32HexBlob(d_nexthash);
-  
   for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
     ret+=" ";
     ret+=NumberToType(*i);
@@ -222,8 +222,8 @@ NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const st
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm); 
-	rtr.xfr8BitInt(d_flags); 
-	rtr.xfr16BitInt(d_iterations); 
+  rtr.xfr8BitInt(d_flags); 
+  rtr.xfr16BitInt(d_iterations); 
   rtr.xfrHexBlob(d_salt);
 }
 

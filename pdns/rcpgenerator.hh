@@ -54,7 +54,7 @@ public:
   void xfrLabel(string& val, bool compress=false);
   void xfrText(string& val, bool multi=false);
   void xfrHexBlob(string& val);
-
+  void xfrBase32HexBlob(string& val);
 
   void xfrBlob(string& val, int len=-1);
 
