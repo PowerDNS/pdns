@@ -1,6 +1,7 @@
 #include "dnsseckeeper.hh"
 #include "dnssecinfra.hh"
 #include "statbag.hh"
+#include "base32.hh"
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 #include "dnsbackend.hh"
@@ -97,6 +98,7 @@ void orderZone(const std::string& zone)
   
   if(!B->getSOA(zone, sd)) {
     cerr<<"No SOA!"<<endl;
+    return;
   } 
   cerr<<"ID: "<<sd.domain_id<<endl;
   sd.db->list(zone, sd.domain_id);
@@ -109,8 +111,13 @@ void orderZone(const std::string& zone)
     qnames.insert(rr.qname);
   }
   
+  string salt;
+  char tmp[]={0xab, 0xcd};
+  salt.assign(tmp, 2);
   BOOST_FOREACH(const string& qname, qnames)
   {
+    
+    cerr<<"'"<<qname<<"' -> '"<<toBase32Hex(hashQNameWithSalt(100, salt, qname)) <<"'"<<endl;
     sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, true);
   }
   cerr<<"Done listing"<<endl;

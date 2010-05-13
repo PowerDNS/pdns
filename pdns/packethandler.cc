@@ -17,6 +17,7 @@
 */
 #include "packetcache.hh"
 #include "utility.hh"
+#include "base32.hh"
 #include <string>
 #include <sys/types.h>
 #include <boost/algorithm/string.hpp>
@@ -463,11 +464,36 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   r->addRecord(rr);
 }
 
+
+
+
 /* mode 0 = no error -> an NSEC that starts with 'target', in authority section
    mode 1 = NXDOMAIN -> an NSEC from auth to first + a covering NSEC
    mode 2 = ANY or direct NSEC request  -> an NSEC that starts with 'target'
    mode 3 = a covering NSEC in the authority section (like 1, except for first)
 */
+void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
+{
+  cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"'"<<endl;
+  B.lookup(QType(QType::NSEC3PARAM), auth, p);
+  DNSResourceRecord rr, nsec3param;
+  while(B.get(rr)) {
+    nsec3param = rr;
+  }
+  if(!nsec3param.qname.empty())
+    addNSEC3(p, r, target, auth, nsec3param, mode);
+  else
+    addNSEC(p, r, target, auth, mode);
+}
+
+void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, const DNSResourceRecord& nsec3param, int mode)
+{
+  cerr<<"NSEC3 generator called!"<<endl;
+  cerr<<nsec3param.content<<endl;
+  NSEC3PARAMRecordContent *ns3rc=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, nsec3param.content));
+  cerr<<"NSEC3 hash, "<<ns3rc->d_iterations<<" iterations, salt '"<<makeHexDump(ns3rc->d_salt)<<"': "<<toBase32Hex(hashQNameWithSalt(ns3rc->d_iterations, ns3rc->d_salt, p->qdomain))<<endl;
+  
+}
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
 {
@@ -603,7 +629,7 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
     }
 
     if(!sawDS && p->qtype.getCode() == QType::NS && p->d_dnssecOk && rfound) {
-      addNSEC(p, r, p->qdomain, "", 2); // make it 'official' that we have no DS
+      addNSECX(p, r, p->qdomain, "", 2); // make it 'official' that we have no DS
     }
 
     if(hits && !relevantNS && !found && !rfound && shortcut ) { // XXX FIXME !numloops. we found matching qnames but not a qtype
@@ -858,8 +884,8 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.d_place=DNSResourceRecord::AUTHORITY;
   r->addRecord(rr);
   
-  if(p->d_dnssecOk)
-    addNSEC(p, r, target, sd.qname, 1);
+  if(p->d_dnssecOk) 
+    addNSECX(p, r, target, sd.qname, 1);
   r->setRcode(RCode::NXDomain); 
   S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
 }
@@ -876,7 +902,7 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
   r->addRecord(rr);
   
   if(p->d_dnssecOk)
-    addNSEC(p, r, target, sd.qname, 0);
+    addNSECX(p, r, target, sd.qname, 0);
 
   S.ringAccount("noerror-queries",p->qdomain+"/"+p->qtype.getName());
 }
@@ -910,7 +936,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
   r->setA(false);
 
   if(!addDSforNS(p, r, sd, rrset.begin()->qname))
-    addNSEC(p, r, rrset.begin()->qname, sd.qname, 0);
+    addNSECX(p, r, rrset.begin()->qname, sd.qname, 0);
   
   return true;
 }
@@ -920,7 +946,7 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
   if(!p->d_dnssecOk)
     cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
   //  cerr<<"Need to add all the NSEC too.."<<endl; /// XXX FIXME THE ABOVE IF IS WEIRD
-  addNSEC(p, r, target, sd.qname, 2); 
+  addNSECX(p, r, target, sd.qname, 2); 
 }
 
 bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted)
@@ -946,7 +972,7 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &
   }
 
   if(p->d_dnssecOk) {
-    addNSEC(p, r, p->qdomain, sd.qname, 3);
+    addNSECX(p, r, p->qdomain, sd.qname, 3);
   }
   return true;
 }
