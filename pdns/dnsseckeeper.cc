@@ -141,6 +141,53 @@ void DNSSECKeeper::deleteZSKFor(const std::string& zname, const std::string& fna
   unlink((d_dirname +"/"+ zname +"/zsks/"+fname).c_str());
 }
 
+bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
+{
+  fs::path full_path = fs::system_complete( fs::path(d_dirname + "/" + zname + "/nsec3param" ) );
+  ifstream ifs(full_path.external_directory_string().c_str());
+  cerr<<"called for nsec3param..."<<endl;
+  if(!ifs)
+    return false;
+    
+  if(ns3p) {
+    string descr;
+    getline(ifs, descr);
+    NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, descr));
+    if(!tmp) {
+      cerr<<"Could not parse "<< full_path.external_directory_string() <<endl;
+      cerr<<"descr: '"<<descr<<"'\n";
+    }
+    *ns3p = *tmp;
+    delete tmp;
+    
+    cerr<<"hmm salt: "<<makeHexDump(ns3p->d_salt)<<endl;
+/*
+    ns3p->d_algorithm=1;
+    ns3p->d_iterations= 100;
+    ns3p->d_salt.assign("\xab\xcd", 2);
+    ns3p->d_saltlength=2;
+    ns3p->d_flags=0;
+    */
+  }
+  return true;
+}
+
+void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* ns3p)
+{
+  fs::path full_path = fs::system_complete( fs::path(d_dirname + "/" + zname + "/nsec3param" ) );
+  if(ns3p) {
+    string descr = ns3p->getZoneRepresentation();
+    
+    
+    ofstream of(full_path.external_directory_string().c_str());
+    of << descr;
+  }
+  else {
+    unlink(full_path.external_directory_string().c_str());
+  }
+}
+
+
 DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool all)
 {
   zskset_t zskset;
@@ -160,6 +207,13 @@ DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool al
       //cerr<<"Hit!"<<endl;
       DNSSECPrivateKey dpk;
       getRSAKeyFromISC(&dpk.d_key.getContext(), dir_itr->path().file_string().c_str());
+
+      if(getNSEC3PARAM(zone)) {
+        dpk.d_algorithm = 7;
+      }
+      else {
+        dpk.d_algorithm = 5;
+      }
       
       struct tm ts1, ts2;
       
@@ -194,7 +248,7 @@ DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool al
 
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY()
 {
-  return makeDNSKEYFromRSAKey(&d_key.getContext());
+  return makeDNSKEYFromRSAKey(&d_key.getContext(), d_algorithm);
 }
 
 

@@ -82,7 +82,7 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
   drc.d_key.append(exponent);
   drc.d_key.append(modulus);
   drc.d_protocol=3;
-  drc.d_algorithm = 5;
+  drc.d_algorithm = 0; // should not be filled out here..
   fclose(fp);
   return drc;
 }
@@ -145,14 +145,14 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
     sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
 
   DSRecordContent dsrc;
-  dsrc.d_algorithm=5;
+  dsrc.d_algorithm= drc.d_algorithm;
   dsrc.d_digesttype=digest;
   dsrc.d_tag=const_cast<DNSKEYRecordContent&>(drc).getTag();
   dsrc.d_digest.assign((const char*)hash, digest == 1 ? 20 : 32);
   return dsrc;
 }
 
-DNSKEYRecordContent makeDNSKEYFromRSAKey(rsa_context* rc)
+DNSKEYRecordContent makeDNSKEYFromRSAKey(rsa_context* rc, uint8_t algorithm)
 {
   DNSKEYRecordContent drc;
   char tmp[256];
@@ -176,7 +176,7 @@ DNSKEYRecordContent makeDNSKEYFromRSAKey(rsa_context* rc)
   drc.d_key.append(modulus);
 
   drc.d_protocol=3;
-  drc.d_algorithm = 5;
+  drc.d_algorithm = algorithm;
 
   drc.d_flags=256 + (modulus.length()>128);  // oops, I just made this up..
 
@@ -246,6 +246,7 @@ void fillOutRRSIG(const std::string& keyrepodir, const std::string& signQName, R
 
   DNSKEYRecordContent drc =getDNSKEYFor(keyrepodir, rrc.d_signer, withKSK, &rc);
   rrc.d_tag = drc.getTag();
+  rrc.d_algorithm = drc.d_algorithm;
   
   if(g_rrsigs.count(make_pair(hash, rrc.d_tag))) {
     cerr<<"RRSIG cache hit !"<<endl;
@@ -285,7 +286,8 @@ int getRRSIGForRRSET(const std::string& keyrepodir, const std::string signQName,
     return -1;
 
   rrc.d_type=signQType;
-  rrc.d_algorithm=5;      // rsasha1
+
+  // d_algorithm gets filled out by fillOutRRSIG, since it  gets the key
   rrc.d_labels=countLabels(signQName); 
   rrc.d_originalttl=signTTL; 
   rrc.d_siginception=getCurrentInception();;

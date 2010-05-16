@@ -89,10 +89,10 @@ void loadMainConfig()
   UeberBackend::go();
 }
 
-void orderZone(const std::string& zone)
+void orderZone(DNSSECKeeper& dk, const std::string& zone)
 {
   loadMainConfig();
-    
+  reportAllTypes();  
   UeberBackend* B = new UeberBackend("default");
   SOAData sd;
   
@@ -114,12 +114,19 @@ void orderZone(const std::string& zone)
   string salt;
   char tmp[]={0xab, 0xcd};
   salt.assign(tmp, 2);
+  
+  NSEC3PARAMRecordContent ns3pr;
+  dk.getNSEC3PARAM(zone, &ns3pr);
+  string hashed;
   BOOST_FOREACH(const string& qname, qnames)
   {
-    string hashed=toBase32Hex(hashQNameWithSalt(100, salt, qname));
-    cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
-	sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, true);
-    // sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, true);
+    if(ns3pr.d_salt.empty()) // NSEC
+      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, true);
+    else {
+      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
+      cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
+      sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, true);
+    }
   }
   cerr<<"Done listing"<<endl;
 }
@@ -146,7 +153,7 @@ try
     cmds = g_vm["commands"].as<vector<string> >();
 
   if(cmds.empty() || g_vm.count("help")) {
-    cerr<<"Usage: \npdnssec [options] [show-zone] [sign-zone] [update-zone-keys]\n";
+    cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [alter-zone] [order-zone] [update-zone-keys]\n";
     cerr<<desc<<endl;
     return 0;
   }
@@ -158,7 +165,7 @@ try
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;
     }
-    orderZone(cmds[1]);
+    orderZone(dk, cmds[1]);
   }
   else if(cmds[0] == "update-zone-keys") {
     if(cmds.size() != 2) {
@@ -244,7 +251,7 @@ try
       }
     }
   }
-  else if(cmds[0] == "sign-zone") {
+  else if(cmds[0] == "secure-zone") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;

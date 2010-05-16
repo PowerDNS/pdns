@@ -197,18 +197,18 @@ int PacketHandler::doFancyRecords(DNSPacket *p, DNSPacket *r, string &target)
   return 0;
 }
 
-/** This catches version requests. Returns 1 if it was handled, 0 if it wasn't */
+/** This catches DNSKEY requests. Returns 1 if it was handled, 0 if it wasn't */
 int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
 {
+  if(p->qtype.getCode()!=QType::DNSKEY) 
+    return false;
+    
   DNSResourceRecord rr;
   DNSSECKeeper dk(::arg()["key-repository"]);
 
-  if(p->qtype.getCode()!=QType::DNSKEY) 
-    return false;
 
   bool haveOne=false;
   DNSSECPrivateKey dpk;
-
 
   if(dk.haveKSKFor(p->qdomain, &dpk)) {
     rr.qtype=QType::DNSKEY;
@@ -233,6 +233,29 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
 
 
   return haveOne;
+}
+
+
+/** This catches DNSKEY requests. Returns 1 if it was handled, 0 if it wasn't */
+int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r)
+{
+  if(p->qtype.getCode()!=QType::NSEC3PARAM) 
+    return false;
+
+  DNSResourceRecord rr;
+  DNSSECKeeper dk(::arg()["key-repository"]);
+
+  NSEC3PARAMRecordContent ns3prc;
+  if(dk.getNSEC3PARAM(p->qdomain, &ns3prc)) {
+    rr.qtype=QType::NSEC3PARAM;
+    rr.ttl=3600;
+    rr.qname=p->qdomain;
+    rr.content=ns3prc.getZoneRepresentation(); 
+    rr.auth = true;
+    r->addRecord(rr);
+    return true;
+  }
+  return false;
 }
 
 
@@ -464,20 +487,24 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   r->addRecord(rr);
 }
 
-void PacketHandler::emitNSEC3(NSEC3PARAMRecordContent *ns3rc, const std::string& auth, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
+void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::string& auth, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
   cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"'"<<endl;
   NSEC3RecordContent n3rc;
   n3rc.d_set.insert(QType::RRSIG);
-  n3rc.d_set.insert(QType::NSEC3);
-  n3rc.d_salt=ns3rc->d_salt;
-  n3rc.d_iterations = ns3rc->d_iterations;
-  n3rc.d_algorithm = 1;
+  n3rc.d_salt=ns3prc.d_salt;
+  n3rc.d_flags = 0;
+  n3rc.d_iterations = ns3prc.d_iterations;
+  n3rc.d_algorithm = 1; // ?
 
   DNSResourceRecord rr;
-  B.lookup(QType(QType::ANY), begin);
+  B.lookup(QType(QType::ANY), unhashed);
   while(B.get(rr)) {
     n3rc.d_set.insert(rr.qtype.getCode());    
+  }
+
+  if(unhashed == auth) {
+    n3rc.d_set.insert(QType::NSEC3PARAM);
   }
   
   n3rc.d_nexthash=end;
@@ -502,38 +529,46 @@ void PacketHandler::emitNSEC3(NSEC3PARAMRecordContent *ns3rc, const std::string&
 */
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
 {
+  DNSSECKeeper dk(::arg()["key-repository"]);
+  NSEC3PARAMRecordContent ns3rc;
   cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"'"<<endl;
-  B.lookup(QType(QType::NSEC3PARAM), auth, p);
-  DNSResourceRecord rr, nsec3param;
-  while(B.get(rr)) {
-    nsec3param = rr;
-  }
-  if(!nsec3param.qname.empty())
-    addNSEC3(p, r, target, auth, nsec3param, mode);
+  if(dk.getNSEC3PARAM(auth, &ns3rc)) 
+    addNSEC3(p, r, target, auth, ns3rc, mode);
   else
     addNSEC(p, r, target, auth, mode);
 }
 
-void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, const DNSResourceRecord& nsec3param, int mode)
+void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, const NSEC3PARAMRecordContent& ns3rc, int mode)
 {
-  cerr<<"NSEC3 generator called!"<<endl;
-  cerr<<nsec3param.content<<endl;
-  NSEC3PARAMRecordContent *ns3rc=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, nsec3param.content));
-  string hashed=toBase32Hex(hashQNameWithSalt(ns3rc->d_iterations, ns3rc->d_salt, p->qdomain));
-  cerr<<"NSEC3 hash, "<<ns3rc->d_iterations<<" iterations, salt '"<<makeHexDump(ns3rc->d_salt)<<"': "<<hashed<<endl;
-
+  string hashed;
+  
   SOAData sd;
   sd.db = (DNSBackend*)-1;
   if(!B.getSOA(auth, sd)) {
     cerr<<"Could not get SOA for domain in NSEC3\n";
     return;
   }
-
-  string before,after;
-  cerr<<"Calling getBeforeandAfterAbsolute!"<<endl;
-  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, before, after); 
-  cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
-  emitNSEC3( ns3rc, auth, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
+  cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"'"<<endl;
+  string unhashed, before,after;
+  
+  // now add the closest encloser
+  hashed=toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, auth));
+  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
+  cerr<<"Done calling for closest encloser, before='"<<before<<"', after='"<<after<<"'"<<endl;
+  emitNSEC3(ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
+  
+  // now add the main nsec3
+  hashed=toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, p->qdomain));
+  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
+  cerr<<"Done calling for main, before='"<<before<<"', after='"<<after<<"'"<<endl;
+  emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
+  
+  
+  // now add the *
+  hashed=toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, dotConcat("*", auth)));
+  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
+  cerr<<"Done calling for '*', before='"<<before<<"', after='"<<after<<"'"<<endl;
+  emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
 }
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
@@ -1101,6 +1136,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     bool noCache=false;
 
     if(doDNSKEYRequest(p,r)) 
+      goto sendit;
+
+    if(doNSEC3PARAMRequest(p,r)) 
       goto sendit;
 
     if(doVersionRequest(p,r,target)) // catch version.bind requests

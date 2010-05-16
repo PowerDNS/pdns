@@ -76,6 +76,7 @@ struct DNSSECPrivateKey
   
   RSAContext d_key;
   DNSKEYRecordContent getDNSKEY();
+  uint8_t d_algorithm;
 };
 
 class DNSSECKeeper
@@ -97,8 +98,8 @@ public:
   void deleteZSKFor(const std::string& zname, const std::string& fname);
 
   void addZone(const std::string& fname);
-
-  
+  bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
+  void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* n3p);
 
 private:
   std::string d_dirname;

@@ -260,7 +260,8 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename
   lcqname=makeRelative(qname, zonename);
   
   lcqname=labelReverse(lcqname);
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, lcqname, before, after);
+  string dnc;
+  bool ret = this->getBeforeAndAfterNamesAbsolute(id, lcqname, dnc, before, after);
   
   before=dotConcat(labelReverse(before), zonename);
   after=dotConcat(labelReverse(after), zonename);

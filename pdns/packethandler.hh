@@ -91,15 +91,16 @@ private:
   int doFancyRecords(DNSPacket *p, DNSPacket *r, string &target);
   int doVersionRequest(DNSPacket *p, DNSPacket *r, string &target);
   int doDNSKEYRequest(DNSPacket *p, DNSPacket *r);
+  int doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r);
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r);
   bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
   void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
   void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
-  void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, const DNSResourceRecord& nsec3param, int mode);
+  void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, int mode);
   void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, DNSPacket *r, int mode);
-  void emitNSEC3(NSEC3PARAMRecordContent *ns3rc, const std::string& auth, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
+  void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const std::string& auth, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
 
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);
