@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2009  PowerDNS.COM BV
+    Copyright (C) 2003 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -74,6 +74,10 @@ SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(
 int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
 {
   s_queries++;
+  
+  if( (qtype.getCode() == QType::AXFR)) 
+    return -1;
+  
   if( (qtype.getCode()==QType::PTR && pdns_iequals(qname, "1.0.0.127.in-addr.arpa.")) ||
       (qtype.getCode()==QType::A && qname.length()==10 && pdns_iequals(qname, "localhost."))) {
     ret.clear();
