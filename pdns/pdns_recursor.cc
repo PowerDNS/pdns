@@ -903,7 +903,7 @@ void makeTCPServerSockets()
     sin.sin4.sin_family = AF_INET;
     if(!IpToU32(st.host, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
-      if(Utility::inet_pton(AF_INET6, st.host.c_str(), &sin.sin6.sin6_addr) <= 0)
+      if(makeIPv6sockaddr(st.host, &sin.sin6) < 0)
         throw AhuException("Unable to resolve local address for TCP server on '"+ st.host +"'"); 
     }
 
@@ -967,7 +967,7 @@ void makeUDPServerSockets()
     sin.sin4.sin_family = AF_INET;
     if(!IpToU32(st.host.c_str() , (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
-      if(Utility::inet_pton(AF_INET6, st.host.c_str(), &sin.sin6.sin6_addr) <= 0)
+      if(makeIPv6sockaddr(st.host, &sin.sin6) < 0)
         throw AhuException("Unable to resolve local address for UDP server on '"+ st.host +"'"); 
     }
     
