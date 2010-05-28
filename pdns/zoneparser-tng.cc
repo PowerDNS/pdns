@@ -225,6 +225,7 @@ string ZoneParserTNG::getLineOfFile()
   return "on line "+lexical_cast<string>(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
 }
 
+// ODD: this function never fills out the prio field! rest of pdns compensates though
 bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
  retry:;
@@ -365,9 +366,16 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     }
   }
 
-  vector<string> soaparts;
+  vector<string> recparts;
   switch(rr.qtype.getCode()) {
   case QType::MX:
+    stringtok(recparts, rr.content);
+    if(recparts.size()==2) {
+      recparts[1] = toCanonic(d_zonename, recparts[1]);
+      rr.content=recparts[0]+" "+recparts[1];
+    }
+    break;
+    
   case QType::NS:
   case QType::CNAME:
   case QType::PTR:
@@ -377,23 +385,23 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     break;
 
   case QType::SOA:
-    stringtok(soaparts, rr.content);
-    if(soaparts.size() > 1) {
-      soaparts[0]=toCanonic(d_zonename, soaparts[0]);
-      soaparts[1]=toCanonic(d_zonename, soaparts[1]);
+    stringtok(recparts, rr.content);
+    if(recparts.size() > 1) {
+      recparts[0]=toCanonic(d_zonename, recparts[0]);
+      recparts[1]=toCanonic(d_zonename, recparts[1]);
     }
     rr.content.clear();
-    for(string::size_type n = 0; n < soaparts.size(); ++n) {
+    for(string::size_type n = 0; n < recparts.size(); ++n) {
       if(n)
         rr.content.append(1,' ');
 
       if(n > 1)
-        rr.content+=lexical_cast<string>(makeTTLFromZone(soaparts[n]));
+        rr.content+=lexical_cast<string>(makeTTLFromZone(recparts[n]));
       else
-        rr.content+=soaparts[n];
+        rr.content+=recparts[n];
 
       if(n==6 && !d_havedollarttl)
-        d_defaultttl=makeTTLFromZone(soaparts[n]);
+        d_defaultttl=makeTTLFromZone(recparts[n]);
     }
     break;
   default:;

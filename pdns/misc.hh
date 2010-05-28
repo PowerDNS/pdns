@@ -363,6 +363,9 @@ inline bool isCanonical(const string& dom)
 
 inline string toCanonic(const string& zone, const string& domain)
 {
+  if(domain.length()==1 && domain[0]=='@')
+    return zone;
+
   if(isCanonical(domain))
     return domain;
   string ret=domain;
