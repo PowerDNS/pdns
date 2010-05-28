@@ -88,8 +88,6 @@ int PortsFDMultiplexer::run(struct timeval* now)
   timeout.tv_sec=0; timeout.tv_nsec=500000000;
   unsigned int numevents=1;
   int ret= port_getn(d_portfd, d_pevents.get(), min(PORT_MAX_LIST, s_maxevents), &numevents, &timeout);
-
-
   
   /* port_getn has an unusual API - (ret == -1, errno == ETIME) can
      mean partial success; you must check (*numevents) in this case
@@ -97,7 +95,7 @@ int PortsFDMultiplexer::run(struct timeval* now)
      events from that object again. We don't care about pure timeouts
      (ret == -1, errno == ETIME, *numevents == 0) so we don't bother
      with that case. */
-  if(ret < 0 && errno!=ETIME) {
+  if(ret == -1 && errno!=ETIME) {
     if(errno!=EINTR)
       throw FDMultiplexerException("completion port_getn returned error: "+stringerror());
     // EINTR is not really an error
