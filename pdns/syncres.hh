@@ -478,6 +478,23 @@ struct RecursorStats
   time_t startupTime;
 };
 
+//! represents a running TCP/IP client session
+struct TCPConnection
+{
+  int fd;
+  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
+  int qlen;
+  int bytesread;
+  ComboAddress remote;
+  char data[65535];
+  time_t startTime;
+
+  static void closeAndCleanup(int fd, const ComboAddress& remote);
+  void closeAndCleanup();
+  static unsigned int s_currentConnections; //!< total number of current TCP connections
+};
+
+
 struct RemoteKeeper
 {
   typedef vector<ComboAddress> remotes_t;

@@ -446,29 +446,18 @@ static void writePid(void)
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 tcpClientCounts_t __thread* t_tcpClientCounts;
 
-struct TCPConnection
-{
-  int fd;
-  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
-  int qlen;
-  int bytesread;
-  ComboAddress remote;
-  char data[65535];
-  time_t startTime;
 
-  static void closeAndCleanup(int fd, const ComboAddress& remote) 
-  {
-    Utility::closesocket(fd);
-    if(!(*t_tcpClientCounts)[remote]--) 
-      t_tcpClientCounts->erase(remote);
-    s_currentConnections--;
-  }
-  void closeAndCleanup()
-  {
-    closeAndCleanup(fd, remote);
-  }
-  static unsigned int s_currentConnections; //!< total number of current TCP connections
-};
+void TCPConnection::closeAndCleanup(int fd, const ComboAddress& remote) 
+{
+  Utility::closesocket(fd);
+  if(!(*t_tcpClientCounts)[remote]--) 
+    t_tcpClientCounts->erase(remote);
+  s_currentConnections--;
+}
+void TCPConnection::closeAndCleanup()
+{
+  closeAndCleanup(fd, remote);
+}
 
 unsigned int TCPConnection::s_currentConnections; 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
