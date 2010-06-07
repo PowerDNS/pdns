@@ -411,13 +411,12 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
   return true;
 }
 
+
 bool ZoneParserTNG::getLine()
 {
   while(!d_filestates.empty()) {
-    char buffer[16384];
-    if(fgets(buffer, sizeof(buffer)-1, d_filestates.top().d_fp)) {
+    if(stringfgets(d_filestates.top().d_fp, d_line)) {
       d_filestates.top().d_lineno++;
-      d_line=buffer;
       return true;
     }
     fclose(d_filestates.top().d_fp);

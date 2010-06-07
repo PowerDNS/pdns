@@ -19,8 +19,6 @@ using namespace std;
 
 DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
 {
-  char line[1024];
-
   string sline;
   string key,value;
   map<string, mpi*> places;
@@ -43,9 +41,8 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
   unsigned char decoded[1024];
   DNSKEYRecordContent drc;
   string modulus, exponent;
-  while(fgets(line, sizeof(line),fp)) {
-    sline.assign(line);
-    tie(key,value)=splitField(line, ':');
+  while(stringfgets(fp, sline)) {
+    tie(key,value)=splitField(sline, ':');
     trim(value);
 
     if(places.count(key)) {

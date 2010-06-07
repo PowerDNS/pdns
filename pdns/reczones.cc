@@ -351,10 +351,10 @@ SyncRes::domainmap_t* parseAuthAndForwards()
 
     shared_ptr<FILE> fp=shared_ptr<FILE>(rfp, fclose);
     
-    char line[1024];
+    string line;
     int linenum=0;
     uint64_t before = newMap->size();
-    while(linenum++, fgets(line, sizeof(line)-1, fp.get())) {
+    while(linenum++, stringfgets(fp.get(), line)) {
       string domain, instructions;
       tie(domain, instructions)=splitField(line, '=');
       trim(domain);
