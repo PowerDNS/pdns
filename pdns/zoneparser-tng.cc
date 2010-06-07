@@ -414,8 +414,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
 bool ZoneParserTNG::getLine()
 {
   while(!d_filestates.empty()) {
-    char buffer[1024];
-    if(fgets(buffer, 1024, d_filestates.top().d_fp)) {
+    char buffer[16384];
+    if(fgets(buffer, sizeof(buffer)-1, d_filestates.top().d_fp)) {
       d_filestates.top().d_lineno++;
       d_line=buffer;
       return true;
