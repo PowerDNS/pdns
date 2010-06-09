@@ -21,7 +21,7 @@ bin_PROGRAMS = pdns_control pdnssec dnsreplay
 endif
 
 EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest pdns_control dnsscope dnsgram \
- dnsdemog dnswasher dnsscan dnslog nproxy notify pdnssec
+ dnsdemog dnswasher dnsscan dnslog nproxy notify pdnssec dnsbulktest
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -83,8 +83,9 @@ dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 
 dnswasher_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
-#inflighter_SOURCES=inflighter.cc misc.cc unix_utility.cc qtype.cc logger.cc statbag.cc
-#inflighter_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
+dnsbulktest_SOURCES=dnsbulktest.cc misc.cc unix_utility.cc qtype.cc logger.cc statbag.cc dnsparser.cc \
+	dnsrecords.cc dnswriter.cc rcpgenerator.cc base32.cc base64.cc sillyrecords.cc nsecrecords.cc 
+dnsbulktest_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 
 # unix_utility.cc
