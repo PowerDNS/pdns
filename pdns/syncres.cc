@@ -1050,18 +1050,22 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
            lwr.d_rcode==RCode::NoError) {
           LOG<<prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+i->qtype.getName()+"'") <<endl;
-          if(!newtarget.empty())
-            ret.push_back(*i);
           
-          NegCacheEntry ne;
-          ne.d_qname=i->qname;
-          ne.d_ttd=d_now.tv_sec + min(s_maxnegttl, i->ttl);
-          ne.d_name=qname;
-          ne.d_qtype=qtype;
-          if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-            replacing_insert(t_sstorage->negcache, ne);
+          if(!newtarget.empty()) {
+            LOG<<prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl;
           }
-          negindic=true;
+          else {
+            ret.push_back(*i);
+            NegCacheEntry ne;
+            ne.d_qname=i->qname;
+            ne.d_ttd=d_now.tv_sec + min(s_maxnegttl, i->ttl);
+            ne.d_name=qname;
+            ne.d_qtype=qtype;
+            if(qtype.getCode()) {  // prevents us from blacking out a whole domain
+              replacing_insert(t_sstorage->negcache, ne);
+            }
+            negindic=true;
+          }
         }
       }
 
