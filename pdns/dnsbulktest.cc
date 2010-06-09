@@ -21,14 +21,15 @@ struct SendReceive
   int d_socket;
   uint16_t d_id;
   
-  SendReceive()
+  SendReceive(const std::string& remoteAddr, uint16_t port)
   {
     d_socket = socket(AF_INET, SOCK_DGRAM, 0);
     int val=1;
     setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
     
-    ComboAddress remote("127.0.0.1", 5300);
+    ComboAddress remote(remoteAddr, port);
     connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
+    d_oks = d_errors = 0;
   }
   
   ~SendReceive()
@@ -83,18 +84,27 @@ struct SendReceive
   
   void deliverAnswer(string& domain, const DNSResult& dr)
   {
-    cerr<<domain<<": rcode: "<<dr.rcode;
+    cout<<domain<<": rcode: "<<dr.rcode;
     BOOST_FOREACH(const ComboAddress& ca, dr.ips) {
-      cerr<<", "<<ca.toString();
+      cout<<", "<<ca.toString();
     }
-    cerr<<endl;
+    cout<<endl;
+    if(dr.rcode)
+      d_errors++;
+    else if(!dr.ips.empty())
+      d_oks++;
   }
+  int d_errors, d_oks;
 };
 
 
-int main()
+int main(int argc, char** argv)
 {
-  SendReceive sr;
+  SendReceive sr(argv[1], atoi(argv[2]));
+  unsigned int limit = 0;
+  if(argc==4)
+    limit = atoi(argv[3]);
+    
   reportAllTypes();
   vector<string> domains;
     
@@ -104,9 +114,13 @@ int main()
   
   pair<string, string> split;
   while(stringfgets(stdin, line)) {
+    if(limit && domains.size() >= limit)
+      break;
+      
     trim_right(line);
     split=splitField(line,',');
     domains.push_back(split.second);
+    domains.push_back("www."+split.second);
   }
   cerr<<"Read "<<domains.size()<<" domains!"<<endl;
 
@@ -120,6 +134,7 @@ int main()
       cerr<<"Caught exception: "<<e.what()<<endl;
     }
   }
+  cerr<<"Results: "<<sr.d_errors<<" errors, "<<sr.d_oks<<" oks, "<<inflighter.getTimeouts()<<" timeouts"<<endl;
 }
 
 

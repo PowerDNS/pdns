@@ -36,6 +36,11 @@ public:
   unsigned int d_timeoutSeconds;
   int d_burst;
   
+  uint64_t getTimeouts()
+  {
+    return d_timeouts;
+  }
+  
 private:
   struct TTDItem
   {
@@ -59,8 +64,6 @@ private:
   
   Container& d_container;
   SenderReceiver& d_sr;
-  
-  
   
   ttdwatch_t d_ttdWatch;
   typename Container::iterator d_iter;
