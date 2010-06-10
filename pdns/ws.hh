@@ -75,6 +75,7 @@ private:
   double d_10, d_5, d_1, d_max;
 };
 
+class WebServer;
 
 class StatWebServer
 {
@@ -97,6 +98,7 @@ private:
   double d_min10, d_min5, d_min1;
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
+  WebServer *d_ws;
 };
 
 #endif

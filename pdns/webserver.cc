@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002-2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -190,19 +190,26 @@ WebServer::WebServer(const string &listenaddress, int port, const string &passwo
   d_listenaddress=listenaddress;
   d_port=port;
   d_password=password;
+  d_server = 0; // on exception, this class becomes a NOOP later on
+  try {
+    d_server = new Server(d_port, d_listenaddress);
+  }
+  catch(SessionException &e) {
+    L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;
+  }
 }
 
 void WebServer::go()
 {
+  if(!d_server)
+    return;
   try {
-    Server *s=new Server(d_port, d_listenaddress);
-    
     Session *client;
     pthread_t tid;
     
     L<<Logger::Error<<"Launched webserver on "<<d_listenaddress<<":"<<d_port<<endl;
 
-    while((client=s->accept())) {
+    while((client=d_server->accept())) {
       pthread_create(&tid, 0 , &serveConnection, (void *)client);
     }
   }

@@ -29,7 +29,8 @@ extern StatBag S;
 StatWebServer::StatWebServer()
 {
   d_start=time(0);
-        d_min10=d_min5=d_min1=0;
+  d_min10=d_min5=d_min1=0;
+  d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
 }
 
 void StatWebServer::go()
@@ -223,10 +224,10 @@ string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr,
 void StatWebServer::launch()
 {
   try {
-    WebServer ws(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
-    ws.setCaller(this);
-    ws.registerHandler("",&indexfunction);
-    ws.go();
+    
+    d_ws->setCaller(this);
+    d_ws->registerHandler("",&indexfunction);
+    d_ws->go();
   }
   catch(...) {
     L<<Logger::Error<<"StatWebserver thread caught an exception, dying"<<endl;

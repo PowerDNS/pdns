@@ -304,8 +304,8 @@ void mainthread()
        L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
    }  
 #endif
-
-   Utility::dropPrivs(newuid, newgid);
+  StatWebServer sws;
+  Utility::dropPrivs(newuid, newgid);
 
   if(::arg().mustDo("recursor")){
     DP=new DNSProxy(::arg()["recursor"]);
@@ -316,7 +316,7 @@ void mainthread()
   dl->go();
 
   pthread_t qtid;
-  StatWebServer sws;
+
 
   if(::arg().mustDo("webserver"))
     sws.go();
