@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2009  PowerDNS.COM BV
+    Copyright (C) 2005 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -509,5 +509,113 @@ void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
     ret.append(label.c_str()+frompos, labellen);
     ret.append(1,'.');
     frompos+=labellen;
+  }
+}
+
+/** Simple DNSPacketMangler. Ritual is: get a pointer into the packet and moveOffset() to beyond your needs
+ *  If you survive that, feel free to read from the pointer */
+class DNSPacketMangler
+{
+public:
+  explicit DNSPacketMangler(std::string& packet)
+    : d_packet(packet), d_notyouroffset(12), d_offset(d_notyouroffset)
+  {}
+  
+  void skipLabel()
+  {
+    uint8_t len; 
+    while((len=get8BitInt())) { 
+      if(len >= 0xc0) { // extended label
+	get8BitInt();
+	return;
+      }
+      skipBytes(len);
+    }
+  }
+  void skipBytes(uint16_t bytes)
+  {
+      moveOffset(bytes);
+  }
+  uint16_t get16BitInt()
+  {
+    const char* p = d_packet.c_str() + d_offset;
+    moveOffset(2);
+    uint16_t ret;
+    memcpy(&ret, (void*)p, 2);
+    return ntohs(ret);
+  }
+  
+  uint8_t get8BitInt()
+  {
+    const char* p = d_packet.c_str() + d_offset;
+    moveOffset(1);
+    return *p;
+  }
+  
+  void skipRData()
+  {
+    int toskip = get16BitInt();
+    moveOffset(toskip);
+  }
+  void decreaseAndSkip32BitInt(uint32_t decrease)
+  {
+    const char *p = (const char*)d_packet.c_str() + d_offset;
+    moveOffset(4);
+    
+    uint32_t tmp;
+    memcpy(&tmp, (void*) p, sizeof(tmp));
+    tmp = ntohl(tmp);
+    tmp-=decrease;
+    tmp = htonl(tmp);
+    d_packet.replace(d_offset-4, sizeof(tmp), (const char*)&tmp, sizeof(tmp));
+  }
+private:
+  void moveOffset(uint16_t by)
+  {
+    d_notyouroffset += by;
+    if(d_notyouroffset > d_packet.length())
+      throw range_error("dns packet out of range: "+lexical_cast<string>(d_notyouroffset) +" > " 
+      + lexical_cast<string>(d_packet.length()) );
+  }
+  std::string& d_packet;
+  
+  uint32_t d_notyouroffset;  // only 'moveOffset' can touch this
+  const uint32_t&  d_offset; // look.. but don't touch
+  
+};
+
+// method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
+void ageDNSPacket(std::string& packet, uint32_t seconds)
+{
+  if(packet.length() < 12)
+    return;
+  try 
+  {
+    const dnsheader* dh = (const dnsheader*)packet.c_str();
+    int numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
+    DNSPacketMangler dpm(packet);
+    
+    int n;
+    for(n=0; n < ntohs(dh->qdcount) ; ++n) {
+      dpm.skipLabel();
+      dpm.skipBytes(4); // qtype, qclass
+    }
+   // cerr<<"Skipped "<<n<<" questions, now parsing "<<numrecords<<" records"<<endl;
+    for(n=0; n < numrecords; ++n) {
+      dpm.skipLabel();
+      
+      uint16_t dnstype = dpm.get16BitInt();
+      uint16_t dnsclass = dpm.get16BitInt();
+      
+      if(dnstype == QType::OPT) // not aging that one with a stick
+	break;
+      
+      dpm.decreaseAndSkip32BitInt(seconds);
+      dpm.skipRData();
+    }
+  }
+  catch(...)
+  {
+    return;
   }
 }

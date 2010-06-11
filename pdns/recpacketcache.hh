@@ -19,7 +19,7 @@ class RecursorPacketCache
 {
 public:
   RecursorPacketCache();
-  bool getResponsePacket(const std::string& queryPacket, time_t now, std::string* responsePacket);
+  bool getResponsePacket(const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age);
   void insertResponsePacket(const std::string& responsePacket, time_t now, uint32_t ttd);
   void doPruneTo(unsigned int maxSize=250000);
   
@@ -32,6 +32,7 @@ private:
   struct Entry 
   {
     mutable uint32_t d_ttd;
+    mutable uint32_t d_creation;
     mutable std::string d_packet; // "I know what I am doing"
 
     inline bool operator<(const struct Entry& rhs) const;
