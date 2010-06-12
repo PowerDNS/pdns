@@ -41,6 +41,11 @@ public:
     return d_timeouts;
   }
   
+  uint64_t getUnexpecteds()
+  {
+    return d_unexpectedResponse;
+  }
+  
 private:
   struct TTDItem
   {
@@ -109,7 +114,7 @@ template<typename Container, typename SendReceive> void Inflighter<Container, Se
           break; // we can send new questions!
         }
         else {
-         // cerr<<"UNEXPECTED ANSWER!"<<endl;
+          // cerr<<"UNEXPECTED ANSWER: "<<id<<endl;
           d_unexpectedResponse++;
         }
       }
@@ -125,7 +130,8 @@ template<typename Container, typename SendReceive> void Inflighter<Container, Se
         for(typename waiters_by_ttd_index_t::iterator valiter = waiters_index.begin(); valiter != waiters_index.end(); ) {
           if(valiter->ttd.tv_sec < now.tv_sec || (valiter->ttd.tv_sec == now.tv_sec && valiter->ttd.tv_usec < now.tv_usec)) {
             waiters_index.erase(valiter++);
-           // cerr<<"Have timeout"<<endl;
+            // cerr<<"Have timeout for id="<< valiter->id <<endl;
+            d_timeouts++;
           }
           else 
             break;
