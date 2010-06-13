@@ -1,4 +1,5 @@
 #include "inflighter.cc"
+#include <deque>
 #include "namespaces.hh"
 #include "dnsparser.hh"
 #include "sstuff.hh"
@@ -20,7 +21,7 @@ struct SendReceive
   typedef int Identifier;
   typedef DNSResult Answer; // ip 
   int d_socket;
-  uint16_t d_id;
+  deque<uint16_t> d_idqueue;
   
   
   SendReceive(const std::string& remoteAddr, uint16_t port)
@@ -33,6 +34,8 @@ struct SendReceive
     connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
     d_oks = d_errors = d_nodatas = d_nxdomains = d_unknowns = 0;
     d_receiveds = d_receiveerrors = 0;
+    for(unsigned int id =0 ; id < numeric_limits<uint16_t>::max(); ++id) 
+      d_idqueue.push_back(id);
   }
   
   ~SendReceive()
@@ -49,7 +52,8 @@ struct SendReceive
   
     DNSPacketWriter pw(packet, domain, QType::A);
     
-    pw.getHeader()->id = d_id++;
+    pw.getHeader()->id = d_idqueue.front();
+    d_idqueue.pop_front();
     pw.getHeader()->rd = 1;
     pw.getHeader()->qr = 0;
     
@@ -93,6 +97,11 @@ struct SendReceive
       return 1;
     }
     return 0;
+  }
+  
+  void deliverTimeout(const Identifier& id)
+  {
+    d_idqueue.push_back(id);
   }
   
   void deliverAnswer(string& domain, const DNSResult& dr)

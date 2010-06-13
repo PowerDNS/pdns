@@ -129,6 +129,7 @@ template<typename Container, typename SendReceive> void Inflighter<Container, Se
 
         for(typename waiters_by_ttd_index_t::iterator valiter = waiters_index.begin(); valiter != waiters_index.end(); ) {
           if(valiter->ttd.tv_sec < now.tv_sec || (valiter->ttd.tv_sec == now.tv_sec && valiter->ttd.tv_usec < now.tv_usec)) {
+            d_sr.deliverTimeout(valiter->id);  // so backend can release id
             waiters_index.erase(valiter++);
             // cerr<<"Have timeout for id="<< valiter->id <<endl;
             d_timeouts++;
