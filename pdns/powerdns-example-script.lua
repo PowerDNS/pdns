@@ -1,6 +1,14 @@
 function preresolve ( remoteip, domain, qtype )
 	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
 	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress());
+
+	if domain == "www.donotcache.org."
+	then
+		print("making sure www.donotcache.org will never end up in the cache")
+		setvariable()
+		return -1, {}
+	end
+
 	if domain == "www.powerdns.org." 
 	then
 		ret={}

@@ -9,12 +9,12 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   throw runtime_error("Lua support disabled");
 }
 
-bool PowerDNSLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
@@ -93,6 +93,15 @@ int getLocalAddressLua(lua_State* lua)
   return 1;
 }
 
+// called by lua to indicate that this answer is 'variable' and should not be cached
+int setVariableLua(lua_State* lua)
+{
+  lua_getfield(lua, LUA_REGISTRYINDEX, "__PowerDNSLua"); 
+  PowerDNSLua* pl = (PowerDNSLua*)lua_touserdata(lua, -1);
+  pl->setVariable();
+  return 0;
+}
+
 int logLua(lua_State *lua)
 {
   if(lua_gettop(lua) >= 1) {
@@ -126,6 +135,10 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_pushcfunction(d_lua, logLua);
   lua_setglobal(d_lua, "pdnslog");
 
+  lua_pushcfunction(d_lua, setVariableLua);
+  lua_setglobal(d_lua, "setvariable");
+
+
   lua_pushcfunction(d_lua, getLocalAddressLua);
   lua_setglobal(d_lua, "getlocaladdress");
 
@@ -143,14 +156,14 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_setfield(d_lua, LUA_REGISTRYINDEX, "__PowerDNSLua");
 }
 
-bool PowerDNSLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
-  return passthrough("nxdomain", remote, local, query, qtype, ret, res);
+  return passthrough("nxdomain", remote, local, query, qtype, ret, res, variable);
 }
 
-bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
-  return passthrough("preresolve", remote, local, query, qtype, ret, res);
+  return passthrough("preresolve", remote, local, query, qtype, ret, res, variable);
 }
 
 bool PowerDNSLua::getFromTable(const std::string& key, std::string& value)
@@ -183,8 +196,10 @@ bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
 }
 
 
-bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 
+  int& res, bool* variable)
 {
+  d_variable = false;
   lua_getglobal(d_lua,  func.c_str());
   if(!lua_isfunction(d_lua, -1)) {
     //  cerr<<"No such function '"<<func<<"'\n";
@@ -192,7 +207,7 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     return false;
   }
   
-  d_local = local;
+  d_local = local; 
   /* the first argument */
   lua_pushstring(d_lua,  remote.toString().c_str() );
   lua_pushstring(d_lua,  query.c_str() );
@@ -204,6 +219,9 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     throw runtime_error(error);
     return false;
   }
+  
+  *variable |= d_variable;
+  
   int newres = (int)lua_tonumber(d_lua, 1); // new rcode
   if(newres < 0) {
     //    cerr << "handler did not handle"<<endl;

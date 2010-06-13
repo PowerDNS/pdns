@@ -511,14 +511,16 @@ void startDoResolve(void *p)
 
     int res;
 
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res)) {
+    bool variableAnswer = false;
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
       if(t_pdl->get()) {
         if(res == RCode::NXDomain)
-          (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res);
+          (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
+    
     uint32_t minTTL=numeric_limits<uint32_t>::max();
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
@@ -557,11 +559,11 @@ void startDoResolve(void *p)
   sendit:;
     if(!dc->d_tcp) {
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
-      if(!SyncRes::s_nopacketcache) {
+      if(!SyncRes::s_nopacketcache && !variableAnswer ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()), g_now.tv_sec, 
         				   min(minTTL, 
-        				       pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
-        				       )
+        				       (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
+        				       ) 
         				  );
       }
     }
@@ -1412,7 +1414,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       }
       g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
       if(g_logCommonErrors)
-        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toString()<<": "<<pident.domain<<", "<<pident.type<<endl;
+        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<<pident.domain<<", "<<pident.type<<endl;
     }
     else if(fd >= 0) {
       t_udpclientsocks->returnSocket(fd);
