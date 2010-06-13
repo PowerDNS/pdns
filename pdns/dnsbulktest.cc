@@ -22,6 +22,7 @@ struct SendReceive
   int d_socket;
   uint16_t d_id;
   
+  
   SendReceive(const std::string& remoteAddr, uint16_t port)
   {
     d_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -30,7 +31,8 @@ struct SendReceive
     
     ComboAddress remote(remoteAddr, port);
     connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
-    d_oks = d_errors = d_nodatas = d_nxdomains = 0;
+    d_oks = d_errors = d_nodatas = d_nxdomains = d_unknowns = 0;
+    d_receiveds = d_receiveerrors = 0;
   }
   
   ~SendReceive()
@@ -60,10 +62,15 @@ struct SendReceive
   {
     if(waitForData(d_socket, 0, 500000) > 0) {
       char buf[512];
-    
+          
       int len = recv(d_socket, buf, sizeof(buf), 0);
-      if(len < 0)
+      if(len < 0) {
+        d_receiveerrors++;
         return 0;
+      }
+      else {
+        d_receiveds++;
+      }
       // parse packet, set 'id', fill out 'ip' 
       
       MOADNSParser mdp(string(buf, len));
@@ -74,7 +81,7 @@ struct SendReceive
       for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
         if(i->first.d_place == 1 && i->first.d_type == QType::A)
           dr.ips.push_back(ComboAddress(i->first.d_content->getZoneRepresentation()));
-        if(i->first.d_place == 3 && i->first.d_type == QType::SOA) {
+        if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
           dr.seenauthsoa = 1;
         }
         cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
@@ -105,8 +112,13 @@ struct SendReceive
       d_nodatas++;
     else if(!dr.ips.empty())
       d_oks++;
+    else {
+      cout<<"UNKNOWN!! ^^"<<endl;
+      d_unknowns++;
+    }
   }
-  int d_errors, d_nxdomains, d_nodatas, d_oks;
+  unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
+  unsigned int d_receiveds, d_receiveerrors;
 };
 
 
@@ -122,7 +134,7 @@ int main(int argc, char** argv)
     
   Inflighter<vector<string>, SendReceive> inflighter(domains, sr);
   inflighter.d_maxInFlight = 1000;
-  inflighter.d_timeoutSeconds = 5;
+  inflighter.d_timeoutSeconds = 15;
   string line;
   
   pair<string, string> split;
@@ -148,6 +160,11 @@ int main(int argc, char** argv)
     }
   }
   cerr<<"Results: "<<sr.d_errors<<" errors, "<<sr.d_oks<<" oks, "<<sr.d_nodatas<<" nodatas, "<<sr.d_nxdomains<<" nxdomains, "<<inflighter.getTimeouts()<<" timeouts"<<endl;
+  cerr<<sr.d_unknowns<<" answers with an unknown status"<<endl;
+  
+  cerr<<domains.size() - (sr.d_errors + sr.d_oks + sr.d_nodatas + sr.d_nxdomains + inflighter.getTimeouts() + sr.d_unknowns)<<" status results missing"<<endl;
+  cerr<<sr.d_receiveerrors<<" receive errors, "<<sr.d_receiveds<<" packets received correctly"<<endl;
+
   cerr<<inflighter.getUnexpecteds()<<" unexpected responses (probably seen as timeouts)"<<endl;
 }
 
