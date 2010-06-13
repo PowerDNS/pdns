@@ -33,7 +33,7 @@ struct SendReceive
     ComboAddress remote(remoteAddr, port);
     connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
     d_oks = d_errors = d_nodatas = d_nxdomains = d_unknowns = 0;
-    d_receiveds = d_receiveerrors = 0;
+    d_receiveds = d_receiveerrors = d_senderrors = 0;
     for(unsigned int id =0 ; id < numeric_limits<uint16_t>::max(); ++id) 
       d_idqueue.push_back(id);
   }
@@ -51,13 +51,18 @@ struct SendReceive
     vector<uint8_t> packet;
   
     DNSPacketWriter pw(packet, domain, QType::A);
-    
+
+    if(d_idqueue.empty()) {
+      cerr<<"Exhausted ids!"<<endl;
+      exit(1);
+    }    
     pw.getHeader()->id = d_idqueue.front();
     d_idqueue.pop_front();
     pw.getHeader()->rd = 1;
     pw.getHeader()->qr = 0;
     
-    ::send(d_socket, &*packet.begin(), packet.size(), 0);
+    if(::send(d_socket, &*packet.begin(), packet.size(), 0) < 0)
+      d_senderrors++;
     
     return pw.getHeader()->id;
   }
@@ -93,6 +98,7 @@ struct SendReceive
       }
       
       id = mdp.d_header.id;
+      d_idqueue.push_back(id);
     
       return 1;
     }
@@ -127,7 +133,7 @@ struct SendReceive
     }
   }
   unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
-  unsigned int d_receiveds, d_receiveerrors;
+  unsigned int d_receiveds, d_receiveerrors, d_senderrors;
 };
 
 
@@ -143,7 +149,7 @@ int main(int argc, char** argv)
     
   Inflighter<vector<string>, SendReceive> inflighter(domains, sr);
   inflighter.d_maxInFlight = 1000;
-  inflighter.d_timeoutSeconds = 15;
+  inflighter.d_timeoutSeconds = 3;
   string line;
   
   pair<string, string> split;
@@ -159,6 +165,8 @@ int main(int argc, char** argv)
   cerr<<"Read "<<domains.size()<<" domains!"<<endl;
   random_shuffle(domains.begin(), domains.end());
 
+  boost::format datafmt("%s %|20t|%+15s  %|40t|%s %|60t|%+15s\n");
+
   for(;;) {
     try {
       inflighter.run();
@@ -168,13 +176,40 @@ int main(int argc, char** argv)
       cerr<<"Caught exception: "<<e.what()<<endl;
     }
   }
-  cerr<<"Results: "<<sr.d_errors<<" errors, "<<sr.d_oks<<" oks, "<<sr.d_nodatas<<" nodatas, "<<sr.d_nxdomains<<" nxdomains, "<<inflighter.getTimeouts()<<" timeouts"<<endl;
-  cerr<<sr.d_unknowns<<" answers with an unknown status"<<endl;
-  
-  cerr<<domains.size() - (sr.d_errors + sr.d_oks + sr.d_nodatas + sr.d_nxdomains + inflighter.getTimeouts() + sr.d_unknowns)<<" status results missing"<<endl;
-  cerr<<sr.d_receiveerrors<<" receive errors, "<<sr.d_receiveds<<" packets received correctly"<<endl;
 
-  cerr<<inflighter.getUnexpecteds()<<" unexpected responses (probably seen as timeouts)"<<endl;
+  cerr<< datafmt % "Sending" % "" % "Receiving" % "";
+  cerr<< datafmt % "  Queued " % domains.size() % "  Received" % sr.d_receiveds;
+  cerr<< datafmt % "  Error -/-" % sr.d_senderrors %  "  Timeouts" % inflighter.getTimeouts();
+  cerr<< datafmt % " " % "" %  "  Unexpected" % inflighter.getUnexpecteds();
+  
+  cerr<< datafmt % " Sent" % (domains.size() - sr.d_senderrors) %  " Total" % (sr.d_receiveds + inflighter.getTimeouts() + inflighter.getUnexpecteds());
+  
+  cerr<<endl;  
+  cerr<< datafmt % "DNS Status" % ""       % "" % "";
+  cerr<< datafmt % "  OK" % sr.d_oks       % "" % "";
+  cerr<< datafmt % "  Error" % sr.d_errors       % "" % "";  
+  cerr<< datafmt % "  No Data" % sr.d_nodatas       % "" % "";  
+  cerr<< datafmt % "  NXDOMAIN" % sr.d_nxdomains      % "" % "";
+  cerr<< datafmt % "  Unknowns" % sr.d_unknowns      % "" % "";  
+  cerr<< datafmt % "Answers" % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns) % "" % "";
+  cerr<< datafmt % "  Timeouts " % (inflighter.getTimeouts()) % "" % "";
+  cerr<< datafmt % "Total " % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns + inflighter.getTimeouts()) % "" % "";
+  
+  /*
+  
+  cerr<<"Questions: "<<domains.size()<<", responses + network errors + timeouts:  " << 
+    sr.d_receiveds <<" + " << sr.d_receiveerrors<<" + " << inflighter.getTimeouts()<< " = " <<
+    sr.d_receiveds     +      sr.d_receiveerrors    +      inflighter.getTimeouts()  <<endl;
+    
+  cerr<< "Unexpected responses "<< inflighter.getUnexpecteds() << endl;
+  
+  cerr<<"DNS OK + DNS Error + NODATA + NXDOMAIN + Unknown: "<<
+    sr.d_oks << " + " << sr.d_errors << " + " << sr.d_nodatas << " + " << sr.d_nxdomains << " + " << sr.d_unknowns << " = " <<
+    sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns << endl;
+  
+  cerr<< "(" << domains.size() - (sr.d_errors + sr.d_oks + sr.d_nodatas + sr.d_nxdomains + inflighter.getTimeouts() + sr.d_unknowns)<<" status results missing)"<<endl;
+  */
+  
 }
 
 
