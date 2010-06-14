@@ -199,6 +199,7 @@ public:
   static unsigned int s_queries;
   static unsigned int s_outgoingtimeouts;
   static unsigned int s_throttledqueries;
+  static unsigned int s_dontqueries;
   static unsigned int s_outqueries;
   static unsigned int s_tcpoutqueries;
   static unsigned int s_nodelegated;

@@ -1590,6 +1590,8 @@ int serviceMain(int argc, char*argv[])
     g_dontQuery=new NetmaskGroup;
     vector<string> ips;
     stringtok(ips, ::arg()["dont-query"], ", ");
+    ips.push_back("0.0.0.0");
+    ips.push_back("::");
     L<<Logger::Warning<<"Will not send queries to: ";
     for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
       g_dontQuery->addMask(*i);

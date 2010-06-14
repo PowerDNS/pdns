@@ -48,6 +48,7 @@ unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
 unsigned int SyncRes::s_tcpoutqueries;
 unsigned int SyncRes::s_throttledqueries;
+unsigned int SyncRes::s_dontqueries;
 unsigned int SyncRes::s_nodelegated;
 unsigned int SyncRes::s_unreachables;
 bool SyncRes::s_doIPv6;
@@ -864,6 +865,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           } 
           else if(!pierceDontQuery && g_dontQuery && g_dontQuery->match(&*remoteIP)) {
             LOG<<prefix<<qname<<": not sending query to " << remoteIP->toString() << ", blocked by 'dont-query' setting" << endl;
+            s_dontqueries++;
             continue;
           }
           else {
