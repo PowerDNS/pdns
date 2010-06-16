@@ -133,6 +133,9 @@ struct SlaveSenderReceiver
     d_resolver.makeUDPSocket();
   }
   
+  void deliverTimeout(const Identifier& i)
+  {}
+  
   Identifier send(DomainInfo& di)
   {
     random_shuffle(di.masters.begin(), di.masters.end());
