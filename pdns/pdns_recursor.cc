@@ -594,6 +594,7 @@ void startDoResolve(void *p)
       if(hadError) {
         // no need to remove us from FDM, we weren't there
         TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
+        dc->d_socket = -1;
       }
       else {
         TCPConnection tc;
@@ -631,15 +632,26 @@ void startDoResolve(void *p)
       g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0.0001*newLat);
 
     delete dc;
+    dc=0;
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
+    if(dc && dc->d_tcp && dc->d_socket >= 0) 
+      TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
+    delete dc;
   }
   catch(MOADNSException& e) {
+    if(dc && dc->d_tcp && dc->d_socket >= 0) 
+      TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
+      
     L<<Logger::Error<<"DNS parser error: "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
+    delete dc;
   }
   catch(std::exception& e) {
     L<<Logger::Error<<"STL error: "<<e.what()<<endl;
+    if(dc && dc->d_tcp && dc->d_socket >= 0) 
+      TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
+    delete dc;
   }
   catch(...) {
     L<<Logger::Error<<"Any other exception in a resolver context"<<endl;
@@ -1523,6 +1535,7 @@ void parseACLs()
   else if(!::arg()["allow-from"].empty()) {
     vector<string> ips;
     stringtok(ips, ::arg()["allow-from"], ", ");
+    
     L<<Logger::Warning<<"Only allowing queries from: ";
     for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
       allowFrom->addMask(*i);
@@ -1592,6 +1605,7 @@ int serviceMain(int argc, char*argv[])
     stringtok(ips, ::arg()["dont-query"], ", ");
     ips.push_back("0.0.0.0");
     ips.push_back("::");
+
     L<<Logger::Warning<<"Will not send queries to: ";
     for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
       g_dontQuery->addMask(*i);
