@@ -35,7 +35,7 @@ void primeHints(void)
         		     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
     static const char *ip6s[]={
       "2001:503:ba3e::2:30", NULL, NULL, NULL, NULL,
-      "2001:500:2f::f", NULL, "2001:500:1::803f:235", NULL,
+      "2001:500:2f::f", NULL, "2001:500:1::803f:235", "2001:7fe::53",
       "2001:503:c27::2:30", "2001:7fd::1", "2001:500:3::42", "2001:dc3::35"
     };
     
@@ -309,11 +309,11 @@ SyncRes::domainmap_t* parseAuthAndForwards()
             rr=String2DNSRR(rr.qname, rr.qtype, tmp, rr.ttl);
           }
           catch(std::exception &e) {
-	    delete newMap;
+            delete newMap;
             throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
           }
           catch(...) {
-	    delete newMap;
+            delete newMap;
             throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
           }
 
