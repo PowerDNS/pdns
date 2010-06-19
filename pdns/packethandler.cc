@@ -463,12 +463,14 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 }
 
 
-void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, const std::string& toNSEC, DNSPacket *r, int mode)
+void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, const std::string& toNSEC, const std::string& auth, DNSPacket *r, int mode)
 {
   cerr<<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
   NSECRecordContent nrc;
   nrc.d_set.insert(QType::RRSIG);
   nrc.d_set.insert(QType::NSEC);
+  if(auth==begin)
+    nrc.d_set.insert(QType::DNSKEY);
 
   DNSResourceRecord rr;
   B.lookup(QType(QType::ANY), begin);
@@ -531,11 +533,15 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, c
 {
   DNSSECKeeper dk(::arg()["key-repository"]);
   NSEC3PARAMRecordContent ns3rc;
-  cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"'"<<endl;
-  if(dk.getNSEC3PARAM(auth, &ns3rc)) 
+  cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"': ";
+  if(dk.getNSEC3PARAM(auth, &ns3rc))  {
+    cerr<<"Present"<<endl;
     addNSEC3(p, r, target, auth, ns3rc, mode);
-  else
+  }
+  else {
+    cerr<<"Not present"<<endl;
     addNSEC(p, r, target, auth, mode);
+  }
 }
 
 void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, const NSEC3PARAMRecordContent& ns3rc, int mode)
@@ -596,18 +602,18 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   // this stuff is wrong
   
   if(mode ==0 || mode==2)
-    emitNSEC(target, after, target, r, mode);
+    emitNSEC(target, after, target, auth, r, mode);
   
 
   if(mode == 1)  {
-    emitNSEC(before, after, target, r, mode);
+    emitNSEC(before, after, target, auth, r, mode);
 
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after); 
-    emitNSEC(auth, after, auth, r, mode);
+    emitNSEC(auth, after, auth, auth, r, mode);
   }
 
   if(mode == 3)
-    emitNSEC(before, after, target, r, mode);
+    emitNSEC(before, after, target, auth, r, mode);
 
   return;
 }
