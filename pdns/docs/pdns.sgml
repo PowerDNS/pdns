@@ -92,6 +92,78 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-recursor-3-3"><title>Recursor version 3.3 (UNRELEASED!) </title>
+	<para>
+	  <warning>
+	    <para>
+	      Unreleased!
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  Relatively hot on the heels of the 3.2 release, 3.3 fixes a number of small issues, rounds off our IPv6 support and adds
+	  an important feature for many users of the Lua scripts.
+	</para>
+	<para>
+	  Bug fixes:
+	  <itemizedlist>
+	  <listitem><para>
+	    'dist-recursor' script was not compatible with pure POSIX /bin/sh, discovered by Simon Kirby. Fix in c1545.
+	  </para></listitem>
+	  <listitem><para>
+	    Simon Bedford and Laurient Papier discovered relatively high TCP/IP loads can cause TCP/IP service to shut down over time. Addressed in c1546. 
+	    NOTE: this issue has not been fixed entirely - investigation is still ongoing. 
+	  </para></listitem>
+	  <listitem><para>
+	    The PowerDNS Recursor could not read the 'root zone' (this is something else than the root hints) because of an unquoted TXT record. 
+	    This has now been addressed, allowing operators to hardcode the root zone. This can improve security if the root zone used is kept up to date.
+	    Change in c1547.
+	  </para></listitem>
+	  <listitem><para>
+	    A return of an old bug, when a domain gets new nameservers, but the old nameservers continue to contain a copy of the domain, PowerDNS could get 'stuck' with the old servers.
+	    Fixed in c1548.
+	  </para></listitem>
+	  <listitem><para>
+	    Discovered &amp; reported by Alexander Gall of SWITCH, the Recursor used to try to resolve 'AXFR' records over UDP. Fix in c1619.
+	  </para></listitem>
+	  <listitem><para>
+	    The Recursor embedded authoritative server messed up parsing a record like '@ IN MX 15 @'. Spotted by Aki Tuomi, fix in c1621.
+	  </para></listitem>
+	  <listitem><para>
+	    The Recursor embedded authoritative server messed up parsing really really long lines. Spotted by Marco Davids, fix in c1624, c1625.
+	  </para></listitem>
+	  </itemizedlist>
+	</para>
+	<para>
+	Improvements:
+	<itemizedlist>
+	  <listitem><para>
+	    The priming of the root now uses more IPv6 addresses. Change in c1550, closes t287.
+	  </para></listitem>
+	  <listitem><para>
+	    PowerDNS Recursor can now bind to fe80 IPv6 space with '%eth0' link selection. Suggested by Darren Gamble, implemented with help from Niels Bakker. Change in c1620.
+	  </para></listitem>
+	  <listitem><para>
+	    Solaris on x86 has a long standing bug in port_getn(), which we now work around. Spotted by 'Dirk' and 'AS'. Solution suggested by the Apache runtime library, 
+	    update in c1622.
+	  </para></listitem>
+	  <listitem><para>
+	    New runtime statistic: 'tcp-clients' which lists the number of currently active TCP/IP clients. Code in c1623.
+	  </para></listitem>
+	  <listitem><para>
+	    Deal better with UltraDNS style CNAME redirects containing SOA records. Spotted by Andy Fletcher from UKDedicated in t303, fix in c1628.
+	  </para></listitem>
+	  <listitem><para>
+	    The packet cache, which has 'ready to use' packets containing answers, now artificially ages the ready to use packets. Code in c1630.
+	  </para></listitem>
+	  <listitem><para>
+	    Lua scripts can now indicate that certain queries will have 'variable' answers, which means that the packet cache will not touch these answers.
+	    This is great for overriding some domains for some users, but not all of them. Code in c1636.
+	  </para></listitem>
+	</itemizedlist>
+	</para>
+      </sect2>
+	
       <sect2 id="changelog-recursor-3-2"><title>Recursor version 3.2</title>
 	<para>
 	  <warning>
