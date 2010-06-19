@@ -609,9 +609,9 @@ void Bind2Backend::loadConfig(string* status)
             //	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
             //	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
 
-	    cerr<<"Start loadconfig sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;
+	    // cerr<<"Start loadconfig sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;
             sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
-	    cerr<<"Done loadconfig sorting"<<endl;
+	    // cerr<<"Done loadconfig sorting"<<endl;
 	    
 	    shared_ptr<vector<Bind2DNSRecord> > records=staging->id_zone_map[bbd->d_id].d_records;
     
@@ -893,20 +893,18 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
 
   pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
 
-  
-  
   string lname=labelReverse(toLower(d_handle.qname));
-  cout<<"starting equal range for: '"<<d_handle.qname<<"', search is for: '"<<lname<<"'"<<endl;
+  // cout<<"starting equal range for: '"<<d_handle.qname<<"', search is for: '"<<lname<<"'"<<endl;
   range=equal_range(d_handle.d_records->begin(), d_handle.d_records->end(), lname);
   d_handle.mustlog = mustlog;
   
   if(range.first==range.second) {
-    cerr<<"Found nothign!"<<endl;
+    // cerr<<"Found nothign!"<<endl;
     d_handle.d_list=false;
     return;
   }
   else {
-    cerr<<"Found something!"<<endl;
+    // cerr<<"Found something!"<<endl;
     d_handle.d_iter=range.first;
     d_handle.d_end_iter=range.second;
   }
