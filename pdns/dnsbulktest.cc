@@ -194,22 +194,6 @@ int main(int argc, char** argv)
   cerr<< datafmt % "Answers" % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns) % "" % "";
   cerr<< datafmt % "  Timeouts " % (inflighter.getTimeouts()) % "" % "";
   cerr<< datafmt % "Total " % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns + inflighter.getTimeouts()) % "" % "";
-  
-  /*
-  
-  cerr<<"Questions: "<<domains.size()<<", responses + network errors + timeouts:  " << 
-    sr.d_receiveds <<" + " << sr.d_receiveerrors<<" + " << inflighter.getTimeouts()<< " = " <<
-    sr.d_receiveds     +      sr.d_receiveerrors    +      inflighter.getTimeouts()  <<endl;
-    
-  cerr<< "Unexpected responses "<< inflighter.getUnexpecteds() << endl;
-  
-  cerr<<"DNS OK + DNS Error + NODATA + NXDOMAIN + Unknown: "<<
-    sr.d_oks << " + " << sr.d_errors << " + " << sr.d_nodatas << " + " << sr.d_nxdomains << " + " << sr.d_unknowns << " = " <<
-    sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns << endl;
-  
-  cerr<< "(" << domains.size() - (sr.d_errors + sr.d_oks + sr.d_nodatas + sr.d_nxdomains + inflighter.getTimeouts() + sr.d_unknowns)<<" status results missing)"<<endl;
-  */
-  
 }
 
 
