@@ -1,0 +1,57 @@
+1: Take a bare zonefile, say powerdnssec.org
+
+2: Load into PowerDNS
+
+3: pdnssec secure-zone powerdnssec.org
+
+4: copy the bare powerdnssec.org zonefile to subdirectory 'to-bind'
+ $ mkdir to-bind
+ $ cp powerdnssec.org to-bind
+
+5: determine the active ZSK tag, and copy the right keys
+ $ TAG=$(./pdnssec show-zone powerdnssec.org | grep "Active: 1" | awk '{print $3}')
+ $ cp $(find keys/ -name "*.$TAG.*") to-bind
+
+6: put the DNSKEY in the zone
+ $ cd to-bind
+ $ cat *.dnskey >> powerdnssec.org
+
+7: rename the files to ISC dnssec-signzone understands them:
+ $ mv *.$TAG.dnskey Kpowerdnssec.org.+005+$TAG.key
+ $ mv *.$TAG.isc Kpowerdnssec.org.+005+$TAG.private
+
+8: actually sign
+ $ dnssec-signzone -P powerdnssec.org
+
+9: icing on the cake, sign with identical timestamps
+
+ $ STAMPS=$(dig -t ns powerdnssec.org @127.0.0.1 -p 5300 +dnssec | grep RRSIG | awk '{printf "-s %d -e %d", $10, $9}')
+ $ dnssec-signzone -P $STAMPS powerdnssec.org 
+
+10: load it all up in BIND too
+
+$ cat << EOF > minconfig.conf
+controls { /* empty */ };
+
+options {
+        port 53;
+        pid-file "named.pid";
+        listen-on port 5333 { 127.0.0.1; };
+        listen-on-v6 { none; };
+        recursion no;
+        minimal-responses yes;
+};
+
+zone "powerdnssec.org" {
+        type master;
+        file "powerdnssec.org.signed";
+};
+
+EOF 
+
+ $ named -c minconfig.conf
+
+11: Verify
+$ dig +norecurs www.powerdnssec.org @127.0.0.1 -p 5333 +dnssec +nocmd +noall +answer | grep -v DiG > bind
+$ dig +norecurs www.powerdnssec.org @127.0.0.1 -p 5300 +dnssec +nocmd +noall +answer | grep -v DiG > pdns
+$ diff -uBb bind pdns
