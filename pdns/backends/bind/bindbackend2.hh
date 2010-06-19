@@ -108,7 +108,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& before, std::string& after);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int id);
   bool get(DNSResourceRecord &);

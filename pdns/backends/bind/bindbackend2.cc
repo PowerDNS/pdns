@@ -782,8 +782,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 }
 
 
-
-bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& before, std::string& after)
+bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
 {
   shared_ptr<State> state = s_state;
 
@@ -795,7 +794,6 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 
   vector<Bind2DNSRecord>::const_iterator iter = lower_bound(bbd.d_records->begin(), bbd.d_records->end(), lname);
 
-  
   while(iter != bbd.d_records->begin() && !(iter-1)->auth && (iter-1)->qtype!=QType::NS) {
     cerr<<"Going backwards.."<<endl;
     iter--;
@@ -830,8 +828,6 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 
   cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
   return true;
- 
-  
 }
 
 void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_p, int zoneId )
