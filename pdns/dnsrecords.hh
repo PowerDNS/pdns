@@ -24,6 +24,7 @@
 #include "rcpgenerator.hh"
 #include <boost/lexical_cast.hpp>
 #include <set>
+#include <bitset>
 
 using namespace std;
 #include "namespaces.hh"
@@ -414,6 +415,26 @@ public:
   
 private:
 };
+
+
+class WKSRecordContent : public DNSRecordContent
+{
+public:
+  static void report(void);
+  WKSRecordContent() : DNSRecordContent(ns_t_wks)
+  {}
+  WKSRecordContent(const string& content, const string& zone="");
+
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
+  static DNSRecordContent* make(const string& content);
+  string getZoneRepresentation() const;
+  void toPacket(DNSPacketWriter& pw);
+
+  uint32_t d_ip;
+  std::bitset<65535> d_services;
+private:
+};
+
 
 class URLRecordContent : public DNSRecordContent // Fake, 'fancy record' with type 256
 {
