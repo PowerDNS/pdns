@@ -187,17 +187,17 @@ try
     
     
     if(!zskset.empty())  {
-      cerr<<"There were ZSKs already for zone '"<<zone<<"': "<<endl;
+      cout<<"There were ZSKs already for zone '"<<zone<<"': "<<endl;
       
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<<humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<<humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
         if(value.second.active) 
           inforce++;
         if(value.second.endValidity < now - 2*86400) { // 'expired more than two days ago'  
-          cerr<<"\tThis key is no longer used and too old to keep around, deleting!\n";
+          cout<<"\tThis key is no longer used and too old to keep around, deleting!\n";
           dk.deleteZSKFor(zone, value.second.fname);
         } else if(value.second.endValidity < now) { // 'expired more than two days ago'  
-          cerr<<"\tThis key is no longer in active use, but needs to linger\n";
+          cout<<"\tThis key is no longer in active use, but needs to linger\n";
         }
       }
     }
@@ -206,17 +206,17 @@ try
       cerr << "Two or more ZSKs were active already, not generating a third" << endl;
       return 0;
     }
-    dk.addZSKFor(zone);
-    dk.addZSKFor(zone, true); // 'next'
+    dk.addZSKFor(zone, 5);
+    dk.addZSKFor(zone, 5, true); // 'next'
 
     zskset = dk.getZSKsFor(zone);
     if(zskset.empty()) {
       cerr<<"This should not happen, still no ZSK!"<<endl;
     }
 
-    cerr<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
+    cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
     BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-      cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
+      cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
     }
 
   }
@@ -232,10 +232,10 @@ try
       cerr << "No KSK for zone '"<<zone<<"'."<<endl;
     }
     else {
-      cerr<<"KSK present:"<<endl;
-      cerr<<"Tag = "<<dpk.getDNSKEY().getTag()<<endl;
-      cerr<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< dpk.getDNSKEY().getZoneRepresentation() << endl;
-      cerr<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY()).getZoneRepresentation() << endl << endl;
+      cout<<"KSK present:"<<endl;
+      cout<<"Tag = "<<dpk.getDNSKEY().getTag()<<endl;
+      cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< dpk.getDNSKEY().getZoneRepresentation() << endl;
+      cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY()).getZoneRepresentation() << endl << endl;
     }
     
     
@@ -245,9 +245,9 @@ try
       cerr << "No ZSKs for zone '"<<zone<<"'."<<endl;
     }
     else {  
-      cerr << "ZSKs for zone '"<<zone<<"':"<<endl;
+      cout << "ZSKs for zone '"<<zone<<"':"<<endl;
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<< humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<< humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
       }
     }
   }
@@ -264,12 +264,12 @@ try
       return 0;
     }
       
-    dk.addZone(zone);
+    dk.secureZone(zone, 5);
 
     if(!dk.haveKSKFor(zone, &dpk)) {
       cerr << "This should not happen, still no key!" << endl;
     }
-    cerr<<"Created KSK with tag "<<dpk.getDNSKEY().getTag()<<endl;
+    cout<<"Created KSK with tag "<<dpk.getDNSKEY().getTag()<<endl;
   
     DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
 
@@ -278,17 +278,17 @@ try
       return 0;
     }
       
-    dk.addZSKFor(zone);
-    dk.addZSKFor(zone, true); // 'next'
+    dk.addZSKFor(zone, 5);
+    dk.addZSKFor(zone, 5, true); // 'next'
 
     zskset = dk.getZSKsFor(zone);
     if(zskset.empty()) {
       cerr<<"This should not happen, still no ZSK!"<<endl;
     }
 
-    cerr<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
+    cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
     BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-      cerr<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
+      cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
     }
   }
   else {

@@ -78,6 +78,14 @@ bool DNSSECKeeper::haveKSKFor(const std::string& zone, DNSSECPrivateKey* dpk)
 
       if(dpk) {
 	getRSAKeyFromISC(&dpk->d_key.getContext(), dir_itr->path().file_string().c_str());
+	
+	if(getNSEC3PARAM(zone)) {
+	  dpk->d_algorithm = 7;
+	}
+	else {
+	  dpk->d_algorithm = 5;
+	}
+
       }
       return true;
     }
@@ -86,7 +94,7 @@ bool DNSSECKeeper::haveKSKFor(const std::string& zone, DNSSECPrivateKey* dpk)
   return false;
 }
 
-void DNSSECKeeper::addZSKFor(const std::string& name, bool next)
+void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool next)
 {
   DNSSECPrivateKey dpk;
   dpk.d_key.create(1024); // for testing, 1024
@@ -94,7 +102,7 @@ void DNSSECKeeper::addZSKFor(const std::string& name, bool next)
   string isc = dpk.d_key.convertToISC();
   DNSKEYRecordContent drc = dpk.getDNSKEY();
   drc.d_flags = 256; // KSK
-  
+  drc.d_algorithm = algorithm; 
   string iscName=d_dirname+"/"+name+"/zsks/";
   time_t inception=getCurrentInception();
   time_t end=inception+14*86400;
@@ -125,7 +133,7 @@ void DNSSECKeeper::addZSKFor(const std::string& name, bool next)
 
   {  
     ofstream dnskeyFile((iscName+".dnskey").c_str());
-    dnskeyFile << name << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
+    dnskeyFile << toCanonic("", name) << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
   }
 
 }
@@ -145,7 +153,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
 {
   fs::path full_path = fs::system_complete( fs::path(d_dirname + "/" + zname + "/nsec3param" ) );
   ifstream ifs(full_path.external_directory_string().c_str());
-  cerr<<"called for nsec3param..."<<endl;
+  // cerr<<"called for nsec3param..."<<endl;
   if(!ifs)
     return false;
     
@@ -161,13 +169,6 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
     delete tmp;
     
     cerr<<"hmm salt: "<<makeHexDump(ns3p->d_salt)<<endl;
-/*
-    ns3p->d_algorithm=1;
-    ns3p->d_iterations= 100;
-    ns3p->d_salt.assign("\xab\xcd", 2);
-    ns3p->d_saltlength=2;
-    ns3p->d_flags=0;
-    */
   }
   return true;
 }
@@ -252,7 +253,7 @@ DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY()
 }
 
 
-void DNSSECKeeper::addZone(const std::string& name)
+void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
 {
   mkdir((d_dirname+"/"+name).c_str(), 0700);
   mkdir((d_dirname+"/"+name+"/ksks").c_str(), 0700);
@@ -265,7 +266,7 @@ void DNSSECKeeper::addZone(const std::string& name)
   string isc = dpk.d_key.convertToISC();
   DNSKEYRecordContent drc = dpk.getDNSKEY();
   drc.d_flags = 257; // ZSK
-  
+  drc.d_algorithm = algorithm;  
   string iscName=d_dirname+"/"+name+"/ksks/";
 
   time_t now=time(0);
@@ -283,7 +284,7 @@ void DNSSECKeeper::addZone(const std::string& name)
 
   {  
     ofstream dnskeyFile((iscName+".dnskey").c_str());
-    dnskeyFile << name << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
+    dnskeyFile << toCanonic("", name) << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
   }
 
 }

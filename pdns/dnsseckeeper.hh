@@ -94,10 +94,10 @@ public:
   
   typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > zskset_t;
   zskset_t getZSKsFor(const std::string& zone, bool all=false);
-  void addZSKFor(const std::string& zname, bool next=false);
+  void addZSKFor(const std::string& zname, int algorithm, bool next=false);
   void deleteZSKFor(const std::string& zname, const std::string& fname);
 
-  void addZone(const std::string& fname);
+  void secureZone(const std::string& fname, int algorithm);
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* n3p);
 
