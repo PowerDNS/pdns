@@ -233,7 +233,7 @@ void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw)
 	pw.xfr8BitInt(d_flags); 
 	pw.xfr16BitInt(d_iterations); 
   pw.xfr8BitInt(d_salt.length());
-  cerr<<"salt: '"<<makeHexDump(d_salt)<<"', "<<d_salt.length()<<endl;
+  // cerr<<"salt: '"<<makeHexDump(d_salt)<<"', "<<d_salt.length()<<endl;
   pw.xfrBlob(d_salt);
 }
 
