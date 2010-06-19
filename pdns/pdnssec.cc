@@ -62,11 +62,9 @@ void loadMainConfig()
   
   ::arg().laxFile(configname.c_str());
 
-
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
-  cerr<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
-
+  cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
   S.declare("qsize-q","Number of questions waiting for database attention");
     
@@ -131,6 +129,44 @@ void orderZone(DNSSECKeeper& dk, const std::string& zone)
   cerr<<"Done listing"<<endl;
 }
 
+void checkZone(DNSSECKeeper& dk, const std::string& zone)
+{
+  loadMainConfig();
+  reportAllTypes();  
+  UeberBackend* B = new UeberBackend("default");
+  SOAData sd;
+  
+  if(!B->getSOA(zone, sd)) {
+    cerr<<"No SOA!"<<endl;
+    return;
+  } 
+  cerr<<"ID: "<<sd.domain_id<<endl;
+  sd.db->list(zone, sd.domain_id);
+  DNSResourceRecord rr;
+  uint64_t numrecords=0, numerrors=0;
+  
+    while(sd.db->get(rr)) {
+      if(rr.qtype.getCode() == QType::MX) 
+	rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+      
+      try {
+	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+	string tmp=drc->serialize(rr.qname);
+      }
+      catch(std::exception& e) 
+      {
+	cerr<<"Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+	cerr<<"Error was: "<<e.what()<<endl;
+	numerrors++;
+      }
+      numrecords++;
+    }
+    cerr<<"Checked "<<numrecords<<" records, "<<numerrors<<" errors"<<endl;
+  
+  
+}
+
+
 int main(int argc, char** argv)
 try
 {
@@ -166,6 +202,13 @@ try
       return 0;
     }
     orderZone(dk, cmds[1]);
+  }
+  if(cmds[0] == "check-zone") {
+    if(cmds.size() != 2) {
+      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
+      return 0;
+    }
+    checkZone(dk, cmds[1]);
   }
   else if(cmds[0] == "update-zone-keys") {
     if(cmds.size() != 2) {

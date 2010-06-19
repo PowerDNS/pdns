@@ -77,6 +77,7 @@ public:
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
   {
     std::cerr<<"Default beforeAndAfterAbsolute called!"<<std::endl;
+    abort();
     return false;
   }
 
