@@ -452,14 +452,14 @@ void TCPConnection::closeAndCleanup(int fd, const ComboAddress& remote)
   Utility::closesocket(fd);
   if(!(*t_tcpClientCounts)[remote]--) 
     t_tcpClientCounts->erase(remote);
-  s_currentConnections--;
+  decCurrentConnections();
 }
 void TCPConnection::closeAndCleanup()
 {
   closeAndCleanup(fd, remote);
 }
 
-unsigned int TCPConnection::s_currentConnections; 
+volatile unsigned int TCPConnection::s_currentConnections; 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 void updateRcodeStats(int res)
@@ -512,6 +512,7 @@ void startDoResolve(void *p)
     int res;
 
     bool variableAnswer = false;
+    // if there is a PowerDNSLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
@@ -602,7 +603,6 @@ void startDoResolve(void *p)
         tc.state=TCPConnection::BYTE0;
         tc.remote=dc->d_remote;
         Utility::gettimeofday(&g_now, 0); // needs to be updated
-        tc.startTime=g_now.tv_sec;
         t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
         t_fdm->setReadTTD(tc.fd, g_now, g_tcpTimeout);
       }
@@ -761,7 +761,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       else {
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
-        MT->makeThread(startDoResolve, dc); // deletes dc
+        MT->makeThread(startDoResolve, dc); // deletes dc, will set state to BYTE0 again
         return;
       }
     }
@@ -801,8 +801,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
     tc.fd=newsock;
     tc.state=TCPConnection::BYTE0;
     tc.remote=addr;
-    tc.startTime=g_now.tv_sec;
-    TCPConnection::s_currentConnections++;
+    TCPConnection::incCurrentConnections();
     t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
 
     struct timeval now;
@@ -1824,14 +1823,14 @@ try
     // 'run' updates g_now for us
 
     if(listenOnTCP) {
-      if(TCPConnection::s_currentConnections > maxTcpClients) {  // shutdown, too many connections
+      if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
         for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
           t_fdm->removeReadFD(*i);
         listenOnTCP=false;
       }
     }
     else {
-      if(TCPConnection::s_currentConnections <= maxTcpClients) {  // reenable
+      if(TCPConnection::getCurrentConnections() <= maxTcpClients) {  // reenable
         for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
           t_fdm->addReadFD(*i, handleNewTCPQuestion);
         listenOnTCP=true;

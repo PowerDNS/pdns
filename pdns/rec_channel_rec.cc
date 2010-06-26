@@ -394,7 +394,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
   addGetStat("unreachables", &SyncRes::s_unreachables);
   addGetStat("chain-resends", &g_stats.chainResends);
-  addGetStat("tcp-clients", &TCPConnection::s_currentConnections);
+  addGetStat("tcp-clients", boost::bind(TCPConnection::getCurrentConnections));
 
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
   addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);

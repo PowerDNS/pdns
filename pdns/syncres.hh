@@ -480,19 +480,23 @@ struct RecursorStats
 };
 
 //! represents a running TCP/IP client session
-struct TCPConnection
+class TCPConnection
 {
+public:
   int fd;
   enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
   int qlen;
   int bytesread;
   ComboAddress remote;
   char data[65535];
-  time_t startTime;
 
   static void closeAndCleanup(int fd, const ComboAddress& remote);
   void closeAndCleanup();
-  static unsigned int s_currentConnections; //!< total number of current TCP connections
+  static unsigned int getCurrentConnections() { return s_currentConnections; }
+  static void incCurrentConnections() { s_currentConnections++; }
+  static void decCurrentConnections() { s_currentConnections--; }
+private:
+  static volatile unsigned int s_currentConnections; //!< total number of current TCP connections
 };
 
 
