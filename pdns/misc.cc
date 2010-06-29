@@ -628,7 +628,6 @@ string labelReverse(const std::string& qname)
   if(qname.empty())
     return qname;
 
-
   bool dotName = qname.find('.') != string::npos;
 
   vector<string> labels;
@@ -636,10 +635,8 @@ string labelReverse(const std::string& qname)
   if(labels.size()==1)
     return qname;
 
-
-
-  string ret;
-  for(vector<string>::const_reverse_iterator iter = labels.rbegin(); iter != labels.rend(); ++iter) {
+  string ret;  // vv const_reverse_iter http://gcc.gnu.org/bugzilla/show_bug.cgi?id=11729
+  for(vector<string>::reverse_iterator iter = labels.rbegin(); iter != labels.rend(); ++iter) {
     if(iter != labels.rbegin())
       ret.append(1, dotName ? ' ' : '.');
     ret+=*iter;
