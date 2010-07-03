@@ -19,6 +19,7 @@
 #ifndef MISC_HH
 #define MISC_HH
 #include <stdint.h>
+#include <stdio.h>
 #include <cstring>
 
 #if 0
