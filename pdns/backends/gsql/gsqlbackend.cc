@@ -65,7 +65,20 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
 
   if(d_result.empty())
     return 0;
-  
+// we can have multiple masters separated by commas
+  vector<string> masters;
+  stringtok(masters, d_result[0][0], " ,\t");
+  for(vector<string>::const_iterator iter=masters.begin(); iter != masters.end(); ++iter) {
+     // we can also have masters with a port specified (which we ignore here)
+     ServiceTuple st;
+     parseService(*iter, st);
+     if (!strcmp(ip.c_str(), st.host.c_str())) {
+         return 1;
+     }
+ }
+
+ // if no masters matched then this is not a master
+ return 0;  
   return !strcmp(ip.c_str(),d_result[0][0].c_str());
 }
 
