@@ -321,11 +321,12 @@ class SOARecordContent : public DNSRecordContent
 public:
   includeboilerplate(SOA)
   SOARecordContent(const string& mname, const string& rname, const struct soatimes& st);
+  struct soatimes d_st;
 
 private:
   string d_mname;
   string d_rname;
-  struct soatimes d_st;
+
 };
 
 class NSECRecordContent : public DNSRecordContent

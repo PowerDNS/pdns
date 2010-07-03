@@ -30,6 +30,7 @@ ueberbackend.hh pdns.conf-dist ws.hh ws.cc webserver.cc webserver.hh \
 session.cc session.hh misc.cc misc.hh receiver.cc ueberbackend.cc \
 dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc communicator.cc communicator.hh dnsproxy.cc \
+mastercommunicator.cc slavecommunicator.cc \
 dnsproxy.hh randombackend.cc unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
 backends/bind/bindbackend2.cc  \
