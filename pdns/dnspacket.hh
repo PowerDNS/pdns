@@ -129,7 +129,6 @@ public:
   const char *getData(void); //!< get binary representation of packet, will call 'wrapup' for you
 
   const char *getRaw(void); //!< provides access to the raw packet, possibly on a packet that has never been 'wrapped'
-  void spoofID(uint16_t id); //!< change the ID of an existing packet. Useful for fixing up packets returned from the PacketCache
   void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
   void truncate(int new_length); // has documentation in source
 
