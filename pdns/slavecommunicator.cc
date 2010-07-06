@@ -45,11 +45,11 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   sr.master = master;
 
   if(priority) {
-    d_suckdomains.push_front(sr);
-    //  d_havepriosuckrequest=true;
+    pair<UniQueue::iterator, bool> res=d_suckdomains.push_front(sr);
   }
-  else 
-    d_suckdomains.push_back(sr);
+  else {
+    pair<UniQueue::iterator, bool> res=d_suckdomains.push_back(sr);
+  }
   
   d_suck_sem.post();
   d_any_sem.post();
@@ -175,6 +175,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     L<<Logger::Warning<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
       " checking"<<endl;
+
       
   SlaveSenderReceiver ssr;
   Inflighter<vector<DomainInfo>, SlaveSenderReceiver> ifl(sdomains, ssr);

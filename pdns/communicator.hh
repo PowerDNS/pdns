@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2007  PowerDNS.COM BV
+    Copyright (C) 2002-2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -25,6 +25,10 @@
 #include <queue>
 #include <list>
 #include <limits>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/identity.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+using namespace boost::multi_index;
 
 #ifndef WIN32
 # include <unistd.h>
@@ -41,7 +45,19 @@ struct SuckRequest
 {
   string domain;
   string master;
+  bool operator<(const SuckRequest& b) const
+  {
+    return tie(domain, master) < tie(b.domain, b.master);
+  }
 };
+
+typedef multi_index_container<
+  SuckRequest,
+  indexed_by<
+    sequenced<>,
+    ordered_unique<identity<SuckRequest> >
+  >
+> UniQueue;
 
 class NotificationQueue
 {
@@ -159,7 +175,9 @@ private:
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;
-  std::deque<SuckRequest> d_suckdomains;
+  
+  UniQueue d_suckdomains;
+  
   bool d_havepriosuckrequest;
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
