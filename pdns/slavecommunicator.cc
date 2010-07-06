@@ -171,11 +171,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     d_slaveschanged=false;
     return;
   }
-  else 
+  else {
+    Lock l(&d_lock);
     L<<Logger::Warning<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
-      " checking"<<endl;
-
+      " checking, "<<d_suckdomains.size()<<" queued"<<endl;
+  }
       
   SlaveSenderReceiver ssr;
   Inflighter<vector<DomainInfo>, SlaveSenderReceiver> ifl(sdomains, ssr);
