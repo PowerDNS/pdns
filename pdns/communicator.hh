@@ -30,7 +30,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 using namespace boost::multi_index;
 
-#ifndef WIN32
+#ifndef WIN32 
 # include <unistd.h>
 # include <fcntl.h>
 # include <netdb.h>
@@ -51,11 +51,13 @@ struct SuckRequest
   }
 };
 
+struct IDTag{};
+
 typedef multi_index_container<
   SuckRequest,
   indexed_by<
     sequenced<>,
-    ordered_unique<identity<SuckRequest> >
+    ordered_unique<tag<IDTag>, identity<SuckRequest> >
   >
 > UniQueue;
 

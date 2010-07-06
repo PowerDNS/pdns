@@ -162,20 +162,40 @@ struct SlaveSenderReceiver
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
-  vector<DomainInfo> sdomains;
-  B->getUnfreshSlaveInfos(&sdomains);
+  vector<DomainInfo> sdomains, rdomains;
+  B->getUnfreshSlaveInfos(&rdomains);
+  
+  {
+    Lock l(&d_lock);
+    typedef UniQueue::index<IDTag>::type domains_by_name_t;
+    domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
+
+    // remove unfresh domains already queued for AXFR, no sense polling them again
+    BOOST_FOREACH(DomainInfo& di, rdomains) {
+      SuckRequest sr;
+      sr.domain=di.zone;
+      sr.master=*di.masters.begin();
+      if(nameindex.count(sr))
+        continue;
+      sdomains.push_back(di);
+    }
+//    cerr<<rdomains.size() - sdomains.size()<<" prevented"<<endl;  
+  }
+  
   if(sdomains.empty())
   {
-    if(d_slaveschanged)
-      L<<Logger::Warning<<"All slave domains are fresh"<<endl;
-    d_slaveschanged=false;
+    if(d_slaveschanged) {
+      Lock l(&d_lock);
+      L<<Logger::Warning<<"No new unfresh slave domains, "<<d_suckdomains.size()<<" queued for AXFR already"<<endl;
+    }
+    d_slaveschanged = !rdomains.empty();
     return;
   }
   else {
     Lock l(&d_lock);
     L<<Logger::Warning<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
       (sdomains.size()>1 ? "" : "s")<<
-      " checking, "<<d_suckdomains.size()<<" queued"<<endl;
+      " checking, "<<d_suckdomains.size()<<" queued for AXFR"<<endl;
   }
       
   SlaveSenderReceiver ssr;
