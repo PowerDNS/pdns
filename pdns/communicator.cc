@@ -71,6 +71,9 @@ void CommunicatorClass::mainloop(void)
             SuckRequest sr;
             {
               Lock l(&d_lock);
+              if(d_suckdomains.empty()) 
+                continue;
+                
               sr=d_suckdomains.front();
               d_suckdomains.pop_front();
             }

@@ -43,16 +43,18 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   SuckRequest sr;
   sr.domain = domain;
   sr.master = master;
-
+  pair<UniQueue::iterator, bool>  res;
   if(priority) {
-    pair<UniQueue::iterator, bool> res=d_suckdomains.push_front(sr);
+    res=d_suckdomains.push_front(sr);
   }
   else {
-    pair<UniQueue::iterator, bool> res=d_suckdomains.push_back(sr);
+    res=d_suckdomains.push_back(sr);
   }
   
-  d_suck_sem.post();
-  d_any_sem.post();
+  if(res.second) {
+    d_suck_sem.post();
+    d_any_sem.post();
+  }
 }
 
 void CommunicatorClass::suck(const string &domain,const string &remote)
