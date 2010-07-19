@@ -26,9 +26,9 @@ template<typename C> void doRun(const C& cmd, int mseconds=100)
   it.it_interval.tv_sec=0;
   it.it_interval.tv_usec=0;
 
+  signal(SIGVTALRM, alarmHandler);
   setitimer(ITIMER_VIRTUAL, &it, 0);
-
-
+  
   unsigned int runs=0;
   g_stop=false;
   DTime dt;
@@ -538,7 +538,7 @@ struct ParsePacketTest
           }
           negindic=true;
         }
-        else if(i->d_place==DNSResourceRecord::ANSWER && iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
+        else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
           ret.push_back(*i);
           newtarget=i->content;
         }
@@ -658,7 +658,7 @@ struct IEqualsTest
   void operator()() const
   {
       static string a("www.ds9a.nl"), b("www.lwn.net");
-      bool ret = iequals(a, b);
+      bool ret = boost::iequals(a, b);
   }
 
 };
@@ -713,10 +713,8 @@ int main(int argc, char** argv)
 try
 {
   reportAllTypes();
-  signal(SIGVTALRM, alarmHandler);
-  
   doRun(NOPTest());
-  
+
   doRun(IEqualsTest());
   doRun(MyIEqualsTest());
   doRun(StrcasecmpTest());
