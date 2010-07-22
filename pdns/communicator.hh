@@ -144,26 +144,28 @@ public:
   {
     pthread_mutex_init(&d_lock,0);
     pthread_mutex_init(&d_holelock,0);
-//    sem_init(&d_suck_sem,0,0);
-//    sem_init(&d_any_sem,0,0);
+
     d_tickinterval=60;
     d_masterschanged=d_slaveschanged=true;
   }
   time_t doNotifications();    
-  void go()
-  {
-    pthread_t tid;
-    pthread_create(&tid,0,&launchhelper,this);
-  }
-
+  void go();
+  
+  
   void drillHole(const string &domain, const string &ip);
   bool justNotified(const string &domain, const string &ip);
   void addSuckRequest(const string &domain, const string &master, bool priority=false);
   void notify(const string &domain, const string &ip);
   void mainloop();
+  void retrievalLoopThread();
   static void *launchhelper(void *p)
   {
     static_cast<CommunicatorClass *>(p)->mainloop();
+    return 0;
+  }
+  static void *retrieveLaunchhelper(void *p)
+  {
+    static_cast<CommunicatorClass *>(p)->retrievalLoopThread();
     return 0;
   }
   bool notifyDomain(const string &domain);
@@ -173,6 +175,7 @@ private:
   int d_nsock;
   map<pair<string,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
+  void launchRetrievalThreads();
   void suck(const string &domain, const string &remote);
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);

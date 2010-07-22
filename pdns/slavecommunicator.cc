@@ -53,7 +53,6 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   
   if(res.second) {
     d_suck_sem.post();
-    d_any_sem.post();
   }
 }
 

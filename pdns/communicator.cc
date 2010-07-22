@@ -34,6 +34,32 @@
 
 // #include "namespaces.hh"
 
+void CommunicatorClass::retrievalLoopThread(void)
+{
+  for(;;) {
+    d_suck_sem.wait();
+    SuckRequest sr;
+    {
+      Lock l(&d_lock);
+      if(d_suckdomains.empty()) 
+	continue;
+	
+      sr=d_suckdomains.front();
+      d_suckdomains.pop_front();
+    }
+    suck(sr.domain,sr.master);
+  }
+}
+
+
+void CommunicatorClass::go()
+{
+  pthread_t tid;
+  pthread_create(&tid,0,&launchhelper,this);
+  for(int n=0; n < ::arg().asNum("retrieval-threads"); ++n)
+    pthread_create(&tid, 0, &retrieveLaunchhelper, this);
+
+}
 
 void CommunicatorClass::mainloop(void)
 {
@@ -67,18 +93,7 @@ void CommunicatorClass::mainloop(void)
         if(rc)
           Utility::sleep(1);
         else { 
-          if(!d_suck_sem.tryWait()) {
-            SuckRequest sr;
-            {
-              Lock l(&d_lock);
-              if(d_suckdomains.empty()) 
-                continue;
-                
-              sr=d_suckdomains.front();
-              d_suckdomains.pop_front();
-            }
-            suck(sr.domain,sr.master);
-          }
+          
         }
         // this gets executed at least once every second
         doNotifications();
