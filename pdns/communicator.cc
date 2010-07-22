@@ -47,7 +47,12 @@ void CommunicatorClass::retrievalLoopThread(void)
       sr=d_suckdomains.front();
       d_suckdomains.pop_front();
     }
-    suck(sr.domain,sr.master);
+    try {
+      suck(sr.domain,sr.master);
+    }
+    catch(AhuException& ae) {
+      cerr<<"Error: "<<ae.reason<<endl;
+    }
   }
 }
 
