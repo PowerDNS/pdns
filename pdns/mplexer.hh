@@ -1,3 +1,5 @@
+#ifndef PDNS_MPLEXER_HH
+#define PDNS_MPLEXER_HH
 #include <boost/function.hpp>
 #include <boost/any.hpp>
 #include <boost/shared_array.hpp>
@@ -156,3 +158,4 @@ public:
   }
 };
 
+#endif
