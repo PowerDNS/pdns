@@ -1,6 +1,7 @@
 #include "rec_channel.hh"
 #include <sys/socket.h>
 #include <cerrno>
+#include "misc.hh"
 #include <string.h>
 #include <cstdlib>
 #include <unistd.h>
@@ -120,27 +121,6 @@ void RecursorControlChannel::send(const std::string& msg, const std::string* rem
   else if(::send(d_fd, msg.c_str(), msg.length(), 0) < 0)
     throw AhuException("Unable to send message over control channel: "+string(strerror(errno)));
 }
-
-// returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
-static int waitForData(int fd, int seconds, int useconds)
-{
-  struct timeval tv;
-  int ret;
-
-  tv.tv_sec   = seconds;
-  tv.tv_usec  = useconds;
-
-  fd_set readfds;
-  FD_ZERO( &readfds );
-  FD_SET( fd, &readfds );
-
-  ret = select( fd + 1, &readfds, NULL, NULL, (seconds + useconds) ? &tv : 0 );
-  if ( ret == 0 )
-    errno = ETIMEDOUT;
-
-  return ret;
-}
-
 
 string RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
 {
