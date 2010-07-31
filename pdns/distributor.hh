@@ -144,6 +144,7 @@ template<class Answer, class Question, class Backend>Distributor<Answer,Question
 // start of a new thread
 template<class Answer, class Question, class Backend>void *Distributor<Answer,Question,Backend>::makeThread(void *p)
 {
+  pthread_detach(pthread_self());
   try {
     Backend *b=new Backend(); // this will answer our questions
     Distributor *us=static_cast<Distributor *>(p);
