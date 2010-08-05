@@ -57,6 +57,9 @@ get statistic::
 	Retrieve a statistic. For items that can be queried, see
 	http://doc.powerdns.com/recursor-stats.html
 
+get-all::
+	Retrieve all known statistics.
+
 ping::
 	Check if server is alive.
 
