@@ -534,6 +534,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
 typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
+void distributeAsyncFunction(const pipefunc_t& func);
 
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);

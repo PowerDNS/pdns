@@ -124,7 +124,7 @@ struct DNSComboWriter {
         											        d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
-  void setRemote(ComboAddress* sa)
+  void setRemote(const ComboAddress* sa)
   {
     d_remote=*sa;
   }
@@ -1162,6 +1162,12 @@ void makeThreadPipes()
   }
 }
 
+struct ThreadMSG
+{
+  pipefunc_t func;
+  bool wantAnswer;
+};
+
 void broadcastFunction(const pipefunc_t& func, bool skipSelf)
 {
   unsigned int n = 0;
@@ -1172,9 +1178,11 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
         func(); // don't write to ourselves!
       continue;
     }
-      
-    pipefunc_t *funcptr = new pipefunc_t(func);
-    if(write(tps.writeToThread, &funcptr, sizeof(funcptr)) != sizeof(funcptr))
+  
+    ThreadMSG* tmsg = new ThreadMSG();
+    tmsg->func = func;
+    tmsg->wantAnswer = true;
+    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
       unixDie("write to thread pipe returned wrong size or error");
     
     string* resp;
@@ -1187,22 +1195,39 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
     }
   }
 }
-
-
+void distributeAsyncFunction(const pipefunc_t& func)
+{
+  static unsigned int counter;
+  unsigned int target = ++counter % g_pipes.size();
+  // cerr<<"Sending to: "<<target<<endl;
+  if(target == t_id) {
+    func();
+    return;
+  }
+  ThreadPipeSet& tps = g_pipes[target];    
+  ThreadMSG* tmsg = new ThreadMSG();
+  tmsg->func = func;
+  tmsg->wantAnswer = false;
+  
+  if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
+    unixDie("write to thread pipe returned wrong size or error");
+    
+}
 
 void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
 {
-  pipefunc_t* func;
-  if(read(fd, &func, sizeof(func)) != sizeof(func)) { // fd == readToThread 
+  ThreadMSG* tmsg;
+  
+  if(read(fd, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // fd == readToThread 
     unixDie("read from thread pipe returned wrong size or error");
   }
   
-  void *resp = (*func)();
+  void *resp = tmsg->func();
+  if(tmsg->wantAnswer)
+    if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp))
+      unixDie("write to thread pipe returned wrong size or error");
   
-  if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp))
-    unixDie("write to thread pipe returned wrong size or error");
-  
-  delete func;
+  delete tmsg;
 }
 
 template<class T> void *voider(const boost::function<T*()>& func)
@@ -1215,8 +1240,6 @@ vector<ComboAddress>& operator+=(vector<ComboAddress>&a, const vector<ComboAddre
   a.insert(a.end(), b.begin(), b.end());
   return a;
 }
-
-
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf)
 {
@@ -1236,9 +1259,13 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
       continue;
     }
       
-    pipefunc_t *funcptr = new pipefunc_t(boost::bind(voider<T>, func));
-    if(write(tps.writeToThread, &funcptr, sizeof(funcptr)) != sizeof(funcptr))
+    ThreadMSG* tmsg = new ThreadMSG();
+    tmsg->func = boost::bind(voider<T>, func);
+    tmsg->wantAnswer = true;
+  
+    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
       unixDie("write to thread pipe returned wrong size or error");
+  
     
     T* resp;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
@@ -1694,7 +1721,6 @@ int serviceMain(int argc, char*argv[])
   if(!::arg()["setuid"].empty())
     newuid=Utility::makeUidNumeric(::arg()["setuid"]);
 
-#ifndef WIN32
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
@@ -1785,7 +1811,6 @@ try
     
     t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
   }
-#endif 
   
   unsigned int maxTcpClients=::arg().asNum("max-tcp-clients");
   
