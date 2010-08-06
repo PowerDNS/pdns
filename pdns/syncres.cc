@@ -1005,16 +1005,19 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       bool done=false, realreferral=false, negindic=false;
       string newauth, soaname, newtarget;
 
-      for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
+      for(LWResult::res_t::iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
         if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
            lwr.d_rcode==RCode::NXDomain) {
           LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"'"<<endl;
-          ret.push_back(*i);
+          i->ttl = min(i->ttl, s_maxnegttl);
+	  ret.push_back(*i);
 
           NegCacheEntry ne;
 
           ne.d_qname=i->qname;
-          ne.d_ttd=d_now.tv_sec + min(i->ttl, s_maxnegttl); // controversial
+          
+	  ne.d_ttd=d_now.tv_sec + i->ttl;
+	  
           ne.d_name=qname;
           ne.d_qtype=QType(0); // this encodes 'whole record'
           
@@ -1057,10 +1060,11 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             LOG<<prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl;
           }
           else {
+	    i-> ttl = min(s_maxnegttl, i->ttl);
             ret.push_back(*i);
             NegCacheEntry ne;
             ne.d_qname=i->qname;
-            ne.d_ttd=d_now.tv_sec + min(s_maxnegttl, i->ttl);
+            ne.d_ttd=d_now.tv_sec + i->ttl;
             ne.d_name=qname;
             ne.d_qtype=qtype;
             if(qtype.getCode()) {  // prevents us from blacking out a whole domain
