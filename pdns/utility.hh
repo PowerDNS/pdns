@@ -201,6 +201,8 @@ public:
   
   //! Sleeps for a number of microseconds.
   static void usleep( unsigned long usec );
+
+  static time_t timegm(struct tm *tm);
   
 };
 
