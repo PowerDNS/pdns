@@ -84,6 +84,22 @@ struct MakeStringFromCharStarTest
   mutable int d_size;
 };
 
+
+struct GetTimeTest
+{
+  string getName() const
+  {
+    return "gettimeofday-test";
+  }
+
+  void operator()() const
+  {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+  }
+};
+
+
 struct MakeARecordTest
 {
   string getName() const
@@ -744,6 +760,8 @@ try
 
   
   doRun(VectorExpandTest());
+
+  doRun(GetTimeTest());
 
   doRun(ARecordTest(1));
   doRun(ARecordTest(2));
