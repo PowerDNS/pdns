@@ -155,7 +155,7 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
-static uint64_t* pleaseWipeCache(const std::string& canon)
+uint64_t* pleaseWipeCache(const std::string& canon)
 {
   return new uint64_t(t_RC->doWipeCache(canon));
 }

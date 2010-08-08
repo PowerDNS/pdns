@@ -213,12 +213,6 @@ void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, cons
     L<<endl;
 }
 
-void* pleaseWipeCache(const std::string& qname)
-{
-  t_RC->doWipeCache(qname); 
-  return 0;
-}
-
 void* pleaseWipeNegCache()
 {
   t_sstorage->negcache.clear();   
@@ -240,7 +234,7 @@ string reloadAuthAndForwards()
   
     for(SyncRes::domainmap_t::const_iterator i = t_sstorage->domainmap->begin(); i != t_sstorage->domainmap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-	broadcastFunction(boost::bind(pleaseWipeCache, j->qname));
+	broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
     }
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
@@ -259,7 +253,7 @@ string reloadAuthAndForwards()
     // purge again - new zones need to blank out the cache
     for(SyncRes::domainmap_t::const_iterator i = newDomainMap->begin(); i != newDomainMap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-	broadcastFunction(boost::bind(pleaseWipeCache, j->qname));
+	broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
     }
 
     // this is pretty blunt
