@@ -480,22 +480,25 @@ struct RecursorStats
 };
 
 //! represents a running TCP/IP client session
-class TCPConnection
+class TCPConnection : public boost::noncopyable
 {
 public:
-  int fd;
+  TCPConnection(int fd, const ComboAddress& addr);
+  ~TCPConnection();
+  
+  int getFD()
+  {
+    return d_fd;
+  }
   enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
   int qlen;
   int bytesread;
-  ComboAddress remote;
-  char data[65535];
+  const ComboAddress d_remote;
+  char data[65535]; // damn
 
-  static void closeAndCleanup(int fd, const ComboAddress& remote);
-  void closeAndCleanup();
   static unsigned int getCurrentConnections() { return s_currentConnections; }
-  static void incCurrentConnections() { s_currentConnections++; }
-  static void decCurrentConnections() { s_currentConnections--; }
 private:
+  const int d_fd;
   static volatile unsigned int s_currentConnections; //!< total number of current TCP connections
 };
 

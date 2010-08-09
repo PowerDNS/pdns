@@ -145,6 +145,7 @@ struct DNSComboWriter {
   ComboAddress d_remote;
   bool d_tcp;
   int d_socket;
+  shared_ptr<TCPConnection> d_tcpConnection;
 };
 
 
@@ -449,16 +450,19 @@ typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClient
 tcpClientCounts_t __thread* t_tcpClientCounts;
 
 
-void TCPConnection::closeAndCleanup(int fd, const ComboAddress& remote) 
-{
-  Utility::closesocket(fd);
-  if(!(*t_tcpClientCounts)[remote]--) 
-    t_tcpClientCounts->erase(remote);
-  decCurrentConnections();
+TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr), d_fd(fd)
+{ 
+  s_currentConnections++; 
+  (*t_tcpClientCounts)[d_remote]++;
 }
-void TCPConnection::closeAndCleanup()
+
+TCPConnection::~TCPConnection()
 {
-  closeAndCleanup(fd, remote);
+  if(Utility::closesocket(d_fd) < 0) 
+    unixDie("closing socket for TCPConnection");
+  if(t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--) 
+    t_tcpClientCounts->erase(d_remote);
+  s_currentConnections--;
 }
 
 volatile unsigned int TCPConnection::s_currentConnections; 
@@ -596,17 +600,13 @@ void startDoResolve(void *p)
     
       if(hadError) {
         // no need to remove us from FDM, we weren't there
-        TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
         dc->d_socket = -1;
       }
       else {
-        TCPConnection tc;
-        tc.fd=dc->d_socket;
-        tc.state=TCPConnection::BYTE0;
-        tc.remote=dc->d_remote;
+        dc->d_tcpConnection->state=TCPConnection::BYTE0;
         Utility::gettimeofday(&g_now, 0); // needs to be updated
-        t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
-        t_fdm->setReadTTD(tc.fd, g_now, g_tcpTimeout);
+        t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection);
+        t_fdm->setReadTTD(dc->d_socket, g_now, g_tcpTimeout);
       }
     }
     
@@ -638,21 +638,14 @@ void startDoResolve(void *p)
   }
   catch(AhuException &ae) {
     L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
-    if(dc && dc->d_tcp && dc->d_socket >= 0) 
-      TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
     delete dc;
   }
   catch(MOADNSException& e) {
-    if(dc && dc->d_tcp && dc->d_socket >= 0) 
-      TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
-      
     L<<Logger::Error<<"DNS parser error: "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
     delete dc;
   }
   catch(std::exception& e) {
     L<<Logger::Error<<"STL error: "<<e.what()<<endl;
-    if(dc && dc->d_tcp && dc->d_socket >= 0) 
-      TCPConnection::closeAndCleanup(dc->d_socket, dc->d_remote);
     delete dc;
   }
   catch(...) {
@@ -690,10 +683,10 @@ void makeControlChannelSocket()
 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
-  TCPConnection* conn=any_cast<TCPConnection>(&var);
+  shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
 
   if(conn->state==TCPConnection::BYTE0) {
-    int bytes=recv(conn->fd, conn->data, 2, 0);
+    int bytes=recv(conn->getFD(), conn->data, 2, 0);
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
     if(bytes==2) { 
@@ -702,14 +695,12 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->state=TCPConnection::GETQUESTION;
     }
     if(!bytes || bytes < 0) {
-      TCPConnection tmp(*conn); 
       t_fdm->removeReadFD(fd);
-      tmp.closeAndCleanup();
       return;
     }
   }
   else if(conn->state==TCPConnection::BYTE1) {
-    int bytes=recv(conn->fd, conn->data+1, 1, 0);
+    int bytes=recv(conn->getFD(), conn->data+1, 1, 0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
       conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
@@ -717,47 +708,39 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     if(!bytes || bytes < 0) {
       if(g_logCommonErrors)
-        L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected after first byte"<<endl;
-      TCPConnection tmp(*conn); 
+        L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected after first byte"<<endl;
       t_fdm->removeReadFD(fd);
-      tmp.closeAndCleanup();  // conn loses validity here..
       return;
     }
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
-    int bytes=recv(conn->fd, conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
+    int bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0) {
-      L<<Logger::Error<<"TCP client "<< conn->remote.toString() <<" disconnected while reading question body"<<endl;
-      TCPConnection tmp(*conn);
+      L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected while reading question body"<<endl;
       t_fdm->removeReadFD(fd);
-      tmp.closeAndCleanup();  // conn loses validity here..
-
       return;
     }
     conn->bytesread+=bytes;
     if(conn->bytesread==conn->qlen) {
-      TCPConnection tconn(*conn); 
       t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
 
       DNSComboWriter* dc=0;
       try {
-        dc=new DNSComboWriter(tconn.data, tconn.qlen, g_now);
+        dc=new DNSComboWriter(conn->data, conn->qlen, g_now);
       }
       catch(MOADNSException &mde) {
         g_stats.clientParseError++; 
         if(g_logCommonErrors)
-          L<<Logger::Error<<"Unable to parse packet from TCP client "<< tconn.remote.toString() <<endl;
-        tconn.closeAndCleanup();
+          L<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toString() <<endl;
         return;
       }
-      
-      dc->setSocket(tconn.fd);
+      dc->d_tcpConnection = conn; // carry the torch
+      dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       dc->d_tcp=true;
-      dc->setRemote(&tconn.remote);
+      dc->setRemote(&conn->d_remote);
       if(dc->d_mdp.d_header.qr) {
         delete dc;
         L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
-        tconn.closeAndCleanup();
         return;
       }
       else {
@@ -797,18 +780,16 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       Utility::closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       return;
     }
-    (*t_tcpClientCounts)[addr]++;
+    
     Utility::setNonBlocking(newsock);
-    TCPConnection tc;
-    tc.fd=newsock;
-    tc.state=TCPConnection::BYTE0;
-    tc.remote=addr;
-    TCPConnection::incCurrentConnections();
-    t_fdm->addReadFD(tc.fd, handleRunningTCPQuestion, tc);
+    shared_ptr<TCPConnection> tc(new TCPConnection(newsock, addr));
+    tc->state=TCPConnection::BYTE0;
+    
+    t_fdm->addReadFD(tc->getFD(), handleRunningTCPQuestion, tc);
 
     struct timeval now;
     Utility::gettimeofday(&now, 0);
-    t_fdm->setReadTTD(tc.fd, now, g_tcpTimeout);
+    t_fdm->setReadTTD(tc->getFD(), now, g_tcpTimeout);
   }
 }
  
@@ -1854,11 +1835,10 @@ try
       expired_t expired=t_fdm->getTimeouts(g_now);
         
       for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
-        TCPConnection conn=any_cast<TCPConnection>(i->second);
+        shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(i->second);
         if(g_logCommonErrors)
-          L<<Logger::Warning<<"Timeout from remote TCP client "<< conn.remote.toString() <<endl;
+          L<<Logger::Warning<<"Timeout from remote TCP client "<< conn->d_remote.toString() <<endl;
         t_fdm->removeReadFD(i->first);
-        conn.closeAndCleanup();
       }
     }
       
