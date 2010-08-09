@@ -9788,7 +9788,7 @@ user-msec           number of CPU milliseconds spent in 'user' mode
 	graphs of all these numbers. Use <command>rec_control get-all</command> to get all statistics in one go.
       </para>
       <para>
-	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100+1000 + packetcache-hits + over-capacity-drops = questions.
+	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops = questions.
       </para>
       <para>
 	Every half our or so, the recursor outputs a line with statistics. More infrastructure is planned so as to allow
