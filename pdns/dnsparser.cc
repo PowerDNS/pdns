@@ -605,7 +605,7 @@ void ageDNSPacket(std::string& packet, uint32_t seconds)
       dpm.skipLabel();
       
       uint16_t dnstype = dpm.get16BitInt();
-      uint16_t dnsclass = dpm.get16BitInt();
+      /* uint16_t dnsclass = */ dpm.get16BitInt();
       
       if(dnstype == QType::OPT) // not aging that one with a stick
 	break;
