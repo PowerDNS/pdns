@@ -84,7 +84,11 @@ bool dnspacketLessThan(const std::string& a, const std::string& b)
       
   uint16_t aQtype = aSafe[aPos]*256 + aSafe[aPos + 1];
   uint16_t bQtype = bSafe[bPos]*256 + bSafe[bPos + 1];
-  return aQtype < bQtype;
+  
+  uint16_t aQclass = aSafe[aPos+2]*256 + aSafe[aPos + 3];
+  uint16_t bQclass = bSafe[bPos+2]*256 + bSafe[bPos + 3];
+  
+  return boost::tie(aQtype, aQclass) < boost::tie(bQtype, bQclass);
 }
 
 
