@@ -4,11 +4,13 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include <boost/format.hpp>
+#include "config.h"
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
 #endif
 
+volatile bool g_ret; // make sure the optimizer does not get too smart
 uint64_t g_totalRuns;
 
 volatile bool g_stop;
@@ -674,7 +676,7 @@ struct IEqualsTest
   void operator()() const
   {
       static string a("www.ds9a.nl"), b("www.lwn.net");
-      bool ret = boost::iequals(a, b);
+      g_ret = boost::iequals(a, b);
   }
 
 };
@@ -689,7 +691,7 @@ struct MyIEqualsTest
   void operator()() const
   {
       static string a("www.ds9a.nl"), b("www.lwn.net");
-      bool ret = pdns_iequals(a, b);
+      g_ret = pdns_iequals(a, b);
   }
 
 };
@@ -705,7 +707,7 @@ struct StrcasecmpTest
   void operator()() const
   {
       static string a("www.ds9a.nl"), b("www.lwn.net");
-      bool ret = strcasecmp(a.c_str(), b.c_str());
+      g_ret = strcasecmp(a.c_str(), b.c_str());
   }
 };
 
