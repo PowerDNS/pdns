@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 
 static void appendEscapedLabel(string& ret, const char* begin, unsigned char labellen)
 {
@@ -37,7 +38,7 @@ public:
   {
     if(offset < d_length)
       return d_ptr[offset];
-    else throw runtime_error("out of bounds");
+    else throw runtime_error("out of bounds: "+boost::lexical_cast<string>(offset)+" >= " + boost::lexical_cast<string>(d_length));
   }
 private:  
   const char* d_ptr;
@@ -48,7 +49,8 @@ private:
 bool dnspacketLessThan(const std::string& a, const std::string& b)
 {
   if(a.length() < 12 || b.length() < 12) 
-    throw runtime_error("Error parsing question in dnspacket comparison: packet too short");
+    return a.length() < b.length();
+//    throw runtime_error("Error parsing question in dnspacket comparison: packet too short");
     
   // we find: 3www4ds9a2nl0XXYY, where XX and YY are each 2 bytes describing class and type
   
