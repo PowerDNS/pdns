@@ -906,7 +906,7 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 
 }
 
-bool Bind2Backend::isMaster(const string &name, const string &ip, string &info)
+bool Bind2Backend::isMaster(const string &name, const string &ip)
 {
   shared_ptr<State> state = getState(); 
   for(id_zone_map_t::iterator j=state->id_zone_map.begin();j!=state->id_zone_map.end();++j) {
