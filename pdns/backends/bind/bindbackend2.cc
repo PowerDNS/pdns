@@ -324,8 +324,6 @@ static string canonic(string ret)
   return ret;
 }
 
-set<string> contents;
-
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedence matching
     This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
@@ -365,13 +363,6 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   
   if(bdr.qtype==QType::CNAME || bdr.qtype==QType::MX || bdr.qtype==QType::NS || bdr.qtype==QType::AFSDB)
     bdr.content=canonic(bdr.content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
-
-  set<string>::const_iterator i=contents.find(bdr.content);
-  if(i!=contents.end())
-   bdr.content=*i;
-  else {
-    contents.insert(bdr.content);
-  }
 
   bdr.ttl=ttl;
   bdr.priority=prio;
@@ -590,7 +581,6 @@ void Bind2Backend::loadConfig(string* status)
 	    staging->id_zone_map[bbd->d_id].d_loaded=true; 
 	    staging->id_zone_map[bbd->d_id].d_status="parsed into memory at "+nowTime();
 
-	    contents.clear();
 	    //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
 	  }
 	  catch(AhuException &ae) {
@@ -702,8 +692,6 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
     staging->id_zone_map[bbd->d_id].setCtime();
     
-    contents.clear();
-
     s_state->id_zone_map[bbd->d_id]=staging->id_zone_map[bbd->d_id]; // move over
 
     bbd->setCtime();
@@ -905,7 +893,8 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 
 bool Bind2Backend::isMaster(const string &name, const string &ip)
 {
-  for(id_zone_map_t::iterator j=s_state->id_zone_map.begin();j!=s_state->id_zone_map.end();++j) {
+  shared_ptr<State> state = s_state; // is only read from
+  for(id_zone_map_t::iterator j=state->id_zone_map.begin();j!=state->id_zone_map.end();++j) {
     if(j->second.d_name==name) {
       for(vector<string>::const_iterator iter = j->second.d_masters.begin(); iter != j->second.d_masters.end(); ++iter)
 	if(*iter==ip)
