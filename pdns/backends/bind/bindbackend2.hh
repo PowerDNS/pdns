@@ -178,6 +178,8 @@ private:
 
   static shared_ptr<State> s_state;
   static pthread_mutex_t s_state_lock;               //!< lock protecting ???
+  static pthread_mutex_t s_state_swap_lock;               //!< lock protecting ???
+  static shared_ptr<State> getState();
 
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
 

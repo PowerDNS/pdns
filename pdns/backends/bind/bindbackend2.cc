@@ -52,6 +52,8 @@ using namespace std;
 
 // this map contains BB2DomainInfo structs, each of which contains a *pointer* to domain data
 shared_ptr<Bind2Backend::State> Bind2Backend::s_state;
+pthread_mutex_t Bind2Backend::s_state_swap_lock=PTHREAD_MUTEX_INITIALIZER;
+
 
 /* the model is that all our state hides in s_state. This State instance consists of the id_zone_map, which contains all our zone information, indexed by id.
    Then there is the name_id_map, which allows us to map a query to a zone id.
@@ -138,9 +140,20 @@ void Bind2Backend::setFresh(uint32_t domain_id)
   s_state->id_zone_map[domain_id].d_lastcheck=time(0);
 }
 
+shared_ptr<Bind2Backend::State> Bind2Backend::getState()
+{
+  shared_ptr<State> ret;
+  {
+    Lock l(&s_state_swap_lock);
+    ret = s_state; // is only read from
+  }
+  return ret;
+}
+
+
 bool Bind2Backend::startTransaction(const string &qname, int id)
 {
-  shared_ptr<State> state = s_state; // is only read from
+  shared_ptr<State> state = getState(); 
 
   const BB2DomainInfo &bbd=state->id_zone_map[d_transaction_id=id];
 
@@ -163,7 +176,8 @@ bool Bind2Backend::commitTransaction()
 {
   delete d_of;
   d_of=0;
-  shared_ptr<State> state = s_state;
+  
+  shared_ptr<State> state = getState(); 
 
   // this might fail if s_state was cycled during the AXFR
   if(rename(d_transaction_tmpname.c_str(), state->id_zone_map[d_transaction_id].d_filename.c_str())<0)
@@ -192,7 +206,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
 {
   string qname=r.qname;
 
-  const shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
   string domain = state->id_zone_map[d_transaction_id].d_name;
 
   if(!stripDomainSuffix(&qname,domain)) 
@@ -225,7 +239,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
 void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 {
   SOAData soadata;
-  shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
 
   for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
     if(!i->second.d_masters.empty())
@@ -254,7 +268,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 
 void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
-  shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
   for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
     if(i->second.d_masters.empty())
       continue;
@@ -282,7 +296,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
 bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
 {
-  shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
   for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
     if(i->second.d_name==domain) {
       di.id=i->first;
@@ -379,7 +393,7 @@ void Bind2Backend::reload()
 
 string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
   ostringstream ret;
 
   for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
@@ -401,7 +415,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
 string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   ostringstream ret;
-  shared_ptr<State> state = s_state;;
+  shared_ptr<State> state = getState(); 
       
   if(parts.size() > 1) {
     for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
@@ -426,7 +440,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
 
 string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
 
   ostringstream ret;
   for(id_zone_map_t::iterator j = state->id_zone_map.begin(); j != state->id_zone_map.end(); ++j) 
@@ -649,8 +663,9 @@ void Bind2Backend::loadConfig(string* status)
     vector<string> diff2;
     set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff2));
     newdomains=diff2.size();
-    
-    s_state.swap(staging); // and boy do we hope this is a threadsafe operation!
+  
+    Lock l2(&s_state_swap_lock);
+    s_state.swap(staging); 
 
     // report
     ostringstream msg;
@@ -725,7 +740,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(mustlog) 
     L<<Logger::Warning<<"Lookup for '"<<qtype.getName()<<"' of '"<<domain<<"'"<<endl;
 
-  shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
 
   name_id_map_t::const_iterator iditer;
   while((iditer=state->name_id_map.find(domain)) == state->name_id_map.end() && chopOff(domain))
@@ -764,7 +779,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(!bbd.current()) {
     L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
     queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
-    state = s_state;
+    state = getState(); 
   }
 
   d_handle.d_records = bbd.d_records; // give it a reference counted copy
@@ -858,7 +873,7 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
 
 bool Bind2Backend::list(const string &target, int id)
 {
-  shared_ptr<State> state = s_state;
+  shared_ptr<State> state = getState(); 
   if(!state->id_zone_map.count(id))
     return false;
 
@@ -891,14 +906,15 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 
 }
 
-bool Bind2Backend::isMaster(const string &name, const string &ip)
+bool Bind2Backend::isMaster(const string &name, const string &ip, string &info)
 {
-  shared_ptr<State> state = s_state; // is only read from
+  shared_ptr<State> state = getState(); 
   for(id_zone_map_t::iterator j=state->id_zone_map.begin();j!=state->id_zone_map.end();++j) {
     if(j->second.d_name==name) {
       for(vector<string>::const_iterator iter = j->second.d_masters.begin(); iter != j->second.d_masters.end(); ++iter)
-	if(*iter==ip)
+	if(*iter==ip) {
 	  return true;
+        }
     }
   }
   return false;
