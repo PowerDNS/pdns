@@ -101,6 +101,38 @@ struct GetTimeTest
   }
 };
 
+pthread_mutex_t s_testlock=PTHREAD_MUTEX_INITIALIZER;
+
+struct GetLockUncontendedTest
+{
+  string getName() const
+  {
+    return "getlock-uncontended-test";
+  }
+
+  void operator()() const
+  {
+    pthread_mutex_lock(&s_testlock);
+    pthread_mutex_unlock(&s_testlock);
+  }
+};
+
+
+struct StaticMemberTest
+{
+  string getName() const
+  {
+    return "static-member-test";
+  }
+
+  void operator()() const
+  {
+    static string* s_ptr;
+    if(!s_ptr)
+      s_ptr = new string();
+  }
+};
+
 
 struct MakeARecordTest
 {
@@ -764,7 +796,10 @@ try
   doRun(VectorExpandTest());
 
   doRun(GetTimeTest());
-
+  
+  doRun(GetLockUncontendedTest());
+  doRun(StaticMemberTest());
+  
   doRun(ARecordTest(1));
   doRun(ARecordTest(2));
   doRun(ARecordTest(4));
