@@ -38,8 +38,6 @@ private:
     inline bool operator<(const struct Entry& rhs) const;
   };
  
- 
-  
   typedef multi_index_container<
     Entry,
     indexed_by  <
