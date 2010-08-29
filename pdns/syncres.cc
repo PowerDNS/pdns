@@ -1010,13 +1010,13 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
            lwr.d_rcode==RCode::NXDomain) {
           LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"'"<<endl;
           i->ttl = min(i->ttl, s_maxnegttl);
-	  ret.push_back(*i);
+          ret.push_back(*i);
 
           NegCacheEntry ne;
 
           ne.d_qname=i->qname;
           
-	  ne.d_ttd=d_now.tv_sec + i->ttl;
+          ne.d_ttd=d_now.tv_sec + i->ttl;
 	  
           ne.d_name=qname;
           ne.d_qtype=QType(0); // this encodes 'whole record'
@@ -1060,7 +1060,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             LOG<<prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl;
           }
           else {
-	    i-> ttl = min(s_maxnegttl, i->ttl);
+            i-> ttl = min(s_maxnegttl, i->ttl);
             ret.push_back(*i);
             NegCacheEntry ne;
             ne.d_qname=i->qname;
