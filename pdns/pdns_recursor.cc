@@ -452,7 +452,7 @@ tcpClientCounts_t __thread* t_tcpClientCounts;
 
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr), d_fd(fd)
 { 
-  s_currentConnections++; 
+  ++s_currentConnections; 
   (*t_tcpClientCounts)[d_remote]++;
 }
 
@@ -462,10 +462,10 @@ TCPConnection::~TCPConnection()
     unixDie("closing socket for TCPConnection");
   if(t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--) 
     t_tcpClientCounts->erase(d_remote);
-  s_currentConnections--;
+  --s_currentConnections;
 }
 
-volatile unsigned int TCPConnection::s_currentConnections; 
+AtomicCounter TCPConnection::s_currentConnections; 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 void updateRcodeStats(int res)

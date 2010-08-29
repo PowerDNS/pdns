@@ -343,6 +343,35 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
   return aLen == bLen; // strings are equal (in length)
 }
 
+// lifted from boost, with thanks
+class AtomicCounter
+{
+public:
+
+    explicit AtomicCounter( unsigned int v = 0) : value_( v ) {}
+
+    void operator++()
+    {
+        __sync_add_and_fetch( &value_, 1 );
+    }
+
+    unsigned int operator--()
+    {
+        return __sync_add_and_fetch( &value_, -1 );
+    }
+
+    operator unsigned int() const
+    {
+        return __sync_fetch_and_add( &value_, 0 );
+    }
+
+private:
+    AtomicCounter(AtomicCounter const &);
+    AtomicCounter &operator=(AtomicCounter const &);
+
+    mutable unsigned int value_;
+};
+
 
 struct CIStringCompare: public binary_function<string, string, bool>  
 {

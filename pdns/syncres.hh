@@ -499,7 +499,7 @@ public:
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
   const int d_fd;
-  static volatile unsigned int s_currentConnections; //!< total number of current TCP connections
+  static AtomicCounter s_currentConnections; //!< total number of current TCP connections
 };
 
 
