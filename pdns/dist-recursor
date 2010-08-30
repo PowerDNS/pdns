@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION=3.3-pre
+VERSION=3.3-rc1
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
@@ -8,7 +8,7 @@ recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh ahuexception.hh \
 mplexer.hh win32_mtasker.hh win32_utility.cc ntservice.hh singleton.hh \
 recursorservice.hh dns_random.hh lua-pdns-recursor.hh namespaces.hh \
-recpacketcache.hh base32.hh"
+recpacketcache.hh base32.hh cachecleaner.hh"
 
 CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
