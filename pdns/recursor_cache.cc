@@ -6,6 +6,7 @@
 #include "arguments.hh"
 #include "syncres.hh"
 #include "recursor_cache.hh"
+#include "cachecleaner.hh"
 
 using namespace std;
 #include "namespaces.hh"
@@ -354,58 +355,9 @@ uint64_t MemRecursorCache::doDump(int fd)
 
 void MemRecursorCache::doPrune(void)
 {
-  uint32_t now=(uint32_t)time(0);
   d_cachecachevalid=false;
 
   unsigned int maxCached=::arg().asNum("max-cache-entries") / g_numThreads;
-  unsigned int toTrim=0;
-  
-  unsigned int cacheSize=d_cache.size();
-
-  if(maxCached && cacheSize > maxCached) {
-    toTrim = cacheSize - maxCached;
-  }
-  
-  //  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
-
-  typedef cache_t::nth_index<1>::type sequence_t;
-  sequence_t& sidx=d_cache.get<1>();
-
-  unsigned int tried=0, lookAt, erased=0;
-
-  // two modes - if toTrim is 0, just look through 0.1% of all records and nuke everything that is expired
-  // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if(toTrim)
-    lookAt=5*toTrim;
-  else
-    lookAt=cacheSize/1000;
-
-  sequence_t::iterator iter=sidx.begin(), eiter;
-  for(; iter != sidx.end() && tried < lookAt ; ++tried) {
-    unsigned int ttd=iter->getTTD();
-    if(ttd < now) { 
-      sidx.erase(iter++);
-      erased++;
-    }
-    else
-      ++iter;
-
-    if(toTrim && erased > toTrim)
-      break;
-  }
-
-  //  cout<<"erased "<<erased<<" records based on ttd\n";
-  
-  if(erased >= toTrim)
-    return;
-
-  //  if(toTrim)
-  //    cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n";
-
-  toTrim -= erased;
-
-  eiter=iter=sidx.begin();
-  std::advance(eiter, toTrim);
-  sidx.erase(iter, eiter);
+  pruneCollection(d_cache, maxCached);
 }
 

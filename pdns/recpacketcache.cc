@@ -1,5 +1,6 @@
 #include <iostream>
 #include "recpacketcache.hh"
+#include "cachecleaner.hh"
 #include "dns.hh"
 #include "namespaces.hh"
 #include "lock.hh"
@@ -65,59 +66,8 @@ uint64_t RecursorPacketCache::size()
   return d_packetCache.size();
 }
 
-// this code is almost a copy of the one in recursor_cache.cc
 void RecursorPacketCache::doPruneTo(unsigned int maxCached)
 {
-  uint32_t now=(uint32_t)time(0);
-  unsigned int toTrim=0;
-  
-  unsigned int cacheSize=d_packetCache.size();
-
-  if(maxCached && cacheSize > maxCached) {
-    toTrim = cacheSize - maxCached;
-  }
-
-//  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
-
-  typedef packetCache_t::nth_index<1>::type sequence_t;
-  sequence_t& sidx=d_packetCache.get<1>();
-
-  unsigned int tried=0, lookAt, erased=0;
-
-  // two modes - if toTrim is 0, just look through 10000 records and nuke everything that is expired
-  // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
-  if(toTrim)
-    lookAt=5*toTrim;
-  else
-    lookAt=cacheSize/1000;
-
-
-  sequence_t::iterator iter=sidx.begin(), eiter;
-  for(; iter != sidx.end() && tried < lookAt ; ++tried) {
-    if(iter->d_ttd < now) { 
-      sidx.erase(iter++);
-      erased++;
-    }
-    else
-      ++iter;
-
-    if(toTrim && erased > toTrim)
-      break;
-  }
-
-  //cout<<"erased "<<erased<<" records based on ttd\n";
-  
-  if(erased >= toTrim) // done
-    return;
-
-
-  toTrim -= erased;
-
-  //if(toTrim)
-    // cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n"; 
-
-  eiter=iter=sidx.begin();
-  std::advance(eiter, toTrim); 
-  sidx.erase(iter, eiter);      // just lob it off from the beginning
+  pruneCollection(d_packetCache, maxCached);
 }
 

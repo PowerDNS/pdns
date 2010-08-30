@@ -36,6 +36,11 @@ private:
     mutable std::string d_packet; // "I know what I am doing"
 
     inline bool operator<(const struct Entry& rhs) const;
+    
+    uint32_t getTTD() const
+    {
+      return d_ttd;
+    }
   };
  
   typedef multi_index_container<

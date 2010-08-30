@@ -26,6 +26,7 @@
 #endif // WIN32
 
 #include <boost/foreach.hpp>
+
 #include <pthread.h>
 #include "recpacketcache.hh"
 #include "utility.hh" 
@@ -35,6 +36,7 @@
 #include <map>
 #include <set>
 #include "recursor_cache.hh"
+#include "cachecleaner.hh"
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
