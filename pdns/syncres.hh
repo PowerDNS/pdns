@@ -29,6 +29,10 @@ struct NegCacheEntry
   QType d_qtype;
   string d_qname;
   uint32_t d_ttd;
+  uint32_t getTTD() const
+  {
+    return d_ttd;
+  }
 };
 
 
@@ -190,8 +194,6 @@ public:
     d_doEDNS0=state;
   }
 
-
-
   int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
   
   static void doEDNSDumpAndClose(int fd);
@@ -224,9 +226,7 @@ public:
            >,
            composite_key_compare<CIStringCompare, std::less<QType> >
        >,
-       ordered_non_unique<
-           member<NegCacheEntry, uint32_t, &NegCacheEntry::d_ttd>
-       >
+       sequenced<> 
     >
   > negcache_t;
   
