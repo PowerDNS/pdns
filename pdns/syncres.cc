@@ -36,6 +36,7 @@
 #include "dnsparser.hh"
 #include "dns_random.hh"
 #include "lock.hh"
+#include "cachecleaner.hh"
 
 __thread SyncRes::StaticStorage* t_sstorage;
 
@@ -429,11 +430,13 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   return res<0 ? RCode::ServFail : res;
 }
 
+#if 0
 // for testing purpoises
 static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 {
   return !(a.sin4.sin_family < a.sin4.sin_family);
 }
+#endif
 
 /** This function explicitly goes out for A addresses, but if configured to use IPv6 as well, will also return any IPv6 addresses in the cache
     Additionally, it will return the 'best' address up front, and the rest shufled
@@ -649,10 +652,12 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
         giveNegative=true;
         sqname=ni->d_qname;
         sqt=QType::SOA;
+        moveCacheItemToBack(t_sstorage->negcache, ni);
         break;
       }
       else {
-        LOG<<prefix<<qname<<": Entire record '"<<qname<<"' was negatively cached, but entry expired"<<endl;
+        LOG<<prefix<<qname<<": Entire record '"<<qname<<"' or type was negatively cached, but entry expired"<<endl;
+        moveCacheItemToFront(t_sstorage->negcache, ni);
       }
     }
   }

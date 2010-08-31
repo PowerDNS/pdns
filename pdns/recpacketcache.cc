@@ -23,9 +23,6 @@ bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time
     d_misses++;
     return false;
   }
-  typedef packetCache_t::nth_index<1>::type sequence_t;
-  sequence_t& sidx=d_packetCache.get<1>();
-  sequence_t::iterator si=d_packetCache.project<1>(iter);
     
   if((uint32_t)now < iter->d_ttd) { // it is fresh!
 //    cerr<<"Fresh for another "<<iter->d_ttd - now<<" seconds!"<<endl;
@@ -34,12 +31,11 @@ bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time
     *responsePacket = iter->d_packet;
     ((struct dnsheader*)responsePacket->c_str())->id=id;
     d_hits++;
-
-    sidx.relocate(sidx.end(), si); // put it at the end of the delete queue
+    moveCacheItemToBack(d_packetCache, iter);
 
     return true;
   }
-  sidx.relocate(sidx.begin(), si); // at the beginning of the delete queue
+  moveCacheItemToFront(d_packetCache, iter);
   d_misses++;
   return false;
 }
