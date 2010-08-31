@@ -101,8 +101,11 @@
 	  </warning>
 	</para>
 	<para>
-	  Relatively hot on the heels of the 3.2 release, 3.3 fixes a number of small issues, rounds off our IPv6 support and adds
+	  Version 3.3 fixes a number of small but persistent issues, rounds off our IPv6 support and adds
 	  an important feature for many users of the Lua scripts.
+	</para>
+	<para>
+	  In addition, scalability on Solaris 10 is improved.
 	</para>
 	<para>
 	  Bug fixes:
@@ -111,8 +114,8 @@
 	    'dist-recursor' script was not compatible with pure POSIX /bin/sh, discovered by Simon Kirby. Fix in c1545.
 	  </para></listitem>
 	  <listitem><para>
-	    Simon Bedford and Laurient Papier discovered relatively high TCP/IP loads can cause TCP/IP service to shut down over time. Addressed in c1546. 
-	    NOTE: this issue has not been fixed entirely - investigation is still ongoing. 
+	    Simon Bedford, Brad Dameron and Laurient Papier discovered relatively high TCP/IP loads could cause TCP/IP service to shut down over time. 
+	    Addressed in commits C1546, C1640, C1652, C1685, C1698. 
 	  </para></listitem>
 	  <listitem><para>
 	    The PowerDNS Recursor could not read the 'root zone' (this is something else than the root hints) because of an unquoted TXT record. 
@@ -132,13 +135,21 @@
 	  <listitem><para>
 	    The Recursor embedded authoritative server messed up parsing really really long lines. Spotted by Marco Davids, fix in c1624, c1625.
 	  </para></listitem>
+	  <listitem><para>
+	    Packet cache was not DNS class correct. Spotted by "Robin", fix in c1688.
+	  </para></listitem>
+	   <listitem><para>
+	    The packet cache would cache some NXDOMAINS for too long. Solving this bug exposed an underlying oddity where the initial NXDOMAIN response
+	    had an overly long (untruncated) TTL, whereas all the next ones would be ok. Solved in c1679, closing t281. Especially important for RBL operators. 
+	    Fixed after some nagging by Alex Broens (thanks).
+	  </para></listitem>
 	  </itemizedlist>
 	</para>
 	<para>
 	Improvements:
 	<itemizedlist>
 	  <listitem><para>
-	    The priming of the root now uses more IPv6 addresses. Change in c1550, closes t287.
+	    The priming of the root now uses more IPv6 addresses. Change in c1550, closes t287. Also, the IPv6 address of I.ROOT-SERVERS.NET was added in c1650.
 	  </para></listitem>
 	  <listitem><para>
 	    PowerDNS Recursor can now bind to fe80 IPv6 space with '%eth0' link selection. Suggested by Darren Gamble, implemented with help from Niels Bakker. Change in c1620.
@@ -160,6 +171,30 @@
 	    Lua scripts can now indicate that certain queries will have 'variable' answers, which means that the packet cache will not touch these answers.
 	    This is great for overriding some domains for some users, but not all of them. Code in c1636.
 	  </para></listitem>
+	  <listitem><para>
+	    Add query statistic called 'dont-outqueries', plus add IPv6 address :: and IPv4 address 0.0.0.0 to the default "dont-query" set, 
+	    preventing the Recursor from talking to itself. Code in c1637.
+	  </para></listitem>
+	  <listitem><para>
+	    Work around a gcc 4.1 bug, still in wide use on common platforms. Code in c1653. 
+	  </para></listitem>
+	  <listitem><para>
+	    Add 'ARCHFLAGS' to PowerDNS Recursor Makefile, easing 64 bit compilation on mainly 32 bit platforms.
+	  </para></listitem>
+	  <listitem><para>
+	    Under rare circumstances, querying the Recursor for statistics under very high load could lead to a crash (although this has never been observed). Bad code removed &amp; 
+	    good code unified in c1675.
+	  </para></listitem>
+	   <listitem><para>
+	    Spotted by Jeff Sipek, the rec_control manpage did not list the new get-all command. c1677.
+	  </para></listitem>
+	   <listitem><para>
+	    On some platforms, it may be better to have PowerDNS itself distribute queries over threads (instead of leaving it up to the kernel). 
+	    This experimental feature can be enabled with the 'pdns-distributes-queries' setting. Code in c1678 and beyond. Speeds up Solaris measurably.
+	  </para></listitem>
+	   <listitem><para>
+	    Cache cleaning code was cleaned up, unified and expanded to cover the 'negative cache', which used to be cleaned rather bluntly. Code in c1702, spotted by Darren Gamble and Christian Kovacic.
+	   </para></listitem>
 	</itemizedlist>
 	</para>
       </sect2>
@@ -9755,6 +9790,7 @@ chain-resends       number of queries chained to existing outstanding query
 client-parse-errors counts number of client packets that could not be parsed
 concurrent-queries  shows the number of MThreads currently running
 dlg-only-drops      number of records dropped because of delegation only setting
+dont-outqueries	    number of outgoing queries dropped because of 'dont-query' setting (since 3.3)
 ipv6-outqueries     number of outgoing queries over IPv6
 negcache-entries    shows the number of entries in the Negative answer cache
 noerror-answers     counts the number of times it answered NOERROR since starting
