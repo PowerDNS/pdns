@@ -115,7 +115,8 @@
 	  </para></listitem>
 	  <listitem><para>
 	    Simon Bedford, Brad Dameron and Laurient Papier discovered relatively high TCP/IP loads could cause TCP/IP service to shut down over time. 
-	    Addressed in commits C1546, C1640, C1652, C1685, C1698. 
+	    Addressed in commits C1546, C1640, C1652, C1685, C1698. Additional information provided by Zwane Mwaikambo, Dr. Nicholas Miell and Jeff Roberson. 
+	    Testing by Christian Hofstaedtler and Michael Renner.
 	  </para></listitem>
 	  <listitem><para>
 	    The PowerDNS Recursor could not read the 'root zone' (this is something else than the root hints) because of an unquoted TXT record. 
