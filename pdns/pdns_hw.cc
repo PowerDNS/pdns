@@ -4,6 +4,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+#include <boost/foreach.hpp>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
