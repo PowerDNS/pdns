@@ -290,7 +290,7 @@ void DNSPacket::setCompress(bool compress)
 
 bool DNSPacket::couldBeCached()
 {
-  return d_ednsping.empty() && !d_wantsnsid;
+  return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN;
 }
 
 /** Must be called before attempting to access getData(). This function stuffs all resource
@@ -325,7 +325,7 @@ void DNSPacket::wrapup(void)
   d_wrapped=true;
 
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, qdomain, qtype.getCode(), 1);
+  DNSPacketWriter pw(packet, qdomain, qtype.getCode(), qclass);
 
   pw.getHeader()->rcode=d.rcode;
   pw.getHeader()->aa=d.aa;
@@ -376,7 +376,8 @@ void DNSPacket::wrapup(void)
 	  if(pos->auth)
 	    toSign.push_back(drc);
 	}
-	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, 1, (DNSPacketWriter::Place)pos->d_place); 
+	
+	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
 
         drc->toPacket(pw);
 	
@@ -463,6 +464,7 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_tcp = d_tcp;
   r->qdomain = qdomain;
   r->qtype = qtype;
+  r->qclass = qclass;
   r->d_maxreplylen = d_maxreplylen;
   r->d_ednsping = d_ednsping;
   r->d_wantsnsid = d_wantsnsid;

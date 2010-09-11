@@ -266,7 +266,8 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
   
   // modes: anonymous, powerdns only, full, spoofed
   const string mode=::arg()["version-string"];
-  if(p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
+  
+  if(p->qclass == QClass::CHAOS && p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
     if(mode.empty() || mode=="full") 
       rr.content="Served by POWERDNS "VERSION" $Id$";
     else if(mode=="anonymous") {
@@ -280,7 +281,8 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 
     rr.ttl=5;
     rr.qname=target;
-    rr.qtype=QType::TXT; // TXT
+    rr.qtype=QType::TXT; 
+    rr.qclass=QClass::CHAOS; 
     r->addRecord(rr);
     
     return 1;
@@ -1152,7 +1154,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(p->qclass==255) // any class query 
       r->setA(false);
-    else if(p->qclass!=1) // we only know about IN, so we don't find anything
+    else if(p->qclass != QClass::IN) // we only know about IN, so we don't find anything
       goto sendit;
 
   retargeted:;
@@ -1215,7 +1217,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       rrset.push_back(rr);
     }
 
-    cerr<<"After first ANY query: weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl;
+    //cerr<<"After first ANY query: weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl;
 
     if(rrset.empty()) {
       // try wildcards, and if they don't work, go look for NS records

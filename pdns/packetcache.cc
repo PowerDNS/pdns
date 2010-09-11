@@ -119,6 +119,9 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
     return; // do not try to cache packets with multiple questions
   }
 
+  if(q->qclass != QClass::IN) // we only cache the INternet
+    return;
+
   bool packetMeritsRecursion=d_doRecursion && q->d.rd;
 
   insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, -1, packetMeritsRecursion);

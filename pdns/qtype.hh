@@ -86,5 +86,8 @@ private:
   static bool uninit;
 };
 
-
+struct QClass
+{
+	enum QClassEnum {IN=1, CHAOS=3};
+};
 #endif
