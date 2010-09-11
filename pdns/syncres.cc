@@ -662,7 +662,6 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
     }
   }
 
-
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
 

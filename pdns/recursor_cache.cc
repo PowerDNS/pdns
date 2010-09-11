@@ -327,7 +327,7 @@ uint64_t MemRecursorCache::doDump(int fd)
   if(!fp) { // dup probably failed
     return 0;
   }
-  fprintf(fp, "; dump from thread follows\n;\n");
+  fprintf(fp, "; main record cache dump from thread follows\n;\n");
   typedef cache_t::nth_index<1>::type sequence_t;
   sequence_t& sidx=d_cache.get<1>();
 
