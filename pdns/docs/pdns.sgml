@@ -92,17 +92,17 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3-3"><title>Recursor version 3.3 (UNRELEASED!) </title>
+      <sect2 id="changelog-recursor-3-3"><title>Recursor version 3.3 (RC1!) </title>
 	<para>
 	  <warning>
 	    <para>
-	      Unreleased!
+	      Release Candidate 1 released on the 11th of September 2010.
 	    </para>
 	  </warning>
 	</para>
 	<para>
 	  Version 3.3 fixes a number of small but persistent issues, rounds off our IPv6 support and adds
-	  an important feature for many users of the Lua scripts.
+	  an important feature for many users of the Lua scripts. 
 	</para>
 	<para>
 	  In addition, scalability on Solaris 10 is improved.
@@ -115,7 +115,7 @@
 	  </para></listitem>
 	  <listitem><para>
 	    Simon Bedford, Brad Dameron and Laurient Papier discovered relatively high TCP/IP loads could cause TCP/IP service to shut down over time. 
-	    Addressed in commits C1546, C1640, C1652, C1685, C1698. Additional information provided by Zwane Mwaikambo, Dr. Nicholas Miell and Jeff Roberson. 
+	    Addressed in commits C1546, C1640, C1652, C1685, C1698. Additional information provided by Zwane Mwaikambo, Nicholas Miell and Jeff Roberson. 
 	    Testing by Christian Hofstaedtler and Michael Renner.
 	  </para></listitem>
 	  <listitem><para>
@@ -170,7 +170,7 @@
 	  </para></listitem>
 	  <listitem><para>
 	    Lua scripts can now indicate that certain queries will have 'variable' answers, which means that the packet cache will not touch these answers.
-	    This is great for overriding some domains for some users, but not all of them. Code in c1636.
+	    This is great for overriding some domains for some users, but not all of them. Use setvariable() in Lua to indicate such domains. Code in c1636.
 	  </para></listitem>
 	  <listitem><para>
 	    Add query statistic called 'dont-outqueries', plus add IPv6 address :: and IPv4 address 0.0.0.0 to the default "dont-query" set, 
@@ -180,7 +180,7 @@
 	    Work around a gcc 4.1 bug, still in wide use on common platforms. Code in c1653. 
 	  </para></listitem>
 	  <listitem><para>
-	    Add 'ARCHFLAGS' to PowerDNS Recursor Makefile, easing 64 bit compilation on mainly 32 bit platforms.
+	    Add 'ARCHFLAGS' to PowerDNS Recursor Makefile, easing 64 bit compilation on mainly 32 bit platforms (and vice versa).
 	  </para></listitem>
 	  <listitem><para>
 	    Under rare circumstances, querying the Recursor for statistics under very high load could lead to a crash (although this has never been observed). Bad code removed &amp; 
@@ -10024,10 +10024,11 @@ end
 	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since 3.2.
 	</para>
 	<para>
-	  To retrieve the IP address on which a query was received, use <function>getlocaladdress()</function>. Available since 3.2.
-	  
+	  To retrieve the IP address on which a query was received, use <function>getlocaladdress()</function>. Available since 3.2.	  
 	</para>
-	
+	<para>
+	  To indicate that an answer should not be cached in the packet cache, use <function>setvariable()</function>. Available since 3.3.
+	</para>
       </sect2>
     </sect1>
     <sect1 id="recursor-design-and-engineering">
