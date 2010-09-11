@@ -1084,7 +1084,7 @@ try
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
-//  clog<<"* "<<t_id<<" "<<(void*)&last_stat<<"\t"<<(unsigned int)last_stat<<endl;
+  // clog<<"* "<<t_id<<" "<<(void*)&last_stat<<"\t"<<(unsigned int)last_stat<<endl;
 
   if(now.tv_sec - last_prune > (time_t)(5 + t_id)) { 
     DTime dt;
@@ -1092,7 +1092,7 @@ try
     t_RC->doPrune(); // this function is local to a thread, so fine anyhow
     t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
     
-    pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 5));
+    pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 10), 200);
     
     if(!((cleanCounter++)%40)) {  // this is a full scan!
       time_t limit=now.tv_sec-300;

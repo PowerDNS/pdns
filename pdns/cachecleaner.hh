@@ -4,7 +4,7 @@
 // this function can clean any cache that has a getTTD() method on its entries, and a 'sequence' index as its second index
 // the ritual is that the oldest entries are in *front* of the sequence collection, so on a hit, move an item to the end
 // on a miss, move it to the beginning
-template <typename T> void pruneCollection(T& collection, unsigned int maxCached)
+template <typename T> void pruneCollection(T& collection, unsigned int maxCached, unsigned int scanFraction=1000)
 {
   uint32_t now=(uint32_t)time(0);
   unsigned int toTrim=0;
@@ -22,12 +22,13 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
 
   unsigned int tried=0, lookAt, erased=0;
 
-  // two modes - if toTrim is 0, just look through 10000 records and nuke everything that is expired
+  // two modes - if toTrim is 0, just look through 1/scanFraction of all records 
+  // and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
   if(toTrim)
     lookAt=5*toTrim;
   else
-    lookAt=cacheSize/1000;
+    lookAt=cacheSize/scanFraction;
 
   typename sequence_t::iterator iter=sidx.begin(), eiter;
   for(; iter != sidx.end() && tried < lookAt ; ++tried) {
