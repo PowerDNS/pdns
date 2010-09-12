@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION=3.3-rc1
+VERSION=3.3-rc2
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
