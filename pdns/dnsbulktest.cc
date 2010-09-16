@@ -233,7 +233,7 @@ int main(int argc, char** argv)
   cerr<< "Mean response time: "<<mean(*sr.d_acc) << " msec"<<", median: "<<median(*sr.d_acc)<< " msec\n";
   typedef boost::iterator_range<std::vector<std::pair<double, double> >::iterator > histogram_type;
   
-  boost::format statfmt("Time < %6.01f msec %|30t|%6.03f%% cumulative\n");
+  boost::format statfmt("Time < %6.03f msec %|30t|%6.03f%% cumulative\n");
   
   for (unsigned int i = 0; i < sr.d_probs.size(); ++i) {
         cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*sr.d_probs[i]);
