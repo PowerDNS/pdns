@@ -150,7 +150,7 @@ struct SlaveSenderReceiver
     return 0;
   }
   
-  void deliverAnswer(DomainInfo& i, uint32_t serial)
+  void deliverAnswer(DomainInfo& i, uint32_t serial, uint32_t usec)
   {
     d_serials[i.id]=serial;
   }

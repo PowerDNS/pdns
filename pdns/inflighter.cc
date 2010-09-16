@@ -52,7 +52,7 @@ private:
   {
     typename Container::iterator iter;
     typename SenderReceiver::Identifier id;
-    struct timeval ttd;
+    struct timeval sentTime, ttd;
   };
 
   typedef multi_index_container<
@@ -91,7 +91,8 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
       TTDItem ttdi;
       ttdi.iter = d_iter++;
       ttdi.id = d_sr.send(*ttdi.iter);
-      gettimeofday(&ttdi.ttd, 0);
+      gettimeofday(&ttdi.sentTime, 0);
+      ttdi.ttd = ttdi.sentTime;
       ttdi.ttd.tv_sec += d_timeoutSeconds;
       if(d_ttdWatch.count(ttdi.id)) {
 //        cerr<<"DUPLICATE INSERT!"<<endl;
@@ -116,7 +117,10 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
 
         if(ival != d_ttdWatch.end()) { // found something!
           ++processed;
-          d_sr.deliverAnswer(*ival->iter, answer);    // deliver to sender/receiver
+	  struct timeval now;
+	  gettimeofday(&now, 0);
+	  unsigned int usec = 1000000*(now.tv_sec - ival->sentTime.tv_sec) + (now.tv_usec - ival->sentTime.tv_usec);
+          d_sr.deliverAnswer(*ival->iter, answer, usec);    // deliver to sender/receiver
           d_ttdWatch.erase(ival);
           break; // we can send new questions!
         }
