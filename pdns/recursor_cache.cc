@@ -176,7 +176,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResou
   }
 
 
- // cerr<<"Returning true - update attempt!\n";
+//  cerr<<"Returning true - update attempt!\n";
   return true;
 }
 
@@ -219,8 +219,9 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
       ce.d_auth = false;  // new data won't be auth
     }
   }
-
-  if(auth && !attemptToRefreshNSTTL(qt, content, ce) ) {
+  
+  // make sure that we CAN refresh the root
+  if(auth && ((qname.length()==1 && qname[0]=='.') || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
     // cerr<<"\tGot auth data, and it was not refresh attempt of an NS record, nuking storage"<<endl;
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
