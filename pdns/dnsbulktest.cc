@@ -1,3 +1,7 @@
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/array.hpp>
+#include <boost/accumulators/statistics.hpp>
+#include <boost/accumulators/statistics/p_square_cumulative_distribution.hpp>
 #include "inflighter.cc"
 #include <deque>
 #include "namespaces.hh"
@@ -6,6 +10,9 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+
+using namespace boost::accumulators;
+using namespace boost;
 
 StatBag S;
 
@@ -16,6 +23,8 @@ struct DNSResult
   bool seenauthsoa;
 };
 
+//  = 
+
 struct SendReceive
 {
   typedef int Identifier;
@@ -24,8 +33,24 @@ struct SendReceive
   deque<uint16_t> d_idqueue;
   
   
-  SendReceive(const std::string& remoteAddr, uint16_t port)
+  typedef accumulator_set<
+        double
+      , stats<boost::accumulators::tag::extended_p_square,
+	      boost::accumulators::tag::median(with_p_square_quantile),
+              boost::accumulators::tag::mean(immediate)
+	      >
+    > acc_t;
+  acc_t* d_acc;
+  
+  boost::array<double, 11> d_probs;
+  
+  SendReceive(const std::string& remoteAddr, uint16_t port)  
   {
+    boost::array<double, 11> tmp ={{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}};
+    d_probs = tmp;
+    d_acc = new acc_t(boost::accumulators::tag::extended_p_square::probabilities=d_probs);
+    // 
+    //d_acc = acc_t
     d_socket = socket(AF_INET, SOCK_DGRAM, 0);
     int val=1;
     setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
@@ -110,9 +135,12 @@ struct SendReceive
     d_idqueue.push_back(id);
   }
   
-  void deliverAnswer(string& domain, const DNSResult& dr)
+  void deliverAnswer(string& domain, const DNSResult& dr, unsigned int usec)
   {
-    cout<<domain<<": rcode: "<<dr.rcode;
+    (*d_acc)(usec/1000.0);
+//    if(usec > 1000000)
+  //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" msec)\n";
+    cout<<domain<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
     BOOST_FOREACH(const ComboAddress& ca, dr.ips) {
       cout<<", "<<ca.toString();
     }
@@ -134,6 +162,8 @@ struct SendReceive
   }
   unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
   unsigned int d_receiveds, d_receiveerrors, d_senderrors;
+  
+  
 };
 
 
@@ -152,7 +182,7 @@ int main(int argc, char** argv)
   vector<string> domains;
     
   Inflighter<vector<string>, SendReceive> inflighter(domains, sr);
-  inflighter.d_maxInFlight = 1000;
+  inflighter.d_maxInFlight = 100;
   inflighter.d_timeoutSeconds = 3;
   string line;
   
@@ -176,7 +206,7 @@ int main(int argc, char** argv)
       inflighter.run();
       break;
     }
-    catch(exception& e) {
+    catch(std::exception& e) {
       cerr<<"Caught exception: "<<e.what()<<endl;
     }
   }
@@ -198,6 +228,19 @@ int main(int argc, char** argv)
   cerr<< datafmt % "Answers" % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns) % "" % "";
   cerr<< datafmt % "  Timeouts " % (inflighter.getTimeouts()) % "" % "";
   cerr<< datafmt % "Total " % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns + inflighter.getTimeouts()) % "" % "";
+  
+  cerr<<"\n";
+  cerr<< "Mean response time: "<<mean(*sr.d_acc) << " msec"<<", median: "<<median(*sr.d_acc)<< " msec\n";
+  typedef boost::iterator_range<std::vector<std::pair<double, double> >::iterator > histogram_type;
+  
+  boost::format statfmt("Time < %6.01f msec %|30t|%6.03f%% cumulative\n");
+  
+  for (unsigned int i = 0; i < sr.d_probs.size(); ++i) {
+        cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*sr.d_probs[i]);
+    }
+
+
+
 }
 
 
