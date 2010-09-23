@@ -84,20 +84,23 @@ class DNSSECKeeper
 public:
   struct KeyMetaData
   {
-    time_t beginValidity, endValidity; // wart  
     bool active;
     string fname;
-  };  
+  }; 
+  typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > zskset_t;
+   
 public:
   explicit DNSSECKeeper(const std::string& dirname) : d_dirname(dirname){}
+
   bool haveKSKFor(const std::string& zone, DNSSECPrivateKey* ksk=0);
   
-  typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > zskset_t;
   zskset_t getZSKsFor(const std::string& zone, bool all=false);
   void addZSKFor(const std::string& zname, int algorithm, bool next=false);
+  
   void deleteZSKFor(const std::string& zname, const std::string& fname);
 
   void secureZone(const std::string& fname, int algorithm);
+
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* n3p);
 

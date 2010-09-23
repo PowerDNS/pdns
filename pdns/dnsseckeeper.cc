@@ -77,15 +77,15 @@ bool DNSSECKeeper::haveKSKFor(const std::string& zone, DNSSECPrivateKey* dpk)
       //      cerr<<"Hit!"<<endl;
 
       if(dpk) {
-	getRSAKeyFromISC(&dpk->d_key.getContext(), dir_itr->path().file_string().c_str());
+        getRSAKeyFromISC(&dpk->d_key.getContext(), dir_itr->path().file_string().c_str());
 	
-	if(getNSEC3PARAM(zone)) {
-	  dpk->d_algorithm = 7;
-	}
-	else {
-	  dpk->d_algorithm = 5;
-	}
-
+        if(getNSEC3PARAM(zone)) {
+          dpk->d_algorithm = 7;
+        }
+        else {
+          dpk->d_algorithm = 5;
+        }
+      
       }
       return true;
     }
@@ -138,12 +138,14 @@ void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool next)
 
 }
 
+/*
 bool zskSortByDates(const DNSSECKeeper::zskset_t::value_type& a, const DNSSECKeeper::zskset_t::value_type& b)
 {
   return 
     tie(a.second.beginValidity, a.second.endValidity) < 
     tie(b.second.beginValidity, b.second.endValidity);
 }
+* */
 void DNSSECKeeper::deleteZSKFor(const std::string& zname, const std::string& fname)
 {
   unlink((d_dirname +"/"+ zname +"/zsks/"+fname).c_str());
@@ -234,14 +236,16 @@ DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool al
       ts2.tm_mon--;
 
       KeyMetaData kmd;
+      /*
       kmd.beginValidity=timegm(&ts1);
       kmd.endValidity=timegm(&ts2);
       time_t now=time(0);
-      kmd.active = now > kmd.beginValidity && now < kmd.endValidity;
+      */
+      kmd.active = 1; // XXX FIXME GOOD ONE! // now > kmd.beginValidity && now < kmd.endValidity;
       kmd.fname = dir_itr->leaf();
       zskset.push_back(make_pair(dpk, kmd));
     }
-    sort(zskset.begin(), zskset.end(), zskSortByDates);
+    // sort(zskset.begin(), zskset.end(), zskSortByDates);
   }
 
   return zskset;

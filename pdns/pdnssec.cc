@@ -233,13 +233,13 @@ try
       cout<<"There were ZSKs already for zone '"<<zone<<"': "<<endl;
       
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<<humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl; // ", "<<humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
         if(value.second.active) 
           inforce++;
-        if(value.second.endValidity < now - 2*86400) { // 'expired more than two days ago'  
+        if(!value.second.active) { // was: 'expired more than two days ago'  
           cout<<"\tThis key is no longer used and too old to keep around, deleting!\n";
           dk.deleteZSKFor(zone, value.second.fname);
-        } else if(value.second.endValidity < now) { // 'expired more than two days ago'  
+        } else /* if( value.second.endValidity < now  ) */{ // 'expired more than two days ago'  
           cout<<"\tThis key is no longer in active use, but needs to linger\n";
         }
       }
@@ -290,7 +290,7 @@ try
     else {  
       cout << "ZSKs for zone '"<<zone<<"':"<<endl;
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<< humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
       }
     }
   }
