@@ -92,21 +92,22 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3-3"><title>Recursor version 3.3 (RC1!) </title>
+      <sect2 id="changelog-recursor-3-3"><title>Recursor version 3.3 </title>
 	<para>
 	  <warning>
 	    <para>
-	      Release Candidate 1 released on the 11th of September 2010.
+	      Released on the 22nd of September 2010.
 	    </para>
 	  </warning>
 	</para>
 	<para>
-	  Version 3.3 fixes a number of small but persistent issues, rounds off our IPv6 support and adds
+	  Version 3.3 fixes a number of small but persistent issues, rounds off our IPv6 %link-level support and adds
 	  an important feature for many users of the Lua scripts. 
 	</para>
 	<para>
 	  In addition, scalability on Solaris 10 is improved.
 	</para>
+	
 	<para>
 	  Bug fixes:
 	  <itemizedlist>
@@ -153,6 +154,9 @@
 	    The priming of the root now uses more IPv6 addresses. Change in c1550, closes t287. Also, the IPv6 address of I.ROOT-SERVERS.NET was added in c1650.
 	  </para></listitem>
 	  <listitem><para>
+	    The <function>rec_control dump-cache</function> command now also dumps the 'negative query' cache. Code in c1713.
+	  </para></listitem>
+	  <listitem><para>
 	    PowerDNS Recursor can now bind to fe80 IPv6 space with '%eth0' link selection. Suggested by Darren Gamble, implemented with help from Niels Bakker. Change in c1620.
 	  </para></listitem>
 	  <listitem><para>
@@ -194,9 +198,24 @@
 	    This experimental feature can be enabled with the 'pdns-distributes-queries' setting. Code in c1678 and beyond. Speeds up Solaris measurably.
 	  </para></listitem>
 	   <listitem><para>
-	    Cache cleaning code was cleaned up, unified and expanded to cover the 'negative cache', which used to be cleaned rather bluntly. Code in c1702, spotted by Darren Gamble and Christian Kovacic.
+	    Cache cleaning code was cleaned up, unified and expanded to cover the 'negative cache', which used to be cleaned rather bluntly. Code in c1702, further tweaks in c1712, 
+	    spotted by Darren Gamble, Imre Gergely and Christian Kovacic.
 	   </para></listitem>
 	</itemizedlist>
+	</para>
+	<para>
+	  Changes between RC1, RC2 and RC3.
+	  <itemizedlist>
+	    <listitem><para>
+	      RC2: Fixed linking on RHEL5/CENTOS5, which both ship with a gcc compiler that claims to support atomic operations, but doesn't. Code in c1714. Spotted by 'Bas' and Imre Gergely. 
+	    </para></listitem>
+	    <listitem><para>
+	      RC2: Negative query cache was configured to grow too large, and was not cleaned efficiently. Code in c1712, spotted by Imre Gergely.
+	    </para></listitem>
+	    <listitem><para>
+	      RC3: Root failed to be renewed automatically, relied on fallback to make this happen. Code in c1716, spotted by Detlef Peeters.
+	    </para></listitem>
+	  </itemizedlist>
 	</para>
       </sect2>
 	
@@ -9257,7 +9276,7 @@ local0.err                        /var/log/pdns.err
 	    <term>max-cache-entries</term>
 	    <listitem>
 	      <para>
-		Maximum number of DNS cache entries. 1 million will generally suffice for most installations.
+		Maximum number of DNS cache entries. 1 million per thread will generally suffice for most installations.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -9266,7 +9285,7 @@ local0.err                        /var/log/pdns.err
 	    <term>max-packetcache-entries</term>
 	    <listitem>
 	      <para>
-		Maximum number of Packet Cache entries. 1 million will generally suffice for most installations. Available since 3.2.
+		Maximum number of Packet Cache entries. 1 million per thread will generally suffice for most installations. Available since 3.2. 
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -9596,7 +9615,7 @@ local0.err                        /var/log/pdns.err
 	<itemizedlist>
 	  <listitem>
 	    <para>
-	      Limit the size of the caches to a sensible value. Cache hit rate does not improve meaningfully beyond 4 million <command>max-cache-entries</command>,
+	      Limit the size of the caches to a sensible value. Cache hit rate does not improve meaningfully beyond 4 million <command>max-cache-entries</command> per thread,
 	      reducing the memory footprint reduces CPU cache misses. See below for more information about the various caches.
 	    </para>
 	  </listitem>
