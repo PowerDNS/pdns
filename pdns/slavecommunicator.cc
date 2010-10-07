@@ -171,10 +171,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     typedef UniQueue::index<IDTag>::type domains_by_name_t;
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
 
-    // remove unfresh domains already queued for AXFR, no sense polling them again
+    
     BOOST_FOREACH(DomainInfo& di, rdomains) {
       SuckRequest sr;
       sr.domain=di.zone;
+      if(di.masters.empty()) // slave domains w/o masters are ignored
+        continue;
+      // remove unfresh domains already queued for AXFR, no sense polling them again
       sr.master=*di.masters.begin();
       if(nameindex.count(sr))
         continue;
