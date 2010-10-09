@@ -12,7 +12,9 @@
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
-
+#include <boost/assign/std/vector.hpp> // for 'operator+=()'
+#include <boost/assign/list_inserter.hpp>
+using namespace boost::assign;
 namespace fs = boost::filesystem;
 
 using namespace std;
@@ -34,15 +36,15 @@ std::string RSAContext::convertToISC()
   string ret;
   typedef vector<pair<string, mpi*> > outputs_t;
   outputs_t outputs;
-
-  outputs.push_back(make_pair("Modulus", &d_context.N));
-  outputs.push_back(make_pair("PublicExponent",&d_context.E));
-  outputs.push_back(make_pair("PrivateExponent",&d_context.D));
-  outputs.push_back(make_pair("Prime1",&d_context.P));
-  outputs.push_back(make_pair("Prime2",&d_context.Q));
-  outputs.push_back(make_pair("Exponent1",&d_context.DP));
-  outputs.push_back(make_pair("Exponent2",&d_context.DQ));
-  outputs.push_back(make_pair("Coefficient",&d_context.QP));
+  push_back(outputs)("Modulus", &d_context.N)("PublicExponent",&d_context.E)
+    ("Modulus", &d_context.N)
+    ("PublicExponent",&d_context.E)
+    ("PrivateExponent",&d_context.D)
+    ("Prime1",&d_context.P)
+    ("Prime2",&d_context.Q)
+    ("Exponent1",&d_context.DP)
+    ("Exponent2",&d_context.DQ)
+    ("Coefficient",&d_context.QP);
 
   ret = "Private-key-format: v1.2\nAlgorithm: 5 (RSASHA1)\n";
 
@@ -94,7 +96,7 @@ bool DNSSECKeeper::haveKSKFor(const std::string& zone, DNSSECPrivateKey* dpk)
   return false;
 }
 
-void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool next)
+void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool active)
 {
   DNSSECPrivateKey dpk;
   dpk.d_key.create(1024); // for testing, 1024
@@ -104,13 +106,9 @@ void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool next)
   drc.d_flags = 256; // KSK
   drc.d_algorithm = algorithm; 
   string iscName=d_dirname+"/"+name+"/zsks/";
-  time_t inception=getCurrentInception();
-  time_t end=inception+14*86400;
+  time_t inception=time(0);
 
-  if(next) {
-    inception += 14*86400;
-    end += 14*86400;
-  }
+ 
 
   struct tm ts;
   gmtime_r(&inception, &ts);
@@ -119,13 +117,8 @@ void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool next)
 	      % (1900+ts.tm_year) % (ts.tm_mon + 1)
 	      % ts.tm_mday % ts.tm_hour % ts.tm_min).str();
 
-  iscName += "-";
-
-  gmtime_r(&end, &ts);
-  iscName += (boost::format("%04d%02d%02d%02d%02d.%u") 
-	      % (1900+ts.tm_year) % (ts.tm_mon + 1)
-	      % ts.tm_mday % ts.tm_hour % ts.tm_min % drc.getTag()).str();
-
+  iscName += active ? ".active" : ".passive";
+  
   {  
     ofstream iscFile((iscName+".isc").c_str());
     iscFile << isc;
@@ -223,26 +216,20 @@ DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool al
       memset(&ts1, 0, sizeof(ts1));
       memset(&ts2, 0, sizeof(ts2));
       
-      sscanf(dir_itr->leaf().c_str(), "%04d%02d%02d%02d%02d-%04d%02d%02d%02d%02d",
+      sscanf(dir_itr->leaf().c_str(), "%04d%02d%02d%02d%02d",
 	     &ts1.tm_year, 
-	     &ts1.tm_mon, &ts1.tm_mday, &ts1.tm_hour, &ts1.tm_min,
-	     &ts2.tm_year, 
-	     &ts2.tm_mon, &ts2.tm_mday, &ts2.tm_hour, &ts2.tm_min);
+	     &ts1.tm_mon, &ts1.tm_mday, &ts1.tm_hour, &ts1.tm_min);
+	     
 
       ts1.tm_year -= 1900;
-      ts2.tm_year -= 1900;
-
+      
       ts1.tm_mon--;
-      ts2.tm_mon--;
-
+      
       KeyMetaData kmd;
-      /*
-      kmd.beginValidity=timegm(&ts1);
-      kmd.endValidity=timegm(&ts2);
-      time_t now=time(0);
-      */
-      kmd.active = 1; // XXX FIXME GOOD ONE! // now > kmd.beginValidity && now < kmd.endValidity;
+      
+      
       kmd.fname = dir_itr->leaf();
+      kmd.active = kmd.fname.find(".active") != string::npos;
       zskset.push_back(make_pair(dpk, kmd));
     }
     // sort(zskset.begin(), zskset.end(), zskSortByDates);

@@ -290,7 +290,7 @@ try
     else {  
       cout << "ZSKs for zone '"<<zone<<"':"<<endl;
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<", "<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
       }
     }
   }
