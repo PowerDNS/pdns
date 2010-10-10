@@ -672,12 +672,19 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   hints.ai_family = AF_INET6;
   hints.ai_flags = AI_NUMERICHOST;
   
-  if(getaddrinfo(addr.c_str(), 0, &hints, &res) < 0) {
-    perror("getaddrinfo");
+  int error;
+  if((error=getaddrinfo(addr.c_str(), 0, &hints, &res))) {
+    /*
+    cerr<<"Error translating IPv6 address '"<<addr<<"': ";
+    if(error==EAI_SYSTEM)
+      cerr<<strerror(errno)<<endl;
+    else
+      cerr<<gai_strerror(error)<<endl;
+    */
     return -1;
   }
   
-  memcpy(ret, res->ai_addr, sizeof(*ret));
+  memcpy(ret, res->ai_addr, res->ai_addrlen);
   
   freeaddrinfo(res);
   return 0;
