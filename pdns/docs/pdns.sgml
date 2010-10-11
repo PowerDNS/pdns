@@ -82,6 +82,10 @@
 	for updates. The PDF version is available on <ulink url="http://doc.powerdns.com/pdf">http://doc.powerdns.com/pdf</ulink>, a text file is
 	on <ulink url="http://doc.powerdns.com/txt">http://doc.powerdns.com/txt/</ulink>. 
       </para>
+      <para>
+	The most up to date version of the HTML documentation can be downloaded as a tar archive from 
+	<ulink url="http://doc.powerdns.com/html.tar.gz">http://doc.powerdns.com/html.tar.gz</ulink>.
+      </para>
     </sect1>
     <sect1 id="changelog">
       <title>Release notes</title>
