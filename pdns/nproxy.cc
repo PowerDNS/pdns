@@ -137,7 +137,7 @@ try
   //  cerr<<"Inside notification response for: "<<mdp.d_qname<<endl;
 
   if(!g_nifs.count(mdp.d_header.id)) {
-    syslogFmt(boost::format("Response from inner PowerDNS with unkown ID %1%") % (uint16_t)mdp.d_header.id);
+    syslogFmt(boost::format("Response from inner PowerDNS with unknown ID %1%") % (uint16_t)mdp.d_header.id);
     return;
   }
   
