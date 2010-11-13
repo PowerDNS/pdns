@@ -1,4 +1,5 @@
 #include "lua-pdns-recursor.hh"
+#include "syncres.hh"
 
 #if !defined(PDNS_ENABLE_LUA) && !defined(LIBDIR)
 
@@ -13,6 +14,12 @@ bool PowerDNSLua::nxdomain(const ComboAddress& remote,const ComboAddress& local,
 {
   return false;
 }
+
+bool PowerDNSLua::nodata(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+{
+  return false;
+}
+
 
 bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
@@ -57,7 +64,39 @@ bool netmaskMatchTable(lua_State* lua, const std::string& ip)
   return false;
 }
 
+int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)
+{
+  struct timeval now;
+  gettimeofday(&now, 0);
+  
+  SyncRes sr(now);
+  
+  int res = sr.beginResolve(qname, QType(qtype), qclass, ret);
+  cerr<<"Result: "<<res<<endl;
+  return res;
+}
+
+
 extern "C" {
+
+int getFakeAAAARecords(lua_State *lua)
+{
+  string qname = lua_tostring(lua, 1);
+  string prefix = lua_tostring(lua, 2);
+  cerr<<"Request from Lua to look up '"<<qname<<"'\n";
+  vector<DNSResourceRecord> ret;
+  directResolve(qname, QType(QType::A), 1, ret);
+  
+  ComboAddress prefixAddress(prefix);
+  ComboAddress ipv4(ret.rbegin()->content);
+  uint32_t tmp;
+  memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
+  tmp=htonl(tmp);
+  memcpy(((char*)&prefixAddress.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
+  cerr<<"Going to return: "<<prefixAddress.toString()<<endl;
+  lua_pushstring(lua, prefixAddress.toString().c_str());
+  return 1;
+}
 
 int netmaskMatchLua(lua_State *lua)
 {
@@ -132,6 +171,9 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_pushcfunction(d_lua, netmaskMatchLua);
   lua_setglobal(d_lua, "matchnetmask");
 
+  lua_pushcfunction(d_lua, getFakeAAAARecords);
+  lua_setglobal(d_lua, "getFakeAAAARecords");
+
   lua_pushcfunction(d_lua, logLua);
   lua_setglobal(d_lua, "pdnslog");
 
@@ -166,6 +208,18 @@ bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& loc
   return passthrough("preresolve", remote, local, query, qtype, ret, res, variable);
 }
 
+
+
+bool PowerDNSLua::nodata(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+{
+  vector<DNSResourceRecord> better;
+  directResolve(query, QType(QType::A), 1, better);
+  cerr<<"Had "<<better.size()<<" hits"<<endl;
+  
+  return passthrough("nodata", remote, local, query, qtype, ret, res, variable);
+}
+
+
 bool PowerDNSLua::getFromTable(const std::string& key, std::string& value)
 {
   lua_pushstring(d_lua, key.c_str()); // 4 is now '1'
@@ -194,6 +248,7 @@ bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
   lua_pop(d_lua, 1);
   return ret;
 }
+
 
 
 bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 

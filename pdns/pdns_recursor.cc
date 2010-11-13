@@ -525,13 +525,21 @@ void startDoResolve(void *p)
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
       if(t_pdl->get()) {
-        if(res == RCode::NXDomain)
+        if(res == RCode::NoError) {
+	  vector<DNSResourceRecord>::const_iterator i;
+	  for(i=ret.begin(); i!=ret.end(); ++i) 
+	      if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
+		break;
+	  if(i == ret.end())
+	    (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	}
+	else if(res == RCode::NXDomain)
           (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
     
     uint32_t minTTL=numeric_limits<uint32_t>::max();
-    if(res<0) {
+    if(res < 0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;

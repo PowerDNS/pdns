@@ -52,3 +52,18 @@ function nxdomain ( remoteip, domain, qtype )
 		return -1, ret
 	end
 end
+
+-- nodata can return:
+-- -1: not dealing
+-- 0: got a new answer for you, ready
+-- 1: ?
+
+function nodata ( remoteip, domain, qtype )
+	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
+	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
+	
+	ipv6=getFakeAAAARecords(domain, "fe80::21b:77ff:0:0")
+	ret={}
+	ret[1]={qtype=pdns.AAAA, content=ipv6, ttl=3602}
+	return 0, ret
+end	
