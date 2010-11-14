@@ -61,9 +61,8 @@ end
 function nodata ( remoteip, domain, qtype )
 	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
 	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
-	
-	ipv6=getFakeAAAARecords(domain, "fe80::21b:77ff:0:0")
-	ret={}
-	ret[1]={qtype=pdns.AAAA, content=ipv6, ttl=3602}
+
+	ret=getFakeAAAARecords(domain, "fe80::21b:77ff:0:0")
+	print("ret[1]: ",ret[1])
 	return 0, ret
 end	
