@@ -14,6 +14,7 @@ public:
   bool preresolve(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
   bool nxdomain(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
   bool nodata(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
+  bool postresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
   ComboAddress getLocal()
   {
     return d_local;

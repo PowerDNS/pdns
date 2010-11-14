@@ -53,16 +53,30 @@ function nxdomain ( remoteip, domain, qtype )
 	end
 end
 
--- nodata can return:
--- -1: not dealing
--- 0: got a new answer for you, ready
--- 1: ?
-
 function nodata ( remoteip, domain, qtype )
-	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
+	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
 	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
 
 	ret=getFakeAAAARecords(domain, "fe80::21b:77ff:0:0")
-	print("ret[1]: ",ret[1])
 	return 0, ret
+end	
+
+-- records contains the entire packet, ready for your modifying pleasure
+function postresolve ( remoteip, domain, qtype, records )
+	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype)
+
+	for key,val in ipairs(records) 
+	do
+		if(val.content == '173.201.188.46' and val.qtype == pdns.A)
+		then
+			val.content = '127.0.0.1'
+		end
+		if val.qtype == pdns.A and matchnetmask(remoteip, "192.168.0.0/16") and matchnetmask(val.content, "85.17.219.0/24") 
+		then
+			val.content = string.gsub(val.content, "^85.17.219.", "192.168.219.", 1)
+		end
+		
+		print(val.content)
+	end
+	return 0, records
 end	

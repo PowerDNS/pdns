@@ -21,6 +21,11 @@ bool PowerDNSLua::nodata(const ComboAddress& remote,const ComboAddress& local, c
   return false;
 }
 
+bool PowerDNSLua::postresolve(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+{
+  return false;
+}
+
 
 bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
@@ -78,82 +83,17 @@ int directResolve(const std::string& qname, const QType& qtype, int qclass, vect
 }
 
 
-extern "C" {
-
-int getFakeAAAARecords(lua_State *lua)
+void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& records)
 {
-  string qname = lua_tostring(lua, 1);
-  string prefix = lua_tostring(lua, 2);
-  cerr<<"Request from Lua to look up '"<<qname<<"'\n";
-  vector<DNSResourceRecord> ret;
-  directResolve(qname, QType(QType::A), 1, ret);
-  
-  ComboAddress prefixAddress(prefix);
-
-  lua_newtable(lua);
-  int pos=1;
-  
-  BOOST_FOREACH(DNSResourceRecord& rr, ret)
-  {
-    // row number
-    lua_pushnumber(lua, pos++);
-    // "row" table
-    lua_newtable(lua);
-    
-    lua_pushstring(lua, rr.qname.c_str());
-    lua_setfield(lua, -2, "qname");  // pushes value at the top of the stack to the table immediately below that (-1 = top, -2 is below)
-    
-    lua_pushnumber(lua, rr.ttl);
-    lua_setfield(lua, -2, "ttl");
-    
-    if(rr.qtype.getCode() == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
-      lua_pushnumber(lua, QType::AAAA);
-      lua_setfield(lua, -2, "qtype");
-    
-      ComboAddress ipv4(rr.content);
-      uint32_t tmp;
-      memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
-      // tmp=htonl(tmp);
-      memcpy(((char*)&prefixAddress.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
-  
-    
-      lua_pushstring(lua, prefixAddress.toString().c_str());
-      lua_setfield(lua, -2, "content");
-    }
-    else {
-      lua_pushnumber(lua, rr.qtype.getCode());
-      lua_setfield(lua, -2, "qtype");
-    
-    
-      lua_pushstring(lua, rr.content.c_str());
-      lua_setfield(lua, -2, "content");
-    }
-    
-    
-    lua_settable(lua, -3);
-    cerr<<"pushed row at right number"<<pos-1<<endl;
-  }
-  
-  return 1;
-}
-
-int resolveRecords(lua_State *lua)
-{
-  string qname = lua_tostring(lua, 1);
-  uint16_t qtype = lua_tonumber(lua, 2);
-  cerr<<"Request from Lua to resolveRecords  '"<<qname<<"', "<<qtype<<"\n";
-  vector<DNSResourceRecord> ret;
-  directResolve(qname, QType(qtype), 1, ret);
-  cerr<<"Have "<<ret.size()<<" answers for Lua"<<endl;
   
   // make a table of tables
   lua_newtable(lua);
   
   
   int pos=0;
-  BOOST_FOREACH(const DNSResourceRecord& rr, ret)
+  BOOST_FOREACH(const DNSResourceRecord& rr, records)
   {
-    // row number
+    // row number, used by 'lua_settable' below
     lua_pushnumber(lua, ++pos);
     // "row" table
     lua_newtable(lua);
@@ -170,9 +110,53 @@ int resolveRecords(lua_State *lua)
     lua_pushnumber(lua, rr.ttl);
     lua_setfield(lua, -2, "ttl");
     
-    lua_settable(lua, -3);
-    cerr<<"pushed row at right number"<<pos<<endl;
+    lua_pushnumber(lua, rr.d_place);
+    lua_setfield(lua, -2, "place");
+    
+    lua_settable(lua, -3); // pushes the table we just built into the master table at position pushed above
   }
+  
+}
+
+extern "C" {
+
+int getFakeAAAARecords(lua_State *lua)
+{
+  string qname = lua_tostring(lua, 1);
+  string prefix = lua_tostring(lua, 2);
+  cerr<<"Request from Lua to look up '"<<qname<<"'\n";
+  vector<DNSResourceRecord> ret;
+  directResolve(qname, QType(QType::A), 1, ret);
+  
+  ComboAddress prefixAddress(prefix);
+
+  
+  BOOST_FOREACH(DNSResourceRecord& rr, ret)
+  {    
+    if(rr.qtype.getCode() == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
+      ComboAddress ipv4(rr.content);
+      uint32_t tmp;
+      memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
+      // tmp=htonl(tmp);
+      memcpy(((char*)&prefixAddress.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
+      rr.content = prefixAddress.toString();
+      rr.qtype = QType(QType::AAAA);
+    }
+  }
+  pushResourceRecordsTable(lua, ret);
+  return 1;
+}
+
+int resolveName(lua_State *lua)
+{
+  string qname = lua_tostring(lua, 1);
+  uint16_t qtype = lua_tonumber(lua, 2);
+  cerr<<"Request from Lua to resolveName  '"<<qname<<"', "<<qtype<<"\n";
+  vector<DNSResourceRecord> ret;
+  directResolve(qname, QType(qtype), 1, ret);
+  cerr<<"Have "<<ret.size()<<" answers for Lua"<<endl;
+  
+  pushResourceRecordsTable(lua, ret);
   
   
   return 1;
@@ -255,9 +239,8 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_pushcfunction(d_lua, getFakeAAAARecords);
   lua_setglobal(d_lua, "getFakeAAAARecords");
 
-  lua_pushcfunction(d_lua, resolveRecords);
-  lua_setglobal(d_lua, "resolveRecords");
-
+  lua_pushcfunction(d_lua, resolveName);
+  lua_setglobal(d_lua, "resolveName");
 
   lua_pushcfunction(d_lua, logLua);
   lua_setglobal(d_lua, "pdnslog");
@@ -298,6 +281,11 @@ bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& loc
 bool PowerDNSLua::nodata(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return passthrough("nodata", remote, local, query, qtype, ret, res, variable);
+}
+
+bool PowerDNSLua::postresolve(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+{
+  return passthrough("postresolve", remote, local, query, qtype, ret, res, variable);
 }
 
 
@@ -349,7 +337,13 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   lua_pushstring(d_lua,  query.c_str() );
   lua_pushnumber(d_lua,  qtype.getCode() );
 
-  if(lua_pcall(d_lua,  3, 2, 0)) { // error 
+  int extraParameter = 0;
+  if(!strcmp(func.c_str(),"postresolve")) {
+    pushResourceRecordsTable(d_lua, ret);
+    extraParameter++;
+  }
+
+  if(lua_pcall(d_lua,  3 + extraParameter, 2, 0)) { 
     string error=string("lua error in '"+func+"': ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);
@@ -382,7 +376,7 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
 #else
   int tableLen = lua_objlen(d_lua, 2);
 #endif
-  cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
+  // cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
 
   for(int n=1; n < tableLen + 1; ++n) {
     lua_pushnumber(d_lua, n);

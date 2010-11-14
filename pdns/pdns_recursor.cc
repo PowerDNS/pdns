@@ -536,7 +536,11 @@ void startDoResolve(void *p)
 	else if(res == RCode::NXDomain)
           (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
+      
+      (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
     }
+
+
     
     uint32_t minTTL=numeric_limits<uint32_t>::max();
     if(res < 0) {
