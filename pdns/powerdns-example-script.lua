@@ -62,8 +62,8 @@ function nodata ( remoteip, domain, qtype )
 end	
 
 -- records contains the entire packet, ready for your modifying pleasure
-function postresolve ( remoteip, domain, qtype, records )
-	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype)
+function postresolve ( remoteip, domain, qtype, records, origrcode )
+	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode)
 
 	for key,val in ipairs(records) 
 	do
@@ -78,5 +78,5 @@ function postresolve ( remoteip, domain, qtype, records )
 		
 		print(val.content)
 	end
-	return 0, records
+	return origrcode, records
 end	
