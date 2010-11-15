@@ -121,9 +121,9 @@ int getFakeAAAARecords(lua_State *lua)
 {
   string qname = lua_tostring(lua, 1);
   string prefix = lua_tostring(lua, 2);
-  cerr<<"Request from Lua to look up '"<<qname<<"'\n";
+  cerr<<"Request from Lua to look up A records for '"<<qname<<"'\n";
   vector<DNSResourceRecord> ret;
-  directResolve(qname, QType(QType::A), 1, ret);
+  int rcode=directResolve(qname, QType(QType::A), 1, ret);
   
   ComboAddress prefixAddress(prefix);
 
@@ -139,8 +139,9 @@ int getFakeAAAARecords(lua_State *lua)
       rr.qtype = QType(QType::AAAA);
     }
   }
+  lua_pushnumber(lua, rcode);
   pushResourceRecordsTable(lua, ret);
-  return 1;
+  return 2;
 }
 
 int resolveName(lua_State *lua)
@@ -149,11 +150,12 @@ int resolveName(lua_State *lua)
   uint16_t qtype = lua_tonumber(lua, 2);
   cerr<<"Request from Lua to resolveName  '"<<qname<<"', "<<qtype<<"\n";
   vector<DNSResourceRecord> ret;
-  directResolve(qname, QType(qtype), 1, ret);
-  cerr<<"Have "<<ret.size()<<" answers for Lua"<<endl;
+  int rcode=directResolve(qname, QType(qtype), 1, ret);
+  cerr<<"Have "<<ret.size()<<" answers for Lua, rcode="<<rcode<<endl;
   
+  lua_pushnumber(lua, rcode);
   pushResourceRecordsTable(lua, ret);
-  return 1;
+  return 2;
 }
 
 int netmaskMatchLua(lua_State *lua)
@@ -325,7 +327,11 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   lua_pushnumber(d_lua,  qtype.getCode() );
 
   int extraParameter = 0;
-  if(!strcmp(func.c_str(),"postresolve")) {
+  if(!strcmp(func.c_str(),"nodata")) {
+    pushResourceRecordsTable(d_lua, ret);
+    extraParameter++;
+  }
+  else if(!strcmp(func.c_str(),"postresolve")) {
     pushResourceRecordsTable(d_lua, ret);
     lua_pushnumber(d_lua, res);
     extraParameter+=2;

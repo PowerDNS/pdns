@@ -53,12 +53,15 @@ function nxdomain ( remoteip, domain, qtype )
 	end
 end
 
-function nodata ( remoteip, domain, qtype )
+function nodata ( remoteip, domain, qtype, records )
 	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
 	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
-
-	ret=getFakeAAAARecords(domain, "fe80::21b:77ff:0:0")
-	return 0, ret
+	for key,val in ipairs(records) 
+	do
+		print(val.qtype, val.ttl)
+	end
+	rcode, ret=getFakeAAAARecords(domain, "fe80::21b:77ff:0:0")
+	return rcode, ret
 end	
 
 -- records contains the entire packet, ready for your modifying pleasure
