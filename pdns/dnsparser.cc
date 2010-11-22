@@ -317,7 +317,7 @@ void PacketReader::copyRecord(vector<unsigned char>& dest, uint16_t len)
 void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
 {
   if(d_pos + len > d_content.size())
-    throw MOADNSException("Attempt to copy outside of packet");
+    throw out_of_range("Attempt to copy outside of packet");
 
   memcpy(dest, &d_content.at(d_pos), len);
   d_pos+=len;
@@ -574,7 +574,7 @@ private:
   {
     d_notyouroffset += by;
     if(d_notyouroffset > d_packet.length())
-      throw range_error("dns packet out of range: "+lexical_cast<string>(d_notyouroffset) +" > " 
+      throw out_of_range("dns packet out of range: "+lexical_cast<string>(d_notyouroffset) +" > " 
       + lexical_cast<string>(d_packet.length()) );
   }
   std::string& d_packet;
