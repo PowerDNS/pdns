@@ -5,7 +5,6 @@
 #include "dnsrecords.hh"
 #include "statbag.hh"
 #include "iputils.hh"
-#include <netinet/sctp.h>
 #include <boost/foreach.hpp>
 #include <polarssl/rsa.h>
 #include <polarssl/base64.h>
