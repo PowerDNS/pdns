@@ -653,6 +653,8 @@ void startDoResolve(void *p)
   catch(...) {
     L<<Logger::Error<<"Any other exception in a resolver context"<<endl;
   }
+  
+  g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
 }
 
 void makeControlChannelSocket()

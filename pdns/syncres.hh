@@ -477,6 +477,7 @@ struct RecursorStats
   uint64_t packetCacheHits;
   uint64_t noPacketError;
   time_t startupTime;
+  unsigned int maxMThreadStackUsage;
 };
 
 //! represents a running TCP/IP client session

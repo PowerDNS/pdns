@@ -400,6 +400,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("over-capacity-drops", &g_stats.overCapacityDrops);
   addGetStat("no-packet-error", &g_stats.noPacketError);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
+  addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
   
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
   addGetStat("throttle-entries", boost::bind(getThrottleSize)); 

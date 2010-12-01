@@ -50,8 +50,14 @@ private:
   std::queue<int> d_runQueue;
   std::queue<int> d_zombiesQueue;
 
+  struct ThreadInfo
+  {
+	ucontext_t* context;
+	char* startOfStack;
+	char* highestStackSeen;
+  };
 
-  typedef std::map<int, ucontext_t*> mthreads_t;
+  typedef std::map<int, ThreadInfo> mthreads_t;
   mthreads_t d_threads;
   int d_tid;
   int d_maxtid;
@@ -66,7 +72,7 @@ public:
     EventKey key;
     ucontext_t *context;
     struct timeval ttd;
-    int tid;
+    int tid;    
   };
 
   typedef multi_index_container<
@@ -99,6 +105,7 @@ public:
   bool noProcesses();
   unsigned int numProcesses();
   int getTid(); 
+  unsigned int getMaxStackUsage();
 
 private:
   static void threadWrapper(uint32_t self1, uint32_t self2, tfunc_t *tf, int tid, uint32_t val1, uint32_t val2);
