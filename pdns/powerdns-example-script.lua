@@ -56,14 +56,13 @@ end
 function nodata ( remoteip, domain, qtype, records )
 	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
 	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
-	for key,val in ipairs(records) 
-	do
-		print(val.qtype, val.ttl)
-	end
-	
-	rcode, ret=getFakeAAAARecords(domain, "fe80::21b:77ff:0:0")
+--	for key,val in ipairs(records) 
+--	do
+--		print(val.qtype, val.ttl)
+--	end
+
 	setvariable()
-	return rcode, ret
+	return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"
 end	
 
 -- records contains the entire packet, ready for your modifying pleasure
@@ -83,7 +82,7 @@ function postresolve ( remoteip, domain, qtype, records, origrcode )
 			setvariable()
 		end
 		
-		print(val.content)
+	--	print(val.content)
 	end
 	return origrcode, records
 end	
