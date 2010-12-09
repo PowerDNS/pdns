@@ -119,6 +119,7 @@ int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t 
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = d_randomid = id;
+  pw.getHeader()->aa = true; 
   
   ComboAddress dest(ip, 53);
 
