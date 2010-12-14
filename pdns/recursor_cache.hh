@@ -57,7 +57,7 @@ private:
 
     unsigned int size() const
     {
-      return ( unsigned int ) 4+d_string.size();
+      return sizeof(*this) + d_string.size();
     }
 
   };

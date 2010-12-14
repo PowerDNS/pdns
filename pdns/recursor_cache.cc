@@ -95,6 +95,7 @@ unsigned int MemRecursorCache::bytes()
   unsigned int ret=0;
 
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
+    ret+=sizeof(struct CacheEntry);
     ret+=(unsigned int)i->d_qname.length();
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j!= i->d_records.end(); ++j)
       ret+=j->size();
