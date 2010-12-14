@@ -96,6 +96,50 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-recursor-3-3-1"><title>Recursor version 3.3.1 </title>
+	<para>
+	  <warning>
+	    <para>
+	      Unreleased
+	    </para>
+	  </warning>
+	</para>
+	<para>
+	  Version 3.3.1 contains a small number of important fixes, adds some memory usage statistics, but no new features.
+	</para>
+	<itemizedlist>
+	<listitem>
+	  <para>
+	    Discovered by John J and Robin J, the PowerDNS Recursor did not process packets that were truncated in mid-record, and also did not act
+	    on the 'truncated' (TC) flag in that case. This broke a very small number of domains, most of them served by very old versions of the 
+	    PowerDNS Authoritative Server. Fix in c1740.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    PowerDNS emitted a harmless, but irritating, error message on receiving certain very short packets. Discovered by Winfried A and John J, fix 
+	    in c1729.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    PowerDNS could crash on startup if configured to provide service on malformed IPv6 addresses on FreeBSD, or in case when the FreeBSD kernel
+	    was compiled without any form of IPv6 support. Debugged by Bryan Seitz, fix in c1727.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Add max-mthread-stack metric to debug rare crashes. Could be used to save memory on constrained systems. Implemented in c1745.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Add cache-bytes and packetcache-bytes metrics to measure our 'pre-malloc' memory utilization. Implemented in c1750.
+	  </para>
+	</listitem>
+	</itemizedlist>
+      </sect2>
+	
       <sect2 id="changelog-recursor-3-3"><title>Recursor version 3.3 </title>
 	<para>
 	  <warning>
@@ -9817,6 +9861,7 @@ concurrent-queries  shows the number of MThreads currently running
 dlg-only-drops      number of records dropped because of delegation only setting
 dont-outqueries	    number of outgoing queries dropped because of 'dont-query' setting (since 3.3)
 ipv6-outqueries     number of outgoing queries over IPv6
+max-mthread-stack   maximum amount of thread stack ever used
 negcache-entries    shows the number of entries in the Negative answer cache
 noerror-answers     counts the number of times it answered NOERROR since starting
 nsspeeds-entries    shows the number of entries in the NS speeds map
