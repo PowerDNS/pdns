@@ -9807,6 +9807,7 @@ answers100-1000     counts the number of queries answered within 1 second
 answers10-100       counts the number of queries answered within 100 miliseconds
 answers1-10         counts the number of queries answered within 10 miliseconds
 answers-slow        counts the number of queries answered after 1 second
+cache-bytes         Size of the cache in bytes (since 3.3.1)
 cache-entries       shows the number of entries in the cache
 cache-hits          counts the number of cache hits since starting
 cache-misses        counts the number of cache misses since starting
@@ -9823,6 +9824,7 @@ nsset-invalidations number of times an nsset was dropped because it no longer wo
 nxdomain-answers    counts the number of times it answered NXDOMAIN since starting
 outgoing-timeouts   counts the number of timeouts on outgoing UDP queries since starting
 over-capacity-drops Questions dropped because over maximum concurrent query limit (since 3.2)
+packetcache-bytes   Size of the packet cache in bytes (since 3.3.1)
 packetcache-entries Size of packet cache (since 3.2)
 packetcache-hits    Packet cache hits (since 3.2)
 packetcache-misses  Packet cache misses (since 3.2)

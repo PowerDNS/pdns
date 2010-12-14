@@ -26,6 +26,7 @@ public:
   void prune();
   uint64_t d_hits, d_misses;
   uint64_t size();
+  uint64_t bytes();
 
 private:
 

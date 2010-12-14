@@ -1,4 +1,5 @@
 #include <iostream>
+#include <boost/foreach.hpp>
 #include "recpacketcache.hh"
 #include "cachecleaner.hh"
 #include "dns.hh"
@@ -61,6 +62,16 @@ uint64_t RecursorPacketCache::size()
 {
   return d_packetCache.size();
 }
+
+uint64_t RecursorPacketCache::bytes()
+{
+  uint64_t sum=0;
+  BOOST_FOREACH(const struct Entry& e, d_packetCache) {
+    sum += sizeof(e) + e.d_packet.length() + 4;
+  }
+  return sum;
+}
+
 
 void RecursorPacketCache::doPruneTo(unsigned int maxCached)
 {

@@ -298,9 +298,20 @@ uint64_t* pleaseGetCacheSize()
   return new uint64_t(t_RC->size());
 }
 
+uint64_t* pleaseGetCacheBytes()
+{
+  return new uint64_t(t_RC->bytes());
+}
+
+
 uint64_t doGetCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheSize);
+}
+
+uint64_t doGetCacheBytes()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetCacheBytes);
 }
 
 uint64_t* pleaseGetCacheHits()
@@ -324,17 +335,27 @@ uint64_t doGetCacheMisses()
 }
 
 
-
-
 uint64_t* pleaseGetPacketCacheSize()
 {
   return new uint64_t(t_packetCache->size());
 }
 
+uint64_t* pleaseGetPacketCacheBytes()
+{
+  return new uint64_t(t_packetCache->bytes());
+}
+
+
 uint64_t doGetPacketCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
 }
+
+uint64_t doGetPacketCacheBytes()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheBytes);
+}
+
 
 uint64_t* pleaseGetPacketCacheHits()
 {
@@ -356,6 +377,13 @@ uint64_t doGetPacketCacheMisses()
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheMisses);
 }
 
+uint64_t doGetMallocated()
+{
+  // this turned out to be broken
+/*  struct mallinfo mi = mallinfo();
+  return mi.uordblks; */
+  return 0;
+}
 
 RecursorControlParser::RecursorControlParser()
 {
@@ -365,12 +393,14 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("cache-hits", doGetCacheHits);
   addGetStat("cache-misses", doGetCacheMisses); 
   addGetStat("cache-entries", doGetCacheSize); 
+  addGetStat("cache-bytes", doGetCacheBytes); 
   
   addGetStat("packetcache-hits", doGetPacketCacheHits);
   addGetStat("packetcache-misses", doGetPacketCacheMisses); 
   addGetStat("packetcache-entries", doGetPacketCacheSize); 
+  addGetStat("packetcache-bytes", doGetPacketCacheBytes); 
   
-  
+  addGetStat("malloc-bytes", doGetMallocated);
   
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
@@ -456,6 +486,8 @@ static void doExit()
 
 static void doExitNicely()
 {
+  //extern void printCallers();
+  // printCallers();
   doExitGeneric(true);
 }
 
@@ -530,8 +562,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="quit-nicely") {
     *command=&doExitNicely;
     return "bye nicely\n";
-  }
-  
+  }  
 
   if(cmd=="dump-cache") 
     return doDumpCache(begin, end);
@@ -577,6 +608,6 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="reload-zones") {
     return reloadAuthAndForwards();
   }
-
+  
   return "Unknown command '"+cmd+"'\n";
 }
