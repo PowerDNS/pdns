@@ -394,7 +394,7 @@ void DNSPacket::wrapup(void)
 	}
       }
       if(d_dnssecOk && !(d_tcp && d_rrs.rbegin()->qtype.getCode() == QType::SOA && d_rrs.rbegin()->priority == 1234)) {
-	cerr<<"Last signature.. "<<d_tcp<<", "<<d_rrs.rbegin()->priority<<", "<<d_rrs.rbegin()->qtype.getCode()<<", "<< d_rrs.size()<<endl;
+	// cerr<<"Last signature.. "<<d_tcp<<", "<<d_rrs.rbegin()->priority<<", "<<d_rrs.rbegin()->qtype.getCode()<<", "<< d_rrs.size()<<endl;
 	addSignature(::arg()["key-repository"], signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
       }
 

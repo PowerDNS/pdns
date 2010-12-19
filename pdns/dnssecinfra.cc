@@ -219,17 +219,17 @@ DNSKEYRecordContent getDNSKEYFor(const std::string& keyRepositoryDir, const std:
         return value.first.getDNSKEY();
       }
       else 
-        cerr<<"Found an expired ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
+        cerr<<"Found an inactive ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
     }
-    cerr<<"withKSK was not true, but found nothing!"<<endl;
+    cerr<<"Could not find an active ZSK for '"<<qname<<"'"<<endl;
     exit(1);
   }
   else if(dk.haveKSKFor(qname, &dpk)) {
-    cerr<<"Found something"<<endl;
+    cerr<<"Found a KSK for '"<<qname<<"'"<<endl;
     *rc=dpk.d_key;
     return dpk.getDNSKEY();
   } else {
-      cerr<<"DID NOT FIND A ZSK!"<<endl;
+      cerr<<"DID NOT FIND A ZSK for '"<<qname<<"'"<<endl;
       exit(1);
   }
 }
