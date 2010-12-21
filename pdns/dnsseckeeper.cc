@@ -96,6 +96,26 @@ bool DNSSECKeeper::haveKSKFor(const std::string& zone, DNSSECPrivateKey* dpk)
   return false;
 }
 
+unsigned int DNSSECKeeper::getNextKeyIDFromDir(const std::string& dirname)
+{
+  fs::path full_path = fs::system_complete( fs::path(dirname));
+
+  if ( !fs::exists( full_path ) )
+    unixDie("Unable to get next free key id from '"+dirname+"'");
+
+  fs::directory_iterator end_iter;
+  unsigned int maxID=0;
+  for ( fs::directory_iterator dir_itr( full_path );
+	dir_itr != end_iter;
+	++dir_itr )
+  {
+	  if(ends_with(dir_itr->leaf(),".isc")) {
+		  maxID = max(maxID, (unsigned int)atoi(dir_itr->leaf().c_str()));
+	  }
+  }
+  return maxID+1;
+}
+
 void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool active)
 {
   DNSSECPrivateKey dpk;
@@ -106,14 +126,13 @@ void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool active
   drc.d_flags = 256; // KSK
   drc.d_algorithm = algorithm; 
   string iscName=d_dirname+"/"+name+"/zsks/";
+  unsigned int id = getNextKeyIDFromDir(iscName);
   time_t inception=time(0);
-
- 
 
   struct tm ts;
   gmtime_r(&inception, &ts);
 
-  iscName += (boost::format("%04d%02d%02d%02d%02d") 
+  iscName += (boost::format("%06d-%04d%02d%02d%02d%02d") % id
 	      % (1900+ts.tm_year) % (ts.tm_mon + 1)
 	      % ts.tm_mday % ts.tm_hour % ts.tm_min).str();
 
@@ -131,14 +150,12 @@ void DNSSECKeeper::addZSKFor(const std::string& name, int algorithm, bool active
 
 }
 
-/*
-bool zskSortByDates(const DNSSECKeeper::zskset_t::value_type& a, const DNSSECKeeper::zskset_t::value_type& b)
+
+static bool zskCompareByID(const DNSSECKeeper::zskset_t::value_type& a, const DNSSECKeeper::zskset_t::value_type& b)
 {
-  return 
-    tie(a.second.beginValidity, a.second.endValidity) < 
-    tie(b.second.beginValidity, b.second.endValidity);
+  return a.second.id < b.second.id;
 }
-* */
+
 void DNSSECKeeper::deleteZSKFor(const std::string& zname, const std::string& fname)
 {
   unlink((d_dirname +"/"+ zname +"/zsks/"+fname).c_str());
@@ -216,7 +233,9 @@ DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool al
       memset(&ts1, 0, sizeof(ts1));
       memset(&ts2, 0, sizeof(ts2));
       
-      sscanf(dir_itr->leaf().c_str(), "%04d%02d%02d%02d%02d",
+      unsigned int id;
+      sscanf(dir_itr->leaf().c_str(), "%06u-%04d%02d%02d%02d%02d",
+		 &id,
 	     &ts1.tm_year, 
 	     &ts1.tm_mon, &ts1.tm_mday, &ts1.tm_hour, &ts1.tm_min);
 	     
@@ -227,12 +246,12 @@ DNSSECKeeper::zskset_t DNSSECKeeper::getZSKsFor(const std::string& zone, bool al
       
       KeyMetaData kmd;
       
-      
+	  kmd.id = id;
       kmd.fname = dir_itr->leaf();
       kmd.active = kmd.fname.find(".active") != string::npos;
       zskset.push_back(make_pair(dpk, kmd));
     }
-    // sort(zskset.begin(), zskset.end(), zskSortByDates);
+    sort(zskset.begin(), zskset.end(), zskCompareByID);
   }
 
   return zskset;
@@ -251,19 +270,22 @@ void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
   if(mkdir((d_dirname+"/"+name+"/zsks").c_str(), 0700) < 0)
     unixDie("Making directory for keys in '"+d_dirname+"'");
 
+  // now add the KSK
+
   DNSSECPrivateKey dpk;
   dpk.d_key.create(2048); // for testing, 1024
 
   string isc = dpk.d_key.convertToISC();
   DNSKEYRecordContent drc = dpk.getDNSKEY();
-  drc.d_flags = 257; // ZSK
+  drc.d_flags = 257; // ZSK (?? for a KSK?)
   drc.d_algorithm = algorithm;  
   string iscName=d_dirname+"/"+name+"/ksks/";
 
   time_t now=time(0);
   struct tm ts;
   gmtime_r(&now, &ts);
-  iscName += (boost::format("%04d%02d%02d%02d%02d.%u") 
+  unsigned int id=1;
+  iscName += (boost::format("%06d-%04d%02d%02d%02d%02d.%u") % id
 	      % (1900+ts.tm_year) % (ts.tm_mon + 1)
 	      % ts.tm_mday % ts.tm_hour % ts.tm_min % drc.getTag()).str();
 

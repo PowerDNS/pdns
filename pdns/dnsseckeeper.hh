@@ -84,6 +84,7 @@ class DNSSECKeeper
 public:
   struct KeyMetaData
   {
+	unsigned int id;
     bool active;
     string fname;
   }; 
@@ -103,7 +104,7 @@ public:
 
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* n3p);
-
+  static unsigned int getNextKeyIDFromDir(const std::string& dirname);
 private:
   std::string d_dirname;
 };

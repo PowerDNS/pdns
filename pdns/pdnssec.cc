@@ -210,6 +210,7 @@ try
     }
     checkZone(dk, cmds[1]);
   }
+#if 0
   else if(cmds[0] == "update-zone-keys") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
@@ -263,6 +264,7 @@ try
     }
 
   }
+#endif
   else if(cmds[0] == "show-zone") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
@@ -290,7 +292,7 @@ try
     else {  
       cout << "ZSKs for zone '"<<zone<<"':"<<endl;
       BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        cout<<"ID = "<<value.second.id<<", tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
       }
     }
   }
@@ -331,7 +333,7 @@ try
 
     cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
     BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-      cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
+      cout<<"id = "<<value.second.id<<", tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
     }
   }
   else {
