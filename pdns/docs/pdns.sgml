@@ -4629,7 +4629,7 @@ pdns[17495]: AXFR done for 'forfun.net', zone committed
 	    <listitem>
 	      <para>
 		Added <command>bind-reload-now</command> command that tries to reload a zone from disk NOW, and reports back errors to the operator
-		immediatly.
+		immediately.
 	      </para>
 	    </listitem>
 	    <listitem>
