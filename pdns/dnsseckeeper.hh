@@ -4,6 +4,7 @@
 #include <polarssl/rsa.h>
 #include <string.h>
 #include <vector>
+#include <boost/logic/tribool.hpp>
 #include "dnsrecords.hh"
 
 #define PDNSSEC_MI(x) mpi_init(&d_context.x, 0)
@@ -66,6 +67,7 @@ private:
   rsa_context d_context;
 };
 
+// ?
 #undef PDNSSEC_MC
 #undef PDNSSEC_MI
 #undef PDNSSEC_MF
@@ -84,27 +86,30 @@ class DNSSECKeeper
 public:
   struct KeyMetaData
   {
-	unsigned int id;
+    unsigned int id;
     bool active;
+    bool keyOrZone;
     string fname;
   }; 
-  typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > zskset_t;
+  typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > keyset_t;
    
 public:
   explicit DNSSECKeeper(const std::string& dirname) : d_dirname(dirname){}
 
-  bool haveKSKFor(const std::string& zone, DNSSECPrivateKey* ksk=0);
+  bool haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* ksk=0);
   
-  zskset_t getZSKsFor(const std::string& zone, bool all=false);
-  void addZSKFor(const std::string& zname, int algorithm, bool next=false);
-  
-  void deleteZSKFor(const std::string& zname, const std::string& fname);
+  keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
+  void addKey(const std::string& zname, bool keyOrZone, int algorithm, bool active=true);
+  void removeKey(const std::string& zname, unsigned int id);
+  void activateKey(const std::string& zname, unsigned int id);
+  void deactivateKey(const std::string& zname, unsigned int id);
 
   void secureZone(const std::string& fname, int algorithm);
 
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* n3p);
   static unsigned int getNextKeyIDFromDir(const std::string& dirname);
+  std::string getKeyFilenameById(const std::string& dirname, unsigned int id);
 private:
   std::string d_dirname;
 };

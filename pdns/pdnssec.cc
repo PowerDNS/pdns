@@ -189,7 +189,7 @@ try
     cmds = g_vm["commands"].as<vector<string> >();
 
   if(cmds.empty() || g_vm.count("help")) {
-    cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [alter-zone] [order-zone] [update-zone-keys]\n";
+    cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [alter-zone] [order-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
     cerr<<desc<<endl;
     return 0;
   }
@@ -224,7 +224,7 @@ try
       cerr << "No KSK for zone '"<<zone<<"', can't update the ZSKs"<<endl;
       return 0;
     }
-    DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
+    DNSSECKeeper::keyset_t zskset=dk.getZSKsFor(zone);
 
     int inforce=0;
     time_t now = time(&now);
@@ -233,7 +233,7 @@ try
     if(!zskset.empty())  {
       cout<<"There were ZSKs already for zone '"<<zone<<"': "<<endl;
       
-      BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
+      BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
         cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl; // ", "<<humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
         if(value.second.active) 
           inforce++;
@@ -250,16 +250,16 @@ try
       cerr << "Two or more ZSKs were active already, not generating a third" << endl;
       return 0;
     }
-    dk.addZSKFor(zone, 5);
-    dk.addZSKFor(zone, 5, true); // 'next'
+    dk.addKey(zone, true, 5);
+    dk.addKey(zone, true, 5, false); // not yet active
 
-    zskset = dk.getZSKsFor(zone);
+    keyset = dk.getKeys(zone);
     if(zskset.empty()) {
       cerr<<"This should not happen, still no ZSK!"<<endl;
     }
 
     cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
-    BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
+    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
       cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
     }
 
@@ -271,31 +271,45 @@ try
       return 0;
     }
     const string& zone=cmds[1];
-    DNSSECPrivateKey dpk;
     
-    if(!dk.haveKSKFor(zone, &dpk)) {
-      cerr << "No KSK for zone '"<<zone<<"'."<<endl;
-    }
-    else {
-      cout<<"KSK present:"<<endl;
-      cout<<"Tag = "<<dpk.getDNSKEY().getTag()<<endl;
-      cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< dpk.getDNSKEY().getZoneRepresentation() << endl;
-      cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY()).getZoneRepresentation() << endl << endl;
-    }
-    
-    
-    DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
+    DNSSECKeeper::keyset_t keyset=dk.getKeys(zone, boost::indeterminate);
 
-    if(zskset.empty())  {
-      cerr << "No ZSKs for zone '"<<zone<<"'."<<endl;
+    if(keyset.empty())  {
+      cerr << "No keys for zone '"<<zone<<"'."<<endl;
     }
     else {  
-      cout << "ZSKs for zone '"<<zone<<"':"<<endl;
-      BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
-        cout<<"ID = "<<value.second.id<<", tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+      cout << "keys: for zone '"<<zone<<"':"<<endl;
+      BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+        cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        if(value.second.keyOrZone) {
+          cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
+          cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY()).getZoneRepresentation() << endl << endl;
+        }
       }
     }
   }
+  else if(cmds[0] == "activate-zone-key") {
+    const string& zone=cmds[1];
+    unsigned int id=atoi(cmds[2].c_str());
+    dk.activateKey(zone, id);
+  }
+  else if(cmds[0] == "deactivate-zone-key") {
+    const string& zone=cmds[1];
+    unsigned int id=atoi(cmds[2].c_str());
+    dk.deactivateKey(zone, id);
+  }
+  else if(cmds[0] == "add-zone-key") {
+    const string& zone=cmds[1];
+    // need to get algorithm & ksk or zsk
+    dk.addKey(zone, 1, 5, 0); 
+    cerr<<"Not implemented"<<endl;
+  }
+  else if(cmds[0] == "remove-zone-key") {
+    const string& zone=cmds[1];
+    unsigned int id=atoi(cmds[2].c_str());
+    dk.removeKey(zone, id);
+  }
+  
   else if(cmds[0] == "secure-zone") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
@@ -304,35 +318,35 @@ try
     const string& zone=cmds[1];
     DNSSECPrivateKey dpk;
     
-    if(dk.haveKSKFor(zone, &dpk) && !g_vm.count("force")) {
+    if(dk.haveActiveKSKFor(zone, &dpk) && !g_vm.count("force")) {
       cerr << "There is a key already for zone '"<<zone<<"', use --force to overwrite"<<endl;
       return 0;
     }
       
     dk.secureZone(zone, 5);
 
-    if(!dk.haveKSKFor(zone, &dpk)) {
+    if(!dk.haveActiveKSKFor(zone, &dpk)) {
       cerr << "This should not happen, still no key!" << endl;
     }
     cout<<"Created KSK with tag "<<dpk.getDNSKEY().getTag()<<endl;
   
-    DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(zone);
+    DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
 
     if(!zskset.empty() && !g_vm.count("force"))  {
       cerr<<"There were ZSKs already for zone '"<<zone<<"'"<<endl;
       return 0;
     }
       
-    dk.addZSKFor(zone, 5);
-    dk.addZSKFor(zone, 5, true); // 'next'
+    dk.addKey(zone, false, 5);
+    dk.addKey(zone, false, 5, false); // not active
 
-    zskset = dk.getZSKsFor(zone);
+    zskset = dk.getKeys(zone, false);
     if(zskset.empty()) {
       cerr<<"This should not happen, still no ZSK!"<<endl;
     }
 
     cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
-    BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
+    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
       cout<<"id = "<<value.second.id<<", tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
     }
   }

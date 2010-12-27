@@ -186,7 +186,7 @@ bool getSignerFor(const std::string& keyRepositoryDir, const std::string& qname,
 
   signer=qname;
   do {
-    if(dk.haveKSKFor(signer)) 
+    if(dk.haveActiveKSKFor(signer)) 
       return true;
   } while(chopOff(signer));
   return false;
@@ -211,8 +211,8 @@ DNSKEYRecordContent getDNSKEYFor(const std::string& keyRepositoryDir, const std:
   DNSSECPrivateKey dpk;
 
   if(!withKSK) {
-    DNSSECKeeper::zskset_t zskset=dk.getZSKsFor(qname);
-    BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
+    DNSSECKeeper::keyset_t zskset=dk.getKeys(qname, false);
+    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
       if(value.second.active) {
         cerr<<"Found a ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
         *rc=value.first.d_key;
@@ -224,7 +224,7 @@ DNSKEYRecordContent getDNSKEYFor(const std::string& keyRepositoryDir, const std:
     cerr<<"Could not find an active ZSK for '"<<qname<<"'"<<endl;
     exit(1);
   }
-  else if(dk.haveKSKFor(qname, &dpk)) {
+  else if(dk.haveActiveKSKFor(qname, &dpk)) {
     cerr<<"Found a KSK for '"<<qname<<"'"<<endl;
     *rc=dpk.d_key;
     return dpk.getDNSKEY();
