@@ -210,7 +210,7 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
   bool haveOne=false;
   DNSSECPrivateKey dpk;
 
-  if(dk.haveKSKFor(p->qdomain, &dpk)) {
+  if(dk.haveActiveKSKFor(p->qdomain, &dpk)) {
     rr.qtype=QType::DNSKEY;
     rr.ttl=3600;
     rr.qname=p->qdomain;
@@ -220,8 +220,8 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
     haveOne=true;
   }
 
-  DNSSECKeeper::zskset_t zskset = dk.getZSKsFor(p->qdomain);
-  BOOST_FOREACH(DNSSECKeeper::zskset_t::value_type value, zskset) {
+  DNSSECKeeper::keyset_t zskset = dk.getKeys(p->qdomain, false);
+  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
     rr.qtype=QType::DNSKEY;
     rr.ttl=3600;
     rr.qname=p->qdomain;
