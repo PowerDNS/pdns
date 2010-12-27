@@ -51,6 +51,7 @@ class DNSLabel
 		explicit DNSLabel(const std::string& human);
 		DNSLabel(const char* raw, unsigned int length);
 		DNSLabel(const DNSLabel& rhs);
+		DNSLabel(const char* raw, const char* beginPacket, unsigned int packetLength, unsigned int* len);
 		DNSLabel();
 		~DNSLabel();
 		string human() const;
@@ -87,5 +88,14 @@ class DNSLabel
 				expandCapacity();
 			d_storage[d_fulllen++]= c;
 		}
-		void expandCapacity();
+		void appendRange(const char* ptr, unsigned int len)
+		{
+			if(d_fulllen + len > d_capacity)
+				expandCapacity(len);
+			memcpy(d_storage + d_fulllen, ptr, len);
+			d_fulllen += len;
+		}
+
+		void expandCapacity(unsigned int len=0);
+		void chaseLabel(const char* raw, const char* beginPacket, unsigned int packetLength, unsigned int* len, bool updateLen);
 };

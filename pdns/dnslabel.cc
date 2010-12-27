@@ -114,6 +114,13 @@ int DNSLabel::validateConsume(const char* raw, unsigned int maxLen)
 		if(p > (const unsigned char*)raw + maxLen) // beyond the end
 			return -1;
 			
+		cerr<<(int)*p<<endl;
+		if(*p >= 0xc0 && p + 1 < (const unsigned char*)raw + maxLen) {
+			unsigned int offset=(*p & ~0xc0) * 0xff + *(p+1);
+			++p;
+			cerr<<"Wants to refer to offset "<<offset<<endl;
+			return -1;
+		}
 		if(*p > 64) // label length too long, or a compression pointer
 			return -1;
 		
@@ -142,7 +149,6 @@ string DNSLabel::human() const
 		// cerr<<"human, labelLen: "<<(int) labelLen<<endl;
 		++p;
 		ret.append(p, (int)labelLen);
-		
 		
 		if(!labelLen)
 			break;
@@ -174,9 +180,25 @@ string DNSLabel::binary() const
 	return std::string(getStart(), getLength());
 }
 
-void DNSLabel::expandCapacity()
+static unsigned int roundUpToNextPowerOfTwo(unsigned int x)
 {
-	d_capacity *= 2;
+	x--;
+  x |= x >> 1;  // handle  2 bit numbers
+  x |= x >> 2;  // handle  4 bit numbers
+  x |= x >> 4;  // handle  8 bit numbers
+  x |= x >> 8;  // handle 16 bit numbers
+  x |= x >> 16; // handle 32 bit numbers
+  x++;
+ 
+  return x;
+}
+void DNSLabel::expandCapacity(unsigned int len)
+{
+	if(!len)
+		d_capacity *= 2;
+	else {
+		d_capacity = roundUpToNextPowerOfTwo(d_capacity + len);
+	}
 	char *newStorage = new char[d_capacity];
 	memcpy(newStorage, d_storage, d_fulllen);
 	delete[] d_storage;
@@ -190,6 +212,58 @@ DNSLabel DNSLabel::createFromBuffer(const char* raw, unsigned int* len)
 		throw std::runtime_error("raw input to DNSLabel factory was invalid");
 	*len = (unsigned int) result;
 	return DNSLabel(raw, result);
+}
+
+void DNSLabel::chaseLabel(const char* raw, const char* beginPacket, unsigned int packetLength, unsigned int* len, bool updateLen)
+{
+	const unsigned char* p = (const unsigned char*) raw;
+
+	for(;;) {
+		if(p > (const unsigned char*)beginPacket + packetLength) // beyond the end
+			throw std::range_error("label begins beyond end of packet");
+			
+		if(*p >= 0xc0 && p + 1 < (const unsigned char*)beginPacket + packetLength) {
+			unsigned int offset=(*p & ~0xc0) * 256 + *(p+1);
+			if(offset < 12)
+				throw std::range_error("compression pointer to before beginning of content");
+			offset -= 12;
+			cerr<<"new offset: "<<offset<<endl;
+			if((const unsigned char*)beginPacket + offset >= p) {
+				throw std::runtime_error("looping or forward compression pointer");
+			}
+				
+			p+=2;
+			if(updateLen) {
+				*len = (p - (const unsigned char*)raw);
+			}
+			
+			chaseLabel(beginPacket + offset, beginPacket, packetLength, len, false);
+			return;
+		}
+		if(*p > 64) // label length too long, or a compression pointer
+			throw std::range_error("label too long");
+		
+		if(!*p) { // final label, setbytes consumed
+			appendChar(0);
+			if(updateLen)
+				*len = 1 + (p - (const unsigned char*)raw);
+			return;
+		}
+		appendChar(*p);
+		appendRange((const char*)p+1, *p);
+		p += *p + 1;
+	}
+	 // we should not get here, but if we do, it's bad
+}
+
+DNSLabel::DNSLabel(const char* raw, const char* beginPacket, unsigned int packetLength, unsigned int* len)
+{
+	init();
+	if(!*len) {
+		throw std::range_error("void label"); // shortest ok label is: '\x00'
+	}
+
+	chaseLabel(raw, beginPacket, packetLength, len, true);
 }
 
 #if 0
