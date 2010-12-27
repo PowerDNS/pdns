@@ -272,7 +272,7 @@ try
     }
     const string& zone=cmds[1];
     
-    DNSSECKeeper::keyset_t keyset=dk.getKeys(zone, boost::indeterminate);
+    DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
 
     if(keyset.empty())  {
       cerr << "No keys for zone '"<<zone<<"'."<<endl;

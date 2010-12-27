@@ -37,8 +37,6 @@ std::string RSAContext::convertToISC()
   typedef vector<pair<string, mpi*> > outputs_t;
   outputs_t outputs;
   push_back(outputs)("Modulus", &d_context.N)("PublicExponent",&d_context.E)
-    ("Modulus", &d_context.N)
-    ("PublicExponent",&d_context.E)
     ("PrivateExponent",&d_context.D)
     ("Prime1",&d_context.P)
     ("Prime2",&d_context.Q)
@@ -83,7 +81,7 @@ bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* d
 	++dir_itr )
   {
     //    cerr<<"Entry: '"<< dir_itr->leaf() <<"'"<<endl;
-    if(ends_with(dir_itr->leaf(),".isc")) {
+    if(ends_with(dir_itr->leaf(),".private")) {
       //      cerr<<"Hit!"<<endl;
 
       if(dpk) {
@@ -118,7 +116,7 @@ unsigned int DNSSECKeeper::getNextKeyIDFromDir(const std::string& dirname)
 	dir_itr != end_iter;
 	++dir_itr )
   {
-	  if(ends_with(dir_itr->leaf(),".isc")) {
+	  if(ends_with(dir_itr->leaf(),".private")) {
 		  maxID = max(maxID, (unsigned int)atoi(dir_itr->leaf().c_str()));
 	  }
   }
@@ -170,32 +168,33 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   iscName += active ? ".active" : ".passive";
   
   {  
-    ofstream iscFile((iscName+".isc").c_str());
+    ofstream iscFile((iscName+".private").c_str());
     iscFile << isc;
   }
 
   {  
-    ofstream dnskeyFile((iscName+".dnskey").c_str());
+    ofstream dnskeyFile((iscName+".key").c_str());
     dnskeyFile << toCanonic("", name) << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
   }
 
 }
 
 
-static bool zskCompareByID(const DNSSECKeeper::keyset_t::value_type& a, const DNSSECKeeper::keyset_t::value_type& b)
+static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, const DNSSECKeeper::keyset_t::value_type& b)
 {
-  return a.second.id < b.second.id;
+  return make_pair(!a.second.keyOrZone, a.second.id) <
+         make_pair(!b.second.keyOrZone, b.second.id);
 }
 
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
-  // unlink((d_dirname +"/"+ zname +"/zsks/"+fname).c_str());
-  abort();
+  string fname = getKeyFilenameById(d_dirname+"/keys/", id);
+  if(unlink(fname.c_str()) < 0)
+    unixDie("removing key file '"+fname+"'");
 }
 
 void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
-  // unlink((d_dirname +"/"+ zname +"/zsks/"+fname).c_str());
   string fname = getKeyFilenameById(d_dirname+"/keys/", id);
   string newname = boost::replace_last_copy(fname, ".active", ".passive");
   if(rename(fname.c_str(), newname.c_str()) < 0)
@@ -204,8 +203,10 @@ void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 
 void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
-  // unlink((d_dirname +"/"+ zname +"/zsks/"+fname).c_str());
-  abort();
+  string fname = getKeyFilenameById(d_dirname+"/keys/", id);
+  string newname = boost::replace_last_copy(fname, ".passive", ".active");
+  if(rename(fname.c_str(), newname.c_str()) < 0)
+    unixDie("renaming file to deactivate key, from: '"+fname+"' to '"+newname+"'");
 }
 
 bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
@@ -263,7 +264,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
 	++dir_itr )
   {
     //cerr<<"Entry: '"<< dir_itr->leaf() <<"'"<<endl;
-    if(ends_with(dir_itr->leaf(),".isc")) {
+    if(ends_with(dir_itr->leaf(),".private")) {
       DNSSECPrivateKey dpk;
       getRSAKeyFromISC(&dpk.d_key.getContext(), dir_itr->path().file_string().c_str());
 
@@ -285,9 +286,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
         &ts1.tm_year, 
         &ts1.tm_mon, &ts1.tm_mday, &ts1.tm_hour, &ts1.tm_min);
 	     
-
       ts1.tm_year -= 1900;
-      
       ts1.tm_mon--;
       
       KeyMetaData kmd;
@@ -299,7 +298,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
       if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == kmd.keyOrZone)
         keyset.push_back(make_pair(dpk, kmd));
     }
-    sort(keyset.begin(), keyset.end(), zskCompareByID);
+    sort(keyset.begin(), keyset.end(), keyCompareByKindAndID);
   }
 
   return keyset;
@@ -342,12 +341,12 @@ void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
 
 
   {  
-    ofstream iscFile((iscName+".isc").c_str());
+    ofstream iscFile((iscName+".private").c_str());
     iscFile << isc;
   }
 
   {  
-    ofstream dnskeyFile((iscName+".dnskey").c_str());
+    ofstream dnskeyFile((iscName+".key").c_str());
     dnskeyFile << toCanonic("", name) << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
   }
 #endif
