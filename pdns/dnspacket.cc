@@ -387,12 +387,13 @@ void DNSPacket::wrapup(void)
 	  if(pos->d_place == DNSResourceRecord::ANSWER) {
 	    cerr<<"Set TC bit"<<endl;
 	    pw.getHeader()->tc=1;
-      }
+	  }
 	  goto noCommit;
 
 	  break;
 	}
       }
+      // I assume this is some dirty hack to prevent us from signing the last SOA record in an AXFR.. XXX FIXME
       if(d_dnssecOk && !(d_tcp && d_rrs.rbegin()->qtype.getCode() == QType::SOA && d_rrs.rbegin()->priority == 1234)) {
 	// cerr<<"Last signature.. "<<d_tcp<<", "<<d_rrs.rbegin()->priority<<", "<<d_rrs.rbegin()->qtype.getCode()<<", "<< d_rrs.size()<<endl;
 	addSignature(::arg()["key-repository"], signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);

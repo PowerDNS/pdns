@@ -280,7 +280,6 @@ void *qthread(void *number)
   return 0;
 }
 
-
 void mainthread()
 {
   Utility::srandom(time(0));

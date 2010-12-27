@@ -1185,6 +1185,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       rr.ttl=sd.ttl;
       rr.domain_id=sd.domain_id;
       rr.d_place=DNSResourceRecord::ANSWER;
+      rr.auth = true;
       r->addRecord(rr);
       goto sendit;
     }

@@ -282,7 +282,7 @@ void *TCPNameserver::doConnection(void *data)
       shared_ptr<DNSPacket> reply; 
       shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
 
-      if(!packet->d.rd && (PC.get(packet.get(), cached.get()))) { // short circuit - does the PacketCache recognize this question?
+      if(!packet->d.rd && !packet->d_dnssecOk && packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
         cached->setRemote(&packet->remote);
         cached->d.id=packet->d.id;
         cached->d.rd=packet->d.rd; // copy in recursion desired bit 
