@@ -55,10 +55,16 @@ public:
     return *this;
   }
 
-  rsa_context& getContext()
+  const rsa_context& getConstContext() const
   {
     return d_context;
   }
+
+  rsa_context& getContext() 
+  {
+    return d_context;
+  }
+
 
   void create(unsigned int bits);
   std::string convertToISC();
@@ -77,8 +83,9 @@ struct DNSSECPrivateKey
   uint16_t getTag();
   
   RSAContext d_key;
-  DNSKEYRecordContent getDNSKEY();
+  DNSKEYRecordContent getDNSKEY() const;
   uint8_t d_algorithm;
+  uint16_t d_flags;
 };
 
 class DNSSECKeeper

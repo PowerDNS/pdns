@@ -68,39 +68,6 @@ bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* d
     *dpk = keys.begin()->first;
   }
   return !keys.empty();
-  
-  #if 0
-  fs::path full_path = fs::system_complete( fs::path(d_dirname + "/" + zone + "/keys/" ) );
-
-  if ( !fs::exists( full_path ) )
-    return false;
-
-  fs::directory_iterator end_iter;
-  for ( fs::directory_iterator dir_itr( full_path );
-	dir_itr != end_iter;
-	++dir_itr )
-  {
-    //    cerr<<"Entry: '"<< dir_itr->leaf() <<"'"<<endl;
-    if(ends_with(dir_itr->leaf(),".private")) {
-      //      cerr<<"Hit!"<<endl;
-
-      if(dpk) {
-        getRSAKeyFromISC(&dpk->d_key.getContext(), dir_itr->path().file_string().c_str());
-	
-        if(getNSEC3PARAM(zone)) {
-          dpk->d_algorithm = 7;
-        }
-        else {
-          dpk->d_algorithm = 5;
-        }
-      
-      }
-      return true;
-    }
-  }
-
-  return false;
-  #endif
 }
 
 unsigned int DNSSECKeeper::getNextKeyIDFromDir(const std::string& dirname)
@@ -128,7 +95,7 @@ std::string DNSSECKeeper::getKeyFilenameById(const std::string& dirname, unsigne
   fs::path full_path = fs::system_complete( fs::path(dirname));
 
   if ( !fs::exists( full_path ) )
-    unixDie("Unable to get free key id from '"+dirname+"'");
+    unixDie("Unable to get filname key id from '"+dirname+"'");
 
   fs::directory_iterator end_iter;
   pair<string, string> parts;
@@ -136,6 +103,8 @@ std::string DNSSECKeeper::getKeyFilenameById(const std::string& dirname, unsigne
     dir_itr != end_iter;
     ++dir_itr )
   {
+    if(!ends_with(dir_itr->leaf(), ".private"))
+      continue;
     parts = splitField(dir_itr->leaf(), '-');
 	  if(atoi(parts.first.c_str()) == (signed int)id) 
       return dirname+"/"+dir_itr->leaf();
@@ -151,7 +120,7 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
 
   string isc = dpk.d_key.convertToISC();
   DNSKEYRecordContent drc = dpk.getDNSKEY();
-  drc.d_flags = 256; // KSK
+  drc.d_flags = 256 + keyOrZone; // KSK
   drc.d_algorithm = algorithm; 
   string iscName=d_dirname+"/"+name+"/keys/";
   unsigned int id = getNextKeyIDFromDir(iscName);
@@ -188,14 +157,14 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
-  string fname = getKeyFilenameById(d_dirname+"/keys/", id);
+  string fname = getKeyFilenameById(d_dirname+"/"+zname+"/keys", id);
   if(unlink(fname.c_str()) < 0)
     unixDie("removing key file '"+fname+"'");
 }
 
 void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
-  string fname = getKeyFilenameById(d_dirname+"/keys/", id);
+  string fname = getKeyFilenameById(d_dirname+"/"+zname+"/keys/", id);
   string newname = boost::replace_last_copy(fname, ".active", ".passive");
   if(rename(fname.c_str(), newname.c_str()) < 0)
     unixDie("renaming file to deactivate key, from: '"+fname+"' to '"+newname+"'");
@@ -203,7 +172,7 @@ void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 
 void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
-  string fname = getKeyFilenameById(d_dirname+"/keys/", id);
+  string fname = getKeyFilenameById(d_dirname+"/"+zname+"/keys/", id);
   string newname = boost::replace_last_copy(fname, ".passive", ".active");
   if(rename(fname.c_str(), newname.c_str()) < 0)
     unixDie("renaming file to deactivate key, from: '"+fname+"' to '"+newname+"'");
@@ -274,7 +243,6 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
       else {
         dpk.d_algorithm = 5;
       }
-      
       struct tm ts1, ts2;
       
       memset(&ts1, 0, sizeof(ts1));
@@ -295,6 +263,9 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
       kmd.fname = dir_itr->leaf();
       kmd.active = kmd.fname.find(".active") != string::npos;
       kmd.keyOrZone = kmd.fname.find(".ksk") != string::npos;
+      
+      dpk.d_flags = 256 + kmd.keyOrZone;  // this is a clear sign we've got our abstractions wrong! FIXME XXX
+      
       if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == kmd.keyOrZone)
         keyset.push_back(make_pair(dpk, kmd));
     }
@@ -304,9 +275,9 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   return keyset;
 }
 
-DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY()
+DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
-  return makeDNSKEYFromRSAKey(&d_key.getContext(), d_algorithm);
+  return makeDNSKEYFromRSAKey(&d_key.getConstContext(), d_algorithm, d_flags);
 }
 
 

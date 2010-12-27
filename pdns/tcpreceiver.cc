@@ -18,6 +18,7 @@
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -456,6 +457,20 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
   outpacket->addRecord(soa); // AXFR format begins and ends with a SOA record, so we add one
   //  sendPacket(outpacket, outsock);
+  typedef map<string, set<uint16_t>, CanonicalCompare> nsecrepo_t;
+  nsecrepo_t nsecrepo;
+  // this is where the DNSKEYs go
+  
+  DNSSECKeeper dk(::arg()["key-repository"]);
+  DNSSECKeeper::keyset_t keys = dk.getKeys(target);
+  BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
+    rr.qname = target;
+    rr.qtype = QType(QType::DNSKEY);
+    rr.ttl = 3600;
+    rr.content = value.first.getDNSKEY().getZoneRepresentation();
+    nsecrepo[rr.qname].insert(rr.qtype.getCode());
+    outpacket->addRecord(rr);
+  }
 
   /* now write all other records */
 
@@ -468,8 +483,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket->setCompress(false);
   outpacket->d_dnssecOk=true; // WRONG
 
-  typedef map<string, set<uint16_t>, CanonicalCompare> nsecrepo_t;
-  nsecrepo_t nsecrepo;
+
 
   while(B->get(rr)) {
     if(rr.auth || rr.qtype.getCode() == QType::NS)

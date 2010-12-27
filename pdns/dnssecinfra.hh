@@ -28,7 +28,7 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname);
 void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc);
 bool sharedDNSSECCompare(const boost::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
 string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);
-DNSKEYRecordContent makeDNSKEYFromRSAKey(rsa_context* rc, uint8_t algorithm);
+DNSKEYRecordContent makeDNSKEYFromRSAKey(const rsa_context* rc, uint8_t algorithm, uint16_t flags);
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest=1);
 
 bool getSignerFor(const std::string& keyrepodir, const std::string& qname, std::string &signer);

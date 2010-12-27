@@ -149,7 +149,7 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
   return dsrc;
 }
 
-DNSKEYRecordContent makeDNSKEYFromRSAKey(rsa_context* rc, uint8_t algorithm)
+DNSKEYRecordContent makeDNSKEYFromRSAKey(const rsa_context* rc, uint8_t algorithm, uint16_t flags)
 {
   DNSKEYRecordContent drc;
   char tmp[256];
@@ -175,7 +175,7 @@ DNSKEYRecordContent makeDNSKEYFromRSAKey(rsa_context* rc, uint8_t algorithm)
   drc.d_protocol=3;
   drc.d_algorithm = algorithm;
 
-  drc.d_flags=256 + (modulus.length()>128);  // oops, I just made this up..
+  drc.d_flags=flags;
 
   return drc;
 }
