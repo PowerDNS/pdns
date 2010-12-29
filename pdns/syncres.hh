@@ -64,6 +64,7 @@ public:
       return false;
     if(now > i->second.ttd || i->second.count-- < 0) {
       d_cont.erase(i);
+      return false;
     }
 
     return true; // still listed, still blocked

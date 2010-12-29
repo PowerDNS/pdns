@@ -904,9 +904,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         	  t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
         	}
         	if(resolveret==-1)
-        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable
+        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
         	else
-        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 20, 5);  // timeout
+        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 10, 5);  // timeout
               }
               continue;
             }
@@ -914,7 +914,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             break;  // this IP address worked!
           wasLame:; // well, it didn't
             LOG<<prefix<<qname<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl;
-            t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100);
+            t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // lame
           }
         }
         
@@ -933,7 +933,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         
         if(lwr.d_rcode==RCode::ServFail) {
           LOG<<prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling IP or NS"<<endl;
-          t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3);
+          t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail
           continue;
         }
         LOG<<prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", in "<<lwr.d_usec/1000<<"ms"<<endl;
