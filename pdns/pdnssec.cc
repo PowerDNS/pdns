@@ -64,7 +64,7 @@ void loadMainConfig()
 
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
-  cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
+  //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
   S.declare("qsize-q","Number of questions waiting for database attention");
     
@@ -84,6 +84,7 @@ void loadMainConfig()
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
     ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";    
+  ::arg().set("key-repository","")="./keys";
   UeberBackend::go();
 }
 
@@ -108,14 +109,20 @@ void orderZone(DNSSECKeeper& dk, const std::string& zone)
   //  cerr<<rr.qname<<endl;
     qnames.insert(rr.qname);
   }
-  
+#if 0
   string salt;
   char tmp[]={0xab, 0xcd};
   salt.assign(tmp, 2);
-  
+#endif
+
   NSEC3PARAMRecordContent ns3pr;
   dk.getNSEC3PARAM(zone, &ns3pr);
   string hashed;
+  if(ns3pr.d_salt.empty()) 
+    cerr<<"Adding NSEC ordering information"<<endl;
+  else
+    cerr<<"Adding NSEC3 hashed ordering information"<<endl;
+  
   BOOST_FOREACH(const string& qname, qnames)
   {
     if(ns3pr.d_salt.empty()) // NSEC
@@ -203,7 +210,7 @@ try
     }
     orderZone(dk, cmds[1]);
   }
-  if(cmds[0] == "check-zone") {
+  else if(cmds[0] == "check-zone") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;
