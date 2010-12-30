@@ -67,7 +67,7 @@ public:
 
 
   void create(unsigned int bits);
-  std::string convertToISC();
+  std::string convertToISC(unsigned int algorithm);
 
 private:
   rsa_context d_context;

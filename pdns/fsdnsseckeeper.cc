@@ -31,7 +31,7 @@ void RSAContext::create(unsigned int bits)
     throw runtime_error("Key generation failed");
 }
 
-std::string RSAContext::convertToISC()
+std::string RSAContext::convertToISC(unsigned int algorithm)
 {
   string ret;
   typedef vector<pair<string, mpi*> > outputs_t;
@@ -44,7 +44,7 @@ std::string RSAContext::convertToISC()
     ("Exponent2",&d_context.DQ)
     ("Coefficient",&d_context.QP);
 
-  ret = "Private-key-format: v1.2\nAlgorithm: 5 (RSASHA1)\n";
+  ret = "Private-key-format: v1.2\nAlgorithm: "+lexical_cast<string>(algorithm)+" (RSASHA1)\n";
 
   BOOST_FOREACH(outputs_t::value_type value, outputs) {
     ret += value.first;
@@ -120,7 +120,7 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   DNSSECPrivateKey dpk;
   dpk.d_key.create(bits); // for testing, 1024
 
-  string isc = dpk.d_key.convertToISC();
+  string isc = dpk.d_key.convertToISC(algorithm);
   DNSKEYRecordContent drc = dpk.getDNSKEY();
   drc.d_flags = 256 + keyOrZone; // KSK
   drc.d_algorithm = algorithm; // 5 = RSA, we'll add '2' later on for NSEC3 if needed

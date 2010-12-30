@@ -324,7 +324,7 @@ try
     string zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
-    cout << dpk.d_key.convertToISC() <<endl;
+    cout << dpk.d_key.convertToISC(dpk.d_algorithm) <<endl;
   }
   else if(cmds[0]=="export-zone-dnskey") {
     string zone=cmds[1];
