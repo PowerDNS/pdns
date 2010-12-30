@@ -792,13 +792,11 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 
 bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
 {
-
   string domain=toLower(qname);
-  string lname = labelReverse(domain);
 
-  cout<<"starting lower bound for: '"<<domain<<"', search is for: '"<<lname<<"'"<<endl;
+  cout<<"starting lower bound for: '"<<domain<<"'"<<endl;
 
-  recordstorage_t::const_iterator iter = lower_bound(bbd.d_records->begin(), bbd.d_records->end(), lname);
+  recordstorage_t::const_iterator iter = lower_bound(bbd.d_records->begin(), bbd.d_records->end(), domain);
 
   while(iter != bbd.d_records->begin() && !boost::prior(iter)->auth && boost::prior(iter)->qtype!=QType::NS) {
     cerr<<"Going backwards.."<<endl;
@@ -819,14 +817,14 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
   }
 
   cerr<<"Now upper bound"<<endl;
-  iter = upper_bound(bbd.d_records->begin(), bbd.d_records->end(), lname);
+  iter = upper_bound(bbd.d_records->begin(), bbd.d_records->end(), domain);
 
   while(iter!=bbd.d_records->end() && (!iter->auth && iter->qtype != QType::NS))
     iter++;
 
   if(iter == bbd.d_records->end()) {
-    cerr<<"\tFound the end!"<<endl;
-    after = dotConcat(labelReverse(bbd.d_records->begin()->qname), bbd.d_name);
+    cerr<<"\tFound the end, begin storage: '"<<bbd.d_records->begin()->qname<<"', '"<<bbd.d_name<<"'"<<endl;
+    after.clear(); // this does the right thing
   } else {
     cerr<<"\tFound: '"<<iter->qname<<"'"<<endl;
     after = (iter)->qname;
@@ -978,6 +976,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(range.first==range.second) {
     // cerr<<"Found nothign!"<<endl;
     d_handle.d_list=false;
+    d_handle.d_iter = d_handle.d_end_iter  = range.first;
     return;
   }
   else {
