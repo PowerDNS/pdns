@@ -493,7 +493,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
 
 void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::string& auth, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
-  cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"'"<<endl;
+  cerr<<"We should emit NSEC3 '"<<toLower(toBase32Hex(begin))<<"' - ('"<<toNSEC3<<"') - '"<<toLower(toBase32Hex(end))<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
   n3rc.d_set.insert(QType::RRSIG);
   n3rc.d_salt=ns3prc.d_salt;
@@ -509,11 +509,12 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::
 
   if(unhashed == auth) {
     n3rc.d_set.insert(QType::NSEC3PARAM);
+    n3rc.d_set.insert(QType::DNSKEY);
   }
   
   n3rc.d_nexthash=end;
 
-  rr.qname=dotConcat(toBase32Hex(begin), auth);
+  rr.qname=dotConcat(toLower(toBase32Hex(begin)), auth);
   rr.ttl=3600;
   rr.qtype=QType::NSEC3;
   rr.content=n3rc.getZoneRepresentation();
@@ -560,20 +561,20 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   string unhashed, before,after;
   
   // now add the closest encloser
-  hashed=toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, auth));
+  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, auth)));
   sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
   cerr<<"Done calling for closest encloser, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3(ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
   
   // now add the main nsec3
-  hashed=toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, p->qdomain));
+  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, p->qdomain)));
   sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
   cerr<<"Done calling for main, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
   
   
   // now add the *
-  hashed=toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, dotConcat("*", auth)));
+  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, dotConcat("*", auth))));
   sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
   cerr<<"Done calling for '*', before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
@@ -966,6 +967,7 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.ttl=sd.ttl;
   rr.domain_id=sd.domain_id;
   rr.d_place=DNSResourceRecord::AUTHORITY;
+  rr.auth = 1;
   r->addRecord(rr);
   
   if(p->d_dnssecOk) 
