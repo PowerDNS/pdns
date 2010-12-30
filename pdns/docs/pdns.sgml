@@ -13551,7 +13551,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Native</entry><entry>Yes</entry></row>
 	      <row><entry>Master</entry><entry>Yes</entry></row>
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
-	      <row><entry>Superslave</entry><entry>No</entry></row>
+	      <row><entry>Superslave</entry><entry>Experimental</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>none (built in)</entry></row>
 	      <row><entry>Launch</entry><entry>bind</entry></row>
