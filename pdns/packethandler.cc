@@ -985,6 +985,7 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
   rr.ttl=sd.ttl;
   rr.domain_id=sd.domain_id;
   rr.d_place=DNSResourceRecord::AUTHORITY;
+  rr.auth = 1;
   r->addRecord(rr);
   
   if(p->d_dnssecOk)
