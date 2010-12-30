@@ -109,11 +109,6 @@ void orderZone(DNSSECKeeper& dk, const std::string& zone)
   //  cerr<<rr.qname<<endl;
     qnames.insert(rr.qname);
   }
-#if 0
-  string salt;
-  char tmp[]={0xab, 0xcd};
-  salt.assign(tmp, 2);
-#endif
 
   NSEC3PARAMRecordContent ns3pr;
   dk.getNSEC3PARAM(zone, &ns3pr);
@@ -197,6 +192,7 @@ try
 
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [alter-zone] [order-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
+    cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [unset-nsec3] [export-zone-dnskey]"<<endl;
     cerr<<desc<<endl;
     return 0;
   }
@@ -217,67 +213,22 @@ try
     }
     checkZone(dk, cmds[1]);
   }
-#if 0
-  else if(cmds[0] == "update-zone-keys") {
-    if(cmds.size() != 2) {
-      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
-      return 0;
-    }
 
-    const string& zone=cmds[1];
-    DNSSECPrivateKey dpk;
-    
-    if(!dk.haveKSKFor(zone, &dpk)) {
-      cerr << "No KSK for zone '"<<zone<<"', can't update the ZSKs"<<endl;
-      return 0;
-    }
-    DNSSECKeeper::keyset_t zskset=dk.getZSKsFor(zone);
-
-    int inforce=0;
-    time_t now = time(&now);
-    
-    
-    if(!zskset.empty())  {
-      cout<<"There were ZSKs already for zone '"<<zone<<"': "<<endl;
-      
-      BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
-        cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl; // ", "<<humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
-        if(value.second.active) 
-          inforce++;
-        if(!value.second.active) { // was: 'expired more than two days ago'  
-          cout<<"\tThis key is no longer used and too old to keep around, deleting!\n";
-          dk.deleteZSKFor(zone, value.second.fname);
-        } else /* if( value.second.endValidity < now  ) */{ // 'expired more than two days ago'  
-          cout<<"\tThis key is no longer in active use, but needs to linger\n";
-        }
-      }
-    }
-      
-    if(inforce >= 2) {
-      cerr << "Two or more ZSKs were active already, not generating a third" << endl;
-      return 0;
-    }
-    dk.addKey(zone, true, 5);
-    dk.addKey(zone, true, 5, false); // not yet active
-
-    keyset = dk.getKeys(zone);
-    if(zskset.empty()) {
-      cerr<<"This should not happen, still no ZSK!"<<endl;
-    }
-
-    cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
-    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
-      cout<<"Tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
-    }
-
-  }
-#endif
   else if(cmds[0] == "show-zone") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;
     }
     const string& zone=cmds[1];
+
+    NSEC3PARAMRecordContent ns3pr;
+    dk.getNSEC3PARAM(zone, &ns3pr);
+    
+    if(ns3pr.d_salt.empty()) 
+      cerr<<"Zone has NSEC semantics"<<endl;
+    else
+      cerr<<"Zone has hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+
     
     DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
 
@@ -285,9 +236,10 @@ try
       cerr << "No keys for zone '"<<zone<<"'."<<endl;
     }
     else {  
-      cout << "keys: for zone '"<<zone<<"':"<<endl;
+      cout << "keys: "<<endl;
       BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
-        cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+        cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
+        cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.d_key.getConstContext().len*8<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
         if(value.second.keyOrZone) {
           cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
           cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY()).getZoneRepresentation() << endl << endl;
@@ -345,7 +297,7 @@ try
     }
       
     dk.addKey(zone, false, 5);
-    dk.addKey(zone, false, 5, false); // not active
+    dk.addKey(zone, false, 5, 0, false); // not active
 
     zskset = dk.getKeys(zone, false);
     if(zskset.empty()) {
@@ -354,8 +306,33 @@ try
 
     cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
-      cout<<"id = "<<value.second.id<<", tag = "<<value.first.getDNSKEY().getTag()<<"\tActive: "<<value.second.active<<endl;
+      cout<<"id = "<<value.second.id<<", tag = "<<value.first.getDNSKEY().getTag()<<", algo = "<<(int)value.first.d_algorithm<<
+        ", bits = "<<value.first.d_key.getContext().len*8;
+      cout<<"\tActive: "<<value.second.active<<endl;
     }
+  }
+  else if(cmds[0]=="set-nsec3") {
+    string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
+      
+    NSEC3PARAMRecordContent ns3pr(nsec3params);
+    dk.setNSEC3PARAM(cmds[1], ns3pr);
+  }
+  else if(cmds[0]=="unset-nsec3") {
+    dk.unsetNSEC3PARAM(cmds[1]);
+  }
+  else if(cmds[0]=="export-zone-key") {
+    string zone=cmds[1];
+    unsigned int id=atoi(cmds[2].c_str());
+    DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
+    cout << dpk.d_key.convertToISC() <<endl;
+  }
+  else if(cmds[0]=="export-zone-dnskey") {
+    string zone=cmds[1];
+    unsigned int id=atoi(cmds[2].c_str());
+    DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
+    cout << zone<<" IN DNSKEY "<<dpk.getDNSKEY().getZoneRepresentation() <<endl;
+    if(dpk.d_flags == 257)
+      cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY()).getZoneRepresentation() << endl;
   }
   else {
     cerr<<"Unknown command '"<<cmds[0]<<"'\n";

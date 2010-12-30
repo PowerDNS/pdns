@@ -113,15 +113,17 @@ std::string DNSSECKeeper::getKeyFilenameById(const std::string& dirname, unsigne
 }
 
 
-void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, bool active)
+void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
 {
+  if(!bits)
+    bits = keyOrZone ? 2048 : 1024;
   DNSSECPrivateKey dpk;
-  dpk.d_key.create(1024); // for testing, 1024
+  dpk.d_key.create(bits); // for testing, 1024
 
   string isc = dpk.d_key.convertToISC();
   DNSKEYRecordContent drc = dpk.getDNSKEY();
   drc.d_flags = 256 + keyOrZone; // KSK
-  drc.d_algorithm = algorithm; 
+  drc.d_algorithm = algorithm; // 5 = RSA, we'll add '2' later on for NSEC3 if needed
   string iscName=d_dirname+"/"+name+"/keys/";
   unsigned int id = getNextKeyIDFromDir(iscName);
   time_t inception=time(0);
@@ -129,9 +131,9 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   struct tm ts;
   gmtime_r(&inception, &ts);
 
-  iscName += (boost::format("%06d-%04d%02d%02d%02d%02d.%u") % id
+  iscName += (boost::format("%06d-%04d%02d%02d%02d%02d") % id
 	      % (1900+ts.tm_year) % (ts.tm_mon + 1)
-	      % ts.tm_mday % ts.tm_hour % ts.tm_min % drc.getTag()).str();
+	      % ts.tm_mday % ts.tm_hour % ts.tm_min).str();
 
   iscName += keyOrZone ? ".ksk" : ".zsk";
   iscName += active ? ".active" : ".passive";
@@ -140,12 +142,12 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
     ofstream iscFile((iscName+".private").c_str());
     iscFile << isc;
   }
-
+#if 0
   {  
     ofstream dnskeyFile((iscName+".key").c_str());
     dnskeyFile << toCanonic("", name) << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
   }
-
+#endif
 }
 
 
@@ -154,6 +156,18 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
   return make_pair(!a.second.keyOrZone, a.second.id) <
          make_pair(!b.second.keyOrZone, b.second.id);
 }
+
+DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int id)
+{
+  string fname = getKeyFilenameById(d_dirname+"/"+zname+"/keys", id);
+  DNSSECPrivateKey dpk;
+  getRSAKeyFromISC(&dpk.d_key.getContext(), fname.c_str());
+  dpk.d_algorithm = 5 + 2 * getNSEC3PARAM(zname);
+  dpk.d_flags = 256 + (fname.find(".ksk.") != string::npos); // this falls over on zones with .ksk. in the name!
+  return dpk;
+  
+}
+
 
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
@@ -189,32 +203,31 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   if(ns3p) {
     string descr;
     getline(ifs, descr);
+    reportAllTypes();
     NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, descr));
     if(!tmp) {
       cerr<<"Could not parse "<< full_path.external_directory_string() <<endl;
       cerr<<"descr: '"<<descr<<"'\n";
+      return false;
     }
     *ns3p = *tmp;
     delete tmp;
-    
-    cerr<<"hmm salt: "<<makeHexDump(ns3p->d_salt)<<endl;
   }
   return true;
 }
 
-void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* ns3p)
+void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& ns3p)
 {
   fs::path full_path = fs::system_complete( fs::path(d_dirname + "/" + zname + "/nsec3param" ) );
-  if(ns3p) {
-    string descr = ns3p->getZoneRepresentation();
-    
-    
-    ofstream of(full_path.external_directory_string().c_str());
-    of << descr;
-  }
-  else {
-    unlink(full_path.external_directory_string().c_str());
-  }
+  string descr = ns3p.getZoneRepresentation();
+  ofstream of(full_path.external_directory_string().c_str());
+  of << descr;
+}
+
+void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
+{
+  fs::path full_path = fs::system_complete( fs::path(d_dirname + "/" + zname + "/nsec3param" ) );
+  unlink(full_path.external_directory_string().c_str());
 }
 
 
@@ -287,40 +300,8 @@ void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
   if(mkdir((d_dirname+"/"+name+"/keys").c_str(), 0700) < 0)
     unixDie("Making directory for keys in '"+d_dirname+"'");
 
-
   // now add the KSK
-
   addKey(name, true, algorithm);
-#if 0
-
-  DNSSECPrivateKey dpk;
-  dpk.d_key.create(2048); // for testing, 1024
-
-  string isc = dpk.d_key.convertToISC();
-  DNSKEYRecordContent drc = dpk.getDNSKEY();
-  drc.d_flags = 257; // ZSK (?? for a KSK?)
-  drc.d_algorithm = algorithm;  
-  string iscName=d_dirname+"/"+name+"/keys/";
-
-  time_t now=time(0);
-  struct tm ts;
-  gmtime_r(&now, &ts);
-  unsigned int id=1;
-  iscName += (boost::format("%06d-%04d%02d%02d%02d%02d.%u.%s.%s") % id
-	      % (1900+ts.tm_year) % (ts.tm_mon + 1)
-	      % ts.tm_mday % ts.tm_hour % ts.tm_min % drc.getTag() % "ksk" % "active").str();
-
-
-  {  
-    ofstream iscFile((iscName+".private").c_str());
-    iscFile << isc;
-  }
-
-  {  
-    ofstream dnskeyFile((iscName+".key").c_str());
-    dnskeyFile << toCanonic("", name) << " IN DNSKEY " << drc.getZoneRepresentation()<<endl;
-  }
-#endif
 }
  
 

@@ -106,7 +106,8 @@ public:
   bool haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* ksk=0);
   
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
-  void addKey(const std::string& zname, bool keyOrZone, int algorithm, bool active=true);
+  DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
+  void addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
   void removeKey(const std::string& zname, unsigned int id);
   void activateKey(const std::string& zname, unsigned int id);
   void deactivateKey(const std::string& zname, unsigned int id);
@@ -114,7 +115,8 @@ public:
   void secureZone(const std::string& fname, int algorithm);
 
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
-  void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent* n3p);
+  void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p);
+  void unsetNSEC3PARAM(const std::string& zname);
   static unsigned int getNextKeyIDFromDir(const std::string& dirname);
   std::string getKeyFilenameById(const std::string& dirname, unsigned int id);
 private:
