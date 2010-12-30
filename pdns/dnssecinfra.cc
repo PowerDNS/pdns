@@ -234,7 +234,7 @@ DNSKEYRecordContent getDNSKEYFor(const std::string& keyRepositoryDir, const std:
   }
 }
 
-
+// XXXX FIXME THINK ABOUT LOCKING HERE
 map<pair<string, uint16_t>, RRSIGRecordContent> g_rrsigs;
 
 void fillOutRRSIG(const std::string& keyrepodir, const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK) 
@@ -246,7 +246,7 @@ void fillOutRRSIG(const std::string& keyrepodir, const std::string& signQName, R
   rrc.d_algorithm = drc.d_algorithm;
   
   if(g_rrsigs.count(make_pair(hash, rrc.d_tag))) {
-    cerr<<"RRSIG cache hit !"<<endl;
+    // cerr<<"RRSIG cache hit !"<<endl;
     rrc = g_rrsigs[make_pair(hash, rrc.d_tag)];
     return;
   }
@@ -303,7 +303,7 @@ int getRRSIGForRRSET(const std::string& keyrepodir, const std::string signQName,
 
 void addSignature(const std::string& keyrepodir, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, DNSPacketWriter& pw)
 {
-  cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
+  // cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
 
   RRSIGRecordContent rrc;
   if(toSign.empty())
@@ -334,7 +334,7 @@ std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const
   toHash.assign(simpleCompress(toLower(qname)));
   toHash.append(salt);
 
-  cerr<<makeHexDump(toHash)<<endl;
+//  cerr<<makeHexDump(toHash)<<endl;
   unsigned char hash[20];
   for(;;) {
     sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);

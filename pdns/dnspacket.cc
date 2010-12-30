@@ -352,7 +352,7 @@ void DNSPacket::wrapup(void)
       vector<shared_ptr<DNSRecordContent> > toSign;
 
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
-        // this needs to deal with the 'prio' mismatch!
+        // this needs to deal with the 'prio' mismatch:
         if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
           pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
         }
