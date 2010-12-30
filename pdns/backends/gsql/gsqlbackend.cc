@@ -280,7 +280,7 @@ retryAfter:
   }
 
   if(after.empty() && !tmp.empty()) {
-    cerr<<"Oops, have to pick the first, there as no last!"<<endl;
+    cerr<<"Oops, have to pick the first, there is no last!"<<endl;
     tmp.clear();
     goto retryAfter;
   }

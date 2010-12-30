@@ -29,6 +29,9 @@
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+#include "dnsseckeeper.hh"
+#include "dnssecinfra.hh"
+#include "base32.hh"
 using namespace std;
 
 #include "dns.hh"
@@ -355,12 +358,12 @@ static string canonic(string ret)
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedence matching
     This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl=300, int prio=25)
+void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed)
 {
   BB2DomainInfo bb2 = stage->id_zone_map[id];
   Bind2DNSRecord bdr;
 
-  vector<Bind2DNSRecord>& records=*bb2.d_records; 
+  recordstorage_t& records=*bb2.d_records; 
 
   bdr.qname=toLower(canonic(qnameu));
   if(bb2.d_name.empty())
@@ -374,8 +377,9 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
 
   bdr.qname.swap(bdr.qname);
 
-  if(!records.empty() && bdr.qname==(records.end()-1)->qname)
-    bdr.qname=(records.end()-1)->qname;
+
+  if(!records.empty() && bdr.qname==boost::prior(records.end())->qname)
+    bdr.qname=boost::prior(records.end())->qname;
 
   //  cerr<<"Before reverse: '"<<bdr.qname<<"', ";
   bdr.qname=labelReverse(bdr.qname);
@@ -383,6 +387,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
 
   bdr.qtype=qtype.getCode();
   bdr.content=content; 
+  bdr.nsec3hash = hashed;
 
   if(bdr.qtype == QType::MX || bdr.qtype == QType::SRV) { 
     prio=atoi(bdr.content.c_str());
@@ -399,7 +404,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   bdr.ttl=ttl;
   bdr.priority=prio;
   
-  records.push_back(bdr);
+  records.insert(bdr);
 }
 
 void Bind2Backend::reload()
@@ -573,7 +578,7 @@ void Bind2Backend::loadConfig(string* status)
           bbd->d_id=domain_id++;
         
           // this isn't necessary, we do this on the actual load
-          //	  bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);
+          //	  bbd->d_records=shared_ptr<recordstorage_t > (new recordstorage_t);
 
           bbd->setCheckInterval(getArgAsNum("check-interval"));
           bbd->d_lastnotified=0;
@@ -596,50 +601,56 @@ void Bind2Backend::loadConfig(string* status)
         
         if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
-          
+          DNSSECKeeper dk(::arg()["key-repository"]);
+          NSEC3PARAMRecordContent ns3pr;
+          dk.getNSEC3PARAM(i->name, &ns3pr);
+          if(ns3pr.d_salt.empty())
+            cerr<<"no nsec3 for "<<i->name<<endl;
+          else
+            cerr<<"NEED TO HASH "<<i->name<<endl;
+        
           try {
             // we need to allocate a new vector so we don't kill the original, which is still in use!
-            bbd->d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>); 
+            bbd->d_records=shared_ptr<recordstorage_t> (new recordstorage_t()); 
 
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
+            string hashed;
             while(zpt.get(rr)) {
-              insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
+              if(!ns3pr.d_salt.empty())
+                hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+              insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
             }
-
-            //	    ZP.parse(i->filename, i->name, bbd->d_id); // calls callback for us
-            //	    L<<Logger::Info<<d_logprefix<<" sorting '"<<i->name<<"'"<<endl;
-
-	    // cerr<<"Start loadconfig sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;
-            sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
-	    // cerr<<"Done loadconfig sorting"<<endl;
-	    
-	    shared_ptr<vector<Bind2DNSRecord> > records=staging->id_zone_map[bbd->d_id].d_records;
+        
+            // sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
+            
+            shared_ptr<recordstorage_t > records=staging->id_zone_map[bbd->d_id].d_records;
+          
+            pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
+            string sqname;
+            
+            BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
+              bdr.auth=true;
+              if(bdr.qtype == QType::DS) // as are delegation signer records
+                continue;
     
-	    pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
-	    string sqname;
-	    BOOST_FOREACH(Bind2DNSRecord& bdr, *records) {
-	      bdr.auth=true;
-	      if(bdr.qtype == QType::DS) // as are delegation signer records
-		continue;
-
-	      sqname = labelReverse(bdr.qname);
-	      //	      cerr<<"sqname: '"<<sqname<<"'\n";
-	      do {
-		if(sqname.empty()) // this is auth of course!
-		  continue; 
-
-		range=equal_range(records->begin(), records->end(), sqname);
-		if(range.first != range.second) {
-		  for(vector<Bind2DNSRecord>::const_iterator iter = range.first ; iter != range.second; ++iter) {
-		    if(iter->qtype == QType::NS) {
-		      //		      cerr<<"Have an NS hit for '"<<labelReverse(bdr.qname)<<"' on '"<<iter->qname<<"'"<<endl;
-		      bdr.auth=false;
-		    }
-		  }
-		}
-	      } while(chopOff(sqname));
-	    }
+              sqname = labelReverse(bdr.qname);
+              
+              do {
+                if(sqname.empty()) // this is auth of course!
+                  continue; 
+              
+                range=equal_range(records->begin(), records->end(), sqname);
+                if(range.first != range.second) {
+                  for(recordstorage_t::const_iterator iter = range.first ; iter != range.second; ++iter) {
+                    if(iter->qtype == QType::NS) {
+                      //		      cerr<<"Have an NS hit for '"<<labelReverse(bdr.qname)<<"' on '"<<iter->qname<<"'"<<endl;
+                      bdr.auth=false;
+                    }
+                  }
+                }
+              } while(chopOff(sqname));
+            }
             
             staging->id_zone_map[bbd->d_id].setCtime();
             staging->id_zone_map[bbd->d_id].d_loaded=true; 
@@ -731,7 +742,7 @@ void Bind2Backend::loadConfig(string* status)
 void Bind2Backend::nukeZoneRecords(BB2DomainInfo *bbd)
 {
   bbd->d_loaded=0; // block further access
-  bbd->d_records = shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);
+  bbd->d_records = shared_ptr<recordstorage_t > (new recordstorage_t);
 }
 
 
@@ -746,7 +757,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
   try {
     nukeZoneRecords(bbd); // ? do we need this?
     staging->id_zone_map[bbd->d_id]=s_state->id_zone_map[bbd->d_id];
-    staging->id_zone_map[bbd->d_id].d_records=shared_ptr<vector<Bind2DNSRecord> > (new vector<Bind2DNSRecord>);  // nuke it
+    staging->id_zone_map[bbd->d_id].d_records=shared_ptr<recordstorage_t > (new recordstorage_t);  // nuke it
 
     ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
     DNSResourceRecord rr;
@@ -754,7 +765,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
       insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
     }
     // cerr<<"Start sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;        
-    sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
+    // sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
     // cerr<<"Sorting done"<<endl;
     staging->id_zone_map[bbd->d_id].setCtime();
 
@@ -779,20 +790,17 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
   }
 }
 
-
-bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
+bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
 {
-  shared_ptr<State> state = s_state;
 
-  BB2DomainInfo& bbd = state->id_zone_map[id];
   string domain=toLower(qname);
   string lname = labelReverse(domain);
 
   cout<<"starting lower bound for: '"<<domain<<"', search is for: '"<<lname<<"'"<<endl;
 
-  vector<Bind2DNSRecord>::const_iterator iter = lower_bound(bbd.d_records->begin(), bbd.d_records->end(), lname);
+  recordstorage_t::const_iterator iter = lower_bound(bbd.d_records->begin(), bbd.d_records->end(), lname);
 
-  while(iter != bbd.d_records->begin() && !(iter-1)->auth && (iter-1)->qtype!=QType::NS) {
+  while(iter != bbd.d_records->begin() && !boost::prior(iter)->auth && boost::prior(iter)->qtype!=QType::NS) {
     cerr<<"Going backwards.."<<endl;
     iter--;
   }
@@ -802,8 +810,8 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     return false;
   }
   if(iter != bbd.d_records->begin()) {
-    cerr<<"\tFound: '"<<(iter-1)->qname<<"', auth = "<<(iter-1)->auth<<"\n";
-    before = (iter - 1)->qname;
+    cerr<<"\tFound: '"<<boost::prior(iter)->qname<<"', auth = "<<boost::prior(iter)->auth<<"\n";
+    before = boost::prior(iter)->qname;
   }
   else {
     cerr<<"PANIC! Wanted something before the first record!"<<endl;
@@ -826,6 +834,81 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 
   cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
   return true;
+}
+
+bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
+{
+  shared_ptr<State> state = s_state;
+  BB2DomainInfo& bbd = state->id_zone_map[id];  
+  DNSSECKeeper dk(::arg()["key-repository"]);
+  NSEC3PARAMRecordContent ns3pr;
+  string auth=state->id_zone_map[id].d_name;
+  
+  dk.getNSEC3PARAM(auth, &ns3pr);
+  if(ns3pr.d_salt.empty()) {
+    cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
+    return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
+  
+  }
+  else {
+    string lqname = toLower(qname);
+    cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
+    typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
+    records_by_hashindex_t& ttdindex=boost::multi_index::get<HashedTag>(*bbd.d_records);
+    
+    BOOST_FOREACH(const Bind2DNSRecord& bdr, ttdindex) {
+      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
+    }
+    
+    records_by_hashindex_t::const_iterator iter = ttdindex.lower_bound(lqname); // lower_bound(ttdindex.begin(), ttdindex.end(), lqname);
+    cerr<<"iter == ttdindex.begin(): "<< (iter == ttdindex.begin()) << ", ";
+    cerr<<"iter == ttdindex.end(): "<< (iter == ttdindex.end()) << endl;
+    if(iter->nsec3hash == lqname) {
+      before = iter->nsec3hash;
+      unhashed = dotConcat(labelReverse(iter->qname), auth);
+      cerr<<"Had direct hit, setting unhashed: "<<unhashed<<endl;
+    }
+    else {
+      while(iter != ttdindex.begin() && !boost::prior(iter)->auth && boost::prior(iter)->qtype!=QType::NS) {
+        cerr<<"Going backwards.."<<endl;
+        iter--;
+      }
+    
+      if(iter == ttdindex.end()) {
+        cerr<<"Didn't find anything"<<endl;
+        return false;
+      }
+      if(iter != ttdindex.begin()) {
+        cerr<<"\tFound: '"<<boost::prior(iter)->nsec3hash<<"', auth = "<<boost::prior(iter)->auth<<"\n";
+        before = boost::prior(iter)->nsec3hash;
+        unhashed = dotConcat(labelReverse(boost::prior(iter)->qname), auth);
+      }
+      else {
+        before = ttdindex.rbegin()->nsec3hash; // try the last one then..
+        unhashed = dotConcat(labelReverse(ttdindex.rbegin()->qname), auth);
+        cerr<<"PANIC! Wanted something before the first record, inserted last: "<<before<<endl;
+      }
+    }
+  
+    cerr<<"Now upper bound"<<endl;
+    iter = ttdindex.upper_bound(lqname);
+  
+    while(iter!=ttdindex.end() && (!iter->auth && iter->qtype != QType::NS))
+      iter++;
+  
+    if(iter == ttdindex.end()) {
+      cerr<<"\tFound the end, inserting beginning"<<endl;
+      after = ttdindex.begin()->nsec3hash;
+      // unhashed = ttdindex.begin()->qname;
+    } else {
+      cerr<<"\tFound: '"<<iter->nsec3hash<<"'"<<endl;
+      after = (iter)->nsec3hash;
+      // unhashed = iter->qname;
+    }
+  
+    cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
+    return true;
+  }
 }
 
 void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_p, int zoneId )
@@ -885,7 +968,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(d_handle.d_records->empty())
     DLOG(L<<"Query with no results"<<endl);
 
-  pair<vector<Bind2DNSRecord>::const_iterator, vector<Bind2DNSRecord>::const_iterator> range;
+  pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
 
   string lname=labelReverse(toLower(d_handle.qname));
   // cout<<"starting equal range for: '"<<d_handle.qname<<"', search is for: '"<<lname<<"'"<<endl;
@@ -1098,7 +1181,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   
   BB2DomainInfo &bbd = s_state->id_zone_map[newid];
 
-  bbd.d_records = shared_ptr<vector<Bind2DNSRecord> >(new vector<Bind2DNSRecord>);
+  bbd.d_records = shared_ptr<recordstorage_t >(new recordstorage_t);
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
   bbd.d_masters.push_back(ip);

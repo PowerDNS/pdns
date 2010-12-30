@@ -25,6 +25,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/identity.hpp>
+#include <boost/multi_index/member.hpp>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -32,6 +36,7 @@
 
 using namespace std;
 using namespace boost;
+using namespace ::boost::multi_index;
 
 /** This struct is used within the Bind2Backend to store DNS information. 
     It is almost identical to a DNSResourceRecord, but then a bit smaller and with different sorting rules, which make sure that the SOA record comes up front.
@@ -40,10 +45,11 @@ struct Bind2DNSRecord
 {
   string qname;
   string content;
+  string nsec3hash;
   uint32_t ttl;
   uint16_t qtype;
   uint16_t priority;
-  bool auth; 
+  mutable bool auth; 
   bool operator<(const Bind2DNSRecord& rhs) const
   {
     if(qname < rhs.qname)
@@ -54,10 +60,6 @@ struct Bind2DNSRecord
       return true;
     return tie(qtype,content, ttl) < tie(rhs.qtype, rhs.content, rhs.ttl);
   }
-  bool operator<(const string &b) const
-  {
-    return qname < b;
-  }
 };
 
 inline bool operator<(const string &a, const Bind2DNSRecord &b)
@@ -65,6 +67,21 @@ inline bool operator<(const string &a, const Bind2DNSRecord &b)
   return a < b.qname;
 }
 
+inline bool operator<(const Bind2DNSRecord &a, const string& b)
+{
+  return a.qname < b;
+}
+
+
+struct HashedTag{};
+
+typedef multi_index_container<
+  Bind2DNSRecord,
+  indexed_by  <
+                 ordered_non_unique<identity<Bind2DNSRecord> >,
+                 ordered_non_unique<tag<HashedTag>, member<Bind2DNSRecord,std::string,&Bind2DNSRecord::nsec3hash> >
+              >
+> recordstorage_t;
 
 /** Class which describes all metadata of a domain for storage by the Bind2Backend, and also contains a pointer to a vector of Bind2DNSRecord's */
 class BB2DomainInfo
@@ -92,7 +109,7 @@ public:
   //! configure how often this domain should be checked for changes (on disk)
   void setCheckInterval(time_t seconds);
 
-  shared_ptr<vector<Bind2DNSRecord> > d_records;  //!< the actual records belonging to this domain
+  shared_ptr<recordstorage_t > d_records;  //!< the actual records belonging to this domain
 private:
   time_t getCtime();
 
@@ -135,7 +152,7 @@ public:
     id_zone_map_t id_zone_map;
   };
 
-  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl, int prio);  
+  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string());  
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -158,11 +175,11 @@ private:
 
     handle();
 
-    shared_ptr<vector<Bind2DNSRecord> > d_records;
-    vector<Bind2DNSRecord>::const_iterator d_iter, d_end_iter;
+    shared_ptr<recordstorage_t > d_records;
+    recordstorage_t::const_iterator d_iter, d_end_iter;
 
-    vector<Bind2DNSRecord>::const_iterator d_qname_iter;
-    vector<Bind2DNSRecord>::const_iterator d_qname_end;
+    recordstorage_t::const_iterator d_qname_iter;
+    recordstorage_t::const_iterator d_qname_end;
 
     bool d_list;
     int id;
@@ -199,7 +216,7 @@ private:
   handle d_handle;
 
   static void queueReload(BB2DomainInfo *bbd);
-
+  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
