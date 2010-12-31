@@ -13,9 +13,57 @@
 #include <polarssl/sha2.h>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
+#include <polarssl/havege.h>
+#include <polarssl/base64.h>
+#include <boost/assign/std/vector.hpp> // for 'operator+=()'
+#include <boost/assign/list_inserter.hpp>
+
 
 using namespace boost;
 using namespace std;
+using namespace boost::assign;
+
+
+void RSAContext::create(unsigned int bits)
+{
+  havege_state hs;
+  havege_init( &hs );
+  
+  rsa_init(&d_context, RSA_PKCS_V15, 0, havege_rand, &hs ); // FIXME this leaks memory
+  int ret=rsa_gen_key(&d_context, bits, 65537);
+  if(ret < 0) 
+    throw runtime_error("Key generation failed");
+}
+
+std::string RSAContext::convertToISC(unsigned int algorithm)
+{
+  string ret;
+  typedef vector<pair<string, mpi*> > outputs_t;
+  outputs_t outputs;
+  push_back(outputs)("Modulus", &d_context.N)("PublicExponent",&d_context.E)
+    ("PrivateExponent",&d_context.D)
+    ("Prime1",&d_context.P)
+    ("Prime2",&d_context.Q)
+    ("Exponent1",&d_context.DP)
+    ("Exponent2",&d_context.DQ)
+    ("Coefficient",&d_context.QP);
+
+  ret = "Private-key-format: v1.2\nAlgorithm: "+lexical_cast<string>(algorithm)+" (RSASHA1)\n";
+
+  BOOST_FOREACH(outputs_t::value_type value, outputs) {
+    ret += value.first;
+    ret += ": ";
+    unsigned char tmp[mpi_size(value.second)];
+    mpi_write_binary(value.second, tmp, sizeof(tmp));
+    unsigned char base64tmp[sizeof(tmp)*2];
+    int dlen=sizeof(base64tmp);
+    base64_encode(base64tmp, &dlen, tmp, sizeof(tmp));
+    ret.append((const char*)base64tmp, dlen);
+    ret.append(1, '\n');
+  }
+  return ret;
+}
+
 
 DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
 {
@@ -204,6 +252,8 @@ int countLabels(const std::string& signQName)
   return count;
 }
 
+
+
 DNSKEYRecordContent getDNSKEYFor(const std::string& keyRepositoryDir, const std::string& qname, bool withKSK, RSAContext* rc)
 {
   DNSSECKeeper dk(keyRepositoryDir);
@@ -344,4 +394,8 @@ std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const
     toHash.append(salt);
   }
   return string((char*)hash, 20);
+}
+DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
+{
+  return makeDNSKEYFromRSAKey(&d_key.getConstContext(), d_algorithm, d_flags);
 }
