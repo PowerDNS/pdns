@@ -147,25 +147,23 @@ void checkZone(DNSSECKeeper& dk, const std::string& zone)
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0;
   
-    while(sd.db->get(rr)) {
-      if(rr.qtype.getCode() == QType::MX) 
-	rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+  while(sd.db->get(rr)) {
+    if(rr.qtype.getCode() == QType::MX) 
+      rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
       
-      try {
-	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
-	string tmp=drc->serialize(rr.qname);
-      }
-      catch(std::exception& e) 
-      {
-	cerr<<"Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
-	cerr<<"Error was: "<<e.what()<<endl;
-	numerrors++;
-      }
-      numrecords++;
+    try {
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+      string tmp=drc->serialize(rr.qname);
     }
-    cerr<<"Checked "<<numrecords<<" records, "<<numerrors<<" errors"<<endl;
-  
-  
+    catch(std::exception& e) 
+    {
+      cerr<<"Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cerr<<"Error was: "<<e.what()<<endl;
+      numerrors++;
+    }
+    numrecords++;
+  }
+  cerr<<"Checked "<<numrecords<<" records, "<<numerrors<<" errors"<<endl;
 }
 
 
