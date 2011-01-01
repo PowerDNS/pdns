@@ -30,6 +30,7 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <boost/foreach.hpp>
 
 #include "dns.hh"
 #include "arguments.hh"
@@ -97,6 +98,42 @@ bool UeberBackend::getDomainInfo(const string &domain, DomainInfo &di)
       return true;
   return false;
 }
+
+int UeberBackend::addDomainKey(const string& name, const KeyData& key)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->addDomainKey(name, key) >= 0)
+      return true;
+  }
+  return false;
+}
+bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->getDomainKeys(name, kind, keys))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->getDomainMetadata(name, kind, meta))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->setDomainMetadata(name, kind, meta))
+      return true;
+  }
+  return false;
+}
+
 
 void UeberBackend::reload()
 {

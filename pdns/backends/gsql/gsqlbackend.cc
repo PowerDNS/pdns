@@ -18,6 +18,7 @@ using namespace std;
 #include "pdns/arguments.hh"
 #include <boost/algorithm/string.hpp>
 #include <sstream>
+#include <boost/foreach.hpp>
 using namespace boost;
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
@@ -241,6 +242,12 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_beforeOrderQuery = getArg("get-order-before-query");
   d_afterOrderQuery = getArg("get-order-after-query");
   d_setOrderAuthQuery = getArg("set-order-and-auth-query");
+  
+  d_AddDomainKeyQuery = "insert into cryptokeys (domain_id, flags, active, content) select id, %d, %d, '%s' from domains where name='%s'";
+  d_ListDomainKeysQuery = "select cryptokeys.id, flags, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
+  
+  d_GetDomainMetadataQuery = "select content from domains, domainmetadata where domain_id=domains.id and name='%s' and domainmetadata.kind='%s'";
+  d_SetDomainMetadataQuery = "insert into domainmetadata (domain_id, kind, content) select id, '%s', '%s' from domains where name='%s'";
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
@@ -300,6 +307,86 @@ retryBefore:
     goto retryBefore;
   }
 
+  return true;
+}
+
+int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
+{
+  char output[16384];  
+  snprintf(output,sizeof(output)-1,d_AddDomainKeyQuery.c_str(),
+	   key.flags, (int)key.active, sqlEscape(key.content).c_str(), sqlEscape(name).c_str());
+
+  try {
+    d_db->doCommand(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to store key: "+e.txtReason());
+  }
+  return 1; // XXX FIXME, no idea how to get the id
+}
+
+bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
+{
+  char output[1024];  
+  snprintf(output,sizeof(output)-1,d_ListDomainKeysQuery.c_str(), sqlEscape(name).c_str());
+
+  try {
+    d_db->doQuery(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to list keys: "+e.txtReason());
+  }
+  
+  SSql::row_t row;
+  //  "select id, kind, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
+  KeyData kd;
+  while(d_db->getRow(row)) {
+    //~ BOOST_FOREACH(const std::string& val, row) {
+      //~ cerr<<"'"<<val<<"'"<<endl;
+    //~ }
+    kd.id = atoi(row[0].c_str());
+    kd.flags = atoi(row[1].c_str());
+    kd.active = atoi(row[2].c_str());
+    kd.content = row[3];
+    keys.push_back(kd);
+  }
+
+  return true;
+}
+
+bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
+{
+  char output[1024];  
+  snprintf(output,sizeof(output)-1,d_GetDomainMetadataQuery.c_str(), sqlEscape(name).c_str(), sqlEscape(kind).c_str());
+
+  try {
+    d_db->doQuery(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to list keys: "+e.txtReason());
+  }
+  
+  SSql::row_t row;
+  //  "select id, kind, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
+  KeyData kd;
+  while(d_db->getRow(row)) {
+    meta.push_back(row[0]);
+  }
+  return true;
+}
+
+bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
+{
+  char output[16384];  
+  snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
+	   sqlEscape(kind).c_str(), sqlEscape(*meta.begin()).c_str(), sqlEscape(name).c_str());
+
+  try {
+    d_db->doCommand(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to store metadata key: "+e.txtReason());
+  }
   return true;
 }
 

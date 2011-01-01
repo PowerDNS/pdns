@@ -43,7 +43,10 @@ public:
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
   virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
 
-
+  int addDomainKey(const string& name, const KeyData& key);
+  bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
+  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
 private:
   string d_qname;
   QType d_qtype;
@@ -78,6 +81,10 @@ private:
   string d_afterOrderQuery;
   string d_setOrderAuthQuery;
 
+  string d_AddDomainKeyQuery;
+  string d_ListDomainKeysQuery;
+  string d_GetDomainMetadataQuery;
+  string d_SetDomainMetadataQuery;
 protected:  
   bool d_dnssecQueries;
 };

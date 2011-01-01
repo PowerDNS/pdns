@@ -122,6 +122,12 @@ public:
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
+  
+  int addDomainKey(const string& name, const KeyData& key);
+  bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
+  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  
   void alsoNotifies(const string &domain, set<string> *ips); 
   void rediscover(string* status=0);
   void reload();
