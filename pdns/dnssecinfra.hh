@@ -24,7 +24,7 @@ struct CanonicalCompare: public binary_function<string, string, bool>
 
 
 DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname);
-
+DNSKEYRecordContent getRSAKeyFromISCString(rsa_context* rsa, const std::string& content);
 void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc);
 bool sharedDNSSECCompare(const boost::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
 string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);

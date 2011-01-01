@@ -132,6 +132,70 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
   return drc;
 }
 
+DNSKEYRecordContent getRSAKeyFromISCString(rsa_context* rsa, const std::string& content)
+{
+  string sline;
+  string key,value;
+  map<string, mpi*> places;
+
+  
+  rsa_init(rsa, RSA_PKCS_V15, 0, NULL, NULL );
+
+  places["Modulus"]=&rsa->N;
+  places["PublicExponent"]=&rsa->E;
+  places["PrivateExponent"]=&rsa->D;
+  places["Prime1"]=&rsa->P;
+  places["Prime2"]=&rsa->Q;
+  places["Exponent1"]=&rsa->DP;
+  places["Exponent2"]=&rsa->DQ;
+  places["Coefficient"]=&rsa->QP;
+
+  DNSKEYRecordContent drc;
+  string modulus, exponent;
+  istringstream str(content);
+  unsigned char decoded[1024];
+  while(getline(str, sline)) {
+    tie(key,value)=splitField(sline, ':');
+    trim(value);
+
+    if(places.count(key)) {
+      if(places[key]) {
+        int len=sizeof(decoded);
+        if(base64_decode(decoded, &len, (unsigned char*)value.c_str(), value.length()) < 0) {
+          cerr<<"Error base64 decoding '"<<value<<"'\n";
+          exit(1);
+        }
+        //	B64Decode(value, decoded);
+        //	cerr<<key<<" decoded.length(): "<<8*len<<endl;
+        mpi_read_binary(places[key], decoded, len);
+        if(key=="Modulus")
+          modulus.assign((const char*)decoded,len);
+        if(key=="PublicExponent")
+          exponent.assign((const char*)decoded,len);
+      }
+    }
+    else {
+      if(key != "Private-key-format" && key != "Algorithm") 
+      cerr<<"Unknown field '"<<key<<"'\n";
+    }
+  }
+  rsa->len = ( mpi_msb( &rsa->N ) + 7 ) >> 3; // no clue what this does
+
+  if(exponent.length() < 255) 
+    drc.d_key.assign(1, (char) (unsigned int) exponent.length());
+  else {
+    drc.d_key.assign(1, 0);
+    uint16_t len=htons(exponent.length());
+    drc.d_key.append((char*)&len, 2);
+  }
+  drc.d_key.append(exponent);
+  drc.d_key.append(modulus);
+  drc.d_protocol=3;
+  drc.d_algorithm = 0; // should not be filled out here..
+  return drc;
+}
+
+
 
 void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc)
 {

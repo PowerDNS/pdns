@@ -117,8 +117,7 @@ public:
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p);
   void unsetNSEC3PARAM(const std::string& zname);
-  static unsigned int getNextKeyIDFromDir(const std::string& dirname);
-  std::string getKeyFilenameById(const std::string& dirname, unsigned int id);
+  
 private:
   std::string d_dirname;
 };
