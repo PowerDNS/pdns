@@ -41,7 +41,7 @@ void loadMainConfig()
     strcmp(pietje+1,"@@SYSCONFDIR@@:") ? pietje+strlen("@@SYSCONFDIR@@:")+1 : SYSCONFDIR;
   
   ::arg().set("launch","Which backends to launch");
-  
+  ::arg().set("dnssec","if we should do dnssec")="true";
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   ::arg().setCmd("help","Provide a helpful message");
   //::arg().laxParse(argc,argv);
@@ -90,8 +90,7 @@ void loadMainConfig()
 
 void orderZone(DNSSECKeeper& dk, const std::string& zone)
 {
-  loadMainConfig();
-  reportAllTypes();  
+    
   UeberBackend* B = new UeberBackend("default");
   SOAData sd;
   
@@ -195,6 +194,8 @@ try
     return 0;
   }
 
+  loadMainConfig();
+  reportAllTypes();
   DNSSECKeeper dk(g_vm["key-repository"].as<string>());
 
   if(cmds[0] == "order-zone") {
@@ -226,7 +227,6 @@ try
       cerr<<"Zone has NSEC semantics"<<endl;
     else
       cerr<<"Zone has hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
-
     
     DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
 
@@ -284,6 +284,7 @@ try
 
     if(!dk.haveActiveKSKFor(zone, &dpk)) {
       cerr << "This should not happen, still no key!" << endl;
+      return 0;
     }
     cout<<"Created KSK with tag "<<dpk.getDNSKEY().getTag()<<endl;
   
