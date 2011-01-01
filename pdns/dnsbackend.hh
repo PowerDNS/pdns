@@ -103,8 +103,23 @@ public:
 
   virtual ~DNSBackend(){};
 
+  struct KeyData {
+    unsigned int id;
+    unsigned int flags;
+    bool active;
+    std::string content;
+  };
+
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
   virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
+
+  virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
+  virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
+  virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
+  virtual bool removeDomainKey(const string& name, unsigned int id) { return false; }
+  virtual int addDomainKey(const string& name, const KeyData& key){ return -1; }
+  virtual bool activateDomainKey(const string& name, unsigned int id) { return false; }
+  virtual bool deactivateDomainKey(const string& name, unsigned int id) { return false; }
 
   //! returns true if master ip is master for domain name.
   virtual bool isMaster(const string &name, const string &ip)
