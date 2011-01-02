@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -253,4 +253,12 @@ struct dnsheader {
 extern time_t s_starttime;
 std::string questionExpand(const char* packet, uint16_t len, uint16_t& type);
 bool dnspacketLessThan(const std::string& a, const std::string& b);
+
+/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
+void fillSOAData(const string &content, SOAData &data);
+
+/** for use by DNSPacket, converts a SOAData class to a ascii line again */
+string serializeSOAData(const SOAData &data);
+string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
+
 #endif

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2005  PowerDNS.COM BV
+    Copyright (C) 2002 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License version 2 as published
@@ -67,13 +67,8 @@
 
 class DNSBackend;
 
-/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-void fillSOAData(const string &content, SOAData &data);
 
-/** for use by DNSPacket, converts a SOAData class to a ascii line again */
-string serializeSOAData(const SOAData &data);
 
-string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
 
 //! This class represents DNS packets, either received or to be sent.
 class DNSPacket

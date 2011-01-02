@@ -1,5 +1,6 @@
 #include "dns.hh"
 #include "misc.hh"
+#include "arguments.hh"
 #include <stdexcept>
 #include <iostream>
 #include <boost/algorithm/string.hpp>
@@ -123,3 +124,73 @@ string questionExpand(const char* packet, uint16_t len, uint16_t& type)
   // cerr << "returning: '"<<ret<<"'"<<endl;
   return ret;
 }
+
+void fillSOAData(const string &content, SOAData &data)
+{
+  // content consists of fields separated by spaces:
+  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
+
+  // fill out data with some plausible defaults:
+  // 10800 3600 604800 3600
+  data.serial=0;
+  data.refresh=::arg().asNum("soa-refresh-default");
+  data.retry=::arg().asNum("soa-retry-default");
+  data.expire=::arg().asNum("soa-expire-default");
+  data.default_ttl=::arg().asNum("soa-minimum-ttl");
+
+  vector<string>parts;
+  stringtok(parts,content);
+  int pleft=parts.size();
+
+  //  cout<<"'"<<content<<"'"<<endl;
+
+  if(pleft)
+    data.nameserver=parts[0];
+
+  if(pleft>1) 
+    data.hostmaster=attodot(parts[1]); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
+
+  if(pleft>2)
+    data.serial=strtoul(parts[2].c_str(), NULL, 10);
+
+  if(pleft>3)
+    data.refresh=atoi(parts[3].c_str());
+
+  if(pleft>4)
+    data.retry=atoi(parts[4].c_str());
+
+  if(pleft>5)
+    data.expire=atoi(parts[5].c_str());
+
+  if(pleft>6)
+    data.default_ttl=atoi(parts[6].c_str());
+
+}
+
+string serializeSOAData(const SOAData &d)
+{
+  ostringstream o;
+  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
+  o<<d.nameserver<<" "<< d.hostmaster <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
+
+  return o.str();
+}
+// the functions below update the 'arcount' and 'ancount', plus they serialize themselves to the stringbuffer
+
+string& attodot(string &str)
+{
+   if(str.find_first_of("@")==string::npos)
+      return str;
+
+   for (unsigned int i = 0; i < str.length(); i++)
+   {
+      if (str[i] == '@') {
+         str[i] = '.';
+         break;
+      } else if (str[i] == '.') {
+         str.insert(i++, "\\");
+      }
+   }
+   return str;
+}
+
