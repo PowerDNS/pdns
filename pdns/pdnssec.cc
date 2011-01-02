@@ -16,7 +16,7 @@ using namespace boost;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
-string s_programname="pdns_server";
+string s_programname="pdns";
 
 ArgvMap &arg()
 {
@@ -256,7 +256,7 @@ try
     const string& zone=cmds[1];
     // need to get algorithm & ksk or zsk from commandline
     cerr<<"Adding a ZSK"<<endl;
-    dk.addKey(zone, 1, 5, 0); 
+    dk.addKey(zone, 0, 5, 0); 
   }
   else if(cmds[0] == "remove-zone-key") {
     const string& zone=cmds[1];
