@@ -256,7 +256,7 @@ void UeberBackend::setStatus(const string &st)
 
 UeberBackend::UeberBackend(const string &pname)
 {
-  programname=pname;
+//  programname=pname;
   pthread_mutex_lock(&instances_lock);
   instances.push_back(this); // report to the static list of ourself
   pthread_mutex_unlock(&instances_lock);
