@@ -134,6 +134,33 @@ bool UeberBackend::setDomainMetadata(const string& name, const std::string& kind
   return false;
 }
 
+bool UeberBackend::activateDomainKey(const string& name, unsigned int id)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->activateDomainKey(name, id))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::deactivateDomainKey(const string& name, unsigned int id)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->deactivateDomainKey(name, id))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::removeDomainKey(const string& name, unsigned int id)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->removeDomainKey(name, id))
+      return true;
+  }
+  return false;
+}
+
 
 void UeberBackend::reload()
 {

@@ -47,6 +47,11 @@ public:
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  
+  bool removeDomainKey(const string& name, unsigned int id);
+  bool activateDomainKey(const string& name, unsigned int id);
+  bool deactivateDomainKey(const string& name, unsigned int id);
+  
 private:
   string d_qname;
   QType d_qtype;
@@ -86,6 +91,10 @@ private:
   string d_GetDomainMetadataQuery;
   string d_ClearDomainMetadataQuery;
   string d_SetDomainMetadataQuery;
+
+  string d_RemoveDomainKeyQuery;
+  string d_ActivateDomainKeyQuery;
+  string d_DeactivateDomainKeyQuery;
 protected:  
   bool d_dnssecQueries;
 };

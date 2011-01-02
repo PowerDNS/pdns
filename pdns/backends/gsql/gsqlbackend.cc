@@ -101,9 +101,9 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     try {
       SOAData sd;
       if(!getSOA(domain,sd)) 
-	L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+        L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
       else
-	di.serial=sd.serial;
+        di.serial=sd.serial;
     }
     catch(AhuException &ae){
       L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
@@ -250,6 +250,10 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_GetDomainMetadataQuery = "select content from domains, domainmetadata where domain_id=domains.id and name='%s' and domainmetadata.kind='%s'";
   d_ClearDomainMetadataQuery = "delete from domainmetadata where domain_id=(select id from domains where name='%s') and domainmetadata.kind='%s'";
   d_SetDomainMetadataQuery = "insert into domainmetadata (domain_id, kind, content) select id, '%s', '%s' from domains where name='%s'";
+  
+  d_ActivateDomainKeyQuery = "update cryptokeys set active=1 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d";
+  d_DeactivateDomainKeyQuery = "update cryptokeys set active=0 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d";
+  d_RemoveDomainKeyQuery = "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d";
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
@@ -326,6 +330,50 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
   }
   return 1; // XXX FIXME, no idea how to get the id
 }
+
+bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
+{
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_ActivateDomainKeyQuery.c_str(), sqlEscape(name).c_str(), id);
+
+  try {
+    d_db->doCommand(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to activate key: "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
+{
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_DeactivateDomainKeyQuery.c_str(), sqlEscape(name).c_str(), id);
+
+  try {
+    d_db->doCommand(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to deactivate key: "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
+{
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_RemoveDomainKeyQuery.c_str(), sqlEscape(name).c_str(), id);
+
+  try {
+    d_db->doCommand(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to remove key: "+e.txtReason());
+  }
+  return true;
+}
+
+
 
 bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
 {

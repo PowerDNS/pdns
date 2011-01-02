@@ -127,6 +127,10 @@ public:
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+
+  bool removeDomainKey(const string& name, unsigned int id);
+  bool activateDomainKey(const string& name, unsigned int id);
+  bool deactivateDomainKey(const string& name, unsigned int id);
   
   void alsoNotifies(const string &domain, set<string> *ips); 
   void rediscover(string* status=0);

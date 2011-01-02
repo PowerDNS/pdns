@@ -88,17 +88,20 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
 
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
-  // XXX
+  UeberBackend db;
+  db.removeDomainKey(zname, id);
 }
 
 void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
-  // XX
+  UeberBackend db;
+  db.deactivateDomainKey(zname, id);
 }
 
 void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
-  // XXX
+  UeberBackend db;
+  db.activateDomainKey(zname, id);
 }
 
 bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)

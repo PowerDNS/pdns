@@ -24,7 +24,6 @@ ArgvMap &arg()
   return arg;
 }
 
-
 string humanTime(time_t t)
 {
   char ret[256];
@@ -256,8 +255,8 @@ try
   else if(cmds[0] == "add-zone-key") {
     const string& zone=cmds[1];
     // need to get algorithm & ksk or zsk from commandline
+    cerr<<"Adding a ZSK"<<endl;
     dk.addKey(zone, 1, 5, 0); 
-    cerr<<"Not implemented"<<endl;
   }
   else if(cmds[0] == "remove-zone-key") {
     const string& zone=cmds[1];
@@ -322,9 +321,12 @@ try
     unsigned int id=atoi(cmds[2].c_str());
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << dpk.d_key.convertToISC(dpk.d_algorithm) <<endl;
-  }
+  }  
   else if(cmds[0]=="import-zone-key") {
-    cerr<<"This isn't quite right yet!"<<endl; /// XXX FIXME
+    if(cmds.size()!=3) {
+      cerr<<"Syntax: pdnssec import-zone-key zone-name filename"<<endl;
+      exit(1);
+    }
     string zone=cmds[1];
     string fname=cmds[2];
     DNSSECPrivateKey dpk;
