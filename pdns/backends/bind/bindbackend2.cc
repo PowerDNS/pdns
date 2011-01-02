@@ -601,7 +601,7 @@ void Bind2Backend::loadConfig(string* status)
         
         if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
-          DNSSECKeeper dk(::arg()["key-repository"]);
+          DNSSECKeeper dk;
           NSEC3PARAMRecordContent ns3pr;
           dk.getNSEC3PARAM(i->name, &ns3pr);
           if(ns3pr.d_salt.empty())
@@ -838,7 +838,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 {
   shared_ptr<State> state = s_state;
   BB2DomainInfo& bbd = state->id_zone_map[id];  
-  DNSSECKeeper dk(::arg()["key-repository"]);
+  DNSSECKeeper dk;
   NSEC3PARAMRecordContent ns3pr;
   string auth=state->id_zone_map[id].d_name;
   

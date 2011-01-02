@@ -16,16 +16,16 @@ EXTRA_DIST=bindparser.cc bindparser.h
 
 zone2sql_SOURCES=bindparser.yy bindlexer.l \
 ../../arguments.cc ../../logger.cc zone2sql.cc ../../statbag.cc ../../misc.cc \
-../../unix_utility.cc ../../qtype.cc ../../dnspacket.cc \
+../../unix_utility.cc ../../qtype.cc ../../dns.cc \
 ../../zoneparser-tng.cc ../../dnsrecords.cc ../../sillyrecords.cc \
 ../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc \
-../../nsecrecords.cc ../../dnssecinfra.cc ../../fsdnsseckeeper.cc ../../base32.cc
+../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc # ../../dbdnsseckeeper.cc
 
 zone2ldap_SOURCES=bindparser.yy bindlexer.l \
 ../../arguments.cc ../../logger.cc zone2ldap.cc ../../statbag.cc ../../misc.cc \
 ../../unix_utility.cc ../../qtype.cc  ../../zoneparser-tng.cc ../../dnsrecords.cc \
 ../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc ../../sillyrecords.cc \
-../../nsecrecords.cc ../../dnssecinfra.cc ../../fsdnsseckeeper.cc ../../base32.cc
+../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc # ../../dbdnsseckeeper.cc
 
 zone2ldap_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) -L../../ext/polarssl/library
 zone2ldap_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl
