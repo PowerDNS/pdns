@@ -461,7 +461,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   nsecrepo_t nsecrepo;
   // this is where the DNSKEYs go
   
-  DNSSECKeeper dk(::arg()["key-repository"]);
+  DNSSECKeeper dk;
   DNSSECKeeper::keyset_t keys = dk.getKeys(target);
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
     rr.qname = target;

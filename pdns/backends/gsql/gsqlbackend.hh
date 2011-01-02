@@ -84,6 +84,7 @@ private:
   string d_AddDomainKeyQuery;
   string d_ListDomainKeysQuery;
   string d_GetDomainMetadataQuery;
+  string d_ClearDomainMetadataQuery;
   string d_SetDomainMetadataQuery;
 protected:  
   bool d_dnssecQueries;

@@ -67,7 +67,7 @@ public:
 
 
   void create(unsigned int bits);
-  std::string convertToISC(unsigned int algorithm);
+  std::string convertToISC(unsigned int algorithm) const;
 
 private:
   rsa_context d_context;
@@ -101,13 +101,12 @@ public:
   typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > keyset_t;
    
 public:
-  explicit DNSSECKeeper(const std::string& dirname) : d_dirname(dirname){}
-
   bool haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* ksk=0);
   
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
   DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
   void addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
+  void addKey(const std::string& zname, bool keyOrZone, const DNSSECPrivateKey& dpk, bool active=true);
   void removeKey(const std::string& zname, unsigned int id);
   void activateKey(const std::string& zname, unsigned int id);
   void deactivateKey(const std::string& zname, unsigned int id);
@@ -117,9 +116,6 @@ public:
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p);
   void unsetNSEC3PARAM(const std::string& zname);
-  
-private:
-  std::string d_dirname;
 };
 
 #endif

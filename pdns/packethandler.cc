@@ -204,8 +204,7 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
     return false;
     
   DNSResourceRecord rr;
-  DNSSECKeeper dk(::arg()["key-repository"]);
-
+  DNSSECKeeper dk;
 
   bool haveOne=false;
   DNSSECPrivateKey dpk;
@@ -243,7 +242,7 @@ int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r)
     return false;
 
   DNSResourceRecord rr;
-  DNSSECKeeper dk(::arg()["key-repository"]);
+  DNSSECKeeper dk;
 
   NSEC3PARAMRecordContent ns3prc;
   if(dk.getNSEC3PARAM(p->qdomain, &ns3prc)) {
@@ -534,7 +533,7 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::
 */
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
 {
-  DNSSECKeeper dk(::arg()["key-repository"]);
+  DNSSECKeeper dk;
   NSEC3PARAMRecordContent ns3rc;
   cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"': ";
   if(dk.getNSEC3PARAM(auth, &ns3rc))  {
@@ -949,7 +948,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   BOOST_FOREACH(records_t::value_type& iter, records) {
     RRSIGRecordContent rrc;
     for(int ksk =0 ; ksk < 2; ++ksk) {
-      getRRSIGForRRSET(::arg()["key-repository"], p->qdomain, iter.first, 3600, iter.second, rrc, ksk);
+      getRRSIGForRRSET(p->qdomain, iter.first, 3600, iter.second, rrc, ksk);
       rr.content=rrc.getZoneRepresentation();
       r->addRecord(rr);
       if(iter.first != QType::DNSKEY)

@@ -19,6 +19,7 @@ using namespace std;
 #include <boost/algorithm/string.hpp>
 #include <sstream>
 #include <boost/foreach.hpp>
+#include <boost/format.hpp>
 using namespace boost;
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
@@ -247,6 +248,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ListDomainKeysQuery = "select cryptokeys.id, flags, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
   
   d_GetDomainMetadataQuery = "select content from domains, domainmetadata where domain_id=domains.id and name='%s' and domainmetadata.kind='%s'";
+  d_ClearDomainMetadataQuery = "delete from domainmetadata where domain_id=(select id from domains where name='%s') and domainmetadata.kind='%s'";
   d_SetDomainMetadataQuery = "insert into domainmetadata (domain_id, kind, content) select id, '%s', '%s' from domains where name='%s'";
 }
 
@@ -378,15 +380,22 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
 bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   char output[16384];  
-  snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
-	   sqlEscape(kind).c_str(), sqlEscape(*meta.begin()).c_str(), sqlEscape(name).c_str());
+
+  if(!meta.empty())
+    snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
+      sqlEscape(kind).c_str(), sqlEscape(*meta.begin()).c_str(), sqlEscape(name).c_str());
+
+  string clearQuery = (boost::format(d_ClearDomainMetadataQuery) % sqlEscape(name) % sqlEscape(kind)).str();
 
   try {
-    d_db->doCommand(output);
+    d_db->doCommand(clearQuery);
+    if(!meta.empty())
+      d_db->doCommand(output);
   }
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to store metadata key: "+e.txtReason());
   }
+  
   return true;
 }
 
