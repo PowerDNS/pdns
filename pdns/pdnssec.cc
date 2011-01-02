@@ -84,7 +84,6 @@ void loadMainConfig()
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
     ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";    
-  ::arg().set("key-repository","")="./keys";
   UeberBackend::go();
 }
 
@@ -172,7 +171,6 @@ try
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
-    ("key-repository,k", po::value<string>()->default_value("./keys"), "Location of keys")
     ("verbose,v", po::value<bool>(), "be verbose")
     ("force", "force an action")
     ("commands", po::value<vector<string> >());
@@ -196,7 +194,7 @@ try
 
   loadMainConfig();
   reportAllTypes();
-  DNSSECKeeper dk(g_vm["key-repository"].as<string>());
+  DNSSECKeeper dk;
 
   if(cmds[0] == "order-zone") {
     if(cmds.size() != 2) {
@@ -257,7 +255,7 @@ try
   }
   else if(cmds[0] == "add-zone-key") {
     const string& zone=cmds[1];
-    // need to get algorithm & ksk or zsk
+    // need to get algorithm & ksk or zsk from commandline
     dk.addKey(zone, 1, 5, 0); 
     cerr<<"Not implemented"<<endl;
   }
@@ -324,6 +322,16 @@ try
     unsigned int id=atoi(cmds[2].c_str());
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << dpk.d_key.convertToISC(dpk.d_algorithm) <<endl;
+  }
+  else if(cmds[0]=="import-zone-key") {
+    cerr<<"This isn't quite right yet!"<<endl; /// XXX FIXME
+    string zone=cmds[1];
+    string fname=cmds[2];
+    DNSSECPrivateKey dpk;
+    getRSAKeyFromISC(&dpk.d_key.getContext(), fname.c_str());
+    dpk.d_algorithm = 5;
+    dpk.d_flags = 257;
+    dk.addKey(zone, true, dpk); // add a KSK
   }
   else if(cmds[0]=="export-zone-dnskey") {
     string zone=cmds[1];
