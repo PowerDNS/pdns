@@ -275,7 +275,7 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
 }
 bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
 {
-  cerr<<"gsql before/after called for id="<<id<<", qname="<<qname<<endl;
+  cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
   unhashed.clear(); before.clear(); after.clear();
   string lcqname=toLower(qname);
   

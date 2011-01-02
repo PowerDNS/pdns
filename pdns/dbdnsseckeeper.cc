@@ -271,7 +271,8 @@ void addSignature(const std::string signQName, const std::string& wildcardname, 
   toSign.clear();
 }
 
-// XXXX FIXME THINK ABOUT LOCKING HERE
+pthread_mutex_t g_rrsigs_lock = PTHREAD_MUTEX_INITIALIZER;
+
 map<pair<string, uint16_t>, RRSIGRecordContent> g_rrsigs;
 
 void fillOutRRSIG(const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK) 
@@ -281,11 +282,14 @@ void fillOutRRSIG(const std::string& signQName, RRSIGRecordContent& rrc, const s
   DNSKEYRecordContent drc=getDNSKEYFor(rrc.d_signer, withKSK, &rc);
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
-  
-  if(g_rrsigs.count(make_pair(hash, rrc.d_tag))) {
-    // cerr<<"RRSIG cache hit !"<<endl;
-    rrc = g_rrsigs[make_pair(hash, rrc.d_tag)];
-    return;
+
+  {  
+    Lock l(&g_rrsigs_lock);
+    if(g_rrsigs.count(make_pair(hash, rrc.d_tag))) {
+      // cerr<<"RRSIG cache hit !"<<endl;
+      rrc = g_rrsigs[make_pair(hash, rrc.d_tag)];
+      return;
+    }
   }
     
   string realhash=getSHA1HashForRRSET(signQName, rrc, toSign);
@@ -301,6 +305,6 @@ void fillOutRRSIG(const std::string& signQName, RRSIGRecordContent& rrc, const s
   
   rrc.d_signature.assign((char*)signature, sizeof(signature));
   
+  Lock l(&g_rrsigs_lock);
   g_rrsigs[make_pair(hash, rrc.d_tag)] = rrc;
-
 }
