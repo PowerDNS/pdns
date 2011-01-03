@@ -6,7 +6,7 @@
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
-  : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass), d_canonic(false)
+  : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass), d_canonic(false), d_lowerCase(false)
 {
   d_content.clear();
   dnsheader dnsheader;
@@ -197,8 +197,9 @@ bool labeltokUnescape(labelparts_t& parts, const string& label)
 }
 
 // this is the absolute hottest function in the pdns recursor 
-void DNSPacketWriter::xfrLabel(const string& label, bool compress)
+void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
 {
+  string label = d_lowerCase ? toLower(Label) : Label;
   labelparts_t parts;
 
   if(d_canonic)

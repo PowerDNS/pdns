@@ -206,7 +206,7 @@ void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc)
 
 bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b)
 {
-  return a->serialize("", true) < b->serialize("", true);
+  return a->serialize("", true, true) < b->serialize("", true, true);
 }
 
 string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
@@ -214,7 +214,7 @@ string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& r
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
   string toHash;
-  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize("", true));
+  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize("", true, true));
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end;
   //  cerr<<"toHash start size: "<<toHash.size()<<", signature length: "<<rrc.d_signature.length()<<endl;
 
@@ -228,7 +228,7 @@ string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& r
     toHash.append((char*)&tmp, 2);
     uint32_t ttl=htonl(rrc.d_originalttl);
     toHash.append((char*)&ttl, 4);
-    string rdata=add->serialize("", true);  // case issues hiding here..
+    string rdata=add->serialize("", true, true); 
     tmp=htons(rdata.length());
     toHash.append((char*)&tmp, 2);
     toHash.append(rdata);
@@ -243,7 +243,7 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
 {
   string toHash;
   toHash.assign(toLower(simpleCompress(qname)));
-  toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true));
+  toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true, true));
 
   unsigned char hash[32];
   if(digest==1)

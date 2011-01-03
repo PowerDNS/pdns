@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2010 PowerDNS.COM BV
+    Copyright (C) 2005 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -150,13 +150,16 @@ public:
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
   virtual void toPacket(DNSPacketWriter& pw)=0;
-  virtual string serialize(const string& qname, bool canonic=false) // it would rock if this were const, but it is too hard
+  virtual string serialize(const string& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
     string empty;
     DNSPacketWriter pw(packet, empty, 1);
     if(canonic)
       pw.setCanonic(true);
+
+    if(lowerCase)
+      pw.setLowercase(true);
 
     pw.startRecord(qname, d_qtype);
     this->toPacket(pw);

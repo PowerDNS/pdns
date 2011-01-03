@@ -320,7 +320,7 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 {
   char output[16384];  
   snprintf(output,sizeof(output)-1,d_AddDomainKeyQuery.c_str(),
-	   key.flags, (int)key.active, sqlEscape(key.content).c_str(), sqlEscape(name).c_str());
+	   key.flags, (int)key.active, sqlEscape(key.content).c_str(), sqlEscape(toLower(name)).c_str());
 
   try {
     d_db->doCommand(output);
@@ -334,7 +334,7 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 {
   char output[1024];
-  snprintf(output,sizeof(output)-1,d_ActivateDomainKeyQuery.c_str(), sqlEscape(name).c_str(), id);
+  snprintf(output,sizeof(output)-1,d_ActivateDomainKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), id);
 
   try {
     d_db->doCommand(output);
@@ -348,7 +348,7 @@ bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 {
   char output[1024];
-  snprintf(output,sizeof(output)-1,d_DeactivateDomainKeyQuery.c_str(), sqlEscape(name).c_str(), id);
+  snprintf(output,sizeof(output)-1,d_DeactivateDomainKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), id);
 
   try {
     d_db->doCommand(output);
@@ -362,7 +362,7 @@ bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
 {
   char output[1024];
-  snprintf(output,sizeof(output)-1,d_RemoveDomainKeyQuery.c_str(), sqlEscape(name).c_str(), id);
+  snprintf(output,sizeof(output)-1,d_RemoveDomainKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), id);
 
   try {
     d_db->doCommand(output);
@@ -378,7 +378,7 @@ bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
 bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
 {
   char output[1024];  
-  snprintf(output,sizeof(output)-1,d_ListDomainKeysQuery.c_str(), sqlEscape(name).c_str());
+  snprintf(output,sizeof(output)-1,d_ListDomainKeysQuery.c_str(), sqlEscape(toLower(name)).c_str());
 
   try {
     d_db->doQuery(output);

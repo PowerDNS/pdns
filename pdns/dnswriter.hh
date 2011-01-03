@@ -100,6 +100,12 @@ public:
     d_canonic=val;
   }
 
+  void setLowercase(bool val) 
+  {
+    d_lowerCase=val;
+  }
+
+
 private:
   vector <uint8_t>& d_content;
   vector <uint8_t> d_record;
@@ -113,7 +119,7 @@ private:
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
   Place d_recordplace;
-  bool d_canonic;
+  bool d_canonic, d_lowerCase;
 };
 
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
