@@ -174,7 +174,8 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 
 void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
-  const char *buf=p->getData();
+  DNSSECKeeper dk;
+  const char *buf=p->getData(&dk);
   uint16_t len=htons(p->len);
   writenWithTimeout(outsock, &len, 2);
   writenWithTimeout(outsock, buf, p->len);

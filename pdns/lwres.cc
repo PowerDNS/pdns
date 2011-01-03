@@ -186,7 +186,6 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       rr.priority = 0;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;
-    
       rr.ttl=i->first.d_ttl;
       rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
       rr.d_place=(DNSResourceRecord::Place) i->first.d_place;

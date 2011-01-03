@@ -58,10 +58,10 @@ string DNSPacket::getString()
   return stringbuffer;
 }
 
-const char *DNSPacket::getData(void)
+const char *DNSPacket::getData(DNSSECKeeper* dk)
 {
   if(!d_wrapped)
-    wrapup();
+    wrapup(dk);
 
   return stringbuffer.data();
 }

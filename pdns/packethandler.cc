@@ -531,7 +531,7 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
 {
   NSEC3PARAMRecordContent ns3rc;
-  cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"': ";
+  cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"', "<<p->qdomain<<"|"<<p->qtype.getName()<<": ";
   if(d_dk.getNSEC3PARAM(auth, &ns3rc))  {
     cerr<<"Present"<<endl;
     addNSEC3(p, r, target, auth, ns3rc, mode);
@@ -1077,7 +1077,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
   DNSPacket *r=0;
   try {    
-    DLOG(L << Logger::Notice<<"Remote "<< p->remote.toString() <<" wants a type " << p->qtype.getName() << " ("<<p->qtype.getCode()<<") about '"<<p->qdomain << "'" << endl);
+    L << Logger::Notice<<"Remote "<< p->remote.toString() <<" wants a type " << p->qtype.getName() << " ("<<p->qtype.getCode()<<") about '"<<p->qdomain << "'" << endl;
 
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;

@@ -119,7 +119,7 @@ public:
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
   void wrapup(DNSSECKeeper* dk=0);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
-  const char *getData(void); //!< get binary representation of packet, will call 'wrapup' for you
+  const char *getData(DNSSECKeeper* dk=0); //!< get binary representation of packet, will call 'wrapup' for you
 
   const char *getRaw(void); //!< provides access to the raw packet, possibly on a packet that has never been 'wrapped'
   void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
