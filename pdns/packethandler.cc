@@ -227,8 +227,6 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
     r->addRecord(rr);
     haveOne=true;
   }
-
-
   return haveOne;
 }
 
@@ -1029,6 +1027,18 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
     cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
   //  cerr<<"Need to add all the NSEC too.."<<endl; /// XXX FIXME THE ABOVE IF IS WEIRD
   addNSECX(p, r, target, sd.qname, 2); 
+  if(sd.qname == p->qdomain) {
+    DNSSECKeeper::keyset_t zskset = d_dk.getKeys(p->qdomain);
+    DNSResourceRecord rr;
+    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
+      rr.qtype=QType::DNSKEY;
+      rr.ttl=3600;
+      rr.qname=p->qdomain;
+      rr.content=value.first.getDNSKEY().getZoneRepresentation();
+      rr.auth = true;
+      r->addRecord(rr);
+    }
+  }
 }
 
 bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted)
