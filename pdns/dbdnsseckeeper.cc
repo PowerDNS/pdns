@@ -19,7 +19,7 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace boost;
 
-bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* dpk)
+bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* dpk) 
 {
   keyset_t keys = getKeys(zone, true);
   // need to get an *active* one!
@@ -48,8 +48,7 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, const DNSSECP
   kd.content = dpk.d_key.convertToISC(5);
  
  // now store it
-  UeberBackend db;
-  db.addDomainKey(name, kd);
+  d_db.addDomainKey(name, kd);
 }
 
 
@@ -61,9 +60,8 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int id)
 {  
-  UeberBackend db;
   vector<DNSBackend::KeyData> keys;
-  db.getDomainKeys(zname, 0, keys);
+  d_db.getDomainKeys(zname, 0, keys);
   BOOST_FOREACH(const DNSBackend::KeyData& kd, keys) {
     if(kd.id != id) 
       continue;
@@ -88,27 +86,24 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
 
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
-  UeberBackend db;
-  db.removeDomainKey(zname, id);
+  d_db.removeDomainKey(zname, id);
 }
 
 void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
-  UeberBackend db;
-  db.deactivateDomainKey(zname, id);
+  d_db.deactivateDomainKey(zname, id);
 }
 
 void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
-  UeberBackend db;
-  db.activateDomainKey(zname, id);
+  d_db.activateDomainKey(zname, id);
 }
 
 bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
 {
-  UeberBackend db;
+  
   vector<string> meta;
-  db.getDomainMetadata(zname, "NSEC3PARAM", meta);
+  d_db.getDomainMetadata(zname, "NSEC3PARAM", meta);
   
   if(meta.empty())
     return false;
@@ -132,24 +127,21 @@ void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecor
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
   meta.push_back(descr);
-  UeberBackend db;
-  db.setDomainMetadata(zname, "NSEC3PARAM", meta);
+  d_db.setDomainMetadata(zname, "NSEC3PARAM", meta);
 }
 
 void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 {
-  UeberBackend db;
-  db.setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
+  d_db.setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
 }
 
 
-DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone)
+DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
 {
   keyset_t keyset;
-  UeberBackend db;
   vector<UeberBackend::KeyData> dbkeyset;
   
-  db.getDomainKeys(zone, 0, dbkeyset);
+  d_db.getDomainKeys(zone, 0, dbkeyset);
   // do db thing
   //cerr<<"Here: received " <<dbkeyset.size()<<" keys"<<endl;
   BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset) 
@@ -178,10 +170,8 @@ void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
   addKey(name, true, algorithm);
 }
  
-bool getSignerFor(const std::string& qname, std::string &signer)
+bool getSignerFor(DNSSECKeeper& dk, const std::string& qname, std::string &signer)
 {
-  DNSSECKeeper dk;
-
   signer=qname;
   do {
     if(dk.haveActiveKSKFor(signer)) 
@@ -190,17 +180,17 @@ bool getSignerFor(const std::string& qname, std::string &signer)
   return false;
 }
 
-DNSKEYRecordContent getDNSKEYFor(const std::string& qname, bool withKSK, RSAContext* rc)
+// this should be able to answer with multiple keys, in case of multiple active ZSKs XXX
+DNSKEYRecordContent getDNSKEYFor(DNSSECKeeper& dk, const std::string& qname, bool withKSK, RSAContext* rc)
 {
-  DNSSECKeeper dk;
-  cerr<<"Asked for a DNSKEY for '"<<qname<<"', withKSK="<<withKSK<<"\n";
+  // cerr<<"Asked for a DNSKEY for '"<<qname<<"', withKSK="<<withKSK<<"\n";
   DNSSECPrivateKey dpk;
 
   if(!withKSK) {
     DNSSECKeeper::keyset_t zskset=dk.getKeys(qname, false);
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
       if(value.second.active) {
-        cerr<<"Found a ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
+     //   cerr<<"Found a ZSK for '"<<qname<<"', key tag = "<<value.first.getDNSKEY().getTag()<<endl;
         *rc=value.first.d_key;
         return value.first.getDNSKEY();
       }
@@ -220,7 +210,7 @@ DNSKEYRecordContent getDNSKEYFor(const std::string& qname, bool withKSK, RSACont
   }
 }
 
-int getRRSIGForRRSET(const std::string signQName, uint16_t signQType, uint32_t signTTL, 
+int getRRSIGForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
 		     vector<shared_ptr<DNSRecordContent> >& toSign, RRSIGRecordContent& rrc, bool ksk)
 {
   if(toSign.empty())
@@ -232,20 +222,20 @@ int getRRSIGForRRSET(const std::string signQName, uint16_t signQType, uint32_t s
   rrc.d_labels=countLabels(signQName); 
   rrc.d_originalttl=signTTL; 
   rrc.d_siginception=getCurrentInception();;
-  rrc.d_sigexpire = rrc.d_siginception + 14*86400;
+  rrc.d_sigexpire = rrc.d_siginception + 14*86400; // XXX should come from zone metadata
 
   rrc.d_tag=0;
-  if(!getSignerFor(signQName, rrc.d_signer)) {
+  if(!getSignerFor(dk, signQName, rrc.d_signer)) {
     cerr<<"No signer known for '"<<signQName<<"'\n";
     return -1;
   }
     
   string hash= getSHA1HashForRRSET(signQName,  rrc, toSign);
-  fillOutRRSIG(signQName, rrc, hash, toSign, ksk);
+  fillOutRRSIG(dk, signQName, rrc, hash, toSign, ksk);
   return 0;
 }
 
-void addSignature(const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, DNSPacketWriter& pw)
+void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, DNSPacketWriter& pw)
 {
   // cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
 
@@ -254,7 +244,7 @@ void addSignature(const std::string signQName, const std::string& wildcardname, 
     return;
 
   for(int ksk = 0; ksk < 2; ++ksk) {
-    if(getRRSIGForRRSET(wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrc, ksk) < 0) {
+    if(getRRSIGForRRSET(dk, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrc, ksk) < 0) {
       cerr<<"Error signing a record!"<<endl;
       return;
     }
@@ -275,11 +265,11 @@ pthread_mutex_t g_rrsigs_lock = PTHREAD_MUTEX_INITIALIZER;
 
 map<pair<string, uint16_t>, RRSIGRecordContent> g_rrsigs;
 
-void fillOutRRSIG(const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK) 
+void fillOutRRSIG(DNSSECKeeper& dk, const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK) 
 {
   RSAContext rc;
 
-  DNSKEYRecordContent drc=getDNSKEYFor(rrc.d_signer, withKSK, &rc);
+  DNSKEYRecordContent drc=getDNSKEYFor(dk, rrc.d_signer, withKSK, &rc);
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
 

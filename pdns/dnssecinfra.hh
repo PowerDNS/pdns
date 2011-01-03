@@ -31,16 +31,18 @@ string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& r
 DNSKEYRecordContent makeDNSKEYFromRSAKey(const rsa_context* rc, uint8_t algorithm, uint16_t flags);
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest=1);
 
-bool getSignerFor(const std::string& keyrepodir, const std::string& qname, std::string &signer);
+
 int countLabels(const std::string& signQName);
 
 class RSAContext;
+class DNSSECKeeper; 
 
-DNSKEYRecordContent getDNSKEYFor(const std::string& keyrepodir, const std::string& qname, bool withKSK, RSAContext* rc);
-void fillOutRRSIG(const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK=false);
+bool getSignerFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, std::string &signer);
+DNSKEYRecordContent getDNSKEYFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, bool withKSK, RSAContext* rc);
+void fillOutRRSIG(DNSSECKeeper& dk, const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK=false);
 uint32_t getCurrentInception();
-void addSignature(const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, DNSPacketWriter& pw);
-int getRRSIGForRRSET(const std::string signQName, uint16_t signQType, uint32_t signTTL, 
+void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, DNSPacketWriter& pw);
+int getRRSIGForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
 		     vector<shared_ptr<DNSRecordContent> >& toSign, RRSIGRecordContent &rrc, bool ksk);
 
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);

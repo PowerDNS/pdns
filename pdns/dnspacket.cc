@@ -226,7 +226,7 @@ bool DNSPacket::couldBeCached()
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
-void DNSPacket::wrapup(void)
+void DNSPacket::wrapup(DNSSECKeeper* dk)
 {
   if(d_wrapped) {
     return;
@@ -296,7 +296,7 @@ void DNSPacket::wrapup(void)
 
 	if(d_dnssecOk) {
 	  if(pos != d_rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
-	    addSignature(signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
+	    addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
 	  }
 	  signQName= pos->qname;
 	  wildcardQName = pos->wildcardname;
@@ -326,7 +326,7 @@ void DNSPacket::wrapup(void)
       // I assume this is some dirty hack to prevent us from signing the last SOA record in an AXFR.. XXX FIXME
       if(d_dnssecOk && !(d_tcp && d_rrs.rbegin()->qtype.getCode() == QType::SOA && d_rrs.rbegin()->priority == 1234)) {
 	// cerr<<"Last signature.. "<<d_tcp<<", "<<d_rrs.rbegin()->priority<<", "<<d_rrs.rbegin()->qtype.getCode()<<", "<< d_rrs.size()<<endl;
-	addSignature(signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
+	addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
       }
 
       if(!opts.empty() || d_dnssecOk)

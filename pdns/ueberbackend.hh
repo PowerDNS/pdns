@@ -160,7 +160,7 @@ private:
   static int s_s;
   static string s_status; 
   int d_ancount;
-  static string programname;
+  
   bool stale;
 };
 

@@ -18,11 +18,9 @@
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 
-
 using namespace boost;
 using namespace std;
 using namespace boost::assign;
-
 
 void RSAContext::create(unsigned int bits)
 {

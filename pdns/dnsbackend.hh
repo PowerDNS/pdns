@@ -240,7 +240,7 @@ class BackendMakerClass
 public:
   void report(BackendFactory *bf);
   void launch(const string &instr);
-  vector<DNSBackend *>all();
+  vector<DNSBackend *>all(bool skipBIND=false);
   void load(const string &module);
   int numLauncheable();
   vector<string> getModules();

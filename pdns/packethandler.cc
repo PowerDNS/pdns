@@ -204,12 +204,10 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
     return false;
     
   DNSResourceRecord rr;
-  DNSSECKeeper dk;
-
   bool haveOne=false;
   DNSSECPrivateKey dpk;
 
-  if(dk.haveActiveKSKFor(p->qdomain, &dpk)) {
+  if(d_dk.haveActiveKSKFor(p->qdomain, &dpk)) {
     rr.qtype=QType::DNSKEY;
     rr.ttl=3600;
     rr.qname=p->qdomain;
@@ -219,7 +217,7 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
     haveOne=true;
   }
 
-  DNSSECKeeper::keyset_t zskset = dk.getKeys(p->qdomain, false);
+  DNSSECKeeper::keyset_t zskset = d_dk.getKeys(p->qdomain, false);
   BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
     rr.qtype=QType::DNSKEY;
     rr.ttl=3600;
@@ -242,10 +240,9 @@ int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r)
     return false;
 
   DNSResourceRecord rr;
-  DNSSECKeeper dk;
 
   NSEC3PARAMRecordContent ns3prc;
-  if(dk.getNSEC3PARAM(p->qdomain, &ns3prc)) {
+  if(d_dk.getNSEC3PARAM(p->qdomain, &ns3prc)) {
     rr.qtype=QType::NSEC3PARAM;
     rr.ttl=3600;
     rr.qname=p->qdomain;
@@ -533,10 +530,9 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::
 */
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
 {
-  DNSSECKeeper dk;
   NSEC3PARAMRecordContent ns3rc;
   cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"': ";
-  if(dk.getNSEC3PARAM(auth, &ns3rc))  {
+  if(d_dk.getNSEC3PARAM(auth, &ns3rc))  {
     cerr<<"Present"<<endl;
     addNSEC3(p, r, target, auth, ns3rc, mode);
   }
@@ -948,7 +944,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   BOOST_FOREACH(records_t::value_type& iter, records) {
     RRSIGRecordContent rrc;
     for(int ksk =0 ; ksk < 2; ++ksk) {
-      getRRSIGForRRSET(p->qdomain, iter.first, 3600, iter.second, rrc, ksk);
+      getRRSIGForRRSET(d_dk, p->qdomain, iter.first, 3600, iter.second, rrc, ksk);
       rr.content=rrc.getZoneRepresentation();
       r->addRecord(rr);
       if(iter.first != QType::DNSKEY)
@@ -1280,7 +1276,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     //    doDNSSECProcessing(p, r);
 
-    r->wrapup(); // needed for inserting in cache
+    r->wrapup(&d_dk); // needed for inserting in cache
     if(!noCache) {
       PC.insert(p,r); // in the packet cache
     }

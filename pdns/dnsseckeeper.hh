@@ -6,6 +6,7 @@
 #include <vector>
 #include <boost/logic/tribool.hpp>
 #include "dnsrecords.hh"
+#include "ueberbackend.hh"
 
 #define PDNSSEC_MI(x) mpi_init(&d_context.x, 0)
 #define PDNSSEC_MC(x) PDNSSEC_MI(x); mpi_copy(&d_context.x, const_cast<mpi*>(&orig.d_context.x))
@@ -99,8 +100,10 @@ public:
     string fname;
   }; 
   typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > keyset_t;
-   
+private:
+  UeberBackend d_db;
 public:
+  DNSSECKeeper() : d_db("key-only"){}
   bool haveActiveKSKFor(const std::string& zone, DNSSECPrivateKey* ksk=0);
   
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);

@@ -66,9 +66,7 @@
 #endif // WIN32
 
 class DNSBackend;
-
-
-
+class DNSSECKeeper;
 
 //! This class represents DNS packets, either received or to be sent.
 class DNSPacket
@@ -120,7 +118,7 @@ public:
   void setQuestion(int op, const string &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (label, type, class etc)
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
-  void wrapup(void);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
+  void wrapup(DNSSECKeeper* dk=0);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
   const char *getData(void); //!< get binary representation of packet, will call 'wrapup' for you
 
   const char *getRaw(void); //!< provides access to the raw packet, possibly on a packet that has never been 'wrapped'

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2008  PowerDNS.COM BV
+    Copyright (C) 2005 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -47,7 +47,6 @@ vector<UeberBackend *>UeberBackend::instances;
 pthread_mutex_t UeberBackend::instances_lock=PTHREAD_MUTEX_INITIALIZER;
 
 sem_t UeberBackend::d_dynserialize;
-string UeberBackend::programname;
 string UeberBackend::s_status;
 
 // initially we are blocked
@@ -223,7 +222,6 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     }
   }
     
-
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd, p)) {
       DNSResourceRecord rr;
@@ -256,7 +254,6 @@ void UeberBackend::setStatus(const string &st)
 
 UeberBackend::UeberBackend(const string &pname)
 {
-//  programname=pname;
   pthread_mutex_lock(&instances_lock);
   instances.push_back(this); // report to the static list of ourself
   pthread_mutex_unlock(&instances_lock);
@@ -264,7 +261,7 @@ UeberBackend::UeberBackend(const string &pname)
   tid=pthread_self(); 
   stale=false;
 
-  backends=BackendMakers().all();
+  backends=BackendMakers().all(pname=="key-only");
 }
 
 void UeberBackend::die()
