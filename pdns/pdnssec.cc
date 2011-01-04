@@ -33,11 +33,9 @@ string humanTime(time_t t)
   return ret;
 }
 
-void loadMainConfig()
+void loadMainConfig(const std::string& configdir)
 {
-   static char pietje[128]="!@@SYSCONFDIR@@:";
-  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=
-    strcmp(pietje+1,"@@SYSCONFDIR@@:") ? pietje+strlen("@@SYSCONFDIR@@:")+1 : SYSCONFDIR;
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
   
   ::arg().set("launch","Which backends to launch");
   ::arg().set("dnssec","if we should do dnssec")="true";
@@ -132,7 +130,7 @@ void orderZone(DNSSECKeeper& dk, const std::string& zone)
 
 void checkZone(DNSSECKeeper& dk, const std::string& zone)
 {
-  loadMainConfig();
+  loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();  
   UeberBackend* B = new UeberBackend("default");
   SOAData sd;
@@ -174,6 +172,7 @@ try
     ("help,h", "produce help message")
     ("verbose,v", po::value<bool>(), "be verbose")
     ("force", "force an action")
+    ("config-dir", po::value<string>()->default_value(SYSCONFDIR), "location of pdns.conf")
     ("commands", po::value<vector<string> >());
 
   po::positional_options_description p;
@@ -189,11 +188,12 @@ try
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [alter-zone] [order-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
     cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [unset-nsec3] [export-zone-dnskey]"<<endl;
+    cerr<<"Options:"<<endl;
     cerr<<desc<<endl;
     return 0;
   }
 
-  loadMainConfig();
+  loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
   DNSSECKeeper dk;
 
