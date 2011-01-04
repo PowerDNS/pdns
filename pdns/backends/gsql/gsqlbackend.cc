@@ -244,16 +244,16 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_afterOrderQuery = getArg("get-order-after-query");
   d_setOrderAuthQuery = getArg("set-order-and-auth-query");
   
-  d_AddDomainKeyQuery = "insert into cryptokeys (domain_id, flags, active, content) select id, %d, %d, '%s' from domains where name='%s'";
-  d_ListDomainKeysQuery = "select cryptokeys.id, flags, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
+  d_AddDomainKeyQuery = getArg("add-domain-key-query");
+  d_ListDomainKeysQuery = getArg("list-domain-keys-query");
   
-  d_GetDomainMetadataQuery = "select content from domains, domainmetadata where domain_id=domains.id and name='%s' and domainmetadata.kind='%s'";
-  d_ClearDomainMetadataQuery = "delete from domainmetadata where domain_id=(select id from domains where name='%s') and domainmetadata.kind='%s'";
-  d_SetDomainMetadataQuery = "insert into domainmetadata (domain_id, kind, content) select id, '%s', '%s' from domains where name='%s'";
+  d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
+  d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
+  d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
   
-  d_ActivateDomainKeyQuery = "update cryptokeys set active=1 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d";
-  d_DeactivateDomainKeyQuery = "update cryptokeys set active=0 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d";
-  d_RemoveDomainKeyQuery = "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d";
+  d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
+  d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
+  d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)

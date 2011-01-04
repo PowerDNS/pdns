@@ -1,7 +1,7 @@
-
 //
 // SQLite backend for PowerDNS
 // Copyright (C) 2003, Michel Stol <michel@powerdns.com>
+// Copyright (C) 2011, PowerDNS.COM BV
 //
 
 #include "pdns/utility.hh"
@@ -96,6 +96,15 @@ public:
     declare( suffix, "delete-zone-query", "", "delete from records where domain_id=%d");
     declare( suffix, "check-acl-query","", "select value from acls where acl_type='%s' and acl_key='%s'");
     declare(suffix, "dnssec", "Assume DNSSEC Schema is in place","false");
+
+    declare(suffix,"add-domain-key-query","", "insert into cryptokeys (domain_id, flags, active, content) select id, %d, %d, '%s' from domains where name='%s'");
+    declare(suffix,"list-domain-keys-query","", "select cryptokeys.id, flags, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'");
+    declare(suffix,"get-domain-metadata-query","", "select content from domains, domainmetadata where domain_id=domains.id and name='%s' and domainmetadata.kind='%s'");
+    declare(suffix,"clear-domain-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name='%s') and domainmetadata.kind='%s'");
+    declare(suffix,"set-domain-metadata-query","", "insert into domainmetadata (domain_id, kind, content) select id, '%s', '%s' from domains where name='%s'");
+    declare(suffix,"activate-domain-key-query","", "update cryptokeys set active=1 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
+    declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=0 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
+    declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d");
     
   }
   
