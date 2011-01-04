@@ -83,6 +83,8 @@ void loadMainConfig()
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
     ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";    
+  ::arg().set("module-dir","Default directory for modules")=LIBDIR;
+
   UeberBackend::go();
 }
 
