@@ -258,12 +258,16 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
 {
+  if(!d_dnssecQueries)
+    return false;
   string ins=toLower(labelReverse(makeRelative(qname, zonename)));
   return this->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, ins, auth);
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth)
 {
+  if(!d_dnssecQueries)
+    return false;
   char output[1024];
   // ordername='%s',auth=%d where name='%s' and domain_id='%d'
   
@@ -275,6 +279,8 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
 }
 bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
 {
+  if(!d_dnssecQueries)
+    return false;
   cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
   unhashed.clear(); before.clear(); after.clear();
   string lcqname=toLower(qname);
@@ -318,6 +324,8 @@ retryBefore:
 
 int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 {
+  if(!d_dnssecQueries)
+    return -1;
   char output[16384];  
   snprintf(output,sizeof(output)-1,d_AddDomainKeyQuery.c_str(),
 	   key.flags, (int)key.active, sqlEscape(key.content).c_str(), sqlEscape(toLower(name)).c_str());
@@ -333,6 +341,8 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 
 bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 {
+  if(!d_dnssecQueries)
+    return false;
   char output[1024];
   snprintf(output,sizeof(output)-1,d_ActivateDomainKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), id);
 
@@ -347,6 +357,8 @@ bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 {
+  if(!d_dnssecQueries)
+    return false;
   char output[1024];
   snprintf(output,sizeof(output)-1,d_DeactivateDomainKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), id);
 
@@ -361,6 +373,8 @@ bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
 {
+  if(!d_dnssecQueries)
+    return false;
   char output[1024];
   snprintf(output,sizeof(output)-1,d_RemoveDomainKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), id);
 
@@ -377,6 +391,8 @@ bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
 {
+  if(!d_dnssecQueries)
+    return false;
   char output[1024];  
   snprintf(output,sizeof(output)-1,d_ListDomainKeysQuery.c_str(), sqlEscape(toLower(name)).c_str());
 
@@ -406,6 +422,8 @@ bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vect
 
 bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
+  if(!d_dnssecQueries)
+    return false;
   char output[1024];  
   snprintf(output,sizeof(output)-1,d_GetDomainMetadataQuery.c_str(), sqlEscape(name).c_str(), sqlEscape(kind).c_str());
 
@@ -428,6 +446,8 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
 bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   char output[16384];  
+  if(!d_dnssecQueries)
+    return false;
 
   if(!meta.empty())
     snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),

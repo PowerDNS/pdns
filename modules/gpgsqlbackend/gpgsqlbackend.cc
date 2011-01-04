@@ -50,7 +50,7 @@ public:
     declare(suffix,"port","Database backend port to connect to","");
     declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
-
+    declare(suffix, "dnssec", "Assume DNSSEC Schema is in place","no");
     declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
     declare(suffix,"id-query","Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d");
     declare(suffix,"wildcard-query","Wildcard query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s'");
