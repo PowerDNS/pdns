@@ -58,7 +58,7 @@ void loadMainConfig(const std::string& configdir)
   cerr<<"configname: '"<<configname<<"'\n";
   
   ::arg().laxFile(configname.c_str());
-
+  ::arg().set("module-dir","Default directory for modules")=LIBDIR;
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
@@ -81,8 +81,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
     ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";    
-  ::arg().set("module-dir","Default directory for modules")=LIBDIR;
-
+  
   UeberBackend::go();
 }
 
@@ -130,7 +129,6 @@ void orderZone(DNSSECKeeper& dk, const std::string& zone)
 
 void checkZone(DNSSECKeeper& dk, const std::string& zone)
 {
-  loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();  
   UeberBackend* B = new UeberBackend("default");
   SOAData sd;
@@ -192,7 +190,7 @@ try
     cerr<<desc<<endl;
     return 0;
   }
-
+  
   loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
   DNSSECKeeper dk;
