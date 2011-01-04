@@ -1200,7 +1200,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::NSEC && p->d_dnssecOk) {
-      addNSEC(p, r, target, "", 2); // only NSEC please
+      addNSEC(p, r, target, sd.qname, 2); // only NSEC please
       goto sendit;
     }
     
