@@ -57,6 +57,7 @@ public:
       rr.qname=d_ourname;                                           // fill in details
       rr.qtype=QType::A;                                            // A record
       rr.ttl=5;                                                 // 5 seconds
+      rr.auth = 1;  // it may be random.. but it is auth!
       rr.content=d_answer;
 
       d_answer="";                                                  // this was the last answer
