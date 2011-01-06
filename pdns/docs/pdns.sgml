@@ -9049,7 +9049,7 @@ $ pdnssec rectify-zone
     Domain metadata is stored in the 'domainmetadata' table. This includes NSEC3 settings.
   </para>
   <para>
-    Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters for the update statements), the 'pdnssec'
+    Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters or <ulink url="http://wiki.powerdns.com/trac/wiki/PDNSSEC">the PowerDNSSEC wiki</ulink> for the update statements), the 'pdnssec'
     tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
   </para>
   <para>
@@ -9201,6 +9201,46 @@ $ pdnssec rectify-zone
 	</varlistentry>
       </variablelist>
     </para>
+  </section>
+  <section id="dnssec-operational-doctrine">
+  <title>Operational instructions</title>
+  <para>
+  In this chapter various DNSSEC transitions are discussed, and how to execute them within PowerDNSSEC.
+  </para>
+  <section id="publish-ds"><title>Publishing a DS</title>
+  <para>
+  To publish a DS to a parent zone, utilize 'pdnssec show-zone' and take the DS from its output, and transfer it securely
+  to your parent zone.
+  </para>
+  </section>
+  <section id="zsk-rollover"><title>ZSK rollover</title>
+  <para>
+  .. pdnssec activate-zone-key ZONE next-key-id ..
+  .. pdnssec deactivate-zone-key ZONE prev-key-id ..
+  .. pdnssec remove-zone-key ZONE prev-key-id ..
+  </para>
+  </section>
+  <section id="ksk-rollover"><title>KSK rollover</title>
+  <para>
+  .. pdnssec show-zone ZONE and communicatate duplicate DS ..
+  .. pdnssec activate-zone-key ZONE next-key-id ..
+  .. pdnssec deactivate-zone-key ZONE prev-key-id ..
+  .. pdnssec remove-zone-key ZONE prev-key-id ..
+  </para>
+  </section>
+  <section id="going-insecure"><title>Going insecure</title>
+  <para>
+  .. pdnssec disable-dnssec ..
+  </para>
+  </section>
+  <section id="nsec3-change"><title>NSEC(3) change</title>
+  <para>
+  .. pdnssec show-zone ZONE and communicatate duplicate DS ..
+  .. pdnssec activate-zone-key ZONE next-key-id ..
+  .. pdnssec deactivate-zone-key ZONE prev-key-id ..
+  .. pdnssec remove-zone-key ZONE prev-key-id ..
+  </para>
+  </section>
   </section>
   <section id="dnssec-modes">
   <title>Modes of operation</title>
