@@ -9053,7 +9053,10 @@ $ pdnssec rectify-zone
     tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
   </para>
   <para>
-    In short, 'pdnssec secure-zone powerdnssec.org &amp;&amp; pdnssec rectify-zone powerdnssec.org' will deliver a correctly NSEC signed zone.
+    In short, 'pdnssec secure-zone powerdnssec.org ; pdnssec rectify-zone powerdnssec.org' will deliver a correctly NSEC signed zone.
+  </para>
+  <para>
+    In addition, so will the 'zone2sql' import tool when run with the '--dnssec' flag.
   </para>
   </section>
   <section id="powerdnssec">
@@ -9105,8 +9108,7 @@ $ pdnssec rectify-zone
 	    <term>add-zone-key ZONE [ksk|zsk] [bits]</term>
 	    <listitem>
 	      <para>
-		Create a new key for zone ZONE, and make it a KSK or a ZSK. WARNING: Only ZSK is supported right now, no 'KSK' or 'ZSK' should
-		be passed on the command line. WARNING: 'bits' defaults to 1024 for now and can't be passed on the command line yet.
+		Create a new key for zone ZONE, and make it a KSK or a ZSK. 
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -9140,7 +9142,8 @@ $ pdnssec rectify-zone
 	    <listitem>
 	      <para>
 		Import from 'filename' a full (private) key for zone called ZONE. The format
-		used is compatible with BIND and NSD/LDNS. WARNING: defaults to a KSK, option is ignored right now.
+		used is compatible with BIND and NSD/LDNS. KSK or ZSK specifies the flags this
+		key should have on import.
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -9253,6 +9256,35 @@ $ pdnssec rectify-zone
       the keying material. This is needed to generate a zone-id for the relevant domain.
     </para>
     </warning>
+  </section>
+  <section id="dnssec-direct-database">
+  <title>Rules for filling out fields in database backends</title>
+  <para>
+  <note><para>The BIND Backend automates all the steps outlined below, and does not need 'manual' help
+  </para></note></para>
+  <para>
+    For DNSSEC, two additional fields are important: 'auth' and 'ordername'. These fields are set correctly
+    on an incoming zone transfer, and also by running 'pdnssec rectify-zone', or 'zone2sql' with the --dnssec flag.
+    </para>
+    <para>The 'auth' field should be set to '1' for 
+    data for which is itself authoritative, which includes the SOA record and its own NS records. 
+  </para>
+  <para>
+    The 'auth' field should be 0 however for NS records which are used for delegation, and also for any glue records
+    present for this purpose.
+  </para>
+  <para>
+    The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. When running in NSEC3 'Narrow' mode,
+    the ordername field is ignored and best left empty.
+  </para>
+  <para>
+    In 'NSEC' mode, it should contain the <emphasis>relative</emphasis> part of a domain name, in reverse order, with dots replaced
+    by spaces. So 'www.uk.powerdnssec.org' in the 'powerdnssec.org' zone should have 'uk www' as its ordername.
+  </para>
+  <para>
+    In 'NSEC3' non-narrow mode, the ordername should contain a lowercase base32hex encoded representation of the salted &amp; iterated hash
+    of the full record name.
+  </para>
   </section>
   </section>
   <section id="dnssec-security"><title>Security</title>

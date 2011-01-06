@@ -282,9 +282,24 @@ try
   }
   else if(cmds[0] == "add-zone-key") {
     const string& zone=cmds[1];
-    // need to get algorithm & ksk or zsk from commandline
-    cerr<<"Adding a ZSK"<<endl;
-    dk.addKey(zone, 0, 5, 0); 
+    // need to get algorithm, bits & ksk or zsk from commandline
+    bool keyOrZone=false;
+    int bits=0;
+    for(unsigned int n=2; n < cmds.size(); ++n) {
+      if(pdns_iequals(cmds[n], "zsk"))
+        keyOrZone = false;
+      else if(pdns_iequals(cmds[n], "ksk"))
+        keyOrZone = true;
+      else if(atoi(cmds[n].c_str()))
+        bits = atoi(cmds[n].c_str());
+      else { 
+        cerr<<"Unknown key flag or size '"<<cmds[n]<<"'"<<endl;
+      }
+    }
+    cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<endl;
+    if(bits)
+      cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
+    dk.addKey(zone, keyOrZone, 5, bits); 
   }
   else if(cmds[0] == "remove-zone-key") {
     const string& zone=cmds[1];
