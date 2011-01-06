@@ -541,32 +541,38 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, c
   }
 }
 
+//we juggle raw & base32 encoded hashes too much
 static void incrementHash(std::string& hash) // I wonder if this is correct, cmouse? ;-)
 {
   if(hash.empty())
     return;
-  for(string::size_type pos=hash.size(); pos; ) {
+  string raw=fromBase32Hex(hash);
+  for(string::size_type pos=raw.size(); pos; ) {
     --pos;
-    unsigned char c = (unsigned char)hash[pos];
+    unsigned char c = (unsigned char)raw[pos];
     ++c;
-    hash[pos] = (char) c;
+    raw[pos] = (char) c;
     if(c)
       break;
   }
+  hash=toBase32Hex(raw);
 }
 
 static void decrementHash(std::string& hash) // I wonder if this is correct, cmouse? ;-)
 {
   if(hash.empty())
     return;
-  for(string::size_type pos=hash.size(); pos; ) {
+    
+  string raw=fromBase32Hex(hash);
+  for(string::size_type pos=raw.size(); pos; ) {
     --pos;
-    unsigned char c = (unsigned char)hash[pos];
+    unsigned char c = (unsigned char)raw[pos];
     --c;
-    hash[pos] = (char) c;
+    raw[pos] = (char) c;
     if(c != 0xff)
       break;
   }
+  hash = toBase32Hex(raw);
 }
 
 
