@@ -380,3 +380,6 @@ try
 catch(AhuException& ae) {
   cerr<<"Error: "<<ae.reason<<endl;
 }
+catch(std::exception& e) {
+  cerr<<"Error: "<<e.what()<<endl;
+}
