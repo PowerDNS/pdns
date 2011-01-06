@@ -380,7 +380,14 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int outsock)
 {
   shared_ptr<DNSPacket> outpacket;
-  if(!canDoAXFR(q)) {
+  DNSSECKeeper dk;
+  bool noAXFRBecauseOfNSEC3=false;
+  if(dk.getNSEC3PARAM(target)) {
+    L<<Logger::Error<<"Not doing AXFR of an NSEC3 zone.."<<endl;
+    noAXFRBecauseOfNSEC3=true;
+  }
+
+  if(!canDoAXFR(q) || noAXFRBecauseOfNSEC3) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
 
     outpacket=shared_ptr<DNSPacket>(q->replyPacket());
@@ -389,6 +396,9 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     sendPacket(outpacket,outsock);
     return 0;
   }
+  
+  
+  
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
 
@@ -462,7 +472,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   nsecrepo_t nsecrepo;
   // this is where the DNSKEYs go
   
-  DNSSECKeeper dk;
+
   DNSSECKeeper::keyset_t keys = dk.getKeys(target);
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
     rr.qname = target;
@@ -510,6 +520,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
 
+
   for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
     cerr<<"Adding for '"<<iter->first<<"'\n";
     NSECRecordContent nrc;
@@ -532,6 +543,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     count++;
   }
 
+  
   if(count) {
     sendPacket(outpacket, outsock);
   }
