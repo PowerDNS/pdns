@@ -39,7 +39,7 @@ void loadMainConfig(const std::string& configdir)
   
   ::arg().set("launch","Which backends to launch");
   ::arg().set("dnssec","if we should do dnssec")="true";
-  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")=g_vm["config-name"].as<string>();
   ::arg().setCmd("help","Provide a helpful message");
   //::arg().laxParse(argc,argv);
 
@@ -183,6 +183,7 @@ try
     ("help,h", "produce help message")
     ("verbose,v", po::value<bool>(), "be verbose")
     ("force", "force an action")
+    ("config-name", po::value<string>(), "virtual configuration name")
     ("config-dir", po::value<string>()->default_value(SYSCONFDIR), "location of pdns.conf")
     ("commands", po::value<vector<string> >());
 
