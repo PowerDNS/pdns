@@ -854,13 +854,13 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
     records_by_hashindex_t& ttdindex=boost::multi_index::get<HashedTag>(*bbd.d_records);
     
-    BOOST_FOREACH(const Bind2DNSRecord& bdr, ttdindex) {
-      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
-    }
+//    BOOST_FOREACH(const Bind2DNSRecord& bdr, ttdindex) {
+//      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
+//    }
     
     records_by_hashindex_t::const_iterator iter = ttdindex.lower_bound(lqname); // lower_bound(ttdindex.begin(), ttdindex.end(), lqname);
-    cerr<<"iter == ttdindex.begin(): "<< (iter == ttdindex.begin()) << ", ";
-    cerr<<"iter == ttdindex.end(): "<< (iter == ttdindex.end()) << endl;
+//    cerr<<"iter == ttdindex.begin(): "<< (iter == ttdindex.begin()) << ", ";
+  //  cerr<<"iter == ttdindex.end(): "<< (iter == ttdindex.end()) << endl;
     if(iter->nsec3hash == lqname) {
       before = iter->nsec3hash;
       unhashed = dotConcat(labelReverse(iter->qname), auth);
