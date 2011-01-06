@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2009  PowerDNS.COM BV
+    Copyright (C) 2002-2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -17,6 +17,9 @@
 */
 #include "packetcache.hh"
 #include "utility.hh"
+#include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
+#include "base32.hh"
 #include <errno.h>
 #include "communicator.hh"
 #include <set>
@@ -69,6 +72,21 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     resolver.axfr(remote, domain.c_str());
 
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());
+    NSEC3PARAMRecordContent ns3pr;
+    bool narrow;
+    DNSSECKeeper dk;
+    bool dnssecZone = false;
+    if(dk.haveActiveKSKFor(domain)) {
+      dnssecZone=true;
+      dk.getNSEC3PARAM(domain, &ns3pr, &narrow);
+      string hashed;
+      if(ns3pr.d_salt.empty()) 
+        cerr<<"Adding NSEC ordering information"<<endl;
+      else if(!narrow)
+        cerr<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
+      else 
+        cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
+    }
 
     if(!B->getDomainInfo(domain, di) || !di.backend) {
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
@@ -77,18 +95,24 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     domain_id=di.id;
 
     Resolver::res_t recs;
-
+    set<string> nsset, qnames;
     while(resolver.axfrChunk(recs)) {
       if(first) {
         L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
         di.backend->startTransaction(domain, domain_id);
         first=false;
       }
+      
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
         if(!endsOn(i->qname, domain)) { 
           L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"' during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
+        if(dnssecZone) {
+          if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
+            nsset.insert(i->qname);
+          qnames.insert(i->qname);
+        }  
         i->domain_id=domain_id;
         if(i->qtype.getCode()>=1024)
           throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
@@ -96,6 +120,31 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         di.backend->feedRecord(*i);
       }
     }
+    if(dnssecZone) {
+      string hashed;
+      BOOST_FOREACH(const string& qname, qnames)
+      {
+        string shorter(qname);
+        bool auth=true;
+        do {
+          if(nsset.count(shorter)) {  
+            auth=false;
+            break;
+          }
+        }while(chopOff(shorter));
+      
+        if(ns3pr.d_salt.empty()) // NSEC
+          di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
+        else {
+          if(!narrow) {
+            hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
+            cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
+          }
+          di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth);
+        }
+      }
+    }
+    
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed"<<endl;
