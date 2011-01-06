@@ -555,12 +555,29 @@ static void incrementHash(std::string& hash) // I wonder if this is correct, cmo
   }
 }
 
-bool PacketHandler::getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, string& unhashed, string& before, string& after)
+static void decrementHash(std::string& hash) // I wonder if this is correct, cmouse? ;-)
+{
+  if(hash.empty())
+    return;
+  for(string::size_type pos=hash.size(); pos; ) {
+    --pos;
+    unsigned char c = (unsigned char)hash[pos];
+    --c;
+    hash[pos] = (char) c;
+    if(c != 0xff)
+      break;
+  }
+}
+
+
+bool PacketHandler::getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, string& unhashed, string& before, string& after)
 {
   bool ret;
   if(narrow) { // nsec3-narrow
     ret=true;
     before=hashed;
+    if(decrement)
+      decrementHash(before);
     after=hashed;
     incrementHash(after);
   }
@@ -583,28 +600,29 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   }
   cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
   string unhashed, before,after;
-  
+
   // now add the closest encloser
   unhashed=auth;
   hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
   
-  getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, unhashed, before, after); 
+  getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after); 
   cerr<<"Done calling for closest encloser, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3(ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
-  
+
+
   // now add the main nsec3
   unhashed = p->qdomain;
   hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
-  getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, unhashed, before, after); 
+  getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after); 
   cerr<<"Done calling for main, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
   
-  
+
   // now add the *
   unhashed=dotConcat("*", auth);
   hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
   
-  getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, unhashed, before, after); 
+  getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, true, unhashed, before, after); 
   cerr<<"Done calling for '*', before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
 }
@@ -1001,7 +1019,8 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   
   if(p->d_dnssecOk) 
     addNSECX(p, r, target, sd.qname, 1);
-  r->setRcode(RCode::NXDomain); 
+  
+  r->setRcode(RCode::NXDomain);  
   S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
 }
 
