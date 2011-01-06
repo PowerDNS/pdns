@@ -90,7 +90,9 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
   while(stringfgets(fp, sline)) {
     tie(key,value)=splitField(sline, ':');
     trim(value);
-
+    trim(key);
+    if(key.empty())
+      continue;
     if(places.count(key)) {
       if(places[key]) {
 
@@ -110,7 +112,7 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
     }
     else {
       if(key != "Private-key-format" && key != "Algorithm") 
-	cerr<<"Unknown field '"<<key<<"'\n";
+        cerr<<"Unknown field '"<<key<<"'\n";
     }
   }
   rsa->len = ( mpi_msb( &rsa->N ) + 7 ) >> 3; // no clue what this does

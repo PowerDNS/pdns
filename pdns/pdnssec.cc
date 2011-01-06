@@ -351,7 +351,7 @@ try
     cout << dpk.d_key.convertToISC(dpk.d_algorithm) <<endl;
   }  
   else if(cmds[0]=="import-zone-key") {
-    if(cmds.size()!=3) {
+    if(cmds.size() < 3) {
       cerr<<"Syntax: pdnssec import-zone-key zone-name filename"<<endl;
       exit(1);
     }
