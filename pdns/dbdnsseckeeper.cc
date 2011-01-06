@@ -99,10 +99,16 @@ void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
   d_db.activateDomainKey(zname, id);
 }
 
-bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
+bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow)
 {
-  
   vector<string> meta;
+  if(narrow) {
+    d_db.getDomainMetadata(zname, "NSEC3NARROW", meta);
+    *narrow=false;
+    if(!meta.empty() && meta[0]=="1")
+      *narrow=true;
+  }
+  meta.clear();
   d_db.getDomainMetadata(zname, "NSEC3PARAM", meta);
   
   if(meta.empty())
@@ -122,12 +128,17 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   return true;
 }
 
-void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& ns3p)
+void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
 {
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
   meta.push_back(descr);
   d_db.setDomainMetadata(zname, "NSEC3PARAM", meta);
+  
+  meta.clear();
+  if(narrow)
+    meta.push_back("1");
+  d_db.setDomainMetadata(zname, "NSEC3NARROW", meta);
 }
 
 void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)

@@ -116,8 +116,8 @@ public:
 
   void secureZone(const std::string& fname, int algorithm);
 
-  bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0);
-  void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p);
+  bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
+  void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   void unsetNSEC3PARAM(const std::string& zname);
 };
 

@@ -99,9 +99,10 @@ private:
   bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
   void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
   void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
-  void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, int mode);
+  void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, const std::string& auth, DNSPacket *r, int mode);
   void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const std::string& auth, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
+  bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, string& unhashed, string& before, string& after);
 
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);

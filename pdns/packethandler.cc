@@ -512,7 +512,7 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::
   rr.ttl=3600;
   rr.qtype=QType::NSEC3;
   rr.content=n3rc.getZoneRepresentation();
-  cerr<<"nsec3: '"<<rr.content<<"'"<<endl;
+  //cerr<<"nsec3: '"<<rr.content<<"'"<<endl;
   rr.d_place = (mode == 2 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
   r->addRecord(rr);
@@ -530,9 +530,10 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, c
 {
   NSEC3PARAMRecordContent ns3rc;
   cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"', "<<p->qdomain<<"|"<<p->qtype.getName()<<": ";
-  if(d_dk.getNSEC3PARAM(auth, &ns3rc))  {
-    cerr<<"Present"<<endl;
-    addNSEC3(p, r, target, auth, ns3rc, mode);
+  bool narrow;
+  if(d_dk.getNSEC3PARAM(auth, &ns3rc, &narrow))  {
+    cerr<<"Present, narrow="<<narrow<<endl;
+    addNSEC3(p, r, target, auth, ns3rc, narrow, mode);
   }
   else {
     cerr<<"Not present"<<endl;
@@ -540,7 +541,37 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, c
   }
 }
 
-void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, const NSEC3PARAMRecordContent& ns3rc, int mode)
+static void incrementHash(std::string& hash) // I wonder if this is correct, cmouse? ;-)
+{
+  if(hash.empty())
+    return;
+  for(string::size_type pos=hash.size(); pos; ) {
+    --pos;
+    unsigned char c = (unsigned char)hash[pos];
+    ++c;
+    hash[pos] = (char) c;
+    if(c)
+      break;
+  }
+}
+
+bool PacketHandler::getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, string& unhashed, string& before, string& after)
+{
+  bool ret;
+  if(narrow) { // nsec3-narrow
+    ret=true;
+    before=hashed;
+    after=hashed;
+    incrementHash(after);
+  }
+  else {
+    ret=db->getBeforeAndAfterNamesAbsolute(id, hashed, unhashed, before, after);
+  }
+  // cerr<<"rgetNSEC3Hashes: "<<hashed<<", "<<unhashed<<", "<<before<<", "<<after<<endl;
+  return ret;
+}
+
+void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
   string hashed;
   
@@ -550,25 +581,30 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     cerr<<"Could not get SOA for domain in NSEC3\n";
     return;
   }
-  cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"'"<<endl;
+  cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
   string unhashed, before,after;
   
   // now add the closest encloser
-  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, auth)));
-  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
+  unhashed=auth;
+  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
+  
+  getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, unhashed, before, after); 
   cerr<<"Done calling for closest encloser, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3(ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
   
   // now add the main nsec3
-  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, p->qdomain)));
-  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
+  unhashed = p->qdomain;
+  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
+  getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, unhashed, before, after); 
   cerr<<"Done calling for main, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
   
   
   // now add the *
-  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, dotConcat("*", auth))));
-  sd.db->getBeforeAndAfterNamesAbsolute(sd.domain_id,  hashed, unhashed, before, after); 
+  unhashed=dotConcat("*", auth);
+  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
+  
+  getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, unhashed, before, after); 
   cerr<<"Done calling for '*', before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
 }
@@ -911,7 +947,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     nrc.d_set.insert(rr.qtype.getCode());
   }
 
-  // now get the fucking NSEC too (since we must sign it!)
+  // now get the NSEC too (since we must sign it!)
 
   SOAData sd;
   sd.db=(DNSBackend *)-1; // force uncached answer

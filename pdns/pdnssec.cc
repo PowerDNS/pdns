@@ -218,12 +218,13 @@ try
     const string& zone=cmds[1];
 
     NSEC3PARAMRecordContent ns3pr;
-    dk.getNSEC3PARAM(zone, &ns3pr);
+    bool narrow;
+    dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
     
     if(ns3pr.d_salt.empty()) 
       cerr<<"Zone has NSEC semantics"<<endl;
     else
-      cerr<<"Zone has hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+      cerr<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
     
     DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
 
@@ -309,9 +310,9 @@ try
   }
   else if(cmds[0]=="set-nsec3") {
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
-      
+    bool narrow = cmds.size() > 3 && cmds[3]=="narrow";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
-    dk.setNSEC3PARAM(cmds[1], ns3pr);
+    dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
   }
   else if(cmds[0]=="unset-nsec3") {
     dk.unsetNSEC3PARAM(cmds[1]);
