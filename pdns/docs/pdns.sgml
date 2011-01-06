@@ -13390,7 +13390,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	        <programlisting>
             create table domains (
               id                INTEGER PRIMARY KEY,
-              name              VARCHAR(255) NOT NULL,
+              name              VARCHAR(255) NOT NULL COLLATE NOCASE,
               master            VARCHAR(128) DEFAULT NULL,
               last_check        INTEGER DEFAULT NULL,
               type              VARCHAR(6) NOT NULL,
@@ -13403,7 +13403,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
             CREATE TABLE records (
               id              INTEGER PRIMARY KEY,
               domain_id       INTEGER DEFAULT NULL,
-              name            VARCHAR(255) DEFAULT NULL,
+              name            VARCHAR(255) DEFAULT NULL, 
               type            VARCHAR(6) DEFAULT NULL,
               content         VARCHAR(255) DEFAULT NULL,
               ttl             INTEGER DEFAULT NULL,
@@ -13417,7 +13417,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 
             create table supermasters (
               ip          VARCHAR(25) NOT NULL, 
-              nameserver  VARCHAR(255) NOT NULL, 
+              nameserver  VARCHAR(255) NOT NULL COLLATE NOCASE, 
               account     VARCHAR(40) DEFAULT NULL
             );
 	        </programlisting>
