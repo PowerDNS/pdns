@@ -85,43 +85,56 @@ void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
-void orderZone(DNSSECKeeper& dk, const std::string& zone)
+void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 {
-    
   UeberBackend* B = new UeberBackend("default");
   SOAData sd;
   
   if(!B->getSOA(zone, sd)) {
-    cerr<<"No SOA!"<<endl;
+    cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
     return;
   } 
-  cerr<<"ID: "<<sd.domain_id<<endl;
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
 
-  set<string> qnames;
+  set<string> qnames, nsset;
   
   while(sd.db->get(rr)) {
-  //  cerr<<rr.qname<<endl;
     qnames.insert(rr.qname);
+    if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, zone)) 
+      nsset.insert(rr.qname);
   }
 
   NSEC3PARAMRecordContent ns3pr;
-  dk.getNSEC3PARAM(zone, &ns3pr);
+  bool narrow;
+  dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   string hashed;
   if(ns3pr.d_salt.empty()) 
     cerr<<"Adding NSEC ordering information"<<endl;
-  else
-    cerr<<"Adding NSEC3 hashed ordering information"<<endl;
+  else if(!narrow)
+    cerr<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'"<<endl;
+  else 
+    cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
   
   BOOST_FOREACH(const string& qname, qnames)
   {
+    string shorter(qname);
+    bool auth=true;
+    do {
+      if(nsset.count(shorter)) {  
+        auth=false;
+        break;
+      }
+    }while(chopOff(shorter));
+
     if(ns3pr.d_salt.empty()) // NSEC
-      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, true);
+      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
     else {
-      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
-      cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
-      sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, true);
+      if(!narrow) {
+        hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
+        cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
+      }
+      sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
     }
   }
   cerr<<"Done listing"<<endl;
@@ -184,8 +197,21 @@ try
     cmds = g_vm["commands"].as<vector<string> >();
 
   if(cmds.empty() || g_vm.count("help")) {
-    cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [alter-zone] [order-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
-    cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [unset-nsec3] [export-zone-dnskey]"<<endl;
+    cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [rectify-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
+    cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [unset-nsec3] [export-zone-dnskey]\n\n";
+    cerr<<"activate-zone-key ZONE KEY-ID   Activate the key with key id KEY-ID in ZONE\n";
+    cerr<<"add-zone-key ZONE [zsk|ksk]     Add a ZSK or KSK to a zone (ZSK only now)\n";
+    cerr<<"deactivate-zone-key             Dectivate the key with key id KEY-ID in ZONE\n";
+    cerr<<"export-zone-dnskey ZONE KEY-ID  Export to stdout the public DNSKEY described\n";
+    cerr<<"export-zone-key ZONE KEY-ID     Export to stdout the private key described\n";
+    cerr<<"import-zone-key ZONE FILE       Import from a file a private KSK\n";            
+    cerr<<"rectify-zone ZONE               Fix up DNSSEC fields (order, auth)\n";
+    cerr<<"remove-zone-key ZONE KEY-ID     Remove key with KEY-ID from ZONE\n";
+    cerr<<"secure-zone                     Add KSK and two ZSKs\n";
+    cerr<<"set-nsec3 'params' [narrow]     Enable NSEC3 with PARAMs. Optionally narrow\n";
+    cerr<<"show-zone ZONE                  Show DNSSEC (public) key details about a zone\n";
+    cerr<<"unset-nsec3 ZONE                Switch back to NSEC\n\n";
+
     cerr<<"Options:"<<endl;
     cerr<<desc<<endl;
     return 0;
@@ -195,12 +221,12 @@ try
   reportAllTypes();
   DNSSECKeeper dk;
 
-  if(cmds[0] == "order-zone") {
+  if(cmds[0] == "rectify-zone" || cmds[0] == "order-zone") {
     if(cmds.size() != 2) {
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;
     }
-    orderZone(dk, cmds[1]);
+    rectifyZone(dk, cmds[1]);
   }
   else if(cmds[0] == "check-zone") {
     if(cmds.size() != 2) {
