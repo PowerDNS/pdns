@@ -183,7 +183,7 @@ try
     ("help,h", "produce help message")
     ("verbose,v", po::value<bool>(), "be verbose")
     ("force", "force an action")
-    ("config-name", po::value<string>(), "virtual configuration name")
+    ("config-name", po::value<string>()->default_value(""), "virtual configuration name")
     ("config-dir", po::value<string>()->default_value(SYSCONFDIR), "location of pdns.conf")
     ("commands", po::value<vector<string> >());
 
@@ -360,7 +360,20 @@ try
     DNSSECPrivateKey dpk;
     getRSAKeyFromISC(&dpk.d_key.getContext(), fname.c_str());
     dpk.d_algorithm = 5;
-    dpk.d_flags = 257;
+    
+    if(cmds.size() > 3) {
+      if(pdns_iequals(cmds[3], "ZSK"))
+        dpk.d_flags = 256;
+      else if(pdns_iequals(cmds[3], "KSK"))
+        dpk.d_flags = 257;
+      else {
+        cerr<<"Unknown key flag '"<<cmds[3]<<"'\n";
+        exit(1);
+      }
+    }
+    else
+      dpk.d_flags = 257; 
+      
     dk.addKey(zone, true, dpk); // add a KSK
   }
   else if(cmds[0]=="export-zone-dnskey") {
