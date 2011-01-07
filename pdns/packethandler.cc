@@ -541,12 +541,11 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, c
   }
 }
 
-//we juggle raw & base32 encoded hashes too much
-static void incrementHash(std::string& hash) // I wonder if this is correct, cmouse? ;-)
+static void incrementHash(std::string& raw) // I wonder if this is correct, cmouse? ;-)
 {
-  if(hash.empty())
+  if(raw.empty())
     return;
-  string raw=fromBase32Hex(hash);
+    
   for(string::size_type pos=raw.size(); pos; ) {
     --pos;
     unsigned char c = (unsigned char)raw[pos];
@@ -555,15 +554,13 @@ static void incrementHash(std::string& hash) // I wonder if this is correct, cmo
     if(c)
       break;
   }
-  hash=toBase32Hex(raw);
 }
 
-static void decrementHash(std::string& hash) // I wonder if this is correct, cmouse? ;-)
+static void decrementHash(std::string& raw) // I wonder if this is correct, cmouse? ;-)
 {
-  if(hash.empty())
+  if(raw.empty())
     return;
     
-  string raw=fromBase32Hex(hash);
   for(string::size_type pos=raw.size(); pos; ) {
     --pos;
     unsigned char c = (unsigned char)raw[pos];
@@ -572,7 +569,6 @@ static void decrementHash(std::string& hash) // I wonder if this is correct, cmo
     if(c != 0xff)
       break;
   }
-  hash = toBase32Hex(raw);
 }
 
 
@@ -588,7 +584,7 @@ bool PacketHandler::getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const st
     incrementHash(after);
   }
   else {
-    ret=db->getBeforeAndAfterNamesAbsolute(id, hashed, unhashed, before, after);
+    ret=db->getBeforeAndAfterNamesAbsolute(id, toLower(toBase32Hex(hashed)), unhashed, before, after);
   }
   // cerr<<"rgetNSEC3Hashes: "<<hashed<<", "<<unhashed<<", "<<before<<", "<<after<<endl;
   return ret;
@@ -609,7 +605,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
 
   // now add the closest encloser
   unhashed=auth;
-  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
+  hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after); 
   cerr<<"Done calling for closest encloser, before='"<<before<<"', after='"<<after<<"'"<<endl;
