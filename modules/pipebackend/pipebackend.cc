@@ -219,6 +219,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
          r.qtype=parts[3];
          r.ttl=atoi(parts[4].c_str());
          r.domain_id=atoi(parts[5].c_str());
+         r.auth = 1;
  
          if(parts[3]!="MX" && parts[3] != "SRV") {
            r.content.clear();
