@@ -246,7 +246,9 @@ int getRRSIGForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t sig
   return 0;
 }
 
-void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, DNSPacketWriter& pw)
+void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, 
+  uint32_t signTTL, DNSPacketWriter::Place signPlace, 
+  vector<shared_ptr<DNSRecordContent> >& toSign, uint16_t maxReplyLen, DNSPacketWriter& pw)
 {
   // cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
 
@@ -261,8 +263,13 @@ void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::stri
     }
     
     pw.startRecord(signQName, QType::RRSIG, 3600, 1, 
-		   signQType==QType::DNSKEY ? DNSPacketWriter:: ANSWER : signPlace); 
+    signQType==QType::DNSKEY ? DNSPacketWriter:: ANSWER : signPlace); 
     rrc.toPacket(pw);
+    if(maxReplyLen &&  (pw.size() + 20) > maxReplyLen) {
+      pw.rollback();
+      pw.getHeader()->tc=1;
+      return;
+    }
     
     pw.commit();
     if(signQType != QType::DNSKEY)

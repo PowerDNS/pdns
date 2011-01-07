@@ -296,7 +296,7 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
 
 	if(d_dnssecOk) {
 	  if(pos != d_rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
-	    addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
+	    addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, d_tcp ? 0 : getMaxReplyLen(), pw);
 	  }
 	  signQName= pos->qname;
 	  wildcardQName = pos->wildcardname;
@@ -310,7 +310,7 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
 	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
 
         drc->toPacket(pw);
-	if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) { // XXX FIXME, 20? what does it mean?
+	if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) { // 20 = room for EDNS0
 	  pw.rollback();
 	  if(pos->d_place == DNSResourceRecord::ANSWER) {
 	    pw.getHeader()->tc=1;
@@ -322,14 +322,14 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
       }
       // I assume this is some dirty hack to prevent us from signing the last SOA record in an AXFR.. XXX FIXME
       if(d_dnssecOk && !(d_tcp && d_rrs.rbegin()->qtype.getCode() == QType::SOA && d_rrs.rbegin()->priority == 1234)) {
-	// cerr<<"Last signature.. "<<d_tcp<<", "<<d_rrs.rbegin()->priority<<", "<<d_rrs.rbegin()->qtype.getCode()<<", "<< d_rrs.size()<<endl;
-	addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, pw);
+	addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, d_tcp ? 0 : getMaxReplyLen(), pw);
       }
 
       if(!opts.empty() || d_dnssecOk)
 	pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
 
-      pw.commit();
+      if(!pw.getHeader()->tc) // protect against double commit from addSignature
+	pw.commit();
     noCommit:;
     }
     catch(std::exception& e) {

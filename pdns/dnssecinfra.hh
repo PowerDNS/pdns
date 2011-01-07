@@ -41,7 +41,8 @@ bool getSignerFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::st
 DNSKEYRecordContent getDNSKEYFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, bool withKSK, RSAContext* rc);
 void fillOutRRSIG(DNSSECKeeper& dk, const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK=false);
 uint32_t getCurrentInception();
-void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, DNSPacketWriter& pw);
+void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, 
+  uint16_t maxReplyLength, DNSPacketWriter& pw);
 int getRRSIGForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
 		     vector<shared_ptr<DNSRecordContent> >& toSign, RRSIGRecordContent &rrc, bool ksk);
 
