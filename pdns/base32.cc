@@ -112,7 +112,7 @@ string fromBase32Hex(const std::string& input)
       toWrite = 0;
     }
   }
-  ret.append(block, (7+toWrite*5)/8); // round up
+  ret.append(block, (toWrite*5)/8); 
 
   return ret;
 }
