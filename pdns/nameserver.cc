@@ -181,15 +181,9 @@ void UDPNameserver::send(DNSPacket *p)
   const char *buffer=p->getData();
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->remote.toString() <<" ("<<p->len<<" octets)"<<endl);
   if(p->len > p->getMaxReplyLen()) {
-    shared_ptr<DNSPacket> sharedp(new DNSPacket(*p));
-    sharedp->truncate(p->getMaxReplyLen());
-    buffer=sharedp->getData();
-    if(sendto(sharedp->getSocket(),buffer,sharedp->len,0,(struct sockaddr *)(&sharedp->remote), sharedp->remote.getSocklen())<0) 
-      L<<Logger::Error<<"Error sending reply with sendto (socket="<<sharedp->getSocket()<<"): "<<strerror(errno)<<endl;
+    cerr<<"Weird, trying to send a message that needs truncation, "<<p->len<<" > "<<p->getMaxReplyLen()<<endl;
   }
-  else {
-    if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->remote.getSocklen())<0)
-      L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
-  }
+  if(sendto(p->getSocket(),buffer,p->len,0,(struct sockaddr *)(&p->remote),p->remote.getSocklen())<0)
+    L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
 }
 

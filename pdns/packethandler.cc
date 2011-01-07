@@ -1148,7 +1148,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
   DNSPacket *r=0;
   try {    
-    L << Logger::Notice<<"Remote "<< p->remote.toString() <<" wants a type " << p->qtype.getName() << " ("<<p->qtype.getCode()<<") about '"<<p->qdomain << "'" << endl;
+    L << Logger::Notice<<"Remote "<< p->remote.toString() <<" wants " << p->qtype.getName() << " for '"<<p->qdomain << 
+      "', do = " <<p->d_dnssecOk <<", bufsize = "<< p->getMaxReplyLen()<< endl;
 
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
