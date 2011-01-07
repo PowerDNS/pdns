@@ -46,7 +46,17 @@ std::string RSAContext::convertToISC(unsigned int algorithm) const
     ("Exponent2",&d_context.DQ)
     ("Coefficient",&d_context.QP);
 
-  ret = "Private-key-format: v1.2\nAlgorithm: "+lexical_cast<string>(algorithm)+" (RSASHA1)\n";
+  ret = "Private-key-format: v1.2\nAlgorithm: "+lexical_cast<string>(algorithm);
+  switch(algorithm) {
+    case 5:
+    case 7 :
+      ret+= " (RSASHA1)";
+      break;
+    case 8:
+      ret += " (RSASHA256)";
+      break;
+  }
+  ret += "\n";
 
   BOOST_FOREACH(outputs_t::value_type value, outputs) {
     ret += value.first;
@@ -95,23 +105,25 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
       continue;
     if(places.count(key)) {
       if(places[key]) {
-
-	int len=sizeof(decoded);
-	if(base64_decode(decoded, &len, (unsigned char*)value.c_str(), value.length()) < 0) {
-	  cerr<<"Error base64 decoding '"<<value<<"'\n";
-	  exit(1);
-	}
-	//	B64Decode(value, decoded);
-	//	cerr<<key<<" decoded.length(): "<<8*len<<endl;
-	mpi_read_binary(places[key], decoded, len);
-	if(key=="Modulus")
-	  modulus.assign((const char*)decoded,len);
-	if(key=="PublicExponent")
-	  exponent.assign((const char*)decoded,len);
+        int len=sizeof(decoded);
+        if(base64_decode(decoded, &len, (unsigned char*)value.c_str(), value.length()) < 0) {
+          cerr<<"Error base64 decoding '"<<value<<"'\n";
+          exit(1);
+        }
+        //	B64Decode(value, decoded);
+        //	cerr<<key<<" decoded.length(): "<<8*len<<endl;
+        mpi_read_binary(places[key], decoded, len);
+        if(key=="Modulus")
+          modulus.assign((const char*)decoded,len);
+        if(key=="PublicExponent")
+          exponent.assign((const char*)decoded,len);
       }
     }
     else {
-      if(key != "Private-key-format" && key != "Algorithm") 
+      if(key=="Algorithm") {
+        drc.d_algorithm = atoi(value.c_str());
+      }
+      else if(key != "Private-key-format")
         cerr<<"Unknown field '"<<key<<"'\n";
     }
   }
@@ -127,7 +139,6 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname)
   drc.d_key.append(exponent);
   drc.d_key.append(modulus);
   drc.d_protocol=3;
-  drc.d_algorithm = 0; // should not be filled out here..
   fclose(fp);
   return drc;
 }
@@ -175,8 +186,10 @@ DNSKEYRecordContent getRSAKeyFromISCString(rsa_context* rsa, const std::string& 
       }
     }
     else {
-      if(key != "Private-key-format" && key != "Algorithm") 
-      cerr<<"Unknown field '"<<key<<"'\n";
+      if(key == "Algorithm") 
+        drc.d_algorithm = atoi(value.c_str());
+      else if(key != "Private-key-format")
+        cerr<<"Unknown field '"<<key<<"'\n";
     }
   }
   rsa->len = ( mpi_msb( &rsa->N ) + 7 ) >> 3; // no clue what this does
@@ -191,7 +204,7 @@ DNSKEYRecordContent getRSAKeyFromISCString(rsa_context* rsa, const std::string& 
   drc.d_key.append(exponent);
   drc.d_key.append(modulus);
   drc.d_protocol=3;
-  drc.d_algorithm = 0; // should not be filled out here..
+  
   return drc;
 }
 

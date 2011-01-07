@@ -201,7 +201,8 @@ try
     cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [rectify-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
     cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [unset-nsec3] [export-zone-dnskey]\n\n";
     cerr<<"activate-zone-key ZONE KEY-ID   Activate the key with key id KEY-ID in ZONE\n";
-    cerr<<"add-zone-key ZONE [zsk|ksk]     Add a ZSK or KSK to a zone (ZSK only now)\n";
+    cerr<<"add-zone-key ZONE [zsk|ksk] \n";
+    cerr<<"  [bits] [rsasha1|rsasha256]    Add a ZSK or KSK to a zone\n";
     cerr<<"deactivate-zone-key             Dectivate the key with key id KEY-ID in ZONE\n";
     cerr<<"export-zone-dnskey ZONE KEY-ID  Export to stdout the public DNSKEY described\n";
     cerr<<"export-zone-key ZONE KEY-ID     Export to stdout the private key described\n";
@@ -286,21 +287,26 @@ try
     // need to get algorithm, bits & ksk or zsk from commandline
     bool keyOrZone=false;
     int bits=0;
+    int algorithm=5;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
       else if(pdns_iequals(cmds[n], "ksk"))
         keyOrZone = true;
+      else if(pdns_iequals(cmds[n], "rsasha1"))
+        algorithm=5;
+      else if(pdns_iequals(cmds[n], "rsasha256"))
+        algorithm=8;
       else if(atoi(cmds[n].c_str()))
         bits = atoi(cmds[n].c_str());
       else { 
-        cerr<<"Unknown key flag or size '"<<cmds[n]<<"'"<<endl;
+        cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
       }
     }
-    cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<endl;
+    cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<endl;
     if(bits)
       cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
-    dk.addKey(zone, keyOrZone, 5, bits); 
+    dk.addKey(zone, keyOrZone, algorithm, bits); 
   }
   else if(cmds[0] == "remove-zone-key") {
     const string& zone=cmds[1];

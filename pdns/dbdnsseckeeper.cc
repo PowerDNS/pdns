@@ -37,6 +37,7 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
     bits = keyOrZone ? 2048 : 1024;
   DNSSECPrivateKey dpk;
   dpk.d_key.create(bits); 
+  dpk.d_algorithm = algorithm;
   addKey(name, keyOrZone, dpk, active);
 }
 
@@ -45,8 +46,7 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, const DNSSECP
   DNSBackend::KeyData kd;
   kd.flags = 256 + keyOrZone;
   kd.active = active;
-  kd.content = dpk.d_key.convertToISC(5);
- 
+  kd.content = dpk.d_key.convertToISC(dpk.d_algorithm);
  // now store it
   d_db.addDomainKey(name, kd);
 }
@@ -67,16 +67,13 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
       continue;
     
     DNSSECPrivateKey dpk;
-
-    getRSAKeyFromISCString(&dpk.d_key.getContext(), kd.content);
+    DNSKEYRecordContent dkrc = getRSAKeyFromISCString(&dpk.d_key.getContext(), kd.content);
     dpk.d_flags = kd.flags;
-    dpk.d_algorithm = 5 + 2*getNSEC3PARAM(zname);
+    dpk.d_algorithm = dkrc.d_algorithm;
     
-    KeyMetaData kmd;
-
-    kmd.active = kd.active;
-    kmd.keyOrZone = (kd.flags == 257);
-    kmd.id = kd.id;
+    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zname)) {
+      dpk.d_algorithm += 2;
+    }
     
     return dpk;    
   }
@@ -159,9 +156,11 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   {
     DNSSECPrivateKey dpk;
 
-    getRSAKeyFromISCString(&dpk.d_key.getContext(), kd.content);
+    DNSKEYRecordContent dkrc=getRSAKeyFromISCString(&dpk.d_key.getContext(), kd.content);
     dpk.d_flags = kd.flags;
-    dpk.d_algorithm = 5 + 2*getNSEC3PARAM(zone);
+    dpk.d_algorithm = dkrc.d_algorithm;
+    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
+      dpk.d_algorithm+=2;
     
     KeyMetaData kmd;
 
