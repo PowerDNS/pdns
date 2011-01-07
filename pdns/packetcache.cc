@@ -85,7 +85,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       return 0;
     }
 
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion);
+    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, p->getMaxReplyLen());
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -124,11 +124,13 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
 
   bool packetMeritsRecursion=d_doRecursion && q->d.rd;
 
-  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, -1, packetMeritsRecursion);
+  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, -1, packetMeritsRecursion, 
+    q->getMaxReplyLen());
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
-void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, bool meritsRecursion)
+void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
+  bool meritsRecursion, unsigned int maxReplyLen)
 {
   if(!((d_ops++) % 300000)) {
     cleanup();
@@ -145,6 +147,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   val.value=value;
   val.ctype=cet;
   val.meritsRecursion=meritsRecursion;
+  val.maxReplyLen = maxReplyLen;
 
   TryWriteLock l(&d_mut);
   if(l.gotIt()) { 
@@ -248,7 +251,8 @@ int PacketCache::purge(const vector<string> &matches)
   return delcount;
 }
 
-bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion)
+bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
+  unsigned int maxReplyLen)
 {
   if(d_ttl<0) 
     getTTLS();
@@ -262,14 +266,16 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     S.inc( "deferred-cache-lookup");
     return false;
   }
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion);
+  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen);
 }
 
-bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion)
+bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
+  unsigned int maxReplyLen)
 {
 
   uint16_t qt = qtype.getCode();
-  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion));
+  
+  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);
   if(ret)

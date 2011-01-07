@@ -212,7 +212,7 @@ DNSKEYRecordContent getDNSKEYFor(DNSSECKeeper& dk, const std::string& qname, boo
     exit(1);
   }
   else if(dk.haveActiveKSKFor(qname, &dpk)) {
-    cerr<<"Found a KSK for '"<<qname<<"'"<<endl;
+//    cerr<<"Found a KSK for '"<<qname<<"'"<<endl;
     *rc=dpk.d_key;
     return dpk.getDNSKEY();
   } else {

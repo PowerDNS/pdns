@@ -310,12 +310,9 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
 	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
 
         drc->toPacket(pw);
-	
-	if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) {
-	  cerr<<"Truncating!"<<endl;
+	if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) { // XXX FIXME, 20? what does it mean?
 	  pw.rollback();
 	  if(pos->d_place == DNSResourceRecord::ANSWER) {
-	    cerr<<"Set TC bit"<<endl;
 	    pw.getHeader()->tc=1;
 	  }
 	  goto noCommit;
@@ -343,25 +340,6 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
   stringbuffer.assign((char*)&packet[0], packet.size());
   len=packet.size();
 }
-
-
-/** Truncates a packet that has already been wrapup()-ed, possibly via a call to getData(). Do not call this function
-    before having done this - it will possibly break your packet, or crash your program. 
-
-    This method sets the 'TC' bit in the stringbuffer, and caps the len attributed to new_length.
-*/ 
-
-void DNSPacket::truncate(int new_length)
-{
-  if(new_length>len || !d_wrapped)
-    return;
-
-  DLOG(L<<Logger::Warning<<"Truncating a packet to "<< remote.toString() <<endl);
-
-  len=new_length;
-  stringbuffer[2]|=2; // set TC
-}
-
 
 void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
 {

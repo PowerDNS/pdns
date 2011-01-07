@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2008  PowerDNS.COM BV
+    Copyright (C) 2002 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -71,10 +71,12 @@ public:
 
   void insert(DNSPacket *q, DNSPacket *r);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  void insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false);
+  void insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
+    unsigned int maxReplyLen=512);
 
   int get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
-  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, bool meritsRecursion=false);
+  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
+    bool meritsRecursion=false, unsigned int maxReplyLen=512);
 
   int size(); //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired packets
@@ -82,7 +84,8 @@ public:
 
   map<char,int> getCounts();
 private:
-  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, bool meritsRecursion=false);
+  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
+    bool meritsRecursion=false, unsigned int maxReplyLen=512);
   struct CacheEntry
   {
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false;}
@@ -93,6 +96,7 @@ private:
     int zoneID;
     time_t ttd;
     bool meritsRecursion;
+    unsigned int maxReplyLen;
     string value;
   };
 
@@ -106,14 +110,16 @@ private:
                         CacheEntry,
                         member<CacheEntry,string,&CacheEntry::qname>,
                         member<CacheEntry,uint16_t,&CacheEntry::qtype>,
-        		member<CacheEntry,uint16_t, &CacheEntry::ctype>,
-        		member<CacheEntry,int, &CacheEntry::zoneID>,
-        		member<CacheEntry,bool, &CacheEntry::meritsRecursion>
-                      >,
-        	  composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool> >
-                >,
-               sequenced<>
-               >
+                        member<CacheEntry,uint16_t, &CacheEntry::ctype>,
+                        member<CacheEntry,int, &CacheEntry::zoneID>,
+                        member<CacheEntry,bool, &CacheEntry::meritsRecursion>,
+                        member<CacheEntry,unsigned int, &CacheEntry::maxReplyLen>
+                        >,
+                        composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
+                          std::less<unsigned int> >
+                            >,
+                           sequenced<>
+                           >
   > cmap_t;
 
 

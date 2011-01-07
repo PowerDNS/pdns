@@ -123,7 +123,6 @@ public:
 
   const char *getRaw(void); //!< provides access to the raw packet, possibly on a packet that has never been 'wrapped'
   void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
-  void truncate(int new_length); // has documentation in source
 
   vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
   vector<DNSResourceRecord*> getAnswerRecords(); //!< get a vector with DNSResourceRecords that are answers

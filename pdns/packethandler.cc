@@ -600,7 +600,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     cerr<<"Could not get SOA for domain in NSEC3\n";
     return;
   }
-  cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
+  // cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
   string unhashed, before,after;
 
   // now add the closest encloser
@@ -611,7 +611,6 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   cerr<<"Done calling for closest encloser, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3(ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
 
-
   // now add the main nsec3
   unhashed = p->qdomain;
   hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
@@ -619,7 +618,6 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   cerr<<"Done calling for main, before='"<<before<<"', after='"<<after<<"'"<<endl;
   emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
   
-
   // now add the *
   unhashed=dotConcat("*", auth);
   hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
@@ -1345,8 +1343,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     //    doDNSSECProcessing(p, r);
 
     r->wrapup(&d_dk); // needed for inserting in cache
-    if(!noCache) {
-      PC.insert(p,r); // in the packet cache
+    if(!p->d_tcp) {
+      PC.insert(p, r); // in the packet cache
     }
   }
   catch(DBException &e) {
