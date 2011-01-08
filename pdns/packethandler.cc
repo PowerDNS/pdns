@@ -585,6 +585,8 @@ bool PacketHandler::getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const st
   }
   else {
     ret=db->getBeforeAndAfterNamesAbsolute(id, toLower(toBase32Hex(hashed)), unhashed, before, after);
+    before=fromBase32Hex(before);
+    after=fromBase32Hex(after);
   }
   // cerr<<"rgetNSEC3Hashes: "<<hashed<<", "<<unhashed<<", "<<before<<", "<<after<<endl;
   return ret;
@@ -608,23 +610,23 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after); 
-  cerr<<"Done calling for closest encloser, before='"<<before<<"', after='"<<after<<"'"<<endl;
-  emitNSEC3(ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
+  cerr<<"Done calling for closest encloser, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
+  emitNSEC3(ns3rc, auth, unhashed, before, after, target, r, mode);
 
   // now add the main nsec3
   unhashed = p->qdomain;
-  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
+  hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after); 
-  cerr<<"Done calling for main, before='"<<before<<"', after='"<<after<<"'"<<endl;
-  emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
+  cerr<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
+  emitNSEC3( ns3rc, auth, unhashed, before, after, target, r, mode);
   
   // now add the *
   unhashed=dotConcat("*", auth);
-  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)));
+  hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, true, unhashed, before, after); 
-  cerr<<"Done calling for '*', before='"<<before<<"', after='"<<after<<"'"<<endl;
-  emitNSEC3( ns3rc, auth, unhashed, fromBase32Hex(before), fromBase32Hex(after), target, r, mode);
+  cerr<<"Done calling for '*', before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
+  emitNSEC3( ns3rc, auth, unhashed, before, after, target, r, mode);
 }
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
