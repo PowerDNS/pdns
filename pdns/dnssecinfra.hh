@@ -37,7 +37,7 @@ int countLabels(const std::string& signQName);
 class RSAContext;
 class DNSSECKeeper; 
 
-bool getSignerFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, std::string &signer);
+bool getSignerFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, std::string &signer, uint8_t& algorithm);
 DNSKEYRecordContent getDNSKEYFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, bool withKSK, RSAContext* rc);
 void fillOutRRSIG(DNSSECKeeper& dk, const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK=false);
 uint32_t getCurrentInception();

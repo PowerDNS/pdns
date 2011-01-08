@@ -180,12 +180,15 @@ void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
   addKey(name, true, algorithm);
 }
  
-bool getSignerFor(DNSSECKeeper& dk, const std::string& qname, std::string &signer)
+bool getSignerFor(DNSSECKeeper& dk, const std::string& qname, std::string &signer, uint8_t& algorithm)
 {
   signer=qname;
+  DNSSECPrivateKey dpk;
   do {
-    if(dk.haveActiveKSKFor(signer)) 
+    if(dk.haveActiveKSKFor(signer, &dpk)) {
+      algorithm = dpk.d_algorithm;
       return true;
+    }
   } while(chopOff(signer));
   return false;
 }
@@ -233,9 +236,9 @@ int getRRSIGForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t sig
   rrc.d_originalttl=signTTL; 
   rrc.d_siginception=getCurrentInception();;
   rrc.d_sigexpire = rrc.d_siginception + 14*86400; // XXX should come from zone metadata
-
+  
   rrc.d_tag=0;
-  if(!getSignerFor(dk, signQName, rrc.d_signer)) {
+  if(!getSignerFor(dk, signQName, rrc.d_signer, rrc.d_algorithm)) {
     cerr<<"No signer known for '"<<signQName<<"'\n";
     return -1;
   }
@@ -303,7 +306,10 @@ void fillOutRRSIG(DNSSECKeeper& dk, const std::string& signQName, RRSIGRecordCon
 
   unsigned char signature[mpi_size(&rc.getContext().N)];
 
-  int ret=rsa_pkcs1_sign(&rc.getContext(), RSA_PRIVATE, SIG_RSA_SHA1, 20, (unsigned char*) realhash.c_str(), signature);
+  int ret=rsa_pkcs1_sign(&rc.getContext(), RSA_PRIVATE, 
+    rrc.d_algorithm < 8 ? SIG_RSA_SHA1 : SIG_RSA_SHA256, 
+    rrc.d_algorithm < 8 ? 20 : 32,
+    (unsigned char*) realhash.c_str(), signature);
   
   if(ret!=0) {
     cerr<<"signing returned: "<<ret<<endl;

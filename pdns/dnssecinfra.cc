@@ -249,9 +249,16 @@ string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& r
     toHash.append(rdata);
   }
   //  cerr<<"toHash: "<<makeHexDump(toHash)<<endl;
-  unsigned char hash[20];
-  sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-  return string((char*)hash, 20);
+  
+  if(rrc.d_algorithm <= 7 ) {
+    unsigned char hash[20];
+    sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
+    return string((char*)hash, sizeof(hash));
+  } else {
+    unsigned char hash[32];
+    sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
+    return string((char*)hash, sizeof(hash));
+  }
 }
 
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest)
@@ -341,10 +348,10 @@ std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const
     sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
     if(!times--) 
       break;
-    toHash.assign((char*)hash, 20);
+    toHash.assign((char*)hash, sizeof(hash));
     toHash.append(salt);
   }
-  return string((char*)hash, 20);
+  return string((char*)hash, sizeof(hash));
 }
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
