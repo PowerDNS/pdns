@@ -1,0 +1,32 @@
+body {
+         font-family: luxi sans,sans-serif;
+}
+
+.screen {
+        font-family: monospace;
+        font-size: 1em;
+        display: block;
+        padding: 10px;
+        border: 1px solid #bbb;
+        background-color: #eee;
+        color: #000;   
+        overflow: auto;
+        border-radius: 2.5px;
+        -moz-border-radius: 2.5px;
+        margin: 0.5em 2em;
+ 
+}
+
+.programlisting {
+        font-family: monospace;
+        font-size: 1em;
+        display: block;
+        padding: 10px;
+        border: 1px solid #bbb;
+        background-color: #ddd;
+        color: #000;   
+        overflow: auto;
+        border-radius: 2.5px;
+        -moz-border-radius: 2.5px;
+        margin: 0.5em 2em;
+}
