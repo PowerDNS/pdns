@@ -3,8 +3,6 @@
 #include "ueberbackend.hh"
 #include "statbag.hh"
 #include <iostream>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -14,8 +12,6 @@
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 using namespace boost::assign;
-namespace fs = boost::filesystem;
-
 using namespace std;
 using namespace boost;
 
