@@ -303,7 +303,7 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
 	  signQType = pos ->qtype.getCode();
 	  signTTL = pos->ttl;
 	  signPlace = (DNSPacketWriter::Place) pos->d_place;
-	  if(pos->auth)
+	  if(pos->auth || pos->qtype.getCode() == QType::DS)
 	    toSign.push_back(drc);
 	}
 	
