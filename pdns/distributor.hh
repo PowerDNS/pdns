@@ -285,7 +285,7 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
 
   if(Backend::numRunning() < d_num_threads+2 && time(0)-d_last_started>5) { 
     d_last_started=time(0);
-    L<<"Distributor misses a thread ("<<Backend::numRunning()<<"<"<<d_num_threads<<"), spawning new one"<<endl;
+    L<<"Distributor misses a thread ("<<Backend::numRunning()<<"<"<<d_num_threads + 2<<"), spawning new one"<<endl;
     pthread_t tid;
     pthread_create(&tid,0,&makeThread,static_cast<void *>(this));
   }
