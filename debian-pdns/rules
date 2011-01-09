@@ -54,7 +54,7 @@ build-static stamp-build-static:
 		--with-modules="mysql gmysql gpgsql pipe pdns gsqlite gsqlite3 geo" \
 		--with-dynmodules="" \
 		--enable-static-binaries 
-	make
+	make -j4
 	touch stamp-build-static
 
 
