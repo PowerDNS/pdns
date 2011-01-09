@@ -47,11 +47,9 @@ randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnsseci
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc
 
 #
-pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) -Lext/polarssl/library
-pdns_server_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) -Lext/polarssl/library
+pdns_server_LDADD=$(BOOST_FILESYSTEM_LIBS) -lpolarssl
   
-
-
 pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
