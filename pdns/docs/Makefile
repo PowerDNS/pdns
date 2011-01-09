@@ -2,40 +2,41 @@
 
 all: pdns.txt pdns.pdf html/index.html html.tar.gz
 
-pdns-expanded.sgml: pdns.sgml
+pdns-expanded.xml: pdns.xml
 	./expand < $< > $@
 	
 clean:
-	rm -rf *.xml *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log html.tar.gz html pdns
+	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log html.tar.gz html pdns
 
-html/index.html: pdns-expanded.sgml
-	db2html -V %use-id-as-filename% -o html $<
-
+html/index.html: pdns-expanded.xml
+	xmlto xhtml -m config.xsl -o html $<
+	cp docbook.css html
+	
 html.tar.gz: html/index.html
 	tar czf html.tar.gz html/
 
-%.txt: %-expanded.sgml
-	docbook2txt $<
+%.txt: %-expanded.xml
+	xmlto text -m config.xsl  $<
 	mv pdns-expanded.txt pdns.txt
 
-%.pdf: %-expanded.sgml
-	docbook2pdf $<
+%.pdf: %-expanded.xml
+	xmlto --with-dblatex pdf $<
 	mv pdns-expanded.pdf pdns.pdf
 
-%.xml: %.txt
-	asciidoc -b docbook -d manpage  $<
+#%.xml: %.txt
+#	asciidoc -b docbook -d manpage  $<
         
-%: %.xml
-	xmlto man $<
+#: %.xml
+#	xmlto man $<
                 
 %.html: %.txt
 	asciidoc -b xhtml11 -d manpage  $<
                         
 publish:
-	rsync --rsync-path=./rsync --copy-links --delete -avrze 'ssh -p 2222' ./html pdns.txt pdns.pdf html.tar.gz \
-	localhost:/opt/websites/downloads.powerdns.com/www/documentation/
-	ssh localhost -p 2222 ln -s /opt/websites/downloads.powerdns.com/www/documentation/images \
-	/opt/websites/downloads.powerdns.com/www/documentation/html/
+	rsync --rsync-path=./rsync --exclude "*.png" --copy-links --delete -avrze 'ssh -p 2222' ./html pdns.txt pdns.pdf html.tar.gz \
+		localhost:/opt/websites/downloads.powerdns.com/www/documentation/
+#	ssh localhost -p 2222 cp /usr/share/doc/libboost-doc/HTML/doc/html/images/*.png \
+#		/opt/websites/downloads.powerdns.com/www/documentation/html/
 
 publish2:
 	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \

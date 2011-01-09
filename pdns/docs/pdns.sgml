@@ -9033,6 +9033,64 @@ $ pdnssec rectify-zone
     A PowerDNSSEC zone can either be operated in NSEC or in one of two NSEC3 modes ('inclusive' and 'narrow').
   </para>
   </section>
+  <section id="dnssec-supported">
+  <title>Profile, Supported Algorithms, Record Types &amp; Modes of operation</title>
+  <para>
+    PowerDNSSEC aims to serve unexciting, standards compliant, DNSSEC information. One goal is to have
+    relevant parts of our output be identical or equivalent to important fellow-traveller software like NLNetLab's
+    NSD. 
+  </para>
+  <para>
+    Particularly, if a PowerDNSSEC secured zone is transfered via AXFR, it should be able to contain the same records 
+    as when that zone was signed using 'ldns-signzone' using the same keys and settings.
+  </para>
+  <para>
+    In addition to the above, PowerDNSSEC also supports modes of operation which may not have an equivalent in other
+    pieces of software, for example NSEC3-narrow mode. In such cases we strive for implementing the relevant standards
+    well.
+  </para>
+  <para>
+    PowerDNSSEC supports:
+    <itemizedlist>
+    <listitem><para>
+      NSEC</para>
+    </listitem>
+    <listitem><para>
+      NSEC3
+    </listitem>
+    <listitem><para>
+      NSEC-narrow</para>
+    </listitem>
+    <listitem><para>
+      DS (digest type 1, digest type 2)</para>
+    </listitem>
+    <listitem><para>
+      RSASHA1 (algorithm 5, algorithm 7)</para>
+    </listitem>
+    <listitem><para>
+      RSASHA256 (algorithm 8)</para>
+    </listitem>
+    </itemizedlist>
+  </para>
+  <para>
+    This corresponds to:
+    <itemizedlist>
+    <listitem><para>
+      RFC 4033, 4034, 4035: DNS Security Introduction and Requirements,Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions</para>
+    </listitem>
+    <listitem><para>
+      RFC 4509: Use of SHA-256 in DNSSEC Delegation Signer (DS) Resource Records (RRs)
+    </listitem>
+    <listitem><para>
+      RFC 5155: DNS Security (DNSSEC) Hashed Authenticated Denial of Existence</para>
+    </listitem>
+    <listitem><para>
+      RFC 5702: Use of SHA-2 Algorithms with RSA in DNSKEY and RRSIG Resource Records for DNSSEC
+      </para>
+    </listitem>
+    </itemizedlist>
+  </para>
+  </section>
   <section id="dnssec-migration">
   <title>Migration</title>
   <para>

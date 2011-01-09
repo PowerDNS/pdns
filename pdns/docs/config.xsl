@@ -17,8 +17,7 @@
 <xsl:param name="callout.list.table" select="'1'"></xsl:param>
 <xsl:param name="generate.section.toc.level" select="1"></xsl:param>
 <xsl:param name="section.autolabel" select="1"></xsl:param>
-<xsl:param name="section.autolabel.max.depth" select="1"></xsl:param>
-
+<xsl:param name="section.autolabel.max.depth" select="2"></xsl:param>
 <xsl:param name="generate.index" select="1"></xsl:param>
 
 </xsl:stylesheet>

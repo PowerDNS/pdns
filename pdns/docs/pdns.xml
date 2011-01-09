@@ -17,9 +17,11 @@
     <pubdate>v2.9.19 $Date: 2011-01-06 23:00:05 +0100 (Thu, 06 Jan 2011) $</pubdate>
     
     <abstract>
-	<para>	
+	<para>
+		<blockquote><literallayout>
 	    It is a book about a Spanish guy called Manual. You should read it.
 	       -- Dilbert
+	       </literallayout></blockquote>
       </para>
     </abstract>
   </bookinfo>
@@ -9078,7 +9080,13 @@ $ pdnssec rectify-zone
     This corresponds to:
     <itemizedlist>
     <listitem><para>
-      RFC 4033, 4034, 4035: DNS Security Introduction and Requirements,Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions</para>
+      RFC 4033: DNS Security Introduction and Requirements,Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions</para>
+    </listitem>
+    <listitem><para>
+      RFC 4034: Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions</para>
+    </listitem>
+    <listitem><para>
+      RFC 4035: Protocol Modifications for the DNS Security Extensions</para>
     </listitem>
     <listitem><para>
       RFC 4509: Use of SHA-256 in DNSSEC Delegation Signer (DS) Resource Records (RRs)</para>
@@ -9144,6 +9152,28 @@ $ pdnssec rectify-zone
   <para>
     Keys and hashes are configured using the 'pdnssec' tool, which is described next.
   </para>
+  <section id="nsec"><title>(Hashed) Denial of Existence</title>
+  <para>
+    PowerDNS supports unhashed secure denial of existence using NSEC records. These are generated
+    with the help of the (database) backend, which needs to be able to supply the 'previous' and 'next' records
+    in canonical ordering.
+  </para>
+  <para>
+    The Generic SQL Backends have fields that allow them to supply these relative record names.
+  </para>
+  <para>
+    In addition, hashed secure denial of existence is supported using NSEC3 records, in two modes, one
+    with help from the database, the other with the help of some additional calculations.
+  </para>
+  <para>
+    NSEC3 in 'broad' or 'inclusive' mode works with the aid of the backend, where the backend should
+    be able to supply the previous and next domain names in hashed order.
+  </para>
+  <para>
+    NSEC3 in 'narrow' mode uses additional hashing calculations to provide hashed secure denial of existence 'on the fly',
+    without further involving the database.
+  </para>
+  </section>
   </section>
   <section id="pdnssec">
   <title>'pdnssec' for PowerDNSSEC command &amp; control</title>
@@ -9165,10 +9195,10 @@ $ pdnssec rectify-zone
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
-	    <term>add-zone-key ZONE [ksk|zsk] [bits]</term>
+	    <term>add-zone-key ZONE [ksk|zsk] [bits] [rsasha1|rsasha256]</term>
 	    <listitem>
 	      <para>
-		Create a new key for zone ZONE, and make it a KSK or a ZSK. 
+		Create a new key for zone ZONE, and make it a KSK or a ZSK, with the specified algorithm.
 	      </para>
 	    </listitem>
 	</varlistentry>
