@@ -48,6 +48,7 @@ public:
     d_context.hash_id = orig.d_context.hash_id;
     d_context.f_rng = orig.d_context.f_rng;
     d_context.p_rng = orig.d_context.p_rng;
+    
     PDNSSEC_MC(N); 
     PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
   }
@@ -61,7 +62,10 @@ public:
     d_context.hash_id = orig.d_context.hash_id;
     d_context.f_rng = orig.d_context.f_rng;
     d_context.p_rng = orig.d_context.p_rng;
-
+    
+    PDNSSEC_MF(N); 
+    PDNSSEC_MF(E); PDNSSEC_MF(D); PDNSSEC_MF(P); PDNSSEC_MF(Q); PDNSSEC_MF(DP); PDNSSEC_MF(DQ); PDNSSEC_MF(QP); PDNSSEC_MF(RN); PDNSSEC_MF(RP); PDNSSEC_MF(RQ);
+    
     PDNSSEC_MC(N); 
     PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
     return *this;

@@ -141,7 +141,7 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
       return;
     }
     else
-      cerr<<"Miss!"<<endl;
+      ; // cerr<<"Miss!"<<endl;
   }
   
   int ret=rsa_pkcs1_sign(&rc.getContext(), RSA_PRIVATE, 

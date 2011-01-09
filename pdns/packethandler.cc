@@ -1320,7 +1320,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       cerr<<"Have unauth data, so need to hunt for best NS records"<<endl;
       if(tryReferral(p, r, sd, target))
         goto sendit;
-      cerr<<"Should not get here!!"<<endl;
+      cerr<<"Should not get here: please run pdnssec rectify-zone "<<sd.qname<<endl;
     }
     else {
       cerr<<"Have some data, but not the right data"<<endl;
