@@ -120,7 +120,7 @@ void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::stri
 }
 
 static pthread_mutex_t g_signatures_lock = PTHREAD_MUTEX_INITIALIZER;
-static map<pair<RSAContext, string>, string> g_signatures;
+static map<pair<string, string>, string> g_signatures;
 
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
@@ -131,15 +131,17 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   string realhash=getHashForRRSET(signQName, rrc, toSign); // this is what we sign
 
   unsigned char signature[mpi_size(&rc.getContext().N)];
-
+  pair<string, string> lookup(rc.getPubKeyHash(), realhash);
+  
   {
     Lock l(&g_signatures_lock);
-    
-    // this is mindbogglingly inefficient, we store the whole private key as index!
-    if(g_signatures.count(make_pair(rc, realhash))) {
-      rrc.d_signature=g_signatures[make_pair(rc, realhash)];
+    if(g_signatures.count(lookup)) {
+      // cerr<<"Hit!"<<endl;
+      rrc.d_signature=g_signatures[lookup];
       return;
     }
+    else
+      cerr<<"Miss!"<<endl;
   }
   
   int ret=rsa_pkcs1_sign(&rc.getContext(), RSA_PRIVATE, 
@@ -155,5 +157,5 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   rrc.d_signature.assign((char*)signature, sizeof(signature));
 
   Lock l(&g_signatures_lock);
-  g_signatures[make_pair(rc, realhash)] = rrc.d_signature;
+  g_signatures[lookup] = rrc.d_signature;
 }

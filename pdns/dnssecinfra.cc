@@ -33,6 +33,22 @@ void RSAContext::create(unsigned int bits)
     throw runtime_error("Key generation failed");
 }
 
+std::string RSAContext::getPubKeyHash()
+{
+  unsigned char hash[20];
+  unsigned char N[mpi_size(&d_context.N)];
+  mpi_write_binary(&d_context.N, N, sizeof(N));
+  unsigned char E[mpi_size(&d_context.E)];
+  mpi_write_binary(&d_context.E, E, sizeof(E));
+  
+  sha1_context ctx;
+  sha1_starts(&ctx);
+  sha1_update(&ctx, N, sizeof(N));
+  sha1_update(&ctx, E, sizeof(E));
+  sha1_finish(&ctx, hash);
+  return string((char*)hash, sizeof(hash));
+}
+
 std::string RSAContext::convertToISC(unsigned int algorithm) const
 {
   string ret;

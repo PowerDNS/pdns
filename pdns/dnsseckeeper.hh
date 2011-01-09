@@ -80,7 +80,7 @@ public:
 
   void create(unsigned int bits);
   std::string convertToISC(unsigned int algorithm) const;
-
+  std::string getPubKeyHash();
 private:
   rsa_context d_context;
 };
