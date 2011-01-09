@@ -224,18 +224,15 @@ bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr
   return a->serialize("", true, true) < b->serialize("", true, true);
 }
 
-string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
+string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
 {
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
   string toHash;
   toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize("", true, true));
-  toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end;
-  //  cerr<<"toHash start size: "<<toHash.size()<<", signature length: "<<rrc.d_signature.length()<<endl;
-
+  toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   BOOST_FOREACH(shared_ptr<DNSRecordContent>& add, signRecords) {
-    //  cerr<<"\t IN "<<rrc.d_originalttl<<"\t"<<add->getZoneRepresentation()<<"\n";
     toHash.append(toLower(simpleCompress(qname, "")));
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
@@ -248,7 +245,6 @@ string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& r
     toHash.append((char*)&tmp, 2);
     toHash.append(rdata);
   }
-  //  cerr<<"toHash: "<<makeHexDump(toHash)<<endl;
   
   if(rrc.d_algorithm <= 7 ) {
     unsigned char hash[20];

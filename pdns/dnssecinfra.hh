@@ -27,7 +27,7 @@ DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname);
 DNSKEYRecordContent getRSAKeyFromISCString(rsa_context* rsa, const std::string& content);
 void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc);
 bool sharedDNSSECCompare(const boost::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
-string getSHA1HashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);
+string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);
 DNSKEYRecordContent makeDNSKEYFromRSAKey(const rsa_context* rc, uint8_t algorithm, uint16_t flags);
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest=1);
 
@@ -36,15 +36,15 @@ int countLabels(const std::string& signQName);
 
 class RSAContext;
 class DNSSECKeeper; 
+struct DNSSECPrivateKey;
 
-bool getSignerFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, std::string &signer, uint8_t& algorithm);
-DNSKEYRecordContent getDNSKEYFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, bool withKSK, RSAContext* rc);
-void fillOutRRSIG(DNSSECKeeper& dk, const std::string& signQName, RRSIGRecordContent& rrc, const std::string& hash, vector<shared_ptr<DNSRecordContent> >& toSign, bool withKSK=false);
+bool getSignerApexFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, std::string &signer);
+void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
 uint32_t getCurrentInception();
 void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, 
   uint16_t maxReplyLength, DNSPacketWriter& pw);
-int getRRSIGForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
-		     vector<shared_ptr<DNSRecordContent> >& toSign, RRSIGRecordContent &rrc, bool ksk);
+int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
+		     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc, bool ksk);
 
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);
 

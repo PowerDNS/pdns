@@ -174,6 +174,35 @@ void checkZone(DNSSECKeeper& dk, const std::string& zone)
   cerr<<"Checked "<<numrecords<<" records, "<<numerrors<<" errors"<<endl;
 }
 
+void showZone(DNSSECKeeper& dk, const std::string& zone)
+{
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow;
+  dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  
+  if(ns3pr.d_salt.empty()) 
+    cerr<<"Zone has NSEC semantics"<<endl;
+  else
+    cerr<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+  
+  DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
+
+  if(keyset.empty())  {
+    cerr << "No keys for zone '"<<zone<<"'."<<endl;
+  }
+  else {  
+    cout << "keys: "<<endl;
+    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+      cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
+      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.d_key.getConstContext().len*8<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+      if(value.second.keyOrZone) {
+        cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
+        cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << endl;
+        cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << endl << endl;
+      }
+    }
+  }
+}
 
 int main(int argc, char** argv)
 try
@@ -244,33 +273,7 @@ try
       return 0;
     }
     const string& zone=cmds[1];
-
-    NSEC3PARAMRecordContent ns3pr;
-    bool narrow;
-    dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
-    
-    if(ns3pr.d_salt.empty()) 
-      cerr<<"Zone has NSEC semantics"<<endl;
-    else
-      cerr<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
-    
-    DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
-
-    if(keyset.empty())  {
-      cerr << "No keys for zone '"<<zone<<"'."<<endl;
-    }
-    else {  
-      cout << "keys: "<<endl;
-      BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
-        cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
-        cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.d_key.getConstContext().len*8<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
-        if(value.second.keyOrZone) {
-          cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
-          cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << endl;
-          cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << endl << endl;
-        }
-      }
-    }
+    showZone(dk, zone);
   }
   else if(cmds[0] == "activate-zone-key") {
     const string& zone=cmds[1];
@@ -322,40 +325,29 @@ try
     const string& zone=cmds[1];
     DNSSECPrivateKey dpk;
     
-    if(dk.haveActiveKSKFor(zone, &dpk) && !g_vm.count("force")) {
-      cerr << "There is a key already for zone '"<<zone<<"', use --force to overwrite"<<endl;
+    if(dk.haveActiveKSKFor(zone)) {
+      cerr << "There is a KSK already for zone '"<<zone<<"', remove with pdnssec remove-zone-key if needed"<<endl;
       return 0;
     }
       
-    dk.secureZone(zone, 5);
+    dk.secureZone(zone, 8);
 
-    if(!dk.haveActiveKSKFor(zone, &dpk)) {
+    if(!dk.haveActiveKSKFor(zone)) {
       cerr << "This should not happen, still no key!" << endl;
       return 0;
     }
-    cout<<"Created KSK with tag "<<dpk.getDNSKEY().getTag()<<endl;
   
     DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
 
-    if(!zskset.empty() && !g_vm.count("force"))  {
-      cerr<<"There were ZSKs already for zone '"<<zone<<"'"<<endl;
+    if(!zskset.empty())  {
+      cerr<<"There were ZSKs already for zone '"<<zone<<"', no need to add more"<<endl;
       return 0;
     }
       
-    dk.addKey(zone, false, 5);
-    dk.addKey(zone, false, 5, 0, false); // not active
-
-    zskset = dk.getKeys(zone, false);
-    if(zskset.empty()) {
-      cerr<<"This should not happen, still no ZSK!"<<endl;
-    }
-
-    cout<<"There are now "<<zskset.size()<<" ZSKs"<<endl;
-    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
-      cout<<"id = "<<value.second.id<<", tag = "<<value.first.getDNSKEY().getTag()<<", algo = "<<(int)value.first.d_algorithm<<
-        ", bits = "<<value.first.d_key.getContext().len*8;
-      cout<<"\tActive: "<<value.second.active<<endl;
-    }
+    dk.addKey(zone, false, 8);
+    dk.addKey(zone, false, 8, 0, false); // not active
+    rectifyZone(dk, zone);
+    showZone(dk, zone);
   }
   else if(cmds[0]=="set-nsec3") {
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";

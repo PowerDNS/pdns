@@ -207,23 +207,13 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
   bool haveOne=false;
   DNSSECPrivateKey dpk;
 
-  if(d_dk.haveActiveKSKFor(p->qdomain, &dpk)) {
-    rr.qtype=QType::DNSKEY;
-    rr.ttl=3600;
-    rr.qname=p->qdomain;
-    rr.content=dpk.getDNSKEY().getZoneRepresentation(); 
-    rr.auth = true;
-    r->addRecord(rr);
-    haveOne=true;
-  }
-
-  DNSSECKeeper::keyset_t zskset = d_dk.getKeys(p->qdomain, false);
-  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
+  DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
+  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
     rr.qtype=QType::DNSKEY;
     rr.ttl=3600;
     rr.qname=p->qdomain;
     rr.content=value.first.getDNSKEY().getZoneRepresentation();
-    
+    rr.auth=true;
     r->addRecord(rr);
     haveOne=true;
   }
@@ -935,7 +925,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
 void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
 {
-  cerr<<"Need to fake up the RRSIGs some way.."<<endl;
+  cerr<<"Need to fake up the RRSIGs if someone asked for them explicitly"<<endl;
   B.lookup(QType(QType::ANY), p->qdomain, p);
   
   DNSResourceRecord rr;
@@ -996,13 +986,12 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   rr.qtype = QType::RRSIG;
 
   BOOST_FOREACH(records_t::value_type& iter, records) {
-    RRSIGRecordContent rrc;
-    for(int ksk =0 ; ksk < 2; ++ksk) {
-      getRRSIGForRRSET(d_dk, p->qdomain, iter.first, 3600, iter.second, rrc, ksk);
+    vector<RRSIGRecordContent> rrcs;
+    
+    getRRSIGsForRRSET(d_dk, p->qdomain, iter.first, 3600, iter.second, rrcs, iter.first == QType::DNSKEY);
+    BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
       rr.content=rrc.getZoneRepresentation();
       r->addRecord(rr);
-      if(iter.first != QType::DNSKEY)
-        break;
     }
   }
 }
