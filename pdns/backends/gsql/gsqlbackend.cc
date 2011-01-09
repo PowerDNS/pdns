@@ -272,7 +272,7 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
   // ordername='%s',auth=%d where name='%s' and domain_id='%d'
   
   snprintf(output, sizeof(output)-1, d_setOrderAuthQuery.c_str(), sqlEscape(ordername).c_str(), auth, sqlEscape(qname).c_str(), domain_id);
-  cerr<<"sql: '"<<output<<"'\n";
+//  cerr<<"sql: '"<<output<<"'\n";
   
   d_db->doCommand(output);
   return true;
