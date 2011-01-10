@@ -107,9 +107,9 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
-  dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   string hashed;
-  if(ns3pr.d_salt.empty()) 
+  if(!haveNSEC3) 
     cerr<<"Adding NSEC ordering information"<<endl;
   else if(!narrow)
     cerr<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'"<<endl;
@@ -127,7 +127,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
       }
     }while(chopOff(shorter));
 
-    if(ns3pr.d_salt.empty()) // NSEC
+    if(!haveNSEC3) // NSEC
       sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
     else {
       if(!narrow) {
@@ -179,9 +179,9 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
 {
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
-  dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   
-  if(ns3pr.d_salt.empty()) 
+  if(!haveNSEC3) 
     cout<<"Zone has NSEC semantics"<<endl;
   else
     cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;

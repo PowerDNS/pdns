@@ -225,6 +225,11 @@ static inline uint8_t hextodec(uint8_t val)
 
 void HEXDecode(const char* begin, const char* end, string& val)
 {
+  if(end - begin == 1 && *begin=='-') {
+    val.clear();
+    return;
+  }
+    
   if((end - begin)%2)
     throw RecordTextException("Hexadecimal blob with odd number of characters");
 
@@ -457,6 +462,11 @@ void RecordTextWriter::xfrHexBlob(const string& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
+
+  if(val.empty()) {
+    d_string.append(1,'-');
+    return;
+  }
 
   string::size_type limit=val.size();
   char tmp[5];

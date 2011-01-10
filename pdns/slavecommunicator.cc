@@ -76,11 +76,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     bool narrow;
     DNSSECKeeper dk;
     bool dnssecZone = false;
+    bool haveNSEC3=false;
     if(dk.haveActiveKSKFor(domain)) {
       dnssecZone=true;
-      dk.getNSEC3PARAM(domain, &ns3pr, &narrow);
+      haveNSEC3=dk.getNSEC3PARAM(domain, &ns3pr, &narrow);
       string hashed;
-      if(ns3pr.d_salt.empty()) 
+      if(!haveNSEC3) 
         cerr<<"Adding NSEC ordering information"<<endl;
       else if(!narrow)
         cerr<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
@@ -133,7 +134,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           }
         }while(chopOff(shorter));
       
-        if(ns3pr.d_salt.empty()) // NSEC
+        if(!haveNSEC3) // NSEC
           di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
         else {
           if(!narrow) {
