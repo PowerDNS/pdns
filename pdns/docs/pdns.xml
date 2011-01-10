@@ -9063,7 +9063,7 @@ $ pdnssec rectify-zone
       NSEC3</para>
     </listitem>
     <listitem><para>
-      NSEC-narrow</para>
+      NSEC3-narrow</para>
     </listitem>
     <listitem><para>
       DS (digest type 1, digest type 2)</para>
@@ -9080,7 +9080,7 @@ $ pdnssec rectify-zone
     This corresponds to:
     <itemizedlist>
     <listitem><para>
-      RFC 4033: DNS Security Introduction and Requirements,Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions</para>
+      RFC 4033: DNS Security Introduction and Requirements</para>
     </listitem>
     <listitem><para>
       RFC 4034: Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions</para>
@@ -9104,28 +9104,55 @@ $ pdnssec rectify-zone
   <section id="dnssec-migration">
   <title>Migration</title>
   <para>
-    To migrate an existing database-backed PowerDNS installation, a few changes must be made to the database schema.
-    First, the records table gains two new fields: 'auth' and 'ordername'. Some data in a zone, like glue records, should 
-    not be signed, and this is signified by setting 'auth' to 0.
+    This chapter discusses various migration strategies, from existing PowerDNS setups, from existing unsigned installations
+    and finally from previous non-PowerDNS DNSSEC deployents.
   </para>
-  <para>
-    Additionally, NSEC and NSEC3 in non-narrow mode require ordering data in order to perform (hashed) denial of existence. The 'ordername'
-    field is used for this purpose.
-  </para>
-  <para>
-    Finally, two new tables are needed. DNSSEC keying material is stored in the 'cryptokeys' table (in a portable standard format). 
-    Domain metadata is stored in the 'domainmetadata' table. This includes NSEC3 settings.
-  </para>
-  <para>
-    Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters or <ulink url="http://wiki.powerdns.com/trac/wiki/PDNSSEC">the PowerDNSSEC wiki</ulink> for the update statements), the 'pdnssec'
-    tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
-  </para>
-  <para>
-    In short, 'pdnssec secure-zone powerdnssec.org ; pdnssec rectify-zone powerdnssec.org' will deliver a correctly NSEC signed zone.
-  </para>
-  <para>
-    In addition, so will the 'zone2sql' import tool when run with the '--dnssec' flag.
-  </para>
+  <section id="powerdnssec-migration"><title>From an existing PowerDNS installation</title>
+    <para>
+      To migrate an existing database-backed PowerDNS installation, a few changes must be made to the database schema.
+      First, the records table gains two new fields: 'auth' and 'ordername'. Some data in a zone, like glue records, should 
+      not be signed, and this is signified by setting 'auth' to 0.
+    </para>
+    <para>
+    <warning><para>Once the database schema has been updated, and the relevant 'gsql-dnssec' switch has been set, stricter
+      rules apply for filling out the database! The short version is: run pdnssec rectify-zone on all zones, even
+      those not secured with DNSSEC!</para></warning>
+    </para>
+    <para>
+      Additionally, NSEC and NSEC3 in non-narrow mode require ordering data in order to perform (hashed) denial of existence. The 'ordername'
+      field is used for this purpose.
+    </para>
+    <para>
+      Finally, two new tables are needed. DNSSEC keying material is stored in the 'cryptokeys' table (in a portable standard format). 
+      Domain metadata is stored in the 'domainmetadata' table. This includes NSEC3 settings.
+    </para>
+    <para>
+      Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters or <ulink url="http://wiki.powerdns.com/trac/wiki/PDNSSEC">the PowerDNSSEC wiki</ulink> for the update statements), the 'pdnssec'
+      tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
+    </para>
+    <para>
+      In short, 'pdnssec secure-zone powerdnssec.org ; pdnssec rectify-zone powerdnssec.org' will deliver a correctly NSEC signed zone.
+    </para>
+    <para>
+      In addition, so will the 'zone2sql' import tool when run with the '--dnssec' flag.
+    </para>
+    </section>
+    <section id="dnssec-bind-migration"><title>From existing non-DNSSEC non-PowerDNS setups</title>
+    <para>TBD</para>
+    </section>
+    <section id="dnssec--dnssec-migration"><title>From existing DNSSEC non-PowerDNS setups</title>
+    <para>
+      The 'pdnssec' tool features the option to import zone keys in the industry standard private key format, 
+      version 1.2. To import an existing KSK, use 'pdnssec import-zone-key zonename filename KSK', replace KSK 
+      by ZSK for a Zone Signing Key.
+    </para>
+    <para>
+      If all keys are imported using this tool, a zone will serve mostly identical records to before, with
+      the important change that the RRSIG inception dates will be different.
+    </para>
+    <para><note><para>Within PowerDNS, the 'algorithm' for RSASHA1 keys is modulated based on the NSEC3 setting. So
+    if an algoritm=7 key is imported in a zone with no configured NSEC3, it will appear as algorithm 5!</para></note></para>
+    </section>
   </section>
   <section id="powerdnssec">
   <title>Records, Keys, signatures, hashes within PowerDNSSEC</title>
@@ -9152,7 +9179,7 @@ $ pdnssec rectify-zone
   <para>
     Keys and hashes are configured using the 'pdnssec' tool, which is described next.
   </para>
-  <section id="nsec"><title>(Hashed) Denial of Existence</title>
+  <section id="nsecX"><title>(Hashed) Denial of Existence</title>
   <para>
     PowerDNS supports unhashed secure denial of existence using NSEC records. These are generated
     with the help of the (database) backend, which needs to be able to supply the 'previous' and 'next' records
@@ -9174,6 +9201,25 @@ $ pdnssec rectify-zone
     without further involving the database.
   </para>
   </section>
+  
+  <section id="rrsig"><title>Signatures</title>
+  <para>
+    In PowerDNS, signatures, as served through RRSIG records, are calculated on the fly, and heavily cached. All CPU cores 
+    are used for the calculation.
+  </para>
+  <para>
+    RRSIGs have a validity period, in PowerDNS by default this period starts at most a week in the past, and continues
+    at least a week into the future.
+  </para>
+  <para>
+    Precisely speaking, the time period used is always from the start of the previous Thursday until the Thursday two weeks later.
+    This two-week interval jumps with one-week increments every Thursday.
+  </para>
+  <para><note><para>Why Thursday? POSIX-based operating systems count the time since GMT midnight January 1st of 1970,
+  which was a Thursday.
+  </para></note></para>
+  </section>
+  
   </section>
   <section id="pdnssec">
   <title>'pdnssec' for PowerDNSSEC command &amp; control</title>
@@ -12318,6 +12364,7 @@ end
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Case</entry><entry>Depends</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Partial, no delegation, no key storage</entry></row>
 	      <row><entry>Module name</entry><entry>pipe</entry></row>
 	      <row><entry>Launch name</entry><entry>pipe</entry></row>
 	    </tbody>
@@ -12649,6 +12696,7 @@ while(&lt;&gt;)
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>Insensitive</entry></row>
+	      <row><entry>DNSSEC</entry><entry>No (but see Generic backend!)</entry></row>
 	      <row><entry>Module name</entry><entry>mysql</entry></row>
 	      <row><entry>Launch name</entry><entry>mysql</entry></row>
 	    </tbody>
@@ -12763,6 +12811,7 @@ while(&lt;&gt;)
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Case</entry><entry>Depends</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes, no key storage</entry></row>
 	      <row><entry>Module name</entry><entry>built in</entry></row>
 	      <row><entry>Launch name</entry><entry>random</entry></row>
 	    </tbody>
@@ -12798,10 +12847,10 @@ while(&lt;&gt;)
       </para>
     </sect1>
 
-    <sect1 id="pdnsbackend"><title>MySQL PDNS backend</title>
+    <sect1 id="pdnsbackend"><title>MySQL PowerDNS backend</title>
       <para>
 	<table>
-	  <title>MySQL backend capabilities</title>
+	  <title>MySQL PowerDNS backend capabilities</title>
 	  <tgroup cols="2">
 	    <tbody>
 	      <row><entry>Native</entry><entry>Yes</entry></row>
@@ -12810,6 +12859,7 @@ while(&lt;&gt;)
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>Insensitive</entry></row>
+	      <row><entry>DNSSEC</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>pdns</entry></row>
 	      <row><entry>Launch name</entry><entry>pdns</entry></row>
 	    </tbody>
@@ -13007,6 +13057,7 @@ CREATE TABLE Zones (
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
 	      <row><entry>Autoserial</entry><entry>NO</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
 	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>
 	      <row><entry>Launch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
@@ -13645,6 +13696,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 	      <row><entry>Slave</entry><entry>No</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
+	      <row><entry>DNSSEC</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>oracle</entry></row>
 	      <row><entry>Launch name</entry><entry>oracle</entry></row>
 
@@ -13851,6 +13903,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	            <row><entry>Master</entry><entry>Yes</entry></row>
 	            <row><entry>Slave</entry><entry>Yes</entry></row>
 	            <row><entry>Superslave</entry><entry>Yes</entry></row>
+		    <row><entry>DNSSEC</entry><entry>Yes</entry></row>
 	            <row><entry>Module name</entry><entry>gsqlite and gsqlite3</entry></row>
 	            <row><entry>Launch name</entry><entry>gsqlite and gsqlite3</entry></row>
 	          </tbody>
@@ -13966,6 +14019,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Slave</entry><entry>No</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
+	      <row><entry>DNSSEC</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>db2</entry></row>
 	      <row><entry>Launch name</entry><entry>db2</entry></row>
 
@@ -14056,6 +14110,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>Experimental</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes, but no key storage</entry></row>
 	      <row><entry>Module name</entry><entry>none (built in)</entry></row>
 	      <row><entry>Launch</entry><entry>bind</entry></row>
 	    </tbody>
@@ -14344,6 +14399,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Slave</entry><entry>No</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>DNSSEC</entry><entry>No</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -14372,6 +14428,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes (since 2.9.22)</entry></row>
+	      <row><entry>DNSSEC</entry><entry>No</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -14399,6 +14456,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <row><entry>Slave</entry><entry>No</entry></row>
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes (no key storage)</entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>
