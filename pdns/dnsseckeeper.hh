@@ -124,7 +124,7 @@ public:
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
   DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
   void addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
-  void addKey(const std::string& zname, bool keyOrZone, const DNSSECPrivateKey& dpk, bool active=true);
+  void addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
   void removeKey(const std::string& zname, unsigned int id);
   void activateKey(const std::string& zname, unsigned int id);
   void deactivateKey(const std::string& zname, unsigned int id);

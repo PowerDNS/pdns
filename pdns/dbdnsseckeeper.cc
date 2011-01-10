@@ -54,13 +54,14 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   DNSSECPrivateKey dpk;
   dpk.d_key.create(bits); 
   dpk.d_algorithm = algorithm;
-  addKey(name, keyOrZone, dpk, active);
+  dpk.d_flags = keyOrZone ? 257 : 256;
+  addKey(name, dpk, active);
 }
 
-void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, const DNSSECPrivateKey& dpk, bool active)
+void DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, bool active)
 {
   DNSBackend::KeyData kd;
-  kd.flags = 256 + keyOrZone;
+  kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
   kd.active = active;
   kd.content = dpk.d_key.convertToISC(dpk.d_algorithm);
  // now store it
