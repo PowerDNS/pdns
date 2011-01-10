@@ -1061,7 +1061,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
   }
   r->setA(false);
 
-  if(!addDSforNS(p, r, sd, rrset.begin()->qname))
+  if(p->d_dnssecOk && d_dk.haveActiveKSKFor(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->qname))
     addNSECX(p, r, rrset.begin()->qname, sd.qname, 0);
   
   return true;
@@ -1072,6 +1072,10 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
   if(!p->d_dnssecOk)
     cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
   //  cerr<<"Need to add all the NSEC too.."<<endl; /// XXX FIXME THE ABOVE IF IS WEIRD
+  
+  if(!d_dk.haveActiveKSKFor(sd.qname))
+    return;
+    
   addNSECX(p, r, target, sd.qname, 2); 
   if(pdns_iequals(sd.qname, p->qdomain)) {
     DNSSECKeeper::keyset_t zskset = d_dk.getKeys(p->qdomain);
@@ -1196,13 +1200,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
     string target=p->qdomain;
-    bool noCache=false;
-
-    if(doDNSKEYRequest(p,r)) 
-      goto sendit;
-
-    if(doNSEC3PARAMRequest(p,r)) 
-      goto sendit;
+    // bool noCache=false;
 
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
@@ -1232,6 +1230,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     DLOG(L<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
     // we know we have authority
+
+    if(pdns_iequals(sd.qname, p->qdomain)) {
+      if(doDNSKEYRequest(p,r))  
+        goto sendit;
+  
+      if(doNSEC3PARAMRequest(p,r)) 
+        goto sendit;
+    }
 
     if(p->qtype.getCode() == QType::SOA && pdns_iequals(sd.qname, p->qdomain)) {
      	rr.qname=sd.qname;
