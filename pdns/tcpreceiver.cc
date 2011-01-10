@@ -503,7 +503,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       continue; // skip SOA - would indicate end of AXFR
 
     if(rr.qtype.getCode() == QType::NS) {
-      cerr<<rr.qname<<" NS, auth="<<rr.auth<<endl;
+      // cerr<<rr.qname<<" NS, auth="<<rr.auth<<endl;
     }
 
     outpacket->addRecord(rr);
@@ -520,29 +520,29 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
 
-
-  for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
-    cerr<<"Adding for '"<<iter->first<<"'\n";
-    NSECRecordContent nrc;
-    nrc.d_set = iter->second;
-    nrc.d_set.insert(QType::RRSIG);
-    nrc.d_set.insert(QType::NSEC);
-    if(boost::next(iter) != nsecrepo.end()) {
-      nrc.d_next = boost::next(iter)->first;
+  if(dk.haveActiveKSKFor(sd.qname)) {
+    for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
+      cerr<<"Adding for '"<<iter->first<<"'\n";
+      NSECRecordContent nrc;
+      nrc.d_set = iter->second;
+      nrc.d_set.insert(QType::RRSIG);
+      nrc.d_set.insert(QType::NSEC);
+      if(boost::next(iter) != nsecrepo.end()) {
+        nrc.d_next = boost::next(iter)->first;
+      }
+      else
+        nrc.d_next=nsecrepo.begin()->first;
+  
+      rr.qname = iter->first;
+  
+      rr.ttl = 3600;
+      rr.content = nrc.getZoneRepresentation();
+      rr.qtype = QType::NSEC;
+      rr.d_place = DNSResourceRecord::ANSWER;
+      outpacket->addRecord(rr);
+      count++;
     }
-    else
-      nrc.d_next=nsecrepo.begin()->first;
-
-    rr.qname = iter->first;
-
-    rr.ttl = 3600;
-    rr.content = nrc.getZoneRepresentation();
-    rr.qtype = QType::NSEC;
-    rr.d_place = DNSResourceRecord::ANSWER;
-    outpacket->addRecord(rr);
-    count++;
   }
-
   
   if(count) {
     sendPacket(outpacket, outsock);

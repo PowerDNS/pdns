@@ -1008,7 +1008,7 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.auth = 1;
   r->addRecord(rr);
   
-  if(p->d_dnssecOk) 
+  if(p->d_dnssecOk && d_dk.haveActiveKSKFor(sd.qname))
     addNSECX(p, r, target, sd.qname, 1);
   
   r->setRcode(RCode::NXDomain);  
@@ -1026,8 +1026,8 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
   rr.d_place=DNSResourceRecord::AUTHORITY;
   rr.auth = 1;
   r->addRecord(rr);
-  
-  if(p->d_dnssecOk)
+
+  if(p->d_dnssecOk && d_dk.haveActiveKSKFor(sd.qname))
     addNSECX(p, r, target, sd.qname, 0);
 
   S.ringAccount("noerror-queries",p->qdomain+"/"+p->qtype.getName());

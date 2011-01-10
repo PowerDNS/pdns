@@ -52,8 +52,8 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t si
   rrc.d_tag = 0;
   
   // XXX we know the apex already.. is is the SOA name which we determined earlier
-  if(!getSignerApexFor(dk, signQName, rrc.d_signer)) {
-    cerr<<"No signer known for '"<<signQName<<"'\n";
+  if(!getSignerApexFor(dk, signQName, rrc.d_signer)) { // this is the cutout for signing non-dnssec enabled zones
+    // cerr<<"No signer known for '"<<signQName<<"'\n";
     return -1;
   }
   // we sign the RRSET in toSign + the rrc w/o key
@@ -101,7 +101,7 @@ void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::stri
     return;
 
   if(getRRSIGsForRRSET(dk, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0) {
-    cerr<<"Error signing a record!"<<endl;
+    // cerr<<"Error signing a record!"<<endl;
     return;
   }
   BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
