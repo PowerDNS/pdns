@@ -209,16 +209,20 @@ int Resolver::receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrl
   return 1;
 }
   
-int Resolver::resolve(const string &ip, const char *domain, int type)
+int Resolver::resolve(const string &ipport, const char *domain, int type)
 {
   makeUDPSocket();
-  sendResolve(ip, domain, type);
+  sendResolve(ipport, domain, type);
   try {
-    ComboAddress from(ip);
+    ServiceTuple st;
+    st.port = 53;   
+    parseService(ipport, st);
+    ComboAddress from(st.host, st.port);
+
     return receiveResolve((sockaddr*)&from, from.getSocklen());
   }
   catch(ResolverException &re) {
-    throw ResolverException(re.reason+" from "+ip);
+    throw ResolverException(re.reason+" from "+ipport);
   }
   return 1;
   
@@ -290,11 +294,15 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
 }
 
 //! returns -1 for permanent error, 0 for timeout, 1 for success
-int Resolver::axfr(const string &ip, const char *domain)
+int Resolver::axfr(const string &ipport, const char *domain)
 {
   d_domain=domain;
 
-  makeTCPSocket(ip);
+  
+  ServiceTuple st;  
+  st.port = 53;     
+  parseService(ipport, st);
+  makeTCPSocket(st.host, st.port);
 
   d_type=QType::AXFR;
   
@@ -311,14 +319,14 @@ int Resolver::axfr(const string &ip, const char *domain)
 
   int ret=Utility::writev(d_sock,iov,2);
   if(ret<0)
-    throw ResolverException("Error sending question to "+ip+": "+stringerror());
+    throw ResolverException("Error sending question to "+ipport+": "+stringerror());
 
   int res = waitForData(d_sock, 10, 0);
   
   if(!res)
-    throw ResolverException("Timeout waiting for answer from "+ip+" during AXFR");
+    throw ResolverException("Timeout waiting for answer from "+ipport+" during AXFR");
   if(res<0)
-    throw ResolverException("Error waiting for answer from "+ip+": "+stringerror());
+    throw ResolverException("Error waiting for answer from "+ipport+": "+stringerror());
 
   d_soacount=0;
   d_inaxfr=true;
