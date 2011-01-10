@@ -142,6 +142,7 @@ bool GeoBackend::get(DNSResourceRecord &r) {
         	r.ttl = ir->ttl;
         	r.domain_id = ir->domain_id;
         	r.last_modified = ir->last_modified;
+          r.auth = 1;
         			
         	delete ir;
         	i_answers++;
