@@ -170,7 +170,7 @@ time_t CommunicatorClass::doNotifications()
     }
 
     if(p.d.rcode)
-      L<<Logger::Warning<<"Received unsuccesful notification report for '"<<p.qdomain<<"' from "<<p.getRemote()<<", rcode: "<<p.d.rcode<<endl;      
+      L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<p.getRemote()<<", rcode: "<<p.d.rcode<<endl;      
     
     if(d_nq.removeIf(p.getRemote(), p.d.id, p.qdomain))
       L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<p.getRemote()<< (p.d.rcode ? "" : " (was acknowledged)")<<endl;      

@@ -358,6 +358,25 @@ try
     NSEC3PARAMRecordContent ns3pr(nsec3params);
     dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
   }
+  else if(cmds[0]=="hash-zone-record") {
+    if(cmds.size() < 3) {
+      cerr<<"Wrong number of arguments, syntax: hash-zone-record ZONE RECORD"<<endl;
+      return 0;
+    }
+    string& zone=cmds[1];
+    string& record=cmds[2];
+    NSEC3PARAMRecordContent ns3pr;
+    bool narrow;
+    if(!dk.getNSEC3PARAM(zone, &ns3pr, &narrow)) {
+      cerr<<"The '"<<zone<<"' zone does not use NSEC3"<<endl;
+      return 0;
+    }
+    if(!narrow) {
+      cerr<<"The '"<<zone<<"' zone uses narrow NSEC3, but calculating hash anyhow"<<endl;
+    }
+      
+    cout<<toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, record)))<<endl;
+  }
   else if(cmds[0]=="unset-nsec3") {
     dk.unsetNSEC3PARAM(cmds[1]);
   }

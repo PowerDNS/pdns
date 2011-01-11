@@ -9324,6 +9324,15 @@ $ pdnssec rectify-zone
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
+	    <term>hash-zone-record ZONE RECORDNAME</term>
+	    <listitem>
+	      <para>
+		This convenience command hashes the name 'recordname' according to the NSEC3 settings of ZONE.
+		Refuses to hash for zones with no NSEC3 settings.
+	      </para>
+	    </listitem>
+	</varlistentry>
+	<varlistentry>
 	    <term>import-zone-dnskey ZONE filename [ksk|zsk]</term>
 	    <listitem>
 	      <para>
@@ -9479,7 +9488,8 @@ $ pdnssec rectify-zone
     <warning>
     <para>
       For now, it is necessary to execute a manual SQL 'insert' into the domains table of the backend hosting
-      the keying material. This is needed to generate a zone-id for the relevant domain.
+      the keying material. This is needed to generate a zone-id for the relevant domain. Sample SQL statement:
+      <command>insert into domains (name, type) values ('powerdnssec.org', 'NATIVE');</command>.
     </para>
     </warning>
   </section>
@@ -9496,8 +9506,8 @@ $ pdnssec rectify-zone
     data for which is itself authoritative, which includes the SOA record and its own NS records. 
   </para>
   <para>
-    The 'auth' field should be 0 however for NS records which are used for delegation, and also for any glue records
-    present for this purpose.
+    The 'auth' field should be 0 however for NS records which are used for delegation, and also for any glue (A, AAAA) records
+    present for this purpose. Do note that the DS record for a secure delegation should be authoritative!
   </para>
   <para>
     The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. When running in NSEC3 'Narrow' mode,
@@ -9509,7 +9519,7 @@ $ pdnssec rectify-zone
   </para>
   <para>
     In 'NSEC3' non-narrow mode, the ordername should contain a lowercase base32hex encoded representation of the salted &amp; iterated hash
-    of the full record name.
+    of the full record name. <command>pdnssec hash-zone-record zone record</command> can be used to calculate this hash.
   </para>
   </section>
   </section>
@@ -9544,7 +9554,7 @@ $ pdnssec rectify-zone
     <listitem><para>Roy Arends (Nominet)</para></listitem>
     <listitem><para>Miek Gieben</para></listitem>
     <listitem><para>Stephane Bortzmeyer (AFNIC)</para></listitem>
-    <listitem><para>Michael Braunoede (nic.at)</para></listitem>
+    <listitem><para>Michael Braunoeder (nic.at)</para></listitem>
     <listitem><para>Peter van Dijk</para></listitem>
     <listitem><para>Maik Zumstrull</para></listitem>
     <listitem><para>Jose Arthur Benetasso Villanova</para></listitem>
