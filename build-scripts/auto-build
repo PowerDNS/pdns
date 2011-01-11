@@ -1,9 +1,6 @@
-#!/bin/sh 
+#!/bin/bash 
 
 # Internal script used to build daily snapshots (if there is a change in svn, that is)
-
-export PATH=/opt/gcc-4.0.2/bin:$PATH
-export LD_LIBRARY_PATH=/opt/gcc-4.0.2/lib
 
 cd /home/ahu/auto-build
 if [ -e pdns ] 
@@ -11,7 +8,7 @@ then
 	cd pdns
 	LATEST=$(svn info svn://svn.powerdns.com/pdns/ | awk  '/^Revision/ { print $2 }'  )
 	CO=$(svn info . | awk  '/^Revision/ { print $2 }'  )
-	if [ "$LATEST" -eq "$CO" -a -e ../pdns*$CO-1.i386.rpm ]
+	if [ "$LATEST" -eq "$CO" -a -e ../pdns-static*$CO-1.i386.rpm ]
 	then
 		echo nothing to do
 		exit
@@ -25,18 +22,22 @@ svn co svn://svn.powerdns.com/pdns/trunk/pdns
 cd pdns
 LATEST=$(svn info . | awk  '/^Revision/ { print $2 }'  )
 DATE=$(date +%Y%m%d).$LATEST
+
 ssed -r "s/Version: (.*)/Version: \\1.$DATE/" -i *.spec
-ssed -r "s/AM_INIT_AUTOMAKE\\(pdns, (.*)\\)/AM_INIT_AUTOMAKE\(pdns, \\1.$DATE\)/" -i configure.in
-ssed -r "s/^pdns \\(([^-]*)-[0-9]*\\)/pdns \\(\\1.$DATE-1\\)/" -i debian-pdns/changelog
+ssed -r "s/AM_INIT_AUTOMAKE\\(pdns, (.*)\\)/AM_INIT_AUTOMAKE\(pdns, \\1.$DATE\)/" -i configure.ac
+ssed -r "s/^pdns \\(([^-]*(-rc[0-9])*)-[0-9]*\\)/pdns \\(\\1.$DATE-1\\)/" -i debian-pdns/changelog
 
 ./bootstrap
 fakeroot debian-pdns/rules binary-static
 rm -rf debian-pdns/tmp/
-fakeroot ./build-scripts/rpm-build-instruction
+./build-scripts/rpm-build-instruction
+rm debian-pdns/.svn -rf
 build-scripts/tar-gz-build-instruction
 cd ..
 mv pdns/*.tar.gz .
-ssh adsl-xs4all.ds9a.nl mkdir /var/www/svn.powerdns.com/snapshots/$LATEST
-scp pdns*$LATEST*{rpm,deb,tar.gz} adsl-xs4all.ds9a.nl:/var/www/svn.powerdns.com/snapshots/$LATEST
+#ssh svn.powerdns.com mkdir /var/www/svn.powerdns.com/snapshots/$LATEST
+echo rsync -v --bwlimit=75 pdns-static*$LATEST*{rpm,deb,tar.gz} svn.powerdns.com:/var/www/svn.powerdns.com/dnssec-wild-testing > boe
+bash ./boe
+
 
 
