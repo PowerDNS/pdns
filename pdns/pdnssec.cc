@@ -315,6 +315,10 @@ try
     dk.addKey(zone, keyOrZone, algorithm, bits); 
   }
   else if(cmds[0] == "remove-zone-key") {
+    if(cmds.size() < 3) {
+      cerr<<"Syntax: pdnssec remove-zone-key ZONE KEY-ID\n";
+      return 0;
+    }
     const string& zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
     dk.removeKey(zone, id);
