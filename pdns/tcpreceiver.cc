@@ -432,7 +432,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       s_P=new PacketHandler;
     }
 
-    if(!s_P->getBackend()->getSOA(target,sd)) {
+    if(!s_P->getBackend()->getSOA(target, sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
@@ -484,8 +484,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   //  sendPacket(outpacket, outsock);
   typedef map<string, NSECEntry, CanonicalCompare> nsecrepo_t;
   nsecrepo_t nsecrepo;
-  // this is where the DNSKEYs go
-  
+  // this is where the DNSKEYs go  
 
   DNSSECKeeper::keyset_t keys = dk.getKeys(target);
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
@@ -499,7 +498,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     ne.d_ttl = rr.ttl;
     outpacket->addRecord(rr);
   }
-
   /* now write all other records */
 
   int count=0;
@@ -536,10 +534,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       // FIXME: Subsequent messages SHOULD NOT have a question section, though the final message MAY.
     }
   }
-
-  if(dk.haveActiveKSKFor(sd.qname)) {
+  
+  if(dk.haveActiveKSKFor(target)) {
     for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
-      cerr<<"Adding for '"<<iter->first<<"'\n";
+  //    cerr<<"Adding for '"<<iter->first<<"'\n";
       NSECRecordContent nrc;
       nrc.d_set = iter->second.d_set;
       nrc.d_set.insert(QType::RRSIG);
@@ -556,6 +554,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       rr.content = nrc.getZoneRepresentation();
       rr.qtype = QType::NSEC;
       rr.d_place = DNSResourceRecord::ANSWER;
+      rr.auth=true;
       outpacket->addRecord(rr);
       count++;
     }

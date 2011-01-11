@@ -208,7 +208,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool skipBIND)
 bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 {
   this->lookup(QType(QType::SOA),domain,p);
-
+  
   DNSResourceRecord rr;
   rr.auth = true; 
 
@@ -223,7 +223,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 
   if(!hits)
     return false;
-
+  sd.qname = domain;
   if(sd.nameserver.empty())
     sd.nameserver=arg()["default-soa-name"];
   
