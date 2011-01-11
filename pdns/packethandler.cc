@@ -198,7 +198,7 @@ int PacketHandler::doFancyRecords(DNSPacket *p, DNSPacket *r, string &target)
 }
 
 /** This catches DNSKEY requests. Returns 1 if it was handled, 0 if it wasn't */
-int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
+int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
   if(p->qtype.getCode()!=QType::DNSKEY) 
     return false;
@@ -210,7 +210,7 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
   DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
   BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
     rr.qtype=QType::DNSKEY;
-    rr.ttl=3600;
+    rr.ttl=sd.default_ttl;
     rr.qname=p->qdomain;
     rr.content=value.first.getDNSKEY().getZoneRepresentation();
     rr.auth=true;
@@ -222,7 +222,7 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r)
 
 
 /** This catches DNSKEY requests. Returns 1 if it was handled, 0 if it wasn't */
-int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r)
+int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
   if(p->qtype.getCode()!=QType::NSEC3PARAM) 
     return false;
@@ -232,7 +232,7 @@ int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r)
   NSEC3PARAMRecordContent ns3prc;
   if(d_dk.getNSEC3PARAM(p->qdomain, &ns3prc)) {
     rr.qtype=QType::NSEC3PARAM;
-    rr.ttl=3600;
+    rr.ttl=sd.default_ttl;
     rr.qname=p->qdomain;
     rr.content=ns3prc.getZoneRepresentation(); 
     rr.auth = true;
@@ -449,16 +449,17 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
 }
 
 
-void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, const std::string& toNSEC, const std::string& auth, DNSPacket *r, int mode)
+void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode)
 {
   cerr<<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
   NSECRecordContent nrc;
   nrc.d_set.insert(QType::RRSIG);
   nrc.d_set.insert(QType::NSEC);
-  if(auth==begin)
+  if(sd.qname == begin)
     nrc.d_set.insert(QType::DNSKEY);
 
   DNSResourceRecord rr;
+  rr.ttl = sd.default_ttl;
   B.lookup(QType(QType::ANY), begin);
   while(B.get(rr)) {
     nrc.d_set.insert(rr.qtype.getCode());    
@@ -467,7 +468,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   nrc.d_next=end;
 
   rr.qname=begin;
-  rr.ttl=3600;
+  // we can leave ttl untouched, either it is the default, or it is what we retrieved above
   rr.qtype=QType::NSEC;
   rr.content=nrc.getZoneRepresentation();
   rr.d_place = (mode == 2 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
@@ -475,7 +476,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   r->addRecord(rr);
 }
 
-void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::string& auth, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
+void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
   cerr<<"We should emit NSEC3 '"<<toLower(toBase32Hex(begin))<<"' - ('"<<toNSEC3<<"') - '"<<toLower(toBase32Hex(end))<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
@@ -486,23 +487,24 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const std::
   n3rc.d_algorithm = 1; // ?
 
   DNSResourceRecord rr;
+  rr.ttl = sd.default_ttl;
   B.lookup(QType(QType::ANY), unhashed);
   while(B.get(rr)) {
     n3rc.d_set.insert(rr.qtype.getCode());    
   }
 
-  if(unhashed == auth) {
+  if(unhashed == sd.qname) {
     n3rc.d_set.insert(QType::NSEC3PARAM);
     n3rc.d_set.insert(QType::DNSKEY);
   }
   
   n3rc.d_nexthash=end;
 
-  rr.qname=dotConcat(toLower(toBase32Hex(begin)), auth);
-  rr.ttl=3600;
+  rr.qname=dotConcat(toLower(toBase32Hex(begin)), sd.qname);
+  
   rr.qtype=QType::NSEC3;
   rr.content=n3rc.getZoneRepresentation();
-  //cerr<<"nsec3: '"<<rr.content<<"'"<<endl;
+  
   rr.d_place = (mode == 2 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
   r->addRecord(rr);
@@ -601,14 +603,14 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after); 
   cerr<<"Done calling for closest encloser, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
-  emitNSEC3(ns3rc, auth, unhashed, before, after, target, r, mode);
+  emitNSEC3(ns3rc, sd, unhashed, before, after, target, r, mode);
 
   // now add the main nsec3
   unhashed = p->qdomain;
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after); 
   cerr<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
-  emitNSEC3( ns3rc, auth, unhashed, before, after, target, r, mode);
+  emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
   
   // now add the *
   unhashed=dotConcat("*", auth);
@@ -616,7 +618,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, true, unhashed, before, after); 
   cerr<<"Done calling for '*', before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
-  emitNSEC3( ns3rc, auth, unhashed, before, after, target, r, mode);
+  emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
 }
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
@@ -641,21 +643,20 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after); 
   cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
 
-  // this stuff is wrong
+  // this stuff is wrong (but it appears to work)
   
   if(mode ==0 || mode==2)
-    emitNSEC(target, after, target, auth, r, mode);
+    emitNSEC(target, after, target, sd, r, mode);
   
-
   if(mode == 1)  {
-    emitNSEC(before, after, target, auth, r, mode);
+    emitNSEC(before, after, target, sd, r, mode);
 
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after); 
-    emitNSEC(auth, after, auth, auth, r, mode);
+    emitNSEC(auth, after, auth, sd, r, mode);
   }
 
   if(mode == 3)
-    emitNSEC(before, after, target, auth, r, mode);
+    emitNSEC(before, after, target, sd, r, mode);
 
   return;
 }
@@ -928,14 +929,20 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   cerr<<"Need to fake up the RRSIGs if someone asked for them explicitly"<<endl;
   B.lookup(QType(QType::ANY), p->qdomain, p);
   
-  DNSResourceRecord rr;
-  
   typedef map<uint16_t, vector<shared_ptr<DNSRecordContent> > > records_t;
   records_t records;
 
   NSECRecordContent nrc;
   nrc.d_set.insert(QType::RRSIG);
   nrc.d_set.insert(QType::NSEC);
+
+  DNSResourceRecord rr;
+
+  SOAData sd;
+  sd.db=(DNSBackend *)-1; // force uncached answer
+  getAuth(p, &sd, p->qdomain, 0);
+
+  rr.ttl=sd.default_ttl;
 
   while(B.get(rr)) {
     if(!rr.auth) 
@@ -958,18 +965,13 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   }
 
   // now get the NSEC too (since we must sign it!)
-
-  SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
-  getAuth(p, &sd, p->qdomain, 0);
-
   string before,after;
   sd.db->getBeforeAndAfterNames(sd.domain_id, sd.qname, p->qdomain, before, after); 
 
   nrc.d_next=after;
 
   rr.qname=p->qdomain;
-  rr.ttl=3600;
+  // rr.ttl is already set.. we hope
   rr.qtype=QType::NSEC;
   rr.content=nrc.getZoneRepresentation();
 
@@ -980,7 +982,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   cerr<<"Have "<<records.size()<<" rrsets to sign"<<endl;
 
   rr.qname = p->qdomain;
-  rr.ttl = 3600;
+  // again, rr.ttl is already set
   rr.auth = 0; // please don't sign this!
   rr.d_place = DNSResourceRecord::ANSWER;
   rr.qtype = QType::RRSIG;
@@ -1082,7 +1084,7 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
     DNSResourceRecord rr;
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
       rr.qtype=QType::DNSKEY;
-      rr.ttl=3600;
+      rr.ttl=sd.default_ttl;
       rr.qname=p->qdomain;
       rr.content=value.first.getDNSKEY().getZoneRepresentation();
       rr.auth = true;
@@ -1232,10 +1234,10 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // we know we have authority
 
     if(pdns_iequals(sd.qname, p->qdomain)) {
-      if(doDNSKEYRequest(p,r))  
+      if(doDNSKEYRequest(p,r, sd))  
         goto sendit;
   
-      if(doNSEC3PARAMRequest(p,r)) 
+      if(doNSEC3PARAMRequest(p,r, sd)) 
         goto sendit;
     }
 

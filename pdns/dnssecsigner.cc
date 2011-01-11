@@ -105,7 +105,7 @@ void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::stri
     return;
   }
   BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
-    pw.startRecord(signQName, QType::RRSIG, 3600, 1, 
+    pw.startRecord(signQName, QType::RRSIG, signTTL, 1, 
       signQType==QType::DNSKEY ? DNSPacketWriter:: ANSWER : signPlace); 
     rrc.toPacket(pw);
     if(maxReplyLen &&  (pw.size() + 20) > maxReplyLen) {
