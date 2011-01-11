@@ -861,7 +861,12 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     records_by_hashindex_t::const_iterator iter = ttdindex.lower_bound(lqname); // lower_bound(ttdindex.begin(), ttdindex.end(), lqname);
 //    cerr<<"iter == ttdindex.begin(): "<< (iter == ttdindex.begin()) << ", ";
   //  cerr<<"iter == ttdindex.end(): "<< (iter == ttdindex.end()) << endl;
-    if(iter->nsec3hash == lqname) {
+    if(iter == ttdindex.end()) {  // zone with 1 name?
+      cerr<<"harrumf - zone with only 1 part probably"<<endl;
+      before = after = ttdindex.begin()->nsec3hash;
+      unhashed = auth; 
+    }
+    else if(iter != ttdindex.end() && iter->nsec3hash == lqname) {
       before = iter->nsec3hash;
       unhashed = dotConcat(labelReverse(iter->qname), auth);
       cerr<<"Had direct hit, setting unhashed: "<<unhashed<<endl;
