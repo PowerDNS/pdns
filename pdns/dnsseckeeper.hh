@@ -5,6 +5,13 @@
 #include <string.h>
 #include <vector>
 #include <boost/logic/tribool.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+
+using namespace ::boost::multi_index;
 #include "dnsrecords.hh"
 #include "ueberbackend.hh"
 
@@ -113,8 +120,9 @@ public:
     bool active;
     bool keyOrZone;
     string fname;
-  }; 
-  typedef std::vector<std::pair<DNSSECPrivateKey, KeyMetaData> > keyset_t;
+  };
+  typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t; 
+  typedef std::vector<keymeta_t > keyset_t;
 private:
   UeberBackend d_db;
 public:
@@ -134,6 +142,58 @@ public:
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   void unsetNSEC3PARAM(const std::string& zname);
+  
+  struct KeyCacheEntry
+  {
+    typedef vector<DNSSECKeeper::keymeta_t> keys_t;
+  
+    uint32_t getTTD() const
+    {
+      return d_ttd;
+    }
+  
+    string d_domain;
+    unsigned int d_ttd;
+    mutable keys_t d_keys;
+  };
+  
+  struct NSECCacheEntry
+  {
+    NSECCacheEntry() : d_narrow(false) {}
+    typedef vector<DNSSECKeeper::keymeta_t> keys_t;
+  
+    uint32_t getTTD() const
+    {
+      return d_ttd;
+    }
+  
+    string d_domain;
+    unsigned int d_ttd;
+  
+    mutable std::string d_nsec3param;
+    mutable bool d_narrow;
+  };
+  
+  
+  typedef multi_index_container<
+    KeyCacheEntry,
+    indexed_by<
+      ordered_unique<member<KeyCacheEntry, std::string, &KeyCacheEntry::d_domain>, CIStringCompare >,
+      sequenced<>
+    >
+  > keycache_t;
+  typedef multi_index_container<
+    NSECCacheEntry,
+    indexed_by<
+      ordered_unique<member<NSECCacheEntry, std::string, &NSECCacheEntry::d_domain>, CIStringCompare >,
+      sequenced<>
+    >
+  > nseccache_t;
+
+  static keycache_t s_keycache;
+  static nseccache_t s_nseccache;
+  static pthread_mutex_t s_keycachelock;
+  static pthread_mutex_t s_nseccachelock;
 };
 
 #endif

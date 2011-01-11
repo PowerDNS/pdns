@@ -29,15 +29,33 @@
 #include <boost/format.hpp>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
+
+
 using namespace boost::assign;
 using namespace std;
 using namespace boost;
 
+DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
+DNSSECKeeper::nseccache_t DNSSECKeeper::s_nseccache;
+pthread_mutex_t DNSSECKeeper::s_nseccachelock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
+
 bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone) 
 {
+  {
+    Lock l(&s_keycachelock);
+    keycache_t::const_iterator iter = s_keycache.find(zone);
+    if(iter != s_keycache.end() && iter->d_ttd < time(0)) { 
+      if(iter->d_keys.empty())
+        return false;
+      else
+        return true;
+    }
+    else
+      ; 
+  }
   keyset_t keys = getKeys(zone, true);
-  // need to get an *active* one!
-  //cerr<<__FUNCTION__<<"Got "<<keys.size()<<" keys"<<endl;
+  
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
     if(val.second.active) {
       return true;
@@ -115,19 +133,51 @@ void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 
 bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow)
 {
-  vector<string> meta;
-  if(narrow) {
-    d_db.getDomainMetadata(zname, "NSEC3NARROW", meta);
-    *narrow=false;
-    if(!meta.empty() && meta[0]=="1")
-      *narrow=true;
+  time_t now = time(0);
+  {
+    Lock l(&s_nseccachelock); 
+    
+    nseccache_t::const_iterator iter = s_nseccache.find(zname);
+    if(iter != s_nseccache.end() && iter->d_ttd < now)
+    {
+      if(iter->d_nsec3param.empty()) // this says: no NSEC3
+        return false;
+        
+      if(ns3p) {
+        NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, iter->d_nsec3param));
+        *ns3p = *tmp;
+        delete tmp;
+      }
+      if(narrow)
+        *narrow = iter->d_narrow;
+      return true;
+    }
   }
-  meta.clear();
+  vector<string> meta;
   d_db.getDomainMetadata(zname, "NSEC3PARAM", meta);
   
-  if(meta.empty())
-    return false;
+  NSECCacheEntry nce;
+  nce.d_domain=zname;
+  nce.d_ttd = now+60;
+  
+  if(meta.empty()) {
+    nce.d_nsec3param.clear(); // store 'no nsec3'
+    nce.d_narrow = false;
+    Lock l(&s_nseccachelock);
+    s_nseccache.insert(nce);
     
+    return false;
+  }
+  nce.d_nsec3param = *meta.begin();
+  
+  meta.clear();
+  d_db.getDomainMetadata(zname, "NSEC3NARROW", meta);
+  nce.d_narrow = meta.empty() || meta[1]!="1";
+  
+  if(narrow) {
+    *narrow=nce.d_narrow;
+  }
+  
   if(ns3p) {
     string descr = *meta.begin();
     reportAllTypes();
@@ -139,6 +189,9 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
     *ns3p = *tmp;
     delete tmp;
   }
+  Lock l(&s_nseccachelock);
+  s_nseccache.insert(nce);
+  
   return true;
 }
 
@@ -163,12 +216,21 @@ void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
 {
+  time_t now = time(0);
+  {
+    Lock l(&s_keycachelock);
+    keycache_t::const_iterator iter = s_keycache.find(zone);
+    if(iter != s_keycache.end() && iter->d_ttd < now) { 
+      return iter->d_keys;
+    }
+    
+  }
+  
   keyset_t keyset;
   vector<UeberBackend::KeyData> dbkeyset;
   
   d_db.getDomainKeys(zone, 0, dbkeyset);
-  // do db thing
-  //cerr<<"Here: received " <<dbkeyset.size()<<" keys"<<endl;
+  
   BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset) 
   {
     DNSSECPrivateKey dpk;
@@ -189,6 +251,14 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
       keyset.push_back(make_pair(dpk, kmd));
   }
   sort(keyset.begin(), keyset.end(), keyCompareByKindAndID);
+  Lock l(&s_keycachelock);
+  
+  KeyCacheEntry kce;
+  kce.d_domain=zone;
+  kce.d_keys = keyset;
+  kce.d_ttd = now + 60;
+  s_keycache.insert(kce);
+  
   return keyset;
 }
 
