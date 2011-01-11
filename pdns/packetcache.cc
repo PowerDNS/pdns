@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2008  PowerDNS.COM BV
+    Copyright (C) 2002 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -58,7 +58,6 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     cleanup();
   }
 
-
   if(d_doRecursion && p->d.rd) { // wants recursion
     if(!d_recursivettl) {
       (*d_statnummiss)++;
@@ -85,7 +84,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       return 0;
     }
 
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, p->getMaxReplyLen());
+    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, p->getMaxReplyLen(), p->d_dnssecOk);
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -125,12 +124,12 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
   bool packetMeritsRecursion=d_doRecursion && q->d.rd;
 
   insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, -1, packetMeritsRecursion, 
-    q->getMaxReplyLen());
+    q->getMaxReplyLen(), q->d_dnssecOk);
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
 void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
-  bool meritsRecursion, unsigned int maxReplyLen)
+  bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk)
 {
   if(!((d_ops++) % 300000)) {
     cleanup();
@@ -148,7 +147,8 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   val.ctype=cet;
   val.meritsRecursion=meritsRecursion;
   val.maxReplyLen = maxReplyLen;
-
+  val.dnssecOk = dnssecOk;
+  
   TryWriteLock l(&d_mut);
   if(l.gotIt()) { 
     bool success;
@@ -250,9 +250,9 @@ int PacketCache::purge(const vector<string> &matches)
   *d_statnumentries=d_map.size();
   return delcount;
 }
-
+// called from ueberbackend
 bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
-  unsigned int maxReplyLen)
+  unsigned int maxReplyLen, bool dnssecOk)
 {
   if(d_ttl<0) 
     getTTLS();
@@ -266,16 +266,17 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     S.inc( "deferred-cache-lookup");
     return false;
   }
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen);
+
+  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk);
 }
 
-bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
-  unsigned int maxReplyLen)
-{
 
+bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
+  unsigned int maxReplyLen, bool dnssecOK)
+{
   uint16_t qt = qtype.getCode();
   
-  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen));
+  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);
   if(ret)

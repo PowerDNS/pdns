@@ -72,11 +72,11 @@ public:
   void insert(DNSPacket *q, DNSPacket *r);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
   void insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
-    unsigned int maxReplyLen=512);
+    unsigned int maxReplyLen=512, bool dnssecOk=false);
 
   int get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
   bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
-    bool meritsRecursion=false, unsigned int maxReplyLen=512);
+    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false);
 
   int size(); //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired packets
@@ -85,10 +85,10 @@ public:
   map<char,int> getCounts();
 private:
   bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
-    bool meritsRecursion=false, unsigned int maxReplyLen=512);
+    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false);
   struct CacheEntry
   {
-    CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false;}
+    CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false;}
 
     string qname;
     uint16_t qtype;
@@ -97,6 +97,7 @@ private:
     time_t ttd;
     bool meritsRecursion;
     unsigned int maxReplyLen;
+    bool dnssecOk;
     string value;
   };
 
@@ -113,10 +114,11 @@ private:
                         member<CacheEntry,uint16_t, &CacheEntry::ctype>,
                         member<CacheEntry,int, &CacheEntry::zoneID>,
                         member<CacheEntry,bool, &CacheEntry::meritsRecursion>,
-                        member<CacheEntry,unsigned int, &CacheEntry::maxReplyLen>
+                        member<CacheEntry,unsigned int, &CacheEntry::maxReplyLen>,
+                        member<CacheEntry,bool, &CacheEntry::dnssecOk>
                         >,
                         composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
-                          std::less<unsigned int> >
+                          std::less<unsigned int>, std::less<bool> >
                             >,
                            sequenced<>
                            >
