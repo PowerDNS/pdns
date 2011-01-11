@@ -1,11 +1,7 @@
 AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -Iext/polarssl/include
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
-EXTRA_DIST = docs/Makefile docs/expand \
-docs/gslb-operations.sgml docs/powerdns-case.sgml docs/powerdns-install.sgml \
-docs/powerdns-overview.sgml docs/powerdns-technical.sgml  \
-docs/pdns.sgml mtasker.cc inflighter.cc \
-docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
+EXTRA_DIST = mtasker.cc inflighter.cc docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
 
 SUBDIRS= ext/polarssl backends 
 

@@ -1,5 +1,5 @@
 SUBDIRS=modules codedocs @programdescend@
-EXTRA_DIST=TODO README HACKING INSTALL ChangeLog debian-pdns pdns.spec  \
+EXTRA_DIST=TODO README HACKING INSTALL ChangeLog debian-pdns/* pdns.spec  \
 codedocs/Makefile codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 bootstrap
 
