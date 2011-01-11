@@ -95,6 +95,56 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0-pre1</title>
+      <para>
+	<warning><para>The version 3.0 prereleases represent a major change in PowerDNS, and may well
+	have issues that prevent it from being correct, stable or secure.</para>
+	<para>They work for us though :-)</para></warning>
+      </para>
+      <para>
+	Version 3.0 of the PowerDNS Authoritative Server brings a number of important features, as
+	well as over two years of accumulated bug fixing.
+      </para>
+      <para>
+	The largest news in 3.0 is of course the advent of DNSSEC. Not only does PowerDNS now (finally)
+	support DNSSEC, we think that our support of this important protocol is among the best available.
+      </para>
+      <para>
+	Complete detail can be found in <xref linkend="powerdnssec-auth"/>. The goal of 'PowerDNSSEC' is to allow
+	existing PowerDNS installations to start serving DNSSEC with as little hassle as possible,
+	while maintaining performance and achieving high levels of security.
+      </para>
+      <para>
+	Other major new features include:
+      </para>
+      <para>
+      <itemizedlist>
+	<listitem>
+	
+	  <para>
+	    Long TXT records are now split into 255-byte components automatically. Implemented in c1340, reported by Darren Gamble
+	    in t188.
+	  </para>
+	</listitem>
+      </itemizedlist>
+      Bugs fixed:
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    ..
+	  </para>
+	</listitem>
+      </itemizedlist>
+      Improvements:
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    ..
+	  </para>
+	</listitem>
+      </itemizedlist>
+      </para>
+      </sect2>
       <sect2 id="changelog-recursor-3-3-1"><title>Recursor version 3.3.1 </title>
 	<para>
 	  <warning>
@@ -9492,6 +9542,9 @@ $ pdnssec rectify-zone
     <listitem><para>Olafur Gu&eth;mundsson (IETF)</para></listitem>
     <listitem><para>Dan Kaminsky (Recursion Ventures)</para></listitem>
     <listitem><para>Roy Arends (Nominet)</para></listitem>
+    <listitem><para>Miek Gieben</para></listitem>
+    <listitem><para>Stephane Bortzmeyer (AFNIC)</para></listitem>
+    <listitem><para>Michael Braunoede (nic.at)</para></listitem>
     <listitem><para>Peter van Dijk</para></listitem>
     <listitem><para>Maik Zumstrull</para></listitem>
     <listitem><para>Jose Arthur Benetasso Villanova</para></listitem>
