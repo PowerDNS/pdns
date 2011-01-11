@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2009  PowerDNS.COM BV
+    Copyright (C) 2002-2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -376,6 +376,13 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
   return false;
 }
 
+namespace {
+struct NSECEntry
+{
+  set<uint16_t> d_set;
+  unsigned int d_ttl;
+};
+}
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int outsock)
 {
@@ -468,7 +475,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
   outpacket->addRecord(soa); // AXFR format begins and ends with a SOA record, so we add one
   //  sendPacket(outpacket, outsock);
-  typedef map<string, set<uint16_t>, CanonicalCompare> nsecrepo_t;
+  typedef map<string, NSECEntry, CanonicalCompare> nsecrepo_t;
   nsecrepo_t nsecrepo;
   // this is where the DNSKEYs go
   
@@ -477,9 +484,12 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
     rr.qname = target;
     rr.qtype = QType(QType::DNSKEY);
-    rr.ttl = 3600;
+    rr.ttl = sd.default_ttl;
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
-    nsecrepo[rr.qname].insert(rr.qtype.getCode());
+    NSECEntry& ne = nsecrepo[rr.qname];
+    
+    ne.d_set.insert(rr.qtype.getCode());
+    ne.d_ttl = rr.ttl;
     outpacket->addRecord(rr);
   }
 
@@ -490,15 +500,15 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(::arg().mustDo("strict-rfc-axfrs"))
     chunk=1;
 
-
   outpacket->setCompress(false);
   outpacket->d_dnssecOk=true; // WRONG
 
-
-
   while(B->get(rr)) {
-    if(rr.auth || rr.qtype.getCode() == QType::NS)
-      nsecrepo[rr.qname].insert(rr.qtype.getCode());
+    if(rr.auth || rr.qtype.getCode() == QType::NS) {
+      NSECEntry& ne = nsecrepo[rr.qname];
+      ne.d_set.insert(rr.qtype.getCode());
+      ne.d_ttl = rr.ttl;
+    }
     if(rr.qtype.getCode() == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
 
@@ -524,7 +534,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
       cerr<<"Adding for '"<<iter->first<<"'\n";
       NSECRecordContent nrc;
-      nrc.d_set = iter->second;
+      nrc.d_set = iter->second.d_set;
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
       if(boost::next(iter) != nsecrepo.end()) {
@@ -535,7 +545,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   
       rr.qname = iter->first;
   
-      rr.ttl = 3600;
+      rr.ttl = iter->second.d_ttl;
       rr.content = nrc.getZoneRepresentation();
       rr.qtype = QType::NSEC;
       rr.d_place = DNSResourceRecord::ANSWER;
