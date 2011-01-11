@@ -21,6 +21,12 @@
 #include <cstring>
 #include <cstdio>
 #include <boost/algorithm/string.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+using namespace ::boost::multi_index;
 #if 0
 #include <iostream>
 using std::cout;
@@ -444,4 +450,15 @@ string labelReverse(const std::string& qname);
 std::string dotConcat(const std::string& a, const std::string &b);
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret);
 bool stringfgets(FILE* fp, std::string& line);
+
+template<typename Index>
+std::pair<typename Index::iterator,bool>
+replacing_insert(Index& i,const typename Index::value_type& x)
+{
+  std::pair<typename Index::iterator,bool> res=i.insert(x);
+  if(!res.second)res.second=i.replace(res.first,x);
+  return res;
+}
+
+
 #endif
