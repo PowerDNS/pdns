@@ -45,7 +45,7 @@ bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone)
   {
     Lock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
-    if(iter != s_keycache.end() && iter->d_ttd < time(0)) { 
+    if(iter != s_keycache.end() && iter->d_ttd > time(0)) { 
       if(iter->d_keys.empty())
         return false;
       else
@@ -138,7 +138,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
     Lock l(&s_nseccachelock); 
     
     nseccache_t::const_iterator iter = s_nseccache.find(zname);
-    if(iter != s_nseccache.end() && iter->d_ttd < now)
+    if(iter != s_nseccache.end() && iter->d_ttd > now)
     {
       if(iter->d_nsec3param.empty()) // this says: no NSEC3
         return false;
@@ -164,7 +164,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
     nce.d_nsec3param.clear(); // store 'no nsec3'
     nce.d_narrow = false;
     Lock l(&s_nseccachelock);
-    s_nseccache.insert(nce);
+    replacing_insert(s_nseccache, nce);
     
     return false;
   }
@@ -190,7 +190,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
     delete tmp;
   }
   Lock l(&s_nseccachelock);
-  s_nseccache.insert(nce);
+  replacing_insert(s_nseccache, nce);
   
   return true;
 }
@@ -220,13 +220,18 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   {
     Lock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
-    if(iter != s_keycache.end() && iter->d_ttd < now) { 
-      return iter->d_keys;
-    }
     
+    if(iter != s_keycache.end() && iter->d_ttd > now) { 
+      keyset_t ret;
+      BOOST_FOREACH(const keyset_t::value_type& value, iter->d_keys) {
+        if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
+          ret.push_back(value);
+      }
+      return ret;
+    }
   }
   
-  keyset_t keyset;
+  keyset_t retkeyset, allkeyset;
   vector<UeberBackend::KeyData> dbkeyset;
   
   d_db.getDomainKeys(zone, 0, dbkeyset);
@@ -248,18 +253,20 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
     kmd.id = kd.id;
     
     if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == kmd.keyOrZone)
-      keyset.push_back(make_pair(dpk, kmd));
+      retkeyset.push_back(make_pair(dpk, kmd));
+    allkeyset.push_back(make_pair(dpk, kmd));
   }
-  sort(keyset.begin(), keyset.end(), keyCompareByKindAndID);
+  sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
+  sort(allkeyset.begin(), allkeyset.end(), keyCompareByKindAndID);
   Lock l(&s_keycachelock);
   
   KeyCacheEntry kce;
   kce.d_domain=zone;
-  kce.d_keys = keyset;
-  kce.d_ttd = now + 60;
-  s_keycache.insert(kce);
+  kce.d_keys = allkeyset;
+  kce.d_ttd = now + 30;
+  replacing_insert(s_keycache, kce);
   
-  return keyset;
+  return retkeyset;
 }
 
 void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
