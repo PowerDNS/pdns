@@ -1049,7 +1049,7 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   r.ttl=(d_iter)->ttl;
   r.priority=(d_iter)->priority;
 
-  if(!d_iter->auth && r.qtype != QType::A && r.qtype!=QType::AAAA && r.qtype != QType::NS)
+  if(!d_iter->auth && r.qtype.getCode() != QType::A && r.qtype.getCode()!=QType::AAAA && r.qtype.getCode() != QType::NS)
     cerr<<"Warning! Unauth response!"<<endl;
   r.auth = d_iter->auth;
 
