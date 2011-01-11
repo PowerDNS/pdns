@@ -1139,8 +1139,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
   DNSPacket *r=0;
   try {    
-    L << Logger::Notice<<"Remote "<< p->remote.toString() <<" wants " << p->qtype.getName() << " for '"<<p->qdomain << 
-      "', do = " <<p->d_dnssecOk <<", bufsize = "<< p->getMaxReplyLen()<< endl;
 
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
@@ -1151,7 +1149,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // XXX FIXME do this in DNSPacket::parse ?
 
     if(!validDNSName(p->qdomain)) {
-      if(::arg().mustDo("log-dns-details"))
+      if(d_logDNSDetails)
         L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
       r=p->replyPacket(); 

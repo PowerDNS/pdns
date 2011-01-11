@@ -228,7 +228,8 @@ void *qthread(void *number)
   unsigned int &numanswered6=*S.getPointer("udp6-answers");
   numreceived=-1;
   int diff;
-
+  bool logDNSDetails= ::arg().mustDo("log-dns-details");
+  
   for(;;) {
     if(number==0) { // only run on main thread
       if(!((numreceived++)%250)) { // maintenance tasks
@@ -250,8 +251,13 @@ void *qthread(void *number)
 
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->getRemote());
+    if(logDNSDetails) 
+      L << Logger::Notice<<"Remote "<< P->remote.toString() <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
+        "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
 
-    if((P->d.opcode != Opcode::Notify) && !P->d_dnssecOk && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
+    if((P->d.opcode != Opcode::Notify) && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
+      if(logDNSDetails)
+        L<<"packetcache HIT"<<endl;
       cached.setRemote(&P->remote);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
       cached.setMaxReplyLen(P->getMaxReplyLen());
@@ -271,6 +277,8 @@ void *qthread(void *number)
 
       continue;
     }
+    if(logDNSDetails)
+        L<<"packetcache MISS"<<endl;
     if(g_mustlockdistributor) {
       Lock l(&d_distributorlock);
       g_distributor->question(P, &sendout); // otherwise, give to the distributor
