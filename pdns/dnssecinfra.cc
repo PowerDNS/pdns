@@ -296,7 +296,7 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
 DNSKEYRecordContent makeDNSKEYFromRSAKey(const rsa_context* rc, uint8_t algorithm, uint16_t flags)
 {
   DNSKEYRecordContent drc;
-  char tmp[256];
+  char tmp[max(mpi_size(&rc->E), mpi_size(&rc->N))];
 
   //  cerr<<"in makeDNSKEY rsa_check_pubkey: "<<rsa_check_pubkey(rc)<<", bits="<<mpi_size(&rc->N)*8<<endl;
 

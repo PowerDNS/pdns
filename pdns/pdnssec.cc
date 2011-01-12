@@ -307,6 +307,7 @@ try
         bits = atoi(cmds[n].c_str());
       else { 
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
+        return 0;
       }
     }
     cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<endl;
