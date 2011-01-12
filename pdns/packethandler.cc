@@ -602,14 +602,14 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after); 
-  cerr<<"Done calling for closest encloser, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
+  cerr<<"Done calling for closest encloser, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
   emitNSEC3(ns3rc, sd, unhashed, before, after, target, r, mode);
 
   // now add the main nsec3
   unhashed = p->qdomain;
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after); 
-  cerr<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
+  cerr<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
   emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
   
   // now add the *
@@ -617,7 +617,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, true, unhashed, before, after); 
-  cerr<<"Done calling for '*', before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl;
+  cerr<<"Done calling for '*', before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
   emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
 }
 
@@ -927,8 +927,6 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
 {
   cerr<<"Need to fake up the RRSIGs if someone asked for them explicitly"<<endl;
-  B.lookup(QType(QType::ANY), p->qdomain, p);
-  
   typedef map<uint16_t, vector<shared_ptr<DNSRecordContent> > > records_t;
   records_t records;
 
@@ -943,6 +941,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   getAuth(p, &sd, p->qdomain, 0);
 
   rr.ttl=sd.default_ttl;
+  B.lookup(QType(QType::ANY), p->qdomain, p);
 
   while(B.get(rr)) {
     if(!rr.auth) 
@@ -963,22 +962,27 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     records[rr.qtype.getCode()].push_back(drc);
     nrc.d_set.insert(rr.qtype.getCode());
   }
-
-  // now get the NSEC too (since we must sign it!)
-  string before,after;
-  sd.db->getBeforeAndAfterNames(sd.domain_id, sd.qname, p->qdomain, before, after); 
-
-  nrc.d_next=after;
-
-  rr.qname=p->qdomain;
-  // rr.ttl is already set.. we hope
-  rr.qtype=QType::NSEC;
-  rr.content=nrc.getZoneRepresentation();
-
-  records[QType::NSEC].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content)));
-
-  // ok, the NSEC is in..
-
+  bool narrow;
+  NSEC3PARAMRecordContent ns3pr;
+  bool doNSEC3= d_dk.getNSEC3PARAM(sd.qname, &ns3pr, &narrow);
+  if(doNSEC3) {
+    cerr<<"We don't yet add NSEC3 to explicit RRSIG queries correctly yet! (narrow="<<narrow<<")\n";
+  }
+  else {
+    // now get the NSEC too (since we must sign it!)
+    string before,after;
+    sd.db->getBeforeAndAfterNames(sd.domain_id, sd.qname, p->qdomain, before, after); 
+  
+    nrc.d_next=after;
+  
+    rr.qname=p->qdomain;
+    // rr.ttl is already set.. we hope
+    rr.qtype=QType::NSEC;
+    rr.content=nrc.getZoneRepresentation();
+    records[QType::NSEC].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content)));
+  
+    // ok, the NSEC is in..
+  }
   cerr<<"Have "<<records.size()<<" rrsets to sign"<<endl;
 
   rr.qname = p->qdomain;
