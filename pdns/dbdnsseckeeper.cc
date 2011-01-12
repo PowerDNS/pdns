@@ -179,7 +179,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   }
   
   if(ns3p) {
-    string descr = *meta.begin();
+    string descr = nce.d_nsec3param;
     reportAllTypes();
     NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, descr));
     if(!tmp) {

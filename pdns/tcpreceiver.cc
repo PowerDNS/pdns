@@ -411,8 +411,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     return 0;
   }
   
-  
-  
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
 
