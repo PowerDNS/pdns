@@ -172,7 +172,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   
   meta.clear();
   d_db.getDomainMetadata(zname, "NSEC3NARROW", meta);
-  nce.d_narrow = !meta.empty() && meta[1]=="1";
+  nce.d_narrow = !meta.empty() && meta[0]=="1";
   
   if(narrow) {
     *narrow=nce.d_narrow;
