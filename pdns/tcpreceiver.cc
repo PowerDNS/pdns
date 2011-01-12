@@ -283,7 +283,7 @@ void *TCPNameserver::doConnection(void *data)
       shared_ptr<DNSPacket> reply; 
       shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
       if(logDNSDetails) 
-        L << Logger::Notice<<"Remote "<< packet->remote.toString() <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() << 
+        L << Logger::Notice<<"TCP Remote "<< packet->remote.toString() <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() << 
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
 
 

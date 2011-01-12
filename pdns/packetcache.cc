@@ -84,7 +84,8 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       return 0;
     }
 
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, p->getMaxReplyLen(), p->d_dnssecOk);
+    uint16_t maxReplyLen = p->d_tcp ? 0xffff : p->getMaxReplyLen();
+    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk);
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -122,9 +123,9 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r)
     return;
 
   bool packetMeritsRecursion=d_doRecursion && q->d.rd;
-
+  uint16_t maxReplyLen = q->d_tcp ? 0xffff : q->getMaxReplyLen();
   insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), packetMeritsRecursion ? d_recursivettl : d_ttl, -1, packetMeritsRecursion, 
-    q->getMaxReplyLen(), q->d_dnssecOk);
+    maxReplyLen, q->d_dnssecOk);
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
@@ -138,7 +139,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   if(!ttl)
     return;
   
-  //  cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", value: '"<< (cet ? value : "PACKET") <<"', qtype: "<<qtype.getName()<<", ttl: "<<ttl<<endl;
+  //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", value: '"<< (cet ? value : "PACKET") <<"', qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<endl;
   CacheEntry val;
   val.ttd=time(0)+ttl;
   val.qname=qname;
@@ -275,7 +276,7 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
   unsigned int maxReplyLen, bool dnssecOK)
 {
   uint16_t qt = qtype.getCode();
-  
+  //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
   cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);

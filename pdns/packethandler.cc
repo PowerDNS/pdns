@@ -1344,9 +1344,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     //    doDNSSECProcessing(p, r);
 
     r->wrapup(&d_dk); // needed for inserting in cache
-    if(!p->d_tcp) {
-      PC.insert(p, r); // in the packet cache
-    }
+    PC.insert(p, r); // in the packet cache
   }
   catch(DBException &e) {
     L<<Logger::Error<<"Database module reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
