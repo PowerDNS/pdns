@@ -25,6 +25,7 @@ struct CanonicalCompare: public binary_function<string, string, bool>
 
 DNSKEYRecordContent getRSAKeyFromISC(rsa_context* rsa, const char* fname);
 DNSKEYRecordContent getRSAKeyFromISCString(rsa_context* rsa, const std::string& content);
+DNSKEYRecordContent getRSAKeyFromPEMString(rsa_context* rsa, const std::string& content);
 void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc);
 bool sharedDNSSECCompare(const boost::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
 string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);
@@ -47,5 +48,6 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t si
 		     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc, bool ksk);
 
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);
+void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 
 #endif

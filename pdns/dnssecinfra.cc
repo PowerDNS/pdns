@@ -224,6 +224,53 @@ DNSKEYRecordContent getRSAKeyFromISCString(rsa_context* rsa, const std::string& 
   return drc;
 }
 
+DNSKEYRecordContent getRSAKeyFromPEMString(rsa_context* rsa, const std::string& raw)
+{
+  vector<string> integers;
+  decodeDERIntegerSequence(raw, integers);
+  cerr<<"Got "<<integers.size()<<" integers"<<endl; 
+  map<int, mpi*> places;
+  
+  rsa_init(rsa, RSA_PKCS_V15, 0, NULL, NULL );
+
+  places[1]=&rsa->N;
+  places[2]=&rsa->E;
+  places[3]=&rsa->D;
+  places[4]=&rsa->P;
+  places[5]=&rsa->Q;
+  places[6]=&rsa->DP;
+  places[7]=&rsa->DQ;
+  places[8]=&rsa->QP;
+
+  DNSKEYRecordContent drc;
+  string modulus, exponent;
+  
+  for(int n = 0; n < 9 ; ++n) {
+    if(places.count(n)) {
+      if(places[n]) {
+        mpi_read_binary(places[n], (const unsigned char*)integers[n].c_str(), integers[n].length());
+        if(n==1)
+          modulus=integers[n];
+        if(n==2)
+          exponent=integers[n];
+      }
+    }
+  }
+  rsa->len = ( mpi_msb( &rsa->N ) + 7 ) >> 3; // no clue what this does
+
+  if(exponent.length() < 255) 
+    drc.d_key.assign(1, (char) (unsigned int) exponent.length());
+  else {
+    drc.d_key.assign(1, 0);
+    uint16_t len=htons(exponent.length());
+    drc.d_key.append((char*)&len, 2);
+  }
+  drc.d_key.append(exponent);
+  drc.d_key.append(modulus);
+  drc.d_protocol=3;
+  
+  return drc;
+}
 
 
 void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc)
@@ -368,4 +415,82 @@ std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
   return makeDNSKEYFromRSAKey(&d_key.getConstContext(), d_algorithm, d_flags);
+}
+
+class DEREater
+{
+public:
+  DEREater(const std::string& str) : d_str(str), d_pos(0)
+  {}
+  
+  struct eof{};
+  
+  uint8_t getByte()
+  {
+    if(d_pos >= d_str.length()) {
+      throw eof();
+    }
+    return (uint8_t) d_str[d_pos++];
+  }
+  
+  uint32_t getLength()
+  {
+    uint8_t first = getByte();
+    if(first < 0x80) {
+      return first;
+    }
+    first &= ~0x80;
+    
+    uint32_t len=0;
+    for(int n=0; n < first; ++n) {
+      len *= 0x100;
+      len += getByte();
+    }
+    return len;
+  }
+  
+  std::string getBytes(unsigned int len)
+  {
+    std::string ret;
+    for(unsigned int n=0; n < len; ++n)
+      ret.append(1, (char)getByte());
+    return ret;
+  }
+  
+  std::string::size_type getOffset() 
+  {
+    return d_pos;
+  }
+private:
+  const std::string& d_str;
+  std::string::size_type d_pos;
+};
+
+void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
+{
+  output.clear();
+  DEREater de(input);
+  if(de.getByte() != 0x30) 
+    throw runtime_error("Not a DER sequence");
+  
+  unsigned int seqlen=de.getLength(); 
+  unsigned int startseq=de.getOffset();
+  unsigned int len;
+  string ret;
+  try {
+    for(;;) {
+      uint8_t kind = de.getByte();
+      if(kind != 0x02) 
+        throw runtime_error("DER Sequence contained non-INTEGER component: "+lexical_cast<string>((unsigned int)kind) );
+      len = de.getLength();
+      ret = de.getBytes(len);
+      output.push_back(ret);
+    }
+  }
+  catch(DEREater::eof& eof)
+  {
+    if(de.getOffset() - startseq != seqlen)
+      throw runtime_error("DER Sequence ended before end of data");
+  }
+  
 }

@@ -9315,7 +9315,7 @@ $ pdnssec rectify-zone
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
-	    <term>export-zone-dnskey ZONE KEY-ID</term>
+	    <term>export-zone-key ZONE KEY-ID</term>
 	    <listitem>
 	      <para>
 		Export to standard output full (private) key with key id KEY-ID within zone called ZONE. The format
@@ -9333,12 +9333,23 @@ $ pdnssec rectify-zone
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
-	    <term>import-zone-dnskey ZONE filename [ksk|zsk]</term>
+	    <term>import-zone-key ZONE filename [ksk|zsk]</term>
 	    <listitem>
 	      <para>
 		Import from 'filename' a full (private) key for zone called ZONE. The format
 		used is compatible with BIND and NSD/LDNS. KSK or ZSK specifies the flags this
 		key should have on import.
+	      </para>
+	    </listitem>
+	</varlistentry>
+	<varlistentry>
+	    <term>import-zone-key-pem ZONE filename algorithm [ksk|zsk]</term>
+	    <listitem>
+	      <para>
+		Import from 'filename' a full (private) key in PEM format for zone called ZONE, and
+		assign it an algorithm number. KSK or ZSK specifies the flags this
+		key should have on import. The format used is compatible with 'openssl genrsa',
+		which is also called PEM.
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -9547,7 +9558,7 @@ $ pdnssec rectify-zone
     <listitem><para>Olaf Kolkman (NLNetLabs)</para></listitem>
     <listitem><para>Wouter Wijngaards (NLNetLabs)</para></listitem>
     <listitem><para>Marco Davids (SIDN)</para></listitem>
-    <listitem><para>Marcus Travaille (SIDN)</para></listitem>
+    <listitem><para>Markus Travaille (SIDN)</para></listitem>
     <listitem><para>Antoin Verschuren (SIDN)</para></listitem>
     <listitem><para>Olafur Gu&eth;mundsson (IETF)</para></listitem>
     <listitem><para>Dan Kaminsky (Recursion Ventures)</para></listitem>
@@ -9565,6 +9576,7 @@ $ pdnssec rectify-zone
     <listitem><para>Johannes Kuehrer (Austrian World4You GmbH)</para></listitem>
     <listitem><para>Marc van de Geijn (bHosted.nl)</para></listitem>
     <listitem><para>Stefan Arentz</para></listitem>
+    <listitem><para>Martin van Hensbergen (Fox-IT)</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
 

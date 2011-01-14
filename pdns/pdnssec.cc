@@ -2,6 +2,7 @@
 #include "dnssecinfra.hh"
 #include "statbag.hh"
 #include "base32.hh"
+#include "base64.hh"
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 #include "dnsbackend.hh"
@@ -397,6 +398,49 @@ try
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << dpk.d_key.convertToISC(dpk.d_algorithm) <<endl;
   }  
+  else if(cmds[0]=="import-zone-key-pem") {
+    if(cmds.size() < 4) {
+      cerr<<"Syntax: pdnssec import-zone-key zone-name filename.pem algorithm [zsk|ksk]"<<endl;
+      exit(1);
+    }
+    string zone=cmds[1];
+    string fname=cmds[2];
+    string line;
+    ifstream ifs(fname.c_str());
+    string tmp, interim, raw;
+    while(getline(ifs, line)) {
+      if(line[0]=='-')
+        continue;
+      trim(line);
+      interim += line;
+    }
+    B64Decode(interim, raw);
+    DNSSECPrivateKey dpk;
+    getRSAKeyFromPEMString(&dpk.d_key.getContext(), raw);
+    
+    dpk.d_algorithm = atoi(cmds[3].c_str());
+    
+    if(dpk.d_algorithm == 7)
+      dpk.d_algorithm = 5;
+      
+    cerr<<(int)dpk.d_algorithm<<endl;
+    
+    if(cmds.size() > 4) {
+      if(pdns_iequals(cmds[4], "ZSK"))
+        dpk.d_flags = 256;
+      else if(pdns_iequals(cmds[4], "KSK"))
+        dpk.d_flags = 257;
+      else {
+        cerr<<"Unknown key flag '"<<cmds[4]<<"'\n";
+        exit(1);
+      }
+    }
+    else
+      dpk.d_flags = 257; // ksk
+      
+    dk.addKey(zone, dpk); 
+    
+  }
   else if(cmds[0]=="import-zone-key") {
     if(cmds.size() < 3) {
       cerr<<"Syntax: pdnssec import-zone-key zone-name filename [zsk|ksk]"<<endl;
