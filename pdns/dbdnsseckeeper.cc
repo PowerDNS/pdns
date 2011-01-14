@@ -45,7 +45,7 @@ bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone)
   {
     Lock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
-    if(iter != s_keycache.end() && iter->d_ttd > time(0)) { 
+    if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) { 
       if(iter->d_keys.empty())
         return false;
       else
@@ -76,8 +76,17 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   addKey(name, dpk, active);
 }
 
+void DNSSECKeeper::clearCaches(const std::string& name)
+{
+  Lock l(&s_keycachelock);
+  s_keycache.erase(name);
+  s_nseccache.erase(name);
+}
+
+
 void DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, bool active)
 {
+  clearCaches(name);
   DNSBackend::KeyData kd;
   kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
   kd.active = active;
@@ -118,22 +127,25 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
 
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
+  clearCaches(zname);
   d_db.removeDomainKey(zname, id);
 }
 
 void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
+  clearCaches(zname);
   d_db.deactivateDomainKey(zname, id);
 }
 
 void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
+  clearCaches(zname);
   d_db.activateDomainKey(zname, id);
 }
 
 bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow)
 {
-  time_t now = time(0);
+  unsigned int now = time(0);
   {
     Lock l(&s_nseccachelock); 
     
@@ -197,6 +209,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
 
 void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
 {
+  clearCaches(zname);
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
   meta.push_back(descr);
@@ -210,13 +223,14 @@ void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecor
 
 void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 {
+  clearCaches(zname);
   d_db.setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
 }
 
 
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
 {
-  time_t now = time(0);
+  unsigned int now = time(0);
   {
     Lock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
@@ -271,5 +285,6 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
 
 void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
 {
+  clearCaches(name); // just to be sure ;)
   addKey(name, true, algorithm);
 }
