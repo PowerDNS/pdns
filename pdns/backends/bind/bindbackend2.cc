@@ -842,8 +842,8 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   NSEC3PARAMRecordContent ns3pr;
   string auth=state->id_zone_map[id].d_name;
   
-  dk.getNSEC3PARAM(auth, &ns3pr);
-  if(ns3pr.d_salt.empty()) {
+  
+  if(!dk.getNSEC3PARAM(auth, &ns3pr)) {
     cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
     return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
   
@@ -852,63 +852,51 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     string lqname = toLower(qname);
     cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
     typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
-    records_by_hashindex_t& ttdindex=boost::multi_index::get<HashedTag>(*bbd.d_records);
+    records_by_hashindex_t& hashindex=boost::multi_index::get<HashedTag>(*bbd.d_records);
     
-//    BOOST_FOREACH(const Bind2DNSRecord& bdr, ttdindex) {
+//    BOOST_FOREACH(const Bind2DNSRecord& bdr, hashindex) {
 //      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
 //    }
     
-    records_by_hashindex_t::const_iterator iter = ttdindex.lower_bound(lqname); // lower_bound(ttdindex.begin(), ttdindex.end(), lqname);
-//    cerr<<"iter == ttdindex.begin(): "<< (iter == ttdindex.begin()) << ", ";
-  //  cerr<<"iter == ttdindex.end(): "<< (iter == ttdindex.end()) << endl;
-    if(iter == ttdindex.end()) {  // zone with 1 name?
-      cerr<<"harrumf - zone with only 1 part probably"<<endl;
-      before = after = ttdindex.begin()->nsec3hash;
-      unhashed = auth; 
+    records_by_hashindex_t::const_iterator lowIter = hashindex.lower_bound(lqname);
+    records_by_hashindex_t::const_iterator highIter = hashindex.upper_bound(lqname);
+//    cerr<<"iter == hashindex.begin(): "<< (iter == hashindex.begin()) << ", ";
+  //  cerr<<"iter == hashindex.end(): "<< (iter == hashindex.end()) << endl;
+    if(lowIter == hashindex.end()) {  
+      cerr<<"This hash is beyond the highest hash, wrapping around"<<endl;
+      before = hashindex.rbegin()->nsec3hash; // highest hash
+      after = hashindex.begin()->nsec3hash; // lowest hash
+      unhashed = dotConcat(labelReverse(hashindex.rbegin()->qname), auth);
     }
-    else if(iter != ttdindex.end() && iter->nsec3hash == lqname) {
-      before = iter->nsec3hash;
-      unhashed = dotConcat(labelReverse(iter->qname), auth);
-      cerr<<"Had direct hit, setting unhashed: "<<unhashed<<endl;
+    else if(lowIter->nsec3hash == lqname) { // exact match
+      before = lowIter->nsec3hash;
+      unhashed = dotConcat(labelReverse(lowIter->qname), auth);
+      cerr<<"Had direct hit, setting unhashed: "<<unhashed<<endl;      
+      if(highIter != hashindex.end())
+       after = highIter->nsec3hash;
+      else
+       after = hashindex.begin()->nsec3hash;
     }
-    else {
-      while(iter != ttdindex.begin() && !boost::prior(iter)->auth && boost::prior(iter)->qtype!=QType::NS) {
-        cerr<<"Going backwards.."<<endl;
-        iter--;
-      }
-    
-      if(iter == ttdindex.end()) {
-        cerr<<"Didn't find anything"<<endl;
-        return false;
-      }
-      if(iter != ttdindex.begin()) {
-        cerr<<"\tFound: '"<<boost::prior(iter)->nsec3hash<<"', auth = "<<boost::prior(iter)->auth<<"\n";
-        before = boost::prior(iter)->nsec3hash;
-        unhashed = dotConcat(labelReverse(boost::prior(iter)->qname), auth);
+    else  {
+     // iter will always be HIGER than lqname, but that's not what we need
+     //  rest .. before pos_iter/after pos
+     //             lqname
+      if(highIter != hashindex.end())
+       after = highIter->nsec3hash; // that one is easy
+      else
+       after = hashindex.begin()->nsec3hash;
+       
+      if(lowIter != hashindex.begin()) {
+       --lowIter;
+       before = lowIter->nsec3hash;
+       unhashed = dotConcat(labelReverse(lowIter->qname), auth);
       }
       else {
-        before = ttdindex.rbegin()->nsec3hash; // try the last one then..
-        unhashed = dotConcat(labelReverse(ttdindex.rbegin()->qname), auth);
-        cerr<<"PANIC! Wanted something before the first record, inserted last: "<<before<<endl;
+       before = hashindex.rbegin()->nsec3hash;
+       unhashed = dotConcat(labelReverse(hashindex.rbegin()->qname), auth);       
       }
     }
-  
-    cerr<<"Now upper bound"<<endl;
-    iter = ttdindex.upper_bound(lqname);
-  
-    while(iter!=ttdindex.end() && (!iter->auth && iter->qtype != QType::NS))
-      iter++;
-  
-    if(iter == ttdindex.end()) {
-      cerr<<"\tFound the end, inserting beginning"<<endl;
-      after = ttdindex.begin()->nsec3hash;
-      // unhashed = ttdindex.begin()->qname;
-    } else {
-      cerr<<"\tFound: '"<<iter->nsec3hash<<"'"<<endl;
-      after = (iter)->nsec3hash;
-      // unhashed = iter->qname;
-    }
-  
+    
     cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
     return true;
   }
