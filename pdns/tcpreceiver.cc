@@ -20,6 +20,7 @@
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include <cstdio>
+#include "base32.hh"
 #include <cstring>
 #include <cstdlib>
 #include <sys/types.h>
@@ -395,13 +396,19 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 {
   shared_ptr<DNSPacket> outpacket;
   DNSSECKeeper dk;
-  bool noAXFRBecauseOfNSEC3=false;
-  if(dk.getNSEC3PARAM(target)) {
-    L<<Logger::Error<<"Not doing AXFR of an NSEC3 zone.."<<endl;
-    noAXFRBecauseOfNSEC3=true;
+  bool noAXFRBecauseOfNSEC3Narrow=false;
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow;
+  bool NSEC3Zone=false;
+  if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
+    NSEC3Zone=true;
+    if(narrow) {
+      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone.."<<endl;
+      noAXFRBecauseOfNSEC3Narrow=true;
+    }
   }
 
-  if(!canDoAXFR(q) || noAXFRBecauseOfNSEC3) {
+  if(!canDoAXFR(q) || noAXFRBecauseOfNSEC3Narrow) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
 
     outpacket=shared_ptr<DNSPacket>(q->replyPacket());
@@ -482,7 +489,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   //  sendPacket(outpacket, outsock);
   typedef map<string, NSECEntry, CanonicalCompare> nsecrepo_t;
   nsecrepo_t nsecrepo;
-  // this is where the DNSKEYs go  
+  
+  // this is where the DNSKEYs go  in
 
   DNSSECKeeper::keyset_t keys = dk.getKeys(target);
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
@@ -507,7 +515,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket->d_dnssecOk=true; // WRONG
 
   while(B->get(rr)) {
-    if(rr.auth || rr.qtype.getCode() == QType::NS) {
+    if(rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS) {
       NSECEntry& ne = nsecrepo[rr.qname];
       ne.d_set.insert(rr.qtype.getCode());
       ne.d_ttl = rr.ttl;
@@ -534,8 +542,18 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
   
   if(dk.haveActiveKSKFor(target)) {
-    for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
-  //    cerr<<"Adding for '"<<iter->first<<"'\n";
+   
+    if(NSEC3Zone) {
+      for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
+        string unhashed = iter->first;
+        string hashed=hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, unhashed);
+        string before, after;
+        getNSEC3Hashes(false, sd.db, sd.domain_id,  hashed, true, unhashed, before, after); 
+        cerr<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
+        emitNSEC3( *sd.db, ns3pr, sd, unhashed, before, after, target, outpacket.get(), 2);
+      }
+    }
+    else for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
       NSECRecordContent nrc;
       nrc.d_set = iter->second.d_set;
       nrc.d_set.insert(QType::RRSIG);
