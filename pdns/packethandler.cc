@@ -476,7 +476,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   r->addRecord(rr);
 }
 
-void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
+void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
   cerr<<"We should emit NSEC3 '"<<toLower(toBase32Hex(begin))<<"' - ('"<<toNSEC3<<"') - '"<<toLower(toBase32Hex(end))<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
@@ -484,7 +484,7 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOADa
   n3rc.d_salt=ns3prc.d_salt;
   n3rc.d_flags = 0;
   n3rc.d_iterations = ns3prc.d_iterations;
-  n3rc.d_algorithm = 1; // ?
+  n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
 
   DNSResourceRecord rr;
   rr.ttl = sd.default_ttl;
@@ -510,8 +510,11 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOADa
   r->addRecord(rr);
 }
 
-
-
+void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
+{
+  ::emitNSEC3(B, ns3prc, sd, unhashed, begin, end, toNSEC3, r, mode);
+  
+}
 
 /* mode 0 = no error -> an NSEC that starts with 'target', in authority section
    mode 1 = NXDOMAIN -> an NSEC from auth to first + a covering NSEC
@@ -564,7 +567,7 @@ static void decrementHash(std::string& raw) // I wonder if this is correct, cmou
 }
 
 
-bool PacketHandler::getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, string& unhashed, string& before, string& after)
+bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, string& unhashed, string& before, string& after)
 {
   bool ret;
   if(narrow) { // nsec3-narrow
