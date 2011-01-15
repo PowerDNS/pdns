@@ -385,7 +385,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 }
 
 namespace {
-struct NSECEntry
+struct NSECXEntry
 {
   set<uint16_t> d_set;
   unsigned int d_ttl;
@@ -487,8 +487,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
   outpacket->addRecord(soa); // AXFR format begins and ends with a SOA record, so we add one
   //  sendPacket(outpacket, outsock);
-  typedef map<string, NSECEntry, CanonicalCompare> nsecrepo_t;
-  nsecrepo_t nsecrepo;
+  typedef map<string, NSECXEntry, CanonicalCompare> nsecxrepo_t;
+  nsecxrepo_t nsecxrepo;
   
   // this is where the DNSKEYs go  in
 
@@ -498,7 +498,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     rr.qtype = QType(QType::DNSKEY);
     rr.ttl = sd.default_ttl;
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
-    NSECEntry& ne = nsecrepo[rr.qname];
+    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
+    NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(rr.qtype.getCode());
     ne.d_ttl = rr.ttl;
@@ -513,10 +514,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 
   outpacket->setCompress(false);
   outpacket->d_dnssecOk=true; // WRONG
-
+  string keyname;
   while(B->get(rr)) {
     if(rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS) {
-      NSECEntry& ne = nsecrepo[rr.qname];
+      keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
+      NSECXEntry& ne = nsecxrepo[keyname];
       ne.d_set.insert(rr.qtype.getCode());
       ne.d_ttl = rr.ttl;
     }
@@ -544,25 +546,41 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(dk.haveActiveKSKFor(target)) {
    
     if(NSEC3Zone) {
-      for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
-        string unhashed = iter->first;
-        string hashed=hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, unhashed);
-        string before, after;
-        getNSEC3Hashes(false, sd.db, sd.domain_id,  hashed, true, unhashed, before, after); 
-        cerr<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
-        emitNSEC3( *sd.db, ns3pr, sd, unhashed, before, after, target, outpacket.get(), 2);
+      for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
+        NSEC3RecordContent n3rc;
+        n3rc.d_set = iter->second.d_set;
+        n3rc.d_set.insert(QType::RRSIG);
+        n3rc.d_salt=ns3pr.d_salt;
+        n3rc.d_flags = 0;
+        n3rc.d_iterations = ns3pr.d_iterations;
+        n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
+        if(boost::next(iter) != nsecxrepo.end()) {
+          n3rc.d_nexthash = boost::next(iter)->first;
+        }
+        else
+          n3rc.d_nexthash=nsecxrepo.begin()->first;
+    
+        rr.qname = dotConcat(toLower(toBase32Hex(iter->first)), sd.qname);
+    
+        rr.ttl = iter->second.d_ttl;
+        rr.content = n3rc.getZoneRepresentation();
+        rr.qtype = QType::NSEC3;
+        rr.d_place = DNSResourceRecord::ANSWER;
+        rr.auth=true;
+        outpacket->addRecord(rr);
+        count++;
       }
     }
-    else for(nsecrepo_t::const_iterator iter = nsecrepo.begin(); iter != nsecrepo.end(); ++iter) {
+    else for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
       NSECRecordContent nrc;
       nrc.d_set = iter->second.d_set;
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
-      if(boost::next(iter) != nsecrepo.end()) {
+      if(boost::next(iter) != nsecxrepo.end()) {
         nrc.d_next = boost::next(iter)->first;
       }
       else
-        nrc.d_next=nsecrepo.begin()->first;
+        nrc.d_next=nsecxrepo.begin()->first;
   
       rr.qname = iter->first;
   
