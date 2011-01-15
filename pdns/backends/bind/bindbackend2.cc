@@ -603,8 +603,8 @@ void Bind2Backend::loadConfig(string* status)
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
           DNSSECKeeper dk;
           NSEC3PARAMRecordContent ns3pr;
-          dk.getNSEC3PARAM(i->name, &ns3pr);
-          if(ns3pr.d_salt.empty())
+          bool nsec3zone=dk.getNSEC3PARAM(i->name, &ns3pr);
+          if(!nsec3zone)
             cerr<<"no nsec3 for "<<i->name<<endl;
           else
             cerr<<"NEED TO HASH "<<i->name<<endl;
@@ -617,7 +617,7 @@ void Bind2Backend::loadConfig(string* status)
             DNSResourceRecord rr;
             string hashed;
             while(zpt.get(rr)) {
-              if(!ns3pr.d_salt.empty())
+              if(nsec3zone)
                 hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
               insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
             }
