@@ -3,9 +3,14 @@
 TIMERANGE=$(drill -D @127.0.0.1 -p 5300 powerdnssec.org -t soa | grep RRSIG | head -1 | 
 	awk '{printf "-e %s -i %s", $9, $10}')
 
-PLAINZONE=$1
-ZSKID=$(drill -D @127.0.0.1 -p 5300 powerdnssec.org -t soa  | grep RRSIG | cut -f2 -d{ | cut -f1 -d} | awk '{print $3}')
-ZSKFNAME=$(echo /home/ahu/work/pdns/pdns/pdns/keys/$1/keys/000002*zsk.active.private | sed s/.private//)
+drill axfr $1 @127.0.0.1 -p 5300 > $1.zone
+PLAINZONE=$1.zone
+ZSKTAG=$(drill -D @127.0.0.1 -p 5300 powerdnssec.org -t soa  | grep RRSIG | cut -f2 -d{ | cut -f1 -d} | awk '{print $3}')
+ZSKID=$(../pdnssec show-zone powerdnssec.org  | grep "tag = $ZSKTAG," | cut -f3 -d" ")
+../pdnssec export-zone-key powerdnssec.org $ZSKID > key-$ZSKID.private
 
-ldns-signzone $2 $3 $4 $1 $TIMERANGE $ZSKFNAME
+ldns-signzone $2 $3 $4 $1 $TIMERANGE key-$ZSKID
 echo Zone signed with key id $ZSKID now in $1.signed
+cp $1.signed /tmp/$1
+sudo nsdc rebuild
+sudo nsdc reload
