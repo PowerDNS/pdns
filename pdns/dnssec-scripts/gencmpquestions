@@ -1,0 +1,8 @@
+#!/bin/bash
+PDNSPORT=5300
+CMPPORT=53
+
+awk '{print $1, $4}' $1  | egrep -v 'RRSIG|NSEC3' | sort -u |  \
+while read a b; do dig $a $b @127.0.0.1 -p $PDNSPORT +dnssec +noauth | grep \
+-v ^\; > output.$a-$b.pdns ;  dig +dnssec $a $b @127.0.0.1 -p $CMPPORT +noauth | \
+grep -v ^\; > output.$a-$b.nsd; done

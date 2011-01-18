@@ -1,0 +1,7 @@
+#!/bin/bash
+
+for a in output.*.pdns
+do 
+	echo $a 
+	diff -uBb $a $(echo $a | sed 's/pdns/nsd/g')
+done
