@@ -78,7 +78,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     DNSSECKeeper dk;
     bool dnssecZone = false;
     bool haveNSEC3=false;
-    if(dk.haveActiveKSKFor(domain)) {
+    if(dk.isSecuredZone(domain)) {
       dnssecZone=true;
       haveNSEC3=dk.getNSEC3PARAM(domain, &ns3pr, &narrow);
       string hashed;

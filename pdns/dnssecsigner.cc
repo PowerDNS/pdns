@@ -21,7 +21,7 @@
 #include "dnsseckeeper.hh"
 #include "lock.hh"
 
-/* this is where the RRSIGs begin, key apex *name* gets found, keys are retrieved,
+/* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
 int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
 		     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent>& rrcs, bool ksk)
@@ -31,7 +31,6 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
   RRSIGRecordContent rrc;
   rrc.d_type=signQType;
 
-  
   rrc.d_labels=countLabels(signQName); 
   rrc.d_originalttl=signTTL; 
   rrc.d_siginception=getCurrentInception();;
@@ -79,15 +78,17 @@ void addSignature(DNSSECKeeper& dk, const std::string& signer, const std::string
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned)
 {
   // cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
-
-  vector<RRSIGRecordContent> rrcs;
   if(toSign.empty())
     return;
-
-  if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0) {
+  vector<RRSIGRecordContent> rrcs;
+  if(dk.isPresigned(signer)) {
+	dk.getPreRRSIGs(signer, signQName, QType(signQType), signPlace, outsigned);
+  }
+  else if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0) {
     // cerr<<"Error signing a record!"<<endl;
     return;
   }
+  
   DNSResourceRecord rr;
   rr.qname=signQName;
   rr.qtype=QType::RRSIG;

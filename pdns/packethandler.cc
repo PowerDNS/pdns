@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2010  PowerDNS.COM BV
+    Copyright (C) 2002-2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -1017,7 +1017,7 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.auth = 1;
   r->addRecord(rr);
   
-  if(p->d_dnssecOk && d_dk.haveActiveKSKFor(sd.qname))
+  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname))
     addNSECX(p, r, target, sd.qname, 1);
   
   r->setRcode(RCode::NXDomain);  
@@ -1036,7 +1036,7 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
   rr.auth = 1;
   r->addRecord(rr);
 
-  if(p->d_dnssecOk && d_dk.haveActiveKSKFor(sd.qname))
+  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname))
     addNSECX(p, r, target, sd.qname, 0);
 
   S.ringAccount("noerror-queries",p->qdomain+"/"+p->qtype.getName());
@@ -1070,7 +1070,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
   }
   r->setA(false);
 
-  if(p->d_dnssecOk && d_dk.haveActiveKSKFor(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->qname))
+  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->qname))
     addNSECX(p, r, rrset.begin()->qname, sd.qname, 0);
   
   return true;
@@ -1082,7 +1082,7 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
     cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
   //  cerr<<"Need to add all the NSEC too.."<<endl; /// XXX FIXME THE ABOVE IF IS WEIRD
   
-  if(!d_dk.haveActiveKSKFor(sd.qname))
+  if(!d_dk.isSecuredZone(sd.qname))
     return;
     
   addNSECX(p, r, target, sd.qname, 2); 

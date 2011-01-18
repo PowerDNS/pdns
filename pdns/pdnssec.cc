@@ -55,8 +55,6 @@ void loadMainConfig(const std::string& configdir)
 
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
-
-  cerr<<"configname: '"<<configname<<"'\n";
   
   ::arg().laxFile(configname.c_str());
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
@@ -178,6 +176,10 @@ void checkZone(DNSSECKeeper& dk, const std::string& zone)
 
 void showZone(DNSSECKeeper& dk, const std::string& zone)
 {
+  if(!dk.isSecuredZone(zone)) {
+	cerr<<"Zone is not secured\n";
+	return;
+  }
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
@@ -186,6 +188,8 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
     cout<<"Zone has NSEC semantics"<<endl;
   else
     cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+  
+  cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned\n";
   
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
 
@@ -334,14 +338,14 @@ try
     const string& zone=cmds[1];
     DNSSECPrivateKey dpk;
     
-    if(dk.haveActiveKSKFor(zone)) {
-      cerr << "There is a KSK already for zone '"<<zone<<"', remove with pdnssec remove-zone-key if needed"<<endl;
+    if(dk.isSecuredZone(zone)) {
+      cerr << "Zone '"<<zone<<"' already secure, remove with pdnssec remove-zone-key if needed"<<endl;
       return 0;
     }
       
     dk.secureZone(zone, 8);
 
-    if(!dk.haveActiveKSKFor(zone)) {
+    if(!dk.isSecuredZone(zone)) {
       cerr << "This should not happen, still no key!" << endl;
       return 0;
     }
@@ -363,6 +367,18 @@ try
     bool narrow = cmds.size() > 3 && cmds[3]=="narrow";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
     dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
+  }
+  else if(cmds[0]=="set-presigned") {
+	if(cmds.size() < 2) {
+		cerr<<"Wrong number of arguments, syntax: set-presigned DOMAIN"<<endl;
+	}
+    dk.setPresigned(cmds[1]);
+  }
+  else if(cmds[0]=="unset-presigned") {
+	if(cmds.size() < 2) {
+		cerr<<"Wrong number of arguments, syntax: unset-presigned DOMAIN"<<endl;
+	}
+    dk.unsetPresigned(cmds[1]);
   }
   else if(cmds[0]=="hash-zone-record") {
     if(cmds.size() < 3) {

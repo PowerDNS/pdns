@@ -40,8 +40,11 @@ DNSSECKeeper::nseccache_t DNSSECKeeper::s_nseccache;
 pthread_mutex_t DNSSECKeeper::s_nseccachelock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
 
-bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone) 
+bool DNSSECKeeper::isSecuredZone(const std::string& zone) 
 {
+  if(isPresigned(zone))
+	return true;
+	
   {
     Lock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
@@ -64,6 +67,14 @@ bool DNSSECKeeper::haveActiveKSKFor(const std::string& zone)
   return false;
 }
 
+bool DNSSECKeeper::isPresigned(const std::string& name)
+{
+  vector<string> meta;
+  d_db.getDomainMetadata(name, "PRESIGNED", meta);
+  if(meta.empty())
+	return false;
+  return meta[0]=="1";
+}
 
 void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
 {
@@ -228,6 +239,21 @@ void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 }
 
 
+void DNSSECKeeper::setPresigned(const std::string& zname)
+{
+  clearCaches(zname);
+  vector<string> meta;
+  meta.push_back("1");
+  d_db.setDomainMetadata(zname, "PRESIGNED", meta);
+}
+
+void DNSSECKeeper::unsetPresigned(const std::string& zname)
+{
+  clearCaches(zname);
+  d_db.setDomainMetadata(zname, "PRESIGNED", vector<string>());
+}
+
+
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
 {
   unsigned int now = time(0);
@@ -287,4 +313,21 @@ void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
 {
   clearCaches(name); // just to be sure ;)
   addKey(name, true, algorithm);
+}
+
+bool DNSSECKeeper::getPreRRSIGs(const std::string& signer, const std::string& qname, const QType& qtype, 
+	DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs)
+{
+	d_db.lookup(QType(QType::RRSIG), qname);
+	DNSResourceRecord rr;
+	while(d_db.get(rr)) { 
+		cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
+		if(boost::starts_with(rr.content, qtype.getName()+" ")) {
+			cerr<<"Got it"<<endl;
+			rr.d_place = (DNSResourceRecord::Place)signPlace;
+			rrsigs.push_back(rr);
+		}
+		else cerr<<"Skipping!"<<endl;
+	}
+	return true;
 }

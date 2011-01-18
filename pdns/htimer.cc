@@ -35,10 +35,6 @@ using namespace std;
    Waiting for packets
 */
 
-  
-
-
-
 #define RDTSC(qp) \
 do { \
   unsigned long lowPart, highPart;        				\

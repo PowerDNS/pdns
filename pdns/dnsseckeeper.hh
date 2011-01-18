@@ -127,7 +127,7 @@ private:
   UeberBackend d_db;
 public:
   DNSSECKeeper() : d_db("key-only"){}
-  bool haveActiveKSKFor(const std::string& zone);
+  bool isSecuredZone(const std::string& zone);
   
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
   DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
@@ -143,6 +143,10 @@ public:
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   void unsetNSEC3PARAM(const std::string& zname);
   void clearCaches(const std::string& name);
+  bool getPreRRSIGs(const std::string& signer, const std::string& qname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs);
+  bool isPresigned(const std::string& zname);
+  void setPresigned(const std::string& zname);
+  void unsetPresigned(const std::string& zname);
 private:  
   struct KeyCacheEntry
   {

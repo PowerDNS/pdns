@@ -542,7 +542,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
   
-  if(dk.haveActiveKSKFor(target)) {
+  if(dk.isSecuredZone(target)) {
    
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
