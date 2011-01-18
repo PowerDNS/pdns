@@ -234,7 +234,7 @@ try
 
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [rectify-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
-    cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [unset-nsec3] [export-zone-dnskey]\n\n";
+    cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [set-presigned] [unset-nsec3] [unset-presigned] [export-zone-dnskey]\n\n";
     cerr<<"activate-zone-key ZONE KEY-ID   Activate the key with key id KEY-ID in ZONE\n";
     cerr<<"add-zone-key ZONE [zsk|ksk]     Add a ZSK or KSK to a zone\n";
     cerr<<"  [bits] [rsasha1|rsasha256]    and specify algorithm & bits\n";
@@ -247,10 +247,11 @@ try
     cerr<<"rectify-zone ZONE               Fix up DNSSEC fields (order, auth)\n";
     cerr<<"remove-zone-key ZONE KEY-ID     Remove key with KEY-ID from ZONE\n";
     cerr<<"secure-zone                     Add KSK and two ZSKs\n";
-    cerr<<"set-nsec3 'params' [narrow]     Enable NSEC3 with PARAMs. Optionally narrow\n";
+    cerr<<"set-nsec3 ZONE 'params' [narrow]     Enable NSEC3 with PARAMs. Optionally narrow\n";
+    cerr<<"set-presigned ZONE              Use presigned RRSIGs from storage\n";
     cerr<<"show-zone ZONE                  Show DNSSEC (public) key details about a zone\n";
-    cerr<<"unset-nsec3 ZONE                Switch back to NSEC\n\n";
-
+    cerr<<"unset-nsec3 ZONE                Switch back to NSEC\n";
+	cerr<<"unset-presigned ZONE            No longer use presigned RRSIGs\n\n";
     cerr<<"Options:"<<endl;
     cerr<<desc<<endl;
     return 0;

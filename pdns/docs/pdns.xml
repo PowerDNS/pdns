@@ -9384,8 +9384,15 @@ $ pdnssec rectify-zone
 	      <para>
 		Sets NSEC3 parameters for this zone. A sample commandline is: "pdnssec set-nsec3 powerdnssec.org '1 0 1 ab' narrow".
 		The NSEC3 parameters must be quoted on the command line.
-		WARNING: an empty salt is not yet supported!
 		WARNING: This requires updating the 'DS" over at the parent zone!
+	      </para>
+	    </listitem>
+	</varlistentry>
+	<varlistentry>
+	    <term>set-presigned ZONE</term>
+	    <listitem>
+	      <para>
+			Switches zone to presigned operation, utilizing in-zone RRSIGs.
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -9402,6 +9409,14 @@ $ pdnssec rectify-zone
 	    <listitem>
 	      <para>
 		Converts a zone to NSEC operations. WARNING: This requires updating the 'DS" over at the parent zone!
+	      </para>
+	    </listitem>
+	</varlistentry>
+	<varlistentry>
+	    <term>unset-presigned ZONE</term>
+	    <listitem>
+	      <para>
+			Disables presigned operation for ZONE.
 	      </para>
 	    </listitem>
 	</varlistentry>
