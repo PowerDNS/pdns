@@ -6,7 +6,7 @@
 using namespace std;
 
 /** The gMySQLBackend is a DNSBackend that can answer DNS related questions. It looks up data
-    in PostgreSQL */
+    in MySQL */
 class gMySQLBackend : public GSQLBackend
 {
 public:
