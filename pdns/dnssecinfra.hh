@@ -42,12 +42,13 @@ struct DNSSECPrivateKey;
 bool getSignerApexFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, std::string &signer);
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
 uint32_t getCurrentInception();
-void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, vector<shared_ptr<DNSRecordContent> >& toSign, 
-  uint16_t maxReplyLength, DNSPacketWriter& pw);
-int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
+void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, 
+  vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned);
+int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
 		     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc, bool ksk);
 
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);
 void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
-
+class DNSPacket;
+void addRRSigs(DNSSECKeeper& dk, const std::string& signer, DNSPacket& p);
 #endif

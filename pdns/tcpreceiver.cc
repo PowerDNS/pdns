@@ -175,8 +175,7 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 
 void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
-  DNSSECKeeper dk;
-  const char *buf=p->getData(&dk);
+  const char *buf=p->getData();
   uint16_t len=htons(p->len);
   writenWithTimeout(outsock, &len, 2);
   writenWithTimeout(outsock, buf, p->len);
@@ -296,7 +295,7 @@ void *TCPNameserver::doConnection(void *data)
         cached->d.rd=packet->d.rd; // copy in recursion desired bit 
         cached->commitD(); // commit d to the packet                        inlined
 
-        sendPacket(cached, fd);
+        sendPacket(cached, fd); // presigned, don't do it again
         S.inc("tcp-answers");
         continue;
       }
@@ -533,7 +532,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 
     if(!((++count)%chunk)) {
       count=0;
-    
+      addRRSigs(dk, sd.qname, *outpacket);
       sendPacket(outpacket, outsock);
 
       outpacket=shared_ptr<DNSPacket>(q->replyPacket());
@@ -595,13 +594,15 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
   
   if(count) {
+    addRRSigs(dk, sd.qname, *outpacket);
     sendPacket(outpacket, outsock);
   }
 
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
-  soa.priority=1234;
+  
+  addRRSigs(dk, sd.qname, *outpacket); // don't sign the SOA!
   outpacket->addRecord(soa);
   sendPacket(outpacket, outsock);
   DLOG(L<<"last packet - close"<<endl);

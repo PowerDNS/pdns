@@ -118,8 +118,8 @@ public:
   void setQuestion(int op, const string &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (label, type, class etc)
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
-  void wrapup(DNSSECKeeper* dk=0);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
-  const char *getData(DNSSECKeeper* dk=0); //!< get binary representation of packet, will call 'wrapup' for you
+  void wrapup();  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
+  const char *getData(); //!< get binary representation of packet, will call 'wrapup' for you
 
   const char *getRaw(void); //!< provides access to the raw packet, possibly on a packet that has never been 'wrapped'
   void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
@@ -148,6 +148,7 @@ public:
   string qdomain;  //!< qname of the question 4 - unsure how this is used
   bool d_tcp;
   bool d_dnssecOk;
+  vector<DNSResourceRecord>& getRRS() { return d_rrs; }
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 

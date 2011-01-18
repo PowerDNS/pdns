@@ -58,10 +58,10 @@ string DNSPacket::getString()
   return stringbuffer;
 }
 
-const char *DNSPacket::getData(DNSSECKeeper* dk)
+const char *DNSPacket::getData()
 {
   if(!d_wrapped)
-    wrapup(dk);
+    wrapup();
 
   return stringbuffer.data();
 }
@@ -170,7 +170,7 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
 
 static int rrcomp(const DNSResourceRecord &A, const DNSResourceRecord &B)
 {
-  if(A.d_place<B.d_place)
+  if(A.d_place < B.d_place)
     return 1;
 
   return 0;
@@ -223,10 +223,11 @@ bool DNSPacket::couldBeCached()
   return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN;
 }
 
+
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
-void DNSPacket::wrapup(DNSSECKeeper* dk)
+void DNSPacket::wrapup()
 {
   if(d_wrapped) {
     return;
@@ -236,16 +237,10 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
   DNSResourceRecord rr;
   vector<DNSResourceRecord>::iterator pos;
 
-  vector<DNSResourceRecord> additional;
-
-  int ipos=d_rrs.size();
-  d_rrs.resize(d_rrs.size()+additional.size());
-  copy(additional.begin(), additional.end(), d_rrs.begin()+ipos);
-
   // we now need to order rrs so that the different sections come at the right place
   // we want a stable sort, based on the d_place field
 
-  stable_sort(d_rrs.begin(),d_rrs.end(),rrcomp);
+  stable_sort(d_rrs.begin(),d_rrs.end(), rrcomp);
 
   static bool mustShuffle =::arg().mustDo("no-shuffle");
 
@@ -275,12 +270,6 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
 
   if(!d_rrs.empty() || !opts.empty()) {
     try {
-      string signQName, wildcardQName;
-      uint16_t signQType=0;
-      uint32_t signTTL=0;
-      DNSPacketWriter::Place signPlace=DNSPacketWriter::ANSWER;
-      vector<shared_ptr<DNSRecordContent> > toSign;
-
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
         // this needs to deal with the 'prio' mismatch:
         if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
@@ -292,23 +281,9 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
         }
         if(pos->content.empty())  // empty contents confuse the MOADNS setup
           pos->content=".";
-        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
-
-	if(d_dnssecOk) {
-	  if(pos != d_rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
-	    addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, d_tcp ? 0 : getMaxReplyLen(), pw);
-	  }
-	  signQName= pos->qname;
-	  wildcardQName = pos->wildcardname;
-	  signQType = pos ->qtype.getCode();
-	  signTTL = pos->ttl;
-	  signPlace = (DNSPacketWriter::Place) pos->d_place;
-	  if(pos->auth || pos->qtype.getCode() == QType::DS)
-	    toSign.push_back(drc);
-	}
-	
+        
 	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
-
+	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
         drc->toPacket(pw);
 	if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) { // 20 = room for EDNS0
 	  pw.rollback();
@@ -320,10 +295,7 @@ void DNSPacket::wrapup(DNSSECKeeper* dk)
 	  break;
 	}
       }
-      // I assume this is some dirty hack to prevent us from signing the last SOA record in an AXFR.. XXX FIXME
-      if(d_dnssecOk && !(d_tcp && d_rrs.rbegin()->qtype.getCode() == QType::SOA && d_rrs.rbegin()->priority == 1234)) {
-	addSignature(*dk, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, d_tcp ? 0 : getMaxReplyLen(), pw);
-      }
+      
 
       if(!opts.empty() || d_dnssecOk)
 	pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);

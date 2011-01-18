@@ -21,22 +21,9 @@
 #include "dnsseckeeper.hh"
 #include "lock.hh"
 
-// nobody should ever call this function, you know the SOA/auth already!
-bool getSignerApexFor(DNSSECKeeper& dk, const std::string& qname, std::string &signer)
-{
-  // cerr<<"getSignerApexFor: called, and should not be, should go away!"<<endl;
-  signer=qname;
-  do {
-    if(dk.haveActiveKSKFor(signer)) {
-      return true;
-    }
-  } while(chopOff(signer));
-  return false;
-}
-
 /* this is where the RRSIGs begin, key apex *name* gets found, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
-int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
+int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
 		     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent>& rrcs, bool ksk)
 {
   if(toSign.empty())
@@ -44,19 +31,15 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t si
   RRSIGRecordContent rrc;
   rrc.d_type=signQType;
 
-  // d_algorithm gets filled out by getSignerAPEX, since only it looks up the key
+  
   rrc.d_labels=countLabels(signQName); 
   rrc.d_originalttl=signTTL; 
   rrc.d_siginception=getCurrentInception();;
   rrc.d_sigexpire = rrc.d_siginception + 14*86400; // XXX should come from zone metadata
+  rrc.d_signer = signer;
   rrc.d_tag = 0;
   
-  // XXX we know the apex already.. is is the SOA name which we determined earlier
-  if(!getSignerApexFor(dk, signQName, rrc.d_signer)) { // this is the cutout for signing non-dnssec enabled zones
-    // cerr<<"No signer known for '"<<signQName<<"'\n";
-    return -1;
-  }
-  // we sign the RRSET in toSign + the rrc w/o key
+  // we sign the RRSET in toSign + the rrc w/o hash
   
   DNSSECKeeper::keyset_t keys = dk.getKeys(rrc.d_signer);
   vector<DNSSECPrivateKey> KSKs, ZSKs;
@@ -65,6 +48,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t si
   // if ksk==1, only get KSKs
   // if ksk==0, get ZSKs, unless there is no ZSK, then get KSK
   BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type& keymeta, keys) {
+    rrc.d_algorithm = keymeta.first.d_algorithm;
     if(!keymeta.second.active) 
       continue;
       
@@ -90,9 +74,9 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string signQName, uint16_t si
 }
 
 // this is the entrypoint from DNSPacket
-void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::string& wildcardname, uint16_t signQType, 
+void addSignature(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType, 
   uint32_t signTTL, DNSPacketWriter::Place signPlace, 
-  vector<shared_ptr<DNSRecordContent> >& toSign, uint16_t maxReplyLen, DNSPacketWriter& pw)
+  vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned)
 {
   // cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
 
@@ -100,21 +84,20 @@ void addSignature(DNSSECKeeper& dk, const std::string signQName, const std::stri
   if(toSign.empty())
     return;
 
-  if(getRRSIGsForRRSET(dk, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0) {
+  if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0) {
     // cerr<<"Error signing a record!"<<endl;
     return;
   }
+  DNSResourceRecord rr;
+  rr.qname=signQName;
+  rr.qtype=QType::RRSIG;
+  rr.ttl=signTTL;
+  rr.auth=false;
+  
   BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
-    pw.startRecord(signQName, QType::RRSIG, signTTL, 1, 
-      signQType==QType::DNSKEY ? DNSPacketWriter:: ANSWER : signPlace); 
-    rrc.toPacket(pw);
-    if(maxReplyLen &&  (pw.size() + 20) > maxReplyLen) {
-      pw.rollback();
-      pw.getHeader()->tc=1;
-      return;
-    }
+    rr.content = rrc.getZoneRepresentation();
+    outsigned.push_back(rr);
   }
-  pw.commit();
 
   toSign.clear();
 }
@@ -158,4 +141,54 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
 
   Lock l(&g_signatures_lock);
   g_signatures[lookup] = rrc.d_signature;
+}
+
+static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)
+{
+  return a.d_place < b.d_place;
+}
+
+void addRRSigs(DNSSECKeeper& dk, const std::string& signer, DNSPacket& p)
+{
+  vector<DNSResourceRecord>& rrs=p.getRRS();
+  
+  stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
+  
+  string signQName, wildcardQName;
+  uint16_t signQType=0;
+  uint32_t signTTL=0;
+  
+  DNSPacketWriter::Place signPlace=DNSPacketWriter::ANSWER;
+  vector<shared_ptr<DNSRecordContent> > toSign;
+
+  vector<DNSResourceRecord> signedRecords;
+
+  for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
+    signedRecords.push_back(*pos);
+    if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
+      addSignature(dk, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
+    }
+    signQName= pos->qname;
+    wildcardQName = pos->wildcardname;
+    signQType = pos ->qtype.getCode();
+    signTTL = pos->ttl;
+    signPlace = (DNSPacketWriter::Place) pos->d_place;
+    if(pos->auth || pos->qtype.getCode() == QType::DS) {
+      string content = pos ->content;
+      if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
+        content = lexical_cast<string>(pos->priority) + " " + pos->content;
+      }
+      if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
+        content="\""+pos->content+"\"";
+      }
+      if(pos->content.empty())  // empty contents confuse the MOADNS setup
+        content=".";
+      
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, content)); 
+      toSign.push_back(drc);
+    }
+  }
+  addSignature(dk, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
+  
+  rrs.swap(signedRecords);
 }

@@ -997,7 +997,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   BOOST_FOREACH(records_t::value_type& iter, records) {
     vector<RRSIGRecordContent> rrcs;
     
-    getRRSIGsForRRSET(d_dk, p->qdomain, iter.first, 3600, iter.second, rrcs, iter.first == QType::DNSKEY);
+    getRRSIGsForRRSET(d_dk, sd.qname, p->qdomain, iter.first, 3600, iter.second, rrcs, iter.first == QType::DNSKEY);
     BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
       rr.content=rrc.getZoneRepresentation();
       r->addRecord(rr);
@@ -1346,7 +1346,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     //    doDNSSECProcessing(p, r);
 
-    r->wrapup(&d_dk); // needed for inserting in cache
+    if(p->d_dnssecOk)
+      addRRSigs(d_dk, sd.qname, *r);
+    r->wrapup(); // needed for inserting in cache
     PC.insert(p, r); // in the packet cache
   }
   catch(DBException &e) {
