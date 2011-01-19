@@ -82,24 +82,25 @@ void addSignature(DNSSECKeeper& dk, const std::string& signer, const std::string
     return;
   vector<RRSIGRecordContent> rrcs;
   if(dk.isPresigned(signer)) {
-	dk.getPreRRSIGs(signer, signQName, QType(signQType), signPlace, outsigned);
+    dk.getPreRRSIGs(signer, signQName, QType(signQType), signPlace, outsigned); // does it all
   }
-  else if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0) {
-    // cerr<<"Error signing a record!"<<endl;
-    return;
-  }
+  else {
+    if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0)  {
+      // cerr<<"Error signing a record!"<<endl;
+      return;
+    } 
   
-  DNSResourceRecord rr;
-  rr.qname=signQName;
-  rr.qtype=QType::RRSIG;
-  rr.ttl=signTTL;
-  rr.auth=false;
-  
-  BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
-    rr.content = rrc.getZoneRepresentation();
-    outsigned.push_back(rr);
+    DNSResourceRecord rr;
+    rr.qname=signQName;
+    rr.qtype=QType::RRSIG;
+    rr.ttl=signTTL;
+    rr.auth=false;
+    rr.d_place = (DNSResourceRecord::Place) signPlace;
+    BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
+      rr.content = rrc.getZoneRepresentation();
+      outsigned.push_back(rr);
+    }
   }
-
   toSign.clear();
 }
 
@@ -175,7 +176,7 @@ void addRRSigs(DNSSECKeeper& dk, const std::string& signer, DNSPacket& p)
     signTTL = pos->ttl;
     signPlace = (DNSPacketWriter::Place) pos->d_place;
     if(pos->auth || pos->qtype.getCode() == QType::DS) {
-      string content = pos ->content;
+      string content = pos->content;
       if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
         content = lexical_cast<string>(pos->priority) + " " + pos->content;
       }
