@@ -9099,9 +9099,12 @@ $ pdnssec rectify-zone
     as when that zone was signed using 'ldns-signzone' using the same keys and settings.
   </para>
   <para>
+    PowerDNS supports serving pre-signed zones, as well as online ('live') signed operations. In the last case, Signature Rollover
+    and Key Maintenance are fully managed by PowerDNS.
+  </para>
+  <para>
     In addition to the above, PowerDNSSEC also supports modes of operation which may not have an equivalent in other
-    pieces of software, for example NSEC3-narrow mode. In such cases we strive for implementing the relevant standards
-    well.
+    pieces of software, for example NSEC3-narrow mode. 
   </para>
   <para>
     PowerDNSSEC supports:
@@ -9190,7 +9193,16 @@ $ pdnssec rectify-zone
     <section id="dnssec-bind-migration"><title>From existing non-DNSSEC non-PowerDNS setups</title>
     <para>TBD</para>
     </section>
-    <section id="dnssec--dnssec-migration"><title>From existing DNSSEC non-PowerDNS setups</title>
+    <section id="dnssec-dnssec-migration-presigned"><title>From existing DNSSEC non-PowerDNS setups, pre-signed</title>
+    <para>
+      Industry standard signed zones can be served natively by PowerDNS, without changes. In such cases, signing
+      happens externally to PowerDNS, possibly via OpenDNSSEC, ldns-sign or dnssec-sign. 
+    </para>
+    <para>
+      PowerDNS needs to know if a zone should receive DNSSEC processing. To configure, run 'pdnssec set-presigned zone'.
+    </para>
+    </section>
+    <section id="dnssec-dnssec-migration-live"><title>From existing DNSSEC non-PowerDNS setups, live signing</title>
     <para>
       The 'pdnssec' tool features the option to import zone keys in the industry standard private key format, 
       version 1.2. To import an existing KSK, use 'pdnssec import-zone-key zonename filename KSK', replace KSK 
@@ -9205,9 +9217,9 @@ $ pdnssec rectify-zone
     </section>
   </section>
   <section id="powerdnssec">
-  <title>Records, Keys, signatures, hashes within PowerDNSSEC</title>
+  <title>Records, Keys, signatures, hashes within PowerDNSSEC in online signing mode</title>
   <para>
-    Within PowerDNSSEC, keys are stored separately from the zone records. Zone data are only 
+    Within PowerDNSSEC live signing, keys are stored separately from the zone records. Zone data are only 
     combined with signatures and keys when requests come in over the internet.
   </para>
   <para>
@@ -9254,7 +9266,7 @@ $ pdnssec rectify-zone
   
   <section id="rrsig"><title>Signatures</title>
   <para>
-    In PowerDNS, signatures, as served through RRSIG records, are calculated on the fly, and heavily cached. All CPU cores 
+    In PowerDNS live signing mode, signatures, as served through RRSIG records, are calculated on the fly, and heavily cached. All CPU cores 
     are used for the calculation.
   </para>
   <para>
@@ -9457,9 +9469,7 @@ $ pdnssec rectify-zone
   <section id="nsec3-change"><title>NSEC(3) change</title>
   <para>
   .. pdnssec show-zone ZONE and communicatate duplicate DS ..
-  .. pdnssec activate-zone-key ZONE next-key-id ..
-  .. pdnssec deactivate-zone-key ZONE prev-key-id ..
-  .. pdnssec remove-zone-key ZONE prev-key-id ..
+  .. pdnssec set-nsec3 'parameters' ZONE
   </para>
   </section>
   </section>
@@ -9482,6 +9492,12 @@ $ pdnssec rectify-zone
     Such a single replicated database requires no further attention beyond monitoring already required during
     non-DNSSEC operations.
   </para>
+  <section id="dnssec-presigned"><title>PowerDNSSEC Pre-signed records</title>
+  <para>
+    In this mode, PowerDNS serves zones that already contain DNSSEC records. Such zones can either be slaved from
+    a remote master, or can be signed using tools like OpenDNSSEC, ldns-signzone or dnssec-signzone.
+  </para>
+  </section>
   <section id="dnssec-frontserver"><title>PowerDNSSEC Front-signing</title>
     <para>
       As a special feature, PowerDNSSEC can operate as a signing server which operates as a slave
@@ -9555,7 +9571,8 @@ $ pdnssec rectify-zone
     to operating an HTTPS server, where the certificate is available on the webserver for cryptographic purposes.
   </para>
   <para>
-    In some settings, having such (private) keying material available online is considered undesireable.
+    In some settings, having such (private) keying material available online is considered undesireable. In this case,
+    consider running in pre-signed mode.
   </para>
   </section>
   <section id="dnssec-performance"><title>Performance</title>
