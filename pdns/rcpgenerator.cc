@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2007 PowerDNS.COM BV
+    Copyright (C) 2005 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -240,11 +240,11 @@ void HEXDecode(const char* begin, const char* end, string& val)
   }
 }
 
-void RecordTextReader::xfrHexBlob(string& val)
+void RecordTextReader::xfrHexBlob(string& val, bool keepReading)
 {
   skipSpaces();
   int pos=(int)d_pos;
-  while(d_pos < d_end && !dns_isspace(d_string[d_pos]))
+  while(d_pos < d_end && (keepReading || !dns_isspace(d_string[d_pos])))
     d_pos++;
 
   HEXDecode(d_string.c_str()+pos, d_string.c_str() + d_pos, val);
@@ -458,7 +458,7 @@ void RecordTextWriter::xfrBlob(const string& val, int)
   d_string+=Base64Encode(val);
 }
 
-void RecordTextWriter::xfrHexBlob(const string& val)
+void RecordTextWriter::xfrHexBlob(const string& val, bool)
 {
   if(!d_string.empty())
     d_string.append(1,' ');

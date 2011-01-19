@@ -119,7 +119,7 @@ public:
 
   void xfrBlob(string& blob);
   void xfrBlob(string& blob, int length);
-  void xfrHexBlob(string& blob);
+  void xfrHexBlob(string& blob, bool keepReading=false);
 
   static uint16_t get16BitInt(const vector<unsigned char>&content, uint16_t& pos);
   static void getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs);

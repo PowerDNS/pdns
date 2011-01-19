@@ -1045,12 +1045,14 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
 
 bool PacketHandler::addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname)
 {
+  //cerr<<"Trying to find a DS for '"<<dsname<<"', domain_id = "<<sd.domain_id<<endl;
   B.lookup(QType(QType::DS), dsname, p, sd.domain_id);
   DNSResourceRecord rr;
   bool gotOne=false;
   while(B.get(rr)) {
     gotOne=true;
     rr.d_place = DNSResourceRecord::AUTHORITY;
+    rr.auth=true; // please sign it!
     r->addRecord(rr);
   }
   return gotOne;

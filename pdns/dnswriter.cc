@@ -270,15 +270,13 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
 void DNSPacketWriter::xfrBlob(const string& blob, int  )
 {
   const uint8_t* ptr=reinterpret_cast<const uint8_t*>(blob.c_str());
-
   d_record.insert(d_record.end(), ptr, ptr+blob.size());
 }
 
-void DNSPacketWriter::xfrHexBlob(const string& blob)
+void DNSPacketWriter::xfrHexBlob(const string& blob, bool keepReading)
 {
   xfrBlob(blob);
 }
-
 
 void DNSPacketWriter::getRecords(string& records)
 {

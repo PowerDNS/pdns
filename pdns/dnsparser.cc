@@ -476,7 +476,7 @@ void PacketReader::xfrBlob(string& blob, int length)
 }
 
 
-void PacketReader::xfrHexBlob(string& blob)
+void PacketReader::xfrHexBlob(string& blob, bool keepReading)
 {
   xfrBlob(blob);
 }

@@ -53,7 +53,7 @@ public:
 
   void xfrLabel(string& val, bool compress=false);
   void xfrText(string& val, bool multi=false);
-  void xfrHexBlob(string& val);
+  void xfrHexBlob(string& val, bool keepReading=false);
   void xfrBase32HexBlob(string& val);
 
   void xfrBlob(string& val, int len=-1);
@@ -83,7 +83,7 @@ public:
   void xfrLabel(const string& val, bool compress=false);
   void xfrText(const string& val, bool multi=false);
   void xfrBlob(const string& val, int len=-1);
-  void xfrHexBlob(const string& val);
+  void xfrHexBlob(const string& val, bool keepReading=false);
 
 private:
   string& d_string;
