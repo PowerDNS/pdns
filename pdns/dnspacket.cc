@@ -282,27 +282,26 @@ void DNSPacket::wrapup()
         if(pos->content.empty())  // empty contents confuse the MOADNS setup
           pos->content=".";
         
-	pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
-	shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
-        drc->toPacket(pw);
-	if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) { // 20 = room for EDNS0
-	  pw.rollback();
-	  if(pos->d_place == DNSResourceRecord::ANSWER) {
-	    pw.getHeader()->tc=1;
-	  }
-	  goto noCommit;
-
-	  break;
-	}
-      }
+        pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
+        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
+              drc->toPacket(pw);
+        if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) { // 20 = room for EDNS0
+          pw.rollback();
+          if(pos->d_place == DNSResourceRecord::ANSWER) {
+            pw.getHeader()->tc=1;
+          }
+          goto noCommit;
       
+          break;
+        }
+      }
 
       if(!opts.empty() || d_dnssecOk)
-	pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
+        pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
 
       if(!pw.getHeader()->tc) // protect against double commit from addSignature
-	pw.commit();
-    noCommit:;
+        pw.commit();
+      noCommit:;
     }
     catch(std::exception& e) {
       L<<Logger::Warning<<"Exception: "<<e.what()<<endl;
