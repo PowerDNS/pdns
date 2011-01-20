@@ -36,14 +36,14 @@ using namespace std;
 using namespace boost;
 
 DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
-DNSSECKeeper::nseccache_t DNSSECKeeper::s_nseccache;
-pthread_mutex_t DNSSECKeeper::s_nseccachelock = PTHREAD_MUTEX_INITIALIZER;
+DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
+pthread_mutex_t DNSSECKeeper::s_metacachelock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
 
 bool DNSSECKeeper::isSecuredZone(const std::string& zone) 
 {
   if(isPresigned(zone))
-	return true;
+    return true;
 	
   {
     Lock l(&s_keycachelock);
@@ -72,7 +72,7 @@ bool DNSSECKeeper::isPresigned(const std::string& name)
   vector<string> meta;
   d_db.getDomainMetadata(name, "PRESIGNED", meta);
   if(meta.empty())
-	return false;
+    return false;
   return meta[0]=="1";
 }
 
@@ -89,9 +89,14 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
 
 void DNSSECKeeper::clearCaches(const std::string& name)
 {
-  Lock l(&s_keycachelock);
-  s_keycache.erase(name);
-  s_nseccache.erase(name);
+  {
+    Lock l(&s_keycachelock);
+    s_keycache.erase(name);
+  }
+  Lock l(&s_metacachelock);
+  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
+  while(range.first != range.second)
+    s_metacache.erase(range.first++);
 }
 
 
@@ -154,66 +159,53 @@ void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
   d_db.activateDomainKey(zname, id);
 }
 
-bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow)
+
+void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key, std::string& value)
 {
+  value.clear();
   unsigned int now = time(0);
   {
-    Lock l(&s_nseccachelock); 
+    Lock l(&s_metacachelock); 
     
-    nseccache_t::const_iterator iter = s_nseccache.find(zname);
-    if(iter != s_nseccache.end() && iter->d_ttd > now)
-    {
-      if(iter->d_nsec3param.empty()) // this says: no NSEC3
-        return false;
-        
-      if(ns3p) {
-        NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, iter->d_nsec3param));
-        *ns3p = *tmp;
-        delete tmp;
-      }
-      if(narrow)
-        *narrow = iter->d_narrow;
-      return true;
+    metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
+    if(iter != s_metacache.end() && iter->d_ttd > now) {
+      value = iter->d_value;
+      return;
     }
   }
   vector<string> meta;
-  d_db.getDomainMetadata(zname, "NSEC3PARAM", meta);
-  
-  NSECCacheEntry nce;
+  d_db.getDomainMetadata(zname, key, meta);
+  if(!meta.empty())
+    value=*meta.begin();
+    
+  METACacheEntry nce;
   nce.d_domain=zname;
   nce.d_ttd = now+60;
-  
-  if(meta.empty()) {
-    nce.d_nsec3param.clear(); // store 'no nsec3'
-    nce.d_narrow = false;
-    Lock l(&s_nseccachelock);
-    replacing_insert(s_nseccache, nce);
-    
+  nce.d_key= key;
+  nce.d_value = value;
+  { 
+    Lock l(&s_metacachelock);
+    replacing_insert(s_metacache, nce);
+  }
+}
+
+bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow)
+{
+  string value;
+  getFromMeta(zname, "NSEC3PARAM", value);
+  if(value.empty()) // "no NSEC3"
     return false;
-  }
-  nce.d_nsec3param = *meta.begin();
-  
-  meta.clear();
-  d_db.getDomainMetadata(zname, "NSEC3NARROW", meta);
-  nce.d_narrow = !meta.empty() && meta[0]=="1";
-  
-  if(narrow) {
-    *narrow=nce.d_narrow;
-  }
-  
+     
   if(ns3p) {
-    string descr = nce.d_nsec3param;
-    reportAllTypes();
-    NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, descr));
-    if(!tmp) {
-      cerr<<"descr: '"<<descr<<"'\n";
-      return false;
-    }
+    NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
     *ns3p = *tmp;
     delete tmp;
   }
-  Lock l(&s_nseccachelock);
-  replacing_insert(s_nseccache, nce);
+  if(narrow) {
+    getFromMeta(zname, "NSEC3NARROW", value);
+    *narrow = (value=="1");
+  }
+  
   
   return true;
 }

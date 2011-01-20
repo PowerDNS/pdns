@@ -147,7 +147,9 @@ public:
   bool isPresigned(const std::string& zname);
   void setPresigned(const std::string& zname);
   void unsetPresigned(const std::string& zname);
-private:  
+private:
+  void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
+  
   struct KeyCacheEntry
   {
     typedef vector<DNSSECKeeper::keymeta_t> keys_t;
@@ -162,11 +164,8 @@ private:
     mutable keys_t d_keys;
   };
   
-  struct NSECCacheEntry
+  struct METACacheEntry
   {
-    NSECCacheEntry() : d_narrow(false) {}
-    typedef vector<DNSSECKeeper::keymeta_t> keys_t;
-  
     uint32_t getTTD() const
     {
       return d_ttd;
@@ -175,8 +174,7 @@ private:
     string d_domain;
     unsigned int d_ttd;
   
-    mutable std::string d_nsec3param;
-    mutable bool d_narrow;
+    mutable std::string d_key, d_value;
   };
   
   
@@ -188,17 +186,22 @@ private:
     >
   > keycache_t;
   typedef multi_index_container<
-    NSECCacheEntry,
+    METACacheEntry,
     indexed_by<
-      ordered_unique<member<NSECCacheEntry, std::string, &NSECCacheEntry::d_domain>, CIStringCompare >,
+      ordered_unique<
+        composite_key< 
+          METACacheEntry, 
+          member<METACacheEntry, std::string, &METACacheEntry::d_domain> ,
+          member<METACacheEntry, std::string, &METACacheEntry::d_key>
+        >, composite_key_compare<CIStringCompare, CIStringCompare> >,
       sequenced<>
     >
-  > nseccache_t;
+  > metacache_t;
 
   static keycache_t s_keycache;
-  static nseccache_t s_nseccache;
+  static metacache_t s_metacache;
   static pthread_mutex_t s_keycachelock;
-  static pthread_mutex_t s_nseccachelock;
+  static pthread_mutex_t s_metacachelock;
 };
 
 #endif
