@@ -223,21 +223,31 @@ static inline uint8_t hextodec(uint8_t val)
 }
 
 
-void HEXDecode(const char* begin, const char* end, string& val)
+void HEXDecode(const char* begin, const char* end, string& out)
 {
   if(end - begin == 1 && *begin=='-') {
-    val.clear();
+    out.clear();
     return;
   }
-    
-  if((end - begin)%2)
-    throw RecordTextException("Hexadecimal blob with odd number of characters");
-
-  int limit=(int)(end-begin)/2;
-  val.resize(limit);
-  for(int n=0; n < limit; ++n) {
-    val[n] = hextodec(begin[2*n])*16 + hextodec(begin[2*n+1]); 
+  out.clear();
+  out.reserve((end-begin)/2);
+  uint8_t mode=0, val=0;
+  for(; begin != end; ++begin) {
+    if(!isalnum(*begin))
+      continue;
+    if(mode==0) {
+      val = 16*hextodec(*begin);
+      mode=1;
+    } else {
+      val += hextodec(*begin); 
+      out.append(1, (char) val);
+      mode = 0;
+      val = 0;
+    }
   }
+  if(mode)
+    out.append(1, (char) val);
+
 }
 
 void RecordTextReader::xfrHexBlob(string& val, bool keepReading)
