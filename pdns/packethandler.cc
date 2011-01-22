@@ -22,7 +22,6 @@
 #include <sys/types.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
-#include <polarssl/rsa.h>
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include "dns.hh"

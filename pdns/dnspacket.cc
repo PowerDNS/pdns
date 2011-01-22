@@ -28,7 +28,6 @@
 #include <errno.h>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
-#include <polarssl/havege.h>
 #include <algorithm>
 #include <boost/foreach.hpp>
 #include "dnsseckeeper.hh"
@@ -41,7 +40,6 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
-#include <polarssl/rsa.h> 
 #include "dnssecinfra.hh" 
 
 DNSPacket::DNSPacket() 
