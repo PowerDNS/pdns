@@ -65,9 +65,9 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
   
   for(unsigned int n=0 ; n < len ; ++n) {
     uint8_t val=bitmap[2+n];
-    for(int bit = 0; bit < 8 ; ++bit , val>>=1)
+    for(int bit = 0; bit < 8 ; ++bit , val>>=1) 
       if(val & 1) {
-	ret->d_set.insert((7-bit) + 8*(n));
+        ret->d_set.insert((7-bit) + 8*(n));
       }
   }
   

@@ -17,29 +17,44 @@ inline bool operator<(const mpi& a, const mpi& b)
   return mpi_cmp_mpi(&a, &b) < 0;
 }
 
-class RSAContext
+class DNSPrivateKey
+{
+  public:
+    virtual void create(unsigned int bits)=0;
+    virtual std::string convertToISC(unsigned int algorithm) const =0;
+    virtual std::string getPubKeyHash()const =0;
+    virtual std::string sign(const std::string& hash) const =0;
+    virtual std::string getPublicKeyString()const =0;
+    virtual int getBits() const =0;
+    
+  static DNSPrivateKey* fromISCFile(DNSKEYRecordContent& drc, const char* fname);
+  static DNSPrivateKey* fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  static DNSPrivateKey* fromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
+};
+
+class RSADNSPrivateKey : public DNSPrivateKey
 {
 public:
-  RSAContext()
+  RSADNSPrivateKey()
   {
     memset(&d_context, 0, sizeof(d_context));
     PDNSSEC_MI(N); 
     PDNSSEC_MI(E); PDNSSEC_MI(D); PDNSSEC_MI(P); PDNSSEC_MI(Q); PDNSSEC_MI(DP); PDNSSEC_MI(DQ); PDNSSEC_MI(QP); PDNSSEC_MI(RN); PDNSSEC_MI(RP); PDNSSEC_MI(RQ);
   }
 
-  ~RSAContext()
+  ~RSADNSPrivateKey()
   {
     PDNSSEC_MF(N); 
     PDNSSEC_MF(E); PDNSSEC_MF(D); PDNSSEC_MF(P); PDNSSEC_MF(Q); PDNSSEC_MF(DP); PDNSSEC_MF(DQ); PDNSSEC_MF(QP); PDNSSEC_MF(RN); PDNSSEC_MF(RP); PDNSSEC_MF(RQ);
   }
 
-  bool operator<(const RSAContext& rhs) const
+  bool operator<(const RSADNSPrivateKey& rhs) const
   {
     return tie(d_context.N, d_context.E, d_context.D, d_context.P, d_context.Q, d_context.DP, d_context.DQ, d_context.QP)
     < tie(rhs.d_context.N, rhs.d_context.E, rhs.d_context.D, rhs.d_context.P, rhs.d_context.Q, rhs.d_context.DP, rhs.d_context.DQ, rhs.d_context.QP);
   }
 
-  RSAContext(const RSAContext& orig) 
+  RSADNSPrivateKey(const RSADNSPrivateKey& orig) 
   {
     d_context.ver = orig.d_context.ver;
     d_context.len = orig.d_context.len;
@@ -53,7 +68,7 @@ public:
     PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
   }
 
-  RSAContext& operator=(const RSAContext& orig) 
+  RSADNSPrivateKey& operator=(const RSADNSPrivateKey& orig) 
   {
     d_context.ver = orig.d_context.ver;
     d_context.len = orig.d_context.len;
@@ -83,7 +98,16 @@ public:
 
   void create(unsigned int bits);
   std::string convertToISC(unsigned int algorithm) const;
-  std::string getPubKeyHash();
+  std::string getPubKeyHash() const;
+  std::string sign(const std::string& hash) const; 
+  std::string getPublicKeyString() const;
+  int getBits() const
+  {
+    return mpi_size(&d_context.N)*8;
+  }
+  static DNSPrivateKey* fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  static DNSPrivateKey* fromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
+
 private:
   rsa_context d_context;
 };
@@ -97,10 +121,21 @@ struct DNSSECPrivateKey
 {
   uint16_t getTag();
   
-  RSAContext d_key;
+  const DNSPrivateKey* getKey() const
+  {
+    return d_key.get();
+  }
+  
+  void setKey(const shared_ptr<DNSPrivateKey> key)
+  {
+    d_key = key;
+  }
   DNSKEYRecordContent getDNSKEY() const;
   uint8_t d_algorithm;
   uint16_t d_flags;
+  
+private:
+  shared_ptr<DNSPrivateKey> d_key;
 };
 
 

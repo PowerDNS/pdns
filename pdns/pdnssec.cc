@@ -200,7 +200,7 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
     cout << "keys: "<<endl;
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
-      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.d_key.getConstContext().len*8<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
       if(value.second.keyOrZone) {
         cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
         cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << endl;
@@ -413,7 +413,7 @@ try
     string zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
-    cout << dpk.d_key.convertToISC(dpk.d_algorithm) <<endl;
+    cout << dpk.getKey()->convertToISC(dpk.d_algorithm) <<endl;
   }  
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
@@ -433,7 +433,9 @@ try
     }
     B64Decode(interim, raw);
     DNSSECPrivateKey dpk;
-    getRSAKeyFromPEMString(&dpk.d_key.getContext(), raw);
+    DNSKEYRecordContent drc;
+    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::fromPEMString(drc, raw));
+    dpk.setKey(key);
     
     dpk.d_algorithm = atoi(cmds[3].c_str());
     
@@ -466,7 +468,9 @@ try
     string zone=cmds[1];
     string fname=cmds[2];
     DNSSECPrivateKey dpk;
-    DNSKEYRecordContent drc = getRSAKeyFromISC(&dpk.d_key.getContext(), fname.c_str());
+    DNSKEYRecordContent drc;
+    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::fromISCFile(drc, fname.c_str()));
+    dpk.setKey(key);
     dpk.d_algorithm = drc.d_algorithm;
     
     if(dpk.d_algorithm == 7)

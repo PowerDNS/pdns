@@ -109,14 +109,13 @@ static map<pair<string, string>, string> g_signatures;
 
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
-  DNSKEYRecordContent drc= dpk.getDNSKEY(); 
-  RSAContext& rc = dpk.d_key;
+  DNSKEYRecordContent drc = dpk.getDNSKEY(); 
+  const DNSPrivateKey* rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
   string realhash=getHashForRRSET(signQName, rrc, toSign); // this is what we sign
 
-  unsigned char signature[mpi_size(&rc.getContext().N)];
-  pair<string, string> lookup(rc.getPubKeyHash(), realhash);
+  pair<string, string> lookup(rc->getPubKeyHash(), realhash);
   
   {
     Lock l(&g_signatures_lock);
@@ -129,17 +128,7 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
       ; // cerr<<"Miss!"<<endl;
   }
   
-  int ret=rsa_pkcs1_sign(&rc.getContext(), RSA_PRIVATE, 
-    rrc.d_algorithm < 8 ? SIG_RSA_SHA1 : SIG_RSA_SHA256, 
-    rrc.d_algorithm < 8 ? 20 : 32,
-    (unsigned char*) realhash.c_str(), signature);
-  
-  if(ret!=0) {
-    cerr<<"signing returned: "<<ret<<endl;
-    exit(1);
-  }
-  
-  rrc.d_signature.assign((char*)signature, sizeof(signature));
+  rrc.d_signature = rc->sign(realhash);
 
   Lock l(&g_signatures_lock);
   g_signatures[lookup] = rrc.d_signature;

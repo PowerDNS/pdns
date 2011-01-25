@@ -80,11 +80,13 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
 {
   if(!bits)
     bits = keyOrZone ? 2048 : 1024;
-  DNSSECPrivateKey dpk;
-  dpk.d_key.create(bits); 
-  dpk.d_algorithm = algorithm;
-  dpk.d_flags = keyOrZone ? 257 : 256;
-  addKey(name, dpk, active);
+  DNSSECPrivateKey dspk;
+  shared_ptr<DNSPrivateKey> dpk(new RSADNSPrivateKey); // defaults to RSA for now, could be smart w/algorithm! XXX FIXME
+  dpk->create(bits);
+  dspk.setKey(dpk);
+  dspk.d_algorithm = algorithm;
+  dspk.d_flags = keyOrZone ? 257 : 256;
+  addKey(name, dspk, active);
 }
 
 void DNSSECKeeper::clearCaches(const std::string& name)
@@ -106,7 +108,7 @@ void DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, 
   DNSBackend::KeyData kd;
   kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
   kd.active = active;
-  kd.content = dpk.d_key.convertToISC(dpk.d_algorithm);
+  kd.content = dpk.getKey()->convertToISC(dpk.d_algorithm);
  // now store it
   d_db.addDomainKey(name, kd);
 }
@@ -127,7 +129,8 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
       continue;
     
     DNSSECPrivateKey dpk;
-    DNSKEYRecordContent dkrc = getRSAKeyFromISCString(&dpk.d_key.getContext(), kd.content);
+    DNSKEYRecordContent dkrc;
+    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::fromISCString(dkrc, kd.content)));
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     
@@ -272,7 +275,8 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   {
     DNSSECPrivateKey dpk;
 
-    DNSKEYRecordContent dkrc=getRSAKeyFromISCString(&dpk.d_key.getContext(), kd.content);
+    DNSKEYRecordContent dkrc;
+    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::fromISCString(dkrc, kd.content)));
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
