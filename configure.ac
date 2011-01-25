@@ -118,6 +118,13 @@ if test $enable_verbose_logging = yes; then AC_DEFINE(VERBOSELOG, 1, [If verbose
 fi
 AC_MSG_RESULT($enable_verbose_logging)
 
+AC_MSG_CHECKING(whether we will be linking in Botan 1.9)
+AC_ARG_ENABLE(botan1.9, 
+ [  --enable-botan1.9	Use Botan 1.9],enable_botan19=yes, enable_botan19=no)
+AC_MSG_RESULT($enable_botan19)
+AM_CONDITIONAL(BOTAN19,test x"$enable_botan19" = "xyes")
+
+
 AC_MSG_CHECKING(whether we should build static binaries)
 
 AC_ARG_ENABLE(static-binaries, 
@@ -190,7 +197,6 @@ AC_ARG_ENABLE(recursor,
 	enable_recursor=no )
 
 AC_MSG_RESULT($enable_recursor)
-
 AM_CONDITIONAL(RECURSOR,test x"$enable_recursor" = "xyes")
 
 for a in $modules $dynmodules

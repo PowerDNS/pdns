@@ -7,14 +7,12 @@
 #include "iputils.hh"
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
-#include <polarssl/rsa.h>
-#include <polarssl/base64.h>
-#include <polarssl/sha1.h>
-#include <polarssl/sha2.h>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
-#include <polarssl/havege.h>
-#include <polarssl/base64.h>
+
+#include <polarssl/sha1.h>
+#include <polarssl/sha2.h>
+#include <polarssl/sha4.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 
@@ -22,89 +20,7 @@ using namespace boost;
 using namespace std;
 using namespace boost::assign;
 
-void RSADNSPrivateKey::create(unsigned int bits)
-{
-  havege_state hs;
-  havege_init( &hs );
-  
-  rsa_init(&d_context, RSA_PKCS_V15, 0, havege_rand, &hs ); // FIXME this leaks memory
-  int ret=rsa_gen_key(&d_context, bits, 65537);
-  if(ret < 0) 
-    throw runtime_error("Key generation failed");
-}
-
-std::string RSADNSPrivateKey::getPubKeyHash() const
-{
-  unsigned char hash[20];
-  unsigned char N[mpi_size(&d_context.N)];
-  mpi_write_binary(&d_context.N, N, sizeof(N));
-  unsigned char E[mpi_size(&d_context.E)];
-  mpi_write_binary(&d_context.E, E, sizeof(E));
-  
-  sha1_context ctx;
-  sha1_starts(&ctx);
-  sha1_update(&ctx, N, sizeof(N));
-  sha1_update(&ctx, E, sizeof(E));
-  sha1_finish(&ctx, hash);
-  return string((char*)hash, sizeof(hash));
-}
-
-std::string RSADNSPrivateKey::sign(const std::string& hash) const
-{
-  unsigned char signature[mpi_size(&d_context.N)];
-  int ret=rsa_pkcs1_sign(const_cast<rsa_context*>(&d_context), RSA_PRIVATE, 
-    hash.size()==20 ? SIG_RSA_SHA1 : SIG_RSA_SHA256, 
-    hash.size(),
-    (const unsigned char*) hash.c_str(), signature);
-  
-  if(ret!=0) {
-    cerr<<"signing returned: "<<ret<<endl;
-    exit(1);
-  }
-  return string((char*) signature, sizeof(signature));
-}
-
-std::string RSADNSPrivateKey::convertToISC(unsigned int algorithm) const
-{
-  string ret;
-  typedef vector<pair<string, const mpi*> > outputs_t;
-  outputs_t outputs;
-  push_back(outputs)("Modulus", &d_context.N)("PublicExponent",&d_context.E)
-    ("PrivateExponent",&d_context.D)
-    ("Prime1",&d_context.P)
-    ("Prime2",&d_context.Q)
-    ("Exponent1",&d_context.DP)
-    ("Exponent2",&d_context.DQ)
-    ("Coefficient",&d_context.QP);
-
-  ret = "Private-key-format: v1.2\nAlgorithm: "+lexical_cast<string>(algorithm);
-  switch(algorithm) {
-    case 5:
-    case 7 :
-      ret+= " (RSASHA1)";
-      break;
-    case 8:
-      ret += " (RSASHA256)";
-      break;
-  }
-  ret += "\n";
-
-  BOOST_FOREACH(outputs_t::value_type value, outputs) {
-    ret += value.first;
-    ret += ": ";
-    unsigned char tmp[mpi_size(value.second)];
-    mpi_write_binary(value.second, tmp, sizeof(tmp));
-    unsigned char base64tmp[sizeof(tmp)*2];
-    int dlen=sizeof(base64tmp);
-    base64_encode(base64tmp, &dlen, tmp, sizeof(tmp));
-    ret.append((const char*)base64tmp, dlen);
-    ret.append(1, '\n');
-  }
-  return ret;
-}
-
-
-DNSPrivateKey* DNSPrivateKey::fromISCFile(DNSKEYRecordContent& drc, const char* fname)
+DNSPrivateKey* DNSPrivateKey::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc, key, value;
   FILE *fp=fopen(fname, "r");
@@ -120,21 +36,27 @@ DNSPrivateKey* DNSPrivateKey::fromISCFile(DNSKEYRecordContent& drc, const char* 
   }
   fclose(fp);
 
-  switch(algorithm) {
-    case 5:
-    case 7:
-    case 8:
-    case 10:
-      return RSADNSPrivateKey::fromISCString(drc, isc);
-      break;
-    default: 
-      throw runtime_error("Unknown DNSSEC signature algorithm number "+lexical_cast<string>(algorithm));
-      break;
-  }
-  return 0;
+  DNSPrivateKey* dpk=make(algorithm);
+  dpk->fromISCString(drc, isc);
+  return dpk;
 }
 
-DNSPrivateKey* DNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::string& content)
+DNSPrivateKey* DNSPrivateKey::make(unsigned int algo)
+{
+  makers_t& makers = getMakers();
+  makers_t::const_iterator iter = makers.find(algo);
+  if(iter != makers.end())
+    return (iter->second)(algo);
+  else {
+    throw runtime_error("Request to create key object for unknown algorithm number "+lexical_cast<string>(algo));
+  }
+}
+
+void DNSPrivateKey::report(unsigned int algo, maker_t* maker)
+{
+  getMakers()[algo]=maker;
+}
+DNSPrivateKey* DNSPrivateKey::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
 {
   int algorithm = 0;
   string sline, key, value;
@@ -146,147 +68,31 @@ DNSPrivateKey* DNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std:
       break;
     }
   }
-  switch(algorithm) {
-    case 5:
-    case 7:
-    case 8:
-    case 10:
-      return RSADNSPrivateKey::fromISCString(drc, content);
-      break;
-    default: 
-      throw runtime_error("Unknown DNSSEC signature algorithm number "+lexical_cast<string>(algorithm));
-      break;
+  DNSPrivateKey* dpk=make(algorithm);
+  dpk->fromISCString(drc, content);
+  return dpk;
+}
+
+
+DNSPrivateKey* DNSPrivateKey::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+{
+  
+  BOOST_FOREACH(makers_t::value_type& val, getMakers())
+  {
+    DNSPrivateKey* ret=0;
+    try {
+      ret = val.second(val.first);
+      ret->fromPEMString(drc, raw);
+      return ret;
+    }
+    catch(...)
+    {
+      delete ret; // fine if 0
+    }
   }
   return 0;
 }
 
-DNSPrivateKey* RSADNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::string& content)
-{
-  RSADNSPrivateKey* ret = new RSADNSPrivateKey();
-  
-  string sline;
-  string key,value;
-  map<string, mpi*> places;
-  
-  rsa_init(&ret->d_context, RSA_PKCS_V15, 0, NULL, NULL );
-
-  places["Modulus"]=&ret->d_context.N;
-  places["PublicExponent"]=&ret->d_context.E;
-  places["PrivateExponent"]=&ret->d_context.D;
-  places["Prime1"]=&ret->d_context.P;
-  places["Prime2"]=&ret->d_context.Q;
-  places["Exponent1"]=&ret->d_context.DP;
-  places["Exponent2"]=&ret->d_context.DQ;
-  places["Coefficient"]=&ret->d_context.QP;
-
-  string modulus, exponent;
-  istringstream str(content);
-  unsigned char decoded[1024];
-  while(getline(str, sline)) {
-    tie(key,value)=splitField(sline, ':');
-    trim(value);
-
-    if(places.count(key)) {
-      if(places[key]) {
-        int len=sizeof(decoded);
-        if(base64_decode(decoded, &len, (unsigned char*)value.c_str(), value.length()) < 0) {
-          cerr<<"Error base64 decoding '"<<value<<"'\n";
-          exit(1);
-        }
-        //	B64Decode(value, decoded);
-        //	cerr<<key<<" decoded.length(): "<<8*len<<endl;
-        mpi_read_binary(places[key], decoded, len);
-        if(key=="Modulus")
-          modulus.assign((const char*)decoded,len);
-        if(key=="PublicExponent")
-          exponent.assign((const char*)decoded,len);
-      }
-    }
-    else {
-      if(key == "Algorithm") 
-        drc.d_algorithm = atoi(value.c_str());
-      else if(key != "Private-key-format")
-        cerr<<"Unknown field '"<<key<<"'\n";
-    }
-  }
-  ret->d_context.len = ( mpi_msb( &ret->d_context.N ) + 7 ) >> 3; // no clue what this does
-
-  if(exponent.length() < 255) 
-    drc.d_key.assign(1, (char) (unsigned int) exponent.length());
-  else {
-    drc.d_key.assign(1, 0);
-    uint16_t len=htons(exponent.length());
-    drc.d_key.append((char*)&len, 2);
-  }
-  drc.d_key.append(exponent);
-  drc.d_key.append(modulus);
-  drc.d_protocol=3;
-  
-  return ret;
-}
-
-DNSPrivateKey* DNSPrivateKey::fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
-{
-  return RSADNSPrivateKey::fromPEMString(drc, raw);
-}
-
-DNSPrivateKey* RSADNSPrivateKey::fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
-{
-  vector<string> integers;
-  decodeDERIntegerSequence(raw, integers);
-  cerr<<"Got "<<integers.size()<<" integers"<<endl; 
-  map<int, mpi*> places;
-  
-  RSADNSPrivateKey* ret = new RSADNSPrivateKey;
-  
-  rsa_init(&ret->d_context, RSA_PKCS_V15, 0, NULL, NULL );
-
-  places[1]=&ret->d_context.N;
-  places[2]=&ret->d_context.E;
-  places[3]=&ret->d_context.D;
-  places[4]=&ret->d_context.P;
-  places[5]=&ret->d_context.Q;
-  places[6]=&ret->d_context.DP;
-  places[7]=&ret->d_context.DQ;
-  places[8]=&ret->d_context.QP;
-
-  string modulus, exponent;
-  
-  for(int n = 0; n < 9 ; ++n) {
-    if(places.count(n)) {
-      if(places[n]) {
-        mpi_read_binary(places[n], (const unsigned char*)integers[n].c_str(), integers[n].length());
-        if(n==1)
-          modulus=integers[n];
-        if(n==2)
-          exponent=integers[n];
-      }
-    }
-  }
-  ret->d_context.len = ( mpi_msb( &ret->d_context.N ) + 7 ) >> 3; // no clue what this does
-
-  if(exponent.length() < 255) 
-    drc.d_key.assign(1, (char) (unsigned int) exponent.length());
-  else {
-    drc.d_key.assign(1, 0);
-    uint16_t len=htons(exponent.length());
-    drc.d_key.append((char*)&len, 2);
-  }
-  drc.d_key.append(exponent);
-  drc.d_key.append(modulus);
-  drc.d_protocol=3;
-  
-  return ret;
-}
-
-void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc)
-{
-  rsa_init(rc, RSA_PKCS_V15, 0, NULL, NULL );
-
-  mpi_read_binary(&rc->E, (unsigned char*)dkrc.getExponent().c_str(), dkrc.getExponent().length());    // exponent
-  mpi_read_binary(&rc->N, (unsigned char*)dkrc.getModulus().c_str(), dkrc.getModulus().length());    // modulus
-  rc->len = ( mpi_msb( &rc->N ) + 7 ) >> 3; // no clue what this does
-}
 
 bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b)
 {
@@ -315,14 +121,28 @@ string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, 
     toHash.append(rdata);
   }
   
-  if(rrc.d_algorithm <= 7 ) {
+  // algorithm 12 needs special GOST hash
+  
+  if(rrc.d_algorithm <= 7 ) {  // RSASHA1
     unsigned char hash[20];
     sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
     return string((char*)hash, sizeof(hash));
-  } else {
+  } else if(rrc.d_algorithm == 8 || rrc.d_algorithm == 13) { // RSASHA256 or ECDSAP256
     unsigned char hash[32];
     sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
     return string((char*)hash, sizeof(hash));
+  } else if(rrc.d_algorithm == 10) { // RSASHA512
+    unsigned char hash[64];
+    sha4((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
+    return string((char*)hash, sizeof(hash));
+  } else if(rrc.d_algorithm == 14) { // ECDSAP384
+    unsigned char hash[48];
+    sha4((unsigned char*)toHash.c_str(), toHash.length(), hash, 1); // == 384
+    return string((char*)hash, sizeof(hash));
+  }
+  else {
+    cerr<<"No idea how to hash for algorithm "<<(int)rrc.d_algorithm<<endl;
+    exit(1);
   }
 }
 
@@ -346,34 +166,11 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
   return dsrc;
 }
 
-string RSADNSPrivateKey::getPublicKeyString()  const
-{
-  string keystring;
-  char tmp[max(mpi_size(&d_context.E), mpi_size(&d_context.N))];
 
-  mpi_write_binary(&d_context.E, (unsigned char*)tmp, mpi_size(&d_context.E) );
-  string exponent((char*)tmp, mpi_size(&d_context.E));
-
-  mpi_write_binary(&d_context.N, (unsigned char*)tmp, mpi_size(&d_context.N) );
-  string modulus((char*)tmp, mpi_size(&d_context.N));
-
-  if(exponent.length() < 255) 
-    keystring.assign(1, (char) (unsigned int) exponent.length());
-  else {
-    keystring.assign(1, 0);
-    uint16_t len=htons(exponent.length());
-    keystring.append((char*)&len, 2);
-  }
-  keystring.append(exponent);
-  keystring.append(modulus);
-  return keystring;
-}
-
-DNSKEYRecordContent makeDNSKEYFromRSAKey(const DNSPrivateKey* pk, uint8_t algorithm, uint16_t flags)
+DNSKEYRecordContent makeDNSKEYFromDNSPrivateKey(const DNSPrivateKey* pk, uint8_t algorithm, uint16_t flags)
 {
   DNSKEYRecordContent drc;
   
-
   drc.d_protocol=3;
   drc.d_algorithm = algorithm;
 
@@ -381,7 +178,6 @@ DNSKEYRecordContent makeDNSKEYFromRSAKey(const DNSPrivateKey* pk, uint8_t algori
   drc.d_key = pk->getPublicKeyString();
   return drc;
 }
-
 
 int countLabels(const std::string& signQName)
 {
@@ -395,16 +191,12 @@ int countLabels(const std::string& signQName)
   return count;
 }
 
-
-
 uint32_t getCurrentInception()
 {
   uint32_t now = time(0);
   now -= (now % (7*86400));
   return now;
 }
-
-
 
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname)
 {
@@ -425,7 +217,7 @@ std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const
 }
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
-  return makeDNSKEYFromRSAKey(getKey(), d_algorithm, d_flags);
+  return makeDNSKEYFromDNSPrivateKey(getKey(), d_algorithm, d_flags);
 }
 
 class DEREater
@@ -502,6 +294,5 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
   {
     if(de.getOffset() - startseq != seqlen)
       throw runtime_error("DER Sequence ended before end of data");
-  }
-  
+  }  
 }

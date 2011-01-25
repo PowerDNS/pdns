@@ -311,6 +311,12 @@ try
         algorithm=5;
       else if(pdns_iequals(cmds[n], "rsasha256"))
         algorithm=8;
+      else if(pdns_iequals(cmds[n], "gost"))
+        algorithm=10;
+      else if(pdns_iequals(cmds[n], "ecdsa256"))
+        algorithm=13;
+      else if(pdns_iequals(cmds[n], "ecdsa384"))
+        algorithm=14;
       else if(atoi(cmds[n].c_str()))
         bits = atoi(cmds[n].c_str());
       else { 
@@ -436,7 +442,7 @@ try
     B64Decode(interim, raw);
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
-    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::fromPEMString(drc, raw));
+    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::makeFromPEMString(drc, raw));
     dpk.setKey(key);
     
     dpk.d_algorithm = atoi(cmds[3].c_str());
@@ -471,7 +477,7 @@ try
     string fname=cmds[2];
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
-    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::fromISCFile(drc, fname.c_str()));
+    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::makeFromISCFile(drc, fname.c_str()));
     dpk.setKey(key);
     dpk.d_algorithm = drc.d_algorithm;
     

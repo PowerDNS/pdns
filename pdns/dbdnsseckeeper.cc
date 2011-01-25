@@ -78,10 +78,21 @@ bool DNSSECKeeper::isPresigned(const std::string& name)
 
 void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
 {
-  if(!bits)
-    bits = keyOrZone ? 2048 : 1024;
+  if(!bits) {
+    if(algorithm <= 10)
+      bits = keyOrZone ? 2048 : 1024;
+    else {
+      if(algorithm == 13)
+        bits = 256;
+      else if(algorithm == 14)
+        bits = 384;
+      else {
+        throw runtime_error("Can't guess key size for algoritm "+lexical_cast<string>(algorithm));
+      }
+    }
+  }
   DNSSECPrivateKey dspk;
-  shared_ptr<DNSPrivateKey> dpk(new RSADNSPrivateKey); // defaults to RSA for now, could be smart w/algorithm! XXX FIXME
+  shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(algorithm)); // defaults to RSA for now, could be smart w/algorithm! XXX FIXME
   dpk->create(bits);
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
@@ -130,7 +141,7 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
     
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent dkrc;
-    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::fromISCString(dkrc, kd.content)));
+    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::makeFromISCString(dkrc, kd.content)));
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     
@@ -276,7 +287,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
     DNSSECPrivateKey dpk;
 
     DNSKEYRecordContent dkrc;
-    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::fromISCString(dkrc, kd.content)));
+    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::makeFromISCString(dkrc, kd.content)));
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
