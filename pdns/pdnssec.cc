@@ -115,6 +115,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   else 
     cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
   
+  sd.db->startTransaction("", -1);
   BOOST_FOREACH(const string& qname, qnames)
   {
     string shorter(qname);
@@ -136,6 +137,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
       sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
     }
   }
+  sd.db->commitTransaction();
   cerr<<"Done listing"<<endl;
 }
 
