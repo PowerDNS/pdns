@@ -301,11 +301,13 @@ bool PdnsBackend::getDomainInfo(const string &domain, DomainInfo &di)
 
 bool PdnsBackend::startTransaction(const string &qname, int domain_id)
 {
+   
    ostringstream o;
    o << "delete from Records where ZoneId=" << domain_id;
 
    this->Execute("begin");
-   this->Execute(o.str());
+   if(domain_id >= 0)
+     this->Execute(o.str());
    
    d_axfrcount = 0;
    

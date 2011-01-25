@@ -155,6 +155,11 @@ shared_ptr<Bind2Backend::State> Bind2Backend::getState()
 
 bool Bind2Backend::startTransaction(const string &qname, int id)
 {
+  if(id < 0) {
+    d_transaction_tmpname.clear();
+    d_transaction_id=id;
+    return true;
+  }
   shared_ptr<State> state = getState(); 
 
   const BB2DomainInfo &bbd=state->id_zone_map[d_transaction_id=id];
@@ -176,6 +181,8 @@ bool Bind2Backend::startTransaction(const string &qname, int id)
 
 bool Bind2Backend::commitTransaction()
 {
+  if(d_transaction_id < 0)
+    return true;
   delete d_of;
   d_of=0;
   shared_ptr<State> state = getState(); 
@@ -193,7 +200,7 @@ bool Bind2Backend::commitTransaction()
 
 bool Bind2Backend::abortTransaction()
 {
-  if(d_transaction_id) {
+  if(d_transaction_id >= 0) {
     delete d_of;
     d_of=0;
     unlink(d_transaction_tmpname.c_str());

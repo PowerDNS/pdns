@@ -715,9 +715,11 @@ bool OdbxBackend::startTransaction( const string& domain, int zoneid )
         		return false;
         	}
 
-        	string stmt = getArg( "sql-zonedelete" );
-        	stmtref = strbind( ":id", string( m_buffer, len ), stmt );
-        	if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
+                if(zoneid >= 0) {
+        	        string stmt = getArg( "sql-zonedelete" );
+        	        stmtref = strbind( ":id", string( m_buffer, len ), stmt );
+        	        if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
+                }
         }
         catch ( exception& e )
         {
