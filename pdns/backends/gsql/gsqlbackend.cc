@@ -673,10 +673,12 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 {
   char output[1024];
-  snprintf(output,sizeof(output)-1,d_DeleteZoneQuery.c_str(),domain_id);
+  if(domain_id >= 0) 
+   snprintf(output,sizeof(output)-1,d_DeleteZoneQuery.c_str(),domain_id);
   try {
     d_db->doCommand("begin");
-    d_db->doCommand(output);
+    if(domain_id >= 0)
+     d_db->doCommand(output);
   }
   catch (SSqlException &e) {
     throw AhuException("Database failed to start transaction: "+e.txtReason());
