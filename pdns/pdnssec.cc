@@ -311,8 +311,10 @@ try
         algorithm=5;
       else if(pdns_iequals(cmds[n], "rsasha256"))
         algorithm=8;
-      else if(pdns_iequals(cmds[n], "gost"))
+      else if(pdns_iequals(cmds[n], "rsasha512"))
         algorithm=10;
+      else if(pdns_iequals(cmds[n], "gost"))
+        algorithm=12;
       else if(pdns_iequals(cmds[n], "ecdsa256"))
         algorithm=13;
       else if(pdns_iequals(cmds[n], "ecdsa384"))

@@ -82,7 +82,7 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
     if(algorithm <= 10)
       bits = keyOrZone ? 2048 : 1024;
     else {
-      if(algorithm == 13)
+      if(algorithm == 12 || algorithm == 13)
         bits = 256;
       else if(algorithm == 14)
         bits = 384;
