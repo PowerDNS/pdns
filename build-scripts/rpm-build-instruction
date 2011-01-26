@@ -6,7 +6,7 @@ CC="ccache gcc" CXX="ccache g++" ./configure \
 	--enable-static-binaries \
 	--with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \
 	--prefix=/usr \
-	--sysconfdir=/etc/powerdns \
+	--sysconfdir=/etc/powerdns --enable-botan1.9 \
 	--mandir=/usr/man/ \
 && make clean && make -j4 && \
 fakeroot /bin/sh -c "rm -rf /tmp/pdns ; DESTDIR=/tmp/pdns make install-strip" &&
