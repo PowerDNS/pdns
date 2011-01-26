@@ -9,10 +9,7 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
-
-#include <polarssl/sha1.h>
-#include <polarssl/sha2.h>
-#include <polarssl/sha4.h>
+#include "polarssl/sha1.h"
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 
@@ -121,29 +118,8 @@ string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, 
     toHash.append(rdata);
   }
   
-  // algorithm 12 needs special GOST hash
-  
-  if(rrc.d_algorithm <= 7 ) {  // RSASHA1
-    unsigned char hash[20];
-    sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-    return string((char*)hash, sizeof(hash));
-  } else if(rrc.d_algorithm == 8 || rrc.d_algorithm == 13) { // RSASHA256 or ECDSAP256
-    unsigned char hash[32];
-    sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-    return string((char*)hash, sizeof(hash));
-  } else if(rrc.d_algorithm == 10) { // RSASHA512
-    unsigned char hash[64];
-    sha4((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-    return string((char*)hash, sizeof(hash));
-  } else if(rrc.d_algorithm == 14) { // ECDSAP384
-    unsigned char hash[48];
-    sha4((unsigned char*)toHash.c_str(), toHash.length(), hash, 1); // == 384
-    return string((char*)hash, sizeof(hash));
-  }
-  else {
-    cerr<<"No idea how to hash for algorithm "<<(int)rrc.d_algorithm<<endl;
-    exit(1);
-  }
+  shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(rrc.d_algorithm));
+  return dpk->hash(toHash);
 }
 
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest)
@@ -152,17 +128,24 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
   toHash.assign(toLower(simpleCompress(qname)));
   toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true, true));
 
-  unsigned char hash[32];
-  if(digest==1)
-    sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-  else
-    sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-
+  
   DSRecordContent dsrc;
+  if(digest==1) {
+    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(5)); // gives us SHA1
+    dsrc.d_digest = dpk->hash(toHash);
+  }
+  else if(digest == 2) {
+    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(8)); // gives us SHA256
+    dsrc.d_digest = dpk->hash(toHash);
+  }
+  else if(digest == 3) {
+    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(12)); // gives us GOST
+    dsrc.d_digest = dpk->hash(toHash);
+  }
+  
   dsrc.d_algorithm= drc.d_algorithm;
   dsrc.d_digesttype=digest;
   dsrc.d_tag=const_cast<DNSKEYRecordContent&>(drc).getTag();
-  dsrc.d_digest.assign((const char*)hash, digest == 1 ? 20 : 32);
   return dsrc;
 }
 

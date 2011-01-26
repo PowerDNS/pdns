@@ -1,6 +1,10 @@
+// utf-8 UTF-8 utf8 UTF8
 #include <botan/botan.h>
 #include <botan/ecdsa.h>
 #include <botan/gost_3410.h>
+#include <botan/gost_3411.h>
+#include <botan/sha2_32.h>
+#include <botan/sha2_64.h>
 #include <botan/pubkey.h>
 #include <botan/look_pk.h>
 #include "dnssecinfra.hh"
@@ -11,7 +15,7 @@ using namespace Botan;
     (Gosudarstvenny Gimn Rossiyskoy Federatsii)
     "The National Anthem of the Russian Federation"
     
- ~ 	Rossiya - svyashchennaya nasha derzhava,  ~
+ ~  Rossiya - svyashchennaya nasha derzhava,  ~
  ~  Rossiya - lyubimaya nasha strana.         ~
  ~  Moguchaya volya, velikaya slava -         ~
  ~  Tvoyo dostoyanye na vse vremena!          ~
@@ -24,6 +28,7 @@ public:
   std::string convertToISC(unsigned int algorithm) const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
+  std::string hash(const std::string& hash) const; 
   bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -183,6 +188,16 @@ std::string GOSTDNSPrivateKey::sign(const std::string& hash) const
   return string((const char*)signature.begin(), (const char*) signature.end());
 }
 
+std::string GOSTDNSPrivateKey::hash(const std::string& orig) const
+{
+  SecureVector<byte> result;
+  
+  GOST_34_11 hasher;
+  result= hasher.process(orig);
+  
+  return string((const char*)result.begin(), (const char*) result.end());
+}
+
 bool GOSTDNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
 {
   GOST_3410_Verification_Operation ops(*d_key);
@@ -206,6 +221,7 @@ public:
   std::string convertToISC(unsigned int algorithm) const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
+  std::string hash(const std::string& hash) const; 
   bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -342,6 +358,22 @@ std::string ECDSADNSPrivateKey::sign(const std::string& hash) const
   
   return string((const char*)signature.begin(), (const char*) signature.end());
 }
+
+std::string ECDSADNSPrivateKey::hash(const std::string& orig) const
+{
+  SecureVector<byte> result;
+  if(getBits() == 256) { // SHA256
+    SHA_256 hasher;
+    result= hasher.process(orig);
+  }
+  else { // SHA384
+    SHA_384 hasher;
+    result = hasher.process(orig);
+  }
+  
+  return string((const char*)result.begin(), (const char*) result.end());
+}
+
 
 bool ECDSADNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
 {

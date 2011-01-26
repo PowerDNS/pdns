@@ -14,6 +14,7 @@ class DNSPrivateKey
     virtual std::string convertToISC(unsigned int algorithm) const =0;
     virtual std::string getPubKeyHash()const =0;
     virtual std::string sign(const std::string& hash) const =0;
+    virtual std::string hash(const std::string& hash) const =0;
     virtual std::string getPublicKeyString()const =0;
     virtual int getBits() const =0;
     

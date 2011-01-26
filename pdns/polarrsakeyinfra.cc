@@ -2,6 +2,7 @@
 #include <polarssl/base64.h>
 #include <polarssl/sha1.h>
 #include <polarssl/sha2.h>
+#include <polarssl/sha4.h>
 #include <polarssl/havege.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/foreach.hpp>
@@ -15,7 +16,7 @@ using namespace boost::assign;
 class RSADNSPrivateKey : public DNSPrivateKey
 {
 public:
-  RSADNSPrivateKey()
+  explicit RSADNSPrivateKey(unsigned int algorithm) : d_algorithm(algorithm)
   {
     memset(&d_context, 0, sizeof(d_context));
     PDNSSEC_MI(N); 
@@ -36,6 +37,8 @@ public:
 
   RSADNSPrivateKey(const RSADNSPrivateKey& orig) 
   {
+    d_algorithm = orig.d_algorithm;
+    
     d_context.ver = orig.d_context.ver;
     d_context.len = orig.d_context.len;
 
@@ -50,6 +53,8 @@ public:
 
   RSADNSPrivateKey& operator=(const RSADNSPrivateKey& orig) 
   {
+    d_algorithm = orig.d_algorithm;
+    
     d_context.ver = orig.d_context.ver;
     d_context.len = orig.d_context.len;
 
@@ -80,6 +85,7 @@ public:
   std::string convertToISC(unsigned int algorithm) const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
+  std::string hash(const std::string& hash) const; 
   std::string getPublicKeyString() const;
   int getBits() const
   {
@@ -88,13 +94,14 @@ public:
   void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
 
-  static DNSPrivateKey* maker(unsigned int)
+  static DNSPrivateKey* maker(unsigned int algorithm)
   {
-    return new RSADNSPrivateKey();
+    return new RSADNSPrivateKey(algorithm);
   }
 
 private:
   rsa_context d_context;
+  unsigned int d_algorithm;
 };
 
 // see above
@@ -158,6 +165,27 @@ std::string RSADNSPrivateKey::sign(const std::string& hash) const
   }
   return string((char*) signature, sizeof(signature));
 }
+
+std::string RSADNSPrivateKey::hash(const std::string& toHash) const
+{
+  if(d_algorithm <= 7 ) {  // RSASHA1
+    unsigned char hash[20];
+    sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
+    return string((char*)hash, sizeof(hash));
+  } 
+  else if(d_algorithm == 8) { // RSASHA256
+    unsigned char hash[32];
+    sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
+    return string((char*)hash, sizeof(hash));
+  } 
+  else if(d_algorithm == 10) { // RSASHA512
+    unsigned char hash[64];
+    sha4((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
+    return string((char*)hash, sizeof(hash));
+  }
+  throw runtime_error("PolarSSL hashing method can't hash algorithm "+lexical_cast<string>(d_algorithm));
+}
+
 
 std::string RSADNSPrivateKey::convertToISC(unsigned int algorithm) const
 {
