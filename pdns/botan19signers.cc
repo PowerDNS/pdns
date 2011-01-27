@@ -211,8 +211,14 @@ std::string GOSTDNSPrivateKey::sign(const std::string& hash) const
   GOST_3410_Signature_Operation ops(*d_key);
   AutoSeeded_RNG rng;
   SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);
-  
+
+#if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
+  string reversed((const char*)signature.begin()+ signature.size()/2, signature.size()/2);
+  reversed.append((const char*)signature.begin(), signature.size()/2);
+  return reversed;
+#else  
   return string((const char*)signature.begin(), (const char*) signature.end());
+#endif
 }
 
 std::string GOSTDNSPrivateKey::hash(const std::string& orig) const
@@ -229,19 +235,19 @@ bool GOSTDNSPrivateKey::verify(const std::string& hash, const std::string& signa
 {
   GOST_3410_PublicKey* pk;
   if(d_pubkey) {
-    cerr<<"Worked from the public key"<<endl;
     pk =d_pubkey.get();
   }
   else
     pk = d_key.get();
     
   GOST_3410_Verification_Operation ops(*pk);
-  /* 
-  string rhash(hash);
-  for(string::size_type pos = 0 ; pos < rhash.size()/2; ++pos)
-    swap(rhash[pos], rhash[rhash.size()-1-pos]);
-  */
+#if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
+  string rsignature(signature.substr(32));
+  rsignature.append(signature.substr(0,32));
+  return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)rsignature.c_str(), rsignature.length());
+#else
   return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
+#endif
 }
 
 /*

@@ -207,10 +207,9 @@ void verifyCrypto(const string& zone)
       toSign.push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content)));
     }
   }
-  DNSPrivateKey* dpk = DNSPrivateKey::makeFromPublicKeyString(drc.d_algorithm, drc.d_key);
-  string hash = getHashForRRSET(qname, rrc, toSign);        
   
-  cerr<<"Verify: "<<dpk->verify(hash, rrc.d_signature)<<endl;
+  string hash = getHashForRRSET(qname, rrc, toSign);        
+  cerr<<"Verify: "<<DNSPrivateKey::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, rrc.d_signature)<<endl;
   if(dsrc.d_digesttype) {
     cerr<<"Calculated DS: "<<apex<<" IN DS "<<makeDSFromDNSKey(apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
     cerr<<"Original DS:   "<<apex<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
