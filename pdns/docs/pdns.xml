@@ -115,23 +115,191 @@
 	while maintaining performance and achieving high levels of security.
       </para>
       <para>
-	Other major new features include:
+	This release has received exceptional levels of community support, and we'd like to thank the following people 
+	in addition to those mentioned explicitly below:
+	Peter Koch (DENIC), Olaf Kolkman (NLNetLabs), Wouter Wijngaards (NLNetLabs), Marco Davids (SIDN), Markus Travaille (SIDN),
+	Antoin Verschuren (SIDN), Olafur Gudmundsson (IETF), Dan Kaminsky (Recursion Ventures), Roy Arends (Nominet),  
+	Miek Gieben (SIDN), Stephane Bortzmeyer (AFNIC), Michael Braunoeder (nic.at), Peter van Dijk, Maik Zumstrull,
+	Jose Arthur Benetasso Villanova (Locaweb), Stefan Schmidt, Roland van Rijswijk (Surfnet), Paul Bakker (Brainspark/Fox-IT),
+	Mathew Hennessy, Johannes Kuehrer (Austrian World4You GmbH), Marc van de Geijn (bHosted.nl), Stefan Arentz and 
+	Martin van Hensbergen (Fox-IT)
+      </para>
+      <para>
+	On to the release notes. Next to DNSSEC, other major new features include:
       </para>
       <para>
       <itemizedlist>
 	<listitem>
-	
 	  <para>
 	    Long TXT records are now split into 255-byte components automatically. Implemented in c1340, reported by Darren Gamble
 	    in t188.
 	  </para>
 	</listitem>
+	<listitem>
+	  <para>
+	    Per zone AXFR ACLs, implemented in c1360.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    "Also-notify" support, implemented by Aki Tuomi in c1400. Support for Generic SQL backends and 
+	    for the BIND backend.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Support for binding to thousands of IP addresses, code in c1443.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Massively parallel slaving infrastructure, able to check the freshness of thousands of remote
+	    zones per second, plus perform many incoming zone transfers simultaneously. Sponsored by Tyler Hall,
+	    code in C1449, C1500, C1859
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Core DNS logic replaced completely to deal with the brave new world of DNSSEC. 
+	  </para>
+	</listitem>
+	
       </itemizedlist>
       Bugs fixed:
       <itemizedlist>
 	<listitem>
 	  <para>
-	    ..
+	    sqlite2 and sqlite3 backends used MySQL-style escaping, leading to SQL
+errors in some cases. Discovered by Sten Spans. Fixed in c1342.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Internal webserver no longer prints '1e2%'. Bug rediscovered by Jeff Sipek. Fixed in c1342.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    In some cases, we would include duplicate CNAMEs. In addition, we would hand out
+	    a full root-referral when not configured to in some cases (t223). Discovered by Andreas Jakum, fixed in c1344.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Shane Kerr discovered we would corrupt DNS transaction IDs from the packet cache on big endian systems.
+	    Fix in c1346, closing t222.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    BIND backend got confused of a zone's filename changed after a configuration reload. 
+	    Fix in c1347, closing t228.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    When restarted by the Guardian, PowerDNS will perform a full multi-threaded cache cleanup, which 
+	    took a long time and could crash. Fix in c1364.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Under artificial circumstances, PowerDNS would never clean its packet cache. Found by Marcus Goller, fix in
+	    c1399 and c1408. This update also retunes the cleanup frequency.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Packetcache would cache things it should not have been caching. Fixes in commits C1407, C1488, C1869, C1880
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    When processing incoming notifications, the BIND backend was case-sensitive, and would disregard
+	    notifications in the wrong case. Discovered by 'Dolphin', fix in c1420.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    The init.d script did not mention the 'reload' command. Code in c1463, closes t233.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    PowerDNS would be confused by embedded NULs in domain names, and would also
+	    mess up the escaping of some characters. Fix in c1468, c1469, c1478, c1480, 
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    SOA queries for the name of a delegation point were not referred. Fix in c1466, closing t224.
+	    In addition, queries for AAAA for a CNAMEd record pointing to a name with no AAAA would deliver 
+	    a direct SOA, without the CNAME in between. Fix in c1542, c1607.
+	    Also, wildcard CNAMEs pointing to a record without the type requested suffered from the same issue, fix in c1543.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    On processing an incoming AXFR, once an MX or SRV record had been seen, all future fields
+	    got a 'priority' entry as well. This had no operational impact, but looked messy. Fixed in c1437.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Aki Tuomi discovered that the BIND zonefile parser would misrepresent 'something IN MX 15 @'. Fix in c1621.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Marco Davids discovered the BIND zonefile parser would trip over really long lines. Fix in c1624, c1625.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Thomas Mieslinger discovered that our webserver would only be started after dropping privileges,
+	    which could cause problems. Fix in c1629.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    An Ubuntu user discovered in Launchpad bug 600479 that restarting database threads
+	    cost a lot of memory. Normally this is rare, except in case of problems. Addressed in c1676. 
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    BIND backend could crash under (very) high load with very large numbers of zones (hundreds of thousands).
+	    Fixed in c1690.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Miek Gieben and Marco Davids spotted that PowerDNS would answer the version.bind query in the IN class too.
+	    Bug reported via twitter! Fix in c1709.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Marcus Lauer and the OpenDNSSEC project discovered that outgoing notifications did not carry the 'aa' flag.
+	    Fixed in c1746.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Debugging PowerDNS, or backgrounding it, could cause crashes. Fixed by Anders Kaseorg in c1747.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Fixed a bug that could cause crashes on launching thousands of backend connections. Never observed to occur,
+	    but who knows. Fix in c1792.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Under some circumstances, large answers could be truncated in mid-record. While technically legal,
+	    this upset a number of resolver implementations (including the PowerDNS Recursor!). Fixed in c1830, re-closes
+	    t200.
 	  </para>
 	</listitem>
       </itemizedlist>
@@ -139,9 +307,46 @@
       <itemizedlist>
 	<listitem>
 	  <para>
-	    ..
+	    Fixed compilation on newer compilers and newer versions of Boost. 
+	    Changes in C1345 (t227), C1391, C1394, C1425, C1427, C1428, C1429, C1440, C1653, thanks to Ruben Kerkhof and others.
 	  </para>
 	</listitem>
+	<listitem>
+	  <para>
+	    Compilation fixes for Mac OS X 10.5.7 in c1389, thanks to Tobias Markmann.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Allow for timestamps to explicitly be specified in (s)econds. Code in c1398, closing t250.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Internal support for TSIG, not yet hooked up. Commits C1417, C1485 and beyond.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>
+	    Zones with URL and MBOXFW records can be transferred over AXFR, code in c1464.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>
+	    Maik Zumstrull cleaned up the BIND Backend makefile, plus taught our init.d script to read /etc/default/pdns.
+	    Code in c1601, c1602.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>
+	    Generic SQL backends now support multiple masters in the domains table. Code in c1857. Additionally,
+	    masters can also have :port numbers. Code in c1858.
+	  </para>
+	</listitem>
+	
       </itemizedlist>
       </para>
       </sect2>
@@ -9024,7 +9229,7 @@ local0.err                        /var/log/pdns.err
     with minimal administrative overhead.
   </para>
   <para>
-    In PowerDNSSEC, DNS and signatures and keys are treated as separate entities. The domain &amp; record
+    In PowerDNSSEC, DNS and signatures and keys are (usually) treated as separate entities. The domain &amp; record
     storage is thus almost completely devoid of DNSSEC record types.
   </para>
   <para>
@@ -9042,6 +9247,9 @@ local0.err                        /var/log/pdns.err
 $ pdnssec secure-zone powerdnssec.org
 $ pdnssec rectify-zone    
     </screen>
+  </para>
+  <para>
+    Alternatively, PowerDNS can serve pre-signed zones, without knowledge of private keys.
   </para>
   <section id="dnssec-introduction">
   <title>A brief introduction to DNSSEC</title>
@@ -9218,6 +9426,8 @@ $ pdnssec rectify-zone
     <para>
       PowerDNS needs to know if a zone should receive DNSSEC processing. To configure, run 'pdnssec set-presigned zone'.
     </para>
+    <para><warning><para>Right now, you will also need to configure NSEC(3) settings for pre-signed zones using 'pdnssec set-nsec3'. Default
+    is NSEC, in which case no further configuration is necessary.</para></warning></para>
     </section>
     <section id="dnssec-dnssec-migration-live"><title>From existing DNSSEC non-PowerDNS setups, live signing</title>
     <para>
@@ -9414,7 +9624,7 @@ $ pdnssec rectify-zone
 	      <para>
 		Sets NSEC3 parameters for this zone. A sample commandline is: "pdnssec set-nsec3 powerdnssec.org '1 0 1 ab' narrow".
 		The NSEC3 parameters must be quoted on the command line.
-		WARNING: This requires updating the 'DS" over at the parent zone!
+		<warning><para>If running in RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update at the parent zone! </para></warning>
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -9438,7 +9648,8 @@ $ pdnssec rectify-zone
 	    <term>unset-nsec3 ZONE</term>
 	    <listitem>
 	      <para>
-		Converts a zone to NSEC operations. WARNING: This requires updating the 'DS" over at the parent zone!
+		Converts a zone to NSEC operations. 
+		<warning><para>If running in RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update at the parent zone! </para></warning>
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -9452,6 +9663,53 @@ $ pdnssec rectify-zone
 	</varlistentry>
       </variablelist>
     </para>
+  </section>
+  <section id="dnssec-advice-precautions">
+  <title>DNSSEC advice &amp; precautions</title>
+  <para>
+    DNSSEC is a major change in the way DNS works. Furthermore, there is a bewildering array of settings 
+    that can be configured. 
+  </para>
+  <para>
+    It is well possible to configure DNSSEC in such a way that your domain will not operate reliably, or even, at all.
+  </para>
+  <para>
+    We advise operators to stick to the keying defaults of 'pdnssec secure-zone': RSASHA256 (algorithm 8),
+    1 Key Signing Key of 2048 bits, 1 active Zone Signing Key of 1024 bits, 1 passive Zone Signing Key of 1024 bits.
+  </para>
+  <para>
+    While the 'GOST' and 'ECDSA' algorithms are better choices in theory, not many DNSSEC resolvers can validate answers
+    signed with such keys. Much the same goes for RSASHA512, except that it does not offer better performance either.
+  </para>
+  <para>
+    <note><para>GOST may be more widely available in Russia, because it might be mandatory to implement this regional standard there.</para></note>
+  </para>
+  <para>
+    It is possible to operate a zone with different keying algorithms simultaneously, but it has also been observed that this is not reliable.
+  </para>
+  <section id="dnssec-packet-size-tcp"><title>Packet sizes, fragments, TCP/IP service</title>
+  <para>
+    DNSSEC answers contain (bulky) keying material and signatures, and are therefore a lot larger than regular DNS answers.
+    Normal DNS responses almost always fit in the 'magical' 512 byte limit previously imposed on DNS.
+  </para>
+  <para>
+    In order to support DNSSEC, operators must make sure that their network allows for:
+    <itemizedlist>
+      <listitem><para>&gt;512 byte UDP packets on port 53</para></listitem>
+      <listitem><para>Fragmented UDP packets</para></listitem>
+      <listitem><para>ICMP packets related to fragmentation</para></listitem>
+      <listitem><para>TCP queries on port 53</para></listitem>
+      <listitem><para>EDNS0 queries/responses (filtered by some firewalls)</para></listitem>
+    </itemizedlist>
+  </para>
+  <para>
+    If any of the conditions outlined above is not met, DNSSEC service will suffer or be completely unavailable.
+  </para>
+  <para>
+    In addition, the larger your DNS answers, the more critical the above becomes. It is therefore advised not to provision too many keys,
+    or keys that are unneccessarily large.
+  </para>
+  </section>
   </section>
   <section id="dnssec-operational-doctrine">
   <title>Operational instructions</title>
@@ -9627,6 +9885,7 @@ $ pdnssec rectify-zone
     <listitem><para>Marc van de Geijn (bHosted.nl)</para></listitem>
     <listitem><para>Stefan Arentz</para></listitem>
     <listitem><para>Martin van Hensbergen (Fox-IT)</para></listitem>
+    <listitem><para>Christoph Meerwald</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
 
