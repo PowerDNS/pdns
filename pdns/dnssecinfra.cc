@@ -149,6 +149,10 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
     shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(12)); // gives us GOST
     dsrc.d_digest = dpk->hash(toHash);
   }
+  else if(digest == 4) {
+    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(14)); // gives us ECDSAP384
+    dsrc.d_digest = dpk->hash(toHash);
+  }
   
   dsrc.d_algorithm= drc.d_algorithm;
   dsrc.d_digesttype=digest;
