@@ -9119,13 +9119,22 @@ $ pdnssec rectify-zone
       NSEC3-narrow</para>
     </listitem>
     <listitem><para>
-      DS (digest type 1, digest type 2)</para>
+      DS (digest type 1, 2, 3 and provisional point 4)</para>
     </listitem>
     <listitem><para>
       RSASHA1 (algorithm 5, algorithm 7)</para>
     </listitem>
     <listitem><para>
       RSASHA256 (algorithm 8)</para>
+    </listitem>
+    <listitem><para>
+      RSASHA512 (algorithm 10)</para>
+    </listitem>
+    <listitem><para>
+      ECC-GOST (algorithm 12)</para>
+    </listitem>
+    <listitem><para>
+      ECDSA (no codepoints assigned, provisional 13 and 14)</para>
     </listitem>
     </itemizedlist>
   </para>
@@ -9149,6 +9158,14 @@ $ pdnssec rectify-zone
     </listitem>
     <listitem><para>
       RFC 5702: Use of SHA-2 Algorithms with RSA in DNSKEY and RRSIG Resource Records for DNSSEC
+      </para>
+    </listitem>
+    <listitem><para>
+      RFC 5933: Use of GOST Signature Algorithms in DNSKEY and RRSIG Resource Records for DNSSEC
+      </para>
+    </listitem>
+    <listitem><para>
+      draft-ietf-dnsext-ecdsa: Elliptic Curve DSA for DNSSEC
       </para>
     </listitem>
     </itemizedlist>
@@ -9278,7 +9295,8 @@ $ pdnssec rectify-zone
     This two-week interval jumps with one-week increments every Thursday.
   </para>
   <para><note><para>Why Thursday? POSIX-based operating systems count the time since GMT midnight January 1st of 1970,
-  which was a Thursday.
+  which was a Thursday. PowerDNS inception/expiration times are generated based on an integral number of weeks having passed
+  since the start of the 'epoch'.
   </para></note></para>
   </section>
   
@@ -9303,7 +9321,7 @@ $ pdnssec rectify-zone
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
-	    <term>add-zone-key ZONE [ksk|zsk] [bits] [rsasha1|rsasha256]</term>
+	    <term>add-zone-key ZONE [ksk|zsk] [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]</term>
 	    <listitem>
 	      <para>
 		Create a new key for zone ZONE, and make it a KSK or a ZSK, with the specified algorithm.
