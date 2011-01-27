@@ -167,7 +167,7 @@ void GOSTDNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::s
   EC_Domain_Params params("1.2.643.2.2.35.1");
   PointGFp point(params.get_curve(), x,y);
   d_pubkey = shared_ptr<GOST_3410_PublicKey>(new GOST_3410_PublicKey(params, point));
-
+  d_key.reset();
 }
 
 std::string GOSTDNSPrivateKey::getPubKeyHash() const
@@ -257,6 +257,8 @@ bool GOSTDNSPrivateKey::verify(const std::string& hash, const std::string& signa
 class ECDSADNSPrivateKey : public DNSPrivateKey
 {
 public:
+  explicit ECDSADNSPrivateKey(unsigned int algo) :d_algorithm(algo)
+  {}
   void create(unsigned int bits);
   std::string convertToISC(unsigned int algorithm) const;
   std::string getPubKeyHash() const;
@@ -266,18 +268,20 @@ public:
   std::string getPublicKeyString() const;
   int getBits() const;
   void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
-  //void fromPublicKeyString(const std::string& content);
+  void fromPublicKeyString(unsigned int algorithm, const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
   static DNSPrivateKey* maker(unsigned int algorithm)
   {
-    return new ECDSADNSPrivateKey();
+    return new ECDSADNSPrivateKey(algorithm);
   }
 
 private:
   static EC_Domain_Params getECParams(unsigned int algorithm);
   shared_ptr<ECDSA_PrivateKey> d_key;
+  shared_ptr<ECDSA_PublicKey> d_pubkey;
+  unsigned int d_algorithm;
 };
 
 EC_Domain_Params ECDSADNSPrivateKey::getECParams(unsigned int algorithm) 
@@ -308,12 +312,11 @@ void ECDSADNSPrivateKey::create(unsigned int bits)
 
 int ECDSADNSPrivateKey::getBits() const
 {
-  if(d_key->domain() == getECParams(13))
+  if(d_algorithm == 13)
     return 256;
-  else if(d_key->domain() == getECParams(14))
+  else if(d_algorithm == 14)
     return 384;
-  else
-    return -1;
+  return -1;
 }
 
 std::string ECDSADNSPrivateKey::convertToISC(unsigned int algorithm) const
@@ -364,11 +367,12 @@ void ECDSADNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::stri
     else
       throw runtime_error("Unknown field '"+key+"' in Private Key Representation of ECDSA");
   }
-  
+  d_algorithm = drc.d_algorithm;
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
   
   EC_Domain_Params params=getECParams(drc.d_algorithm);
   d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(params, bigint));
+  
 }
 
 std::string ECDSADNSPrivateKey::getPubKeyHash() const
@@ -385,11 +389,27 @@ std::string ECDSADNSPrivateKey::getPublicKeyString() const
   
   size_t part_size = std::max(x.bytes(), y.bytes());
   MemoryVector<byte> bits(2*part_size);
-
+  
   x.binary_encode(&bits[part_size - x.bytes()]);
   y.binary_encode(&bits[2*part_size - y.bytes()]);
   return string((const char*)bits.begin(), (const char*)bits.end());
 }
+
+void ECDSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::string&input) 
+{
+  BigInt x, y;
+  
+  x.binary_decode((const byte*)input.c_str(), input.length()/2);
+  y.binary_decode((const byte*)input.c_str() + input.length()/2, input.length()/2);
+
+  d_algorithm = algorithm;
+
+  EC_Domain_Params params=getECParams(algorithm);
+  PointGFp point(params.get_curve(), x,y);
+  d_pubkey = shared_ptr<ECDSA_PublicKey>(new ECDSA_PublicKey(params, point));
+  d_key.reset();
+}
+
 
 std::string ECDSADNSPrivateKey::sign(const std::string& hash) const
 {
@@ -418,7 +438,12 @@ std::string ECDSADNSPrivateKey::hash(const std::string& orig) const
 
 bool ECDSADNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
 {
-  ECDSA_Verification_Operation ops(*d_key);
+  ECDSA_PublicKey* key;
+  if(d_key)
+    key = d_key.get();
+  else
+    key = d_pubkey.get();
+  ECDSA_Verification_Operation ops(*key);
   return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
 }
 
