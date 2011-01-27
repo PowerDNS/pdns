@@ -231,15 +231,11 @@ public:
   DNSKEYRecordContent();
   includeboilerplate(DNSKEY)
   uint16_t getTag();
-  string getExponent() const;
-  string getModulus() const;
 
   uint16_t d_flags;
   uint8_t d_protocol;
   uint8_t d_algorithm;
   string d_key;
-private:
-  void getExpLen(uint16_t& startPos, uint16_t& expLen) const;
 };
 
 class DSRecordContent : public DNSRecordContent

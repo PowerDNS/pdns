@@ -240,7 +240,6 @@ boilerplate_conv(RRSIG, 46,
         	 conv.xfrType(d_type); 
           	 conv.xfr8BitInt(d_algorithm); 
           	 conv.xfr8BitInt(d_labels); 
-
           	 conv.xfr32BitInt(d_originalttl); 
           	 conv.xfrTime(d_sigexpire); 
           	 conv.xfrTime(d_siginception); 
@@ -273,35 +272,6 @@ uint16_t DNSKEYRecordContent::getTag()
   ac += (ac >> 16) & 0xFFFF;
   return ac & 0xFFFF;
 }
-
-void DNSKEYRecordContent::getExpLen(uint16_t& startPos, uint16_t& expLen) const
-{
-  unsigned char* decoded=(unsigned char*) d_key.c_str();
-  if(decoded[0] != 0) {
-    startPos=1;
-    expLen=decoded[0];
-  }
-  else {
-    startPos=3;
-    expLen=decoded[1]*0xff + decoded[2]; // XXX FIXME
-  }
-}
-
-string DNSKEYRecordContent::getExponent() const
-{
-  uint16_t startPos, expLen;
-  getExpLen(startPos, expLen);
-  return d_key.substr(startPos, expLen);
-}
-
-string DNSKEYRecordContent::getModulus() const
-{
-  uint16_t startPos, expLen;
-  getExpLen(startPos, expLen);
-
-  return d_key.substr(startPos+expLen);
-}
-
 
 // "fancy records" 
 boilerplate_conv(URL, QType::URL, 
