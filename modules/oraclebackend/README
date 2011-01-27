@@ -1,45 +1,43 @@
-Prerequisites
--------------
+An Oracle Database backend was originally contributed to PowerDNS in
+2002 by Stefan Arentz.
 
-To compile this Oracle backend for PowerDNS, the following is needed:
+A new version amounting to a complete rewrite was contributed in 2011 by
+Maik Zumstrull <maik@zumstrull.net>, then at the Steinbuch Centre for
+Computing <http://www.scc.kit.edu/> at the Karlsruhe Institute of
+Technology <http://www.kit.edu/>.
 
-	PowerDNS Dynamic RPM/DEB Version 2.1 or higher
-		http://downloads.powerdns.com/releases/rpm-dynamic
-		http://downloads.powerdns.com/releases/deb/unstable
-	PowerDNS Backend Development Kit Version 2.1 or higher
-		http://downloads.powerdns.com/releases/dev
-	gcc 3.0 and gcc 3.0 libraries
+---
 
-It may be necessary to install gcc 3.0 before installing PowerDNS to prevent
-unresolved dependencies. Also, make sure that you are using gcc 3.0 as a
-compiler.  You may need to edit the Makefile to make sure.
+Licensing
 
-RedHat
-------
+Any contributions submitted to PowerDNS.COM BV by Maik Zumstrull / SCC are
+released under the conditions of the MIT license. Note that additional or
+different licensing terms may apply to code as redistributed by
+PowerDNS.COM BV. The terms of the license are found below.
 
-For RedHat 7.2, gcc 3.0 is available by default. For RedHat 7.3, please
-install the gcc 3.0 packages from RedHat 7.2 updates, they work just fine.
-For RedHat Advanced Server 2.1, gcc 3.0 packages are available by default.
+---
 
-Debian
-------
+The MIT License
 
-For Debian 'Woody', install gcc-3.0 and g++-3.0.
+Copyright (c) 2010-2011
+  Maik Zumstrull
+  Steinbuch Centre for Computing
+  Karlsruhe Institute of Technology
 
-Compiling
----------
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-It is best to place the Oracle backend and the PDNS Backend Development kit
-side by side in the same directory. The Oracle backend searches for the
-development kit in the parent directory by default.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-If all the requirements are met, run 'make' followed by 'make install', run
-as root. Edit the Makefile if your Oracle client installation does not
-reside in /opt/oracle or the development kit is not in ../
-
-If all proceeds as it should, PowerDNS should now have access to the
-'oracle' backend. Enable it by specifying 'launch=oracle' in the
-documentation.
-
-Further documentation is on http://doc.powerdns.com/oracle.html
-For questions, refer to pdns@powerdns.com
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

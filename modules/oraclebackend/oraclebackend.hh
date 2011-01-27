@@ -8,114 +8,200 @@
 
 using namespace std;
 
-static const int kForwardQuery            = 0;
-static const int kForwardQueryByZone      = 1;
-static const int kForwardAnyQuery         = 2;
-static const int kForwardWildcardQuery    = 3;
-static const int kForwardWildcardAnyQuery = 4;
-static const int kListQuery               = 5;
-static const int kNumQueries              = 6;
-
-class OracleException
+class OracleException : public DBException
 {
-   public:
-      
-      OracleException()
-      {
-         mReason = "Unspecified";
-      }
-      
-      OracleException(string theReason)
-      {
-         mReason = theReason;
-      }
+public:
 
-      OracleException(OCIError *theErrorHandle)
-      {
-         mReason = "ORA-UNKNOWN";
+  OracleException (string r) : DBException(r) {}
 
-         if (theErrorHandle != NULL)
-         {
-            text  msg[512];
-            sb4   errcode = 0;
-   
-            memset((void *) msg, (int)'\0', (size_t)512);
-   
-            OCIErrorGet((dvoid *) theErrorHandle,1, NULL, &errcode, msg, sizeof(msg), OCI_HTYPE_ERROR);
-            if (errcode)
-            {
-              char *p = (char*) msg;
-               while (*p++ != 0x00) {
-        	  if (*p == '\n' || *p == '\r') {
-        	    *p = ';';
-        	  }
-        	}
-        	
-        	mReason = (char*) msg;
-            }
-         }
-      }
+  OracleException (string context, OCIError *theErrorHandle)
+    : DBException(context + ": ORA-UNKNOWN")
+  {
+    if (theErrorHandle != NULL) {
+      char msg[2048];
+      sb4 errcode = 0;
 
-      string Reason()
-      {
-         return mReason;
-      }
-      
-      string mReason;
+      msg[0] = '\0';
+
+      OCIErrorGet((void *) theErrorHandle, 1, NULL, &errcode, (OraText*) msg,
+                  sizeof(msg), OCI_HTYPE_ERROR);
+
+      reason = context + ": " + msg;
+    }
+  }
+
 };
 
 class OracleBackend : public DNSBackend
 {
-   public:
-      
-      OracleBackend(const string &suffix="");
-      virtual ~OracleBackend();
-      
-      void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-      bool list(const string &target, int domain_id);
-      bool get(DNSResourceRecord &r);
+public:
 
-      
-      
-   private:
+  OracleBackend(const string &suffix = "", OCIEnv *envh =
+                NULL, char *poolname = NULL);
+  virtual ~OracleBackend();
 
-      bool mUpperCase;
-      bool mDebugQueries;
-      bool mTimeQueries;
-      string mTimeQueriesFile;
-      fstream mTimeQueriesStream;
-      
-      void Cleanup();
-      
-      OCIEnv    *mEnvironmentHandle;
-      OCIError  *mErrorHandle;
-      OCISvcCtx *mServiceContextHandle;
-      OCIStmt   *mStatementHandles[10];
-      
-      const char* mQueries[kNumQueries];
+  void lookup(const QType &qtype, const string &qname, DNSPacket *p = 0,
+              int zoneId = -1);
+  bool getBeforeAndAfterNames(uint32_t zoneId, const string& zone,
+                              const string& name,
+                              string& before, string& after);
+  bool getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
+                                      const string& name,
+                                      string& unhashed,
+                                      string& before,
+                                      string& after);
+  bool get(DNSResourceRecord &rr);
+  vector<string> getDomainMasters(const string &domain, int zoneId);
+  bool isMaster(const string &domain, const string &master);
+  bool getDomainInfo(const string &domain, DomainInfo &di);
+  void alsoNotifies(const string &domain, set<string> *addrs);
+  void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
+  void getUpdatedMasters(vector<DomainInfo>* domains);
+  void setFresh(uint32_t zoneId); // No, it's not int zoneId. Really.
+  void setNotified(uint32_t zoneId, uint32_t serial); // dito
+  bool list(const string &domain, int zoneId);
+  bool checkACL(const string &acl_type, const string &key, const string &val);
 
-      int mActiveQuery;
+  bool startTransaction(const string &domain, int zoneId);
+  bool feedRecord(const DNSResourceRecord &rr);
+  bool commitTransaction();
+  bool abortTransaction();
+  bool superMasterBackend(const string &ip, const string &domain,
+                          const vector<DNSResourceRecord> &nsset,
+                          string *account, DNSBackend **backend);
+  bool createSlaveDomain(const string &ip, const string &domain,
+                         const string &account);
 
-      dsword mQueryResult;
+  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
 
-      char mQueryName[256];
-      char mQueryContent[256];
-      char mQueryType[256];
-      int  mQueryId;
+  bool getDomainKeys(const string& name, unsigned int kind, vector<KeyData>& keys);
+  bool removeDomainKey(const string& name, unsigned int id);
+  int addDomainKey(const string& name, const KeyData& key);
+  bool activateDomainKey(const string& name, unsigned int id);
+  bool deactivateDomainKey(const string& name, unsigned int id);
 
-      char mResultContent[256];
-      int  mResultTTL;
-      int  mResultPriority;
-      char mResultType[256];
-      int  mResultDomainId;
-      int  mResultChangeDate;
-      char mResultName[256];
+private:
 
-      sb2  mResultContentIndicator;
-      sb2  mResultTTLIndicator;
-      sb2  mResultPriorityIndicator;
-      sb2  mResultTypeIndicator;
-      sb2  mResultDomainIdIndicator;
-      sb2  mResultChangeDateIndicator;
-      sb2  mResultNameIndicator;
+  OCIEnv *mEnvironmentHandle;
+  OCIError *mErrorHandle;
+  OCISvcCtx *mServiceContextHandle;
+
+  string    basicQuerySQL;
+  OCIStmt  *basicQueryHandle;
+  string    basicIdQuerySQL;
+  OCIStmt  *basicIdQueryHandle;
+  string    anyQuerySQL;
+  OCIStmt  *anyQueryHandle;
+  string    anyIdQuerySQL;
+  OCIStmt  *anyIdQueryHandle;
+  string    listQuerySQL;
+  OCIStmt  *listQueryHandle;
+
+  string    zoneInfoQuerySQL;
+  OCIStmt  *zoneInfoQueryHandle;
+  string    alsoNotifyQuerySQL;
+  OCIStmt  *alsoNotifyQueryHandle;
+  string    checkACLQuerySQL;
+  OCIStmt  *checkACLQueryHandle;
+  string    zoneMastersQuerySQL;
+  OCIStmt  *zoneMastersQueryHandle;
+  string    isZoneMasterQuerySQL;
+  OCIStmt  *isZoneMasterQueryHandle;
+  string    deleteZoneQuerySQL;
+  OCIStmt  *deleteZoneQueryHandle;
+  string    zoneSetLastCheckQuerySQL;
+  OCIStmt  *zoneSetLastCheckQueryHandle;
+  string    insertRecordQuerySQL;
+  OCIStmt  *insertRecordQueryHandle;
+  string    unfreshZonesQuerySQL;
+  OCIStmt  *unfreshZonesQueryHandle;
+  string    updatedMastersQuerySQL;
+  OCIStmt  *updatedMastersQueryHandle;
+  string    acceptSupernotificationQuerySQL;
+  OCIStmt  *acceptSupernotificationQueryHandle;
+  string    insertSlaveQuerySQL;
+  OCIStmt  *insertSlaveQueryHandle;
+  string    insertMasterQuerySQL;
+  OCIStmt  *insertMasterQueryHandle;
+  string    zoneSetNotifiedSerialQuerySQL;
+  OCIStmt  *zoneSetNotifiedSerialQueryHandle;
+
+  string    prevNextNameQuerySQL;
+  OCIStmt  *prevNextNameQueryHandle;
+  string    prevNextHashQuerySQL;
+  OCIStmt  *prevNextHashQueryHandle;
+
+  string    getZoneMetadataQuerySQL;
+  OCIStmt  *getZoneMetadataQueryHandle;
+  string    delZoneMetadataQuerySQL;
+  OCIStmt  *delZoneMetadataQueryHandle;
+  string    setZoneMetadataQuerySQL;
+  OCIStmt  *setZoneMetadataQueryHandle;
+
+  string    getZoneKeysQuerySQL;
+  OCIStmt  *getZoneKeysQueryHandle;
+  string    delZoneKeyQuerySQL;
+  OCIStmt  *delZoneKeyQueryHandle;
+  string    addZoneKeyQuerySQL;
+  OCIStmt  *addZoneKeyQueryHandle;
+  string    setZoneKeyStateQuerySQL;
+  OCIStmt  *setZoneKeyStateQueryHandle;
+
+  OCIStmt *curStmtHandle;
+  sword mQueryResult;
+
+  char myServerName[512];
+
+  char mQueryName[512];
+  char mQueryType[64];
+  char mQueryContent[4000];
+  char mQueryZone[512];
+  char mQueryAddr[64];
+  int  mQueryZoneId;
+  int  mQueryTimestamp;
+
+  char      mResultName[512];
+  sb2       mResultNameInd;
+  uint32_t  mResultTTL;
+  sb2       mResultTTLInd;
+  char      mResultType[32];
+  sb2       mResultTypeInd;
+  char      mResultContent[4000];
+  sb2       mResultContentInd;
+  int       mResultZoneId;
+  sb2       mResultZoneIdInd;
+  int       mResultLastChange;
+  sb2       mResultLastChangeInd;
+  int       mResultIsAuth;
+  sb2       mResultIsAuthInd;
+  char      mResultPrevName[512];
+  sb2       mResultPrevNameInd;
+  char      mResultNextName[512];
+  sb2       mResultNextNameInd;
+
+  void Cleanup();
+
+  bool setDomainKeyState(const string& name, unsigned int id, int active);
+
+  OCIStmt* prepare_query (string& code, const char *key);
+  void release_query (OCIStmt *stmt, const char *key);
+  void define_output_str (OCIStmt *s, ub4 pos, sb2 *ind, char *buf, sb4 buflen);
+  void define_output_int (OCIStmt *s, ub4 pos, sb2 *ind, int *buf);
+  void define_output_uint (OCIStmt *s, ub4 pos, sb2 *ind, unsigned int *buf);
+  void define_output_uint16 (OCIStmt *s, ub4 pos, sb2 *ind, uint16_t *buf);
+  void define_output_uint32 (OCIStmt *s, ub4 pos, sb2 *ind, uint32_t *buf);
+  void check_indicator (sb2 ind, bool null_okay);
+  void define_fwd_query (OCIStmt *s);
+  void bind_str (OCIStmt *s, const char *name, char *buf, sb4 buflen);
+  void bind_str_failokay (OCIStmt *s, const char *name, char *buf, sb4 buflen);
+  void bind_str_ind (OCIStmt *s, const char *name, char *buf, sb4 buflen, sb2 *ind);
+  void bind_int (OCIStmt *s, const char *name, int *buf);
+  void bind_uint (OCIStmt *s, const char *name, unsigned int *buf);
+  void bind_uint16 (OCIStmt *s, const char *name, uint16_t *buf);
+  void bind_uint16_ind (OCIStmt *s, const char *name, uint16_t *buf, sb2 *ind);
+  void bind_uint32 (OCIStmt *s, const char *name, uint32_t *buf);
+
 };
+
+/* vi: set sw=2 et : */

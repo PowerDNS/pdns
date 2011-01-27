@@ -1,1 +1,1 @@
--L$(ORACLE_HOME)/lib -lclient9  -lclntst9
+-L$(ORACLE_HOME)/lib -lclntsh
