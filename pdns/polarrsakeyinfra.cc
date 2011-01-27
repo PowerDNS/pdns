@@ -86,6 +86,7 @@ public:
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
+  bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const
   {
@@ -93,7 +94,7 @@ public:
   }
   void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
-
+  void fromPublicKeyString(unsigned int algorithm, const std::string& raw);
   static DNSPrivateKey* maker(unsigned int algorithm)
   {
     return new RSADNSPrivateKey(algorithm);
@@ -165,6 +166,25 @@ std::string RSADNSPrivateKey::sign(const std::string& hash) const
   }
   return string((char*) signature, sizeof(signature));
 }
+
+bool RSADNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
+{
+  int hashKind;
+  if(hash.size()==20)
+    hashKind= SIG_RSA_SHA1;
+  else if(hash.size()==32) 
+    hashKind= SIG_RSA_SHA256;
+  else
+    hashKind = SIG_RSA_SHA512;
+  
+  int ret=rsa_pkcs1_verify(const_cast<rsa_context*>(&d_context), RSA_PUBLIC, 
+    hashKind,
+    hash.size(),
+    (const unsigned char*) hash.c_str(), (unsigned char*) signature.c_str());
+  cerr<<"verification returned: "<<ret<<endl;
+  return ret==0; // 0 really IS ok ;-)
+}
+
 
 std::string RSADNSPrivateKey::hash(const std::string& toHash) const
 {
@@ -332,16 +352,25 @@ void RSADNSPrivateKey::fromPEMString(DNSKEYRecordContent& drc, const std::string
   drc.d_key.append(modulus);
   drc.d_protocol=3;
 }
-#if 0
-void makeRSAPublicKeyFromDNS(rsa_context* rc, const DNSKEYRecordContent& dkrc)
-{
-  rsa_init(rc, RSA_PKCS_V15, 0, NULL, NULL );
 
-  mpi_read_binary(&rc->E, (unsigned char*)dkrc.getExponent().c_str(), dkrc.getExponent().length());    // exponent
-  mpi_read_binary(&rc->N, (unsigned char*)dkrc.getModulus().c_str(), dkrc.getModulus().length());    // modulus
-  rc->len = ( mpi_msb( &rc->N ) + 7 ) >> 3; // no clue what this does
+void RSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::string& rawString)
+{
+  rsa_init(&d_context, RSA_PKCS_V15, 0, NULL, NULL );
+  string exponent, modulus;
+  const unsigned char* raw = (const unsigned char*)rawString.c_str();
+  
+  if(raw[0] != 0) {
+    exponent=rawString.substr(1, raw[0]);
+    modulus=rawString.substr(raw[0]+1);
+  } else {
+    exponent=rawString.substr(3, raw[1]*0xff + raw[2]);
+    modulus = rawString.substr(3+ raw[1]*0xff + raw[2]);
+  }
+  mpi_read_binary(&d_context.E, (unsigned char*)exponent.c_str(), exponent.length());   
+  mpi_read_binary(&d_context.N, (unsigned char*)modulus.c_str(), modulus.length());    
+  d_context.len = ( mpi_msb( &d_context.N ) + 7 ) >> 3; // no clue what this does
 }
-#endif
+
 string RSADNSPrivateKey::getPublicKeyString()  const
 {
   string keystring;

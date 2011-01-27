@@ -15,15 +15,21 @@ class DNSPrivateKey
     virtual std::string getPubKeyHash()const =0;
     virtual std::string sign(const std::string& hash) const =0;
     virtual std::string hash(const std::string& hash) const =0;
+    virtual bool verify(const std::string& hash, const std::string& signature) const =0;
     virtual std::string getPublicKeyString()const =0;
     virtual int getBits() const =0;
     
     virtual void fromISCString(DNSKEYRecordContent& drc, const std::string& content)=0;
     virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)=0;
+    virtual void fromPublicKeyString(unsigned algorithm, const std::string& content)
+    {
+      throw std::runtime_error("Can't import from public key string");
+    }
     
     static DNSPrivateKey* makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
     static DNSPrivateKey* makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
     static DNSPrivateKey* makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
+    static DNSPrivateKey* makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
     static DNSPrivateKey* make(unsigned int algorithm);
     
     typedef DNSPrivateKey* maker_t(unsigned int algorithm);

@@ -70,6 +70,13 @@ DNSPrivateKey* DNSPrivateKey::makeFromISCString(DNSKEYRecordContent& drc, const 
   return dpk;
 }
 
+DNSPrivateKey* DNSPrivateKey::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
+{
+  DNSPrivateKey* dpk=make(algorithm);
+  dpk->fromPublicKeyString(algorithm, content);
+  return dpk;
+}
+
 
 DNSPrivateKey* DNSPrivateKey::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
 {

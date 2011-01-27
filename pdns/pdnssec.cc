@@ -9,7 +9,7 @@
 #include "ueberbackend.hh"
 #include "arguments.hh"
 #include "packetcache.hh"
-
+#include "zoneparser-tng.hh"
 StatBag S;
 PacketCache PC;
 
@@ -176,6 +176,36 @@ void checkZone(DNSSECKeeper& dk, const std::string& zone)
   cerr<<"Checked "<<numrecords<<" records, "<<numerrors<<" errors"<<endl;
 }
 
+void verifyCrypto(const string& zone)
+{
+  ZoneParserTNG zpt(zone);
+  DNSResourceRecord rr;
+  DNSKEYRecordContent drc;
+  RRSIGRecordContent rrc;
+  vector<shared_ptr<DNSRecordContent> > toSign;
+  unsigned int ttl;
+  string qname;
+  
+  while(zpt.get(rr)) {
+    if(rr.qtype.getCode() == QType::DNSKEY) {
+      cerr<<"got DNSKEY!"<<endl;
+      drc = *dynamic_cast<DNSKEYRecordContent*>(DNSRecordContent::mastermake(QType::DNSKEY, 1, rr.content));
+    }
+    else if(rr.qtype.getCode() == QType::RRSIG) {
+      cerr<<"got RRSIG"<<endl;
+      rrc = *dynamic_cast<RRSIGRecordContent*>(DNSRecordContent::mastermake(QType::RRSIG, 1, rr.content));
+    }
+    else {
+      qname = rr.qname;
+      ttl = rr.ttl;
+      toSign.push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content)));
+    }
+  }
+  DNSPrivateKey* dpk = DNSPrivateKey::makeFromPublicKeyString(drc.d_algorithm, drc.d_key);
+  string hash = getHashForRRSET(qname, rrc, toSign);        
+  cerr<<"Verify: "<<dpk->verify(hash, rrc.d_signature)<<endl;
+}
+
 void showZone(DNSSECKeeper& dk, const std::string& zone)
 {
   if(!dk.isSecuredZone(zone)) {
@@ -202,7 +232,7 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
     cout << "keys: "<<endl;
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
-      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< endl; // humanTime(value.second.beginValidity)<<" - "<<humanTime(value.second.endValidity)<<endl;
+      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< endl; 
       if(value.second.keyOrZone) {
         cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
         cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << endl;
@@ -277,6 +307,13 @@ try
       return 0;
     }
     checkZone(dk, cmds[1]);
+  }
+  else if(cmds[0] == "verify-crypto") {
+    if(cmds.size() != 2) {
+      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
+      return 0;
+    }
+    verifyCrypto(cmds[1]);
   }
 
   else if(cmds[0] == "show-zone") {

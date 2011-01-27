@@ -33,6 +33,7 @@ public:
   std::string getPublicKeyString() const;
   int getBits() const;
   void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  void fromPublicKeyString(unsigned int algorithm, const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
@@ -43,6 +44,7 @@ public:
 
 private:
   shared_ptr<GOST_3410_PrivateKey> d_key;
+  shared_ptr<GOST_3410_PublicKey> d_pubkey;
 };
 
 /*
@@ -142,6 +144,31 @@ void GOSTDNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::strin
   SecureVector<byte> buffer=BigInt::encode(x);
  // cerr<<"And out again! "<<makeHexDump(string((const char*)buffer.begin(), (const char*)buffer.end()))<<endl;
 }
+namespace {
+
+BigInt decode_le(const byte msg[], size_t msg_len)
+   {
+   SecureVector<byte> msg_le(msg, msg_len);
+
+   for(size_t i = 0; i != msg_le.size() / 2; ++i)
+      std::swap(msg_le[i], msg_le[msg_le.size()-1-i]);
+
+   return BigInt(&msg_le[0], msg_le.size());
+   }
+
+}
+void GOSTDNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::string& input)
+{
+  BigInt x, y;
+  
+  x=decode_le((const byte*)input.c_str(), input.length()/2);
+  y=decode_le((const byte*)input.c_str() + input.length()/2, input.length()/2);
+
+  EC_Domain_Params params("1.2.643.2.2.35.1");
+  PointGFp point(params.get_curve(), x,y);
+  d_pubkey = shared_ptr<GOST_3410_PublicKey>(new GOST_3410_PublicKey(params, point));
+
+}
 
 std::string GOSTDNSPrivateKey::getPubKeyHash() const
 {
@@ -194,13 +221,26 @@ std::string GOSTDNSPrivateKey::hash(const std::string& orig) const
   
   GOST_34_11 hasher;
   result= hasher.process(orig);
-  
   return string((const char*)result.begin(), (const char*) result.end());
 }
 
+
 bool GOSTDNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
 {
-  GOST_3410_Verification_Operation ops(*d_key);
+  GOST_3410_PublicKey* pk;
+  if(d_pubkey) {
+    cerr<<"Worked from the public key"<<endl;
+    pk =d_pubkey.get();
+  }
+  else
+    pk = d_key.get();
+    
+  GOST_3410_Verification_Operation ops(*pk);
+  /* 
+  string rhash(hash);
+  for(string::size_type pos = 0 ; pos < rhash.size()/2; ++pos)
+    swap(rhash[pos], rhash[rhash.size()-1-pos]);
+  */
   return ops.verify ((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
 }
 
@@ -226,6 +266,7 @@ public:
   std::string getPublicKeyString() const;
   int getBits() const;
   void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  //void fromPublicKeyString(const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
