@@ -34,7 +34,7 @@ gSQLiteBackend::gSQLiteBackend( const std::string & mode, const std::string & su
     throw AhuException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Warning << mode << ": connection to '"<<getArg("database")<<"' succesful" << std::endl;
+  L << Logger::Warning << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;
 }
 
 

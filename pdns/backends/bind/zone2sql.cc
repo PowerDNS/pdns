@@ -155,7 +155,7 @@ static void callback(unsigned int domain_id,const string &domain, const string &
         " from domains where name="<<toLower(sqlstr(lastsoa_qname))<<";\n";
     } else
     {
-      cerr<<"makeRelative('"<<stripDot(domain)<<"', '"<<lastsoa_qname<<"');"<<endl;
+      // cerr<<"makeRelative('"<<stripDot(domain)<<"', '"<<lastsoa_qname<<"');"<<endl;
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio) select id ,"<<
         sqlstr(toLower(stripDot(domain)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(domain), lastsoa_qname))))<<", "<<auth<<", "<<
