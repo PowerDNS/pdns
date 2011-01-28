@@ -125,6 +125,33 @@ toomuchinfo-b		IN	A	192.168.99.47
 toomuchinfo-b		IN	A	192.168.99.48
 toomuchinfo-b		IN	A	192.168.99.49
 toomuchinfo-b		IN	A	192.168.99.50
+toomuchinfo-b		IN	A	192.168.99.66
+toomuchinfo-b		IN	A	192.168.99.67
+toomuchinfo-b		IN	A	192.168.99.68
+toomuchinfo-b		IN	A	192.168.99.69
+toomuchinfo-b		IN	A	192.168.99.70
+toomuchinfo-b		IN	A	192.168.99.71
+toomuchinfo-b		IN	A	192.168.99.72
+toomuchinfo-b		IN	A	192.168.99.73
+toomuchinfo-b		IN	A	192.168.99.74
+toomuchinfo-b		IN	A	192.168.99.75
+toomuchinfo-b		IN	A	192.168.99.76
+toomuchinfo-b		IN	A	192.168.99.77
+toomuchinfo-b		IN	A	192.168.99.78
+toomuchinfo-b		IN	A	192.168.99.79
+toomuchinfo-b		IN	A	192.168.99.80
+toomuchinfo-b		IN	A	192.168.99.81
+toomuchinfo-b		IN	A	192.168.99.82
+toomuchinfo-b		IN	A	192.168.99.83
+toomuchinfo-b		IN	A	192.168.99.84
+toomuchinfo-b		IN	A	192.168.99.85
+toomuchinfo-b		IN	A	192.168.99.86
+toomuchinfo-b		IN	A	192.168.99.87
+toomuchinfo-b		IN	A	192.168.99.88
+toomuchinfo-b		IN	A	192.168.99.89
+toomuchinfo-b		IN	A	192.168.99.90
+
+
 
 host-0	IN	A	192.168.1.0
 host-1	IN	A	192.168.1.1
