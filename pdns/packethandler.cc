@@ -38,7 +38,7 @@
 #include "communicator.hh"
 #include "dnsproxy.hh"
 
-#if 0
+#if 1
 #undef DLOG
 #define DLOG(x) x
 #endif 
@@ -1225,6 +1225,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
     if(!getAuth(p, &sd, target, 0)) {
+      if(r->d.ra) {
+        *shouldRecurse=true;
+        delete r;
+        return 0;
+      }
+       
       r->setA(false);
       if(::arg().mustDo("send-root-referral")) {
         DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
