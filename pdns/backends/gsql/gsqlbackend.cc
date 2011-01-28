@@ -655,7 +655,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 {
-  char output[1024];
+  char output[10240];
   snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
 	   sqlEscape(r.content).c_str(),
 	   r.ttl, r.priority,
