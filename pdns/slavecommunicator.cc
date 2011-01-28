@@ -81,14 +81,16 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     if(dk.isSecuredZone(domain)) {
       dnssecZone=true;
       haveNSEC3=dk.getNSEC3PARAM(domain, &ns3pr, &narrow);
-      string hashed;
+    } 
+   
+    if(dnssecZone) {
       if(!haveNSEC3) 
-        cerr<<"Adding NSEC ordering information"<<endl;
-      else if(!narrow)
-        cerr<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
-      else 
-        cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
-    }
+				L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
+			else if(!narrow)
+        L<<Logger::Info<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
+			else 
+        L<<Logger::Info<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
+		}    
 
     if(!B->getDomainInfo(domain, di) || !di.backend) {
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
@@ -110,11 +112,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"' during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
-        if(dnssecZone) {
-          if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
-            nsset.insert(i->qname);
-          qnames.insert(i->qname);
-        }  
+        
+        if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
+          nsset.insert(i->qname);
+        qnames.insert(i->qname);
+          
         i->domain_id=domain_id;
         if(i->qtype.getCode()>=1024)
           throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
@@ -122,31 +124,29 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         di.backend->feedRecord(*i);
       }
     }
-    if(dnssecZone) {
-      string hashed;
-      BOOST_FOREACH(const string& qname, qnames)
-      {
-        string shorter(qname);
-        bool auth=true;
-        do {
-          if(nsset.count(shorter)) {  
-            auth=false;
-            break;
-          }
-        }while(chopOff(shorter));
-      
-        if(!haveNSEC3) // NSEC
-          di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
-        else {
-          if(!narrow) {
-            hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
-            cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
-          }
-          di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth);
+    
+    string hashed;
+    BOOST_FOREACH(const string& qname, qnames)
+    {
+      string shorter(qname);
+      bool auth=true;
+      do {
+        if(nsset.count(shorter)) {  
+          auth=false;
+          break;
         }
+      }while(chopOff(shorter));
+      
+      if(dnssecZone && !haveNSEC3) // NSEC
+        di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
+      else {
+        if(dnssecZone && !narrow) { 
+          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
+        }
+        di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth); // this should always be done
       }
     }
-    
+        
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed"<<endl;
