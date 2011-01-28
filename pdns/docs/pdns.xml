@@ -118,7 +118,7 @@
 	This release has received exceptional levels of community support, and we'd like to thank the following people 
 	in addition to those mentioned explicitly below:
 	Peter Koch (DENIC), Olaf Kolkman (NLNetLabs), Wouter Wijngaards (NLNetLabs), Marco Davids (SIDN), Markus Travaille (SIDN),
-	Antoin Verschuren (SIDN), Olafur Gudmundsson (IETF), Dan Kaminsky (Recursion Ventures), Roy Arends (Nominet),  
+	Leen Besselink, Antoin Verschuren (SIDN), Olafur Gudmundsson (IETF), Dan Kaminsky (Recursion Ventures), Roy Arends (Nominet),  
 	Miek Gieben (SIDN), Stephane Bortzmeyer (AFNIC), Michael Braunoeder (nic.at), Peter van Dijk, Maik Zumstrull,
 	Jose Arthur Benetasso Villanova (Locaweb), Stefan Schmidt, Roland van Rijswijk (Surfnet), Paul Bakker (Brainspark/Fox-IT),
 	Mathew Hennessy, Johannes Kuehrer (Austrian World4You GmbH), Marc van de Geijn (bHosted.nl), Stefan Arentz and 
@@ -9801,7 +9801,8 @@ $ pdnssec rectify-zone
       'bindbackend' operation in full DNSSEC mode. 
     </para>
     <para>
-      To benefit from this mode, include at least one database-based backend in the 'launch' statement.
+      To benefit from this mode, include at least one database-based backend in the 'launch' statement. The Generic SQLite backend
+      version 3 (gsqlite3) probably complements BIND mode best, since it does not require a database server process.
     </para>
     <warning>
     <para>
@@ -9886,6 +9887,7 @@ $ pdnssec rectify-zone
     <listitem><para>Stefan Arentz</para></listitem>
     <listitem><para>Martin van Hensbergen (Fox-IT)</para></listitem>
     <listitem><para>Christoph Meerwald</para></listitem>
+    <listitem><para>Leen Besselink</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
 

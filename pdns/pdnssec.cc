@@ -214,6 +214,15 @@ void verifyCrypto(const string& zone)
     cerr<<"Calculated DS: "<<apex<<" IN DS "<<makeDSFromDNSKey(apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
     cerr<<"Original DS:   "<<apex<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
   }
+#if 0
+  DNSPrivateKey*key=DNSPrivateKey::makeFromISCString(drc, "Private-key-format: v1.2\n"
+      "Algorithm: 12 (ECC-GOST)\n"
+      "GostAsn1: MEUCAQAwHAYGKoUDAgITMBIGByqFAwICIwEGByqFAwICHgEEIgQg/9MiXtXKg9FDXDN/R9CmVhJDyuzRAIgh4tPwCu4NHIs=\n");
+  string resign=key->sign(hash);
+  cerr<<Base64Encode(resign)<<endl;
+  cerr<<"Verify: "<<DNSPrivateKey::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, resign)<<endl;
+#endif
+
 }
 
 void showZone(DNSSECKeeper& dk, const std::string& zone)
@@ -405,7 +414,11 @@ try
     dk.secureZone(zone, 8);
 
     if(!dk.isSecuredZone(zone)) {
-      cerr << "This should not happen, still no key!" << endl;
+      cerr<<"Failed to secure zone - if you run with the BIND backend, make sure to also\n";
+      cerr<<"launch another backend which supports storage of DNSSEC settings.\n";
+      cerr<<"In addition, add '"<<zone<<"' to this backend, possibly like this: \n\n";
+      cerr<<"   insert into domains (name, type) values ('"<<zone<<"', 'NATIVE');\n\n";
+      cerr<<"And then rerun secure-zone"<<endl;
       return 0;
     }
   
