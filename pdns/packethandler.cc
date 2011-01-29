@@ -397,7 +397,7 @@ int PacketHandler::doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target)
 }
 
 /** dangling is declared true if we were unable to resolve everything */
-int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
+int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& soadata)
 {
   DNSResourceRecord rr;
   SOAData sd;
@@ -437,7 +437,8 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r)
             DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->qname<<" ("<<rr.qname<<")"<<endl);
             continue; // not adding out-of-zone additional data
           }
-          
+          if(rr.auth && !endsOn(rr.qname, soadata.qname)) // don't sign out of zone data using the main key 
+            rr.auth=false;
           rr.d_place=DNSResourceRecord::ADDITIONAL;
           r->addRecord(rr);
         }
@@ -1348,7 +1349,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
   sendit:;
-    if(doAdditionalProcessingAndDropAA(p,r)<0)
+    if(doAdditionalProcessingAndDropAA(p, r, sd)<0)
       return 0;
 
     //    doDNSSECProcessing(p, r);

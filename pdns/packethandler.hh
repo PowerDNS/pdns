@@ -95,7 +95,7 @@ private:
   int doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
-  int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r);
+  int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
   void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
   void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
