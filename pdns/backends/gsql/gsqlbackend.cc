@@ -645,6 +645,8 @@ bool GSQLBackend::get(DNSResourceRecord &r)
     
     if(d_dnssecQueries)
       r.auth = !row[6].empty() && row[6][0]=='1';
+    else
+      r.auth = 1; 
     
     r.domain_id=atoi(row[4].c_str());
     return true;
