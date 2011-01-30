@@ -230,8 +230,7 @@ void DNSPacket::wrapup()
   if(d_wrapped) {
     return;
   }
-  
-  // do embedded-additional processing decapsulation
+
   DNSResourceRecord rr;
   vector<DNSResourceRecord>::iterator pos;
 
@@ -239,7 +238,6 @@ void DNSPacket::wrapup()
   // we want a stable sort, based on the d_place field
 
   stable_sort(d_rrs.begin(),d_rrs.end(), rrcomp);
-
   static bool mustShuffle =::arg().mustDo("no-shuffle");
 
   if(!d_tcp && !mustShuffle) {
@@ -289,8 +287,6 @@ void DNSPacket::wrapup()
             pw.getHeader()->tc=1;
           }
           goto noCommit;
-      
-          break;
         }
       }
 

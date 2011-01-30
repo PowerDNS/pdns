@@ -73,16 +73,17 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
 }
 
 // this is the entrypoint from DNSPacket
-void addSignature(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType, 
+void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType, 
   uint32_t signTTL, DNSPacketWriter::Place signPlace, 
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned)
 {
-  // cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
+  //cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
   if(toSign.empty())
     return;
   vector<RRSIGRecordContent> rrcs;
   if(dk.isPresigned(signer)) {
-    dk.getPreRRSIGs(signer, signQName, QType(signQType), signPlace, outsigned); // does it all
+    //cerr<<"Doing presignatures"<<endl;
+    dk.getPreRRSIGs(db, signer, signQName, QType(signQType), signPlace, outsigned); // does it all
   }
   else {
     if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0)  {
@@ -139,7 +140,7 @@ static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)
   return a.d_place < b.d_place;
 }
 
-void addRRSigs(DNSSECKeeper& dk, const std::string& signer, DNSPacket& p)
+void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, DNSPacket& p)
 {
   vector<DNSResourceRecord>& rrs=p.getRRS();
   
@@ -157,7 +158,7 @@ void addRRSigs(DNSSECKeeper& dk, const std::string& signer, DNSPacket& p)
   for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
     signedRecords.push_back(*pos);
     if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
-      addSignature(dk, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
+      addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
     }
     signQName= pos->qname;
     wildcardQName = pos->wildcardname;
@@ -179,7 +180,6 @@ void addRRSigs(DNSSECKeeper& dk, const std::string& signer, DNSPacket& p)
       toSign.push_back(drc);
     }
   }
-  addSignature(dk, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
-  
+  addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
   rrs.swap(signedRecords);
 }

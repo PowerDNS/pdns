@@ -47,7 +47,7 @@ public:
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   void unsetNSEC3PARAM(const std::string& zname);
   void clearCaches(const std::string& name);
-  bool getPreRRSIGs(const std::string& signer, const std::string& qname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs);
+  bool getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs);
   bool isPresigned(const std::string& zname);
   void setPresigned(const std::string& zname);
   void unsetPresigned(const std::string& zname);

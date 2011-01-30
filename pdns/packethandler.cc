@@ -38,7 +38,7 @@
 #include "communicator.hh"
 #include "dnsproxy.hh"
 
-#if 1
+#if 0
 #undef DLOG
 #define DLOG(x) x
 #endif 
@@ -473,6 +473,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   rr.content=nrc.getZoneRepresentation();
   rr.d_place = (mode == 2 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
+  
   r->addRecord(rr);
 }
 
@@ -1355,7 +1356,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     //    doDNSSECProcessing(p, r);
 
     if(p->d_dnssecOk)
-      addRRSigs(d_dk, sd.qname, *r);
+      addRRSigs(d_dk, B, sd.qname, *r);
     r->wrapup(); // needed for inserting in cache
     PC.insert(p, r); // in the packet cache
   }

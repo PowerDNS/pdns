@@ -514,6 +514,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket->setCompress(false);
   outpacket->d_dnssecOk=true; // WRONG
   string keyname;
+  UeberBackend signatureDB;
   while(B->get(rr)) {
     if(rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS) {
       keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
@@ -532,7 +533,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 
     if(!((++count)%chunk)) {
       count=0;
-      addRRSigs(dk, sd.qname, *outpacket);
+      addRRSigs(dk, signatureDB, sd.qname, *outpacket);
       sendPacket(outpacket, outsock);
 
       outpacket=shared_ptr<DNSPacket>(q->replyPacket());
@@ -594,7 +595,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
   
   if(count) {
-    addRRSigs(dk, sd.qname, *outpacket);
+    addRRSigs(dk, signatureDB, sd.qname, *outpacket);
     sendPacket(outpacket, outsock);
   }
 
@@ -602,7 +603,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   /* and terminate with yet again the SOA record */
   outpacket=shared_ptr<DNSPacket>(q->replyPacket());
   
-  addRRSigs(dk, sd.qname, *outpacket); // don't sign the SOA!
+  addRRSigs(dk, signatureDB, sd.qname, *outpacket); // don't sign the SOA!
   outpacket->addRecord(soa);
   sendPacket(outpacket, outsock);
   DLOG(L<<"last packet - close"<<endl);

@@ -322,19 +322,20 @@ void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
   addKey(name, true, algorithm);
 }
 
-bool DNSSECKeeper::getPreRRSIGs(const std::string& signer, const std::string& qname, const QType& qtype, 
+bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, const QType& qtype, 
 	DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs)
 {
-	d_db.lookup(QType(QType::RRSIG), qname);
+  // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<qname<<"'"<<endl;
+	db.lookup(QType(QType::RRSIG), qname);
 	DNSResourceRecord rr;
-	while(d_db.get(rr)) { 
-		cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
+	while(db.get(rr)) { 
+		// cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
 		if(boost::starts_with(rr.content, qtype.getName()+" ")) {
-			cerr<<"Got it"<<endl;
+			// cerr<<"Got it"<<endl;
 			rr.d_place = (DNSResourceRecord::Place)signPlace;
 			rrsigs.push_back(rr);
 		}
-		else cerr<<"Skipping!"<<endl;
+		else ; // cerr<<"Skipping!"<<endl;
 	}
 	return true;
 }

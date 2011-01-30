@@ -848,8 +848,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   DNSSECKeeper dk;
   NSEC3PARAMRecordContent ns3pr;
   string auth=state->id_zone_map[id].d_name;
-  
-  
+    
   if(!dk.getNSEC3PARAM(auth, &ns3pr)) {
     cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
     return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
