@@ -74,10 +74,11 @@ QType::QType()
       insert("MBOXFW",257);
       insert("CURL",258);
       insert("ADDR",259);
+      insert("DLV",32769);
     }
 }
 
-int QType::getCode() const
+uint16_t QType::getCode() const
 {
   return code;
 }
@@ -92,7 +93,7 @@ const string QType::getName() const
   return "#"+itoa(code);
 }
 
-QType &QType::operator=(int n)
+QType &QType::operator=(uint16_t n)
 {
   code=n;
   return *this;
@@ -127,7 +128,7 @@ QType &QType::operator=(const string &s)
 }
 
 
-QType::QType(int n)
+QType::QType(uint16_t n)
 {
   QType();
   code=n;

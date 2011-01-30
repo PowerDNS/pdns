@@ -230,6 +230,15 @@ boilerplate_conv(DS, 43,
         	 conv.xfrHexBlob(d_digest, true); // keep reading across spaces
         	 )
 
+DLVRecordContent::DLVRecordContent() : DNSRecordContent(32769) {}
+boilerplate_conv(DLV,32769 , 
+        	 conv.xfr16BitInt(d_tag); 
+        	 conv.xfr8BitInt(d_algorithm); 
+        	 conv.xfr8BitInt(d_digesttype); 
+        	 conv.xfrHexBlob(d_digest, true); // keep reading across spaces
+        	 )
+
+
 boilerplate_conv(SSHFP, 44, 
         	 conv.xfr8BitInt(d_algorithm); 
         	 conv.xfr8BitInt(d_fptype); 

@@ -249,6 +249,18 @@ public:
   string d_digest;
 };
 
+class DLVRecordContent : public DNSRecordContent
+{
+public:
+  DLVRecordContent();
+  includeboilerplate(DLV)
+
+  uint16_t d_tag;
+  uint8_t d_algorithm, d_digesttype;
+  string d_digest;
+};
+
+
 class SSHFPRecordContent : public DNSRecordContent
 {
 public:
