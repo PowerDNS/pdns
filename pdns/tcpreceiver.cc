@@ -496,6 +496,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     rr.qname = target;
     rr.qtype = QType(QType::DNSKEY);
     rr.ttl = sd.default_ttl;
+    rr.auth = 1; // please sign! 
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
     string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
     NSECXEntry& ne = nsecxrepo[keyname];
@@ -543,8 +544,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
   
-  if(dk.isSecuredZone(target)) {
-   
+  if(dk.isSecuredZone(target)) {   
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
         NSEC3RecordContent n3rc;
