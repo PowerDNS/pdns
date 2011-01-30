@@ -256,7 +256,14 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
         cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
         cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << endl;
         cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << endl;
-        cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 3).getZoneRepresentation() << endl << endl;
+        try {
+          string output=makeDSFromDNSKey(zone, value.first.getDNSKEY(), 3).getZoneRepresentation();
+          cout<<"DS = "<<zone<<" IN DS "<< output << endl;
+        }
+        catch(...)
+        {
+        }
+        cout<<endl;  
       }
     }
   }
