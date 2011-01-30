@@ -108,8 +108,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
       
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
+        if(i->qtype.getCode() == QType::OPT) // ignore EDNS0
+          continue;
         if(!endsOn(i->qname, domain)) { 
-          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"' during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
         
