@@ -110,6 +110,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
         if(i->qtype.getCode() == QType::OPT) // ignore EDNS0
           continue;
+          
+        // we generate NSEC, NSEC3, NSEC3PARAM (sorry Olafur) on the fly, this could only confuse things
+        if(dnssecZone && (i->qtype.getCode() == QType::NSEC || i->qtype.getCode() == QType::NSEC3 || 
+                             i->qtype.getCode() == QType::NSEC3PARAM))
+          continue;
+          
         if(!endsOn(i->qname, domain)) { 
           L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
@@ -117,7 +123,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         
         if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
           nsset.insert(i->qname);
-        qnames.insert(i->qname);
+        if(i->qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
+          qnames.insert(i->qname);
           
         i->domain_id=domain_id;
         if(i->qtype.getCode()>=1024)

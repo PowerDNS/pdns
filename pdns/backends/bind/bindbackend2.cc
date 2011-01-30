@@ -210,6 +210,28 @@ bool Bind2Backend::abortTransaction()
   return true;
 }
 
+bool Bind2Backend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth)
+{
+  #if 0
+  const shared_ptr<State> state = getState();
+  BB2DomainInfo& bbd = state->id_zone_map[domain_id];
+
+  string sqname;
+
+  if(bbd.d_name.empty())
+    sqname=qname;
+  else if(strcasecmp(qname.c_str(), bbd.d_name.c_str()))
+    sqname=qname.substr(0,qname.size() - bbd.d_name.length()-1); // strip domain name
+
+  sqname = labelReverse(sqname);
+  
+  if(!auth)
+    d_authDelayed[sqname] = auth;
+  
+  #endif
+  return false;
+}
+
 bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
 {
   string qname=r.qname;
@@ -240,7 +262,6 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<endl;
     break;
   }
-
   return true;
 }
 
@@ -526,6 +547,36 @@ static void prefetchFile(const std::string& fname)
   posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
 }
 #endif 
+
+void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
+{
+  pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
+            string sqname;
+  
+  BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
+    bdr.auth=true;
+    if(bdr.qtype == QType::DS) // as are delegation signer records
+      continue;
+
+    sqname = labelReverse(bdr.qname);
+    
+    do {
+      if(sqname.empty()) // this is auth of course!
+        continue; 
+    
+      range=equal_range(records->begin(), records->end(), sqname); // XXX why isn't this wrong? should be records->equal_range, right?
+      if(range.first != range.second) {
+        for(recordstorage_t::const_iterator iter = range.first ; iter != range.second; ++iter) {
+          if(iter->qtype == QType::NS) {
+            //		      cerr<<"Have an NS hit for '"<<labelReverse(bdr.qname)<<"' on '"<<iter->qname<<"'"<<endl;
+            bdr.auth=false;
+          }
+        }
+      }
+    } while(chopOff(sqname));
+  }
+}
+
 void Bind2Backend::loadConfig(string* status)
 {
   // Interference with createSlaveDomain()
@@ -633,31 +684,8 @@ void Bind2Backend::loadConfig(string* status)
             
             shared_ptr<recordstorage_t > records=staging->id_zone_map[bbd->d_id].d_records;
           
-            pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
-            string sqname;
             
-            BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
-              bdr.auth=true;
-              if(bdr.qtype == QType::DS) // as are delegation signer records
-                continue;
-    
-              sqname = labelReverse(bdr.qname);
-              
-              do {
-                if(sqname.empty()) // this is auth of course!
-                  continue; 
-              
-                range=equal_range(records->begin(), records->end(), sqname);
-                if(range.first != range.second) {
-                  for(recordstorage_t::const_iterator iter = range.first ; iter != range.second; ++iter) {
-                    if(iter->qtype == QType::NS) {
-                      //		      cerr<<"Have an NS hit for '"<<labelReverse(bdr.qname)<<"' on '"<<iter->qname<<"'"<<endl;
-                      bdr.auth=false;
-                    }
-                  }
-                }
-              } while(chopOff(sqname));
-            }
+            fixupAuth(records);
             
             staging->id_zone_map[bbd->d_id].setCtime();
             staging->id_zone_map[bbd->d_id].d_loaded=true; 
@@ -768,12 +796,20 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 
     ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
     DNSResourceRecord rr;
+    string hashed;
+    DNSSECKeeper dk;
+    NSEC3PARAMRecordContent ns3pr;
+    bool nsec3zone=dk.getNSEC3PARAM(bbd->d_name, &ns3pr);
     while(zpt.get(rr)) {
-      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority);
+      if(nsec3zone)
+        hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
     }
     // cerr<<"Start sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;        
     // sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
     // cerr<<"Sorting done"<<endl;
+    
+    fixupAuth(staging->id_zone_map[bbd->d_id].d_records);
     staging->id_zone_map[bbd->d_id].setCtime();
 
     s_state->id_zone_map[bbd->d_id]=staging->id_zone_map[bbd->d_id]; // move over
@@ -923,7 +959,6 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   name_id_map_t::const_iterator iditer;
   while((iditer=state->name_id_map.find(domain)) == state->name_id_map.end() && chopOff(domain))
     ;
-
 
   if(iditer==state->name_id_map.end()) {
     if(mustlog)

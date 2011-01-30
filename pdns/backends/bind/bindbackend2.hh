@@ -140,7 +140,7 @@ public:
   bool feedRecord(const DNSResourceRecord &r);
   bool commitTransaction();
   bool abortTransaction();
-
+  bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
   void alsoNotifies(const string &domain, set<string> *ips);
 
   typedef map<string, int, CIStringCompare> name_id_map_t;
@@ -221,7 +221,7 @@ private:
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
-
+  static void fixupAuth(shared_ptr<recordstorage_t> records);
   void loadConfig(string *status=0);
   static void nukeZoneRecords(BB2DomainInfo *bbd);
 };
