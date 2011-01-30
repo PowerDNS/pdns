@@ -483,7 +483,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
   NSEC3RecordContent n3rc;
   n3rc.d_set.insert(QType::RRSIG);
   n3rc.d_salt=ns3prc.d_salt;
-  n3rc.d_flags = 0;
+  n3rc.d_flags = ns3prc.d_flags;
   n3rc.d_iterations = ns3prc.d_iterations;
   n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
 
