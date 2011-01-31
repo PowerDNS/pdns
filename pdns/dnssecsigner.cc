@@ -114,9 +114,10 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   const DNSPrivateKey* rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
-  string realhash=getHashForRRSET(signQName, rrc, toSign); // this is what we sign
 
-  pair<string, string> lookup(rc->getPubKeyHash(), realhash);
+  string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
+
+  pair<string, string> lookup(rc->getPubKeyHash(), msg); // we key on the whole message now!
   
   {
     Lock l(&g_signatures_lock);
@@ -129,7 +130,10 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
       ; // cerr<<"Miss!"<<endl;
   }
   
-  rrc.d_signature = rc->sign(realhash);
+  //DTime dt;
+  //dt.set();
+  rrc.d_signature = rc->sign(msg);
+  //cerr<<dt.udiff()<<endl;
 
   Lock l(&g_signatures_lock);
   g_signatures[lookup] = rrc.d_signature;

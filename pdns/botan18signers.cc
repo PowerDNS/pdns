@@ -10,8 +10,6 @@
 
 using namespace Botan;
 
-//////////////////////////////
-
 class ECDSADNSPrivateKey : public DNSPrivateKey
 {
 public:
@@ -22,10 +20,10 @@ public:
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
-  bool verify(const std::string& hash, const std::string& signature) const;
+  bool verify(const std::string& msg, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
-  void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPublicKeyString(unsigned int algorithm, const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
@@ -59,7 +57,6 @@ void ECDSADNSPrivateKey::create(unsigned int bits)
     throw runtime_error("Unknown key length of "+lexical_cast<string>(bits)+" bits requested from ECDSA class");
   }
   d_key = shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(rng, getECParams((bits == 256) ? 13 : 14)));
-  
   
   PKCS8_Encoder* pk8e= d_key->pkcs8_encoder();
   MemoryVector<byte> getbits=pk8e->key_bits();
@@ -105,29 +102,15 @@ std::string ECDSADNSPrivateKey::convertToISC(unsigned int algorithm) const
   return ret.str();
 }
 
-void ECDSADNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::string& content )
+void ECDSADNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
 {
   /*Private-key-format: v1.2
    Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
+     
+  d_algorithm = drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  string privateKey = stormap["privatekey"];
   
-  istringstream input(content);
-  string sline, key, value, privateKey;
-  while(getline(input, sline)) {
-    tie(key,value)=splitField(sline, ':');
-    trim(value);
-    if(pdns_iequals(key,"Private-key-format")) {}
-    else if(key=="Algorithm")
-      drc.d_algorithm = atoi(value.c_str());
-    else if(key=="PrivateKey") {
-      Pipe pipe(new Base64_Decoder);
-      pipe.process_msg(value);
-      privateKey=pipe.read_all_as_string();
-    }
-    else
-      throw runtime_error("Unknown field '"+key+"' in Private Key Representation of ECDSA");
-  }
-  d_algorithm = drc.d_algorithm;
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
   
   EC_Domain_Params params=getECParams(drc.d_algorithm);
@@ -149,9 +132,7 @@ void ECDSADNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::stri
   noIdea.append(privateKey);
   
   MemoryVector<byte> tmp((byte*)noIdea.c_str(), noIdea.length());
-  cerr<<"key_bits"<<endl;
   p8e->key_bits(tmp);
-  cerr<<"Done reading"<<endl;
   delete p8e;
 }
 
@@ -192,10 +173,10 @@ void ECDSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::
   d_key.reset();
 }
 
-
-std::string ECDSADNSPrivateKey::sign(const std::string& hash) const
+std::string ECDSADNSPrivateKey::sign(const std::string& msg) const
 {
   AutoSeeded_RNG rng;
+  string hash = this->hash(msg);
   SecureVector<byte> signature=d_key->sign((byte*)hash.c_str(), hash.length(), rng);
   
   return string((const char*)signature.begin(), (const char*) signature.end());
@@ -216,18 +197,12 @@ std::string ECDSADNSPrivateKey::hash(const std::string& orig) const
   return string((const char*)result.begin(), (const char*) result.end());
 }
 
-
-bool ECDSADNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
+bool ECDSADNSPrivateKey::verify(const std::string& msg, const std::string& signature) const
 {
-  ECDSA_PublicKey* key;
-  if(d_key)
-    key = d_key.get();
-  else
-    key = d_pubkey.get();
-    
+  string hash = this->hash(msg);
+  ECDSA_PublicKey* key = d_key ? d_key.get() : d_pubkey.get();
   return key->verify((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
 }
-
 namespace {
 struct LoaderStruct
 {

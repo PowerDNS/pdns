@@ -47,12 +47,12 @@ pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADF
 pdns_server_LDADD= -lpolarssl
 
 if BOTAN19
-pdns_server_SOURCES += botan19signers.cc
+pdns_server_SOURCES += botan19signers.cc botansigners.cc
 pdns_server_LDADD += -lbotan -lgmp
 endif
 
 if BOTAN18
-pdns_server_SOURCES += botan18signers.cc
+pdns_server_SOURCES += botan18signers.cc botansigners.cc
 pdns_server_LDADD += -lbotan -lgmp
 endif
 
@@ -71,12 +71,12 @@ pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS
 pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 if BOTAN19
-pdnssec_SOURCES += botan19signers.cc
+pdnssec_SOURCES += botan19signers.cc botansigners.cc
 pdnssec_LDADD += -lbotan -lgmp
 endif
 
 if BOTAN18
-pdnssec_SOURCES += botan18signers.cc
+pdnssec_SOURCES += botan18signers.cc botansigners.cc
 pdnssec_LDADD += -lbotan -lgmp
 endif
 

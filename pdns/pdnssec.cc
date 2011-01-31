@@ -208,7 +208,9 @@ void verifyCrypto(const string& zone)
     }
   }
   
-  string hash = getHashForRRSET(qname, rrc, toSign);        
+  string msg = getMessageForRRSET(qname, rrc, toSign);        
+  DNSPrivateKey* dpk = DNSPrivateKey::make(rrc.d_algorithm);
+  string hash = dpk->sign(msg);
   cerr<<"Verify: "<<DNSPrivateKey::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, rrc.d_signature)<<endl;
   if(dsrc.d_digesttype) {
     cerr<<"Calculated DS: "<<apex<<" IN DS "<<makeDSFromDNSKey(apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;

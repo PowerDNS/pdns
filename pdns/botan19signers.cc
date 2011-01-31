@@ -32,7 +32,7 @@ public:
   bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
-  void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& content);
   void fromPublicKeyString(unsigned int algorithm, const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
@@ -105,24 +105,10 @@ std::string GOSTDNSPrivateKey::convertToISC(unsigned int algorithm) const
 */
 
 
-void GOSTDNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::string& content )
+void GOSTDNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
 { 
-  istringstream input(content);
-  string sline, key, value, privateKey;
-  while(getline(input, sline)) {
-    tie(key,value)=splitField(sline, ':');
-    trim(value);
-    if(pdns_iequals(key,"Private-key-format")) {}
-    else if(key=="Algorithm")
-      drc.d_algorithm = atoi(value.c_str());
-    else if(key=="GostAsn1") {
-      Pipe pipe(new Base64_Decoder);
-      pipe.process_msg(value);
-      privateKey=pipe.read_all_as_string();
-    }
-    else
-      throw runtime_error("Unknown field '"+key+"' in Private Key Representation of GOST");
-  }
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  string privateKey=stormap["gostasn1"];
   //cerr<<"PrivateKey.size() = "<<privateKey.size()<<endl;
   //cerr<<makeHexDump(string(privateKey.c_str(), 39))<<endl;
   string rawKey(privateKey.c_str()+39, privateKey.length()-39);
@@ -206,10 +192,13 @@ std::string GOSTDNSPrivateKey::getPublicKeyString() const
  ~ Tak bylo, tak yest' i tak budet vsegda!     ~  
  */
 
-std::string GOSTDNSPrivateKey::sign(const std::string& hash) const
+std::string GOSTDNSPrivateKey::sign(const std::string& msg) const
 {
   GOST_3410_Signature_Operation ops(*d_key);
   AutoSeeded_RNG rng;
+  
+  string hash= this->hash(msg);
+  
   SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);
 
 #if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
@@ -231,8 +220,9 @@ std::string GOSTDNSPrivateKey::hash(const std::string& orig) const
 }
 
 
-bool GOSTDNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
+bool GOSTDNSPrivateKey::verify(const std::string& message, const std::string& signature) const
 {
+  string hash = this->hash(message);
   GOST_3410_PublicKey* pk;
   if(d_pubkey) {
     pk =d_pubkey.get();
@@ -273,7 +263,7 @@ public:
   bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
-  void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPublicKeyString(unsigned int algorithm, const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
@@ -351,34 +341,20 @@ std::string ECDSADNSPrivateKey::convertToISC(unsigned int algorithm) const
   return ret.str();
 }
 
-void ECDSADNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::string& content )
+void ECDSADNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
   /*Private-key-format: v1.2
    Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   
-  istringstream input(content);
-  string sline, key, value, privateKey;
-  while(getline(input, sline)) {
-    tie(key,value)=splitField(sline, ':');
-    trim(value);
-    if(pdns_iequals(key,"Private-key-format")) {}
-    else if(key=="Algorithm")
-      drc.d_algorithm = atoi(value.c_str());
-    else if(key=="PrivateKey") {
-      Pipe pipe(new Base64_Decoder);
-      pipe.process_msg(value);
-      privateKey=pipe.read_all_as_string();
-    }
-    else
-      throw runtime_error("Unknown field '"+key+"' in Private Key Representation of ECDSA");
-  }
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  string privateKey=stormap["privatekey"];
+  
   d_algorithm = drc.d_algorithm;
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
   
   EC_Domain_Params params=getECParams(drc.d_algorithm);
   d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(params, bigint));
-  
 }
 
 std::string ECDSADNSPrivateKey::getPubKeyHash() const
@@ -417,8 +393,9 @@ void ECDSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::
 }
 
 
-std::string ECDSADNSPrivateKey::sign(const std::string& hash) const
+std::string ECDSADNSPrivateKey::sign(const std::string& msg) const
 {
+  string hash = this->hash(msg);
   ECDSA_Signature_Operation ops(*d_key);
   AutoSeeded_RNG rng;
   SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);

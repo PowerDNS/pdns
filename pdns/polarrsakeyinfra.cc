@@ -92,7 +92,7 @@ public:
   {
     return mpi_size(&d_context.N)*8;
   }
-  void fromISCString(DNSKEYRecordContent& drc, const std::string& content);
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
   void fromPublicKeyString(unsigned int algorithm, const std::string& raw);
   static DNSPrivateKey* maker(unsigned int algorithm)
@@ -144,8 +144,9 @@ std::string RSADNSPrivateKey::getPubKeyHash() const
   return string((char*)hash, sizeof(hash));
 }
 
-std::string RSADNSPrivateKey::sign(const std::string& hash) const
+std::string RSADNSPrivateKey::sign(const std::string& msg) const
 {
+  string hash = this->hash(msg);
   unsigned char signature[mpi_size(&d_context.N)];
   int hashKind;
   if(hash.size()==20)
@@ -167,15 +168,18 @@ std::string RSADNSPrivateKey::sign(const std::string& hash) const
   return string((char*) signature, sizeof(signature));
 }
 
-bool RSADNSPrivateKey::verify(const std::string& hash, const std::string& signature) const
+bool RSADNSPrivateKey::verify(const std::string& msg, const std::string& signature) const
 {
   int hashKind;
+  string hash=this->hash(msg);
   if(hash.size()==20)
     hashKind= SIG_RSA_SHA1;
   else if(hash.size()==32) 
     hashKind= SIG_RSA_SHA256;
   else
     hashKind = SIG_RSA_SHA512;
+  
+  
   
   int ret=rsa_pkcs1_verify(const_cast<rsa_context*>(&d_context), RSA_PUBLIC, 
     hashKind,
@@ -247,11 +251,12 @@ std::string RSADNSPrivateKey::convertToISC(unsigned int algorithm) const
 }
 
 
-void RSADNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::string& content)
+void RSADNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::string, std::string>& stormap)
 {
   string sline;
   string key,value;
-  map<string, mpi*> places;
+  typedef map<string, mpi*> places_t;
+  places_t places;
   
   rsa_init(&d_context, RSA_PKCS_V15, 0, NULL, NULL );
 
@@ -263,48 +268,17 @@ void RSADNSPrivateKey::fromISCString(DNSKEYRecordContent& drc, const std::string
   places["Exponent1"]=&d_context.DP;
   places["Exponent2"]=&d_context.DQ;
   places["Coefficient"]=&d_context.QP;
-
-  string modulus, exponent;
-  istringstream str(content);
-  unsigned char decoded[1024];
-  while(getline(str, sline)) {
-    tie(key,value)=splitField(sline, ':');
-    trim(value);
-
-    if(places.count(key)) {
-      if(places[key]) {
-        int len=sizeof(decoded);
-        if(base64_decode(decoded, &len, (unsigned char*)value.c_str(), value.length()) < 0) {
-          cerr<<"Error base64 decoding '"<<value<<"'\n";
-          exit(1);
-        }
-        //	B64Decode(value, decoded);
-        //	cerr<<key<<" decoded.length(): "<<8*len<<endl;
-        mpi_read_binary(places[key], decoded, len);
-        if(key=="Modulus")
-          modulus.assign((const char*)decoded,len);
-        if(key=="PublicExponent")
-          exponent.assign((const char*)decoded,len);
-      }
-    }
-    else {
-      if(key == "Algorithm") 
-        drc.d_algorithm = atoi(value.c_str());
-      else if(key != "Private-key-format")
-        cerr<<"Unknown field '"<<key<<"'\n";
-    }
+  
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  
+  string raw;
+  BOOST_FOREACH(const places_t::value_type& val, places) {
+    raw=stormap[toLower(val.first)];
+    mpi_read_binary(val.second, (unsigned char*) raw.c_str(), raw.length());
   }
+
   d_context.len = ( mpi_msb( &d_context.N ) + 7 ) >> 3; // no clue what this does
-
-  if(exponent.length() < 255) 
-    drc.d_key.assign(1, (char) (unsigned int) exponent.length());
-  else {
-    drc.d_key.assign(1, 0);
-    uint16_t len=htons(exponent.length());
-    drc.d_key.append((char*)&len, 2);
-  }
-  drc.d_key.append(exponent);
-  drc.d_key.append(modulus);
+  drc.d_key = this->getPublicKeyString();
   drc.d_protocol=3;
 }
 
@@ -393,15 +367,17 @@ string RSADNSPrivateKey::getPublicKeyString()  const
   keystring.append(modulus);
   return keystring;
 }
+
 namespace {
 struct LoaderStruct
 {
   LoaderStruct()
   {
-    DNSPrivateKey::report(5, &RSADNSPrivateKey::maker);
-    DNSPrivateKey::report(7, &RSADNSPrivateKey::maker);
-    DNSPrivateKey::report(8, &RSADNSPrivateKey::maker);
-    DNSPrivateKey::report(10, &RSADNSPrivateKey::maker);
+    DNSPrivateKey::report(5, &RSADNSPrivateKey::maker, true);
+    DNSPrivateKey::report(7, &RSADNSPrivateKey::maker, true);
+    DNSPrivateKey::report(8, &RSADNSPrivateKey::maker, true);
+    DNSPrivateKey::report(10, &RSADNSPrivateKey::maker, true);
   }
 } loader;
 }
+

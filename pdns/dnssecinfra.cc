@@ -12,6 +12,7 @@
 #include "polarssl/sha1.h"
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
+#include "base64.hh"
 
 using namespace boost;
 using namespace std;
@@ -19,24 +20,44 @@ using namespace boost::assign;
 
 DNSPrivateKey* DNSPrivateKey::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
-  string sline, isc, key, value;
+  string sline, isc;
   FILE *fp=fopen(fname, "r");
   if(!fp) {
     throw runtime_error("Unable to read file '"+string(fname)+"' for generating DNS Private Key");
   }
-  int algorithm=0;
+  
   while(stringfgets(fp, sline)) {
-    tie(key,value)=splitField(sline, ':');
-    if(pdns_iequals(key,"algorithm"))
-      algorithm = atoi(value.c_str());
-    isc.append(sline);
+    isc += sline;
   }
   fclose(fp);
+  return makeFromISCString(drc, isc);
+}
 
+DNSPrivateKey* DNSPrivateKey::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
+{
+  int algorithm = 0;
+  string sline, key, value, raw;
+  istringstream str(content);
+  map<string, string> stormap;
+  while(getline(str, sline)) {
+    tie(key,value)=splitField(sline, ':');
+    trim(value);
+    if(pdns_iequals(key,"algorithm")) {
+      algorithm = atoi(value.c_str());
+      stormap["algorithm"]=lexical_cast<string>(algorithm);
+      continue;
+    }
+    else if(pdns_iequals(key, "Private-key-format"))
+      continue;
+    raw.clear();
+    B64Decode(value, raw);
+    stormap[toLower(key)]=raw;
+  }
   DNSPrivateKey* dpk=make(algorithm);
-  dpk->fromISCString(drc, isc);
+  dpk->fromISCMap(drc, stormap);
   return dpk;
 }
+
 
 DNSPrivateKey* DNSPrivateKey::make(unsigned int algo)
 {
@@ -49,25 +70,12 @@ DNSPrivateKey* DNSPrivateKey::make(unsigned int algo)
   }
 }
 
-void DNSPrivateKey::report(unsigned int algo, maker_t* maker)
+void DNSPrivateKey::report(unsigned int algo, maker_t* maker, bool fallback)
 {
-  getMakers()[algo]=maker;
-}
-DNSPrivateKey* DNSPrivateKey::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
-{
-  int algorithm = 0;
-  string sline, key, value;
-  istringstream str(content);
-  while(getline(str, sline)) {
-    tie(key,value)=splitField(sline, ':');
-    if(pdns_iequals(key,"algorithm")) {
-      algorithm = atoi(value.c_str());
-      break;
-    }
+  if(getMakers().count(algo) && fallback) {
+    return;
   }
-  DNSPrivateKey* dpk=make(algorithm);
-  dpk->fromISCString(drc, content);
-  return dpk;
+  getMakers()[algo]=maker;
 }
 
 DNSPrivateKey* DNSPrivateKey::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
@@ -103,7 +111,7 @@ bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr
   return a->serialize("", true, true) < b->serialize("", true, true);
 }
 
-string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
+string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
 {
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
@@ -125,8 +133,7 @@ string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, 
     toHash.append(rdata);
   }
   
-  shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(rrc.d_algorithm));
-  return dpk->hash(toHash);
+  return toHash;
 }
 
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest)

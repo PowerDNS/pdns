@@ -19,7 +19,7 @@ class DNSPrivateKey
     virtual std::string getPublicKeyString()const =0;
     virtual int getBits() const =0;
     
-    virtual void fromISCString(DNSKEYRecordContent& drc, const std::string& content)=0;
+    virtual void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)=0;
     virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)=0;
     virtual void fromPublicKeyString(unsigned algorithm, const std::string& content)
     {
@@ -34,7 +34,7 @@ class DNSPrivateKey
     
     typedef DNSPrivateKey* maker_t(unsigned int algorithm);
     
-    static void report(unsigned int algorithm, maker_t* maker);
+    static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
   private:
     
     typedef std::map<unsigned int, maker_t*> makers_t;
@@ -86,7 +86,7 @@ struct CanonicalCompare: public binary_function<string, string, bool>
 };
 
 bool sharedDNSSECCompare(const boost::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
-string getHashForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);
+string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);
 
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest=1);
 
