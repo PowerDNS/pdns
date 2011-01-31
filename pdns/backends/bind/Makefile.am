@@ -27,11 +27,11 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l \
 ../../dnswriter.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc ../../sillyrecords.cc \
 ../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc # ../../dbdnsseckeeper.cc
 
-zone2ldap_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) -L../../ext/polarssl/library
-zone2ldap_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl
+zone2ldap_LDFLAGS=@THREADFLAGS@  -L../../ext/polarssl/library
+zone2ldap_LDADD= -lpolarssl
 
-zone2sql_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) -L../../ext/polarssl/library
-zone2sql_LDADD=$(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) -lpolarssl
+zone2sql_LDFLAGS=@THREADFLAGS@  -L../../ext/polarssl/library
+zone2sql_LDADD= -lpolarssl
 
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
