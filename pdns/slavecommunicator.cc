@@ -160,6 +160,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed"<<endl;
+    if(::arg().mustDo("slave-renotify"))
+      notifyDomain(domain);
   }
   catch(DBException &re) {
     L<<Logger::Error<<"Unable to feed record during incoming AXFR of '"+domain+"': "<<re.reason<<endl;
