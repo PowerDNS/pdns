@@ -120,7 +120,7 @@ int PacketHandler::findMboxFW(DNSPacket *p, DNSPacket *r, string &target)
   if(!getAuth(p, &sd, target, &zoneId))
     return false;
 
-  B.lookup("MBOXFW",string("%@")+target,p, zoneId);
+  B.lookup(QType(QType::MBOXFW),string("%@")+target,p, zoneId);
       
   while(B.get(rr))
     wedoforward=true;
@@ -145,7 +145,7 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
 
   bool found=false;
       
-  B.lookup("URL",target,p); // search for a URL before we search for an A
+  B.lookup(QType(QType::URL),target,p); // search for a URL before we search for an A
         
   while(B.get(rr)) {
     if(!found) 
@@ -164,7 +164,7 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
 
   // now try CURL
   
-  B.lookup("CURL",target,p); // search for a URL before we search for an A
+  B.lookup(QType(QType::CURL),target,p); // search for a URL before we search for an A
       
   while(B.get(rr)) {
     if(!found) 

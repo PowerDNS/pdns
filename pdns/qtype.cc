@@ -134,12 +134,6 @@ QType::QType(uint16_t n)
   code=n;
 }
 
-QType::QType(const char *p)
-{
-  QType();
-  code=chartocode(p);
-}
-
 string DNSResourceRecord::serialize() const
 {
   ostringstream ostr;

@@ -47,7 +47,6 @@ class QType
 public:
   QType(); //!< Naked constructor
   explicit QType(uint16_t); //!< convert from an integer to a QType
-  QType(const char *p);  //!< convert from a char* to a QType
   QType(const QType& orig) : code(orig.code)
   {
   }
