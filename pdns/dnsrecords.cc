@@ -349,6 +349,7 @@ void reportOtherTypes()
    NSECRecordContent::report();
    NSEC3RecordContent::report();
    NSEC3PARAMRecordContent::report();
+   DLVRecordContent::report();
    DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    OPTRecordContent::report();
 }
