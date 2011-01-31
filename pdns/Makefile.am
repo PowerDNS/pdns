@@ -43,7 +43,7 @@ randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnsseci
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc
 
 #
-pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library 
 pdns_server_LDADD= -lpolarssl
 
 if BOTAN19
@@ -67,7 +67,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
 	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc
 
-pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ 
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
 pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 if BOTAN19

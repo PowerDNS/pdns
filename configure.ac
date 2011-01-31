@@ -124,6 +124,12 @@ AC_ARG_ENABLE(botan1.9,
 AC_MSG_RESULT($enable_botan19)
 AM_CONDITIONAL(BOTAN19,test x"$enable_botan19" = "xyes")
 
+AC_MSG_CHECKING(whether we will be linking in Botan 1.8)
+AC_ARG_ENABLE(botan1.8, 
+ [  --enable-botan1.8	Use Botan 1.8],enable_botan18=yes, enable_botan18=no)
+AC_MSG_RESULT($enable_botan18)
+AM_CONDITIONAL(BOTAN18,test x"$enable_botan18" = "xyes")
+
 
 AC_MSG_CHECKING(whether we should build static binaries)
 
