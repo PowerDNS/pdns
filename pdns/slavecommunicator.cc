@@ -127,9 +127,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           qnames.insert(i->qname);
           
         i->domain_id=domain_id;
-        if(i->qtype.getCode()>=1024)
+#if 0
+        if(i->qtype.getCode()>=60000)
           throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
-
+#endif
         di.backend->feedRecord(*i);
       }
     }
