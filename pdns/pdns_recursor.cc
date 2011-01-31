@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2010  PowerDNS.COM BV
+    Copyright (C) 2003 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -657,9 +657,12 @@ void startDoResolve(void *p)
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
 }
 
-void makeControlChannelSocket()
+void makeControlChannelSocket(int processNum=-1)
 {
-  string sockname=::arg()["socket-dir"]+"/pdns_recursor.controlsocket";
+  string sockname=::arg()["socket-dir"]+"/pdns_recursor";
+  if(processNum >= 0)
+    sockname += "."+lexical_cast<string>(processNum);
+  sockname+=".controlsocket";
   s_rcc.listen(sockname);
   
 #ifndef WIN32
@@ -1697,7 +1700,8 @@ int serviceMain(int argc, char*argv[])
   makeUDPServerSockets();
   makeTCPServerSockets();
 
-  for(int forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
+  int forks;
+  for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
     if(!fork()) // we are child
       break;
   }
@@ -1717,7 +1721,7 @@ int serviceMain(int argc, char*argv[])
   signal(SIGPIPE,SIG_IGN);
   writePid();
 #endif
-  makeControlChannelSocket();
+  makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
   
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -1734,8 +1738,6 @@ int serviceMain(int argc, char*argv[])
   }
 
   Utility::dropPrivs(newuid, newgid);
-  
-  
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
   
   makeThreadPipes();

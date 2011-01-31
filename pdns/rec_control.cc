@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2006 PowerDNS.COM BV
+    Copyright (C) 2006 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -39,7 +39,7 @@ static void initArguments(int argc, char** argv)
   arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
 
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
-  arg().set("socket-pid","When controlling multiple recursors, the target pid")="";
+  arg().set("process","When controlling multiple recursors, the target process number")="";
   arg().set("timeout", "Number of seconds to wait for the recursor to respond")="5";
   arg().setCmd("help","Provide this helpful message");
 
@@ -49,7 +49,6 @@ static void initArguments(int argc, char** argv)
     cerr<<arg().helpstring(arg()["help"])<<endl;
     exit(99);
   }
-
 }
 
 int main(int argc, char** argv)
@@ -58,9 +57,11 @@ try
   initArguments(argc, argv);
 
   RecursorControlChannel rccS;
-  string sockname="pdns_recursor.controlsocket";
-  if(!arg()["socket-pid"].empty())
-    sockname+="."+arg()["socket-pid"];
+  string sockname="pdns_recursor";
+  if(!arg()["process"].empty())
+    sockname+="."+arg()["process"];
+
+  sockname.append(".controlsocket");
 
   rccS.connect(arg()["socket-dir"], sockname);
 
