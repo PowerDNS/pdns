@@ -413,7 +413,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
         			{
         				attrname = m_attribute->first;
         				qstr = attrname.substr( 0, attrname.length() - 6 );   // extract qtype string from ldap attribute name
-        				qt = QType( const_cast<char*>(toUpper( qstr ).c_str()) );
+        				qt = const_cast<char*>(toUpper( qstr ).c_str());
 
         				while( m_value != m_attribute->second.end() )
         				{

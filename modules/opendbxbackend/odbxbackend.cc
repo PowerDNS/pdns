@@ -366,7 +366,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
         		{
-        			rr.qtype = QType( tmp );
+        			rr.qtype = tmp;
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
