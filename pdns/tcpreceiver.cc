@@ -45,7 +45,7 @@
 #include "resolver.hh"
 #include "communicator.hh"
 #include "namespaces.hh"
-
+#include "signingpipe.hh"
 extern PacketCache PC;
 extern StatBag S;
 
@@ -389,16 +389,39 @@ struct NSECXEntry
   set<uint16_t> d_set;
   unsigned int d_ttl;
 };
+
+DNSResourceRecord makeDNSRRFromSOAData(const SOAData& sd)
+{
+  DNSResourceRecord soa;
+  soa.qname= sd.qname;
+  soa.qtype=QType::SOA;
+  soa.content=serializeSOAData(sd);
+  soa.ttl=sd.ttl;
+  soa.domain_id=sd.domain_id;
+  soa.auth = true;
+  soa.d_place=DNSResourceRecord::ANSWER;
+  return soa;
+}
+
+shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
+{
+  shared_ptr<DNSPacket> ret = shared_ptr<DNSPacket>(q->replyPacket());
+  ret->setCompress(false);
+  ret->d_dnssecOk=true; // WRONG
+  ret->d_tcp = true;
+  return ret;
+}
+
 }
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int outsock)
 {
-  shared_ptr<DNSPacket> outpacket;
-  DNSSECKeeper dk;
   bool noAXFRBecauseOfNSEC3Narrow=false;
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool NSEC3Zone=false;
+  
+  DNSSECKeeper dk;
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
@@ -406,11 +429,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       noAXFRBecauseOfNSEC3Narrow=true;
     }
   }
-
+  
+  shared_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
+  
   if(!canDoAXFR(q) || noAXFRBecauseOfNSEC3Narrow) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
-
-    outpacket=shared_ptr<DNSPacket>(q->replyPacket());
     outpacket->setRcode(RCode::Refused); 
     // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
     sendPacket(outpacket,outsock);
@@ -418,19 +441,12 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
   
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
-  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
-
-  DNSResourceRecord soa;  
-  DNSResourceRecord rr;
 
   SOAData sd;
   sd.db=(DNSBackend *)-1; // force uncached answer
   {
     Lock l(&s_plock);
-    
-    // find domain_id via SOA and list complete domain. No SOA, no AXFR
-    
-    DLOG(L<<"Looking for SOA"<<endl);
+    DLOG(L<<"Looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
     if(!s_P) {
       L<<Logger::Error<<"TCP server is without backend connections in doAXFR, launching"<<endl;
       s_P=new PacketHandler;
@@ -442,56 +458,48 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       sendPacket(outpacket,outsock);
       return 0;
     }
-
   }
-  PacketHandler P; // now open up a database connection, we'll need it
-
+ 
+  UeberBackend db;
   sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!P.getBackend()->getSOA(target, sd)) {
-      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
+  if(!db.getSOA(target, sd)) {
+    L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(9); // 'NOTAUTH'
     sendPacket(outpacket,outsock);
     return 0;
   }
 
-  soa.qname=target;
-  soa.qtype=QType::SOA;
-  soa.content=serializeSOAData(sd);
-  soa.ttl=sd.ttl;
-  soa.domain_id=sd.domain_id;
-  soa.auth = true;
-  soa.d_place=DNSResourceRecord::ANSWER;
-    
+
   if(!sd.db || sd.db==(DNSBackend *)-1) {
     L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
     outpacket->setRcode(RCode::ServFail);
     sendPacket(outpacket,outsock);
     return 0;
   }
- 
-  DLOG(L<<"Issuing list command - opening dedicated database connection"<<endl);
 
-  DNSBackend *B=sd.db; // get the RIGHT backend
-
-  // now list zone
-  if(!(B->list(target, sd.domain_id))) {  
+  
+  // now start list zone
+  if(!(sd.db->list(target, sd.domain_id))) {  
     L<<Logger::Error<<"Backend signals error condition"<<endl;
     outpacket->setRcode(2); // 'SERVFAIL'
     sendPacket(outpacket,outsock);
     return 0;
   }
-  /* write first part of answer */
-
+  
+  UeberBackend signatureDB; 
+  ChunkedSigningPipe csp(dk, signatureDB, target);
+  
+  DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
+  csp.submit(soa); // an AXFR always starts with the SOA
   DLOG(L<<"Sending out SOA"<<endl);
-  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
-  outpacket->addRecord(soa); // AXFR format begins and ends with a SOA record, so we add one
-  //  sendPacket(outpacket, outsock);
+  
+  
   typedef map<string, NSECXEntry, CanonicalCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
   
   // this is where the DNSKEYs go  in
-
   DNSSECKeeper::keyset_t keys = dk.getKeys(target);
+  DNSResourceRecord rr;
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
     rr.qname = target;
     rr.qtype = QType(QType::DNSKEY);
@@ -503,20 +511,14 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     
     ne.d_set.insert(rr.qtype.getCode());
     ne.d_ttl = rr.ttl;
-    outpacket->addRecord(rr);
+    csp.submit(rr);
   }
+  
   /* now write all other records */
-
-  int count=0;
-  int chunk=100; // FIXME: this should probably be autosizing
-  if(::arg().mustDo("strict-rfc-axfrs"))
-    chunk=1;
-
-  outpacket->setCompress(false);
-  outpacket->d_dnssecOk=true; // WRONG
+  
   string keyname;
-  UeberBackend signatureDB;
-  while(B->get(rr)) {
+  
+  while(sd.db->get(rr)) {
     if(rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS) {
       keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
       NSECXEntry& ne = nsecxrepo[keyname];
@@ -526,21 +528,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     if(rr.qtype.getCode() == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
 
-    if(rr.qtype.getCode() == QType::NS) {
-      // cerr<<rr.qname<<" NS, auth="<<rr.auth<<endl;
-    }
-
-    outpacket->addRecord(rr);
-
-    if(!((++count)%chunk)) {
-      count=0;
-      addRRSigs(dk, signatureDB, sd.qname, *outpacket);
+    if(csp.submit(rr))  {
+      outpacket->getRRS() = csp.getChunk();
       sendPacket(outpacket, outsock);
-
-      outpacket=shared_ptr<DNSPacket>(q->replyPacket());
-      outpacket->setCompress(false);
-      outpacket->d_dnssecOk=true; // WRONG
-      // FIXME: Subsequent messages SHOULD NOT have a question section, though the final message MAY.
+      outpacket=getFreshAXFRPacket(q); 
     }
   }
   
@@ -567,8 +558,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         rr.qtype = QType::NSEC3;
         rr.d_place = DNSResourceRecord::ANSWER;
         rr.auth=true;
-        outpacket->addRecord(rr);
-        count++;
+        if(csp.submit(rr)) {
+          outpacket->getRRS() = csp.getChunk();
+          sendPacket(outpacket, outsock);
+          outpacket=getFreshAXFRPacket(q);
+        }
       }
     }
     else for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
@@ -589,21 +583,26 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       rr.qtype = QType::NSEC;
       rr.d_place = DNSResourceRecord::ANSWER;
       rr.auth=true;
-      outpacket->addRecord(rr);
-      count++;
+      if(csp.submit(rr)) {
+        outpacket->getRRS() = csp.getChunk();
+        sendPacket(outpacket, outsock);
+        outpacket=getFreshAXFRPacket(q);
+      }
     }
   }
   
-  if(count) {
-    addRRSigs(dk, signatureDB, sd.qname, *outpacket);
+  outpacket->getRRS() = csp.getChunk(true); // final
+  if(!outpacket->getRRS().empty()) {
     sendPacket(outpacket, outsock);
+    outpacket=getFreshAXFRPacket(q);
   }
-
+  
+  
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
-  outpacket=shared_ptr<DNSPacket>(q->replyPacket());
+  outpacket=getFreshAXFRPacket(q);
   
-  addRRSigs(dk, signatureDB, sd.qname, *outpacket); // don't sign the SOA!
+  
   outpacket->addRecord(soa);
   sendPacket(outpacket, outsock);
   DLOG(L<<"last packet - close"<<endl);

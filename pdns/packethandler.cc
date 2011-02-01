@@ -1356,7 +1356,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     //    doDNSSECProcessing(p, r);
 
     if(p->d_dnssecOk)
-      addRRSigs(d_dk, B, sd.qname, *r);
+      addRRSigs(d_dk, B, sd.qname, r->getRRS());
     r->wrapup(); // needed for inserting in cache
     PC.insert(p, r); // in the packet cache
   }

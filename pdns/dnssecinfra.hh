@@ -124,7 +124,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);
 void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 class DNSPacket;
-void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, DNSPacket& p);
+void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vector<DNSResourceRecord>& rrs);
 
 
 #endif

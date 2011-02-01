@@ -145,10 +145,8 @@ static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)
   return a.d_place < b.d_place;
 }
 
-void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, DNSPacket& p)
+void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vector<DNSResourceRecord>& rrs)
 {
-  vector<DNSResourceRecord>& rrs=p.getRRS();
-  
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
   
   string signQName, wildcardQName;
@@ -161,10 +159,10 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, DNSP
   vector<DNSResourceRecord> signedRecords;
 
   for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
-    signedRecords.push_back(*pos);
     if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
       addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
     }
+    signedRecords.push_back(*pos);
     signQName= pos->qname;
     wildcardQName = pos->wildcardname;
     signQType = pos ->qtype.getCode();
