@@ -551,10 +551,17 @@ static void prefetchFile(const std::string& fname)
 void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
 {
   pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
-            string sqname;
+  string sqname;
+  
+  recordstorage_t nssets;
+  BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
+    if(bdr.qtype==QType::NS) 
+      nssets.insert(bdr);
+  }
   
   BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
     bdr.auth=true;
+    
     if(bdr.qtype == QType::DS) // as are delegation signer records
       continue;
 
@@ -563,15 +570,8 @@ void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
     do {
       if(sqname.empty()) // this is auth of course!
         continue; 
-    
-      range=equal_range(records->begin(), records->end(), sqname); // XXX why isn't this wrong? should be records->equal_range, right?
-      if(range.first != range.second) {
-        for(recordstorage_t::const_iterator iter = range.first ; iter != range.second; ++iter) {
-          if(iter->qtype == QType::NS) {
-            //		      cerr<<"Have an NS hit for '"<<labelReverse(bdr.qname)<<"' on '"<<iter->qname<<"'"<<endl;
-            bdr.auth=false;
-          }
-        }
+      if(bdr.qtype == QType::NS || nssets.count(sqname)) { // NS records which are not apex are unauth by definition
+        bdr.auth=false;
       }
     } while(chopOff(sqname));
   }
@@ -683,8 +683,6 @@ void Bind2Backend::loadConfig(string* status)
             // sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
             
             shared_ptr<recordstorage_t > records=staging->id_zone_map[bbd->d_id].d_records;
-          
-            
             fixupAuth(records);
             
             staging->id_zone_map[bbd->d_id].setCtime();
@@ -837,43 +835,43 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
 {
   string domain=toLower(qname);
 
-  cout<<"starting lower bound for: '"<<domain<<"'"<<endl;
+  //cout<<"starting lower bound for: '"<<domain<<"'"<<endl;
 
-  recordstorage_t::const_iterator iter = lower_bound(bbd.d_records->begin(), bbd.d_records->end(), domain);
+  recordstorage_t::const_iterator iter = bbd.d_records->lower_bound(domain);
 
   while(iter != bbd.d_records->begin() && !boost::prior(iter)->auth && boost::prior(iter)->qtype!=QType::NS) {
-    cerr<<"Going backwards.."<<endl;
+    //cerr<<"Going backwards.."<<endl;
     iter--;
   }
   
   if(iter == bbd.d_records->end()) {
-    cerr<<"Didn't find anything"<<endl;
+    //cerr<<"Didn't find anything"<<endl;
     return false;
   }
   if(iter != bbd.d_records->begin()) {
-    cerr<<"\tFound: '"<<boost::prior(iter)->qname<<"', auth = "<<boost::prior(iter)->auth<<"\n";
+    //cerr<<"\tFound: '"<<boost::prior(iter)->qname<<"', auth = "<<boost::prior(iter)->auth<<"\n";
     before = boost::prior(iter)->qname;
   }
   else {
-    cerr<<"PANIC! Wanted something before the first record!"<<endl;
+    //cerr<<"PANIC! Wanted something before the first record!"<<endl;
     before.clear();
   }
 
-  cerr<<"Now upper bound"<<endl;
-  iter = upper_bound(bbd.d_records->begin(), bbd.d_records->end(), domain);
+  //cerr<<"Now upper bound"<<endl;
+  iter = bbd.d_records->upper_bound(domain);
 
   while(iter!=bbd.d_records->end() && (!iter->auth && iter->qtype != QType::NS))
     iter++;
 
   if(iter == bbd.d_records->end()) {
-    cerr<<"\tFound the end, begin storage: '"<<bbd.d_records->begin()->qname<<"', '"<<bbd.d_name<<"'"<<endl;
+    //cerr<<"\tFound the end, begin storage: '"<<bbd.d_records->begin()->qname<<"', '"<<bbd.d_name<<"'"<<endl;
     after.clear(); // this does the right thing
   } else {
-    cerr<<"\tFound: '"<<iter->qname<<"'"<<endl;
+    //cerr<<"\tFound: '"<<iter->qname<<"'"<<endl;
     after = (iter)->qname;
   }
 
-  cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
+  //cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
   return true;
 }
 
@@ -886,13 +884,13 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   string auth=state->id_zone_map[id].d_name;
     
   if(!dk.getNSEC3PARAM(auth, &ns3pr)) {
-    cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
+    //cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
     return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
   
   }
   else {
     string lqname = toLower(qname);
-    cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
+    //cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
     typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
     records_by_hashindex_t& hashindex=boost::multi_index::get<HashedTag>(*bbd.d_records);
     
@@ -905,7 +903,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 //    cerr<<"iter == hashindex.begin(): "<< (iter == hashindex.begin()) << ", ";
   //  cerr<<"iter == hashindex.end(): "<< (iter == hashindex.end()) << endl;
     if(lowIter == hashindex.end()) {  
-      cerr<<"This hash is beyond the highest hash, wrapping around"<<endl;
+//      cerr<<"This hash is beyond the highest hash, wrapping around"<<endl;
       before = hashindex.rbegin()->nsec3hash; // highest hash
       after = hashindex.begin()->nsec3hash; // lowest hash
       unhashed = dotConcat(labelReverse(hashindex.rbegin()->qname), auth);
@@ -913,7 +911,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     else if(lowIter->nsec3hash == lqname) { // exact match
       before = lowIter->nsec3hash;
       unhashed = dotConcat(labelReverse(lowIter->qname), auth);
-      cerr<<"Had direct hit, setting unhashed: "<<unhashed<<endl;      
+  //    cerr<<"Had direct hit, setting unhashed: "<<unhashed<<endl;      
       if(highIter != hashindex.end())
        after = highIter->nsec3hash;
       else
@@ -939,7 +937,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       }
     }
     
-    cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
+    //cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
     return true;
   }
 }
@@ -1003,8 +1001,10 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
 
   string lname=labelReverse(toLower(d_handle.qname));
-  // cout<<"starting equal range for: '"<<d_handle.qname<<"', search is for: '"<<lname<<"'"<<endl;
-  range=equal_range(d_handle.d_records->begin(), d_handle.d_records->end(), lname);
+  //cout<<"starting equal range for: '"<<d_handle.qname<<"', search is for: '"<<lname<<"'"<<endl;
+ 
+  range = d_handle.d_records->equal_range(lname);
+  //cout<<"End equal range"<<endl;
   d_handle.mustlog = mustlog;
   
   if(range.first==range.second) {

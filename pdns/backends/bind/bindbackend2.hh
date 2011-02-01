@@ -38,6 +38,7 @@ using namespace std;
 using namespace boost;
 using namespace ::boost::multi_index;
 
+
 /** This struct is used within the Bind2Backend to store DNS information. 
     It is almost identical to a DNSResourceRecord, but then a bit smaller and with different sorting rules, which make sure that the SOA record comes up front.
 */
@@ -62,23 +63,26 @@ struct Bind2DNSRecord
   }
 };
 
-inline bool operator<(const string &a, const Bind2DNSRecord &b)
-{
-  return a < b.qname;
-}
-
-inline bool operator<(const Bind2DNSRecord &a, const string& b)
-{
-  return a.qname < b;
-}
-
+struct Bind2DNSCompare : std::less<Bind2DNSRecord> 
+{ 
+    using std::less<Bind2DNSRecord>::operator(); 
+    // use operator< 
+    bool operator() (const std::string& a, const Bind2DNSRecord& b) const 
+    {return a < b.qname;} 
+    bool operator() (const Bind2DNSRecord& a, const std::string& b) const 
+    {return a.qname < b;} 
+    bool operator() (const Bind2DNSRecord& a, const Bind2DNSRecord& b) const
+    {
+      return a < b;
+    }
+}; 
 
 struct HashedTag{};
 
 typedef multi_index_container<
   Bind2DNSRecord,
   indexed_by  <
-                 ordered_non_unique<identity<Bind2DNSRecord> >,
+                 ordered_non_unique<identity<Bind2DNSRecord>, Bind2DNSCompare >,
                  ordered_non_unique<tag<HashedTag>, member<Bind2DNSRecord,std::string,&Bind2DNSRecord::nsec3hash> >
               >
 > recordstorage_t;
