@@ -24,8 +24,10 @@ using namespace Botan;
 class GOSTDNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
+  explicit GOSTDNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm) {}
   void create(unsigned int bits);
-  std::string convertToISC(unsigned int algorithm) const;
+  string getName() const { return "Botan 1.9 GOST"; }
+  stormap_t convertToISCMap() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
@@ -33,13 +35,13 @@ public:
   std::string getPublicKeyString() const;
   int getBits() const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& content);
-  void fromPublicKeyString(unsigned int algorithm, const std::string& content);
+  void fromPublicKeyString(const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
-    return new GOSTDNSCryptoKeyEngine();
+    return new GOSTDNSCryptoKeyEngine(algorithm);
   }
 
 private:
@@ -60,7 +62,6 @@ void GOSTDNSCryptoKeyEngine::create(unsigned int bits)
   AutoSeeded_RNG rng;
   EC_Domain_Params params("1.2.643.2.2.35.1");
   d_key = shared_ptr<GOST_3410_PrivateKey>(new GOST_3410_PrivateKey(rng, params));
-  cerr<<"Made a key!"<<endl;
 }
 
 int GOSTDNSCryptoKeyEngine::getBits() const
@@ -76,25 +77,20 @@ int GOSTDNSCryptoKeyEngine::getBits() const
 */
 
 
-std::string GOSTDNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
+DNSCryptoKeyEngine::stormap_t GOSTDNSCryptoKeyEngine::convertToISCMap() const
 { 
-  ostringstream ret;
-  ret<<"Private-key-format: v1.2\nAlgorithm: 12 (ECC-GOST)\n";
-  ret<<"GostAsn1: "; //XXX ??
+  stormap_t stormap;
+  stormap["Algorithm"]="12 (ECC-GOST)";
+  
   unsigned char asn1Prefix[]=
   {0x30, 0x45, 0x02, 0x01, 0x00, 0x30, 0x1c, 0x06, 0x06, 0x2a, 0x85, 0x03, 0x02, 0x02, 
    0x13, 0x30, 0x12, 0x06, 0x07, 0x2a, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01, 0x06, 0x07, 
    0x2a, 0x85, 0x03, 0x02, 0x02, 0x1e, 0x01, 0x04, 0x22, 0x04, 0x20}; // this is DER, fixed for a 32 byte key
 
   SecureVector<byte> buffer=BigInt::encode(d_key->private_value());
-  
-  Pipe pipe(new Base64_Encoder);
-  pipe.start_msg();
-  pipe.write(asn1Prefix, sizeof(asn1Prefix));
-  pipe.write(buffer);
-  pipe.end_msg();
-  ret<<pipe.read_all_as_string()<<"\n";
-  return ret.str();
+  stormap["GostAsn1"].assign((const char*)asn1Prefix, sizeof(asn1Prefix));
+  stormap["GostAsn1"].append((const char*)&*buffer.begin(), (const char*)&*buffer.end());
+  return stormap;
 }
 
 /*
@@ -143,7 +139,7 @@ BigInt decode_le(const byte msg[], size_t msg_len)
    }
 
 }
-void GOSTDNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, const std::string& input)
+void GOSTDNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
 {
   BigInt x, y;
   
@@ -253,10 +249,11 @@ bool GOSTDNSCryptoKeyEngine::verify(const std::string& message, const std::strin
 class ECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit ECDSADNSCryptoKeyEngine(unsigned int algo) :d_algorithm(algo)
+  explicit ECDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
   {}
+  string getName() const { return "Botan 1.9 ECDSA"; }
   void create(unsigned int bits);
-  std::string convertToISC(unsigned int algorithm) const;
+  stormap_t convertToISCMap() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
@@ -264,7 +261,7 @@ public:
   std::string getPublicKeyString() const;
   int getBits() const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
-  void fromPublicKeyString(unsigned int algorithm, const std::string& content);
+  void fromPublicKeyString(const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
@@ -277,7 +274,6 @@ private:
   static EC_Domain_Params getECParams(unsigned int algorithm);
   shared_ptr<ECDSA_PrivateKey> d_key;
   shared_ptr<ECDSA_PublicKey> d_pubkey;
-  unsigned int d_algorithm;
 };
 
 EC_Domain_Params ECDSADNSCryptoKeyEngine::getECParams(unsigned int algorithm) 
@@ -315,30 +311,24 @@ int ECDSADNSCryptoKeyEngine::getBits() const
   return -1;
 }
 
-std::string ECDSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
+DNSCryptoKeyEngine::stormap_t ECDSADNSCryptoKeyEngine::convertToISCMap() const
 {
-  /*Private-key-format: v1.2
-   Algorithm: 13 (ECDSAP256SHA256)
+  /* Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-   
-  ostringstream ret;
-  ret<<"Private-key-format: v1.2\nAlgorithm: ";
-  if(getBits()==256) 
-    ret << "13 (ECDSAP256SHA256)\n";
-  else if(getBits()==384) 
-    ret << "14 (ECDSAP384SHA384)\n";
-  else 
-    ret <<" ? (?)\n";
+  map<string, string> stormap;
   
-  ret<<"PrivateKey: ";
+  if(getBits()==256) 
+    stormap["Algorithm"] = "13 (ECDSAP256SHA256)";
+  else if(getBits()==384) 
+    stormap["Algorithm"] ="14 (ECDSAP384SHA384)";
+  else 
+    stormap["Algorithm"] =" ? (?)";
   
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
+  stormap["PrivateKey"]=string((char*)&*buffer.begin(), (char*)&*buffer.end());
   
-  Pipe pipe(new Base64_Encoder);
-  pipe.process_msg(buffer);
-  ret<<pipe.read_all_as_string()<<"\n";
-  return ret.str();
+  return stormap;
 }
 
 void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
@@ -348,18 +338,18 @@ void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std:
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  if(drc.d_algorithm != d_algorithm) 
+    throw runtime_error("Tried to feed an algorithm "+lexical_cast<string>(drc.d_algorithm)+" to a "+lexical_cast<string>(d_algorithm)+" key!");
   string privateKey=stormap["privatekey"];
   
-  d_algorithm = drc.d_algorithm;
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
-  
-  EC_Domain_Params params=getECParams(drc.d_algorithm);
+  EC_Domain_Params params=getECParams(d_algorithm);
   d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(params, bigint));
 }
 
-std::string ECDSADNSCryptoKeyEngine::getPubKeyHash() const
+std::string ECDSADNSCryptoKeyEngine::getPubKeyHash() const 
 {
-  const BigInt&x = d_key->private_value();
+  const BigInt&x = d_key->private_value();   // um, this is not the 'pubkeyhash', ahu
   SecureVector<byte> buffer=BigInt::encode(x);
   return string((const char*)buffer.begin(), (const char*)buffer.end());
 }
@@ -377,16 +367,14 @@ std::string ECDSADNSCryptoKeyEngine::getPublicKeyString() const
   return string((const char*)bits.begin(), (const char*)bits.end());
 }
 
-void ECDSADNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, const std::string&input) 
+void ECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input) 
 {
   BigInt x, y;
   
   x.binary_decode((const byte*)input.c_str(), input.length()/2);
   y.binary_decode((const byte*)input.c_str() + input.length()/2, input.length()/2);
 
-  d_algorithm = algorithm;
-
-  EC_Domain_Params params=getECParams(algorithm);
+  EC_Domain_Params params=getECParams(d_algorithm);
   PointGFp point(params.get_curve(), x,y);
   d_pubkey = shared_ptr<ECDSA_PublicKey>(new ECDSA_PublicKey(params, point));
   d_key.reset();
@@ -418,8 +406,9 @@ std::string ECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
   return string((const char*)result.begin(), (const char*) result.end());
 }
 
-bool ECDSADNSCryptoKeyEngine::verify(const std::string& hash, const std::string& signature) const
+bool ECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
+  string hash = this->hash(msg);
   ECDSA_PublicKey* key;
   if(d_key)
     key = d_key.get();

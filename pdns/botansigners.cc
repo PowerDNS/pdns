@@ -13,18 +13,19 @@ using namespace Botan;
 class BotanRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit BotanRSADNSCryptoKeyEngine(unsigned int algo) :d_algorithm(algo)
+  explicit BotanRSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
   {}
+  string getName() const { return "Botan RSA"; }
   void create(unsigned int bits);
-  std::string convertToISC(unsigned int algorithm) const;
+  stormap_t convertToISCMap() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
+  std::string sign(const std::string& msg) const; 
   std::string hash(const std::string& hash) const; 
-  bool verify(const std::string& hash, const std::string& signature) const;
+  bool verify(const std::string& msg, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
-  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
-  void fromPublicKeyString(unsigned int algorithm, const std::string& content);
+  void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap);
+  void fromPublicKeyString(const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
@@ -36,7 +37,6 @@ public:
 private:
   shared_ptr<RSA_PrivateKey> d_key;
   shared_ptr<RSA_PublicKey> d_pubkey;
-  unsigned int d_algorithm;
 };
 
 void BotanRSADNSCryptoKeyEngine::create(unsigned int bits)
@@ -51,13 +51,10 @@ int BotanRSADNSCryptoKeyEngine::getBits() const
 }
 
 namespace {
-string asBase64(const BigInt& x)
+string asRaw(const BigInt& x)
 {
   SecureVector<byte> buffer=BigInt::encode(x);
-  
-  Pipe pipe(new Base64_Encoder);
-  pipe.process_msg(buffer);
-  return pipe.read_all_as_string();
+  return string((const char*)&*buffer.begin(), (const char*)&*buffer.end());
 }
 
 BigInt fromRaw(const std::string& raw)
@@ -67,28 +64,25 @@ BigInt fromRaw(const std::string& raw)
   return BigInt::decode((byte*)raw.c_str(), raw.length());
 }
 }
-std::string BotanRSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
+
+DNSCryptoKeyEngine::stormap_t BotanRSADNSCryptoKeyEngine::convertToISCMap() const
 {
-  ostringstream ret;
-  ret<<"Private-key-format: v1.2\nAlgorithm: "<<d_algorithm;
-  switch(algorithm) {
-    case 5:
-    case 7 :
-      ret << " (RSASHA1)\n";
-      break;
-    case 8:
-      ret << " (RSASHA256)\n";
-      break;
-    default:
-      ret <<" (?)\n";
-      break;
-  }
+  stormap_t stormap;
+  stormap["Algorithm"] = lexical_cast<string>(d_algorithm);
+  if(d_algorithm == 5 || d_algorithm ==7 )
+    stormap["Algorithm"]+= " (RSASHA1)";
+  else if(d_algorithm == 8)
+    stormap["Algorithm"] += " (RSASHA256)";
+  else if(d_algorithm == 10)
+    stormap["Algorithm"] += " (RSASHA512)";
+  else
+    stormap["Algorithm"] += " (?)";
   
-  ret<<"Modulus: " << asBase64(d_key->get_n())<<endl;
-  ret<<"PublicExponent: " << asBase64(d_key->get_e())<<endl;
-  ret<<"PrivateExponent: " << asBase64(d_key->get_d())<<endl;
-  ret<<"Prime1: " << asBase64(d_key->get_p())<<endl;
-  ret<<"Prime2: " << asBase64(d_key->get_q())<<endl;
+  stormap["Modulus"] = asRaw(d_key->get_n());
+  stormap["PublicExponent"] = asRaw(d_key->get_e());
+  stormap["PrivateExponent"] = asRaw(d_key->get_d());
+  stormap["Prime1"] = asRaw(d_key->get_p());
+  stormap["Prime2"] = asRaw(d_key->get_q());
   
 #if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)  
   BigInt d1 = d_key->get_d() % (d_key->get_p() - 1);
@@ -97,10 +91,10 @@ std::string BotanRSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) con
   BigInt d1 = d_key->get_d1();
   BigInt d2 = d_key->get_d2();
 #endif
-  ret<<"Exponent1: " << asBase64(d1)<<endl;
-  ret<<"Exponent2: " << asBase64(d2)<<endl;
-  ret<<"Coefficient: " << asBase64(d_key->get_q())<<endl;
-  return ret.str();
+  stormap["Exponent1"]=asRaw(d1);
+  stormap["Exponent2"]=asRaw(d2);
+  stormap["Coefficient"]=asRaw(d_key->get_q());
+  return stormap;
 }
 
 void BotanRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
@@ -114,7 +108,10 @@ void BotanRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<s
   e=fromRaw(stormap["publicexponent"]);
   n=fromRaw(stormap["modulus"]);
   
-  d_algorithm = drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  if(drc.d_algorithm != d_algorithm) 
+    throw runtime_error("Unpossible, loaded a key from storage with wrong algorithm!");
+    
   AutoSeeded_RNG rng;
   d_key = shared_ptr<RSA_PrivateKey>(new RSA_PrivateKey(rng, p, q, e, d, n));
   d_pubkey.reset();
@@ -154,9 +151,8 @@ std::string BotanRSADNSCryptoKeyEngine::getPublicKeyString() const
   return keystring;
 }
 
-void BotanRSADNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, const std::string& rawString) 
+void BotanRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString) 
 {
-  d_algorithm = algorithm;
   string exponent, modulus;
   const unsigned char* raw = (const unsigned char*)rawString.c_str();
   
@@ -167,11 +163,10 @@ void BotanRSADNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, con
     exponent=rawString.substr(3, raw[1]*0xff + raw[2]);
     modulus = rawString.substr(3+ raw[1]*0xff + raw[2]);
   }
-  
   BigInt e = BigInt::decode((const byte*)exponent.c_str(), exponent.length());
   BigInt n = BigInt::decode((const byte*)modulus.c_str(), modulus.length());
   
-  d_pubkey = shared_ptr<RSA_PublicKey>(new RSA_PublicKey(e,n));
+  d_pubkey = shared_ptr<RSA_PublicKey>(new RSA_PublicKey(n, e));
   d_key.reset();
 }
 
@@ -239,8 +234,8 @@ bool BotanRSADNSCryptoKeyEngine::verify(const std::string& msg, const std::strin
   std::auto_ptr<PK_Verifier> ver(get_pk_verifier(*key, emsa));
   return ver->verify_message((byte*)msg.c_str(), msg.length(), (byte*)signature.c_str(), signature.length());
 #else
-  RSA_Public_Operation ops(*key);
-  return ops.verify((byte*)msg.c_str(), msg.length(), (byte*)signature.c_str(), signature.length());
+  PK_Verifier pkv(*key, emsa);
+  return pkv.verify_message((byte*)msg.c_str(), msg.length(), (byte*)signature.c_str(), signature.length());
 #endif
 }
 

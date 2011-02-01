@@ -58,6 +58,17 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
   return dpk;
 }
 
+std::string DNSCryptoKeyEngine::convertToISC() const
+{
+  typedef map<string, string> stormap_t;
+  stormap_t stormap = this->convertToISCMap();
+  ostringstream ret;
+  ret<<"Private-key-format: v1.2\nAlgorithm: "<<stormap["Algorithm"]<<"\n";
+  BOOST_FOREACH(const stormap_t::value_type& value, stormap) {
+    ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
+  }
+  return ret.str();
+}
 
 DNSCryptoKeyEngine* DNSCryptoKeyEngine::make(unsigned int algo)
 {
@@ -72,16 +83,70 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::make(unsigned int algo)
 
 void DNSCryptoKeyEngine::report(unsigned int algo, maker_t* maker, bool fallback)
 {
+  getAllMakers()[algo].push_back(maker);
   if(getMakers().count(algo) && fallback) {
     return;
   }
   getMakers()[algo]=maker;
 }
 
+void DNSCryptoKeyEngine::testAll()
+{
+  BOOST_FOREACH(const allmakers_t::value_type& value, getAllMakers())
+  {
+    BOOST_FOREACH(maker_t* signer, value.second) {
+      BOOST_FOREACH(maker_t* verifier, value.second) {
+        try {
+          testMakers(value.first, signer, verifier);
+        }
+        catch(std::exception& e)
+        {
+          cerr<<e.what()<<endl;
+        }
+      }
+    }
+  }
+}
+
+pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* signer, maker_t* verifier)
+{
+  shared_ptr<DNSCryptoKeyEngine> dckeSign(signer(algo));
+  shared_ptr<DNSCryptoKeyEngine> dckeVerify(verifier(algo));
+  
+  cerr<<"Testing algorithm "<<algo<<": '"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
+  unsigned int bits;
+  if(algo <= 10)
+    bits=1024;
+  else if(algo == 12 || algo == 13) // GOST or nistp256
+    bits=256;
+  else 
+    bits=384;
+    
+  dckeSign->create(bits);
+  string message("Hi! How is life?");
+  
+  string signature;
+  DTime dt; dt.set();
+  signature = dckeSign->sign(message);
+  unsigned int udiffSign= dt.udiff(), udiffVerify;
+  
+  dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
+  
+  dt.set();
+  if(dckeVerify->verify(message, signature)) {
+    udiffVerify = dt.udiff();
+    cerr<<"Signature & verify ok, signature "<<udiffSign<<"usec, verify "<<udiffVerify<<"usec"<<endl;
+  }
+  else {
+    throw runtime_error("Verification of signer "+dckeSign->getName()+" with verifier "+dckeVerify->getName()+" failed");
+  }
+  return make_pair(udiffSign, udiffVerify);
+}
+
 DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
 {
   DNSCryptoKeyEngine* dpk=make(algorithm);
-  dpk->fromPublicKeyString(algorithm, content);
+  dpk->fromPublicKeyString(content);
   return dpk;
 }
 

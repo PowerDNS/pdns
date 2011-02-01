@@ -56,6 +56,11 @@ pdns_server_SOURCES += botan18signers.cc botansigners.cc
 pdns_server_LDADD += -lbotan -lgmp
 endif
 
+if CRYPTOPP
+pdns_server_SOURCES += cryptoppsigners.cc
+pdns_server_LDADD += -lcryptopp
+endif
+
   
 pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -78,6 +83,11 @@ endif
 if BOTAN18
 pdnssec_SOURCES += botan18signers.cc botansigners.cc
 pdnssec_LDADD += -lbotan -lgmp
+endif
+
+if CRYPTOPP
+pdnssec_SOURCES += cryptoppsigners.cc
+pdnssec_LDADD += -lcryptopp
 endif
 
 

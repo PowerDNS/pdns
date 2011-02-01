@@ -16,7 +16,9 @@ using namespace boost::assign;
 class RSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit RSADNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm)
+  string getName() const { return "PolarSSL RSA"; }
+
+  explicit RSADNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm)
   {
     memset(&d_context, 0, sizeof(d_context));
     PDNSSEC_MI(N); 
@@ -35,10 +37,8 @@ public:
     < tie(rhs.d_context.N, rhs.d_context.E, rhs.d_context.D, rhs.d_context.P, rhs.d_context.Q, rhs.d_context.DP, rhs.d_context.DQ, rhs.d_context.QP);
   }
 
-  RSADNSCryptoKeyEngine(const RSADNSCryptoKeyEngine& orig) 
+  RSADNSCryptoKeyEngine(const RSADNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_algorithm)
   {
-    d_algorithm = orig.d_algorithm;
-    
     d_context.ver = orig.d_context.ver;
     d_context.len = orig.d_context.len;
 
@@ -53,21 +53,7 @@ public:
 
   RSADNSCryptoKeyEngine& operator=(const RSADNSCryptoKeyEngine& orig) 
   {
-    d_algorithm = orig.d_algorithm;
-    
-    d_context.ver = orig.d_context.ver;
-    d_context.len = orig.d_context.len;
-
-    d_context.padding = orig.d_context.padding;
-    d_context.hash_id = orig.d_context.hash_id;
-    d_context.f_rng = orig.d_context.f_rng;
-    d_context.p_rng = orig.d_context.p_rng;
-    
-    PDNSSEC_MF(N); 
-    PDNSSEC_MF(E); PDNSSEC_MF(D); PDNSSEC_MF(P); PDNSSEC_MF(Q); PDNSSEC_MF(DP); PDNSSEC_MF(DQ); PDNSSEC_MF(QP); PDNSSEC_MF(RN); PDNSSEC_MF(RP); PDNSSEC_MF(RQ);
-    
-    PDNSSEC_MC(N); 
-    PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
+    *this = RSADNSCryptoKeyEngine(orig);
     return *this;
   }
 
@@ -82,7 +68,7 @@ public:
   }
 
   void create(unsigned int bits);
-  std::string convertToISC(unsigned int algorithm) const;
+  stormap_t convertToISCMap() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
@@ -94,7 +80,7 @@ public:
   }
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
-  void fromPublicKeyString(unsigned int algorithm, const std::string& raw);
+  void fromPublicKeyString(const std::string& raw);
   static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
     return new RSADNSCryptoKeyEngine(algorithm);
@@ -102,7 +88,6 @@ public:
 
 private:
   rsa_context d_context;
-  unsigned int d_algorithm;
 };
 
 // see above
@@ -179,16 +164,13 @@ bool RSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& si
   else
     hashKind = SIG_RSA_SHA512;
   
-  
-  
   int ret=rsa_pkcs1_verify(const_cast<rsa_context*>(&d_context), RSA_PUBLIC, 
     hashKind,
     hash.size(),
     (const unsigned char*) hash.c_str(), (unsigned char*) signature.c_str());
-  cerr<<"verification returned: "<<ret<<endl;
+  
   return ret==0; // 0 really IS ok ;-)
 }
-
 
 std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
 {
@@ -211,9 +193,9 @@ std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
 }
 
 
-std::string RSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
+DNSCryptoKeyEngine::stormap_t RSADNSCryptoKeyEngine::convertToISCMap() const
 {
-  string ret;
+  stormap_t stormap;
   typedef vector<pair<string, const mpi*> > outputs_t;
   outputs_t outputs;
   push_back(outputs)("Modulus", &d_context.N)("PublicExponent",&d_context.E)
@@ -224,30 +206,24 @@ std::string RSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
     ("Exponent2",&d_context.DQ)
     ("Coefficient",&d_context.QP);
 
-  ret = "Private-key-format: v1.2\nAlgorithm: "+lexical_cast<string>(algorithm);
-  switch(algorithm) {
+  stormap["Algorithm"]=lexical_cast<string>(d_algorithm);
+  switch(d_algorithm) {
     case 5:
     case 7 :
-      ret+= " (RSASHA1)";
+      stormap["Algorithm"]+= " (RSASHA1)";
       break;
     case 8:
-      ret += " (RSASHA256)";
+      stormap["Algorithm"] += " (RSASHA256)";
       break;
   }
-  ret += "\n";
+  
 
   BOOST_FOREACH(outputs_t::value_type value, outputs) {
-    ret += value.first;
-    ret += ": ";
     unsigned char tmp[mpi_size(value.second)];
     mpi_write_binary(value.second, tmp, sizeof(tmp));
-    unsigned char base64tmp[sizeof(tmp)*2];
-    int dlen=sizeof(base64tmp);
-    base64_encode(base64tmp, &dlen, tmp, sizeof(tmp));
-    ret.append((const char*)base64tmp, dlen);
-    ret.append(1, '\n');
+    stormap[value.first]=string((char*)tmp, sizeof(tmp));
   }
-  return ret;
+  return stormap;
 }
 
 
@@ -327,7 +303,7 @@ void RSADNSCryptoKeyEngine::fromPEMString(DNSKEYRecordContent& drc, const std::s
   drc.d_protocol=3;
 }
 
-void RSADNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, const std::string& rawString)
+void RSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString)
 {
   rsa_init(&d_context, RSA_PKCS_V15, 0, NULL, NULL );
   string exponent, modulus;

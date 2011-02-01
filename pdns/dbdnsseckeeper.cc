@@ -119,7 +119,7 @@ void DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, 
   DNSBackend::KeyData kd;
   kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
   kd.active = active;
-  kd.content = dpk.getKey()->convertToISC(dpk.d_algorithm);
+  kd.content = dpk.getKey()->convertToISC();
  // now store it
   d_db.addDomainKey(name, kd);
 }

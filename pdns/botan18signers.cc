@@ -13,10 +13,11 @@ using namespace Botan;
 class ECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit ECDSADNSCryptoKeyEngine(unsigned int algo) :d_algorithm(algo)
+  explicit ECDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
   {}
+  string getName() const { return "Botan 1.8 ECDSA"; }
   void create(unsigned int bits);
-  std::string convertToISC(unsigned int algorithm) const;
+  stormap_t convertToISCMap() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
@@ -24,7 +25,7 @@ public:
   std::string getPublicKeyString() const;
   int getBits() const;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
-  void fromPublicKeyString(unsigned int algorithm, const std::string& content);
+  void fromPublicKeyString(const std::string& content);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
@@ -60,11 +61,11 @@ void ECDSADNSCryptoKeyEngine::create(unsigned int bits)
   
   PKCS8_Encoder* pk8e= d_key->pkcs8_encoder();
   MemoryVector<byte> getbits=pk8e->key_bits();
-  cerr<<makeHexDump(string((char*)&*getbits.begin(), (char*)&*getbits.end()))<<endl;
+//  cerr<<makeHexDump(string((char*)&*getbits.begin(), (char*)&*getbits.end()))<<endl;
   
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
-  cerr<<makeHexDump(string((char*)&*buffer.begin(), (char*)&*buffer.end()))<<endl;
+  // cerr<<makeHexDump(string((char*)&*buffer.begin(), (char*)&*buffer.end()))<<endl;
 }
 
 int ECDSADNSCryptoKeyEngine::getBits() const
@@ -76,30 +77,24 @@ int ECDSADNSCryptoKeyEngine::getBits() const
   return -1;
 }
 
-std::string ECDSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
+DNSCryptoKeyEngine::stormap_t ECDSADNSCryptoKeyEngine::convertToISCMap() const
 {
-  /*Private-key-format: v1.2
-   Algorithm: 13 (ECDSAP256SHA256)
-   PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-   
-  ostringstream ret;
-  ret<<"Private-key-format: v1.2\nAlgorithm: ";
-  if(getBits()==256) 
-    ret << "13 (ECDSAP256SHA256)\n";
-  else if(getBits()==384) 
-    ret << "14 (ECDSAP384SHA384)\n";
-  else 
-    ret <<" ? (?)\n";
+  /*Algorithm: 13 (ECDSAP256SHA256)
+    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
+  stormap_t stormap;
   
-  ret<<"PrivateKey: ";
+  if(getBits()==256) 
+    stormap["Algorithm"]= "13 (ECDSAP256SHA256)";
+  else if(getBits()==384) 
+    stormap["Algorithm"]=  "14 (ECDSAP384SHA384)";
+  else 
+    stormap["Algorithm"]= " ? (?)";
+  
   
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
-  
-  Pipe pipe(new Base64_Encoder);
-  pipe.process_msg(buffer);
-  ret<<pipe.read_all_as_string()<<"\n";
-  return ret.str();
+  stormap["PrivateKey"] = string((char*)&*buffer.begin(), (char*)&*buffer.end());
+  return stormap;
 }
 
 void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
@@ -116,7 +111,7 @@ void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std:
   EC_Domain_Params params=getECParams(drc.d_algorithm);
   
   d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey);
-  cerr<<"Reading!"<<endl;
+//  cerr<<"Reading!"<<endl;
   AutoSeeded_RNG rng;
   PKCS8_Decoder* p8e = d_key->pkcs8_decoder(rng);
   unsigned char pkcs8header[]= {0x30, 0x25, 0x02, 0x01, 0x01, 0x04, 0x20};
@@ -156,16 +151,14 @@ std::string ECDSADNSCryptoKeyEngine::getPublicKeyString() const
   return string((const char*)bits.begin(), (const char*)bits.end());
 }
 
-void ECDSADNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, const std::string&input) 
+void ECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input) 
 {
   BigInt x, y;
   
   x.binary_decode((const byte*)input.c_str(), input.length()/2);
   y.binary_decode((const byte*)input.c_str() + input.length()/2, input.length()/2);
 
-  d_algorithm = algorithm;
-
-  EC_Domain_Params params=getECParams(algorithm);
+  EC_Domain_Params params=getECParams(d_algorithm);
   GFpElement gfpx(params.get_curve().get_ptr_mod(), x);
   GFpElement gfpy(params.get_curve().get_ptr_mod(), y);
   PointGFp point(params.get_curve(), gfpx,gfpy);

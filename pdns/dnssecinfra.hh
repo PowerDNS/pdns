@@ -7,24 +7,32 @@
 #include <map>
 #include "misc.hh"
 
+// rules of the road: Algorithm must be set in 'make' for each KeyEngine, and will NEVER change!
+
 class DNSCryptoKeyEngine
 {
   public:
+    explicit DNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm) {}
+    virtual string getName() const = 0;
+    
+    typedef std::map<std::string, std::string> stormap_t;
     virtual void create(unsigned int bits)=0;
-    virtual std::string convertToISC(unsigned int algorithm) const =0;
+    virtual stormap_t convertToISCMap() const =0;
+    std::string convertToISC() const ;
+    virtual std::string sign(const std::string& msg) const =0;
+    virtual std::string hash(const std::string& msg) const =0;
+    virtual bool verify(const std::string& msg, const std::string& signature) const =0;
+    
     virtual std::string getPubKeyHash()const =0;
-    virtual std::string sign(const std::string& hash) const =0;
-    virtual std::string hash(const std::string& hash) const =0;
-    virtual bool verify(const std::string& hash, const std::string& signature) const =0;
     virtual std::string getPublicKeyString()const =0;
     virtual int getBits() const =0;
     
-    virtual void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)=0;
-    virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)=0;
-    virtual void fromPublicKeyString(unsigned algorithm, const std::string& content)
+    virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap)=0;
+    virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
     {
-      throw std::runtime_error("Can't import from public key string");
+      throw std::runtime_error("Can't import from PEM string");
     }
+    virtual void fromPublicKeyString(const std::string& content) = 0;
     
     static DNSCryptoKeyEngine* makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
     static DNSCryptoKeyEngine* makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
@@ -35,16 +43,24 @@ class DNSCryptoKeyEngine
     typedef DNSCryptoKeyEngine* maker_t(unsigned int algorithm);
     
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
+    static std::pair<unsigned int, unsigned int> testMakers(unsigned int algorithm, maker_t* signer, maker_t* verifier);
+    static void testAll();
   private:
     
     typedef std::map<unsigned int, maker_t*> makers_t;
-    
+    typedef std::map<unsigned int, vector<maker_t*> > allmakers_t;
     static makers_t& getMakers()
     {
       static makers_t s_makers;
       return s_makers;
     }
-    // need some magic here to pick the right DNSCryptoKeyEngine supplier
+    static allmakers_t& getAllMakers()
+    {
+      static allmakers_t s_allmakers;
+      return s_allmakers;
+    }
+  protected:
+    const unsigned int d_algorithm;
 };
 
 struct DNSSECPrivateKey

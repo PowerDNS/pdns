@@ -176,6 +176,11 @@ void checkZone(DNSSECKeeper& dk, const std::string& zone)
   cerr<<"Checked "<<numrecords<<" records, "<<numerrors<<" errors"<<endl;
 }
 
+void testAlgorithms()
+{
+  DNSCryptoKeyEngine::testAll();
+}
+
 void verifyCrypto(const string& zone)
 {
   ZoneParserTNG zpt(zone);
@@ -335,6 +340,9 @@ try
       return 0;
     }
     checkZone(dk, cmds[1]);
+  }
+  else if(cmds[0] == "test-algorithms") {
+    testAlgorithms();
   }
   else if(cmds[0] == "verify-crypto") {
     if(cmds.size() != 2) {
@@ -498,7 +506,7 @@ try
     string zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
-    cout << dpk.getKey()->convertToISC(dpk.d_algorithm) <<endl;
+    cout << dpk.getKey()->convertToISC() <<endl;
   }  
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
