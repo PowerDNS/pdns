@@ -130,6 +130,12 @@ AC_ARG_ENABLE(botan1.8,
 AC_MSG_RESULT($enable_botan18)
 AM_CONDITIONAL(BOTAN18,test x"$enable_botan18" = "xyes")
 
+AC_MSG_CHECKING(whether we will be linking in Crypto++)
+AC_ARG_ENABLE(cryptopp, 
+ [  --enable-cryptopp	Use Crypto++],enable_cryptopp=yes, enable_cryptopp=no)
+AC_MSG_RESULT($enable_cryptopp)
+AM_CONDITIONAL(CRYPTOPP,test x"$enable_cryptopp" = "xyes")
+
 
 AC_MSG_CHECKING(whether we should build static binaries)
 
