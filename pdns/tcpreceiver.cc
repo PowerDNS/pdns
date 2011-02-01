@@ -421,7 +421,9 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   bool narrow;
   bool NSEC3Zone=false;
   
+  
   DNSSECKeeper dk;
+  bool securedZone = dk.isSecuredZone(target);
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
@@ -469,7 +471,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     return 0;
   }
 
-
   if(!sd.db || sd.db==(DNSBackend *)-1) {
     L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
     outpacket->setRcode(RCode::ServFail);
@@ -487,12 +488,18 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
   
   UeberBackend signatureDB; 
-  ChunkedSigningPipe csp(dk, signatureDB, target);
   
-  DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
-  csp.submit(soa); // an AXFR always starts with the SOA
+  // SOA *must* go out first, our signing pipe might reorder
   DLOG(L<<"Sending out SOA"<<endl);
+  DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
+  outpacket->addRecord(soa);
+  if(securedZone)
+    addRRSigs(dk, signatureDB, target, outpacket->getRRS());
   
+  sendPacket(outpacket, outsock);
+  outpacket = getFreshAXFRPacket(q);
+  
+  ChunkedSigningPipe csp(dk, signatureDB, target, securedZone, ::arg().asNum("signing-threads"));
   
   typedef map<string, NSECXEntry, CanonicalCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
@@ -597,12 +604,9 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     outpacket=getFreshAXFRPacket(q);
   }
   
-  
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
   outpacket=getFreshAXFRPacket(q);
-  
-  
   outpacket->addRecord(soa);
   sendPacket(outpacket, outsock);
   DLOG(L<<"last packet - close"<<endl);
