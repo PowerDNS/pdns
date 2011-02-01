@@ -92,7 +92,7 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
     }
   }
   DNSSECPrivateKey dspk;
-  shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(algorithm)); // defaults to RSA for now, could be smart w/algorithm! XXX FIXME
+  shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm)); // defaults to RSA for now, could be smart w/algorithm! XXX FIXME
   dpk->create(bits);
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
@@ -141,7 +141,7 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
     
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent dkrc;
-    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::makeFromISCString(dkrc, kd.content)));
+    dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content)));
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     
@@ -287,7 +287,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
     DNSSECPrivateKey dpk;
 
     DNSKEYRecordContent dkrc;
-    dpk.setKey(shared_ptr<DNSPrivateKey>(DNSPrivateKey::makeFromISCString(dkrc, kd.content)));
+    dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content)));
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))

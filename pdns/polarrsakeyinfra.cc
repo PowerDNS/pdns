@@ -13,29 +13,29 @@ using namespace boost::assign;
 #define PDNSSEC_MC(x) PDNSSEC_MI(x); mpi_copy(&d_context.x, const_cast<mpi*>(&orig.d_context.x))
 #define PDNSSEC_MF(x) mpi_free(&d_context.x, 0)
 
-class RSADNSPrivateKey : public DNSPrivateKey
+class RSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit RSADNSPrivateKey(unsigned int algorithm) : d_algorithm(algorithm)
+  explicit RSADNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm)
   {
     memset(&d_context, 0, sizeof(d_context));
     PDNSSEC_MI(N); 
     PDNSSEC_MI(E); PDNSSEC_MI(D); PDNSSEC_MI(P); PDNSSEC_MI(Q); PDNSSEC_MI(DP); PDNSSEC_MI(DQ); PDNSSEC_MI(QP); PDNSSEC_MI(RN); PDNSSEC_MI(RP); PDNSSEC_MI(RQ);
   }
 
-  ~RSADNSPrivateKey()
+  ~RSADNSCryptoKeyEngine()
   {
     PDNSSEC_MF(N); 
     PDNSSEC_MF(E); PDNSSEC_MF(D); PDNSSEC_MF(P); PDNSSEC_MF(Q); PDNSSEC_MF(DP); PDNSSEC_MF(DQ); PDNSSEC_MF(QP); PDNSSEC_MF(RN); PDNSSEC_MF(RP); PDNSSEC_MF(RQ);
   }
 
-  bool operator<(const RSADNSPrivateKey& rhs) const
+  bool operator<(const RSADNSCryptoKeyEngine& rhs) const
   {
     return tie(d_context.N, d_context.E, d_context.D, d_context.P, d_context.Q, d_context.DP, d_context.DQ, d_context.QP)
     < tie(rhs.d_context.N, rhs.d_context.E, rhs.d_context.D, rhs.d_context.P, rhs.d_context.Q, rhs.d_context.DP, rhs.d_context.DQ, rhs.d_context.QP);
   }
 
-  RSADNSPrivateKey(const RSADNSPrivateKey& orig) 
+  RSADNSCryptoKeyEngine(const RSADNSCryptoKeyEngine& orig) 
   {
     d_algorithm = orig.d_algorithm;
     
@@ -51,7 +51,7 @@ public:
     PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
   }
 
-  RSADNSPrivateKey& operator=(const RSADNSPrivateKey& orig) 
+  RSADNSCryptoKeyEngine& operator=(const RSADNSCryptoKeyEngine& orig) 
   {
     d_algorithm = orig.d_algorithm;
     
@@ -95,9 +95,9 @@ public:
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap);
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
   void fromPublicKeyString(unsigned int algorithm, const std::string& raw);
-  static DNSPrivateKey* maker(unsigned int algorithm)
+  static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
-    return new RSADNSPrivateKey(algorithm);
+    return new RSADNSCryptoKeyEngine(algorithm);
   }
 
 private:
@@ -117,7 +117,7 @@ inline bool operator<(const mpi& a, const mpi& b)
 }
 
 
-void RSADNSPrivateKey::create(unsigned int bits)
+void RSADNSCryptoKeyEngine::create(unsigned int bits)
 {
   havege_state hs;
   havege_init( &hs );
@@ -128,7 +128,7 @@ void RSADNSPrivateKey::create(unsigned int bits)
     throw runtime_error("Key generation failed");
 }
 
-std::string RSADNSPrivateKey::getPubKeyHash() const
+std::string RSADNSCryptoKeyEngine::getPubKeyHash() const
 {
   unsigned char hash[20];
   unsigned char N[mpi_size(&d_context.N)];
@@ -144,7 +144,7 @@ std::string RSADNSPrivateKey::getPubKeyHash() const
   return string((char*)hash, sizeof(hash));
 }
 
-std::string RSADNSPrivateKey::sign(const std::string& msg) const
+std::string RSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   string hash = this->hash(msg);
   unsigned char signature[mpi_size(&d_context.N)];
@@ -168,7 +168,7 @@ std::string RSADNSPrivateKey::sign(const std::string& msg) const
   return string((char*) signature, sizeof(signature));
 }
 
-bool RSADNSPrivateKey::verify(const std::string& msg, const std::string& signature) const
+bool RSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
   int hashKind;
   string hash=this->hash(msg);
@@ -190,7 +190,7 @@ bool RSADNSPrivateKey::verify(const std::string& msg, const std::string& signatu
 }
 
 
-std::string RSADNSPrivateKey::hash(const std::string& toHash) const
+std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
 {
   if(d_algorithm <= 7 ) {  // RSASHA1
     unsigned char hash[20];
@@ -211,7 +211,7 @@ std::string RSADNSPrivateKey::hash(const std::string& toHash) const
 }
 
 
-std::string RSADNSPrivateKey::convertToISC(unsigned int algorithm) const
+std::string RSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
 {
   string ret;
   typedef vector<pair<string, const mpi*> > outputs_t;
@@ -251,7 +251,7 @@ std::string RSADNSPrivateKey::convertToISC(unsigned int algorithm) const
 }
 
 
-void RSADNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::string, std::string>& stormap)
+void RSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::string, std::string>& stormap)
 {
   string sline;
   string key,value;
@@ -282,7 +282,7 @@ void RSADNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::strin
   drc.d_protocol=3;
 }
 
-void RSADNSPrivateKey::fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+void RSADNSCryptoKeyEngine::fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
 {
   vector<string> integers;
   decodeDERIntegerSequence(raw, integers);
@@ -327,7 +327,7 @@ void RSADNSPrivateKey::fromPEMString(DNSKEYRecordContent& drc, const std::string
   drc.d_protocol=3;
 }
 
-void RSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::string& rawString)
+void RSADNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, const std::string& rawString)
 {
   rsa_init(&d_context, RSA_PKCS_V15, 0, NULL, NULL );
   string exponent, modulus;
@@ -345,7 +345,7 @@ void RSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::st
   d_context.len = ( mpi_msb( &d_context.N ) + 7 ) >> 3; // no clue what this does
 }
 
-string RSADNSPrivateKey::getPublicKeyString()  const
+string RSADNSCryptoKeyEngine::getPublicKeyString()  const
 {
   string keystring;
   char tmp[max(mpi_size(&d_context.E), mpi_size(&d_context.N))];
@@ -373,10 +373,10 @@ struct LoaderStruct
 {
   LoaderStruct()
   {
-    DNSPrivateKey::report(5, &RSADNSPrivateKey::maker, true);
-    DNSPrivateKey::report(7, &RSADNSPrivateKey::maker, true);
-    DNSPrivateKey::report(8, &RSADNSPrivateKey::maker, true);
-    DNSPrivateKey::report(10, &RSADNSPrivateKey::maker, true);
+    DNSCryptoKeyEngine::report(5, &RSADNSCryptoKeyEngine::maker, true);
+    DNSCryptoKeyEngine::report(7, &RSADNSCryptoKeyEngine::maker, true);
+    DNSCryptoKeyEngine::report(8, &RSADNSCryptoKeyEngine::maker, true);
+    DNSCryptoKeyEngine::report(10, &RSADNSCryptoKeyEngine::maker, true);
   }
 } loader;
 }

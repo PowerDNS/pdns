@@ -10,10 +10,10 @@
 
 using namespace Botan;
 
-class BotanRSADNSPrivateKey : public DNSPrivateKey
+class BotanRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  explicit BotanRSADNSPrivateKey(unsigned int algo) :d_algorithm(algo)
+  explicit BotanRSADNSCryptoKeyEngine(unsigned int algo) :d_algorithm(algo)
   {}
   void create(unsigned int bits);
   std::string convertToISC(unsigned int algorithm) const;
@@ -28,9 +28,9 @@ public:
   void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
   {}
 
-  static DNSPrivateKey* maker(unsigned int algorithm)
+  static DNSCryptoKeyEngine* maker(unsigned int algorithm)
   {
-    return new BotanRSADNSPrivateKey(algorithm);
+    return new BotanRSADNSCryptoKeyEngine(algorithm);
   }
 
 private:
@@ -39,13 +39,13 @@ private:
   unsigned int d_algorithm;
 };
 
-void BotanRSADNSPrivateKey::create(unsigned int bits)
+void BotanRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
   AutoSeeded_RNG rng;
   d_key = shared_ptr<RSA_PrivateKey>(new RSA_PrivateKey(rng, bits));
 }
 
-int BotanRSADNSPrivateKey::getBits() const
+int BotanRSADNSCryptoKeyEngine::getBits() const
 {
   return d_key->max_input_bits() + 1;
 }
@@ -67,7 +67,7 @@ BigInt fromRaw(const std::string& raw)
   return BigInt::decode((byte*)raw.c_str(), raw.length());
 }
 }
-std::string BotanRSADNSPrivateKey::convertToISC(unsigned int algorithm) const
+std::string BotanRSADNSCryptoKeyEngine::convertToISC(unsigned int algorithm) const
 {
   ostringstream ret;
   ret<<"Private-key-format: v1.2\nAlgorithm: "<<d_algorithm;
@@ -103,7 +103,7 @@ std::string BotanRSADNSPrivateKey::convertToISC(unsigned int algorithm) const
   return ret.str();
 }
 
-void BotanRSADNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
+void BotanRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
 {
   // wants p (Prime1), q (Prime2), d (PrivateExponent), e (PublicExponent) & n Modulus
   BigInt n, e, d, p, q;
@@ -120,7 +120,7 @@ void BotanRSADNSPrivateKey::fromISCMap(DNSKEYRecordContent& drc, std::map<std::s
   d_pubkey.reset();
 }
 
-std::string BotanRSADNSPrivateKey::getPubKeyHash() const
+std::string BotanRSADNSCryptoKeyEngine::getPubKeyHash() const
 {
   const BigInt& n = d_key->get_n();
   const BigInt& e = d_key->get_e();
@@ -134,7 +134,7 @@ std::string BotanRSADNSPrivateKey::getPubKeyHash() const
   return string((const char*)hash.begin(), (const char*)hash.end());
 }
 
-std::string BotanRSADNSPrivateKey::getPublicKeyString() const
+std::string BotanRSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   MemoryVector<byte> bits = BigInt::encode(d_key->get_e());
   string exponent(&*bits.begin(), &*bits.end());
@@ -154,7 +154,7 @@ std::string BotanRSADNSPrivateKey::getPublicKeyString() const
   return keystring;
 }
 
-void BotanRSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const std::string& rawString) 
+void BotanRSADNSCryptoKeyEngine::fromPublicKeyString(unsigned int algorithm, const std::string& rawString) 
 {
   d_algorithm = algorithm;
   string exponent, modulus;
@@ -175,7 +175,7 @@ void BotanRSADNSPrivateKey::fromPublicKeyString(unsigned int algorithm, const st
   d_key.reset();
 }
 
-std::string BotanRSADNSPrivateKey::sign(const std::string& msg) const
+std::string BotanRSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {  
 #if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)  
   EMSA* emsaptr;
@@ -202,7 +202,7 @@ std::string BotanRSADNSPrivateKey::sign(const std::string& msg) const
   return string((const char*)signature.begin(), (const char*) signature.end());
 }
 
-std::string BotanRSADNSPrivateKey::hash(const std::string& orig) const
+std::string BotanRSADNSCryptoKeyEngine::hash(const std::string& orig) const
 {
   SecureVector<byte> result;
   if(d_algorithm == 5 || d_algorithm ==7 ) { // SHA160
@@ -222,7 +222,7 @@ std::string BotanRSADNSPrivateKey::hash(const std::string& orig) const
 }
 
 
-bool BotanRSADNSPrivateKey::verify(const std::string& msg, const std::string& signature) const
+bool BotanRSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
   RSA_PublicKey* key = d_key ? d_key.get() : d_pubkey.get();
   
@@ -251,10 +251,10 @@ struct LoaderStruct
   {
     Botan::LibraryInitializer init;
 
-    DNSPrivateKey::report(5, &BotanRSADNSPrivateKey::maker);
-    DNSPrivateKey::report(7, &BotanRSADNSPrivateKey::maker);
-    DNSPrivateKey::report(8, &BotanRSADNSPrivateKey::maker);
-    DNSPrivateKey::report(10, &BotanRSADNSPrivateKey::maker);
+    DNSCryptoKeyEngine::report(5, &BotanRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(7, &BotanRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(8, &BotanRSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(10, &BotanRSADNSCryptoKeyEngine::maker);
   }
 } loader;
 }

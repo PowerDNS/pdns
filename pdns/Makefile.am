@@ -40,7 +40,7 @@ rcpgenerator.cc	dnsparser.cc dns_random.hh aes/aescpp.h \
 aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
-dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc
+dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library 
@@ -65,7 +65,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	backends/bind/bindparser.cc backends/bind/bindlexer.c \
 	backends/gsql/gsqlbackend.cc \
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
-	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc
+	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
 pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS)

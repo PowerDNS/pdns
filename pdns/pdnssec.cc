@@ -209,20 +209,20 @@ void verifyCrypto(const string& zone)
   }
   
   string msg = getMessageForRRSET(qname, rrc, toSign);        
-  DNSPrivateKey* dpk = DNSPrivateKey::make(rrc.d_algorithm);
+  DNSCryptoKeyEngine* dpk = DNSCryptoKeyEngine::make(rrc.d_algorithm);
   string hash = dpk->sign(msg);
-  cerr<<"Verify: "<<DNSPrivateKey::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, rrc.d_signature)<<endl;
+  cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, rrc.d_signature)<<endl;
   if(dsrc.d_digesttype) {
     cerr<<"Calculated DS: "<<apex<<" IN DS "<<makeDSFromDNSKey(apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
     cerr<<"Original DS:   "<<apex<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
   }
 #if 0
-  DNSPrivateKey*key=DNSPrivateKey::makeFromISCString(drc, "Private-key-format: v1.2\n"
+  DNSCryptoKeyEngine*key=DNSCryptoKeyEngine::makeFromISCString(drc, "Private-key-format: v1.2\n"
       "Algorithm: 12 (ECC-GOST)\n"
       "GostAsn1: MEUCAQAwHAYGKoUDAgITMBIGByqFAwICIwEGByqFAwICHgEEIgQg/9MiXtXKg9FDXDN/R9CmVhJDyuzRAIgh4tPwCu4NHIs=\n");
   string resign=key->sign(hash);
   cerr<<Base64Encode(resign)<<endl;
-  cerr<<"Verify: "<<DNSPrivateKey::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, resign)<<endl;
+  cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, resign)<<endl;
 #endif
 
 }
@@ -519,7 +519,7 @@ try
     B64Decode(interim, raw);
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
-    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::makeFromPEMString(drc, raw));
+    shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromPEMString(drc, raw));
     dpk.setKey(key);
     
     dpk.d_algorithm = atoi(cmds[3].c_str());
@@ -554,7 +554,7 @@ try
     string fname=cmds[2];
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
-    shared_ptr<DNSPrivateKey> key(DNSPrivateKey::makeFromISCFile(drc, fname.c_str()));
+    shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(drc, fname.c_str()));
     dpk.setKey(key);
     dpk.d_algorithm = drc.d_algorithm;
     

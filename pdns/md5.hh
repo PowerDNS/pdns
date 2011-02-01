@@ -2,9 +2,7 @@
 #define _MD5_H
 
 #include <string>
-
-
-
+#include <stdint.h>
 class MD5Summer
 {
 public:
@@ -26,5 +24,11 @@ private:
   struct md5_context d_context;
 };
 
+inline std::string pdns_md5sum(const std::string& input)
+{
+  MD5Summer md5;
+  md5.feed(input);
+  return md5.get();
+}
 
 #endif /* md5.h */

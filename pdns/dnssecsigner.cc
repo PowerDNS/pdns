@@ -18,6 +18,7 @@
 #include "dnssecinfra.hh"
 #include "namespaces.hh"
 #include <boost/foreach.hpp>
+#include "md5.hh"
 #include "dnsseckeeper.hh"
 #include "lock.hh"
 
@@ -111,13 +112,13 @@ static map<pair<string, string>, string> g_signatures;
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
   DNSKEYRecordContent drc = dpk.getDNSKEY(); 
-  const DNSPrivateKey* rc = dpk.getKey();
+  const DNSCryptoKeyEngine* rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
 
+  
   string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
-
-  pair<string, string> lookup(rc->getPubKeyHash(), msg); // we key on the whole message now!
+  pair<string, string> lookup(rc->getPubKeyHash(), pdns_md5sum(msg)); 
   
   {
     Lock l(&g_signatures_lock);

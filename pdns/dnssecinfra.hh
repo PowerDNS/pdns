@@ -7,7 +7,7 @@
 #include <map>
 #include "misc.hh"
 
-class DNSPrivateKey
+class DNSCryptoKeyEngine
 {
   public:
     virtual void create(unsigned int bits)=0;
@@ -26,13 +26,13 @@ class DNSPrivateKey
       throw std::runtime_error("Can't import from public key string");
     }
     
-    static DNSPrivateKey* makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
-    static DNSPrivateKey* makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
-    static DNSPrivateKey* makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
-    static DNSPrivateKey* makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
-    static DNSPrivateKey* make(unsigned int algorithm);
+    static DNSCryptoKeyEngine* makeFromISCFile(DNSKEYRecordContent& drc, const char* fname);
+    static DNSCryptoKeyEngine* makeFromISCString(DNSKEYRecordContent& drc, const std::string& content);
+    static DNSCryptoKeyEngine* makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw);
+    static DNSCryptoKeyEngine* makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
+    static DNSCryptoKeyEngine* make(unsigned int algorithm);
     
-    typedef DNSPrivateKey* maker_t(unsigned int algorithm);
+    typedef DNSCryptoKeyEngine* maker_t(unsigned int algorithm);
     
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
   private:
@@ -44,19 +44,19 @@ class DNSPrivateKey
       static makers_t s_makers;
       return s_makers;
     }
-    // need some magic here to pick the right DNSPrivateKey supplier
+    // need some magic here to pick the right DNSCryptoKeyEngine supplier
 };
 
 struct DNSSECPrivateKey
 {
   uint16_t getTag();
   
-  const DNSPrivateKey* getKey() const
+  const DNSCryptoKeyEngine* getKey() const
   {
     return d_key.get();
   }
   
-  void setKey(const shared_ptr<DNSPrivateKey> key)
+  void setKey(const shared_ptr<DNSCryptoKeyEngine> key)
   {
     d_key = key;
   }
@@ -65,7 +65,7 @@ struct DNSSECPrivateKey
   uint16_t d_flags;
   
 private:
-  shared_ptr<DNSPrivateKey> d_key;
+  shared_ptr<DNSCryptoKeyEngine> d_key;
 };
 
 

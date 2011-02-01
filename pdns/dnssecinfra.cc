@@ -18,7 +18,7 @@ using namespace boost;
 using namespace std;
 using namespace boost::assign;
 
-DNSPrivateKey* DNSPrivateKey::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
+DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc;
   FILE *fp=fopen(fname, "r");
@@ -33,7 +33,7 @@ DNSPrivateKey* DNSPrivateKey::makeFromISCFile(DNSKEYRecordContent& drc, const ch
   return makeFromISCString(drc, isc);
 }
 
-DNSPrivateKey* DNSPrivateKey::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
+DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
 {
   int algorithm = 0;
   string sline, key, value, raw;
@@ -53,13 +53,13 @@ DNSPrivateKey* DNSPrivateKey::makeFromISCString(DNSKEYRecordContent& drc, const 
     B64Decode(value, raw);
     stormap[toLower(key)]=raw;
   }
-  DNSPrivateKey* dpk=make(algorithm);
+  DNSCryptoKeyEngine* dpk=make(algorithm);
   dpk->fromISCMap(drc, stormap);
   return dpk;
 }
 
 
-DNSPrivateKey* DNSPrivateKey::make(unsigned int algo)
+DNSCryptoKeyEngine* DNSCryptoKeyEngine::make(unsigned int algo)
 {
   makers_t& makers = getMakers();
   makers_t::const_iterator iter = makers.find(algo);
@@ -70,7 +70,7 @@ DNSPrivateKey* DNSPrivateKey::make(unsigned int algo)
   }
 }
 
-void DNSPrivateKey::report(unsigned int algo, maker_t* maker, bool fallback)
+void DNSCryptoKeyEngine::report(unsigned int algo, maker_t* maker, bool fallback)
 {
   if(getMakers().count(algo) && fallback) {
     return;
@@ -78,20 +78,20 @@ void DNSPrivateKey::report(unsigned int algo, maker_t* maker, bool fallback)
   getMakers()[algo]=maker;
 }
 
-DNSPrivateKey* DNSPrivateKey::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
+DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
 {
-  DNSPrivateKey* dpk=make(algorithm);
+  DNSCryptoKeyEngine* dpk=make(algorithm);
   dpk->fromPublicKeyString(algorithm, content);
   return dpk;
 }
 
 
-DNSPrivateKey* DNSPrivateKey::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
+DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
 {
   
   BOOST_FOREACH(makers_t::value_type& val, getMakers())
   {
-    DNSPrivateKey* ret=0;
+    DNSCryptoKeyEngine* ret=0;
     try {
       ret = val.second(val.first);
       ret->fromPEMString(drc, raw);
@@ -145,19 +145,19 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
   
   DSRecordContent dsrc;
   if(digest==1) {
-    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(5)); // gives us SHA1
+    shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(5)); // gives us SHA1
     dsrc.d_digest = dpk->hash(toHash);
   }
   else if(digest == 2) {
-    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(8)); // gives us SHA256
+    shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(8)); // gives us SHA256
     dsrc.d_digest = dpk->hash(toHash);
   }
   else if(digest == 3) {
-    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(12)); // gives us GOST
+    shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(12)); // gives us GOST
     dsrc.d_digest = dpk->hash(toHash);
   }
   else if(digest == 4) {
-    shared_ptr<DNSPrivateKey> dpk(DNSPrivateKey::make(14)); // gives us ECDSAP384
+    shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(14)); // gives us ECDSAP384
     dsrc.d_digest = dpk->hash(toHash);
   }
   
@@ -168,7 +168,7 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
 }
 
 
-DNSKEYRecordContent makeDNSKEYFromDNSPrivateKey(const DNSPrivateKey* pk, uint8_t algorithm, uint16_t flags)
+DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const DNSCryptoKeyEngine* pk, uint8_t algorithm, uint16_t flags)
 {
   DNSKEYRecordContent drc;
   
@@ -218,7 +218,7 @@ std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const
 }
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
-  return makeDNSKEYFromDNSPrivateKey(getKey(), d_algorithm, d_flags);
+  return makeDNSKEYFromDNSCryptoKeyEngine(getKey(), d_algorithm, d_flags);
 }
 
 class DEREater
