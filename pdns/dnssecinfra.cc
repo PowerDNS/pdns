@@ -39,6 +39,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
   string sline, key, value, raw;
   istringstream str(content);
   map<string, string> stormap;
+
   while(getline(str, sline)) {
     tie(key,value)=splitField(sline, ':');
     trim(value);
@@ -65,6 +66,8 @@ std::string DNSCryptoKeyEngine::convertToISC() const
   ostringstream ret;
   ret<<"Private-key-format: v1.2\nAlgorithm: "<<stormap["Algorithm"]<<"\n";
   BOOST_FOREACH(const stormap_t::value_type& value, stormap) {
+    if(value.first=="Algorithm")
+      continue;
     ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
   }
   return ret.str();
@@ -77,6 +80,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::make(unsigned int algo)
   if(iter != makers.end())
     return (iter->second)(algo);
   else {
+    abort();
     throw runtime_error("Request to create key object for unknown algorithm number "+lexical_cast<string>(algo));
   }
 }
@@ -95,9 +99,12 @@ void DNSCryptoKeyEngine::testAll()
   BOOST_FOREACH(const allmakers_t::value_type& value, getAllMakers())
   {
     BOOST_FOREACH(maker_t* signer, value.second) {
+      // multi_map<unsigned int, maker_t*> bestSigner, bestVerifier;
+      
       BOOST_FOREACH(maker_t* verifier, value.second) {
         try {
-          testMakers(value.first, signer, verifier);
+          pair<unsigned int, unsigned int> res=testMakers(value.first, signer, verifier);
+          
         }
         catch(std::exception& e)
         {
