@@ -238,9 +238,9 @@ void DNSPacket::wrapup()
   // we want a stable sort, based on the d_place field
 
   stable_sort(d_rrs.begin(),d_rrs.end(), rrcomp);
-  static bool mustShuffle =::arg().mustDo("no-shuffle");
+  static bool mustNotShuffle = ::arg().mustDo("no-shuffle");
 
-  if(!d_tcp && !mustShuffle) {
+  if(!d_tcp && !mustNotShuffle) {
     shuffle(d_rrs);
   }
   d_wrapped=true;
