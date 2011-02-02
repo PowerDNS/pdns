@@ -421,7 +421,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   bool narrow;
   bool NSEC3Zone=false;
   
-  
   DNSSECKeeper dk;
   bool securedZone = dk.isSecuredZone(target);
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
@@ -526,7 +525,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   string keyname;
   
   while(sd.db->get(rr)) {
-    if(rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS) {
+    if(securedZone && (rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS)) {
       keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
       NSECXEntry& ne = nsecxrepo[keyname];
       ne.d_set.insert(rr.qtype.getCode());
@@ -542,7 +541,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
   
-  if(dk.isSecuredZone(target)) {   
+  if(securedZone) {   
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
         NSEC3RecordContent n3rc;
