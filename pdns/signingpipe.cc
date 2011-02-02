@@ -51,7 +51,7 @@ bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
 void ChunkedSigningPipe::sendChunkToSign()
 {
   if(!d_mustSign) {
-    copy(d_toSign.begin(), d_toSign.end(), back_inserter(d_chunk));
+    d_chunk.insert(d_chunk.end(), d_toSign.begin(), d_toSign.end());
     d_toSign.clear();
     return;
   }
@@ -66,7 +66,7 @@ void ChunkedSigningPipe::sendChunkToSign()
   
   while(d_outstanding && read(d_backpipe[0], &signedChunk, sizeof(signedChunk)) > 0) {
     --d_outstanding;
-    copy(signedChunk->begin(), signedChunk->end(), back_inserter(d_chunk));
+    d_chunk.insert(d_chunk.end(), signedChunk->begin(), signedChunk->end());
     delete signedChunk;
   }
   
@@ -110,11 +110,9 @@ vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
   }
   
   chunk_t::size_type amount=min(d_chunkrecords, d_chunk.size());
-  chunk_t chunk;
-  copy(d_chunk.begin(), d_chunk.begin() + amount, back_inserter(chunk));
-      
-  vector<DNSResourceRecord> overhang(d_chunk.begin() + amount, d_chunk.end());
-  d_chunk.swap(overhang);
+  chunk_t chunk(d_chunk.begin(), d_chunk.begin() + amount);
+  
+  d_chunk.erase(d_chunk.begin(), d_chunk.begin() + amount);
   
   return chunk;
 }
