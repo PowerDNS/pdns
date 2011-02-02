@@ -500,7 +500,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   
   ChunkedSigningPipe csp(dk, signatureDB, target, securedZone, ::arg().asNum("signing-threads"));
   
-  typedef map<string, NSECXEntry, CanonicalCompare> nsecxrepo_t;
+  typedef map<string, NSECXEntry> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
   
   // this is where the DNSKEYs go  in
@@ -512,7 +512,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     rr.ttl = sd.default_ttl;
     rr.auth = 1; // please sign! 
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
-    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
+    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(rr.qtype.getCode());
@@ -524,9 +524,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   
   string keyname;
   
+  int records=0;
   while(sd.db->get(rr)) {
-    if(securedZone && (rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS)) {
-      keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : rr.qname;
+    records++;
+    if(securedZone && (rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS)) { // this is probably NSEC specific, NSEC3 is different
+      keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
       NSECXEntry& ne = nsecxrepo[keyname];
       ne.d_set.insert(rr.qtype.getCode());
       ne.d_ttl = rr.ttl;
@@ -540,7 +542,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       outpacket=getFreshAXFRPacket(q); 
     }
   }
-  
   if(securedZone) {   
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
@@ -577,12 +578,12 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
       if(boost::next(iter) != nsecxrepo.end()) {
-        nrc.d_next = boost::next(iter)->first;
+        nrc.d_next = labelReverse(boost::next(iter)->first);
       }
       else
-        nrc.d_next=nsecxrepo.begin()->first;
+        nrc.d_next=labelReverse(nsecxrepo.begin()->first);
   
-      rr.qname = iter->first;
+      rr.qname = labelReverse(iter->first);
   
       rr.ttl = iter->second.d_ttl;
       rr.content = nrc.getZoneRepresentation();
@@ -596,11 +597,15 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       }
     }
   }
-  
-  outpacket->getRRS() = csp.getChunk(true); // final
-  if(!outpacket->getRRS().empty()) {
-    sendPacket(outpacket, outsock);
-    outpacket=getFreshAXFRPacket(q);
+ 
+  for(;;) { 
+    outpacket->getRRS() = csp.getChunk(true); // flush the pipe
+    if(!outpacket->getRRS().empty()) {
+      sendPacket(outpacket, outsock);
+      outpacket=getFreshAXFRPacket(q);
+    }
+    else 
+      break;
   }
   
   DLOG(L<<"Done writing out records"<<endl);

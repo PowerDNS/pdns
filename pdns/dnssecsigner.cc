@@ -120,6 +120,8 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
   pair<string, string> lookup(rc->getPubKeyHash(), pdns_md5sum(msg)); 
   
+  bool doCache=1;
+  if(doCache)
   {
     Lock l(&g_signatures_lock);
     if(g_signatures.count(lookup)) {
@@ -136,8 +138,10 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   rrc.d_signature = rc->sign(msg);
   //cerr<<dt.udiff()<<endl;
 
-  Lock l(&g_signatures_lock);
-  g_signatures[lookup] = rrc.d_signature;
+  if(doCache) {
+    Lock l(&g_signatures_lock);
+    g_signatures[lookup] = rrc.d_signature;
+  }
 }
 
 static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)

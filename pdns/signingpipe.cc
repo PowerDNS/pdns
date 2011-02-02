@@ -3,10 +3,14 @@
 AtomicCounter ChunkedSigningPipe::s_workerid;
 
 void* ChunkedSigningPipe::helperWorker(void* p)
+try
 {
   ChunkedSigningPipe* us = (ChunkedSigningPipe*)p;
   us->worker();
   return 0;
+}
+catch(std::exception& e) {
+  cerr<<"Signing thread died with error "<<e.what()<<endl;
 }
 
 ChunkedSigningPipe::ChunkedSigningPipe(DNSSECKeeper& dk, UeberBackend& db, const std::string& signerName, bool mustSign, unsigned int workers) 
