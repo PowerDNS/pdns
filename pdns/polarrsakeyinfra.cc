@@ -354,6 +354,6 @@ struct LoaderStruct
     DNSCryptoKeyEngine::report(8, &RSADNSCryptoKeyEngine::maker, true);
     DNSCryptoKeyEngine::report(10, &RSADNSCryptoKeyEngine::maker, true);
   }
-} loader;
+} loaderPolar;
 }
 

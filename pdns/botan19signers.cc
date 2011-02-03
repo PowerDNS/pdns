@@ -423,9 +423,11 @@ struct LoaderStruct
 {
   LoaderStruct()
   {
+    Botan::LibraryInitializer init;
+
     DNSCryptoKeyEngine::report(12, &GOSTDNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(13, &ECDSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(14, &ECDSADNSCryptoKeyEngine::maker);
   }
-} loader;
+} loaderBotan19;
 }

@@ -14,7 +14,8 @@ class BotanRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
   explicit BotanRSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
-  {}
+  {
+  }
   string getName() const { return "Botan RSA"; }
   void create(unsigned int bits);
   stormap_t convertToISCMap() const;
@@ -251,6 +252,6 @@ struct LoaderStruct
     DNSCryptoKeyEngine::report(8, &BotanRSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(10, &BotanRSADNSCryptoKeyEngine::maker);
   }
-} loader;
+} loaderBotan;
 }
 
