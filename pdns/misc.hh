@@ -203,6 +203,7 @@ public:
   time_t time();
   inline void set();  //!< Reset the timer
   inline int udiff(); //!< Return the number of microseconds since the timer was last set.
+  inline int udiffNoReset(); //!< Return the number of microseconds since the timer was last set.
   void setTimeval(const struct timeval& tv)
   {
     d_set=tv;
@@ -224,13 +225,20 @@ inline void DTime::set()
 
 inline int DTime::udiff()
 {
+  int res=udiffNoReset();
+  Utility::gettimeofday(&d_set,0);
+  return res;
+}
+
+inline int DTime::udiffNoReset()
+{
   struct timeval now;
 
   Utility::gettimeofday(&now,0);
   int ret=1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
-  d_set=now;
   return ret;
 }
+
 
 inline bool dns_isspace(char c)
 {
