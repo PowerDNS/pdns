@@ -2,6 +2,7 @@
 #define PDNS_SIGNINGPIPE
 #include <vector>
 #include <pthread.h>
+#include <stdio.h>
 #include "dnsseckeeper.hh"
 #include "dns.hh"
 using std::string;
@@ -14,30 +15,37 @@ using std::vector;
 class ChunkedSigningPipe
 {
 public:
-  typedef vector<DNSResourceRecord> chunk_t; 
+  typedef vector<DNSResourceRecord> rrset_t; 
+  typedef rrset_t chunk_t; // for now
   
   ChunkedSigningPipe(DNSSECKeeper& dk, UeberBackend& db, const std::string& signerName, bool mustSign, unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
   bool submit(const DNSResourceRecord& rr);
   chunk_t getChunk(bool final=false);
+  int d_queued;
+  AtomicCounter d_signed;
+  int d_outstanding;
+  unsigned int getReady();
 private:
   void flushToSign();	
   
-  void sendChunkToSign(); // dispatch chunk to worker
-  void worker();
+  void sendRRSetToWorker(); // dispatch RRSET to worker
+  void worker(int n);
   
   static void* helperWorker(void* p);
-  chunk_t d_toSign, d_chunk;
+  rrset_t* d_rrsetToSign;
+  std::deque< std::vector<DNSResourceRecord> > d_chunks;
   DNSSECKeeper& d_dk;
   UeberBackend& d_db;
   string d_signer;
-  chunk_t::size_type d_chunkrecords;
   
-  int d_uppipe[2], d_backpipe[2];
-  int d_outstanding;
+  chunk_t::size_type d_maxchunkrecords;
+  
+  std::vector<std::pair<int, int> > d_uppipes;
+  int d_backpipe[2];
+  
   unsigned int d_numworkers;
   vector<pthread_t> d_tids;
-  static AtomicCounter s_workerid;
   bool d_mustSign;
 };
 
