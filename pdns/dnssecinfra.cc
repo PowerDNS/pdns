@@ -134,8 +134,9 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   
   string signature;
   DTime dt; dt.set();
-  signature = dckeSign->sign(message);
-  unsigned int udiffSign= dt.udiff(), udiffVerify;
+  for(unsigned int n = 0; n < 100; ++n)
+    signature = dckeSign->sign(message);
+  unsigned int udiffSign= dt.udiff()/100, udiffVerify;
   
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
   
