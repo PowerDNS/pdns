@@ -10,6 +10,7 @@
 #include "arguments.hh"
 #include "packetcache.hh"
 #include "zoneparser-tng.hh"
+#include "signingpipe.hh"
 StatBag S;
 PacketCache PC;
 
@@ -181,6 +182,48 @@ void testAlgorithms()
   DNSCryptoKeyEngine::testAll();
 }
 
+void testSpeed(DNSSECKeeper& dk, const string& zone, int cores)
+{
+  DNSResourceRecord rr;
+  rr.qname="blah."+zone;
+  rr.qtype=QType::A;
+  rr.ttl=3600;
+  rr.auth=1;
+  rr.qclass = 1;
+  rr.d_place=DNSResourceRecord::ANSWER;
+  rr.priority=0;
+  
+  UeberBackend db;
+  
+  ChunkedSigningPipe csp(dk, db, zone, 1, cores);
+  
+  vector<DNSResourceRecord> signatures;
+  uint32_t rnd;
+  unsigned char* octets = (unsigned char*)&rnd;
+  char tmp[25];
+  DTime dt;
+  dt.set();
+  for(unsigned int n=0; n < 100000; ++n) {
+    rnd = random();
+    snprintf(tmp, sizeof(tmp), "%d.%d.%d.%d", 
+      octets[0], octets[1], octets[2], octets[3]);
+    rr.content=tmp;
+    
+    snprintf(tmp, sizeof(tmp), "r-%u", rnd);
+    rr.qname=string(tmp)+"."+zone;
+    
+    if(csp.submit(rr))
+      while(signatures = csp.getChunk(), !signatures.empty())
+        ;
+  }
+  cerr<<"Flushing the pipe, "<<csp.d_signed<<" signed, "<<csp.d_queued<<" queued, "<<csp.d_outstanding<<" outstanding"<< endl;
+  cerr<<"Net speed: "<<csp.d_signed/ (dt.udiffNoReset()/1000000.0) << " sigs/s\n";
+  while(signatures = csp.getChunk(true), !signatures.empty())
+      ;
+  cerr<<"Done, "<<csp.d_signed<<" signed, "<<csp.d_queued<<" queued, "<<csp.d_outstanding<<" outstanding"<< endl;
+  cerr<<"Net speed: "<<csp.d_signed/ (dt.udiff()/1000000.0) << " sigs/s\n";
+}
+
 void verifyCrypto(const string& zone)
 {
   ZoneParserTNG zpt(zone);
@@ -298,6 +341,8 @@ try
   if(g_vm.count("commands")) 
     cmds = g_vm["commands"].as<vector<string> >();
 
+  
+
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [rectify-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
     cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [set-presigned] [unset-nsec3] [unset-presigned] [export-zone-dnskey]\n\n";
@@ -317,11 +362,17 @@ try
     cerr<<"set-presigned ZONE              Use presigned RRSIGs from storage\n";
     cerr<<"show-zone ZONE                  Show DNSSEC (public) key details about a zone\n";
     cerr<<"unset-nsec3 ZONE                Switch back to NSEC\n";
-	cerr<<"unset-presigned ZONE            No longer use presigned RRSIGs\n\n";
+    cerr<<"unset-presigned ZONE            No longer use presigned RRSIGs\n\n";
     cerr<<"Options:"<<endl;
     cerr<<desc<<endl;
     return 0;
   }
+  
+  if(cmds[0] == "test-algorithms") {
+    testAlgorithms();
+    return 0;
+  }
+
   
   loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
@@ -341,8 +392,12 @@ try
     }
     checkZone(dk, cmds[1]);
   }
-  else if(cmds[0] == "test-algorithms") {
-    testAlgorithms();
+  else if(cmds[0] == "test-speed") {
+    if(cmds.size() != 3) {
+      cerr << "Error: "<<cmds[0]<<" takes exactly 2 parameters, zone numcores"<<endl;
+      return 0;
+    }
+    testSpeed(dk, cmds[1], atoi(cmds[2].c_str()));
   }
   else if(cmds[0] == "verify-crypto") {
     if(cmds.size() != 2) {
