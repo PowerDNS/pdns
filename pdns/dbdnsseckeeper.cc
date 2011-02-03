@@ -35,28 +35,26 @@ using namespace boost::assign;
 using namespace std;
 using namespace boost;
 
-DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
+__thread DNSSECKeeper::keycache_t* DNSSECKeeper::t_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
 pthread_mutex_t DNSSECKeeper::s_metacachelock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
 
 bool DNSSECKeeper::isSecuredZone(const std::string& zone) 
 {
   if(isPresigned(zone))
     return true;
 	
-  {
-    Lock l(&s_keycachelock);
-    keycache_t::const_iterator iter = s_keycache.find(zone);
-    if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) { 
-      if(iter->d_keys.empty())
-        return false;
-      else
-        return true;
-    }
+  
+  keycache_t::const_iterator iter = t_keycache->find(zone);
+  if(iter != t_keycache->end() && iter->d_ttd > (unsigned int)time(0)) { 
+    if(iter->d_keys.empty())
+      return false;
     else
-      ; 
+      return true;
   }
+  else
+    ; 
+  
   keyset_t keys = getKeys(zone, true);
   
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
@@ -70,7 +68,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
 bool DNSSECKeeper::isPresigned(const std::string& name)
 {
   vector<string> meta;
-  d_db.getDomainMetadata(name, "PRESIGNED", meta);
+  d_keymetadb.getDomainMetadata(name, "PRESIGNED", meta);
   if(meta.empty())
     return false;
   return meta[0]=="1";
@@ -102,10 +100,8 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
 
 void DNSSECKeeper::clearCaches(const std::string& name)
 {
-  {
-    Lock l(&s_keycachelock);
-    s_keycache.erase(name);
-  }
+  t_keycache->erase(name); // should this be broadcast in some way?
+  
   Lock l(&s_metacachelock);
   pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
   while(range.first != range.second)
@@ -121,7 +117,7 @@ void DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, 
   kd.active = active;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  d_db.addDomainKey(name, kd);
+  d_keymetadb.addDomainKey(name, kd);
 }
 
 
@@ -134,7 +130,7 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int id)
 {  
   vector<DNSBackend::KeyData> keys;
-  d_db.getDomainKeys(zname, 0, keys);
+  d_keymetadb.getDomainKeys(zname, 0, keys);
   BOOST_FOREACH(const DNSBackend::KeyData& kd, keys) {
     if(kd.id != id) 
       continue;
@@ -158,19 +154,19 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_db.removeDomainKey(zname, id);
+  d_keymetadb.removeDomainKey(zname, id);
 }
 
 void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_db.deactivateDomainKey(zname, id);
+  d_keymetadb.deactivateDomainKey(zname, id);
 }
 
 void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_db.activateDomainKey(zname, id);
+  d_keymetadb.activateDomainKey(zname, id);
 }
 
 
@@ -188,7 +184,7 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
     }
   }
   vector<string> meta;
-  d_db.getDomainMetadata(zname, key, meta);
+  d_keymetadb.getDomainMetadata(zname, key, meta);
   if(!meta.empty())
     value=*meta.begin();
     
@@ -230,18 +226,18 @@ void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecor
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
   meta.push_back(descr);
-  d_db.setDomainMetadata(zname, "NSEC3PARAM", meta);
+  d_keymetadb.setDomainMetadata(zname, "NSEC3PARAM", meta);
   
   meta.clear();
   if(narrow)
     meta.push_back("1");
-  d_db.setDomainMetadata(zname, "NSEC3NARROW", meta);
+  d_keymetadb.setDomainMetadata(zname, "NSEC3NARROW", meta);
 }
 
 void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 {
   clearCaches(zname);
-  d_db.setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
+  d_keymetadb.setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
 }
 
 
@@ -250,37 +246,34 @@ void DNSSECKeeper::setPresigned(const std::string& zname)
   clearCaches(zname);
   vector<string> meta;
   meta.push_back("1");
-  d_db.setDomainMetadata(zname, "PRESIGNED", meta);
+  d_keymetadb.setDomainMetadata(zname, "PRESIGNED", meta);
 }
 
 void DNSSECKeeper::unsetPresigned(const std::string& zname)
 {
   clearCaches(zname);
-  d_db.setDomainMetadata(zname, "PRESIGNED", vector<string>());
+  d_keymetadb.setDomainMetadata(zname, "PRESIGNED", vector<string>());
 }
 
 
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
 {
   unsigned int now = time(0);
-  {
-    Lock l(&s_keycachelock);
-    keycache_t::const_iterator iter = s_keycache.find(zone);
+  keycache_t::const_iterator iter = t_keycache->find(zone);
     
-    if(iter != s_keycache.end() && iter->d_ttd > now) { 
-      keyset_t ret;
-      BOOST_FOREACH(const keyset_t::value_type& value, iter->d_keys) {
-        if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
-          ret.push_back(value);
-      }
-      return ret;
+  if(iter != t_keycache->end() && iter->d_ttd > now) { 
+    keyset_t ret;
+    BOOST_FOREACH(const keyset_t::value_type& value, iter->d_keys) {
+      if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
+        ret.push_back(value);
     }
+    return ret;
   }
-  
+    
   keyset_t retkeyset, allkeyset;
   vector<UeberBackend::KeyData> dbkeyset;
   
-  d_db.getDomainKeys(zone, 0, dbkeyset);
+  d_keymetadb.getDomainKeys(zone, 0, dbkeyset);
   
   BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset) 
   {
@@ -305,13 +298,12 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   }
   sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
   sort(allkeyset.begin(), allkeyset.end(), keyCompareByKindAndID);
-  Lock l(&s_keycachelock);
   
   KeyCacheEntry kce;
   kce.d_domain=zone;
   kce.d_keys = allkeyset;
   kce.d_ttd = now + 30;
-  replacing_insert(s_keycache, kce);
+  replacing_insert(*t_keycache, kce);
   
   return retkeyset;
 }

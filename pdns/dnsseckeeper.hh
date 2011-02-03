@@ -28,9 +28,13 @@ public:
   typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t; 
   typedef std::vector<keymeta_t > keyset_t;
 private:
-  UeberBackend d_db;
+  UeberBackend d_keymetadb;
 public:
-  DNSSECKeeper() : d_db("key-only"){}
+  DNSSECKeeper() : d_keymetadb("key-only")
+  {
+    if(!t_keycache)
+      t_keycache = new keycache_t();
+  }
   bool isSecuredZone(const std::string& zone);
   
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
@@ -102,9 +106,8 @@ private:
     >
   > metacache_t;
 
-  static keycache_t s_keycache;
+  static __thread keycache_t* t_keycache;
   static metacache_t s_metacache;
-  static pthread_mutex_t s_keycachelock;
   static pthread_mutex_t s_metacachelock;
 };
 
