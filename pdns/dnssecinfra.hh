@@ -13,6 +13,7 @@ class DNSCryptoKeyEngine
 {
   public:
     explicit DNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm) {}
+    virtual ~DNSCryptoKeyEngine() {};
     virtual string getName() const = 0;
     
     typedef std::map<std::string, std::string> stormap_t;

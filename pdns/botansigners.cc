@@ -15,7 +15,11 @@ class BotanRSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 public:
   explicit BotanRSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
   {
+  //  cerr<<"Called"<<endl;
   }
+  
+  ~BotanRSADNSCryptoKeyEngine(){}
+    
   string getName() const { return "Botan RSA"; }
   void create(unsigned int bits);
   stormap_t convertToISCMap() const;
@@ -241,12 +245,12 @@ bool BotanRSADNSCryptoKeyEngine::verify(const std::string& msg, const std::strin
 }
 
 namespace {
-struct LoaderStruct
+struct LoaderBotanStruct
 {
-  LoaderStruct()
+  LoaderBotanStruct()
   {
-    Botan::LibraryInitializer init;
-
+    Botan::LibraryInitializer* tmp = new Botan::LibraryInitializer("thread_safe=true");
+    // this leaks, but is fine
     DNSCryptoKeyEngine::report(5, &BotanRSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(7, &BotanRSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(8, &BotanRSADNSCryptoKeyEngine::maker);

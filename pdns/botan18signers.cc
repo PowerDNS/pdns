@@ -197,13 +197,13 @@ bool ECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& 
   return key->verify((byte*)hash.c_str(), hash.length(), (byte*)signature.c_str(), signature.length());
 }
 namespace {
-struct LoaderStruct
+struct LoaderBotan18Struct
 {
-  LoaderStruct()
+  LoaderBotan18Struct()
   {
     // DNSCryptoKeyEngine::report(12, &GOSTDNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(13, &ECDSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(14, &ECDSADNSCryptoKeyEngine::maker);
   }
-} loader;
+} loaderbotan18;
 }

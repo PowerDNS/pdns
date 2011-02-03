@@ -25,6 +25,8 @@ class GOSTDNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
   explicit GOSTDNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm) {}
+  // XXX FIXME NEEDS COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
+  ~GOSTDNSCryptoKeyEngine(){}
   void create(unsigned int bits);
   string getName() const { return "Botan 1.9 GOST"; }
   stormap_t convertToISCMap() const;
@@ -251,6 +253,9 @@ class ECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 public:
   explicit ECDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
   {}
+  
+  ~ECDSADNSCryptoKeyEngine() {}
+  // XXX FIXME NEEDS DEEP COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
   string getName() const { return "Botan 1.9 ECDSA"; }
   void create(unsigned int bits);
   stormap_t convertToISCMap() const;
@@ -423,8 +428,7 @@ struct LoaderStruct
 {
   LoaderStruct()
   {
-    Botan::LibraryInitializer init;
-
+    // 'botansigners' inits Botan for us
     DNSCryptoKeyEngine::report(12, &GOSTDNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(13, &ECDSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(14, &ECDSADNSCryptoKeyEngine::maker);
