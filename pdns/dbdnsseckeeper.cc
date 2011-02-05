@@ -32,7 +32,7 @@
 
 
 using namespace boost::assign;
-using namespace std;
+#include "namespaces.hh"
 using namespace boost;
 
 __thread DNSSECKeeper::keycache_t* DNSSECKeeper::t_keycache;
@@ -43,8 +43,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
 {
   if(isPresigned(zone))
     return true;
-	
-  
+	  
   keycache_t::const_iterator iter = t_keycache->find(zone);
   if(iter != t_keycache->end() && iter->d_ttd > (unsigned int)time(0)) { 
     if(iter->d_keys.empty())
@@ -67,11 +66,9 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
 
 bool DNSSECKeeper::isPresigned(const std::string& name)
 {
-  vector<string> meta;
-  d_keymetadb.getDomainMetadata(name, "PRESIGNED", meta);
-  if(meta.empty())
-    return false;
-  return meta[0]=="1";
+  string meta;
+  getFromMeta(name, "PRESIGNED", meta);
+  return meta=="1";
 }
 
 void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
