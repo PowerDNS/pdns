@@ -1,0 +1,20 @@
+package DNSProtoBuf;
+
+message DNSResourceRecord {
+  required string qname = 1;
+  required int32 qtype = 2;
+  required string content = 3;
+  required int32 ttl = 4;
+  optional int32 priority = 5;
+  enum Place {
+	QUESTION = 0;
+	ANSWER = 1;
+	AUTHORITY = 2;
+	ADDITIONAL = 3;
+  }
+  required Place place = 6;
+}
+
+message DNSResourceRecordVector {
+  repeated DNSResourceRecord dnsrecord = 1;
+}
