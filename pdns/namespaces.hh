@@ -10,6 +10,36 @@
 #include <boost/function.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <vector>
+#include <map>
+#include <set>
+#include <deque>
+#include <string>
+#include <iostream>
+
+using std::vector;
+using std::map;
+using std::pair;
+using std::make_pair;
+using std::runtime_error;
+using std::ostringstream;
+using std::set;
+using std::deque;
+using std::cerr;
+using std::cout;
+using std::clog;
+using std::endl;
+using std::ifstream;
+using std::ofstream;
+using std::ostream;
+using std::min; // these are a bit scary, everybody uses 'min'
+using std::max;
+
+namespace pdns {
+  typedef std::string string;  
+};
+
+typedef pdns::string string;
 
 using boost::lexical_cast;
 using boost::tie;
