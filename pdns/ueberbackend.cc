@@ -100,11 +100,12 @@ bool UeberBackend::getDomainInfo(const string &domain, DomainInfo &di)
 
 int UeberBackend::addDomainKey(const string& name, const KeyData& key)
 {
+  int ret;
   BOOST_FOREACH(DNSBackend* db, backends) {
-    if(db->addDomainKey(name, key) >= 0)
-      return true;
+    if((ret = db->addDomainKey(name, key)) >= 0)
+      return ret;
   }
-  return false;
+  return -1;
 }
 bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
 {
