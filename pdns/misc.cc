@@ -329,13 +329,13 @@ string humanDuration(time_t passed)
   if(passed<60)
     ret<<passed<<" seconds";
   else if(passed<3600)
-    ret<<setprecision(2)<<passed/60.0<<" minutes";
+    ret<<std::setprecision(2)<<passed/60.0<<" minutes";
   else if(passed<86400)
-    ret<<setprecision(3)<<passed/3600.0<<" hours";
+    ret<<std::setprecision(3)<<passed/3600.0<<" hours";
   else if(passed<(86400*30.41))
-    ret<<setprecision(3)<<passed/86400.0<<" days";
+    ret<<std::setprecision(3)<<passed/86400.0<<" days";
   else
-    ret<<setprecision(3)<<passed/(86400*30.41)<<" months";
+    ret<<std::setprecision(3)<<passed/(86400*30.41)<<" months";
 
   return ret.str();
 }

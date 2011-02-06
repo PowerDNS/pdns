@@ -15,7 +15,7 @@
 #include "base64.hh"
 
 using namespace boost;
-using namespace std;
+#include "namespaces.hh"
 using namespace boost::assign;
 
 DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
@@ -37,10 +37,10 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
 {
   int algorithm = 0;
   string sline, key, value, raw;
-  istringstream str(content);
+  std::istringstream str(content);
   map<string, string> stormap;
 
-  while(getline(str, sline)) {
+  while(std::getline(str, sline)) {
     tie(key,value)=splitField(sline, ':');
     trim(value);
     if(pdns_iequals(key,"algorithm")) {

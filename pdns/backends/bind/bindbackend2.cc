@@ -32,7 +32,7 @@
 #include "dnsseckeeper.hh"
 #include "dnssecinfra.hh"
 #include "base32.hh"
-using namespace std;
+#include "namespaces.hh"
 
 #include "dns.hh"
 #include "dnsbackend.hh"
@@ -46,7 +46,7 @@ using namespace std;
 #include "misc.hh"
 #include "dynlistener.hh"
 #include "lock.hh"
-using namespace std;
+#include "namespaces.hh"
 
 /** new scheme of things:
     we have zone-id map
@@ -504,7 +504,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
 Bind2Backend::Bind2Backend(const string &suffix)
 {
 #if __GNUC__ >= 3
-    ios_base::sync_with_stdio(false);
+    std::ios_base::sync_with_stdio(false);
 #endif
   d_logprefix="[bind"+suffix+"backend]";
   setArgPrefix("bind"+suffix);
@@ -1148,7 +1148,7 @@ bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, co
   if (getArg("supermaster-config").empty())
     return false;
 
-  ifstream c_if(getArg("supermasters").c_str(), ios::in); // this was nocreate?
+  ifstream c_if(getArg("supermasters").c_str(), std::ios::in); // this was nocreate?
   if (!c_if) {
     L << Logger::Error << "Unable to open supermasters file for read: " << stringerror() << endl;
     return false;
@@ -1158,7 +1158,7 @@ bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, co
   // <ip> <accountname>
   string line, sip, saccount;
   while (getline(c_if, line)) {
-    istringstream ii(line);
+    std::istringstream ii(line);
     ii >> sip;
     if (sip == ip) {
       ii >> saccount;
@@ -1189,7 +1189,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
     << " Writing bind config zone statement for superslave zone '" << domain
     << "' from supermaster " << ip << endl;
         
-  ofstream c_of(getArg("supermaster-config").c_str(),  ios::app);
+  ofstream c_of(getArg("supermaster-config").c_str(),  std::ios::app);
   if (!c_of) {
     L << Logger::Error << "Unable to open supermaster configfile for append: " << stringerror() << endl;
     throw DBException("Unable to open supermaster configfile for append: "+stringerror());
