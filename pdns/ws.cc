@@ -177,7 +177,7 @@ string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr,
   ret<<humanDuration(passed)<<endl;
 
 
-  ret<<"Queries/second, 1, 5, 10 minute averages:  "<<setprecision(3)<<
+  ret<<"Queries/second, 1, 5, 10 minute averages:  "<<std::setprecision(3)<<
     sws->d_queries.get1()<<", "<<
     sws->d_queries.get5()<<", "<<
     sws->d_queries.get10()<<". Max queries/second: "<<sws->d_queries.getMax()<<
@@ -191,13 +191,13 @@ string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr,
       "<br>"<<endl;
 
   if(sws->d_qcachemisses.get10()+sws->d_qcachehits.get10()>0)
-    ret<<"Backend query cache hitrate, 1, 5, 10 minute averages: "<<setprecision(2)<<
+    ret<<"Backend query cache hitrate, 1, 5, 10 minute averages: "<<std::setprecision(2)<<
       makePercentage((sws->d_qcachehits.get1()*100.0)/((sws->d_qcachehits.get1())+(sws->d_qcachemisses.get1())))<<", "<<
       makePercentage((sws->d_qcachehits.get5()*100.0)/((sws->d_qcachehits.get5())+(sws->d_qcachemisses.get5())))<<", "<<
       makePercentage((sws->d_qcachehits.get10()*100.0)/((sws->d_qcachehits.get10())+(sws->d_qcachemisses.get10())))<<
       "<br>"<<endl;
 
-  ret<<"Backend query load, 1, 5, 10 minute averages: "<<setprecision(3)<<
+  ret<<"Backend query load, 1, 5, 10 minute averages: "<<std::setprecision(3)<<
     sws->d_qcachemisses.get1()<<", "<<
     sws->d_qcachemisses.get5()<<", "<<
     sws->d_qcachemisses.get10()<<". Max queries/second: "<<sws->d_qcachemisses.getMax()<<
