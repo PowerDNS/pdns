@@ -23,7 +23,7 @@
 #include <sys/time.h>
 #endif
 
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;

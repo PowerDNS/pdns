@@ -8,7 +8,7 @@
 #include "syncres.hh"
 
 #include "namespaces.hh"
-using namespace std;
+#include "namespaces.hh"
 
 class DevPollFDMultiplexer : public FDMultiplexer
 {

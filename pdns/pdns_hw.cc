@@ -11,7 +11,7 @@
 #include <string>
 #include <sstream>
 
-using namespace std;
+#include "namespaces.hh"
 int main()
 {
         ostringstream str;

@@ -6,7 +6,7 @@
 
 #include "ahuexception.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 RecursorControlChannel::RecursorControlChannel()
 {

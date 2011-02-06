@@ -68,7 +68,7 @@ struct TSCTimer
 #include <vector>
 #include <boost/optional.hpp>
 
-using namespace std;
+#include "namespaces.hh"
 bool chopOff(string &domain);
 bool chopOffDotted(string &domain);
 
@@ -414,7 +414,7 @@ private:
 };
 
 
-struct CIStringCompare: public binary_function<string, string, bool>  
+struct CIStringCompare: public std::binary_function<string, string, bool>  
 {
   bool operator()(const string& a, const string& b) const
   {

@@ -2,7 +2,7 @@
    for more information. */
 #ifndef SPGSQL_HH
 #define SPGSQL_HH
-using namespace std;
+#include "pdns/namespaces.hh"
 #include "pdns/backends/gsql/ssql.hh"
 
 #include <libpq-fe.h>

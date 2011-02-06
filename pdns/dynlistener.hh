@@ -37,7 +37,7 @@
 #include <netinet/in.h>
 #endif // WIN32
 
-using namespace std;
+#include "namespaces.hh"
 
 class DynListener : public boost::noncopyable
 {

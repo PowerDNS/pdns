@@ -38,7 +38,7 @@ class DNSPacket;
 #include "qtype.hh"
 #include "dns.hh"
 #include <vector>
-using namespace std;
+#include "namespaces.hh"
   
 class DNSBackend;  
 struct DomainInfo

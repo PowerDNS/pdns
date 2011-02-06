@@ -39,7 +39,7 @@
 # include <sys/select.h>
 #endif // WIN32
 
-using namespace std;
+#include "namespaces.hh"
 
 class TCPNameserver
 {

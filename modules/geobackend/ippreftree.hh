@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <stdint.h>
 
-using namespace std;
+#include "namespaces.hh"
 
 // Use old style C structs for efficiency
 typedef struct node_t {

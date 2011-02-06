@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string>
 
-using namespace std; 
+#include "pdns/namespaces.hh" 
 
 class CoProcess
 {

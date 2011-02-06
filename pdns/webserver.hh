@@ -22,7 +22,7 @@
 #include <string>
 
 
-using namespace std;
+#include "namespaces.hh"
 class Server;
 
 class WebServer

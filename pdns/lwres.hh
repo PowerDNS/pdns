@@ -38,7 +38,7 @@
 
 #include "ahuexception.hh"
 #include "dns.hh"
-using namespace std;
+#include "namespaces.hh"
 
 int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id, 
             const string& domain, uint16_t qtype,  int* fd);

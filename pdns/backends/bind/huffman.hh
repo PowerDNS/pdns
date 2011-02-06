@@ -25,7 +25,7 @@
 #include <vector>
 #include "../../ahuexception.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 class HuffmanCodec
 {

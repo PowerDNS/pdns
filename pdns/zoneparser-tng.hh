@@ -23,7 +23,7 @@
 #include <stdexcept>
 #include <stack>
 
-using namespace std;
+#include "namespaces.hh"
 
 class ZoneParserTNG
 {
@@ -57,7 +57,7 @@ private:
     string d_filename;
     int d_lineno;
   };
-  stack<filestate> d_filestates;
+  std::stack<filestate> d_filestates;
 };
 
 #endif

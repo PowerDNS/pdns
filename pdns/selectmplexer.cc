@@ -8,7 +8,7 @@
 
 
 #include "namespaces.hh"
-using namespace std;
+#include "namespaces.hh"
 
 static FDMultiplexer* make()
 {

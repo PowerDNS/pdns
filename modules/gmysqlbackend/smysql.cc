@@ -7,7 +7,7 @@
 #include "pdns/misc.hh"
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"
-using namespace std;
+#include "pdns/namespaces.hh"
 
 bool SMySQL::s_dolog;
 

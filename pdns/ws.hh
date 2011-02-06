@@ -34,7 +34,7 @@
 #endif // HAVE_CONFIG_H
 
 #include "misc.hh"
-using namespace std;
+#include "namespaces.hh"
 
 class Ewma
 {

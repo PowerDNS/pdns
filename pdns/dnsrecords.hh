@@ -26,7 +26,7 @@
 #include <set>
 #include <bitset>
 
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \

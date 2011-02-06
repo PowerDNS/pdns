@@ -71,7 +71,7 @@ typedef int socklen_t;
 #endif // WIN32
 #include <string>
 
-using namespace std;
+#include "namespaces.hh"
 
 //! A semaphore class.
 class Semaphore

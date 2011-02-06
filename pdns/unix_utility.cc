@@ -35,7 +35,7 @@ const char *inet_ntop(int af, const void *src, char *dst, size_t cnt);
 #endif
 
 
-using namespace std;
+#include "namespaces.hh"
 
 // Closes a socket.
 int Utility::closesocket( Utility::sock_t socket )

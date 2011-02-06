@@ -10,7 +10,7 @@
 #include "statbag.hh"
 #include <sys/socket.h>
 
-using namespace std;
+#include "namespaces.hh"
 using namespace boost::multi_index;
 
 struct TimeTag{};

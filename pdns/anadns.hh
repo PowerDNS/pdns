@@ -8,7 +8,7 @@
 #include "dnsparser.hh"
 
 #include "namespaces.hh"
-using namespace std;
+#include "namespaces.hh"
 
 struct QuestionIdentifier
 {

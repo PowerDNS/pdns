@@ -4,7 +4,7 @@
 #include "recursor_memcached.hh"
 #include <boost/lexical_cast.hpp>
 
-using namespace std;
+#include "namespaces.hh"
 using boost::lexical_cast;
 
 MemcachedCommunicator::MemcachedCommunicator(const std::string& servers)

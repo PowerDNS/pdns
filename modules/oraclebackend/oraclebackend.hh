@@ -6,7 +6,7 @@
 
 #include <oci.h>
 
-using namespace std;
+#include "namespaces.hh"
 
 class OracleException : public DBException
 {

@@ -4,7 +4,7 @@
 
 HTimer::timers_t HTimer::s_timers;
 
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 
 

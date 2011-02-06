@@ -6,7 +6,7 @@
 #include <string>
 #include <map>
 
-using namespace std;
+#include "namespaces.hh"
 
 #include <mysql.h>
 

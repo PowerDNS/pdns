@@ -12,7 +12,7 @@
 #include <sys/time.h>
 
 #include "namespaces.hh"
-using namespace std;
+#include "namespaces.hh"
 
 class KqueueFDMultiplexer : public FDMultiplexer
 {

@@ -18,7 +18,7 @@
 
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
-using namespace std;
+#include "namespaces.hh"
 
 namespace po = boost::program_options;
 po::variables_map g_vm;

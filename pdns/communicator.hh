@@ -39,7 +39,7 @@ using namespace boost::multi_index;
 #include "lock.hh"
 #include "packethandler.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 struct SuckRequest
 {
@@ -113,7 +113,7 @@ public:
   
   time_t earliest()
   {
-    time_t early=numeric_limits<time_t>::max() - 1; 
+    time_t early=std::numeric_limits<time_t>::max() - 1; 
     for(d_nqueue_t::const_iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
       early=min(early,i->next);
     return early-time(0);
@@ -129,7 +129,7 @@ private:
     time_t next;
   };
 
-  typedef list<NotificationRequest>d_nqueue_t;
+  typedef std::list<NotificationRequest>d_nqueue_t;
   d_nqueue_t d_nqueue;
 
 };

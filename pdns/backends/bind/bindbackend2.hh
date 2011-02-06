@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include "misc.hh"
 
-using namespace std;
+#include "namespaces.hh"
 using namespace boost;
 using namespace ::boost::multi_index;
 

@@ -324,7 +324,7 @@ void RSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString)
 string RSADNSCryptoKeyEngine::getPublicKeyString()  const
 {
   string keystring;
-  char tmp[max(mpi_size(&d_context.E), mpi_size(&d_context.N))];
+  char tmp[std::max(mpi_size(&d_context.E), mpi_size(&d_context.N))];
 
   mpi_write_binary(&d_context.E, (unsigned char*)tmp, mpi_size(&d_context.E) );
   string exponent((char*)tmp, mpi_size(&d_context.E));

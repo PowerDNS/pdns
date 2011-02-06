@@ -7,7 +7,7 @@
 #include "syncres.hh"
 #include "utility.hh" 
 #include "namespaces.hh"
-using namespace std;
+#include "namespaces.hh"
 
 
 static FDMultiplexer* make()

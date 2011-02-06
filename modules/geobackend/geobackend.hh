@@ -15,7 +15,7 @@
 
 #include "ippreftree.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 class GeoRecord {
 public:

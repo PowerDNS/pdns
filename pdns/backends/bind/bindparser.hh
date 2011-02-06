@@ -23,7 +23,7 @@
 #include <vector>
 #include <set>
 
-using namespace std;
+#include "namespaces.hh"
 
 class BindDomainInfo 
 {

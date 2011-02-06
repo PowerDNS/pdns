@@ -47,7 +47,7 @@
     And we might be able to reverse 2 -> 3 as well
 */
     
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 
 class MOADNSException : public runtime_error

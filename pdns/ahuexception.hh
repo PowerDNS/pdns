@@ -22,7 +22,7 @@
 
 #include<string>
 
-using namespace std;
+#include "namespaces.hh"
 
 //! Generic Exception thrown 
 class AhuException

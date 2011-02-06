@@ -61,7 +61,7 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
-using namespace std;
+#include "namespaces.hh"
 
 StatBag S;
 bool g_quiet=true;
@@ -369,7 +369,7 @@ try
     {
       s_wednserrors++;
     }
-    catch(out_of_range &e)
+    catch(std::out_of_range &e)
     {
       s_wednserrors++;
     }
@@ -551,7 +551,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
   {
     s_origdnserrors++;
   }
-  catch(out_of_range &e)
+  catch(std::out_of_range &e)
   {
     s_origdnserrors++;
   }

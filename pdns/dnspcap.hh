@@ -13,7 +13,7 @@
 #include <net/ethernet.h>
 #include <vector>
 #include <boost/format.hpp>
-using namespace std;
+#include "namespaces.hh"
 
 struct pdns_pcap_file_header {
   uint32_t magic;

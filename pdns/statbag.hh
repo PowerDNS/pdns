@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 #include "lock.hh"
-using namespace std;
+#include "namespaces.hh"
 
 class StatRing
 {

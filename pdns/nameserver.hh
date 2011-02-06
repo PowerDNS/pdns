@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005  PowerDNS.COM BV
+    Copyright (C) 2005 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License version 2 as published
@@ -32,7 +32,7 @@
 
 #include <vector>
 #include "statbag.hh"
-using namespace std;
+#include "namespaces.hh"
 
 /** This is the main class. It opens a socket on udp port 53 and waits for packets. Those packets can 
     be retrieved with the receive() member function, which returns a DNSPacket.

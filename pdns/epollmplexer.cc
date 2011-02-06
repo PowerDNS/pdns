@@ -10,7 +10,7 @@
 #endif
 
 #include "namespaces.hh"
-using namespace std;
+#include "namespaces.hh"
 
 class EpollFDMultiplexer : public FDMultiplexer
 {

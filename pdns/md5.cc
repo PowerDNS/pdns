@@ -8,7 +8,7 @@
 
 #include "md5.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 namespace {
   

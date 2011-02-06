@@ -154,7 +154,7 @@ int main( int argc, char* argv[] )
         try
         {
 #if __GNUC__ >= 3
-        	ios_base::sync_with_stdio( false );
+        	std::ios_base::sync_with_stdio( false );
 #endif
         	reportAllTypes();
         	args.setCmd( "help", "Provide a helpful message" );

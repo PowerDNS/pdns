@@ -40,7 +40,7 @@
 #include "dnspacket.hh"
 #include "dnsbackend.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 class BackendReporter;
 

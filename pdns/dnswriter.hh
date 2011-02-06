@@ -10,7 +10,7 @@
 #include "utility.hh"
 #endif
 #include "dns.hh"
-using namespace std;
+#include "namespaces.hh"
 
 /** this class can be used to write DNS packets. It knows about DNS in the sense that it makes 
     the packet header and record headers.

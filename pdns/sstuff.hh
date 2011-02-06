@@ -19,7 +19,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 #include <csignal>
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 
 

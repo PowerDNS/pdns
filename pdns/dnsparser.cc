@@ -264,7 +264,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     }
 #endif 
   }
-  catch(out_of_range &re) {
+  catch(std::out_of_range &re) {
     if(validPacket && d_header.tc) { // don't sweat it over truncated packets, but do adjust an, ns and arcount
       if(n < d_header.ancount) {
         d_header.ancount=n; d_header.nscount = d_header.arcount = 0;
@@ -317,7 +317,7 @@ void PacketReader::copyRecord(vector<unsigned char>& dest, uint16_t len)
 void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
 {
   if(d_pos + len > d_content.size())
-    throw out_of_range("Attempt to copy outside of packet");
+    throw std::out_of_range("Attempt to copy outside of packet");
 
   memcpy(dest, &d_content.at(d_pos), len);
   d_pos+=len;
@@ -574,7 +574,7 @@ private:
   {
     d_notyouroffset += by;
     if(d_notyouroffset > d_packet.length())
-      throw out_of_range("dns packet out of range: "+lexical_cast<string>(d_notyouroffset) +" > " 
+      throw std::out_of_range("dns packet out of range: "+lexical_cast<string>(d_notyouroffset) +" > " 
       + lexical_cast<string>(d_packet.length()) );
   }
   std::string& d_packet;

@@ -24,7 +24,7 @@
 #include <vector>
 #include <utility>
 
-using namespace std;
+#include "namespaces.hh"
 
 /** The QType class is meant to deal easily with the different kind of resource types, like 'A', 'NS',
  *  'CNAME' etcetera. These types have both a name and a number. This class can seemlessly move between

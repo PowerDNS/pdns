@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 
-using namespace std;
+#include "namespaces.hh"
 
 #include <modules/gmysqlbackend/smysql.hh>
 

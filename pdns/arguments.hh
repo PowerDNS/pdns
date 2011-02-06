@@ -32,7 +32,7 @@
 # include <grp.h>
 #endif
 
-using namespace std;
+#include "namespaces.hh"
 
 typedef AhuException ArgException;
 

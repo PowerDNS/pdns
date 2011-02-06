@@ -35,7 +35,7 @@
 
 #include "ahuexception.hh"
 #include "dns.hh"
-using namespace std;
+#include "namespaces.hh"
 
 class ResolverException : public AhuException
 {

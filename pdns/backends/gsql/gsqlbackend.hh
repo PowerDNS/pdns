@@ -2,7 +2,7 @@
 #include <map>
 #include "ssql.hh"
 
-using namespace std;
+#include "../../namespaces.hh"
 
 /** The GSQLBackend is a DNSBackend that can answer DNS related questions. It looks up data
     in PostgreSQL */

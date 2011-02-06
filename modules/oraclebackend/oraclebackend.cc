@@ -11,7 +11,7 @@
 
 #include <string>
 
-using namespace std;
+#include "namespaces.hh"
 
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"

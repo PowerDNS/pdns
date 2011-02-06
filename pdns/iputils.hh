@@ -36,7 +36,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/lexical_cast.hpp>
 
-using namespace std;
+#include "namespaces.hh"
 
 union ComboAddress {
   struct sockaddr_in sin4;
@@ -78,7 +78,7 @@ union ComboAddress {
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) > 0;
   }
 
-  struct addressOnlyLessThan: public binary_function<string, string, bool>
+  struct addressOnlyLessThan: public std::binary_function<string, string, bool>
   {
     bool operator()(const ComboAddress& a, const ComboAddress& b) const
     {

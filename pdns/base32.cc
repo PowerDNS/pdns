@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "base32.hh"
-using namespace std;
+#include "namespaces.hh"
 
 /* based on freebsd:src/contrib/opie/libopie/btoe.c extract: get bit ranges from a char* */
 uint32_t extract_bits(const char *s, int start, int length)

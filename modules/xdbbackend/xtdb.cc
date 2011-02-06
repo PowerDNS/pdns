@@ -9,7 +9,7 @@
 #include <iostream>
 
 
-using namespace std;
+#include "namespaces.hh"
 
 TDB_CONTEXT *XTDBWrapper::s_db;
 int XTDBWrapper::s_usecount;

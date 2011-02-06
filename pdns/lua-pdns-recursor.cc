@@ -40,7 +40,7 @@ extern "C" {
 #include <vector>
 #include <stdexcept>
 #include "logger.hh"
-using namespace std;
+#include "namespaces.hh"
 
 bool netmaskMatchTable(lua_State* lua, const std::string& ip)
 {

@@ -32,7 +32,7 @@
 #include <sys/stat.h>
 
 
-using namespace std;
+#include "namespaces.hh"
 
 static void imbue(char *pname, const char *search, const string &replace);
 static string stringerror();

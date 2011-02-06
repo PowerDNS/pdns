@@ -87,7 +87,7 @@ private:
 
 
 
-struct CanonicalCompare: public binary_function<string, string, bool>  
+struct CanonicalCompare: public std::binary_function<string, string, bool>  
 {
   bool operator()(const std::string& a, const std::string& b) {
     std::vector<std::string> avect, bvect;

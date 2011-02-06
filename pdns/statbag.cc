@@ -26,7 +26,7 @@
 #include "arguments.hh"
 #include "lock.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 StatBag::StatBag()
 {

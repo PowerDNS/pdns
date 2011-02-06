@@ -28,7 +28,7 @@
 # include "utility.hh"
 #endif
 
-using namespace std;
+#include "namespaces.hh"
 
 class RecordTextException : public runtime_error
 {

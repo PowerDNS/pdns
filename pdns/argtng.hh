@@ -6,7 +6,7 @@
 #include <cctype>
 #include <boost/shared_ptr.hpp>
 #include <boost/regex.hpp>
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 
 #define decl(x,y) typeof((y)) (x) = (y)

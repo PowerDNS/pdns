@@ -5,7 +5,7 @@
 
 #include <string>
 
-using namespace std;
+#include "namespaces.hh"
 
 #include <sqlcli1.h>
 

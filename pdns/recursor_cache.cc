@@ -8,7 +8,7 @@
 #include "recursor_cache.hh"
 #include "cachecleaner.hh"
 
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 
 #include "config.h"

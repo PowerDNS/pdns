@@ -23,7 +23,7 @@
 extern StatBag S;
 #endif
 
-using namespace std;
+#include "namespaces.hh"
 
 Logger &theL(const string &pname)
 {

@@ -21,7 +21,7 @@
 #include "arguments.hh"
 #include "config.h"
 
-using namespace std;
+#include "namespaces.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"

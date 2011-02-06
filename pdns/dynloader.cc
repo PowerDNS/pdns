@@ -37,7 +37,7 @@
 #include "config.h"
 #include "statbag.hh"
 #include "misc.hh"
-using namespace std;
+#include "namespaces.hh"
 #include "namespaces.hh"
 
 ArgvMap &arg()

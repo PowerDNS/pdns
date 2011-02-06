@@ -38,7 +38,7 @@
 #include "iputils.hh"
 #include "ahuexception.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 //! The DynMessenger can send messages to UNIX domain sockets and TCP sockets
 class DynMessenger

@@ -19,7 +19,7 @@
 
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
-using namespace std;
+#include "namespaces.hh"
 StatBag S;
 
 int main(int argc, char** argv)

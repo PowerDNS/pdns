@@ -25,7 +25,7 @@
 #include <map>
 #include "dns.hh"
 #include <boost/version.hpp>
-using namespace std;
+#include "namespaces.hh"
 using namespace ::boost::multi_index;
 
 #include "namespaces.hh"
@@ -44,7 +44,7 @@ using namespace ::boost::multi_index;
     first marks and then sweeps, a second lock is present to prevent simultaneous inserts and deletes.
 */
 
-struct CIBackwardsStringCompare: public binary_function<string, string, bool>  
+struct CIBackwardsStringCompare: public std::binary_function<string, string, bool>  
 {
   bool operator()(const string& str_a, const string& str_b) const
   {

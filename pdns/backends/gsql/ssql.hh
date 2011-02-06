@@ -10,7 +10,7 @@
 
 #include <string>
 #include <vector>
-using namespace std;
+#include "../../namespaces.hh"
 
 
 class SSqlException 

@@ -30,7 +30,7 @@
 #include "packetcache.hh"
 #include "dnsseckeeper.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 // silly Solaris people define PC
 #undef PC

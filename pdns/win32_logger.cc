@@ -21,7 +21,7 @@
 #include "logger.hh"
 #include "ntservice.hh" 
 #include "pdnsmsg.hh"
-using namespace std;
+#include "namespaces.hh"
 
 Logger &theL(const string &pname)
 {

@@ -30,7 +30,7 @@
 #include <iostream>
 #include <stdio.h>
 
-using namespace std;
+#include "namespaces.hh"
 
 #include "dns.hh"
 #include "arguments.hh"
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
     reportAllTypes();
     reportFancyTypes();
 #if __GNUC__ >= 3
-    ios_base::sync_with_stdio(false);
+    std::ios_base::sync_with_stdio(false);
 #endif
     lastsoa_qname=" ";
     ::arg().setSwitch("mysql","Output in format suitable for mysqlbackend")="yes";

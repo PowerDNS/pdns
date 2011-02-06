@@ -11,7 +11,7 @@
 #include "anadns.hh"
 
 #include "namespaces.hh"
-using namespace std;
+#include "namespaces.hh"
 
 StatBag S;
 

@@ -31,7 +31,7 @@
 #include "lock.hh"
 #include "iputils.hh"
 
-using namespace std;
+#include "namespaces.hh"
 
 /**
 

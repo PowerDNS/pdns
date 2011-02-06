@@ -11,9 +11,8 @@
 #include <sys/types.h>
 #include <regex.h>
 #include <boost/shared_ptr.hpp>
-using namespace boost;
 
-using namespace std;
+#include "pdns/namespaces.hh"
 
 /** very small regex wrapper */
 class Regex
