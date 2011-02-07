@@ -498,7 +498,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   sendPacket(outpacket, outsock);
   outpacket = getFreshAXFRPacket(q);
   
-  ChunkedSigningPipe csp(dk, signatureDB, target, securedZone, ::arg().asNum("signing-threads"));
+  ChunkedSigningPipe csp(target, securedZone, "", ::arg().asNum("signing-threads"));
   
   typedef map<string, NSECXEntry> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
@@ -523,7 +523,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   /* now write all other records */
   
   string keyname;
-  
+  DTime dt;
+  dt.set();
   int records=0;
   while(sd.db->get(rr)) {
     records++;
@@ -536,12 +537,22 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     if(rr.qtype.getCode() == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
 
-    if(csp.submit(rr))  {
-      outpacket->getRRS() = csp.getChunk();
-      sendPacket(outpacket, outsock);
-      outpacket=getFreshAXFRPacket(q); 
+    if(csp.submit(rr)) {
+      for(;;) {
+        outpacket->getRRS() = csp.getChunk();
+        if(!outpacket->getRRS().empty()) {
+          sendPacket(outpacket, outsock);
+          outpacket=getFreshAXFRPacket(q);
+        }
+        else
+          break;
+      }
     }
   }
+  unsigned int udiff=dt.udiffNoReset();
+  cerr<<"Starting NSEC: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
+  cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
+  cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
   if(securedZone) {   
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
@@ -566,9 +577,15 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         rr.d_place = DNSResourceRecord::ANSWER;
         rr.auth=true;
         if(csp.submit(rr)) {
-          outpacket->getRRS() = csp.getChunk();
-          sendPacket(outpacket, outsock);
-          outpacket=getFreshAXFRPacket(q);
+          for(;;) {
+            outpacket->getRRS() = csp.getChunk();
+            if(!outpacket->getRRS().empty()) {
+              sendPacket(outpacket, outsock);
+              outpacket=getFreshAXFRPacket(q);
+            }
+            else
+              break;
+          }
         }
       }
     }
@@ -590,14 +607,24 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       rr.qtype = QType::NSEC;
       rr.d_place = DNSResourceRecord::ANSWER;
       rr.auth=true;
+      
       if(csp.submit(rr)) {
-        outpacket->getRRS() = csp.getChunk();
-        sendPacket(outpacket, outsock);
-        outpacket=getFreshAXFRPacket(q);
+        for(;;) {
+          outpacket->getRRS() = csp.getChunk();
+          if(!outpacket->getRRS().empty()) {
+            sendPacket(outpacket, outsock);
+            outpacket=getFreshAXFRPacket(q);
+          }
+          else
+            break;
+        }
       }
     }
   }
- 
+  udiff=dt.udiffNoReset();
+  cerr<<"Flushing pipe: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
+  cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
+  cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
   for(;;) { 
     outpacket->getRRS() = csp.getChunk(true); // flush the pipe
     if(!outpacket->getRRS().empty()) {
@@ -607,6 +634,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     else 
       break;
   }
+  
+  udiff=dt.udiffNoReset();
+  cerr<<"Done: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
+  cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
+  cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
   
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
