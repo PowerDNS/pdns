@@ -296,7 +296,8 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
         	}
         }
 
-        if (rr.qtype == "NS" || rr.qtype == "MX" || rr.qtype == "CNAME" || rr.qtype == "PTR") {
+        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
+                rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
         	if (rr.content[rr.content.length()-1] == '.') {
         		rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
         	} else {
