@@ -31,6 +31,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <boost/bimap.hpp>
 #include "dns.hh"
 #include "dnswriter.hh"
 
@@ -187,7 +188,7 @@ public:
     if(z)
       getZmakermap()[make_pair(cl,ty)]=z;
 
-    getNamemap()[make_pair(cl,ty)]=name;
+    getNamemap().left.insert(make_pair(make_pair(cl,ty), name));
   }
 
   static void unregist(uint16_t cl, uint16_t ty) 
@@ -199,19 +200,23 @@ public:
 
   static uint16_t TypeToNumber(const string& name)
   {
-    for(namemap_t::const_iterator i=getNamemap().begin(); i!=getNamemap().end();++i)
-      if(pdns_iequals(i->second, name))
-        return i->first.second;
-
+    namemap_t::right_const_iterator iter = getNamemap().right.find(name);
+    if(iter != getNamemap().right.end())
+      return iter->second.second;
+    
+    if(boost::starts_with(name, "TYPE"))
+        return atoi(name.c_str()+4);
+    
     throw runtime_error("Unknown DNS type '"+name+"'");
   }
 
   static const string NumberToType(uint16_t num, uint16_t classnum=1)
   {
-    if(!getNamemap().count(make_pair(classnum,num)))
-      return "#" + lexical_cast<string>(num);
+    namemap_t::left_const_iterator iter = getNamemap().left.find(make_pair(classnum, num));
+    if(iter == getNamemap().left.end()) 
+      return "TYPE" + lexical_cast<string>(num);
       //      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
-    return getNamemap()[make_pair(classnum,num)];
+    return iter->second;
   }
 
   explicit DNSRecordContent(uint16_t type) : d_qtype(type)
@@ -232,7 +237,7 @@ public:
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   typedef std::map<std::pair<uint16_t, uint16_t>, zmakerfunc_t* > zmakermap_t;
-  typedef std::map<std::pair<uint16_t, uint16_t>, string > namemap_t;
+  typedef boost::bimap<std::pair<uint16_t, uint16_t>, string > namemap_t;
 
   static typemap_t& getTypemap();
   static namemap_t& getNamemap();
