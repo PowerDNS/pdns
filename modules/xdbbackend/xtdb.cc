@@ -9,7 +9,7 @@
 #include <iostream>
 
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 TDB_CONTEXT *XTDBWrapper::s_db;
 int XTDBWrapper::s_usecount;

@@ -6,7 +6,7 @@
 #include <string>
 #include <map>
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 #include <sqlcli1.h>
 

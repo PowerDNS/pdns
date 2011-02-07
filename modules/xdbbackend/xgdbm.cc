@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <iostream>
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 GDBM_FILE XGDBMWrapper::s_db;
 int XGDBMWrapper::s_usecount;

@@ -6,7 +6,7 @@
 
 #include <oci.h>
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 class OracleException : public DBException
 {

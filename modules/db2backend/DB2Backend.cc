@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <sstream>
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 #include <dns.hh>
 #include <dnsbackend.hh>

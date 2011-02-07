@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <stdint.h>
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 // Use old style C structs for efficiency
 typedef struct node_t {

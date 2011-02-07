@@ -15,7 +15,7 @@
 
 #include "ippreftree.hh"
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 class GeoRecord {
 public:

@@ -8,7 +8,7 @@
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"
 #include <regex.h>
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 bool SOracle::s_dolog;
 

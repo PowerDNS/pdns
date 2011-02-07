@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 #include <modules/gmysqlbackend/smysql.hh>
 

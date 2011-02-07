@@ -3,7 +3,7 @@
 
 #include "pdns/backends/gsql/gsqlbackend.hh"
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 
 /** The gOracleBackend is a DNSBackend that can answer DNS related questions. It looks up data
     in PostgreSQL */
