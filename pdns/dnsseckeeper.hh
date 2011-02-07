@@ -32,20 +32,18 @@ private:
 public:
   DNSSECKeeper() : d_keymetadb("key-only")
   {
-    if(!t_keycache)
-      t_keycache = new keycache_t();
   }
   bool isSecuredZone(const std::string& zone);
   
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
   DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
-  void addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
-  void addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
+  bool addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
+  bool addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
   void removeKey(const std::string& zname, unsigned int id);
   void activateKey(const std::string& zname, unsigned int id);
   void deactivateKey(const std::string& zname, unsigned int id);
 
-  void secureZone(const std::string& fname, int algorithm);
+  bool secureZone(const std::string& fname, int algorithm);
 
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
@@ -106,9 +104,10 @@ private:
     >
   > metacache_t;
 
-  static __thread keycache_t* t_keycache;
+  static keycache_t s_keycache;
   static metacache_t s_metacache;
   static pthread_mutex_t s_metacachelock;
+  static pthread_mutex_t s_keycachelock;
 };
 
 #endif

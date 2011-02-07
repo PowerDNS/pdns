@@ -35,25 +35,28 @@ using namespace boost::assign;
 #include "namespaces.hh"
 using namespace boost;
 
-__thread DNSSECKeeper::keycache_t* DNSSECKeeper::t_keycache;
+DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
 pthread_mutex_t DNSSECKeeper::s_metacachelock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
 
 bool DNSSECKeeper::isSecuredZone(const std::string& zone) 
 {
   if(isPresigned(zone))
     return true;
-	  
-  keycache_t::const_iterator iter = t_keycache->find(zone);
-  if(iter != t_keycache->end() && iter->d_ttd > (unsigned int)time(0)) { 
-    if(iter->d_keys.empty())
-      return false;
-    else
-      return true;
-  }
-  else
-    ; 
   
+  {
+    Lock l(&s_keycachelock);
+    keycache_t::const_iterator iter = s_keycache.find(zone);
+    if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) { 
+      if(iter->d_keys.empty())
+        return false;
+      else
+        return true;
+    }
+    else
+      ; 
+  }  
   keyset_t keys = getKeys(zone, true);
   
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
@@ -71,7 +74,7 @@ bool DNSSECKeeper::isPresigned(const std::string& name)
   return meta=="1";
 }
 
-void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
+bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
 {
   if(!bits) {
     if(algorithm <= 10)
@@ -92,13 +95,15 @@ void DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
   dspk.d_flags = keyOrZone ? 257 : 256;
-  addKey(name, dspk, active);
+  return addKey(name, dspk, active);
 }
 
 void DNSSECKeeper::clearCaches(const std::string& name)
 {
-  t_keycache->erase(name); // should this be broadcast in some way?
-  
+  {
+    Lock l(&s_keycachelock);
+    s_keycache.erase(name); 
+  }
   Lock l(&s_metacachelock);
   pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
   while(range.first != range.second)
@@ -106,7 +111,7 @@ void DNSSECKeeper::clearCaches(const std::string& name)
 }
 
 
-void DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, bool active)
+bool DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, bool active)
 {
   clearCaches(name);
   DNSBackend::KeyData kd;
@@ -114,7 +119,7 @@ void DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, 
   kd.active = active;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  d_keymetadb.addDomainKey(name, kd);
+  return d_keymetadb.addDomainKey(name, kd) >= 0; // >= 0 == s
 }
 
 
@@ -256,17 +261,19 @@ void DNSSECKeeper::unsetPresigned(const std::string& zname)
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
 {
   unsigned int now = time(0);
-  keycache_t::const_iterator iter = t_keycache->find(zone);
-    
-  if(iter != t_keycache->end() && iter->d_ttd > now) { 
-    keyset_t ret;
-    BOOST_FOREACH(const keyset_t::value_type& value, iter->d_keys) {
-      if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
-        ret.push_back(value);
+  {
+    Lock l(&s_keycachelock);
+    keycache_t::const_iterator iter = s_keycache.find(zone);
+      
+    if(iter != s_keycache.end() && iter->d_ttd > now) { 
+      keyset_t ret;
+      BOOST_FOREACH(const keyset_t::value_type& value, iter->d_keys) {
+        if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
+          ret.push_back(value);
+      }
+      return ret;
     }
-    return ret;
-  }
-    
+  }    
   keyset_t retkeyset, allkeyset;
   vector<UeberBackend::KeyData> dbkeyset;
   
@@ -300,15 +307,18 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   kce.d_domain=zone;
   kce.d_keys = allkeyset;
   kce.d_ttd = now + 30;
-  replacing_insert(*t_keycache, kce);
+  {
+    Lock l(&s_keycachelock);
+    replacing_insert(s_keycache, kce);
+  }
   
   return retkeyset;
 }
 
-void DNSSECKeeper::secureZone(const std::string& name, int algorithm)
+bool DNSSECKeeper::secureZone(const std::string& name, int algorithm)
 {
   clearCaches(name); // just to be sure ;)
-  addKey(name, true, algorithm);
+  return addKey(name, true, algorithm);
 }
 
 bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, const QType& qtype, 
