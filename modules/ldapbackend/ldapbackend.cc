@@ -70,7 +70,7 @@ LdapBackend::LdapBackend( const string &suffix )
         {
         	L << Logger::Error << m_myname << " Ldap connection to server failed: " << le.what() << endl;
         }
-        catch( exception &e )
+        catch( std::exception &e )
         {
         	L << Logger::Error << m_myname << " Caught STL exception: " << e.what() << endl;
         }
@@ -109,7 +109,7 @@ bool LdapBackend::list( const string& target, int domain_id )
         	L << Logger::Error << m_myname << " Unable to get zone " + target + " from LDAP directory: " << le.what() << endl;
         	throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
-        catch( exception &e )
+        catch( std::exception &e )
         {
         	L << Logger::Error << m_myname << " Caught STL exception for target " << target << ": " << e.what() << endl;
         	throw( DBException( "STL exception" ) );
@@ -186,7 +186,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
         	L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
         	throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
-        catch( exception &e )
+        catch( std::exception &e )
         {
         	L << Logger::Error << m_myname << " Caught STL exception for qname " << qname << ": " << e.what() << endl;
         	throw( DBException( "STL exception" ) );
@@ -476,7 +476,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
         	L << Logger::Error << m_myname << " Search failed: " << le.what() << endl;
         	throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
-        catch( exception &e )
+        catch( std::exception &e )
         {
         	L << Logger::Error << m_myname << " Caught STL exception for " << m_qname << ": " << e.what() << endl;
         	throw( DBException( "STL exception" ) );
