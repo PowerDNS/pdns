@@ -80,7 +80,6 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::make(unsigned int algo)
   if(iter != makers.end())
     return (iter->second)(algo);
   else {
-    abort();
     throw runtime_error("Request to create key object for unknown algorithm number "+lexical_cast<string>(algo));
   }
 }
@@ -233,6 +232,8 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
     shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(14)); // gives us ECDSAP384
     dsrc.d_digest = dpk->hash(toHash);
   }
+  else 
+    throw std::runtime_error("Asked to a DS of unkown digest type " + lexical_cast<string>(digest)+"\n");
   
   dsrc.d_algorithm= drc.d_algorithm;
   dsrc.d_digesttype=digest;
