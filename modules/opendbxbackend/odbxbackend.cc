@@ -60,7 +60,7 @@ OdbxBackend::OdbxBackend( const string& suffix )
         	if( !connectTo( m_hosts[READ], READ ) ) { throw( AhuException( "Fatal: Connecting to server for reading failed" ) ); }
         	if( !connectTo( m_hosts[WRITE], WRITE ) ) { throw( AhuException( "Fatal: Connecting to server for writing failed" ) ); }
         }
-        catch( exception& e )
+        catch( std::exception& e )
         {
         	L.log( m_myname + " OdbxBackend(): Caught STL exception - " + e.what(),  Logger::Error );
         	throw( AhuException( "Fatal: STL exception" ) );
@@ -155,9 +155,9 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
         	}
         	while( getRecord( READ ) );
         }
-        catch( exception& e )
+        catch( std::exception& e )
         {
-        	L.log( m_myname + " getDomainInfo: Caught STL exception - " + e.what(),  Logger::Error );
+        	L.log( m_myname + " getDomainInfo: Caught STL std::exception - " + e.what(),  Logger::Error );
         	return false;
         }
 
@@ -220,7 +220,7 @@ bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
         	}
         	while( getRecord( READ ) );
         }
-        catch( exception& e )
+        catch( std::exception& e )
         {
         	L.log( m_myname + " getSOA: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -259,7 +259,7 @@ bool OdbxBackend::list( const string& target, int zoneid )
 
         	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
         }
-        catch( exception& e )
+        catch( std::exception& e )
         {
         	L.log( m_myname + " list: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -327,7 +327,7 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
         		throw( DBException( "Error: DB statement failed" ) );
         	}
         }
-        catch( exception& e )
+        catch( std::exception& e )
         {
         	L.log( m_myname + " lookup: Caught STL exception - " + e.what(),  Logger::Error );
         	throw( DBException( "Error: STL exception" ) );
@@ -387,7 +387,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
         		return true;
         	}
         }
-        catch( exception& e )
+        catch( std::exception& e )
         {
         	L.log( m_myname + " get: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -431,7 +431,7 @@ void OdbxBackend::setFresh( uint32_t domain_id )
         		throw( DBException( "Error: DB statement failed" ) );
         	}
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " setFresh: Caught STL exception - " + e.what(),  Logger::Error );
         	throw( DBException( "Error: STL exception" ) );
@@ -471,7 +471,7 @@ void OdbxBackend::setNotified( uint32_t domain_id, uint32_t serial )
         		throw( DBException( "Error: DB statement failed" ) );
         	}
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " setNotified: Caught STL exception - " + e.what(),  Logger::Error );
         	throw( DBException( "Error: STL exception" ) );
@@ -505,7 +505,7 @@ bool OdbxBackend::isMaster( const string& domain, const string& ip )
         	}
         	while( getRecord( READ ) );
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " isMaster: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -530,7 +530,7 @@ void OdbxBackend::getUnfreshSlaveInfos( vector<DomainInfo>* unfresh )
 
         	getDomainList( getArg( "sql-infoslaves" ), unfresh, &checkSlave );
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " getUnfreshSlaveInfo: Caught STL exception - " + e.what(),  Logger::Error );
         }
@@ -552,7 +552,7 @@ void OdbxBackend::getUpdatedMasters( vector<DomainInfo>* updated )
 
         	getDomainList( getArg( "sql-infomasters" ), updated, &checkMaster );
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " getUpdatedMasters: Caught STL exception - " + e.what(),  Logger::Error );
         }
@@ -593,7 +593,7 @@ bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, co
         	}
         }
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " superMasterBackend: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -634,7 +634,7 @@ bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, con
 
         	if( !execStmt( m_buffer, len, WRITE ) ) { return false; }
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " createSlaveDomain: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -676,7 +676,7 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr )
 
         	if( !execStmt( m_buffer, len, WRITE ) ) { return false; }
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " feedRecord: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -721,7 +721,7 @@ bool OdbxBackend::startTransaction( const string& domain, int zoneid )
         	        if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
                 }
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " startTransaction: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -747,7 +747,7 @@ bool OdbxBackend::commitTransaction()
         	const string& stmt = getArg( "sql-transactend" );
         	if( !execStmt( stmt.c_str(), stmt.size(), WRITE ) ) { return false; }
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " commitTransaction: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
@@ -773,7 +773,7 @@ bool OdbxBackend::abortTransaction()
         	const string& stmt = getArg( "sql-transactabort" );
         	if( !execStmt( stmt.c_str(), stmt.size(), WRITE ) ) { return false; }
         }
-        catch ( exception& e )
+        catch ( std::exception& e )
         {
         	L.log( m_myname + " abortTransaction: Caught STL exception - " + e.what(),  Logger::Error );
         	return false;
