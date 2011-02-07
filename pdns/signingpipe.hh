@@ -33,6 +33,7 @@ private:
   void flushToSign();	
   
   void sendRRSetToWorker(); // dispatch RRSET to worker
+  void addSignedToChunks(chunk_t* signedChunk);
   pair<vector<int>, vector<int> > waitForRW(bool rd, bool wr, int seconds);
 
   void worker(int n, int fd);
@@ -50,6 +51,7 @@ private:
   vector<pthread_t> d_tids;
   bool d_mustSign;
   bool d_final;
+  int d_submitted;
 };
 
 #endif
