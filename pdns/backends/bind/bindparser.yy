@@ -9,7 +9,7 @@
 #include <errno.h>
 #include "misc.hh"
 #include "ahuexception.hh"
-using namespace std;
+#include "namespaces.hh"
 #define YYDEBUG 1
 extern int yydebug;
 #include "bindparser.hh"
