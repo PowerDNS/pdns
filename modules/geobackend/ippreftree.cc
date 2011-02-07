@@ -66,7 +66,7 @@ inline uint32_t IPPrefTree::preflenToNetmask (const int preflen) const {
 
 inline void IPPrefTree::parsePrefix(const string &prefix, uint32_t &ip, int &preflen) const {
         // Parse the prefix string (with format 131.155.230.139/25)
-        istringstream is(prefix);
+        std::istringstream is(prefix);
         ip = 0; preflen = 32;
         char c;
         

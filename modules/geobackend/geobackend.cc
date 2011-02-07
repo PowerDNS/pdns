@@ -335,7 +335,7 @@ void GeoBackend::loadIPLocationMap() {
         if (stbuf.st_mtime < lastDiscoverTime && !forceReload)	// File hasn't changed
         	return;
         
-        ifstream ifs(filename.c_str(), ios::in);
+        std::ifstream ifs(filename.c_str(), std::ios::in);
         if (!ifs)
         	throw AhuException("Unable to open IP map zonefile for read: " + stringerror());
         	
@@ -486,7 +486,7 @@ void GeoBackend::loadDirectorMaps(const vector<GeoRecord*> &newgrs) {
 void GeoBackend::loadDirectorMap(GeoRecord &gr) {
         L << Logger::Info << logprefix << "Parsing director map " << gr.directorfile << endl;
         
-        ifstream ifs(gr.directorfile.c_str(), ios::in);
+        std::ifstream ifs(gr.directorfile.c_str(), std::ios::in);
         if (!ifs)
         	throw AhuException("Error opening file.");
         
@@ -520,7 +520,7 @@ void GeoBackend::loadDirectorMap(GeoRecord &gr) {
         		continue;
         	}	
         	
-        	istringstream ii(line);
+        	std::istringstream ii(line);
         	short isocode;
         	string target;
         	ii >> isocode >> target;
