@@ -11,6 +11,7 @@
 #include "packetcache.hh"
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
+
 StatBag S;
 PacketCache PC;
 
@@ -19,6 +20,56 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 string s_programname="pdns";
+
+#if 0
+void launchSigningService(int fd)
+{
+  UeberBackend db("key-only");
+  DNSSECKeeper dk;
+  string str;
+  vector<DNSResourceRecord> chunk;
+  uint64_t signatures=0;
+  while(readLStringFromSocket(fd, str))
+  {
+    if(str.empty())
+      break;
+    chunk=convertDNSRRVectorFromPBString(str);
+  
+    addRRSigs(dk, db, "big.aa", chunk); // sucks
+  
+    ++signatures;
+    str=convertDNSRRVectorToPBString(chunk);
+    writeLStringToSocket(fd, str);    
+  }
+  cerr<<"Exiting after "<<signatures<<" signatures"<<endl;
+  char c;
+  //read(fd, &c, 1); // wait for EOF, signifies that the other side received everything
+  _exit(1);
+}
+
+void signingServer()
+{
+  ComboAddress local("::", 2000);
+  int sock = socket(AF_INET6, SOCK_STREAM, 0);
+  
+  setSocketReusable(sock);
+  if(::bind(sock, (struct sockaddr*)&local, local.getSocklen()) < 0)
+    unixDie("Binding signing server to socket");
+  listen(sock, 5);
+  for(;;) {
+    ComboAddress remote("::");
+    socklen_t remotelen = remote.getSocklen();
+    int client = accept(sock, (struct sockaddr*)&remote, &remotelen);
+    
+    if(client < 0) 
+      break;
+    cerr<<"Got connection from "<<remote.toString()<<endl;  
+    if(fork()) 
+      continue;
+    launchSigningService(client);
+  }
+}
+#endif 
 
 ArgvMap &arg()
 {
@@ -182,7 +233,7 @@ void testAlgorithms()
   DNSCryptoKeyEngine::testAll();
 }
 
-void testSpeed(DNSSECKeeper& dk, const string& zone, int cores)
+void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int cores)
 {
   DNSResourceRecord rr;
   rr.qname="blah."+zone;
@@ -193,9 +244,9 @@ void testSpeed(DNSSECKeeper& dk, const string& zone, int cores)
   rr.d_place=DNSResourceRecord::ANSWER;
   rr.priority=0;
   
-  UeberBackend db;
+  UeberBackend db("key-only");
   
-  ChunkedSigningPipe csp(dk, db, zone, 1, cores);
+  ChunkedSigningPipe csp(zone, 1, remote, cores);
   
   vector<DNSResourceRecord> signatures;
   uint32_t rnd;
@@ -257,9 +308,7 @@ void verifyCrypto(const string& zone)
   }
   
   string msg = getMessageForRRSET(qname, rrc, toSign);        
-  DNSCryptoKeyEngine* dpk = DNSCryptoKeyEngine::make(rrc.d_algorithm);
-  string hash = dpk->sign(msg);
-  cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(hash, rrc.d_signature)<<endl;
+  cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(msg, rrc.d_signature)<<endl;
   if(dsrc.d_digesttype) {
     cerr<<"Calculated DS: "<<apex<<" IN DS "<<makeDSFromDNSKey(apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
     cerr<<"Original DS:   "<<apex<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
@@ -392,12 +441,22 @@ try
     }
     checkZone(dk, cmds[1]);
   }
+#if 0
+  else if(cmds[0] == "signing-server" )
+  {
+    signingServer();
+  }
+  else if(cmds[0] == "signing-slave")
+  {
+    launchSigningService(0);
+  }
+#endif
   else if(cmds[0] == "test-speed") {
-    if(cmds.size() != 3) {
-      cerr << "Error: "<<cmds[0]<<" takes exactly 2 parameters, zone numcores"<<endl;
+    if(cmds.size() < 3) {
+      cerr << "Error: "<<cmds[0]<<" takes  2 or 3 parameters, zone numcores [signing-server]"<<endl;
       return 0;
     }
-    testSpeed(dk, cmds[1], atoi(cmds[2].c_str()));
+    testSpeed(dk, cmds[1],  (cmds.size() > 3) ? cmds[3] : "", atoi(cmds[2].c_str()));
   }
   else if(cmds[0] == "verify-crypto") {
     if(cmds.size() != 2) {
@@ -483,7 +542,13 @@ try
       return 0;
     }
       
-    dk.secureZone(zone, 8);
+    if(!dk.secureZone(zone, 8)) {
+      cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC\n";
+      cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
+      cerr<<"For the Generic SQL backends, set 'gsqlite3-dnssec' or 'gmysql-dnssec' or\n";
+      cerr<<"'gpgsql-dnssec' etc. Also make sure the schema has been updated for DNSSEC!\n";
+      return 0;
+    }
 
     if(!dk.isSecuredZone(zone)) {
       cerr<<"Failed to secure zone - if you run with the BIND backend, make sure to also\n";
