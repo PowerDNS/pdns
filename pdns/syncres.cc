@@ -993,7 +993,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       // supplant
       for(tcache_t::iterator i=tcache.begin();i!=tcache.end();++i) {
         if(i->second.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
-          uint32_t lowestTTL=numeric_limits<uint32_t>::max();
+          uint32_t lowestTTL=std::numeric_limits<uint32_t>::max();
           for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
             lowestTTL=min(lowestTTL, j->ttl);
           
@@ -1083,10 +1083,6 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         LOG<<prefix<<qname<<": status=got results, this level of recursion done"<<endl;
         return 0;
       }
-      if(lwr.d_rcode==RCode::NXDomain) {
-        LOG<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
-        return RCode::NXDomain;
-      }
       if(!newtarget.empty()) {
         if(pdns_iequals(newtarget,qname)) {
           LOG<<prefix<<qname<<": status=got a CNAME referral to self, returning SERVFAIL"<<endl;
@@ -1100,6 +1096,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 
         set<GetBestNSAnswer> beenthere2;
         return doResolve(newtarget, qtype, ret, depth + 1, beenthere2);
+      }
+      if(lwr.d_rcode==RCode::NXDomain) {
+        LOG<<prefix<<qname<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
+        return RCode::NXDomain;
       }
       if(nsset.empty() && !lwr.d_rcode) {
         LOG<<prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA)" : "")<<endl;
