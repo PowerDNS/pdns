@@ -433,7 +433,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   
   shared_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
-    outpacket->d_dnssecOk; // RFC 5936, 2.2.5 'SHOULD'
+    outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
   
   if(!canDoAXFR(q) || noAXFRBecauseOfNSEC3Narrow) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
