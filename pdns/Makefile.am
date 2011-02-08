@@ -151,14 +151,14 @@ dnsreplay_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES=nproxy.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
-	sillyrecords.cc selectmplexer.cc pollmplexer.cc  mplexer.hh
+	sillyrecords.cc selectmplexer.cc   mplexer.hh
 
 nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 nproxy_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 notify_SOURCES=notify.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnswriter.hh \
-	sillyrecords.cc selectmplexer.cc pollmplexer.cc nsecrecords.cc base32.cc misc.cc unix_utility.cc \
+	sillyrecords.cc selectmplexer.cc nsecrecords.cc base32.cc misc.cc unix_utility.cc \
 	logger.cc qtype.cc statbag.cc
 
 notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
@@ -192,7 +192,7 @@ base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_chann
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
 lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
-recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc pollmplexer.cc
+recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc 
 
 #../modules/gmysqlbackend/smysql.cc 
 

@@ -510,7 +510,7 @@ string doTopRemotes()
       counts[*i]++;
     }
 
-  typedef multimap<int, ComboAddress> rcounts_t;
+  typedef std::multimap<int, ComboAddress> rcounts_t;
   rcounts_t rcounts;
   
   for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
@@ -587,7 +587,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     try {
       parseACLs();
     } 
-    catch(exception& e) 
+    catch(std::exception& e) 
     {
       return e.what() + string("\n");
     }

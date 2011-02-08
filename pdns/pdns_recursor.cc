@@ -441,7 +441,7 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
 string s_pidfname;
 static void writePid(void)
 {
-  ofstream of(s_pidfname.c_str(), ios_base::app);
+  ofstream of(s_pidfname.c_str(), std::ios_base::app);
   if(of)
     of<< Utility::getpid() <<endl;
   else
@@ -530,7 +530,7 @@ void startDoResolve(void *p)
       }
     }
     
-    uint32_t minTTL=numeric_limits<uint32_t>::max();
+    uint32_t minTTL=std::numeric_limits<uint32_t>::max();
     if(res<0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record

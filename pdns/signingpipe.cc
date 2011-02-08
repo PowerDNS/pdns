@@ -267,8 +267,9 @@ try
   }
   close(fd);
 }
-catch(...)
+catch(std::exception& e)
 {
+  cerr<<"Signing thread died because of std::exception: "<<e.what()<<endl;
   close(fd);
 }
 

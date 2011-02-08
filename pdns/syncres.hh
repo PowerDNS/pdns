@@ -256,7 +256,7 @@ public:
     {
       if(d_collection.empty())
         return 0;
-      double ret=numeric_limits<double>::max();
+      double ret=std::numeric_limits<double>::max();
       double tmp;
       for(collection_t::iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) {
         if((tmp=pos->second.get(now)) < ret) {
@@ -430,7 +430,7 @@ struct PacketID
   }
 };
 
-struct PacketIDBirthdayCompare: public binary_function<PacketID, PacketID, bool>  
+struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, bool>  
 {
   bool operator()(const PacketID& a, const PacketID& b) const
   {
