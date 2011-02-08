@@ -407,7 +407,7 @@ shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
 {
   shared_ptr<DNSPacket> ret = shared_ptr<DNSPacket>(q->replyPacket());
   ret->setCompress(false);
-  ret->d_dnssecOk=true; // WRONG
+  ret->d_dnssecOk=false; // RFC 5936, 2.2.5
   ret->d_tcp = true;
   return ret;
 }
@@ -432,6 +432,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
   
   shared_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
+  if(q->d_dnssecOk)
+    outpacket->d_dnssecOk; // RFC 5936, 2.2.5 'SHOULD'
   
   if(!canDoAXFR(q) || noAXFRBecauseOfNSEC3Narrow) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
