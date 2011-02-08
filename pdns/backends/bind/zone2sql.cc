@@ -282,6 +282,10 @@ int main(int argc, char **argv)
           i!=domains.end();
           ++i)
         {
+		  if(i->type!="master" && i->type!="slave") {
+			cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+			continue;
+          }
           try {
             if(mode==POSTGRES || mode==ORACLE) {
               if(g_intransaction && ::arg().mustDo("transactions")) {

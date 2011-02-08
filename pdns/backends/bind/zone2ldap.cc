@@ -194,6 +194,10 @@ int main( int argc, char* argv[] )
 
         		for( vector<BindDomainInfo>::const_iterator i = domains.begin(); i != domains.end(); i++ )
         		{
+					if(i->type!="master" && i->type!="slave") {
+						cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+						continue;
+					}
         			try
         			{
         				if( i->name != "." && i->name != "localhost" && i->name != "0.0.127.in-addr.arpa" )
