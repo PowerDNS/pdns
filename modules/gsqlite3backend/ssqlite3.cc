@@ -26,6 +26,8 @@ SSQLite3::SSQLite3( const std::string & database )
 
   if ( sqlite3_open( database.c_str(), &m_pDB)!=SQLITE_OK )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
+    
+  sqlite3_busy_handler(m_pDB, busyHandler, 0);
 }
 
 
@@ -68,6 +70,11 @@ int SSQLite3::doQuery( const std::string & query )
   return 0;
 }
 
+int SSQLite3::busyHandler(void*, int)
+{
+  usleep(1000);
+  return 1;
+}
 
 // Returns a row from the result set.
 bool SSQLite3::getRow( row_t & row )
@@ -78,17 +85,7 @@ bool SSQLite3::getRow( row_t & row )
 
   row.clear();
 
-  do
-  {
-    rc = sqlite3_step( m_pStmt );
-
-    if ( rc == SQLITE_BUSY )
-      Utility::usleep( 250 ); // FIXME: Should this be increased, decreased, or is it Just Right? :)
-    else
-      break;
-
-  } while ( true );
-
+  rc = sqlite3_step( m_pStmt );
 
   if ( rc == SQLITE_ROW )
   {

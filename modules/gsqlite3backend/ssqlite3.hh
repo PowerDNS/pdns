@@ -19,6 +19,7 @@ private:
   //! Pointer to the SQLite virtual machine executing a query.
   sqlite3_stmt *m_pStmt;
 
+  static int busyHandler(void*, int);
 protected:
 public:
   //! Constructor.
