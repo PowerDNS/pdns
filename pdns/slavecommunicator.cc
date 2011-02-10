@@ -187,9 +187,14 @@ struct QueryInfo
 struct SlaveSenderReceiver
 {
   typedef pair<string, uint16_t> Identifier;
-  typedef uint32_t Answer;
   
-  map<uint32_t, uint32_t> d_serials;
+  struct Answer {
+    uint32_t theirSerial;
+    uint32_t theirInception;
+    uint32_t theirExpire;
+  };
+  
+  map<uint32_t, Answer> d_freshness;
   
   SlaveSenderReceiver()
   {
@@ -202,24 +207,23 @@ struct SlaveSenderReceiver
   Identifier send(DomainInfo& di)
   {
     random_shuffle(di.masters.begin(), di.masters.end());
-    return make_pair(di.zone, d_resolver.sendResolve(*di.masters.begin(), di.zone.c_str(), QType::SOA));
+    return make_pair(di.zone, d_resolver.sendResolve(*di.masters.begin(), di.zone.c_str(), QType::SOA, true));
   }
   
   bool receive(Identifier& id, Answer& a)
   {
-    if(d_resolver.tryGetSOASerial(&id.first, &a, &id.second)) {
+    if(d_resolver.tryGetSOASerial(&id.first, &a.theirSerial, &a.theirInception, &a.theirExpire, &id.second)) {
       return 1;
     }
     return 0;
   }
   
-  void deliverAnswer(DomainInfo& i, uint32_t serial, unsigned int usec)
+  void deliverAnswer(DomainInfo& i, const Answer& a, unsigned int usec)
   {
-    d_serials[i.id]=serial;
+    d_freshness[i.id]=a;
   }
   
   Resolver d_resolver;
-
 };
 
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
@@ -233,7 +237,6 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     typedef UniQueue::index<IDTag>::type domains_by_name_t;
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
 
-    
     BOOST_FOREACH(DomainInfo& di, rdomains) {
       SuckRequest sr;
       sr.domain=di.zone;
@@ -245,7 +248,6 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         continue;
       sdomains.push_back(di);
     }
-//    cerr<<rdomains.size() - sdomains.size()<<" prevented"<<endl;  
   }
   
   if(sdomains.empty())
@@ -281,20 +283,42 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       L<<Logger::Error<<"While checking domain freshness: " << re.reason<<endl;
     }
   }
-  L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_serials.size()<<" zones"<<endl;
-
+  L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones"<<endl;
+  DNSSECKeeper dk;
   BOOST_FOREACH(DomainInfo& di, sdomains) {
-    if(!ssr.d_serials.count(di.id)) 
+    if(!ssr.d_freshness.count(di.id)) 
       continue;
-    uint32_t theirserial = ssr.d_serials[di.id], ourserial = di.serial;
+    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
     
     if(theirserial < ourserial) {
       L<<Logger::Error<<"Domain "<<di.zone<<" more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
     else if(theirserial == ourserial) {
-      L<<Logger::Warning<<"Domain "<< di.zone<<" is fresh"<<endl;
-      di.backend->setFresh(di.id);
+      if(!dk.isPresigned(di.zone)) {
+        L<<Logger::Warning<<"Domain "<< di.zone<<" is fresh (not presigned, no RRSIG check)"<<endl;
+        di.backend->setFresh(di.id);
+      }
+      else {
+        B->lookup(QType(QType::RRSIG), di.zone);
+        DNSResourceRecord rr;
+        uint32_t maxExpire=0, maxInception=0;
+        while(B->get(rr)) {
+          RRSIGRecordContent rrc(rr.content);
+          if(rrc.d_type == QType::SOA) {
+            maxInception = std::max(maxInception, rrc.d_siginception);
+            maxExpire = std::max(maxExpire, rrc.d_sigexpire);
+          }
+        }
+        if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
+          L<<Logger::Warning<<"Domain "<< di.zone<<" is fresh and apex RRSIGs match"<<endl;
+          di.backend->setFresh(di.id);
+        }
+        else {
+          L<<Logger::Warning<<"Domain "<< di.zone<<" is fresh, but RRSIGS differ, so DNSSEC stale"<<endl;
+          addSuckRequest(di.zone, *di.masters.begin());
+        }
+      }
     }
     else {
       L<<Logger::Warning<<"Domain "<< di.zone<<" is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
