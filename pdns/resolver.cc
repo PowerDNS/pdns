@@ -39,6 +39,7 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include <boost/shared_ptr.hpp>
+#include <boost/foreach.hpp>
 #include "dns_random.hh"
 
 #include "namespaces.hh"
@@ -129,11 +130,16 @@ int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t 
   return true;
 }
 
-uint16_t Resolver::sendResolve(const string &ip, const char *domain, int type)
+uint16_t Resolver::sendResolve(const string &ip, const char *domain, int type, bool dnssecOK)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
   pw.getHeader()->id = d_randomid = dns_random(0xffff);
+
+  if(dnssecOK) {
+    pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
+    pw.commit();
+  }
 
   d_domain=domain;
   d_type=type;
@@ -156,7 +162,7 @@ uint16_t Resolver::sendResolve(const string &ip, const char *domain, int type)
   return d_randomid;
 }
 
-bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint16_t* id)
+bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   Utility::setNonBlocking( d_sock );
   
@@ -181,14 +187,25 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint16_t* 
   if(mdp.d_answers.empty())
     throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' produced no results");
   
-  if(mdp.d_qtype != QType::SOA || mdp.d_answers.begin()->first.d_type != QType::SOA) 
+  if(mdp.d_qtype != QType::SOA)
     throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' returned wrong record type");
 
-  shared_ptr<SOARecordContent> rrc=boost::dynamic_pointer_cast<SOARecordContent>(mdp.d_answers.begin()->first.d_content);
-
-  *theirSerial=rrc->d_st.serial;
-  
-  
+  *theirInception = *theirExpire = 0;
+  bool gotSOA=false;
+  BOOST_FOREACH(const MOADNSParser::answers_t::value_type& drc, mdp.d_answers) {
+    if(drc.first.d_type == QType::SOA) {
+      shared_ptr<SOARecordContent> src=boost::dynamic_pointer_cast<SOARecordContent>(drc.first.d_content);
+      *theirSerial=src->d_st.serial;
+      gotSOA = true;
+    }
+    if(drc.first.d_type == QType::RRSIG) {
+      shared_ptr<RRSIGRecordContent> rrc=boost::dynamic_pointer_cast<RRSIGRecordContent>(drc.first.d_content);
+      *theirInception= std::max(*theirInception, rrc->d_siginception);
+      *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
+    }
+  }
+  if(!gotSOA)
+    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' did not return a SOA");
   return true;
 }
 

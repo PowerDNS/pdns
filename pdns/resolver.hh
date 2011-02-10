@@ -57,8 +57,8 @@ public:
   void makeTCPSocket(const string &ip, uint16_t port=53);
   int notify(int sock, const string &domain, const string &ip, uint16_t id);
   int resolve(const string &ip, const char *domain, int type);
-  uint16_t sendResolve(const string &ip, const char *domain, int type);
-  bool tryGetSOASerial(string* theirDomain, uint32_t* theirSerial, uint16_t* id);
+  uint16_t sendResolve(const string &ip, const char *domain, int type, bool dnssecOk=false);
+  bool tryGetSOASerial(string* theirDomain, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
 
   int receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrlen);
   
