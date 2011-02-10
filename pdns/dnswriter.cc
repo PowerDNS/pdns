@@ -1,8 +1,7 @@
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
@@ -135,30 +134,26 @@ void DNSPacketWriter::xfr8BitInt(uint8_t val)
   d_record.push_back(val);
 }
 
+
+/* input: 
+  "" -> 0
+  "blah" -> 4blah
+  "blah" "blah" -> output 4blah4blah
+  "verylongstringlongerthan256....characters" \xffverylongstring\x23characters (autosplit)
+  "blah\"blah" -> 9blah"blah
+  "blah\97" -> 5blahb
+  */
 void DNSPacketWriter::xfrText(const string& text, bool)
 {
-  using boost::escaped_list_separator;
-  using boost::tokenizer;
-
-  escaped_list_separator<char> sep('\\', ' ' , '"');
-  tokenizer<escaped_list_separator<char> > tok(text, sep);
-
-  tokenizer<escaped_list_separator<char> >::iterator beg=tok.begin();
-
-  if(beg==tok.end()) {
+  if(text.empty()) {
     d_record.push_back(0);
+    return;
   }
-  else 
-    for(; beg!=tok.end(); ++beg){
-      if(beg->empty()) 
-        d_record.push_back(0);
-      else 
-        for (unsigned int i = 0; i < beg->length(); i += 0xff){
-          d_record.push_back(std::min((string::size_type)0xffU, beg->length()-i));
-          const uint8_t* ptr=(uint8_t*)(beg->c_str()) + i;
-          d_record.insert(d_record.end(), ptr, ptr+ std::min((string::size_type)0xffU, beg->length()-i));
-        }
-    }
+  vector<string> segments = segmentDNSText(text);
+  BOOST_FOREACH(const string& str, segments) {
+    d_record.push_back(str.length());
+    d_record.insert(d_record.end(), str.c_str(), str.c_str() + str.length());
+  }
 }
 
 DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const string& label)
