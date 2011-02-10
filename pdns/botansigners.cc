@@ -249,7 +249,7 @@ struct LoaderBotanStruct
 {
   LoaderBotanStruct()
   {
-    Botan::LibraryInitializer* tmp = new Botan::LibraryInitializer("thread_safe=true");
+    new Botan::LibraryInitializer("thread_safe=true");
     // this leaks, but is fine
     DNSCryptoKeyEngine::report(5, &BotanRSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(7, &BotanRSADNSCryptoKeyEngine::maker);
