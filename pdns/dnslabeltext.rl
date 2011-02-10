@@ -5,10 +5,6 @@
 #include <string>
 #include "namespaces.hh"
 
-%%{
-        machine dnstext;
-        write data;
-}%%
 
 namespace {
 void appendSplit(vector<string>& ret, string& segment, char c)
@@ -23,6 +19,11 @@ void appendSplit(vector<string>& ret, string& segment, char c)
 
 vector<string> segmentDNSText(const string& input )
 {
+%%{
+        machine dnstext;
+        write data;
+}%%
+
         const char *p = input.c_str(), *pe = input.c_str() + input.length();
         const char* eof = pe;
         int cs;
@@ -61,10 +62,9 @@ vector<string> segmentDNSText(const string& input )
 
                 escaped = '\\' ((["\\]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
                 plain = (print-'\\'-'"') $ reportPlain;
-                labelElement = escaped | plain;
-                
-
-                main := (('"' labelElement* '"' space?) >segmentBegin %segmentEnd)+;
+                txtElement = escaped | plain;
+            
+                main := (('"' txtElement* '"' space?) >segmentBegin %segmentEnd)+;
 
                 # Initialize and execute.
                 write init;
@@ -77,7 +77,69 @@ vector<string> segmentDNSText(const string& input )
 
         return ret;
 };
+string segmentDNSLabel(const string& input )
+{
+%%{
+        machine dnslabel;
+        write data;
+}%%
 
+        const char *p = input.c_str(), *pe = input.c_str() + input.length();
+        //const char* eof = pe;
+        int cs;
+        char val = 0;
+
+        string ret;
+        string segment;
+
+        %%{
+                action segmentEnd { 
+                        printf("Segment end, segment = '%s'\n", segment.c_str());
+                        ret.append(1, (unsigned char)segment.size());
+                        ret.append(segment);
+                        segment.clear();
+                }
+
+                action reportEscaped {
+                  printf("'\\%c' ", *fpc);
+                  segment.append(1, *fpc);
+                }
+                action reportEscapedNumber {
+                  char c = *fpc;
+                  val *= 10;
+                  val += c-'0';
+                  
+                }
+                action doneEscapedNumber {
+                  printf("_%c_ ", val);
+                  segment.append(1, val);
+                  val=0;
+                }
+                
+                action reportPlain {
+                  printf("'%c' ", *fpc);
+                  segment.append(1, *fpc);
+                }
+
+                escaped = '\\' (([\\.]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
+                plain = (print-'\\'-'.') $ reportPlain;
+                labelElement = escaped | plain;
+                
+
+                main := ((labelElement)* %segmentEnd '.')+;
+
+                # Initialize and execute.
+                write init;
+                write exec;
+        }%%
+
+        if ( cs < dnslabel_first_final ) {
+                throw runtime_error("Unable to parse DNS Label '"+input+"'");
+        }
+        if(ret.empty() || ret[0] != 0)
+          ret.append(1, 0);
+        return ret;
+};
 #if 0
 int main()
 {

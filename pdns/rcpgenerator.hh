@@ -89,5 +89,5 @@ private:
   string& d_string;
 };
 
-
+string segmentDNSLabel(const string& input );
 #endif

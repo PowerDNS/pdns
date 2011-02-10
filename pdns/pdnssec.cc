@@ -370,7 +370,7 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
 
 int main(int argc, char** argv)
 try
-{
+{  
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
@@ -389,8 +389,6 @@ try
 
   if(g_vm.count("commands")) 
     cmds = g_vm["commands"].as<vector<string> >();
-
-  
 
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [rectify-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
