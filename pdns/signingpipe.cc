@@ -118,24 +118,26 @@ bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
 
 pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, int seconds)
 {
-  struct pollfd pfds[d_sockets.size()];
+  vector<pollfd> pfds;
   
   for(unsigned int n = 0; n < d_sockets.size(); ++n) {    
-    memset(&pfds[n], 0, sizeof(pfds[n]));
-    pfds[n].fd = d_sockets[n];
-    if(!d_eof.count(n)) {
-      if(rd)
-        pfds[n].events |= POLLIN;
-      if(wr)
-        pfds[n].events |= POLLOUT;
-    }
+    if(d_eof.count(n))  
+      continue;
+    struct pollfd pfd;
+    memset(&pfd, 0, sizeof(pfd));
+    pfd.fd = d_sockets[n];
+    if(rd)
+      pfd.events |= POLLIN;
+    if(wr)
+      pfd.events |= POLLOUT;
+    pfds.push_back(pfd);
   }
   
-  int res = poll(pfds, d_sockets.size(), seconds * 1000); // negative = infinite
+  int res = poll(&pfds[0], pfds.size(), seconds * 1000); // negative = infinite
   if(res < 0)
-    unixDie("polling for activity from signers");
+    unixDie("polling for activity from signers, "+lexical_cast<string>(d_sockets.size()));
   pair<vector<int>, vector<int> > vects;
-  for(unsigned int n = 0; n < d_sockets.size(); ++n) 
+  for(unsigned int n = 0; n < pfds.size(); ++n) 
     if(pfds[n].revents & POLLIN)
       vects.first.push_back(pfds[n].fd);
     else if(pfds[n].revents & POLLOUT)
