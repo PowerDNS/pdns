@@ -46,7 +46,8 @@ void declareArguments()
   ::arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
   ::arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0";
   ::arg().set("local-ipv6","Local IP address to which we bind")="";
-  ::arg().set("query-local-address","Source IP address for sending queries")="";
+  ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
+  ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
   ::arg().set("soa-serial-offset","Make sure that no SOA serial is less than this number")="0";
   
@@ -82,7 +83,7 @@ void declareArguments()
   ::arg().set("load-modules","Load this module - supply absolute or relative path")="";
   ::arg().set("launch","Which backends to launch and order to query them in")="";
   ::arg().setSwitch("disable-axfr","Disable zonetransfers but do allow TCP queries")="no";
-  ::arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="0.0.0.0/0";
+  ::arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="0.0.0.0/0,::/0";
   ::arg().set("slave-cycle-interval","Reschedule failed SOA serial checks once every .. seconds")="60";
 
   ::arg().set("tcp-control-address","If set, PowerDNS can be controlled over TCP on this address")="";
