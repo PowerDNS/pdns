@@ -38,29 +38,33 @@
 class FindNS
 {
 public:
-  vector<string>lookup(const string &name, DNSBackend *B)
+  vector<string> lookup(const string &name, DNSBackend *B)
   {
-    vector<string>addresses;
-    struct hostent *h;
-    h=gethostbyname(name.c_str());
-
-    if(h) {
-      for(char **h_addr_list=h->h_addr_list;*h_addr_list;++h_addr_list) {
-        ostringstream os;
-        unsigned char *p=reinterpret_cast<unsigned char *>(*h_addr_list);
-        os<<(int)*p++<<".";
-        os<<(int)*p++<<".";
-        os<<(int)*p++<<".";
-        os<<(int)*p++;
-
-        addresses.push_back(os.str());
+    vector<string> addresses;
+    
+    struct addrinfo* res;
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    
+    for(int n = 0; n < 2; ++n) {
+      hints.ai_family = n ? AF_INET : AF_INET6;
+      ComboAddress remote;
+      remote.sin4.sin_family = AF_INET6;
+      if(!getaddrinfo(name.c_str(), 0, &hints, &res)) { 
+        struct addrinfo* address = res;
+        do {
+          memcpy(&remote, address->ai_addr, address->ai_addrlen);
+          addresses.push_back(remote.toString());
+        } while((address = address->ai_next));
+        freeaddrinfo(res);
       }
     }
-
-    B->lookup(QType(QType::A),name);
+    
+    B->lookup(QType(QType::ANY),name);
     DNSResourceRecord rr;
     while(B->get(rr)) 
-      addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+      if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
+        addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
 
     return addresses;
   }
@@ -71,14 +75,14 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   set<string> ips;
   
   DNSResourceRecord rr;
-  set<string>nsset;
+  set<string> nsset;
 
   B->lookup(QType(QType::NS),domain);
   while(B->get(rr)) 
     nsset.insert(rr.content);
   
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string>nsips=d_fns.lookup(*j, B);
+    vector<string> nsips=d_fns.lookup(*j, B);
     if(nsips.empty())
       L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
     for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k)
