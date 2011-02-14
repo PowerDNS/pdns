@@ -187,7 +187,8 @@ string DynListener::getLine()
         continue;
       }
 
-      if(!d_tcp && d_tcprange.match(&remote)) {
+      if(d_tcp && !d_tcprange.match(&remote)) { // ????
+        L<<Logger::Error<<"Access denied to remote "<<remote.toString()<<" because not allowed"<<endl;
         writen2(d_client, "Access denied to "+remote.toString()+"\n");
         close(d_client);
         continue;
@@ -227,7 +228,7 @@ string DynListener::getLine()
   else {
     if(isatty(0))
       write(1, "% ", 2);
-    if((len= read(0, &mesg[0], mesg.size())) < 0) 
+    if((len=read(0, &mesg[0], mesg.size())) < 0) 
       throw AhuException("Reading from the control pipe: "+stringerror());
     else if(len==0)
       throw AhuException("Guardian exited - going down as well");
@@ -280,6 +281,7 @@ void DynListener::theListener()
 {
   try {
     map<string,string> parameters;
+    signal(SIGPIPE,SIG_IGN);
 
     for(int n=0;;++n) {
       //      cerr<<"Reading new line, "<<d_client<<endl;
