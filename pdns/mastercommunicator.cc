@@ -230,7 +230,6 @@ void CommunicatorClass::makeNotifySockets()
     d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
   else
     d_nsock6 = -1;
-  cerr<<"socks: "<<d_nsock4<<", "<<d_nsock6;
 }
 
 void CommunicatorClass::notify(const string &domain, const string &ip)
