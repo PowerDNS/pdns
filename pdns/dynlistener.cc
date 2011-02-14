@@ -280,7 +280,8 @@ void DynListener::theListener()
 {
   try {
     map<string,string> parameters;
-
+    signal(SIGPIPE,SIG_IGN);
+    
     for(int n=0;;++n) {
       //      cerr<<"Reading new line, "<<d_client<<endl;
       string line=getLine();
