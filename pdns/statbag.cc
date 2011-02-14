@@ -96,7 +96,7 @@ void StatBag::declare(const string &key, const string &descrip)
 
 
           
-void StatBag::set(const string &key, int value)
+void StatBag::set(const string &key, unsigned int value)
 {
   lock();
   exists(key);
@@ -105,7 +105,7 @@ void StatBag::set(const string &key, int value)
   unlock();
 }
 
-int StatBag::read(const string &key)
+unsigned int StatBag::read(const string &key)
 {
   lock();
 
@@ -115,14 +115,13 @@ int StatBag::read(const string &key)
       return 0;
     }
 
-  int tmp=*d_stats[key];
+  unsigned int tmp=*d_stats[key];
 
   unlock();
   return tmp;
-
 }
 
-int StatBag::readZero(const string &key)
+unsigned int StatBag::readZero(const string &key)
 {
   lock();
 
@@ -134,7 +133,7 @@ int StatBag::readZero(const string &key)
     }
 
   
-  int tmp=*d_stats[key];
+  unsigned int tmp=*d_stats[key];
   d_stats[key]=0;
 
   unlock();
@@ -174,7 +173,7 @@ StatBag::~StatBag()
   
 }
 
-StatRing::StatRing(int size)
+StatRing::StatRing(unsigned int size)
 {
   d_size=size;
   d_items.resize(d_size);
@@ -184,7 +183,7 @@ StatRing::StatRing(int size)
   pthread_mutex_init(d_lock, 0);
 }
 
-void StatRing::resize(int newsize)
+void StatRing::resize(unsigned int newsize)
 {
   if(d_size==newsize)
     return;
@@ -200,7 +199,7 @@ void StatRing::resize(int newsize)
   int startpos=d_pos-newsize;
   int rpos;
   vector<string>newring;
-  for(int i=startpos;i<d_pos;++i) {
+  for(unsigned int i=startpos;i<d_pos;++i) {
     rpos=i>=0 ? i : i+d_size;
 
     newring.push_back(d_items[rpos%d_size]);
@@ -230,17 +229,17 @@ static bool popisort(const pair<string,int> &a, const pair<string,int> &b)
   return (a.second > b.second);
 }
 
-vector<pair<string,int> >StatRing::get() const
+vector<pair<string,unsigned int> >StatRing::get() const
 {
   Lock l(d_lock);
-  map<string,int> res;
+  map<string,unsigned int> res;
   for(vector<string>::const_iterator i=d_items.begin();i!=d_items.end();++i) {
     if(!i->empty())
       res[*i]++;
   }
   
-  vector<pair<string,int> > tmp;
-  for(map<string,int>::const_iterator i=res.begin();i!=res.end();++i) 
+  vector<pair<string,unsigned int> > tmp;
+  for(map<string,unsigned int>::const_iterator i=res.begin();i!=res.end();++i) 
     tmp.push_back(*i);
 
   sort(tmp.begin(),tmp.end(),popisort);
@@ -254,7 +253,7 @@ void StatBag::declareRing(const string &name, const string &help, unsigned int s
   d_rings[name].setHelp(help);
 }
 
-vector<pair<string,int> > StatBag::getRing(const string &name)
+vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
 {
   return d_rings[name].get();
 }
@@ -273,13 +272,13 @@ void StatBag::resetRing(const string &name)
   d_rings[name].reset();
 }
 
-void StatBag::resizeRing(const string &name, int newsize)
+void StatBag::resizeRing(const string &name, unsigned int newsize)
 {
   d_rings[name].resize(newsize);
 }
 
 
-int StatBag::getRingSize(const string &name)
+unsigned int StatBag::getRingSize(const string &name)
 {
   return d_rings[name].getSize();
 }

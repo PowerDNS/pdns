@@ -28,7 +28,7 @@
 class StatRing
 {
 public:
-  StatRing(int size=10000);
+  StatRing(unsigned int size=10000);
   ~StatRing();
   void account(const string &item)
   {
@@ -37,19 +37,19 @@ public:
   }
 
 
-  int getSize()
+  unsigned int getSize()
   {
     return d_size;
   }
-  void resize(int newsize);  
+  void resize(unsigned int newsize);  
   void reset();
   void setHelp(const string &str);
   string getHelp();
-  vector<pair<string,int> >get() const;
+  vector<pair<string,unsigned int> >get() const;
 private:
-  int d_size;
-  int d_pos;
-  vector<string>d_items;
+  unsigned int d_size;
+  unsigned int d_pos;
+  vector<string> d_items;
   pthread_mutex_t *d_lock;
   string d_help;
 };
@@ -70,7 +70,7 @@ public:
   void declare(const string &key, const string &descrip=""); //!< Before you can store or access a key, you need to declare it
 
   void declareRing(const string &name, const string &title, unsigned int size=10000);
-  vector<pair<string,int> >getRing(const string &name);
+  vector<pair<string, unsigned int> >getRing(const string &name);
   string getRingTitle(const string &name);
   void ringAccount(const string &name, const string &item)
   {
@@ -84,8 +84,8 @@ public:
 
   vector<string>listRings();
   void resetRing(const string &name);
-  void resizeRing(const string &name, int newsize);
-  int getRingSize(const string &name);
+  void resizeRing(const string &name, unsigned int newsize);
+  unsigned int getRingSize(const string &name);
 
   string directory(); //!< Returns a list of all data stored
   vector<string> getEntries(); //!< returns a vector with datums (items)
@@ -93,9 +93,9 @@ public:
   void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
   inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
   inline void inc(const string &key); //!< increase this key's value by one
-  void set(const string &key, int value); //!< set this key's value
-  int read(const string &key); //!< read the value behind this key
-  int readZero(const string &key); //!< read the value behind this key, and zero it afterwards
+  void set(const string &key, unsigned int value); //!< set this key's value
+  unsigned int read(const string &key); //!< read the value behind this key
+  unsigned int readZero(const string &key); //!< read the value behind this key, and zero it afterwards
   unsigned int *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards

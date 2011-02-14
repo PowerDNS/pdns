@@ -77,9 +77,9 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
 {
   int tot=0;
   int entries=0;
-  vector<pair <string,int> >ring=S.getRing(ringname);
+  vector<pair <string,unsigned int> >ring=S.getRing(ringname);
 
-  for(vector<pair<string,int> >::const_iterator i=ring.begin(); i!=ring.end();++i) {  
+  for(vector<pair<string, unsigned int> >::const_iterator i=ring.begin(); i!=ring.end();++i) {  
     tot+=i->second;
     entries++;
   }
@@ -93,7 +93,7 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
     "<a href=?resetring="<<ringname<<"><font color=#ffffff>Reset</a></td>";
   ret<<"<td align=right>Resize: ";
   
-  int sizes[]={10,100,500,1000,10000,500000,0};
+  unsigned int sizes[]={10,100,500,1000,10000,500000,0};
   for(int i=0;sizes[i];++i) {
     if(S.getRingSize(ringname)!=sizes[i])
       ret<<"<a href=?resizering="<<ringname<<"&size="<<sizes[i]<<">"<<sizes[i]<<"</a> ";
@@ -104,7 +104,7 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
 
 
   int printed=0;
-  for(vector<pair<string,int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
+  for(vector<pair<string,unsigned int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
     ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/tot)<<"</td>"<<endl;
     printed+=i->second;
   }
