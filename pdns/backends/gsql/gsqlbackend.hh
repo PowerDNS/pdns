@@ -26,7 +26,7 @@ public:
   bool list(const string &target, int domain_id);
   bool get(DNSResourceRecord &r);
   bool isMaster(const string &domain, const string &ip);
-
+  void alsoNotifies(const string &domain, set<string> *ips);
   bool startTransaction(const string &domain, int domain_id=-1);
   bool commitTransaction();
   bool abortTransaction();
