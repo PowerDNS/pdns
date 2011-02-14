@@ -815,11 +815,8 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
   try {
     Resolver resolver;
     uint32_t theirserial;
-    resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);  
-  
-    resolver.resolve(p->getRemote(),p->qdomain.c_str(), QType::NS);
-
-    nsset=resolver.result();
+    resolver.getSoaSerial(p->getRemote(),p->qdomain, &theirserial);    
+    resolver.resolve(p->getRemote(), p->qdomain.c_str(), QType::NS, &nsset);
   }
   catch(ResolverException &re) {
     L<<Logger::Error<<"Error resolving SOA or NS at: "<< p->getRemote() <<": "<<re.reason<<endl;

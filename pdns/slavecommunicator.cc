@@ -69,8 +69,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   di.backend=0;
   bool first=true;    
   try {
-    Resolver resolver;
-    resolver.axfr(remote, domain.c_str());
+    ComboAddress raddr(remote, 53);
+    AXFRRetriever retriever(raddr, domain.c_str());
 
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());
     NSEC3PARAMRecordContent ns3pr;
@@ -100,7 +100,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     Resolver::res_t recs;
     set<string> nsset, qnames;
-    while(resolver.axfrChunk(recs)) {
+    while(retriever.getChunk(recs)) {
       if(first) {
         L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
         di.backend->startTransaction(domain, domain_id);
@@ -198,16 +198,22 @@ struct SlaveSenderReceiver
   
   SlaveSenderReceiver()
   {
-    d_resolver.makeUDPSocket();
   }
   
   void deliverTimeout(const Identifier& i)
-  {}
+  {
+  }
   
   Identifier send(DomainInfo& di)
   {
     random_shuffle(di.masters.begin(), di.masters.end());
-    return make_pair(di.zone, d_resolver.sendResolve(*di.masters.begin(), di.zone.c_str(), QType::SOA, true));
+    try {
+      ComboAddress remote(*di.masters.begin());
+      return make_pair(di.zone, d_resolver.sendResolve(ComboAddress(*di.masters.begin(), 53), di.zone.c_str(), QType::SOA, true));
+    }
+    catch(AhuException& e) {
+      throw runtime_error("While attempting to query freshness of '"+di.zone+"': "+e.reason);
+    }
   }
   
   bool receive(Identifier& id, Answer& a)
@@ -283,7 +289,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       L<<Logger::Error<<"While checking domain freshness: " << re.reason<<endl;
     }
   }
-  L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones"<<endl;
+  L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones, had "<<ifl.getTimeouts()<<" timeouts"<<endl;
   DNSSECKeeper dk;
   BOOST_FOREACH(DomainInfo& di, sdomains) {
     if(!ssr.d_freshness.count(di.id)) 

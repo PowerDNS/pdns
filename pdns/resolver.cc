@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2009 PowerDNS.COM BV
+    Copyright (C) 2002 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -44,93 +44,77 @@
 
 #include "namespaces.hh"
 
-void Resolver::makeUDPSocket()
-{
-  makeSocket(SOCK_DGRAM);
-}
-
-void Resolver::makeSocket(int type)
-{
-  static uint16_t port_counter=5000;
-  port_counter++; // this makes us use a new port for each query, fixes ticket #2
-  if(d_sock>0)
-    return;
-
-  d_sock=socket(AF_INET, type,0);
-  if(d_sock<0) 
-    throw AhuException("Making a socket for resolver: "+stringerror());
-
-  struct sockaddr_in sin;
-  memset((char *)&sin,0, sizeof(sin));
-  
-  sin.sin_family = AF_INET;
-  if(!IpToU32(::arg()["query-local-address"], &sin.sin_addr.s_addr))
-    throw AhuException("Unable to resolve local address '"+ ::arg()["query-local-address"] +"'"); 
-
-  int tries=10;
-  while(--tries) {
-    sin.sin_port = htons(10000+(dns_random(10000)));
-  
-    if (::bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
-      break;
-
-  }
-  if(!tries) {
-    Utility::closesocket(d_sock);
-    d_sock=-1;
-    throw AhuException("Resolver binding to local socket: "+stringerror());
-  }
-}
-
-Resolver::Resolver()
-{
-  d_sock=-1;
-  d_timeout=500000;
-  d_soacount=0;
-  d_buf=new unsigned char[66000];
-}
-
-Resolver::~Resolver()
-{
-  if(d_sock>=0)
-    Utility::closesocket(d_sock);
-  delete[] d_buf;
-}
-
-void Resolver::timeoutReadn(char *buffer, int bytes)
-{
-  time_t start=time(0);
-  int n=0;
-  int numread;
-  while(n<bytes) {
-    if(waitForData(d_sock, 10-(time(0)-start))<0)
-      throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
-
-    numread=recv(d_sock,buffer+n,bytes-n,0);
-    if(numread<0)
-      throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
-    if(numread==0)
-      throw ResolverException("Remote nameserver closed TCP connection");
-    n+=numread;
-  }
-}
-
-int Resolver::notify(int sock, const string &domain, const string &ip, uint16_t id)
+int sendNotification(int sock, const string& domain, const ComboAddress& remote, uint16_t id)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
-  pw.getHeader()->id = d_randomid = id;
+  pw.getHeader()->id = id;
   pw.getHeader()->aa = true; 
-  
-  ComboAddress dest(ip, 53);
 
-  if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&dest), dest.getSocklen())<0) {
-    throw ResolverException("Unable to send notify to "+ip+": "+stringerror());
+  if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen())<0) {
+    throw ResolverException("Unable to send notify to "+remote.toStringWithPort()+": "+stringerror());
   }
   return true;
 }
 
-uint16_t Resolver::sendResolve(const string &ip, const char *domain, int type, bool dnssecOK)
+int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
+{
+  ComboAddress ourLocal(local);
+  static uint16_t port_counter=5000;
+  port_counter++; // this makes us use a new port for each query, fixes ticket #2
+  
+  int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
+  if(sock < 0)
+    unixDie("Creating local resolver socket for "+ourLocal.toString());
+
+  if(!udpOrTCP) {
+    int tries=10;
+    while(--tries) {
+      ourLocal.sin4.sin_port = htons(10000+(dns_random(10000)));
+    
+      if (::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) >= 0) 
+        break;
+    }
+    if(!tries) {
+      Utility::closesocket(sock);
+      throw AhuException("Resolver binding to local socket: "+stringerror());
+    }
+  }
+  else {
+    ourLocal.sin4.sin_port = 0;
+    if(::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) < 0)
+      throw AhuException("Resolver binding to local socket: "+stringerror());
+  }
+  return sock;
+}
+
+Resolver::Resolver()
+try
+{
+  d_sock4 = d_sock6 = 0;
+  d_sock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
+  if(::arg().parmIsset("query-local-address6"))
+    d_sock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
+  else 
+    d_sock6 = -1;
+  d_timeout=500000;
+}
+catch(...) {
+  if(d_sock4>=0)
+    close(d_sock4);
+  throw;
+}
+
+Resolver::~Resolver()
+{
+  if(d_sock4>=0)
+    Utility::closesocket(d_sock4);
+  if(d_sock6>=0)
+    Utility::closesocket(d_sock6);
+}
+
+
+uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOK)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
@@ -140,39 +124,89 @@ uint16_t Resolver::sendResolve(const string &ip, const char *domain, int type, b
     pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
     pw.commit();
   }
-
-  d_domain=domain;
-  d_type=type;
-  d_inaxfr=false;
-
-  ServiceTuple st;
-  st.port=53;
-  try {
-    parseService(ip, st);
-  }
-  catch(AhuException &ae) {
-    throw ResolverException("Sending a dns question to '"+ip+"': "+ae.reason);
-  }
-
-  ComboAddress remote(st.host, st.port);
-
-  if(sendto(d_sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
-    throw ResolverException("Unable to ask query of "+st.host+":"+itoa(st.port)+": "+stringerror());
+    
+  int sock = remote.sin4.sin_family == AF_INET ? d_sock4 : d_sock6;
+  
+  if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
+    throw ResolverException("Unable to ask query of "+remote.toStringWithPort()+": "+stringerror());
   }
   return d_randomid;
 }
 
+static int parseResult(const char* buffer, unsigned int len, const std::string& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
+{
+  result->clear();
+  shared_ptr<MOADNSParser> mdp;
+  
+  try {
+    mdp=shared_ptr<MOADNSParser>(new MOADNSParser(buffer, len));
+  }
+  catch(...) {
+    throw ResolverException("resolver: unable to parse packet of "+itoa(len)+" bytes");
+  }
+  
+  if(mdp->d_header.rcode) 
+    return mdp->d_header.rcode;
+      
+  if(!origQname.empty()) {  // not AXFR
+    if(mdp->d_header.id != id) 
+      throw ResolverException("Remote nameserver replied with wrong id");
+    if(mdp->d_header.qdcount != 1)
+      throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp->d_header.qdcount)+")");
+    if(mdp->d_qname != origQname+".")
+      throw ResolverException(string("resolver: received an answer to another question (")+mdp->d_qname+"!="+ origQname+".)");
+  }
+    
+  vector<DNSResourceRecord> ret; 
+  DNSResourceRecord rr;
+  for(MOADNSParser::answers_t::const_iterator i=mdp->d_answers.begin(); i!=mdp->d_answers.end(); ++i) {          
+    rr.qname = i->first.d_label;
+    if(!rr.qname.empty())
+      boost::erase_tail(rr.qname, 1); // strip .
+    rr.qtype = i->first.d_type;
+    rr.ttl = i->first.d_ttl;
+    rr.content = i->first.d_content->getZoneRepresentation();
+    rr.priority = 0;
+    
+    uint16_t qtype=rr.qtype.getCode();
+
+    if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
+      boost::erase_tail(rr.content, 1);
+
+    if(rr.qtype.getCode() == QType::MX) {
+      vector<string> parts;
+      stringtok(parts, rr.content);
+      rr.priority = atoi(parts[0].c_str());
+      if(parts.size() > 1)
+        rr.content=parts[1];
+    } else if(rr.qtype.getCode() == QType::SRV) {
+      rr.priority = atoi(rr.content.c_str());
+      vector<pair<string::size_type, string::size_type> > fields;
+      vstringtok(fields, rr.content, " ");
+      if(fields.size()==4)
+        rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
+    }
+    result->push_back(rr);
+  }
+  
+  return 0;
+}
+
+
 bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
-  Utility::setNonBlocking( d_sock );
+  Utility::setNonBlocking( d_sock4 );
+  Utility::setNonBlocking( d_sock6 );
   
-  if(waitForData(d_sock, 0, 500000) == 0)
+  int sock;
+  if(!waitFor2Data(d_sock4, d_sock6, 0, 250000, &sock)) // lame function, I know.. 
     return false;
   
   int err;
   ComboAddress fromaddr;
   socklen_t addrlen=fromaddr.getSocklen();
-  err = recvfrom(d_sock, reinterpret_cast< char * >( d_buf ), 512, 0,(struct sockaddr*)(&fromaddr), &addrlen);
+  char buf[3000];
+  err = recvfrom(sock, buf, sizeof(buf), 0,(struct sockaddr*)(&fromaddr), &addrlen);
   if(err < 0) {
     if(errno == EAGAIN)
       return false;
@@ -180,7 +214,7 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
     throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   }
   
-  MOADNSParser mdp((char*)d_buf, err);
+  MOADNSParser mdp((char*)buf, err);
   *id=mdp.d_header.id;
   *domain = stripDot(mdp.d_qname);
   
@@ -209,73 +243,151 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
   return true;
 }
 
-int Resolver::receiveResolve(struct sockaddr* fromaddr, Utility::socklen_t addrlen)
+int Resolver::resolve(const string &ipport, const char *domain, int type, Resolver::res_t* res)
 {
-  int res=waitForData(d_sock, 0, 7500000); 
-  
-  if(!res) {
-    throw ResolverException("Timeout waiting for answer");
-  }
-  if(res<0)
-    throw ResolverException("Error waiting for answer: "+stringerror());
-
-
-  if((d_len=recvfrom(d_sock, reinterpret_cast< char * >( d_buf ), 512,0,(struct sockaddr*)(fromaddr), &addrlen))<0) 
-    throw ResolverException("recvfrom error waiting for answer: "+stringerror());
-
-  return 1;
-}
-  
-int Resolver::resolve(const string &ipport, const char *domain, int type)
-{
-  makeUDPSocket();
-  sendResolve(ipport, domain, type);
   try {
-    ServiceTuple st;
-    st.port = 53;   
-    parseService(ipport, st);
-    ComboAddress from(st.host, st.port);
+    ComboAddress to(ipport, 53);
 
-    return receiveResolve((sockaddr*)&from, from.getSocklen());
+    int id = sendResolve(to, domain, type);
+    int sock =  to.sin4.sin_family == AF_INET ? d_sock4 : d_sock6;
+    int err=waitForData(sock, 0, 7500000); 
+  
+    if(!err) {
+      throw ResolverException("Timeout waiting for answer");
+    }
+    if(err < 0)
+      throw ResolverException("Error waiting for answer: "+stringerror());
+  
+    ComboAddress from;
+    socklen_t addrlen = sizeof(from);
+    char buffer[3000];
+    int len;
+    
+    if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) 
+      throw ResolverException("recvfrom error waiting for answer: "+stringerror());
+  
+    return parseResult(buffer, len, domain, type, id, res);
   }
   catch(ResolverException &re) {
     throw ResolverException(re.reason+" from "+ipport);
   }
-  return 1;
-  
+  return -1;
 }
 
-void Resolver::makeTCPSocket(const string &ip, uint16_t port)
+
+
+void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t *serial)
 {
-  if(d_sock>=0)
-    return;
+  vector<DNSResourceRecord> res;
+  int ret = resolve(ipport, domain.c_str(), QType::SOA, &res);
+  
+  if(ret || res.empty())
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain + "' produced no answers");
 
-  d_toaddr=ComboAddress(ip, port);
+  if(res[0].qtype.getCode() != QType::SOA) 
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain + "' produced a "+res[0].qtype.getName()+" record");
 
-  d_sock=socket(AF_INET,SOCK_STREAM,0);
-  if(d_sock<0)
-    throw ResolverException("Unable to make a TCP socket for resolver: "+stringerror());
+  vector<string>parts;
+  stringtok(parts, res[0].content);
+  if(parts.size()<3)
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain + "' produced an unparseable response");
+  
+  *serial=(uint32_t)atol(parts[2].c_str());
+}
 
-  // Use query-local-address as source IP for queries, if specified.
-  string querylocaladdress(::arg()["query-local-address"]);
-  if (!querylocaladdress.empty()) {
-    ComboAddress fromaddr(querylocaladdress, 0);
-
-    if (::bind(d_sock, (struct sockaddr *)&fromaddr, fromaddr.getSocklen()) < 0) {
-      Utility::closesocket(d_sock);
-      d_sock=-1;
-      throw ResolverException("Binding to query-local-address: "+stringerror());
-    }
-  }  
+AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain)
+{
+  ComboAddress local;
+  if(remote.sin4.sin_family == AF_INET)
+    local=ComboAddress(::arg()["query-local-address"]);
+  else if(::arg().parmIsset("query-local-address6"))
+    local=ComboAddress(::arg()["query-local-address6"]);
+  else
+    local=ComboAddress("::");
     
+  d_sock = makeQuerySocket(local, false); // make a TCP socket
+  d_buf = shared_array<char>(new char[65536]);
+  d_remote = remote; // mostly for error reporting
+  this->connect();
+  d_soacount = 0;
+
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, domain, QType::AXFR);
+  pw.getHeader()->id = dns_random(0xffff);
+
+  uint16_t replen=htons(packet.size());
+  Utility::iovec iov[2];
+  iov[0].iov_base=(char*)&replen;
+  iov[0].iov_len=2;
+  iov[1].iov_base=(char*)&packet[0];
+  iov[1].iov_len=packet.size();
+
+  int ret=Utility::writev(d_sock, iov,2);
+  if(ret<0)
+    throw ResolverException("Error sending question to "+d_remote.toStringWithPort()+": "+stringerror());
+
+  int res = waitForData(d_sock, 10, 0);
+  
+  if(!res)
+    throw ResolverException("Timeout waiting for answer from "+d_remote.toStringWithPort()+" during AXFR");
+  if(res<0)
+    throw ResolverException("Error waiting for answer from "+d_remote.toStringWithPort()+": "+stringerror());
+}
+
+
+int AXFRRetriever::getChunk(Resolver::res_t &res)
+{
+  if(d_soacount > 1)
+    return false;
+  // d_sock is connected and is about to spit out a packet
+  int len=getLength();
+  
+  if(len<0)
+    throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
+  
+  timeoutReadn(len); 
+
+  int err = parseResult(d_buf.get(), len, "", 0, 0, &res);
+  if(err) 
+    throw ResolverException("AXFR chunk with a non-zero rcode "+lexical_cast<string>(err));
+    
+  for(Resolver::res_t::const_iterator i= res.begin(); i!=res.end(); ++i)
+    if(i->qtype.getCode()==QType::SOA) {
+      d_soacount++;
+    }
+
+  if(d_soacount>1 && !res.empty()) // chop off the last SOA
+    res.resize(res.size()-1);
+  return true;
+}
+
+void AXFRRetriever::timeoutReadn(uint16_t bytes)
+{
+  time_t start=time(0);
+  int n=0;
+  int numread;
+  while(n<bytes) {
+    if(waitForData(d_sock, 10-(time(0)-start))<0)
+      throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
+
+    numread=recv(d_sock, d_buf.get()+n, bytes-n, 0);
+    if(numread<0)
+      throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
+    if(numread==0)
+      throw ResolverException("Remote nameserver closed TCP connection");
+    n+=numread;
+  }
+}
+
+
+
+void AXFRRetriever::connect()
+{
   Utility::setNonBlocking( d_sock );
 
   int err;
-#ifndef WIN32
-  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr, d_toaddr.getSocklen()))<0 && errno!=EINPROGRESS) {
-#else
-  if((err=connect(d_sock,(struct sockaddr*)&d_toaddr, d_toaddr.getSocklen()))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
-#endif // WIN32
+
+  if((err=::connect(d_sock,(struct sockaddr*)&d_remote, d_remote.getSocklen()))<0 && errno!=EINPROGRESS) {
     Utility::closesocket(d_sock);
     d_sock=-1;
     throw ResolverException("connect: "+stringerror());
@@ -310,175 +422,9 @@ void Resolver::makeTCPSocket(const string &ip, uint16_t port)
   // d_sock now connected
 }
 
-//! returns -1 for permanent error, 0 for timeout, 1 for success
-int Resolver::axfr(const string &ipport, const char *domain)
+int AXFRRetriever::getLength()
 {
-  d_domain=domain;
-
-  
-  ServiceTuple st;  
-  st.port = 53;     
-  parseService(ipport, st);
-  makeTCPSocket(st.host, st.port);
-
-  d_type=QType::AXFR;
-  
-  vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, domain, QType::AXFR);
-  pw.getHeader()->id = d_randomid = dns_random(0xffff);
-
-  uint16_t replen=htons(packet.size());
-  Utility::iovec iov[2];
-  iov[0].iov_base=(char*)&replen;
-  iov[0].iov_len=2;
-  iov[1].iov_base=(char*)&packet[0];
-  iov[1].iov_len=packet.size();
-
-  int ret=Utility::writev(d_sock,iov,2);
-  if(ret<0)
-    throw ResolverException("Error sending question to "+ipport+": "+stringerror());
-
-  int res = waitForData(d_sock, 10, 0);
-  
-  if(!res)
-    throw ResolverException("Timeout waiting for answer from "+ipport+" during AXFR");
-  if(res<0)
-    throw ResolverException("Error waiting for answer from "+ipport+": "+stringerror());
-
-  d_soacount=0;
-  d_inaxfr=true;
-  return 1;
-}
-
-int Resolver::getLength()
-{
-  int bytesLeft=2;
-  unsigned char buf[2];
-  
-  while(bytesLeft) {
-    int ret=waitForData(d_sock, 10);
-    if(ret<0) {
-      Utility::closesocket(d_sock);
-      d_sock=-1;
-      throw ResolverException("Waiting on data from remote TCP client: "+stringerror());
-    }
-  
-    ret=recv(d_sock, reinterpret_cast< char * >( buf ) +2-bytesLeft, bytesLeft,0);
-    if(ret<0)
-      throw ResolverException("Trying to read data from remote TCP client: "+stringerror());
-    if(!ret) 
-      return -1;
-    
-    bytesLeft-=ret;
-  }
-  return buf[0]*256+buf[1];
-}
-
-int Resolver::axfrChunk(Resolver::res_t &res)
-{
-  if(d_soacount>1) {
-    Utility::closesocket(d_sock);
-    d_sock=-1;
-    return 0;
-  }
-
-  // d_sock is connected and is about to spit out a packet
-  int len=getLength();
-  if(len<0)
-    throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
-  
-  timeoutReadn((char *)d_buf,len); 
-  d_len=len;
-
-  res=result();
-  for(res_t::const_iterator i=res.begin();i!=res.end();++i)
-    if(i->qtype.getCode()==QType::SOA) {
-      d_soacount++;
-    }
-
-  if(d_soacount>1 && !res.empty()) // chop off the last SOA
-    res.resize(res.size()-1);
-
-  return 1;
-}
-
-Resolver::res_t Resolver::result()
-{
-  shared_ptr<MOADNSParser> mdp;
-  
-  try {
-    mdp=shared_ptr<MOADNSParser>(new MOADNSParser((char*)d_buf, d_len));
-  }
-  catch(...) {
-    throw ResolverException("resolver: unable to parse packet of "+itoa(d_len)+" bytes");
-  }
-  if(mdp->d_header.id != d_randomid) {
-    throw ResolverException("Remote nameserver replied with wrong id");
-  }
-  if(mdp->d_header.rcode) {
-    if(d_inaxfr)
-      throw ResolverException("Remote nameserver unable/unwilling to AXFR with us: RCODE="+itoa(mdp->d_header.rcode));
-    else
-      throw ResolverException("Remote nameserver reported error: RCODE="+itoa(mdp->d_header.rcode));
-  }
-    if(!d_inaxfr) {
-      if(mdp->d_header.qdcount!=1)
-        throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp->d_header.qdcount)+")");
-      
-      if(mdp->d_qname != d_domain+".")
-        throw ResolverException(string("resolver: received an answer to another question (")+mdp->d_qname+"!="+d_domain+".)");
-    }
-    
-    vector<DNSResourceRecord> ret; 
-    DNSResourceRecord rr;
-    for(MOADNSParser::answers_t::const_iterator i=mdp->d_answers.begin(); i!=mdp->d_answers.end(); ++i) {          
-      rr.qname = i->first.d_label;
-      if(!rr.qname.empty())
-        boost::erase_tail(rr.qname, 1); // strip .
-      rr.qtype = i->first.d_type;
-      rr.ttl = i->first.d_ttl;
-      rr.content = i->first.d_content->getZoneRepresentation();
-      rr.priority = 0;
-      
-      uint16_t qtype=rr.qtype.getCode();
-
-      if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
-        boost::erase_tail(rr.content, 1);
-
-      if(rr.qtype.getCode() == QType::MX) {
-        vector<string> parts;
-        stringtok(parts, rr.content);
-        rr.priority = atoi(parts[0].c_str());
-        if(parts.size() > 1)
-          rr.content=parts[1];
-      } else if(rr.qtype.getCode() == QType::SRV) {
-        rr.priority = atoi(rr.content.c_str());
-        vector<pair<string::size_type, string::size_type> > fields;
-        vstringtok(fields, rr.content, " ");
-        if(fields.size()==4)
-          rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
-      }
-      ret.push_back(rr);
-    }
-    
-    return ret;
-}
-
-void Resolver::getSoaSerial(const string &ip, const string &domain, uint32_t *serial)
-{
-  resolve(ip, domain.c_str(), QType::SOA);
-  res_t res=result();
-  if(res.empty())
-    throw ResolverException("Query to '" + ip + "' for SOA of '" + domain + "' produced no answers");
-
-  if(res[0].qtype.getCode() != QType::SOA) 
-    throw ResolverException("Query to '" + ip + "' for SOA of '" + domain + "' produced a "+res[0].qtype.getName()+" record");
-
-  vector<string>parts;
-  stringtok(parts, res[0].content);
-  if(parts.size()<3)
-    throw ResolverException("Query to '" + ip + "' for SOA of '" + domain + "' produced an unparseable response");
-  
-  *serial=(uint32_t)atol(parts[2].c_str());
+  timeoutReadn(2);
+  return (unsigned char)d_buf[0]*256+(unsigned char)d_buf[1];
 }
 

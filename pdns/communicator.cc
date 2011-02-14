@@ -75,7 +75,7 @@ void CommunicatorClass::mainloop(void)
     L<<Logger::Error<<"Master/slave communicator launching"<<endl;
     PacketHandler P;
     d_tickinterval=::arg().asNum("slave-cycle-interval");
-    makeNotifySocket();
+    makeNotifySockets();
 
     int rc;
     time_t next;

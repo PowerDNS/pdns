@@ -156,10 +156,12 @@ time_t CommunicatorClass::doNotifications()
   Utility::socklen_t fromlen=sizeof(from);
   char buffer[1500];
   int size;
-  static Resolver d_nresolver;
   // receive incoming notifications on the nonblocking socket and take them off the list
-
-  while((size=recvfrom(d_nsock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen))>0) {
+  int sock;
+  while(waitFor2Data(d_nsock4, d_nsock6, 1, 0, &sock) > 0) {
+    size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
+    if(size < 0)
+      break;
     DNSPacket p;
 
     p.setRemote(&from);
@@ -186,7 +188,9 @@ time_t CommunicatorClass::doNotifications()
   while(d_nq.getOne(domain, ip, &id, purged)) {
     if(!purged) {
       try {
-        d_nresolver.notify(d_nsock, domain, ip, id);
+        ComboAddress remote(ip, 53); // default to 53
+        //cerr<<"Going to send to "<<remote.toStringWithPort()<<endl;
+        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id); // XXX FIXME this won't deal with IPv6 since nsock is IPv4!
         drillHole(domain, ip);
       }
       catch(ResolverException &re) {
@@ -219,49 +223,14 @@ bool CommunicatorClass::justNotified(const string &domain, const string &ip)
   return false;
 }
 
-void CommunicatorClass::makeNotifySocket()
+void CommunicatorClass::makeNotifySockets()
 {
-  if((d_nsock=socket(AF_INET, SOCK_DGRAM,0))<0)
-    throw AhuException(string("notification socket: ")+strerror(errno));
-
-  struct sockaddr_in sin;
-  memset((char *)&sin,0, sizeof(sin));
-  
-  sin.sin_family = AF_INET;
-
-  // Bind to a specific IP (query-local-address) if specified
-  string querylocaladdress(::arg()["query-local-address"]);
-  if (querylocaladdress=="") {
-    sin.sin_addr.s_addr = INADDR_ANY;
-  }
+  d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
+  if(::arg().parmIsset("query-local-address6"))
+    d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
   else
-  {
-    struct hostent *h=0;
-    h=gethostbyname(querylocaladdress.c_str());
-    if(!h) {
-      Utility::closesocket(d_nsock);
-      d_nsock=-1;        
-      throw AhuException("Unable to resolve query local address");
-    }
-
-    sin.sin_addr.s_addr = *(int*)h->h_addr;
-  }
-  
-  int n=0;
-  for(;n<10;n++) {
-    sin.sin_port = htons(10000+(Utility::random()%50000));
-    
-    if(::bind(d_nsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
-      break;
-  }
-  if(n==10) {
-    Utility::closesocket(d_nsock);
-    d_nsock=-1;
-    throw AhuException(string("binding notify socket: ")+strerror(errno));
-  }
-  if( !Utility::setNonBlocking( d_nsock ))
-    throw AhuException(string("error getting or setting notify socket non-blocking: ")+strerror(errno));
-
+    d_nsock6 = -1;
+  cerr<<"socks: "<<d_nsock4<<", "<<d_nsock6;
 }
 
 void CommunicatorClass::notify(const string &domain, const string &ip)
