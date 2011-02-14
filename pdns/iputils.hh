@@ -32,6 +32,9 @@
 #include <functional>
 #include "ahuexception.hh"
 #include "misc.hh"
+#include <sys/socket.h>
+#include <netdb.h>
+
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/lexical_cast.hpp>
@@ -158,14 +161,10 @@ union ComboAddress {
 
   string toString() const
   {
-    char tmp[128];
-    if(sin4.sin_family==AF_INET && !Utility::inet_ntop(AF_INET, ( const char * ) &sin4.sin_addr, tmp, sizeof(tmp)))
-      return tmp;
-
-    if(sin4.sin_family==AF_INET6 && !Utility::inet_ntop(AF_INET6, ( const char * ) &sin6.sin6_addr, tmp, sizeof(tmp)))
-      return tmp;
+    char host[1024];
+    getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST);
       
-    return tmp;
+    return host;
   }
 
   string toStringWithPort() const

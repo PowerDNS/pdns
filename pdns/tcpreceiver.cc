@@ -738,7 +738,7 @@ TCPNameserver::TCPNameserver()
     }
     
     listen(s,128);
-    L<<Logger::Error<<"TCPv6 server bound to "<<local.toStringWithPort()<<endl;
+    L<<Logger::Error<<"TCPv6 server bound to "<<local.toStringWithPort()<<endl; // this gets %eth0 right
     d_sockets.push_back(s);
 
     struct pollfd pfd;

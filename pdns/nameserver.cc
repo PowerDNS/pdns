@@ -156,7 +156,7 @@ void UDPNameserver::bindIPv6()
     }
     d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
-    L<<Logger::Error<<"UDPv6 server bound to ["<<localname<<"]:"<<::arg().asNum("local-port")<<endl;
+    L<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
     FD_SET(s, &d_rfds);
   }
 #endif // WIN32
