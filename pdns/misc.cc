@@ -317,9 +317,43 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
 
   ret = poll(&pfd, 1, seconds * 1000 + useconds/1000);
   if ( ret == -1 )
-    errno = ETIMEDOUT;
+    errno = ETIMEDOUT; // ???
 
   return ret;
+}
+
+// returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
+int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int*fd)
+{
+  int ret;
+
+  struct pollfd pfds[2];
+  memset(&pfds[0], 0, 2*sizeof(struct pollfd));
+  pfds[0].fd = fd1;
+  pfds[1].fd = fd2;
+  
+  pfds[0].events= pfds[1].events = POLLIN;
+
+  int nsocks = 1 + (fd2 >= 0); // fd2 can optionally be -1
+
+  if(seconds >= 0)
+    ret = poll(pfds, nsocks, seconds * 1000 + useconds/1000);
+  else
+    ret = poll(pfds, nsocks, -1);
+  if(!ret || ret < 0)
+    return ret;
+    
+  if((pfds[0].revents & POLLIN) && !(pfds[1].revents & POLLIN))
+    *fd = pfds[0].fd;
+  else if((pfds[1].revents & POLLIN) && !(pfds[0].revents & POLLIN))
+    *fd = pfds[1].fd;
+  else if(ret == 2) {
+    *fd = pfds[random()%2].fd;
+  }
+  else
+    *fd = -1; // should never happen
+  
+  return 1;
 }
 
 

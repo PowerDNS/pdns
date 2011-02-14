@@ -83,32 +83,13 @@ void stripLine(string &line);
 string getHostname();
 string urlEncode(const string &text);
 int waitForData(int fd, int seconds, int useconds=0);
+int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fd);
 int waitForRWData(int fd, bool waitForRead, int seconds, int useconds);
 uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
 boost::optional<int> logFacilityToLOG(unsigned int facility);
-
-inline void putLong(unsigned char* p, uint32_t val)
-{
-  *p++=(val>>24)&0xff;
-  *p++=(val>>16)&0xff;
-  *p++=(val>>8)&0xff;
-  *p++=(val   )&0xff;
-
-}
-inline void putLong(char* p, uint32_t val)
-{
-  putLong((unsigned char *)p,val);
-}
-
-
-inline uint32_t getLong(unsigned char *p)
-{
-  return (p[0]<<24)+(p[1]<<16)+(p[2]<<8)+p[3];
-}
-
 
 struct ServiceTuple
 {
