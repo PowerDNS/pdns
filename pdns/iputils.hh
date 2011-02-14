@@ -108,18 +108,20 @@ union ComboAddress {
     sin4.sin_port=0;
   }
 
+  // 'port' sets a default value in case 'str' does not set a port
   explicit ComboAddress(const string& str, uint16_t port=0)
   {
     memset(&sin6, 0, sizeof(sin6));
     sin4.sin_family = AF_INET;
-    
-    if(!IpToU32(str, (uint32_t*)&sin4.sin_addr.s_addr)) {
+    sin4.sin_port = 0;
+    if(makeIPv4sockaddr(str, &sin4)) {
       sin6.sin6_family = AF_INET6;
       if(makeIPv6sockaddr(str, &sin6) < 0)
         throw AhuException("Unable to convert presentation address '"+ str +"'"); 
       
     }
-    sin4.sin_port=htons(port);
+    if(!sin4.sin_port) // 'str' overrides port!
+      sin4.sin_port=htons(port);
   }
 
   bool isMappedIPv4()  const

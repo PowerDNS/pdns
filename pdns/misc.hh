@@ -215,7 +215,7 @@ public:
 private:
   struct timeval d_set;
 };
-const string sockAddrToString(struct sockaddr_in *remote);
+
 int sendData(const char *buffer, int replen, int outsock);
 
 inline void DTime::set()
@@ -457,6 +457,7 @@ string makeRelative(const std::string& fqdn, const std::string& zone);
 string labelReverse(const std::string& qname);
 std::string dotConcat(const std::string& a, const std::string &b);
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret);
+int makeIPv4sockaddr(const string &str, struct sockaddr_in* ret);
 bool stringfgets(FILE* fp, std::string& line);
 
 template<typename Index>

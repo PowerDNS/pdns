@@ -1384,7 +1384,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     else {
       g_stats.serverParseError++; 
       if(g_logCommonErrors)
-        L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< sockAddrToString((struct sockaddr_in*) &fromaddr) <<
+        L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< fromaddr.toString() <<
           ": packet smalller than DNS header"<<endl;
     }
 
@@ -1417,7 +1417,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       }
       catch(std::exception& e) {
         g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
-        L<<Logger::Warning<<"Error in packet from "<<sockAddrToString((struct sockaddr_in*) &fromaddr) << ": "<<e.what() << endl;
+        L<<Logger::Warning<<"Error in packet from "<< fromaddr.toStringWithPort() << ": "<<e.what() << endl;
         return;
       }
     }
@@ -1457,7 +1457,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else
-    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< sockAddrToString((struct sockaddr_in*) &fromaddr)  <<endl;
+    L<<Logger::Warning<<"Ignoring question on outgoing socket from "<< fromaddr.toStringWithPort()  <<endl;
 }
 
 FDMultiplexer* getMultiplexer()

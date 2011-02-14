@@ -481,23 +481,6 @@ string U32ToIP(uint32_t val)
 }
 
 
-const string sockAddrToString(struct sockaddr_in *remote) 
-{    
-  if(remote->sin_family == AF_INET) {
-    struct sockaddr_in sip;
-    memcpy(&sip,(struct sockaddr_in*)remote,sizeof(sip));
-    return inet_ntoa(sip.sin_addr);
-  }
-  else {
-    char tmp[128];
-    
-    if(!Utility::inet_ntop(AF_INET6, ( const char * ) &((struct sockaddr_in6 *)remote)->sin6_addr, tmp, sizeof(tmp)))
-      return "IPv6 untranslateable";
-
-    return tmp;
-  }
-}
-
 string makeHexDump(const string& str)
 {
   char tmp[5];
@@ -510,8 +493,6 @@ string makeHexDump(const string& str)
   }
   return ret;
 }
-
-
 
 // shuffle, maintaining some semblance of order
 void shuffle(vector<DNSResourceRecord>& rrs)
@@ -665,6 +646,18 @@ string dotConcat(const std::string& a, const std::string &b)
 
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
 {
+  if(addr.empty())
+    return -1;
+  string ourAddr(addr);
+  int port = -1;
+  if(addr[0]=='[') { // [::]:53 style address
+    string::size_type pos = addr.find(']');
+    if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
+      return -1;
+    ourAddr.assign(addr.c_str() + 1, pos-1);
+    port = atoi(addr.c_str()+pos+2);  
+  }
+  
   struct addrinfo* res;
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
@@ -673,7 +666,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   hints.ai_flags = AI_NUMERICHOST;
   
   int error;
-  if((error=getaddrinfo(addr.c_str(), 0, &hints, &res))) {
+  if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) { // this is correct
     /*
     cerr<<"Error translating IPv6 address '"<<addr<<"': ";
     if(error==EAI_SYSTEM)
@@ -685,10 +678,43 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   }
   
   memcpy(ret, res->ai_addr, res->ai_addrlen);
-  
+  if(port >= 0)
+    ret->sin6_port = htons(port);
   freeaddrinfo(res);
   return 0;
 }
+
+int makeIPv4sockaddr(const string &str, struct sockaddr_in* ret)
+{
+  if(str.empty()) {
+    return -1;
+  }
+  struct in_addr inp;
+  
+  string::size_type pos = str.find(':');
+  if(pos == string::npos) { // no port specified, not touching the port
+    if(Utility::inet_aton(str.c_str(), &inp)) {
+      ret->sin_addr.s_addr=inp.s_addr;
+      return 0;
+    }
+    return -1;
+  }
+  if(!*(str.c_str() + pos + 1)) // trailing :
+    return -1; 
+    
+  char *eptr = (char*)str.c_str() + str.size();
+  int port = strtol(str.c_str() + pos + 1, &eptr, 10);
+  if(*eptr)
+    return -1;
+  
+  ret->sin_port = htons(port);
+  if(Utility::inet_aton(str.substr(0, pos).c_str(), &inp)) {
+    ret->sin_addr.s_addr=inp.s_addr;
+    return 0;
+  }
+  return -1;
+}
+
 
 //! read a line of text from a FILE* to a std::string, returns false on 'no data'
 bool stringfgets(FILE* fp, std::string& line)

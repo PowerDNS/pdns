@@ -139,7 +139,7 @@ int DNSProxy::getID_locked()
     else if(i->second.created<time(0)-60) {
       if(i->second.created)
         L<<Logger::Warning<<"Recursive query for remote "<<
-          sockAddrToString((struct sockaddr_in *)&i->second.remote)<<" with internal id "<<n<<
+          i->second.remote.toStringWithPort()<<" with internal id "<<n<<
           " was not answered by backend within timeout, reusing id"<<endl;
       
       return n;
