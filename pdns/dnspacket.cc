@@ -438,6 +438,8 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
       
       gotit=true;
       *keyname = i->first.d_label;
+      if(!keyname->empty())
+        keyname->resize(keyname->size()-1); // drop the trailing dot
     }
   }
   if(!gotit)

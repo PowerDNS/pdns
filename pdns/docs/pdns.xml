@@ -131,13 +131,17 @@
       <itemizedlist>
 	<listitem>
 	  <para>
-	    Long TXT records are now split into 255-byte components automatically. Implemented in c1340, reported by Darren Gamble
-	    in t188.
+	    TSIG for authorizing and authenticating AXFR requests.
 	  </para>
 	</listitem>
 	<listitem>
 	  <para>
 	    Per zone AXFR ACLs, implemented in c1360.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Per zone also-notify.
 	  </para>
 	</listitem>
 	<listitem>
@@ -333,6 +337,12 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
       </itemizedlist>
       Improvements:
       <itemizedlist>
+      <listitem>
+	  <para>
+	    Long TXT records are now split into 255-byte components automatically. Implemented in c1340, reported by Darren Gamble
+	    in t188.
+	  </para>
+	</listitem>
 	<listitem>
 	  <para>
 	    Fixed compilation on newer compilers and newer versions of Boost. 
@@ -9427,7 +9437,7 @@ $ pdnssec rectify-zone
     </listitem>
     </itemizedlist>
   </para>
-  <section id="dnssec-presigned"><title>DNSSEC: live-signed vs orthodox 'pre-signed' mode</title>
+  <section id="dnssec-presigned-mode"><title>DNSSEC: live-signed vs orthodox 'pre-signed' mode</title>
   <para>
     Traditionally, DNSSEC signatures have been added to unsigned zones, and then this signed zone
     could be served by any DNSSEC capable authoritative server. PowerDNS supports this mode fully.
@@ -9957,6 +9967,41 @@ $ pdnssec rectify-zone
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
 
+  </para>
+  </section>
+  </chapter>
+  <chapter id="tsig"><title>TSIG: shared secret authorization and authentication</title>
+  <para><note><para>Available since PowerDNS Authoritative Server 3.0!</para></note></para>
+  <para>
+    TSIG, as defined in RFC 2845, is a method for signing DNS messages using shared secrets. 
+    Each TSIG shared secret has a name, and PowerDNS can be told to allow zonetransfer of a domain
+    if the request is signed with an authorized name.
+  </para>
+  <para>
+    In PowerDNS, TSIG shared secrets are stored by the various backends. In case of the popular 
+    Generic backends, they can be found in the 'tsigkeys' table. The name can be chosen freely, but
+    the algorithm name will typically be 'hmac-md5'. The content is a Base64-encoded secret.
+  </para>
+  <para>
+  <note><para>For the Generic backends, make sure to use the DNSSEC enabled schema and to turn on the relevant '-dnssec' flag (for example, gmyql-dnssec)!</para></note>
+  </para>
+  <section id="tsig-outbound-axfr"><title>Provisioning outbound AXFR access</title>
+  <para>
+    To actually provision a named secret permission to AXFR a zone, set a metadata item in the 'domainmetadata' table
+    called 'TSIG-ALLOW-AXFR' with the key name in the content field. 
+  </para>
+  <para>
+    As an example:
+<programlisting>
+sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
+sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-AXFR', 'test');
+sql> select name from domains where id=5;
+powerdnssec.org
+</programlisting>
+  </para>
+  <para>
+    A packet authorized and authenticated by a TSIG signature will gain access to a zone even 
+    if the remote IP address is not otherwise allowed to AXFR a zone.
   </para>
   </section>
   </chapter>
@@ -13609,6 +13654,17 @@ create table cryptokeys (
 alter table records add ordername      VARCHAR(255);
 alter table records add auth bool;
 create index orderindex on records(ordername);
+
+
+create table tsigkeys (
+ id             INT auto_increment,
+ name           VARCHAR(255), 
+ algorithm      VARCHAR(255),
+ secret         VARCHAR(255)
+);
+
+create unique index namealgoindex on tsigkeys(name, algorithm);
+
 </programlisting>	
 	</para>
 	<para>
@@ -13683,6 +13739,7 @@ GRANT ALL ON records_id_seq TO pdns;
 	This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used, the 'GRANT' statements
 	can be trimmed to make sure PDNS cannot subvert the contents of your database.
       </para>
+      <para>
       To support DNSSEC or to migrate to DNSSEC, the following statements have to be issued:
 <programlisting>
 
@@ -13709,6 +13766,18 @@ GRANT ALL ON domainmetadata TO pdns;
 GRANT ALL ON domainmetadata_id_seq TO pdns;
 GRANT ALL ON cryptokeys TO pdns;
 GRANT ALL ON cryptokeys_id_seq TO pdns;
+
+create table tsigkeys (
+ id             SERIAL PRIMARY KEY,
+ name           VARCHAR(255),
+ algorithm      VARCHAR(255), 
+ secret         VARCHAR(255)
+);
+
+create unique index namealgoindex on tsigkeys(name, algorithm);
+
+GRANT ALL ON tsigkeys TO pdns;
+GRANT ALL ON tsigkeys_id_seq TO pdns;
 
 </programlisting>  
 </para>
@@ -14517,7 +14586,17 @@ create table cryptokeys (
  flags          INT NOT NULL,
  active         BOOL,
  content        TEXT
-);                   
+);        
+
+create table tsigkeys (
+ id             INTEGER PRIMARY KEY,
+ name           VARCHAR(255) COLLATE NOCASE,
+ algorithm      VARCHAR(255) COLLATE NOCASE,
+ secret         VARCHAR(255)
+);
+
+create unique index namealgoindex on tsigkeys(name, algorithm);
+         
 	      </programlisting></para>
 	      <para>
 		For full migration notes, please see <xref linkend="dnssec-migration"/>.
