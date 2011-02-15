@@ -50,7 +50,7 @@ struct SOAData
 class RCode
 {
 public:
-  enum rcodes_ { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5 };
+  enum rcodes_ { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, NotAuth=9 };
 };
 
 class Opcode

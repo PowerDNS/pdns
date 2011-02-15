@@ -104,7 +104,10 @@ public:
   {
     d_lowerCase=val;
   }
-
+  vector <uint8_t>& getContent()
+  {
+    return d_content;
+  }
 
 private:
   vector <uint8_t>& d_content;

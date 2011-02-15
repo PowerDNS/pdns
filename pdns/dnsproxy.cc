@@ -118,9 +118,10 @@ bool DNSProxy::sendPacket(DNSPacket *p)
   }
   p->d.id=id^d_xor;
   p->commitD();
-  char *buffer=const_cast<char *>(p->getRaw());
-  int len=p->len;
-  if(send(d_sock,buffer,len,0)<0) { // zoom
+  
+  const string& buffer = p->getString();
+  
+  if(send(d_sock,buffer.c_str(), buffer.length() , 0)<0) { // zoom
     L<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
   }
   (*d_resquestions)++;
