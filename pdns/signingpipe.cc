@@ -19,7 +19,7 @@ int readn(int fd, void* buffer, unsigned int len)
       if(pos)
         throw runtime_error("Signing Pipe remote shut down in the middle of a message");
       else {
-        cerr<<"Got decent EOF on "<<fd<<endl;
+        //cerr<<"Got decent EOF on "<<fd<<endl;
         return 0;
       }
     }
@@ -101,7 +101,7 @@ ChunkedSigningPipe::~ChunkedSigningPipe()
   BOOST_FOREACH(pthread_t& tid, d_tids) {
     pthread_join(tid, &res);
   }
-  cout<<"Did: "<<d_signed<<", records (!= chunks) submitted: "<<d_submitted<<endl;
+  //cout<<"Did: "<<d_signed<<", records (!= chunks) submitted: "<<d_submitted<<endl;
 }
 
 bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
@@ -290,7 +290,7 @@ vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
     
     BOOST_FOREACH(int fd, d_sockets) {
       shutdown(fd, SHUT_WR); // perhaps this transmits EOF the other side
-      cerr<<"shutdown of "<<fd<<endl;
+      //cerr<<"shutdown of "<<fd<<endl;
     }
   }
   if(d_final)
@@ -300,7 +300,7 @@ vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
   if(d_chunks.empty())
     d_chunks.push_back(vector<DNSResourceRecord>());
   if(d_final && front.empty())
-    cerr<<"getChunk returning empty in final"<<endl;
+    ; // cerr<<"getChunk returning empty in final"<<endl;
   return front;
 }
 
