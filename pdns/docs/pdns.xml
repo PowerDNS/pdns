@@ -9994,14 +9994,21 @@ $ pdnssec rectify-zone
     As an example:
 <programlisting>
 sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
+sql> select id from domains where name='powerdnssec.org';
+5
 sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-AXFR', 'test');
-sql> select name from domains where id=5;
-powerdnssec.org
+
+$ dig -t axfr powerdnssec.org @127.0.0.1 -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
 </programlisting>
   </para>
   <para>
     A packet authorized and authenticated by a TSIG signature will gain access to a zone even 
     if the remote IP address is not otherwise allowed to AXFR a zone.
+  </para>
+  </section>
+  <section id="tsig-outbound-notify-axfr"><title>Provisioning signed notification and AXFR requests</title>
+  <para>
+  <warning><para>Not implemented yet!</para></warning>
   </para>
   </section>
   </chapter>
