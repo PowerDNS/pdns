@@ -22,3 +22,14 @@ GRANT ALL ON domainmetadata_id_seq TO pdns;
 GRANT ALL ON cryptokeys TO pdns;
 GRANT ALL ON cryptokeys_id_seq TO pdns;
 
+create table tsigkeys (
+ id		SERIAL PRIMARY KEY,
+ name		VARCHAR(255),
+ algorithm	VARCHAR(255), 
+ secret		VARCHAR(255)
+);
+
+create unique index namealgoindex on tsigkeys(name, algorithm);
+
+GRANT ALL ON tsigkeys TO pdns;
+GRANT ALL ON tsigkeys_id_seq TO pdns;

@@ -52,6 +52,7 @@ public:
   bool activateDomainKey(const string& name, unsigned int id);
   bool deactivateDomainKey(const string& name, unsigned int id);
   
+  bool getTSIGKey(const string& name, string* algorithm, string* content);
 private:
   string d_qname;
   QType d_qtype;
@@ -95,6 +96,8 @@ private:
   string d_RemoveDomainKeyQuery;
   string d_ActivateDomainKeyQuery;
   string d_DeactivateDomainKeyQuery;
+  
+  string d_getTSIGKeyQuery;
 protected:  
   bool d_dnssecQueries;
 };

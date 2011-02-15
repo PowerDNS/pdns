@@ -162,6 +162,16 @@ bool UeberBackend::removeDomainKey(const string& name, unsigned int id)
 }
 
 
+bool UeberBackend::getTSIGKey(const string& name, string* algorithm, string* content)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->getTSIGKey(name, algorithm, content))
+      return true;
+  }
+  return false;
+}
+
+
 void UeberBackend::reload()
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )

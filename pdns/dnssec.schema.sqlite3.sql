@@ -17,3 +17,11 @@ create table cryptokeys (
  content	TEXT
 );		 
 
+create table tsigkeys (
+ id		INTEGER PRIMARY KEY,
+ name		VARCHAR(255) COLLATE NOCASE,
+ algorithm	VARCHAR(255) COLLATE NOCASE,
+ secret		VARCHAR(255)
+);
+
+create unique index namealgoindex on tsigkeys(name, algorithm);

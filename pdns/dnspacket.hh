@@ -44,7 +44,6 @@
 
 #include <iostream>
 #include <string>
-
 #include <vector>
 #include "qtype.hh"
 #include "dns.hh"
@@ -52,6 +51,7 @@
 #include "utility.hh"
 #include "logger.hh"
 #include "ahuexception.hh"
+#include "dnsrecords.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -75,9 +75,9 @@ public:
   DNSPacket();
   DNSPacket(const DNSPacket &orig);
 
-  int noparse(const char *mesg, int len); //!< parse a raw UDP or TCP packet and suck the data inward
+  int noparse(const char *mesg, int len); //!< just suck the data inward
   int parse(const char *mesg, int len); //!< parse a raw UDP or TCP packet and suck the data inward
-  string getString(); //!< for serialization - just passes the whole packet
+  const string& getString(); //!< for serialization - just passes the whole packet
 
   // address & socket manipulation
   void setRemote(const ComboAddress*);
@@ -119,9 +119,6 @@ public:
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
   void wrapup();  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
-  const char *getData(); //!< get binary representation of packet, will call 'wrapup' for you
-
-  const char *getRaw(void); //!< provides access to the raw packet, possibly on a packet that has never been 'wrapped'
   void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
 
   vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
@@ -131,7 +128,7 @@ public:
   DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
 
   void commitD(); //!< copies 'd' into the stringbuffer
-  int getMaxReplyLen(); //!< retrieve the maximum length of the packet we should send in response
+  unsigned int getMaxReplyLen(); //!< retrieve the maximum length of the packet we should send in response
   void setMaxReplyLen(int bytes); //!< set the max reply len (used when retrieving from the packet cache, and this changed)
 
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
@@ -139,7 +136,6 @@ public:
   //////// DATA !
 
   ComboAddress remote;
-  uint16_t len; //!< length of the raw binary packet 2
   uint16_t qclass;  //!< class of the question - should always be INternet 2
   struct dnsheader d; //!< dnsheader at the start of the databuffer 12
 
@@ -148,7 +144,13 @@ public:
   string qdomain;  //!< qname of the question 4 - unsure how this is used
   bool d_tcp;
   bool d_dnssecOk;
+  bool d_havetsig;
+
+  bool getTSIGDetails(TSIGRecordContent* tr, string* keyname, string* message) const;
+  void setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly=false);
+  
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
+  TSIGRecordContent d_trc;
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
@@ -158,14 +160,21 @@ private:
   
   int d_socket; // 4
 
-  string stringbuffer; // this is where everything lives 4
+  string d_rawpacket; // this is where everything lives 4
   int d_maxreplylen;
   string d_ednsping;
   bool d_wantsnsid;
 
+  void addTSIG(DNSPacketWriter& pw);
+  
+  string d_tsigsecret;
+  string d_tsigkeyname;
+  string d_tsigprevious;
+  bool d_tsigtimersonly;
+
   vector<DNSResourceRecord> d_rrs; // 4
 };
 
-
+bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc);
 
 #endif

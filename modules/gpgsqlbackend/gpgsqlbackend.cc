@@ -74,8 +74,6 @@ public:
 
     declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where domain_id='%d'");
     
-    
-    
     declare(suffix,"master-zone-query","Data", "select master from domains where name='%s' and type='SLAVE'");
 
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type from domains where name='%s'");
@@ -104,7 +102,7 @@ public:
     declare(suffix,"activate-domain-key-query","", "update cryptokeys set active=true where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=false where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d");    
-
+    declare(suffix,"get-tsig-key-query","", "select algorithm, secret from tsigkeys where name='%s'");
   }
   
   DNSBackend *make(const string &suffix="")

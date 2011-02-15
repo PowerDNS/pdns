@@ -51,22 +51,12 @@ DNSPacket::DNSPacket()
   d_dnssecOk=false;
 }
 
-string DNSPacket::getString()
-{
-  return stringbuffer;
-}
-
-const char *DNSPacket::getData()
+const string& DNSPacket::getString()
 {
   if(!d_wrapped)
     wrapup();
 
-  return stringbuffer.data();
-}
-
-const char *DNSPacket::getRaw(void)
-{
-  return stringbuffer.data();
+  return d_rawpacket;
 }
 
 string DNSPacket::getRemote() const
@@ -84,7 +74,6 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   DLOG(L<<"DNSPacket copy constructor called!"<<endl);
   d_socket=orig.d_socket;
   remote=orig.remote;
-  len=orig.len;
   d_qlen=orig.d_qlen;
   d_dt=orig.d_dt;
   d_compress=orig.d_compress;
@@ -97,10 +86,16 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_wantsnsid = orig.d_wantsnsid;
   d_dnssecOk = orig.d_dnssecOk;
   d_rrs=orig.d_rrs;
-
+  
+  d_tsigkeyname = orig.d_tsigkeyname;
+  d_tsigprevious = orig.d_tsigprevious;
+  d_tsigtimersonly = orig.d_tsigtimersonly;
+  d_trc = orig.d_trc;
+  d_tsigsecret = orig.d_tsigsecret;
+  
   d_wrapped=orig.d_wrapped;
 
-  stringbuffer=orig.stringbuffer;
+  d_rawpacket=orig.d_rawpacket;
   d=orig.d;
 }
 
@@ -112,7 +107,7 @@ void DNSPacket::setRcode(int v)
 void DNSPacket::setAnswer(bool b)
 {
   if(b) {
-    stringbuffer.assign(12,(char)0);
+    d_rawpacket.assign(12,(char)0);
     memset((void *)&d,0,sizeof(d));
     
     d.qr=b;
@@ -212,7 +207,7 @@ vector<DNSResourceRecord*> DNSPacket::getAnswerRecords()
 void DNSPacket::setCompress(bool compress)
 {
   d_compress=compress;
-  stringbuffer.reserve(65000);
+  d_rawpacket.reserve(65000);
   d_rrs.reserve(200);
 }
 
@@ -220,7 +215,46 @@ bool DNSPacket::couldBeCached()
 {
   return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN;
 }
+#include "base64.hh"
+void DNSPacket::addTSIG(DNSPacketWriter& pw)
+{
+  string toSign;
+  uint16_t len = htons(d_tsigprevious.length());
+  toSign.append((char*)&len, 2);
+  
+  toSign.append(d_tsigprevious);
+  toSign.append(&*pw.getContent().begin(), &*pw.getContent().end());
+  
+  //  cerr<<"toSign size now: "<<toSign.size()<<", keyname '"<<d_tsigkeyname<<"', secret "<<Base64Encode(d_tsigsecret)<<endl;
 
+  // now add something that looks a lot like a TSIG record, but isn't
+  vector<uint8_t> signVect;
+  DNSPacketWriter dw(signVect, "", 0);
+  if(!d_tsigtimersonly) {
+    dw.xfrLabel(d_tsigkeyname, false);
+    dw.xfr16BitInt(0xff); // class
+    dw.xfr32BitInt(0);    // TTL
+    dw.xfrLabel(d_trc.d_algoName, false);
+  }  
+  uint32_t now = d_trc.d_time; 
+  dw.xfr48BitInt(now);
+  dw.xfr16BitInt(d_trc.d_fudge); // fudge
+  
+  if(!d_tsigtimersonly) {
+    dw.xfr16BitInt(d_trc.d_eRcode); // extended rcode
+    dw.xfr16BitInt(d_trc.d_otherData.length()); // length of 'other' data
+    //    dw.xfrBlob(d_trc.d_otherData);
+  }
+  
+  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
+  toSign.append(&*signRecord.begin(), &*signRecord.end());
+
+  d_trc.d_mac = calculateMD5HMAC(d_tsigsecret, toSign);
+  //  d_trc.d_mac[0]++; // sabotage
+  pw.startRecord(d_tsigkeyname, QType::TSIG, 0, 0xff, DNSPacketWriter::ADDITIONAL); 
+  d_trc.toPacket(pw);
+  pw.commit();
+}
 
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
@@ -281,7 +315,7 @@ void DNSPacket::wrapup()
         pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
         shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
               drc->toPacket(pw);
-        if(!d_tcp && pw.size() + 20 > getMaxReplyLen()) { // 20 = room for EDNS0
+        if(!d_tcp && pw.size() + 20U > getMaxReplyLen()) { // 20 = room for EDNS0
           pw.rollback();
           if(pos->d_place == DNSResourceRecord::ANSWER) {
             pw.getHeader()->tc=1;
@@ -302,8 +336,11 @@ void DNSPacket::wrapup()
       throw;
     }
   }
-  stringbuffer.assign((char*)&packet[0], packet.size());
-  len=packet.size();
+  
+  if(!d_trc.d_algoName.empty())
+    addTSIG(pw);
+  
+  d_rawpacket.assign((char*)&packet[0], packet.size());
 }
 
 void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
@@ -329,7 +366,7 @@ DNSPacket *DNSPacket::replyPacket() const
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative
   r->setRA(0); // no recursion available
-  r->setRD(d.rd); // if you wanted to recurse, answer will say you wanted it (we don't do it)
+  r->setRD(d.rd); // if you wanted to recurse, answer will say you wanted it 
   r->setID(d.id);
   r->setOpcode(d.opcode);
 
@@ -343,6 +380,14 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_ednsping = d_ednsping;
   r->d_wantsnsid = d_wantsnsid;
   r->d_dnssecOk = d_dnssecOk;
+  
+  if(!d_tsigkeyname.empty()) {
+    r->d_tsigkeyname = d_tsigkeyname;
+    r->d_tsigprevious = d_tsigprevious;
+    r->d_trc = d_trc;
+    r->d_tsigsecret = d_tsigsecret;
+    r->d_tsigtimersonly = d_tsigtimersonly;
+  }
   return r;
 }
 
@@ -350,15 +395,13 @@ void DNSPacket::spoofQuestion(const string &qd)
 {
   string label=simpleCompress(qd);
   for(string::size_type i=0;i<label.size();++i)
-    stringbuffer[i+sizeof(d)]=label[i];
+    d_rawpacket[i+sizeof(d)]=label[i];
   d_wrapped=true; // if we do this, don't later on wrapup
 }
 
 int DNSPacket::noparse(const char *mesg, int length)
 {
-  stringbuffer.assign(mesg,length); 
-  
-  len=length;
+  d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
     L << Logger::Warning << "Ignoring packet: too short from "
       << getRemote() << endl;
@@ -367,8 +410,65 @@ int DNSPacket::noparse(const char *mesg, int length)
   d_wantsnsid=false;
   d_ednsping.clear();
   d_maxreplylen=512;
-  memcpy((void *)&d,(const void *)stringbuffer.c_str(),12);
+  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   return 0;
+}
+
+void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly)
+{
+  d_trc=tr;
+  d_tsigkeyname = keyname;
+  d_tsigsecret = secret;
+  d_tsigprevious = previous;
+  d_tsigtimersonly=timersonly;
+}
+
+
+bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* message) const
+{
+  MOADNSParser mdp(d_rawpacket);
+
+  if(!mdp.getTSIGPos()) 
+    return false;
+  
+  bool gotit=false;
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+    if(i->first.d_type == QType::TSIG) {
+      *trc = *boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
+      
+      gotit=true;
+      *keyname = i->first.d_label;
+    }
+  }
+  if(!gotit)
+    return false;
+  
+  //now sign: the packet as it would've been w/o the TSIG
+  // the outcome should be the mac we just stripped off.
+  if(message) {
+    string packet(d_rawpacket);
+  
+    packet.resize(mdp.getTSIGPos());
+    packet[sizeof(struct dnsheader)-1]--;
+    message->assign(packet);
+  
+    vector<uint8_t> signVect;
+    DNSPacketWriter dw(signVect, "", 0);
+    dw.xfrLabel(*keyname, false);
+    dw.xfr16BitInt(0xff); // class
+    dw.xfr32BitInt(0);    // TTL
+    dw.xfrLabel(trc->d_algoName, false); 
+    uint32_t now = trc->d_time; 
+    dw.xfr48BitInt(now);
+    dw.xfr16BitInt(trc->d_fudge); // fudge
+    dw.xfr16BitInt(trc->d_eRcode); // extended rcode
+    dw.xfr16BitInt(trc->d_otherData.length()); // length of 'other' data
+    //    dw.xfrBlob(trc->d_otherData);
+  
+    const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
+    message->append(&*signRecord.begin(), &*signRecord.end());
+  }
+  return true;
 }
 
 /** This function takes data from the network, possibly received with recvfrom, and parses
@@ -378,16 +478,15 @@ int DNSPacket::noparse(const char *mesg, int length)
 int DNSPacket::parse(const char *mesg, int length)
 try
 {
-  stringbuffer.assign(mesg,length); 
-  
-  len=length;
+  d_rawpacket.assign(mesg,length); 
+
   if(length < 12) { 
     L << Logger::Warning << "Ignoring packet: too short from "
       << getRemote() << endl;
     return -1;
   }
 
-  MOADNSParser mdp(stringbuffer);
+  MOADNSParser mdp(d_rawpacket);
   EDNSOpts edo;
 
   // ANY OPTION WHICH *MIGHT* BE SET DOWN BELOW SHOULD BE CLEARED FIRST!
@@ -395,6 +494,7 @@ try
   d_wantsnsid=false;
   d_dnssecOk=false;
   d_ednsping.clear();
+  d_havetsig = mdp.getTSIGPos();
 
 
   if(getEDNSOpts(mdp, &edo)) {
@@ -420,7 +520,7 @@ try
     d_maxreplylen=512;
   }
 
-  memcpy((void *)&d,(const void *)stringbuffer.c_str(),12);
+  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   qdomain=mdp.d_qname;
   if(!qdomain.empty()) // strip dot
     boost::erase_tail(qdomain, 1);
@@ -440,7 +540,7 @@ catch(std::exception& e) {
   return -1;
 }
 
-int DNSPacket::getMaxReplyLen()
+unsigned int DNSPacket::getMaxReplyLen()
 {
   return d_maxreplylen;
 }
@@ -463,6 +563,31 @@ void DNSPacket::setSocket(Utility::sock_t sock)
 
 void DNSPacket::commitD()
 {
-  stringbuffer.replace(0,12,(char *)&d,12); // copy in d
+  d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
 }
 
+
+bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
+{
+  string message;
+  
+  q->getTSIGDetails(trc, keyname, &message);
+  uint64_t now = time(0);
+  if(abs(trc->d_time - now) > trc->d_fudge) {
+    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG timestamp delta "<< abs(trc->d_time - now)<<" bigger than 'fudge' "<<trc->d_fudge<<endl;
+    return false;
+  }
+  
+  string secret64;
+    
+  if(!B->getTSIGKey(*keyname, &trc->d_algoName, &secret64)) {
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
+    return false;
+  }
+  B64Decode(secret64, *secret);
+  bool result=calculateMD5HMAC(*secret, message) == trc->d_mac;
+  if(!result) {
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
+  }
+  return result;
+}

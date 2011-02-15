@@ -31,7 +31,7 @@
 #include <boost/foreach.hpp>
 #include <errno.h>
 #include <signal.h>
-
+#include "base64.hh"
 #include "ueberbackend.hh"
 #include "dnspacket.hh"
 #include "nameserver.hh"
@@ -175,10 +175,10 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 
 void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
-  const char *buf=p->getData();
-  uint16_t len=htons(p->len);
+  const string buffer = p->getString();
+  uint16_t len=htons(buffer.length());
   writenWithTimeout(outsock, &len, 2);
-  writenWithTimeout(outsock, buf, p->len);
+  writenWithTimeout(outsock, buffer.c_str(), buffer.length());
 }
 
 
@@ -264,7 +264,7 @@ void *TCPNameserver::doConnection(void *data)
         break;
       }
       
-      getQuestion(fd,mesg,pktlen,remote);
+      getQuestion(fd, mesg, pktlen, remote);
       S.inc("tcp-queries");      
 
       packet=shared_ptr<DNSPacket>(new DNSPacket);
@@ -354,14 +354,36 @@ void *TCPNameserver::doConnection(void *data)
   return 0;
 }
 
+
+
 bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 {
   if(::arg().mustDo("disable-axfr"))
     return false;
 
+  if(q->d_havetsig) { // if you have one, it must be good
+    TSIGRecordContent trc;
+    string keyname, secret;
+    Lock l(&s_plock);
+    if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc))
+      return false;
+    
+    DNSSECKeeper dk;
+    
+    if(!dk.TSIGGrantsAccess(q->qdomain, keyname, trc.d_algoName)) {
+      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<trc.d_algoName<<"' does not grant access to zone"<<endl;
+      return false;
+    }
+    else {
+      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<trc.d_algoName<<"'"<<endl;
+      return true;
+    }
+  }
+    
+
   if(!::arg().mustDo("per-zone-axfr-acls") && (::arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->remote )))
     return true;
-
+#if 0
   if(::arg().mustDo("per-zone-axfr-acls")) {
     SOAData sd;
     sd.db=(DNSBackend *)-1;
@@ -372,7 +394,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
       }
     }  
   }
-
+#endif
   extern CommunicatorClass Communicator;
 
   if(Communicator.justNotified(q->qdomain, q->getRemote())) { // we just notified this ip 
@@ -430,7 +452,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       noAXFRBecauseOfNSEC3Narrow=true;
     }
   }
-  
+
   shared_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
@@ -479,6 +501,17 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     return 0;
   }
 
+  TSIGRecordContent trc;
+  string tsigkeyname, tsigsecret;
+
+  q->getTSIGDetails(&trc, &tsigkeyname, 0);
+
+  if(!tsigkeyname.empty()) {
+    string tsig64, algorithm;
+    Lock l(&s_plock);
+    s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
+    B64Decode(tsig64, tsigsecret);
+  }
   
   // now start list zone
   if(!(sd.db->list(target, sd.domain_id))) {  
@@ -497,7 +530,12 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(securedZone)
     addRRSigs(dk, signatureDB, target, outpacket->getRRS());
   
+  if(!tsigkeyname.empty())
+    outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'
+  
   sendPacket(outpacket, outsock);
+  
+  trc.d_mac = outpacket->d_trc.d_mac;
   outpacket = getFreshAXFRPacket(q);
   
   ChunkedSigningPipe csp(target, securedZone, "", ::arg().asNum("signing-threads"));
@@ -543,7 +581,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       for(;;) {
         outpacket->getRRS() = csp.getChunk();
         if(!outpacket->getRRS().empty()) {
+          if(!tsigkeyname.empty())
+            outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
           sendPacket(outpacket, outsock);
+          trc.d_mac=outpacket->d_trc.d_mac;
           outpacket=getFreshAXFRPacket(q);
         }
         else
@@ -552,9 +593,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
   unsigned int udiff=dt.udiffNoReset();
+  /*
   cerr<<"Starting NSEC: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
   cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
   cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
+  */
   if(securedZone) {   
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
@@ -582,7 +625,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
           for(;;) {
             outpacket->getRRS() = csp.getChunk();
             if(!outpacket->getRRS().empty()) {
+              if(!tsigkeyname.empty())
+                outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
               sendPacket(outpacket, outsock);
+              trc.d_mac=outpacket->d_trc.d_mac;
               outpacket=getFreshAXFRPacket(q);
             }
             else
@@ -614,7 +660,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         for(;;) {
           outpacket->getRRS() = csp.getChunk();
           if(!outpacket->getRRS().empty()) {
+            if(!tsigkeyname.empty())
+              outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
             sendPacket(outpacket, outsock);
+            trc.d_mac=outpacket->d_trc.d_mac;
             outpacket=getFreshAXFRPacket(q);
           }
           else
@@ -624,13 +673,18 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
   udiff=dt.udiffNoReset();
+  /*
   cerr<<"Flushing pipe: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
   cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
   cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
+  * */
   for(;;) { 
     outpacket->getRRS() = csp.getChunk(true); // flush the pipe
     if(!outpacket->getRRS().empty()) {
+      if(!tsigkeyname.empty())
+        outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
       sendPacket(outpacket, outsock);
+      trc.d_mac=outpacket->d_trc.d_mac;
       outpacket=getFreshAXFRPacket(q);
     }
     else 
@@ -646,7 +700,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   /* and terminate with yet again the SOA record */
   outpacket=getFreshAXFRPacket(q);
   outpacket->addRecord(soa);
+  if(!tsigkeyname.empty())
+    outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
   sendPacket(outpacket, outsock);
+  
   DLOG(L<<"last packet - close"<<endl);
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 

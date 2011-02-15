@@ -127,5 +127,6 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 class DNSPacket;
 void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vector<DNSResourceRecord>& rrs);
 
+string calculateMD5HMAC(const std::string& key_, const std::string& text);
 
 #endif

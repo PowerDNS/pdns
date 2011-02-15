@@ -1146,6 +1146,21 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   bool weDone=0, weRedirected=0, weHaveUnauth=0;
 
   DNSPacket *r=0;
+  bool noCache=false;
+  if(p->d_havetsig) {
+    string keyname, secret;
+    TSIGRecordContent trc;
+    if(!checkForCorrectTSIG(p, &B, &keyname, &secret, &trc)) {
+      if(d_logDNSDetails)
+        L<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
+      r=p->replyPacket(); 
+      r->setRcode(RCode::NotAuth);
+      return r;
+    }
+    p->setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
+    noCache=true;
+  }
+  
   try {    
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
@@ -1207,7 +1222,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
     string target=p->qdomain;
-    // bool noCache=false;
+    
 
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
@@ -1355,7 +1370,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(p->d_dnssecOk)
       addRRSigs(d_dk, B, sd.qname, r->getRRS());
     r->wrapup(); // needed for inserting in cache
-    PC.insert(p, r); // in the packet cache
+    if(!noCache)
+      PC.insert(p, r); // in the packet cache
   }
   catch(DBException &e) {
     L<<Logger::Error<<"Database module reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;

@@ -53,6 +53,8 @@ public:
   bool isPresigned(const std::string& zname);
   void setPresigned(const std::string& zname);
   void unsetPresigned(const std::string& zname);
+  
+  bool TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm);
 private:
   void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
   

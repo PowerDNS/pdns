@@ -121,6 +121,8 @@ public:
   virtual bool activateDomainKey(const string& name, unsigned int id) { return false; }
   virtual bool deactivateDomainKey(const string& name, unsigned int id) { return false; }
 
+  virtual bool getTSIGKey(const string& name, string* algorithm, string* content) { return false; }
+
   //! returns true if master ip is master for domain name.
   virtual bool isMaster(const string &name, const string &ip)
   {

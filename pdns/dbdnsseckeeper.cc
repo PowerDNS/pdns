@@ -29,6 +29,7 @@
 #include <boost/format.hpp>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
+#include "base64.hh"
 
 
 using namespace boost::assign;
@@ -337,4 +338,17 @@ bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const
 		else ; // cerr<<"Skipping!"<<endl;
 	}
 	return true;
+}
+
+bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm)
+{
+  vector<string> allowed;
+  
+  d_keymetadb.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", allowed);
+  
+  BOOST_FOREACH(const string& dbkey, allowed) {
+    if(pdns_iequals(dbkey, keyname))
+      return true;
+  }
+  return false;
 }

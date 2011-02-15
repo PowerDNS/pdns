@@ -20,6 +20,7 @@
 #include <sstream>
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
+
 using namespace boost;
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
@@ -267,6 +268,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
   d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
   d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
+  
+  d_getTSIGKeyQuery = getArg("get-tsig-key-query");
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
@@ -400,7 +403,31 @@ bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
   return true;
 }
 
+bool GSQLBackend::getTSIGKey(const string& name, string* algorithm, string* content)
+{
+  if(!d_dnssecQueries)
+    return false;
+    
+  char output[1024];  
+  snprintf(output,sizeof(output)-1,d_getTSIGKeyQuery.c_str(), sqlEscape(toLower(name)).c_str());
 
+  try {
+    d_db->doQuery(output);
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
+  }
+  
+  SSql::row_t row;
+  
+  content->clear();
+  while(d_db->getRow(row)) {
+    *algorithm = row[0];
+    *content=row[1];
+  }
+
+  return !content->empty();
+}
 
 bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
 {

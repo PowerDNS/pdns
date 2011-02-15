@@ -131,6 +131,8 @@ public:
   bool removeDomainKey(const string& name, unsigned int id);
   bool activateDomainKey(const string& name, unsigned int id);
   bool deactivateDomainKey(const string& name, unsigned int id);
+
+  bool getTSIGKey(const string& name, string* algorithm, string* content);
   
   void alsoNotifies(const string &domain, set<string> *ips); 
   void rediscover(string* status=0);

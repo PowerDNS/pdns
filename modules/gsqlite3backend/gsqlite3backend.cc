@@ -105,7 +105,7 @@ public:
     declare(suffix,"activate-domain-key-query","", "update cryptokeys set active=1 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=0 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d");
-    
+    declare(suffix,"get-tsig-key-query","", "select algorithm, secret from tsigkeys where name='%s'");
   }
   
   //! Constructs a new gSQLite3Backend object.

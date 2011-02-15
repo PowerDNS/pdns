@@ -10,35 +10,6 @@
 
 StatBag S;
 
-string calculateHMAC(const std::string& key_, const std::string& text)
-{
-  const unsigned char* key=(const unsigned char*)key_.c_str();
-  unsigned char keyIpad[64];
-  unsigned char keyOpad[64];
-
-  cerr<<"Key length: "<<key_.length()<<", ";
-  cerr<<"text length: "<<text.length()<<endl;
-
-  for(unsigned int n=0; n < 64; ++n) {
-    if(n < key_.length()) {
-      keyIpad[n] = (unsigned char)(key[n] ^ 0x36);
-      keyOpad[n] = (unsigned char)(key[n] ^ 0x5c);
-    }
-    else  {
-      keyIpad[n]=0x36;
-      keyOpad[n]=0x5c;
-    }
-  }
-
-  MD5Summer md5_1, md5_2;
-  md5_1.feed((const char*)keyIpad, 64);
-  md5_1.feed(text);
-
-  md5_2.feed((const char*)keyOpad, 64);
-  md5_2.feed(md5_1.get());
-
-  return md5_2.get();
-}
 
 int main(int argc, char** argv)
 try

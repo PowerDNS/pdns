@@ -13,6 +13,7 @@
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
+#include "md5.hh"
 
 using namespace boost;
 #include "namespaces.hh"
@@ -370,4 +371,34 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
     if(de.getOffset() - startseq != seqlen)
       throw runtime_error("DER Sequence ended before end of data");
   }  
+}
+
+string calculateMD5HMAC(const std::string& key_, const std::string& text)
+{
+  const unsigned char* key=(const unsigned char*)key_.c_str();
+  unsigned char keyIpad[64];
+  unsigned char keyOpad[64];
+
+  //~ cerr<<"Key: "<<makeHexDump(key_)<<endl;
+  //~ cerr<<"txt: "<<makeHexDump(text)<<endl;
+
+  for(unsigned int n=0; n < 64; ++n) {
+    if(n < key_.length()) {
+      keyIpad[n] = (unsigned char)(key[n] ^ 0x36);
+      keyOpad[n] = (unsigned char)(key[n] ^ 0x5c);
+    }
+    else  {
+      keyIpad[n]=0x36;
+      keyOpad[n]=0x5c;
+    }
+  }
+
+  MD5Summer md5_1, md5_2;
+  md5_1.feed((const char*)keyIpad, 64);
+  md5_1.feed(text);
+
+  md5_2.feed((const char*)keyOpad, 64);
+  md5_2.feed(md5_1.get());
+
+  return md5_2.get();
 }
