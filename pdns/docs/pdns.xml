@@ -142,6 +142,23 @@
 	</listitem>
 	<listitem>
 	  <para>
+	    MyDNS compatible backend, allowing for 'instantaneous' migration from this authoritative nameserver. Code in c1418, contributed
+	    by Jonathan Oddy.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    PowerDNS can now slave zones over IPv6 and notify IPv6 remotes of updates. Already. Code in c2009 and beyond.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Native Oracle backend with full DNSSEC support. Contributed by Maik Zumstrull, then at the Steinbuch
+Centre for Computing at the Karlsruhe Institute of Technology.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
 	    "Also-notify" support, implemented by Aki Tuomi in c1400. Support for Generic SQL backends and 
 	    for the BIND backend.
 	  </para>
@@ -302,6 +319,17 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	    t200.
 	  </para>
 	</listitem>
+	<listitem>
+	  <para>
+	    Jan Piet Mens and Florian Weimer discovered we had problems dealing with escaped labels and escaped TXT
+	    fields. Fixed in c2000.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    After 2.2 billion queries, statistics would wrap oddly. Fix in c2019, closing t327.
+	  </para>
+	</listitem>
       </itemizedlist>
       Improvements:
       <itemizedlist>
@@ -314,6 +342,27 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	<listitem>
 	  <para>
 	    Compilation fixes for Mac OS X 10.5.7 in c1389, thanks to Tobias Markmann.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    We can now bind to scoped IPv6 addresses, lack spotted by Darren Gamble. Part of the fix is in c2018.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Prodded on by Jan Piet Mens, we now support 'unknown types' (which look like TYPE65534). Code in c
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Add 'slave-renotify' to retransmit notifies for slaved zones, which is helpful when acting as a 'signing slave'
+	    for a hidden master. Code in c1950.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    No longer let zone2sql and zone2ldap import BIND 'hint' zones. c1998.
 	  </para>
 	</listitem>
 	<listitem>
@@ -9378,6 +9427,19 @@ $ pdnssec rectify-zone
     </listitem>
     </itemizedlist>
   </para>
+  <section id="dnssec-presigned"><title>DNSSEC: live-signed vs orthodox 'pre-signed' mode</title>
+  <para>
+    Traditionally, DNSSEC signatures have been added to unsigned zones, and then this signed zone
+    could be served by any DNSSEC capable authoritative server. PowerDNS supports this mode fully.
+  </para>
+  <para>
+    In addition, PowerDNS supports taking care of the signing itself, in which case PowerDNS operates differently
+    from most tutorials and handbooks. This mode is easier however.
+  </para>
+  <para>
+    For relevant tradeoffs, please see <xref linkend="dnssec-security"/> and <xref linkend="dnssec-performance"/>.
+  </para>
+  </section>
   </section>
   <section id="dnssec-migration">
   <title>Migration</title>
@@ -13447,7 +13509,7 @@ CREATE TABLE Zones (
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
 	      <row><entry>Autoserial</entry><entry>NO</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
-	      <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes (set gmysql-dnssec or gpgsql-dnssec)</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
 	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>
 	      <row><entry>Launch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
@@ -13525,6 +13587,35 @@ GRANT ALL ON records TO pdns;
 	  Zone2sql with the --gmysql flag also assumes this layout is in place.
 	</para>
 	<para>
+	To support or migrate to DNSSEC, the following SQL statements must be executed:
+<programlisting>
+create table domainmetadata (
+ id              INT auto_increment,
+ domain_id       INT NOT NULL,
+ kind            VARCHAR(15),
+ content        TEXT,
+ primary key(id)
+);
+
+create table cryptokeys (
+ id             INT auto_increment,
+ domain_id      INT DEFAULT NULL,
+ flags          INT NOT NULL,
+ active         BOOL,
+ content        TEXT,
+ primary key(id)
+);               
+
+alter table records add ordername      VARCHAR(255);
+alter table records add auth bool;
+create index orderindex on records(ordername);
+</programlisting>	
+	</para>
+	<para>
+	  For full migration notes, please see <xref linkend="dnssec-migration"/>.
+	</para>
+	
+	<para>
 	  This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used, the 'GRANT' statements
 	  can be trimmed to make sure PDNS cannot subvert the contents of your database.
 	</para>
@@ -13586,12 +13677,45 @@ GRANT ALL ON records_id_seq TO pdns;
 	</programlisting>
       </para>
       <para>
+	Zone2sql with the --gpgsql flag also assumes this layout is in place.
+	</para>
+      <para>
 	This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used, the 'GRANT' statements
 	can be trimmed to make sure PDNS cannot subvert the contents of your database.
       </para>
-      <para>
-	Zone2sql with the --gpgsql flag also assumes this layout is in place.
+      To support DNSSEC or to migrate to DNSSEC, the following statements have to be issued:
+<programlisting>
+
+alter table records add ordername       VARCHAR(255);
+alter table records add auth bool;
+create index orderindex on records(ordername);
+
+create table domainmetadata (
+ id             SERIAL PRIMARY KEY,
+ domain_id      INT REFERENCES domains(id) ON DELETE CASCADE,
+ kind           VARCHAR(15),
+ content        TEXT
+);
+
+create table cryptokeys (
+ id             SERIAL PRIMARY KEY,
+ domain_id      INT REFERENCES domains(id) ON DELETE CASCADE,
+ flags          INT NOT NULL,
+ active         BOOL,
+ content        TEXT
+);               
+
+GRANT ALL ON domainmetadata TO pdns;
+GRANT ALL ON domainmetadata_id_seq TO pdns;
+GRANT ALL ON cryptokeys TO pdns;
+GRANT ALL ON cryptokeys_id_seq TO pdns;
+
+</programlisting>  
+</para>
+	<para>
+	  For full migration notes, please see <xref linkend="dnssec-migration"/>.
 	</para>
+	
 	<para>
 	  With PostgreSQL, you may have to run 'createdb powerdns' first and then connect to that database with 'psql powerdns', and 
 	  feed it the schema above.
@@ -14293,7 +14417,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	            <row><entry>Master</entry><entry>Yes</entry></row>
 	            <row><entry>Slave</entry><entry>Yes</entry></row>
 	            <row><entry>Superslave</entry><entry>Yes</entry></row>
-		    <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+		    <row><entry>DNSSEC</entry><entry>gsqlite3 only (set gsqlite3-dnssec)</entry></row>
 	            <row><entry>Module name</entry><entry>gsqlite and gsqlite3</entry></row>
 	            <row><entry>Launch name</entry><entry>gsqlite and gsqlite3</entry></row>
 	          </tbody>
@@ -14301,7 +14425,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      </table>
       </para>
       <para>
-        This backend retrieves all data from a SQLite database, which is a RDBMS that's embedded into the application itself, so you won't need to be running a seperate server process.
+        This backend retrieves all data from a SQLite database, which is an RDBMS that's embedded into the application itself, so you won't need to be running a seperate server process.
         It also reduces overhead, and simplifies installation.
         At <ulink url="http://www.sqlite.org">http://www.sqlite.org</ulink> you can find more information about SQLite.
       </para>
@@ -14371,7 +14495,34 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
 	      <para>
 	        This schema contains all elements needed for master, slave and superslave operation.	  
 	      </para>
-      	<para>
+	      <para>
+		To support DNSSEC, or to migrate to DNSSEC, the following statements must be issued:
+	      </para>
+	      <para>
+	      <programlisting>
+alter table records add ordername      VARCHAR(255);
+alter table records add auth bool;
+create index orderindex on records(ordername);
+
+create table domainmetadata (
+ id              INTEGER PRIMARY KEY,
+ domain_id       INT NOT NULL,
+ kind            VARCHAR(15) COLLATE NOCASE,
+ content        TEXT
+);
+
+create table cryptokeys (
+ id             INTEGER PRIMARY KEY,
+ domain_id      INT DEFAULT NULL,
+ flags          INT NOT NULL,
+ active         BOOL,
+ content        TEXT
+);                   
+	      </programlisting></para>
+	      <para>
+		For full migration notes, please see <xref linkend="dnssec-migration"/>.
+	      </para>
+	      <para>
 	        After you have created the database you probably want to fill it with data. 
 	        If you have a BIND zonefile it's as easy as: <command>zone2sql --zone=myzonefile --gmysql | sqlite powerdns.sqlite</command>, but
 	        you can also use AXFR (or insert data manually).
