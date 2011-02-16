@@ -11,6 +11,7 @@
 #include "packetcache.hh"
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
+#include <boost/scoped_ptr.hpp>
 
 StatBag S;
 PacketCache PC;
@@ -138,7 +139,7 @@ void loadMainConfig(const std::string& configdir)
 
 void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 {
-  UeberBackend* B = new UeberBackend("default");
+  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
   SOAData sd;
   
   if(!B->getSOA(zone, sd)) {
