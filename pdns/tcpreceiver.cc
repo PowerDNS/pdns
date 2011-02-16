@@ -559,6 +559,17 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     ne.d_ttl = rr.ttl;
     csp.submit(rr);
   }
+
+  if(NSEC3Zone) { // now stuf in the NSEC3PARAM
+    rr.qtype = QType(QType::NSEC3PARAM);
+    rr.content = ns3pr.getZoneRepresentation();
+    
+    string keyname = hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname);
+    NSECXEntry& ne = nsecxrepo[keyname];
+    
+    ne.d_set.insert(rr.qtype.getCode());
+    csp.submit(rr);
+  }
   
   /* now write all other records */
   
