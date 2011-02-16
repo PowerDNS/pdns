@@ -196,7 +196,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 
 void checkZone(DNSSECKeeper& dk, const std::string& zone)
 {
-  UeberBackend* B = new UeberBackend("default");
+  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
   SOAData sd;
   
   if(!B->getSOA(zone, sd)) {
