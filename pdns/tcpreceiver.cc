@@ -560,10 +560,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     csp.submit(rr);
   }
 
-  if(NSEC3Zone) { // now stuf in the NSEC3PARAM
+  if(NSEC3Zone) { // now stuff in the NSEC3PARAM
     rr.qtype = QType(QType::NSEC3PARAM);
+    ns3pr.d_flags = 0;
     rr.content = ns3pr.getZoneRepresentation();
-    
+    ns3pr.d_flags = 1;
     string keyname = hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname);
     NSECXEntry& ne = nsecxrepo[keyname];
     
