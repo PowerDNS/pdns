@@ -93,6 +93,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_trc = orig.d_trc;
   d_tsigsecret = orig.d_tsigsecret;
   
+  d_havetsig = orig.d_havetsig;
   d_wrapped=orig.d_wrapped;
 
   d_rawpacket=orig.d_rawpacket;
@@ -388,6 +389,7 @@ DNSPacket *DNSPacket::replyPacket() const
     r->d_tsigsecret = d_tsigsecret;
     r->d_tsigtimersonly = d_tsigtimersonly;
   }
+  r->d_havetsig = d_havetsig;
   return r;
 }
 
@@ -576,7 +578,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
   q->getTSIGDetails(trc, keyname, &message);
   uint64_t now = time(0);
   if(abs(trc->d_time - now) > trc->d_fudge) {
-    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG timestamp delta "<< abs(trc->d_time - now)<<" bigger than 'fudge' "<<trc->d_fudge<<endl;
+    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
   
