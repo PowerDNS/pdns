@@ -41,6 +41,7 @@
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh" 
+#include "base64.hh"
 
 DNSPacket::DNSPacket() 
 {
@@ -216,7 +217,7 @@ bool DNSPacket::couldBeCached()
 {
   return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN;
 }
-#include "base64.hh"
+
 void DNSPacket::addTSIG(DNSPacketWriter& pw)
 {
   string toSign;
@@ -225,8 +226,6 @@ void DNSPacket::addTSIG(DNSPacketWriter& pw)
   
   toSign.append(d_tsigprevious);
   toSign.append(&*pw.getContent().begin(), &*pw.getContent().end());
-  
-  //  cerr<<"toSign size now: "<<toSign.size()<<", keyname '"<<d_tsigkeyname<<"', secret "<<Base64Encode(d_tsigsecret)<<endl;
 
   // now add something that looks a lot like a TSIG record, but isn't
   vector<uint8_t> signVect;
@@ -588,6 +587,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
     return false;
   }
+  trc->d_algoName += ".sig-alg.reg.int.";
   B64Decode(secret64, *secret);
   bool result=calculateMD5HMAC(*secret, message) == trc->d_mac;
   if(!result) {
