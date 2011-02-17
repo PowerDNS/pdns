@@ -133,33 +133,25 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
   return d_randomid;
 }
 
-static int parseResult(const char* buffer, unsigned int len, const std::string& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
+static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
 {
   result->clear();
-  shared_ptr<MOADNSParser> mdp;
   
-  try {
-    mdp=shared_ptr<MOADNSParser>(new MOADNSParser(buffer, len));
-  }
-  catch(...) {
-    throw ResolverException("resolver: unable to parse packet of "+itoa(len)+" bytes");
-  }
-  
-  if(mdp->d_header.rcode) 
-    return mdp->d_header.rcode;
+  if(mdp.d_header.rcode) 
+    return mdp.d_header.rcode;
       
   if(!origQname.empty()) {  // not AXFR
-    if(mdp->d_header.id != id) 
+    if(mdp.d_header.id != id) 
       throw ResolverException("Remote nameserver replied with wrong id");
-    if(mdp->d_header.qdcount != 1)
-      throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp->d_header.qdcount)+")");
-    if(mdp->d_qname != origQname+".")
-      throw ResolverException(string("resolver: received an answer to another question (")+mdp->d_qname+"!="+ origQname+".)");
+    if(mdp.d_header.qdcount != 1)
+      throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp.d_header.qdcount)+")");
+    if(mdp.d_qname != origQname+".")
+      throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname+"!="+ origQname+".)");
   }
     
   vector<DNSResourceRecord> ret; 
   DNSResourceRecord rr;
-  for(MOADNSParser::answers_t::const_iterator i=mdp->d_answers.begin(); i!=mdp->d_answers.end(); ++i) {          
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
     rr.qname = i->first.d_label;
     if(!rr.qname.empty())
       boost::erase_tail(rr.qname, 1); // strip .
@@ -266,7 +258,8 @@ int Resolver::resolve(const string &ipport, const char *domain, int type, Resolv
     if((len=recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr*)(&from), &addrlen)) < 0) 
       throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   
-    return parseResult(buffer, len, domain, type, id, res);
+    MOADNSParser mdp(buffer, len);
+    return parseResult(mdp, domain, type, id, res);
   }
   catch(ResolverException &re) {
     throw ResolverException(re.reason+" from "+ipport);
@@ -296,6 +289,7 @@ void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t
 }
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, const string& tsigkeyname, const string& tsigalgorithm, const string& tsigsecret)
+: d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret)
 {
   ComboAddress local;
   if(remote.sin4.sin_family == AF_INET)
@@ -316,13 +310,12 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, c
   pw.getHeader()->id = dns_random(0xffff);
 
   if(!tsigkeyname.empty()) {
-    TSIGRecordContent trc;
-    trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
-    trc.d_time = time(0);
-    trc.d_fudge = 300;
-    trc.d_origID=ntohs(pw.getHeader()->id);
-    trc.d_eRcode=0;
-    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
+    d_trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+    d_trc.d_time = time(0);
+    d_trc.d_fudge = 300;
+    d_trc.d_origID=ntohs(pw.getHeader()->id);
+    d_trc.d_eRcode=0;
+    addTSIG(pw, &d_trc, tsigkeyname, tsigsecret, "", false);
   }
 
   uint16_t replen=htons(packet.size());
@@ -357,7 +350,22 @@ int AXFRRetriever::getChunk(Resolver::res_t &res)
   
   timeoutReadn(len); 
 
-  int err = parseResult(d_buf.get(), len, "", 0, 0, &res);
+  MOADNSParser mdp(d_buf.get(), len);
+  
+  if(!d_soacount && !d_tsigkeyname.empty()) { // TSIG verify first message
+    string theirMac;
+    BOOST_FOREACH(const MOADNSParser::answers_t::value_type& answer, mdp.d_answers) {
+      if(answer.first.d_type == QType::TSIG)
+        theirMac = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content)->d_mac;
+    }
+    string message = makeTSIGMessageFromTSIGPacket(string(d_buf.get(), len), mdp.getTSIGPos(), d_tsigkeyname, d_trc, d_trc.d_mac, false); // insert our question MAC
+    string ourMac=calculateMD5HMAC(d_tsigsecret, message);
+    // ourMac[0]++; // sabotage
+    if(ourMac != theirMac)
+      throw ResolverException("AXFR response from "+d_remote.toStringWithPort()+" was not signed correctly with TSIG key '"+d_tsigkeyname+"'");
+  }
+  
+  int err = parseResult(mdp, "", 0, 0, &res);
   if(err) 
     throw ResolverException("AXFR chunk with a non-zero rcode "+lexical_cast<string>(err));
     
