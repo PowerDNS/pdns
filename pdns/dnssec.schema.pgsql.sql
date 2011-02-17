@@ -9,6 +9,9 @@ create table domainmetadata (
  content	TEXT
 );
 
+create index domainidmetaindex on domainmetadata(domain_id);               
+
+
 create table cryptokeys (
  id		SERIAL PRIMARY KEY,
  domain_id	INT REFERENCES domains(id) ON DELETE CASCADE,

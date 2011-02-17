@@ -9,6 +9,8 @@ create table domainmetadata (
  content	TEXT
 );
 
+create index domainmetaidindex on domainmetadata(domain_id);
+
 create table cryptokeys (
  id		INTEGER PRIMARY KEY,
  domain_id      INT DEFAULT NULL,

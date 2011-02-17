@@ -6,6 +6,9 @@ create table domainmetadata (
  primary key(id)
 );
 
+create index domainmetaidindex on domainmetadata(domain_id);               
+
+
 create table cryptokeys (
  id		INT auto_increment,
  domain_id      INT DEFAULT NULL,
