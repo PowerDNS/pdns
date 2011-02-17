@@ -15,6 +15,9 @@ create table cryptokeys (
  primary key(id)
 );		 
 
+create index domainidindex on cryptokeys(domain_id);           
+
+
 alter table records add ordername      VARCHAR(255);
 alter table records add auth bool;
 create index orderindex on records(ordername);

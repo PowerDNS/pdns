@@ -16,6 +16,8 @@ create table cryptokeys (
  active		BOOL,
  content	TEXT
 );		 
+create index domainidindex on cryptokeys(domain_id);
+
 
 GRANT ALL ON domainmetadata TO pdns;
 GRANT ALL ON domainmetadata_id_seq TO pdns;

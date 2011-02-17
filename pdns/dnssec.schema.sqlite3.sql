@@ -17,6 +17,9 @@ create table cryptokeys (
  content	TEXT
 );		 
 
+create index domainidindex on cryptokeys(domain_id);           
+
+
 create table tsigkeys (
  id		INTEGER PRIMARY KEY,
  name		VARCHAR(255) COLLATE NOCASE,
