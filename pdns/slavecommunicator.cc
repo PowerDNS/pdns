@@ -35,6 +35,7 @@
 #include "packetcache.hh"
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
+#include "base64.hh"
 #include "inflighter.cc"
 
 #include "namespaces.hh"
@@ -69,9 +70,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   di.backend=0;
   bool first=true;    
   try {
-    ComboAddress raddr(remote, 53);
-    AXFRRetriever retriever(raddr, domain.c_str());
-
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());
     NSEC3PARAMRecordContent ns3pr;
     bool narrow;
@@ -100,6 +98,18 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     Resolver::res_t recs;
     set<string> nsset, qnames;
+    
+    ComboAddress raddr(remote, 53);
+    
+    string tsigkeyname, tsigalgorithm, tsigsecret;
+    
+    if(dk.getTSIGForAcces(domain, remote, &tsigkeyname)) {
+      string tsigsecret64;
+      B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
+      B64Decode(tsigsecret64, tsigsecret);
+    }
+    AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret);
+    
     while(retriever.getChunk(recs)) {
       if(first) {
         L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;

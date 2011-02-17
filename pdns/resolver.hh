@@ -82,7 +82,7 @@ private:
 class AXFRRetriever : public boost::noncopyable
 {
   public:
-    AXFRRetriever(const ComboAddress& remote, const string& zone);
+    AXFRRetriever(const ComboAddress& remote, const string& zone, const string& tsigkeyname=string(), const string& tsigalgorithm=string(), const string& tsigsecret=string());
     int getChunk(Resolver::res_t &res);  
   
   private:

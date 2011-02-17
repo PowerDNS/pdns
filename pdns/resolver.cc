@@ -295,7 +295,7 @@ void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t
   *serial=(uint32_t)atol(parts[2].c_str());
 }
 
-AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain)
+AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, const string& tsigkeyname, const string& tsigalgorithm, const string& tsigsecret)
 {
   ComboAddress local;
   if(remote.sin4.sin_family == AF_INET)
@@ -314,6 +314,16 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain)
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::AXFR);
   pw.getHeader()->id = dns_random(0xffff);
+
+  if(!tsigkeyname.empty()) {
+    TSIGRecordContent trc;
+    trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+    trc.d_time = time(0);
+    trc.d_fudge = 300;
+    trc.d_origID=ntohs(pw.getHeader()->id);
+    trc.d_eRcode=0;
+    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
+  }
 
   uint16_t replen=htons(packet.size());
   Utility::iovec iov[2];

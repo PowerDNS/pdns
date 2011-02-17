@@ -352,3 +352,18 @@ bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, c
   }
   return false;
 }
+
+bool DNSSECKeeper::getTSIGForAcces(const string& zone, const string& master, string* keyname)
+{
+  vector<string> keynames;
+  d_keymetadb.getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
+  keyname->clear();
+  
+  // XXX FIXME this should check for a specific master!
+  BOOST_FOREACH(const string& dbkey, keynames) {
+    *keyname=dbkey;
+  
+    return true;
+  }
+  return false;
+}

@@ -442,9 +442,6 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   return message;
 }
 
-
-
-
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
   string toSign;
