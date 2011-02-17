@@ -402,3 +402,85 @@ string calculateMD5HMAC(const std::string& key_, const std::string& text)
 
   return md5_2.get();
 }
+
+string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly)
+{
+  string message;
+  string packet(opacket);
+
+  packet.resize(tsigOffset);
+  packet[sizeof(struct dnsheader)-1]--;
+  
+  if(!previous.empty()) {
+    uint16_t len = htons(previous.length());
+    message.append((char*)&len, 2);
+    
+    message.append(previous);
+  }
+  
+  message.append(packet);
+
+  vector<uint8_t> signVect;
+  DNSPacketWriter dw(signVect, "", 0);
+  if(!timersonly) {
+    dw.xfrLabel(keyname, false);
+    dw.xfr16BitInt(0xff); // class
+    dw.xfr32BitInt(0);    // TTL
+    dw.xfrLabel(trc.d_algoName, false); 
+  }
+  
+  uint32_t now = trc.d_time; 
+  dw.xfr48BitInt(now);
+  dw.xfr16BitInt(trc.d_fudge); // fudge
+  if(!timersonly) {
+    dw.xfr16BitInt(trc.d_eRcode); // extended rcode
+    dw.xfr16BitInt(trc.d_otherData.length()); // length of 'other' data
+    //    dw.xfrBlob(trc->d_otherData);
+  }
+  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
+  message.append(&*signRecord.begin(), &*signRecord.end());
+  return message;
+}
+
+
+
+
+void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
+{
+  string toSign;
+  if(!tsigprevious.empty()) {
+    uint16_t len = htons(tsigprevious.length());
+    toSign.append((char*)&len, 2);
+    
+    toSign.append(tsigprevious);
+  }
+  toSign.append(&*pw.getContent().begin(), &*pw.getContent().end());
+  
+  // now add something that looks a lot like a TSIG record, but isn't
+  vector<uint8_t> signVect;
+  DNSPacketWriter dw(signVect, "", 0);
+  if(!timersonly) {
+    dw.xfrLabel(tsigkeyname, false);
+    dw.xfr16BitInt(0xff); // class
+    dw.xfr32BitInt(0);    // TTL
+    dw.xfrLabel(trc->d_algoName, false);
+  }  
+  uint32_t now = trc->d_time; 
+  dw.xfr48BitInt(now);
+  dw.xfr16BitInt(trc->d_fudge); // fudge
+  
+  if(!timersonly) {
+    dw.xfr16BitInt(trc->d_eRcode); // extended rcode
+    dw.xfr16BitInt(trc->d_otherData.length()); // length of 'other' data
+    //    dw.xfrBlob(trc->d_otherData);
+  }
+  
+  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
+  toSign.append(&*signRecord.begin(), &*signRecord.end());
+
+  trc->d_mac = calculateMD5HMAC(tsigsecret, toSign);
+  //  d_trc->d_mac[0]++; // sabotage
+  pw.startRecord(tsigkeyname, QType::TSIG, 0, 0xff, DNSPacketWriter::ADDITIONAL); 
+  trc->toPacket(pw);
+  pw.commit();
+}

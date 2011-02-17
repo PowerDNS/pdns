@@ -165,8 +165,6 @@ private:
   string d_ednsping;
   bool d_wantsnsid;
 
-  void addTSIG(DNSPacketWriter& pw);
-  
   string d_tsigsecret;
   string d_tsigkeyname;
   string d_tsigprevious;
@@ -174,6 +172,7 @@ private:
 
   vector<DNSResourceRecord> d_rrs; // 4
 };
+
 
 bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc);
 

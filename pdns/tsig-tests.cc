@@ -7,6 +7,7 @@
 #include "statbag.hh"
 #include "md5.hh"
 #include "base64.hh"
+#include "dnssecinfra.hh"
 
 StatBag S;
 
@@ -27,42 +28,18 @@ try
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
   pw.getHeader()->id=htons(0x4831);
-  //  pw.setRD(true);
-  // 'packet' now contains a packet
-
-  string toSign((char*)&*packet.begin(), (char*)&*packet.end());
-
-  vector<uint8_t> signVect;
-  DNSPacketWriter dw(signVect, "", 0);
-  dw.xfrLabel("thekey.", false);
-  dw.xfr16BitInt(0xff); // class
-  dw.xfr32BitInt(0);    // TTL
-  dw.xfrLabel("hmac-md5.sig-alg.reg.int.", false);
-  uint32_t now = time(0); 
-  dw.xfr48BitInt(now);
-  dw.xfr16BitInt(300); // fudge
-  dw.xfr16BitInt(0); // extended rcode
-  dw.xfr16BitInt(0); // length of 'other' data
-
-  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  toSign.append(&*signRecord.begin(), &*signRecord.end());
-
+  
   string key;
-  B64Decode("9R64Ak0LOlUz35oSeH/CnQ==", key);
+  B64Decode("kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=", key);
 
-  string hmac=calculateHMAC(key, toSign);
-
-  pw.startRecord("thekey", QType::TSIG, 0, 0xff, DNSPacketWriter::ADDITIONAL);
   TSIGRecordContent trc;
   trc.d_algoName="hmac-md5.sig-alg.reg.int.";
-  trc.d_time=now;
+  trc.d_time=time(0);
   trc.d_fudge=300;
-  trc.d_mac=hmac;
   trc.d_origID=ntohs(pw.getHeader()->id);
   trc.d_eRcode=0;
 
-  trc.toPacket(pw);
-  pw.commit();
+  addTSIG(pw, &trc, "test", key, "", false);
 
   Socket sock(InterNetwork, Datagram);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
@@ -87,37 +64,15 @@ try
       trc2 = boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
   }
 
-  if(mdp.getTSIGPos()) {
-    reply.resize(mdp.getTSIGPos());
-    reply[sizeof(struct dnsheader)-1]--;
-
-    // now sign: the combination of our previous mac, the adjusted 'reply', and the TSIG variables
-    // the outcome should be the mac we just stripped off.
-    string toSign;
- 
-    uint16_t len = htons(hmac.length());
-    toSign.append((char*)&len, 2);
-    toSign.append(hmac);
-    toSign.append(reply);
-
-    vector<uint8_t> signVect;
-    DNSPacketWriter dw(signVect, "", 0);
-    dw.xfrLabel("thekey.", false);
-    dw.xfr16BitInt(0xff); // class
-    dw.xfr32BitInt(0);    // TTL
-    dw.xfrLabel("hmac-md5.sig-alg.reg.int.", false);
-    uint32_t now = trc2->d_time; 
-    dw.xfr48BitInt(now);
-    dw.xfr16BitInt(trc2->d_fudge); // fudge
-    dw.xfr16BitInt(trc2->d_eRcode); // extended rcode
-    dw.xfr16BitInt(trc2->d_otherData.length()); // length of 'other' data
-    //    dw.xfrBlob(trc2->d_otherData);
-
-    const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-    toSign.append(&*signRecord.begin(), &*signRecord.end());
-
-    string hmac2=calculateHMAC(key, toSign);
+  if(mdp.getTSIGPos()) {    
+    string message = makeTSIGMessageFromTSIGPacket(reply, mdp.getTSIGPos(), "test", trc, trc.d_mac, false); // insert our question MAC
+    
+    string hmac2=calculateMD5HMAC(key, message);
     cerr<<"Calculated mac: "<<Base64Encode(hmac2)<<endl;
+    if(hmac2 == trc2->d_mac)
+      cerr<<"MATCH!"<<endl;
+    else 
+      cerr<<"Mismatch!"<<endl;
   }
 }
 catch(std::exception &e)

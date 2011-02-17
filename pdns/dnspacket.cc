@@ -218,44 +218,6 @@ bool DNSPacket::couldBeCached()
   return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN;
 }
 
-void DNSPacket::addTSIG(DNSPacketWriter& pw)
-{
-  string toSign;
-  uint16_t len = htons(d_tsigprevious.length());
-  toSign.append((char*)&len, 2);
-  
-  toSign.append(d_tsigprevious);
-  toSign.append(&*pw.getContent().begin(), &*pw.getContent().end());
-
-  // now add something that looks a lot like a TSIG record, but isn't
-  vector<uint8_t> signVect;
-  DNSPacketWriter dw(signVect, "", 0);
-  if(!d_tsigtimersonly) {
-    dw.xfrLabel(d_tsigkeyname, false);
-    dw.xfr16BitInt(0xff); // class
-    dw.xfr32BitInt(0);    // TTL
-    dw.xfrLabel(d_trc.d_algoName, false);
-  }  
-  uint32_t now = d_trc.d_time; 
-  dw.xfr48BitInt(now);
-  dw.xfr16BitInt(d_trc.d_fudge); // fudge
-  
-  if(!d_tsigtimersonly) {
-    dw.xfr16BitInt(d_trc.d_eRcode); // extended rcode
-    dw.xfr16BitInt(d_trc.d_otherData.length()); // length of 'other' data
-    //    dw.xfrBlob(d_trc.d_otherData);
-  }
-  
-  const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  toSign.append(&*signRecord.begin(), &*signRecord.end());
-
-  d_trc.d_mac = calculateMD5HMAC(d_tsigsecret, toSign);
-  //  d_trc.d_mac[0]++; // sabotage
-  pw.startRecord(d_tsigkeyname, QType::TSIG, 0, 0xff, DNSPacketWriter::ADDITIONAL); 
-  d_trc.toPacket(pw);
-  pw.commit();
-}
-
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
@@ -338,7 +300,7 @@ void DNSPacket::wrapup()
   }
   
   if(!d_trc.d_algoName.empty())
-    addTSIG(pw);
+    addTSIG(pw, &d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   
   d_rawpacket.assign((char*)&packet[0], packet.size());
 }
@@ -424,7 +386,6 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const string& keynam
   d_tsigtimersonly=timersonly;
 }
 
-
 bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* message) const
 {
   MOADNSParser mdp(d_rawpacket);
@@ -445,32 +406,9 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
   }
   if(!gotit)
     return false;
+  if(message)
+    *message = makeTSIGMessageFromTSIGPacket(d_rawpacket, mdp.getTSIGPos(), *keyname, *trc, d_tsigprevious, false); // if you change rawpacket to getString it breaks!
   
-  //now sign: the packet as it would've been w/o the TSIG
-  // the outcome should be the mac we just stripped off.
-  if(message) {
-    string packet(d_rawpacket);
-  
-    packet.resize(mdp.getTSIGPos());
-    packet[sizeof(struct dnsheader)-1]--;
-    message->assign(packet);
-  
-    vector<uint8_t> signVect;
-    DNSPacketWriter dw(signVect, "", 0);
-    dw.xfrLabel(*keyname, false);
-    dw.xfr16BitInt(0xff); // class
-    dw.xfr32BitInt(0);    // TTL
-    dw.xfrLabel(trc->d_algoName, false); 
-    uint32_t now = trc->d_time; 
-    dw.xfr48BitInt(now);
-    dw.xfr16BitInt(trc->d_fudge); // fudge
-    dw.xfr16BitInt(trc->d_eRcode); // extended rcode
-    dw.xfr16BitInt(trc->d_otherData.length()); // length of 'other' data
-    //    dw.xfrBlob(trc->d_otherData);
-  
-    const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-    message->append(&*signRecord.begin(), &*signRecord.end());
-  }
   return true;
 }
 
@@ -568,7 +506,6 @@ void DNSPacket::commitD()
 {
   d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
 }
-
 
 bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
 {
