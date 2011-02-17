@@ -178,11 +178,18 @@ DNSRecordContent::typemap_t& DNSRecordContent::getTypemap()
   return typemap;
 }
 
-DNSRecordContent::namemap_t& DNSRecordContent::getNamemap()
+DNSRecordContent::n2typemap_t& DNSRecordContent::getN2Typemap()
 {
-  static DNSRecordContent::namemap_t namemap;
+  static DNSRecordContent::n2typemap_t namemap;
   return namemap;
 }
+
+DNSRecordContent::t2namemap_t& DNSRecordContent::getT2Namemap()
+{
+  static DNSRecordContent::t2namemap_t namemap;
+  return namemap;
+}
+
 
 DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
 {

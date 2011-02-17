@@ -31,7 +31,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-#include <boost/bimap.hpp>
 #include "dns.hh"
 #include "dnswriter.hh"
 
@@ -188,7 +187,8 @@ public:
     if(z)
       getZmakermap()[make_pair(cl,ty)]=z;
 
-    getNamemap().left.insert(make_pair(make_pair(cl,ty), name));
+    getT2Namemap().insert(make_pair(make_pair(cl,ty), name));
+    getN2Typemap().insert(make_pair(name, make_pair(cl,ty)));
   }
 
   static void unregist(uint16_t cl, uint16_t ty) 
@@ -200,8 +200,8 @@ public:
 
   static uint16_t TypeToNumber(const string& name)
   {
-    namemap_t::right_const_iterator iter = getNamemap().right.find(name);
-    if(iter != getNamemap().right.end())
+    n2typemap_t::const_iterator iter = getN2Typemap().find(name);
+    if(iter != getN2Typemap().end())
       return iter->second.second;
     
     if(boost::starts_with(name, "TYPE"))
@@ -212,8 +212,8 @@ public:
 
   static const string NumberToType(uint16_t num, uint16_t classnum=1)
   {
-    namemap_t::left_const_iterator iter = getNamemap().left.find(make_pair(classnum, num));
-    if(iter == getNamemap().left.end()) 
+    t2namemap_t::const_iterator iter = getT2Namemap().find(make_pair(classnum, num));
+    if(iter == getT2Namemap().end()) 
       return "TYPE" + lexical_cast<string>(num);
       //      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
     return iter->second;
@@ -237,10 +237,11 @@ public:
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   typedef std::map<std::pair<uint16_t, uint16_t>, zmakerfunc_t* > zmakermap_t;
-  typedef boost::bimap<std::pair<uint16_t, uint16_t>, string > namemap_t;
-
+  typedef std::map<std::pair<uint16_t, uint16_t>, string > t2namemap_t;
+  typedef std::map<string, std::pair<uint16_t, uint16_t> > n2typemap_t;
   static typemap_t& getTypemap();
-  static namemap_t& getNamemap();
+  static t2namemap_t& getT2Namemap();
+  static n2typemap_t& getN2Typemap();
   static zmakermap_t& getZmakermap();
 };
 
