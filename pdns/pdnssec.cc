@@ -369,6 +369,46 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
   }
 }
 
+void secureZone(DNSSECKeeper& dk, const std::string& zone)
+{
+	if(dk.isSecuredZone(zone)) {
+		cerr << "Zone '"<<zone<<"' already secure, remove with pdnssec remove-zone-key if needed"<<endl;
+		return;
+	}
+
+	if(!dk.secureZone(zone, 8)) {
+		cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC\n";
+		cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
+		cerr<<"For the Generic SQL backends, set 'gsqlite3-dnssec' or 'gmysql-dnssec' or\n";
+		cerr<<"'gpgsql-dnssec' etc. Also make sure the schema has been updated for DNSSEC!\n";
+		return;
+	}
+
+	if(!dk.isSecuredZone(zone)) {
+		cerr<<"Failed to secure zone. Is your backend dnssec enabled? (set \n";
+		cerr<<"sqlite3-dnssec, or gmysql-dnssec etc). Check this first.\n";
+		cerr<<"If you run with the BIND backend, make sure to also launch another\n";
+		cerr<<"backend which supports storage of DNSSEC settings.\n";
+		cerr<<"In addition, add '"<<zone<<"' to this backend, possibly like this: \n\n";
+		cerr<<"   insert into domains (name, type) values ('"<<zone<<"', 'NATIVE');\n\n";
+		cerr<<"And then rerun secure-zone"<<endl;
+		return;
+	}
+
+	DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
+
+	if(!zskset.empty())  {
+		cerr<<"There were ZSKs already for zone '"<<zone<<"', no need to add more"<<endl;
+		return;
+	}
+		
+	dk.addKey(zone, false, 8);
+	dk.addKey(zone, false, 8, 0, false); // not active
+	// rectifyZone(dk, zone);
+	// showZone(dk, zone);
+	cout<<"Zone "<<zone<<" secured"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {  
@@ -529,46 +569,17 @@ try
   }
   
   else if(cmds[0] == "secure-zone") {
-    if(cmds.size() != 2) {
-      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
+    if(cmds.size() < 2) {
+      cerr << "Error: "<<cmds[0]<<" takes at least 1 parameter"<<endl;
       return 0;
     }
-    const string& zone=cmds[1];
-    DNSSECPrivateKey dpk;
+    dk.startTransaction();    
+    for(unsigned int n = 1; n < cmds.size(); ++n) {
+			const string& zone=cmds[n];
+			secureZone(dk, zone);
+		}
     
-    if(dk.isSecuredZone(zone)) {
-      cerr << "Zone '"<<zone<<"' already secure, remove with pdnssec remove-zone-key if needed"<<endl;
-      return 0;
-    }
-      
-    if(!dk.secureZone(zone, 8)) {
-      cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC\n";
-      cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
-      cerr<<"For the Generic SQL backends, set 'gsqlite3-dnssec' or 'gmysql-dnssec' or\n";
-      cerr<<"'gpgsql-dnssec' etc. Also make sure the schema has been updated for DNSSEC!\n";
-      return 0;
-    }
-
-    if(!dk.isSecuredZone(zone)) {
-      cerr<<"Failed to secure zone - if you run with the BIND backend, make sure to also\n";
-      cerr<<"launch another backend which supports storage of DNSSEC settings.\n";
-      cerr<<"In addition, add '"<<zone<<"' to this backend, possibly like this: \n\n";
-      cerr<<"   insert into domains (name, type) values ('"<<zone<<"', 'NATIVE');\n\n";
-      cerr<<"And then rerun secure-zone"<<endl;
-      return 0;
-    }
-  
-    DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
-
-    if(!zskset.empty())  {
-      cerr<<"There were ZSKs already for zone '"<<zone<<"', no need to add more"<<endl;
-      return 0;
-    }
-      
-    dk.addKey(zone, false, 8);
-    dk.addKey(zone, false, 8, 0, false); // not active
-    rectifyZone(dk, zone);
-    showZone(dk, zone);
+    dk.commitTransaction();
   }
   else if(cmds[0]=="set-nsec3") {
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 1 1 ab";
