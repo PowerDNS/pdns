@@ -337,6 +337,10 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, c
     throw ResolverException("Error waiting for answer from "+d_remote.toStringWithPort()+": "+stringerror());
 }
 
+AXFRRetriever::~AXFRRetriever()
+{
+  close(d_sock);
+}
 
 int AXFRRetriever::getChunk(Resolver::res_t &res)
 {
