@@ -662,10 +662,6 @@ void Bind2Backend::loadConfig(string* status)
           DNSSECKeeper dk;
           NSEC3PARAMRecordContent ns3pr;
           bool nsec3zone=dk.getNSEC3PARAM(i->name, &ns3pr);
-          if(!nsec3zone)
-            cerr<<"no nsec3 for "<<i->name<<endl;
-          else
-            cerr<<"NEED TO HASH "<<i->name<<endl;
         
           try {
             // we need to allocate a new vector so we don't kill the original, which is still in use!
