@@ -162,7 +162,8 @@ time_t CommunicatorClass::doNotifications()
   int size;
   // receive incoming notifications on the nonblocking socket and take them off the list
   int sock;
-  while(waitFor2Data(d_nsock4, d_nsock6, 1, 0, &sock) > 0) {
+
+  while(waitFor2Data(d_nsock4, d_nsock6, 0, 0, &sock) > 0) {
     size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
     if(size < 0)
       break;
