@@ -862,15 +862,13 @@ int PacketHandler::processNotify(DNSPacket *p)
       L<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
       return RCode::Refused;
     }
-
     authServer = *di.masters.begin();
-
   }
   else if(!db->isMaster(p->qdomain, p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
-
+  authServer = *di.masters.begin();
   uint32_t theirserial=0;
 
   /* to quote Rusty Russell - this code is so bad that you can actually hear it suck */
@@ -895,6 +893,7 @@ int PacketHandler::processNotify(DNSPacket *p)
       theirserial<<" > "<<di.serial<<endl;
 
     Communicator.addSuckRequest(p->qdomain, authServer, true); // priority
+    return 0;
   }
   return -1; 
 }
