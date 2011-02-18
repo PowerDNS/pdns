@@ -27,8 +27,10 @@ public:
   };
   typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t; 
   typedef std::vector<keymeta_t > keyset_t;
+
 private:
   UeberBackend d_keymetadb;
+
 public:
   DNSSECKeeper() : d_keymetadb("key-only")
   {
@@ -56,6 +58,18 @@ public:
   
   bool TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm);
   bool getTSIGForAcces(const string& zone, const string& master, string* keyname);
+  
+  void startTransaction()
+  {
+	  (*d_keymetadb.backends.begin())->startTransaction("", -1);
+  }
+  
+  void commitTransaction()
+  {
+	  (*d_keymetadb.backends.begin())->commitTransaction();
+  }
+  
+  
 private:
   void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
   
