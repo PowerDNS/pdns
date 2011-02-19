@@ -275,7 +275,7 @@ int main(int argc, char **argv)
             }
             else 
             {
-              if(g_mode==POSTGRES || g_mode==MYSQL) {
+              if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
                 if(i->masters.empty())
                   cout<<"insert into domains (name,type) values ("<<sqlstr(i->name)<<",'NATIVE');"<<endl;
                 else {
@@ -283,8 +283,7 @@ int main(int argc, char **argv)
                   BOOST_FOREACH(const string& mstr, i->masters) {
                     masters.append(mstr);
                     masters.append(1, ' ');
-                  }
-                  
+                  }                  
                   cout<<"insert into domains (name,type,master) values ("<<sqlstr(i->name)<<",'SLAVE'"<<", '"<<masters<<"');"<<endl;
                 }
               }
