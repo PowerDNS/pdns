@@ -26,7 +26,7 @@ public:
   SSQLite3( const std::string & database );
 
   //! Destructor.
-  ~SSQLite3( void );
+  ~SSQLite3();
 
   //! Performs a query and puts answers in result
   int doQuery( const std::string & query, result_t & result );
@@ -40,8 +40,7 @@ public:
     result_t result;
     return doQuery(query, result); // 'result' is necessary to force doQuery to do the work, closing Debian bug 280359
   }
-
-
+  
   //! Returns a row from a result set.
   bool getRow( row_t & row );
 
@@ -50,7 +49,6 @@ public:
 
   //! Used to create an backend specific exception message.
   SSqlException sPerrorException( const std::string & reason );
-
 };
 
 #endif // SSQLITE3_HH

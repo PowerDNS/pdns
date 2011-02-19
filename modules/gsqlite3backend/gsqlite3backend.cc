@@ -26,7 +26,12 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
 {
   try 
   {
-    setDB( new SSQLite3( getArg( "database" )));    
+    SSQLite3 *ptr = new SSQLite3( getArg( "database" ));    
+    setDB( ptr);
+    if(!getArg("pragma-synchronous").empty()) {
+      SSQLite3::result_t res;
+      ptr->doQuery("PRAGMA synchronous="+getArg("pragma-synchronous"), res);
+    }
   }  
   catch( SSqlException & e ) 
   {
@@ -51,6 +56,7 @@ public:
   void declareArguments( const std::string & suffix = "" )
   {
     declare( suffix, "database", "Filename of the SQLite3 database", "powerdns.sqlite" );
+    declare( suffix, "pragma-synchronous", "Set this to 0 for blazing speed", "" );
     
     declare( suffix, "basic-query", "Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
     declare( suffix, "id-query", "Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d");

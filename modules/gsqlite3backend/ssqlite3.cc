@@ -30,11 +30,14 @@ SSQLite3::SSQLite3( const std::string & database )
   sqlite3_busy_handler(m_pDB, busyHandler, 0);
 }
 
-
 // Destructor.
-SSQLite3::~SSQLite3( void )
+SSQLite3::~SSQLite3()
 {
-  sqlite3_close( m_pDB );
+  int ret;
+  if((ret =sqlite3_close( m_pDB )) != SQLITE_OK) {
+    cerr<<"Unable to close down sqlite connection: "<<ret<<endl;
+    abort();
+  }
 }
 
 
@@ -65,6 +68,7 @@ int SSQLite3::doQuery( const std::string & query )
 {
   const char *pTail;
   // Execute the query.
+  
   if ( sqlite3_prepare( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )
     throw sPerrorException( string("Unable to compile SQLite statement : ")+ sqlite3_errmsg( m_pDB ) );
   return 0;
@@ -105,7 +109,6 @@ bool SSQLite3::getRow( row_t & row )
     // We're done, clean up.
     sqlite3_finalize( m_pStmt );
     m_pStmt = NULL;
-
     return false;
   }
 
@@ -122,13 +125,13 @@ std::string SSQLite3::escape( const std::string & name)
 {
   std::string a;
 
-    for( std::string::const_iterator i = name.begin(); i != name.end(); ++i ) 
-    {
-      if( *i == '\'' || *i == '\\' )
-        a += '\\';
+  for( std::string::const_iterator i = name.begin(); i != name.end(); ++i ) 
+  {
+    if( *i == '\'' || *i == '\\' )
+      a += '\\';
 
-      a += *i;
-    }
+    a += *i;
+  }
 
   return a;
 }
