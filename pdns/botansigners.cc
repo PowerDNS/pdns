@@ -118,7 +118,8 @@ void BotanRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<s
     throw runtime_error("Unpossible, loaded a key from storage with wrong algorithm!");
     
   AutoSeeded_RNG rng;
-  d_key = shared_ptr<RSA_PrivateKey>(new RSA_PrivateKey(rng, p, q, e, d, n));
+  d_key = shared_ptr<RSA_PrivateKey>(new RSA_PrivateKey(rng, p, q, e, d, n)); // this calculates d1, d2 & other stuff, plus does load checks..
+  
   d_pubkey.reset();
 }
 

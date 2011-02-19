@@ -58,7 +58,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
     else
       ; 
   }  
-  keyset_t keys = getKeys(zone, true);
+  keyset_t keys = getKeys(zone, true); // does the cache
   
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
     if(val.second.active) {
@@ -285,7 +285,9 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
     DNSSECPrivateKey dpk;
 
     DNSKEYRecordContent dkrc;
+    
     dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content)));
+    
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
