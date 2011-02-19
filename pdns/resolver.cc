@@ -211,10 +211,10 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
   *domain = stripDot(mdp.d_qname);
   
   if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' produced no results");
+    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + *domain + "' produced no results");
   
   if(mdp.d_qtype != QType::SOA)
-    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' returned wrong record type");
+    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + *domain + "' returned wrong record type");
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
@@ -298,43 +298,50 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, c
     local=ComboAddress(::arg()["query-local-address6"]);
   else
     local=ComboAddress("::");
-    
-  d_sock = makeQuerySocket(local, false); // make a TCP socket
-  d_buf = shared_array<char>(new char[65536]);
-  d_remote = remote; // mostly for error reporting
-  this->connect();
-  d_soacount = 0;
-
-  vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, domain, QType::AXFR);
-  pw.getHeader()->id = dns_random(0xffff);
-
-  if(!tsigkeyname.empty()) {
-    d_trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
-    d_trc.d_time = time(0);
-    d_trc.d_fudge = 300;
-    d_trc.d_origID=ntohs(pw.getHeader()->id);
-    d_trc.d_eRcode=0;
-    addTSIG(pw, &d_trc, tsigkeyname, tsigsecret, "", false);
-  }
-
-  uint16_t replen=htons(packet.size());
-  Utility::iovec iov[2];
-  iov[0].iov_base=(char*)&replen;
-  iov[0].iov_len=2;
-  iov[1].iov_base=(char*)&packet[0];
-  iov[1].iov_len=packet.size();
-
-  int ret=Utility::writev(d_sock, iov,2);
-  if(ret<0)
-    throw ResolverException("Error sending question to "+d_remote.toStringWithPort()+": "+stringerror());
-
-  int res = waitForData(d_sock, 10, 0);
+  d_sock = -1;
+  try {
+    d_sock = makeQuerySocket(local, false); // make a TCP socket
+    d_buf = shared_array<char>(new char[65536]);
+    d_remote = remote; // mostly for error reporting
+    this->connect();
+    d_soacount = 0;
   
-  if(!res)
-    throw ResolverException("Timeout waiting for answer from "+d_remote.toStringWithPort()+" during AXFR");
-  if(res<0)
-    throw ResolverException("Error waiting for answer from "+d_remote.toStringWithPort()+": "+stringerror());
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, domain, QType::AXFR);
+    pw.getHeader()->id = dns_random(0xffff);
+  
+    if(!tsigkeyname.empty()) {
+      d_trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+      d_trc.d_time = time(0);
+      d_trc.d_fudge = 300;
+      d_trc.d_origID=ntohs(pw.getHeader()->id);
+      d_trc.d_eRcode=0;
+      addTSIG(pw, &d_trc, tsigkeyname, tsigsecret, "", false);
+    }
+  
+    uint16_t replen=htons(packet.size());
+    Utility::iovec iov[2];
+    iov[0].iov_base=(char*)&replen;
+    iov[0].iov_len=2;
+    iov[1].iov_base=(char*)&packet[0];
+    iov[1].iov_len=packet.size();
+  
+    int ret=Utility::writev(d_sock, iov,2);
+    if(ret<0)
+      throw ResolverException("Error sending question to "+d_remote.toStringWithPort()+": "+stringerror());
+  
+    int res = waitForData(d_sock, 10, 0);
+    
+    if(!res)
+      throw ResolverException("Timeout waiting for answer from "+d_remote.toStringWithPort()+" during AXFR");
+    if(res<0)
+      throw ResolverException("Error waiting for answer from "+d_remote.toStringWithPort()+": "+stringerror());
+  }
+  catch(...) {
+    if(d_sock >= 0)
+      close(d_sock);
+    throw;
+  }
 }
 
 AXFRRetriever::~AXFRRetriever()
