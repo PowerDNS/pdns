@@ -137,15 +137,14 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
   /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
      id,name,master IP,serial */
-
   try {
-    d_db->doQuery(d_InfoOfAllSlaveDomainsQuery,d_result);
+    d_db->doQuery(d_InfoOfAllSlaveDomainsQuery, d_result);
   }
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to retrieve list of slave domains: "+e.txtReason());
   }
 
-  vector<DomainInfo>allSlaves;
+  vector<DomainInfo> allSlaves;
   int numanswers=d_result.size();
   for(int n=0;n<numanswers;++n) { // id,name,master,last_check
     DomainInfo sd;
@@ -482,12 +481,11 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
     d_db->doQuery(output);
   }
   catch (SSqlException &e) {
-    throw AhuException("GSQLBackend unable to list keys: "+e.txtReason());
+    throw AhuException("GSQLBackend unable to list metadata: "+e.txtReason());
   }
   
   SSql::row_t row;
-  //  "select id, kind, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
-  KeyData kd;
+  
   while(d_db->getRow(row)) {
     meta.push_back(row[0]);
   }
