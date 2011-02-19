@@ -102,12 +102,13 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     ComboAddress raddr(remote, 53);
     
     string tsigkeyname, tsigalgorithm, tsigsecret;
-    
+  
     if(dk.getTSIGForAcces(domain, remote, &tsigkeyname)) {
       string tsigsecret64;
       B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
       B64Decode(tsigsecret64, tsigsecret);
     }
+    
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret);
     
     while(retriever.getChunk(recs)) {
@@ -214,15 +215,15 @@ struct SlaveSenderReceiver
   {
   }
   
-  Identifier send(DomainInfo& di)
+  Identifier send(pair<DomainInfo, bool>& dipair)
   {
-    random_shuffle(di.masters.begin(), di.masters.end());
+    random_shuffle(dipair.first.masters.begin(), dipair.first.masters.end());
     try {
-      ComboAddress remote(*di.masters.begin());
-      return make_pair(di.zone, d_resolver.sendResolve(ComboAddress(*di.masters.begin(), 53), di.zone.c_str(), QType::SOA, true));
+      ComboAddress remote(*dipair.first.masters.begin());
+      return make_pair(dipair.first.zone, d_resolver.sendResolve(ComboAddress(*dipair.first.masters.begin(), 53), dipair.first.zone.c_str(), QType::SOA, dipair.second));
     }
     catch(AhuException& e) {
-      throw runtime_error("While attempting to query freshness of '"+di.zone+"': "+e.reason);
+      throw runtime_error("While attempting to query freshness of '"+dipair.first.zone+"': "+e.reason);
     }
   }
   
@@ -234,9 +235,9 @@ struct SlaveSenderReceiver
     return 0;
   }
   
-  void deliverAnswer(DomainInfo& i, const Answer& a, unsigned int usec)
+  void deliverAnswer(pair<DomainInfo, bool>& i, const Answer& a, unsigned int usec)
   {
-    d_freshness[i.id]=a;
+    d_freshness[i.first.id]=a;
   }
   
   Resolver d_resolver;
@@ -245,9 +246,10 @@ struct SlaveSenderReceiver
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
-  vector<DomainInfo> sdomains, rdomains;
+  vector<DomainInfo> rdomains;
+  vector<pair<DomainInfo, bool> > sdomains;
   B->getUnfreshSlaveInfos(&rdomains);
-  
+  DNSSECKeeper dk;
   {
     Lock l(&d_lock);
     typedef UniQueue::index<IDTag>::type domains_by_name_t;
@@ -262,7 +264,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       sr.master=*di.masters.begin();
       if(nameindex.count(sr))
         continue;
-      sdomains.push_back(di);
+      
+      sdomains.push_back(make_pair(di, dk.isPresigned(di.zone)));
     }
   }
   
@@ -283,7 +286,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
       
   SlaveSenderReceiver ssr;
-  Inflighter<vector<DomainInfo>, SlaveSenderReceiver> ifl(sdomains, ssr);
+  Inflighter<vector<pair<DomainInfo, bool> >, SlaveSenderReceiver> ifl(sdomains, ssr);
   
   ifl.d_maxInFlight = 200;
 
@@ -300,8 +303,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
   }
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones, had "<<ifl.getTimeouts()<<" timeouts"<<endl;
-  DNSSECKeeper dk;
-  BOOST_FOREACH(DomainInfo& di, sdomains) {
+
+  typedef pair<DomainInfo, bool> val_t;
+  BOOST_FOREACH(val_t& val, sdomains) {
+    DomainInfo& di(val.first);
     if(!ssr.d_freshness.count(di.id)) 
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
