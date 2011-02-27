@@ -16,7 +16,7 @@ public:
   {}
   void create(unsigned int bits);
   string getName() const { return "CryptoPP ECDSA"; }
-  stormap_t convertToISCMap() const;
+  storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& msg) const; 
   std::string hash(const std::string& hash) const; 
@@ -61,7 +61,7 @@ int CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::getBits() const
 }
 
 template<class HASHER, class CURVE, int BITS>
-std::map<std::string, std::string> CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::convertToISCMap() const
+DNSCryptoKeyEngine::storvector_t CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::convertToISCVector() const
 {
    /* Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
@@ -73,14 +73,14 @@ std::map<std::string, std::string> CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,
   else
     algostr+=" (?)";
   
-  map<string,string> stormap;
-  stormap["Algorithm"]=algostr;
+  storvector_t storvect;
+  storvect.push_back(make_pair("Algorithm", algostr));
   
   const CryptoPP::Integer& pe=d_key->GetPrivateExponent();
   unsigned char buffer[pe.MinEncodedSize()];
   pe.Encode(buffer, pe.MinEncodedSize());
-  stormap["PrivateKey"] = string((char*)buffer, sizeof(buffer));
-  return stormap;
+  storvect.push_back(make_pair("PrivateKey", string((char*)buffer, sizeof(buffer))));
+  return storvect;
 }
 template<class HASHER, class CURVE, int BITS>
 void CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
