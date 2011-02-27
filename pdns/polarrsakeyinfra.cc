@@ -68,7 +68,7 @@ public:
   }
 
   void create(unsigned int bits);
-  stormap_t convertToISCMap() const;
+  storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
@@ -193,9 +193,9 @@ std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
 }
 
 
-DNSCryptoKeyEngine::stormap_t RSADNSCryptoKeyEngine::convertToISCMap() const
+DNSCryptoKeyEngine::storvector_t RSADNSCryptoKeyEngine::convertToISCVector() const
 {
-  stormap_t stormap;
+  storvector_t storvect;
   typedef vector<pair<string, const mpi*> > outputs_t;
   outputs_t outputs;
   push_back(outputs)("Modulus", &d_context.N)("PublicExponent",&d_context.E)
@@ -206,24 +206,24 @@ DNSCryptoKeyEngine::stormap_t RSADNSCryptoKeyEngine::convertToISCMap() const
     ("Exponent2",&d_context.DQ)
     ("Coefficient",&d_context.QP);
 
-  stormap["Algorithm"]=lexical_cast<string>(d_algorithm);
+  string algorithm=lexical_cast<string>(d_algorithm);
   switch(d_algorithm) {
     case 5:
     case 7 :
-      stormap["Algorithm"]+= " (RSASHA1)";
+      algorithm+= " (RSASHA1)";
       break;
     case 8:
-      stormap["Algorithm"] += " (RSASHA256)";
+      algorithm += " (RSASHA256)";
       break;
   }
-  
+  storvect.push_back(make_pair("Algorithm", algorithm));
 
   BOOST_FOREACH(outputs_t::value_type value, outputs) {
     unsigned char tmp[mpi_size(value.second)];
     mpi_write_binary(value.second, tmp, sizeof(tmp));
-    stormap[value.first]=string((char*)tmp, sizeof(tmp));
+    storvect.push_back(make_pair(value.first, string((char*)tmp, sizeof(tmp))));
   }
-  return stormap;
+  return storvect;
 }
 
 

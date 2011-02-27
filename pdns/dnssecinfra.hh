@@ -17,8 +17,9 @@ class DNSCryptoKeyEngine
     virtual string getName() const = 0;
     
     typedef std::map<std::string, std::string> stormap_t;
+    typedef std::vector<std::pair<std::string, std::string > > storvector_t;
     virtual void create(unsigned int bits)=0;
-    virtual stormap_t convertToISCMap() const =0;
+    virtual storvector_t convertToISCVector() const =0;
     std::string convertToISC() const ;
     virtual std::string sign(const std::string& msg) const =0;
     virtual std::string hash(const std::string& msg) const =0;

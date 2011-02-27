@@ -63,13 +63,14 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
 std::string DNSCryptoKeyEngine::convertToISC() const
 {
   typedef map<string, string> stormap_t;
-  stormap_t stormap = this->convertToISCMap();
+  storvector_t stormap = this->convertToISCVector();
   ostringstream ret;
-  ret<<"Private-key-format: v1.2\nAlgorithm: "<<stormap["Algorithm"]<<"\n";
+  ret<<"Private-key-format: v1.2\n";
   BOOST_FOREACH(const stormap_t::value_type& value, stormap) {
-    if(value.first=="Algorithm")
-      continue;
-    ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
+    if(value.first != "Algorithm") 
+      ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
+    else
+      ret<<value.first<<": "<<value.second<<"\n";
   }
   return ret.str();
 }

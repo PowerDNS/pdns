@@ -22,7 +22,7 @@ public:
     
   string getName() const { return "Botan RSA"; }
   void create(unsigned int bits);
-  stormap_t convertToISCMap() const;
+  storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& msg) const; 
   std::string hash(const std::string& hash) const; 
@@ -70,24 +70,24 @@ BigInt fromRaw(const std::string& raw)
 }
 }
 
-DNSCryptoKeyEngine::stormap_t BotanRSADNSCryptoKeyEngine::convertToISCMap() const
+DNSCryptoKeyEngine::storvector_t BotanRSADNSCryptoKeyEngine::convertToISCVector() const
 {
-  stormap_t stormap;
-  stormap["Algorithm"] = lexical_cast<string>(d_algorithm);
+  storvector_t storvect;
+  string algorithm =  lexical_cast<string>(d_algorithm);
   if(d_algorithm == 5 || d_algorithm ==7 )
-    stormap["Algorithm"]+= " (RSASHA1)";
+    algorithm += " (RSASHA1)";
   else if(d_algorithm == 8)
-    stormap["Algorithm"] += " (RSASHA256)";
+    algorithm += " (RSASHA256)";
   else if(d_algorithm == 10)
-    stormap["Algorithm"] += " (RSASHA512)";
+    algorithm += " (RSASHA512)";
   else
-    stormap["Algorithm"] += " (?)";
-  
-  stormap["Modulus"] = asRaw(d_key->get_n());
-  stormap["PublicExponent"] = asRaw(d_key->get_e());
-  stormap["PrivateExponent"] = asRaw(d_key->get_d());
-  stormap["Prime1"] = asRaw(d_key->get_p());
-  stormap["Prime2"] = asRaw(d_key->get_q());
+    algorithm += " (?)";
+  storvect.push_back(make_pair("Algorithm", algorithm));
+  storvect.push_back(make_pair("Modulus", asRaw(d_key->get_n())));
+  storvect.push_back(make_pair("PublicExponent",asRaw(d_key->get_e())));
+  storvect.push_back(make_pair("PrivateExponent",asRaw(d_key->get_d())));
+  storvect.push_back(make_pair("Prime1",asRaw(d_key->get_p())));
+  storvect.push_back(make_pair("Prime2",asRaw(d_key->get_q())));
   
 #if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)  
   BigInt d1 = d_key->get_d() % (d_key->get_p() - 1);
@@ -96,10 +96,10 @@ DNSCryptoKeyEngine::stormap_t BotanRSADNSCryptoKeyEngine::convertToISCMap() cons
   BigInt d1 = d_key->get_d1();
   BigInt d2 = d_key->get_d2();
 #endif
-  stormap["Exponent1"]=asRaw(d1);
-  stormap["Exponent2"]=asRaw(d2);
-  stormap["Coefficient"]=asRaw(d_key->get_q());
-  return stormap;
+  storvect.push_back(make_pair("Exponent1", asRaw(d1)));
+  storvect.push_back(make_pair("Exponent2", asRaw(d2)));
+  storvect.push_back(make_pair("Coefficient", asRaw(d_key->get_q())));
+  return storvect;
 }
 
 void BotanRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )

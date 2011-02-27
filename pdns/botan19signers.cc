@@ -29,7 +29,7 @@ public:
   ~GOSTDNSCryptoKeyEngine(){}
   void create(unsigned int bits);
   string getName() const { return "Botan 1.9 GOST"; }
-  stormap_t convertToISCMap() const;
+  storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
@@ -78,11 +78,10 @@ int GOSTDNSCryptoKeyEngine::getBits() const
  ~ Khranimaya Bogom rodnaya zemlya!      ~
 */
 
-
-DNSCryptoKeyEngine::stormap_t GOSTDNSCryptoKeyEngine::convertToISCMap() const
+DNSCryptoKeyEngine::storvector_t GOSTDNSCryptoKeyEngine::convertToISCVector() const
 { 
-  stormap_t stormap;
-  stormap["Algorithm"]="12 (ECC-GOST)";
+  storvector_t storvect;
+  storvect.push_back(make_pair("Algorithm", "12 (ECC-GOST)"));
   
   unsigned char asn1Prefix[]=
   {0x30, 0x45, 0x02, 0x01, 0x00, 0x30, 0x1c, 0x06, 0x06, 0x2a, 0x85, 0x03, 0x02, 0x02, 
@@ -90,9 +89,10 @@ DNSCryptoKeyEngine::stormap_t GOSTDNSCryptoKeyEngine::convertToISCMap() const
    0x2a, 0x85, 0x03, 0x02, 0x02, 0x1e, 0x01, 0x04, 0x22, 0x04, 0x20}; // this is DER, fixed for a 32 byte key
 
   SecureVector<byte> buffer=BigInt::encode(d_key->private_value());
-  stormap["GostAsn1"].assign((const char*)asn1Prefix, sizeof(asn1Prefix));
-  stormap["GostAsn1"].append((const char*)&*buffer.begin(), (const char*)&*buffer.end());
-  return stormap;
+  string gostasn1((const char*)asn1Prefix, sizeof(asn1Prefix));
+  gostasn1.append((const char*)&*buffer.begin(), (const char*)&*buffer.end());
+  storvect.push_back(make_pair("GostAsn1", gostasn1));
+  return storvect;
 }
 
 /*
@@ -101,7 +101,6 @@ DNSCryptoKeyEngine::stormap_t GOSTDNSCryptoKeyEngine::convertToISCMap() const
  ~ Predkami dannaya mudrost' narodnaya!   ~
  ~ Slav'sya, strana! My gordimsya toboy!  ~
 */
-
 
 void GOSTDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
 { 
@@ -258,7 +257,7 @@ public:
   // XXX FIXME NEEDS DEEP COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
   string getName() const { return "Botan 1.9 ECDSA"; }
   void create(unsigned int bits);
-  stormap_t convertToISCMap() const;
+  storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
   std::string hash(const std::string& hash) const; 
@@ -316,24 +315,26 @@ int ECDSADNSCryptoKeyEngine::getBits() const
   return -1;
 }
 
-DNSCryptoKeyEngine::stormap_t ECDSADNSCryptoKeyEngine::convertToISCMap() const
+DNSCryptoKeyEngine::storvector_t ECDSADNSCryptoKeyEngine::convertToISCVector() const
 {
   /* Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-  map<string, string> stormap;
+  storvector_t storvect;
   
+  string algorithm;
   if(getBits()==256) 
-    stormap["Algorithm"] = "13 (ECDSAP256SHA256)";
+    algorithm = "13 (ECDSAP256SHA256)";
   else if(getBits()==384) 
-    stormap["Algorithm"] ="14 (ECDSAP384SHA384)";
+    algorithm ="14 (ECDSAP384SHA384)";
   else 
-    stormap["Algorithm"] =" ? (?)";
+    algorithm =" ? (?)";
+  storvect.push_back(make_pair("Algorithm", algorithm));
   
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
-  stormap["PrivateKey"]=string((char*)&*buffer.begin(), (char*)&*buffer.end());
+  storvect.push_back(make_pair("PrivateKey", string((char*)&*buffer.begin(), (char*)&*buffer.end())));
   
-  return stormap;
+  return storvect;
 }
 
 void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
