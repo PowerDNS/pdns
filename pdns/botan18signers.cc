@@ -94,7 +94,7 @@ DNSCryptoKeyEngine::storvector_t ECDSADNSCryptoKeyEngine::convertToISCVector() c
   
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
-  storvector.push_back("PrivateKey", string((char*)&*buffer.begin(), (char*)&*buffer.end()));
+  storvector.push_back(make_pair("PrivateKey", string((char*)&*buffer.begin(), (char*)&*buffer.end())));
   return storvector;
 }
 
