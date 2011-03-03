@@ -14,7 +14,7 @@
       </affiliation>
     </author>
     
-    <pubdate>v2.9.19 $Date: 2011-01-06 23:00:05 +0100 (Thu, 06 Jan 2011) $</pubdate>
+    <pubdate>v3.0-pre $Date: 2011-01-06 23:00:05 +0100 (Thu, 06 Jan 2011) $</pubdate>
     
     <abstract>
 	<para>
@@ -122,7 +122,7 @@
 	Miek Gieben (SIDN), Stephane Bortzmeyer (AFNIC), Michael Braunoeder (nic.at), Peter van Dijk, Maik Zumstrull,
 	Jose Arthur Benetasso Villanova (Locaweb), Stefan Schmidt, Roland van Rijswijk (Surfnet), Paul Bakker (Brainspark/Fox-IT),
 	Mathew Hennessy, Johannes Kuehrer (Austrian World4You GmbH), Marc van de Geijn (bHosted.nl), Stefan Arentz and 
-	Martin van Hensbergen (Fox-IT), Christof Meerwald, Detlef Peeters, ..
+	Martin van Hensbergen (Fox-IT), Christof Meerwald, Detlef Peeters, Jack Lloyd (
       </para>
       <para>
 	On to the release notes. Next to DNSSEC, other major new features include:
@@ -131,7 +131,7 @@
       <itemizedlist>
 	<listitem>
 	  <para>
-	    TSIG for authorizing and authenticating AXFR requests.
+	    TSIG for authorizing and authenticating AXFR requests &amp; incoming zone transfers.
 	  </para>
 	</listitem>
 	<listitem>
@@ -10002,14 +10002,68 @@ $ dig -t axfr powerdnssec.org @127.0.0.1 -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYg
 </programlisting>
   </para>
   <para>
+    To ease interoperability, the equivalent configuration above in BIND would look like this:
+<programlisting>
+key test. {
+        algorithm hmac-md5;
+        secret "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=";
+};
+
+zone "powerdnssec.org" {
+	type master;
+	file "powerdnssec.org";
+	allow-transfer {  key test.; };
+};
+</programlisting>
+  </para>
+  <para>
     A packet authorized and authenticated by a TSIG signature will gain access to a zone even 
     if the remote IP address is not otherwise allowed to AXFR a zone.
   </para>
   </section>
   <section id="tsig-outbound-notify-axfr"><title>Provisioning signed notification and AXFR requests</title>
   <para>
-  <warning><para>Not implemented yet!</para></warning>
+    To configure PowerDNS to send out TSIG signed AXFR requests for a zone to its master(s), set the
+    AXFR-MASTER-TSIG metadata item for the relevant domain to the key that must be used.
   </para>
+  <para>
+    The actual TSIG key must also be provisioned, as outlined in the previous section.
+  </para>
+  <para>
+    For the popular Generic SQL backends, configuring the use of TSIG for AXFR requests could be achieved as follows:
+<programlisting>
+sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata (domain_id, kind, content) values (5, 'AXFR-MASTER-TSIG', 'test');
+</programlisting>
+  </para>
+  <para>
+    This setup corresponds to the TSIG-ALLOW-AXFR access rule defined in the previous section.
+  </para>
+  <para>
+    In the interest of interoperability, the configuration above is (not quite) similar to the following BIND statements:
+<programlisting>
+key test. {
+        algorithm hmac-md5;
+        secret "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=";
+};
+
+server 127.0.0.1 {
+        keys { test.; };
+};
+
+zone "powerdnssec.org" {
+ type slave;
+ masters { 127.0.0.1; };
+ file "powerdnssec.org";
+};
+</programlisting>
+  Except that in this case, TSIG will be used for all communications with the master, not just those about AXFR requests.
+  </para>
+  <para>
+  <warning><para>PowerDNS for now only verifies the TSIG signature on the first AXFR 'message', which helps for access control, but does not provide 100.0%
+  protection of subsequent AXFR zone content messages.</para></warning></para>
   </section>
   </chapter>
   <chapter id="recursion"><title>Recursion</title>
