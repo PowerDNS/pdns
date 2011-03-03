@@ -78,18 +78,15 @@ void CommunicatorClass::mainloop(void)
     makeNotifySockets();
 
     int rc;
-    time_t next;
-
-    time_t tick;
+    time_t next, tick;
 
     for(;;) {
       slaveRefresh(&P);
       masterUpdateCheck(&P);
-      tick=doNotifications();
+      tick=doNotifications(); // this processes any notification acknowledgements and actually send out our own notifications
       
       tick = min (tick, d_tickinterval); 
-
-      //      L<<Logger::Error<<"tick = "<<tick<<", d_tickinterval = "<<d_tickinterval<<endl;
+      
       next=time(0)+tick;
 
       while(time(0) < next) {
@@ -98,7 +95,7 @@ void CommunicatorClass::mainloop(void)
         if(rc)
           Utility::sleep(1);
         else { 
-          
+          break; // something happened
         }
         // this gets executed at least once every second
         doNotifications();

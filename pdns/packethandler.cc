@@ -855,44 +855,23 @@ int PacketHandler::processNotify(DNSPacket *p)
     return trySuperMaster(p);
   }
     
-  string authServer(p->getRemote());
   if(::arg().contains("trusted-notification-proxy", p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
       L<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
       return RCode::Refused;
     }
-    authServer = *di.masters.begin();
   }
   else if(!db->isMaster(p->qdomain, p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
-  authServer = *di.masters.begin();  // XXX this is actually wrong, we should be picking the master that looks most like the notification!
-  uint32_t theirserial=0;
-
-  Resolver resolver;
-  try {
-    resolver.getSoaSerial(authServer, p->qdomain, &theirserial); // XXX this should have a _really_ short timeout!
-  }
-  catch(ResolverException& re) {
-    L<<Logger::Error<<re.reason<<endl;
-    return RCode::ServFail;
-  }
-
-  if(theirserial<=di.serial) { 
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<< authServer <<", we are up to date: "<<
-      theirserial<<"<="<<di.serial<<endl;
-    return RCode::NoError;
-  }
-  else {
-    L<<Logger::Error<<"Received valid NOTIFY for "<<p->qdomain<<" (id="<<di.id<<") from master "<<p->getRemote()<<": "<<
-      theirserial<<" > "<<di.serial<<endl;
-
-    Communicator.addSuckRequest(p->qdomain, authServer, true); // priority
-    return 0;
-  }
-  return -1; 
+  
+  
+  // ok, we've done our checks
+  Communicator.addSlaveCheckRequest(di, p->remote);
+  
+  return 0;
 }
 
 

@@ -56,7 +56,7 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   }
   
   if(res.second) {
-  d_suck_sem.post();
+    d_suck_sem.post();
   }
 }
 
@@ -243,12 +243,28 @@ struct SlaveSenderReceiver
   Resolver d_resolver;
 };
 
+void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote)
+{
+  Lock l(&d_lock);
+  d_tocheck.insert(di);
+  d_any_sem.post(); // kick the loop!
+}
+
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
   vector<DomainInfo> rdomains;
-  vector<pair<DomainInfo, bool> > sdomains;
-  B->getUnfreshSlaveInfos(&rdomains);
+  vector<pair<DomainInfo, bool> > sdomains; // the bool is for 'presigned'
+  
+  {
+    Lock l(&d_lock);
+    rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
+    d_tocheck.clear();
+  }
+  
+  if(rdomains.empty()) // if we have priority domains, check them first
+    B->getUnfreshSlaveInfos(&rdomains);
+    
   DNSSECKeeper dk;
   {
     Lock l(&d_lock);

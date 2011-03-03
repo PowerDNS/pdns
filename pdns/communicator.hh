@@ -155,6 +155,7 @@ public:
   void drillHole(const string &domain, const string &ip);
   bool justNotified(const string &domain, const string &ip);
   void addSuckRequest(const string &domain, const string &master, bool priority=false);
+  void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void notify(const string &domain, const string &ip);
   void mainloop();
   void retrievalLoopThread();
@@ -189,6 +190,7 @@ private:
   time_t d_tickinterval;
   NotificationQueue d_nq;
   bool d_masterschanged, d_slaveschanged;
+  set<DomainInfo> d_tocheck;
 };
 
 #endif
