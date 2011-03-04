@@ -44,8 +44,8 @@ dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra
 md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc
 
 #
-pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library 
-pdns_server_LDADD= -lpolarssl
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library $(BOOST_SERIALIZATION_LDFLAGS) 
+pdns_server_LDADD= -lpolarssl $(BOOST_SERIALIZATION_LIBS) 
 
 if BOTAN19
 pdns_server_SOURCES += botan19signers.cc botansigners.cc
@@ -74,8 +74,8 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
 	signingpipe.cc dnslabeltext.cc
 
-pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
-pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS)
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
+pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS)
 
 if BOTAN19
 pdnssec_SOURCES += botan19signers.cc botansigners.cc

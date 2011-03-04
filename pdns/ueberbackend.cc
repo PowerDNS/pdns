@@ -15,6 +15,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+
 #include "packetcache.hh"
 #include "utility.hh"
 
@@ -25,13 +28,12 @@
 #include <string>
 #include <map>
 #include <sys/types.h>
-
+#include <sstream>
 #include <errno.h>
 #include <iostream>
 #include <sstream>
 #include <functional>
 #include <boost/foreach.hpp>
-
 #include "dns.hh"
 #include "arguments.hh"
 #include "dnsbackend.hh"
@@ -219,15 +221,14 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   d_question.zoneId=-1;
     
   if(sd.db!=(DNSBackend *)-1) {
-    int cstat=cacheHas(d_question,d_answer);
-    if(cstat==0) {
+    int cstat=cacheHas(d_question,d_answers);
+    if(cstat==0) { // negative
       return false;
     }
-    else if(cstat==1) {
-      // ehm 
-      fillSOAData(d_answer.content,sd);
-      sd.domain_id=d_answer.domain_id;
-      sd.ttl=d_answer.ttl;
+    else if(cstat==1 && !d_answers.empty()) {
+      fillSOAData(d_answers[0].content,sd);
+      sd.domain_id=d_answers[0].domain_id;
+      sd.ttl=d_answers[0].ttl;
       sd.db=0;
       return true;
     }
@@ -241,7 +242,9 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       rr.content=serializeSOAData(sd);
       rr.ttl=sd.ttl;
       rr.domain_id=sd.domain_id;
-      addOneCache(d_question,rr);
+      vector<DNSResourceRecord> rrs;
+      rrs.push_back(rr);
+      addCache(d_question, rrs);
       return true;
     }
 
@@ -301,7 +304,8 @@ void UeberBackend::cleanup()
 // silly Solaris fix
 #undef PC
 
-int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
+// returns -1 for miss, 0 for negative match, 1 for hit
+int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
 {
   extern PacketCache PC;
   static unsigned int *qcachehit=S.getPointer("query-cache-hit");
@@ -318,8 +322,7 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
   string content;
   //  L<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
 
-  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, content, q.zoneId);   // think about lowercasing here
-
+  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, content, -1);   // think about lowercasing here
   if(!ret) {
     (*qcachemiss)++;
     return -1;
@@ -327,7 +330,11 @@ int UeberBackend::cacheHas(const Question &q, DNSResourceRecord &rr)
   (*qcachehit)++;
   if(content.empty()) // negatively cached
     return 0;
-  rr.unSerialize(content);
+  
+  std::istringstream istr(content);
+  boost::archive::binary_iarchive boa(istr);
+  
+  boa >> rrs;
   return 1;
 }
 
@@ -337,18 +344,22 @@ void UeberBackend::addNegCache(const Question &q)
   static int negqueryttl=::arg().asNum("negquery-cache-ttl");
   if(!negqueryttl)
     return;
-  //  L<<Logger::Warning<<"negative inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, -1);
 }
 
-void UeberBackend::addOneCache(const Question &q, const DNSResourceRecord &rr)
+void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &rrs)
 {
   extern PacketCache PC;
   static int queryttl=::arg().asNum("query-cache-ttl");
   if(!queryttl)
     return;
+  
   //  L<<Logger::Warning<<"inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, rr.serialize(), queryttl, q.zoneId);
+  std::ostringstream ostr;
+  boost::archive::binary_oarchive boa(ostr);
+  
+  boa << rrs;
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), queryttl, -1);
 }
 
 void UeberBackend::alsoNotifies(const string &domain, set<string> *ips)
@@ -396,8 +407,8 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   else {
     d_question.qtype=qtype;
     d_question.qname=qname;
-    d_question.zoneId=zoneId;
-    int cstat=cacheHas(d_question,d_answer);
+    d_question.zoneId=-1;
+    int cstat=cacheHas(d_question, d_answers);
     if(cstat<0) { // nothing
       d_negcached=d_cached=false;
       (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,pkt_p,zoneId);
@@ -405,15 +416,16 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
     else if(cstat==0) {
       d_negcached=true;
       d_cached=false;
+      d_answers.clear();
     }
     else {
       d_negcached=false;
       d_cached=true;
+      d_cachehandleiter = d_answers.begin();
     }
   }
 
   d_handle.parent=this;
-
 }
 
 bool UeberBackend::get(DNSResourceRecord &rr)
@@ -423,24 +435,22 @@ bool UeberBackend::get(DNSResourceRecord &rr)
   }
 
   if(d_cached) {
-    rr=d_answer;
-    d_negcached=true; // ugly, confusing 
-    return true;
+    if(d_cachehandleiter != d_answers.end()) {
+      rr=*d_cachehandleiter++;;
+      return true;
+    }
+    return false;
   }
   if(!d_handle.get(rr)) {
     if(!d_ancount && !d_handle.qname.empty()) // don't cache axfr
       addNegCache(d_question);
 
-    if(d_ancount==1) {
-      addOneCache(d_question, lastrr);
-    }
-
+    addCache(d_question, d_answers);
+    d_answers.clear();
     return false;
   }
-
-  if(!d_ancount++) {
-    lastrr=rr;
-  }
+  d_ancount++;
+  d_answers.push_back(rr);
   return true;
 }
 

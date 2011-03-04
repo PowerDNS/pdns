@@ -149,11 +149,12 @@ private:
     string qname;
     int zoneId;
   }d_question;
-  DNSResourceRecord d_answer;
+  vector<DNSResourceRecord> d_answers;
+  vector<DNSResourceRecord>::const_iterator d_cachehandleiter;
 
-  int cacheHas(const Question &q, DNSResourceRecord &rr);
+  int cacheHas(const Question &q, vector<DNSResourceRecord> &rrs);
   void addNegCache(const Question &q);
-  void addOneCache(const Question &q, const DNSResourceRecord &rr);
+  void addCache(const Question &q, const vector<DNSResourceRecord> &rrs);
   
   static pthread_mutex_t d_mut;
   static pthread_cond_t d_cond;

@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 #include <utility>
-
 #include "namespaces.hh"
 
 /** The QType class is meant to deal easily with the different kind of resource types, like 'A', 'NS',
@@ -62,6 +61,12 @@ public:
   bool operator<(const QType& rhs) const 
   {
     return code < rhs.code;
+  }
+
+  template<class Archive>
+  void serialize(Archive &ar, const unsigned int version)
+  {
+    ar & code;
   }
 
   bool operator==(const QType &) const; //!< equality operator

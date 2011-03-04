@@ -25,6 +25,12 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/version.hpp>
+
+
 #include "utility.hh"
 #include "qtype.hh"
 #include <time.h>
@@ -66,9 +72,6 @@ public:
   DNSResourceRecord() : qclass(1), priority(0), last_modified(0), d_place(ANSWER) {};
   ~DNSResourceRecord(){};
 
-  string serialize() const;
-  int unSerialize(const string &str);
-
   // data
   
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
@@ -76,7 +79,7 @@ public:
   string qname; //!< the name of this record, for example: www.powerdns.com
   string wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
-  uint16_t priority; //!< For qtype's that support a priority or preference. Currently only MX
+  uint16_t priority; //!< For qtypes that support a priority or preference (MX, SRV)
   uint32_t ttl; //!< Time To Live of this record
   int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
   time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
@@ -84,6 +87,22 @@ public:
   Place d_place; //!< This specifies where a record goes within the packet
 
   bool auth;
+
+  template<class Archive>
+  void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & qtype;
+    ar & qclass;
+    ar & qname;
+    ar & wildcardname;
+    ar & content;
+    ar & priority;
+    ar & ttl;
+    ar & domain_id;
+    ar & last_modified;
+    ar & d_place;
+    ar & auth;
+  }
 
   bool operator<(const DNSResourceRecord &b) const
   {
@@ -93,9 +112,6 @@ public:
       return(content < b.content);
     return false;
   }
-
-private:
-  string escape(const string &str) const;
 };
 
 #ifdef _MSC_VER
