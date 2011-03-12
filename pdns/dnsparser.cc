@@ -594,16 +594,17 @@ private:
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
 void ageDNSPacket(std::string& packet, uint32_t seconds)
 {
-  if(packet.length() < 12)
+  if(packet.length() < sizeof(dnsheader))
     return;
   try 
   {
-    const dnsheader* dh = (const dnsheader*)packet.c_str();
-    int numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
+    dnsheader dh;
+    memcpy((void*)&dh, (const dnsheader*)packet.c_str(), sizeof(dh));
+    int numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
     DNSPacketMangler dpm(packet);
     
     int n;
-    for(n=0; n < ntohs(dh->qdcount) ; ++n) {
+    for(n=0; n < ntohs(dh.qdcount) ; ++n) {
       dpm.skipLabel();
       dpm.skipBytes(4); // qtype, qclass
     }

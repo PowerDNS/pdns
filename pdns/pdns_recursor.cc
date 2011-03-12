@@ -809,14 +809,14 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     uint32_t age;
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
-	L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+        L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
       ageDNSPacket(response, age);
       sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
       if(response.length() >= sizeof(struct dnsheader))
-	updateRcodeStats(((struct dnsheader*)response.c_str())->rcode);
+        updateRcodeStats(((struct dnsheader*)response.c_str())->rcode);
       g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0); // we assume 0 usec
       return 0;
     }
