@@ -441,6 +441,7 @@ try
     cerr<<"deactivate-zone-key             Dectivate the key with key id KEY-ID in ZONE\n";
     cerr<<"export-zone-dnskey ZONE KEY-ID  Export to stdout the public DNSKEY described\n";
     cerr<<"export-zone-key ZONE KEY-ID     Export to stdout the private key described\n";
+    cerr<<"hash-zone-record ZONE RNAME     Calculate the NSEC3 hash for RNAME in ZONE\n";
     cerr<<"import-zone-key ZONE FILE       Import from a file a private key, ZSK or KSK\n";            
     cerr<<"                [ksk|zsk]       Defaults to KSK\n";
     cerr<<"rectify-zone ZONE               Fix up DNSSEC fields (order, auth)\n";
