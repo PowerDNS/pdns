@@ -483,7 +483,6 @@ int PacketHandler::processNotify(DNSPacket *p)
     return trySuperMaster(p);
   }
     
-  string authServer(p->getRemote());
   if(::arg().contains("trusted-notification-proxy", p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
@@ -491,40 +490,14 @@ int PacketHandler::processNotify(DNSPacket *p)
       return RCode::Refused;
     }
 
-    authServer = *di.masters.begin();
 
   }
   else if(!db->isMaster(p->qdomain, p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
-
-  uint32_t theirserial=0;
-
-  /* to quote Rusty Russell - this code is so bad that you can actually hear it suck */
-  /* this is an instant DoS, just spoof notifications from the address of the master and we block  */
-
-  Resolver resolver;
-  try {
-    resolver.getSoaSerial(authServer, p->qdomain, &theirserial);
-  }
-  catch(ResolverException& re) {
-    L<<Logger::Error<<re.reason<<endl;
-    return RCode::ServFail;
-  }
-
-  if(theirserial<=di.serial) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<< authServer <<", we are up to date: "<<
-      theirserial<<"<="<<di.serial<<endl;
-    return RCode::NoError;
-  }
-  else {
-    L<<Logger::Error<<"Received valid NOTIFY for "<<p->qdomain<<" (id="<<di.id<<") from master "<<p->getRemote()<<": "<<
-      theirserial<<" > "<<di.serial<<endl;
-
-    Communicator.addSuckRequest(p->qdomain, authServer, true); // priority
-  }
-  return -1; 
+  // ok, we've done our checks
+  Communicator.addSlaveCheckRequest(di, p->remote);
 }
 
 

@@ -50,6 +50,11 @@ struct DomainInfo
   time_t last_check;
   enum {Master,Slave,Native} kind;
   DNSBackend *backend;
+  
+  bool operator<(const DomainInfo& rhs) const
+  {
+    return zone < rhs.zone;
+  }
 };
 
 class DNSPacket;

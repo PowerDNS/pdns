@@ -160,11 +160,28 @@ struct SlaveSenderReceiver
 
 };
 
+
+void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote)
+{
+  Lock l(&d_lock);
+  d_tocheck.insert(di);
+  d_any_sem.post(); // kick the loop!
+}
+
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
   vector<DomainInfo> sdomains, rdomains;
-  B->getUnfreshSlaveInfos(&rdomains);
+  
+  {
+    Lock l(&d_lock);
+    rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
+    d_tocheck.clear();
+  }
+  
+  if(rdomains.empty()) // if we have priority domains, check them first
+    B->getUnfreshSlaveInfos(&rdomains);
+    
   
   {
     Lock l(&d_lock);
