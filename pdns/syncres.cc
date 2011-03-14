@@ -174,6 +174,27 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
     return true;
   }
 
+  LOG<<prefix<<qname<<": nothing found so far in '"<<authdomain<<"', trying wildcards"<<endl;
+  string wcarddomain(qname);
+  while(!pdns_iequals(wcarddomain, iter->first) && chopOffDotted(wcarddomain)) {
+    LOG<<prefix<<qname<<": trying '*."+wcarddomain+"' in "<<authdomain<<endl;
+    range=iter->second.d_records.equal_range(make_tuple("*."+wcarddomain)); 
+    if(range.first==range.second)
+      continue;
+
+    for(ziter=range.first; ziter!=range.second; ++ziter) {
+      DNSResourceRecord rr=*ziter;
+      if(rr.qtype == qtype || qtype.getCode() == QType::ANY) {
+        rr.qname = qname;
+        rr.d_place=DNSResourceRecord::ANSWER;
+        ret.push_back(rr);
+      }
+    }
+    LOG<<prefix<<qname<<": in '"<<authdomain<<"', had wildcard match on '*."+wcarddomain+"'"<<endl;
+    res=RCode::NoError;
+    return true;
+  }
+
   string nsdomain(qname);
 
   while(chopOffDotted(nsdomain) && !pdns_iequals(nsdomain, iter->first)) {
@@ -204,8 +225,6 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
 
   return true;
 }
-
-
 
 void SyncRes::doEDNSDumpAndClose(int fd)
 {
