@@ -114,8 +114,14 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     scoped_ptr<PowerDNSLua> pdl;
     vector<string> scripts;
     if(B->getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
-      pdl.reset(new PowerDNSLua(scripts[0]));
-      L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
+      try {
+        pdl.reset(new PowerDNSLua(scripts[0]));
+        L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
+      }
+      catch(std::exception& e) {
+        L<<Logger::Error<<"Failed to load Lua editing script '"<<scripts[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
+        return;
+      }
     }
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret);
     
