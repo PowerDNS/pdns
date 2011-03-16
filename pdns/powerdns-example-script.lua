@@ -52,3 +52,17 @@ function nxdomain ( remoteip, domain, qtype )
 		return -1, ret
 	end
 end
+
+function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
+	if qtype ~= pdns.SOA or zone ~= "secured-by-gost.org"
+	then
+		ret = {}
+		return -1, ret
+	end
+
+	print "got soa!"
+	ret={}
+	ret[1]={qname=qname, qtype=qtype, content=content, ttl=ttl}
+	ret[2]={qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
+	return 0, ret
+end

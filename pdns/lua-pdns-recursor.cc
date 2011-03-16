@@ -19,6 +19,12 @@ bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& loc
   return false;
 }
 
+bool PowerDNSLua::axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
+{
+  return false;
+}
+
+
 PowerDNSLua::~PowerDNSLua()
 {
 
@@ -166,6 +172,86 @@ bool PowerDNSLua::preresolve(const ComboAddress& remote, const ComboAddress& loc
   return passthrough("preresolve", remote, local, query, qtype, ret, res, variable);
 }
 
+bool PowerDNSLua::axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
+{
+  lua_getglobal(d_lua,  "axfrfilter");
+  if(!lua_isfunction(d_lua, -1)) {
+    cerr<<"No such function 'axfrfilter'\n";
+    lua_pop(d_lua, 1);
+    return false;
+  }
+  
+  lua_pushstring(d_lua,  remote.toString().c_str() );
+  lua_pushstring(d_lua,  zone.c_str() );
+  lua_pushstring(d_lua,  in.qname.c_str() );
+  lua_pushnumber(d_lua,  in.qtype.getCode() );
+  lua_pushnumber(d_lua,  in.ttl );
+  lua_pushnumber(d_lua,  in.priority );
+  lua_pushstring(d_lua,  in.content.c_str() );
+
+  if(lua_pcall(d_lua,  7, 2, 0)) { // error 
+    string error=string("lua error in axfrfilter: ")+lua_tostring(d_lua, -1);
+    lua_pop(d_lua, 1);
+    throw runtime_error(error);
+    return false;
+  }
+  
+  int newres = (int)lua_tonumber(d_lua, 1); // did we handle it?
+  if(newres < 0) {
+    //cerr << "handler did not handle"<<endl;
+    lua_pop(d_lua, 2);
+    return false;
+  }
+
+  /* get the result */
+  DNSResourceRecord rr;
+  rr.d_place = DNSResourceRecord::ANSWER;
+  rr.ttl = 3600;
+  rr.domain_id = in.domain_id;
+
+  out.clear();
+
+  /*           1       2   3   4   */
+  /* stack:  boolean table key row */
+
+#ifndef LUA_VERSION_NUM
+  int tableLen = luaL_getn(d_lua, 2);
+#else
+  int tableLen = lua_objlen(d_lua, 2);
+#endif
+  cerr<<"Returned "<<tableLen<<" rows"<<endl;
+  for(int n=1; n < tableLen + 1; ++n) {
+    lua_pushnumber(d_lua, n);
+    lua_gettable(d_lua, 2);
+
+    uint32_t tmpnum=0;
+    if(!getFromTable("qtype", tmpnum)) 
+      rr.qtype=QType::A;
+    else
+      rr.qtype=tmpnum;
+
+    getFromTable("content", rr.content);
+    if(!getFromTable("ttl", rr.ttl))
+      rr.ttl=3600;
+
+    if(!getFromTable("qname", rr.qname))
+      rr.qname = zone;
+
+    if(!getFromTable("place", tmpnum))
+      rr.d_place = DNSResourceRecord::ANSWER;
+    else
+      rr.d_place = (DNSResourceRecord::Place) tmpnum;
+
+    /* removes 'value'; keeps 'key' for next iteration */
+    lua_pop(d_lua, 1); // table
+
+    //    cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
+    out.push_back(rr);
+  }
+  lua_pop(d_lua, 2); // c
+  return true;
+}
+
 bool PowerDNSLua::getFromTable(const std::string& key, std::string& value)
 {
   lua_pushstring(d_lua, key.c_str()); // 4 is now '1'
@@ -272,7 +358,7 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
     /* removes 'value'; keeps 'key' for next iteration */
     lua_pop(d_lua, 1); // table
 
-    //    cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
+    // cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
     ret.push_back(rr);
   }
 

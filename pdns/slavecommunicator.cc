@@ -37,8 +37,10 @@
 #include <boost/lexical_cast.hpp>
 #include "base64.hh"
 #include "inflighter.cc"
-
+#include "lua-pdns-recursor.hh"
 #include "namespaces.hh"
+#include <boost/scoped_ptr.hpp>
+using boost::scoped_ptr;
 
 void CommunicatorClass::addSuckRequest(const string &domain, const string &master, bool priority)
 {
@@ -109,6 +111,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       B64Decode(tsigsecret64, tsigsecret);
     }
     
+    scoped_ptr<PowerDNSLua> pdl;
+    vector<string> scripts;
+    if(B->getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
+      pdl.reset(new PowerDNSLua(scripts[0]));
+      L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
+    }
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret);
     
     while(retriever.getChunk(recs)) {
@@ -142,7 +150,15 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         if(i->qtype.getCode()>=60000)
           throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
 #endif
-        di.backend->feedRecord(*i);
+        vector<DNSResourceRecord> out;
+        if(pdl && pdl->axfrfilter(raddr, domain, *i, out)) {
+          BOOST_FOREACH(const DNSResourceRecord& rr, out) {
+            di.backend->feedRecord(rr);
+          }
+        }
+        else {
+          di.backend->feedRecord(*i);
+        }
       }
     }
     

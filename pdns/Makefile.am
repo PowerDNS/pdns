@@ -41,11 +41,11 @@ aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
-md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc
+md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns-recursor.cc
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library $(BOOST_SERIALIZATION_LDFLAGS) 
-pdns_server_LDADD= -lpolarssl $(BOOST_SERIALIZATION_LIBS) 
+pdns_server_LDADD= -lpolarssl $(BOOST_SERIALIZATION_LIBS) -llua5.1 
 
 if BOTAN19
 pdns_server_SOURCES += botan19signers.cc botansigners.cc
