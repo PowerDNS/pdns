@@ -23,13 +23,13 @@ html.tar.gz: html/index.html
 	xmlto --with-dblatex pdf $<
 	mv pdns-expanded.pdf pdns.pdf
 
-#%.xml: %.txt
-#	asciidoc -b docbook -d manpage  $<
+%1.xml: %1.txt
+	asciidoc -b docbook -d manpage  $<
         
-#: %.xml
-#	xmlto man $<
+%.1: %.1.xml
+	xmlto man $<
                 
-%.html: %.txt
+%.html: %1.txt
 	asciidoc -b xhtml11 -d manpage  $<
                         
 publish:
