@@ -333,7 +333,7 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
   
   std::istringstream istr(content);
   boost::archive::binary_iarchive boa(istr);
-  
+  rrs.clear();
   boa >> rrs;
   return 1;
 }
