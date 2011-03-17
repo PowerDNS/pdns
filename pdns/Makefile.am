@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ -I/usr/include/lua5.1 -Iext/polarssl/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) -Iext/polarssl/include
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
 EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
@@ -45,7 +45,7 @@ md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns-recursor.cc
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
-pdns_server_LDADD= -lpolarssl $(BOOST_SERIALIZATION_LIBS) -llua5.1 
+pdns_server_LDADD= -lpolarssl $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS)
 
 
 if BOTAN19
@@ -200,7 +200,7 @@ recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc
 
 #../modules/gmysqlbackend/smysql.cc 
 
-pdns_recursor_LDFLAGS= -llua5.1 
+pdns_recursor_LDFLAGS= $(LUA_LIBS)
 pdns_recursor_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \

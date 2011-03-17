@@ -24,6 +24,16 @@ BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
 #BOOST_SYSTEM([mt])
 
+PKG_CHECK_MODULES(LUA, $LUAPC >= 5.1, [
+	AC_DEFINE([HAVE_LUA], [1], [liblua])
+        AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
+   ],[
+      PKG_CHECK_MODULES(LUA, lua5.1 >= 5.1, [
+      	AC_DEFINE([HAVE_LUA], [1], [liblua])
+        AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
+         ]) 
+])
+
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h  getopt.h limits.h strings.h sys/time.h syslog.h unistd.h)
