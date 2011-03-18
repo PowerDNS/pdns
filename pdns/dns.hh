@@ -69,7 +69,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : qclass(1), priority(0), last_modified(0), d_place(ANSWER) {};
+  DNSResourceRecord() : qclass(1), priority(0), last_modified(0), d_place(ANSWER), auth(1) {};
   ~DNSResourceRecord(){};
 
   // data
