@@ -30,7 +30,7 @@ gODBCBackend::gODBCBackend (const std::string & mode, const std::string & suffix
     throw AhuException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Warning << mode << " Connection succesful" << std::endl;
+  L << Logger::Warning << mode << " Connection successful" << std::endl;
 }
 
 

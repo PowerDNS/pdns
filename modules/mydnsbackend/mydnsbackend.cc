@@ -61,7 +61,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
         d_rrwhere=(mustDo("rr-active")?"active = 1 and ":"")+getArg("rr-where");
         d_soawhere=(mustDo("soa-active")?"active = 1 and ":"")+getArg("soa-where");
 
-        L<<Logger::Warning<<backendName<<" Connection succesful"<<endl;
+        L<<Logger::Warning<<backendName<<" Connection successful"<<endl;
 }
 
 MyDNSBackend::~MyDNSBackend() {
