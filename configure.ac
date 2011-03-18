@@ -43,6 +43,11 @@ if test "$WITH_LUA" != "no"; then
         PKG_CHECK_MODULES(LUA, lua5.1 >= 5.1, [
         	AC_DEFINE([HAVE_LUA], [1], [liblua])
                 AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
+        ],[
+        PKG_CHECK_MODULES(LUA, lua-5.1 >= 5.1, [
+        	AC_DEFINE([HAVE_LUA], [1], [liblua])
+                AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
+                ]) 
                 ]) 
         ])
  AC_SUBST(LUA_CFLAGS)
