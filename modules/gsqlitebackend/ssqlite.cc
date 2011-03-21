@@ -143,8 +143,8 @@ std::string SSQLite::escape( const std::string & name)
   
     for( std::string::const_iterator i = name.begin(); i != name.end(); ++i ) 
     {
-      if( *i == '\'' || *i == '\\' )
-        a += '\\';
+      if( *i == '\'')
+        a += '\'';
         
       a += *i;
     }
