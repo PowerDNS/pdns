@@ -9,7 +9,7 @@
       <affiliation>
         <orgname>PowerDNS BV</orgname>
         <address>
-          <email>pdns.bd@powerdns.com</email>
+          <email>powerdns.support@netherlabs.nl</email>
         </address>
       </affiliation>
     </author>
@@ -8563,7 +8563,8 @@ GRANT ALL ON records TO pdns;
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
 	  VALUES (1,'test.com','mail.test.com','MX',120,25);
 	</screen>
-	
+	<warning><para>Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present
+    it will inevitably cause problems, problems that may be hard to debug.</para></warning>
 	If we now requery our database, <command>www.test.com</command> should be present:
 	<screen>
 	  $ host www.test.com 127.0.0.1
@@ -12109,6 +12110,8 @@ end
       This chapter lists all record types PDNS supports, and how they are stored in backends. The list is mostly alphabetical but
       some types are grouped.
     </para>
+    <para><warning><para>Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present
+    it will inevitably cause problems, problems that may be hard to debug.</para></warning></para>
     <para>
       The PowerDNS Recursor can serve and store all record types, regardless of wether these are explicitly supported. 
     <variablelist>
@@ -12367,10 +12370,11 @@ end
       </para>
       <para>
 	The PowerDNS company provides free support on the public mailing lists, and can help or support you in private as well. 
-	For first class and rapid support, please contact pdns.bd@trilab.com.
+	For first class and rapid support, please contact powerdns-support@netherlabs.nl, or see <ulink url="http://www.powerdns.com">www.powerdns.com</ulink>
       </para>
       <para>
 	More information about the PowerDNS community, and its mailing lists, can be found on <ulink url="http://wiki.powerdns.com">its Wiki</ulink>.
+	On the wiki, you will also find information on how to file bugs.
       </para>
       <para>
 	Below, please find a list of common questions asked on our public mailing lists.
@@ -12421,7 +12425,7 @@ end
 	  <listitem>
 	    <para>
 	      If you desire privacy, please consider entering a support relationship with us, 
-	      in which case you can email <email>pdns.bd@trilab.com</email>.
+	      in which case we invite you to contact <email>powerdns.support.sales@netherlabs.eu</email>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -12693,7 +12697,8 @@ end
 	  <term>Q: I need a backend but I can't write it, can you help?</term>
 	  <listitem>
 	    <para>
-	      A: Yes, we also do custom development. Contact us at pdns.bd@trilab.com.
+	      A: Yes, we also do custom development. Contact us at powerdns.support.sales@netherlabs.eu, or visit
+	      <ulink url="http://www.powerdns.com">www.powerdns.com</ulink>
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -13626,7 +13631,9 @@ CREATE TABLE Zones (
       <para>
 	PostgreSQL and MySQL backend with easily configurable SQL statements, allowing you to graft PDNS on any PostgreSQL or MySQL database of your choosing. 
 	Because all database schemas will be different, a generic backend is needed to cover all needs. 
-      </para>		
+      </para>	
+      <para><warning><para>Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present
+    it will inevitably cause problems, problems that may be hard to debug.</para></warning></para>	
       <para>
 	The template queries are expanded using the C function 'snprintf' which implies that substitutions are performed on the basis of %-place holders. 
 	To place a % in a query which will not be substituted, use %%. Make sure to fill out the search key, often called 'name' in lower case!
@@ -15070,6 +15077,8 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
 	He also maintains the <ulink url="http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend">LDAP backends documentation</ulink> there. The information 
 	below may be outdated!
       </para>
+      <para><warning><para>Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present
+    it will inevitably cause problems, problems that may be hard to debug.</para></warning></para>
       <para>
 	<table>
 	  <title>LDAP backend capabilities</title>
