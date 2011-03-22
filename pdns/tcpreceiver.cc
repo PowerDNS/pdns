@@ -709,9 +709,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
   
   udiff=dt.udiffNoReset();
-  cerr<<"Done: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
-  cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
-  cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
+  if(securedZone) 
+    L<<Logger::Info<<"Done signing: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<endl;
   
   DLOG(L<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */

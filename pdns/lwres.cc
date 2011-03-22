@@ -164,6 +164,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
   lwr->d_result.clear();
   try {
+    lwr->d_tcbit=0;
     MOADNSParser mdp((const char*)buf.get(), len);
     lwr->d_aabit=mdp.d_header.aa;
     lwr->d_tcbit=mdp.d_header.tc;

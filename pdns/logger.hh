@@ -110,6 +110,7 @@ public:
   */
   Logger& operator<<(const string &s);   //!< log a string
   Logger& operator<<(int);   //!< log an int
+  Logger& operator<<(double);   //!< log a double
   Logger& operator<<(unsigned int);   //!< log an unsigned int
   Logger& operator<<(long);   //!< log an unsigned int
   Logger& operator<<(unsigned long);   //!< log an unsigned int

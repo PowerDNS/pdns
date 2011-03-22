@@ -137,7 +137,7 @@ void *WebServer::serveConnection(void *p)
     }
 
     HandlerFunction *fptr;
-    if((fptr=d_functions[baseUrl])) {
+    if(d_functions.count(baseUrl) && (fptr=d_functions[baseUrl])) {
       bool custom=false;
       string ret=(*fptr)(varmap, d_that, &custom);
 

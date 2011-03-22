@@ -125,6 +125,14 @@ Logger& Logger::operator<<(int i)
   return *this;
 }
 
+Logger& Logger::operator<<(double i)
+{
+  ostringstream tmp;
+  tmp<<i;
+  *this<<tmp.str();
+  return *this;
+}
+
 Logger& Logger::operator<<(unsigned int i)
 {
   ostringstream tmp;
