@@ -69,7 +69,7 @@ int SSQLite3::doQuery( const std::string & query )
   const char *pTail;
   // Execute the query.
   
-  if ( sqlite3_prepare( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )
+  if ( sqlite3_prepare_v2( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )
     throw sPerrorException( string("Unable to compile SQLite statement : ")+ sqlite3_errmsg( m_pDB ) );
   return 0;
 }
