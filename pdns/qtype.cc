@@ -106,7 +106,14 @@ int QType::chartocode(const char *p)
   for(pos=names.begin();pos<names.end();++pos)
     if(pos->first==p)
       return pos->second;
+  
+  if(*p=='#') {
+    return atoi(p+1);
+  }
 
+  if(boost::starts_with(p, "TYPE"))
+    return atoi(p+4);
+    
   return 0;
 }
 
