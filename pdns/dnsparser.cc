@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2010  PowerDNS.COM BV
+    Copyright (C) 2005 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -100,8 +100,6 @@ static const string EncodeDNSLabel(const string& input)
     }  
   }    
   ret.append(1, 0);
-//  cerr<<"Asked to encode '"<<input<<"', returning: '"<<makeHexDump(ret)<<endl;
-//  cerr<<"parts length: "<<parts.size()<<endl;
   return ret;
 }
 
@@ -171,7 +169,6 @@ DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
   return i->second(content);
 }
 
-
 DNSRecordContent::typemap_t& DNSRecordContent::getTypemap()
 {
   static DNSRecordContent::typemap_t typemap;
@@ -180,14 +177,14 @@ DNSRecordContent::typemap_t& DNSRecordContent::getTypemap()
 
 DNSRecordContent::n2typemap_t& DNSRecordContent::getN2Typemap()
 {
-  static DNSRecordContent::n2typemap_t namemap;
-  return namemap;
+  static DNSRecordContent::n2typemap_t n2typemap;
+  return n2typemap;
 }
 
 DNSRecordContent::t2namemap_t& DNSRecordContent::getT2Namemap()
 {
-  static DNSRecordContent::t2namemap_t namemap;
-  return namemap;
+  static DNSRecordContent::t2namemap_t t2namemap;
+  return t2namemap;
 }
 
 
@@ -196,8 +193,6 @@ DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
   static DNSRecordContent::zmakermap_t zmakermap;
   return zmakermap;
 }
-
-
 
 void MOADNSParser::init(const char *packet, unsigned int len)
 {
