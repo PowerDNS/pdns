@@ -113,7 +113,7 @@ bool SSQLite3::getRow( row_t & row )
   }
 
   // Something went wrong, complain.
-  throw sPerrorException( "Error while retrieving SQLite query results" );
+  throw sPerrorException( "Error while retrieving SQLite query results: "+string(sqlite3_errmsg(m_pDB) ));
 
   // Prevent some compilers from complaining.
   return false;
