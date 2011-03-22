@@ -513,13 +513,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     B64Decode(tsig64, tsigsecret);
   }
   
-  // now start list zone
-  if(!(sd.db->list(target, sd.domain_id))) {  
-    L<<Logger::Error<<"Backend signals error condition"<<endl;
-    outpacket->setRcode(2); // 'SERVFAIL'
-    sendPacket(outpacket,outsock);
-    return 0;
-  }
   
   UeberBackend signatureDB; 
   
@@ -527,6 +520,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   DLOG(L<<"Sending out SOA"<<endl);
   DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
   outpacket->addRecord(soa);
+  
   if(securedZone)
     addRRSigs(dk, signatureDB, target, outpacket->getRRS());
   
@@ -544,8 +538,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   nsecxrepo_t nsecxrepo;
   
   // this is where the DNSKEYs go  in
+  
   DNSSECKeeper::keyset_t keys = dk.getKeys(target);
+  
   DNSResourceRecord rr;
+  
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
     rr.qname = target;
     rr.qtype = QType(QType::DNSKEY);
@@ -559,7 +556,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     ne.d_ttl = rr.ttl;
     csp.submit(rr);
   }
-
+  
   if(NSEC3Zone) { // now stuff in the NSEC3PARAM
     rr.qtype = QType(QType::NSEC3PARAM);
     ns3pr.d_flags = 0;
@@ -572,6 +569,14 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     csp.submit(rr);
   }
   
+  // now start list zone
+  if(!(sd.db->list(target, sd.domain_id))) {  
+    L<<Logger::Error<<"Backend signals error condition"<<endl;
+    outpacket->setRcode(2); // 'SERVFAIL'
+    sendPacket(outpacket,outsock);
+    return 0;
+  }
+
   /* now write all other records */
   
   string keyname;
