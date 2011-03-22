@@ -24,7 +24,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
         		  password.empty() ? 0 : password.c_str(),
         		  database.c_str(), port,
         		  msocket.empty() ? 0 : msocket.c_str(),
-        		  0)) {
+        		  CLIENT_MULTI_RESULTS)) {
 
     throw sPerrorException("Unable to connect to database");
   }
@@ -95,6 +95,13 @@ bool SMySQL::getRow(row_t &row)
     return true;
   }
   mysql_free_result(d_rres);  
+
+  while (mysql_next_result(&d_db) == 0) {
+    if ((d_rres = mysql_use_result(&d_db))) {
+      mysql_free_result(d_rres);
+    }
+  }
+
   d_rres=0;
   return false;
 }
