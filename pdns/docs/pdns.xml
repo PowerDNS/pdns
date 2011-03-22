@@ -11553,6 +11553,82 @@ end
 	  where a domain comes from.
 	</para>
       </sect2>
+      <sect2><title>Modifying a slave zone using a script</title>
+      <para>
+	As of version 3.0, the PowerDNS Authoritative Server can invoke a Lua script on an incoming AXFR zone transfer. 
+	The user-defined function axfrfilter within your script is invoked for each resource record read during the transfer, 
+	and the outcome of the function defines what PowerDNS does with the records.
+      </para>
+      <para>(idea and documentation contributed by Jan-Piet Mens)</para>
+      <para>
+	What you can accomplish using a Lua script:
+	<itemizedlist>
+	  <listitem><para>Ensure consistent values on SOA</para></listitem>
+	  <listitem><para>Change incoming SOA serial number to a YYYYMMDDnn format</para></listitem>
+	  <listitem><para>Ensure consistent NS RRset</para></listitem>
+	  <listitem><para>Timestamp the zone transfer with a TXT record</para></listitem>
+	</itemizedlist>
+      </para>
+      <para>
+To enable a Lua script for a particular slave zone, determine the domain_id for the zone from the `domains` table, and add a row to the `domainmetadata` table for the domain. Supposing the domain we want has an `id` of 3, the following SQL statement will enable the Lua script `my.lua` for that domain:
+<programlisting>
+	INSERT INTO domainmetadata (domain_id, kind, content) VALUES (3, "LUA-AXFR-SCRIPT", "/lua/my.lua");
+</programlisting>
+      </para>
+      <para>
+	  The Lua script must both exist and be syntactically correct; if not, the zone transfer is not performed.
+      </para>
+      <para>Your Lua functions have access to the query codes through a pre-defined Lua table called `pdns`. 
+      For example if you want to check for a CNAME record you can either compare `qtype` to the numeric constant 5 or the value 
+      `pdns.CNAME` -- they are equivalent.</para>
+      <para>
+	If your function decides to handle a resource record it must return a result code of 0 together with a Lua table 
+	containing one or more replacement records to be stored in the back-end database. If, on the other hand, your 
+	function decides not to modify a record, it must return -1 and an empty table indicating that PowerDNS should 
+	handle the incoming record as normal.
+      </para>
+      <para>
+	Consider the following simple example:
+<programlisting>
+	function axfrfilter(remoteip, zone, qname, qtype, ttl, prio, content)
+
+	   -- Replace each HINFO records with this TXT
+	   if qtype == pdns.HINFO then
+	      resp = {}
+	      resp[1] = {    qname   = qname,
+		    qtype   = pdns.TXT,
+		    ttl   = 99,
+		    content   = "Hello Ahu!"
+		 }
+	      return 0, resp
+	   end
+
+	   -- Grab each _tstamp TXT record and add a time stamp
+	   if qtype == pdns.TXT and string.starts(qname, "_tstamp.") then
+	      resp = {}
+	      resp[1] = {
+		    qname   = qname,
+		    qtype   = qtype,
+		    ttl   = ttl,
+		    content   = os.date("Ver %Y%m%d-%H:%M")
+		 }
+	      return 0, resp
+	   end
+
+	   resp = {}
+	   return -1, resp
+	end
+
+	function string.starts(s, start)
+	   return s.sub(s, 1, s.len(start)) == start
+	end
+</programlisting>
+    Upon an incoming AXFR, PowerDNS calls our `axfrfilter` function for each record. All HINFO records 
+    are replaced by a TXT record with a TTL of 99 seconds and the specified string. TXT Records with 
+    names starting with `_tstamp.` get their value (_rdata_) set to the current time stamp. 
+    All other records are unhandled.
+      </para>
+      </sect2>
     </sect1>
 
     <sect1 id="master"><title>Master operation</title>
