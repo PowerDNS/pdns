@@ -8,12 +8,12 @@
 #include <vector>
 
 // The following line makes Bert puke everytime he sees it.
-#define WINDOWS_LEAN_AND_MEAN
-#include <windows.h>
+//#define WINDOWS_LEAN_AND_MEAN
+//#include <windows.h>
 #include <sql.h>
 #include <sqlext.h>
 
-#include "backends/gsql/ssql.hh"
+#include "pdns/backends/gsql/ssql.hh"
 
 
 //! ODBC SSql implementation for use with the Generic ODBC Backend.
@@ -24,7 +24,7 @@ private:
   struct column_t
   {
     SQLSMALLINT m_type;       //!< Type of the column.
-    SQLUINTEGER m_size;       //!< Column size.
+    SQLULEN     m_size;       //!< Column size.
     SQLPOINTER  m_pData;      //!< Pointer to the memory where to store the data.
     bool        m_canBeNull;  //!< Can this column be null?
   };

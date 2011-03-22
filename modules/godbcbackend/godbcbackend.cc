@@ -1,18 +1,18 @@
 // The Generic ODBC Backend
 // By Michel Stol <michel@powerdns.com>
 
-#include "utility.hh"
+#include "pdns/utility.hh"
 #include <map>
 #include <sstream>
 #include <string>
 
-#include "dns.hh"
-#include "dnsbackend.hh"
-#include "dnspacket.hh"
-#include "ueberbackend.hh"
-#include "ahuexception.hh"
-#include "logger.hh"
-#include "arguments.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/ueberbackend.hh"
+#include "pdns/ahuexception.hh"
+#include "pdns/logger.hh"
+#include "pdns/arguments.hh"
 #include "sodbc.hh"
 #include "godbcbackend.hh"
 

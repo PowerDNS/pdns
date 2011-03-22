@@ -2,7 +2,7 @@
 // By Michel Stol <michel@powerdns.com>
 
 #include <string>
-#include "backends/gsql/gsqlbackend.hh"
+#include "pdns/backends/gsql/gsqlbackend.hh"
 
 class gODBCBackend : public GSQLBackend
 {

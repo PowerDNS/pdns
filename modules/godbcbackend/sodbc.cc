@@ -1,10 +1,11 @@
 // The Generic ODBC Backend
 // By Michel Stol <michel@powerdns.com>
 
-#include "utility.hh"
+#include "pdns/utility.hh"
 #include <sstream>
 #include "sodbc.hh"
-
+#include <malloc.h>
+#include <string.h>
 
 // Constructor.
 SODBC::SODBC( 
@@ -28,9 +29,9 @@ SODBC::SODBC(
   testResult( result, "Could not allocate a connection handle." );
 
   // Connect to the database.
-  char *l_dsn       = _strdup( dsn.c_str());
-  char *l_username  = _strdup( username.c_str());
-  char *l_password  = _strdup( password.c_str());
+  char *l_dsn       = strdup( dsn.c_str());
+  char *l_username  = strdup( username.c_str());
+  char *l_password  = strdup( password.c_str());
 
   result = SQLConnect( m_connection,
     reinterpret_cast< SQLTCHAR * >( l_dsn ), dsn.length(),
@@ -81,7 +82,7 @@ int SODBC::doQuery( const std::string & query )
   if ( m_busy )
     throw SSqlException( "Tried to execute another query while being busy." );
 
-  tmp = _strdup( query.c_str());
+  tmp = strdup( query.c_str());
 
   // Execute query.
   result = SQLExecDirect( m_statement, reinterpret_cast< SQLTCHAR * >( tmp ), query.length());
@@ -176,7 +177,7 @@ int SODBC::doCommand( const std::string & command )
   if ( m_busy )
     throw SSqlException( "Tried to execute another query while being busy." );
 
-  tmp = _strdup( command.c_str());
+  tmp = strdup( command.c_str());
 
   // Execute query.
   result = SQLExecDirect( m_statement, reinterpret_cast< SQLTCHAR * >( tmp ), command.length());
@@ -216,7 +217,7 @@ bool SODBC::getRow( row_t & row )
   if ( result == SQL_SUCCESS || result == SQL_SUCCESS_WITH_INFO )
   {
     // We've got a data row, now lets get the results.
-    SQLINTEGER len;
+    SQLLEN len;
     for ( int i = 0; i < m_columnInfo.size(); i++ )
     {
       if ( m_columnInfo[ i ].m_pData == NULL )
