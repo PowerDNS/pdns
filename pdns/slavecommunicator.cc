@@ -42,6 +42,11 @@
 #include <boost/scoped_ptr.hpp>
 using boost::scoped_ptr;
 
+template<typename T> bool rfc1982LessThan(T a, T b)
+{
+  return ((signed)(a - b)) < 0;
+}
+
 void CommunicatorClass::addSuckRequest(const string &domain, const string &master, bool priority)
 {
   Lock l(&d_lock);
@@ -349,7 +354,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
     
-    if(theirserial < ourserial) {
+    if(rfc1982LessThan(theirserial, ourserial)) {
       L<<Logger::Error<<"Domain "<<di.zone<<" more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
