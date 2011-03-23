@@ -447,9 +447,15 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       // XXX FIXME THIS MIGHT BE VERY SLOW!
       ret.reserve(ret.size() + labellen + 2);
       for(string::size_type n = 0 ; n < labellen; ++n, frompos++) {
-        if(content.at(frompos)=='.' || content.at(frompos)=='\\')
+        if(content.at(frompos)=='.' || content.at(frompos)=='\\') {
           ret.append(1, '\\');
-        ret.append(1, content[frompos]);
+          ret.append(1, content[frompos]);
+        }
+        else if(content.at(frompos)==' ') {
+          ret+="\\032";
+        }
+        else 
+          ret.append(1, content[frompos]);
       }
       ret.append(1,'.');
     }

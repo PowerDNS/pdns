@@ -147,6 +147,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
     throw RecordTextException("Overflow reading 8 bit integer from record content"); // fixme improve
 }
 
+// this code should leave all the escapes around 
 void RecordTextReader::xfrLabel(string& val, bool) 
 {
   skipSpaces();
@@ -158,13 +159,9 @@ void RecordTextReader::xfrLabel(string& val, bool)
   while(d_pos < d_end) {
     if(strptr[d_pos]!='\r' && dns_isspace(strptr[d_pos]))
       break;
-
-    if(strptr[d_pos]=='\\' && d_pos < d_end - 1 && strptr[d_pos+1]!='.')  // leave the \. escape around
-      d_pos++;
-
+      
     d_pos++;
   }
-
   val.append(strptr+begin_pos, strptr+d_pos);      
 
   if(val.empty())
@@ -440,24 +437,13 @@ void RecordTextWriter::xfr8BitInt(const uint8_t& val)
   xfr32BitInt(val);
 }
 
-
+// should not mess with the escapes
 void RecordTextWriter::xfrLabel(const string& val, bool)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  if(val.find(' ')==string::npos) 
-    d_string+=val;
-  else {
-    d_string.reserve(d_string.size()+val.size()+3);
-    for(string::size_type pos=0; pos < val.size() ; ++pos)
-      if(dns_isspace(val[pos]))
-        d_string+="\\ ";
-      else if(val[pos]=='\\')
-        d_string.append(1,'\\');
-      else
-        d_string.append(1,val[pos]);
-  }
-  //  d_string.append(1,'.');
+  
+  d_string+=val;
 }
 
 void RecordTextWriter::xfrBlob(const string& val, int)

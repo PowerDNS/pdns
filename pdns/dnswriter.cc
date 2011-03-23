@@ -205,7 +205,6 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
     d_record.push_back(0);
     return;
   }
-
   bool unescaped=labeltokUnescape(parts, label); 
   
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
@@ -239,6 +238,7 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
     if(unescaped) {
       string part(label.c_str() + i -> first, i->second - i->first);
       boost::replace_all(part, "\\.", ".");
+      boost::replace_all(part, "\\032", " ");
       boost::replace_all(part, "\\\\", "\\"); 
       if(part.size() > 255)
           throw MOADNSException("DNSPacketWriter::xfrLabel() tried to write an overly large label");
