@@ -1,6 +1,6 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
-AM_INIT_AUTOMAKE(pdns, 3.0-pre)
+AM_INIT_AUTOMAKE(pdns, 3.0-pre.20110323.2089)
 AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 AC_C_BIGENDIAN 
@@ -643,6 +643,7 @@ modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/geobackend/Makefile modules/opendbxbackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/godbcbackend/Makefile \
+modules/odbcbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile 
 modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile)
