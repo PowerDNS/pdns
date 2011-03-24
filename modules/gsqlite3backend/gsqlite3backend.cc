@@ -96,6 +96,8 @@ public:
     declare( suffix, "supermaster-query", "", "select account from supermasters where ip='%s' and nameserver='%s'");
     declare( suffix, "insert-slave-query", "", "insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')");
     declare( suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')");
+    declare( suffix, "insert-record-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,name,auth) values ('%s',%d,%d,'%s',%d,'%s', %d)");
+    
     declare( suffix, "update-serial-query", "", "update domains set notified_serial=%d where id=%d");
     declare( suffix, "update-lastcheck-query", "", "update domains set last_check=%d where id=%d");
     declare( suffix, "info-all-master-query", "", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
