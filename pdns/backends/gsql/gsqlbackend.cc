@@ -246,7 +246,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
-  d_InsertRecordQuery=getArg("insert-record-query");
+  d_InsertRecordQuery=getArg("insert-record-query"+authswitch);
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
@@ -694,11 +694,22 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 {
   char output[10240];
-  snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
+  if(d_dnssecQueries) {
+    snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
+	   sqlEscape(r.content).c_str(),
+	   r.ttl, r.priority,
+	   sqlEscape(r.qtype.getName()).c_str(),
+	   r.domain_id, toLower(sqlEscape(r.qname)).c_str(), (int)r.auth); 
+  }
+  else {
+    snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
 	   sqlEscape(r.content).c_str(),
 	   r.ttl, r.priority,
 	   sqlEscape(r.qtype.getName()).c_str(),
 	   r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
+  }
+     
+     
   try {
     d_db->doCommand(output);
   }
