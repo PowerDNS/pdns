@@ -300,8 +300,7 @@ vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData
       break;
     B.lookup(QType(QType::NS), subdomain, p, sd.domain_id);
     while(B.get(rr)) {
-      if(!rr.auth)
-        ret.push_back(rr);
+      ret.push_back(rr); // this used to exclude auth NS records for some reason
     }
     if(!ret.empty())
       return ret;
