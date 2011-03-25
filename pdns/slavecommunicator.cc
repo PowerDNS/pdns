@@ -208,6 +208,13 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       di.backend->abortTransaction();
     }
   }
+  catch(MOADNSException &re) {
+    L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"+domain+"': "<<re.what()<<endl;
+    if(di.backend && !first) {
+      L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      di.backend->abortTransaction();
+    }
+  }
   catch(ResolverException &re) {
     L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"': "<<re.reason<<endl;
     if(di.backend && !first) {
