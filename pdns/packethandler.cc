@@ -1353,6 +1353,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",p->qdomain);
   }
+  catch(AhuException &e) {
+    L<<Logger::Error<<"Database module reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
+    r->setRcode(RCode::ServFail);
+    S.inc("servfail-packets");
+    S.ringAccount("servfail-queries",p->qdomain);
+  }
   catch(std::exception &e) {
     L<<Logger::Error<<"Exception building answer packet ("<<e.what()<<") sending out servfail"<<endl;
     delete r;
