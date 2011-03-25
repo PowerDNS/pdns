@@ -411,6 +411,7 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
     int cstat=cacheHas(d_question, d_answers);
     if(cstat<0) { // nothing
       d_negcached=d_cached=false;
+      d_answers.clear(); 
       (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,pkt_p,zoneId);
     } 
     else if(cstat==0) {
@@ -474,10 +475,6 @@ UeberBackend::handle::~handle()
 {
   instances--;
 }
-
-
-
-
 
 bool UeberBackend::handle::get(DNSResourceRecord &r)
 {
