@@ -33,3 +33,4 @@ create table tsigkeys (
 );
 
 create unique index namealgoindex on tsigkeys(name, algorithm);
+alter table records change column type type VARCHAR(10);

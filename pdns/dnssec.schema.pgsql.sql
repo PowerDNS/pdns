@@ -38,3 +38,4 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
 
 GRANT ALL ON tsigkeys TO pdns;
 GRANT ALL ON tsigkeys_id_seq TO pdns;
+alter table records alter column type type VARCHAR(10);

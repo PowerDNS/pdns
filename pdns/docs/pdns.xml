@@ -8498,7 +8498,7 @@ CREATE TABLE records (
   id              INT auto_increment,
   domain_id       INT DEFAULT NULL,
   name            VARCHAR(255) DEFAULT NULL,
-  type            VARCHAR(6) DEFAULT NULL,
+  type            VARCHAR(10) DEFAULT NULL,
   content         VARCHAR(255) DEFAULT NULL,
   ttl             INT DEFAULT NULL,
   prio            INT DEFAULT NULL,
@@ -13350,7 +13350,7 @@ while(&lt;&gt;)
 	  id int(11) NOT NULL auto_increment,
 	  domain_id int(11) NOT NULL,
 	  name varchar(255) NOT NULL,
-	  type varchar(6) NOT NULL,
+	  type varchar(10) NOT NULL,
 	  content varchar(255) NOT NULL,
 	  ttl int(11) NOT NULL,
 	  prio int(11) default NULL,
@@ -13749,7 +13749,7 @@ CREATE TABLE records (
   id              INT auto_increment,
   domain_id       INT DEFAULT NULL,
   name            VARCHAR(255) DEFAULT NULL,
-  type            VARCHAR(6) DEFAULT NULL,
+  type            VARCHAR(10) DEFAULT NULL,
   content         VARCHAR(255) DEFAULT NULL,
   ttl             INT DEFAULT NULL,
   prio            INT DEFAULT NULL,
@@ -13809,6 +13809,8 @@ create table tsigkeys (
 
 create unique index namealgoindex on tsigkeys(name, algorithm);
 
+alter table records change column type type VARCHAR(10);
+
 </programlisting>	
 	</para>
 	<para>
@@ -13849,7 +13851,7 @@ CREATE TABLE records (
         id              SERIAL PRIMARY KEY,
         domain_id       INT DEFAULT NULL,
         name            VARCHAR(255) DEFAULT NULL,
-        type            VARCHAR(6) DEFAULT NULL,
+        type            VARCHAR(10) DEFAULT NULL,
         content         VARCHAR(255) DEFAULT NULL,
         ttl             INT DEFAULT NULL,
         prio            INT DEFAULT NULL,
@@ -13922,6 +13924,7 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
 
 GRANT ALL ON tsigkeys TO pdns;
 GRANT ALL ON tsigkeys_id_seq TO pdns;
+alter table records alter column type type VARCHAR(10);
 
 </programlisting>  
 </para>
@@ -13958,7 +13961,7 @@ CREATE TABLE records (
         id              number(11) not NULL,
         domain_id       INT DEFAULT NULL REFERENCES Domains(ID) ON DELETE CASCADE,
         name            VARCHAR(255) DEFAULT NULL,
-        type            VARCHAR(6) DEFAULT NULL,
+        type            VARCHAR(10) DEFAULT NULL,
         content         VARCHAR(255) DEFAULT NULL,
         ttl             INT DEFAULT NULL,
         prio            INT DEFAULT NULL,
@@ -14586,7 +14589,7 @@ create table Records
   ID                number(11) NOT NULL,
   ZoneID            number(11) default NULL REFERENCES Domains(ID) ON DELETE CASCADE,
   NAME              varchar2(255) default NULL,
-  TYPE              varchar2(6) default NULL,  
+  TYPE              varchar2(10) default NULL,  
   CONTENT           varchar2(255) default NULL,
   TimeToLive        number(11) default NULL,   
   Priority          number(11) default NULL,
@@ -14687,7 +14690,7 @@ insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RE
               id              INTEGER PRIMARY KEY,
               domain_id       INTEGER DEFAULT NULL,
               name            VARCHAR(255) DEFAULT NULL, 
-              type            VARCHAR(6) DEFAULT NULL,
+              type            VARCHAR(10) DEFAULT NULL,
               content         VARCHAR(255) DEFAULT NULL,
               ttl             INTEGER DEFAULT NULL,
               prio            INTEGER DEFAULT NULL,
@@ -15072,7 +15075,7 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
 	  id int(11) NOT NULL auto_increment,
 	  domain_id int(11) default NULL,
 	  name varchar(255) default NULL,
-	  type varchar(6) default NULL,
+	  type varchar(10) default NULL,
 	  content varchar(255) default NULL,
 	  ttl int(11) default NULL,
 	  prio int(11) default NULL,
