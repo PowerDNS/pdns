@@ -520,7 +520,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   DLOG(L<<"Sending out SOA"<<endl);
   DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
   outpacket->addRecord(soa);
-  
+  editSOA(dk, sd.qname, outpacket.get());
   if(securedZone)
     addRRSigs(dk, signatureDB, target, outpacket->getRRS());
   
@@ -716,8 +716,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   /* and terminate with yet again the SOA record */
   outpacket=getFreshAXFRPacket(q);
   outpacket->addRecord(soa);
+  editSOA(dk, sd.qname, outpacket.get());
   if(!tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
+  
   sendPacket(outpacket, outsock);
   
   DLOG(L<<"last packet - close"<<endl);

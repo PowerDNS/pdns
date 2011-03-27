@@ -1342,7 +1342,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(p->d_dnssecOk)
       addRRSigs(d_dk, B, sd.qname, r->getRRS());
       
-    // editSOA(d_dk, sd.qname, r);
+    editSOA(d_dk, sd.qname, r);
       
     r->wrapup(); // needed for inserting in cache
     if(!noCache)
