@@ -1,5 +1,23 @@
 #ifndef PDNSDNSSECKEEPER_HH
 #define PDNSDNSSECKEEPER_HH
+/*
+    PowerDNS Versatile Database Driven Nameserver
+    Copyright (C) 2002-2011  PowerDNS.COM BV
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2 as 
+    published by the Free Software Foundation
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
 #include <string>
 #include <string.h>
 #include <vector>
@@ -69,9 +87,9 @@ public:
 	  (*d_keymetadb.backends.begin())->commitTransaction();
   }
   
-  
-private:
   void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
+private:
+
   
   struct KeyCacheEntry
   {
@@ -127,4 +145,6 @@ private:
   static pthread_mutex_t s_keycachelock;
 };
 
+class DNSPacket;
+bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp);
 #endif
