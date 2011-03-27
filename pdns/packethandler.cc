@@ -1103,7 +1103,6 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &
   return true;
 }
 
-
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
 DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 {
@@ -1119,7 +1118,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   vector<DNSResourceRecord> rrset;
   bool weDone=0, weRedirected=0, weHaveUnauth=0;
 
-  DNSPacket *r=0;
+  DNSPacket *r=p->replyPacket();  // generate an empty reply packet
   bool noCache=false;
   if(p->d_havetsig) {
     string keyname, secret;
@@ -1127,7 +1126,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(!checkForCorrectTSIG(p, &B, &keyname, &secret, &trc)) {
       if(d_logDNSDetails)
         L<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
-      r=p->replyPacket(); 
       r->setRcode(RCode::NotAuth);
       return r;
     }
@@ -1139,6 +1137,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
       S.inc("corrupt-packets");
+      delete r;
       return 0;
     }
 
@@ -1148,7 +1147,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if(d_logDNSDetails)
         L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
-      r=p->replyPacket(); 
       r->setRcode(RCode::ServFail);
       return r;
     }
@@ -1156,31 +1154,29 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if(p->d.opcode==Opcode::Update) {
         if(::arg().mustDo("log-failed-updates"))
           L<<Logger::Notice<<"Received an UPDATE opcode from "<<p->getRemote()<<" for "<<p->qdomain<<", sending NOTIMP"<<endl;
-        r=p->replyPacket(); 
         r->setRcode(RCode::NotImp); // notimp;
         return r; 
       }
       else if(p->d.opcode==Opcode::Notify) {
         int res=processNotify(p);
         if(res>=0) {
-          DNSPacket *r=p->replyPacket();
           r->setRcode(res);
           r->setOpcode(Opcode::Notify);
           return r;
         }
+        delete r;
         return 0;
       }
       
       L<<Logger::Error<<"Received an unknown opcode "<<p->d.opcode<<" from "<<p->getRemote()<<" for "<<p->qdomain<<endl;
 
-      r=p->replyPacket(); 
       r->setRcode(RCode::NotImp); 
       return r; 
     }
 
     // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
     
-    r=p->replyPacket();  // generate an empty reply packet
+    
     if(p->d.rd && d_doRecursion && DP->recurseFor(p))  // make sure we set ra if rd was set, and we'll do it
       r->d.ra=true;
 
@@ -1336,13 +1332,18 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
   sendit:;
-    if(doAdditionalProcessingAndDropAA(p, r, sd)<0)
+    if(doAdditionalProcessingAndDropAA(p, r, sd)<0) {
+      delete r;
       return 0;
+    }
 
     //    doDNSSECProcessing(p, r);
 
     if(p->d_dnssecOk)
       addRRSigs(d_dk, B, sd.qname, r->getRRS());
+      
+    // editSOA(d_dk, sd.qname, r);
+      
     r->wrapup(); // needed for inserting in cache
     if(!noCache)
       PC.insert(p, r); // in the packet cache
