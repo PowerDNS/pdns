@@ -47,6 +47,11 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
 	sd.serial = inception / (7*86400);
         rr.content = serializeSOAData(sd);
       }
+      else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {        
+	time_t inception = getCurrentInception();
+	sd.serial += inception / (7*86400);
+	rr.content = serializeSOAData(sd);
+      }
       return true;
     }
   }
