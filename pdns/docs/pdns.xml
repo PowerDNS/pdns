@@ -10067,6 +10067,70 @@ zone "powerdnssec.org" {
   protection of subsequent AXFR zone content messages.</para></warning></para>
   </section>
   </chapter>
+  <chapter id="domainmetadata"><title>Per zone settings aka Domain Metadata</title>
+  <para>
+    Starting with the PowerDNS Authoritative Server, each served zone can have "metadata". Such metadata determines
+    how this zone behaves in certain circumstances.
+  </para>
+  <para><warning><para>Domain metadata is only available for DNSSEC capable backends! Make sure to enable the proper '-dnssec' setting to benefit, and
+  to have performed the DNSSEC schema update.</para></warning></para>
+  <para>
+    Each metadata item is described elsewhere in the documentation, and the following settings are available:
+    <variablelist>
+      <varlistentry>
+	  <term>AXFR-MASTER-TSIG</term>
+	  <listitem>
+	  <para>
+	    Use this named TSIG key to retrieve this zone from its master.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>LUA-AXFR-SCRIPT</term>
+	  <listitem>
+	  <para>
+	    Script to be used to edit incoming AXFRs.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>NSEC3NARROW</term>
+	  <listitem>
+	  <para>
+	    Determines if this zone operates in NSEC3 'narrow' mode.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>NSEC3PARAM</term>
+	  <listitem>
+	  <para>
+	    NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the NSEC3PARAM record. If present, NSEC3 is used, if not
+	    present, zones default to NSEC.
+	  </para>
+	</listitem>
+      </varlistentry>
+      
+      <varlistentry>
+	<term>PRESIGNED</term>
+	  <listitem>
+	  <para>
+	    This zone carries DNSSEC RRSIGs (signatures), and is presigned. 
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	  <term>TSIG-ALLOW-AXFR</term>
+	  <listitem>
+	  <para>
+	    Allow these named TSIG keys to AXFR this zone.
+	  </para>
+	</listitem>
+      </varlistentry>
+      
+    </variablelist>
+  </para>
+  </chapter>
   <chapter id="recursion"><title>Recursion</title>
     <para>(only available from 1.99.8 and onwards, recursing component available since 2.9.5)</para>
     <para>
