@@ -5,7 +5,7 @@ create index orderindex on records(ordername);
 create table domainmetadata (
  id		SERIAL PRIMARY KEY,
  domain_id	INT REFERENCES domains(id) ON DELETE CASCADE,
- kind		VARCHAR(15),
+ kind		VARCHAR(16),
  content	TEXT
 );
 

@@ -1,7 +1,7 @@
 create table domainmetadata (
  id		 INT auto_increment,
  domain_id       INT NOT NULL,
- kind		 VARCHAR(15),
+ kind		 VARCHAR(16),
  content	TEXT,
  primary key(id)
 );

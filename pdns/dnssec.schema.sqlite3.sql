@@ -5,7 +5,7 @@ create index orderindex on records(ordername);
 create table domainmetadata (
  id		 INTEGER PRIMARY KEY,
  domain_id       INT NOT NULL,
- kind		 VARCHAR(15) COLLATE NOCASE,
+ kind		 VARCHAR(16) COLLATE NOCASE,
  content	TEXT
 );
 

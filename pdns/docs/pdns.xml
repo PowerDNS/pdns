@@ -10119,6 +10119,16 @@ zone "powerdnssec.org" {
 	  </para>
 	</listitem>
       </varlistentry>
+      
+      <varlistentry>
+	  <term>SOA-EDIT</term>
+	  <listitem>
+	  <para>
+	    When serving this zone, modify the SOA serial number in one of several ways. Mostly useful to get slaves
+	    to re-transfer a zone regularly to get fresh RRSIGs.
+	  </para>
+	</listitem>
+      </varlistentry>
       <varlistentry>
 	  <term>TSIG-ALLOW-AXFR</term>
 	  <listitem>
@@ -13845,7 +13855,7 @@ GRANT ALL ON records TO pdns;
 create table domainmetadata (
  id              INT auto_increment,
  domain_id       INT NOT NULL,
- kind            VARCHAR(15),
+ kind            VARCHAR(16),
  content        TEXT,
  primary key(id)
 );
@@ -13960,7 +13970,7 @@ create index orderindex on records(ordername);
 create table domainmetadata (
  id             SERIAL PRIMARY KEY,
  domain_id      INT REFERENCES domains(id) ON DELETE CASCADE,
- kind           VARCHAR(15),
+ kind           VARCHAR(16),
  content        TEXT
 );
 
@@ -14787,7 +14797,7 @@ create index orderindex on records(ordername);
 create table domainmetadata (
  id              INTEGER PRIMARY KEY,
  domain_id       INT NOT NULL,
- kind            VARCHAR(15) COLLATE NOCASE,
+ kind            VARCHAR(16) COLLATE NOCASE,
  content        TEXT
 );
 
