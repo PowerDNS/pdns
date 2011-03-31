@@ -71,16 +71,16 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 {
   L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   uint32_t domain_id;
-  PacketHandler P;
+  PacketHandler P; // fresh UeberBackend
 
   DomainInfo di;
   di.backend=0;
   bool first=true;    
   try {
-    UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());
+    UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
     NSEC3PARAMRecordContent ns3pr;
     bool narrow;
-    DNSSECKeeper dk;
+    DNSSECKeeper dk; // has its own ueberbackend
     bool dnssecZone = false;
     bool haveNSEC3=false;
     if(dk.isSecuredZone(domain)) {
@@ -97,7 +97,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         L<<Logger::Info<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
 		}    
 
-    if(!B->getDomainInfo(domain, di) || !di.backend) {
+    if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
@@ -287,7 +287,9 @@ struct SlaveSenderReceiver
 void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote)
 {
   Lock l(&d_lock);
-  d_tocheck.insert(di);
+  DomainInfo ours = di;
+  ours.backend = 0;
+  d_tocheck.insert(ours);
   d_any_sem.post(); // kick the loop!
 }
 
@@ -364,6 +366,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   typedef pair<DomainInfo, bool> val_t;
   BOOST_FOREACH(val_t& val, sdomains) {
     DomainInfo& di(val.first);
+    if(!di.backend) // might've come from the packethandler
+      B->getDomainInfo(di.zone, di);
     if(!ssr.d_freshness.count(di.id)) 
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
