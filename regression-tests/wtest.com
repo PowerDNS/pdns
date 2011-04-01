@@ -14,3 +14,4 @@ $ORIGIN wtest.com.
 *			IN	CNAME	server1
 secure			IN	MX	10 server1
 server1			IN	A	1.2.3.4
+*.something		IN	A	4.3.2.1

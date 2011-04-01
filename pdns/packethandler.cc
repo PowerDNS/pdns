@@ -316,7 +316,7 @@ vector<DNSResourceRecord> PacketHandler::getBestWildcard(DNSPacket *p, SOAData& 
   while( chopOff( subdomain ))  {
     B.lookup(QType(QType::ANY), "*."+subdomain, p, sd.domain_id);
     while(B.get(rr)) {
-      if(rr.qtype == p->qtype ||rr.qtype.getCode() == QType::CNAME )
+      if(rr.qtype == p->qtype ||rr.qtype.getCode() == QType::CNAME || p->qtype.getCode() == QType::ANY)
         ret.push_back(rr);
     }
     
@@ -865,11 +865,9 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
-  
-  
+    
   // ok, we've done our checks
   Communicator.addSlaveCheckRequest(di, p->remote);
-  
   return 0;
 }
 
