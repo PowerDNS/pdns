@@ -308,26 +308,28 @@ vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData
   return ret;
 }
 
-vector<DNSResourceRecord> PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const string &target)
+bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const string &target, vector<DNSResourceRecord>* ret)
 {
-  vector<DNSResourceRecord> ret;
+  ret->clear();
   DNSResourceRecord rr;
   string subdomain(target);
   while( chopOff( subdomain ))  {
     B.lookup(QType(QType::ANY), "*."+subdomain, p, sd.domain_id);
+    bool haveSomething=false;
     while(B.get(rr)) {
       if(rr.qtype == p->qtype ||rr.qtype.getCode() == QType::CNAME || p->qtype.getCode() == QType::ANY)
-        ret.push_back(rr);
+        ret->push_back(rr);
+      haveSomething=true;
     }
     
-    if(!ret.empty())
-      return ret;
+    if(haveSomething)
+      return true;
     
     if(subdomain == sd.qname) // stop at SOA
       break;
   } 
 
-  return ret;
+  return false;
 }
 
 
@@ -1073,28 +1075,33 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
   }
 }
 
-bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted)
+bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted, bool& nodata)
 {
-  retargeted=false;
+  retargeted = nodata = false;
 
-  vector<DNSResourceRecord> rrset = getBestWildcard(p, sd, target);
-  if(rrset.empty())
+  vector<DNSResourceRecord> rrset;
+  if(!getBestWildcard(p, sd, target, &rrset))
     return false;
 
-  cerr<<"The best wildcard match: "<<rrset.begin()->qname<<endl;
-  BOOST_FOREACH(DNSResourceRecord rr, rrset) {
-    if(rr.qtype.getCode() == QType::CNAME)  {
-      retargeted=true;
-      target=rr.content;
-    }
-
-    rr.wildcardname = rr.qname;
-    rr.qname=p->qdomain;
-    cerr<<"\tadding '"<<rr.content<<"'\n";
-    rr.d_place=DNSResourceRecord::ANSWER;
-    r->addRecord(rr);
+  if(rrset.empty()) {
+    cerr<<"Wildcard matched something, but not of the correct type"<<endl;
+    nodata=true;
   }
-
+  else {
+    cerr<<"The best wildcard match: "<<rrset.begin()->qname<<endl;
+    BOOST_FOREACH(DNSResourceRecord rr, rrset) {
+      if(rr.qtype.getCode() == QType::CNAME)  {
+        retargeted=true;
+        target=rr.content;
+      }
+  
+      rr.wildcardname = rr.qname;
+      rr.qname=p->qdomain;
+      cerr<<"\tadding '"<<rr.content<<"'\n";
+      rr.d_place=DNSResourceRecord::ANSWER;
+      r->addRecord(rr);
+    }
+  }
   if(p->d_dnssecOk) {
     addNSECX(p, r, p->qdomain, sd.qname, 3);
   }
@@ -1280,12 +1287,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(rrset.empty()) {
       // try wildcards, and if they don't work, go look for NS records
       cerr<<"Found nothing in the ANY, but let's try wildcards.."<<endl;
-      bool wereRetargeted;
-      if(tryWildcard(p, r, sd, target, wereRetargeted)) {
+      bool wereRetargeted(false), nodata(false);
+      if(tryWildcard(p, r, sd, target, wereRetargeted, nodata)) {
         if(wereRetargeted) {
           retargetcount++;
           goto retargeted;
         }
+        if(nodata)
+          makeNOError(p, r, target, sd);
         goto sendit;
       }
       cerr<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl;
