@@ -110,8 +110,8 @@ private:
   vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target);
   bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
 
-  vector<DNSResourceRecord> getBestWildcard(DNSPacket *p, SOAData& sd, const string &target);
-  bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted);
+  bool getBestWildcard(DNSPacket *p, SOAData& sd, const string &target, vector<DNSResourceRecord>* ret);
+  bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted, bool& nodata);
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
   
