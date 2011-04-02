@@ -95,12 +95,11 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0-pre1</title>
+      <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0-RC1</title>
       <para>
 	<warning><para>The version 3.0 prereleases represent a major change in PowerDNS, and may well
 	have issues that prevent it from being correct, stable or secure.</para>
-	<para>They work for us though :-)</para></warning>
-      </para>
+      </warning></para>
       <para>
 	Version 3.0 of the PowerDNS Authoritative Server brings a number of important features, as
 	well as over two years of accumulated bug fixing.
@@ -122,7 +121,8 @@
 	Miek Gieben (SIDN), Stephane Bortzmeyer (AFNIC), Michael Braunoeder (nic.at), Peter van Dijk, Maik Zumstrull,
 	Jose Arthur Benetasso Villanova (Locaweb), Stefan Schmidt, Roland van Rijswijk (Surfnet), Paul Bakker (Brainspark/Fox-IT),
 	Mathew Hennessy, Johannes Kuehrer (Austrian World4You GmbH), Marc van de Geijn (bHosted.nl), Stefan Arentz and 
-	Martin van Hensbergen (Fox-IT), Christof Meerwald, Detlef Peeters, Jack Lloyd (
+	Martin van Hensbergen (Fox-IT), Christof Meerwald, Detlef Peeters, Jack Lloyd, Frank Altpeter, frederik danerklint, Vasiliy G Tolstov,
+	Brielle Bruns, Evan Hunt, Ralf van der Enden.
       </para>
       <para>
 	On to the release notes. Next to DNSSEC, other major new features include:
@@ -131,7 +131,7 @@
       <itemizedlist>
 	<listitem>
 	  <para>
-	    TSIG for authorizing and authenticating AXFR requests &amp; incoming zone transfers.
+	    TSIG for authorizing and authenticating AXFR requests &amp; incoming zone transfers (Code in C2024, C2025, C2033, C2034).
 	  </para>
 	</listitem>
 	<listitem>
@@ -157,6 +157,12 @@
 	</listitem>
 	<listitem>
 	  <para>
+	    Lua based incoming zone editing, allowing masters or signing slaves to add information to the zone they will (re-)serve. Implemented
+	    in c2065. To enable, use LUA-AXFR-SCRIPT zone metadata setting.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
 	    Native Oracle backend with full DNSSEC support. Contributed by Maik Zumstrull, then at the Steinbuch
 Centre for Computing at the Karlsruhe Institute of Technology.
 	  </para>
@@ -174,11 +180,23 @@ Centre for Computing at the Karlsruhe Institute of Technology.
 	</listitem>
 	<listitem>
 	  <para>
+	    Generic MySQL backend now supports stored procedures. Implemented in c2084, closing t231.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Generic ODBC backend compiles again, and is reported to work for some users that need it. Code contributed in t309, 
+	    author unknown. 
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
 	    Massively parallel slaving infrastructure, able to check the freshness of thousands of remote
 	    zones per second, plus perform many incoming zone transfers simultaneously. Sponsored by Tyler Hall,
 	    code in C1449, C1500, C1859
 	  </para>
 	</listitem>
+	
 	<listitem>
 	  <para>
 	    Core DNS logic replaced completely to deal with the brave new world of DNSSEC. 
@@ -201,6 +219,18 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</listitem>
 	<listitem>
 	  <para>
+	    PowerDNS would refuse to serve domain names with spaces in them, or otherwise non-printable characters. Addressed in
+	    c2081.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    PowerDNS can now serve escaped labels, as described by RFC4343. Data should be present in backends
+	    in that escaped form. Code in c2089.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
 	    In some cases, we would include duplicate CNAMEs. In addition, we would hand out
 	    a full root-referral when not configured to in some cases (t223). Discovered by Andreas Jakum, fixed in c1344.
 	  </para>
@@ -209,6 +239,12 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	  <para>
 	    Shane Kerr discovered we would corrupt DNS transaction IDs from the packet cache on big endian systems.
 	    Fix in c1346, closing t222.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    PowerDNS did not use RFC1982 serial arithmetic, leading to a SOA serial number of 1 to be regarded as older than 4400000000, when in fact
+	    it is 'newer'. Issue (re-)discovered by Jan-Piet Mens.
 	  </para>
 	</listitem>
 	<listitem>
@@ -247,6 +283,12 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</listitem>
 	<listitem>
 	  <para>
+	    Generic SQL Backends would sometimes emit obscure error messages. Fix in c2049.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>
 	    PowerDNS would be confused by embedded NULs in domain names, and would also
 	    mess up the escaping of some characters. Fix in c1468, c1469, c1478, c1480, 
 	  </para>
@@ -279,6 +321,12 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	  <para>
 	    Thomas Mieslinger discovered that our webserver would only be started after dropping privileges,
 	    which could cause problems. Fix in c1629.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Zone2sql did quite often not do exactly what was required, which users fixed by editing the SQL output.
+	    Revamped in c2032.
 	  </para>
 	</listitem>
 	<listitem>
@@ -345,8 +393,19 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</listitem>
 	<listitem>
 	  <para>
+	    When receiving large numbers of notifications, PowerDNS would check these synchronously, leading to a slowdown
+	    for other services. Fixed in c2058, problem diagnosed by Richard Poole of Heart Internet.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
 	    Fixed compilation on newer compilers and newer versions of Boost. 
 	    Changes in C1345 (t227), C1391, C1394, C1425, C1427, C1428, C1429, C1440, C1653, thanks to Ruben Kerkhof and others.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Moved Generic PostgreSQL backend over to the newer E'' style escapes. c2094.
 	  </para>
 	</listitem>
 	<listitem>
@@ -357,6 +416,11 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	<listitem>
 	  <para>
 	    We can now bind to scoped IPv6 addresses, lack spotted by Darren Gamble. Part of the fix is in c2018.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Built-in query cache can now also cache queries which lead to multiple answers. Code in c2069.
 	  </para>
 	</listitem>
 	<listitem>
@@ -13906,7 +13970,7 @@ CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains`
 	  This automates deletion of records on deletion of a domain from the domains table.
 	</para>
       </sect2>
-      <sect2><title>PostgresSQL specifics</title>
+      <sect2><title>PostgreSQL specifics</title>
       <para>
 	The default setup conforms to the following schema, which you should add to a PostgreSQL database.
 	<programlisting>
