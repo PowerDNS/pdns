@@ -453,7 +453,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
 
 void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode)
 {
-  cerr<<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
+  // <<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
   NSECRecordContent nrc;
   nrc.d_set.insert(QType::RRSIG);
   nrc.d_set.insert(QType::NSEC);
@@ -481,7 +481,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
 
 void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
-  cerr<<"We should emit NSEC3 '"<<toLower(toBase32Hex(begin))<<"' - ('"<<toNSEC3<<"') - '"<<toLower(toBase32Hex(end))<<"' (unhashed: '"<<unhashed<<"')"<<endl;
+//  cerr<<"We should emit NSEC3 '"<<toLower(toBase32Hex(begin))<<"' - ('"<<toNSEC3<<"') - '"<<toLower(toBase32Hex(end))<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
   n3rc.d_set.insert(QType::RRSIG);
   n3rc.d_salt=ns3prc.d_salt;
@@ -527,14 +527,14 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOADa
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& auth, int mode)
 {
   NSEC3PARAMRecordContent ns3rc;
-  cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"', "<<p->qdomain<<"|"<<p->qtype.getName()<<": ";
+  // cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"', "<<p->qdomain<<"|"<<p->qtype.getName()<<": ";
   bool narrow;
   if(d_dk.getNSEC3PARAM(auth, &ns3rc, &narrow))  {
-    cerr<<"Present, narrow="<<narrow<<endl;
+    // cerr<<"Present, narrow="<<narrow<<endl;
     addNSEC3(p, r, target, auth, ns3rc, narrow, mode);
   }
   else {
-    cerr<<"Not present"<<endl;
+    // cerr<<"Not present"<<endl;
     addNSEC(p, r, target, auth, mode);
   }
 }
@@ -597,7 +597,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   SOAData sd;
   sd.db = (DNSBackend*)-1;
   if(!B.getSOA(auth, sd)) {
-    cerr<<"Could not get SOA for domain in NSEC3\n";
+    // cerr<<"Could not get SOA for domain in NSEC3\n";
     return;
   }
   // cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
@@ -608,14 +608,14 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after); 
-  cerr<<"Done calling for closest encloser, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
+  DLOG(L<<"Done calling for closest encloser, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl);
   emitNSEC3(ns3rc, sd, unhashed, before, after, target, r, mode);
 
   // now add the main nsec3
   unhashed = p->qdomain;
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after); 
-  cerr<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
+  DLOG(L<<"Done calling for main, before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl);
   emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
   
   // now add the *
@@ -623,7 +623,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
   
   getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, true, unhashed, before, after); 
-  cerr<<"Done calling for '*', before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl;
+  DLOG(L<<"Done calling for '*', before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"', unhashed: '"<<unhashed<<"'"<<endl);
   emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
 }
 
@@ -632,7 +632,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   if(!p->d_dnssecOk)
     return;
   
-  cerr<<"Should add NSEC covering '"<<target<<"' from zone '"<<auth<<"', mode = "<<mode<<endl;
+  DLOG(L<<"Should add NSEC covering '"<<target<<"' from zone '"<<auth<<"', mode = "<<mode<<endl);
   SOAData sd;
   sd.db=(DNSBackend *)-1; // force uncached answer
 
@@ -640,14 +640,14 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
     getAuth(p, &sd, target, 0);
   }
   else if(!B.getSOA(auth, sd)) {
-    cerr<<"Could not get SOA for domain\n";
+    DLOG(L<<"Could not get SOA for domain"<<endl);
     return;
   }
 
   string before,after;
-  cerr<<"Calling getBeforeandAfter!"<<endl;
+  //cerr<<"Calling getBeforeandAfter!"<<endl;
   sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after); 
-  cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
+  // cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
 
   // this stuff is wrong (but it appears to work)
   
@@ -676,7 +676,7 @@ bool PacketHandler::doDNSSECProcessing(DNSPacket *p, DNSPacket *r)
   if(arrs.empty()) 
     return false;
   
-  cerr<<"Have arrs "<<arrs.size()<<" records to sign\n";
+  DLOG(L<<"Have arrs "<<arrs.size()<<" records to sign"<<endl);
   vector<DNSResourceRecord> crrs;
   
   for(vector<DNSResourceRecord *>::const_iterator i=arrs.begin();
@@ -756,7 +756,7 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
     }
 
     if(crossedZoneCut) {
-      cerr<<"Should return NS records, and this A/AAAA record in the additional section.."<<endl;
+      DLOG(L<<"Should return NS records, and this A/AAAA record in the additional section.."<<endl);
     }
 
     if(!sawDS && p->qtype.getCode() == QType::NS && p->d_dnssecOk && rfound) {
@@ -902,7 +902,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
 void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
 {
-  cerr<<"Need to fake up the RRSIGs if someone asked for them explicitly"<<endl;
+  DLOG(L<<"Need to fake up the RRSIGs if someone asked for them explicitly"<<endl);
   typedef map<uint16_t, vector<shared_ptr<DNSRecordContent> > > records_t;
   records_t records;
 
@@ -942,7 +942,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   NSEC3PARAMRecordContent ns3pr;
   bool doNSEC3= d_dk.getNSEC3PARAM(sd.qname, &ns3pr, &narrow);
   if(doNSEC3) {
-    cerr<<"We don't yet add NSEC3 to explicit RRSIG queries correctly yet! (narrow="<<narrow<<")\n";
+    DLOG(L<<"We don't yet add NSEC3 to explicit RRSIG queries correctly yet! (narrow="<<narrow<<")"<<endl);
   }
   else {
     // now get the NSEC too (since we must sign it!)
@@ -959,7 +959,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   
     // ok, the NSEC is in..
   }
-  cerr<<"Have "<<records.size()<<" rrsets to sign"<<endl;
+  DLOG(L<<"Have "<<records.size()<<" rrsets to sign"<<endl);
 
   rr.qname = p->qdomain;
   // again, rr.ttl is already set
@@ -1037,9 +1037,9 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
   if(rrset.empty())
     return false;
   
-  cerr<<"The best NS is: "<<rrset.begin()->qname<<endl;
+  DLOG(L<<"The best NS is: "<<rrset.begin()->qname<<endl);
   BOOST_FOREACH(DNSResourceRecord rr, rrset) {
-    cerr<<"\tadding '"<<rr.content<<"'\n";
+    DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
     rr.d_place=DNSResourceRecord::AUTHORITY;
     r->addRecord(rr);
   }
@@ -1054,7 +1054,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
 void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target)
 {
   if(!p->d_dnssecOk)
-    cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
+    ; // cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
   //  cerr<<"Need to add all the NSEC too.."<<endl; /// XXX FIXME THE ABOVE IF IS WEIRD
   
   if(!d_dk.isSecuredZone(sd.qname))
@@ -1084,11 +1084,11 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &
     return false;
 
   if(rrset.empty()) {
-    cerr<<"Wildcard matched something, but not of the correct type"<<endl;
+    DLOG(L<<"Wildcard matched something, but not of the correct type"<<endl);
     nodata=true;
   }
   else {
-    cerr<<"The best wildcard match: "<<rrset.begin()->qname<<endl;
+    DLOG(L<<"The best wildcard match: "<<rrset.begin()->qname<<endl);
     BOOST_FOREACH(DNSResourceRecord rr, rrset) {
       if(rr.qtype.getCode() == QType::CNAME)  {
         retargeted=true;
@@ -1097,7 +1097,7 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &
   
       rr.wildcardname = rr.qname;
       rr.qname=p->qdomain;
-      cerr<<"\tadding '"<<rr.content<<"'\n";
+      DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
       rr.d_place=DNSResourceRecord::ANSWER;
       r->addRecord(rr);
     }
@@ -1297,7 +1297,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
           makeNOError(p, r, target, sd);
         goto sendit;
       }
-      cerr<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl;
+      DLOG(L<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl);
       if(!tryReferral(p, r, sd, target))
         makeNXDomain(p, r, target, sd);
 
@@ -1328,13 +1328,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       goto sendit;
     }
     else if(weHaveUnauth) {
-      cerr<<"Have unauth data, so need to hunt for best NS records"<<endl;
+      
+      DLOG(L<<"Have unauth data, so need to hunt for best NS records"<<endl);
       if(tryReferral(p, r, sd, target))
         goto sendit;
-      cerr<<"Should not get here: please run pdnssec rectify-zone "<<sd.qname<<endl;
+      L<<Logger::Error<<"Should not get here: please run pdnssec rectify-zone "<<sd.qname<<endl;
     }
     else {
-      cerr<<"Have some data, but not the right data"<<endl;
+      DLOG(L<<"Have some data, but not the right data"<<endl);
       makeNOError(p, r, target, sd);
     }
     
