@@ -1274,7 +1274,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     while(B.get(rr)) {
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
         weDone=1;
-      if((rr.qtype == p->qtype || rr.qtype.getCode() == QType::NS) && !rr.auth) 
+      if((rr.qtype == p->qtype && !rr.auth) || rr.qtype.getCode() == QType::NS) 
         weHaveUnauth=1;
 
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
@@ -1286,7 +1286,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(rrset.empty()) {
       // try wildcards, and if they don't work, go look for NS records
-      cerr<<"Found nothing in the ANY, but let's try wildcards.."<<endl;
+      DLOG(L<<Logger::Warning<<"Found nothing in the ANY, but let's try wildcards.."<<endl);
       bool wereRetargeted(false), nodata(false);
       if(tryWildcard(p, r, sd, target, wereRetargeted, nodata)) {
         if(wereRetargeted) {
