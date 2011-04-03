@@ -60,7 +60,8 @@ public:
   int resolve(const string &ip, const char *domain, int type, res_t* result);
   
   //! only send out a resolution request
-  uint16_t sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOk=false);
+  uint16_t sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOk=false,
+    const string& tsigkeyname="", const string& tsigalgorithm="", const string& tsigsecret="");
   
   //! see if we got a SOA response from our sendResolve
   bool tryGetSOASerial(string* theirDomain, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);

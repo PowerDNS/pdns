@@ -355,7 +355,7 @@ bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, c
   return false;
 }
 
-bool DNSSECKeeper::getTSIGForAcces(const string& zone, const string& master, string* keyname)
+bool DNSSECKeeper::getTSIGForAccess(const string& zone, const string& master, string* keyname)
 {
   vector<string> keynames;
   d_keymetadb.getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);

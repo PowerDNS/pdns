@@ -110,7 +110,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     
     string tsigkeyname, tsigalgorithm, tsigsecret;
   
-    if(dk.getTSIGForAcces(domain, remote, &tsigkeyname)) {
+    if(dk.getTSIGForAccess(domain, remote, &tsigkeyname)) {
       string tsigsecret64;
       B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
       B64Decode(tsigsecret64, tsigsecret);
@@ -138,7 +138,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
       
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
-        if(i->qtype.getCode() == QType::OPT) // ignore EDNS0
+        if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
           continue;
           
         // we generate NSEC, NSEC3, NSEC3PARAM (sorry Olafur) on the fly, this could only confuse things
@@ -230,11 +230,21 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     }
   }
 }
+namespace {
 struct QueryInfo
-  {
-    struct timeval query_ttd;
-    uint16_t id;
-  };
+{
+  struct timeval query_ttd;
+  uint16_t id;
+};
+
+struct DomainNotificationInfo
+{
+  DomainInfo di;
+  bool dnssecOk;
+  string tsigkeyname, tsigalgname, tsigsecret;
+};
+}
+
 
 struct SlaveSenderReceiver
 {
@@ -256,15 +266,20 @@ struct SlaveSenderReceiver
   {
   }
   
-  Identifier send(pair<DomainInfo, bool>& dipair)
+  Identifier send(DomainNotificationInfo& dni)
   {
-    random_shuffle(dipair.first.masters.begin(), dipair.first.masters.end());
+    random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
-      ComboAddress remote(*dipair.first.masters.begin());
-      return make_pair(dipair.first.zone, d_resolver.sendResolve(ComboAddress(*dipair.first.masters.begin(), 53), dipair.first.zone.c_str(), QType::SOA, dipair.second));
+      ComboAddress remote(*dni.di.masters.begin());
+      return make_pair(dni.di.zone, 
+        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), 
+          dni.di.zone.c_str(), 
+          QType::SOA, 
+          dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
+      );
     }
     catch(AhuException& e) {
-      throw runtime_error("While attempting to query freshness of '"+dipair.first.zone+"': "+e.reason);
+      throw runtime_error("While attempting to query freshness of '"+dni.di.zone+"': "+e.reason);
     }
   }
   
@@ -276,9 +291,9 @@ struct SlaveSenderReceiver
     return 0;
   }
   
-  void deliverAnswer(pair<DomainInfo, bool>& i, const Answer& a, unsigned int usec)
+  void deliverAnswer(DomainNotificationInfo& dni, const Answer& a, unsigned int usec)
   {
-    d_freshness[i.first.id]=a;
+    d_freshness[dni.di.id]=a;
   }
   
   Resolver d_resolver;
@@ -297,7 +312,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
   vector<DomainInfo> rdomains;
-  vector<pair<DomainInfo, bool> > sdomains; // the bool is for 'presigned'
+  vector<DomainNotificationInfo > sdomains; // the bool is for 'presigned'
   
   {
     Lock l(&d_lock);
@@ -323,8 +338,15 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       sr.master=*di.masters.begin();
       if(nameindex.count(sr))
         continue;
-      
-      sdomains.push_back(make_pair(di, dk.isPresigned(di.zone)));
+      DomainNotificationInfo dni;
+      dni.di=di;
+      dni.dnssecOk = dk.isPresigned(di.zone);
+      if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
+        string secret64;
+        B->getTSIGKey(dni.tsigkeyname, &dni.tsigalgname, &secret64);
+        B64Decode(secret64, dni.tsigsecret);
+      }
+      sdomains.push_back(dni);
     }
   }
   
@@ -345,7 +367,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
       
   SlaveSenderReceiver ssr;
-  Inflighter<vector<pair<DomainInfo, bool> >, SlaveSenderReceiver> ifl(sdomains, ssr);
+  
+  Inflighter<vector<DomainNotificationInfo>, SlaveSenderReceiver> ifl(sdomains, ssr);
   
   ifl.d_maxInFlight = 200;
 
@@ -363,9 +386,9 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones, had "<<ifl.getTimeouts()<<" timeouts"<<endl;
 
-  typedef pair<DomainInfo, bool> val_t;
+  typedef DomainNotificationInfo val_t;
   BOOST_FOREACH(val_t& val, sdomains) {
-    DomainInfo& di(val.first);
+    DomainInfo& di(val.di);
     if(!di.backend) // might've come from the packethandler
       B->getDomainInfo(di.zone, di);
     if(!ssr.d_freshness.count(di.id)) 

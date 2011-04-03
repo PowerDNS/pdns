@@ -75,7 +75,7 @@ public:
   void unsetPresigned(const std::string& zname);
   
   bool TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm);
-  bool getTSIGForAcces(const string& zone, const string& master, string* keyname);
+  bool getTSIGForAccess(const string& zone, const string& master, string* keyname);
   
   void startTransaction()
   {

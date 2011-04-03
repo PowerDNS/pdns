@@ -36,6 +36,7 @@
 #include "ahuexception.hh"
 #include "statbag.hh"
 #include "arguments.hh"
+#include "base64.hh"
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include <boost/shared_ptr.hpp>
@@ -113,16 +114,28 @@ Resolver::~Resolver()
     Utility::closesocket(d_sock6);
 }
 
-
-uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOK)
+uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOK, 
+                               const string& tsigkeyname, const string& tsigalgorithm, 
+                               const string& tsigsecret)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
   pw.getHeader()->id = d_randomid = dns_random(0xffff);
-
+  
   if(dnssecOK) {
     pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
     pw.commit();
+  }
+  
+  if(!tsigkeyname.empty()) {
+//    cerr<<"Adding TSIG to notification, key name: '"<<tsigkeyname<<"', algo: '"<<tsigalgorithm<<"', secret: "<<Base64Encode(tsigsecret)<<endl;
+    TSIGRecordContent trc;
+    trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+    trc.d_time = time(0);
+    trc.d_fudge = 300;
+    trc.d_origID=d_randomid;
+    trc.d_eRcode=0;
+    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
   }
     
   int sock = remote.sin4.sin_family == AF_INET ? d_sock4 : d_sock6;
