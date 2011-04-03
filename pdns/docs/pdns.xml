@@ -446,12 +446,6 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</listitem>
 	<listitem>
 	  <para>
-	    Internal support for TSIG, not yet hooked up. Commits C1417, C1485 and beyond.
-	  </para>
-	</listitem>
-	
-	<listitem>
-	  <para>
 	    Zones with URL and MBOXFW records can be transferred over AXFR, code in c1464.
 	  </para>
 	</listitem>
@@ -11825,7 +11819,13 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
     </sect1>
   </chapter>
   <chapter id="fancy-records"><title>Fancy records for seamless email and URL integration</title>
-
+    <para>
+	<warning>
+	  <para>
+	    As of PowerDNS Authoritative Server 3.0, fancy records are no longer supported!
+	  </para>
+	</warning>
+      </para>
     <para>
       PDNS also supports so called 'fancy' records. A Fancy Record is actually not a DNS record, but it is translated into one. Currently,
       two fancy records are implemented, but not very useful without additional unreleased software. For completeness, they are listed here.
@@ -14555,208 +14555,983 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
     
     <sect1 id="oracle"><title>Oracle backend</title>
       <para>
-	<table>
-	  <title>Oracle backend capabilities</title>
-	  <tgroup cols="2">
-	    <tbody>
-	      <row><entry>Native</entry><entry>Yes</entry></row>
-	      <row><entry>Master</entry><entry>No</entry></row>
-	      <row><entry>Slave</entry><entry>No</entry></row>
-	      <row><entry>Superslave</entry><entry>No</entry></row>
-	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
-	      <row><entry>DNSSEC</entry><entry>No</entry></row>
-	      <row><entry>Module name</entry><entry>oracle</entry></row>
-	      <row><entry>Launch name</entry><entry>oracle</entry></row>
+        <table>
+          <title>Oracle backend capabilities</title>
+          <tgroup cols="2">
+            <tbody>
+              <row><entry>Native</entry><entry>Yes</entry></row>
+              <row><entry>Master</entry><entry>Yes</entry></row>
+              <row><entry>Slave</entry><entry>Yes</entry></row>
+              <row><entry>Superslave</entry><entry>Yes</entry></row>
+              <row><entry>Autoserial</entry><entry>Yes</entry></row>
+              <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+              <row><entry>Module name</entry><entry>oracle</entry></row>
+              <row><entry>Launch name</entry><entry>oracle</entry></row>
+            </tbody>
+          </tgroup>
+        </table>
+      </para>
+      <para>
+        This is the Oracle Database backend, completely rewritten for the 3.0 release, with easily
+        configurable SQL statements, allowing you to graft PowerDNS functionality onto any Oracle
+        database of your choosing.
+      </para>
+      <para>
+        The Oracle backend is difficult, and possibly illegal, to distribute in binary form. To use it,
+        you will probably need to compile PowerDNS from source. OCI headers are expected in
+        <filename>$ORACLE_HOME/rdbms/public</filename>, and OCI libraries in
+        <filename>$ORACLE_HOME/lib</filename>. That is where they should be with a working installation
+        of the full Oracle Database client. Oracle InstantClient should work as well, but you will need
+        to make the libraries and headers available in appropriate paths.
+      </para>
+      <para>
+        This backend uses two kinds of database connections. First, it opens a session pool.
+        Connections from this pool are used only for queries reading DNS data from the database.
+        Second, it opens normal (non-pooled) connections on demand for any kind of write access.
+        The reason for this split is to allow redundancy by replication. Each DNS frontend
+        server can have a local read-only replicated instance of your database. Open the session
+        pool to the local replicated copy, and all data will be available with high performance,
+        even if the main database goes down. The writing connections should go directly to the
+        main database.
+      </para>
+      <para>
+        Of course, if you do not require this kind of redunancy, or want to avoid the substantial
+        Oracle Database licensing costs, all connections can just go to the same database with the
+        same credentials. Also, the write connections should be entirely unnecessary if you
+        do not plan to use either master or slave mode.
+      </para>
+      <para>
+        The following configuration settings are available:
+      </para>
+      <para>
+        <variablelist>
+          <varlistentry>
+            <term>oracle-pool-database, oracle-pool-username, oracle-pool-password</term>
+            <listitem>
+              <para>
+                The database to use for read access. OracleBackend will try to create a session
+                pool, so make sure this database user has the necessary permissions. If your
+                connection requires environment variables to be set, e.g.
+                <varname>ORACLE_HOME</varname>, <varname>NLS_LANG</varname>, or
+                <varname>LD_LIBRARY_PATH</varname>, make sure these are set when PowerDNS runs.
+                <filename>/etc/default/pdns</filename> might help.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>oracle-master-database, oracle-master-username, oracle-master-password</term>
+            <listitem>
+              <para>
+                The database to use for write access. These are normal connections, not a
+                session pool. The backend may open more than one at a time.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>oracle-session-min, oracle-session-max, oracle-session-inc</term>
+            <listitem>
+              <para>
+                Parameters for the connection pool underlying the session pool. OCI will open
+                <varname>session-min</varname> connections at startup, and open more connections as
+                needed, <varname>session-inc</varname> at a time, until <varname>session-max</varname>
+                connections are open.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>oracle-nameserver-name</term>
+            <listitem>
+              <para>
+                This can be set to an arbitrary string that will be made available in the optional bind
+                variable <varname>:nsname</varname> for all SQL statements.  You can use this to run
+                multiple PowerDNS instances off the same database, while serving different zones.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+      <para>
+        There are many more options that are used to define the different SQL statements. These will be
+        discussed after the reference database schema has been explained.
+      </para>
 
-	    </tbody>
-	  </tgroup>
-	</table>
-      </para>
-      <para>
-	Oracle backend with easily configurable SQL statements, allowing you to graft PDNS on any Oracle database of your choosing.
-      </para>
-      <para>
-	PowerDNS is currently ascertaining if this backend can be distributed in binary form without violating Oracle licensing. In the meantime, 
-	the source code to the Oracle backend is available in the pdns distribution.
-      </para>
-      <para>
-	The following configuration settings are available:
-      </para>
-      <para>
-	<variablelist>
-	  <varlistentry>
-	    <term>oracle-debug-queries</term>
-	    <listitem>
-	      <para>
-		Output all queries to disk for debugging purposes.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-time-queries</term>
-	    <listitem>
-	      <para>
-		Output all queries to disk for timing purposes.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-uppercase-database</term>
-	    <listitem>
-	      <para>
-		Change all domain names to uppercase before querying database.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-database</term>
-	    <listitem>
-	      <para>
-		Oracle database name to connect to.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-home</term>
-	    <listitem>
-	      <para>
-		PDNS can set the ORACLE_HOME environment variable from within the executable, allowing execution of
-		the daemon from init.d scripts where ORACLE_HOME may not yet be set.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-sid</term>
-	    <listitem>
-	      <para>
-		PDNS can set the ORACLE_SID environment variable from within the executable, allowing execution of
-		the daemon from init.d scripts where ORACLE_SID may not yet be set.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-username</term>
-	    <listitem>
-	      <para>
-		Oracle username to connect as.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-password</term>
-	    <listitem>
-	      <para>
-		Oracle password to connect with.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </para>
-      <para>
-	The generic Oracle backend can be configured to use user-specified queries. The following are the default queries
-	and their names:
-      </para>
-      <para>
-	<variablelist>
-	  <varlistentry>
-	    <term>oracle-forward-query</term>
-	    <listitem>
-	      <para>
-		select content, TimeToLive, Priority, type, ZoneId, nvl(ChangeDate,0) from Records where name = :name and type = :type
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-forward-query-by-zone</term>
-	    <listitem>
-	      <para>
-		select content, TimeToLive, Priority, type, ZoneId, nvl(ChangeDate,0) from records where name = :name and type = :type and ZoneId = :id
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-forward-any-query</term>
-	    <listitem>
-	      <para>
-		select content, TimeToLive, Priority, type, ZoneId, nvl(ChangeDate,0) from records where name = :name
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>oracle-list-query</term>
-	    <listitem>
-	      <para>
-		select content, TimeToLive, Priority, type, ZoneId, nvl(ChangeDate, 0), name from records where ZoneId = :id
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </para>
-      <sect2><title>Setting up Oracle for use with PowerDNS</title>
-	<para>
-	  To setup a database that corresponds to these default queries, issue the following as Oracle user sys:
-	  <screen>
-	    create user powerdns identified by YOURPASSWORD;
-	    grant connect to powerdns;
-	    
-	    create tablespace powerdns datafile '/opt/oracle/oradata/oracle/powerdns.dbf'
-	      size 256M extent management local autoallocate;
-	    
-	    alter user powerdns quota unlimited on powerdns; 
-	  </screen>
-	</para>
-	<para>
-	  As user 'powerdns' continue with:
-	  <screen>
-create table Domains (
- ID		 number(11) NOT NULL,
- NAME		 VARCHAR(255) NOT NULL,
- MASTER		 VARCHAR(128) DEFAULT NULL,
- LAST_CHECK	 INT DEFAULT NULL,
- TYPE		 VARCHAR(6) NOT NULL,
- NOTIFIED_SERIAL INT DEFAULT NULL,
- ACCOUNT	 VARCHAR(40) DEFAULT NULL,
- primary key (ID)
-)tablespace POWERDNS;
+      <sect2><title>The Database Schema</title>
+        <para>
+          You can find an example database schema in <filename>schema.sql</filename> in the PowerDNS
+          source distribution.  It is intended more as a starting point to come up with a schema that
+          works well for your organisation, than as something you should run as it is. As long as the
+          semantics of the SQL statements still work out, you can store your DNS data any way you like.
+        </para>
+        <para>
+          You should read this while having <filename>schema.sql</filename> to hand. Columns will not be
+          specifically explained where their meaning is obvious.
+        </para>
+        <note>
+          <para>
+            All FQDNs should be specified in lower case and without a trailing dot. Where things are
+            lexicographically compared or sorted, make sure a sane ordering is used.
+            <userinput>NLS_LANG=AMERICAN_AMERICA.AL32UTF8</userinput> should generally work well enough;
+            when in doubt, enforce a plain ordering with
+            <userinput>NLSSORT(value, 'NLS_SORT = BINARY')</userinput>.
+          </para>
+        </note>
 
-create index DOMAINS$NAME on Domains (NAME) tablespace POWERDNS;
-create sequence DOMAINS_ID_SEQUENCE;
+        <sect3><title>Zones Table</title>
+          <para>
+            This table lists the zones for which PowerDNS is supposed to be an authoritative nameserver,
+            plus a small amount of information related to master/slave mode.
+          </para>
+          <variablelist>
+            <varlistentry>
+              <term>name</term>
+              <listitem>
+                <simpara>
+                  The FQDN of the zone apex, e.g. <literal>example.com</literal>.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>type</term>
+              <listitem>
+                <simpara>
+                  Describes how PowerDNS should host the zone. Valid values are
+                  <constant>NATIVE</constant>, <constant>MASTER</constant>, and
+                  <constant>SLAVE</constant>.  PowerDNS acts as an authoritative nameserver for the zone
+                  in all modes. In slave mode, it will additionally attempt to acquire the zone's
+                  content from a master server. In master mode, it will additionally send
+                  <constant>NOTIFY</constant> packets to other nameservers for the zone when its content
+                  changes.
+                </simpara>
+                <tip>
+                  <simpara>
+                    There is a global setting to make PowerDNS send <constant>NOTIFY</constant> packets
+                    in slave mode.
+                  </simpara>
+                </tip>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>last_check</term>
+              <listitem>
+                <simpara>
+                  This value, updated by PowerDNS, is the unix timestamp of the last successful attempt
+                  to check this zone for freshness on the master.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>refresh</term>
+              <listitem>
+                <simpara>
+                  The number of seconds PowerDNS should wait after a successful freshness check before
+                  performing another one. This value is also found in the zone's SOA record. You may
+                  want to make sure to put the same thing in both places.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>serial</term>
+              <listitem>
+                <simpara>
+                  The serial of the version of the zone's content we are hosting now. This value is also
+                  found in the zone's SOA record. You may want to make sure to put the same thing in
+                  both places.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>notified_serial</term>
+              <listitem>
+                <simpara>
+                  The latest serial for which we have send <constant>NOTIFY</constant> packets. Updated
+                  by PowerDNS.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term></term>
+              <listitem>
+                <simpara>
+                </simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
 
-create table Records
-(
-  ID                number(11) NOT NULL,
-  ZoneID            number(11) default NULL REFERENCES Domains(ID) ON DELETE CASCADE,
-  NAME              varchar2(255) default NULL,
-  TYPE              varchar2(10) default NULL,  
-  CONTENT           varchar2(255) default NULL,
-  TimeToLive        number(11) default NULL,   
-  Priority          number(11) default NULL,
-  CreateDate        number(11) default NULL,
-  ChangeDate        number(11) default NULL,
-  primary key (ID)
-)tablespace POWERDNS;
+        <sect3><title>The Zonemasters and ZoneAlsoNotify Tables</title>
+          <para>
+            These are lists of hosts PowerDNS will interact with for a zone in master/slave mode.
+            <classname>Zonemasters</classname> lists the hosts PowerDNS will attempt to pull zone
+            transfers from, and accept <constant>NOTIFY</constant> packets from.
+            <classname>ZoneAlsoNotify</classname> lists hosts PowerDNS will send
+            <constant>NOTIFY</constant> packets to, in addition to any hosts that have NS records.
+          </para>
+          <para>
+            Host entries can be IPv4 or IPv6 addresses, in string representation. If you need to specify
+            a port, use <userinput>1.2.3.4:5300</userinput> notation for IPv4 and brackets for IPv6:
+            <userinput>[abcd::1234]:5300</userinput>.
+          </para>
+        </sect3>
 
-create index RECORDS$NAME on RECORDS (NAME) tablespace POWERDNS;
-create sequence RECORDS_ID_SEQUENCE;
-	  </screen>
-	</para>
-	<para>
-	  To insert records, either use <command>zone2sql</command> with the <command>--oracle</command> setting, or execute sql
-	  along the lines of:
-	  <screen>
-insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherlabs.nl','NATIVE');
-insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,'netherlabs.nl', 'SOA', 'ahu.casema.net. hostmaster.ds9a.nl. 2000081401 28800 7200 604800 86400', 3600, 0 from Domains where name='netherlabs.nl';
-insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,'netherlabs.nl', 'NS', 'ahu.casema.net', 3600, 0 from Domains where name='netherlabs.nl';
-insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,'netherlabs.nl', 'NS', 'ns1.pine.nl', 3600, 0 from Domains where name='netherlabs.nl';
-insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,'netherlabs.nl', 'NS', 'ns2.pine.nl', 3600, 0 from Domains where name='netherlabs.nl';
-insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,'netherlabs.nl', 'A', '213.244.168.210', 3600, 0 from Domains where name='netherlabs.nl';
-insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,'netherlabs.nl', 'MX', 'outpost.ds9a.nl', 3600, 10 from Domains where name='netherlabs.nl';
+        <sect3><title>The Supermasters Table</title>
+          <para>
+            In superslave mode, PowerDNS can accept <constant>NOTIFY</constant> packets for zones that
+            have not been defined in the zone table yet. PowerDNS will then create an entry for the zone
+            and attempt a zone transfer. This table defines the list of acceptable sources for
+            supernotifications.
+          </para>
+          <variablelist>
+            <varlistentry>
+              <term>name</term>
+              <listitem>
+                <simpara>
+                  An identifying string for this entry. Only used for logging.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>ip</term>
+              <listitem>
+                <simpara>
+                  The alleged originating IP address of the notification.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nameserver</term>
+              <listitem>
+                <simpara>
+                  The FQDN of an authoritative nameserver.
+                </simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+          <para>
+            A supernotification will be accepted if an entry is found such that the notification came
+            from <varname>ip</varname> and <varname>nameserver</varname> appears in an NS record for that zone.
+          </para>
+        </sect3>
 
-	  </screen>
-	</para>
-	<para>
-	  For performance reasons it is best to specify <command>--transactions</command> too!
-	</para>
+        <sect3><title>The ZoneMetadata Table</title>
+          <para>
+            This is a per-zone key-value store for various things PowerDNS needs to know that are not
+            part of the zone's content or handled by other tables. Depending on your needs, you may not
+            want this to exist as an actual table, but simulate this is PL/SQL instead.
+          </para>
+          <para>
+            The currently defined metadata types are:
+            <variablelist>
+              <varlistentry>
+                <term><constant>PRESIGNED</constant></term>
+                <listitem>
+                  <simpara>
+                    If set to 1, PowerDNS should assume that DNSsec signatures for this zone exist in
+                    the database and use them instead of signing records itself. For a slave zone, this
+                    will also signal to the master that we want DNSsec records when attempting a zone
+                    transfer.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term><constant>NSEC3PARAM</constant></term>
+                <listitem>
+                  <simpara>
+                    The NSEC3 hashing parameters for the zone.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term><constant>TSIG-ALLOW-AXFR</constant></term>
+                <listitem>
+                  <simpara>
+                    The value is the name of a TSIG key. A client will be allowed to AXFR from us if the
+                    request is signed with that key.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term><constant>AXFR-MASTER-TSIG</constant></term>
+                <listitem>
+                  <simpara>
+                    The value is the name of a TSIG key. Outgoing <constant>NOTIFY</constant> packets
+                    for this zone will be signed with that key.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+            </variablelist>
+          </para>
+        </sect3>
+
+        <sect3><title>The AccessControlList Table</title>
+          <para>
+            There is the beginning of an ACL feature, implemented in this table. At this time, it's used
+            by PowerDNS for only one thing: outgoing AXFR permission by IP address. In your schema, you
+            will probably want to implement ACLs entirely in PL/SQL. In the reference schema, this table
+            stores a simple list of ACL parameters for which we set <varname>allow</varname> to 1.
+          </para>
+        </sect3>
+
+        <sect3><title>The Tables for Cryptographic Keys</title>
+          <para>
+            We have two of them: <classname>TSIGKeys</classname> for symmetric TSIG keys, and
+            <classname>ZoneDNSKeys</classname> for DNSsec signing keys.
+          </para>
+        </sect3>
+
+        <sect3><title>The Records Table</title>
+          <para>
+            The actual DNS zone contents are stored here.
+          </para>
+          <variablelist>
+            <varlistentry>
+              <term>zone_id</term>
+              <listitem>
+                <simpara>
+                  The zone this records belongs to. Normally, this is obvious. When you are dealing with
+                  zone delegations, you have to insert some records into the parent zone of their actual
+                  zone. See also <varname>auth</varname>.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>fqdn</term>
+              <listitem>
+                <simpara>
+                  The owner name of this record. Again, this is lower case and without a trailing dot.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>revfqdn</term>
+              <listitem>
+                <simpara>
+                  This should be a string that consists of the labels of the owner name, in reverse
+                  order, with spaces instead of dots separating them, for example:
+                  <synopsis>'www.example.com' => 'com example www'</synopsis>
+                  This is used as a quick and dirty way to get canonical zone ordering. You can chose
+                  a more correct and much more complicated implementation instead if you prefer.
+                  In the reference schema, this is automatically set by a trigger.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>fqdnhash</term>
+              <listitem>
+                <simpara>
+                  The NSEC3 hash of the owner name. The reference schema provides code and a trigger to
+                  calculate this, but they are not production quality. The recommendation is to load the
+                  dnsjava classes into your database and use their facilities for dealing with DNS names
+                  and NSEC3 hashes.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>ttl</term>
+              <listitem>
+                <simpara>
+                  The TTL for the record set. This should be the same for all members of a record set,
+                  but PowerDNS will quietly use the minimum if it encounters different values.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>type</term>
+              <listitem>
+                <simpara>
+                  The type of the record, as a canonical identification string, e.g.
+                  <constant>AAAA</constant> or <constant>MX</constant>. You can set this and
+                  <varname>content</varname> NULL to indicate a name that exists, but doesn't carry any
+                  record (a so called empty non-terminal) for NSEC/NSEC3 ordering purposes.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>content</term>
+              <listitem>
+                <simpara>
+                  The data part of the DNS record, in canonical string representation, except that if
+                  this includes FQDNs, the can be specified without a trailing dot.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>last_change</term>
+              <listitem>
+                <simpara>
+                  The unix timestamp of the last change to this record. Used only for the deprecated
+                  autoserial feature. You can omit this unless you want to use that feature.
+                </simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>auth</term>
+              <listitem>
+                <simpara>
+                  0 or 1 depending on whether this record is an authoritative member of the zone
+                  specified in <varname>zone_id</varname>. These are the rules for determining that: A
+                  record is an authoritative member of the zone its owner name belongs to, except for DS
+                  records, which are authoritative members of the parent zone. Delegation records, that
+                  is, NS records and related A/AAAA glue records, are additionally non-authoritative
+                  members of the parent zone.
+                </simpara>
+                <simpara>
+                  PowerDNS has a function to automatically set this. OracleBackend doesn't support that.
+                  Do it in the database.
+                </simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+      </sect2>
+
+      <sect2><title>The SQL Statements</title>
+        <sect3><title>Fetching DNS records</title>
+          <para>
+            There are five queries to do this. They all share the same set of return columns:
+            <variablelist>
+              <varlistentry>
+                <term>fqdn</term>
+                <listitem>
+                  <simpara>
+                    The owner name of the record.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>ttl</term>
+                <listitem>
+                  <simpara>
+                    The TTL of the record set.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>type</term>
+                <listitem>
+                  <simpara>
+                    The type of the record.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>content</term>
+                <listitem>
+                  <simpara>
+                    The content of the record.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>zone_id</term>
+                <listitem>
+                  <simpara>
+                    The numerical identifier of the zone the record belongs to. A record can belong to
+                    two zones (delegations/glue), in which case it may be returned twice.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>last_change</term>
+                <listitem>
+                  <simpara>
+                    The unix timestamp of the last time this record was changed. Can safely be set as
+                    a constant 0, unless you use the autoserial feature.
+                  </simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>auth</term>
+                <listitem>
+                  <simpara>
+                    1 or 0 depending on the zone membership (authoritative or not).
+                  </simpara>
+                </listitem>
+              </varlistentry>
+            </variablelist>
+            Record sets (records for the same name of the same type) must appear consecutively, which
+            means <command>ORDER BY</command> clauses are needed in some places. Empty non-terminals
+            should be suppressed.
+          </para>
+          <para>
+            The queries differ in which columns are restricted by <command>WHERE</command> clauses:
+            <variablelist>
+              <varlistentry>
+                <term>oracle-basic-query</term>
+                <listitem>
+                  <simpara>
+                    Looking for records based on owner name and type. Default:
+                  </simpara>
+                  <programlisting>
+SELECT fqdn, ttl, type, content, zone_id, last_change, auth
+FROM Records
+WHERE type = :type AND fqdn = lower(:name)
+                  </programlisting>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>oracle-basic-id-query</term>
+                <listitem>
+                  <simpara>
+                    Looking for records from one zone based on owner name and type. Default:
+                  </simpara>
+                  <programlisting>
+SELECT fqdn, ttl, type, content, zone_id, last_change, auth
+FROM Records
+WHERE type = :type AND fqdn = lower(:name) AND zone_id = :zoneid
+                  </programlisting>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>oracle-any-query</term>
+                <listitem>
+                  <simpara>
+                    Looking for records based on owner name. Default:
+                  </simpara>
+                  <programlisting>
+SELECT fqdn, ttl, type, content, zone_id, last_change, auth
+FROM Records
+WHERE fqdn = lower(:name)
+  AND type IS NOT NULL
+ORDER BY type
+                  </programlisting>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>oracle-any-id-query</term>
+                <listitem>
+                  <simpara>
+                    Looking for records from one zone based on owner name. Default:
+                  </simpara>
+                  <programlisting>
+SELECT fqdn, ttl, type, content, zone_id, last_change, auth
+FROM Records
+WHERE fqdn = lower(:name)
+  AND zone_id = :zoneid
+  AND type IS NOT NULL
+ORDER BY type
+                  </programlisting>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>oracle-list-query</term>
+                <listitem>
+                  <simpara>
+                    Looking for all records from one zone. Default:
+                  </simpara>
+                  <programlisting>
+SELECT fqdn, ttl, type, content, zone_id, last_change, auth
+FROM Records
+WHERE zone_id = :zoneid
+  AND type IS NOT NULL
+ORDER BY fqdn, type
+                  </programlisting>
+                </listitem>
+              </varlistentry>
+            </variablelist>
+          </para>
+        </sect3>
+
+        <sect3><title>Zone Metadata and TSIG</title>
+          <variablelist>
+            <varlistentry>
+              <term>oracle-get-zone-metadata-query</term>
+              <listitem>
+                <simpara>
+                  Fetch the content of the metadata entries of type <varname>:kind</varname> for the
+                  zone called <varname>:name</varname>, in their original order. Default:
+                </simpara>
+                <programlisting>
+SELECT md.meta_content
+FROM Zones z JOIN ZoneMetadata md ON z.id = md.zone_id
+WHERE z.name = lower(:name) AND md.meta_type = :kind
+ORDER BY md.meta_ind
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-del-zone-metadata-query</term>
+              <listitem>
+                <simpara>
+                  Delete all metadata entries of type <varname>:kind</varname> for the zone called
+                  <varname>:name</varname>. You can skip this if you do not plan to manage zones with the
+                  <command>pdnssec</command> tool. Default:
+                </simpara>
+                <programlisting>
+DELETE FROM ZoneMetadata md
+WHERE zone_id = (SELECT id FROM Zones z WHERE z.name = lower(:name))
+AND md.meta_type = :kind
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-set-zone-metadata-query</term>
+              <listitem>
+                <simpara>
+                  Create a metadata entry. You can skip this if you do not plan to manage zones with
+                  the <command>pdnssec</command> tool. Default:
+                </simpara>
+                <programlisting>
+INSERT INTO ZoneMetadata (zone_id, meta_type, meta_ind, meta_content)
+VALUES (
+  (SELECT id FROM Zones WHERE name = lower(:name)),
+  :kind, :i, :content
+)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-get-tsig-key-query</term>
+              <listitem>
+                <simpara>
+                  Retrieved the TSIG key specified by <varname>:name</varname>. Default:
+                </simpara>
+                <programlisting>
+SELECT algorithm, secret
+FROM TSIGKeys
+WHERE name = :name
+                </programlisting>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+
+        <sect3><title>DNSsec</title>
+          <variablelist>
+            <varlistentry>
+              <term>oracle-get-zone-keys-query</term>
+              <listitem>
+                <simpara>
+                  Retrieve the DNSsec signing keys for a zone. Default:
+                </simpara>
+                <programlisting>
+SELECT k.id, k.flags, k.active, k.keydata
+FROM ZoneDNSKeys k JOIN Zones z ON z.id = k.zone_id
+WHERE z.name = lower(:name)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-del-zone-key-query</term>
+              <listitem>
+                <simpara>
+                  Delete a DNSsec signing key. You can skip this if you do not plan to manage zones with
+                  the <command>pdnssec</command> tool. Default:
+                </simpara>
+                <programlisting>
+DELETE FROM ZoneDNSKeys WHERE id = :keyid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-add-zone-key-query</term>
+              <listitem>
+                <simpara>
+                  Add a DNSsec signing key. You can skip this if you do not plan to manage zones with
+                  the <command>pdnssec</command> tool. Default:
+                </simpara>
+                <programlisting>
+INSERT INTO ZoneDNSKeys (id, zone_id, flags, active, keydata) "
+VALUES (
+  zonednskeys_id_seq.NEXTVAL,
+  (SELECT id FROM Zones WHERE name = lower(:name)),
+  :flags,
+  :active,
+  :content
+) RETURNING id INTO :keyid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-set-zone-key-state-query</term>
+              <listitem>
+                <simpara>
+                  Enable or disable a DNSsec signing key. You can skip this if you do not plan to manage zones with
+                  the <command>pdnssec</command> tool. Default:
+                </simpara>
+                <programlisting>
+UPDATE ZoneDNSKeys SET active = :active WHERE id = :keyid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-prev-next-name-query</term>
+              <listitem>
+                <simpara>
+                  Determine the predecessor and successor of an owner name, in canonical zone ordering.
+                  See the reference implementation for the quick and dirty way, and the RFCs for the
+                  full definition of canonical zone ordering.
+                </simpara>
+                <simpara>
+                  This statement is a PL/SQL block that writes into two of the bind variables, not a query.
+                </simpara>
+                <simpara>
+                  Default:
+                </simpara>
+                <programlisting>
+BEGIN
+  get_canonical_prev_next(:zoneid, :name, :prev, :next);
+END;
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-prev-next-hash-query</term>
+              <listitem>
+                <simpara>
+                  Given an NSEC3 hash, this call needs to return its predecessor and successor in NSEC3
+                  zone ordering into <varname>:prev</varname> and <varname>:next</varname>, and the
+                  FQDN of the predecessor into <varname>:unhashed</varname>. Default:
+                </simpara>
+                <programlisting>
+BEGIN
+  get_hashed_prev_next(:zoneid, :hash, :unhashed, :prev, :next);
+END;
+                </programlisting>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+
+        <sect3><title>Incoming AXFR</title>
+          <variablelist>
+            <varlistentry>
+              <term>oracle-zone-info-query</term>
+              <listitem>
+                <simpara>
+                  Get some basic information about the named zone before doing master/slave things. Default:
+                </simpara>
+                <programlisting>
+SELECT id, name, type, last_check, serial, notified_serial
+FROM Zones
+WHERE name = lower(:name)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-delete-zone-query</term>
+              <listitem>
+                <simpara>
+                  Delete all records for a zone in preparation for an incoming zone transfer. This
+                  happens inside a transaction, so if the transfer fails, the old zone content will
+                  still be there. Default:
+                </simpara>
+                <programlisting>
+DELETE FROM Records WHERE zone_id = :zoneid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-insert-record-query</term>
+              <listitem>
+                <simpara>
+                  Insert a record into the zone during an incoming zone transfer. This happens inside
+                  the same transaction as delete-zone, so we will not end up with a partially
+                  transferred zone. Default:
+                </simpara>
+                <programlisting>
+INSERT INTO Records (id, fqdn, zone_id, ttl, type, content)
+VALUES (records_id_seq.NEXTVAL, lower(:name), :zoneid, :ttl, :type, :content)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-finalize-axfr-query</term>
+              <listitem>
+                <simpara>
+                  A block of PL/SQL to be executed after a zone transfer has successfully completed, but
+                  before committing the transaction. A good place to locate empty non-terminals, set the
+                  <varname>auth</varname> bit and NSEC3 hashes, and generally do any post-processing
+                  your schema requires. The do-nothing default:
+                </simpara>
+                <programlisting>
+DECLARE
+  zone_id INTEGER := :zoneid;
+BEGIN
+  NULL;
+END;
+                </programlisting>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+
+        <sect3><title>Master/Slave Stuff</title>
+          <variablelist>
+            <varlistentry>
+              <term>oracle-unfresh-zones-query</term>
+              <listitem>
+                <simpara>
+                  Return a list of zones that need to be checked and their master servers. Return
+                  multiple rows, identical except for the master address, for zones with more than one
+                  master. Default:
+                </simpara>
+                <programlisting>
+SELECT z.id, z.name, z.last_check, z.serial, zm.master
+FROM Zones z JOIN Zonemasters zm ON z.id = zm.zone_id
+WHERE z.type = 'SLAVE'
+  AND (z.last_check IS NULL OR z.last_check + z.refresh &lt; :ts)
+ORDER BY z.id
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-zone-set-last-check-query</term>
+              <listitem>
+                <simpara>
+                  Set the last check timestamp after a successful check. Default:
+                </simpara>
+                <programlisting>
+UPDATE Zones SET last_check = :lastcheck WHERE id = :zoneid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-updated-masters-query</term>
+              <listitem>
+                <simpara>
+                  Return a list of zones that need to have <constant>NOTIFY</constant> packets sent out.
+                  Default:
+                </simpara>
+                <programlisting>
+SELECT id, name, serial, notified_serial
+FROM Zones
+WHERE type = 'MASTER'
+AND (notified_serial IS NULL OR notified_serial &lt; serial)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-zone-set-notified-serial-query</term>
+              <listitem>
+                <simpara>
+                  Set the last notified serial after packets have been sent. Default:
+                </simpara>
+                <programlisting>
+UPDATE Zones SET notified_serial = :serial WHERE id = :zoneid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-check-acl-query</term>
+              <listitem>
+                <simpara>
+                  A PL/SQL block that sets <varname>:allow</varname> to 1 if the action
+                  <varname>:acltype</varname> is allowed to be performed when <varname>:aclkey</varname>
+                  is <varname>:aclval</varname>, 0 otherwise.
+                </simpara>
+                <simpara>
+                  At the moment, this is only used for outgoing AXFR, in which case
+                  <varname>:acltype</varname> is <constant>allow-axfr</constant>,
+                  <varname>:aclkey</varname> is the name of the requested zone, and
+                  <varname>:aclval</varname> is the IP address of the requesting client.
+                </simpara>
+                <simpara>
+                  Default implementation:
+                </simpara>
+                <programlisting>
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM AccessControlList
+    WHERE acl_type = :acltype
+      AND acl_key = :aclkey
+      AND acl_val = :aclval
+  ) THEN
+    :allow := 1;
+  ELSE
+    :allow := 0;
+  END IF;
+END;
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-also-notify-query</term>
+              <listitem>
+                <simpara>
+                  Return a list of hosts that should be notified, in addition to any nameservers in the
+                  NS records, when sending <constant>NOTIFY</constant> packets for the named zone.
+                  Default:
+                </simpara>
+                <programlisting>
+SELECT an.hostaddr
+FROM Zones z JOIN ZoneAlsoNotify an ON z.id = an.zone_id
+WHERE z.name = lower(:name)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-zone-masters-query</term>
+              <listitem>
+                <simpara>
+                  Return a list of masters for the zone specified by id. Default:
+                </simpara>
+                <programlisting>
+SELECT master
+FROM Zonemasters
+WHERE zone_id = :zoneid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-is-zone-master-query</term>
+              <listitem>
+                <simpara>
+                  Return a row if the specified host is a registered master for the named zone. Default:
+                </simpara>
+                <programlisting>
+SELECT zm.master
+FROM Zones z JOIN Zonemasters zm ON z.id = zm.zone_id
+WHERE z.name = lower(:name) AND zm.master = :master
+                </programlisting>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
+
+        <sect3><title>Superslave Stuff</title>
+          <variablelist>
+            <varlistentry>
+              <term>oracle-accept-supernotification-query</term>
+              <listitem>
+                <simpara>
+                  If a supernotification should be accepted from <varname>:ip</varname>, for the master
+                  nameserver <varname>:ns</varname>, return a label for this supermaster. Default:
+                </simpara>
+                <programlisting>
+SELECT name
+FROM Supermasters
+WHERE ip = :ip AND nameserver = lower(:ns)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-insert-slave-query</term>
+              <listitem>
+                <simpara>
+                  A supernotification has just been accepted, and we need to create an entry for the new
+                  zone. Default:
+                </simpara>
+                <programlisting>
+INSERT INTO Zones (id, name, type)
+VALUES (zones_id_seq.NEXTVAL, lower(:zone), 'SLAVE')
+RETURNING id INTO :zoneid
+                </programlisting>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>oracle-insert-master-query</term>
+              <listitem>
+                <simpara>
+                  We need to register the first master server for the newly created zone. Default:
+                </simpara>
+                <programlisting>
+INSERT INTO Zonemasters (zone_id, master)
+VALUES (:zoneid, :ip)
+                </programlisting>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </sect3>
       </sect2>
     </sect1>
 
@@ -15279,6 +16054,15 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
       </para>
     </sect1>
     <sect1 id="ldap"><title>LDAP backend</title>
+    <para>
+	<warning>
+	  <para>
+	    As of PowerDNS Authoritative Server 3.0, the LDAP backend is unmaintained. While care will be taken that this backend still compiles,
+	    this backend is known to have problems in version 3.0 and beyond! Please contact powerdns.support@netherlabs.nl or visit www.powerdns.com 
+	    to rectify this situation.
+	  </para>
+	</warning>
+      </para>
       <para>
 	<warning>
 	  <para>
