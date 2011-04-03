@@ -76,7 +76,6 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   
   DNSResourceRecord rr;
   set<string> nsset;
-
   B->lookup(QType(QType::NS),domain);
   while(B->get(rr)) 
     nsset.insert(rr.content);
@@ -94,7 +93,6 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
   }
-  
   set<string>alsoNotify;
   B->alsoNotifies(domain, &alsoNotify);
   
@@ -177,12 +175,12 @@ time_t CommunicatorClass::doNotifications()
     }
 
     if(p.d.rcode)
-      L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<p.getRemote()<<", rcode: "<<p.d.rcode<<endl;      
+      L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<from.toStringWithPort()<<", rcode: "<<p.d.rcode<<endl;      
     
-    if(d_nq.removeIf(p.getRemote(), p.d.id, p.qdomain))
-      L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<p.getRemote()<< (p.d.rcode ? "" : " (was acknowledged)")<<endl;      
+    if(d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain))
+      L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<from.toStringWithPort()<< (p.d.rcode ? "" : " (was acknowledged)")<<endl;      
     else
-      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<<p.getRemote()<<endl;      
+      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<< from.toStringWithPort()<<endl;      
   }
 
   // send out possible new notifications
@@ -194,8 +192,7 @@ time_t CommunicatorClass::doNotifications()
     if(!purged) {
       try {
         ComboAddress remote(ip, 53); // default to 53
-        //cerr<<"Going to send to "<<remote.toStringWithPort()<<endl;
-        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id); // XXX FIXME this won't deal with IPv6 since nsock is IPv4!
+        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id); 
         drillHole(domain, ip);
       }
       catch(ResolverException &re) {
