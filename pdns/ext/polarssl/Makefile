@@ -4,6 +4,8 @@ all:
 clean:
 	cd library  && $(MAKE) clean && cd ..
 
+distclean: clean
+
 install:
 	
 
