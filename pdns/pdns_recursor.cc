@@ -815,8 +815,11 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       SyncRes::s_queries++;
       ageDNSPacket(response, age);
       sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
-      if(response.length() >= sizeof(struct dnsheader))
-        updateRcodeStats(((struct dnsheader*)response.c_str())->rcode);
+      if(response.length() >= sizeof(struct dnsheader)) {
+        struct dnsheader dh;
+        memcpy(&dh, response.c_str(), sizeof(dh));
+        updateRcodeStats(dh.rcode);
+      }
       g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0); // we assume 0 usec
       return 0;
     }
