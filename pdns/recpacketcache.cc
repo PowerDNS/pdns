@@ -28,9 +28,10 @@ bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time
   if((uint32_t)now < iter->d_ttd) { // it is fresh!
 //    cerr<<"Fresh for another "<<iter->d_ttd - now<<" seconds!"<<endl;
     *age = now - iter->d_creation;
-    uint16_t id = ((struct dnsheader*)queryPacket.c_str())->id;
+    uint16_t id;
+    memcpy(&id, queryPacket.c_str(), 2); 
     *responsePacket = iter->d_packet;
-    ((struct dnsheader*)responsePacket->c_str())->id=id;
+    responsePacket->replace(0, 2, (char*)&id, 2);
     d_hits++;
     moveCacheItemToBack(d_packetCache, iter);
 
