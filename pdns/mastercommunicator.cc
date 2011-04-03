@@ -21,6 +21,7 @@
 #include "communicator.hh"
 #include <set>
 #include <boost/utility.hpp>
+#include <boost/foreach.hpp>
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "packethandler.hh"
@@ -117,6 +118,13 @@ bool CommunicatorClass::notifyDomain(const string &domain)
   return true; 
 }
 
+void NotificationQueue::dump()
+{
+  cerr<<"Waiting for notification responses: "<<endl;
+  BOOST_FOREACH(NotificationRequest& nr, d_nqueue) {
+    cerr<<nr.domain<<", "<<nr.ip<<endl;
+  }
+}
 
 void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
 {
@@ -179,8 +187,10 @@ time_t CommunicatorClass::doNotifications()
     
     if(d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain))
       L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<from.toStringWithPort()<< (p.d.rcode ? "" : " (was acknowledged)")<<endl;      
-    else
-      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<< from.toStringWithPort()<<endl;      
+    else {
+      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<< from.toStringWithPort()<<endl;
+      //d_nq.dump();
+    }
   }
 
   // send out possible new notifications

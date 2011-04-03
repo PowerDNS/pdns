@@ -82,8 +82,10 @@ public:
       //      cout<<i->id<<" "<<id<<endl;
       //cout<<i->ip<<" "<<remote<<endl;
       //cout<<i->domain<<" "<<domain<<endl;
-
-      if(i->id==id && i->ip==remote && i->domain==domain) {
+      string remoteIP, ourIP, port;
+      tie(remoteIP, port)=splitField(remote,':');
+      tie(ourIP, port)=splitField(i->ip,':');
+      if(i->id==id && ourIP == remoteIP && i->domain==domain) {
         d_nqueue.erase(i);
         return true;
       }
@@ -118,7 +120,7 @@ public:
       early=min(early,i->next);
     return early-time(0);
   }
-
+  void dump();
 private:
   struct NotificationRequest
   {
