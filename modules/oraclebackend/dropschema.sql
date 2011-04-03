@@ -9,6 +9,7 @@ DROP FUNCTION label_reverse;
 DROP TABLE Records;
 DROP SEQUENCE records_id_seq;
 DROP TABLE AccessControlList;
+DROP TABLE TSIGKeys;
 DROP TABLE ZoneDNSKeys;
 DROP SEQUENCE zonednskeys_id_seq;
 DROP TABLE ZoneMetadata;

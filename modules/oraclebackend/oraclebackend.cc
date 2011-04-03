@@ -10,6 +10,7 @@
  */
 
 #include <string>
+#include <stdexcept>
 
 #include "pdns/namespaces.hh"
 
@@ -38,19 +39,26 @@ static const char *anyQueryKey = "PDNS_ANY_Query";
 static const char *anyQueryDefaultSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
-  "WHERE fqdn = lower(:name)";
+  "WHERE fqdn = lower(:name)"
+  "  AND type IS NOT NULL "
+  "ORDER BY type";
 
 static const char *anyIdQueryKey = "PDNS_ANY_Id_Query";
 static const char *anyIdQueryDefaultSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
-  "WHERE fqdn = lower(:name) AND zone_id = :zoneid";
+  "WHERE fqdn = lower(:name)"
+  "  AND zone_id = :zoneid"
+  "  AND type IS NOT NULL "
+  "ORDER BY type";
 
 static const char *listQueryKey = "PDNS_List_Query";
 static const char *listQueryDefaultSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
-  "WHERE zone_id = :zoneid";
+  "WHERE zone_id = :zoneid"
+  "  AND type IS NOT NULL "
+  "ORDER BY fqdn, type";
 
 static const char *zoneInfoQueryKey = "PDNS_Zone_Info_Query";
 static const char *zoneInfoQueryDefaultSQL =
@@ -105,8 +113,16 @@ static const char *zoneSetNotifiedSerialQueryDefaultSQL =
 
 static const char *insertRecordQueryKey = "PDNS_Insert_Record_Query";
 static const char *insertRecordQueryDefaultSQL =
-  "INSERT INTO Records (fqdn, zone_id, ttl, type, content, last_change) "
-  "VALUES (lower(:name), :zoneid, :ttl, :type, :content, :ts)";
+  "INSERT INTO Records (id, fqdn, zone_id, ttl, type, content) "
+  "VALUES (records_id_seq.NEXTVAL, lower(:name), :zoneid, :ttl, :type, :content)";
+
+static const char *finalizeAXFRQueryKey = "PDNS_Finalize_AXFR";
+static const char *finalizeAXFRQueryDefaultSQL =
+  "DECLARE\n"
+  "  zone_id INTEGER := :zoneid;\n"
+  "BEGIN\n"
+  "  NULL;\n"
+  "END;";
 
 static const char *unfreshZonesQueryKey = "PDNS_Unfresh_Zones_Query";
 static const char *unfreshZonesQueryDefaultSQL =
@@ -173,6 +189,12 @@ static const char *setZoneMetadataQueryDefaultSQL =
   "  :kind, :i, :content"
   ")";
 
+static const char *getTSIGKeyQueryKey = "PDNS_Get_TSIG_Key";
+static const char *getTSIGKeyQueryDefaultSQL =
+  "SELECT algorithm, secret "
+  "FROM TSIGKeys "
+  "WHERE name = :name";
+
 static const char *getZoneKeysQueryKey = "PDNS_Get_Zone_Keys";
 static const char *getZoneKeysQueryDefaultSQL =
   "SELECT k.id, k.flags, k.active, k.keydata "
@@ -202,13 +224,9 @@ static const char *setZoneKeyStateQueryDefaultSQL =
 static void
 string_to_cbuf (char *buf, const string& s, size_t bufsize)
 {
-  if (s.size() > bufsize) {
-    throw overflow_error("OracleBackend: string does not fit into char buffer");
+  if (s.size() >= bufsize) {
+    throw std::overflow_error("OracleBackend: string does not fit into char buffer");
   }
-  /* Important caveat:
-   * If s.size() is exactly bufsize, the char buffer will NOT be
-   * zero-terminated. OCI is okay with that, many other functions will not be!
-   */
   strncpy(buf, s.c_str(), bufsize);
 }
 
@@ -219,11 +237,13 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   sword err;
 
   // Initialize everything in a known state
-  mEnvironmentHandle = envh;
-  mErrorHandle = NULL;
-  mServiceContextHandle = NULL;
+  oraenv = envh;
+  oraerr = NULL;
+  pooledSvcCtx = NULL;
+  masterAuthHandle = NULL;
+  masterSvcCtx = NULL;
   curStmtHandle = NULL;
-  mQueryResult = OCI_ERROR;
+  openTransactionZoneID = -1;
 
   // Process configuration options
   string_to_cbuf(myServerName, getArg("nameserver-name"), sizeof(myServerName));
@@ -240,6 +260,7 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   deleteZoneQuerySQL = getArg("delete-zone-query");
   zoneSetLastCheckQuerySQL = getArg("zone-set-last-check-query");
   insertRecordQuerySQL = getArg("insert-record-query");
+  finalizeAXFRQuerySQL = getArg("finalize-axfr-query");
   unfreshZonesQuerySQL = getArg("unfresh-zones-query");
   updatedMastersQuerySQL = getArg("updated-masters-query");
   acceptSupernotificationQuerySQL = getArg("accept-supernotification-query");
@@ -251,110 +272,59 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   getZoneMetadataQuerySQL = getArg("get-zone-metadata-query");
   delZoneMetadataQuerySQL = getArg("del-zone-metadata-query");
   setZoneMetadataQuerySQL = getArg("set-zone-metadata-query");
+  getTSIGKeyQuerySQL = getArg("get-tsig-key-query");
   getZoneKeysQuerySQL = getArg("get-zone-keys-query");
   delZoneKeyQuerySQL = getArg("del-zone-key-query");
   addZoneKeyQuerySQL = getArg("add-zone-key-query");
   setZoneKeyStateQuerySQL = getArg("set-zone-key-state-query");
 
   // Allocate an error handle
-  err = OCIHandleAlloc(mEnvironmentHandle, (void**) &mErrorHandle,
+  err = OCIHandleAlloc(oraenv, (void**) &oraerr,
                        OCI_HTYPE_ERROR, 0, NULL);
   if (err == OCI_ERROR) {
     throw OracleException("OCIHandleAlloc");
   }
 
   // Logon to the database
-  err = OCISessionGet(mEnvironmentHandle, mErrorHandle,
-                      &mServiceContextHandle, NULL, (OraText*) poolname,
-                      strlen(poolname), NULL, 0, NULL, NULL, NULL,
-                      OCI_SESSGET_SPOOL);
+  err = OCISessionGet(oraenv, oraerr, &pooledSvcCtx, NULL, (OraText*) poolname, strlen(poolname), NULL, 0, NULL, NULL, NULL, OCI_SESSGET_SPOOL);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Opening Oracle session", mErrorHandle);
+    throw OracleException("Opening Oracle session", oraerr);
   }
+}
 
-  // Prepare the statements
-  basicQueryHandle = prepare_query(basicQuerySQL, basicQueryKey);
-  define_fwd_query(basicQueryHandle);
-  bind_str_failokay(basicQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(basicQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_str(basicQueryHandle, ":type", mQueryType, sizeof(mQueryType));
+void
+OracleBackend::openMasterConnection ()
+{
+  sword err;
 
-  basicIdQueryHandle = prepare_query(basicIdQuerySQL, basicIdQueryKey);
-  define_fwd_query(basicIdQueryHandle);
-  bind_str_failokay(basicIdQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(basicIdQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_str(basicIdQueryHandle, ":type", mQueryType, sizeof(mQueryType));
-  bind_int(basicIdQueryHandle, ":zoneid", &mQueryZoneId);
+  if (masterSvcCtx == NULL) {
+    err = OCIHandleAlloc(oraenv, (void**) &masterAuthHandle, OCI_HTYPE_AUTHINFO, 0, NULL);
+    if (err == OCI_ERROR) {
+      throw OracleException("openMasterConnection: allocating auth handle");
+    }
 
-  anyQueryHandle = prepare_query(anyQuerySQL, anyQueryKey);
-  define_fwd_query(anyQueryHandle);
-  bind_str_failokay(anyQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(anyQueryHandle, ":name", mQueryName, sizeof(mQueryName));
+    string database = getArg("master-database");
+    string username = getArg("master-username");
+    string password = getArg("master-password");
 
-  anyIdQueryHandle = prepare_query(anyIdQuerySQL, anyIdQueryKey);
-  define_fwd_query(anyIdQueryHandle);
-  bind_str_failokay(anyIdQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(anyIdQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_int(anyIdQueryHandle, ":zoneid", &mQueryZoneId);
+    err = OCIAttrSet(masterAuthHandle, OCI_HTYPE_AUTHINFO, (void*)username.c_str(), username.size(), OCI_ATTR_USERNAME, oraerr);
+    if (err == OCI_ERROR) {
+      throw OracleException("openMasterConnection: setting username");
+    }
 
-  listQueryHandle = prepare_query(listQuerySQL, listQueryKey);
-  define_fwd_query(listQueryHandle);
-  bind_str_failokay(listQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_int(listQueryHandle, ":zoneid", &mQueryZoneId);
+    err = OCIAttrSet(masterAuthHandle, OCI_HTYPE_AUTHINFO, (void*)password.c_str(), password.size(), OCI_ATTR_PASSWORD, oraerr);
+    if (err == OCI_ERROR) {
+      throw OracleException("openMasterConnection: setting password");
+    }
 
-  insertRecordQueryHandle = prepare_query(insertRecordQuerySQL,
-                                          insertRecordQueryKey);
-  bind_str_failokay(insertRecordQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_int(insertRecordQueryHandle, ":zoneid", &mQueryZoneId);
-  bind_str(insertRecordQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_str(insertRecordQueryHandle, ":type", mQueryType, sizeof(mQueryType));
-  bind_int(insertRecordQueryHandle, ":ts", &mQueryTimestamp);
-
-  zoneInfoQueryHandle = prepare_query(zoneInfoQuerySQL, zoneInfoQueryKey);
-  bind_str_failokay(zoneInfoQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-
-  unfreshZonesQueryHandle = prepare_query(unfreshZonesQuerySQL,
-                                          unfreshZonesQueryKey);
-  bind_str_failokay(unfreshZonesQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_int(unfreshZonesQueryHandle, ":ts", &mQueryTimestamp);
-
-  updatedMastersQueryHandle = prepare_query(updatedMastersQuerySQL,
-                                            updatedMastersQueryKey);
-  bind_str_failokay(updatedMastersQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-
-  prevNextNameQueryHandle = prepare_query(prevNextNameQuerySQL,
-                                          prevNextNameQueryKey);
-  bind_str_failokay(prevNextNameQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(prevNextNameQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_str_ind(prevNextNameQueryHandle, ":prev",
-               mResultPrevName, sizeof(mResultPrevName), &mResultPrevNameInd);
-  bind_str_ind(prevNextNameQueryHandle, ":next",
-               mResultNextName, sizeof(mResultNextName), &mResultNextNameInd);
-
-  prevNextHashQueryHandle = prepare_query(prevNextHashQuerySQL,
-                                          prevNextHashQueryKey);
-  bind_str_failokay(prevNextHashQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(prevNextHashQueryHandle, ":hash", mQueryName, sizeof(mQueryName));
-  bind_str_ind(prevNextHashQueryHandle, ":unhashed",
-               mResultName, sizeof(mResultName), &mResultNameInd);
-  bind_str_ind(prevNextHashQueryHandle, ":prev",
-               mResultPrevName, sizeof(mResultPrevName), &mResultPrevNameInd);
-  bind_str_ind(prevNextHashQueryHandle, ":next",
-               mResultNextName, sizeof(mResultNextName), &mResultNextNameInd);
-
-  getZoneMetadataQueryHandle = prepare_query(getZoneMetadataQuerySQL,
-                                             getZoneMetadataQueryKey);
-  bind_str_failokay(getZoneMetadataQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(getZoneMetadataQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_str(getZoneMetadataQueryHandle, ":kind", mQueryType, sizeof(mQueryType));
-  define_output_str(getZoneMetadataQueryHandle, 1,
-                    &mResultContentInd, mResultContent, sizeof(mResultContent));
-
-  getZoneKeysQueryHandle = prepare_query(getZoneKeysQuerySQL, getZoneKeysQueryKey);
-  bind_str(getZoneKeysQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-
-  setZoneKeyStateQueryHandle = prepare_query(setZoneKeyStateQuerySQL, setZoneKeyStateQueryKey);
+    err = OCISessionGet(oraenv, oraerr, &masterSvcCtx, masterAuthHandle,
+        (OraText*)database.c_str(), database.size(),
+        NULL, 0, NULL, NULL, NULL, OCI_SESSGET_STMTCACHE);
+    if (err == OCI_ERROR) {
+      throw OracleException("openMasterConnection OCISessionGet");
+    }
+  }
 }
 
 OracleBackend::~OracleBackend ()
@@ -366,17 +336,43 @@ void
 OracleBackend::lookup (const QType &qtype, const string &qname,
                        DNSPacket *p, int zoneId)
 {
+  sword rc;
+
   if (qtype.getCode() != QType::ANY) {
     if (zoneId < 0) {
-      curStmtHandle = basicQueryHandle;
+      if (curStmtHandle != NULL) throw OracleException("Invalid state");
+      curStmtHandle = prepare_query(pooledSvcCtx, basicQuerySQL, basicQueryKey);
+      curStmtKey = basicQueryKey;
+      define_fwd_query(curStmtHandle);
+      bind_str_failokay(curStmtHandle, ":nsname", myServerName, sizeof(myServerName));
+      bind_str(curStmtHandle, ":name", mQueryName, sizeof(mQueryName));
+      bind_str(curStmtHandle, ":type", mQueryType, sizeof(mQueryType));
     } else {
-      curStmtHandle = basicIdQueryHandle;
+      if (curStmtHandle != NULL) throw OracleException("Invalid state");
+      curStmtHandle = prepare_query(pooledSvcCtx, basicIdQuerySQL, basicIdQueryKey);
+      curStmtKey = basicIdQueryKey;
+      define_fwd_query(curStmtHandle);
+      bind_str_failokay(curStmtHandle, ":nsname", myServerName, sizeof(myServerName));
+      bind_str(curStmtHandle, ":name", mQueryName, sizeof(mQueryName));
+      bind_str(curStmtHandle, ":type", mQueryType, sizeof(mQueryType));
+      bind_int(curStmtHandle, ":zoneid", &mQueryZoneId);
     }
   } else {
     if (zoneId < 0) {
-      curStmtHandle = anyQueryHandle;
+      if (curStmtHandle != NULL) throw OracleException("Invalid state");
+      curStmtHandle = prepare_query(pooledSvcCtx, anyQuerySQL, anyQueryKey);
+      curStmtKey = anyQueryKey;
+      define_fwd_query(curStmtHandle);
+      bind_str_failokay(curStmtHandle, ":nsname", myServerName, sizeof(myServerName));
+      bind_str(curStmtHandle, ":name", mQueryName, sizeof(mQueryName));
     } else {
-      curStmtHandle = anyIdQueryHandle;
+      if (curStmtHandle != NULL) throw OracleException("Invalid state");
+      curStmtHandle = prepare_query(pooledSvcCtx, anyIdQuerySQL, anyIdQueryKey);
+      curStmtKey = anyIdQueryKey;
+      define_fwd_query(curStmtHandle);
+      bind_str_failokay(curStmtHandle, ":nsname", myServerName, sizeof(myServerName));
+      bind_str(curStmtHandle, ":name", mQueryName, sizeof(mQueryName));
+      bind_int(curStmtHandle, ":zoneid", &mQueryZoneId);
     }
   }
 
@@ -384,12 +380,15 @@ OracleBackend::lookup (const QType &qtype, const string &qname,
   string_to_cbuf(mQueryType, qtype.getName(), sizeof(mQueryType));
   mQueryZoneId = zoneId;
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, curStmtHandle, mErrorHandle,
-                   1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(pooledSvcCtx, curStmtHandle, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle Lookup", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle Lookup", oraerr);
+  }
+
+  if (rc == OCI_NO_DATA) {
+    release_query(curStmtHandle, curStmtKey);
+    curStmtHandle = NULL;
   }
 }
 
@@ -398,20 +397,26 @@ OracleBackend::getBeforeAndAfterNames (
   uint32_t zoneId, const string& zone,
   const string& name, string& before, string& after)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   (void)zone;
 
-  bind_uint32(prevNextNameQueryHandle, ":zoneid", &zoneId);
+  stmt = prepare_query(pooledSvcCtx, prevNextNameQuerySQL, prevNextNameQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  bind_str_ind(stmt, ":prev", mResultPrevName, sizeof(mResultPrevName), &mResultPrevNameInd);
+  bind_str_ind(stmt, ":next", mResultNextName, sizeof(mResultNextName), &mResultNextNameInd);
+  bind_uint32(stmt, ":zoneid", &zoneId);
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
   mResultPrevNameInd = -1;
   mResultNextNameInd = -1;
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, prevNextNameQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
+  if (rc == OCI_ERROR) {
     throw OracleException(
-      "Oracle getBeforeAndAfterNames", mErrorHandle
+      "Oracle getBeforeAndAfterNames", oraerr
     );
   }
 
@@ -421,7 +426,7 @@ OracleBackend::getBeforeAndAfterNames (
   before = mResultPrevName;
   after = mResultNextName;
 
-  mQueryResult = OCI_ERROR;
+  release_query(stmt, prevNextNameQueryKey);
   return true;
 }
 
@@ -429,23 +434,30 @@ bool
 OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   const string& name, string& unhashed, string& before, string& after)
 {
-  bind_uint32(prevNextHashQueryHandle, ":zoneid", &zoneId);
+  sword rc;
+  OCIStmt *stmt;
+
+  stmt = prepare_query(pooledSvcCtx, prevNextHashQuerySQL, prevNextHashQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":hash", mQueryName, sizeof(mQueryName));
+  bind_str_ind(stmt, ":unhashed", mResultName, sizeof(mResultName), &mResultNameInd);
+  bind_str_ind(stmt, ":prev", mResultPrevName, sizeof(mResultPrevName), &mResultPrevNameInd);
+  bind_str_ind(stmt, ":next", mResultNextName, sizeof(mResultNextName), &mResultNextNameInd);
+  bind_uint32(stmt, ":zoneid", &zoneId);
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
   mResultNameInd = -1;
   mResultPrevNameInd = -1;
   mResultNextNameInd = -1;
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, prevNextHashQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
+  if (rc == OCI_ERROR) {
     throw OracleException(
-      "Oracle getBeforeAndAfterNamesAbsolute", mErrorHandle
+      "Oracle getBeforeAndAfterNamesAbsolute", oraerr
     );
   }
 
-  check_indicator(mResultNameInd, true);
+  check_indicator(mResultNameInd, false);
   check_indicator(mResultPrevNameInd, false);
   check_indicator(mResultNextNameInd, false);
 
@@ -453,62 +465,65 @@ OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   before = mResultPrevName;
   after = mResultNextName;
 
-  mQueryResult = OCI_ERROR;
+  release_query(stmt, prevNextHashQueryKey);
   return true;
 }
 
 vector<string>
 OracleBackend::getDomainMasters (const string &domain, int zoneId)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   (void)domain;
 
   vector<string> masters;
   char master[512];
   sb2 master_ind;
 
-  zoneMastersQueryHandle = prepare_query(zoneMastersQuerySQL,
-                                         zoneMastersQueryKey);
-  bind_str_failokay(zoneMastersQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_int(zoneMastersQueryHandle, ":zoneid", &mQueryZoneId);
+  openMasterConnection();
+
+  stmt = prepare_query(masterSvcCtx, zoneMastersQuerySQL, zoneMastersQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_int(stmt, ":zoneid", &mQueryZoneId);
 
   mQueryZoneId = zoneId;
-  define_output_str(zoneMastersQueryHandle, 1, &master_ind,
-                    master, sizeof(master));
+  define_output_str(stmt, 1, &master_ind, master, sizeof(master));
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, zoneMastersQueryHandle, mErrorHandle,
-                   1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle getDomainMasters", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle getDomainMasters", oraerr);
   }
 
-  while (mQueryResult != OCI_NO_DATA) {
+  while (rc != OCI_NO_DATA) {
     check_indicator(master_ind, false);
 
     masters.push_back(master);
 
-    mQueryResult = OCIStmtFetch2(zoneMastersQueryHandle, mErrorHandle, 1,
-                                 OCI_FETCH_NEXT, 0, OCI_DEFAULT);
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 
-    if (mQueryResult == OCI_ERROR) {
+    if (rc == OCI_ERROR) {
       throw OracleException(
-        "OracleBackend, fetching next zone master", mErrorHandle
+        "OracleBackend, fetching next zone master", oraerr
       );
     }
   }
 
-  release_query(zoneMastersQueryHandle, zoneMastersQueryKey);
+  release_query(stmt, zoneMastersQueryKey);
 
-  mQueryResult = OCI_ERROR;
   return masters;
 }
 
 bool
 OracleBackend::isMaster (const string &domain, const string &master)
 {
-  isZoneMasterQueryHandle = prepare_query(isZoneMasterQuerySQL,
-                                          isZoneMasterQueryKey);
+  sword rc;
+  OCIStmt *stmt;
+
+  openMasterConnection();
+
+  stmt = prepare_query(masterSvcCtx, isZoneMasterQuerySQL, isZoneMasterQueryKey);
 
   string_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
   string_to_cbuf(mQueryName, master, sizeof(mQueryName));
@@ -516,35 +531,33 @@ OracleBackend::isMaster (const string &domain, const string &master)
   char res_master[512];
   sb2 res_master_ind;
 
-  bind_str_failokay(isZoneMasterQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(isZoneMasterQueryHandle, ":name", mQueryZone, sizeof(mQueryZone));
-  bind_str(isZoneMasterQueryHandle, ":master", mQueryName, sizeof(mQueryName));
-  define_output_str(isZoneMasterQueryHandle, 1, &res_master_ind,
-                    res_master, sizeof(res_master));
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":name", mQueryZone, sizeof(mQueryZone));
+  bind_str(stmt, ":master", mQueryName, sizeof(mQueryName));
+  define_output_str(stmt, 1, &res_master_ind, res_master, sizeof(res_master));
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, isZoneMasterQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle isMaster", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle isMaster", oraerr);
   }
 
-  if (mQueryResult != OCI_NO_DATA) {
+  release_query(stmt, isZoneMasterQueryKey);
+
+  if (rc != OCI_NO_DATA) {
     check_indicator(res_master_ind, false);
-    mQueryResult = OCI_ERROR;
     return true;
   }
 
-  release_query(isZoneMasterQueryHandle, isZoneMasterQueryKey);
-
-  mQueryResult = OCI_ERROR;
   return false;
 }
 
 bool
 OracleBackend::getDomainInfo (const string &domain, DomainInfo &di)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   int zone_id;
   sb2 zone_id_ind;
   int last_check;
@@ -554,28 +567,28 @@ OracleBackend::getDomainInfo (const string &domain, DomainInfo &di)
   uint32_t notified_serial;
   sb2 notified_serial_ind;
 
-  define_output_int(zoneInfoQueryHandle, 1, &zone_id_ind, &zone_id);
-  define_output_str(zoneInfoQueryHandle, 2, &mResultNameInd,
-                    mResultName, sizeof(mResultName));
-  define_output_str(zoneInfoQueryHandle, 3, &mResultTypeInd,
-                    mResultType, sizeof(mResultType));
-  define_output_int(zoneInfoQueryHandle, 4, &last_check_ind, &last_check);
-  define_output_uint32(zoneInfoQueryHandle, 5, &serial_ind, &serial);
-  define_output_uint32(zoneInfoQueryHandle, 6, &notified_serial_ind,
-                       &notified_serial);
+  openMasterConnection();
+
+  stmt = prepare_query(masterSvcCtx, zoneInfoQuerySQL, zoneInfoQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  define_output_int(stmt, 1, &zone_id_ind, &zone_id);
+  define_output_str(stmt, 2, &mResultNameInd, mResultName, sizeof(mResultName));
+  define_output_str(stmt, 3, &mResultTypeInd, mResultType, sizeof(mResultType));
+  define_output_int(stmt, 4, &last_check_ind, &last_check);
+  define_output_uint32(stmt, 5, &serial_ind, &serial);
+  define_output_uint32(stmt, 6, &notified_serial_ind, &notified_serial);
 
   string_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
-  bind_str(zoneInfoQueryHandle, ":name", mQueryZone, sizeof(mQueryZone));
+  bind_str(stmt, ":name", mQueryZone, sizeof(mQueryZone));
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, zoneInfoQueryHandle, mErrorHandle,
-                   1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle getDomainInfo", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle getDomainInfo", oraerr);
   }
 
-  if (mQueryResult == OCI_NO_DATA) {
+  if (rc == OCI_NO_DATA) {
+    release_query(stmt, zoneInfoQueryKey);
     return false;
   }
 
@@ -583,7 +596,7 @@ OracleBackend::getDomainInfo (const string &domain, DomainInfo &di)
   check_indicator(mResultNameInd, false);
   check_indicator(serial_ind, true);
 
-  if (zone_id < 0) throw underflow_error("OracleBackend: Zone ID < 0 when writing into uint32_t");
+  if (zone_id < 0) throw std::underflow_error("OracleBackend: Zone ID < 0 when writing into uint32_t");
 
   di.id = zone_id;
   di.zone = mResultName;
@@ -606,85 +619,84 @@ OracleBackend::getDomainInfo (const string &domain, DomainInfo &di)
     throw OracleException("Unknown zone type in Oracle backend");
   }
 
-
   di.kind = DomainInfo::Native;
 
-  mQueryResult = OCI_ERROR;
+  release_query(stmt, zoneInfoQueryKey);
   return true;
 }
 
 void OracleBackend::alsoNotifies(const string &domain, set<string> *addrs)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   char hostaddr[512];
   sb2 hostaddr_ind;
 
-  alsoNotifyQueryHandle = prepare_query(alsoNotifyQuerySQL,
-                                        alsoNotifyQueryKey);
-  bind_str_failokay(alsoNotifyQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(alsoNotifyQueryHandle, ":name", mQueryZone, sizeof(mQueryZone));
+  openMasterConnection();
+
+  stmt = prepare_query(masterSvcCtx, alsoNotifyQuerySQL, alsoNotifyQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":name", mQueryZone, sizeof(mQueryZone));
 
   string_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
 
-  define_output_str(alsoNotifyQueryHandle, 1, &hostaddr_ind, hostaddr, sizeof(hostaddr));
+  define_output_str(stmt, 1, &hostaddr_ind, hostaddr, sizeof(hostaddr));
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, alsoNotifyQueryHandle, mErrorHandle,
-                   1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle alsoNotifies", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle alsoNotifies", oraerr);
   }
 
-  while (mQueryResult != OCI_NO_DATA) {
+  while (rc != OCI_NO_DATA) {
     check_indicator(hostaddr_ind, false);
 
     addrs->insert(hostaddr);
 
-    mQueryResult = OCIStmtFetch2(alsoNotifyQueryHandle, mErrorHandle, 1,
-                                 OCI_FETCH_NEXT, 0, OCI_DEFAULT);
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 
-    if (mQueryResult == OCI_ERROR) {
+    if (rc == OCI_ERROR) {
       throw OracleException(
-        "OracleBackend alsoNotifies fetch", mErrorHandle
+        "OracleBackend alsoNotifies fetch", oraerr
       );
     }
   }
 
-  release_query(alsoNotifyQueryHandle, alsoNotifyQueryKey);
-
-  mQueryResult = OCI_ERROR;
+  release_query(stmt, alsoNotifyQueryKey);
 }
 
 bool OracleBackend::checkACL (const string &acl_type,
                               const string &acl_key,
                               const string &acl_val)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   char acltype[64];
   char aclkey[256];
   char aclval[2048];
   int result = 0;
 
-  checkACLQueryHandle = prepare_query(checkACLQuerySQL, checkACLQueryKey);
+  stmt = prepare_query(pooledSvcCtx, checkACLQuerySQL, checkACLQueryKey);
 
   string_to_cbuf(acltype, acl_type, sizeof(acltype));
   string_to_cbuf(aclkey, acl_key, sizeof(aclkey));
   string_to_cbuf(aclval, acl_val, sizeof(aclval));
 
-  bind_str_failokay(checkACLQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(checkACLQueryHandle, ":acltype", acltype, sizeof(acltype));
-  bind_str(checkACLQueryHandle, ":aclkey", aclkey, sizeof(aclkey));
-  bind_str(checkACLQueryHandle, ":aclval", aclval, sizeof(aclval));
-  bind_int(checkACLQueryHandle, ":allow", &result);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":acltype", acltype, sizeof(acltype));
+  bind_str(stmt, ":aclkey", aclkey, sizeof(aclkey));
+  bind_str(stmt, ":aclval", aclval, sizeof(aclval));
+  bind_int(stmt, ":allow", &result);
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, checkACLQueryHandle, mErrorHandle,
-                   1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle checkACL", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle checkACL", oraerr);
   }
 
-  release_query(checkACLQueryHandle, checkACLQueryKey);
+  release_query(stmt, checkACLQueryKey);
 
   return result;
 }
@@ -692,6 +704,9 @@ bool OracleBackend::checkACL (const string &acl_type,
 void
 OracleBackend::getUnfreshSlaveInfos (vector<DomainInfo>* domains)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   struct timeval now;
   gettimeofday(&now, NULL);
   mQueryTimestamp = now.tv_sec;
@@ -703,52 +718,51 @@ OracleBackend::getUnfreshSlaveInfos (vector<DomainInfo>* domains)
   char      master[512];
   sb2       master_ind;
 
-  define_output_int(unfreshZonesQueryHandle, 1,
-                    &mResultZoneIdInd, &mResultZoneId);
-  define_output_str(unfreshZonesQueryHandle, 2,
-                    &mResultNameInd, mResultName, sizeof(mResultName));
-  define_output_int(unfreshZonesQueryHandle, 3,
-                    &last_check_ind, &last_check);
-  define_output_uint32(unfreshZonesQueryHandle, 4,
-                       &serial_ind, &serial);
-  define_output_str(unfreshZonesQueryHandle, 5,
-                    &master_ind, master, sizeof(master));
+  openMasterConnection();
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, unfreshZonesQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  stmt = prepare_query(masterSvcCtx, unfreshZonesQuerySQL, unfreshZonesQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_int(stmt, ":ts", &mQueryTimestamp);
+  define_output_int(stmt, 1, &mResultZoneIdInd, &mResultZoneId);
+  define_output_str(stmt, 2, &mResultNameInd, mResultName, sizeof(mResultName));
+  define_output_int(stmt, 3, &last_check_ind, &last_check);
+  define_output_uint32(stmt, 4, &serial_ind, &serial);
+  define_output_str(stmt, 5, &master_ind, master, sizeof(master));
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle getUnfreshSlaveInfos", mErrorHandle);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle getUnfreshSlaveInfos", oraerr);
   }
 
-  while (mQueryResult != OCI_NO_DATA) {
+  while (rc != OCI_NO_DATA) {
     check_indicator(mResultZoneIdInd, false);
     check_indicator(mResultNameInd, false);
-    check_indicator(serial_ind, false);
+    check_indicator(serial_ind, true);
     check_indicator(last_check_ind, true);
     int zoneId = mResultZoneId;
 
-    if (mResultZoneId < 0) throw underflow_error("OracleBackend: Zone ID < 0 when writing into uint32_t");
+    if (mResultZoneId < 0) throw std::underflow_error("OracleBackend: Zone ID < 0 when writing into uint32_t");
 
     DomainInfo di;
     di.id = mResultZoneId;
     di.zone = mResultName;
-    di.serial = serial;
     di.last_check = last_check;
     di.kind = DomainInfo::Slave;
     di.backend = this;
+    if (serial_ind == 0) {
+      di.serial = serial;
+    }
 
-    while (mQueryResult != OCI_NO_DATA && zoneId == mResultZoneId) {
+    while (rc != OCI_NO_DATA && zoneId == mResultZoneId) {
       check_indicator(master_ind, false);
       di.masters.push_back(master);
 
-      mQueryResult = OCIStmtFetch2(unfreshZonesQueryHandle, mErrorHandle, 1,
-                                   OCI_FETCH_NEXT, 0, OCI_DEFAULT);
+      rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 
-      if (mQueryResult == OCI_ERROR) {
+      if (rc == OCI_ERROR) {
         throw OracleException(
-          "OracleBackend, fetching next unfresh slave master", mErrorHandle
+          "OracleBackend, fetching next unfresh slave master", oraerr
         );
       }
 
@@ -758,41 +772,42 @@ OracleBackend::getUnfreshSlaveInfos (vector<DomainInfo>* domains)
     domains->push_back(di);
   }
 
-  mQueryResult = OCI_ERROR;
+  release_query(stmt, unfreshZonesQueryKey);
 }
 
 void
 OracleBackend::getUpdatedMasters (vector<DomainInfo>* domains)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   uint32_t  serial;
   sb2       serial_ind;
   uint32_t  notified_serial;
   sb2       notified_serial_ind;
 
-  define_output_int(updatedMastersQueryHandle, 1,
-                    &mResultZoneIdInd, &mResultZoneId);
-  define_output_str(updatedMastersQueryHandle, 2,
-                    &mResultNameInd, mResultName, sizeof(mResultName));
-  define_output_uint32(updatedMastersQueryHandle, 3,
-                       &serial_ind, &serial);
-  define_output_uint32(updatedMastersQueryHandle, 4,
-                       &notified_serial_ind, &notified_serial);
+  openMasterConnection();
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, updatedMastersQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  stmt = prepare_query(masterSvcCtx, updatedMastersQuerySQL, updatedMastersQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  define_output_int(stmt, 1, &mResultZoneIdInd, &mResultZoneId);
+  define_output_str(stmt, 2, &mResultNameInd, mResultName, sizeof(mResultName));
+  define_output_uint32(stmt, 3, &serial_ind, &serial);
+  define_output_uint32(stmt, 4, &notified_serial_ind, &notified_serial);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle getUpdatedMasters", mErrorHandle);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle getUpdatedMasters", oraerr);
   }
 
-  while (mQueryResult != OCI_NO_DATA) {
+  while (rc != OCI_NO_DATA) {
     check_indicator(mResultZoneIdInd, false);
     check_indicator(mResultNameInd, false);
     check_indicator(serial_ind, false);
     check_indicator(notified_serial_ind, true);
 
-    if (mResultZoneId < 0) throw underflow_error("OracleBackend: Zone ID < 0 when writing into uint32_t");
+    if (mResultZoneId < 0) throw std::underflow_error("OracleBackend: Zone ID < 0 when writing into uint32_t");
 
     DomainInfo di;
     di.id = mResultZoneId;
@@ -804,119 +819,123 @@ OracleBackend::getUpdatedMasters (vector<DomainInfo>* domains)
 
     domains->push_back(di);
 
-    mQueryResult = OCIStmtFetch2(updatedMastersQueryHandle, mErrorHandle, 1,
-                                 OCI_FETCH_NEXT, 0, OCI_DEFAULT);
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 
-    if (mQueryResult == OCI_ERROR) {
+    if (rc == OCI_ERROR) {
       throw OracleException(
-        "OracleBackend, fetching next updated master", mErrorHandle
+        "OracleBackend, fetching next updated master", oraerr
       );
     }
   }
 
-  mQueryResult = OCI_ERROR;
+  release_query(stmt, updatedMastersQueryKey);
 }
 
 void
 OracleBackend::setFresh (uint32_t zoneId)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   mQueryZoneId = zoneId;
 
   struct timeval now;
   gettimeofday(&now, NULL);
   mQueryTimestamp = now.tv_sec;
 
-  mQueryResult =
-    OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  openMasterConnection();
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setFresh BEGIN", mErrorHandle);
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setFresh BEGIN", oraerr);
   }
 
-  zoneSetLastCheckQueryHandle = prepare_query(zoneSetLastCheckQuerySQL,
-                                              zoneSetLastCheckQueryKey);
-  bind_str_failokay(zoneSetLastCheckQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_int(zoneSetLastCheckQueryHandle, ":zoneid", &mQueryZoneId);
-  bind_int(zoneSetLastCheckQueryHandle, ":lastcheck", &mQueryTimestamp);
+  stmt = prepare_query(masterSvcCtx, zoneSetLastCheckQuerySQL, zoneSetLastCheckQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_int(stmt, ":zoneid", &mQueryZoneId);
+  bind_int(stmt, ":lastcheck", &mQueryTimestamp);
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, zoneSetLastCheckQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setFresh", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setFresh", oraerr);
   }
 
-  release_query(zoneSetLastCheckQueryHandle, zoneSetLastCheckQueryKey);
+  release_query(stmt, zoneSetLastCheckQueryKey);
 
-  mQueryResult =
-    OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
 
-  if (mQueryResult) {
-    throw OracleException("Oracle setFresh COMMIT", mErrorHandle);
+  if (rc) {
+    throw OracleException("Oracle setFresh COMMIT", oraerr);
   }
-
-  mQueryResult = OCI_ERROR;
 }
 
 void
 OracleBackend::setNotified (uint32_t zoneId, uint32_t serial)
 {
-  mQueryResult =
-    OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  sword rc;
+  OCIStmt *stmt;
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setNotified BEGIN", mErrorHandle);
+  openMasterConnection();
+
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setNotified BEGIN", oraerr);
   }
 
-  zoneSetNotifiedSerialQueryHandle = prepare_query(
-    zoneSetNotifiedSerialQuerySQL, zoneSetNotifiedSerialQueryKey);
+  stmt = prepare_query(masterSvcCtx, zoneSetNotifiedSerialQuerySQL, zoneSetNotifiedSerialQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_uint32(stmt, ":serial", &serial);
+  bind_uint32(stmt, ":zoneid", &zoneId);
 
-  bind_str_failokay(zoneSetNotifiedSerialQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_uint32(zoneSetNotifiedSerialQueryHandle, ":serial", &serial);
-  bind_uint32(zoneSetNotifiedSerialQueryHandle, ":zoneid", &zoneId);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, zoneSetNotifiedSerialQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
-
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setNotified", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setNotified", oraerr);
   }
 
-  release_query(zoneSetNotifiedSerialQueryHandle, zoneSetNotifiedSerialQueryKey);
+  release_query(stmt, zoneSetNotifiedSerialQueryKey);
 
-  mQueryResult =
-    OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
 
-  if (mQueryResult) {
-    throw OracleException("Oracle setNotified COMMIT", mErrorHandle);
+  if (rc) {
+    throw OracleException("Oracle setNotified COMMIT", oraerr);
   }
-
-  mQueryResult = OCI_ERROR;
 }
 
 bool
 OracleBackend::list (const string &domain, int zoneId)
 {
+  sword rc;
+
   // This is only for backends that cannot lookup by zoneId,
   // we can discard
   (void)domain;
 
-  curStmtHandle = listQueryHandle;
+  if (curStmtHandle != NULL) throw OracleException("Invalid state");
+  curStmtHandle = prepare_query(pooledSvcCtx, listQuerySQL, listQueryKey);
+  curStmtKey = listQueryKey;
+  define_fwd_query(curStmtHandle);
+  bind_str_failokay(curStmtHandle, ":nsname", myServerName, sizeof(myServerName));
+  bind_int(curStmtHandle, ":zoneid", &mQueryZoneId);
 
   mQueryZoneId = zoneId;
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, curStmtHandle, mErrorHandle,
-                   1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(pooledSvcCtx, curStmtHandle, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle List", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle List", oraerr);
   }
 
-  if (mQueryResult == OCI_SUCCESS || mQueryResult == OCI_SUCCESS_WITH_INFO) {
+  if (rc == OCI_SUCCESS || rc == OCI_SUCCESS_WITH_INFO) {
     return true;
+  }
+
+  if (rc == OCI_NO_DATA) {
+    release_query(curStmtHandle, curStmtKey);
+    curStmtHandle = NULL;
   }
 
   return false;
@@ -924,7 +943,9 @@ OracleBackend::list (const string &domain, int zoneId)
 
 bool OracleBackend::get (DNSResourceRecord &rr)
 {
-  if (mQueryResult == OCI_NO_DATA || mQueryResult == OCI_ERROR) {
+  sword rc;
+
+  if (curStmtHandle == NULL) {
     return false;
   }
 
@@ -953,11 +974,15 @@ bool OracleBackend::get (DNSResourceRecord &rr)
     rr.content = mResultContent;
   }
 
-  mQueryResult = OCIStmtFetch2(curStmtHandle, mErrorHandle, 1, OCI_FETCH_NEXT,
-                               0, OCI_DEFAULT);
+  rc = OCIStmtFetch2(curStmtHandle, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("OracleBackend, fetching next row", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("OracleBackend, fetching next row", oraerr);
+  }
+
+  if (rc == OCI_NO_DATA) {
+    release_query(curStmtHandle, curStmtKey);
+    curStmtHandle = NULL;
   }
 
   return true;
@@ -966,49 +991,58 @@ bool OracleBackend::get (DNSResourceRecord &rr)
 bool
 OracleBackend::startTransaction (const string &domain, int zoneId)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   (void)domain;
 
-  mQueryResult = OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  openMasterConnection();
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle startTransaction", mErrorHandle);
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle startTransaction", oraerr);
   }
 
   if (zoneId >= 0) {
-    mQueryZoneId = zoneId;
-
-    deleteZoneQueryHandle = prepare_query(deleteZoneQuerySQL,
-                                          deleteZoneQueryKey);
-    bind_str_failokay(deleteZoneQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-    bind_int(deleteZoneQueryHandle, ":zoneid", &mQueryZoneId);
-
-    mQueryResult =
-      OCIStmtExecute(mServiceContextHandle, deleteZoneQueryHandle, mErrorHandle,
-                     1, 0, NULL, NULL, OCI_DEFAULT);
-
-    if (mQueryResult == OCI_ERROR) {
-      throw OracleException("Oracle startTransaction deleteZone", mErrorHandle);
+    if (openTransactionZoneID >= 0) {
+      throw OracleException("Attempt to start AXFR during AXFR");
     }
 
-    release_query(deleteZoneQueryHandle, deleteZoneQueryKey);
+    mQueryZoneId = openTransactionZoneID = zoneId;
+
+    stmt = prepare_query(masterSvcCtx, deleteZoneQuerySQL, deleteZoneQueryKey);
+    bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+    bind_int(stmt, ":zoneid", &mQueryZoneId);
+
+    rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle startTransaction deleteZone", oraerr);
+    }
+
+    release_query(stmt, deleteZoneQueryKey);
   }
 
-  mQueryResult = OCI_ERROR;
   return true;
 }
 
 bool
 OracleBackend::feedRecord (const DNSResourceRecord &rr)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   uint32_t ttl;
-  char content[4000];
+  char content[4001];
 
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  mQueryTimestamp = now.tv_sec;
-
-  bind_uint32(insertRecordQueryHandle, ":ttl", &ttl);
-  bind_str(insertRecordQueryHandle, ":content", content, sizeof(content));
+  stmt = prepare_query(masterSvcCtx, insertRecordQuerySQL, insertRecordQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_int(stmt, ":zoneid", &mQueryZoneId);
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  bind_str(stmt, ":type", mQueryType, sizeof(mQueryType));
+  bind_uint32(stmt, ":ttl", &ttl);
+  bind_str(stmt, ":content", content, sizeof(content));
 
   mQueryZoneId = rr.domain_id;
   string_to_cbuf(mQueryName, rr.qname, sizeof(mQueryName));
@@ -1020,30 +1054,45 @@ OracleBackend::feedRecord (const DNSResourceRecord &rr)
     string_to_cbuf(content, rr.content, sizeof(content));
   }
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, insertRecordQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle feedRecord", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle feedRecord", oraerr);
   }
 
-  mQueryResult = OCI_ERROR;
+  release_query(stmt, insertRecordQueryKey);
+
   return true;
 }
 
 bool
 OracleBackend::commitTransaction ()
 {
-  sword err;
+  sword rc;
+  OCIStmt *stmt;
 
-  err = OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  if (openTransactionZoneID >= 0) {
+    stmt = prepare_query(masterSvcCtx, finalizeAXFRQuerySQL, finalizeAXFRQueryKey);
+    bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+    bind_int(stmt, ":zoneid", &openTransactionZoneID);
 
-  if (err) {
-    throw OracleException("Oracle commitTransaction", mErrorHandle);
+    rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle commitTransaction finalizeAXFR", oraerr);
+    }
+
+    release_query(stmt, finalizeAXFRQueryKey);
+
+    openTransactionZoneID = -1;
   }
 
-  mQueryResult = OCI_ERROR;
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
+
+  if (rc) {
+    throw OracleException("Oracle commitTransaction", oraerr);
+  }
+
   return true;
 }
 
@@ -1052,13 +1101,12 @@ OracleBackend::abortTransaction ()
 {
   sword err;
 
-  err = OCITransRollback(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  err = OCITransRollback(masterSvcCtx, oraerr, OCI_DEFAULT);
 
   if (err) {
-    throw OracleException("Oracle abortTransaction", mErrorHandle);
+    throw OracleException("Oracle abortTransaction", oraerr);
   }
 
-  mQueryResult = OCI_ERROR;
   return true;
 }
 
@@ -1067,104 +1115,98 @@ OracleBackend::superMasterBackend (const string &ip, const string &domain,
                                    const vector<DNSResourceRecord> &nsset,
                                    string *account, DNSBackend **backend)
 {
+  sword rc;
+  OCIStmt *stmt;
+
+  bool result = false;
+
   (void)domain;
 
   string_to_cbuf(mQueryAddr, ip, sizeof(mQueryAddr));
 
-  acceptSupernotificationQueryHandle = prepare_query(
-    acceptSupernotificationQuerySQL, acceptSupernotificationQueryKey);
-  define_output_str(acceptSupernotificationQueryHandle, 1,
-                    &mResultNameInd, mResultName, sizeof(mResultName));
-  bind_str_failokay(acceptSupernotificationQueryHandle, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(acceptSupernotificationQueryHandle, ":ns",
-           mQueryName, sizeof(mQueryName));
-  bind_str(acceptSupernotificationQueryHandle, ":ip",
-           mQueryAddr, sizeof(mQueryAddr));
+  openMasterConnection();
 
-  for (vector<DNSResourceRecord>::const_iterator i=nsset.begin();
-       i != nsset.end(); ++i) {
+  stmt = prepare_query(masterSvcCtx, acceptSupernotificationQuerySQL, acceptSupernotificationQueryKey);
+  define_output_str(stmt, 1, &mResultNameInd, mResultName, sizeof(mResultName));
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":ns", mQueryName, sizeof(mQueryName));
+  bind_str(stmt, ":ip", mQueryAddr, sizeof(mQueryAddr));
+
+  for (vector<DNSResourceRecord>::const_iterator i=nsset.begin(); i != nsset.end(); ++i) {
     string_to_cbuf(mQueryName, i->content, sizeof(mQueryName));
 
-    mQueryResult =
-      OCIStmtExecute(mServiceContextHandle, acceptSupernotificationQueryHandle,
-                     mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+    rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-    if (mQueryResult == OCI_ERROR) {
-      throw OracleException("Oracle superMasterBackend", mErrorHandle);
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle superMasterBackend", oraerr);
     }
 
-    if (mQueryResult != OCI_NO_DATA) {
+    if (rc != OCI_NO_DATA) {
       *account = mResultName;
       *backend = this;
-      mQueryResult = OCI_ERROR;
-      return true;
+      result = true;
+      break;
     }
   }
 
-  release_query(acceptSupernotificationQueryHandle, acceptSupernotificationQueryKey);
+  release_query(stmt, acceptSupernotificationQueryKey);
 
-  mQueryResult = OCI_ERROR;
-  return false;
+  return result;
 }
 
 bool
 OracleBackend::createSlaveDomain(const string &ip, const string &domain,
                                  const string &account)
 {
+  sword rc;
+  OCIStmt *insertSlaveQueryHandle;
+  OCIStmt *insertMasterQueryHandle;
+
   string_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
 
-  mQueryResult =
-    OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  openMasterConnection();
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle createSlaveDomain BEGIN", mErrorHandle);
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle createSlaveDomain BEGIN", oraerr);
   }
 
-  insertSlaveQueryHandle = prepare_query(insertSlaveQuerySQL,
-                                         insertSlaveQueryKey);
+  insertSlaveQueryHandle = prepare_query(masterSvcCtx, insertSlaveQuerySQL, insertSlaveQueryKey);
   bind_str_failokay(insertSlaveQueryHandle, ":nsname", myServerName, sizeof(myServerName));
   bind_int(insertSlaveQueryHandle, ":zoneid", &mQueryZoneId);
-  bind_str(insertSlaveQueryHandle, ":zone",
-           mQueryZone, sizeof(mQueryZone));
+  bind_str(insertSlaveQueryHandle, ":zone", mQueryZone, sizeof(mQueryZone));
 
-  insertMasterQueryHandle = prepare_query(insertMasterQuerySQL,
-                                          insertMasterQueryKey);
+  insertMasterQueryHandle = prepare_query(masterSvcCtx, insertMasterQuerySQL, insertMasterQueryKey);
   bind_str_failokay(insertMasterQueryHandle, ":nsname", myServerName, sizeof(myServerName));
   bind_int(insertMasterQueryHandle, ":zoneid", &mQueryZoneId);
-  bind_str(insertMasterQueryHandle, ":ip",
-           mQueryAddr, sizeof(mQueryAddr));
+  bind_str(insertMasterQueryHandle, ":ip", mQueryAddr, sizeof(mQueryAddr));
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, insertSlaveQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, insertSlaveQueryHandle, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
+  if (rc == OCI_ERROR) {
     throw OracleException(
-      "Oracle createSlaveDomain insertSlave", mErrorHandle);
+      "Oracle createSlaveDomain insertSlave", oraerr);
   }
 
   string_to_cbuf(mQueryAddr, ip, sizeof(mQueryAddr));
 
-  mQueryResult =
-    OCIStmtExecute(mServiceContextHandle, insertMasterQueryHandle,
-                   mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, insertMasterQueryHandle, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
+  if (rc == OCI_ERROR) {
     throw OracleException(
-      "Oracle createSlaveDomain insertMaster", mErrorHandle);
+      "Oracle createSlaveDomain insertMaster", oraerr);
   }
 
   release_query(insertSlaveQueryHandle, insertSlaveQueryKey);
   release_query(insertMasterQueryHandle, insertMasterQueryKey);
 
-  mQueryResult =
-    OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
 
-  if (mQueryResult) {
-    throw OracleException("Oracle createSlaveDomain COMMIT", mErrorHandle);
+  if (rc) {
+    throw OracleException("Oracle createSlaveDomain COMMIT", oraerr);
   }
 
-  mQueryResult = OCI_ERROR;
   return true;
 }
 
@@ -1172,15 +1214,23 @@ bool
 OracleBackend::getDomainMetadata (const string& name, const string& kind,
                                   vector<string>& meta)
 {
+  sword rc;
+  OCIStmt *stmt;
+
+  stmt = prepare_query(pooledSvcCtx, getZoneMetadataQuerySQL, getZoneMetadataQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  bind_str(stmt, ":kind", mQueryType, sizeof(mQueryType));
+  define_output_str(stmt, 1, &mResultContentInd, mResultContent, sizeof(mResultContent));
+
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
   string_to_cbuf(mQueryType, kind, sizeof(mQueryType));
 
-  mQueryResult = OCIStmtExecute(mServiceContextHandle, getZoneMetadataQueryHandle,
-                                mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  while (mQueryResult != OCI_NO_DATA) {
-    if (mQueryResult == OCI_ERROR) {
-      throw OracleException("Oracle getDomainMetadata", mErrorHandle);
+  while (rc != OCI_NO_DATA) {
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle getDomainMetadata", oraerr);
     }
 
     check_indicator(mResultContentInd, true);
@@ -1188,10 +1238,10 @@ OracleBackend::getDomainMetadata (const string& name, const string& kind,
     string content = mResultContent;
     meta.push_back(content);
 
-    mQueryResult = OCIStmtFetch2(getZoneMetadataQueryHandle, mErrorHandle, 1, OCI_FETCH_NEXT,
-        0, OCI_DEFAULT);
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
   }
 
+  release_query(stmt, getZoneMetadataQueryKey);
   return true;
 }
 
@@ -1199,62 +1249,101 @@ bool
 OracleBackend::setDomainMetadata(const string& name, const string& kind,
                                  const vector<string>& meta)
 {
-  mQueryResult = OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  sword rc;
+  OCIStmt *stmt;
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setDomainMetadata BEGIN", mErrorHandle);
+  openMasterConnection();
+
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setDomainMetadata BEGIN", oraerr);
   }
 
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
   string_to_cbuf(mQueryType, kind, sizeof(mQueryType));
 
-  delZoneMetadataQueryHandle = prepare_query(delZoneMetadataQuerySQL,
-                                             delZoneMetadataQueryKey);
-  bind_str(delZoneMetadataQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_str(delZoneMetadataQueryHandle, ":kind", mQueryType, sizeof(mQueryType));
+  stmt = prepare_query(masterSvcCtx, delZoneMetadataQuerySQL, delZoneMetadataQueryKey);
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  bind_str(stmt, ":kind", mQueryType, sizeof(mQueryType));
 
-  mQueryResult = OCIStmtExecute(mServiceContextHandle, delZoneMetadataQueryHandle,
-                                mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setDomainMetadata DELETE", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setDomainMetadata DELETE", oraerr);
   }
 
-  setZoneMetadataQueryHandle = prepare_query(setZoneMetadataQuerySQL,
-                                             setZoneMetadataQueryKey);
+  release_query(stmt, delZoneMetadataQueryKey);
+
+  stmt = prepare_query(masterSvcCtx, setZoneMetadataQuerySQL, setZoneMetadataQueryKey);
 
   int i = 0;
 
-  bind_str(setZoneMetadataQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_str(setZoneMetadataQueryHandle, ":kind", mQueryType, sizeof(mQueryType));
-  bind_int(setZoneMetadataQueryHandle, ":i", &i);
-  bind_str(setZoneMetadataQueryHandle, ":content", mQueryContent, sizeof(mQueryContent));
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  bind_str(stmt, ":kind", mQueryType, sizeof(mQueryType));
+  bind_int(stmt, ":i", &i);
+  bind_str(stmt, ":content", mQueryContent, sizeof(mQueryContent));
 
   for (vector<string>::const_iterator it = meta.begin(); it != meta.end(); ++it) {
     string_to_cbuf(mQueryContent, *it, sizeof(mQueryContent));
-    mQueryResult = OCIStmtExecute(mServiceContextHandle, setZoneMetadataQueryHandle,
-        mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
-    if (mQueryResult == OCI_ERROR) {
-      throw OracleException("Oracle setDomainMetadata INSERT", mErrorHandle);
+    rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle setDomainMetadata INSERT", oraerr);
     }
     i++;
   }
 
-  release_query(delZoneMetadataQueryHandle, delZoneMetadataQueryKey);
-  release_query(setZoneMetadataQueryHandle, setZoneMetadataQueryKey);
+  release_query(stmt, setZoneMetadataQueryKey);
 
-  mQueryResult = OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setDomainMetadata COMMIT", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setDomainMetadata COMMIT", oraerr);
   }
 
   return true;
 }
 
 bool
+OracleBackend::getTSIGKey (const string& name, string* algorithm, string* content)
+{
+  sword rc;
+  OCIStmt *stmt;
+
+  stmt = prepare_query(pooledSvcCtx, getTSIGKeyQuerySQL, getTSIGKeyQueryKey);
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  define_output_str(stmt, 1, &mResultTypeInd, mResultType, sizeof(mResultType));
+  define_output_str(stmt, 2, &mResultContentInd, mResultContent, sizeof(mResultContent));
+
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+  if (rc == OCI_NO_DATA) {
+    return false;
+  }
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle getTSIGKey", oraerr);
+  }
+
+  check_indicator(mResultTypeInd, false);
+  check_indicator(mResultContentInd, false);
+
+  *algorithm = mResultType;
+  *content = mResultContent;
+
+  release_query(stmt, getTSIGKeyQueryKey);
+  return true;
+}
+
+bool
 OracleBackend::getDomainKeys (const string& name, unsigned int kind, vector<KeyData>& keys)
 {
+  sword rc;
+  OCIStmt *stmt;
+
+  stmt = prepare_query(pooledSvcCtx, getZoneKeysQuerySQL, getZoneKeysQueryKey);
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
 
   sb2 key_id_ind = 0;
@@ -1263,17 +1352,17 @@ OracleBackend::getDomainKeys (const string& name, unsigned int kind, vector<KeyD
   uint16_t key_flags = 0;
   sb2 key_active_ind = 0;
   int key_active = 0;
-  define_output_uint(getZoneKeysQueryHandle, 1, &key_id_ind, &key_id);
-  define_output_uint16(getZoneKeysQueryHandle, 2, &key_flags_ind, &key_flags);
-  define_output_int(getZoneKeysQueryHandle, 3, &key_active_ind, &key_active);
-  define_output_str(getZoneKeysQueryHandle, 4, &mResultContentInd, mResultContent, sizeof(mResultContent));
 
-  mQueryResult = OCIStmtExecute(mServiceContextHandle, getZoneKeysQueryHandle,
-                                mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  define_output_uint(stmt, 1, &key_id_ind, &key_id);
+  define_output_uint16(stmt, 2, &key_flags_ind, &key_flags);
+  define_output_int(stmt, 3, &key_active_ind, &key_active);
+  define_output_str(stmt, 4, &mResultContentInd, mResultContent, sizeof(mResultContent));
 
-  while (mQueryResult != OCI_NO_DATA) {
-    if (mQueryResult == OCI_ERROR) {
-      throw OracleException("Oracle getDomainKeys", mErrorHandle);
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+  while (rc != OCI_NO_DATA) {
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle getDomainKeys", oraerr);
     }
 
     check_indicator(key_id_ind, false);
@@ -1288,38 +1377,42 @@ OracleBackend::getDomainKeys (const string& name, unsigned int kind, vector<KeyD
     kd.content = mResultContent;
     keys.push_back(kd);
 
-    mQueryResult = OCIStmtFetch2(getZoneKeysQueryHandle, mErrorHandle, 1, OCI_FETCH_NEXT,
-        0, OCI_DEFAULT);
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
   }
 
+  release_query(stmt, getZoneKeysQueryKey);
   return true;
 }
 
 bool
 OracleBackend::removeDomainKey (const string& name, unsigned int id)
 {
-  mQueryResult = OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  sword rc;
+  OCIStmt *stmt;
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle removeDomainKey BEGIN", mErrorHandle);
+  openMasterConnection();
+
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle removeDomainKey BEGIN", oraerr);
   }
 
-  delZoneKeyQueryHandle = prepare_query(delZoneKeyQuerySQL, delZoneKeyQueryKey);
-  bind_uint(delZoneKeyQueryHandle, ":keyid", &id);
+  stmt = prepare_query(masterSvcCtx, delZoneKeyQuerySQL, delZoneKeyQueryKey);
+  bind_uint(stmt, ":keyid", &id);
 
-  mQueryResult = OCIStmtExecute(mServiceContextHandle, delZoneKeyQueryHandle,
-                                mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle removeDomainKey DELETE", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle removeDomainKey DELETE", oraerr);
   }
 
-  release_query(delZoneKeyQueryHandle, delZoneKeyQueryKey);
+  release_query(stmt, delZoneKeyQueryKey);
 
-  mQueryResult = OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle removeDomainKey COMMIT", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle removeDomainKey COMMIT", oraerr);
   }
 
   return true;
@@ -1328,40 +1421,44 @@ OracleBackend::removeDomainKey (const string& name, unsigned int id)
 int
 OracleBackend::addDomainKey (const string& name, const KeyData& key)
 {
+  sword rc;
+  OCIStmt *stmt;
+
   int key_id = -1;
   uint16_t key_flags = key.flags;
   int key_active = key.active;
 
-  mQueryResult = OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  openMasterConnection();
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle addDomainKey BEGIN", mErrorHandle);
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle addDomainKey BEGIN", oraerr);
   }
 
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
   string_to_cbuf(mQueryContent, key.content, sizeof(mQueryContent));
 
-  addZoneKeyQueryHandle = prepare_query(addZoneKeyQuerySQL, addZoneKeyQueryKey);
+  stmt = prepare_query(masterSvcCtx, addZoneKeyQuerySQL, addZoneKeyQueryKey);
 
-  bind_int(addZoneKeyQueryHandle, ":keyid", &key_id);
-  bind_str(addZoneKeyQueryHandle, ":name", mQueryName, sizeof(mQueryName));
-  bind_uint16(addZoneKeyQueryHandle, ":flags", &key_flags);
-  bind_int(addZoneKeyQueryHandle, ":active", &key_active);
-  bind_str(addZoneKeyQueryHandle, ":content", mQueryContent, sizeof(mQueryContent));
+  bind_int(stmt, ":keyid", &key_id);
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  bind_uint16(stmt, ":flags", &key_flags);
+  bind_int(stmt, ":active", &key_active);
+  bind_str(stmt, ":content", mQueryContent, sizeof(mQueryContent));
 
-  mQueryResult = OCIStmtExecute(mServiceContextHandle, addZoneKeyQueryHandle,
-                                mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle addDomainKey INSERT", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle addDomainKey INSERT", oraerr);
   }
 
-  release_query(addZoneKeyQueryHandle, addZoneKeyQueryKey);
+  release_query(stmt, addZoneKeyQueryKey);
 
-  mQueryResult = OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle addDomainKey COMMIT", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle addDomainKey COMMIT", oraerr);
   }
 
   return key_id;
@@ -1370,28 +1467,34 @@ OracleBackend::addDomainKey (const string& name, const KeyData& key)
 bool
 OracleBackend::setDomainKeyState (const string& name, unsigned int id, int active)
 {
-  bind_uint(setZoneKeyStateQueryHandle, ":keyid", &id);
-  bind_int(setZoneKeyStateQueryHandle, ":active", &active);
+  sword rc;
+  OCIStmt *stmt;
 
-  mQueryResult = OCITransStart(mServiceContextHandle, mErrorHandle, 60, OCI_TRANS_NEW);
+  openMasterConnection();
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setDomainKeyState BEGIN", mErrorHandle);
+  stmt = prepare_query(masterSvcCtx, setZoneKeyStateQuerySQL, setZoneKeyStateQueryKey);
+  bind_uint(stmt, ":keyid", &id);
+  bind_int(stmt, ":active", &active);
+
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setDomainKeyState BEGIN", oraerr);
   }
 
-  mQueryResult = OCIStmtExecute(mServiceContextHandle, setZoneKeyStateQueryHandle,
-                                mErrorHandle, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setDomainKeyState UPDATE", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setDomainKeyState UPDATE", oraerr);
   }
 
-  mQueryResult = OCITransCommit(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
 
-  if (mQueryResult == OCI_ERROR) {
-    throw OracleException("Oracle setDomainKeyState COMMIT", mErrorHandle);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setDomainKeyState COMMIT", oraerr);
   }
 
+  release_query(stmt, setZoneKeyStateQueryKey);
   return true;
 }
 
@@ -1412,37 +1515,45 @@ OracleBackend::Cleanup ()
 {
   sword err;
 
-  if (mServiceContextHandle != NULL) {
-    err = OCITransRollback(mServiceContextHandle, mErrorHandle, OCI_DEFAULT);
+  if (masterSvcCtx != NULL) {
+    err = OCITransRollback(masterSvcCtx, oraerr, OCI_DEFAULT);
     // No error check, we don't care if ROLLBACK failed
-    err = OCISessionRelease(mServiceContextHandle, mErrorHandle,
-                            NULL, 0, OCI_DEFAULT);
+    err = OCISessionRelease(masterSvcCtx, oraerr, NULL, 0, OCI_DEFAULT);
     if (err == OCI_ERROR) {
-      throw OracleException("Oracle cleanup, OCISessionRelease", mErrorHandle);
+      throw OracleException("Oracle cleanup, OCISessionRelease (master)", oraerr);
     }
-    mServiceContextHandle = NULL;
+    masterSvcCtx = NULL;
+    OCIHandleFree(masterAuthHandle, OCI_HTYPE_AUTHINFO);
+    masterAuthHandle = NULL;
   }
 
-  if (mErrorHandle != NULL) {
-    OCIHandleFree(mErrorHandle, OCI_HTYPE_ERROR);
-    mErrorHandle = NULL;
+  if (pooledSvcCtx != NULL) {
+    err = OCITransRollback(pooledSvcCtx, oraerr, OCI_DEFAULT);
+    // No error check, we don't care if ROLLBACK failed
+    err = OCISessionRelease(pooledSvcCtx, oraerr, NULL, 0, OCI_DEFAULT);
+    if (err == OCI_ERROR) {
+      throw OracleException("Oracle cleanup, OCISessionRelease (pooled)", oraerr);
+    }
+    pooledSvcCtx = NULL;
+  }
+
+  if (oraerr != NULL) {
+    OCIHandleFree(oraerr, OCI_HTYPE_ERROR);
+    oraerr = NULL;
   }
 }
 
 OCIStmt*
-OracleBackend::prepare_query (string& code, const char *key)
+OracleBackend::prepare_query (OCISvcCtx *orasvc, string& code, const char *key)
 {
   sword err;
 
   OCIStmt *handle = NULL;
 
-  err = OCIStmtPrepare2(mServiceContextHandle, &handle, mErrorHandle,
-                        (OraText*) code.c_str(), code.length(),
-                        (OraText*) key, strlen(key),
-                        OCI_NTV_SYNTAX, OCI_DEFAULT);
+  err = OCIStmtPrepare2(orasvc, &handle, oraerr, (OraText*) code.c_str(), code.length(), (OraText*) key, strlen(key), OCI_NTV_SYNTAX, OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Preparing Oracle statement", mErrorHandle);
+    throw OracleException("Preparing Oracle statement", oraerr);
   }
 
   return handle;
@@ -1453,10 +1564,10 @@ OracleBackend::release_query (OCIStmt *stmt, const char *key)
 {
   sword err;
 
-  err = OCIStmtRelease(stmt, mErrorHandle, (OraText*)key, strlen(key), OCI_DEFAULT);
+  err = OCIStmtRelease(stmt, oraerr, (OraText*)key, strlen(key), OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Releasing Oracle statement", mErrorHandle);
+    throw OracleException("Releasing Oracle statement", oraerr);
   }
 }
 
@@ -1467,11 +1578,11 @@ OracleBackend::define_output_str (OCIStmt *s, ub4 pos, sb2 *ind,
   sword err;
   OCIDefine *handle = NULL;
 
-  err = OCIDefineByPos(s, &handle, mErrorHandle, pos, buf, buflen, SQLT_STR,
+  err = OCIDefineByPos(s, &handle, oraerr, pos, buf, buflen, SQLT_STR,
                        ind, NULL, NULL, OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Defining output for Oracle statement", mErrorHandle);
+    throw OracleException("Defining output for Oracle statement", oraerr);
   }
 }
 
@@ -1481,11 +1592,11 @@ OracleBackend::define_output_int (OCIStmt *s, ub4 pos, sb2 *ind, int *buf)
   sword err;
   OCIDefine *handle = NULL;
 
-  err = OCIDefineByPos(s, &handle, mErrorHandle, pos, buf, sizeof(int),
+  err = OCIDefineByPos(s, &handle, oraerr, pos, buf, sizeof(int),
                        SQLT_INT, ind, NULL, NULL, OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Defining output for Oracle statement", mErrorHandle);
+    throw OracleException("Defining output for Oracle statement", oraerr);
   }
 }
 
@@ -1495,11 +1606,11 @@ OracleBackend::define_output_uint (OCIStmt *s, ub4 pos, sb2 *ind, unsigned int *
   sword err;
   OCIDefine *handle = NULL;
 
-  err = OCIDefineByPos(s, &handle, mErrorHandle, pos, buf, sizeof(unsigned int),
+  err = OCIDefineByPos(s, &handle, oraerr, pos, buf, sizeof(unsigned int),
                        SQLT_UIN, ind, NULL, NULL, OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Defining output for Oracle statement", mErrorHandle);
+    throw OracleException("Defining output for Oracle statement", oraerr);
   }
 }
 
@@ -1510,11 +1621,11 @@ OracleBackend::define_output_uint16 (OCIStmt *s, ub4 pos, sb2 *ind,
   sword err;
   OCIDefine *handle = NULL;
 
-  err = OCIDefineByPos(s, &handle, mErrorHandle, pos, buf, sizeof(uint16_t),
+  err = OCIDefineByPos(s, &handle, oraerr, pos, buf, sizeof(uint16_t),
                        SQLT_UIN, ind, NULL, NULL, OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Defining output for Oracle statement", mErrorHandle);
+    throw OracleException("Defining output for Oracle statement", oraerr);
   }
 }
 
@@ -1525,11 +1636,11 @@ OracleBackend::define_output_uint32 (OCIStmt *s, ub4 pos, sb2 *ind,
   sword err;
   OCIDefine *handle = NULL;
 
-  err = OCIDefineByPos(s, &handle, mErrorHandle, pos, buf, sizeof(uint32_t),
+  err = OCIDefineByPos(s, &handle, oraerr, pos, buf, sizeof(uint32_t),
                        SQLT_UIN, ind, NULL, NULL, OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Defining output for Oracle statement", mErrorHandle);
+    throw OracleException("Defining output for Oracle statement", oraerr);
   }
 }
 
@@ -1550,10 +1661,10 @@ OracleBackend::define_fwd_query (OCIStmt *s)
 {
   const ub4 n = 100;
   sword err = OCIAttrSet(s, OCI_HTYPE_STMT, (void*) &n, sizeof(ub4),
-                         OCI_ATTR_PREFETCH_ROWS, mErrorHandle);
+                         OCI_ATTR_PREFETCH_ROWS, oraerr);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Activating row prefetching", mErrorHandle);
+    throw OracleException("Activating row prefetching", oraerr);
   }
 
   define_output_str(s, 1, &mResultNameInd,
@@ -1574,14 +1685,18 @@ OracleBackend::bind_str (OCIStmt *s, const char *name, char *buf, sb4 buflen)
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, buflen, SQLT_STR,
                       NULL, NULL, NULL, 0, NULL,
                       OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Binding input for Oracle statement", mErrorHandle);
+    string msg;
+    msg.append("Oracle bind_str (\"");
+    msg.append(name);
+    msg.append("\")");
+    throw OracleException(msg, oraerr);
   }
 }
 
@@ -1592,7 +1707,7 @@ OracleBackend::bind_str_failokay (OCIStmt *s, const char *name,
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, buflen, SQLT_STR,
                       NULL, NULL, NULL, 0, NULL,
@@ -1608,14 +1723,18 @@ OracleBackend::bind_str_ind (OCIStmt *s, const char *name,
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, buflen, SQLT_STR,
                       ind, NULL, NULL, 0, NULL,
                       OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Binding input for Oracle statement", mErrorHandle);
+    string msg;
+    msg.append("Oracle bind_str_ind (\"");
+    msg.append(name);
+    msg.append("\")");
+    throw OracleException(msg, oraerr);
   }
 }
 
@@ -1625,14 +1744,18 @@ OracleBackend::bind_int (OCIStmt *s, const char *name, int *buf)
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, sizeof(int), SQLT_INT,
                       NULL, NULL, NULL, 0, NULL,
                       OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Binding input for Oracle statement", mErrorHandle);
+    string msg;
+    msg.append("Oracle bind_int (\"");
+    msg.append(name);
+    msg.append("\")");
+    throw OracleException(msg, oraerr);
   }
 }
 
@@ -1642,14 +1765,18 @@ OracleBackend::bind_uint (OCIStmt *s, const char *name, unsigned int *buf)
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, sizeof(unsigned int), SQLT_UIN,
                       NULL, NULL, NULL, 0, NULL,
                       OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Binding input for Oracle statement", mErrorHandle);
+    string msg;
+    msg.append("Oracle bind_uint (\"");
+    msg.append(name);
+    msg.append("\")");
+    throw OracleException(msg, oraerr);
   }
 }
 
@@ -1659,14 +1786,18 @@ OracleBackend::bind_uint16 (OCIStmt *s, const char *name, uint16_t *buf)
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, sizeof(uint16_t), SQLT_UIN,
                       NULL, NULL, NULL, 0, NULL,
                       OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Binding input for Oracle statement", mErrorHandle);
+    string msg;
+    msg.append("Oracle bind_uint16 (\"");
+    msg.append(name);
+    msg.append("\")");
+    throw OracleException(msg, oraerr);
   }
 }
 
@@ -1677,14 +1808,18 @@ OracleBackend::bind_uint16_ind (OCIStmt *s, const char *name, uint16_t *buf,
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, sizeof(uint16_t), SQLT_UIN,
                       ind, NULL, NULL, 0, NULL,
                       OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Binding input for Oracle statement", mErrorHandle);
+    string msg;
+    msg.append("Oracle bind_uint16_ind (\"");
+    msg.append(name);
+    msg.append("\")");
+    throw OracleException(msg, oraerr);
   }
 }
 
@@ -1694,14 +1829,18 @@ OracleBackend::bind_uint32 (OCIStmt *s, const char *name, uint32_t *buf)
   sword err;
   OCIBind *handle = NULL;
 
-  err = OCIBindByName(s, &handle, mErrorHandle,
+  err = OCIBindByName(s, &handle, oraerr,
                       (OraText*) name, strlen(name),
                       buf, sizeof(uint32_t), SQLT_UIN,
                       NULL, NULL, NULL, 0, NULL,
                       OCI_DEFAULT);
 
   if (err == OCI_ERROR) {
-    throw OracleException("Binding input for Oracle statement", mErrorHandle);
+    string msg;
+    msg.append("Oracle bind_uint32 (\"");
+    msg.append(name);
+    msg.append("\")");
+    throw OracleException(msg, oraerr);
   }
 }
 
@@ -1710,8 +1849,8 @@ class OracleFactory : public BackendFactory
 {
 private:
   pthread_mutex_t factoryLock;
-  OCIEnv *mEnvironmentHandle;
-  OCIError *mErrorHandle;
+  OCIEnv *oraenv;
+  OCIError *oraerr;
   OCISPool *mSessionPoolHandle;
   text *mSessionPoolName;
   ub4 mSessionPoolNameLen;
@@ -1722,33 +1861,34 @@ private:
 
     try {
       // Initialize and create the environment
-      err = OCIEnvCreate(&mEnvironmentHandle, OCI_THREADED, NULL, NULL,
+      err = OCIEnvCreate(&oraenv, OCI_THREADED, NULL, NULL,
                          NULL, NULL, 0, NULL);
       if (err == OCI_ERROR) {
         throw OracleException("OCIEnvCreate");
       }
       // Allocate an error handle
-      err = OCIHandleAlloc(mEnvironmentHandle, (void**) &mErrorHandle,
+      err = OCIHandleAlloc(oraenv, (void**) &oraerr,
                            OCI_HTYPE_ERROR, 0, NULL);
       if (err == OCI_ERROR) {
         throw OracleException("OCIHandleAlloc");
       }
 
-      const char *dbname = arg()["oracle-database"].c_str();
-      const char *dbuser = arg()["oracle-username"].c_str();
-      const char *dbpass = arg()["oracle-password"].c_str();
+      const char *dbname = arg()["oracle-pool-database"].c_str();
+      const char *dbuser = arg()["oracle-pool-username"].c_str();
+      const char *dbpass = arg()["oracle-pool-password"].c_str();
 
       ub4 sess_min = arg().asNum("oracle-session-min");
       ub4 sess_max = arg().asNum("oracle-session-max");
       ub4 sess_inc = arg().asNum("oracle-session-inc");
+      ub4 get_mode = OCI_SPOOL_ATTRVAL_NOWAIT;
 
       // Create a session pool
-      err = OCIHandleAlloc(mEnvironmentHandle, (void**) &mSessionPoolHandle,
+      err = OCIHandleAlloc(oraenv, (void**) &mSessionPoolHandle,
                            OCI_HTYPE_SPOOL, 0, NULL);
       if (err == OCI_ERROR) {
         throw OracleException("OCIHandleAlloc");
       }
-      err = OCISessionPoolCreate(mEnvironmentHandle, mErrorHandle,
+      err = OCISessionPoolCreate(oraenv, oraerr,
                                  mSessionPoolHandle,
                                  (OraText **) &mSessionPoolName,
                                  &mSessionPoolNameLen,
@@ -1758,7 +1898,13 @@ private:
                                  (OraText *) dbpass, strlen(dbpass),
                                  OCI_SPC_STMTCACHE | OCI_SPC_HOMOGENEOUS);
       if (err == OCI_ERROR) {
-        throw OracleException("Creating Oracle session pool", mErrorHandle);
+        throw OracleException("Creating Oracle session pool", oraerr);
+      }
+
+      // Set session pool NOWAIT
+      err = OCIAttrSet(mSessionPoolHandle, OCI_HTYPE_SPOOL, &get_mode, 0, OCI_ATTR_SPOOL_GETMODE, oraerr);
+      if (err == OCI_ERROR) {
+        throw OracleException("Setting session pool get mode", oraerr);
       }
     } catch (OracleException &theException) {
       L << Logger::Critical << "OracleFactory: "
@@ -1774,12 +1920,12 @@ private:
 
     if (mSessionPoolHandle != NULL) {
       try {
-        err = OCISessionPoolDestroy(mSessionPoolHandle, mErrorHandle,
+        err = OCISessionPoolDestroy(mSessionPoolHandle, oraerr,
                                     OCI_SPD_FORCE);
         OCIHandleFree(mSessionPoolHandle, OCI_HTYPE_SPOOL);
         mSessionPoolHandle = NULL;
         if (err == OCI_ERROR) {
-          throw OracleException("OCISessionPoolDestroy", mErrorHandle);
+          throw OracleException("OCISessionPoolDestroy", oraerr);
         }
       } catch (OracleException &theException) {
         L << Logger::Error << "Failed to destroy Oracle session pool: "
@@ -1787,14 +1933,14 @@ private:
       }
     }
 
-    if (mErrorHandle != NULL) {
-      OCIHandleFree(mErrorHandle, OCI_HTYPE_ERROR);
-      mErrorHandle = NULL;
+    if (oraerr != NULL) {
+      OCIHandleFree(oraerr, OCI_HTYPE_ERROR);
+      oraerr = NULL;
     }
 
-    if (mEnvironmentHandle != NULL) {
-      OCIHandleFree(mEnvironmentHandle, OCI_HTYPE_ENV);
-      mEnvironmentHandle = NULL;
+    if (oraenv != NULL) {
+      OCIHandleFree(oraenv, OCI_HTYPE_ENV);
+      oraenv = NULL;
     }
   }
 
@@ -1802,8 +1948,8 @@ public:
 
 OracleFactory () : BackendFactory("oracle") {
     pthread_mutex_init(&factoryLock, NULL);
-    mEnvironmentHandle = NULL;
-    mErrorHandle = NULL;
+    oraenv = NULL;
+    oraerr = NULL;
     mSessionPoolHandle = NULL;
     mSessionPoolName = NULL;
     mSessionPoolNameLen = 0;
@@ -1815,15 +1961,15 @@ OracleFactory () : BackendFactory("oracle") {
   }
 
   void declareArguments (const string & suffix = "") {
-    declare(suffix, "database", "Database to connect to", "powerdns");
-    declare(suffix, "username", "Username to connect as", "powerdns");
-    declare(suffix, "password", "Password to connect with", "");
-    declare(suffix,
-            "session-min", "Number of sessions to open at startup", "4");
-    declare(suffix,
-            "session-inc", "Number of sessions to open when growing", "2");
-    declare(suffix,
-            "session-max", "Max number of sessions to have open", "20");
+    declare(suffix, "pool-database", "Database to connect to for the session pool", "powerdns");
+    declare(suffix, "pool-username", "Username to connect as for the session pool", "powerdns");
+    declare(suffix, "pool-password", "Password to connect with for the session pool", "");
+    declare(suffix, "session-min", "Number of sessions to open at startup", "4");
+    declare(suffix, "session-inc", "Number of sessions to open when growing", "2");
+    declare(suffix, "session-max", "Max number of sessions to have open", "20");
+    declare(suffix, "master-database", "Database to connect to for write access", "powerdns");
+    declare(suffix, "master-username", "Username to connect as for write access", "powerdns");
+    declare(suffix, "master-password", "Password to connect with for write access", "");
 
     declare(suffix, "nameserver-name", "", "");
 
@@ -1841,6 +1987,7 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "zone-set-last-check-query", "", zoneSetLastCheckQueryDefaultSQL);
     declare(suffix, "zone-set-notified-serial-query", "", zoneSetNotifiedSerialQueryDefaultSQL);
     declare(suffix, "insert-record-query", "", insertRecordQueryDefaultSQL);
+    declare(suffix, "finalize-axfr-query", "", finalizeAXFRQueryDefaultSQL);
     declare(suffix, "unfresh-zones-query", "", unfreshZonesQueryDefaultSQL);
     declare(suffix, "updated-masters-query", "", updatedMastersQueryDefaultSQL);
     declare(suffix, "accept-supernotification-query", "", acceptSupernotificationQueryDefaultSQL);
@@ -1853,6 +2000,7 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "del-zone-metadata-query", "", delZoneMetadataQueryDefaultSQL);
     declare(suffix, "set-zone-metadata-query", "", setZoneMetadataQueryDefaultSQL);
 
+    declare(suffix, "get-tsig-key-query", "", getTSIGKeyQueryDefaultSQL);
     declare(suffix, "get-zone-keys-query", "", getZoneKeysQueryDefaultSQL);
     declare(suffix, "del-zone-key-query", "", delZoneKeyQueryDefaultSQL);
     declare(suffix, "add-zone-key-query", "", addZoneKeyQueryDefaultSQL);
@@ -1862,11 +2010,11 @@ OracleFactory () : BackendFactory("oracle") {
   DNSBackend *make (const string & suffix = "") {
     {
       Lock l(&factoryLock);
-      if (mEnvironmentHandle == NULL) {
+      if (oraenv == NULL) {
         CreateSessionPool();
       }
     }
-    return new OracleBackend(suffix, mEnvironmentHandle,
+    return new OracleBackend(suffix, oraenv,
                              (char *) mSessionPoolName);
   }
 

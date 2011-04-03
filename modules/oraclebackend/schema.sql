@@ -11,9 +11,9 @@ CREATE TABLE Zones (
   name VARCHAR2(512) NOT NULL,
   type VARCHAR2(32) NOT NULL,
   last_check INTEGER,
+  refresh NUMBER(10,0),
   serial NUMBER(10,0) DEFAULT 0 NOT NULL,
   notified_serial NUMBER(10,0),
-  refresh NUMBER(10,0),
   CONSTRAINT chk_zones_name CHECK (name = lower(name)),
   CONSTRAINT unq_zones_name UNIQUE (name),
   CONSTRAINT chk_zones_type CHECK (
@@ -83,6 +83,13 @@ CREATE TABLE ZoneDNSKeys (
 CREATE INDEX zonednskeys_zone_ind ON ZoneDNSKeys (zone_id);
 
 
+CREATE TABLE TSIGKeys (
+  name VARCHAR2(255) CONSTRAINT pkey_tsigkeys PRIMARY KEY,
+  algorithm VARCHAR2(63) NOT NULL,
+  secret VARCHAR2(2047) NOT NULL
+);
+
+
 CREATE TABLE AccessControlList (
   acl_type VARCHAR2(64) NOT NULL,
   acl_key VARCHAR2(256) NOT NULL,
@@ -119,6 +126,8 @@ CREATE TABLE Records (
 );
 
 CREATE INDEX records_zone_id_ind ON Records (zone_id);
+CREATE INDEX records_revfqdn_ind ON Records (zone_id, revfqdn);
+CREATE INDEX records_fqdnhash_ind ON Records (zone_id, fqdnhash);
 CREATE INDEX records_last_change_ind ON Records (last_change);
 
 -- Only one SOA and NSEC3PARAM record per zone
@@ -355,19 +364,9 @@ CREATE PROCEDURE get_hashed_prev_next (
 ) AS
 BEGIN
   BEGIN
-    SELECT fqdn INTO out_fqdn
-    FROM Records
-    WHERE zone_id = in_zone_id
-      AND fqdnhash = in_fqdnhash;
-  EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-      NULL;
-  END;
-
-  BEGIN
-    SELECT * INTO out_prev
+    SELECT * INTO out_prev, out_fqdn
       FROM (
-        SELECT fqdnhash 
+        SELECT fqdnhash, fqdn
           FROM Records
           WHERE zone_id = in_zone_id
             AND fqdnhash <= in_fqdnhash
@@ -376,9 +375,9 @@ BEGIN
       ) WHERE ROWNUM = 1;
   EXCEPTION
     WHEN NO_DATA_FOUND THEN
-      SELECT * INTO out_prev
+      SELECT * INTO out_prev, out_fqdn
         FROM (
-          SELECT fqdnhash 
+          SELECT fqdnhash, fqdn
             FROM Records
             WHERE zone_id = in_zone_id
               AND auth = 1

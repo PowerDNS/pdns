@@ -1,4 +1,12 @@
 // $Id$
+/*
+ * Copyright (c) 2010-2011
+ *
+ * Maik Zumstrull <maik@zumstrull.net>
+ * Steinbuch Centre for Computing <http://www.scc.kit.edu/>
+ * Karlsruhe Institute of Technology <http://www.kit.edu/> 
+ *
+ */
 
 #include <string>
 #include <map>
@@ -75,6 +83,7 @@ public:
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
 
+  bool getTSIGKey(const string& name, string* algorithm, string* content);
   bool getDomainKeys(const string& name, unsigned int kind, vector<KeyData>& keys);
   bool removeDomainKey(const string& name, unsigned int id);
   int addDomainKey(const string& name, const KeyData& key);
@@ -83,79 +92,58 @@ public:
 
 private:
 
-  OCIEnv *mEnvironmentHandle;
-  OCIError *mErrorHandle;
-  OCISvcCtx *mServiceContextHandle;
+  OCIEnv *oraenv;
+  OCIError *oraerr;
+  OCISvcCtx *pooledSvcCtx;
+  OCIAuthInfo *masterAuthHandle;
+  OCISvcCtx *masterSvcCtx;
 
-  string    basicQuerySQL;
-  OCIStmt  *basicQueryHandle;
-  string    basicIdQuerySQL;
-  OCIStmt  *basicIdQueryHandle;
-  string    anyQuerySQL;
-  OCIStmt  *anyQueryHandle;
-  string    anyIdQuerySQL;
-  OCIStmt  *anyIdQueryHandle;
-  string    listQuerySQL;
-  OCIStmt  *listQueryHandle;
+  string basicQuerySQL;
+  string basicIdQuerySQL;
+  string anyQuerySQL;
+  string anyIdQuerySQL;
+  string listQuerySQL;
 
-  string    zoneInfoQuerySQL;
-  OCIStmt  *zoneInfoQueryHandle;
-  string    alsoNotifyQuerySQL;
-  OCIStmt  *alsoNotifyQueryHandle;
-  string    checkACLQuerySQL;
-  OCIStmt  *checkACLQueryHandle;
-  string    zoneMastersQuerySQL;
-  OCIStmt  *zoneMastersQueryHandle;
-  string    isZoneMasterQuerySQL;
-  OCIStmt  *isZoneMasterQueryHandle;
-  string    deleteZoneQuerySQL;
-  OCIStmt  *deleteZoneQueryHandle;
-  string    zoneSetLastCheckQuerySQL;
-  OCIStmt  *zoneSetLastCheckQueryHandle;
-  string    insertRecordQuerySQL;
-  OCIStmt  *insertRecordQueryHandle;
-  string    unfreshZonesQuerySQL;
-  OCIStmt  *unfreshZonesQueryHandle;
-  string    updatedMastersQuerySQL;
-  OCIStmt  *updatedMastersQueryHandle;
-  string    acceptSupernotificationQuerySQL;
-  OCIStmt  *acceptSupernotificationQueryHandle;
-  string    insertSlaveQuerySQL;
-  OCIStmt  *insertSlaveQueryHandle;
-  string    insertMasterQuerySQL;
-  OCIStmt  *insertMasterQueryHandle;
-  string    zoneSetNotifiedSerialQuerySQL;
-  OCIStmt  *zoneSetNotifiedSerialQueryHandle;
+  string zoneInfoQuerySQL;
+  string alsoNotifyQuerySQL;
+  string checkACLQuerySQL;
+  string zoneMastersQuerySQL;
+  string isZoneMasterQuerySQL;
+  string deleteZoneQuerySQL;
+  string zoneSetLastCheckQuerySQL;
 
-  string    prevNextNameQuerySQL;
-  OCIStmt  *prevNextNameQueryHandle;
-  string    prevNextHashQuerySQL;
-  OCIStmt  *prevNextHashQueryHandle;
+  string insertRecordQuerySQL;
+  string finalizeAXFRQuerySQL;
 
-  string    getZoneMetadataQuerySQL;
-  OCIStmt  *getZoneMetadataQueryHandle;
-  string    delZoneMetadataQuerySQL;
-  OCIStmt  *delZoneMetadataQueryHandle;
-  string    setZoneMetadataQuerySQL;
-  OCIStmt  *setZoneMetadataQueryHandle;
+  string unfreshZonesQuerySQL;
+  string updatedMastersQuerySQL;
+  string acceptSupernotificationQuerySQL;
+  string insertSlaveQuerySQL;
+  string insertMasterQuerySQL;
+  string zoneSetNotifiedSerialQuerySQL;
 
-  string    getZoneKeysQuerySQL;
-  OCIStmt  *getZoneKeysQueryHandle;
-  string    delZoneKeyQuerySQL;
-  OCIStmt  *delZoneKeyQueryHandle;
-  string    addZoneKeyQuerySQL;
-  OCIStmt  *addZoneKeyQueryHandle;
-  string    setZoneKeyStateQuerySQL;
-  OCIStmt  *setZoneKeyStateQueryHandle;
+  string prevNextNameQuerySQL;
+  string prevNextHashQuerySQL;
+
+  string getZoneMetadataQuerySQL;
+  string delZoneMetadataQuerySQL;
+  string setZoneMetadataQuerySQL;
+
+  string getTSIGKeyQuerySQL;
+  string getZoneKeysQuerySQL;
+  string delZoneKeyQuerySQL;
+  string addZoneKeyQuerySQL;
+  string setZoneKeyStateQuerySQL;
 
   OCIStmt *curStmtHandle;
-  sword mQueryResult;
+  const char *curStmtKey;
+  int openTransactionZoneID;
 
   char myServerName[512];
 
   char mQueryName[512];
   char mQueryType[64];
-  char mQueryContent[4000];
+  char mQueryContent[4001];
   char mQueryZone[512];
   char mQueryAddr[64];
   int  mQueryZoneId;
@@ -165,9 +153,9 @@ private:
   sb2       mResultNameInd;
   uint32_t  mResultTTL;
   sb2       mResultTTLInd;
-  char      mResultType[32];
+  char      mResultType[64];
   sb2       mResultTypeInd;
-  char      mResultContent[4000];
+  char      mResultContent[4001];
   sb2       mResultContentInd;
   int       mResultZoneId;
   sb2       mResultZoneIdInd;
@@ -182,9 +170,10 @@ private:
 
   void Cleanup();
 
+  void openMasterConnection();
   bool setDomainKeyState(const string& name, unsigned int id, int active);
 
-  OCIStmt* prepare_query (string& code, const char *key);
+  OCIStmt* prepare_query (OCISvcCtx* orasvc, string& code, const char *key);
   void release_query (OCIStmt *stmt, const char *key);
   void define_output_str (OCIStmt *s, ub4 pos, sb2 *ind, char *buf, sb4 buflen);
   void define_output_int (OCIStmt *s, ub4 pos, sb2 *ind, int *buf);
