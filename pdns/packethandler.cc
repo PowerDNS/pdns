@@ -1123,12 +1123,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   vector<DNSResourceRecord> rrset;
   bool weDone=0, weRedirected=0, weHaveUnauth=0;
 
-  DNSPacket *r=p->replyPacket();  // generate an empty reply packet
+  DNSPacket *r=0;
   bool noCache=false;
   if(p->d_havetsig) {
     string keyname, secret;
     TSIGRecordContent trc;
     if(!checkForCorrectTSIG(p, &B, &keyname, &secret, &trc)) {
+      r=p->replyPacket();  // generate an empty reply packet
       if(d_logDNSDetails)
         L<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
       r->setRcode(RCode::NotAuth);
@@ -1137,6 +1138,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     p->setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
     noCache=true;
   }
+  
+  r=p->replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
   
   try {    
     if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
