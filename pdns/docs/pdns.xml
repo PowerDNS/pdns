@@ -97,8 +97,9 @@
       </para>
       <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0-RC1</title>
       <para>
-	<warning><para>The version 3.0 prereleases represent a major change in PowerDNS, and may well
-	have issues that prevent it from being correct, stable or secure.</para>
+	<warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade.
+	Please refer to <xref linkend="from2.9to3.0"/> for important information on 
+	correct and stable operation, as well as notes on performance and memory use.</para>
       </warning></para>
       <para>
 	Version 3.0 of the PowerDNS Authoritative Server brings a number of important features, as
@@ -106,7 +107,8 @@
       </para>
       <para>
 	The largest news in 3.0 is of course the advent of DNSSEC. Not only does PowerDNS now (finally)
-	support DNSSEC, we think that our support of this important protocol is among the best available.
+	support DNSSEC, we think that our support of this important protocol is among the easiest to use available. 
+	In addition, all important algorithms are supported.
       </para>
       <para>
 	Complete detail can be found in <xref linkend="powerdnssec-auth"/>. The goal of 'PowerDNSSEC' is to allow
@@ -132,11 +134,7 @@
 	<listitem>
 	  <para>
 	    TSIG for authorizing and authenticating AXFR requests &amp; incoming zone transfers (Code in C2024, C2025, C2033, C2034).
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    Per zone AXFR ACLs, implemented in c1360.
+	    This allows for retrieving TSIG protected content, as well as serving it.
 	  </para>
 	</listitem>
 	<listitem>
@@ -170,7 +168,7 @@ Centre for Computing at the Karlsruhe Institute of Technology.
 	<listitem>
 	  <para>
 	    "Also-notify" support, implemented by Aki Tuomi in c1400. Support for Generic SQL backends and 
-	    for the BIND backend.
+	    for the BIND backend. Further code in c1360.
 	  </para>
 	</listitem>
 	<listitem>
@@ -232,7 +230,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	<listitem>
 	  <para>
 	    In some cases, we would include duplicate CNAMEs. In addition, we would hand out
-	    a full root-referral when not configured to in some cases (t223). Discovered by Andreas Jakum, fixed in c1344.
+	    a full root-referral when not configured to in some cases (ticket t223). Discovered by Andreas Jakum, fixed in c1344.
 	  </para>
 	</listitem>
 	<listitem>
@@ -400,7 +398,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	<listitem>
 	  <para>
 	    Fixed compilation on newer compilers and newer versions of Boost. 
-	    Changes in C1345 (t227), C1391, C1394, C1425, C1427, C1428, C1429, C1440, C1653, thanks to Ruben Kerkhof and others.
+	    Changes in C1345 (closes t227), C1391, C1394, C1425, C1427, C1428, C1429, C1440, C1653, thanks to Ruben Kerkhof and others.
 	  </para>
 	</listitem>
 	<listitem>
@@ -425,7 +423,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</listitem>
 	<listitem>
 	  <para>
-	    Prodded on by Jan Piet Mens, we now support 'unknown types' (which look like TYPE65534). Code in c
+	    Prodded on by Jan Piet Mens, we now support 'unknown types' (which look like TYPE65534). 
 	  </para>
 	</listitem>
 	<listitem>
@@ -9337,6 +9335,55 @@ local0.err                        /var/log/pdns.err
       </para>
     </sect1>
   </chapter>
+  <chapter id="upgrades"><title>Notes on upgrading</title>
+  <sect1 id="from2.9to3.0"><title>From PowerDNS Authoritative Server 2.9.x to 3.0</title>
+  <para>
+    The 3.0 release of the PowerDNS Authoritative Server is significantly different from previous 2.9.x versions. This section lists
+    important things to be aware of.
+  </para>
+  <para><warning><para>
+    Version 3.0 of the PowerDNS Authoritative Server is the biggest change in PowerDNS history. In some senses, this means that
+    it behaves somewhat like a '1.0' version. We advise operators to carefully perform the upgrade process from 2.9.x, and
+    if possible test on a copy of the database beforehand. 
+  </para>
+  <para>
+    In addition, it may also be useful to have a support agreement in place during such upgrades.
+    For first class and rapid support, please contact powerdns-support@netherlabs.nl, or see <ulink url="www.powerdns.com"/>.
+  </para>
+  </warning></para>
+  <para>
+    With similar settings, version 3.0 will most likely use a lot more memory than 2.9. This is due to the new DNSSEC key &amp; signature caches, but 
+    also because the database query cache will now store multiple row answers, which it did not do previously. Memory use can be brought down again
+    by tuning the cache-ttl settings.
+  </para>
+  <para>
+    Performance may be up, or it may be down. We appreciate that this is spotty guidance, but depending on your setup, lookups may be a lot faster or a
+    lot slower. The improved database cache may prove to be a big benefit, and improve performance dramatically. This could be offset by a near 
+    duplication of database queries needed because of more strict interpretation of DNS standards.
+  </para>
+  <para>
+    PowerDNS Authoritative Server 3.0 contains a completely renewed implementation of the core DNS 'Algorithm', loosely specified in RFC 1034.
+    As stated above, our new implementation is a lot closer to the original standard. This may mean that version 3.0 may interpret the contents
+    of your database differently from how 2.9.x interpreted them. For fully standards confirming zones, there should not be a problem, 
+    but if zones were misconfigured (no SOA record, for example), things will be different.
+  </para>
+  <para>
+    When compiling version 3.0, there are now more dependencies than there used to be. Whereas previously, only Boost header files were needed,
+    PowerDNS now needs a number of Boost libraries to be installed (like boost-program-options, boost-serialization). In addition, for now Lua 5.1 is 
+    a dependency.
+  </para>
+  <para>
+    PowerDNS Authoritative Server 3.0 comes with DNSSEC support, but this has required big changes to database schemas.
+    Each backend lists the changes required. To facilitate a smooth upgrade, the old, non-DNSSEC schema is used by default.
+    Features like per-domain metadata, TSIG and DNSSEC itself however need the new schema. Consult your backend documentation
+    for the correct 'alter table' statements. Afterwards, set the relevant '-dnssec' setting for your backend (for example: gmysql-dnssec).
+  </para>
+  <para>
+    In version 3.0, "Fancy Records", like URL, CURL and MBOXFW are no longer supported. Support may come back in later versions.
+    In addition, the LDAP Backend has moved to 'unmaintained' status. 
+  </para>
+  </sect1>
+  </chapter>
   <chapter id="powerdnssec-auth">
   <title>Serving authoritative DNSSEC data</title>
   <para>
@@ -10023,9 +10070,15 @@ $ pdnssec rectify-zone
     <listitem><para>Leen Besselink</para></listitem>
     <listitem><para>Detlef Peeters</para></listitem>
     <listitem><para>Christof Meerwald</para></listitem>
+    <listitem><para>Jack Lloyd</para></listitem>
+    <listitem><para>Frank Altpeter</para></listitem>
+    <listitem><para>frederik danerklint</para></listitem>
+    <listitem><para>Vasiliy G Tolstov</para></listitem>
+    <listitem><para>Brielle Bruns</para></listitem>
+    <listitem><para>Evan Hunt (ISC)</para></listitem>
+    <listitem><para>Ralf van der Enden</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
-
   </para>
   </section>
   </chapter>
