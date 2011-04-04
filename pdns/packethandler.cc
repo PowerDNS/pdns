@@ -1275,9 +1275,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     weDone=weRedirected=weHaveUnauth=0;
     
     while(B.get(rr)) {
+      // cerr<<"Auth: "<<rr.auth<<", "<<(rr.qtype == p->qtype)<<", "<<rr.qtype.getName()<<endl;
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
         weDone=1;
-      if((rr.qtype == p->qtype && !rr.auth) || rr.qtype.getCode() == QType::NS) 
+      // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
+      if((rr.qtype == p->qtype && !rr.auth) || (rr.qtype.getCode() == QType::NS && (!rr.auth || !pdns_iequals(sd.qname, rr.qname))))
         weHaveUnauth=1;
 
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
@@ -1285,7 +1287,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       rrset.push_back(rr);
     }
 
-    //cerr<<"After first ANY query: weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl;
+    DLOG(L<<"After first ANY query: weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);
 
     if(rrset.empty()) {
       // try wildcards, and if they don't work, go look for NS records
@@ -1316,7 +1318,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
           goto retargeted;
         }
       }
-          
     }
     else if(weDone) {
       BOOST_FOREACH(rr, rrset) {
@@ -1331,7 +1332,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       goto sendit;
     }
     else if(weHaveUnauth) {
-      
       DLOG(L<<"Have unauth data, so need to hunt for best NS records"<<endl);
       if(tryReferral(p, r, sd, target))
         goto sendit;
