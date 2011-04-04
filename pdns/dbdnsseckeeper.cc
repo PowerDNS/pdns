@@ -34,7 +34,7 @@
 
 using namespace boost::assign;
 #include "namespaces.hh"
-using namespace boost;
+
 
 DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;

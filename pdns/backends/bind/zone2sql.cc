@@ -40,7 +40,7 @@
 #include <unistd.h>
 #include <boost/foreach.hpp>
 
-using namespace boost;
+
 StatBag S;
 static bool g_doDNSSEC;
 static int g_domainid;
@@ -98,7 +98,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
     
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)
-      erase_head(content, pos);
+      boost::erase_head(content, pos);
     trim_left(content);
   }
 

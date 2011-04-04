@@ -16,7 +16,7 @@
 StatBag S;
 PacketCache PC;
 
-using namespace boost;
+using boost::scoped_ptr;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 

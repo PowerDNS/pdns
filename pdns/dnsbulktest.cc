@@ -12,7 +12,7 @@
 #include "dnsrecords.hh"
 
 using namespace boost::accumulators;
-using namespace boost;
+
 
 StatBag S;
 

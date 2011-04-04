@@ -39,7 +39,7 @@
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
-using namespace boost;
+
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
@@ -128,7 +128,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   di.backend=this;
   
   string type=d_result[0][5];
-  if(iequals(type,"SLAVE")) {
+  if(pdns_iequals(type,"SLAVE")) {
     di.serial=0;
     try {
       SOAData sd;
@@ -143,7 +143,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     
     di.kind=DomainInfo::Slave;
   }
-  else if(iequals(type,"MASTER"))
+  else if(pdns_iequals(type,"MASTER"))
     di.kind=DomainInfo::Master;
   else 
     di.kind=DomainInfo::Native;
