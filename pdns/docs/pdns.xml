@@ -9348,7 +9348,8 @@ local0.err                        /var/log/pdns.err
   </para>
   <para>
     In addition, it may also be useful to have a support agreement in place during such upgrades.
-    For first class and rapid support, please contact powerdns-support@netherlabs.nl, or see <ulink url="www.powerdns.com"/>.
+    For first class and rapid support, please contact powerdns-support@netherlabs.nl, or see <ulink url="www.powerdns.com"/>. Alternatively,
+    the <ulink url="http://wiki.powerdns.com">PowerDNS Community</ulink> can be very helpful too.
   </para>
   </warning></para>
   <para>
