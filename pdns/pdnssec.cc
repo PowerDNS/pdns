@@ -137,9 +137,11 @@ void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
+// irritatingly enough, rectifyZone needs its own ueberbackend and can't therefore benefit from transactions outside its scope
 void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 {
   scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  bool doTransaction=true; // but see above
   SOAData sd;
   
   if(!B->getSOA(zone, sd)) {
@@ -168,7 +170,8 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   else 
     cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
   
-  sd.db->startTransaction("", -1);
+  if(doTransaction)
+    sd.db->startTransaction("", -1);
   BOOST_FOREACH(const string& qname, qnames)
   {
     string shorter(qname);
@@ -190,8 +193,8 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
       sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
     }
   }
-  sd.db->commitTransaction();
-  cerr<<"Done listing"<<endl;
+  if(doTransaction)
+    sd.db->commitTransaction();
 }
 
 void checkZone(DNSSECKeeper& dk, const std::string& zone)
@@ -369,11 +372,11 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
   }
 }
 
-void secureZone(DNSSECKeeper& dk, const std::string& zone)
+bool secureZone(DNSSECKeeper& dk, const std::string& zone)
 {
 	if(dk.isSecuredZone(zone)) {
-		cerr << "Zone '"<<zone<<"' already secure, remove with pdnssec remove-zone-key if needed"<<endl;
-		return;
+		cerr << "Zone '"<<zone<<"' already secure, remove keys with pdnssec remove-zone-key if needed"<<endl;
+		return false;
 	}
 
 	if(!dk.secureZone(zone, 8)) {
@@ -381,7 +384,7 @@ void secureZone(DNSSECKeeper& dk, const std::string& zone)
 		cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
 		cerr<<"For the Generic SQL backends, set 'gsqlite3-dnssec' or 'gmysql-dnssec' or\n";
 		cerr<<"'gpgsql-dnssec' etc. Also make sure the schema has been updated for DNSSEC!\n";
-		return;
+		return false;
 	}
 
 	if(!dk.isSecuredZone(zone)) {
@@ -392,14 +395,14 @@ void secureZone(DNSSECKeeper& dk, const std::string& zone)
 		cerr<<"In addition, add '"<<zone<<"' to this backend, possibly like this: \n\n";
 		cerr<<"   insert into domains (name, type) values ('"<<zone<<"', 'NATIVE');\n\n";
 		cerr<<"And then rerun secure-zone"<<endl;
-		return;
+		return false;
 	}
 
 	DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
 
 	if(!zskset.empty())  {
 		cerr<<"There were ZSKs already for zone '"<<zone<<"', no need to add more"<<endl;
-		return;
+		return false;
 	}
 		
 	dk.addKey(zone, false, 8);
@@ -407,6 +410,7 @@ void secureZone(DNSSECKeeper& dk, const std::string& zone)
 	// rectifyZone(dk, zone);
 	// showZone(dk, zone);
 	cout<<"Zone "<<zone<<" secured"<<endl;
+  return true;
 }
 
 int main(int argc, char** argv)
@@ -462,7 +466,6 @@ try
     return 0;
   }
 
-  
   loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
   DNSSECKeeper dk;
@@ -574,13 +577,18 @@ try
       cerr << "Error: "<<cmds[0]<<" takes at least 1 parameter"<<endl;
       return 0;
     }
+    vector<string> mustRectify;
     dk.startTransaction();    
     for(unsigned int n = 1; n < cmds.size(); ++n) {
 			const string& zone=cmds[n];
-			secureZone(dk, zone);
+			if(secureZone(dk, zone)) {
+        mustRectify.push_back(zone);
+      }
 		}
     
     dk.commitTransaction();
+    BOOST_FOREACH(string& zone, mustRectify)
+      rectifyZone(dk, zone);
   }
   else if(cmds[0]=="set-nsec3") {
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 1 1 ab";
