@@ -241,6 +241,7 @@ void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 {
   clearCaches(zname);
   d_keymetadb.setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
+  d_keymetadb.setDomainMetadata(zname, "NSEC3NARROW", vector<string>());
 }
 
 
