@@ -1,4 +1,4 @@
-PowerDNS is copyright 2005 by PowerDNS.COM BV
+PowerDNS is copyright 2011 by PowerDNS.COM BV
 
 This file may lag behind at times. For most recent updates, always check
 http://doc.powerdns.com/changelog.html and http://wiki.powerdns.com
@@ -16,6 +16,12 @@ but first check existing ones:
 
 COMPILING
 ---------
+PowerDNS 3.0 and beyond depend on Lua and Boost. To get these libraries,
+install the relevant packages. On Debian and Ubunty, try:
+
+# apt-get install g++ libboost-program-options-dev
+  libboost-serialization-dev libpqclient-dev libmysqlclient-dev
+  libsqlite3-dev libpq-dev
 
 To compile a very clean version, use:
 
