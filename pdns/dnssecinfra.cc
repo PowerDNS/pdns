@@ -14,8 +14,6 @@
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
 #include "md5.hh"
-
-using namespace boost;
 #include "namespaces.hh"
 using namespace boost::assign;
 
@@ -263,7 +261,7 @@ int countLabels(const std::string& signQName)
     if(*pos == '.' && pos+1 != signQName.end()) 
       count++;
 
-  if(starts_with(signQName, "*."))
+  if(boost::starts_with(signQName, "*."))
     count--;
   return count;
 }
