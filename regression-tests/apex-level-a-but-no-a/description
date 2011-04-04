@@ -1,0 +1,3 @@
+Test for A query for test.com in test.com. Should return an AA nodata, since
+there is no A record there.
+
