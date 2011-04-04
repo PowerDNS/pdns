@@ -227,7 +227,8 @@ string DynListener::getLine()
   }
   else {
     if(isatty(0))
-      write(1, "% ", 2);
+      if(write(1, "% ", 2) !=2)
+        throw AhuException("Writing to console: "+stringerror());
     if((len=read(0, &mesg[0], mesg.size())) < 0) 
       throw AhuException("Reading from the control pipe: "+stringerror());
     else if(len==0)
@@ -263,7 +264,9 @@ void DynListener::sendLine(const string &l)
     if(!line.empty() && line[line.length()-1]!='\n')
       line.append("\n");
     line.append("\n");
-    write(1,line.c_str(),line.length());
+    if(write(1,line.c_str(),line.length()) != line.length())
+      L<<Logger::Error<<"Error sending data to console: "<<stringerror()<<endl;
+      
   }
 }
 
