@@ -100,6 +100,14 @@
 	<warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade.
 	Please refer to <xref linkend="from2.9to3.0"/> for important information on 
 	correct and stable operation, as well as notes on performance and memory use.</para>
+	<para>
+	  Known issues include:
+	<itemizedlist>
+	<listitem><para>Not all new features are documented yet</para></listitem>
+	<listitem><para>Queries for 'empty non-terminals' may give confusing results</para></listitem>
+	<listitem><para>We are not 100% convinced all corner cases of NSEC3/NXDOMAIN give correct responses. Common cases function well</para></listitem>
+	<listitem><para>DNSSEC has only been benchmarked up to 2000 queries/second but not beyond</para></listitem>
+	</itemizedlist></para>
       </warning></para>
       <para>
 	Version 3.0 of the PowerDNS Authoritative Server brings a number of important features, as
@@ -8546,7 +8554,7 @@ create table domains (
  notified_serial INT DEFAULT NULL, 
  account         VARCHAR(40) DEFAULT NULL,
  primary key (id)
-)type=InnoDB;
+) Engine=InnoDB;
 
 CREATE UNIQUE INDEX name_index ON domains(name);
 
@@ -8560,7 +8568,7 @@ CREATE TABLE records (
   prio            INT DEFAULT NULL,
   change_date     INT DEFAULT NULL,
   primary key(id)
-)type=InnoDB;
+) Engine=InnoDB;
 
 CREATE INDEX rec_name_index ON records(name);
 CREATE INDEX nametype_index ON records(name,type);
@@ -8570,7 +8578,7 @@ create table supermasters (
   ip VARCHAR(25) NOT NULL, 
   nameserver VARCHAR(255) NOT NULL, 
   account VARCHAR(40) DEFAULT NULL
-);
+) Engine=InnoDB;
 
 GRANT SELECT ON supermasters TO pdns;
 GRANT ALL ON domains TO pdns;
@@ -13933,7 +13941,7 @@ create table domains (
  notified_serial INT DEFAULT NULL, 
  account         VARCHAR(40) DEFAULT NULL,
  primary key (id)
-)type=InnoDB;
+) Engine=InnoDB;
 
 CREATE UNIQUE INDEX name_index ON domains(name);
 
@@ -13947,7 +13955,7 @@ CREATE TABLE records (
   prio            INT DEFAULT NULL,
   change_date     INT DEFAULT NULL,
   primary key(id)
-)type=InnoDB;
+)Engine=InnoDB;
 
 CREATE INDEX rec_name_index ON records(name);
 CREATE INDEX nametype_index ON records(name,type);
@@ -13957,7 +13965,7 @@ create table supermasters (
   ip VARCHAR(25) NOT NULL, 
   nameserver VARCHAR(255) NOT NULL, 
   account VARCHAR(40) DEFAULT NULL
-);
+) Engine=InnoDB;
 
 GRANT SELECT ON supermasters TO pdns;
 GRANT ALL ON domains TO pdns;
@@ -13996,7 +14004,8 @@ create table tsigkeys (
  id             INT auto_increment,
  name           VARCHAR(255), 
  algorithm      VARCHAR(255),
- secret         VARCHAR(255)
+ secret         VARCHAR(255),
+ primary key(id)
 );
 
 create unique index namealgoindex on tsigkeys(name, algorithm);

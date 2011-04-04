@@ -29,7 +29,8 @@ create table tsigkeys (
  id		INT auto_increment,
  name		VARCHAR(255), 
  algorithm	VARCHAR(255),
- secret		VARCHAR(255)
+ secret		VARCHAR(255),
+ primary key(id)
 );
 
 create unique index namealgoindex on tsigkeys(name, algorithm);
