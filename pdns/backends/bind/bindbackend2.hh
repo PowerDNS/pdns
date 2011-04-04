@@ -35,9 +35,7 @@
 #include "misc.hh"
 
 #include "namespaces.hh"
-using namespace boost;
 using namespace ::boost::multi_index;
-
 
 /** This struct is used within the Bind2Backend to store DNS information. 
     It is almost identical to a DNSResourceRecord, but then a bit smaller and with different sorting rules, which make sure that the SOA record comes up front.

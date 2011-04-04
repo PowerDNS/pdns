@@ -327,7 +327,7 @@ bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   shared_ptr<State> state = getState();
   for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) { // why is this a linear scan??
-    if(iequals(i->second.d_name,domain)) {
+    if(pdns_iequals(i->second.d_name,domain)) {
       di.id=i->first;
       di.zone=domain;
       di.masters=i->second.d_masters;
@@ -422,7 +422,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
     
     string::size_type pos = bdr.content.find_first_not_of("0123456789");
     if(pos != string::npos)
-      erase_head(bdr.content, pos);
+      boost::erase_head(bdr.content, pos);
     trim_left(bdr.content);
   }
   
