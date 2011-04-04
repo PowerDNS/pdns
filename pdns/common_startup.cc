@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2005 - 2010  PowerDNS.COM BV
+    Copyright (C) 2005 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -41,6 +41,7 @@ void declareArguments()
   ::arg().set("local-port","The port on which we listen")="53";
   ::arg().setSwitch("log-failed-updates","If PDNS should log failed update requests")="";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="";
+  ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
   ::arg().setSwitch("allow-recursion-override","Set this so that local data fully overrides the recursor")="no";
   ::arg().set("urlredirector","Where we send hosts to that need to be url redirected")="127.0.0.1";
   ::arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
@@ -231,8 +232,7 @@ void *qthread(void *number)
   unsigned int &numanswered6=*S.getPointer("udp6-answers");
   numreceived=-1;
   int diff;
-  bool logDNSDetails= ::arg().mustDo("log-dns-details");
-  
+  bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   for(;;) {
     if(number==0) { // only run on main thread
       if(!((numreceived++)%250)) { // maintenance tasks
@@ -254,12 +254,12 @@ void *qthread(void *number)
 
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->getRemote());
-    if(logDNSDetails) 
+    if(logDNSQueries) 
       L << Logger::Notice<<"Remote "<< P->remote.toString() <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
         "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
 
     if((P->d.opcode != Opcode::Notify) && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
-      if(logDNSDetails)
+      if(logDNSQueries)
         L<<"packetcache HIT"<<endl;
       cached.setRemote(&P->remote);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
@@ -280,7 +280,7 @@ void *qthread(void *number)
 
       continue;
     }
-    if(logDNSDetails)
+    if(logDNSQueries)
         L<<"packetcache MISS"<<endl;
     if(g_mustlockdistributor) {
       Lock l(&d_distributorlock);

@@ -314,7 +314,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
 {
   if(!d_dnssecQueries)
     return false;
-  cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
+  // cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
   unhashed.clear(); before.clear(); after.clear();
   string lcqname=toLower(qname);
   
@@ -332,7 +332,7 @@ retryAfter:
   }
 
   if(after.empty() && !tmp.empty()) {
-    cerr<<"Oops, have to pick the first, there is no last!"<<endl;
+    //cerr<<"Oops, have to pick the first, there is no last!"<<endl;
     tmp.clear();
     goto retryAfter;
   }
@@ -347,7 +347,7 @@ retryBefore:
   }
   
   if(before.empty() && lcqname!="{") {
-    cerr<<"Oops, have to pick the last!"<<endl;
+    //cerr<<"Oops, have to pick the last!"<<endl;
     lcqname="{";
     goto retryBefore;
   }

@@ -244,7 +244,7 @@ void *TCPNameserver::doConnection(void *data)
     char mesg[512];
     
     DLOG(L<<"TCP Connection accepted on fd "<<fd<<endl);
-    bool logDNSDetails= ::arg().mustDo("log-dns-details");
+    bool logDNSQueries= ::arg().mustDo("log-dns-queries");
     for(;;) {
       ComboAddress remote;
       socklen_t remotelen=sizeof(remote);
@@ -282,13 +282,13 @@ void *TCPNameserver::doConnection(void *data)
 
       shared_ptr<DNSPacket> reply; 
       shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
-      if(logDNSDetails) 
+      if(logDNSQueries) 
         L << Logger::Notice<<"TCP Remote "<< packet->remote.toString() <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() << 
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
 
 
       if(!packet->d.rd && packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
-        if(logDNSDetails)
+        if(logDNSQueries)
           L<<"packetcache HIT"<<endl;
         cached->setRemote(&packet->remote);
         cached->d.id=packet->d.id;
@@ -299,7 +299,7 @@ void *TCPNameserver::doConnection(void *data)
         S.inc("tcp-answers");
         continue;
       }
-      if(logDNSDetails)
+      if(logDNSQueries)
           L<<"packetcache MISS"<<endl;  
       {
         Lock l(&s_plock);
