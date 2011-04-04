@@ -23,9 +23,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <boost/lexical_cast.hpp>
-
-using namespace boost;
-
 #include "pipebackend.hh"
 
 static const char *kBackendId = "[PIPEBackend]";
