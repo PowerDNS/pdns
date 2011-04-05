@@ -110,6 +110,7 @@
 	<listitem><para>A lot more database connections are made and released</para></listitem>
 	</itemizedlist></para>
       </warning></para>
+      <para><note><para>RC1 released on the 4th of April 2011</para></note></para>
       <para>
 	Version 3.0 of the PowerDNS Authoritative Server brings a number of important features, as
 	well as over two years of accumulated bug fixing.

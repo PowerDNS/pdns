@@ -386,7 +386,7 @@ then
 	PGSQL_libdir=
 	for m in $PGSQL_lib_check; do
 	        if test -d "$m" && \
-		   (test -f "$m/libpq.a" || test -f "$m/libpq++.a")
+		   (test -f "$m/libpq.a" || test -f "$m/libpq.so")
 	        then
 	                PGSQL_libdir=$m
 	                break
