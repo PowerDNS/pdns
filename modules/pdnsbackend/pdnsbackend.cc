@@ -168,7 +168,7 @@ bool PdnsBackend::getSOA(const string& inZoneName, SOAData& outSoaData, DNSPacke
    //cout << "PdnsBackend::getSOA" << endl;
 
    ostringstream o;
-   o << "select Id,Hostmaster,Serial from Zones where Active = 1 and Name = '" << sqlEscape(inZoneName) << "'";
+   o << "select Id,Hostmaster,Serial,TimeToLive from Zones where Active = 1 and Name = '" << sqlEscape(inZoneName) << "'";
 
    this->Query(o.str());
       
@@ -180,6 +180,7 @@ bool PdnsBackend::getSOA(const string& inZoneName, SOAData& outSoaData, DNSPacke
       outSoaData.nameserver = arg()["default-soa-name"];
       outSoaData.hostmaster = theRow[1];
       outSoaData.serial = atoi(theRow[2]);
+      outSoaData.ttl = atoi(theRow[3]);      
       
       outSoaData.refresh = arg()["pdns-"+d_suffix+"soa-refresh"].empty() ? 10800 : atoi(arg()["pdns-"+d_suffix+"soa-refresh"].c_str());
       outSoaData.retry = 3600;
