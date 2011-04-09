@@ -236,7 +236,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</listitem>
 	<listitem>
 	  <para>
-	    PowerDNS can now serve escaped labels, as described by RFC4343. Data should be present in backends
+	    PowerDNS can now serve escaped labels, as described by RFC 4343. Data should be present in backends
 	    in that escaped form. Code in c2089.
 	  </para>
 	</listitem>
@@ -254,7 +254,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</listitem>
 	<listitem>
 	  <para>
-	    PowerDNS did not use RFC1982 serial arithmetic, leading to a SOA serial number of 1 to be regarded as older than 4400000000, when in fact
+	    PowerDNS did not use RFC 1982 serial arithmetic, leading to a SOA serial number of 1 to be regarded as older than 4400000000, when in fact
 	    it is 'newer'. Issue (re-)discovered by Jan-Piet Mens.
 	  </para>
 	</listitem>
@@ -5559,7 +5559,7 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Added support for RFC2038 compliant negative-answer caching. This allows remotes to cache the fact that 
+		Added support for RFC 2038 compliant negative-answer caching. This allows remotes to cache the fact that 
 		a domain does not exist and will not exist for a while. Thanks to Chris Thompson for <ulink url="http://ops.ietf.org/lists/namedroppers/namedroppers.2002/msg01697.html">pointing out how tiny our minds are</ulink>. This feature may cause a noticeable reduction
 		in query load.
 	      </para>
