@@ -382,11 +382,14 @@ int AXFRRetriever::getChunk(Resolver::res_t &res)
       if(answer.first.d_type == QType::TSIG)
         theirMac = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content)->d_mac;
     }
+    if(theirMac.empty())
+      throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tsigkeyname+"'");
+      
     string message = makeTSIGMessageFromTSIGPacket(string(d_buf.get(), len), mdp.getTSIGPos(), d_tsigkeyname, d_trc, d_trc.d_mac, false); // insert our question MAC
     string ourMac=calculateMD5HMAC(d_tsigsecret, message);
     // ourMac[0]++; // sabotage
     if(ourMac != theirMac)
-      throw ResolverException("AXFR response from "+d_remote.toStringWithPort()+" was not signed correctly with TSIG key '"+d_tsigkeyname+"'");
+      throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
   }
   
   int err = parseResult(mdp, "", 0, 0, &res);
