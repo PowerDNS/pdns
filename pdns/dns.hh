@@ -274,5 +274,5 @@ void fillSOAData(const string &content, SOAData &data);
 /** for use by DNSPacket, converts a SOAData class to a ascii line again */
 string serializeSOAData(const SOAData &data);
 string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
-
+string strrcode(unsigned char rcode);
 #endif

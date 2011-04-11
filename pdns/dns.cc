@@ -194,3 +194,10 @@ string& attodot(string &str)
    return str;
 }
 
+string strrcode(unsigned char rcode)
+{
+  static const char* rcodes[]={"No Error", "FormErr", "SERVFAIL", "NXDOMAIN", "NotImp", "Refused", "", "", "", "Not Auth"};
+  if((rcode < sizeof(rcodes) / sizeof(*rcodes)) && *rcodes[rcode])
+    return rcodes[rcode];
+  return "Err#"+lexical_cast<string>((int)rcode);
+}
