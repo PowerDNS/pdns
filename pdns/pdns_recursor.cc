@@ -490,10 +490,10 @@ void startDoResolve(void *p)
   DNSComboWriter* dc=(DNSComboWriter *)p;
 
   try {
-    uint16_t maxudpsize=512;
+    uint32_t maxanswersize= dc->d_tcp ? 65535 : 512;
     EDNSOpts edo;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
-      maxudpsize=max(edo.d_packetsize, (uint16_t)1280);
+      maxanswersize = min(edo.d_packetsize, (uint16_t) (dc->d_tcp ? 65535 : 1680));
     }
     
     vector<DNSResourceRecord> ret;
@@ -554,7 +554,7 @@ void startDoResolve(void *p)
             shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content)); 
             drc->toPacket(pw);
           }
-          if(!dc->d_tcp && pw.size() > maxudpsize) {
+          if(pw.size() > maxanswersize) {
             pw.rollback();
             if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
               pw.getHeader()->tc=1;

@@ -278,7 +278,7 @@ void DNSPacketWriter::getRecords(string& records)
   records.assign(d_content.begin() + d_sor, d_content.end());
 }
 
-uint16_t DNSPacketWriter::size()
+uint32_t DNSPacketWriter::size()
 {
   return d_content.size() + d_stuff + d_record.size();
 }

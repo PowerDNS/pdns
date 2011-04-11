@@ -277,7 +277,7 @@ void DNSPacket::wrapup()
         pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
         shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
               drc->toPacket(pw);
-        if(!d_tcp && pw.size() + 20U > getMaxReplyLen()) { // 20 = room for EDNS0
+        if(pw.size() + 20U > (d_tcp ? 65535 : getMaxReplyLen())) { // 20 = room for EDNS0
           pw.rollback();
           if(pos->d_place == DNSResourceRecord::ANSWER) {
             pw.getHeader()->tc=1;

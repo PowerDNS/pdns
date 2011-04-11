@@ -61,7 +61,7 @@ public:
    */
   void commit();
 
-  uint16_t size();
+  uint32_t size(); // needs to be 32 bit because otherwise we don't see the wrap coming when it happened!
 
   /** Should the packet have grown too big for the writer's liking, rollback removes the record currently being written */
   void rollback();
