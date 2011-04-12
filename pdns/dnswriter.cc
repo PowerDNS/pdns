@@ -106,7 +106,7 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z, const vector<pair
 void DNSPacketWriter::xfr48BitInt(uint64_t val)
 {
   unsigned char bytes[6];
-  uint16_t theLeft = htons(val >> 32);
+  uint16_t theLeft = htons((val >> 32)&0xffffU);
   uint32_t theRight = htonl(val & 0xffffffffU);
   memcpy(bytes, (void*)&theLeft, 2);
   memcpy(bytes+2, (void*)&theRight, 4);
