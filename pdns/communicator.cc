@@ -42,7 +42,7 @@ void CommunicatorClass::retrievalLoopThread(void)
     {
       Lock l(&d_lock);
       if(d_suckdomains.empty()) 
-	continue;
+        continue;
 	
       sr=d_suckdomains.front();
       d_suckdomains.pop_front();
