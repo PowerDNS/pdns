@@ -27,6 +27,7 @@ DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const strin
   }
   else if(rr.qtype.getCode()==QType::AAAA && serial.size()==16) {
     ComboAddress tmp;
+    memset(&tmp, 0, sizeof(tmp));
     tmp.sin4.sin_family=AF_INET6;
     memcpy(tmp.sin6.sin6_addr.s6_addr, serial.c_str(), 16);
     rr.content=tmp.toString();
