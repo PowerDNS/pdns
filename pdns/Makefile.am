@@ -111,7 +111,10 @@ toysdig_SOURCES=toysdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dns
 tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc md5.cc nsecrecords.cc base32.cc \
-	dnssecinfra.cc 
+	dnssecinfra.cc resolver.cc arguments.cc dns_random.hh aes/aescpp.h \
+	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
+	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
+	randomhelper.cc dns.cc
 tsig_tests_LDFLAGS= -Lext/polarssl/library 	
 tsig_tests_LDADD= -lpolarssl
 

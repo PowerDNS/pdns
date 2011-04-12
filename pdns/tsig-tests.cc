@@ -8,13 +8,24 @@
 #include "md5.hh"
 #include "base64.hh"
 #include "dnssecinfra.hh"
+#include "resolver.hh"
+#include "arguments.hh"
+#include "dns_random.hh"
 
 StatBag S;
 
+ArgvMap& arg()
+{
+  static ArgvMap theArg;
+  return theArg;
+}
 
 int main(int argc, char** argv)
 try
 {
+  ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
+  ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
+
   reportAllTypes();
 
   if(argc < 4) {
@@ -30,7 +41,9 @@ try
   pw.getHeader()->id=htons(0x4831);
   
   string key;
-  B64Decode("kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=", key);
+  B64Decode("Syq9L9WrBWdxBC+HxKok2g==", key);
+
+  string keyname("pdns-b-aa");
 
   TSIGRecordContent trc;
   trc.d_algoName="hmac-md5.sig-alg.reg.int.";
@@ -39,11 +52,11 @@ try
   trc.d_origID=ntohs(pw.getHeader()->id);
   trc.d_eRcode=0;
 
-  addTSIG(pw, &trc, "test", key, "", false);
+  addTSIG(pw, &trc, keyname, key, "", false);
 
   Socket sock(InterNetwork, Datagram);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
-  
+#if 0
   sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
   
   string reply;
@@ -65,7 +78,7 @@ try
   }
 
   if(mdp.getTSIGPos()) {    
-    string message = makeTSIGMessageFromTSIGPacket(reply, mdp.getTSIGPos(), "test", trc, trc.d_mac, false); // insert our question MAC
+    string message = makeTSIGMessageFromTSIGPacket(reply, mdp.getTSIGPos(), keyname, trc, trc.d_mac, false); // insert our question MAC
     
     string hmac2=calculateMD5HMAC(key, message);
     cerr<<"Calculated mac: "<<Base64Encode(hmac2)<<endl;
@@ -74,8 +87,22 @@ try
     else 
       cerr<<"Mismatch!"<<endl;
   }
+#endif
+  seedRandom("/dev/urandom");
+  cerr<<"Keyname: '"<<keyname<<"', algo: '"<<trc.d_algoName<<"', key: '"<<Base64Encode(key)<<"'\n";
+  AXFRRetriever axfr(dest, "b.aa", keyname, "hmac-md5", key);
+  vector<DNSResourceRecord> res;
+  while(axfr.getChunk(res)) {
+  }
+  return 0;
 }
 catch(std::exception &e)
 {
   cerr<<"Fatal: "<<e.what()<<endl;
+  return 1;
+}
+catch(AhuException& ae)
+{
+  cerr<<"Fatal 2: "<<ae.reason<<endl;
+  return 1;
 }
