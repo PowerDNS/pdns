@@ -307,7 +307,7 @@ public:
   dnsheader d_header;
   string d_qname;
   uint16_t d_qclass, d_qtype;
-  uint8_t d_rcode;
+  //uint8_t d_rcode;
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;
   
