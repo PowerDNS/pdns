@@ -197,7 +197,6 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
   return 0;
 }
 
-
 bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   Utility::setNonBlocking( d_sock4 );
@@ -301,7 +300,8 @@ void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t
   *serial=(uint32_t)atol(parts[2].c_str());
 }
 
-AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, const string& tsigkeyname, const string& tsigalgorithm, const string& tsigsecret)
+AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, const string& tsigkeyname, const string& tsigalgorithm, 
+  const string& tsigsecret)
 : d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret)
 {
   ComboAddress local;
@@ -339,9 +339,12 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, c
     iov[1].iov_base=(char*)&packet[0];
     iov[1].iov_len=packet.size();
   
-    int ret=Utility::writev(d_sock, iov,2);
-    if(ret<0)
+    int ret=Utility::writev(d_sock, iov, 2);
+    if(ret < 0)
       throw ResolverException("Error sending question to "+d_remote.toStringWithPort()+": "+stringerror());
+    if(ret != (int)(2+packet.size())) {
+      throw ResolverException("Partial write on AXFR request to "+d_remote.toStringWithPort());
+    }
   
     int res = waitForData(d_sock, 10, 0);
     
@@ -379,8 +382,11 @@ int AXFRRetriever::getChunk(Resolver::res_t &res)
   if(!d_soacount && !d_tsigkeyname.empty()) { // TSIG verify first message
     string theirMac;
     BOOST_FOREACH(const MOADNSParser::answers_t::value_type& answer, mdp.d_answers) {
-      if(answer.first.d_type == QType::TSIG)
-        theirMac = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content)->d_mac;
+      if(answer.first.d_type == QType::TSIG) {
+        shared_ptr<TSIGRecordContent> trc = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
+        theirMac = trc->d_mac;
+        d_trc.d_time = trc->d_time;
+      }
     }
     if(theirMac.empty())
       throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tsigkeyname+"'");
@@ -388,8 +394,9 @@ int AXFRRetriever::getChunk(Resolver::res_t &res)
     string message = makeTSIGMessageFromTSIGPacket(string(d_buf.get(), len), mdp.getTSIGPos(), d_tsigkeyname, d_trc, d_trc.d_mac, false); // insert our question MAC
     string ourMac=calculateMD5HMAC(d_tsigsecret, message);
     // ourMac[0]++; // sabotage
-    if(ourMac != theirMac)
+    if(ourMac != theirMac) {
       throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+    }
   }
   
   int err = parseResult(mdp, "", 0, 0, &res);
@@ -423,8 +430,6 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes)
     n+=numread;
   }
 }
-
-
 
 void AXFRRetriever::connect()
 {
