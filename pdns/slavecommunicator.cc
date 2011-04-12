@@ -323,7 +323,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   if(rdomains.empty()) // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
     
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
   {
     Lock l(&d_lock);
     typedef UniQueue::index<IDTag>::type domains_by_name_t;
@@ -341,6 +341,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       DomainNotificationInfo dni;
       dni.di=di;
       dni.dnssecOk = dk.isPresigned(di.zone);
+      
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
         B->getTSIGKey(dni.tsigkeyname, &dni.tsigalgname, &secret64);
@@ -405,7 +406,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         di.backend->setFresh(di.id);
       }
       else {
-        B->lookup(QType(QType::RRSIG), di.zone);
+        B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
         DNSResourceRecord rr;
         uint32_t maxExpire=0, maxInception=0;
         while(B->get(rr)) {

@@ -120,7 +120,7 @@ bool DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, 
   kd.active = active;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  return d_keymetadb.addDomainKey(name, kd) >= 0; // >= 0 == s
+  return d_keymetadb->addDomainKey(name, kd) >= 0; // >= 0 == s
 }
 
 
@@ -133,7 +133,7 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int id)
 {  
   vector<DNSBackend::KeyData> keys;
-  d_keymetadb.getDomainKeys(zname, 0, keys);
+  d_keymetadb->getDomainKeys(zname, 0, keys);
   BOOST_FOREACH(const DNSBackend::KeyData& kd, keys) {
     if(kd.id != id) 
       continue;
@@ -157,19 +157,19 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
 void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_keymetadb.removeDomainKey(zname, id);
+  d_keymetadb->removeDomainKey(zname, id);
 }
 
 void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_keymetadb.deactivateDomainKey(zname, id);
+  d_keymetadb->deactivateDomainKey(zname, id);
 }
 
 void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_keymetadb.activateDomainKey(zname, id);
+  d_keymetadb->activateDomainKey(zname, id);
 }
 
 
@@ -187,7 +187,7 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
     }
   }
   vector<string> meta;
-  d_keymetadb.getDomainMetadata(zname, key, meta);
+  d_keymetadb->getDomainMetadata(zname, key, meta);
   if(!meta.empty())
     value=*meta.begin();
     
@@ -229,19 +229,19 @@ void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecor
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
   meta.push_back(descr);
-  d_keymetadb.setDomainMetadata(zname, "NSEC3PARAM", meta);
+  d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", meta);
   
   meta.clear();
   if(narrow)
     meta.push_back("1");
-  d_keymetadb.setDomainMetadata(zname, "NSEC3NARROW", meta);
+  d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", meta);
 }
 
 void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 {
   clearCaches(zname);
-  d_keymetadb.setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
-  d_keymetadb.setDomainMetadata(zname, "NSEC3NARROW", vector<string>());
+  d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
+  d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", vector<string>());
 }
 
 
@@ -250,13 +250,13 @@ void DNSSECKeeper::setPresigned(const std::string& zname)
   clearCaches(zname);
   vector<string> meta;
   meta.push_back("1");
-  d_keymetadb.setDomainMetadata(zname, "PRESIGNED", meta);
+  d_keymetadb->setDomainMetadata(zname, "PRESIGNED", meta);
 }
 
 void DNSSECKeeper::unsetPresigned(const std::string& zname)
 {
   clearCaches(zname);
-  d_keymetadb.setDomainMetadata(zname, "PRESIGNED", vector<string>());
+  d_keymetadb->setDomainMetadata(zname, "PRESIGNED", vector<string>());
 }
 
 
@@ -279,7 +279,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   keyset_t retkeyset, allkeyset;
   vector<UeberBackend::KeyData> dbkeyset;
   
-  d_keymetadb.getDomainKeys(zone, 0, dbkeyset);
+  d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
   
   BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset) 
   {
@@ -347,7 +347,7 @@ bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, c
 {
   vector<string> allowed;
   
-  d_keymetadb.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", allowed);
+  d_keymetadb->getDomainMetadata(zone, "TSIG-ALLOW-AXFR", allowed);
   
   BOOST_FOREACH(const string& dbkey, allowed) {
     if(pdns_iequals(dbkey, keyname))
@@ -359,13 +359,12 @@ bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, c
 bool DNSSECKeeper::getTSIGForAccess(const string& zone, const string& master, string* keyname)
 {
   vector<string> keynames;
-  d_keymetadb.getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
+  d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
   keyname->clear();
   
   // XXX FIXME this should check for a specific master!
   BOOST_FOREACH(const string& dbkey, keynames) {
     *keyname=dbkey;
-  
     return true;
   }
   return false;

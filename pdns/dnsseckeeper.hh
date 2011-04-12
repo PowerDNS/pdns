@@ -33,7 +33,7 @@
 
 using namespace ::boost::multi_index;
 
-class DNSSECKeeper
+class DNSSECKeeper : public boost::noncopyable
 {
 public:
   struct KeyMetaData
@@ -47,11 +47,23 @@ public:
   typedef std::vector<keymeta_t > keyset_t;
 
 private:
-  UeberBackend d_keymetadb;
+  UeberBackend* d_keymetadb;
+  bool d_ourDB;
 
 public:
-  DNSSECKeeper() : d_keymetadb("key-only")
+  DNSSECKeeper() : d_keymetadb( new UeberBackend("key-only")), d_ourDB(true)
   {
+    
+  }
+  
+  DNSSECKeeper(UeberBackend* db) : d_keymetadb(db), d_ourDB(false)
+  {
+  }
+  
+  ~DNSSECKeeper()
+  {
+    if(d_ourDB)
+      delete d_keymetadb;
   }
   bool isSecuredZone(const std::string& zone);
   
@@ -79,12 +91,12 @@ public:
   
   void startTransaction()
   {
-	  (*d_keymetadb.backends.begin())->startTransaction("", -1);
+	  (*d_keymetadb->backends.begin())->startTransaction("", -1);
   }
   
   void commitTransaction()
   {
-	  (*d_keymetadb.backends.begin())->commitTransaction();
+	  (*d_keymetadb->backends.begin())->commitTransaction();
   }
   
   void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
