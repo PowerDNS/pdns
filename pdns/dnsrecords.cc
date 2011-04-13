@@ -221,6 +221,13 @@ boilerplate_conv(CERT, 37,
         	 conv.xfr8BitInt(d_algorithm); 
         	 conv.xfrBlob(d_certificate);
         	 )
+		 
+boilerplate_conv(TLSA, 65468, 
+        	 conv.xfr8BitInt(d_certtype); 
+        	 conv.xfr8BitInt(d_hashtype); 
+        	 conv.xfrBlob(d_cert);
+        	 )		 
+		 
 #undef DS
 DSRecordContent::DSRecordContent() : DNSRecordContent(43) {}
 boilerplate_conv(DS, 43, 
@@ -349,6 +356,7 @@ void reportOtherTypes()
    NSECRecordContent::report();
    NSEC3RecordContent::report();
    NSEC3PARAMRecordContent::report();
+   TLSARecordContent::report();
    DLVRecordContent::report();
    DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    OPTRecordContent::report();

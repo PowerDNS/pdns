@@ -304,6 +304,17 @@ private:
   string d_certificate;
 };
 
+class TLSARecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(TLSA)
+
+private:
+  uint8_t d_certtype, d_hashtype;
+  string d_cert;
+};
+
+
 class RRSIGRecordContent : public DNSRecordContent
 {
 public:

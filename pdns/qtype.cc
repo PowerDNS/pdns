@@ -75,6 +75,7 @@ QType::QType()
       insert("CURL",258);
       insert("ADDR",259);
       insert("DLV",32769);
+      insert("TLSA",65468);
     }
 }
 
