@@ -1,0 +1,1 @@
+time mongoexport -d dns -c records  -f "name,ordername" -q "{"domain_id" : 10, "auth" : true }" | awk '{ print $11,$14 }' | sort >json.exported.records.sorted

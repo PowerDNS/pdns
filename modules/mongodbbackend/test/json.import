@@ -1,0 +1,17 @@
+head -n1 mongodb.example.com >json.imported.domains
+head -n1 mongodb.test.com >>json.imported.domains
+head -n1 mongodb.wtest.com >>json.imported.domains
+
+tail -n+2 mongodb.example.com >json.imported.records
+tail -n+2 mongodb.test.com >>json.imported.records
+tail -n+2 mongodb.wtest.com >>json.imported.records
+
+mongoimport -d dns -c records --drop <json.imported.records
+
+./mongodb.example.com.generate-hosts | mongoimport -d dns -c records 
+
+mongoimport -d dns -c domains --drop <json.imported.domains
+
+mongoimport -d dns -c cryptokeys --drop <json.imported.empty
+mongoimport -d dns -c domainmetadata --drop <json.imported.empty
+mongoimport -d dns -c tsigkeys --drop <json.imported.empty

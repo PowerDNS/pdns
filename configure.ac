@@ -309,7 +309,7 @@ then
 	    [MYSQL_lib_check="$withval/lib/mysql $with_mysql/lib"
 	MYSQL_inc_check="$withval/include/mysql"],
 	    [MYSQL_lib_check="/usr/local/mysql/lib/mysql /usr/local/lib/mysql /opt/mysql/lib/mysql \
-		/usr/lib/mysql /usr/local/mysql/lib /usr/local/lib /opt/mysql/lib /usr/lib \
+		/usr/lib/mysql /usr/lib64/mysql /usr/local/mysql/lib /usr/local/lib /opt/mysql/lib /usr/lib \
 		/usr/sfw/lib/"
 	MYSQL_inc_check="/usr/local/mysql/include/mysql /usr/local/include/mysql \
 		/opt/mysql/include/mysql /opt/mysql/include /usr/include/mysql /usr/sfw/include/mysql"])
@@ -643,7 +643,7 @@ modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/geobackend/Makefile modules/opendbxbackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/godbcbackend/Makefile \
-modules/odbcbackend/Makefile \
+modules/odbcbackend/Makefile modules/mongodbbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile 
 modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile)
