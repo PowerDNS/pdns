@@ -16237,6 +16237,45 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
 	<filename>modules/geobackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
       </para>
     </sect1>
+    <sect1 id="mongo"><title>MongoDB Backend</title>
+      <para>
+	<warning>
+	  <para>
+	    This section is a subset of the full documentation which can be found in <filename>modules/mongodbbackend/README</filename> of
+	    the PowerDNS distribution.
+	  </para>
+	</warning>
+      </para>
+      <para>
+	The main author for this module is fredrik danerklint.
+      </para>
+      <para>
+	<table>
+	  <title>MongoDB backend capabilities</title>
+	  <tgroup cols="2">
+	    <tbody>
+	      <row><entry>Native</entry><entry>Yes</entry></row>
+	      <row><entry>Master</entry><entry>Yes</entry></row>
+	      <row><entry>Slave</entry><entry>No</entry></row>
+	      <row><entry>Superslave</entry><entry>No</entry></row>
+	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+      <warning><para>The MongoDB Backend is available since PowerDNS Authoritative Server 3.0. In 3.0, this backend is marked as
+      Experimental!</para></warning>
+      </para>
+      <para>
+	The MongoDB backend is a full service backend that stores data in a MongoDB instance.
+	</para>
+      <para>
+	More details can be found <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/mongodbbackend/README">here</ulink>, or in
+	<filename>modules/mongodbbackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
+      </para>
+    </sect1>
 
   </appendix>
 <appendix id="pdns-internals"><title>PDNS internals</title>
