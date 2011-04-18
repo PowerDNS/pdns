@@ -263,7 +263,7 @@ int main(int argc, char **argv)
             startNewTransaction();
             
             if(!::arg().mustDo("slave")) {
-              if(g_mode==POSTGRES || g_mode==MYSQL) {
+              if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
                 cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(stripDot(i->name)))<<",'NATIVE');"<<endl;
               }
               else if(g_mode==ORACLE) {
@@ -340,8 +340,12 @@ int main(int argc, char **argv)
     exit(0);
   }
   
-  if(::arg().mustDo("transactions") && g_intransaction)
-    cout<<"COMMIT WORK;"<<endl;
+  if(::arg().mustDo("transactions") && g_intransaction) {
+    if(g_mode != SQLITE)
+      cout<<"COMMIT WORK;"<<endl;
+    else
+      cout<<"COMMIT;"<<endl;
+  }
   return 1;
 
 }
