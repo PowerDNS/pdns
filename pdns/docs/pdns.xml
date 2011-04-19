@@ -110,7 +110,8 @@
 	<listitem><para>A lot more database connections are made and released</para></listitem>
 	</itemizedlist></para>
       </warning></para>
-      <para><note><para>RC1 released on the 4th of April 2011</para></note></para>
+      <para><note><para>RC1 released on the 4th of April 2011</para>
+      <para>RC2 released on the 19th of April 2011</para></note></para>
       <para>
 	Version 3.0 of the PowerDNS Authoritative Server brings a number of important features, as
 	well as over two years of accumulated bug fixing.
@@ -142,6 +143,17 @@
       <para>
 	Changes between RC1 and RC2:
 	<itemizedlist>
+	<listitem>
+	  <para>
+	    Zone2sql sent out the wrong 'COMMIT' statement in sqlite mode. In addition, in this mode, zone2sql would not emit statements
+	    to update the domains table unless the 'slave' setting was chosen. Code in c2167.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    We dropped the Authoritative Answer flag on an out-of-bailiwick CNAME referral, which was unneccessary. Code in c2170.
+	  </para>
+	</listitem>
 	<listitem>
 	  <para>
 	    Kees Monshouwer discovered that we failed to detect the location of PostgreSQL on RHEL/CentOS. Fix in c2144. In addition,
