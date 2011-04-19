@@ -165,6 +165,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         if(pdl && pdl->axfrfilter(raddr, domain, *i, out)) {
           BOOST_FOREACH(const DNSResourceRecord& rr, out) {
             di.backend->feedRecord(rr);
+            if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, domain)) 
+              nsset.insert(rr.qname);
+            if(rr.qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
+              qnames.insert(rr.qname);
           }
         }
         else {
