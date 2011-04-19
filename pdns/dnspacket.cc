@@ -420,7 +420,7 @@ int DNSPacket::parse(const char *mesg, int length)
 try
 {
   d_rawpacket.assign(mesg,length); 
-
+  d_wrapped=true;
   if(length < 12) { 
     L << Logger::Warning << "Ignoring packet: too short from "
       << getRemote() << endl;

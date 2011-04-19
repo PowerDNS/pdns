@@ -1183,9 +1183,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
     
-    
-    if(p->d.rd && d_doRecursion && DP->recurseFor(p))  // make sure we set ra if rd was set, and we'll do it
-      r->d.ra=true;
+    r->d.ra = (p->d.rd && d_doRecursion && DP->recurseFor(p));  // make sure we set ra if rd was set, and we'll do it
 
     if(p->qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::NotImp);
@@ -1200,7 +1198,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     
     string target=p->qdomain;
     
-
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
 
@@ -1216,7 +1213,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
     if(!getAuth(p, &sd, target, 0)) {
+      DLOG(L<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(r->d.ra) {
+        DLOG(L<<Logger::Error<<"Recursion is available for this remote, doing that"<<endl);
         *shouldRecurse=true;
         delete r;
         return 0;
