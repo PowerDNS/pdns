@@ -433,9 +433,9 @@ int main(int argc, char **argv)
     
     ::arg().laxParse(argc,argv); // reparse so the commandline still wins
     if(!::arg()["logging-facility"].empty()) {
-      boost::optional<int> val=logFacilityToLOG(::arg().asNum("logging-facility") );
-      if(val)
-        theL().setFacility(*val);
+      int val=logFacilityToLOG(::arg().asNum("logging-facility") );
+      if(val >= 0)
+        theL().setFacility(val);
       else
         L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
     }

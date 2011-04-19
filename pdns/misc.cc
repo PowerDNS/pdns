@@ -600,10 +600,8 @@ pair<string, string> splitField(const string& inp, char sepa)
   return ret;
 }
 
-boost::optional<int> logFacilityToLOG(unsigned int facility)
+int logFacilityToLOG(unsigned int facility)
 {
-  boost::optional<int> ret;
-
   switch(facility) {
   case 0:
     return LOG_LOCAL0;
@@ -622,7 +620,7 @@ boost::optional<int> logFacilityToLOG(unsigned int facility)
   case 7:
     return(LOG_LOCAL7);
   default:
-    return ret;
+    return -1;
   }
 }
 

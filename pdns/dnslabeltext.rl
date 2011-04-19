@@ -23,7 +23,8 @@ vector<string> segmentDNSText(const string& input )
         machine dnstext;
         write data;
 }%%
-
+	(void)dnstext_error;  // silence warnings
+	(void)dnstext_en_main;
         const char *p = input.c_str(), *pe = input.c_str() + input.length();
         const char* eof = pe;
         int cs;
@@ -83,7 +84,8 @@ string segmentDNSLabel(const string& input )
         machine dnslabel;
         write data;
 }%%
-
+	(void)dnslabel_error;  // silence warnings
+	(void)dnslabel_en_main;
         const char *p = input.c_str(), *pe = input.c_str() + input.length();
         //const char* eof = pe;
         int cs;
@@ -136,6 +138,7 @@ string segmentDNSLabel(const string& input )
         if ( cs < dnslabel_first_final ) {
                 throw runtime_error("Unable to parse DNS Label '"+input+"'");
         }
+	
         if(ret.empty() || ret[0] != 0)
           ret.append(1, 0);
         return ret;

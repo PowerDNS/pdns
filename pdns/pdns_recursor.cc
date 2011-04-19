@@ -1593,9 +1593,9 @@ int serviceMain(int argc, char*argv[])
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 
   if(!::arg()["logging-facility"].empty()) {
-    boost::optional<int> val=logFacilityToLOG(::arg().asNum("logging-facility") );
-    if(val)
-      theL().setFacility(*val);
+    int val=logFacilityToLOG(::arg().asNum("logging-facility") );
+    if(val >= 0)
+      theL().setFacility(val);
     else
       L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
   }
