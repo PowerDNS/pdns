@@ -418,13 +418,12 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
       crrs.push_back(**i);
 
     // we now have a copy, push_back on packet might reallocate!
-
     for(vector<DNSResourceRecord>::const_iterator i=crrs.begin();
         i!=crrs.end();
         ++i) {
       
       if(r->d.aa && !i->qname.empty() && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer, except for root referral
-        r->d.aa=false;
+        r->setA(false);
         //	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
 
@@ -1222,8 +1221,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         delete r;
         return 0;
       }
-       
-      r->setA(false);
+      if(!retargetcount)  // if our initial CNAME was a hit, don't drop A
+        r->setA(false);
       if(::arg().mustDo("send-root-referral")) {
         DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
         addRootReferral(r);
