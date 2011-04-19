@@ -1,0 +1,46 @@
+#!/bin/bash
+cd pdns/pdns ; make sdig; cd ../..
+cd pdns/regression-tests
+rm powerdns.sqlite3
+sqlite3 powerdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
+
+../pdns/backends/bind/zone2sql --gsqlite --named-conf=./named.conf --transactions | sqlite3 powerdns.sqlite3
+
+echo analyze\; | sqlite3 powerdns.sqlite3
+
+../pdns/pdns_server --no-config --daemon=no --local-port=5299 --socket-dir=./  \
+--no-shuffle --launch=gsqlite3 --gsqlite3-database=./powerdns.sqlite3  \
+--fancy-records --query-logging --send-root-referral --loglevel=9 \
+--cache-ttl=0 &
+
+sleep 2
+export nameserver=127.0.0.1 port=5299
+./runtests > ../../without-dnssec
+
+kill %1
+sleep 1
+
+sqlite3 powerdns.sqlite3 < ../pdns/dnssec.schema.sqlite3.sql
+echo analyze\; | sqlite3 powerdns.sqlite3
+
+(echo launch=gsqlite3
+echo gsqlite3-dnssec
+echo gsqlite3-database=./powerdns.sqlite3 ) > pdns.conf
+
+../pdns/pdnssec --config-dir=./ rectify-zone example.com
+../pdns/pdnssec --config-dir=./ rectify-zone test.com
+../pdns/pdnssec --config-dir=./ rectify-zone wtest.com 
+
+../pdns/pdns_server --no-config --daemon=no --local-port=5299 --socket-dir=./  \
+--no-shuffle --launch=gsqlite3 --gsqlite3-database=./powerdns.sqlite3  \
+--fancy-records --query-logging --send-root-referral --loglevel=9 \
+--gsqlite3-dnssec --cache-ttl=0 &
+
+sleep 2
+
+./runtests > ../../with-dnssec
+kill %1
+
+
+
+
