@@ -5,6 +5,7 @@ rm -f test-results failed_tests passed_tests
 
 passed=0
 failed=0
+skipped=0
 
 for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn) 
 do
@@ -14,29 +15,35 @@ do
 	echo  "$a: " >> test-results
 	cat $a/description >> test-results
 	
-	$a/command > /dev/null
-	$a/command > $a/real_result
-	diff -u $a/expected_result $a/real_result > $a/diff
-	if [ -s $a/diff ] 
+	if [ -e $a/skip ] 
 	then
-		result="	Failed test $a"
-		echo $a >> failed_tests
-		failed=$[$failed+1]
-	else
-		result="	Passed test $a"
-		echo $a >> passed_tests
-		passed=$[$passed+1]
-	fi
-	
+		result="	Skipped test $a"
+		echo $a >> skipped_tests
+		skipped=$[$skipped+1]
+	else	
+		$a/command > /dev/null
+		$a/command > $a/real_result
+		diff -u $a/expected_result $a/real_result > $a/diff
+		if [ -s $a/diff ] 
+		then
+			result="	Failed test $a"
+			echo $a >> failed_tests
+			failed=$[$failed+1]
+		else
+			result="	Passed test $a"
+			echo $a >> passed_tests
+			passed=$[$passed+1]
+		fi
+	fi	
 	echo "$result"
 	echo
 	echo "$result" >> test-results
 	echo >> test-results
 done
 
-echo -n $passed out of $[$passed+$failed] 
+echo -n $passed out of $[$passed+$failed]
 echo -n " ("
 res=$((echo scale=2; echo 100*$passed/\($passed+$failed\)) | bc )
 echo -n "$res%) "
-echo tests passed
+echo tests passed, $skipped were skipped
 
