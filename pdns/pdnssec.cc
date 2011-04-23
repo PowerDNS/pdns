@@ -197,25 +197,27 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
     sd.db->commitTransaction();
 }
 
-void checkZone(DNSSECKeeper& dk, const std::string& zone)
+int checkZone(DNSSECKeeper& dk, const std::string& zone)
 {
   scoped_ptr<UeberBackend> B(new UeberBackend("default"));
   SOAData sd;
   
   if(!B->getSOA(zone, sd)) {
-    cerr<<"No SOA!"<<endl;
-    return;
+    cout<<"No SOA for zone '"<<zone<<"'"<<endl;
+    return -1;
   } 
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0;
   
   while(sd.db->get(rr)) {
-    if(rr.qtype.getCode() == QType::MX) 
+    if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) 
+      continue;
+    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
       rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
     if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A)
     {
-      cerr<<"Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
     }
     try {
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
@@ -223,13 +225,14 @@ void checkZone(DNSSECKeeper& dk, const std::string& zone)
     }
     catch(std::exception& e) 
     {
-      cerr<<"Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
-      cerr<<"Error was: "<<e.what()<<endl;
+      cout<<"Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"Error was: "<<e.what()<<endl;
       numerrors++;
     }
     numrecords++;
   }
-  cerr<<"Checked "<<numrecords<<" records, "<<numerrors<<" errors"<<endl;
+  cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors"<<endl;
+  return numerrors;
 }
 
 void testAlgorithms()
@@ -482,7 +485,7 @@ try
       cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
       return 0;
     }
-    checkZone(dk, cmds[1]);
+    exit(checkZone(dk, cmds[1]));
   }
 #if 0
   else if(cmds[0] == "signing-server" )

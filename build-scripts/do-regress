@@ -38,7 +38,11 @@ echo gsqlite3-database=./powerdns.sqlite3 ) > pdns.conf
 
 sleep 2
 
-./runtests > ../../with-dnssec
+(../pdns/pdnssec --config-dir=./  check-zone test.com
+../pdns/pdnssec --config-dir=./  check-zone wtest.com
+../pdns/pdnssec --config-dir=./  check-zone example.com) > ../../with-dnssec
+
+./runtests >> ../../with-dnssec
 kill %1
 
 
