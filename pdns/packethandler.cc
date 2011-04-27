@@ -280,6 +280,9 @@ bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int
   string subdomain(target);
   do {
     if( B.getSOA( subdomain, *sd, p ) ) {
+      if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) 
+        continue; // A DS question is never answered from the apex, go one zone upwards 
+      
       sd->qname = subdomain;
       if(zoneId)
         *zoneId = sd->domain_id;
@@ -1285,7 +1288,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       rrset.push_back(rr);
     }
 
-    DLOG(L<<"After first ANY query: weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);
+    DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);
 
     if(rrset.empty()) {
       // try wildcards, and if they don't work, go look for NS records
