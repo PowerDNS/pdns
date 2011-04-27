@@ -37,6 +37,7 @@ echo gsqlite3-database=./powerdns.sqlite3 ) > pdns.conf
 --gsqlite3-dnssec --cache-ttl=0 &
 
 sleep 2
+PDNSSEC="../pdns/pdnssec --config-dir=./"
 
 (../pdns/pdnssec --config-dir=./  check-zone test.com
 ../pdns/pdnssec --config-dir=./  check-zone wtest.com
@@ -50,6 +51,9 @@ sleep 2
 ../pdns/pdnssec --config-dir=./ secure-zone delegated.dnssec-parent.com 
 ../pdns/pdnssec --config-dir=./ show-zone delegated.dnssec-parent.com 
 
+kill %1
+sleep 1
+
 # now add the DS
 ../pdns/pdnssec --config-dir=./ show-zone delegated.dnssec-parent.com | grep "^DS = " | cut -f6- -d" " |   
 	while read a
@@ -57,8 +61,17 @@ sleep 2
 		echo "insert into records (domain_id, name, type, content, ttl, auth) select domains.id, 'delegated.dnssec-parent.com', 'DS', '$a', 3600, '1' from domains where domains.name='dnssec-parent.com';" 
 	done  | sqlite3 powerdns.sqlite3 
 
-kill %1
+../pdns/pdns_server --no-config --daemon=no --local-port=5299 --socket-dir=./  \
+--no-shuffle --launch=gsqlite3 --gsqlite3-database=./powerdns.sqlite3  \
+--fancy-records --query-logging --send-root-referral --loglevel=9 \
+--gsqlite3-dnssec --cache-ttl=0 &
 
+KEYID=$(../pdns/pdnssec --config-dir=./ show-zone dnssec-parent.com | grep '(ZSK)' | 
+	grep 'Active: 1$'   | awk '{print $3}')
+	
+../pdns/pdnssec --config-dir=./ export-zone-dnskey dnssec-parent.com $KEYID > trusted
 
+sleep 1
+drill -t soa -D dnssec-parent.com @127.0.0.1 -p 5299 -k trusted
 
 
