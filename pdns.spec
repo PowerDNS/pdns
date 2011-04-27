@@ -8,6 +8,7 @@ Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
 AutoReqProv: no
+Requires: glibc >= 2.4
 
 %define _rpmdir ../
 %define _rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
