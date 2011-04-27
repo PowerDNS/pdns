@@ -43,6 +43,20 @@ sleep 2
 ../pdns/pdnssec --config-dir=./  check-zone example.com) > ../../with-dnssec
 
 ./runtests >> ../../with-dnssec
+
+../pdns/pdnssec --config-dir=./ secure-zone dnssec-parent.com 
+../pdns/pdnssec --config-dir=./ show-zone dnssec-parent.com 
+
+../pdns/pdnssec --config-dir=./ secure-zone delegated.dnssec-parent.com 
+../pdns/pdnssec --config-dir=./ show-zone delegated.dnssec-parent.com 
+
+# now add the DS
+../pdns/pdnssec --config-dir=./ show-zone delegated.dnssec-parent.com | grep "^DS = " | cut -f6- -d" " |   
+	while read a
+	do 
+		echo "insert into records (domain_id, name, type, content, ttl, auth) select domains.id, 'delegated.dnssec-parent.com', 'DS', '$a', 3600, '1' from domains where domains.name='dnssec-parent.com';" 
+	done  | sqlite3 powerdns.sqlite3 
+
 kill %1
 
 
