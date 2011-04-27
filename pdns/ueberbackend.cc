@@ -323,7 +323,7 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
   string content;
   //  L<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
 
-  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, content, -1);   // think about lowercasing here
+  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, content, q.zoneId);   // think about lowercasing here
   if(!ret) {
     (*qcachemiss)++;
     return -1;
@@ -345,7 +345,7 @@ void UeberBackend::addNegCache(const Question &q)
   static int negqueryttl=::arg().asNum("negquery-cache-ttl");
   if(!negqueryttl)
     return;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, -1);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, q.zoneId);
 }
 
 void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &rrs)
@@ -360,7 +360,7 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
   boost::archive::binary_oarchive boa(ostr);
   
   boa << rrs;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), queryttl, -1);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), queryttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const string &domain, set<string> *ips)
@@ -408,7 +408,7 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   else {
     d_question.qtype=qtype;
     d_question.qname=qname;
-    d_question.zoneId=-1;
+    d_question.zoneId=zoneId;
     int cstat=cacheHas(d_question, d_answers);
     if(cstat<0) { // nothing
       d_negcached=d_cached=false;

@@ -149,6 +149,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   val.meritsRecursion=meritsRecursion;
   val.maxReplyLen = maxReplyLen;
   val.dnssecOk = dnssecOk;
+  val.zoneID = zoneID;
   
   TryWriteLock l(&d_mut);
   if(l.gotIt()) { 
