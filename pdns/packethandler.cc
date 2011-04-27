@@ -1276,6 +1276,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     weDone=weRedirected=weHaveUnauth=0;
     
     while(B.get(rr)) {
+      if(rr.qtype.getCode() == QType::DS)
+        rr.auth = 1;
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.qtype == p->qtype)<<", "<<rr.qtype.getName()<<endl;
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
         weDone=1;
