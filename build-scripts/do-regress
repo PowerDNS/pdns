@@ -50,7 +50,8 @@ initPostgreSQL()
 	standardConfig > pdns.conf
 	(echo launch=gpgsql 
 	echo gpgsql-dbname=pdnsregress
-	echo gpgsql-user=ahu ) >> pdns.conf
+	echo gpgsql-user=ahu
+	echo gpgsql-host=/var/run/postgresql/ ) >> pdns.conf
 }
 
 upgradePostgreSQL()
@@ -121,7 +122,7 @@ function doTests()
 	../pdns/pdns_server --config-dir=./ --daemon=no &
 
 	sleep 2
-	drill -t soa -D dnssec-parent.com @127.0.0.1 -p 5299 -k trusted
+	drill -t soa -D dnssec-parent.com @127.0.0.1 -p 5299 -k trusted >> ../../with-dnssec-$DBTYPE
 	kill %1
 	wait
 }
