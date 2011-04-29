@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2010  PowerDNS.COM BV
+    Copyright (C) 2003 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -1029,9 +1029,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       string newauth, soaname, newtarget;
 
       for(LWResult::res_t::iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
-        if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
-           lwr.d_rcode==RCode::NXDomain) {
-          LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"'"<<endl;
+        if(i->d_place==DNSResourceRecord::AUTHORITY && i->qtype.getCode()==QType::SOA && 
+           lwr.d_rcode==RCode::NXDomain && dottedEndsOn(qname,i->qname) && dottedEndsOn(i->qname, auth)) {
+          LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"' (accept="<<dottedEndsOn(i->qname, auth)<<")"<<endl;
+          
           i->ttl = min(i->ttl, s_maxnegttl);
           ret.push_back(*i);
 
