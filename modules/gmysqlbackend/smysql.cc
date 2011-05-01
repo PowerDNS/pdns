@@ -18,6 +18,9 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, "client");
   my_bool reconnect = 1;
   mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
+  unsigned int timeout = 10;
+  mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
+  mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
   
   if (!mysql_real_connect(&d_db, host.empty() ? 0 : host.c_str(), 
         		  user.empty() ? 0 : user.c_str(), 
