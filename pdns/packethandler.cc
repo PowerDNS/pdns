@@ -1104,7 +1104,7 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &
       r->addRecord(rr);
     }
   }
-  if(p->d_dnssecOk) {
+  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname)) {
     addNSECX(p, r, p->qdomain, sd.qname, 3);
   }
   return true;
