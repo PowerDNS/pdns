@@ -31,27 +31,26 @@ extern PacketCache PC;
 
 DNSProxy::DNSProxy(const string &remote)
 {
-  ServiceTuple st;
-  st.port=53;
-  parseService(remote,st);
-
   pthread_mutex_init(&d_lock,0);
   d_resanswers=S.getPointer("recursing-answers");
   d_resquestions=S.getPointer("recursing-questions");
   d_udpanswers=S.getPointer("udp-answers");
-  if((d_sock=socket(AF_INET, SOCK_DGRAM,0))<0)
+  ComboAddress remaddr(remote, 53);
+  
+  if((d_sock=socket(remaddr.sin4.sin_family, SOCK_DGRAM,0))<0)
     throw AhuException(string("socket: ")+strerror(errno));
  
-  struct sockaddr_in sin;
-  memset((char *)&sin, 0, sizeof(sin));
-  
-  sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
+  ComboAddress local;
+  if(remaddr.sin4.sin_family==AF_INET)
+    local = ComboAddress("0.0.0.0");
+  else
+    local = ComboAddress("::");
+    
   int n=0;
   for(;n<10;n++) {
-    sin.sin_port = htons(10000+( Utility::random()%50000));
+    local.sin4.sin_port = htons(10000+( Utility::random()%50000));
     
-    if(::bind(d_sock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
+    if(::bind(d_sock, (struct sockaddr *)&local, local.getSocklen()) >= 0) 
       break;
   }
   if(n==10) {
@@ -60,19 +59,11 @@ DNSProxy::DNSProxy(const string &remote)
     throw AhuException(string("binding dnsproxy socket: ")+strerror(errno));
   }
 
-  struct sockaddr_in toaddr;
-  struct in_addr inp;
-  Utility::inet_aton(st.host.c_str(),&inp);
-  toaddr.sin_addr.s_addr=inp.s_addr;
-
-  toaddr.sin_port=htons(st.port);
-  toaddr.sin_family=AF_INET;
-
-  if(connect(d_sock, (sockaddr *)&toaddr, sizeof(toaddr))<0) 
-    throw AhuException("Unable to UDP connect to remote nameserver "+st.host+" ("+itoa(st.port)+"): "+stringerror());
+  if(connect(d_sock, (sockaddr *)&remaddr, remaddr.getSocklen())<0) 
+    throw AhuException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
 
   d_xor=Utility::random()&0xffff;
-  L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(sin.sin_port)<<", remote "<<st.host<<":"<<st.port<<endl;
+  L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
 } 
 
 void DNSProxy::go()
