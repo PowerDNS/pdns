@@ -3,6 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <pdns/misc.hh>
+#include <pdns/utility.hh>
 
 
 #ifndef LDAPBACKEND_UTILS_HH
@@ -146,7 +147,7 @@ inline time_t str2tstamp( const string& str )
 
         if( tmp != NULL && *tmp == 0 )
         {
-        	return mktime( &tm );
+        	return timegm( &tm );
         }
 
         return 0;

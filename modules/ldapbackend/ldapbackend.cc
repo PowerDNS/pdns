@@ -22,9 +22,6 @@ LdapBackend::LdapBackend( const string &suffix )
         	m_default_ttl = arg().asNum( "default-ttl" );
         	m_myname = "[LdapBackend]";
 
-        	// we need UTC time for timestamps
-        	setenv( "TZ", "", 1 ); tzset();
-
         	setArgPrefix( "ldap" + suffix );
 
         	m_getdn = false;
