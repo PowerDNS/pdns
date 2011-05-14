@@ -130,6 +130,14 @@
 	Tutorials and examples of how to use DNSSEC in PowerDNS can be found linked from <ulink url="http://powerdnssec.org"/>.
       </para>
       <para>
+	PowerDNS Authoritative Server 3.0 development has been made possible by the financial and moral support of:
+	<itemizedlist>
+	<listitem><para><ulink url="http://www.afnic.fr/">AFNIC, the French registry</ulink></para></listitem>
+	<listitem><para><ulink url="http://www.ipcom.at/en/dns/rcodezero_anycast/">IPCom's RcodeZero Anycast DNS</ulink>, a subsidiary of NIC.AT, the Austrian registry</para></listitem>
+	<listitem><para><ulink url="http://www.sidn.nl/">SIDN, the Dutch registry</ulink></para></listitem>
+	</itemizedlist>
+      </para>
+      <para>
 	This release has received exceptional levels of community support, and we'd like to thank the following people 
 	in addition to those mentioned explicitly below:
 	Peter Koch (DENIC), Olaf Kolkman (NLNetLabs), Wouter Wijngaards (NLNetLabs), Marco Davids (SIDN), Markus Travaille (SIDN),
@@ -138,7 +146,62 @@
 	Jose Arthur Benetasso Villanova (Locaweb), Stefan Schmidt, Roland van Rijswijk (Surfnet), Paul Bakker (Brainspark/Fox-IT),
 	Mathew Hennessy, Johannes Kuehrer (Austrian World4You GmbH), Marc van de Geijn (bHosted.nl), Stefan Arentz and 
 	Martin van Hensbergen (Fox-IT), Christof Meerwald, Detlef Peeters, Jack Lloyd, Frank Altpeter, frederik danerklint, Vasiliy G Tolstov,
-	Brielle Bruns, Evan Hunt, Ralf van der Enden, Marc Laros.
+	Brielle Bruns, Evan Hunt, Ralf van der Enden, Marc Laros, Serge Belyshev
+      </para>
+      <para>
+	Changes between RC2 and RC3:
+	<itemizedlist>
+	<listitem>
+	  <para>
+	    Jan-Piet Mens discovered that records inserted by Lua on zone retrieval did not get correct 'ordername' and 'auth' fields for DNSSEC.
+	    Fixed in c2174.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Silenced various relevant and less relevant compilation warnings (c2175). Thanks to Serge Belyshev for pointing out the error
+	    in our ways.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Steve Bauer discovered we would cache empty recursive answers in some cases. Addressed in c2176.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    James Cloos reported that 'pdnssec check-zone' tripped over SRV records. Fixed this, and added check-zone to the regression tests.
+	    Code in c2177.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    DNSSEC regression tests were added in commits C2178, C2179, C2182, C2186 We test against the fine tools from NLNetLabs.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Secure DNSSEC delegations to ourselves picked wrong zone to serve the DS record from. Fixed in c2180, c2181, c2183.
+	    reported by Niek Willems of InterNLnet.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Stef Van Dessel suggested we made our RPMs state explicitly that they need glibc 2.4 on Linux. Code in c2184.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    John Leach discovered our MySQL based backends would wait for ages on a failing MySQL server.
+	    The patch merged in c2189 reduces the timeout significantly, which is especially useful with haproxy and mysqlproxy.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    c2190 fixes a crash reported by Marc Laros when using a non-DNSSEC capable backend. Should also improve non-DNSSEC performance.
+	  </para>
+	</listitem>
+	</itemizedlist>
       </para>
       <para>
 	Changes between RC1 and RC2:
@@ -9492,7 +9555,9 @@ local0.err                        /var/log/pdns.err
 	  <listitem>
 	    <para>
 	      A: Yes. If the '-dnssec' setting is enabled, PowerDNS expects the 'auth' field to be filled out correctly.
-	      When slaving zones this happens automatically. For other zones, run 'pdnssec rectify-zone zonename'.
+	      When slaving zones this happens automatically. For other zones, run 'pdnssec rectify-zone zonename'. Even if
+	      a zone is not DNSSEC secured, as long as the new schema is in place, the zone must be rectified (or at least
+	      have the 'auth' field set correctly).
 	    </para>
 	  </listitem>
 	</varlistentry>
