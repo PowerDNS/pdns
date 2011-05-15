@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2009 PowerDNS.COM BV
+    Copyright (C) 2002 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -137,9 +137,10 @@ int Utility::makeGidNumeric(const string &group)
 {
   int newgid;
   if(!(newgid=atoi(group.c_str()))) {
+    errno=0;
     struct group *gr=getgrnam(group.c_str());
     if(!gr) {
-      theL()<<Logger::Critical<<"Unable to look up gid of group '"<<group<<"': "<<strerror(errno)<<endl;
+      theL()<<Logger::Critical<<"Unable to look up gid of group '"<<group<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
       exit(1);
     }
     newgid=gr->gr_gid;
@@ -155,7 +156,7 @@ int Utility::makeUidNumeric(const string &username)
   if(!(newuid=atoi(username.c_str()))) {
     struct passwd *pw=getpwnam(username.c_str());
     if(!pw) {
-      theL()<<Logger::Critical<<"Unable to look up uid of user '"<<username<<"': "<<strerror(errno)<<endl;
+      theL()<<Logger::Critical<<"Unable to look up uid of user '"<<username<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
       exit(1);
     }
     newuid=pw->pw_uid;
