@@ -1259,7 +1259,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     // this TRUMPS a cname!
-    if(p->qtype.getCode() == QType::NSEC && p->d_dnssecOk && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
+    if(p->qtype.getCode() == QType::NSEC && p->d_dnssecOk && d_dk.isSecuredZone(sd.qname) && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
       addNSEC(p, r, target, sd.qname, 2); // only NSEC please
       goto sendit;
     }
