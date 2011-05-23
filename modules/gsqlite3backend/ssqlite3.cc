@@ -69,8 +69,13 @@ int SSQLite3::doQuery( const std::string & query )
   const char *pTail;
   // Execute the query.
   
+#if SQLITE_VERSION_NUMBER >=  3003009
   if ( sqlite3_prepare_v2( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )
+#else
+  if ( sqlite3_prepare( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )   
+#endif
     throw sPerrorException( string("Unable to compile SQLite statement : ")+ sqlite3_errmsg( m_pDB ) );
+
   return 0;
 }
 

@@ -19,16 +19,11 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   my_bool reconnect = 1;
   mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
 
-  
-#ifdef MYSQL_OPT_READ_TIMEOUT  
-  unsigned int rtimeout = 10;
-  mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &rtimeout);
+#if MYSQL_VERSION_ID > 51000
+  unsigned int timeout = 10;
+  mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
+  mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
 #endif
-#ifdef MYSQL_OPT_WRITE_TIMEOUT
-  unsigned int wtimeout = 10;
-  mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &wtimeout);
-#endif
-
   
   if (!mysql_real_connect(&d_db, host.empty() ? 0 : host.c_str(), 
         		  user.empty() ? 0 : user.c_str(), 
