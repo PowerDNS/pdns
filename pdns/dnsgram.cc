@@ -1,6 +1,7 @@
 #define __FAVOR_BSD
 #include "statbag.hh"
 #include "dnspcap.hh"
+#include "dnsrecords.hh"
 #include "dnsparser.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -80,6 +81,7 @@ void makeReport(const struct pdns_timeval& tv)
 int main(int argc, char** argv)
 try
 {
+  reportAllTypes();
   for(int n=1 ; n < argc; ++n) {
     cout<<argv[n]<<endl;
     unsigned int parseErrors=0, totalQueries=0, skipped=0;
@@ -152,7 +154,6 @@ try
           if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec > 5) {
             makeReport(pr.d_pheader.ts);
             lastreport = pr.d_pheader.ts;
-
           }
           
         }
@@ -179,7 +180,7 @@ try
     cerr<<"Generating 'failed' file with failed queries and counts\n";
     ofstream failed("failed");
     for(diff_t::const_iterator i = diff.begin(); i != diff.end() ; ++i) {
-      failed << i->first << "\t" << i->second << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
+      failed << i->first << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
     }
 
     diff.clear();
@@ -190,7 +191,7 @@ try
     cerr<<"Generating 'succeeded' file with failed queries and counts\n";
     ofstream succeeded("succeeded");
     for(queries_t::const_iterator i = answers.begin(); i != answers.end() ; ++i) {
-      succeeded << i->first << "\t" << i->second << counts[make_pair(i->first, i->second)]<<"\n";
+      succeeded << i->first << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
     }
   }
 }
