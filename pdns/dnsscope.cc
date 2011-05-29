@@ -184,7 +184,7 @@ try
   done[1024000];
   done[2048000];
 
-  cout.setf(ios::fixed);
+  cout.setf(std::ios::fixed);
   cout.precision(2);
   sum=0;
   
