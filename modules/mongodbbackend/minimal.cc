@@ -65,28 +65,67 @@ MONGODBBackend::MONGODBBackend(const string &suffix) {
 	if (checkindex) {
 	    L<<Logger::Error << backend_name << "(Re)creating index... " << endl;
 
+
 	    m_db.ensureIndex(collection_domains , BSON( "domain_id" << 1), true, "domain_id", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: domains: 'domain_id' done." << endl;
+
 	    m_db.ensureIndex(collection_domains , BSON( "name" << 1), true, "name", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: domains: 'name' done." << endl;
+
 	    m_db.ensureIndex(collection_domains , BSON( "type" << 1), false, "type", true); //, true);
-	    m_db.ensureIndex(collection_domains , BSON( "account" << 1), false, "type", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: domains: 'type' done." << endl;
+
+	    m_db.ensureIndex(collection_domains , BSON( "account" << 1), false, "account", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: domains: 'account' done." << endl;
+
 
 	    m_db.ensureIndex(collection_records, BSON( "domain_id" << 1), false, "domain_id", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: records: 'domain_id' done." << endl;
+	    
 	    m_db.ensureIndex(collection_records, BSON( "name" << 1), false, "name", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: records: 'name' done." << endl;
+
 	    m_db.ensureIndex(collection_records, BSON( "name" << 1 << "type" << 1), true, "name_type", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: records: 'name_type' done." << endl;
+
 	    m_db.ensureIndex(collection_records, BSON( "domain_id" << 1 << "auth" << 1 << "ordername" << -1), false, "domainid_auth_ordername_desc", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: records: 'domainid_auth_ordername_desc' done." << endl;
+
 	    m_db.ensureIndex(collection_records, BSON( "domain_id" << 1 << "auth" << 1 << "ordername" << 1), false, "domainid_auth_ordername_asc", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: records: 'domainid_auth_ordername_asc' done." << endl;
+
 	    m_db.ensureIndex(collection_records, BSON( "domain_id" << 1 << "name" << 1 ), false, "domainid_name", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: records: 'domainid_name' done." << endl;
+
 
 	    m_db.ensureIndex(collection_domainmetadata, BSON( "name" << 1 ), true, "name", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: domainmetadata: 'name' done." << endl;
+
 	    m_db.ensureIndex(collection_domainmetadata, BSON( "name" << 1 << "content.kind" << 1), true, "name_kind", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: domainmetadata: 'name_kind' done." << endl;
+
 
 	    m_db.ensureIndex(collection_cryptokeys, BSON( "domain_id" << 1 ), true, "domain_id", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: cryptokeys: 'domain_id' done." << endl;
+
     	    m_db.ensureIndex(collection_cryptokeys, BSON( "name" << 1 ), true, "name", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: cryptokeys: 'name'  done." << endl;
+
     	    m_db.ensureIndex(collection_cryptokeys, BSON( "name" << 1 << "domain_id" << 1), true, "name_domainid", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: cryptokeys: 'name_domainid'  done." << endl;
+
     	    m_db.ensureIndex(collection_cryptokeys, BSON( "domain_id" << 1 << "content.id" << 1), true, "domainid_id", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: cryptokeys: 'domainid_id'  done." << endl;
+
     	    m_db.ensureIndex(collection_cryptokeys, BSON( "name" << 1 << "content.id" << 1), true, "name_id", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: cryptokeys: 'name_id'  done." << endl;
+
 
 	    m_db.ensureIndex(collection_tsigkeys, BSON( "name" << 1 << "content.algorithm" << 1), true, "name_algo", true); //, true);
+	    L<<Logger::Error << backend_name << "Index: tsigkeys: 'name_algo' done." << endl;
+
+
+	    L<<Logger::Error << backend_name << "(Re)creating index... DONE!" << endl;
 
 	}
     }
@@ -101,7 +140,7 @@ MONGODBBackend::MONGODBBackend(const string &suffix) {
 }
   
 MONGODBBackend::~MONGODBBackend() {
-//	delete m_db;
+//    delete m_db;
     L<<Logger::Info<<backend_name<<"Disconnected!" << endl;
 }
 
@@ -127,6 +166,7 @@ void MONGODBBackend::lookup(const QType &qtype, const string &qname, DNSPacket *
     q_name = qname;
     
     mongo_query = q_type == "ANY" ? QUERY( "name" << toLower(qname) ) : QUERY( "name" << toLower(qname) << "type" << q_type);
+    mongo_query.hint(q_type == "ANY" ? BSON("name" << 1) : BSON("name" << 1 << "type" << 1));
 	
     elements = false;
     default_ttl = 0;
@@ -135,7 +175,7 @@ void MONGODBBackend::lookup(const QType &qtype, const string &qname, DNSPacket *
 	L<<Logger::Info<< backend_name <<"(lookup) Query: "<< mongo_query.toString() << endl;
 	
     cursor = m_db.query(collection_records, mongo_query);
-	
+    
 }
 
 bool MONGODBBackend::content(DNSResourceRecord* rr) {
@@ -252,8 +292,8 @@ again:
 		}
 	    }
 	
-//		if (contents)
-//			delete contents;
+//	    if (contents)
+//		delete []contents;
 
 	    contents = new mongo::BSONObjIterator(mongo_record.getObjectField("content"));
 		    
@@ -264,7 +304,7 @@ again:
 	    goto again;
 	}
     } 
-	
+
     return !rr.content.empty() ;
 }
 
@@ -272,6 +312,6 @@ bool MONGODBBackend::getSOA(const string &name, SOAData &soadata, DNSPacket *p) 
     //please see getDomainInfo in slave.cc for this function.
     
     DomainInfo DI;
-
+    
     return getDomainInfo(name, DI, &soadata);
 }

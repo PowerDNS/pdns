@@ -28,6 +28,7 @@ bool MONGODBBackend::checkDomainInfo(const string *domain, mongo::BSONObj *mongo
 	    
 	di->id = mongo_r->getIntField("domain_id");
 	di->last_check = mongo_r->getIntField("last_check");
+	di->notified_serial = mongo_r->getIntField("notified_serial");
 
 	if (soadata == NULL) 
 	    for( bson::bo::iterator i(mongo_r->getObjectField("masters")); i.more(); ) {

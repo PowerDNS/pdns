@@ -281,9 +281,11 @@ bool MONGODBBackend::removeDomainKey(const string& name, unsigned int id) {
     }
 
     m_db.update(collection_cryptokeys, mongo_q, update );
+    
+    string m_error = m_db.getLastError();
 
-    if(logging_cerr) 
-	cerr << backend_name << "(removeDomainKey) getLastError: "<< m_db.getLastError()<< endl;
+    if(logging_cerr && !m_error.empty())
+	cerr << backend_name << "(removeDomainKey) getLastError: "<< m_error << endl;
     
     return true; //?? how do we know that ??
 }
