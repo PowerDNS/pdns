@@ -390,7 +390,10 @@ static string txtEscape(const string &name)
   string ret;
 
   for(string::const_iterator i=name.begin();i!=name.end();++i)
-    if(*i=='"' || *i=='\\'){
+    if(*i=='\n') {  // XXX FIXME this should do a way better job!
+      ret += "\\010";
+    }
+    else if(*i=='"' || *i=='\\'){
       ret += '\\';
       ret += *i;
     }
