@@ -215,9 +215,13 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
       continue;
     if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
       rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
+      rr.content = "\""+rr.content+"\"";  
+      
     if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A)
     {
       cout<<"Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      numerrors++;
     }
     try {
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
@@ -629,7 +633,7 @@ try
       cerr<<"The '"<<zone<<"' zone does not use NSEC3"<<endl;
       return 0;
     }
-    if(!narrow) {
+    if(narrow) {
       cerr<<"The '"<<zone<<"' zone uses narrow NSEC3, but calculating hash anyhow"<<endl;
     }
       
