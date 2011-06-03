@@ -704,7 +704,7 @@ bool PacketHandler::doDNSSECProcessing(DNSPacket *p, DNSPacket *r)
   
   return false;
 }
-
+#if 0
 /* returns 1 if everything is done & ready, 0 if the search should continue, 2 if a 'NO-ERROR' response should be generated */
 int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
 {
@@ -786,6 +786,8 @@ int PacketHandler::makeCanonic(DNSPacket *p, DNSPacket *r, string &target)
   // we now have what we really search for ready in 'target'
   return 0;
 }
+
+#endif
 
 /* Semantics:
    
@@ -1287,6 +1289,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
         weRedirected=1;
+        
+      if(rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, sd.qname)) { // fix up possible SOA adjustments for this zone
+        rr.content=serializeSOAData(sd);
+        rr.ttl=sd.ttl;
+        rr.domain_id=sd.domain_id;
+        rr.auth = true;
+      }
+      
       rrset.push_back(rr);
     }
 
