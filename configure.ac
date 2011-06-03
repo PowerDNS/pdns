@@ -373,7 +373,7 @@ then
 	    [  --with-pgsql=<path>     root directory path of PgSQL installation],
 	    [PGSQL_lib_check="$withval/lib/pgsql $with_pgsql/lib"
 	PGSQL_inc_check="$withval/include/pgsql"],
-	    [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib"
+	    [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64"
 	PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"])
 		AC_ARG_WITH(pgsql-lib,
 	    [  --with-pgsql-lib=<path> directory path of PgSQL library installation],
@@ -396,7 +396,8 @@ then
 	        AC_MSG_ERROR([Didn't find the pgsql library dir in '$PGSQL_lib_check'])
 	fi
 	case "$PGSQL_libdir" in
-           /usr/lib ) PGSQL_lib="" ;;
+	  /usr/lib ) PGSQL_lib="" ;;
+	  /usr/lib64 ) PGSQL_lib="" ;;
 	  /* ) PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir" 
 	       LDFLAGS="$PGSQL_lib $LDFLAGS"
                ;;
@@ -434,7 +435,7 @@ then
             [  --with-sqlite=<path>     root directory path of SQLite installation],
             [SQLITE_lib_check="$withval/lib/sqlite $with_sqlite/lib"
         SQLITE_inc_check="$withval/include/sqlite"],
-            [SQLITE_lib_check="/usr/local/sqlite/lib/sqlite /usr/local/lib/sqlite /opt/pgsql/lib/sqlite /usr/lib/sqlite /usr/local/sqlite/lib /usr/local/lib /opt/sqlite/lib /usr/lib"
+            [SQLITE_lib_check="/usr/local/sqlite/lib/sqlite /usr/local/lib/sqlite /opt/pgsql/lib/sqlite /usr/lib/sqlite /usr/local/sqlite/lib /usr/local/lib /opt/sqlite/lib /usr/lib /usr/lib64"
         SQLITE_inc_check="/usr/local/sqlite/include/sqlite /usr/local/include/sqlite/ /usr/local/include /opt/sqlite/include/sqlite /opt/sqlite/include /usr/include/ /usr/include/sqlite"])
                 AC_ARG_WITH(sqlite-lib,
             [  --with-sqlite-lib=<path> directory path of SQLite library installation],
@@ -457,7 +458,8 @@ then
                 AC_MSG_ERROR([Didn't find the sqlite library dir in '$SQLITE_lib_check'])
         fi
         case "$SQLITE_libdir" in
-           /usr/lib ) SQLITE_lib="" ;;
+          /usr/lib ) SQLITE_lib="" ;;
+          /usr/lib64 ) SQLITE_lib="" ;;
           /* ) SQLITE_lib="-L$SQLITE_libdir -Wl,-rpath,$SQLITE_libdir"
                LDFLAGS="$SQLITE_lib $LDFLAGS"
                ;;
