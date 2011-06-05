@@ -1,0 +1,1 @@
+luabackend.o minimal.o reload.o lua_functions.o master.o private.o slave.o supermaster.o dnssec.o

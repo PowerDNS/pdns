@@ -1,0 +1,1 @@
+../../../../../src/dnsperf-src-1.0.1.0-1/dnsperf -d one -p5300 -H10 -T1 -l60

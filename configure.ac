@@ -646,6 +646,7 @@ modules/geobackend/Makefile modules/opendbxbackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/godbcbackend/Makefile \
 modules/odbcbackend/Makefile modules/mongodbbackend/Makefile \
-modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile 
-modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile
-modules/goraclebackend/Makefile modules/mydnsbackend/Makefile)
+modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
+modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile \
+modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
+modules/luabackend/Makefile )
