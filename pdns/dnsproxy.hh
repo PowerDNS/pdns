@@ -79,6 +79,8 @@ private:
     ComboAddress remote;
     int outsock;
     time_t created;
+    string qname;
+    uint16_t qtype;
   };
 
   typedef map<int,ConntrackEntry> map_t;
