@@ -18,6 +18,7 @@
 
 #include "utility.hh"
 #include "dnsrecords.hh"
+#include <boost/foreach.hpp>
 
 boilerplate_conv(A, ns_t_a, conv.xfrIP(d_ip));
 
@@ -298,29 +299,32 @@ boilerplate_conv(MBOXFW, QType::MBOXFW,
         	 conv.xfrLabel(d_mboxfw);
         	 )
 
+
+
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
-  if(mdp.d_header.arcount && !mdp.d_answers.empty() && 
-     mdp.d_answers.back().first.d_type == QType::OPT) {
-    eo->d_packetsize=mdp.d_answers.back().first.d_class;
-    
-    EDNS0Record stuff;
-    uint32_t ttl=ntohl(mdp.d_answers.back().first.d_ttl);
-    memcpy(&stuff, &ttl, sizeof(stuff));
-
-    eo->d_extRCode=stuff.extRCode;
-    eo->d_version=stuff.version;
-    eo->d_Z = ntohs(stuff.Z);
-    OPTRecordContent* orc = 
-      dynamic_cast<OPTRecordContent*>(mdp.d_answers.back().first.d_content.get());
-    if(!orc)
-      return false;
-    orc->getData(eo->d_options);
-
-    return true;
+  if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
+    BOOST_FOREACH(const MOADNSParser::answers_t::value_type& val, mdp.d_answers) {
+      if(val.first.d_place == DNSRecord::Additional && val.first.d_type == QType::OPT) {
+	eo->d_packetsize=val.first.d_class;
+       
+	EDNS0Record stuff;
+	uint32_t ttl=ntohl(val.first.d_ttl);
+	memcpy(&stuff, &ttl, sizeof(stuff));
+	
+	eo->d_extRCode=stuff.extRCode;
+	eo->d_version=stuff.version;
+	eo->d_Z = ntohs(stuff.Z);
+	OPTRecordContent* orc = 
+	  dynamic_cast<OPTRecordContent*>(val.first.d_content.get());
+	if(!orc)
+	  return false;
+	orc->getData(eo->d_options);
+	return true;
+      }
+    }
   }
-  else
-    return false;
+  return false;
 }
 
 
