@@ -238,8 +238,10 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
     }
     if(drc.first.d_type == QType::RRSIG) {
       shared_ptr<RRSIGRecordContent> rrc=boost::dynamic_pointer_cast<RRSIGRecordContent>(drc.first.d_content);
-      *theirInception= std::max(*theirInception, rrc->d_siginception);
-      *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
+      if(rrc->d_type == QType::SOA) {
+	*theirInception= std::max(*theirInception, rrc->d_siginception);
+	*theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
+      }
     }
   }
   if(!gotSOA)
