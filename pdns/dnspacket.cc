@@ -357,9 +357,15 @@ DNSPacket *DNSPacket::replyPacket() const
 void DNSPacket::spoofQuestion(const string &qd)
 {
   string label=simpleCompress(qd);
-  for(string::size_type i=0;i<label.size();++i)
-    d_rawpacket[i+sizeof(d)]=label[i];
   d_wrapped=true; // if we do this, don't later on wrapup
+  
+  if(label.size() + sizeof(d) > d_rawpacket.size()) { // probably superfluous
+    return; 
+  }
+    
+  for(string::size_type i=0; i < label.size(); ++i)
+    d_rawpacket[i+sizeof(d)]=label[i];
+  
 }
 
 int DNSPacket::noparse(const char *mesg, int length)

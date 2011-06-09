@@ -104,7 +104,8 @@ bool DNSProxy::sendPacket(DNSPacket *p)
     ce.remote = p->remote;
     ce.outsock  = p->getSocket();
     ce.created  = time( NULL );
-
+    ce.qtype = p->qtype.getCode();
+    ce.qname = p->qdomain;
     d_conntrack[id]=ce;
   }
   p->d.id=id^d_xor;
@@ -180,11 +181,16 @@ void DNSProxy::mainloop(void)
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
-        sendto(i->second.outsock, buffer, len, 0, (struct sockaddr*)&i->second.remote, i->second.remote.getSocklen());
-        
         DNSPacket p,q;
         p.parse(buffer,len);
         q.parse(buffer,len);
+
+        if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
+          L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
+            ", qname or qtype mismatch"<<endl;
+          continue;
+        }
+        sendto(i->second.outsock, buffer, len, 0, (struct sockaddr*)&i->second.remote, i->second.remote.getSocklen());
         
         PC.insert(&q, &p);
         i->second.created=0;
