@@ -54,9 +54,9 @@ struct CIBackwardsStringCompare: public std::binary_function<string, string, boo
         ra < str_a.rend() && rb < str_b.rend() && (a=dns_tolower(*ra)) == (b=dns_tolower(*rb));
         ra++, rb++);
     
-    if (ra < str_a.rend() && rb==str_b.rend()) { a=*(ra++); b=0; } // we are at the beginning of b -> b smaller
-    if (rb < str_b.rend() && ra==str_a.rend()) { b=*(rb++); a=0; } // we are at the beginning of a -> a smaller
-
+    if (ra < str_a.rend() && rb==str_b.rend()) { a=*(ra++); b=0; return false; } // we are at the beginning of b -> b smaller
+    if (rb < str_b.rend() && ra==str_a.rend()) { b=*(rb++); a=0; return true; } // we are at the beginning of a -> a smaller
+    // if BOTH are at their ends, a and b will be equal, and we should return false, which we will
     return a < b;
   }
 };
