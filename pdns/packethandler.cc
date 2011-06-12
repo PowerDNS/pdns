@@ -1363,10 +1363,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     //    doDNSSECProcessing(p, r);
 
+
+    editSOA(d_dk, sd.qname, r);
+    
     if(p->d_dnssecOk)
       addRRSigs(d_dk, B, sd.qname, r->getRRS());
-      
-    editSOA(d_dk, sd.qname, r);
       
     r->wrapup(); // needed for inserting in cache
     if(!noCache)
