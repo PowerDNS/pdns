@@ -334,12 +334,30 @@ void verifyCrypto(const string& zone)
 #endif
 
 }
+void disableDNSSECOnZone(DNSSECKeeper& dk, const string& zone)
+{
+  if(!dk.isSecuredZone(zone)) {
+    cerr<<"Zone is not secured\n";
+    return;
+  }
+  DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
 
+  if(keyset.empty())  {
+    cerr << "No keys for zone '"<<zone<<"'."<<endl;
+  }
+  else {  
+    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+      dk.deactivateKey(zone, value.second.id);
+    }
+  }
+  dk.unsetNSEC3PARAM(zone);
+  dk.unsetPresigned(zone);
+}
 void showZone(DNSSECKeeper& dk, const std::string& zone)
 {
   if(!dk.isSecuredZone(zone)) {
-	cerr<<"Zone is not secured\n";
-	return;
+    cerr<<"Zone is not secured\n";
+    return;
   }
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
@@ -450,6 +468,7 @@ try
     cerr<<"  [bits] [rsasha1|rsasha256]    and specify algorithm & bits\n";
     cerr<<"check-zone ZONE                 Check a zone for correctness\n";
     cerr<<"deactivate-zone-key             Dectivate the key with key id KEY-ID in ZONE\n";
+    cerr<<"disable-dnssec ZONE             Deactivate all keys and unset PRESIGNED\n";
     cerr<<"export-zone-dnskey ZONE KEY-ID  Export to stdout the public DNSKEY described\n";
     cerr<<"export-zone-key ZONE KEY-ID     Export to stdout the private key described\n";
     cerr<<"hash-zone-record ZONE RNAME     Calculate the NSEC3 hash for RNAME in ZONE\n";
@@ -457,7 +476,7 @@ try
     cerr<<"                [ksk|zsk]       Defaults to KSK\n";
     cerr<<"rectify-zone ZONE               Fix up DNSSEC fields (order, auth)\n";
     cerr<<"remove-zone-key ZONE KEY-ID     Remove key with KEY-ID from ZONE\n";
-    cerr<<"secure-zone                     Add KSK and two ZSKs\n";
+    cerr<<"secure-zone ZONE                Add KSK and two ZSKs\n";
     cerr<<"set-nsec3 ZONE 'params' [narrow]     Enable NSEC3 with PARAMs. Optionally narrow\n";
     cerr<<"set-presigned ZONE              Use presigned RRSIGs from storage\n";
     cerr<<"show-zone ZONE                  Show DNSSEC (public) key details about a zone\n";
@@ -523,6 +542,14 @@ try
     }
     const string& zone=cmds[1];
     showZone(dk, zone);
+  }
+  else if(cmds[0] == "disable-dnssec") {
+    if(cmds.size() != 2) {
+      cerr << "Error: "<<cmds[0]<<" takes exactly 1 parameter"<<endl;
+      return 0;
+    }
+    const string& zone=cmds[1];
+    disableDNSSECOnZone(dk, zone);
   }
   else if(cmds[0] == "activate-zone-key") {
     const string& zone=cmds[1];
@@ -609,9 +636,9 @@ try
     dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
   }
   else if(cmds[0]=="set-presigned") {
-	if(cmds.size() < 2) {
-		cerr<<"Wrong number of arguments, syntax: set-presigned DOMAIN"<<endl;
-	}
+    if(cmds.size() < 2) {
+      cerr<<"Wrong number of arguments, syntax: set-presigned DOMAIN"<<endl;
+    }
     dk.setPresigned(cmds[1]);
   }
   else if(cmds[0]=="unset-presigned") {

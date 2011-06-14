@@ -206,8 +206,9 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
 {
   string value;
   getFromMeta(zname, "NSEC3PARAM", value);
-  if(value.empty()) // "no NSEC3"
+  if(value.empty()) { // "no NSEC3"
     return false;
+  }
      
   if(ns3p) {
     NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
