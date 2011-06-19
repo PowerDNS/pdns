@@ -49,6 +49,7 @@ void declareArguments()
   ::arg().set("local-ipv6","Local IP address to which we bind")="";
   ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
   ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
+  ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
   ::arg().set("soa-serial-offset","Make sure that no SOA serial is less than this number")="0";
   
@@ -280,8 +281,16 @@ void *qthread(void *number)
 
       continue;
     }
-    if(logDNSQueries)
-        L<<"packetcache MISS"<<endl;
+    
+    if(g_distributor->isOverloaded()) {
+      if(logDNSQueries) 
+        L<<"Dropped query, db is overloaded"<<endl;
+      continue;
+    }
+        
+    if(logDNSQueries) 
+      L<<"packetcache MISS"<<endl;
+
     if(g_mustlockdistributor) {
       Lock l(&d_distributorlock);
       g_distributor->question(P, &sendout); // otherwise, give to the distributor

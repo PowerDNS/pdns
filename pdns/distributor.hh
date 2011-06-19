@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -72,8 +72,6 @@ public:
   static void* makeThread(void *); //!< helper function to create our n threads
   void getQueueSizes(int &questions, int &answers); //!< Returns length of question queue
 
-
-
   int getNumBusy()
   {
     return d_num_threads-d_idle_threads;
@@ -87,11 +85,15 @@ public:
   };
 
   typedef pair<QuestionData, AnswerData> tuple_t;
+  bool isOverloaded()
+  {
+    return d_overloaded;
+  }
   
 private:
+  bool d_overloaded;
   std::queue<QuestionData> questions;
   pthread_mutex_t q_lock;
-
   
   deque<tuple_t> answers;
   pthread_mutex_t a_lock;
@@ -115,6 +117,7 @@ private:
 template<class Answer, class Question, class Backend>Distributor<Answer,Question,Backend>::Distributor(int n)
 {
   b=0;
+  d_overloaded = false;
   nextid=0;
   d_idle_threads=0;
   d_last_started=time(0);
@@ -155,7 +158,7 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
     int queuetimeout=::arg().asNum("queue-limit"); 
 #endif 
     // ick ick ick!
-
+    static int overloadQueueLength=::arg().asNum("overload-queue-length");
     for(;;) {
       us->d_idle_threads++;
 
@@ -171,6 +174,10 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
       Question *q=QD.Q;
       
       us->questions.pop();
+
+      if(us->d_overloaded && qcount <= overloadQueueLength/10) {
+        us->d_overloaded=false;
+      }
       
       pthread_mutex_unlock(&us->q_lock);
       Answer *a;      
@@ -299,14 +306,21 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
   pthread_mutex_unlock(&q_lock);
 
   numquestions.post();
+  
+  static int overloadQueueLength=::arg().asNum("overload-queue-length");
 
   if(!(nextid%50)) {
     int val;
     numquestions.getValue( &val );
+    
+    if(!d_overloaded)
+      d_overloaded = overloadQueueLength && (val > overloadQueueLength);
+
     if(val>::arg().asNum("max-queue-length")) {
       L<<Logger::Error<<val<<" questions waiting for database attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
       _exit(1);
     }
+
   }
 
   return QD.id;
