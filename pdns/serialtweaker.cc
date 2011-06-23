@@ -40,18 +40,19 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
 	
 	string newserdate=(fmt % (tm.tm_year+1900) % (tm.tm_mon +1 )% tm.tm_mday % 1).str();
         sd.serial = lexical_cast<uint32_t>(newserdate);
-        rr.content = serializeSOAData(sd);
       }
       else if(pdns_iequals(kind,"INCEPTION-WEEK")) {        
 	time_t inception = getCurrentInception();
 	sd.serial = inception / (7*86400);
-        rr.content = serializeSOAData(sd);
       }
       else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {        
 	time_t inception = getCurrentInception();
 	sd.serial += inception / (7*86400);
-	rr.content = serializeSOAData(sd);
       }
+      else if(pdns_iequals(kind,"EPOCH")) {        
+	sd.serial = time(0);
+      }
+      rr.content = serializeSOAData(sd);      
       return true;
     }
   }
