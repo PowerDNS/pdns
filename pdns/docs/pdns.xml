@@ -18276,8 +18276,43 @@ POSSIBILITY OF SUCH DAMAGES.
  </para>
 </sect1>
   </appendix>
-
-  </book>
+<appendix id="cryptographic-notes-eccn"><title>Cryptographic software and export control</title>
+  <para>
+    In certain legal climates, PowerDNS might potentially require an export control status, particularly 
+    since PowerDNS software contains cryptographic primitives.
+  </para>
+  <para>
+    PowerDNS does not itself implement any cryptographic algorithms but relies on third party implementations
+    of AES, RSA, ECDSA, GOST, MD5 and various SHA-based hashing algorithms. 
+  </para>
+  <para>
+    For AES, we rely on Brian Gladmans code, as outlined in <xref linkend="further-copyrights"/>. Furthermore,
+    RSA, MD5 and the SHA-based algorithms are supplied as a copy of <ulink url="http://www.polarssl.org">PolarSSL</ulink>. 
+  </para>
+  <para>
+    Optionally, PowerDNS can link in a copy of the open source <ulink url="http://botan.randombits.org">Botan cryptographic</ulink> library.
+  </para>
+  <para>
+    Optionally, PowerDNS can link in a copy of the open source <ulink url="http://www.cryptopp.com">Crypto++</ulink> library.
+  </para>
+  <sect1><title id="us-ear-tsu-eccn">Specific United States Export Control Notes</title>
+  <para>
+    PowerDNS is not "US Origin" software. For re-export, like most open source, publicly available "mass market" projects, PowerDNS is 
+    considered to be governed by section 740.13(e) of the US EAR,  "Unrestricted encryption source code", under which PowerDNS source code  
+    would be considered re-exportable from the US without an export license under License Exception TSU (Technology and Software - Unrestricted).
+  </para>
+  <para>
+    Like most open source projects containing some encryption, the ECCN that best fits PowerDNS software is 5D002.
+  </para>
+  <para>
+    The official link to the publicly available source code is <ulink url="http://downloads.powerdns.com/releases/">http://downloads.powerdns.com/releases</ulink>.
+  </para>
+  <para>
+    If absolute certainty is required, we recommend consulting an expert in US Export Control, or asking the BIS for confirmation.
+  </para>
+  </sect1>
+</appendix>
+</book>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: sgml
