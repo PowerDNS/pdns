@@ -15002,7 +15002,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
               <term>notified_serial</term>
               <listitem>
                 <simpara>
-                  The latest serial for which we have send <constant>NOTIFY</constant> packets. Updated
+                  The latest serial for which we have sent <constant>NOTIFY</constant> packets. Updated
                   by PowerDNS.
                 </simpara>
               </listitem>
@@ -15075,7 +15075,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
           <para>
             This is a per-zone key-value store for various things PowerDNS needs to know that are not
             part of the zone's content or handled by other tables. Depending on your needs, you may not
-            want this to exist as an actual table, but simulate this is PL/SQL instead.
+            want this to exist as an actual table, but simulate this in PL/SQL instead.
           </para>
           <para>
             The currently defined metadata types are:
@@ -15209,7 +15209,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
               <listitem>
                 <simpara>
                   The data part of the DNS record, in canonical string representation, except that if
-                  this includes FQDNs, the can be specified without a trailing dot.
+                  this includes FQDNs, they should be specified without a trailing dot.
                 </simpara>
               </listitem>
             </varlistentry>
