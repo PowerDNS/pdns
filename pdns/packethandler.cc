@@ -1225,8 +1225,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         delete r;
         return 0;
       }
-      if(!retargetcount)  // if our initial CNAME was a hit, don't drop A
-        r->setA(false);
+      
+      r->setA(false); // even for out of bailiwick must drop aa
       if(::arg().mustDo("send-root-referral")) {
         DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
         addRootReferral(r);
