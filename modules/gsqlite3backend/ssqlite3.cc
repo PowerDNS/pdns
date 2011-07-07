@@ -118,7 +118,7 @@ bool SSQLite3::getRow( row_t & row )
   }
   
   if(rc == SQLITE_CANTOPEN) {
-    string error ="CANTOPEN error in sqlite3, often caused by unwritable sqlite3 directory: "+string(sqlite3_errmsg(m_pDB));
+    string error ="CANTOPEN error in sqlite3, often caused by unwritable sqlite3 db *directory*: "+string(sqlite3_errmsg(m_pDB));
     sqlite3_finalize(m_pStmt);
     throw sPerrorException(error);
   }

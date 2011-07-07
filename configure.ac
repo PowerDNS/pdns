@@ -431,6 +431,7 @@ fi
 
 if test "$needsqlite"
 then
+
         AC_ARG_WITH(sqlite,
             [  --with-sqlite=<path>     root directory path of SQLite installation],
             [SQLITE_lib_check="$withval/lib/sqlite $with_sqlite/lib"
@@ -492,61 +493,9 @@ fi
 
 if test "$needsqlite3"
 then
-        AC_ARG_WITH(sqlite3,
-            [  --with-sqlite3=<path>     root directory path of SQLite3 installation],
-            [SQLITE3_lib_check="$withval/lib/sqlite3 $with_sqlite3/lib"
-             SQLITE3_inc_check="$withval/include/sqlite3"],
-            [SQLITE3_lib_check="/usr/local/sqlite3/lib/sqlite3 /usr/local/lib/sqlite3 /usr/lib/sqlite3 /usr/local/sqlite3/lib /usr/local/lib /opt/sqlite3/lib /usr/lib"
-             SQLITE3_inc_check="/usr/local/sqlite3/include/sqlite3 /usr/local/include/sqlite3/ /usr/local/include /opt/sqlite3/include/sqlite3 /opt/sqlite3/include /usr/include/ /usr/include/sqlite3"])
-        AC_ARG_WITH(sqlite3-lib,
-            [  --with-sqlite3-lib=<path> directory path of SQLite3 library installation],
-            [SQLITE3_lib_check="$withval/lib/sqlite3 $withval/sqlite3 $withval"])
-        AC_ARG_WITH(sqlite3-includes,
-            [  --with-sqlite3-includes=<path> directory path of SQLite3 header installation],
-            [SQLITE3_inc_check="$withval/include/sqlite3 $withval/sqlite3 $withval"])
-        AC_MSG_CHECKING([for SQLite3 library directory])
-        SQLITE3_libdir=
-        for m in $SQLITE3_lib_check; do
-                if test -d "$m" && \
-                   (test -f "$m/libsqlite3.so" || test -f "$m/libsqlite3.a")
-                then
-                        SQLITE3_libdir=$m
-                        break
-                fi
-        done
-                if test -z "$SQLITE3_libdir"; then
-                AC_MSG_ERROR([Didn't find the sqlite3 library dir in '$SQLITE3_lib_check'])
-        fi
-        case "$SQLITE3_libdir" in
-           /usr/lib ) SQLITE3_lib="" ;;
-          /* ) SQLITE3_lib="-L$SQLITE3_libdir -Wl,-rpath,$SQLITE3_libdir"
-               LDFLAGS="$SQLITE3_lib $LDFLAGS"
-               ;;
-          * )  AC_MSG_ERROR([The SQLite3 library directory ($SQLITE3_libdir) must be an absolute path.]) ;;
-        esac
-
-        AC_SUBST(SQLITE3_lib)
-        AC_MSG_RESULT([$SQLITE3_libdir])
-        AC_MSG_CHECKING([for SQLite3 include directory])
-        SQLITE3_incdir=
-        for m in $SQLITE3_inc_check; do
-                if test -d "$m" && test -f "$m/sqlite3.h"
-                then
-                        SQLITE3_incdir=$m
-                        break
-                fi
-        done
-                if test -z "$SQLITE3_incdir"; then
-                AC_MSG_ERROR([Didn't find the SQLite3 include dir in '$SQLITE3_inc_check'])
-        fi
-        case "$SQLITE3_incdir" in
-          /* ) ;;
-          * )  AC_MSG_ERROR([The SQLite3 include directory ($SQLITE3_incdir) must be an absolute path.]) ;;
-        esac
-        AC_SUBST(SQLITE3_incdir)
-        AC_MSG_RESULT([$SQLITE3_incdir])
-
-#       LIBS="$LIBS -lsqlite3"
+	PKG_CHECK_MODULES(SQLITE3, sqlite3, HAVE_SQLITE=yes, AC_MSG_ERROR([+Could not find sqlite3]))
+        AC_SUBST(SQLITE3_LIBS)
+        AC_SUBST(SQLITE3_CFLAGS)
 fi
 
 if test "$needunixodbc"
