@@ -13,14 +13,13 @@ create index domainmetaidindex on domainmetadata(domain_id);
 
 create table cryptokeys (
  id		INTEGER PRIMARY KEY,
- domain_id      INT DEFAULT NULL,
+ domain_id      INT NOT NULL,
  flags		INT NOT NULL,
  active		BOOL,
  content	TEXT
 );		 
 
 create index domainidindex on cryptokeys(domain_id);           
-
 
 create table tsigkeys (
  id		INTEGER PRIMARY KEY,

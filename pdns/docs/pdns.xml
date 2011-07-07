@@ -14184,7 +14184,7 @@ create table domainmetadata (
 
 create table cryptokeys (
  id             INT auto_increment,
- domain_id      INT DEFAULT NULL,
+ domain_id      INT NOT NULL,
  flags          INT NOT NULL,
  active         BOOL,
  content        TEXT,
@@ -14194,7 +14194,6 @@ create table cryptokeys (
 alter table records add ordername      VARCHAR(255);
 alter table records add auth bool;
 create index orderindex on records(ordername);
-
 
 create table tsigkeys (
  id             INT auto_increment,

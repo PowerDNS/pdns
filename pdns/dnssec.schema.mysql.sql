@@ -11,7 +11,7 @@ create index domainmetaidindex on domainmetadata(domain_id);
 
 create table cryptokeys (
  id		INT auto_increment,
- domain_id      INT DEFAULT NULL,
+ domain_id      INT NOT NULL,
  flags		INT NOT NULL,
  active		BOOL,
  content	TEXT,
@@ -19,7 +19,6 @@ create table cryptokeys (
 );		 
 
 create index domainidindex on cryptokeys(domain_id);           
-
 
 alter table records add ordername      VARCHAR(255);
 alter table records add auth bool;
