@@ -1226,14 +1226,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         return 0;
       }
       
-      r->setA(false); // even for out of bailiwick must drop aa
+      if(!retargetcount)
+		r->setA(false); // drop AA if we never had a SOA in the first place
       if(::arg().mustDo("send-root-referral")) {
         DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
         addRootReferral(r);
       }
       else {
-        DLOG(L<<Logger::Warning<<"Adding SERVFAIL"<<endl);
-        r->setRcode(RCode::ServFail);  // 'sorry' 
+        DLOG(L<<Logger::Warning<<"setting 'No Error'"<<endl);
       }
       goto sendit;
     }
