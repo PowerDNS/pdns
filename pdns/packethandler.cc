@@ -873,7 +873,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
     
   // ok, we've done our checks
-  Communicator.addSlaveCheckRequest(di, p->remote);
+  Communicator.addSlaveCheckRequest(di, p->d_remote);
   return 0;
 }
 

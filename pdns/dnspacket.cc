@@ -62,19 +62,19 @@ const string& DNSPacket::getString()
 
 string DNSPacket::getRemote() const
 {
-  return remote.toString();
+  return d_remote.toString();
 }
 
 uint16_t DNSPacket::getRemotePort() const
 {
-  return remote.sin4.sin_port;
+  return d_remote.sin4.sin_port;
 }
 
 DNSPacket::DNSPacket(const DNSPacket &orig)
 {
   DLOG(L<<"DNSPacket copy constructor called!"<<endl);
   d_socket=orig.d_socket;
-  remote=orig.remote;
+  d_remote=orig.d_remote;
   d_qlen=orig.d_qlen;
   d_dt=orig.d_dt;
   d_compress=orig.d_compress;
@@ -324,7 +324,7 @@ DNSPacket *DNSPacket::replyPacket() const
   DNSPacket *r=new DNSPacket;
   r->setSocket(d_socket);
 
-  r->setRemote(&remote);
+  r->setRemote(&d_remote);
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative
   r->setRA(0); // no recursion available
@@ -500,7 +500,7 @@ void DNSPacket::setMaxReplyLen(int bytes)
 //! Use this to set where this packet was received from or should be sent to
 void DNSPacket::setRemote(const ComboAddress *s)
 {
-  remote=*s;
+  d_remote=*s;
 }
 
 void DNSPacket::setSocket(Utility::sock_t sock)

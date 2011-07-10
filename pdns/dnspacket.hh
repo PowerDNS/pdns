@@ -135,7 +135,7 @@ public:
 
   //////// DATA !
 
-  ComboAddress remote;
+  ComboAddress d_remote;
   uint16_t qclass;  //!< class of the question - should always be INternet 2
   struct dnsheader d; //!< dnsheader at the start of the databuffer 12
 

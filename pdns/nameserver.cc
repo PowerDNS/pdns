@@ -183,7 +183,7 @@ void UDPNameserver::send(DNSPacket *p)
   if(buffer.length() > p->getMaxReplyLen()) {
     cerr<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
   }
-  if(sendto(p->getSocket(),buffer.c_str(), buffer.length(), 0, (struct sockaddr *)(&p->remote), p->remote.getSocklen()) < 0)
+  if(sendto(p->getSocket(),buffer.c_str(), buffer.length(), 0, (struct sockaddr *)(&p->d_remote), p->d_remote.getSocklen()) < 0)
     L<<Logger::Error<<"Error sending reply with sendto (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
 }
 

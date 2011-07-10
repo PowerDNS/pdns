@@ -283,14 +283,14 @@ void *TCPNameserver::doConnection(void *data)
       shared_ptr<DNSPacket> reply; 
       shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket);
       if(logDNSQueries) 
-        L << Logger::Notice<<"TCP Remote "<< packet->remote.toString() <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() << 
+        L << Logger::Notice<<"TCP Remote "<< packet->d_remote.toString() <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() << 
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
 
 
       if(!packet->d.rd && packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
         if(logDNSQueries)
           L<<"packetcache HIT"<<endl;
-        cached->setRemote(&packet->remote);
+        cached->setRemote(&packet->d_remote);
         cached->d.id=packet->d.id;
         cached->d.rd=packet->d.rd; // copy in recursion desired bit 
         cached->commitD(); // commit d to the packet                        inlined
@@ -381,7 +381,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
   }
     
 
-  if(!::arg().mustDo("per-zone-axfr-acls") && (::arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->remote )))
+  if(!::arg().mustDo("per-zone-axfr-acls") && (::arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->d_remote )))
     return true;
 #if 0
   if(::arg().mustDo("per-zone-axfr-acls")) {

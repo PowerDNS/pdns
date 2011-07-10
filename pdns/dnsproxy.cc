@@ -85,7 +85,7 @@ void DNSProxy::onlyFrom(const string &ips)
 
 bool DNSProxy::recurseFor(DNSPacket* p)
 {
-  return d_ng.match((ComboAddress *)&p->remote);
+  return d_ng.match((ComboAddress *)&p->d_remote);
 }
 
 /** returns false if p->remote is not allowed to recurse via us */
@@ -101,7 +101,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 
     ConntrackEntry ce;
     ce.id       = p->d.id;
-    ce.remote = p->remote;
+    ce.remote = p->d_remote;
     ce.outsock  = p->getSocket();
     ce.created  = time( NULL );
     ce.qtype = p->qtype.getCode();
