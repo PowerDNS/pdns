@@ -102,6 +102,7 @@ void declareArguments()
 
   ::arg().setSwitch("webserver","Start a webserver for monitoring")="no"; 
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
+  ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no"; 
   ::arg().set("webserver-address","IP Address of webserver to listen on")="127.0.0.1";
   ::arg().set("webserver-port","Port of webserver to listen on")="8081";
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
@@ -311,6 +312,10 @@ void mainthread()
    int newuid=0;      
    if(!::arg()["setuid"].empty())        
      newuid=Utility::makeUidNumeric(::arg()["setuid"]); 
+     
+   
+   DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
+     
 #ifndef WIN32
 
    if(!::arg()["chroot"].empty()) {  

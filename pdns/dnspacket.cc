@@ -42,6 +42,9 @@
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh" 
 #include "base64.hh"
+#include "ednssubnet.hh"
+
+bool DNSPacket::s_doEDNSSubnetProcessing;
 
 DNSPacket::DNSPacket() 
 {
@@ -49,6 +52,7 @@ DNSPacket::DNSPacket()
   d_compress=true;
   d_tcp=false;
   d_wantsnsid=false;
+  d_haveednssubnet = false;
   d_dnssecOk=false;
 }
 
@@ -85,6 +89,10 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_maxreplylen = orig.d_maxreplylen;
   d_ednsping = orig.d_ednsping;
   d_wantsnsid = orig.d_wantsnsid;
+  
+  d_eso = orig.d_eso;
+  d_haveednssubnet = orig.d_haveednssubnet;
+  
   d_dnssecOk = orig.d_dnssecOk;
   d_rrs=orig.d_rrs;
   
@@ -259,10 +267,13 @@ void DNSPacket::wrapup()
   if(!d_ednsping.empty()) {
     opts.push_back(make_pair(4, d_ednsping));
   }
-
-  if(!d_rrs.empty() || !opts.empty()) {
+  
+  
+  if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet) {
     try {
+      uint8_t maxScopeMask=0;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
+        maxScopeMask = max(maxScopeMask, pos->scopeMask);
         // this needs to deal with the 'prio' mismatch:
         if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
           pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
@@ -285,6 +296,16 @@ void DNSPacket::wrapup()
           goto noCommit;
         }
       }
+      
+      if(d_haveednssubnet) {
+        string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
+        EDNSSubnetOpts eso = d_eso;
+        eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
+    
+        string opt = makeEDNSSubnetOptsString(eso);
+        opts.push_back(make_pair(6, opt));
+      }
+    
 
       if(!opts.empty() || d_dnssecOk)
         pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
@@ -342,6 +363,8 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_ednsping = d_ednsping;
   r->d_wantsnsid = d_wantsnsid;
   r->d_dnssecOk = d_dnssecOk;
+  r->d_eso = d_eso;
+  r->d_haveednssubnet = d_haveednssubnet;
   
   if(!d_tsigkeyname.empty()) {
     r->d_tsigkeyname = d_tsigkeyname;
@@ -442,6 +465,7 @@ try
   d_dnssecOk=false;
   d_ednsping.clear();
   d_havetsig = mdp.getTSIGPos();
+  d_haveednssubnet = false;
 
 
   if(getEDNSOpts(mdp, &edo)) {
@@ -459,8 +483,15 @@ try
       else if(iter->first == 5) {// 'EDNS PING'
         d_ednsping = iter->second;
       }
-      else
-        ; // cerr<<"Have an option #"<<iter->first<<endl;
+      else if(iter->first == 6) { // 'EDNS SUBNET'
+        if(s_doEDNSSubnetProcessing && getEDNSSubnetOptsFromString(iter->second, &d_eso)) {
+          //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
+          d_haveednssubnet=true;
+        } 
+      }
+      else {
+        // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
+      }
     }
   }
   else  {
@@ -501,6 +532,13 @@ void DNSPacket::setMaxReplyLen(int bytes)
 void DNSPacket::setRemote(const ComboAddress *s)
 {
   d_remote=*s;
+}
+
+Netmask DNSPacket::getRealRemote() const
+{
+  if(d_haveednssubnet)
+    return d_eso.source;
+  return Netmask(d_remote);
 }
 
 void DNSPacket::setSocket(Utility::sock_t sock)

@@ -48,6 +48,7 @@ struct SOAData
   uint32_t default_ttl;
   int domain_id;
   DNSBackend *db;
+  uint8_t scopeMask;
 };
 
 
@@ -67,7 +68,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : qclass(1), priority(0), last_modified(0), d_place(ANSWER), auth(1) {};
+  DNSResourceRecord() : qclass(1), priority(0), last_modified(0), d_place(ANSWER), auth(1), scopeMask(0) {};
   ~DNSResourceRecord(){};
 
   // data
@@ -85,6 +86,7 @@ public:
   Place d_place; //!< This specifies where a record goes within the packet
 
   bool auth;
+  uint8_t scopeMask;
 
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version)

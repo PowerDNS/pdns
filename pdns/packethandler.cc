@@ -992,6 +992,7 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.domain_id=sd.domain_id;
   rr.d_place=DNSResourceRecord::AUTHORITY;
   rr.auth = 1;
+  rr.scopeMask = sd.scopeMask;
   r->addRecord(rr);
   
   if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname))

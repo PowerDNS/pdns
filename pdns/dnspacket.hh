@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <sys/types.h>
 #include "iputils.hh"
+#include "ednssubnet.hh"
 
 #ifndef WIN32
 #include <sys/socket.h>
@@ -82,6 +83,7 @@ public:
   // address & socket manipulation
   void setRemote(const ComboAddress*);
   string getRemote() const;
+  Netmask getRealRemote() const;
   string getLocal() const
   {
     ComboAddress ca;
@@ -151,6 +153,7 @@ public:
   
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
   TSIGRecordContent d_trc;
+  static bool s_doEDNSSubnetProcessing;
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
@@ -164,7 +167,8 @@ private:
   int d_maxreplylen;
   string d_ednsping;
   bool d_wantsnsid;
-
+  bool d_haveednssubnet;
+  EDNSSubnetOpts d_eso;
   string d_tsigsecret;
   string d_tsigkeyname;
   string d_tsigprevious;

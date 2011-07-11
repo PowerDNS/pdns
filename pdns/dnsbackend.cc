@@ -219,6 +219,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     fillSOAData(rr.content, sd);
     sd.domain_id=rr.domain_id;
     sd.ttl=rr.ttl;
+    sd.scopeMask = rr.scopeMask;
   }
 
   if(!hits)

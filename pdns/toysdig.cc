@@ -4,6 +4,7 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "statbag.hh"
+#include "ednssubnet.hh"
 StatBag S;
 
 int main(int argc, char** argv)
@@ -21,6 +22,18 @@ try
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
   pw.getHeader()->rd=1;
+
+// void addOpt(int udpsize, int extRCode, int Z, const optvect_t& options=optvect_t());
+  DNSPacketWriter::optvect_t opts;
+  EDNSSubnetOpts eso;
+  eso.scope = eso.source = Netmask("2001:960:2:1e5::2");
+  
+  string subnet = makeEDNSSubnetOptsString(eso);
+  
+  opts.push_back(make_pair(6, subnet));
+  
+  pw.addOpt(1200, 0, 0, opts); // 1200 bytes answer size
+  pw.commit();
  
   Socket sock(InterNetwork, Datagram);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
@@ -38,6 +51,25 @@ try
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
     cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
   }
+  EDNSOpts edo;
+  if(getEDNSOpts(mdp, &edo)) {
+    cerr<<"Have "<<edo.d_options.size()<<" options!"<<endl;
+    for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
+        iter != edo.d_options.end(); 
+        ++iter) {
+        if(iter->first == 6) {
+          EDNSSubnetOpts eso;
+          if(getEDNSSubnetOptsFromString(iter->second, &eso)) {
+            cerr<<"Subnet options in reply: source "<<eso.source.toString()<<", scope "<<eso.scope.toString()<<endl;
+          }
+          else
+            cerr<<"EDNS Subnet failed to parse"<<endl;
+        }
+        else 
+          cerr<<"Have unknown option "<<(int)iter->first<<endl;
+      }
+  }
+
 
  
 

@@ -37,19 +37,26 @@ bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso)
   EDNSSubnetOptsWire esow;
   memcpy(&esow, options.c_str(), sizeof(esow));
   esow.family = ntohs(esow.family);
-  cerr<<"Family: "<<esow.family<<endl;
+  //cerr<<"Family when parsing from string: "<<esow.family<<endl;
   ComboAddress address;
   if(esow.family == 1) {
     if(options.size() != 8)
       return false;
     address.sin4.sin_family = AF_INET;
     memcpy(&address.sin4.sin_addr.s_addr, options.c_str()+4, 4);
-    cerr<<"Source address: "<<address.toString()<<", mask: "<<(int)esow.sourceMask<<endl;
-    eso->source = Netmask(address, esow.sourceMask);
-    eso->scope = Netmask(address, esow.scopeMask);
-    return true;
+  } else if(esow.family == 2) {
+    if(options.size() != 4 + 16)
+      return false;
+    memset(&address, 0, sizeof(address));
+    address.sin4.sin_family = AF_INET6;
+    memcpy(&address.sin6.sin6_addr.s6_addr, options.c_str()+4, 16);
   }
-  return false;
+  else
+    return false;
+ // cerr<<"Source address: "<<address.toString()<<", mask: "<<(int)esow.sourceMask<<endl;
+  eso->source = Netmask(address, esow.sourceMask);
+  eso->scope = Netmask(address, esow.scopeMask);
+  return true;
 }
 
 string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
