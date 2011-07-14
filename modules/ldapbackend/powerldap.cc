@@ -6,14 +6,27 @@
 
 PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )
 {
+        d_ld = 0;
+        d_hosts = hosts;
+        d_port = port;
+        d_tls = tls;
+        ensureConnect();
+}
+
+void PowerLDAP::ensureConnect()
+{
         int err;
 
+        if(d_ld) {
+          ldap_unbind_ext( d_ld, NULL, NULL );
+        }
+
 #ifdef HAVE_LDAP_INITIALIZE
-        if( ( err = ldap_initialize( &d_ld, hosts.c_str() ) ) != LDAP_SUCCESS )
+        if( ( err = ldap_initialize( &d_ld, d_hosts.c_str() ) ) != LDAP_SUCCESS )
         {
         	string ldapuris;
         	vector<string> uris;
-        	stringtok( uris, hosts );
+        	stringtok( uris, d_hosts );
 
         	for( size_t i = 0; i < uris.size(); i++ )
         	{
@@ -26,9 +39,9 @@ PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )
         	}
         }
 #else
-        if( ( d_ld = ldap_init( hosts.c_str(), port ) ) == NULL )
+        if( ( d_ld = ldap_init( d_hosts.c_str(), d_port ) ) == NULL )
         {
-        	throw LDAPException( "Error initializing LDAP connection to '" + hosts + "': " + string( strerror( errno ) ) );
+        	throw LDAPException( "Error initializing LDAP connection to '" + d_hosts + "': " + string( strerror( errno ) ) );
         }
 #endif
 
@@ -43,7 +56,7 @@ PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )
         	}
         }
 
-        if( tls && ( err = ldap_start_tls_s( d_ld, NULL, NULL ) ) != LDAP_SUCCESS )
+        if( d_tls && ( err = ldap_start_tls_s( d_ld, NULL, NULL ) ) != LDAP_SUCCESS )
         {
         	ldap_unbind_ext( d_ld, NULL, NULL );
         	throw LDAPException( "Couldn't perform STARTTLS: " + getError( err ) );
@@ -135,15 +148,16 @@ int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
         struct timeval tv;
         LDAPMessage* res;
 
-
         tv.tv_sec = timeout;
         tv.tv_usec = 0;
-
-        int rc = ldap_result( d_ld, msgid, LDAP_MSG_ONE, &tv, &res );
+        int rc;
+      
+        rc = ldap_result( d_ld, msgid, LDAP_MSG_ONE, &tv, &res );
 
         switch( rc )
         {
         	case -1:
+            ensureConnect();
         		throw LDAPException( "Error waiting for LDAP result: " + getError() );
         	case 0:
         		throw LDAPTimeout();

@@ -38,13 +38,9 @@
 #ifndef POWERLDAP_HH
 #define POWERLDAP_HH
 
-
-
 using std::map;
 using std::string;
 using std::vector;
-
-
 
 class LDAPException : public std::runtime_error
 {
@@ -52,23 +48,23 @@ public:
         explicit LDAPException( const string &str ) : std::runtime_error( str ) {}
 };
 
-
-
 class LDAPTimeout : public LDAPException
 {
 public:
         explicit LDAPTimeout() : LDAPException( "Timeout" ) {}
 };
 
-
-
 class PowerLDAP
 {
         LDAP* d_ld;
+        string d_hosts;
+        int d_port;
+        bool d_tls;
 
         const string getError( int rc = -1 );
         int waitResult( int msgid = LDAP_RES_ANY, int timeout = 0, LDAPMessage** result = NULL );
-
+        void ensureConnect();
+        
 public:
         typedef map<string, vector<string> > sentry_t;
         typedef vector<sentry_t> sresult_t;
