@@ -23,7 +23,9 @@ public:
   string escape(const string &str);    
   void setLog(bool state);
 private:
+  void ensureConnect();
   PGconn* d_db; 
+  string d_connectstr;
   PGresult* d_result;
   int d_count;
   static bool s_dolog;

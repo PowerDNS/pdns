@@ -6,7 +6,6 @@
 #include <iostream>
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"
-
 #include "pdns/namespaces.hh"
 
 bool SPgSQL::s_dolog;
@@ -15,35 +14,22 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
                const string &password)
 {
   d_db=0;
-  string connectstr;
 
-  connectstr="dbname=";
-  connectstr+=database;
-  connectstr+=" user=";
-  connectstr+=user;
+  d_connectstr="dbname=";
+  d_connectstr+=database;
+  d_connectstr+=" user=";
+  d_connectstr+=user;
 
   if(!host.empty())
-    connectstr+=" host="+host;
+    d_connectstr+=" host="+host;
 
   if(!port.empty())
-    connectstr+=" port="+port;
+    d_connectstr+=" port="+port;
 
   if(!password.empty())
-    connectstr+=" password="+password;
-
-  d_db=PQconnectdb(connectstr.c_str());
-
-  if (!d_db || PQstatus(d_db)==CONNECTION_BAD) {
-    try {
-      throw sPerrorException("Unable to connect to database, connect string: "+connectstr);
-    }
-    catch(...) {
-      if(d_db)
-        PQfinish(d_db);
-      throw;
-    }
-  }
-
+    d_connectstr+=" password="+password;
+  
+  ensureConnect();
 }
 
 void SPgSQL::setLog(bool state)
@@ -61,17 +47,49 @@ SSqlException SPgSQL::sPerrorException(const string &reason)
   return SSqlException(reason+string(": ")+(d_db ? PQerrorMessage(d_db) : "no connection"));
 }
 
+void SPgSQL::ensureConnect()
+{
+  if(d_db)
+    PQfinish(d_db);
+  d_db=PQconnectdb(d_connectstr.c_str());
+
+  if (!d_db || PQstatus(d_db)==CONNECTION_BAD) {
+    try {
+      throw sPerrorException("Unable to connect to database, connect string: "+d_connectstr);
+    }
+    catch(...) {
+      if(d_db)
+        PQfinish(d_db);
+      d_db = 0;
+      throw;
+    }
+  }
+}
+
 int SPgSQL::doCommand(const string &query)
 {
   if(s_dolog)
     L<<Logger::Warning<<"Command: "<<query<<endl;
 
+  bool first = true;
+
+  retry:
+  
   if(!(d_result=PQexec(d_db,query.c_str())) || PQresultStatus(d_result)!=PGRES_COMMAND_OK) { 
     string error("unknown reason");
     if(d_result) {
       error=PQresultErrorMessage(d_result);
       PQclear(d_result);
     }
+    
+    if(PQstatus(d_db)==CONNECTION_BAD) {
+      ensureConnect();
+      if(first) {
+        first = false;
+        goto retry;
+      }
+    }
+    
     throw SSqlException("PostgreSQL failed to execute command: "+error); 
   }
   if(d_result)
@@ -86,12 +104,22 @@ int SPgSQL::doQuery(const string &query)
   if(s_dolog)
     L<<Logger::Warning<<"Query: "<<query<<endl;
 
+  bool first = true;
+retry:
   if(!(d_result=PQexec(d_db,query.c_str())) || PQresultStatus(d_result)!=PGRES_TUPLES_OK) {
     string error("unknown reason");
     if(d_result) {
       error=PQresultErrorMessage(d_result);
       PQclear(d_result);
     }
+    if(PQstatus(d_db)==CONNECTION_BAD) {
+      ensureConnect();
+      if(first) {
+        first = false;
+        goto retry;
+      }
+    }
+
     throw SSqlException("PostgreSQL failed to execute command: "+error); 
   }
 
@@ -127,7 +155,7 @@ bool SPgSQL::getRow(row_t &row)
 {
   row.clear();
 
-  if(d_count>=PQntuples(d_result)) {
+  if(d_count >= PQntuples(d_result)) {
     PQclear(d_result);
     return false;
   }
