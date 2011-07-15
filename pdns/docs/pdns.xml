@@ -148,9 +148,138 @@
 	Martin van Hensbergen (Fox-IT), Christof Meerwald, Detlef Peeters, Jack Lloyd, Frank Altpeter, frederik danerklint, Vasiliy G Tolstov,
 	Brielle Bruns, Evan Hunt, Ralf van der Enden, Marc Laros, Serge Belyshev
       </para>
-      <para>
+       <para>
 	Changes between RC2 and RC3:
 	<itemizedlist>
+	  <listitem>
+	    <para>
+	      PowerDNS Authoritative Server could not be configured to use an IPv6 based resolving backend. Solved in c2191.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      LDAP backend reconfigured the timezone (TZ) setting of the daemon, leading to confusing logfile entries. Fixed by
+	      Christian Hofstaedtler in c2913, closing t313.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Non-DNSSEC capable backends could crash on DNSSEC queries. Fixed in c2194 and c2196 (thanks to Charlie Smurthwaite) closing t360.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Errors looking up a UID or GID were reported confusingly ('Success'), fixed in c2195, closing t359.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Fix compilation against older MySQL, client libraries (c2198, c2199, c2204), especially for older RHEL/CentOS. Also addresses
+	      the failure to look in lib64 directory for PostgreSQL.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Sqlite3 needs write access not just to its database file, but also to the directory it is in. If this wasn't the case,
+	      no useful error message was provided. Improvement in c2202.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Update of MongoDB backend (c2203, c2212).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      'pdnssec hash-zone-record' emitted an inverted warning about narrow NSEC3 hashes. Spotted by Jan-Piet Mens, fix in c2205.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      PowerDNS can fill out default fields for SOA records, but neglected to do so if the SOA record was matched by an incoming ANY question.
+	      Spotted by Marc Laros &amp; others. Fixes t357, code in c2206.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      PowerDNS would mistreat binary data in TXT records. Fix in c2207. Again spotted by Jan-Piet Mens. Closes t356.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Add experimental Lua backend by our star contributor Fredrik Danerklint. c2208.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Christoph Meerwald discovered our RRSIG freshness checking checked more than the intended RRSIG (on the SOA record). Fix in c2209.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Christoph Meerwald discovered we got confused by TSIG signed EDNS-adorned queries, since we expected the EDNS OPT pseudorecord to be 
+	      the very last record. Fix in c2214.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Christoph Meerwald discovered that when using SOA outgoing editing we would sign and THEN edit. This was not productive. Fixed in c2215.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Add missing-but-documented pdnssec command 'disable-dnssec'. Spotted by Craig Whitmore. Plus fixed misleading --help output. Code in c2216.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      By popular demand, a tweak which makes an overloaded database no longer restart PowerDNS but to drop queries until the database is available again.
+	      Code in c2217, lightly tested. Enable by setting 'overload-queue-lengh=100' (for example).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      By suggestion of Miek Gieben of SIDN, add SOA-EDIT mode 'EPOCH' which sets the SOA serial number to the 'UNIX time'. Implemented in 
+	      c2218.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Added some US export control &amp; ECCN to documentation, needed because of DNSSEC content. Update in c2219.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Fix up various spelling mistakes and badly formatted messages (c2220 and c2221) by Maik Zumstrull and 'anonymous'.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      After a lot of thought, we now handle CNAMEs to names outside our knowledge ('bailiwick') exactly as in BIND 9.8.0, even though
+	      our way was standards compliant too. It confused things. Update in c2222 and c2224. 
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Tweak sqlite3 library location detection for newer Ubuntu versions. Change in c2223.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      DNSSEC SQL schema improvements allowing for the use of constraints and foreign keys in c2225, by Gerald Gruenberg, closing t371.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Add support for EDNS option 'edns-subnet', based on draft-vandergaast-edns-client-subnet (c2226, c2228, c2229, c2230, c2231, c2233).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Silence SIGCHLD warning from Perl when used to power 'pipe' backends (c2232).
+	    </para>
+	  </listitem>
+	
 	<listitem>
 	  <para>
 	    Jan-Piet Mens discovered that records inserted by Lua on zone retrieval did not get correct 'ordername' and 'auth' fields for DNSSEC.
