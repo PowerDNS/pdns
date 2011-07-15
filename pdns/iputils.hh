@@ -297,7 +297,7 @@ public:
   {
     return d_network.toString();
   }
-  ComboAddress getNetwork() const
+  const ComboAddress& getNetwork() const
   {
     return d_network;
   }
