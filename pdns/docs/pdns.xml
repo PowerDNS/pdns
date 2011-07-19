@@ -95,23 +95,20 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0-RC2</title>
+      <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0-RC3</title>
       <para>
 	<warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade.
 	Please refer to <xref linkend="from2.9to3.0"/> for important information on 
 	correct and stable operation, as well as notes on performance and memory use.</para>
 	<para>
-	  Known issues as of RC2 include:
+	  Known issues as of RC3 include:
 	<itemizedlist>
-	<listitem><para>Not all new features are documented yet</para></listitem>
-	<listitem><para>Queries for 'empty non-terminals' may give confusing results</para></listitem>
-	<listitem><para>We are not 100% convinced all corner cases of NSEC3/NXDOMAIN give correct responses. Common cases function well</para></listitem>
-	<listitem><para>DNSSEC has only been benchmarked up to 2000 queries/second but not beyond</para></listitem>
-	<listitem><para>A lot more database connections are made and released</para></listitem>
+	<listitem><para>Not all new features are fully documented yet</para></listitem>
 	</itemizedlist></para>
       </warning></para>
       <para><note><para>RC1 released on the 4th of April 2011</para>
-      <para>RC2 released on the 19th of April 2011</para></note></para>
+      <para>RC2 released on the 19th of April 2011</para>
+      <para>RC3 released on the 19th of July 2011</para></note></para>
       <para>
 	Version 3.0 of the PowerDNS Authoritative Server brings a number of important features, as
 	well as over two years of accumulated bug fixing.
@@ -135,6 +132,7 @@
 	<listitem><para><ulink url="http://www.afnic.fr/">AFNIC, the French registry</ulink></para></listitem>
 	<listitem><para><ulink url="http://www.ipcom.at/en/dns/rcodezero_anycast/">IPCom's RcodeZero Anycast DNS</ulink>, a subsidiary of NIC.AT, the Austrian registry</para></listitem>
 	<listitem><para><ulink url="http://www.sidn.nl/">SIDN, the Dutch registry</ulink></para></listitem>
+	<listitem><para>.. (awaiting details) ..</para></listitem>
 	</itemizedlist>
       </para>
       <para>
@@ -146,7 +144,9 @@
 	Jose Arthur Benetasso Villanova (Locaweb), Stefan Schmidt, Roland van Rijswijk (Surfnet), Paul Bakker (Brainspark/Fox-IT),
 	Mathew Hennessy, Johannes Kuehrer (Austrian World4You GmbH), Marc van de Geijn (bHosted.nl), Stefan Arentz and 
 	Martin van Hensbergen (Fox-IT), Christof Meerwald, Detlef Peeters, Jack Lloyd, Frank Altpeter, frederik danerklint, Vasiliy G Tolstov,
-	Brielle Bruns, Evan Hunt, Ralf van der Enden, Marc Laros, Serge Belyshev
+	Brielle Bruns, Evan Hunt, Ralf van der Enden, Marc Laros, Serge
+	Belyshev, Christian Hofstaedtler, Charlie Smurthwaite, Nikolaos
+	Milas, ..
       </para>
        <para>
 	Changes between RC2 and RC3:
@@ -279,7 +279,24 @@
 	      Silence SIGCHLD warning from Perl when used to power 'pipe' backends (c2232).
 	    </para>
 	  </listitem>
-	
+	<listitem>
+	    <para>
+	      Add experimental support, off by default, for
+	      draft-edns-subnet.  See c2233 and c2239 for details how to use
+	      this feature.
+	    </para>
+	  </listitem>
+	  
+	<listitem>
+	    <para>
+		PostgreSQL and LDAP backends can now deal with a restart of
+		their respective servers. Many thanks to Peter van Dijk for
+		debugging and Nikolaos Milas for supplying a reproduction
+		path of the problem (&amp; much nagging). Fixes in c2233 and
+		c2235.
+	    </para>
+	  </listitem>	  
+	  	
 	<listitem>
 	  <para>
 	    Jan-Piet Mens discovered that records inserted by Lua on zone retrieval did not get correct 'ordername' and 'auth' fields for DNSSEC.
