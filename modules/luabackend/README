@@ -2,25 +2,30 @@
 This is the luabackend for PowerDNS!
 ====================================
 
+
+http://www.lua.org for more information about what Lua really is.
+
+
 This backend is just a "glue" between PowerDNS and your own Lua application.
 
-This does mean that you can not have a working setup that can serve you
+What this means is that you can not have a working setup that can serve you
 dns-questions directly from start. What you need to do is to program your own 
-backend completly in Lua! Which database server to use etc is now up to you!
+backend completely in Lua! Which database server to use etc is now up to you!
 
-What you have here is the possibility to make your own "dns-server" without the 
+What you have here is the possibility to make your own "dns-server" without the
 knowledge of programming in c/c++.
 
 There is one thing that needs to be sad. Remember that each thread 
-PowerDNS launch of this backend is completly different so they cannot 
+PowerDNS launch of this backend is completely different so they cannot 
 share information between each other! 
 
 You will need some kind of a database that can be shared for this.
 
 All the functionsname that PowerDNS except for a backend should be the same
 in your Lua script, in lowercase. Also, the parameters should be in the same 
-order. Where there is a struture in c/c++ there is a table in the Lua backend.
-This is also true for returnvalues.
+order. Where there is a structure in c/c++ there is a table in the Lua backend.
+This is also true for return values. A few functions expect that you return a 
+table in a table.
 
 
 =============
@@ -29,11 +34,11 @@ NEW FUNCTIONS
 
 There is a couple of new functions for you to use in Lua:
 
------------------------------------
-logger(log_facility, "your messages")
------------------------------------
+----------------------------------------
+logger(log_facility, "your", "messages")
+----------------------------------------
 
-All these log_facilities is availible:
+All these log_facilities is available:
 log_all, log_ntlog, log_alert, log_critical, log_error, log_warning, log_notice,
 log_info, log_debug, log_none
 
@@ -45,14 +50,15 @@ dnspacket()
 This will give you back three parameters with
 remote_ip, remote_port and local_ip in that order.
 
-Can only be used for the functions list() and getsoa().
+Can only be used in the functions list() and getsoa().
 
 
 ------------------------
 getarg("your_parameter")
 ------------------------
 
-Thisone tries to get the value of the name "lua-your_parameter" from the pdns.conf file.
+This one tries to get the value of the name "lua-your_parameter" from the 
+pdns.conf file.
 
 
 ------------------------
@@ -69,15 +75,16 @@ You also have all the different QTypes in a table called 'QTypes'.
 WHAT HAS BEEN TESTED
 ====================
 
-The only functionallity of the mininal functions except zone-transfer has
+The only functionality of the minimal functions except zone-transfer has
 been tested. 
 
 In the included powerdns-luabackend.lua file there is a example of how
 this can be done. Note that this is more or less a static example since
-there is no possiblity for each thread to know when something has changed.
+there is no possibility for each thread to know when something has changed.
 
-However, you run 'pdns_control reload' and it should reload the hole thing 
-from scratch.
+However, you can run 'pdns_control reload' and it should reload the hole thing 
+from scratch (does not work for the moment, PowerDNS only calls two thread with 
+the reload command - not all of them).
 
 
 ===========================================
@@ -117,9 +124,10 @@ OPTIONS IN THE CONFIGURE FILE
 The default values is:
 
 lua-filename = powerdns-luabackend.lua
+lua-logging-query = no
 
-You can also override all the default functionsnames for the luafunctions if you want.
-The prefix is lua-f_<functionname>=mynewfunction. For example:
+You can also override all the default functionsnames for the luafunctions if you
+want. The prefix is lua-f_<functionname>=mynewfunction. For example:
 
 lua-f_lookup = mynewfunction 
 
@@ -130,6 +138,48 @@ Just call the function getarg("my_parameter") and it will return the value
 of 'lua-my_parameter'. For boolean you use the function mustdo("my_parameter").
 
 
+==============================
+YOUR OWN ERROR FUNCTION IN LUA
+==============================
+
+You can have an error function in Lua when Lua gives back a error.
+
+First make your error function then you put this in pdns.conf:
+
+lua-f_exec_error = <your_name_of_the_error_function_in_lua>
+
+
+======
+DNSSEC
+======
+
+You can have full dnssec support in our Lua application. You should note the 
+following regarding this:
+
+You don't have to implement the function 'updateDNSSECOrderAndAuth' since the 
+default code will work correctly for you via the backend itself. 
+
+The functions activateDomainKey and deactivateDomainKey can be implemented via a 
+new function called updateDomainKey, which has three parameters (the other two 
+has only two parameters) where the third is a boolean which is true or false 
+depending on which function that was called from the beginning.
+
+
+=======================
+INFORMATION FOR LOGGING
+=======================
+
+If you have the parameter 'query-logging' or 'lua-logging-query' set to 
+true/yes/on, then you will see what is happening in each function when PowerDNS 
+calls them. 
+
+This can, hopefully, help you with some debugging if you run into some kind of 
+trouble with your Lua application.
+
+
+===============
+ASKING QUESTION
+===============
 
 You can send question about this backend to >dev/null first and if you don't get any 
 answer from that you can try to send them to me at fredan-pdns@fredan.org

@@ -150,11 +150,12 @@ void LUABackend::reload() {
 }
 
 void LUABackend::rediscover(string* status) {
-    if (logging)
-	L << Logger::Info << backend_name << "(rediscover) BEGIN" << endl;
     
     if (f_lua_rediscover == 0)
         return;
+
+    if (logging)
+	L << Logger::Info << backend_name << "(rediscover) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_rediscover);
 
