@@ -31,33 +31,34 @@ while(<>)
 
 	my ($type,$qname,$qclass,$qtype,$id,$ip,$netmask)=split(/\t/);
 	my $bits=21;
+	my $auth = 1;
 
 	if(($qtype eq "SOA" || $qtype eq "ANY") && $qname eq "example.com") {
 		print STDERR "$$ Sent SOA records\n";
-		print "DATA	$bits	$qname	$qclass	SOA	3600	-1	ahu.example.com ns1.example.com 2008080300 1800 3600 604800 3600\n";
+		print "DATA	$bits	$auth	$qname	$qclass	SOA	3600	-1	ahu.example.com ns1.example.com 2008080300 1800 3600 604800 3600\n";
 	}
 	if(($qtype eq "NS" || $qtype eq "ANY") && $qname eq "example.com") {
 		print STDERR "$$ Sent NS records\n";
-		print "DATA	$bits	$qname	$qclass	NS	3600	-1	ns1.example.com\n";
-		print "DATA	$bits	$qname	$qclass	NS	3600	-1	ns2.example.com\n";
+		print "DATA	$bits	$auth	$qname	$qclass	NS	3600	-1	ns1.example.com\n";
+		print "DATA	$bits	$auth	$qname	$qclass	NS	3600	-1	ns2.example.com\n";
 	}
 	if(($qtype eq "TXT" || $qtype eq "ANY") && $qname eq "example.com") {
 		print STDERR "$$ Sent NS records\n";
-		print "DATA	$bits	$qname	$qclass	TXT	3600	-1	\"hallo allemaal!\"\n";
+		print "DATA	$bits	$auth	$qname	$qclass	TXT	3600	-1	\"hallo allemaal!\"\n";
 	}
 	if(($qtype eq "A" || $qtype eq "ANY") && $qname eq "webserver.example.com") {
 		print STDERR "$$ Sent A records\n";
-		print "DATA	$bits	$qname	$qclass	A	3600	-1	1.2.3.4\n";
-		print "DATA	$bits	$qname	$qclass	A	3600	-1	1.2.3.5\n";
-		print "DATA	$bits	$qname	$qclass	A	3600	-1	1.2.3.6\n";
+		print "DATA	$bits	$auth	$qname	$qclass	A	3600	-1	1.2.3.4\n";
+		print "DATA	$bits	$auth	$qname	$qclass	A	3600	-1	1.2.3.5\n";
+		print "DATA	$bits	$auth	$qname	$qclass	A	3600	-1	1.2.3.6\n";
 	}
 	elsif(($qtype eq "CNAME" || $qtype eq "ANY") && $qname eq "www.example.com") {
 		print STDERR "$$ Sent CNAME records\n";
-		print "DATA	$bits	$qname	$qclass	CNAME	3600	-1	webserver.example.com\n";
+		print "DATA	$bits	$auth	$qname	$qclass	CNAME	3600	-1	webserver.example.com\n";
 	}
 	elsif($qtype eq "MBOXFW") {
 		print STDERR "$$ Sent MBOXFW records\n";
-		print "DATA	$bits	$qname	$qclass	MBOXFW	3600	-1	powerdns\@example.com\n";
+		print "DATA	$bits	$auth	$qname	$qclass	MBOXFW	3600	-1	powerdns\@example.com\n";
 	}
 
 

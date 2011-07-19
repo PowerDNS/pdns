@@ -191,9 +191,9 @@ bool PipeBackend::get(DNSResourceRecord &r)
    // The answer format:
    // DATA    qname           qclass  qtype   ttl     id      content 
    int abiVersion = ::arg().asNum("pipebackend-abi-version");
-   unsigned int extraField = 0;
+   unsigned int extraFields = 0;
    if(abiVersion == 3)
-     extraField = 1;
+     extraFields = 2;
      
    for(;;) {
      
@@ -215,38 +215,42 @@ bool PipeBackend::get(DNSResourceRecord &r)
          continue;
       }
       else if(parts[0]=="DATA") { // yay
-         
-         if(parts.size()<7 + extraField) {
+         if(parts.size() < 7 + extraFields) {
             L<<Logger::Error<<kBackendId<<" coprocess returned incomplete or empty line in data section for query for "<<d_qname<<endl;
             throw AhuException("Format error communicating with coprocess in data section");
             // now what?
          }
          
-         if(abiVersion == 3)
+         if(abiVersion == 3) {
            r.scopeMask = atoi(parts[1].c_str());
-         r.qname=parts[1+extraField];
-         r.qtype=parts[3+extraField];
-         r.ttl=atoi(parts[4+extraField].c_str());
-         r.domain_id=atoi(parts[5+extraField].c_str());
-         r.auth = 1;
+           r.auth = atoi(parts[2].c_str());
+         } else {
+           r.scopeMask = 0;
+           r.auth = 1;
+         }
+         r.qname=parts[1+extraFields];
+         r.qtype=parts[3+extraFields];
+         r.ttl=atoi(parts[4+extraFields].c_str());
+         r.domain_id=atoi(parts[5+extraFields].c_str());
+         
          
  
          if(r.qtype.getCode() != QType::MX && r.qtype.getCode() != QType::SRV) {
            r.content.clear();
-           for(unsigned int n= 6 + extraField; n < parts.size(); ++n) {
+           for(unsigned int n= 6 + extraFields; n < parts.size(); ++n) {
              if(n!=6)
                r.content.append(1,' ');
              r.content.append(parts[n]);
            }
          }
          else {
-           if(parts.size()< 8 + extraField) {
+           if(parts.size()< 8 + extraFields) {
             L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX/SRV line in data section for query for "<<d_qname<<endl;
             throw AhuException("Format error communicating with coprocess in data section of MX/SRV record");
            }
            
-           r.priority=atoi(parts[6+extraField].c_str());
-           r.content=parts[7+extraField];
+           r.priority=atoi(parts[6+extraFields].c_str());
+           r.content=parts[7+extraFields];
          }
          break;
       }
