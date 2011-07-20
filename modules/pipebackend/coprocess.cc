@@ -129,9 +129,8 @@ void CoProcess::send(const string &snd)
 
 void CoProcess::receive(string &receive)
 {
-  char line[1024];
-  memset(line,0,1024);
-  
+  receive.clear();
+    
   if(d_timeout) {
     struct timeval tv={tv_sec: d_timeout, tv_usec: 0,};
     fd_set rds;
@@ -144,15 +143,12 @@ void CoProcess::receive(string &receive)
       throw AhuException("Timeout waiting for data from coprocess");
   }
 
-  if(!fgets(line,1023,d_fp))
+  if(!stringfgets(d_fp, receive))
     throw AhuException("Child closed pipe");
   
-  char *p;
-  if((p=strrchr(line,'\n')))
-    *p=0;
-
-  receive=line;
+  chomp(receive, "\r\n");
 }
+
 void CoProcess::sendReceive(const string &snd, string &rcv)
 {
   checkStatus();
