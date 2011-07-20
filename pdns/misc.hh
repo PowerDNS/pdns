@@ -76,7 +76,6 @@ bool dottedEndsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
 string humanDuration(time_t passed);
-void chomp(string &line, const string &delim);
 bool stripDomainSuffix(string *qname, const string &domain);
 void stripLine(string &line);
 string getHostname();

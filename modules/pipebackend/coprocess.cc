@@ -146,7 +146,7 @@ void CoProcess::receive(string &receive)
   if(!stringfgets(d_fp, receive))
     throw AhuException("Child closed pipe");
   
-  chomp(receive, "\r\n");
+  trim_right(receive);
 }
 
 void CoProcess::sendReceive(const string &snd, string &rcv)
