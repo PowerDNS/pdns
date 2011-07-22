@@ -30,7 +30,7 @@ try
   
   string subnet = makeEDNSSubnetOptsString(eso);
   
-  opts.push_back(make_pair(6, subnet));
+  opts.push_back(make_pair(0x50fa, subnet));
   
   pw.addOpt(1200, 0, 0, opts); // 1200 bytes answer size
   pw.commit();
@@ -57,7 +57,7 @@ try
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
         iter != edo.d_options.end(); 
         ++iter) {
-        if(iter->first == 6) {
+        if(iter->first == 0x50fa) {
           EDNSSubnetOpts eso;
           if(getEDNSSubnetOptsFromString(iter->second, &eso)) {
             cerr<<"Subnet options in reply: source "<<eso.source.toString()<<", scope "<<eso.scope.toString()<<endl;

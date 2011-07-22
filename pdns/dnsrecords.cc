@@ -115,8 +115,8 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
   string::size_type pos=0;
   uint16_t code, len;
   while(d_data.size() >= 4 + pos) {
-    code = 0xff * d_data[pos] + d_data[pos+1];
-    len = 0xff * d_data[pos+2] + d_data[pos+3];
+    code = 256 * (unsigned char)d_data[pos] + (unsigned char)d_data[pos+1];
+    len = 256 * (unsigned char)d_data[pos+2] + (unsigned char)d_data[pos+3];
     pos+=4;
 
     if(pos + len > d_data.size())

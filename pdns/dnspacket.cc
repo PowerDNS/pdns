@@ -303,9 +303,8 @@ void DNSPacket::wrapup()
         eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
     
         string opt = makeEDNSSubnetOptsString(eso);
-        opts.push_back(make_pair(6, opt));
+        opts.push_back(make_pair(::arg().asNum("edns-subnet-option-number"), opt));
       }
-    
 
       if(!opts.empty() || d_dnssecOk)
         pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
@@ -483,8 +482,8 @@ try
       else if(iter->first == 5) {// 'EDNS PING'
         d_ednsping = iter->second;
       }
-      else if(iter->first == 6) { // 'EDNS SUBNET'
-        if(s_doEDNSSubnetProcessing && getEDNSSubnetOptsFromString(iter->second, &d_eso)) {
+      else if(s_doEDNSSubnetProcessing && iter->first == ::arg().asNum("edns-subnet-option-number")) { // 'EDNS SUBNET'
+        if(getEDNSSubnetOptsFromString(iter->second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
         } 
