@@ -238,7 +238,7 @@ bool CommunicatorClass::justNotified(const string &domain, const string &ip)
 void CommunicatorClass::makeNotifySockets()
 {
   d_nsock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
-  if(::arg().parmIsset("query-local-address6"))
+  if(!::arg()["query-local-address6"].empty())
     d_nsock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
   else
     d_nsock6 = -1;
