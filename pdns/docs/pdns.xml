@@ -95,7 +95,7 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0-RC3</title>
+      <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0</title>
       <para>
 	<warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade.
 	Please refer to <xref linkend="from2.9to3.0"/> for important information on 
@@ -16636,7 +16636,45 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
 	<filename>modules/mongodbbackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
       </para>
     </sect1>
-
+ <sect1 id="luabackend"><title>Lua Backend</title>
+      <para>
+	<warning>
+	  <para>
+	    This section is a subset of the full documentation which can be found in <filename>modules/luabackend/README</filename> of
+	    the PowerDNS distribution.
+	  </para>
+	</warning>
+      </para>
+      <para>
+	The main author for this module is fredrik danerklint.
+      </para>
+      <para>
+	<table>
+	  <title>Lua backend capabilities</title>
+	  <tgroup cols="2">
+	    <tbody>
+	      <row><entry>Native</entry><entry>Yes</entry></row>
+	      <row><entry>Master</entry><entry>Yes</entry></row>
+	      <row><entry>Slave</entry><entry>No</entry></row>
+	      <row><entry>Superslave</entry><entry>No</entry></row>
+	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+      <warning><para>The Lua Backend is available since PowerDNS Authoritative Server 3.0. In 3.0, this backend is marked as
+      Experimental!</para></warning>
+      </para>
+      <para>
+	The MongoDB backend is a full service that can allows a Lua script to provide answers to DNS queries.
+	</para>
+      <para>
+	More details can be found <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/luabackend/README">here</ulink>, or in
+	<filename>modules/luabackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
+      </para>
+    </sect1>
   </appendix>
 <appendix id="pdns-internals"><title>PDNS internals</title>
     <para>
