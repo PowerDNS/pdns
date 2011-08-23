@@ -619,7 +619,7 @@ void Bind2Backend::loadConfig(string* status)
     }
 
     sort(domains.begin(), domains.end()); // put stuff in inode order
-
+    DNSSECKeeper dk;
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
         i!=domains.end();
         ++i) 
@@ -659,7 +659,7 @@ void Bind2Backend::loadConfig(string* status)
         
         if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
-          DNSSECKeeper dk;
+
           NSEC3PARAMRecordContent ns3pr;
           bool nsec3zone=dk.getNSEC3PARAM(i->name, &ns3pr);
         
