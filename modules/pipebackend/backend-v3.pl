@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# sample PowerDNS Coprocess backend
+# sample PowerDNS Coprocess backend with edns-client-subnet support
 #
 
 use strict;
