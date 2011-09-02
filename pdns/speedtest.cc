@@ -549,7 +549,7 @@ struct ParsePacketTest
       // supplant
       for(tcache_t::iterator i=tcache.begin();i!=tcache.end();++i) {
         if(i->second.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
-          uint32_t lowestTTL=numeric_limits<uint32_t>::max();
+          uint32_t lowestTTL=std::numeric_limits<uint32_t>::max();
           for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
             lowestTTL=min(lowestTTL, j->ttl);
           

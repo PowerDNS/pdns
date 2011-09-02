@@ -59,7 +59,7 @@ struct SendReceive
     connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
     d_oks = d_errors = d_nodatas = d_nxdomains = d_unknowns = 0;
     d_receiveds = d_receiveerrors = d_senderrors = 0;
-    for(unsigned int id =0 ; id < numeric_limits<uint16_t>::max(); ++id) 
+    for(unsigned int id =0 ; id < std::numeric_limits<uint16_t>::max(); ++id) 
       d_idqueue.push_back(id);
   }
   
