@@ -170,7 +170,7 @@ struct SendReceive
 int main(int argc, char** argv)
 {
   if(argc != 3 && argc != 4) {
-    cerr<<"Syntax: dnsbulktest ip-address port number [limit] < top-1m.csv"<<endl;
+    cerr<<"Syntax: dnsbulktest ip-address portnumber [limit] < top-1m.csv"<<endl;
     exit(1);
   }
   SendReceive sr(argv[1], atoi(argv[2]));
