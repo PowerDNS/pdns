@@ -41,14 +41,14 @@ Run PowerDNS as:
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gmysql --gmysql-dbname=pdnstest --gmysql-user=root \
 --fancy-records --query-logging --send-root-referral --loglevel=9 \
---cache-ttl=0
+--cache-ttl=0 --no-config
 
 or:
 
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=bind --bind-config=./named.conf                \
 --fancy-records --query-logging --send-root-referral --loglevel=9    \
---cache-ttl=0
+--cache-ttl=0 --no-config
 
 
 The BIND backend can't do MBOXFW
