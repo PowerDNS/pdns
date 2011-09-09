@@ -62,7 +62,7 @@ public:
   static DNSRecordContent* make(const string& zone) 
   {
     AAAARecordContent *ar=new AAAARecordContent();
-    if(Utility::inet_pton( AF_INET6, zone.c_str(), static_cast< void * >( ar->d_ip6 )) < 0)
+    if(Utility::inet_pton( AF_INET6, zone.c_str(), static_cast< void * >( ar->d_ip6 )) <= 0)
       throw MOADNSException("Asked to encode '"+zone+"' as an IPv6 address, but does not parse");
     return ar;
   }

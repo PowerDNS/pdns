@@ -238,7 +238,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
          if(r.qtype.getCode() != QType::MX && r.qtype.getCode() != QType::SRV) {
            r.content.clear();
            for(unsigned int n= 6 + extraFields; n < parts.size(); ++n) {
-             if(n!=6)
+             if(n!=6+extraFields)
                r.content.append(1,' ');
              r.content.append(parts[n]);
            }
