@@ -179,7 +179,7 @@ UDPNameserver::UDPNameserver()
 void UDPNameserver::send(DNSPacket *p)
 {
   const string& buffer=p->getString();
-  DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->remote.toString() <<" ("<< buffer.length()<<" octets)"<<endl);
+  DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
     cerr<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
   }
