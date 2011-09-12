@@ -3895,7 +3895,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 
       <sect2 id="changelog-2-9-17"><title>Version 2.9.17</title>
 	<para>
-	  See <ulink url="http://wiki.powerdns.com/projects/trac/timeline">the new timeline</ulink> for progress reports.
+	  See <ulink url="http://wiki.powerdns.com/trac/timeline">the new timeline</ulink> for progress reports.
 	</para>
 	<para>
 	  The 'million domains' release - PowerDNS has now firmly established itself as a major player with the 
