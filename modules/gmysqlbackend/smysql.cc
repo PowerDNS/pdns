@@ -17,7 +17,10 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   mysql_init(&d_db);
   mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, "client");
   my_bool reconnect = 1;
+
+#if MYSQL_VERSION_ID >= 50013
   mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
+#endif
 
 #if MYSQL_VERSION_ID > 51000
   unsigned int timeout = 10;
