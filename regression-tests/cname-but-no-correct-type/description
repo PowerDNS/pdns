@@ -1,4 +1,3 @@
 Tries to resolve the AAAA for www.example.com, which is a CNAME to
 outpost.example.com, which has an A record, but no AAAA record. Should show
 CNAME and SOA.
-

@@ -1,4 +1,3 @@
 When something.example.com is delegated to NS records that reside *within*
 example.com, additional processing should place the A for the NS records in
 the additional section. NS records should come in the authority section.
-
