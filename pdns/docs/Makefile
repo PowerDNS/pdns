@@ -6,7 +6,7 @@ pdns-expanded.xml: pdns.xml
 	./expand < $< > $@
 	
 clean:
-	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log html.tar.gz html pdns
+	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.gz html pdns
 
 html/index.html: pdns-expanded.xml
 	xmlto xhtml -m config.xsl -o html $<
@@ -16,7 +16,7 @@ html.tar.gz: html/index.html
 	tar czf html.tar.gz html/
 
 %.txt: %-expanded.xml
-	xmlto text -m config.xsl  $<
+	xmlto txt -m config.xsl  $<
 	mv pdns-expanded.txt pdns.txt
 
 %.pdf: %-expanded.xml
