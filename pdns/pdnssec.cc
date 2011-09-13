@@ -91,6 +91,7 @@ void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
   ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
+  ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("launch","Which backends to launch");
   ::arg().set("dnssec","if we should do dnssec")="true";
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")=g_vm["config-name"].as<string>();
