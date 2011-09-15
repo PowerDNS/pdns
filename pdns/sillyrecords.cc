@@ -293,7 +293,7 @@ string LOCRecordContent::getZoneRepresentation() const
 
   double latitude= ((int32_t)d_latitude  - (1<<31))/3600000.0;
   double longitude=((int32_t)d_longitude - (1<<31))/3600000.0; 
-  double altitude= ((int32_t)d_altitude           )/100 - 100000;
+  double altitude= ((int32_t)d_altitude           )/100.0 - 100000;
   
   double size=0.01*((d_size>>4)&0xf);
   int count=d_size & 0xf;
