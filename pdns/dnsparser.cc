@@ -467,7 +467,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
 
 void PacketReader::xfrBlob(string& blob)
 {
-  if(d_recordlen)
+  if(d_recordlen && !(d_pos == (d_startrecordpos + d_recordlen)))
     blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
   else
     blob.clear();
