@@ -30,14 +30,19 @@ StatWebServer::StatWebServer()
 {
   d_start=time(0);
   d_min10=d_min5=d_min1=0;
-  d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
+  d_ws = 0;
+  if(arg().mustDo("webserver"))
+    d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
 }
 
 void StatWebServer::go()
 {
-  S.doRings();
-  pthread_create(&d_tid, 0, threadHelper, this);
-  pthread_create(&d_tid, 0, statThreadHelper, this);
+  if(arg().mustDo("webserver"))
+  {
+    S.doRings();
+    pthread_create(&d_tid, 0, threadHelper, this);
+    pthread_create(&d_tid, 0, statThreadHelper, this);
+  }
 }
 
 void StatWebServer::statThread()
