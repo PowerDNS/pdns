@@ -5859,7 +5859,7 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	  <itemizedlist>
 	    <listitem>
 	      <para>
-		Added support for RFC 2038 compliant negative-answer caching. This allows remotes to cache the fact that 
+		Added support for RFC 2308 compliant negative-answer caching. This allows remotes to cache the fact that 
 		a domain does not exist and will not exist for a while. Thanks to Chris Thompson for <ulink url="http://ops.ietf.org/lists/namedroppers/namedroppers.2002/msg01697.html">pointing out how tiny our minds are</ulink>. This feature may cause a noticeable reduction
 		in query load.
 	      </para>
