@@ -113,9 +113,9 @@ void declareArguments()
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
-  ::arg().set("recursive-cache-ttl","Seconds to store packets in the PacketCache")="10";
-  ::arg().set("negquery-cache-ttl","Seconds to store packets in the PacketCache")="60";
-  ::arg().set("query-cache-ttl","Seconds to store packets in the PacketCache")="20";
+  ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
+  ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
+  ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
   ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";
   ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";

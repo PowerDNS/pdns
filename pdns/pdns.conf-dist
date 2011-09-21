@@ -160,7 +160,7 @@
 # module-dir=/usr/local/lib
 
 #################################
-# negquery-cache-ttl	Seconds to store packets in the PacketCache
+# negquery-cache-ttl	Seconds to store negative query results in the QueryCache
 #
 # negquery-cache-ttl=60
 
@@ -180,7 +180,7 @@
 # pipebackend-abi-version=1
 
 #################################
-# query-cache-ttl	Seconds to store packets in the PacketCache
+# query-cache-ttl	Seconds to store query results in the QueryCache
 #
 # query-cache-ttl=20
 
@@ -200,7 +200,7 @@
 # queue-limit=1500
 
 #################################
-# recursive-cache-ttl	Seconds to store packets in the PacketCache
+# recursive-cache-ttl	Seconds to store packets for recursive queries in the PacketCache
 #
 # recursive-cache-ttl=10
 
