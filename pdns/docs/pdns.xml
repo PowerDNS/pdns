@@ -12481,6 +12481,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 	      The IP address to use as a source address for sending queries. Useful if you have multiple IPs and pdns is not bound to the IP address your operating system uses by default for outgoing packets.
 	    </para></listitem></varlistentry>
+	  <varlistentry><term>query-local-address6=...</term>
+	    <listitem><para>
+	      Source IP address for sending IPv6 queries.
+	    </para></listitem></varlistentry>  
 	  <varlistentry><term>query-logging | query-logging=yes | query-logging=no</term>
 	    <listitem><para>
 	      Hints to a backend that it should log a textual representation of queries it performs. Can be set at runtime.
@@ -14254,7 +14258,7 @@ CREATE TABLE Zones (
 	  <title>Generic PgSQL and MySQL backend capabilities</title>
 	  <tgroup cols="2">
 	    <tbody>
-	      <row><entry>Native</entry><entry>Yes - but PostgreSQL does not replicate</entry></row>
+	      <row><entry>Native</entry><entry>Yes</entry></row>
 	      <row><entry>Master</entry><entry>Yes</entry></row>
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
@@ -14767,7 +14771,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 		<para>
 		  Called to update the last time a slave domain was checked for freshness.
 		  Default: <command>
-		    update domains set notified_serial=%d where id=%d
+		    update domains set last_check=%d where id=%d
 		  </command>
 		</para>
 	      </listitem>

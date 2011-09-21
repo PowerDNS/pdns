@@ -309,7 +309,6 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
     SOAData soadata;
-    soadata.serial=0;
     soadata.refresh=0;
     soadata.serial=0;
     soadata.db=(DNSBackend *)-1; // not sure if this is useful, inhibits any caches that might be around
