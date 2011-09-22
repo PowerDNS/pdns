@@ -90,6 +90,8 @@ void UDPNameserver::bindIPv4()
     struct sockaddr_in locala;
 
     s=socket(AF_INET,SOCK_DGRAM,0);
+    Utility::setCloseOnExec(s);
+
     if(s<0)
       throw AhuException("Unable to acquire a UDP socket: "+string(strerror(errno)));
   
@@ -141,6 +143,7 @@ void UDPNameserver::bindIPv6()
     string localname(*i);
 
     s=socket(AF_INET6,SOCK_DGRAM,0);
+    Utility::setCloseOnExec(s);
     if(s<0)
       throw AhuException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
   

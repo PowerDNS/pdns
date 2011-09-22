@@ -260,6 +260,8 @@ void startDoResolve(void *p)
 void makeClientSocket()
 {
   d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
+  Utility::setCloseOnExec(d_clientsock);
+
   if(d_clientsock<0) 
     throw AhuException("Making a socket for resolver: "+stringerror());
   
@@ -285,6 +287,8 @@ void makeClientSocket()
 void makeTCPServerSocket()
 {
   d_tcpserversock=socket(AF_INET, SOCK_STREAM,0);
+  Utility::setCloseOnExec(d_tcpserversock);
+
   if(d_tcpserversock<0) 
     throw AhuException("Making a server socket for resolver: "+stringerror());
   
@@ -318,6 +322,7 @@ void makeTCPServerSocket()
 void makeServerSocket()
 {
   d_serversock=socket(AF_INET, SOCK_DGRAM,0);
+  Utility::setCloseOnExec(d_serversock);
   if(d_serversock<0) 
     throw AhuException("Making a server socket for resolver: "+stringerror());
   

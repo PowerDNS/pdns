@@ -323,6 +323,8 @@ public:
   static int makeClientSocket(int family)
   {
     int ret=(int)socket(family, SOCK_DGRAM, 0);
+    Utility::setCloseOnExec(ret);
+
     if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
       return ret;
     
@@ -918,6 +920,8 @@ void makeTCPServerSockets()
     }
 
     fd=socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
+    Utility::setCloseOnExec(fd);
+
     if(fd<0) 
       throw AhuException("Making a TCP server socket for resolver: "+stringerror());
 
@@ -982,6 +986,7 @@ void makeUDPServerSockets()
     }
     
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
+    Utility::setCloseOnExec(fd);
 
     if(fd < 0) {
       throw AhuException("Making a UDP server socket for resolver: "+netstringerror());

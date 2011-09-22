@@ -65,6 +65,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
   port_counter++; // this makes us use a new port for each query, fixes ticket #2
   
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
+  Utility::setCloseOnExec(sock);
   if(sock < 0)
     unixDie("Creating local resolver socket for "+ourLocal.toString());
 

@@ -10,6 +10,8 @@ using boost::lexical_cast;
 MemcachedCommunicator::MemcachedCommunicator(const std::string& servers)
 {
   d_socket=socket(AF_INET, SOCK_DGRAM, 0);
+  Utility::setCloseOnExec(d_socket);
+
   ComboAddress remote(servers, 11211);
   if(connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen()) < 0)
     unixDie("connecting to remote memcached server '"+remote.toStringWithPort()+"'");

@@ -226,6 +226,7 @@ try
   for(vector<string>::const_iterator address = addresses.begin(); address != addresses.end(); ++address) {
     ComboAddress local(*address, 53);
     int sock = socket(local.sin4.sin_family, SOCK_DGRAM, 0);
+    Utility::setCloseOnExec(sock);
     if(sock < 0)
       throw runtime_error("Creating socket for incoming packets: "+stringerror());
 
@@ -239,6 +240,8 @@ try
   // create socket that talks to inner PowerDNS
 
   g_pdnssocket=socket(AF_INET, SOCK_DGRAM, 0);
+  Utility::setCloseOnExec(g_pdnssocket);
+
   if(g_pdnssocket < 0)
     throw runtime_error("Creating socket for packets to PowerDNS: "+stringerror());
 

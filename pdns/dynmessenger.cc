@@ -28,6 +28,7 @@
 DynMessenger::DynMessenger(const string &localdir, const string &fname)
 {
   d_s=socket(AF_UNIX,SOCK_STREAM,0);
+  Utility::setCloseOnExec(d_s);
   
   if(d_s<0) {
     throw AhuException(string("socket")+strerror(errno));
@@ -72,7 +73,8 @@ DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
 {
   *d_local.sun_path=0;
   d_s=socket(AF_INET, SOCK_STREAM,0);
-  
+  Utility::setCloseOnExec(d_s);
+ 
   if(d_s<0) {
     throw AhuException(string("socket")+strerror(errno));
   }

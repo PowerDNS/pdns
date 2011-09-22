@@ -119,6 +119,7 @@ void Session::doConnect(uint32_t ip, int port)
 {
   init();
   clisock=socket(AF_INET,SOCK_STREAM,0);
+  Utility::setCloseOnExec(clisock);
   
   memset(&remote,0,sizeof(remote));
   remote.sin_family=AF_INET;
@@ -392,6 +393,7 @@ Server::Server(int p, const string &p_localaddress)
 
   struct sockaddr_in local;
   s=socket(AF_INET,SOCK_STREAM,0);
+  Utility::setCloseOnExec(s);
 
   if(s<0)
     throw Exception(string("socket: ")+strerror(errno));

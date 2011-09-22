@@ -82,6 +82,8 @@ ChunkedSigningPipe::ChunkedSigningPipe(const std::string& signerName, bool mustS
   for(unsigned int n=0; n < d_numworkers; ++n) {
     if(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) < 0) 
       throw runtime_error("Unable to create communication socket in for ChunkedSigningPipe");
+    Utility::setCloseOnExec(fds[0]);
+    Utility::setCloseOnExec(fds[1]);
     pthread_create(&d_tids[n], 0, helperWorker, (void*) new StartHelperStruct(this, n, fds[1]));
     Utility::setNonBlocking(fds[0]);
     d_sockets.push_back(fds[0]);

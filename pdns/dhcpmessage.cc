@@ -102,6 +102,7 @@ DHCPCommunicator::DHCPCommunicator(const std::string& remoteAddr)
 {
   ComboAddress remote(remoteAddr, 67); // 195.241.76.195,  82.169.27.254
   d_socket =socket(AF_INET, SOCK_DGRAM, 0);
+  Utility::setCloseOnExec(d_socket)
 
   int tmp = 1;
   if(setsockopt(d_socket, SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 

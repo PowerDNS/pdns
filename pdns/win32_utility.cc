@@ -364,6 +364,12 @@ bool Utility::setNonBlocking( Utility::sock_t socket )
   return true;
 }
 
+// Marks the socket to be closed on exec().
+// No-op on Windows.
+bool Utility::setCloseOnExec(sock_t sock)
+{
+  return true;
+}
 
 // Sleeps for a number of seconds.
 unsigned int Utility::sleep( unsigned int seconds )

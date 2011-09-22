@@ -30,7 +30,8 @@ RecursorControlChannel::~RecursorControlChannel()
 int RecursorControlChannel::listen(const string& fname)
 {
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
-    
+  Utility::setCloseOnExec(d_fd);
+
   if(d_fd < 0) 
     throw AhuException("Creating UNIX domain socket: "+string(strerror(errno)));
   
@@ -57,7 +58,8 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   struct sockaddr_un remote;
 
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
-    
+  Utility::setCloseOnExec(d_fd);
+
   if(d_fd < 0) 
     throw AhuException("Creating UNIX domain socket: "+string(strerror(errno)));
   

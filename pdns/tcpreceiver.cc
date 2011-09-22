@@ -194,6 +194,7 @@ catch(NetworkError& ae) {
 static void proxyQuestion(shared_ptr<DNSPacket> packet)
 {
   int sock=socket(AF_INET, SOCK_STREAM, 0);
+  Utility::setCloseOnExec(sock);
   if(sock < 0)
     throw NetworkError("Error making TCP connection socket to recursor: "+stringerror());
 
@@ -762,6 +763,7 @@ TCPNameserver::TCPNameserver()
 
   for(vector<string>::const_iterator laddr=locals.begin();laddr!=locals.end();++laddr) {
     int s=socket(AF_INET,SOCK_STREAM,0); 
+    Utility::setCloseOnExec(s);
 
     if(s<0) 
       throw AhuException("Unable to acquire TCP socket: "+stringerror());
@@ -795,6 +797,7 @@ TCPNameserver::TCPNameserver()
 #if !WIN32 && HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     int s=socket(AF_INET6,SOCK_STREAM,0); 
+    Utility::setCloseOnExec(s);
 
     if(s<0) 
       throw AhuException("Unable to acquire TCPv6 socket: "+stringerror());
