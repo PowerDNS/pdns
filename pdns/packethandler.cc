@@ -1095,13 +1095,14 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &
   else {
     DLOG(L<<"The best wildcard match: "<<rrset.begin()->qname<<endl);
     BOOST_FOREACH(DNSResourceRecord rr, rrset) {
+      rr.wildcardname = rr.qname;
+      rr.qname=target;
+
       if(rr.qtype.getCode() == QType::CNAME)  {
         retargeted=true;
         target=rr.content;
       }
   
-      rr.wildcardname = rr.qname;
-      rr.qname=p->qdomain;
       DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
       rr.d_place=DNSResourceRecord::ANSWER;
       r->addRecord(rr);

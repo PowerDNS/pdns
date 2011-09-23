@@ -43,6 +43,7 @@ loop2			IN	CNAME	loop3
 loop3			IN	CNAME	loop1
 ;
 external		IN	CNAME 	somewhere.else.net.
+semi-external		IN	CNAME	bla.something.wtest.com.
 server1			IN	CNAME	server1.france
 ; for out-of-bailiwick referral testing
 france			IN	NS	ns1.otherprovider.net.

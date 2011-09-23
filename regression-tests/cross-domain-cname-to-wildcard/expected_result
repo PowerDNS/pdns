@@ -1,0 +1,4 @@
+0	bla.something.wtest.com.	IN	A	3600	4.3.2.1
+0	semi-external.example.com.	IN	CNAME	120	bla.something.wtest.com.
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='semi-external.example.com.', qtype=A
