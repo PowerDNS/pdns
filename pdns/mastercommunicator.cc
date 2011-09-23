@@ -35,45 +35,11 @@
 
 #include "namespaces.hh"
 
-// class that one day might be more than a function to help you get IP addresses for a nameserver
-class FindNS
-{
-public:
-  vector<string> lookup(const string &name, DNSBackend *B)
-  {
-    vector<string> addresses;
-    
-    struct addrinfo* res;
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    
-    for(int n = 0; n < 2; ++n) {
-      hints.ai_family = n ? AF_INET : AF_INET6;
-      ComboAddress remote;
-      remote.sin4.sin_family = AF_INET6;
-      if(!getaddrinfo(name.c_str(), 0, &hints, &res)) { 
-        struct addrinfo* address = res;
-        do {
-          memcpy(&remote, address->ai_addr, address->ai_addrlen);
-          addresses.push_back(remote.toString());
-        } while((address = address->ai_next));
-        freeaddrinfo(res);
-      }
-    }
-    
-    B->lookup(QType(QType::ANY),name);
-    DNSResourceRecord rr;
-    while(B->get(rr)) 
-      if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
-        addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
-
-    return addresses;
-  }
-}d_fns;
 
 void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
 {
   set<string> ips;
+  FindNS fns;
   
   DNSResourceRecord rr;
   set<string> nsset;
@@ -82,7 +48,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     nsset.insert(rr.content);
   
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string> nsips=d_fns.lookup(*j, B);
+    vector<string> nsips=fns.lookup(*j, B);
     if(nsips.empty())
       L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
     for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k)

@@ -380,22 +380,60 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
       return true;
     }
   }
-    
-
-  if(!::arg().mustDo("per-zone-axfr-acls") && (::arg()["allow-axfr-ips"].empty() || d_ng.match( (ComboAddress *) &q->d_remote )))
+  
+  // cerr<<"checking allow-axfr-ips"<<endl;
+  if(!(::arg()["allow-axfr-ips"].empty()) && d_ng.match( (ComboAddress *) &q->d_remote )) {
+    L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in allow-axfr-ips"<<endl;
     return true;
-#if 0
-  if(::arg().mustDo("per-zone-axfr-acls")) {
-    SOAData sd;
-    sd.db=(DNSBackend *)-1;
-    if(s_P->getBackend()->getSOA(q->qdomain,sd)) {
-      DNSBackend *B=sd.db;
-      if (B->checkACL(string("allow-axfr"), q->qdomain, q->getRemote())) {
-        return true;
-      }
-    }  
   }
-#endif
+
+  FindNS fns;
+
+  // cerr<<"doing per-zone-axfr-acls"<<endl;
+  SOAData sd;
+  sd.db=(DNSBackend *)-1;
+  if(s_P->getBackend()->getSOA(q->qdomain,sd)) {
+    // cerr<<"got backend and SOA"<<endl;
+    DNSBackend *B=sd.db;
+    vector<string> acl;
+    B->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
+    for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
+      // cerr<<"matching against "<<*i<<endl;
+      if(pdns_iequals(*i, "AUTO-NS")) {
+        // cerr<<"AUTO-NS magic please!"<<endl;
+
+        DNSResourceRecord rr;
+        set<string> nsset;
+
+        B->lookup(QType(QType::NS),q->qdomain);
+        while(B->get(rr)) 
+          nsset.insert(rr.content);
+        for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
+          vector<string> nsips=fns.lookup(*j, B);
+          for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+            // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
+            if(*k == q->getRemote())
+            {
+              // cerr<<"got AUTO-NS hit"<<endl;
+              L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in NSset"<<endl;
+              return true;
+            }
+          }
+        }
+      }
+      else
+      {
+        Netmask nm = Netmask(*i);
+        if(nm.match( (ComboAddress *) &q->d_remote ))
+        {
+          L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in per-domain ACL"<<endl;
+          // cerr<<"hit!"<<endl;
+          return true;
+        }
+      }
+    }
+  }  
+
   extern CommunicatorClass Communicator;
 
   if(Communicator.justNotified(q->qdomain, q->getRemote())) { // we just notified this ip 
@@ -403,6 +441,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     return true;
   }
 
+  L<<Logger::Error<<"AXFR of domain '"<<q->qdomain<<"' denied: client IP "<<q->getRemote()<<" has no permission"<<endl;
   return false;
 }
 

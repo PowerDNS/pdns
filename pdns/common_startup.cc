@@ -128,7 +128,6 @@ void declareArguments()
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
-  ::arg().setSwitch("per-zone-axfr-acls","When set, backends that implement it perform per-zone AXFL ACL checks")="off";
 
   ::arg().setSwitch( "use-logfile", "Use a log file (Windows only)" )= "no";
   ::arg().set( "logfile", "Logfile to use (Windows only)" )= "pdns.log";
