@@ -12520,7 +12520,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>skip-cname | --skip-cname=yes | --skip-cname=no</term>
 	    <listitem><para>
-		Do not perform CNAME indirection for each query. Has performance implications. See <xref linkend="security"/>.
+		Do not perform CNAME indirection for each query. Has performance implications. See <xref linkend="performance"/>.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>slave-cycle-interval=60</term>
 	    <listitem><para>
