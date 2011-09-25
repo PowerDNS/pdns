@@ -14727,7 +14727,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 		<para>
 		  Called to determine if a certain host is a supermaster for a certain domain name.
 		  Default: <command>
-		    select account from supermasters where ip='%s' and nameserver='%s');
+		    select account from supermasters where ip='%s' and nameserver='%s';
 		  </command>
 		</para>
 	      </listitem>
