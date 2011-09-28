@@ -160,7 +160,8 @@ dnsreplay_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES=nproxy.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh \
-	sillyrecords.cc selectmplexer.cc   mplexer.hh
+	sillyrecords.cc selectmplexer.cc   mplexer.hh misc.cc nsecrecords.cc  unix_utility.cc qtype.cc \
+	logger.cc statbag.cc base32.cc
 
 nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 nproxy_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
