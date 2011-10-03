@@ -5,4 +5,5 @@ then
 	rm -f drill.test.output
 else
 	cat drill.test.output >> dnssec-validation-failures
+	echo '-- MARK --' >> dnssec-validation-failures
 fi

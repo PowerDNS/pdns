@@ -50,5 +50,7 @@ echo -n "$res%) "
 echo tests passed, $skipped were skipped
 if [ -s dnssec-validation-failures ]
 then
-	echo at least one test led to a DNSSEC validation failure, please see dnssec-validation-failures
+	echo
+	echo there appear to have been $(grep -c '^-- MARK --' dnssec-validation-failures) DNSSEC validation failures.
+	echo Please see the 'dnssec-validation-failures' file for details.
 fi
