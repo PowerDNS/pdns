@@ -1,2 +1,8 @@
 #!/bin/sh
 ../pdns/sdig $nameserver $port $1 $2 | sort
+if drill -p $port -o rd -D -k trustedkeys $1 $2 @$nameserver > drill.test.output
+then
+	rm -f drill.test.output
+else
+	cat drill.test.output >> dnssec-validation-failures
+fi

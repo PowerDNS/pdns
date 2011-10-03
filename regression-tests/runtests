@@ -3,7 +3,7 @@ PATH=.:$PATH
 
 make -C ../pdns sdig || false
 
-rm -f test-results failed_tests passed_tests skipped_tests */real_result */diff
+rm -f test-results failed_tests passed_tests skipped_tests */real_result */diff dnssec-validation-failures
 
 passed=0
 failed=0
@@ -48,4 +48,7 @@ echo -n " ("
 res=$((echo scale=2; echo 100*$passed/\($passed+$failed\)) | bc )
 echo -n "$res%) "
 echo tests passed, $skipped were skipped
-
+if [ -s dnssec-validation-failures ]
+then
+	echo at least one test led to a DNSSEC validation failure, please see dnssec-validation-failures
+fi
