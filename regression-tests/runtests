@@ -1,13 +1,15 @@
 #!/bin/bash
 PATH=.:$PATH
 
-rm -f test-results failed_tests passed_tests
+make -C ../pdns sdig || false
+
+rm -f test-results failed_tests passed_tests skipped_tests */real_result */diff
 
 passed=0
 failed=0
 skipped=0
 
-for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn) 
+for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
 do
 	echo  "$a: "
 	cat $a/description 

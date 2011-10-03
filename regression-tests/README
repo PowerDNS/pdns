@@ -29,29 +29,37 @@ How to run
 
 First make sure PowerDNS has access to the testing zone, which is in the
 file 'testzone'. Use the 'zone2sql' tool to create sql and feed it to your
-database. 
+database if you want to test one of the sql backends.
 
-Set the 'nameserver' variable to the IP address of the nameserver you want
-to test:
-
-$ nameserver=127.0.0.1 ./runtests
-
-Run PowerDNS as:
+Run PowerDNS as (to test gmysql):
 
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gmysql --gmysql-dbname=pdnstest --gmysql-user=root \
 --fancy-records --query-logging --send-root-referral --loglevel=9 \
 --cache-ttl=0 --no-config
 
-or:
-
+or (to test bind, without DNSSEC):
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=bind --bind-config=./named.conf                \
 --fancy-records --query-logging --send-root-referral --loglevel=9    \
 --cache-ttl=0 --no-config
 
+or (to test bind,gsqlite3):
 
-The BIND backend can't do MBOXFW
+$ ./bind-gsqlite3-setup
+$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+--no-shuffle --launch=bind,gsqlite3 --bind-config=./named.conf       \
+--gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
+--fancy-records --query-logging --send-root-referral --loglevel=9    \
+--cache-ttl=0 --no-config
+
+Set the 'nameserver' and 'port' variables to point to your pdns_server
+instance:
+
+$ nameserver=127.0.0.1 port=5300 ./runtests
+
+The BIND backend can't do MBOXFW. The 'any-query' test is known to fail
+with bind,gsqlite3.
 
 Analysing results
 -----------------

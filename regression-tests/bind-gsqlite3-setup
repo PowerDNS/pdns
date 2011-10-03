@@ -1,0 +1,9 @@
+#!/bin/sh
+rm -f powerdns.sqlite3
+sqlite3 powerdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
+sqlite3 powerdns.sqlite3 < ../pdns/dnssec.schema.sqlite3.sql
+for zone in $(grep zone named.conf  | cut -f2 -d\")
+do
+	sqlite3 powerdns.sqlite3 "INSERT INTO DOMAINS (name, type) VALUES('$zone','NATIVE');"	
+	pdnssec --config-dir=. secure-zone $zone 2>&1
+done
