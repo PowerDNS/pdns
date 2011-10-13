@@ -8,6 +8,7 @@ distclean: clean
 
 install:
 	
+check:
 
 distdir:
 	mkdir -p $(distdir)
