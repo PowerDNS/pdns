@@ -23,13 +23,13 @@ while(<>)
 	print STDERR "$$ Received: $_";
 	chomp();
 	my @arr=split(/\t/);
-	if(@arr < 7) {
+	if(@arr < 8) {
 		print "LOG	PowerDNS sent unparseable line\n";
 		print "FAIL\n";
 		next;
 	}
 
-	my ($type,$qname,$qclass,$qtype,$id,$ip,$netmask)=split(/\t/);
+	my ($type,$qname,$qclass,$qtype,$id,$ip,$localip,$ednsip)=split(/\t/);
 	my $bits=21;
 	my $auth = 1;
 

@@ -13628,7 +13628,8 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      </para>
 	      <para>
 		If not set the default pipebackend-abi-version is 1. When set to 2, the local-ip-address field is added
-		after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on)
+		after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on). When
+		set to 3, the real remote IP/subnet is added based on edns-subnet support (this also requires enabling 'edns-subnet-processing').
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -13638,13 +13639,15 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
       <sect2 id="pipebackend-protocol"><title>PipeBackend protocol</title>
 	<para>
 	  Questions come in over a file descriptor, by default standard input. Answers
-	  are sent out over another file descriptor, standard output by default.
+	  are sent out over another file descriptor, standard output by default. Questions
+	  and answers are terminated by single newline ('\n') characters.
 	</para>
 	<sect3>
       <title>Handshake</title>
       <para>
         PowerDNS sends out 'HELO\t1', indicating that it wants to speak the
-        protocol as defined in this document, version 1.
+        protocol as defined in this document, version 1. For abi-version 2 or 3, PowerDNS
+        sends 'HELO\t2' or 'HELO\t3'.
         
         A PowerDNS CoProcess must then send out a banner, prefixed by 'OK\t', 
         indicating it launched successfully. If it does not support the indicated
@@ -13653,7 +13656,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
       </para></sect3>
     <sect3><title>Questions</title>
       <para>
-        Questions come in three forms and are prefixed by a tag indicating the kind:
+        Questions come in three forms and are prefixed by a tag indicating the type:
 	<variablelist>
 	  <varlistentry>
 	    <term>Q</term>
@@ -13680,31 +13683,61 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    </listitem>
 	  </varlistentry>
         </variablelist>
-The question format:
+       </para>
+<para>
+The question format, for type Q questions:
+</para>
 
+<para>
 pipebackend-abi-version = 1 [default]
 <screen>
-type	qname		qclass	qtype	id	remote-ip-address
+Q	qname		qclass	qtype	id	remote-ip-address
 </screen>
-
+</para>
+<para>
 pipebackend-abi-version = 2
 <screen>
-type	qname		qclass	qtype	id	remote-ip-address	local-ip-address
+Q	qname		qclass	qtype	id	remote-ip-address	local-ip-address
 </screen>
+</para>
 
+<para>
+pipebackend-abi-version = 3
+<screen>
+Q	qname		qclass	qtype	id	remote-ip-address	local-ip-address	edns-subnet-address
+</screen>
+</para>
+
+<para>
 Fields are tab separated, and terminated with a single \n. The remote-ip-address is the IP address
 of the nameserver asking the question; the local-ip-address is the IP address on which the question
 was received.
+</para>
 
+<para>
 Type is the tag above, qname is the domain the question is about. qclass is
 always 'IN' currently, denoting an INternet question. qtype is the kind of
 information desired, the record type, like A, CNAME or AAAA. id can be
 specified to help your backend find an answer if the id is already known
-from an earlier query. You can ignore it.
+from an earlier query. You can ignore it unless you want to support AXFR.
+</para>
 
+<para>
 remote-ip-address is the ip-address of the nameserver asking the question.
-local-ip-address is the ip-address that was querried locally.
-      </para></sect3>
+local-ip-address is the ip-address that was queried locally. edns-subnet-address
+is the actual client subnet as provided via edns-subnet support. Note that for the SOA
+query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
+</para>
+
+<para>
+AXFR-queries look like this:
+<screen>
+AXFR	id
+</screen>
+The id is gathered from the answer to a SOA query.
+
+</para> 
+ </sect3>
     <sect3><title>Answers</title>
       <para>
 
@@ -13714,7 +13747,7 @@ local-ip-address is the ip-address that was querried locally.
 	    <term>DATA</term>
 	    <listitem>
 	      <para>
-                Indicating a successful line of DATA
+                Indicating a successful line of DATA.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -13722,7 +13755,7 @@ local-ip-address is the ip-address that was querried locally.
 	    <term>END</term>
 	    <listitem>
 	      <para>
-                Indicating the end of an answer - no further data
+                Indicating the end of an answer - no further data.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -13740,7 +13773,7 @@ local-ip-address is the ip-address that was querried locally.
 	      <para>
                 For specifying things that should be logged. Can only be sent after
                 a query and before an END line. After the tab, the message to be
-                logged
+                logged.
                 
 	      </para>
 	    </listitem>
@@ -13748,21 +13781,23 @@ local-ip-address is the ip-address that was querried locally.
         </variablelist>
 
 
-        So letting it be known that there is no data consists if sending 'END'
+        So, letting it be known that there is no data consists of sending 'END'
         without anything else.
 
 
-The answer format:
+The answer format (for abi-version 1 and 2):
 <screen>
 DATA	qname		qclass	qtype	ttl	id	content	
 </screen>
 
 'content' is as specified in <xref linkend="types"/>.
 
-A sample dialogue may look like this:
+A sample dialogue may look like this (note that in reality,
+almost all queries will actually be for the ANY qtype):
 <screen>
 Q	www.ds9a.nl	IN	CNAME	-1	213.244.168.210
 DATA	www.ds9a.nl	IN	CNAME	3600	1 ws1.ds9a.nl
+END
 Q	ws1.ds9a.nl	IN	CNAME	-1	213.244.168.210
 END
 Q	wd1.ds9a.nl	IN	A	-1	213.244.168.210
@@ -13772,7 +13807,7 @@ DATA	ws1.ds9a.nl	IN	A	3600	1	1.2.3.6
 END
 </screen>
 
-	  This would correspond to a remote webserver 213.244.168.210 wanting to
+This would correspond to a remote webserver 213.244.168.210 wanting to
 resolve the IP address of www.ds9a.nl, and PowerDNS traversing the CNAMEs to
 find the IP addresses of ws1.ds9a.nl
 
@@ -13794,6 +13829,17 @@ END
 
 This is a typical zone transfer.
 	  </para>
+<para>
+	For abi-version 3, DATA-responses get two extra fields:
+<screen>
+DATA	scopebits	auth	qname		qclass	qtype	ttl	id	content	
+</screen>
+
+scopebits indicates how many bits from the subnet provided in the question
+(originally from edns-subnet) were used in determining this answer. This can
+aid caching (although PowerDNS does not currently use this value). The auth
+field indicates whether this response is authoritative; this is for DNSSEC.
+</para>
 	</sect3>
 	<sect3>
 	<title>Sample perl backend</title>
