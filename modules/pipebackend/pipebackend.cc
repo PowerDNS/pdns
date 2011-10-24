@@ -113,7 +113,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
          ostringstream query;
          string localIP="0.0.0.0";
          string remoteIP="0.0.0.0";
-         Netmask realRemote;
+         Netmask realRemote("0.0.0.0/0");
          if (pkt_p) {
             localIP=pkt_p->getLocal();
             realRemote = pkt_p->getRealRemote();
