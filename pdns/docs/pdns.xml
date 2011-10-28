@@ -12969,7 +12969,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <term>SPF (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      SPF records can be used to store Sender Permitted From details. 
+	      SPF records can be used to store Sender Policy Framework details (RFC 4408). 
 	    </para>
 	  </listitem>      
 	</varlistentry>
