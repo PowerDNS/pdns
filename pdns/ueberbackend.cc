@@ -333,7 +333,7 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
     return 0;
   
   std::istringstream istr(content);
-  boost::archive::binary_iarchive boa(istr);
+  boost::archive::binary_iarchive boa(istr, boost::archive::no_header);
   rrs.clear();
   boa >> rrs;
   return 1;
@@ -357,7 +357,7 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
   
   //  L<<Logger::Warning<<"inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
   std::ostringstream ostr;
-  boost::archive::binary_oarchive boa(ostr);
+  boost::archive::binary_oarchive boa(ostr, boost::archive::no_header);
   
   boa << rrs;
   PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), queryttl, q.zoneId);
