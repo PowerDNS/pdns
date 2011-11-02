@@ -122,12 +122,6 @@ linux*)
 	THREADFLAGS="-pthread"
 	CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
 	;;
-openbsd*)
-	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-	DYNLINKFLAGS="-rdynamic"
-	LDFLAGS="-lc_r $LDFLAGS"
-	CXXFLAGS="-pthread $CXXFLAGS"
-	;;
 *)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
 	DYNLINKFLAGS="-rdynamic"
