@@ -14308,7 +14308,7 @@ CREATE TABLE Zones (
 	      <row><entry>Master</entry><entry>Yes</entry></row>
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>Yes</entry></row>
-	      <row><entry>Autoserial</entry><entry>NO</entry></row>
+	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
 	      <row><entry>DNSSEC</entry><entry>Yes (set gmysql-dnssec or gpgsql-dnssec)</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
