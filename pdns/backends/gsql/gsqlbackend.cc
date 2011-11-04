@@ -273,6 +273,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   
   d_beforeOrderQuery = getArg("get-order-before-query");
   d_afterOrderQuery = getArg("get-order-after-query");
+  d_lastOrderQuery = getArg("get-order-last-query");
   d_setOrderAuthQuery = getArg("set-order-and-auth-query");
   
   d_AddDomainKeyQuery = getArg("add-domain-key-query");
@@ -337,7 +338,6 @@ retryAfter:
     goto retryAfter;
   }
 
-retryBefore:
 
   snprintf(output, sizeof(output)-1, d_beforeOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
   d_db->doQuery(output);
@@ -346,10 +346,14 @@ retryBefore:
     unhashed=row[1];
   }
   
-  if(before.empty() && lcqname!="{") {
-    //cerr<<"Oops, have to pick the last!"<<endl;
-    lcqname="{";
-    goto retryBefore;
+  if(! before.empty())
+    return true;
+
+  snprintf(output, sizeof(output)-1, d_lastOrderQuery.c_str(), id);
+  d_db->doQuery(output);
+  while(d_db->getRow(row)) {
+    before=row[0];
+    unhashed=row[1];
   }
 
   return true;

@@ -85,6 +85,7 @@ private:
   
   string d_beforeOrderQuery;
   string d_afterOrderQuery;
+  string d_lastOrderQuery;
   string d_setOrderAuthQuery;
 
   string d_AddDomainKeyQuery;
