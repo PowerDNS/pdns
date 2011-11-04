@@ -234,23 +234,13 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   if(!sd.serial) { // magic time!
     DLOG(L<<Logger::Warning<<"Doing soa serialnumber autocalculation for "<<rr.qname<<endl);
 
-    // we do this by listing the domain and taking the maximum last modified timestamp
-
-    DNSResourceRecord i;
-    time_t newest=0;
-
-    if(!(this->list(domain, sd.domain_id))) {
-      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
-      return false;
+    time_t serial;
+    if (calculateSOASerial(domain, sd, serial)) {
+      sd.serial = serial;
+      DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
+    } else {
+      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
     }
-  
-    while(this->get(i)) {
-      if(i.last_modified>newest)
-        newest=i.last_modified;
-    }
-
-    sd.serial=newest; // +arg().asNum("soa-serial-offset");
-    DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
 
   }
   sd.db=this;
@@ -269,4 +259,37 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename
   before=dotConcat(labelReverse(before), zonename);
   after=dotConcat(labelReverse(after), zonename);
   return ret;
+}
+
+/**
+ * Calculates a SOA serial for the zone and stores it in the third
+ * argument. Returns false if calculation is not possible for some
+ * reason (in this case, the third argument is not inspected). If it
+ * returns true, the value returned in the third argument will be set
+ * as the SOA serial.
+ *
+ * \param domain The name of the domain
+ * \param sd Information about the SOA record already available
+ * \param serial Output parameter. Only inspected when we return true
+ */
+bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial)
+{
+    // we do this by listing the domain and taking the maximum last modified timestamp
+
+    DNSResourceRecord i;
+    time_t newest=0;
+
+    if(!(this->list(domain, sd.domain_id))) {
+      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
+      return false;
+    }
+  
+    while(this->get(i)) {
+      if(i.last_modified>newest)
+        newest=i.last_modified;
+    }
+
+    serial=newest; // +arg().asNum("soa-serial-offset");
+
+    return true;
 }

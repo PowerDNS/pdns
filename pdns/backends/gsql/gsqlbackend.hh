@@ -43,6 +43,8 @@ public:
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
   virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
 
+  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
+
   int addDomainKey(const string& name, const KeyData& key);
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
@@ -81,6 +83,7 @@ private:
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
   string d_DeleteZoneQuery;		
+  string d_ZoneLastChangeQuery;
   string d_CheckACLQuery;   
   
   string d_beforeOrderQuery;

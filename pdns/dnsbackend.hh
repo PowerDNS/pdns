@@ -119,6 +119,9 @@ public:
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
   virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
 
+  //! Calculates a SOA serial for the zone and stores it in the third argument.
+  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
+
   virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
   virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}

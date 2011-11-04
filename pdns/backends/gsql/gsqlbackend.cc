@@ -267,6 +267,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InsertRecordQuery=getArg("insert-record-query"+authswitch);
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
+  d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
   d_CheckACLQuery=getArg("check-acl-query");
@@ -780,3 +781,31 @@ bool GSQLBackend::abortTransaction()
   return true;
 }
 
+bool GSQLBackend::calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial)
+{
+  if (d_ZoneLastChangeQuery.empty()) {
+    // query not set => fall back to default impl
+    return DNSBackend::calculateSOASerial(domain, sd, serial);
+  }
+  
+  char output[1024];
+  
+  snprintf(output, sizeof(output)-1,
+           d_ZoneLastChangeQuery.c_str(),
+           sd.domain_id);
+
+  try {
+    d_db->doQuery(output, d_result);
+  }
+  catch (const SSqlException& e) {
+    DLOG(L<<"GSQLBackend unable to calculate SOA serial: " << e.txtReason()<<endl);
+    return false;
+  }
+
+  if (not d_result.empty()) {
+    serial = atol(d_result[0][0].c_str());
+    return true;
+  }
+
+  return false;
+}
