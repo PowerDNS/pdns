@@ -10,7 +10,7 @@ libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \
 libgpgsqlbackend_la_LDFLAGS=-module -avoid-version @PGSQL_lib@ -Wl,-Bstatic -lpq \
 	-Wl,-Bdynamic 
 
-libgpgsqlbackend_la_LIBADD=-lssl -lcrypt -lcrypto
+libgpgsqlbackend_la_LIBADD=-lssl @LIBCRYPT@ -lcrypto
 
 
 

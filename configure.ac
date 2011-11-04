@@ -92,6 +92,15 @@ then
 fi
 LIBS=$ac_save_LIBS
 
+# Check for libcrypt
+
+my_save_LIBS="$LIBS"
+LIBS=""
+AC_CHECK_LIB(crypt, crypt)
+LIBCRYPT=$LIBS
+LIBS="$my_save_LIBS"
+AC_SUBST(LIBCRYPT)
+
 DYNLINKFLAGS=""
 THREADFLAGS=""
 
@@ -592,4 +601,4 @@ modules/odbcbackend/Makefile modules/mongodbbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
-modules/luabackend/Makefile )
+modules/luabackend/Makefile modules/gpgsqlbackend/OBJECTLIBS)
