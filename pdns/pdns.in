@@ -25,7 +25,7 @@ SOCKETPATH=@socketdir@
 [ -r /etc/default/pdns ] && . /etc/default/pdns
 
 cd $SOCKETPATH
-suffix=`basename $0 | awk -F- '{print $2}'`
+suffix=`basename $0 | cut -d- -f2-`
 if [ $suffix ] 
 then
 	EXTRAOPTS=--config-name=$suffix
