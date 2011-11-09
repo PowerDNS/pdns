@@ -165,7 +165,10 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
     S.inc("deferred-cache-inserts"); 
 }
 
-/** purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
+/** purges entries from the packetcache. If match ends on a $, it is treated as a suffix 
+    for historical reasons, the first entry in matches is the original command passed to
+    pdns_control (typically 'PURGE') and needs to be ignored 
+*/
 int PacketCache::purge(const vector<string> &matches)
 {
   WriteLock l(&d_mut);
@@ -221,12 +224,12 @@ int PacketCache::purge(const vector<string> &matches)
      'www.userpowerdns.com'
 
   */
+  // skip first entry which is the pdns_control command
   for(vector<string>::const_iterator match = ++matches.begin(); match != matches.end() ; ++match) {
     if(ends_with(*match, "$")) {
       string suffix(*match);
       suffix.resize(suffix.size()-1);
 
-      //    cerr<<"Begin dump!"<<endl;
       cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix));
       cmap_t::const_iterator start=iter;
       string dotsuffix = "."+suffix;
@@ -236,11 +239,8 @@ int PacketCache::purge(const vector<string> &matches)
           //	cerr<<"Stopping!"<<endl;
           break;
         }
-        //	cerr<<"Will erase '"<<iter->qname<<"'\n";
-
         delcount++;
       }
-      //    cerr<<"End dump!"<<endl;
       d_map.erase(start, iter);
     }
     else {
