@@ -14,6 +14,8 @@
 # Description:       Start/stop PowerDNS authoritative server
 ### END INIT INFO
 
+set -e
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 BINARYPATH=@bindir@
@@ -41,9 +43,8 @@ doPC()
 	ret=$($BINARYPATH/pdns_control $EXTRAOPTS $1 $2 2> /dev/null)
 }
 
-
-doPC ping
-NOTRUNNING=$?
+NOTRUNNING=0
+doPC ping || NOTRUNNING=$?
 
 case "$1" in
 	status)
@@ -80,8 +81,7 @@ case "$1" in
 		then 
 			echo "already running"
 		else
-			$pdns_server --daemon --guardian=yes
-			if test "$?" = "0"
+			if $pdns_server --daemon --guardian=yes
 			then
 				echo "started"	
 			fi
