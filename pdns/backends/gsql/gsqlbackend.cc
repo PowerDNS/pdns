@@ -245,7 +245,15 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_db=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
 	
-  d_dnssecQueries = mustDo("dnssec");
+  try
+  {
+    d_dnssecQueries = mustDo("dnssec");
+  }
+  catch (ArgException e)
+  {
+    d_dnssecQueries = false;
+  }
+
   string authswitch = d_dnssecQueries ? "-auth" : "";	  
   d_noWildCardNoIDQuery=getArg("basic-query"+authswitch);
   d_noWildCardIDQuery=getArg("id-query"+authswitch);
@@ -272,23 +280,26 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteZoneQuery=getArg("delete-zone-query");
   d_CheckACLQuery=getArg("check-acl-query");
   
-  d_beforeOrderQuery = getArg("get-order-before-query");
-  d_afterOrderQuery = getArg("get-order-after-query");
-  d_lastOrderQuery = getArg("get-order-last-query");
-  d_setOrderAuthQuery = getArg("set-order-and-auth-query");
-  
-  d_AddDomainKeyQuery = getArg("add-domain-key-query");
-  d_ListDomainKeysQuery = getArg("list-domain-keys-query");
-  
-  d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
-  d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
-  d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
-  
-  d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
-  d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
-  d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
-  
-  d_getTSIGKeyQuery = getArg("get-tsig-key-query");
+  if (d_dnssecQueries)
+  {
+    d_beforeOrderQuery = getArg("get-order-before-query");
+    d_afterOrderQuery = getArg("get-order-after-query");
+    d_lastOrderQuery = getArg("get-order-last-query");
+    d_setOrderAuthQuery = getArg("set-order-and-auth-query");
+    
+    d_AddDomainKeyQuery = getArg("add-domain-key-query");
+    d_ListDomainKeysQuery = getArg("list-domain-keys-query");
+    
+    d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
+    d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
+    d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
+    
+    d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
+    d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
+    d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
+    
+    d_getTSIGKeyQuery = getArg("get-tsig-key-query");
+  }
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
