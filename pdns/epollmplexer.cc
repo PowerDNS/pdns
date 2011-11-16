@@ -56,7 +56,6 @@ EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents
   if(d_epollfd < 0)
     throw FDMultiplexerException("Setting up epoll: "+stringerror());
   int fd=socket(AF_INET, SOCK_DGRAM, 0); // for self-test
-  Utility::setCloseOnExec(d_s);
   if(fd < 0)
     return;
   try {
