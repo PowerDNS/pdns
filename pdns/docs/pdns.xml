@@ -12961,7 +12961,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      The fields have complicated and sometimes controversial meanings. The 'serial' field is special. If left at 0, the default,
 	      PDNS will perform an internal list of the domain to determine highest change_date field of all records within the zone, and use
 	      that as the zone serial number. This means that the serial number is always raised when changes are made to the zone, as long
-	      as the change_date field is being set. Make sure to check whether your backend of choise supports Autoserial.
+	      as the change_date field is being set. Make sure to check whether your backend of choice supports Autoserial.
 	    </para>
 	  </listitem>      
 	</varlistentry>
