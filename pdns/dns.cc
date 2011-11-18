@@ -10,7 +10,7 @@ static void appendEscapedLabel(string& ret, const char* begin, unsigned char lab
 {
   unsigned char n = 0;
   for(n = 0 ; n < labellen; ++n)
-    if(begin[n] == '.' || begin[n] == '\\')
+    if(begin[n] == '.' || begin[n] == '\\' || begin[n] == ' ')
       break;
   
   if( n == labellen) {
@@ -20,6 +20,7 @@ static void appendEscapedLabel(string& ret, const char* begin, unsigned char lab
   string label(begin, labellen);
   boost::replace_all(label, "\\",  "\\\\");
   boost::replace_all(label, ".",  "\\.");
+  boost::replace_all(label, " ",  "\\032");
   ret.append(label);
 }
 
