@@ -2,34 +2,79 @@
 .SH NAME
 pdns_control \- Control the pDNS nameserver
 .SH SYNOPSIS
-.B pdns_control command
+.B pdns_control \fI[options]\fR command
 .SH DESCRIPTION
 \fBpdns_control\fR is used to send commands to a running pDNS nameserver.
+.SH OPTIONS
+A summary of options is included below.
+.TP
+.B \-\-help
+.br
+Show summary of options.
+.TP
+.B \-\-chroot\=...
+.br
+Where PowerDNS is chrooted
+.TP
+.B \-\-config\-dir\=...
+.br
+Location of configuration directory (pdns.conf)
+.TP
+.B \-\-config\-name\=...
+.br
+Name of this virtual configuration - will rename the binary image
+.TP
+.B \-\-remote\-address\=...
+.br
+Remote address to query
+.TP
+.B \-\-remote\-port\=...
+.br
+Remote port to query
+.TP
+.B \-\-secret\=...
+.br
+Secret needed to connect to remote PowerDNS
+.TP
+.B \-\-socket\-dir\=...
+Where the controlsocket will live
 .SH COMMANDS
 .TP
 .B ccounts
 Show the content of the cache
 .TP
+.B notify \fI<domain>\fR
+Adds a domain to the notification list, causing PDNS to send out notifications to the nameservers of a domain. Can be used if a slave missed previous notifications or is generally hard of hearing.
+.TP
+.B notify-host \fI<domain>\fR \fI<host>\fR
+Same as above but with operator specified IP address as destination, to be used if you know better than PowerDNS.
+.TP
 .B cycle
 Restart the nameserver so it reloads its configuration.
 .TP
-.B list
-????
+.B ping
+Check if the server is alive.
 .TP
 .B purge \fI[<record>]\fR
 Purge entries from the packet cache. If the record name ends with a
 dollar ($) all entries that end with that name are removed. If no record is
 specified the entire cache is purged.
 .TP
-.B quit
-Tell a running \fBpdns_server\fR to to quit.
+.B rediscover
+Instructs backends that new domains may have appeared in the database, or, in the case of the Bind backend, in named.conf.
+.TP
+.B retrieve \fI<domain>\fR
+Retrieve a slave domain from its master. Done nearly immediatly.
 .TP
 .B set \fI<variable> <value>\fR
 Set the configuration parameter \fI<variable>\fR to \fI<value>\fR. Currently
 only the \fIquery\-logging\fR can be set.
 .TP
 .B show \fI<variable>\fR
-Print the value of a specific configuration variable.
+Show a single statistic, as present in the output of the list command.
+.TP
+.B quit
+Tell a running \fBpdns_server\fR to quit.
 .TP
 .B status
 Show usage statistics.

@@ -1,7 +1,7 @@
 AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) -Iext/polarssl/include
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
-EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8
+EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8 docs/zone2ldap.8 docs/pdnssec.8
 
 SUBDIRS= ext/polarssl backends 
 

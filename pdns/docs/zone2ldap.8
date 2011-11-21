@@ -1,0 +1,76 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH PDNS 8 "November 23, 2004"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+zone2ldap \- convert zonefiles to ldif
+.SH SYNOPSIS
+.B zone2ldap
+.RI [ options ]
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B zone2ldap
+command.
+.PP
+.\" TeX users may be more comfortable with the \fB<whatever>\fP and
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, 
+.\" respectively.
+\fBzone2ldap\fP is a program that converts bind zonefiles to ldif format which can inserted to an LDAP server
+.SH OPTIONS
+A summary of options is included below.
+.TP
+.B \-\-help
+.br
+Show summary of options.
+.TP
+.B \-\-basedn\=...
+.br
+Base DN to store objects below
+.TP
+.B \-\-dnsttl\=[yes|no]
+.br
+Add dnsttl attribute to every entry
+.TP
+.B \-\-layout\=...
+.br
+How to arrange entries in the directory (simple or as tree)
+.TP
+.B \-\-named\-conf\=...
+.br
+Bind 8 named.conf to parse
+.TP
+.B \-\-resume\=[yes|no]
+.br
+Continue after errors
+.TP
+.B \-\-verbose\=[yes|no]
+.br
+Verbose comments on operation
+.TP
+.B \-\-zone\-file=...
+.br
+Zone file to parse
+.TP
+.B \-\-zone\-name=...
+.br
+Specify a zone name if zone is set
+.SH SEE ALSO
+.BR pdns_server (8)
+.br
+.SH AUTHOR
+This manual page was written by Matthijs Möhlmann <matthijs@cacholong.nl>,
+for the Debian project (but may be used by others).
