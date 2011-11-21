@@ -427,6 +427,9 @@ string getHostname()
 #ifdef WIN32
 # define MAXHOSTNAMELEN 1025
 #endif // WIN32
+#ifndef MAXHOSTNAMELEN
+# define MAXHOSTNAMELEN 255
+#endif
 
   char tmp[MAXHOSTNAMELEN];
   if(gethostname(tmp, MAXHOSTNAMELEN))
