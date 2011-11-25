@@ -26,7 +26,7 @@ BOOST_SERIALIZATION([mt])
 
 dnl Check for lua
 AC_MSG_CHECKING(if with lua)
-AC_ARG_WITH(lua, AC_HELP_STRING([--with-lua],[lua]), WITH_LUA=$withval],[WITH_LUA=yes])
+AC_ARG_WITH(lua, AC_HELP_STRING([--with-lua],[lua]), [WITH_LUA=$withval],[WITH_LUA=yes])
 
 AC_MSG_RESULT($WITH_LUA)
 if test "$WITH_LUA" != "no"; then
