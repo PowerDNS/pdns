@@ -11625,22 +11625,26 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
       </sect2>
       <sect2><title>Writing Lua PowerDNS Recursor scripts</title>
 	<para>
-	  Once a script is loaded, PowerDNS looks for two functions: <function>preresolve</function> and <function>nxdomain</function>. Either or both of these
-	  can be absent, in which case the corresponding functionality is disabled.
+	  Once a script is loaded, PowerDNS looks for several functions, as detailed below. All of these functions are optional.
 	</para>
 	<para>
-	  <function>preresolve</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
+	  <function>preresolve ( remoteip, domain, qtype )</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
 	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
 	</para>
 	<para>
-	  <function>nxdomain</function> is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain
+	  <function>postresolve ( remoteip, domain, qtype, records, origrcode )</function> is called right before returning a response to a client (and, unless <function>setvariable()</function> is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since 3.4.
+	</para>
+	<para>
+	  <function>function nxdomain ( remoteip, domain, qtype )</function> is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain
 	  or the specific record does not exist. This can be used for various purposes.
 	</para>
-	
 	<para>
-	  Both functions are passed the IP address of the requestor, plus the name and type being requested. In return, these functions indicate if they
-	  have taken over the request, or want to let normal proceedings take their course. Beyond version 3.1.7, the IP address on which the question was received
-	  is inserted immediately after the IP address of the requestor - so in that case there are 4 parameters.
+	  <function>function nodata ( remoteip, domain, qtype, records )</function> is just like <function>nxdomain</function>, except it gets called when a domain exists, but the requested type does not. This is where one would implement DNS64. Available since 3.4.
+	</para>
+		
+	<para>
+	  All these functions are passed the IP address of the requestor, plus the name and type being requested. In return, these functions indicate if they
+	  have taken over the request, or want to let normal proceedings take their course.
 	</para>
 	<para>
 	  <warning>
@@ -11669,6 +11673,7 @@ function nxdomain ( ip, domain, qtype )
   if not matchnetmask(ip, "10.0.0.0/8", "192.168.0.0/16")  then return -1, ret end -- only interfere with local queries
   ret[1]={qtype=pdns.A, content="127.1.2.3"}    -- add IN A 127.1.2.3
   ret[2]={qtype=pdns.A, content="127.3.2.1"}    -- add IN A 127.3.2.1
+  setvariable()
   return 0, ret                 -- return no error, plus records
 end
 	  </screen>
@@ -11754,7 +11759,7 @@ end
 	</para>
 	<para>
 	  The function <function>matchnetmask(ip, netmask1, netmask2..)</function> (or <function>matchnetmask(ip, {netmask1, netmask2})</function>) is available to match incoming queries against
-	  a number of netmasks. If any of these matches, the function returns true.
+	  a number of netmasks. If any of these match, the function returns true.
 	</para>
 	<para>
 	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since 3.2.
@@ -11764,6 +11769,9 @@ end
 	</para>
 	<para>
 	  To indicate that an answer should not be cached in the packet cache, use <function>setvariable()</function>. Available since 3.3.
+	</para>
+	<para>
+	  To get fake AAAA records for DNS64 usage, use <function>return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"</function>. Available since 3.4.
 	</para>
       </sect2>
     </sect1>

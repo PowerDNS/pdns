@@ -453,7 +453,6 @@ static void writePid(void)
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 tcpClientCounts_t __thread* t_tcpClientCounts;
 
-
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr), d_fd(fd)
 { 
   ++s_currentConnections; 
@@ -527,13 +526,25 @@ void startDoResolve(void *p)
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
       if(t_pdl->get()) {
-        if(res == RCode::NXDomain)
+        if(res == RCode::NoError) {
+	  vector<DNSResourceRecord>::const_iterator i;
+	  for(i=ret.begin(); i!=ret.end(); ++i) 
+	      if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
+		break;
+	  if(i == ret.end())
+	    (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	}
+	else if(res == RCode::NXDomain)
           (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
+      
+      (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
     }
+
+
     
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
-    if(res<0) {
+    if(res < 0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
@@ -811,7 +822,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     uint32_t age;
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
-        L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+	L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
@@ -1977,7 +1988,7 @@ int main(int argc, char **argv)
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
-    ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";
+    ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id: pdns_recursor.cc 1734 2010-11-14 21:12:51Z ahu $";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";

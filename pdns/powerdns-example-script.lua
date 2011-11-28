@@ -38,6 +38,7 @@ function nxdomain ( remoteip, domain, qtype )
 	if qtype ~= pdns.A then return -1, {} end  --  only A records
 	if not string.find(domain, "^www%.") then return -1, {} end  -- only things that start with www.
 	
+	setvariable()
 	if matchnetmask(remoteip, {"127.0.0.1/32", "10.1.0.0/16"}) 
 	then 
 		print "dealing"
@@ -66,3 +67,33 @@ function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
 	ret[2]={qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
 	return 0, ret
 end
+
+function nodata ( remoteip, domain, qtype, records )
+	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
+	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
+
+	setvariable()
+    return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"
+end	
+
+-- records contains the entire packet, ready for your modifying pleasure
+function postresolve ( remoteip, domain, qtype, records, origrcode )
+	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode)
+
+	for key,val in ipairs(records) 
+	do
+		if(val.content == '173.201.188.46' and val.qtype == pdns.A)
+		then
+			val.content = '127.0.0.1'
+			setvariable()
+		end
+		if val.qtype == pdns.A and matchnetmask(remoteip, "192.168.0.0/16") and matchnetmask(val.content, "85.17.219.0/24") 
+		then
+			val.content = string.gsub(val.content, "^85.17.219.", "192.168.219.", 1)
+			setvariable()
+		end
+		
+	--	print(val.content)
+	end
+	return origrcode, records
+end	

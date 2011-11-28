@@ -1206,3 +1206,16 @@ void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>
     ret.push_back(ns);
   }
 }
+
+// used by PowerDNSLua
+int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)
+{
+  struct timeval now;
+  gettimeofday(&now, 0);
+  
+  SyncRes sr(now);
+  
+  int res = sr.beginResolve(qname, QType(qtype), qclass, ret);
+  cerr<<"Result: "<<res<<endl;
+  return res;
+}
