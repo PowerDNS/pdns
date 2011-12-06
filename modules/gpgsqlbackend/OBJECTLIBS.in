@@ -1,6 +1,2 @@
 -lpq -lssl -lcrypto  @LIBCRYPT@  
 
-
--lpq -lssl -lcrypto  @LIBCRYPT@  
-
-
