@@ -237,7 +237,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     time_t serial;
     if (calculateSOASerial(domain, sd, serial)) {
       sd.serial = serial;
-      DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
+      //DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
     } else {
       DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
     }

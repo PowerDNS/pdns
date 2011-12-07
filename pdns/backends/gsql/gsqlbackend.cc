@@ -809,7 +809,7 @@ bool GSQLBackend::calculateSOASerial(const string& domain, const SOAData& sd, ti
     d_db->doQuery(output, d_result);
   }
   catch (const SSqlException& e) {
-    DLOG(L<<"GSQLBackend unable to calculate SOA serial: " << e.txtReason()<<endl);
+    //DLOG(L<<"GSQLBackend unable to calculate SOA serial: " << e.txtReason()<<endl);
     return false;
   }
 
