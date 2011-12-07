@@ -13798,8 +13798,9 @@ The answer format (for abi-version 1 and 2):
 DATA	qname		qclass	qtype	ttl	id	content	
 </screen>
 
-'content' is as specified in <xref linkend="types"/>.
-
+'content' is as specified in <xref linkend="types"/>. For MX and SRV, content consists of the priority, followed by a tab, followed by the actual content.
+</para>
+<para>
 A sample dialogue may look like this (note that in reality,
 almost all queries will actually be for the ANY qtype):
 <screen>
