@@ -77,6 +77,7 @@ public:
   uint16_t qclass; //!< class of this record
   string qname; //!< the name of this record, for example: www.powerdns.com
   string wildcardname;
+  string cname_soa_qname;
   string content; //!< what this record points to. Example: 10.1.2.3
   uint16_t priority; //!< For qtypes that support a priority or preference (MX, SRV)
   uint32_t ttl; //!< Time To Live of this record
@@ -95,6 +96,7 @@ public:
     ar & qclass;
     ar & qname;
     ar & wildcardname;
+    ar & cname_soa_qname;
     ar & content;
     ar & priority;
     ar & ttl;

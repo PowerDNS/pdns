@@ -1327,7 +1327,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(weRedirected) {
       BOOST_FOREACH(rr, rrset) {
         if(rr.qtype.getCode() == QType::CNAME) {
+          rr.cname_soa_qname = sd.qname;
           r->addRecord(rr);
+          rr.cname_soa_qname = "";
           target = rr.content;
           retargetcount++;
           goto retargeted;

@@ -153,7 +153,7 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vect
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
   
-  string signQName, wildcardQName;
+  string signQName, wildcardQName, cnameSigner;
   uint16_t signQType=0;
   uint32_t signTTL=0;
   
@@ -164,11 +164,12 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vect
 
   for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
     if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
-      addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
+      addSignature(dk, db, cnameSigner != "" ? cnameSigner : signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
     }
     signedRecords.push_back(*pos);
     signQName= pos->qname;
     wildcardQName = pos->wildcardname;
+    cnameSigner = pos->qtype.getCode() == QType::CNAME ? pos->cname_soa_qname : "";
     signQType = pos ->qtype.getCode();
     signTTL = pos->ttl;
     signPlace = (DNSPacketWriter::Place) pos->d_place;
@@ -187,6 +188,6 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vect
       toSign.push_back(drc);
     }
   }
-  addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
+  addSignature(dk, db, cnameSigner != "" ? cnameSigner : signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
   rrs.swap(signedRecords);
 }
