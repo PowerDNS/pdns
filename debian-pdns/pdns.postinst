@@ -11,9 +11,9 @@ update_init() {
 
 update_pdns() {
 	if [ -n "$2" ] ; then
-		/etc/init.d/pdns start
+		invoke-rc.d pdns start
 	else
-		/etc/init.d/pdns restart
+		invoke-rc.d pdns restart
 	fi
 }
 
