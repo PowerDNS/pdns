@@ -1,5 +1,4 @@
 #include "lua-pdns-recursor.hh"
-#include "syncres.hh"
 #include <boost/foreach.hpp>
 
 #if !defined(PDNS_ENABLE_LUA) || !defined(LIBDIR)
