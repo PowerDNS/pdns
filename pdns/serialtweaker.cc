@@ -52,6 +52,12 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
       else if(pdns_iequals(kind,"EPOCH")) {        
 	sd.serial = time(0);
       }
+      else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {        
+       time_t inception = getCurrentInception();
+       if (sd.serial < inception) {
+          sd.serial = inception;
+        }
+      }
       rr.content = serializeSOAData(sd);      
       return true;
     }

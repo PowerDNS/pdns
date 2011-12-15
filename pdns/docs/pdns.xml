@@ -10611,6 +10611,17 @@ zone "powerdnssec.org" {
 	    When serving this zone, modify the SOA serial number in one of several ways. Mostly useful to get slaves
 	    to re-transfer a zone regularly to get fresh RRSIGs.
 	  </para>
+	  <para>
+ 	  	Available modes are: INCEPTION (which sets the SOA Serial to
+ 	  	the current two-week signing period start in seconds since
+ 	  	the UNIX epoch), INCEPTION-WEEK (number of weeks since the
+ 	  	epoch), INCREMENT-WEEKS (which increments the serial with
+ 	  	the number of weeks since the epoch), EPOCH (number of
+ 	  	seconds since the epoch).  Finally, INCEPTION-EPOCH
+ 	  	(available since 3.1) is special and sets the new SOA serial
+ 	  	number to the maximum of the old SOA serial number, and age
+ 	  	in seconds of the start of the current signing period.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
