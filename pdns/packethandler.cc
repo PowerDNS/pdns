@@ -1125,6 +1125,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   string subdomain="";
   string soa;
   int retargetcount=0;
+  set<string, CIStringCompare> authSet;
 
   vector<DNSResourceRecord> rrset;
   bool weDone=0, weRedirected=0, weHaveUnauth=0;
@@ -1229,7 +1230,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       }
       
       if(!retargetcount)
-		r->setA(false); // drop AA if we never had a SOA in the first place
+        r->setA(false); // drop AA if we never had a SOA in the first place
       if(::arg().mustDo("send-root-referral")) {
         DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
         addRootReferral(r);
@@ -1240,7 +1241,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       goto sendit;
     }
     DLOG(L<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
-    // we know we have authority
+    authSet.insert(sd.qname); 
 
     if(pdns_iequals(sd.qname, p->qdomain)) {
       if(doDNSKEYRequest(p,r, sd))  
@@ -1327,9 +1328,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(weRedirected) {
       BOOST_FOREACH(rr, rrset) {
         if(rr.qtype.getCode() == QType::CNAME) {
-          rr.cname_soa_qname = sd.qname;
           r->addRecord(rr);
-          rr.cname_soa_qname = "";
           target = rr.content;
           retargetcount++;
           goto retargeted;
@@ -1366,12 +1365,10 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     //    doDNSSECProcessing(p, r);
-
-
     editSOA(d_dk, sd.qname, r);
     
     if(p->d_dnssecOk)
-      addRRSigs(d_dk, B, sd.qname, r->getRRS());
+      addRRSigs(d_dk, B, authSet, r->getRRS());
       
     r->wrapup(); // needed for inserting in cache
     if(!noCache)

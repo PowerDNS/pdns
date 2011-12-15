@@ -263,8 +263,9 @@ try
       break;
     if(res < 0)
       unixDie("reading object pointer to sign from pdns");
-    
-    addRRSigs(dk, db, d_signer, *chunk);
+    set<string, CIStringCompare> authSet;
+    authSet.insert(d_signer);
+    addRRSigs(dk, db, authSet, *chunk);
     ++d_signed;
     
     writen2(fd, &chunk, sizeof(chunk));

@@ -115,7 +115,6 @@ class RSAContext;
 class DNSSECKeeper; 
 struct DNSSECPrivateKey;
 
-bool getSignerApexFor(DNSSECKeeper& dk, const std::string& keyrepodir, const std::string& qname, std::string &signer);
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
 uint32_t getCurrentInception();
 void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, 
@@ -126,7 +125,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);
 void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 class DNSPacket;
-void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vector<DNSResourceRecord>& rrs);
+void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::set<string, CIStringCompare>& authMap, vector<DNSResourceRecord>& rrs);
 
 string calculateMD5HMAC(const std::string& key_, const std::string& text);
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly);

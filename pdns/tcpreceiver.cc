@@ -561,8 +561,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
   outpacket->addRecord(soa);
   editSOA(dk, sd.qname, outpacket.get());
-  if(securedZone)
-    addRRSigs(dk, signatureDB, target, outpacket->getRRS());
+  if(securedZone) {
+    set<string, CIStringCompare> authSet;
+    authSet.insert(target);
+    addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
+  }
   
   if(!tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'

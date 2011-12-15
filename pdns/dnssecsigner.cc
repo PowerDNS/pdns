@@ -149,11 +149,26 @@ static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)
   return a.d_place < b.d_place;
 }
 
-void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vector<DNSResourceRecord>& rrs)
+static bool getBestAuthFromSet(const set<string, CIStringCompare>& authSet, const string& name, string& auth)
+{
+  auth.clear();
+  string sname(name);
+  do {
+    if(authSet.find(sname) != authSet.end()) {
+      auth = sname;
+      return true;
+    }
+  }
+  while(chopOff(sname));
+  
+  return false;
+}
+
+void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const set<string, CIStringCompare>& authSet, vector<DNSResourceRecord>& rrs)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
   
-  string signQName, wildcardQName, cnameSigner;
+  string signQName, wildcardQName;
   uint16_t signQType=0;
   uint32_t signTTL=0;
   
@@ -161,15 +176,16 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vect
   vector<shared_ptr<DNSRecordContent> > toSign;
 
   vector<DNSResourceRecord> signedRecords;
-
+  
+  string signer;
   for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
     if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
-      addSignature(dk, db, cnameSigner != "" ? cnameSigner : signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
+      if(getBestAuthFromSet(authSet, signQName, signer))
+        addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
     }
     signedRecords.push_back(*pos);
     signQName= pos->qname;
     wildcardQName = pos->wildcardname;
-    cnameSigner = pos->qtype.getCode() == QType::CNAME ? pos->cname_soa_qname : "";
     signQType = pos ->qtype.getCode();
     signTTL = pos->ttl;
     signPlace = (DNSPacketWriter::Place) pos->d_place;
@@ -188,6 +204,7 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, vect
       toSign.push_back(drc);
     }
   }
-  addSignature(dk, db, cnameSigner != "" ? cnameSigner : signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
+  if(getBestAuthFromSet(authSet, signQName, signer))
+    addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords);
   rrs.swap(signedRecords);
 }
