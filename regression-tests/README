@@ -53,6 +53,15 @@ $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --fancy-records --query-logging --send-root-referral --loglevel=9    \
 --cache-ttl=0 --no-config
 
+
+Or only sqlite3:
+$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+--no-shuffle --launch=gsqlite3 \
+--gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
+--fancy-records --query-logging --send-root-referral --loglevel=9    \
+--cache-ttl=0 --no-config
+
+
 Set the 'nameserver' and 'port' variables to point to your pdns_server
 instance:
 

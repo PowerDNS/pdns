@@ -26,3 +26,4 @@ blah			IN	A	9.9.9.9
 ;images			IN	URL	"http://www.ds9a.nl"
 ;bert@auto.test.com.			IN	MBOXFW	"bert@ds9a.nl"
 very-long-txt		IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long!"
+within-server		IN	CNAME	outpost.example.com.
