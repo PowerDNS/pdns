@@ -427,10 +427,7 @@ then
 	esac
 	AC_SUBST(PGSQL_incdir)
 	AC_MSG_RESULT([$PGSQL_incdir])
-
-#	LIBS="$LIBS -lpq++ -lpq -lssl -lcrypt -lcrypto"
 fi
-
 
 if test "$needsqlite"
 then
@@ -571,6 +568,8 @@ do
 	modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
 
 	if test ${a} == "gpgsql"; then
+		LIBS="$LIBS $LIBCRYPT"
+	
 		case "$host_os" in
 		freebsd*)
 			;;
@@ -601,4 +600,4 @@ modules/odbcbackend/Makefile modules/mongodbbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
-modules/luabackend/Makefile modules/gpgsqlbackend/OBJECTLIBS)
+modules/luabackend/Makefile)

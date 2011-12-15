@@ -1,2 +1,0 @@
--lpq -lssl -lcrypto  @LIBCRYPT@  
-
