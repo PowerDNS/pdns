@@ -256,10 +256,15 @@ void *qthread(void *number)
 
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->getRemote());
-    if(logDNSQueries) 
-      L << Logger::Notice<<"Remote "<< P->d_remote.toString() <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
-        "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
-
+    if(logDNSQueries) {
+      string remote;
+      if(P->hasEDNSSubnet()) 
+        remote = P->getRemote() + "<-" + P->getRealRemote().toString();
+      else
+        remote = P->getRemote();
+      L << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
+            "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
+    }
     if((P->d.opcode != Opcode::Notify) && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
       if(logDNSQueries)
         L<<"packetcache HIT"<<endl;

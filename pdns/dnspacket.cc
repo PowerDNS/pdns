@@ -533,6 +533,11 @@ void DNSPacket::setRemote(const ComboAddress *s)
   d_remote=*s;
 }
 
+bool DNSPacket::hasEDNSSubnet()
+{
+  return d_haveednssubnet;
+}
+
 Netmask DNSPacket::getRealRemote() const
 {
   if(d_haveednssubnet)
