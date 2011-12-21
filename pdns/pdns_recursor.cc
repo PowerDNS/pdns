@@ -527,18 +527,18 @@ void startDoResolve(void *p)
 
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
-	  vector<DNSResourceRecord>::const_iterator i;
-	  for(i=ret.begin(); i!=ret.end(); ++i) 
-	      if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
-		break;
-	  if(i == ret.end())
-	    (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
-	}
-	else if(res == RCode::NXDomain)
+      	  vector<DNSResourceRecord>::const_iterator i;
+      	  for(i=ret.begin(); i!=ret.end(); ++i) 
+    	      if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
+          		break;
+      	  if(i == ret.end())
+      	    (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+      	}
+      	else if(res == RCode::NXDomain)
           (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
-      }
       
       (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+      }
     }
 
 
@@ -1988,7 +1988,7 @@ int main(int argc, char **argv)
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
-    ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id: pdns_recursor.cc 1734 2010-11-14 21:12:51Z ahu $";
+    ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
