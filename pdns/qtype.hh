@@ -26,7 +26,7 @@
 #include "namespaces.hh"
 
 /** The QType class is meant to deal easily with the different kind of resource types, like 'A', 'NS',
- *  'CNAME' etcetera. These types have both a name and a number. This class can seemlessly move between
+ *  'CNAME' etcetera. These types have both a name and a number. This class can seamlessly move between
  *   them. Use it like this:
 
 \code

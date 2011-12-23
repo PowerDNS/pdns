@@ -133,7 +133,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
-  ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";    
+  ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";    
   
   UeberBackend::go();
 }

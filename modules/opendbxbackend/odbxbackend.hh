@@ -144,7 +144,7 @@ public:
         	declare( suffix, "sql-infoslaves", "Get all unfresh slaves", "SELECT d.\"id\", d.\"name\", d.\"master\", d.\"last_check\", d.\"notified_serial\", d.\"auto_serial\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"status\"='A' AND d.\"type\"='SLAVE'" );
         	declare( suffix, "sql-infomasters", "Get all updated masters", "SELECT d.\"id\", d.\"name\", d.\"master\", d.\"last_check\", d.\"notified_serial\", d.\"auto_serial\", r.\"content\" FROM \"domains\" d LEFT JOIN \"records\" r ON ( d.\"id\"=r.\"domain_id\" AND r.\"type\"='SOA' ) WHERE d.\"status\"='A' AND d.\"type\"='MASTER'" );
 
-        	declare( suffix, "host", "depricated, use host-read and host-write instead","" );
+        	declare( suffix, "host", "deprecated, use host-read and host-write instead","" );
         }
 
 

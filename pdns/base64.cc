@@ -109,7 +109,7 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
   // incoming Base64 character is first decoded, and
   // then it is inserted into the decode buffer
   // (with any relevant shifting, as required).
-  // Later, after all 3 bytes have been reconsituted,
+  // Later, after all 3 bytes have been reconstituted,
   // we assign them to the output string, ultimately
   // to be returned as the original message.
   int iInSize = strInput.size();

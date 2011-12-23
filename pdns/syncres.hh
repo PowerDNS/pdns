@@ -231,7 +231,7 @@ public:
     >
   > negcache_t;
   
-  //! This represents a number of decaying Ewmas, used to store performance per namerserver-name. 
+  //! This represents a number of decaying Ewmas, used to store performance per nameserver-name. 
   /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
       d_best is filled out with the best address for this collection */
   struct DecayingEwmaCollection

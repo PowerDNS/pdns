@@ -18,7 +18,7 @@
 */
 
 // ODBC backend by Michel Stol (michel@powerdns.com)
-// For use with PowerDNS - The powerfull and versatile nameserver.
+// For use with PowerDNS - The powerful and versatile nameserver.
 
 #ifndef ODBCBACKEND_H
 #define ODBCBACKEND_H

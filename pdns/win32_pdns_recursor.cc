@@ -712,7 +712,7 @@ int main(int argc, char **argv)
     if ( arg().mustDo( "use-logfile" ))
       L.toFile( arg()[ "logfile" ] ); 
   
-    // Register console control hander.
+    // Register console control handler.
     if ( !arg().mustDo( "ntservice" ))
       SetConsoleCtrlHandler( consoleHandler, true );
   

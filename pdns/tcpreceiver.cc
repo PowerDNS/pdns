@@ -928,7 +928,7 @@ void TCPNameserver::thread()
     }
   }
   catch(AhuException &AE) {
-    L<<Logger::Error<<"TCP Namerserver thread dying because of fatal error: "<<AE.reason<<endl;
+    L<<Logger::Error<<"TCP Nameserver thread dying because of fatal error: "<<AE.reason<<endl;
   }
   catch(...) {
     L<<Logger::Error<<"TCPNameserver dying because of an unexpected fatal error"<<endl;

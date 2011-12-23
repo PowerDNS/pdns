@@ -913,7 +913,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
        after = hashindex.begin()->nsec3hash;
     }
     else  {
-     // iter will always be HIGER than lqname, but that's not what we need
+     // iter will always be HIGHER than lqname, but that's not what we need
      //  rest .. before pos_iter/after pos
      //             lqname
       if(highIter != hashindex.end())
@@ -1003,7 +1003,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   d_handle.mustlog = mustlog;
   
   if(range.first==range.second) {
-    // cerr<<"Found nothign!"<<endl;
+    // cerr<<"Found nothing!"<<endl;
     d_handle.d_list=false;
     d_handle.d_iter = d_handle.d_end_iter  = range.first;
     return;

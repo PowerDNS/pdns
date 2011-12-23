@@ -135,7 +135,7 @@ public:
 
 private:
   uint16_t d_startrecordpos; // needed for getBlob later on
-  uint16_t d_recordlen;      // dito
+  uint16_t d_recordlen;      // ditto
   const vector<uint8_t>& d_content;
 };
 

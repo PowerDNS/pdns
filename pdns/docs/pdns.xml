@@ -2726,7 +2726,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	</para>
 	<para>
 	  Thanks to some recent migrations, this release, or something very close to it, is powering over 40 million internet connections that
-	  we know of. We appreciate hearing about succesful as well as unsuccesful migrations, please feel free to notify pdns.bd@powerdns.com of your 
+	  we know of. We appreciate hearing about successful as well as unsuccessful migrations, please feel free to notify pdns.bd@powerdns.com of your 
 	  experiences, good or bad.
 	</para>
 	<para>
@@ -6605,7 +6605,7 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	    </listitem>
 	    <listitem>
 	      <para>
-		The SOA Mininum TTL now has a configurable default (<command>soa-minimum-ttl</command>)value to placate the DENIC requirements.
+		The SOA Minimum TTL now has a configurable default (<command>soa-minimum-ttl</command>)value to placate the DENIC requirements.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -11525,8 +11525,8 @@ zone "powerdnssec.org" {
 all-outqueries      counts the number of outgoing UDP queries since starting
 answers0-1          counts the number of queries answered within 1 milisecond
 answers100-1000     counts the number of queries answered within 1 second
-answers10-100       counts the number of queries answered within 100 miliseconds
-answers1-10         counts the number of queries answered within 10 miliseconds
+answers10-100       counts the number of queries answered within 100 milliseconds
+answers1-10         counts the number of queries answered within 10 milliseconds
 answers-slow        counts the number of queries answered after 1 second
 cache-bytes         Size of the cache in bytes (since 3.3.1)
 cache-entries       shows the number of entries in the cache
@@ -12510,7 +12510,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      </para></listitem></varlistentry>
 	<varlistentry><term>queue-limit=...</term>
 	    <listitem><para>
-		Maximum number of miliseconds to queue a query. See <xref linkend="performance"/>.
+		Maximum number of milliseconds to queue a query. See <xref linkend="performance"/>.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>recursive-cache-ttl=...</term>
 	    <listitem><para>

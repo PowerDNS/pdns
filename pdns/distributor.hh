@@ -280,7 +280,7 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
 
   /* the line below is a bit difficult.
      What happens is that we have a goal for the number of running distributor threads. Furthermore, other
-     parts of PowerDNS also start backends, which get included in this cound.
+     parts of PowerDNS also start backends, which get included in this count.
 
      If less than two threads now die, no new ones will be spawned.
 

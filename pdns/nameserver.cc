@@ -65,7 +65,7 @@ extern StatBag S;
     \section Cache Caching
  
     On its own, this setup is not suitable for high performance operations. A single DNS query can turn into many DNSBackend questions,
-    each taking many miliseconds to complete. This is why the qthread() first checks the PacketCache to see if an answer is known to a packet
+    each taking many milliseconds to complete. This is why the qthread() first checks the PacketCache to see if an answer is known to a packet
     asking this question. If so, the entire Distributor is shunted, and the answer is sent back *directly*, within a few microseconds.
 
     \section misc Miscellaneous

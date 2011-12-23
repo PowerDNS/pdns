@@ -104,7 +104,7 @@ private:
     
     int f_lua_exec_error;
     
-    //mininal functions....
+    //minimal functions....
     int f_lua_list;
     int f_lua_lookup;
     int f_lua_get;

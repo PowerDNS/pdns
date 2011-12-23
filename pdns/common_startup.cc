@@ -22,7 +22,7 @@ typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 
 ArgvMap theArg;
-StatBag S;  //!< Statistics are gathered accross PDNS via the StatBag class S
+StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
 PacketCache PC; //!< This is the main PacketCache, shared accross all threads
 DNSProxy *DP;
 DynListener *dl;
@@ -116,7 +116,7 @@ void declareArguments()
   ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
-  ::arg().set("soa-minimum-ttl","Default SOA mininum ttl")="3600";
+  ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
   ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
@@ -216,7 +216,7 @@ static DNSDistributor* g_distributor;
 static pthread_mutex_t d_distributorlock =PTHREAD_MUTEX_INITIALIZER;
 static bool g_mustlockdistributor;
 
-//! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for futher processing
+//! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
 void *qthread(void *number)
 {
   DNSPacket *P;

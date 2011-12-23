@@ -52,7 +52,7 @@
 
     \section events Events
     By default, Events are recognized by an int and their value is also an int.
-    This can be overriden by specifying the EventKey and EventVal template parameters.
+    This can be overridden by specifying the EventKey and EventVal template parameters.
    
     An event can be a keypress, but also a UDP packet, or a bit of data from a TCP socket. The
     sample code provided works with keypresses, but that is just a not very useful example.
@@ -126,7 +126,7 @@ int main()
 
 //! puts a thread to sleep waiting until a specified event arrives
 /** Threads can call waitEvent to register that they are waiting on an event with a certain key.
-    If so desidered, the event can carry data which is returned in val in case that is non-zero.
+    If so desired, the event can carry data which is returned in val in case that is non-zero.
    
     Furthermore, a timeout can be specified in seconds.
    

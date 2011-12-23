@@ -288,7 +288,7 @@ int main(int argc, char **argv)
     "according to the terms of the GPL version 2."<<endl;
 
   
-  // Register console control hander.
+  // Register console control handler.
   if ( !arg().mustDo( "ntservice" ))
     SetConsoleCtrlHandler( consoleHandler, true );
   

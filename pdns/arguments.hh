@@ -94,7 +94,7 @@ public:
   bool mustDo(const string &var); //!< if a switch is given, if we must do something (--help)
   int asNum(const string &var); //!< return a variable value as a number
 #ifndef WIN32
-  mode_t asMode(const string &var); //<!< return value interprepted as octal number
+  mode_t asMode(const string &var); //<!< return value interpreted as octal number
   uid_t asUid(const string &var); //!< return user id, resolves if necessary
   gid_t asGid(const string &var); //!< return group id, resolves if necessary
 #endif

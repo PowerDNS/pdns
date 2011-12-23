@@ -96,7 +96,7 @@ public:
   bool current();
 
   bool d_loaded;  //!< if a domain is loaded
-  string d_status; //!< message describing status of a domain, for human consumtpion
+  string d_status; //!< message describing status of a domain, for human consumption
   bool d_checknow; //!< if this domain has been flagged for a check
   time_t d_ctime;  //!< last known ctime of the file on disk
   string d_name;   //!< actual name of the domain

@@ -115,7 +115,7 @@ void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int me
 
 
 /**
- * Depricated, use PowerLDAP::bind() instead
+ * Deprecated, use PowerLDAP::bind() instead
  */
 
 void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )

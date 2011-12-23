@@ -371,7 +371,7 @@ Session *Server::accept()
   int clisock=-1;
 
 
-  while((clisock=::accept(s,(struct sockaddr *)(&remote),&len))==-1) // repeat until we have a succesful connect
+  while((clisock=::accept(s,(struct sockaddr *)(&remote),&len))==-1) // repeat until we have a successful connect
     {
       //      L<<Logger::Error<<"accept() returned: "<<strerror(errno)<<endl;
       if(errno==EMFILE) {

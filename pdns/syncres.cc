@@ -458,7 +458,7 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 #endif
 
 /** This function explicitly goes out for A addresses, but if configured to use IPv6 as well, will also return any IPv6 addresses in the cache
-    Additionally, it will return the 'best' address up front, and the rest shufled
+    Additionally, it will return the 'best' address up front, and the rest shuffled
 */
 vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {

@@ -5,7 +5,7 @@ Also see http://wiki.powerdns.com/trac/wiki/TodoList
 
 Older stuff below:
 
-* new zone is AXFRed, written to disk succesfully
+* new zone is AXFRed, written to disk successfully
 	probably? unsure
 * the old SOA record remains in place
 

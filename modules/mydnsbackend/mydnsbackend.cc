@@ -6,7 +6,7 @@
  * query. This means that existing PowerDNS backends are unable to make use of
  * the schema without lame hackery (or awful performance.) This module does
  * the nasty lookup logic required to make use of the schema, and should be as
- * tollerent as MyDNS when it comes to things being fully qualified or not.
+ * tolerant as MyDNS when it comes to things being fully qualified or not.
  *
  * A known "bug" is that AXFRs will fail if your rr table contains invalid
  * junk. I'm not sure this is really a bug, if you've decided to put free-form

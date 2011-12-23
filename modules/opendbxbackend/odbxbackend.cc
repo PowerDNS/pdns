@@ -47,7 +47,7 @@ OdbxBackend::OdbxBackend( const string& suffix )
 
         	if( getArg( "host" ).size() > 0 )
         	{
-        		L.log( m_myname + " WARNING: Using depricated opendbx-host parameter", Logger::Warning );
+        		L.log( m_myname + " WARNING: Using deprecated opendbx-host parameter", Logger::Warning );
         		stringtok( m_hosts[READ], getArg( "host" ), ", " );
         		m_hosts[WRITE] = m_hosts[READ];
         	}

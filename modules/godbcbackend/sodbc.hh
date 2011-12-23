@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-// The following line makes Bert puke everytime he sees it.
+// The following line makes Bert puke every time he sees it.
 //#define WINDOWS_LEAN_AND_MEAN
 //#include <windows.h>
 #include <sql.h>

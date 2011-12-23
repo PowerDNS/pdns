@@ -568,7 +568,7 @@ try
     ("quiet", po::value<bool>()->default_value(true), "don't be too noisy")
     ("recursive", po::value<bool>()->default_value(true), "look at recursion desired packets, or not (defaults true)")
     ("speedup", po::value<float>()->default_value(1), "replay at this speedup")
-    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many millyseconds for a reply");
+    ("timeout-msec", po::value<uint32_t>()->default_value(500), "wait at least this many milliseconds for a reply");
 
   po::options_description alloptions;
   po::options_description hidden("hidden options");

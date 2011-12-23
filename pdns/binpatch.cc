@@ -69,7 +69,7 @@ static void imbue(char *pname, const char *search, const string &replace)
       break;
 
   if(p==end) {
-    cerr<<"Cannot find marker in binary, not imbueing"<<endl;
+    cerr<<"Cannot find marker in binary, not imbuing"<<endl;
     exit(1);
   }
   strcpy(p+strlen(search),replace.c_str());

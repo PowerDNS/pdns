@@ -2005,7 +2005,7 @@ int main(int argc, char **argv)
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
-    ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatability" )= "off"; 
+    ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatibility" )= "off"; 
     ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing" )= "no"; 
     ::arg().setSwitch( "disable-edns", "Disable EDNS" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 

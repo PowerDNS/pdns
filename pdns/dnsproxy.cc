@@ -171,7 +171,7 @@ void DNSProxy::mainloop(void)
         map_t::iterator i=d_conntrack.find(d.id^d_xor);
         if(i==d_conntrack.end()) {
           L<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d.id^d_xor)<<
-            ". Contrack table size="<<d_conntrack.size()<<endl;
+            ". Conntrack table size="<<d_conntrack.size()<<endl;
           continue;
         }
         else if(i->second.created==0) {
