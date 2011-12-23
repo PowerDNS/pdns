@@ -589,7 +589,13 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     } 
     catch(std::exception& e) 
     {
+      L<<Logger::Error<<"reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
       return e.what() + string("\n");
+    }
+    catch(AhuException& ae)
+    {
+      L<<Logger::Error<<"reloading ACLs failed (AhuException: "<<ae.reason<<")"<<endl;
+      return ae.reason + string("\n");
     }
     return "ok\n";
   }
