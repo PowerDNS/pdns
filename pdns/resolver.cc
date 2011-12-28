@@ -79,13 +79,13 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
     }
     if(!tries) {
       Utility::closesocket(sock);
-      throw AhuException("Resolver binding to local socket: "+stringerror());
+      throw AhuException("Resolver binding to local socket on "+ourLocal.toString()+": "+stringerror());
     }
   }
   else {
     ourLocal.sin4.sin_port = 0;
     if(::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) < 0)
-      throw AhuException("Resolver binding to local socket: "+stringerror());
+      throw AhuException("Resolver binding to local socket on "+ourLocal.toString()+": "+stringerror());
   }
   return sock;
 }
