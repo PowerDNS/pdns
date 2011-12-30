@@ -72,21 +72,6 @@ static const char *alsoNotifyQueryDefaultSQL =
   "FROM Zones z JOIN ZoneAlsoNotify an ON z.id = an.zone_id "
   "WHERE z.name = lower(:name)";
 
-static const char *checkACLQueryKey = "PDNS_Check_ACL_Query";
-static const char *checkACLQueryDefaultSQL =
-  "BEGIN "
-  "  IF EXISTS ( "
-  "    SELECT 1 FROM AccessControlList "
-  "    WHERE acl_type = :acltype "
-  "      AND acl_key = :aclkey "
-  "      AND acl_val = :aclval "
-  "  ) THEN "
-  "    :allow := 1;"
-  "  ELSE "
-  "    :allow := 0;"
-  "  END IF; "
-  "END;";
-
 static const char *zoneMastersQueryKey = "PDNS_Zone_Masters_Query";
 static const char *zoneMastersQueryDefaultSQL =
   "SELECT master "
@@ -254,7 +239,6 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   listQuerySQL = getArg("list-query");
   zoneInfoQuerySQL = getArg("zone-info-query");
   alsoNotifyQuerySQL = getArg("also-notify-query");
-  checkACLQuerySQL = getArg("check-acl-query");
   zoneMastersQuerySQL = getArg("zone-masters-query");
   isZoneMasterQuerySQL = getArg("is-zone-master-query");
   deleteZoneQuerySQL = getArg("delete-zone-query");
@@ -664,41 +648,6 @@ void OracleBackend::alsoNotifies(const string &domain, set<string> *addrs)
   }
 
   release_query(stmt, alsoNotifyQueryKey);
-}
-
-bool OracleBackend::checkACL (const string &acl_type,
-                              const string &acl_key,
-                              const string &acl_val)
-{
-  sword rc;
-  OCIStmt *stmt;
-
-  char acltype[64];
-  char aclkey[256];
-  char aclval[2048];
-  int result = 0;
-
-  stmt = prepare_query(pooledSvcCtx, checkACLQuerySQL, checkACLQueryKey);
-
-  string_to_cbuf(acltype, acl_type, sizeof(acltype));
-  string_to_cbuf(aclkey, acl_key, sizeof(aclkey));
-  string_to_cbuf(aclval, acl_val, sizeof(aclval));
-
-  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(stmt, ":acltype", acltype, sizeof(acltype));
-  bind_str(stmt, ":aclkey", aclkey, sizeof(aclkey));
-  bind_str(stmt, ":aclval", aclval, sizeof(aclval));
-  bind_int(stmt, ":allow", &result);
-
-  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
-
-  if (rc == OCI_ERROR) {
-    throw OracleException("Oracle checkACL", oraerr);
-  }
-
-  release_query(stmt, checkACLQueryKey);
-
-  return result;
 }
 
 void
@@ -1980,7 +1929,6 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "list-query", "", listQueryDefaultSQL);
     declare(suffix, "zone-info-query", "", zoneInfoQueryDefaultSQL);
     declare(suffix, "also-notify-query", "", alsoNotifyQueryDefaultSQL);
-    declare(suffix, "check-acl-query", "", checkACLQueryDefaultSQL);
     declare(suffix, "zone-masters-query", "", zoneMastersQueryDefaultSQL);
     declare(suffix, "is-zone-master-query", "", isZoneMasterQueryDefaultSQL);
     declare(suffix, "delete-zone-query", "", deleteZoneQueryDefaultSQL);

@@ -214,11 +214,6 @@ public:
     return false;
   }
 
-  virtual bool checkACL(const string &acl_type, const string &key, const string &value)
-  {
-    return false;
-  }
-
 protected:
   bool mustDo(const string &key);
   const string &getArg(const string &key);

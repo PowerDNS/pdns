@@ -278,7 +278,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
-  d_CheckACLQuery=getArg("check-acl-query");
   
   if (d_dnssecQueries)
   {
@@ -655,30 +654,6 @@ bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, con
   return false;
 }
 
-
-bool GSQLBackend::checkACL(const string &acl_type, const string &key, const string &value)
-{
-  string format;
-  char output[1024];
-  format = d_CheckACLQuery;
-  snprintf(output, sizeof(output)-1, format.c_str(), sqlEscape(acl_type).c_str(), sqlEscape(key).c_str());
-  try {
-    d_db->doQuery(output, d_result);
-  }
-  catch(SSqlException &e) {
-    throw AhuException("Database error trying to check ACL:"+acl_type+" with error: "+e.txtReason());
-  }
-  if(!d_result.empty()) {
-    for (unsigned int i = 0; i < d_result.size(); i++) {
-      Netmask nm(d_result[i][0]);
-      if (nm.match(value)) {
-        return true;
-      }
-    }
-  }  
-  return false; // default to false
-}
-
 bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
   string format;
@@ -693,7 +668,6 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
   }
   return true;
 }
-
 
 bool GSQLBackend::get(DNSResourceRecord &r)
 {

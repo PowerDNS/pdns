@@ -104,7 +104,6 @@ public:
     declare (suffix, "zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");
     declare( suffix, "info-all-master-query", "", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
     declare( suffix, "delete-zone-query", "", "delete from records where domain_id=%d");
-    declare( suffix, "check-acl-query","", "select value from acls where acl_type='%s' and acl_key='%s'");
     declare(suffix, "dnssec", "Assume DNSSEC Schema is in place","no");
 
     declare(suffix,"add-domain-key-query","", "insert into cryptokeys (domain_id, flags, active, content) select id, %d, %d, '%s' from domains where name='%s'");

@@ -34,7 +34,6 @@ public:
   bool createSlaveDomain(const string &ip, const string &domain, const string &account);
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
   void setFresh(uint32_t domain_id);
-  bool checkACL(const string &acl_type, const string &key, const string &value);
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
@@ -84,7 +83,6 @@ private:
   string d_InfoOfAllMasterDomainsQuery;
   string d_DeleteZoneQuery;		
   string d_ZoneLastChangeQuery;
-  string d_CheckACLQuery;   
   
   string d_beforeOrderQuery;
   string d_afterOrderQuery;
