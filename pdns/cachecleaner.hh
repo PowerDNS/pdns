@@ -11,7 +11,7 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
   
   unsigned int cacheSize=collection.size();
 
-  if(maxCached && cacheSize > maxCached) {
+  if(cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
   }
 

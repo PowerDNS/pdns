@@ -151,10 +151,14 @@ private:
     >
   > metacache_t;
 
+  void cleanup();
+
   static keycache_t s_keycache;
   static metacache_t s_metacache;
   static pthread_mutex_t s_metacachelock;
   static pthread_mutex_t s_keycachelock;
+  static unsigned int s_ops;
+  static time_t s_last_prune;
 };
 
 class DNSPacket;

@@ -30,6 +30,8 @@
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
+#include "cachecleaner.hh"
+#include "arguments.hh"
 
 
 using namespace boost::assign;
@@ -40,12 +42,18 @@ DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
 pthread_mutex_t DNSSECKeeper::s_metacachelock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
+unsigned int DNSSECKeeper::s_ops;
+time_t DNSSECKeeper::s_last_prune;
 
 bool DNSSECKeeper::isSecuredZone(const std::string& zone) 
 {
   if(isPresigned(zone))
     return true;
   
+  if(!((s_ops++) % 100000)) {
+    cleanup();
+  }
+
   {
     Lock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
@@ -177,6 +185,11 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
 {
   value.clear();
   unsigned int now = time(0);
+
+  if(!((s_ops++) % 100000)) {
+    cleanup();
+  }
+
   {
     Lock l(&s_metacachelock); 
     
@@ -264,6 +277,11 @@ void DNSSECKeeper::unsetPresigned(const std::string& zname)
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
 {
   unsigned int now = time(0);
+
+  if(!((s_ops++) % 100000)) {
+    cleanup();
+  }
+
   {
     Lock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
@@ -369,4 +387,22 @@ bool DNSSECKeeper::getTSIGForAccess(const string& zone, const string& master, st
     return true;
   }
   return false;
+}
+
+void DNSSECKeeper::cleanup()
+{
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  if(now.tv_sec - s_last_prune > (time_t)(30)) {
+    {
+        Lock l(&s_metacachelock);
+        pruneCollection(s_metacache, ::arg().asNum("max-cache-entries"));
+    }
+    {
+        Lock l(&s_keycachelock);
+        pruneCollection(s_keycache, ::arg().asNum("max-cache-entries"));
+    }
+    s_last_prune=time(0);
+  }
 }
