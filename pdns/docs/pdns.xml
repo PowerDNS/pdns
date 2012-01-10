@@ -95,6 +95,48 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-auth-2-9-22-5"><title>Authoritative Server version 2.9.22.5</title>
+      <para>
+	2.9.22.5 is an interim release for those not yet ready to make the jump to 3.0, but do need a more
+	recent version of the Authoritative Server. It also contains the patch from <xref linkend="powerdns-advisory-2012-01"/>
+      </para>
+      <para>
+      <itemizedlist>
+	<listitem>
+	    <para>
+	      Improved performance of master/slave engine, especially when hosting tens or hundreds of thousands of slave zones.
+	      Code in commits C1657, C1658, C1661 (which also brings multi-master support), C1662 (non-standard ports for masters),
+	      C1664, C1665, C1666, C1667, C1672, C1673, C2063).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Compilation fixes for more modern compilers (c1660, c1694)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Don't crash on communication error with pdns_control (c2015).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Packet cache fixes for UltraSPARC (c1663)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Fix crashes in the BIND backend (c1693, c1692)
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      </sect2>
+      <sect2 id="changelog-auth-3-0-1"><title>PowerDNS Authoritative Server 3.0.1</title>
+      <para>
+	3.0.1 consists of 3.0, plus the patch from <xref linkend="powerdns-advisory-2012-01"/>
+      </para>
+      </sect2>
       <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0</title>
       <para>
 	<warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade.
@@ -7631,10 +7673,10 @@ name         IN            A        1.2.3.4
     </sect1>
     <sect1 id="security-policy"><title>Security</title>
       <para>
-	If you have a security problem to report, please email us at both <email>powerdns@powerdns.com</email> and at
-	<email>ahu@ds9a.nl</email>. We adhere to the <ulink url="http://www.wiretrip.net/rfp/policy.html">Rain Forest Puppy
-	  Full Disclosure Policy (RFPolicy) v2.0</ulink> and we ask you to do the same. In particular, please do not mail security
-	issues to public lists unless we do not get back to you in a timely manner.
+	If you have a security problem to report, please email us at both <email>security@netherlabs.nl</email> and
+	<email>ahu@ds9a.nl</email>. Please do not mail security	issues to public lists, nor file a ticket, 
+	unless we do not get back to you in a timely manner. We fully credit reporters of security issues, and respond quickly,
+	but please allow us a reasonable timeframe to coordinate a response.
       </para>
       <para>
 	We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. 
@@ -7642,12 +7684,16 @@ name         IN            A        1.2.3.4
       </para>
 
       <para>
-	As of the 6th of January 2010, no actual security problems with PowerDNS 2.9.22, Recursor 3.1.7.2, or later are known about.  This page 
+	As of the 9th of January 2012, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailinglists.
       </para>
       <para>
-	Version 3.1.7.1 and earlier of the PowerDNS recursor were vulnerable to a probably exploitable buffer overflow and a spoofing attack. 
+	Versions 2.9.22 and lower and 3.0 of the PowerDNS Authoritative Server were vulnerable to a temporary denial of service attack. For more detail,
+	see <xref linkend="powerdns-advisory-2012-01"/>.
+      </para>
+      <para>
+	Version 3.1.7.1 and earlier of the PowerDNS Recursor were vulnerable to a probably exploitable buffer overflow and a spoofing attack. 
 	For more detail, see <xref linkend="powerdns-advisory-2010-01"/> and
 	<xref linkend="powerdns-advisory-2010-02"/>.
       </para>
@@ -8385,7 +8431,159 @@ name         IN            A        1.2.3.4
 	improving PowerDNS security.
       </para>
     </sect1>
-
+    <sect1 id="powerdns-advisory-2012-01">
+      <title>PowerDNS Security Advisory 2012-01: PowerDNS Authoritative Server can be caused to generate a traffic loop</title>
+      <para>
+	<table>
+	  <title>PowerDNS Security Advisory</title>
+	  <tgroup cols="2">
+	    <tbody>
+	      <row>
+		<entry>
+		  CVE
+		</entry>
+		<entry>
+		  CVE-2012-0206
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Date
+		</entry>
+		<entry>
+		  10th of January 2012
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Credit
+		</entry>
+		<entry>
+		  Ray Morris of <ulink url="http://BetterCGI.com/">BetterCGI.com</ulink>. 
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Affects
+		</entry>
+		<entry>
+		  Most PowerDNS Authoritative Server versions &lt; 3.0.1 (with the exception of the just released 2.9.22.5)
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Not affected
+		</entry>
+		<entry>
+		  No versions of the PowerDNS Recursor ('pdns_recursor') are affected. 
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Severity 
+		</entry>
+		<entry>
+		  High
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Impact
+		</entry>
+		<entry>
+		  Using well crafted UDP packets, one or more PowerDNS servers could be made to enter a tight packet loop, causing temporary denial of service
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Exploit
+		</entry>
+		<entry>
+		  Proof of concept
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Risk of system compromise
+		</entry>
+		<entry>
+		  No
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Solution
+		</entry>
+		<entry>
+		  Upgrade to PowerDNS Recursor 2.9.22.5 or 3.0.1
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Workaround
+		</entry>
+		<entry>
+		  Several, the easiest is setting: cache-ttl=0, which does have a performance impact. Please see below.
+		</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+	Affected versions of the PowerDNS Authoritative Server can be made to respond to DNS responses, thus enabling
+	an attacker to setup a packet loop between two PowerDNS servers, perpetually answering each other's answers. In some scenarios,
+	a server could also be made to talk to itself, achieving the same effect.
+      </para>
+      <para>
+	If enough bouncing traffic is generated, this will overwhelm the server or network and disrupt service.
+      </para>
+      <para>
+	As a workaround, if upgrading to a non-affected version is not possible, several options are available. The issue is caused by the packet-cache, which can be disabled by setting 'cache-ttl=0', 
+	although this does incur a performance penalty. This can be partially addressed by raising the query-cache-ttl to a (far) higher value.
+      </para>
+      <para>
+	Alternatively, on Linux systems with a working iptables setup, 'responses' sent to the PowerDNS Authoritative Server 'question' address can be
+	blocked by issuing:
+	<screen>
+	  iptables -I INPUT -p udp --dst $AUTHIP --dport 53 \! -f -m u32 --u32 "0>>22&amp;0x3C@8>>15&amp;0x01=1" -j DROP 
+	</screen>
+	If this command is used on a router or firewall, substitute FORWARD for INPUT.
+      </para>
+      <para>
+	To solve this issue, we recommend upgrading to the latest packages available for your system. 
+	Tarballs and new static builds (32/64bit, RPM/DEB) of 2.9.22.5 and 3.0.1 have been uploaded to 
+	<ulink url="http://www.powerdns.com/content/downloads.html">our download site</ulink>. 
+	Kees Monshouwer has provided updated CentOS/RHEL packages in <ulink url="http://www.monshouwer.eu/download/3th_party/">his repository</ulink>. Debian, Fedora and SuSE should have packages available shortly after this announcement.
+      </para>
+      <para>
+	    For those running custom PowerDNS versions, just applying this patch may be easier:
+    <screen>
+--- pdns/common_startup.cc   (revision 2326)
++++ pdns/common_startup.cc   (working copy)
+@@ -253,7 +253,9 @@
+       numreceived4++;
+     else
+       numreceived6++;
+-
++    if(P->d.qr)
++      continue;
++      
+     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
+     S.ringAccount("remotes",P->getRemote());
+     if(logDNSQueries) {
+</screen>
+    It should apply cleanly to 3.0 and with little trouble to several older releases, including 2.9.22 and 2.9.21.
+</para>
+      <para>
+	This bug resurfaced because over time, the check for 'not responding to responses' moved to the wrong place, allowing certain responses
+	to be processed anyhow.
+      </para>
+      <para>
+	We would like to thank Ray Morris of <ulink url="http://BetterCGI.com/">BetterCGI.com</ulink> for bringing this issue to our attention and
+	Aki Tuomi for helping us reproduce the problem.
+      </para>
+    </sect1>
     <sect1 id="thanks-to"><title>Acknowledgements</title>
       <para>
 	PowerDNS is grateful for the help of the following people or institutions:
