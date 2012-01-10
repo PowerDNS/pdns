@@ -8515,7 +8515,7 @@ name         IN            A        1.2.3.4
 		  Solution
 		</entry>
 		<entry>
-		  Upgrade to PowerDNS Recursor 2.9.22.5 or 3.0.1
+		  Upgrade to PowerDNS Authoritative Server 2.9.22.5 or 3.0.1
 		</entry>
 	      </row>
 	      <row>
