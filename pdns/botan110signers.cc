@@ -117,8 +117,9 @@ void GOSTDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::
   
   BigInt bigint((byte*)rawKey.c_str(), rawKey.size());
  
-  EC_Domain_Params params("1.2.643.2.2.35.1");
-  d_key=shared_ptr<GOST_3410_PrivateKey>(new GOST_3410_PrivateKey(params, bigint));
+  EC_Group params("1.2.643.2.2.35.1");
+  AutoSeeded_RNG rng;
+  d_key=shared_ptr<GOST_3410_PrivateKey>(new GOST_3410_PrivateKey(rng, params, bigint));
   
   //cerr<<"Is the just imported key on the curve? " << d_key->public_point().on_the_curve()<<endl;
   //cerr<<"Is the just imported key zero? " << d_key->public_point().is_zero()<<endl;
@@ -350,7 +351,9 @@ void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std:
   
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
   EC_Domain_Params params=getECParams(d_algorithm);
-  d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(params, bigint));
+  AutoSeeded_RNG rng;
+
+  d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(rng, params, bigint));
 }
 
 std::string ECDSADNSCryptoKeyEngine::getPubKeyHash() const 

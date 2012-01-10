@@ -49,9 +49,9 @@ pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADF
 pdns_server_LDADD= -lpolarssl $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS)
 
 
-if BOTAN19
-pdns_server_SOURCES += botan19signers.cc botansigners.cc
-pdns_server_LDADD += -lbotan -lgmp
+if BOTAN110
+pdns_server_SOURCES += botan110signers.cc botansigners.cc
+pdns_server_LDADD += -lbotan-1.10 -lgmp
 endif
 
 if BOTAN18
@@ -79,9 +79,9 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
 pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS)
 
-if BOTAN19
-pdnssec_SOURCES += botan19signers.cc botansigners.cc
-pdnssec_LDADD += -lbotan -lgmp
+if BOTAN110
+pdnssec_SOURCES += botan110signers.cc botansigners.cc
+pdnssec_LDADD += -lbotan-1.10 -lgmp
 endif
 
 if BOTAN18
@@ -202,7 +202,8 @@ base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_chann
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
 lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
-recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc 
+recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc \
+json_ws.cc json_ws.hh
 
 #../modules/gmysqlbackend/smysql.cc 
 
