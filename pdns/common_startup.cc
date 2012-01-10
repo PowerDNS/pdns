@@ -254,6 +254,9 @@ void *qthread(void *number)
     else
       numreceived6++;
 
+     if(P->d.qr)
+       continue;
+
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->getRemote());
     if(logDNSQueries) {
