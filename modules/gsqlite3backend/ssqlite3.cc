@@ -26,7 +26,7 @@ SSQLite3::SSQLite3( const std::string & database )
 
   if ( sqlite3_open( database.c_str(), &m_pDB)!=SQLITE_OK )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
-    
+  m_pStmt = 0;
   sqlite3_busy_handler(m_pDB, busyHandler, 0);
 }
 
@@ -34,9 +34,18 @@ SSQLite3::SSQLite3( const std::string & database )
 SSQLite3::~SSQLite3()
 {
   int ret;
-  if((ret =sqlite3_close( m_pDB )) != SQLITE_OK) {
-    cerr<<"Unable to close down sqlite connection: "<<ret<<endl;
-    abort();
+  for(int n = 0; n < 2 ; ++n) {
+    if((ret =sqlite3_close( m_pDB )) != SQLITE_OK) {
+      if(n || !m_pStmt || ret != SQLITE_BUSY) { // if we have SQLITE_BUSY, and a working m_Pstmt, try finalize
+        cerr<<"Unable to close down sqlite connection: "<<ret<<endl;
+        abort();
+      }
+      else {
+        sqlite3_finalize(m_pStmt);
+      }
+    }
+    else
+      break;
   }
 }
 
@@ -120,6 +129,7 @@ bool SSQLite3::getRow( row_t & row )
   if(rc == SQLITE_CANTOPEN) {
     string error ="CANTOPEN error in sqlite3, often caused by unwritable sqlite3 db *directory*: "+string(sqlite3_errmsg(m_pDB));
     sqlite3_finalize(m_pStmt);
+    m_pStmt = 0;
     throw sPerrorException(error);
   }
   
