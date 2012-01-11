@@ -9981,7 +9981,7 @@ local0.err                        /var/log/pdns.err
     As an example, securing an existing zone can be as simple as:
     <screen>
 $ pdnssec secure-zone powerdnssec.org
-$ pdnssec rectify-zone    
+$ pdnssec rectify-zone powerdnssec.org
     </screen>
   </para>
   <para>
