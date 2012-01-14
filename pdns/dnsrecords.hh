@@ -310,7 +310,7 @@ public:
   includeboilerplate(TLSA)
 
 private:
-  uint8_t d_certtype, d_hashtype;
+  uint8_t d_certusage, d_selector, d_matchtype;
   string d_cert;
 };
 
