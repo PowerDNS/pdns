@@ -1270,7 +1270,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
     // this TRUMPS a cname!
-    if(p->qtype.getCode() == QType::RRSIG && p->d_dnssecOk && d_dk.isSecuredZone(sd.qname)) {
+    if(p->qtype.getCode() == QType::RRSIG && d_dk.isSecuredZone(sd.qname)) {
       synthesiseRRSIGs(p, r);
       goto sendit;  
     }
