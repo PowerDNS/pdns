@@ -60,7 +60,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 {
   L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   uint32_t domain_id;
-  PacketHandler P;
+  PacketHandler P; // fresh UeberBackend
 
   DomainInfo di;
   di.backend=0;
@@ -71,7 +71,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());
 
-    if(!B->getDomainInfo(domain, di) || !di.backend) {
+    if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
@@ -164,7 +164,9 @@ struct SlaveSenderReceiver
 void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote)
 {
   Lock l(&d_lock);
-  d_tocheck.insert(di);
+  DomainInfo ours = di;
+  ours.backend = 0;
+  d_tocheck.insert(ours);
   d_any_sem.post(); // kick the loop!
 }
 
@@ -241,6 +243,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   BOOST_FOREACH(DomainInfo& di, sdomains) {
     if(!ssr.d_serials.count(di.id)) 
       continue;
+    if(!di.backend) // might've come from the packethandler
+      B->getDomainInfo(di.zone, di);
     uint32_t theirserial = ssr.d_serials[di.id], ourserial = di.serial;
     
     if(theirserial < ourserial) {

@@ -42,6 +42,7 @@ using namespace std;
 class DNSBackend;  
 struct DomainInfo
 {
+  DomainInfo() : backend(0) {}
   uint32_t id;
   string zone;
   vector<string> masters;
