@@ -1,3 +1,9 @@
+pdns (2.9.22.6-1) unstable; urgency=medium
+
+  * fix slave crash
+
+ -- peter van dijk <peter.van.dijk@netherlabs.nl>  Mon, 16 Jan 2012 08:25:00 +0100
+
 pdns (2.9.22.5-1) unstable; urgency=medium
 
   * fill in the blanks
