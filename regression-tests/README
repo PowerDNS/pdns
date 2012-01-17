@@ -27,9 +27,9 @@ Study the diff output to be sure if there is a problem.
 How to run
 ----------
 
-First make sure PowerDNS has access to the testing zone, which is in the
-file 'testzone'. Use the 'zone2sql' tool to create sql and feed it to your
-database if you want to test one of the sql backends.
+First make sure PowerDNS has access to the testing zones, which are all
+referred in the 'named.conf' file. Use the 'zone2sql' tool to create sql and
+feed it to your database if you want to test one of the sql backends.
 
 Run PowerDNS as (to test gmysql):
 
