@@ -54,3 +54,5 @@ then
 	echo there appear to have been $(grep -c '^-- MARK --' dnssec-validation-failures) DNSSEC validation failures.
 	echo Please see the 'dnssec-validation-failures' file for details.
 fi
+
+./toxml > testresults.xml
