@@ -1,0 +1,12 @@
+#!/bin/sh -ex
+port=$1
+[ -z "$port" ] && port=5300
+./bind-gsqlite3-setup
+../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+--no-shuffle --launch=bind,gsqlite3 --bind-config=./named.conf       \
+--gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
+--fancy-records --query-logging --send-root-referral --loglevel=9    \
+--cache-ttl=0 --no-config &
+export port
+nameserver=127.0.0.1 ./runtests
+kill $(cat pdns.pid)
