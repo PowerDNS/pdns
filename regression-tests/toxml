@@ -1,0 +1,12 @@
+#!/bin/sh
+echo '<?xml version="1.0"?>'
+NUMTESTS=$(cat failed_tests passed_tests | wc -l)
+NUMFAILED=$(cat failed_tests | wc -l)
+echo '<testsuite tests="'$NUMTESTS'" failures="'$NUMFAILED'" errors="'$NUMFAILED'" name="powerdns">'
+for t in $(cat failed_tests)
+do
+	echo '  <testcase name="'$t'" classname="powerdns" time="0">'
+	echo '    <error type="error" message="test failed"/>'
+	echo '  </testcase>'
+done
+echo '</testsuite>'
