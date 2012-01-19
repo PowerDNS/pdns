@@ -9,7 +9,9 @@ echo '<testsuite tests="'$NUMTESTS'" failures="'$NUMFAILED'" errors="'$NUMFAILED
 for t in $(cat failed_tests)
 do
 	echo '  <testcase name="'$t'" classname="'$CONTEXT'" time="0">'
-	echo '    <error type="error" message="test failed"/>'
+	echo '    <error type="error" message="test failed">'
+	cat $t/diff | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+	echo '    </error>'
 	echo '  </testcase>'
 done
 for t in $(cat passed_tests)
