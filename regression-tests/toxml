@@ -1,14 +1,13 @@
 #!/bin/sh
-CONTEXT=$1
-[ -z "$context" ] || CONTEXT="global"
-exec > testresults-${CONTEXT}.xml
+[ -z "$context" ] && context="global"
+exec > testresults-${context}.xml
 echo '<?xml version="1.0"?>'
 NUMTESTS=$(cat failed_tests passed_tests | wc -l)
 NUMFAILED=$(cat failed_tests | wc -l)
-echo '<testsuite tests="'$NUMTESTS'" failures="'$NUMFAILED'" errors="'$NUMFAILED'" name="'$CONTEXT'">'
+echo '<testsuite tests="'$NUMTESTS'" failures="'$NUMFAILED'" errors="'$NUMFAILED'" name="'$context'">'
 for t in $(cat failed_tests)
 do
-	echo '  <testcase name="'$t'" classname="'$CONTEXT'" time="0">'
+	echo '  <testcase name="'$t'" classname="'$context'" time="0">'
 	echo '    <error type="error" message="test failed">'
 	cat $t/diff | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
 	echo '    </error>'
@@ -16,6 +15,6 @@ do
 done
 for t in $(cat passed_tests)
 do
-	echo '  <testcase name="'$t'" classname="'$CONTEXT'" time="0" />'
+	echo '  <testcase name="'$t'" classname="'$context'" time="0" />'
 done
 echo '</testsuite>'
