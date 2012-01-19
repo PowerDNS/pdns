@@ -27,7 +27,9 @@ do
 	else	
 		$a/command > /dev/null
 		$a/command > $a/real_result
-		diff -u $a/expected_result $a/real_result > $a/diff
+		expected=$a/expected_result
+		[ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
+		diff -u $expected $a/real_result > $a/diff
 		if [ -s $a/diff ] 
 		then
 			result="	Failed test $a"

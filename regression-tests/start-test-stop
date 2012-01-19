@@ -99,6 +99,7 @@ __EOF__
 esac
 		
 export port
+export context
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout

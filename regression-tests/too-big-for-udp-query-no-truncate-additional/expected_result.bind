@@ -1,0 +1,28 @@
+0	together-too-much.example.com.	IN	MX	120	25 toomuchinfo-a.example.com.
+0	together-too-much.example.com.	IN	MX	120	25 toomuchinfo-b.example.com.
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.1
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.10
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.11
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.12
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.13
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.14
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.15
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.16
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.17
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.18
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.19
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.2
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.20
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.21
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.22
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.23
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.24
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.25
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.3
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.4
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.5
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.6
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.7
+2	toomuchinfo-a.example.com.	IN	A	120	192.168.99.8
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='together-too-much.example.com.', qtype=MX
