@@ -9,6 +9,8 @@ passed=0
 failed=0
 skipped=0
 
+touch passed_tests failed_tests skipped_tests
+
 for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
 do
 	echo  "$a: "
@@ -54,5 +56,3 @@ then
 	echo there appear to have been $(grep -c '^-- MARK --' dnssec-validation-failures) DNSSEC validation failures.
 	echo Please see the 'dnssec-validation-failures' file for details.
 fi
-
-./toxml > testresults.xml

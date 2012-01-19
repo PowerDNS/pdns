@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/sh -e
+set pipefail
 rm -f trustedkeys
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do

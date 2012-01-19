@@ -1,12 +1,19 @@
 #!/bin/sh
+CONTEXT=$1
+[ -z "$context" ] || CONTEXT="global"
+exec > testresults-${CONTEXT}.xml
 echo '<?xml version="1.0"?>'
 NUMTESTS=$(cat failed_tests passed_tests | wc -l)
 NUMFAILED=$(cat failed_tests | wc -l)
-echo '<testsuite tests="'$NUMTESTS'" failures="'$NUMFAILED'" errors="'$NUMFAILED'" name="powerdns">'
+echo '<testsuite tests="'$NUMTESTS'" failures="'$NUMFAILED'" errors="'$NUMFAILED'" name="'$CONTEXT'">'
 for t in $(cat failed_tests)
 do
-	echo '  <testcase name="'$t'" classname="powerdns" time="0">'
+	echo '  <testcase name="'$t'" classname="'$CONTEXT'" time="0">'
 	echo '    <error type="error" message="test failed"/>'
 	echo '  </testcase>'
+done
+for t in $(cat passed_tests)
+do
+	echo '  <testcase name="'$t'" classname="'$CONTEXT'" time="0" />'
 done
 echo '</testsuite>'
