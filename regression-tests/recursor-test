@@ -1,0 +1,11 @@
+#!/bin/sh -ex
+port=$1
+[ -z "$port" ] && port=5300
+limit=$2
+[ -z "$limit" ] && context=100000
+
+../pdns/pdns_recursor --daemon=no --local-port=$port --socket-dir=./ --trace=no &
+sleep 3
+../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < top-1m.csv > bulktest.results
+
+kill $(cat pdns_recursor.pid)

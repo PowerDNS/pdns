@@ -2,6 +2,7 @@
 #include <boost/array.hpp>
 #include <boost/accumulators/statistics.hpp>
 #include <boost/accumulators/statistics/p_square_cumulative_distribution.hpp>
+#include <boost/program_options.hpp>
 #include "inflighter.cc"
 #include <deque>
 #include "namespaces.hh"
@@ -12,9 +13,14 @@
 #include "dnsrecords.hh"
 
 using namespace boost::accumulators;
+namespace po = boost::program_options;
 
+po::variables_map g_vm;
 
 StatBag S;
+
+bool g_quiet=false;
+bool g_envoutput=false;
 
 struct DNSResult
 {
@@ -108,9 +114,11 @@ struct SendReceive
       // parse packet, set 'id', fill out 'ip' 
       
       MOADNSParser mdp(string(buf, len));
-      cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
-      cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
-      cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
+      if(!g_quiet) {
+        cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
+        cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
+        cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
+      }
       dr.rcode = mdp.d_header.rcode;
       for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
         if(i->first.d_place == 1 && i->first.d_type == QType::A)
@@ -118,8 +126,11 @@ struct SendReceive
         if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
           dr.seenauthsoa = 1;
         }
-        cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-        cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+        if(!g_quiet)
+        {
+          cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+          cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+        }
       }
       
       id = mdp.d_header.id;
@@ -140,11 +151,13 @@ struct SendReceive
     (*d_acc)(usec/1000.0);
 //    if(usec > 1000000)
   //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" msec)\n";
-    cout<<domain<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
-    BOOST_FOREACH(const ComboAddress& ca, dr.ips) {
-      cout<<", "<<ca.toString();
+    if(!g_quiet) {
+      cout<<domain<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
+      BOOST_FOREACH(const ComboAddress& ca, dr.ips) {
+        cout<<", "<<ca.toString();
+      }
+      cout<<endl;
     }
-    cout<<endl;
     if(dr.rcode == RCode::NXDomain) {
       d_nxdomains++;
     }
@@ -156,7 +169,7 @@ struct SendReceive
     else if(!dr.ips.empty())
       d_oks++;
     else {
-      cout<<"UNKNOWN!! ^^"<<endl;
+      if(!g_quiet) cout<<"UNKNOWN!! ^^"<<endl;
       d_unknowns++;
     }
   }
@@ -166,17 +179,49 @@ struct SendReceive
   
 };
 
-
 int main(int argc, char** argv)
 {
-  if(argc != 3 && argc != 4) {
-    cerr<<"Syntax: dnsbulktest ip-address portnumber [limit] < top-1m.csv"<<endl;
-    exit(1);
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("help,h", "produce help message")
+    ("quiet,q", "be quiet about individual queries")
+    ("envoutput,e", "write report in shell environment format")
+  ;
+
+  po::options_description alloptions;
+  po::options_description hidden("hidden options");
+  hidden.add_options()
+    ("ip-address", po::value<string>(), "ip-address")
+    ("portnumber", po::value<uint16_t>(), "portnumber")
+    ("limit", po::value<uint32_t>()->default_value(0), "limit");
+
+  alloptions.add(desc).add(hidden);
+  po::positional_options_description p;
+  p.add("ip-address", 1);
+  p.add("portnumber", 1);
+  p.add("limit", 1);
+
+  po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
+  po::notify(g_vm);
+
+  if (g_vm.count("help")) {
+    cerr << "Usage: dnsbulktest [--options] ip-address portnumber [limit]"<<endl;
+    cerr << desc << "\n";
+    return EXIT_SUCCESS;
   }
-  SendReceive sr(argv[1], atoi(argv[2]));
-  unsigned int limit = 0;
-  if(argc==4)
-    limit = atoi(argv[3]);
+  
+  if(!g_vm.count("portnumber")) {
+    cerr<<"Fatal, need to specify ip-address and portnumber"<<endl;
+    cerr << "Usage: dnsbulktest [--options] ip-address portnumber [limit]"<<endl;
+    cerr << desc << "\n";
+    return EXIT_FAILURE;
+  }
+
+  g_quiet = g_vm.count("quiet")>0;
+  g_envoutput = g_vm.count("envoutput")>0;
+
+  SendReceive sr(g_vm["ip-address"].as<string>(), g_vm["portnumber"].as<uint16_t>());
+  unsigned int limit = g_vm["limit"].as<unsigned int>();
     
   reportAllTypes();
   vector<string> domains;
@@ -239,8 +284,12 @@ int main(int argc, char** argv)
         cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*sr.d_probs[i]);
     }
 
-
-
+  if(g_envoutput) {
+    cout<<"DBT_QUEUED="<<domains.size()<<endl;
+    cout<<"DBT_SENDERRORS="<<sr.d_senderrors<<endl;
+    cout<<"DBT_RECEIVED="<<sr.d_receiveds<<endl;
+    cout<<"DBT_TIMEOUTS="<<inflighter.getTimeouts()<<endl;
+    cout<<"DBT_UNEXPECTEDS="<<inflighter.getUnexpecteds()<<endl;
+    cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_receiveds/domains.size()*100)<<endl;
+  }
 }
-
-
