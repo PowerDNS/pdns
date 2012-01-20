@@ -91,6 +91,7 @@ include                 BEGIN(incl);
 
         else
             {
+            fclose(yyin);
             yy_delete_buffer(YY_CURRENT_BUFFER);
             yy_switch_to_buffer(include_stack[include_stack_ptr]);
             linenumber=include_stack_ln[include_stack_ptr];
