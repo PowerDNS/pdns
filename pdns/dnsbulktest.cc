@@ -290,6 +290,6 @@ int main(int argc, char** argv)
     cout<<"DBT_RECEIVED="<<sr.d_receiveds<<endl;
     cout<<"DBT_TIMEOUTS="<<inflighter.getTimeouts()<<endl;
     cout<<"DBT_UNEXPECTEDS="<<inflighter.getUnexpecteds()<<endl;
-    cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_receiveds/domains.size()*100)<<endl;
+    cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_oks/domains.size()*100)<<endl;
   }
 }
