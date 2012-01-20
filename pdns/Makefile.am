@@ -132,8 +132,8 @@ dnswasher_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 dnsbulktest_SOURCES=dnsbulktest.cc misc.cc unix_utility.cc qtype.cc logger.cc statbag.cc dnsparser.cc \
 	dnsrecords.cc dnswriter.cc dnslabeltext.cc rcpgenerator.cc base32.cc base64.cc sillyrecords.cc nsecrecords.cc 
-dnsbulktest_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
-
+dnsbulktest_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnsbulktest_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 # unix_utility.cc
 
