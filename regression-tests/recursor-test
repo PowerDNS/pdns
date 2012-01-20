@@ -2,10 +2,26 @@
 port=$1
 [ -z "$port" ] && port=5300
 limit=$2
-[ -z "$limit" ] && context=100000
+[ -z "$limit" ] && limit=100000
 
 ../pdns/pdns_recursor --daemon=no --local-port=$port --socket-dir=./ --trace=no &
 sleep 3
 ../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < top-1m.csv > bulktest.results
-
 kill $(cat pdns_recursor.pid)
+
+. ./bulktest.results
+
+mkdir -p recursor-bulktest
+rm -f failed_tests passed_tests
+touch failed_tests passed_tests
+if [ "$DBT_OKPERCENTAGEINT" -ge 95 ]
+then
+	echo recursor-bulktest >> passed_tests
+else
+	echo recursor-bulktest >> failed_tests
+fi
+
+echo "$DBT_OKPERCENTAGE% of domains resolved" > recursor-bulktest/diff
+echo "<measurement><name>% domains resolved</name><value>$DBT_OKPERCENTAGE</value></measurement>" > recursor-bulktest/stdout
+
+context=recursor-bulktest ./toxml

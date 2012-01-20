@@ -1,4 +1,15 @@
 #!/bin/sh
+
+getstdout ()
+{
+	if [ -e "$t/stdout" ]
+	then
+		echo '    <system-out>'
+			cat $t/stdout | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+		echo '    </system-out>'
+	fi
+}
+
 [ -z "$context" ] && context="global"
 exec > testresults-${context}.xml
 echo '<?xml version="1.0"?>'
@@ -11,10 +22,13 @@ do
 	echo '    <error type="error" message="test failed">'
 	cat $t/diff | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
 	echo '    </error>'
+	getstdout
 	echo '  </testcase>'
 done
 for t in $(cat passed_tests)
 do
-	echo '  <testcase name="'$t'" classname="'$context'" time="0" />'
+	echo '  <testcase name="'$t'" classname="'$context'" time="0">'
+	getstdout
+	echo '  </testcase>'
 done
 echo '</testsuite>'

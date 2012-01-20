@@ -291,5 +291,6 @@ int main(int argc, char** argv)
     cout<<"DBT_TIMEOUTS="<<inflighter.getTimeouts()<<endl;
     cout<<"DBT_UNEXPECTEDS="<<inflighter.getUnexpecteds()<<endl;
     cout<<"DBT_OKPERCENTAGE="<<((float)sr.d_oks/domains.size()*100)<<endl;
+    cout<<"DBT_OKPERCENTAGEINT="<<(int)((float)sr.d_oks/domains.size()*100)<<endl;
   }
 }
