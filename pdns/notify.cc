@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 try
 {
   if(argc!=3) {
-    cerr<<"Syntax: notify ip domain"<<endl;
+    cerr<<"Syntax: notify ip:port domain"<<endl;
     exit(1);
   }
 
