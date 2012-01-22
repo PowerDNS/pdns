@@ -242,6 +242,10 @@ int main(int argc, char** argv)
     pos=split.second.find('/');
     if(pos != string::npos) // alexa has whole urls in the list now..
       split.second.resize(pos);
+    if(find_if(split.second.begin(), split.second.end(), isalpha) == split.second.end())
+    {
+      continue; // this was an IP address
+    }
     domains.push_back(split.second);
     domains.push_back("www."+split.second);
   }
