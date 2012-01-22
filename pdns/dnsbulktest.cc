@@ -232,12 +232,16 @@ int main(int argc, char** argv)
   string line;
   
   pair<string, string> split;
+  string::size_type pos;
   while(stringfgets(stdin, line)) {
     if(limit && domains.size() >= limit)
       break;
       
     trim_right(line);
     split=splitField(line,',');
+    pos=split.second.find('/');
+    if(pos != string::npos) // alexa has whole urls in the list now..
+      split.second.resize(pos);
     domains.push_back(split.second);
     domains.push_back("www."+split.second);
   }
