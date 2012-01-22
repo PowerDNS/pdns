@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2011  PowerDNS.COM BV
+    Copyright (C) 2003 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -1468,8 +1468,9 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
       g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
-      if(g_logCommonErrors)
-        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<<pident.domain<<", "<<pident.type<<endl;
+      if(g_logCommonErrors) {
+        L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<<pident.domain<<", "<<pident.type<<", "<<MT->d_waiters.size()<<" waiters"<<endl;
+      }
     }
     else if(fd >= 0) {
       t_udpclientsocks->returnSocket(fd);
@@ -1616,7 +1617,7 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
   }
 
-  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2010 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
+  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2012 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
 #ifdef __GNUC__
   L<<", gcc "__VERSION__;
 #endif // add other compilers here
@@ -1675,12 +1676,15 @@ int serviceMain(int argc, char*argv[])
     vector<string> addrs;  
     if(!::arg()["query-local-address6"].empty()) {
       SyncRes::s_doIPv6=true;
-      L<<Logger::Error<<"Enabling IPv6 transport for outgoing queries"<<endl;
+      L<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
       
       stringtok(addrs, ::arg()["query-local-address6"], ", ;");
       BOOST_FOREACH(const string& addr, addrs) {
         g_localQueryAddresses6.push_back(ComboAddress(addr));
       }
+    }
+    else {
+      L<<Logger::Warning<<"NOT using IPv6 for outgoing queries - set 'query-local-address6=::' to enable"<<endl;
     }
     addrs.clear();
     stringtok(addrs, ::arg()["query-local-address"], ", ;");
@@ -1975,7 +1979,7 @@ int main(int argc, char **argv)
     ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
-    ::arg().set("query-local-address6","Source IPv6 address for sending queries")="";
+    ::arg().set("query-local-address6","Source IPv6 address for sending queries. IF UNSET, IPv6 WILL NOT BE USED FOR OUTGOING QUERIES")="";
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
