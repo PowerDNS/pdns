@@ -1306,7 +1306,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);
 
     if(rrset.empty()) {
-      // try wildcards, and if they don't work, go look for NS records
+      // try NS referrals, and if they don't work, go look for wildcards
+
+      DLOG(L<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl);
+      if(tryReferral(p, r, sd, target))
+        goto sendit;
+
       DLOG(L<<Logger::Warning<<"Found nothing in the ANY, but let's try wildcards.."<<endl);
       bool wereRetargeted(false), nodata(false);
       if(tryWildcard(p, r, sd, target, wereRetargeted, nodata)) {
@@ -1318,10 +1323,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
           makeNOError(p, r, target, sd);
         goto sendit;
       }
-      DLOG(L<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl);
-      if(!tryReferral(p, r, sd, target))
+      else
+      {        
         makeNXDomain(p, r, target, sd);
-
+      }
+      
       goto sendit;
     }
         			       
