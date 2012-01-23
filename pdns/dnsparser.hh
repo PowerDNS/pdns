@@ -200,7 +200,7 @@ public:
 
   static uint16_t TypeToNumber(const string& name)
   {
-    n2typemap_t::const_iterator iter = getN2Typemap().find(name);
+    n2typemap_t::const_iterator iter = getN2Typemap().find(toUpper(name));
     if(iter != getN2Typemap().end())
       return iter->second.second;
     
