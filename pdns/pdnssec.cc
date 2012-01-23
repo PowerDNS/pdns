@@ -258,6 +258,11 @@ void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int c
   
   UeberBackend db("key-only");
   
+  if ( ! db.backends.size() )
+  {
+    throw runtime_error("No backends available for DNSSEC key storage");
+  }
+
   ChunkedSigningPipe csp(zone, 1, remote, cores);
   
   vector<DNSResourceRecord> signatures;
