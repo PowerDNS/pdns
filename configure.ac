@@ -567,7 +567,7 @@ do
 	done
 	modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
 
-	if test ${a} == "gpgsql"; then
+	if test ${a} = "gpgsql"; then
 		LIBS="$LIBS $LIBCRYPT"
 	
 		case "$host_os" in
