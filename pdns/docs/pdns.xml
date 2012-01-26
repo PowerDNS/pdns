@@ -95,6 +95,12 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-auth-2-9-22-6"><title>Authoritative Server version 2.9.22.6</title>
+      <para>
+      	The improvements to the master/slave engine in 2.9.22.5 contained one serious bug that can cause crashes
+      	on busy setups. 2.9.22.6 fixes this crash.
+      </para>
+      </sect2>
       <sect2 id="changelog-auth-2-9-22-5"><title>Authoritative Server version 2.9.22.5</title>
       <para>
 	2.9.22.5 is an interim release for those not yet ready to make the jump to 3.0, but do need a more
@@ -8467,7 +8473,7 @@ name         IN            A        1.2.3.4
 		  Affects
 		</entry>
 		<entry>
-		  Most PowerDNS Authoritative Server versions &lt; 3.0.1 (with the exception of the just released 2.9.22.5)
+		  Most PowerDNS Authoritative Server versions &lt; 3.0.1 (with the exception of 2.9.22.5 and 2.9.22.6)
 		</entry>
 	      </row>
 	      <row>
