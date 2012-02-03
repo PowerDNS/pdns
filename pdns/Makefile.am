@@ -42,7 +42,7 @@ aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
 md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns-recursor.cc serialtweaker.cc \
-ednssubnet.cc ednssubnet.hh
+ednssubnet.cc ednssubnet.hh cachecleaner.hh
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
@@ -74,7 +74,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	backends/gsql/gsqlbackend.cc \
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
 	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
-	signingpipe.cc dnslabeltext.cc ednssubnet.cc
+	signingpipe.cc dnslabeltext.cc ednssubnet.cc cachecleaner.hh
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
 pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS)
@@ -202,7 +202,7 @@ base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_chann
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
 lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
-recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc
+recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh
 
 #../modules/gmysqlbackend/smysql.cc 
 
@@ -218,3 +218,5 @@ pdns_control_LDFLAGS=@THREADFLAGS@
 dnslabeltext.cc: dnslabeltext.rl
 	ragel dnslabeltext.rl -o dnslabeltext.cc
 	
+backends/bind/%:
+	make -C backends/bind $(@F)
