@@ -23,9 +23,7 @@ cd pdns
 LATEST=$(svn info . | awk  '/^Revision/ { print $2 }'  )
 DATE=$(date +%Y%m%d).$LATEST
 
-ssed -r "s/Version: (.*)/Version: \\1.$DATE/" -i *.spec
-ssed -r "s/AM_INIT_AUTOMAKE\\(pdns, (.*)\\)/AM_INIT_AUTOMAKE\(pdns, \\1.$DATE\)/" -i configure.ac
-ssed -r "s/^pdns \\(([^-]*(-rc[0-9])*)-[0-9]*\\)/pdns \\(\\1.$DATE-1\\)/" -i debian-pdns/changelog
+build-scripts/set-version "$DATE"
 
 ./bootstrap
 fakeroot debian-pdns/rules binary-static
