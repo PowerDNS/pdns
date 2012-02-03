@@ -16542,15 +16542,6 @@ create unique index namealgoindex on tsigkeys(name, algorithm);
 	      </para>
 	    </listitem>
 	  </varlistentry>
-	  <varlistentry>
-	    <term>bind-enable-huffman</term>
-	    <listitem>
-	      <para>
-		Enable Huffman compression on zone data. Currently saves around 20% of memory actually used, but slows down operation
-		somewhat.
-	      </para>
-	    </listitem>
-	  </varlistentry>
 	</variablelist>
       </para>
       <sect2>
