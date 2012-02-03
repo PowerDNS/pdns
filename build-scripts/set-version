@@ -4,5 +4,5 @@ VERSION=$1
 
 ssed -r "s/Version: (.*)/Version: \\1.$VERSION/" -i *.spec
 ssed -r "s/AM_INIT_AUTOMAKE\\(pdns, (.*)\\)/AM_INIT_AUTOMAKE\(pdns, \\1.$VERSION\)/" -i configure.ac
-ssed -r "s/^pdns \\(([^-]*(-rc[0-9])*)-[0-9]*\\)/pdns \\(\\1.$VERSION-1\\)/" -i debian-pdns/changelog
+ssed -r "1 s/^pdns \\(([^)]*)-([0-9.])\\)/pdns \\(\\1.$VERSION-\\2\\)/" -i debian-pdns/changelog
 
