@@ -426,20 +426,11 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 
   set<string, CIStringCompare> nsset;
   bool flawedNSSet=false;
+
+  // the two retries allow getBestNSNamesFromCache&co to reprime the root
+  // hints, in case they ever go missing
   for(int tries=0;tries<2 && nsset.empty();++tries) {
     subdomain=getBestNSNamesFromCache(subdomain, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
-
-    if(nsset.empty()) { // must've lost root records
-      set<DNSResourceRecord> rootset;
-      /* this additional test is needed since getBestNSNamesFromCache sometimes returns that no
-         useful NS records were found, even without the root being expired. This might for example
-         be the case when the . records are not acceptable because they are part of a loop, a loop
-         caused by the invalidation of an nsset during the resolution algorithm */
-      if(t_RC->get(d_now.tv_sec, ".", QType(QType::NS), &rootset) <= 0) {
-        L<<Logger::Warning<<prefix<<qname<<": our root expired, repriming from hints and retrying"<<endl;
-        primeHints();
-      }
-    }
   }
 
   if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere)))
@@ -553,6 +544,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
       }
     }
     LOG<<prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl;
+    if(subdomain==".") { primeHints(); }
   }while(chopOffDotted(subdomain));
 }
 
