@@ -146,7 +146,7 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
 
 static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)
 {
-  return a.d_place < b.d_place;
+  return tie(a.d_place, a.qtype) < tie(b.d_place, b.qtype);
 }
 
 static bool getBestAuthFromSet(const set<string, CIStringCompare>& authSet, const string& name, string& auth)
