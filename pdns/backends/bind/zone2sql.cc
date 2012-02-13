@@ -43,7 +43,6 @@
 
 StatBag S;
 static bool g_doDNSSEC;
-static int g_domainid;
 
 enum dbmode_t {MYSQL, ORACLE, POSTGRES, SQLITE};
 static dbmode_t g_mode;
@@ -153,7 +152,6 @@ static void emitRecord(const string& zoneName, const string &qname, const string
 
 /* 2 modes of operation, either --named or --zone (the latter needs $ORIGIN) 
    2 further modes: --mysql or --oracle 
-   and a parameter: --start-id
 */
 
 ArgvMap &arg()
@@ -181,7 +179,6 @@ int main(int argc, char **argv)
     ::arg().setSwitch("slave","Keep BIND slaves as slaves")="no";
     ::arg().setSwitch("transactions","If target SQL supports it, use transactions")="no";
     ::arg().setSwitch("on-error-resume-next","Continue after errors")="no";
-    ::arg().set("start-id","Value of first domain-id when not parsing named.conf")="0";
     ::arg().set("zone","Zonefile to parse")="";
     ::arg().set("zone-name","Specify an $ORIGIN in case it is not present")="";
     ::arg().set("named-conf","Bind 8/9 named.conf to parse")="";
@@ -226,7 +223,6 @@ int main(int argc, char **argv)
 
     g_doDNSSEC=::arg().mustDo("dnssec");
       
-    g_domainid=::arg().asNum("start-id");
     namedfile=::arg()["named-conf"];
     zonefile=::arg()["zone"];
 
@@ -318,7 +314,6 @@ int main(int argc, char **argv)
     else {
       ZoneParserTNG zpt(zonefile, ::arg()["zone-name"]);
       DNSResourceRecord rr;
-      g_domainid=::arg().asNum("start-id"); // trigger first SOA output
       startNewTransaction();
       while(zpt.get(rr)) 
         emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
