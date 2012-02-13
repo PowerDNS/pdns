@@ -22,55 +22,9 @@ po::variables_map g_vm;
 
 string s_programname="pdns";
 
-#if 0
-void launchSigningService(int fd)
-{
-  UeberBackend db("key-only");
-  DNSSECKeeper dk;
-  string str;
-  vector<DNSResourceRecord> chunk;
-  uint64_t signatures=0;
-  while(readLStringFromSocket(fd, str))
-  {
-    if(str.empty())
-      break;
-    chunk=convertDNSRRVectorFromPBString(str);
-  
-    addRRSigs(dk, db, "big.aa", chunk); // sucks
-  
-    ++signatures;
-    str=convertDNSRRVectorToPBString(chunk);
-    writeLStringToSocket(fd, str);    
-  }
-  cerr<<"Exiting after "<<signatures<<" signatures"<<endl;
-  char c;
-  //read(fd, &c, 1); // wait for EOF, signifies that the other side received everything
-  _exit(1);
+namespace {
+  bool g_verbose; // doesn't yet do anything though
 }
-
-void signingServer()
-{
-  ComboAddress local("::", 2000);
-  int sock = socket(AF_INET6, SOCK_STREAM, 0);
-  
-  setSocketReusable(sock);
-  if(::bind(sock, (struct sockaddr*)&local, local.getSocklen()) < 0)
-    unixDie("Binding signing server to socket");
-  listen(sock, 5);
-  for(;;) {
-    ComboAddress remote("::");
-    socklen_t remotelen = remote.getSocklen();
-    int client = accept(sock, (struct sockaddr*)&remote, &remotelen);
-    
-    if(client < 0) 
-      break;
-    cerr<<"Got connection from "<<remote.toString()<<endl;  
-    if(fork()) 
-      continue;
-    launchSigningService(client);
-  }
-}
-#endif 
 
 ArgvMap &arg()
 {
@@ -452,7 +406,7 @@ try
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "produce help message")
-    ("verbose,v", po::value<bool>(), "be verbose")
+    ("verbose,v", "be verbose")
     ("force", "force an action")
     ("config-name", po::value<string>()->default_value(""), "virtual configuration name")
     ("config-dir", po::value<string>()->default_value(SYSCONFDIR), "location of pdns.conf")
@@ -467,6 +421,8 @@ try
 
   if(g_vm.count("commands")) 
     cmds = g_vm["commands"].as<vector<string> >();
+
+  g_verbose = g_vm.count("verbose");
 
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [rectify-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
