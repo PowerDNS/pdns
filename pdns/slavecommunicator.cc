@@ -129,7 +129,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
     }
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret);
-    
+    unsigned int soa_serial = 0;
     while(retriever.getChunk(recs)) {
       if(first) {
         L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
@@ -140,6 +140,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
         if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
           continue;
+          
+        if(i->qtype.getCode() == QType::SOA) {
+          SOAData sd;
+          fillSOAData(i->content,sd);
+          soa_serial = sd.serial;
+        }
           
         // we generate NSEC, NSEC3, NSEC3PARAM (sorry Olafur) on the fly, this could only confuse things
         if(dnssecZone && (i->qtype.getCode() == QType::NSEC || i->qtype.getCode() == QType::NSEC3 || 
@@ -201,7 +207,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
-    L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed"<<endl;
+    L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<soa_serial<<endl;
     if(::arg().mustDo("slave-renotify"))
       notifyDomain(domain);
   }
