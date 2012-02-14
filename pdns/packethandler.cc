@@ -433,7 +433,18 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
       QType qtypes[2];
       qtypes[0]="A"; qtypes[1]="AAAA";
       for(int n=0 ; n < d_doIPv6AdditionalProcessing + 1; ++n) {
-        B.lookup(qtypes[n],i->content,p);  
+        if (i->qtype.getCode()==QType::SRV) {
+          vector<string>parts;
+          stringtok(parts,i->content);
+          if (parts.size() >= 3) {
+            B.lookup(qtypes[n],parts[2],p);
+          }
+          else
+            continue;
+        }
+        else {
+          B.lookup(qtypes[n],i->content,p);
+        }
         bool foundOne=false;
         while(B.get(rr)) {
           foundOne=true;
@@ -873,6 +884,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
     
   // ok, we've done our checks
+  di.backend = 0;
   Communicator.addSlaveCheckRequest(di, p->d_remote);
   return 0;
 }
@@ -1132,6 +1144,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
   DNSPacket *r=0;
   bool noCache=false;
+  
+  if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
+    L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
+    S.inc("corrupt-packets");
+    return 0;
+  }
+
   if(p->d_havetsig) {
     string keyname, secret;
     TSIGRecordContent trc;
@@ -1149,12 +1168,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   r=p->replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
   
   try {    
-    if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
-      L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
-      S.inc("corrupt-packets");
-      delete r;
-      return 0;
-    }
 
     // XXX FIXME do this in DNSPacket::parse ?
 

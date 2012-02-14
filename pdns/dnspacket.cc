@@ -188,8 +188,9 @@ vector<DNSResourceRecord*> DNSPacket::getAPRecords()
       ++i)
     {
       if(i->d_place!=DNSResourceRecord::ADDITIONAL && 
-         (i->qtype.getCode()==15 || 
-          i->qtype.getCode()==2 )) // CNAME or MX or NS
+         (i->qtype.getCode()==QType::MX ||
+          i->qtype.getCode()==QType::NS ||
+          i->qtype.getCode()==QType::SRV))
         {
           arrs.push_back(&*i);
         }
