@@ -1,17 +1,17 @@
-#include <polarssl/rsa.h>
-#include <polarssl/base64.h>
-#include <polarssl/sha1.h>
-#include <polarssl/sha2.h>
-#include <polarssl/sha4.h>
-#include <polarssl/havege.h>
+#include "ext/polarssl-1.1.1/include/polarssl/rsa.h"
+#include "ext/polarssl-1.1.1/include/polarssl/base64.h"
+#include "ext/polarssl-1.1.1/include/polarssl/sha1.h"
+#include "ext/polarssl-1.1.1/include/polarssl/sha2.h"
+#include "ext/polarssl-1.1.1/include/polarssl/sha4.h"
+#include "ext/polarssl-1.1.1/include/polarssl/havege.h"
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/foreach.hpp>
 #include "dnssecinfra.hh"
 using namespace boost::assign;
 
-#define PDNSSEC_MI(x) mpi_init(&d_context.x, 0)
+#define PDNSSEC_MI(x) mpi_init(&d_context.x)
 #define PDNSSEC_MC(x) PDNSSEC_MI(x); mpi_copy(&d_context.x, const_cast<mpi*>(&orig.d_context.x))
-#define PDNSSEC_MF(x) mpi_free(&d_context.x, 0)
+#define PDNSSEC_MF(x) mpi_free(&d_context.x)
 
 class RSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
@@ -39,13 +39,12 @@ public:
 
   RSADNSCryptoKeyEngine(const RSADNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_algorithm)
   {
-    d_context.ver = orig.d_context.ver;
+    // this part is a little bit scary.. we make a 'deep copy' of an RSA state, and polarssl isn't helping us so we delve into thr struct
+    d_context.ver = orig.d_context.ver; 
     d_context.len = orig.d_context.len;
 
     d_context.padding = orig.d_context.padding;
     d_context.hash_id = orig.d_context.hash_id;
-    d_context.f_rng = orig.d_context.f_rng;
-    d_context.p_rng = orig.d_context.p_rng;
     
     PDNSSEC_MC(N); 
     PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
@@ -107,8 +106,8 @@ void RSADNSCryptoKeyEngine::create(unsigned int bits)
   havege_state hs;
   havege_init( &hs );
   
-  rsa_init(&d_context, RSA_PKCS_V15, 0, havege_rand, &hs ); // FIXME this leaks memory
-  int ret=rsa_gen_key(&d_context, bits, 65537);
+  rsa_init(&d_context, RSA_PKCS_V15, 0); // FIXME this leaks memory (it does?)
+  int ret=rsa_gen_key(&d_context, havege_random, (void*)&hs, bits, 65537);
   if(ret < 0) 
     throw runtime_error("Key generation failed");
 }
@@ -141,7 +140,7 @@ std::string RSADNSCryptoKeyEngine::sign(const std::string& msg) const
   else
     hashKind = SIG_RSA_SHA512;
   
-  int ret=rsa_pkcs1_sign(const_cast<rsa_context*>(&d_context), RSA_PRIVATE, 
+  int ret=rsa_pkcs1_sign(const_cast<rsa_context*>(&d_context), NULL, NULL, RSA_PRIVATE, 
     hashKind,
     hash.size(),
     (const unsigned char*) hash.c_str(), signature);
@@ -234,7 +233,7 @@ void RSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::
   typedef map<string, mpi*> places_t;
   places_t places;
   
-  rsa_init(&d_context, RSA_PKCS_V15, 0, NULL, NULL );
+  rsa_init(&d_context, RSA_PKCS_V15, 0);
 
   places["Modulus"]=&d_context.N;
   places["PublicExponent"]=&d_context.E;
@@ -265,7 +264,7 @@ void RSADNSCryptoKeyEngine::fromPEMString(DNSKEYRecordContent& drc, const std::s
   cerr<<"Got "<<integers.size()<<" integers"<<endl; 
   map<int, mpi*> places;
   
-  rsa_init(&d_context, RSA_PKCS_V15, 0, NULL, NULL );
+  rsa_init(&d_context, RSA_PKCS_V15, 0);
 
   places[1]=&d_context.N;
   places[2]=&d_context.E;
@@ -305,7 +304,7 @@ void RSADNSCryptoKeyEngine::fromPEMString(DNSKEYRecordContent& drc, const std::s
 
 void RSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString)
 {
-  rsa_init(&d_context, RSA_PKCS_V15, 0, NULL, NULL );
+  rsa_init(&d_context, RSA_PKCS_V15, 0);
   string exponent, modulus;
   const unsigned char* raw = (const unsigned char*)rawString.c_str();
   
