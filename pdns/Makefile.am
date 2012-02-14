@@ -1,9 +1,9 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) -Iext/polarssl/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) -Iext/polarssl-1.1.1/include
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
 EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  docs/pdns_server.8 docs/zone2sql.8 docs/zone2ldap.8 docs/pdnssec.8
 
-SUBDIRS= ext/polarssl backends 
+SUBDIRS= ext/polarssl-1.1.1 backends 
 
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
@@ -17,7 +17,7 @@ bin_PROGRAMS = pdns_control pdnssec dnsreplay
 endif
 
 EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest pdns_control dnsscope dnsgram \
-toysdig dnsdemog dnswasher dnsscan dnslog nproxy notify pdnssec dnsbulktest # dnslabel # tcptorture
+toysdig dnsdemog dnswasher dnsscan dnslog nproxy notify pdnssec dnsbulktest  # dnslabel # tcptorture
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
@@ -45,8 +45,8 @@ md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns-recursor.cc serial
 ednssubnet.cc ednssubnet.hh cachecleaner.hh
 
 #
-pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  -Lext/polarssl/library $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
-pdns_server_LDADD= -lpolarssl $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS)
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
+pdns_server_LDADD= ext/polarssl-1.1.1/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS)
 
 
 if BOTAN110
@@ -76,8 +76,8 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
 	signingpipe.cc dnslabeltext.cc ednssubnet.cc cachecleaner.hh
 
-pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ -Lext/polarssl/library/ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
-pdnssec_LDADD= -lpolarssl $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS)
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
+pdnssec_LDADD= ext/polarssl-1.1.1/library/libpolarssl.a $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS)
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
@@ -117,7 +117,7 @@ tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.
 	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 	randomhelper.cc dns.cc
-tsig_tests_LDFLAGS= -Lext/polarssl/library 	
+tsig_tests_LDFLAGS= -Lext/polarssl-1.1.1/library 	
 tsig_tests_LDADD= -lpolarssl
 
 
@@ -203,8 +203,6 @@ rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc ht
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
 lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh
-
-#../modules/gmysqlbackend/smysql.cc 
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)
 pdns_recursor_LDADD=
