@@ -27,7 +27,7 @@ create index orderindex on records(ordername);
 create table tsigkeys (
  id		INT auto_increment,
  name		VARCHAR(255), 
- algorithm	VARCHAR(255),
+ algorithm	VARCHAR(50),
  secret		VARCHAR(255),
  primary key(id)
 );
