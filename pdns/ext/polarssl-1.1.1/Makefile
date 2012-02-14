@@ -8,33 +8,18 @@ all:
 	cd library  && $(MAKE) all && cd ..
 
 install:
-	mkdir -p $(DESTDIR)/include/polarssl
-	cp -r include/polarssl $(DESTDIR)/include
-	
-	mkdir -p $(DESTDIR)/lib
-	cp library/libpolarssl.* $(DESTDIR)/lib
-	
-	mkdir -p $(DESTDIR)/bin
-	for p in programs/*/* ; do              \
-	    if [ -x $$p ] && [ ! -d $$p ] ;     \
-	    then                                \
-	        f=$(PREFIX)`basename $$p` ;     \
-	        cp $$p $(DESTDIR)/bin/$$f ;     \
-	    fi                                  \
-	done
+
+distclean: clean
 
 clean:
 	cd library  && $(MAKE) clean && cd ..
 
 check:
-	( cd tests && $(MAKE) check )
 
-apidoc:
-	mkdir -p apidoc
-	doxygen doxygen/polarssl.doxyfile
-
-apidoc_clean:
-	if [ -d apidoc ] ;			\
-	then				    	\
-		rm -rf apidoc ;			\
-	fi
+distdir:
+	mkdir -p $(distdir)
+	cp ChangeLog LICENSE  Makefile  README  $(distdir)
+	mkdir $(distdir)/library
+	mkdir -p $(distdir)/include/polarssl
+	cp library/Makefile library/*.c $(distdir)/library
+	cp include/polarssl/*.h $(distdir)/include/polarssl
