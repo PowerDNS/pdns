@@ -14569,87 +14569,14 @@ CREATE TABLE Zones (
 	</para>
 	<para>
 	  The default setup conforms to the following schema:
-	  <programlisting>
-create table domains (
- id		 INT auto_increment,
- name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(128) DEFAULT NULL,
- last_check	 INT DEFAULT NULL,
- type		 VARCHAR(6) NOT NULL,
- notified_serial INT DEFAULT NULL, 
- account         VARCHAR(40) DEFAULT NULL,
- primary key (id)
-) Engine=InnoDB;
-
-CREATE UNIQUE INDEX name_index ON domains(name);
-
-CREATE TABLE records (
-  id              INT auto_increment,
-  domain_id       INT DEFAULT NULL,
-  name            VARCHAR(255) DEFAULT NULL,
-  type            VARCHAR(10) DEFAULT NULL,
-  content         VARCHAR(4096) DEFAULT NULL,
-  ttl             INT DEFAULT NULL,
-  prio            INT DEFAULT NULL,
-  change_date     INT DEFAULT NULL,
-  primary key(id)
-)Engine=InnoDB;
-
-CREATE INDEX rec_name_index ON records(name);
-CREATE INDEX nametype_index ON records(name,type);
-CREATE INDEX domain_id ON records(domain_id);
-
-create table supermasters (
-  ip VARCHAR(25) NOT NULL, 
-  nameserver VARCHAR(255) NOT NULL, 
-  account VARCHAR(40) DEFAULT NULL
-) Engine=InnoDB;
-
-GRANT SELECT ON supermasters TO pdns;
-GRANT ALL ON domains TO pdns;
-GRANT ALL ON records TO pdns;
-	  </programlisting>
+	  <programlisting><xi:include  href="../no-dnssec.schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 	</para>
 	<para>
 	  Zone2sql with the --gmysql flag also assumes this layout is in place.
 	</para>
 	<para>
 	To support or migrate to DNSSEC, the following SQL statements must be executed:
-<programlisting>
-create table domainmetadata (
- id              INT auto_increment,
- domain_id       INT NOT NULL,
- kind            VARCHAR(16),
- content        TEXT,
- primary key(id)
-);
-
-create table cryptokeys (
- id             INT auto_increment,
- domain_id      INT NOT NULL,
- flags          INT NOT NULL,
- active         BOOL,
- content        TEXT,
- primary key(id)
-);               
-
-alter table records add ordername      VARCHAR(255);
-alter table records add auth bool;
-create index orderindex on records(ordername);
-
-create table tsigkeys (
- id             INT auto_increment,
- name           VARCHAR(255), 
- algorithm      VARCHAR(255),
- secret         VARCHAR(255),
- primary key(id)
-);
-
-create unique index namealgoindex on tsigkeys(name, algorithm);
-
-alter table records change column type type VARCHAR(10);
-
-</programlisting>	
+          <programlisting><xi:include  href="../dnssec.schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>	
 	</para>
 	<para>
 	  For full migration notes, please see <xref linkend="dnssec-migration"/>.
@@ -14673,48 +14600,7 @@ CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains`
       <sect2><title>PostgreSQL specifics</title>
       <para>
 	The default setup conforms to the following schema, which you should add to a PostgreSQL database.
-	<programlisting>
-create table domains (
- id		 SERIAL PRIMARY KEY,
- name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(128) DEFAULT NULL,
- last_check	 INT DEFAULT NULL,
- type		 VARCHAR(6) NOT NULL,
- notified_serial INT DEFAULT NULL, 
- account         VARCHAR(40) DEFAULT NULL
-);
-CREATE UNIQUE INDEX name_index ON domains(name);
-  
-CREATE TABLE records (
-        id              SERIAL PRIMARY KEY,
-        domain_id       INT DEFAULT NULL,
-        name            VARCHAR(255) DEFAULT NULL,
-        type            VARCHAR(10) DEFAULT NULL,
-        content         VARCHAR(4096) DEFAULT NULL,
-        ttl             INT DEFAULT NULL,
-        prio            INT DEFAULT NULL,
-        change_date     INT DEFAULT NULL, 
-        CONSTRAINT domain_exists 
-        FOREIGN KEY(domain_id) REFERENCES domains(id)
-        ON DELETE CASCADE
-);
-
-CREATE INDEX rec_name_index ON records(name);
-CREATE INDEX nametype_index ON records(name,type);
-CREATE INDEX domain_id ON records(domain_id);
-
-create table supermasters (
-	  ip VARCHAR(25) NOT NULL, 
-	  nameserver VARCHAR(255) NOT NULL, 
-	  account VARCHAR(40) DEFAULT NULL
-);
-
-GRANT SELECT ON supermasters TO pdns;
-GRANT ALL ON domains TO pdns;
-GRANT ALL ON domains_id_seq TO pdns;
-GRANT ALL ON records TO pdns;
-GRANT ALL ON records_id_seq TO pdns;
-	</programlisting>
+	<programlisting><xi:include  href="../no-dnssec.schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       </para>
       <para>
 	Zone2sql with the --gpgsql flag also assumes this layout is in place.
@@ -14725,46 +14611,7 @@ GRANT ALL ON records_id_seq TO pdns;
       </para>
       <para>
       To support DNSSEC or to migrate to DNSSEC, the following statements have to be issued:
-<programlisting>
-
-alter table records add ordername       VARCHAR(255);
-alter table records add auth bool;
-create index orderindex on records(ordername);
-
-create table domainmetadata (
- id             SERIAL PRIMARY KEY,
- domain_id      INT REFERENCES domains(id) ON DELETE CASCADE,
- kind           VARCHAR(16),
- content        TEXT
-);
-
-create table cryptokeys (
- id             SERIAL PRIMARY KEY,
- domain_id      INT REFERENCES domains(id) ON DELETE CASCADE,
- flags          INT NOT NULL,
- active         BOOL,
- content        TEXT
-);               
-
-GRANT ALL ON domainmetadata TO pdns;
-GRANT ALL ON domainmetadata_id_seq TO pdns;
-GRANT ALL ON cryptokeys TO pdns;
-GRANT ALL ON cryptokeys_id_seq TO pdns;
-
-create table tsigkeys (
- id             SERIAL PRIMARY KEY,
- name           VARCHAR(255),
- algorithm      VARCHAR(255), 
- secret         VARCHAR(255)
-);
-
-create unique index namealgoindex on tsigkeys(name, algorithm);
-
-GRANT ALL ON tsigkeys TO pdns;
-GRANT ALL ON tsigkeys_id_seq TO pdns;
-alter table records alter column type type VARCHAR(10);
-
-</programlisting>  
+        <programlisting><xi:include  href="../dnssec.schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>  
 </para>
 	<para>
 	  For full migration notes, please see <xref linkend="dnssec-migration"/>.
@@ -16288,40 +16135,7 @@ VALUES (:zoneid, :ip)
 	        Before you can use this backend you first have to set it up and fill it with data.	        
 	        The default setup conforms to the following schema:
 	        
-	        <programlisting>
-            create table domains (
-              id                INTEGER PRIMARY KEY,
-              name              VARCHAR(255) NOT NULL COLLATE NOCASE,
-              master            VARCHAR(128) DEFAULT NULL,
-              last_check        INTEGER DEFAULT NULL,
-              type              VARCHAR(6) NOT NULL,
-              notified_serial   INTEGER DEFAULT NULL, 
-              account           VARCHAR(40) DEFAULT NULL
-            );
-
-            CREATE UNIQUE INDEX name_index ON domains(name);
-
-            CREATE TABLE records (
-              id              INTEGER PRIMARY KEY,
-              domain_id       INTEGER DEFAULT NULL,
-              name            VARCHAR(255) DEFAULT NULL, 
-              type            VARCHAR(10) DEFAULT NULL,
-              content         VARCHAR(255) DEFAULT NULL,
-              ttl             INTEGER DEFAULT NULL,
-              prio            INTEGER DEFAULT NULL,
-              change_date     INTEGER DEFAULT NULL
-            );
-              
-            CREATE INDEX rec_name_index ON records(name);
-            CREATE INDEX nametype_index ON records(name,type);
-            CREATE INDEX domain_id ON records(domain_id);
-
-            create table supermasters (
-              ip          VARCHAR(25) NOT NULL, 
-              nameserver  VARCHAR(255) NOT NULL COLLATE NOCASE, 
-              account     VARCHAR(40) DEFAULT NULL
-            );
-	        </programlisting>
+	        <programlisting><xi:include  href="../no-dnssec.schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 	      </para>
 	      <para>
 	        This schema contains all elements needed for master, slave and superslave operation.	  
@@ -16330,36 +16144,8 @@ VALUES (:zoneid, :ip)
 		To support DNSSEC, or to migrate to DNSSEC, the following statements must be issued:
 	      </para>
 	      <para>
-	      <programlisting>
-alter table records add ordername      VARCHAR(255);
-alter table records add auth bool;
-create index orderindex on records(ordername);
-
-create table domainmetadata (
- id              INTEGER PRIMARY KEY,
- domain_id       INT NOT NULL,
- kind            VARCHAR(16) COLLATE NOCASE,
- content        TEXT
-);
-
-create table cryptokeys (
- id             INTEGER PRIMARY KEY,
- domain_id      INT DEFAULT NULL,
- flags          INT NOT NULL,
- active         BOOL,
- content        TEXT
-);        
-
-create table tsigkeys (
- id             INTEGER PRIMARY KEY,
- name           VARCHAR(255) COLLATE NOCASE,
- algorithm      VARCHAR(255) COLLATE NOCASE,
- secret         VARCHAR(255)
-);
-
-create unique index namealgoindex on tsigkeys(name, algorithm);
-         
-	      </programlisting></para>
+		      <programlisting><xi:include  href="../dnssec.schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+	      </para>
 	      <para>
 		For full migration notes, please see <xref linkend="dnssec-migration"/>.
 	      </para>
