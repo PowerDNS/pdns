@@ -425,11 +425,12 @@ try
   g_verbose = g_vm.count("verbose");
 
   if(cmds.empty() || g_vm.count("help")) {
-    cerr<<"Usage: \npdnssec [options] [show-zone] [secure-zone] [rectify-zone] [add-zone-key] [deactivate-zone-key] [remove-zone-key] [activate-zone-key]\n";
-    cerr<<"         [import-zone-key] [export-zone-key] [set-nsec3] [set-presigned] [unset-nsec3] [unset-presigned] [export-zone-dnskey]\n\n";
+    cerr<<"Usage: \npdnssec [options] <command> [params ..]\n\n";
+    cerr<<"Commands:\n";
     cerr<<"activate-zone-key ZONE KEY-ID    Activate the key with key id KEY-ID in ZONE\n";
-    cerr<<"add-zone-key ZONE [zsk|ksk]      Add a ZSK or KSK to a zone\n";
-    cerr<<"  [bits] [rsasha1|rsasha256]     and specify algorithm & bits\n";
+    cerr<<"add-zone-key ZONE [zsk|ksk] [bits]\n";
+    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
+    cerr<<"                                 Add a ZSK or KSK to zone and specify algo&bits\n";
     cerr<<"check-zone ZONE                  Check a zone for correctness\n";
     cerr<<"deactivate-zone-key ZONE KEY-ID  Deactivate the key with key id KEY-ID in ZONE\n";
     cerr<<"disable-dnssec ZONE              Deactivate all keys and unset PRESIGNED in ZONE\n";
@@ -536,7 +537,7 @@ try
   }
   else if(cmds[0] == "add-zone-key") {
     if(cmds.size() < 3 ) {
-      cerr << "Syntax: pdnssec add-zone-key ZONE [zsk|ksk] [bits] [rsasha1|rsasha256]"<<endl;
+      cerr << "Syntax: pdnssec add-zone-key ZONE [zsk|ksk] [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
       return 0;
     }
     const string& zone=cmds[1];
