@@ -257,7 +257,7 @@ int Resolver::resolve(const string &ipport, const char *domain, int type, Resolv
 
     int id = sendResolve(to, domain, type);
     int sock =  to.sin4.sin_family == AF_INET ? d_sock4 : d_sock6;
-    int err=waitForData(sock, 0, 7500000); 
+    int err=waitForData(sock, 0, 3000000); 
   
     if(!err) {
       throw ResolverException("Timeout waiting for answer");

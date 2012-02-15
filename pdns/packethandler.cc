@@ -827,6 +827,22 @@ How MySQLBackend would implement this:
 
 int PacketHandler::trySuperMaster(DNSPacket *p)
 {
+  if(p->d_tcp)
+  {
+    // do it right now if the client is TCP
+    // rarely happens
+    return trySuperMasterSynchronous(p);
+  }
+  else
+  {
+    // queue it if the client is on UDP
+    Communicator.addTrySuperMasterRequest(p);
+    return 0;
+  }
+}
+
+int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
+{
   Resolver::res_t nsset;
   try {
     Resolver resolver;
@@ -835,7 +851,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
     resolver.resolve(p->getRemote(), p->qdomain.c_str(), QType::NS, &nsset);
   }
   catch(ResolverException &re) {
-    L<<Logger::Error<<"Error resolving SOA or NS at: "<< p->getRemote() <<": "<<re.reason<<endl;
+    L<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< p->getRemote() <<": "<<re.reason<<endl;
     return RCode::ServFail;
   }
 

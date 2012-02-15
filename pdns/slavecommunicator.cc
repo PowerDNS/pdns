@@ -39,6 +39,7 @@
 #include "inflighter.cc"
 #include "lua-pdns-recursor.hh"
 #include "namespaces.hh"
+#include "common_startup.hh"
 #include <boost/scoped_ptr.hpp>
 using boost::scoped_ptr;
 
@@ -318,18 +319,41 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   d_any_sem.post(); // kick the loop!
 }
 
+void CommunicatorClass::addTrySuperMasterRequest(DNSPacket *p)
+{
+  Lock l(&d_lock);
+  DNSPacket ours = *p;
+  d_potentialsupermasters.push_back(ours);
+  d_any_sem.post(); // kick the loop!
+}
+
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
   vector<DomainInfo> rdomains;
   vector<DomainNotificationInfo > sdomains; // the bool is for 'presigned'
+  vector<DNSPacket> trysuperdomains;
   
   {
     Lock l(&d_lock);
     rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
     d_tocheck.clear();
+    trysuperdomains.insert(trysuperdomains.end(), d_potentialsupermasters.begin(), d_potentialsupermasters.end());
+    d_potentialsupermasters.clear();
   }
   
+  BOOST_FOREACH(DNSPacket& dp, trysuperdomains) {
+    int res;
+    res=P->trySuperMasterSynchronous(&dp);
+    if(res>=0) {
+      DNSPacket *r=dp.replyPacket();
+      r->setRcode(res);
+      r->setOpcode(Opcode::Notify);
+      N->send(r);
+      delete r;
+    }
+  }
+
   if(rdomains.empty()) // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
     
