@@ -95,6 +95,392 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-auth-3-1"><title>PowerDNS Authoritative Server 3.1 (UNRELEASED)</title>
+      <para>
+	Version 3.1 of the PowerDNS Authoritative Server represents the 'coming of age' of our DNSSEC implementation. 
+	In addition, 3.1 solves a lot of '.0' issues typically associated with a major new release.
+      </para>
+      <para>
+	As usual, we are very grateful for the involvement of the PowerDNS community. The uptake of 3.0
+	was rapid, and many users were very helpful in shaking out the bugs, and willing to test the fixes we provided or, in many cases,
+	provided the fixes themselves.
+      </para>
+      <para>
+	Of specific note is the giant PowerDNS DNSSEC deployment in Sweden by Atomia and Binero. PowerDNS 3.0 now powers
+	over 150000 DNSSEC domains in Sweden, around 95% of all DNSSEC domains, in a country were most internet service 
+	providers actually validate all .SE domains.
+      </para>
+      <para>
+	Finally, this release has benefited a lot from Peter van Dijk joining us, as he has merged a tremendous amount of patches,
+	cleaned up years of accumulated dust in the code, and massively improved our regression testing into a full blown continuous integration setup 
+	with full DNSSEC tests!
+      </para>
+      <para>
+	DNSSEC related fixes:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      NSEC/NSEC3 logic for picking 'boundary' names was tricky, and got it wrong in some cases. Fix in c2289.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Spotted &amp; fixed by Jimmy Bergman of Atomia, CNAMEs and RRSIGs could have bad interactions. Fix in c2314, 
+	      further refined in c2318.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      Spotted &amp; fixed by Jimmy Bergman of Atomia, we now allow direct RRSIG queries even when do=0.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      Spotted by Mark Scholten and Marco Davids, we would sometimes generate duplicate (and wrong) RRSIGs when signing an ANY answer
+	      because of record jumbling. Fix in c2381.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>
+	Bug fixes:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Winfried Angele discovered we would open an additional backend connection per zone in the BIND backend.
+	      This only impacted users with multiple simultaneous backends. Fix in c2253.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      All versions of max-cache-entries setting had confusing behaviour when set to 0. Now clarified to mean that 0 truly means 0, and not 'infinite'.
+	      Change in c2328.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Wildcards in the presence of delegations were broken. Reported by a cast of thousands. Fix &amp; regression test in c2368.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      Internal caches used an order of magnitude more memory than expected and some were note purged properly, which hindered real life deployments. Spotted
+	      by Winfried Angele and others. Fixed in c2287 and c2328.
+	    </para>
+	  </listitem>
+	 <listitem>
+	    <para>
+	      Christof Meerwald discovered our .tar file missed a file of the Lua backend. Change in c2257.
+	    </para>
+	  </listitem> 
+	  <listitem>
+	    <para>
+	      Paul Xek found out that the edns-subnet support did not work for subnets tinier than a /25 or /121. Fix in c2258.
+	    </para>
+	  </listitem> 
+	  <listitem>
+	    <para>
+	      edns-subnet aware PIPE scripts received bogus remote information on AXFR requests. Fixed in c2284.
+	    </para>
+	  </listitem> 
+	   <listitem>
+	    <para>
+	      Fix compilation against older versions of MySQL that do not have MYSQL_OPT_RECONNECT. c2264.
+	    </para>
+	  </listitem> 
+	   <listitem>
+	    <para>
+	      D. Stussy of Snarked.net discovered that PowerDNS could not parse a DNS packet with a trailing blob of unknown length. Fixed in c2267.
+	    </para>
+	  </listitem> 
+	  <listitem>
+	    <para>
+	      'pdnssec' did not work for records with NULL ttls. Fixed in c2266.
+	    </para>
+	  </listitem> 
+	  <listitem>
+	    <para>
+	      Pipe backend had issues parsing IPv6 records in ABI version 3. Fixed in c2260.
+	    </para>
+	  </listitem> 
+	  <listitem>
+	    <para>
+	      We truncated the altitude in LOC records! I hope no one got lost. Fix in c2268.
+	    </para>
+	  </listitem> 
+	  <listitem>
+	    <para>
+	      Xander Soldaat discovered that even if the web server was not configured, we'd still listen on the port. Fix in c2269, closes t402.
+	    </para>
+	  </listitem> 
+	  <listitem>
+	    <para>
+	      The PIPE backend issues frequent fork()s, leading to potential fd leaks if these are not marked as 
+	      'close on exec'. Solved in c2273, closing t194.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Robert van der Meulen found that we messed up the interaction between wildcards and CNAMES. Fixed in c2276, which also
+	      adds a regression test to prevent this issue from recurring. 
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Fred Wittekind discovered that our notification proxy 'nproxy' no longer built from source. Fixed in c2278.
+	    </para>
+	  </listitem>  
+	  <listitem>
+	    <para>
+	      Grant Keller found that we were inconsistent with spaces in labels, thus breaking DNS-SD. Fix in c2305.
+	    </para>
+	  </listitem>  
+	  <listitem>
+	    <para>
+	      Winfried Angele fixed our autoconf script for Lua detection in c2308.
+	    </para>
+	  </listitem>  
+	  <listitem>
+	    <para>
+	      BIND backend would leak an fd when including a configuration file from named.conf. Spotted
+	      and fixed by Hannu Ylitalo of Nebula Oy in c2359.
+	    </para>
+	  </listitem>  
+	  <listitem>
+	    <para>
+	      GSQLite3 backend could crash on a network error at the wrong moment, leading to a restart by the guardian.
+	      Fix in c2336.
+	    </para>
+	  </listitem>  
+	  <listitem>
+	    <para>
+	      './configure --enable-verbose-logging' was broken, fixed in c2312.
+	    </para>
+	  </listitem>  
+	</itemizedlist>
+      </para>
+      <para>
+	New features:
+	<itemizedlist>
+	<listitem>
+	    <para>
+	      Per-zone AXFR ACLs, based on the allow-axfr-ips zone metadata item. Code in c2274. Also, remove
+	      some remains of our previous approach to supporting this in c2326.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Alberto Donato and Zsolt Dollenstein implemented autoserial support for the Generic SQL backends. Code in c2290, c2294, c2296, c2299, 
+	      c2300, c2303.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      New SOA Serial Tweak mode INCEPTION-EPOCH for when operating as a 'signing slave', contributed by Jimmy Bergman. Code and documentation 
+	      in c2320.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Flag '--start-id' in zone2sql was not functional. Removed for now in c2387, closing t332.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Newlines in the 'content' field of backends are now allowed, restoring some DKIM setups to working condition.
+	      Update in c2394, closing t395.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Additional processing based on records loaded by the BIND backend might fail because of a trailing dot mismatch. Fix in c2398.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Depending on the encoding used, MySQL could take issue with our 'tsigkeys' table which contained very large rows. Trimmed in c2400,
+	      closing t410.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      PowerDNS would serve up old SOA data immediately after sending out a notification. Complicated bug
+	      documented perfectly in t427, which also came with not one but with two different patches to fix the problem.
+	      Thanks to Keith Buck. Code in c2408.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>
+	Improvements:
+	<itemizedlist>
+	<listitem>
+	    <para>
+	      Jasper Spaans improved our init.d script for compliance with Debian Squeeze. Patch in c2251. Further improvement with 'set -e' 
+	      to initscript contributed by Marc Haber in c2301.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Klaus Darilion discovered our configuration file template and --help output explained the various cache TTLs wrongly,
+	      and he also added documentation for some missing parameters. c2271 and c2272.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Add support for building against Botan 1.10 (stable) and drop support for 1.9 (development). Changes in c2334. This fixes
+	      several bugs when building against 1.9.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Upgrade internal PolarSSL library to their version 1.1.1. Change in c2389 and beyond.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Compilation of several backends failed for Boost in non-standard locations. Fixes in c2316..
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      We now do additional processing for SRV records too. Code in c2388, closing t423 (which also contained the patch). Regression test 
+	      updates that flow from this in c2390.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Fix compilation on OSX. c2316.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Fix pdnssec crash when asked to do DNSSEC without a DNSSEC capable backend. Code in c2369.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      If PowerDNS was not configured to operate as a DNS master, it would still accept 'pdns_control notify' commands,
+	      but then not do it. Spotted by David Gavarret, patch by Jose Arthur Benetasso Villanova in c2379.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      In various places we would only accept UPPERCASE DNS typenames. Fixed in c2370, closing t390.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Our regression tests have been strenghtened a lot, and now cover way more features. Commits in C2280, C2281, C2282, C2317, C2348,
+	      C2349, C2350, C2351 and beyond.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Update to support the latest draft of DANE/TLSA. Spotted by James Cloos (c2338). Futher improvements by Pieter Lexis in c2347, c2358.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      Compilation on OpenBSD was eased by patches from Brad Smith, which can be found in c2288 and c2291.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      'make check' failed on the internal PolarSSL. Spotted by Daniel Briley, fix in c2283.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      The default SQL schemas were expanded to contain far longer content fields. c2292, c2293.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Documentation typos, Jake Spencer (c2304), Jose Arthur Benetasso Villanova (c2337). Code typos in c2324.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      Manpage updates from Debian, provided by  Matthijs M&ouml;hlmann. Content in c2306.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      pdnssec rectify-zone can now accept multiple zones at the same time. Code in c2383.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      As suggested in t416, we now log the SOA serial number after commiting an AXFRed zone to the backend. Code in c2385.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      Pick up location of sqlite3 libraries using pkg-config. Implemented using a variation of the patch found in the, now closed, t380. Code in c2386.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Documented 'pdnssec --verbose' flag is now accepted. Code in c2384, closing t404.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      'pdnssec --help' now lists all supported signing algorithms. Suggested by Jose Arthur Benetasso Villanova.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      PIPE backend example script with edns-subnet support was improved to actually use edns-subnet field. Plus update
+	      PIPE backend documentation. Code in c2285, more documentation regarding MX and SRV in c2313.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      edns-subnet fields now also output in logfile when available (c2321).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      When running with virtualized configuration files, we now allow dashes in the configuration name.  Suggested by Marc Haber,
+	      code in c2295. Further fixes by Brielle Bruns in c2327.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Compilation fixes for GNU/Hurd in c2307 via Matthijs M&ouml;hlmann.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Marc Haber improved our Debian packaging scripts for smoother upgrades. Code in c2315.
+	    </para>
+	  </listitem>
+	   <listitem>
+	    <para>
+	      When failing to bind to an IP address, report to which one it failed. c2325.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Supermaster checks were performed synchronously, leading to the possibilities of slowdowns.
+	      Fixed in c2402.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>
+	Tickets closed but not associated with a commit:
+	<itemizedlist>
+	<listitem>
+	    <para>
+	      Upcoming.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      </sect2>
       <sect2 id="changelog-auth-2-9-22-6"><title>Authoritative Server version 2.9.22.6</title>
       <para>
       	The improvements to the master/slave engine in 2.9.22.5 contained one serious bug that can cause crashes
