@@ -80,7 +80,8 @@ public:
 
   int size(); //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired packets
-  int purge(const vector<string>&matches= vector<string>());
+  int purge();
+  int purge(const string &match);
 
   map<char,int> getCounts();
 private:

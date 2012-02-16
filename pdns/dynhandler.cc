@@ -113,10 +113,13 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   extern PacketCache PC;  
   ostringstream os;
-  int ret;
+  int ret=0;
 
-  if(parts.size()>1)
-    ret=PC.purge(parts);
+  if(parts.size()>1) {
+    for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
+      ret+=PC.purge(*i);
+    }
+  }
   else
     ret=PC.purge();
   os<<ret;
