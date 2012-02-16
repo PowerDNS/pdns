@@ -1,0 +1,4 @@
+#!/bin/sh
+set -ex
+../regression-tests/runtests
+../regression-tests/toxml

@@ -103,6 +103,6 @@ export context
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
-nameserver=127.0.0.1 ./runtests $context
+nameserver=127.0.0.1 ./runtests
 kill $(cat pdns.pid)
-./toxml $context
+./toxml
