@@ -80,6 +80,41 @@ public:
   virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
 
+
+  //! Initiates a list of the specified domain
+  /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
+      if the backend does not consider itself responsible for the id passed.
+      \param domain_id ID of which a list is requested
+  */
+  virtual bool list(const string &target, int domain_id)=0;  
+
+  virtual ~DNSBackend(){};
+
+  //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
+  virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
+
+  //! Calculates a SOA serial for the zone and stores it in the third argument.
+  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
+
+  // the DNSSEC related (getDomainMetadata has broader uses too)
+  virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
+  virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
+
+  struct KeyData {
+    unsigned int id;
+    unsigned int flags;
+    bool active;
+    std::string content;
+  };
+
+  virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
+  virtual bool removeDomainKey(const string& name, unsigned int id) { return false; }
+  virtual int addDomainKey(const string& name, const KeyData& key){ return -1; }
+  virtual bool activateDomainKey(const string& name, unsigned int id) { return false; }
+  virtual bool deactivateDomainKey(const string& name, unsigned int id) { return false; }
+
+  virtual bool getTSIGKey(const string& name, string* algorithm, string* content) { return false; }
+
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
   {
     std::cerr<<"Default beforeAndAfterAbsolute called!"<<std::endl;
@@ -99,38 +134,7 @@ public:
     return false;
   }
 
-
-  //! Initiates a list of the specified domain
-  /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
-      if the backend does not consider itself responsible for the id passed.
-      \param domain_id ID of which a list is requested
-  */
-  virtual bool list(const string &target, int domain_id)=0;  
-
-  virtual ~DNSBackend(){};
-
-  struct KeyData {
-    unsigned int id;
-    unsigned int flags;
-    bool active;
-    std::string content;
-  };
-
-  //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
-
-  //! Calculates a SOA serial for the zone and stores it in the third argument.
-  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
-
-  virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
-  virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
-  virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
-  virtual bool removeDomainKey(const string& name, unsigned int id) { return false; }
-  virtual int addDomainKey(const string& name, const KeyData& key){ return -1; }
-  virtual bool activateDomainKey(const string& name, unsigned int id) { return false; }
-  virtual bool deactivateDomainKey(const string& name, unsigned int id) { return false; }
-
-  virtual bool getTSIGKey(const string& name, string* algorithm, string* content) { return false; }
+  // end DNSSEC
 
   //! returns true if master ip is master for domain name.
   virtual bool isMaster(const string &name, const string &ip)
