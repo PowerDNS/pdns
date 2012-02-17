@@ -11151,21 +11151,46 @@ zone "powerdnssec.org" {
   protection of subsequent AXFR zone content messages.</para></warning></para>
   </section>
   </chapter>
+  <chapter id="allow-axfr-from"><title>AXFR ACLs</title>
+  <para>
+    Starting with the PowerDNS Authoritative Server 3.1, per-zone AXFR ACLs can be stored in the domainmetadata table.
+  </para>
+  <para>
+	Each ACL row can list one subnet (v4 or v6), or the magical value 'AUTO-NS' that tries to allow all potential slaves in.
+  </para>
+  <para>
+    Example:
+    <programlisting>
+sql> select id from domains where name='example.com';
+7
+sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');
+sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
+    </programlisting>
+  </para>
+  </chapter>
   <chapter id="domainmetadata"><title>Per zone settings aka Domain Metadata</title>
   <para>
-    Starting with the PowerDNS Authoritative Server, each served zone can have "metadata". Such metadata determines
+    Starting with the PowerDNS Authoritative Server 3.0, each served zone can have "metadata". Such metadata determines
     how this zone behaves in certain circumstances.
   </para>
   <para><warning><para>Domain metadata is only available for DNSSEC capable backends! Make sure to enable the proper '-dnssec' setting to benefit, and
   to have performed the DNSSEC schema update.</para></warning></para>
   <para>
-    Each metadata item is described elsewhere in the documentation, and the following settings are available:
+    Most of these metadata items are described elsewhere in the documentation. The following settings are available:
     <variablelist>
+      <varlistentry>
+	  <term>ALLOW-AXFR-FROM</term>
+	  <listitem>
+	  <para>
+	    Per-zone AXFR ACLs (see <xref linkend="allow-axfr-from" />).
+	  </para>
+	</listitem>
+      </varlistentry>
       <varlistentry>
 	  <term>AXFR-MASTER-TSIG</term>
 	  <listitem>
 	  <para>
-	    Use this named TSIG key to retrieve this zone from its master.
+	    Use this named TSIG key to retrieve this zone from its master (see <xref linkend="tsig-outbound-notify-axfr" />).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -11173,7 +11198,7 @@ zone "powerdnssec.org" {
 	<term>LUA-AXFR-SCRIPT</term>
 	  <listitem>
 	  <para>
-	    Script to be used to edit incoming AXFRs.
+	    Script to be used to edit incoming AXFRs (see <xref linkend="lua-axfr-script" />).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -11181,7 +11206,7 @@ zone "powerdnssec.org" {
 	<term>NSEC3NARROW</term>
 	  <listitem>
 	  <para>
-	    Determines if this zone operates in NSEC3 'narrow' mode.
+	    Determines if this zone operates in NSEC3 'narrow' mode (see 'set-nsec3' in <xref linkend="pdnssec" />).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -11190,7 +11215,7 @@ zone "powerdnssec.org" {
 	  <listitem>
 	  <para>
 	    NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the NSEC3PARAM record. If present, NSEC3 is used, if not
-	    present, zones default to NSEC.
+	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -11199,7 +11224,7 @@ zone "powerdnssec.org" {
 	<term>PRESIGNED</term>
 	  <listitem>
 	  <para>
-	    This zone carries DNSSEC RRSIGs (signatures), and is presigned. 
+	    This zone carries DNSSEC RRSIGs (signatures), and is presigned (see 'set-presigned' in <xref linkend="pdnssec" />).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -11228,7 +11253,7 @@ zone "powerdnssec.org" {
 	  <term>TSIG-ALLOW-AXFR</term>
 	  <listitem>
 	  <para>
-	    Allow these named TSIG keys to AXFR this zone.
+	    Allow these named TSIG keys to AXFR this zone (see <xref linkend="tsig-outbound-axfr" />).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -12730,7 +12755,7 @@ end
 	  where a domain comes from.
 	</para>
       </sect2>
-      <sect2><title>Modifying a slave zone using a script</title>
+      <sect2 id="lua-axfr-script"><title>Modifying a slave zone using a script</title>
       <para>
 	As of version 3.0, the PowerDNS Authoritative Server can invoke a Lua script on an incoming AXFR zone transfer. 
 	The user-defined function axfrfilter within your script is invoked for each resource record read during the transfer, 
@@ -15805,15 +15830,6 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
           </para>
         </sect3>
 
-        <sect3><title>The AccessControlList Table</title>
-          <para>
-            There is the beginning of an ACL feature, implemented in this table. At this time, it's used
-            by PowerDNS for only one thing: outgoing AXFR permission by IP address. In your schema, you
-            will probably want to implement ACLs entirely in PL/SQL. In the reference schema, this table
-            stores a simple list of ACL parameters for which we set <varname>allow</varname> to 1.
-          </para>
-        </sect3>
-
         <sect3><title>The Tables for Cryptographic Keys</title>
           <para>
             We have two of them: <classname>TSIGKeys</classname> for symmetric TSIG keys, and
@@ -16351,39 +16367,6 @@ AND (notified_serial IS NULL OR notified_serial &lt; serial)
                 </simpara>
                 <programlisting>
 UPDATE Zones SET notified_serial = :serial WHERE id = :zoneid
-                </programlisting>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>oracle-check-acl-query</term>
-              <listitem>
-                <simpara>
-                  A PL/SQL block that sets <varname>:allow</varname> to 1 if the action
-                  <varname>:acltype</varname> is allowed to be performed when <varname>:aclkey</varname>
-                  is <varname>:aclval</varname>, 0 otherwise.
-                </simpara>
-                <simpara>
-                  At the moment, this is only used for outgoing AXFR, in which case
-                  <varname>:acltype</varname> is <constant>allow-axfr</constant>,
-                  <varname>:aclkey</varname> is the name of the requested zone, and
-                  <varname>:aclval</varname> is the IP address of the requesting client.
-                </simpara>
-                <simpara>
-                  Default implementation:
-                </simpara>
-                <programlisting>
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM AccessControlList
-    WHERE acl_type = :acltype
-      AND acl_key = :aclkey
-      AND acl_val = :aclval
-  ) THEN
-    :allow := 1;
-  ELSE
-    :allow := 0;
-  END IF;
-END;
                 </programlisting>
               </listitem>
             </varlistentry>
