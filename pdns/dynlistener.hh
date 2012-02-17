@@ -50,12 +50,14 @@ public:
   static void *theListenerHelper(void *p);
 
   typedef string g_funk_t(const vector<string> &parts, Utility::pid_t ppid); // guido!
-  typedef map<string,g_funk_t *> g_funkdb_t;
+  typedef struct { g_funk_t *func; string args; string usage; } g_funkwithusage_t;
+  typedef map<string,g_funkwithusage_t> g_funkdb_t;
   
-  static void registerFunc(const string &name, g_funk_t *gf);
+  static void registerFunc(const string &name, g_funk_t *gf, const string &usage="", const string &args="");
   static void registerRestFunc(g_funk_t *gf);
 private:
   void sendLine(const string &line);
+  string getHelp();
   string getLine();
 
   void listenOnUnixDomain(const std::string& fname);

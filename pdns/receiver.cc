@@ -181,10 +181,10 @@ static int guardian(int argc, char **argv)
   int infd=0, outfd=1;
 
   DynListener dlg(s_programname);
-  dlg.registerFunc("QUIT",&DLQuitHandler);
-  dlg.registerFunc("CYCLE",&DLCycleHandler);
-  dlg.registerFunc("PING",&DLPingHandler);
-  dlg.registerFunc("STATUS",&DLStatusHandler);
+  dlg.registerFunc("QUIT",&DLQuitHandler, "quit daemon");
+  dlg.registerFunc("CYCLE",&DLCycleHandler, "restart instance");
+  dlg.registerFunc("PING",&DLPingHandler, "ping guardian");
+  dlg.registerFunc("STATUS",&DLStatusHandler, "get instance status from guardian");
   dlg.registerRestFunc(&DLRestHandler);
   dlg.go();
   string progname=argv[0];
@@ -537,19 +537,19 @@ int main(int argc, char **argv)
       
       writePid();
     }
-    DynListener::registerFunc("SHOW",&DLShowHandler);
-    DynListener::registerFunc("RPING",&DLPingHandler);
-    DynListener::registerFunc("QUIT",&DLRQuitHandler);
-    DynListener::registerFunc("UPTIME",&DLUptimeHandler);
-    DynListener::registerFunc("NOTIFY-HOST",&DLNotifyHostHandler);
-    DynListener::registerFunc("NOTIFY",&DLNotifyHandler);
-    DynListener::registerFunc("RELOAD",&DLReloadHandler);
-    DynListener::registerFunc("REDISCOVER",&DLRediscoverHandler);
-    DynListener::registerFunc("VERSION",&DLVersionHandler);
-    DynListener::registerFunc("PURGE",&DLPurgeHandler);
-    DynListener::registerFunc("CCOUNTS",&DLCCHandler);
-    DynListener::registerFunc("SET",&DLSettingsHandler);
-    DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
+    DynListener::registerFunc("SHOW",&DLShowHandler, "show a specific statistic or * to get a list", "<statistic>");
+    DynListener::registerFunc("RPING",&DLPingHandler, "ping instance");
+    DynListener::registerFunc("QUIT",&DLRQuitHandler, "quit daemon");
+    DynListener::registerFunc("UPTIME",&DLUptimeHandler, "get instance uptime");
+    DynListener::registerFunc("NOTIFY-HOST",&DLNotifyHostHandler, "notify host for specific domain", "<domain> <host>");
+    DynListener::registerFunc("NOTIFY",&DLNotifyHandler, "queue a notification", "<domain>");
+    DynListener::registerFunc("RELOAD",&DLReloadHandler, "reload all zones");
+    DynListener::registerFunc("REDISCOVER",&DLRediscoverHandler, "discover any new zones");
+    DynListener::registerFunc("VERSION",&DLVersionHandler, "get instance version");
+    DynListener::registerFunc("PURGE",&DLPurgeHandler, "purge entries from packet cache", "[<record>]");
+    DynListener::registerFunc("CCOUNTS",&DLCCHandler, "get cache statistics");
+    DynListener::registerFunc("SET",&DLSettingsHandler, "set config variables", "<var> <value>");
+    DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler, "retrieve slave domain", "<domain>");
 
     if(!::arg()["tcp-control-address"].empty()) {
       DynListener* dlTCP=new DynListener(ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));
