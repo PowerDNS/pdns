@@ -314,7 +314,12 @@
       <para>
 	Improvements:
 	<itemizedlist>
-	<listitem>
+	  <listitem>
+	    <para>
+	      'pdns_control help' now shows useful usage information. Code in c2410.
+	  </para>
+	  </listitem>
+	  <listitem>
 	    <para>
 	      Jasper Spaans improved our init.d script for compliance with Debian Squeeze. Patch in c2251. Further improvement with 'set -e' 
 	      to initscript contributed by Marc Haber in c2301.
