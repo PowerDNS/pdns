@@ -1407,7 +1407,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       
     r->wrapup(); // needed for inserting in cache
     if(!noCache)
-      PC.insert(p, r); // in the packet cache
+      PC.insert(p, r, r->getMinTTL()); // in the packet cache
   }
   catch(DBException &e) {
     L<<Logger::Error<<"Database module reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;

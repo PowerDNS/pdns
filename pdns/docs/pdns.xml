@@ -316,8 +316,13 @@
 	<itemizedlist>
 	  <listitem>
 	    <para>
+	      The packet- and querycache now honour TTLs from backend data. Code in c2414.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
 	      'pdns_control help' now shows useful usage information. Code in c2410.
-	  </para>
+	    </para>
 	  </listitem>
 	  <listitem>
 	    <para>

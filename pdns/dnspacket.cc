@@ -227,6 +227,17 @@ bool DNSPacket::couldBeCached()
   return d_ednsping.empty() && !d_wantsnsid && qclass==QClass::IN;
 }
 
+unsigned int DNSPacket::getMinTTL()
+{
+  unsigned int minttl = UINT_MAX;
+  BOOST_FOREACH(DNSResourceRecord rr, d_rrs) {
+  if (rr.ttl < minttl)
+      minttl = rr.ttl;
+  }
+
+  return minttl;
+}
+
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
