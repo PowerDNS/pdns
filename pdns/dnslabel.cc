@@ -114,11 +114,11 @@ int DNSLabel::validateConsume(const char* raw, unsigned int maxLen)
 		if(p > (const unsigned char*)raw + maxLen) // beyond the end
 			return -1;
 			
-		cerr<<(int)*p<<endl;
+		// cerr<<(int)*p<<endl;
 		if(*p >= 0xc0 && p + 1 < (const unsigned char*)raw + maxLen) {
-			unsigned int offset=(*p & ~0xc0) * 0xff + *(p+1);
+			// unsigned int offset=(*p & ~0xc0) * 0xff + *(p+1);
 			++p;
-			cerr<<"Wants to refer to offset "<<offset<<endl;
+			// cerr<<"Wants to refer to offset "<<offset<<endl;
 			return -1;
 		}
 		if(*p > 64) // label length too long, or a compression pointer
@@ -227,7 +227,7 @@ void DNSLabel::chaseLabel(const char* raw, const char* beginPacket, unsigned int
 			if(offset < 12)
 				throw std::range_error("compression pointer to before beginning of content");
 			offset -= 12;
-			cerr<<"new offset: "<<offset<<endl;
+			// cerr<<"new offset: "<<offset<<endl;
 			if((const unsigned char*)beginPacket + offset >= p) {
 				throw std::runtime_error("looping or forward compression pointer");
 			}
