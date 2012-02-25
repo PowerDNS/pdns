@@ -53,8 +53,16 @@ $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --fancy-records --query-logging --send-root-referral --loglevel=9    \
 --cache-ttl=0 --no-config
 
-
 Or only sqlite3:
+
+rm powerdns.sqlite3
+sqlite3 powerdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
+sqlite3 powerdns.sqlite3 < ../pdns/dnssec.schema.sqlite3.sql
+../pdns/backends/bind/zone2sql --named-conf=./named.conf --gsqlite \
+--transactions --dnssec | sqlite3 powerdns.sqlite3
+echo 'analyze;' | sqlite3 powerdns.sqlite3
+
+
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gsqlite3 \
 --gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
