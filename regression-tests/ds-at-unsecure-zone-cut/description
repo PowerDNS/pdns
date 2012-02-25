@@ -1,0 +1,3 @@
+This test tries to resolve a DS question at an unsecure zone-cut, thus
+testing RFC 4035 3.1.4.1 and B.8.
+
