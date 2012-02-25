@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2011  PowerDNS.COM BV
+    Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -477,7 +477,8 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   rr.ttl = sd.default_ttl;
   B.lookup(QType(QType::ANY), begin);
   while(B.get(rr)) {
-    nrc.d_set.insert(rr.qtype.getCode());    
+    if(rr.domain_id == sd.domain_id) 
+      nrc.d_set.insert(rr.qtype.getCode());    
   }
   
   nrc.d_next=end;
@@ -820,8 +821,6 @@ int PacketHandler::processNotify(DNSPacket *p)
   Communicator.addSlaveCheckRequest(di, p->d_remote);
   return 0;
 }
-
-
 
 bool validDNSName(const string &name)
 {
@@ -1223,7 +1222,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // see what we get..
     B.lookup(QType(QType::ANY), target, p, sd.domain_id);
     rrset.clear();
-    weDone=weRedirected=weHaveUnauth=0;
+    weDone = weRedirected = weHaveUnauth = 0;
     
     while(B.get(rr)) {
       if(rr.qtype.getCode() == QType::DS)
@@ -1249,10 +1248,15 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);
+    if(p->qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected && d_dk.isSecuredZone(sd.qname)) {
+      DLOG(L<<"Q for DS of a name for which we do have NS, but for which we don't have on a zone with DNSSEC need to provide an AUTH answer that proves we don't"<<endl);
+      makeNOError(p, r, target, sd);
+      goto sendit;
+    }
 
     if(rrset.empty()) {
       // try NS referrals, and if they don't work, go look for wildcards
-
+      
       DLOG(L<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl);
       if(tryReferral(p, r, sd, target))
         goto sendit;
