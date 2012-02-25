@@ -11,7 +11,7 @@ skipped=0
 
 touch passed_tests failed_tests skipped_tests
 
-for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
+for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | grep -v ^dnssec-only | LC_ALL=C sort) 
 do
 	echo  "$a: "
 	cat $a/description 
