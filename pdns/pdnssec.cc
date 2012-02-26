@@ -376,7 +376,7 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
 
   if(!dk.isSecuredZone(zone)) {
     cerr<<"Failed to secure zone. Is your backend dnssec enabled? (set \n";
-    cerr<<"sqlite3-dnssec, or gmysql-dnssec etc). Check this first.\n";
+    cerr<<"gsqlite3-dnssec, or gmysql-dnssec etc). Check this first.\n";
     cerr<<"If you run with the BIND backend, make sure to also launch another\n";
     cerr<<"backend which supports storage of DNSSEC settings.\n";
     cerr<<"In addition, add '"<<zone<<"' to this backend, possibly like this: \n\n";
