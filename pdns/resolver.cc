@@ -66,8 +66,9 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
   
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
   Utility::setCloseOnExec(sock);
-  if(sock < 0)
-    unixDie("Creating local resolver socket for "+ourLocal.toString());
+  if(sock < 0) {
+    unixDie("Creating local resolver socket for "+ourLocal.toString() + ((local.sin4.sin_family == AF_INET6) ? ", does your OS miss IPv6?" : ""));
+  }
 
   if(!udpOrTCP) {
     int tries=10;
@@ -79,13 +80,13 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
     }
     if(!tries) {
       Utility::closesocket(sock);
-      throw AhuException("Resolver binding to local socket on "+ourLocal.toString()+": "+stringerror());
+      throw AhuException("Resolver binding to local UDP socket on "+ourLocal.toString()+": "+stringerror());
     }
   }
   else {
     ourLocal.sin4.sin_port = 0;
     if(::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) < 0)
-      throw AhuException("Resolver binding to local socket on "+ourLocal.toString()+": "+stringerror());
+      throw AhuException("Resolver binding to local TCP socket on "+ourLocal.toString()+": "+stringerror());
   }
   return sock;
 }
