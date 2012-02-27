@@ -36,7 +36,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
   rrc.d_originalttl=signTTL; 
   rrc.d_siginception=getCurrentInception();;
   rrc.d_sigexpire = rrc.d_siginception + 14*86400; // XXX should come from zone metadata
-  rrc.d_signer = signer;
+  rrc.d_signer = toLower(signer);
   rrc.d_tag = 0;
   
   // we sign the RRSET in toSign + the rrc w/o hash
