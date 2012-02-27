@@ -87,11 +87,11 @@ public:
     declare(suffix,"insert-record-query","", "insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')");
     declare(suffix,"insert-record-query-auth","", "insert into records (content,ttl,prio,type,domain_id,name,auth) values ('%s',%d,%d,'%s',%d,'%s', '%d')");
     
+    declare(suffix,"get-order-first-query","DNSSEC Ordering Query, first", "select ordername, name from records where auth=1 and domain_id=%d order by 1 asc limit 1");
     declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= '%s' and auth=1 and domain_id=%d order by 1 desc limit 1");
     declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select min(ordername) from records where ordername > '%s' and auth=1 and domain_id=%d");
     declare(suffix,"get-order-last-query","DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and auth=1 and domain_id=%d order by 1 desc limit 1");
     declare(suffix,"set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername='%s',auth=%d where name='%s' and domain_id='%d'");
-    
     
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");

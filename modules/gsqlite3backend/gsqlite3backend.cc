@@ -83,6 +83,7 @@ public:
 
     declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, auth from records where domain_id='%d' order by name, type");
     
+    declare(suffix,"get-order-first-query","DNSSEC Ordering Query, first", "select ordername, name from records where auth=1 and domain_id=%d order by 1 asc limit 1");
     declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= '%s' and auth=1 and domain_id=%d order by 1 desc limit 1");
     declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select min(ordername) from records where ordername > '%s' and auth=1 and domain_id=%d");
     declare(suffix,"get-order-last-query","DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and auth=1 and domain_id=%d order by 1 desc limit 1");

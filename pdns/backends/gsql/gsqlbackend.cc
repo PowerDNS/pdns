@@ -281,6 +281,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   
   if (d_dnssecQueries)
   {
+    d_firstOrderQuery = getArg("get-order-first-query");
     d_beforeOrderQuery = getArg("get-order-before-query");
     d_afterOrderQuery = getArg("get-order-after-query");
     d_lastOrderQuery = getArg("get-order-last-query");
@@ -335,7 +336,6 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
   char output[1024];
   string tmp=lcqname;
 
-retryAfter:
   snprintf(output, sizeof(output)-1, d_afterOrderQuery.c_str(), sqlEscape(tmp).c_str(), id);
   
   d_db->doQuery(output);
@@ -344,9 +344,12 @@ retryAfter:
   }
 
   if(after.empty() && !tmp.empty()) {
-    //cerr<<"Oops, have to pick the first, there is no last!"<<endl;
-    tmp.clear();
-    goto retryAfter;
+    snprintf(output, sizeof(output)-1, d_firstOrderQuery.c_str(), id);
+  
+    d_db->doQuery(output);
+    while(d_db->getRow(row)) {
+      after=row[0];
+    }
   }
 
 

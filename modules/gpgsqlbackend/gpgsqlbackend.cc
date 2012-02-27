@@ -84,6 +84,7 @@ public:
     declare(suffix,"insert-record-query","", "insert into records (content,ttl,prio,type,domain_id,name) values (E'%s',%d,%d,'%s',%d,E'%s')");
     declare(suffix,"insert-record-query-auth","", "insert into records (content,ttl,prio,type,domain_id,name,auth) values (E'%s',%d,%d,'%s',%d,E'%s', '%d')");
     
+    declare(suffix,"get-order-first-query","DNSSEC Ordering Query, last", "select ordername, name from records where auth and domain_id=%d order by 1 asc limit 1");
     declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= E'%s' and auth and domain_id=%d order by 1 desc limit 1");
     declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select min(ordername) from records where ordername > E'%s' and auth and domain_id=%d");
     declare(suffix,"get-order-last-query","DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and auth and domain_id=%d order by 1 desc limit 1");

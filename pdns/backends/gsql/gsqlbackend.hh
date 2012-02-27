@@ -84,6 +84,7 @@ private:
   string d_DeleteZoneQuery;		
   string d_ZoneLastChangeQuery;
   
+  string d_firstOrderQuery;
   string d_beforeOrderQuery;
   string d_afterOrderQuery;
   string d_lastOrderQuery;
