@@ -9,17 +9,29 @@ StatBag S;
 int main(int argc, char** argv)
 try
 {
+  bool dnssec=false;
+
   reportAllTypes();
 
-  if(argc < 4) {
-    cerr<<"Syntax: sdig IP-address port question question-type\n";
+  if(argc < 5) {
+    cerr<<"Syntax: sdig IP-address port question question-type [dnssec]\n";
     exit(EXIT_FAILURE);
+  }
+
+  if(argc > 5 && strcmp(argv[5], "dnssec")==0)
+  {
+    dnssec=true;
   }
 
   vector<uint8_t> packet;
   
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
+  if(dnssec)
+  {
+    pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
+    pw.commit();
+  }
   //  pw.setRD(true);
  
   /*
