@@ -1,5 +1,5 @@
 #!/bin/sh
-../pdns/sdig $nameserver $port $1 $2 | sort
+../pdns/sdig $nameserver $port $1 $2 $3 | sort
 if drill -p $port -o rd -D -k trustedkeys $1 $2 @$nameserver > drill.test.output
 then
 	rm -f drill.test.output
