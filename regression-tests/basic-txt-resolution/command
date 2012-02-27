@@ -1,2 +1,3 @@
+#!/bin/sh
 cleandig text.example.com TXT
 

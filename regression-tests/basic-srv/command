@@ -1,2 +1,3 @@
+#!/bin/sh
 cleandig _ldap._tcp.dc.test.com SRV
 

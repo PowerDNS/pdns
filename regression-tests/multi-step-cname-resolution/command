@@ -1,1 +1,2 @@
+#!/bin/sh
 cleandig start1.example.com A

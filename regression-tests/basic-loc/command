@@ -1,2 +1,3 @@
+#!/bin/sh
 cleandig location.example.com LOC
 

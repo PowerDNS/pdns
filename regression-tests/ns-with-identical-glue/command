@@ -1,1 +1,2 @@
+#!/bin/sh
 cleandig blah.test.com MX

@@ -1,2 +1,3 @@
+#!/bin/sh
 cleandig delegated.dnssec-parent.com DS
 

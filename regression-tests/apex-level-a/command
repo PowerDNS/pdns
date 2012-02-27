@@ -1,2 +1,3 @@
+#!/bin/sh
 cleandig wtest.com A
 

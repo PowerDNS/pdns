@@ -1,2 +1,3 @@
+#!/bin/sh
 cleandig ipv6.example.com AAAA
 
