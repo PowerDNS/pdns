@@ -11,7 +11,7 @@ skipped=0
 
 touch passed_tests failed_tests skipped_tests
 
-for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | grep -v ^dnssec-only | LC_ALL=C sort) 
+for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
 do
 	echo  "$a: "
 	cat $a/description 
@@ -19,15 +19,35 @@ do
 	echo  "$a: " >> test-results
 	cat $a/description >> test-results
 	
+	SKIPIT=0
 	if [ -e $a/skip ] 
 	then
+		SKIPIT=1
 		result="	Skipped test $a"
+	else
+		for reason in "$skipreasons"
+		do
+			if [ -e $a/skip.$reason ]
+			then
+				SKIPIT=1
+				result="	Skipped test $a for reason $reason"
+				break
+			fi
+		done
+	fi
+				
+	if [ $SKIPIT = 1 ]
+	then
 		echo $a >> skipped_tests
 		skipped=$[$skipped+1]
 	else	
 		$a/command > /dev/null
 		$a/command > $a/real_result
 		expected=$a/expected_result
+		for extracontext in "$extracontexts"
+		do
+			[ -e "$a/expected_result.$extracontext" ] && expected=$a/expected_result.$extracontext
+		done
 		[ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
 		diff -u $expected $a/real_result > $a/diff
 		if [ -s $a/diff ] 
