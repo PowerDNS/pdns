@@ -323,6 +323,7 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
   d_db->doCommand(output);
   return true;
 }
+
 bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
 {
   if(!d_dnssecQueries)
@@ -334,16 +335,15 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
   SSql::row_t row;
 
   char output[1024];
-  string tmp=lcqname;
 
-  snprintf(output, sizeof(output)-1, d_afterOrderQuery.c_str(), sqlEscape(tmp).c_str(), id);
+  snprintf(output, sizeof(output)-1, d_afterOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
   
   d_db->doQuery(output);
   while(d_db->getRow(row)) {
     after=row[0];
   }
 
-  if(after.empty() && !tmp.empty()) {
+  if(after.empty() && !lcqname.empty()) {
     snprintf(output, sizeof(output)-1, d_firstOrderQuery.c_str(), id);
   
     d_db->doQuery(output);
@@ -352,7 +352,6 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
     }
   }
 
-
   snprintf(output, sizeof(output)-1, d_beforeOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
   d_db->doQuery(output);
   while(d_db->getRow(row)) {
@@ -360,8 +359,11 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
     unhashed=row[1];
   }
   
-  if(! before.empty())
+  if(! unhashed.empty())
+  {
+    cerr<<"unhashed="<<unhashed<<",before="<<before<<", after="<<after<<endl;
     return true;
+  }
 
   snprintf(output, sizeof(output)-1, d_lastOrderQuery.c_str(), id);
   d_db->doQuery(output);
