@@ -20,7 +20,7 @@ for t in $(cat failed_tests)
 do
 	echo '  <testcase name="'$t'" classname="'$context'" time="0">'
 	echo '    <error type="error" message="test failed">'
-	cat $t/diff | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+	[ -e $t/diff ] && cat $t/diff | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
 	echo '    </error>'
 	getstdout
 	echo '  </testcase>'

@@ -1,0 +1,2 @@
+Make sure we generate the right NSEC for a non-existing RRtype query
+for the apex name.
