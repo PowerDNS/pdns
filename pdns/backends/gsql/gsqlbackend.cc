@@ -361,7 +361,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
   
   if(! unhashed.empty())
   {
-    cerr<<"unhashed="<<unhashed<<",before="<<before<<", after="<<after<<endl;
+    // cerr<<"unhashed="<<unhashed<<",before="<<before<<", after="<<after<<endl;
     return true;
   }
 
