@@ -834,35 +834,23 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
 
   recordstorage_t::const_iterator iter = bbd.d_records->lower_bound(domain);
 
-  while(iter != bbd.d_records->begin() && !boost::prior(iter)->auth && boost::prior(iter)->qtype!=QType::NS) {
-    //cerr<<"Going backwards.."<<endl;
-    iter--;
-  }
-  
-  if(iter == bbd.d_records->end()) {
-    //cerr<<"Didn't find anything"<<endl;
-    return false;
-  }
-  if(iter != bbd.d_records->begin()) {
-    //cerr<<"\tFound: '"<<boost::prior(iter)->qname<<"', auth = "<<boost::prior(iter)->auth<<"\n";
+  if (iter == bbd.d_records->end() || (iter->qname) > domain)
+  {
     before = boost::prior(iter)->qname;
   }
-  else {
-    //cerr<<"PANIC! Wanted something before the first record!"<<endl;
-    before.clear();
+  else
+  {
+    before = qname;
   }
 
   //cerr<<"Now upper bound"<<endl;
   iter = bbd.d_records->upper_bound(domain);
 
-  while(iter!=bbd.d_records->end() && (!iter->auth && iter->qtype != QType::NS))
-    iter++;
-
   if(iter == bbd.d_records->end()) {
     //cerr<<"\tFound the end, begin storage: '"<<bbd.d_records->begin()->qname<<"', '"<<bbd.d_name<<"'"<<endl;
     after.clear(); // this does the right thing
   } else {
-    //cerr<<"\tFound: '"<<iter->qname<<"'"<<endl;
+    //cerr<<"\tFound: '"<<(iter->qname)<<"' (nsec3hash='"<<(iter->nsec3hash)<<"')"<<endl;
     after = (iter)->qname;
   }
 
