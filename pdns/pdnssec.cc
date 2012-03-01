@@ -144,7 +144,8 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
     else {
       if(!narrow) {
         hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
-        cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
+        if(g_verbose)
+          cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
       }
       sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
     }
