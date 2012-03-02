@@ -671,8 +671,9 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   if(mode == 1)  {
     emitNSEC(before, after, target, sd, r, mode);
 
-    // sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after); 
-    // emitNSEC(auth, after, auth, sd, r, mode);
+    // this one does wildcard denial, if applicable
+    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after); 
+    emitNSEC(auth, after, auth, sd, r, mode);
   }
 
   if(mode == 3)
