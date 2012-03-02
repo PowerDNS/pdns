@@ -2,3 +2,4 @@ An ANY query should return in the answer section all records with a certain
 qname. All these queries should receive, if applicable, additional
 processing and further records in the additional section. This test might
 fail because of different record ordering - check the diff to be sure.
+(The NSEC3-variant has a superfluous but harmless NSEC3).

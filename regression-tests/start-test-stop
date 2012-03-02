@@ -11,6 +11,7 @@ port=$1
 [ -z "$port" ] && port=5300
 context=$2
 [ -z "$context" ] && context=bind-gsqlite3
+wait=$3
 
 case $context in
 		bind)
@@ -98,7 +99,7 @@ __EOF__
 				--gmysql-password="$GMYSQLPASS" &
 			if [ $context = gmysql-nsec3 ]
 			then
-				subcontexts=nsec3
+				extracontexts=nsec3
 			fi
 			;;			
 		*)
@@ -117,5 +118,10 @@ export skipreasons
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
 nameserver=127.0.0.1 ./runtests
+if [ "$wait" = "wait" ]
+then
+	echo tests done! push enter to terminate instance
+	read l
+fi
 kill $(cat pdns.pid)
 ./toxml
