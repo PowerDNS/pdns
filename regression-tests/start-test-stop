@@ -21,13 +21,23 @@ case $context in
 				--cache-ttl=0 --no-config &
 			skipreasons=nodnssec
 			;;
-		bind-gsqlite3)
+		bind-gsqlite3 | bind-gsqlite3-nsec3 )
 			./bind-gsqlite3-setup
 			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind,gsqlite3 --bind-config=./named.conf       \
 				--gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
 				--fancy-records --query-logging --send-root-referral --loglevel=9    \
 				--cache-ttl=0 --no-config &
+			if [ $context = bind-gsqlite3-nsec3 ]
+			then
+				for zone in $(grep zone named.conf  | cut -f2 -d\")
+				do
+					../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' 2>&1
+				done
+				extracontexts="nsec3 bind"
+			else
+				extracontexts="bind"
+			fi
 			;;
 		gmysql-nodnssec)
 			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest

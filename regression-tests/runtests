@@ -46,7 +46,7 @@ do
 		$a/command > /dev/null
 		$a/command > $a/real_result
 		expected=$a/expected_result
-		for extracontext in "$extracontexts"
+		for extracontext in $extracontexts
 		do
 			[ -e "$a/expected_result.$extracontext" ] && expected=$a/expected_result.$extracontext
 		done
