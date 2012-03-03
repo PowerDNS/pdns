@@ -164,7 +164,7 @@
 	  </listitem>
 	   <listitem>
 	    <para>
-	      Internal caches used an order of magnitude more memory than expected and some were note purged properly, which hindered real life deployments. Spotted
+	      Internal caches used an order of magnitude more memory than expected and some were not purged properly, which hindered real life deployments. Spotted
 	      by Winfried Angele and others. Fixed in c2287 and c2328.
 	    </para>
 	  </listitem>
