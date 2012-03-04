@@ -12,6 +12,7 @@
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include <boost/scoped_ptr.hpp>
+#include "bindbackend2.hh"
 
 StatBag S;
 PacketCache PC;
@@ -433,6 +434,7 @@ try
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                 Add a ZSK or KSK to zone and specify algo&bits\n";
     cerr<<"check-zone ZONE                  Check a zone for correctness\n";
+    cerr<<"create-bind-db [FNAME]           Create a DNSSEC database for BIND backend\n"; 
     cerr<<"deactivate-zone-key ZONE KEY-ID  Deactivate the key with key id KEY-ID in ZONE\n";
     cerr<<"disable-dnssec ZONE              Deactivate all keys and unset PRESIGNED in ZONE\n";
     cerr<<"export-zone-dnskey ZONE KEY-ID   Export to stdout the public DNSKEY described\n";
@@ -462,7 +464,11 @@ try
   reportAllTypes();
   DNSSECKeeper dk;
 
-  if(cmds[0] == "rectify-zone") {
+  if(cmds[0] == "create-bind-db") {
+    Bind2Backend b2b;
+    b2b.createDNSSECDB(cmds.size() > 1 ? cmds[1] : "");
+  }
+  else if(cmds[0] == "rectify-zone") {
     if(cmds.size() < 2) {
       cerr << "Syntax: pdnssec rectify-zone ZONE [ZONE..]"<<endl;
       return 0;

@@ -1,7 +1,7 @@
 create table domainmetadata (
- id		 INTEGER PRIMARY KEY,
+ id		INTEGER PRIMARY KEY,
  domain       	VARCHAR(255) COLLATE NOCASE,
- kind		 VARCHAR(16) COLLATE NOCASE,
+ kind		VARCHAR(16) COLLATE NOCASE,
  content	TEXT
 );
 

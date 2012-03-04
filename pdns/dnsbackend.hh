@@ -235,6 +235,10 @@ public:
   BackendFactory(const string &name) : d_name(name) {}
   virtual ~BackendFactory(){}
   virtual DNSBackend *make(const string &suffix)=0;
+  virtual DNSBackend *makeMetadataOnly(const string &suffix)
+  {
+    return this->make(suffix);
+  }
   virtual void declareArguments(const string &suffix=""){}
   const string &getName() const;
   

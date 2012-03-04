@@ -232,8 +232,6 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
     getFromMeta(zname, "NSEC3NARROW", value);
     *narrow = (value=="1");
   }
-  
-  
   return true;
 }
 

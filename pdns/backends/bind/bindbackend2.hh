@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2010  PowerDNS.COM BV
+    Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "misc.hh"
+#include "dnsbackend.hh"
 
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
@@ -118,15 +119,19 @@ private:
   time_t d_checkinterval;
 };
 
+class SSQLite3;
+class NSEC3PARAMRecordContent;
+
 class Bind2Backend : public DNSBackend
 {
 public:
-  Bind2Backend(const string &suffix=""); //!< Makes our connection to the database. Calls exit(1) if it fails.
+  Bind2Backend(const string &suffix="", bool loadZones=true); 
   ~Bind2Backend();
   void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains);
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
+  // DNSSEC
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int id);
@@ -144,6 +149,19 @@ public:
   bool abortTransaction();
   bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
   void alsoNotifies(const string &domain, set<string> *ips);
+
+// the DNSSEC related (getDomainMetadata has broader uses too)
+  virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
+  virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
+  virtual bool removeDomainKey(const string& name, unsigned int id);
+  virtual int addDomainKey(const string& name, const KeyData& key);
+  virtual bool activateDomainKey(const string& name, unsigned int id);
+  virtual bool deactivateDomainKey(const string& name, unsigned int id);
+  virtual bool getTSIGKey(const string& name, string* algorithm, string* content);
+  void createDNSSECDB(const string& fname="");
+  // end of DNSSEC 
+
 
   typedef map<string, int, CIStringCompare> name_id_map_t;
   typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
@@ -164,6 +182,9 @@ public:
   bool createSlaveDomain(const string &ip, const string &domain, const string &account);
   
 private:
+  void setupDNSSEC();
+  shared_ptr<SSQLite3> d_dnssecdb;
+  bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
   public:
@@ -217,7 +238,7 @@ private:
   ofstream *d_of;
   handle d_handle;
 
-  static void queueReload(BB2DomainInfo *bbd);
+  void queueReload(BB2DomainInfo *bbd);
   bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);

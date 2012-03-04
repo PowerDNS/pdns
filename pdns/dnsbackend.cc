@@ -163,7 +163,7 @@ int BackendMakerClass::numLauncheable()
   return d_instances.size();
 }
 
-vector<DNSBackend *>BackendMakerClass::all(bool skipBIND)
+vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
 {
   vector<DNSBackend *>ret;
   if(d_instances.empty())
@@ -171,9 +171,11 @@ vector<DNSBackend *>BackendMakerClass::all(bool skipBIND)
 
   try {
     for(vector<pair<string,string> >::const_iterator i=d_instances.begin();i!=d_instances.end();++i) {
-      if(skipBIND && i->first=="bind")
-        continue;
-      DNSBackend *made=d_repository[i->first]->make(i->second);
+      DNSBackend *made;
+      if(metadataOnly)
+        made = d_repository[i->first]->makeMetadataOnly(i->second);
+      else 
+        made = d_repository[i->first]->make(i->second);
       if(!made)
         throw AhuException("Unable to launch backend '"+i->first+"'");
 

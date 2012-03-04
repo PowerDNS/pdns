@@ -4,7 +4,7 @@ AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@
 
 libbind2backend_la_SOURCES=bindbackend2.cc bindbackend2.hh bindparser.yy \
 bindlexer.l ../../zoneparser-tng.cc ../../misc.cc  \
-bindparser.hh ../../unix_utility.cc
+bindparser.hh ../../unix_utility.cc binddnssec.cc
 
 libbind2backend_la_CXXFLAGS=$(AM_CXXFLAGS)
 libbind2backend_la_CFLAGS=$(AM_CFLAGS)

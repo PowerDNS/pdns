@@ -83,6 +83,7 @@ pthread_mutex_t Bind2Backend::s_state_swap_lock=PTHREAD_MUTEX_INITIALIZER;
 string Bind2Backend::s_binddirectory;  
 /* when a query comes in, we find the most appropriate zone and answer from that */
 
+
 BB2DomainInfo::BB2DomainInfo()
 {
   d_loaded=false;
@@ -449,8 +450,8 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
   for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
     if(state->name_id_map.count(*i)) {
       BB2DomainInfo& bbd=state->id_zone_map[state->name_id_map[*i]];
-      
-      queueReload(&bbd);
+      Bind2Backend bb2;
+      bb2.queueReload(&bbd);
       ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
     }
     else
@@ -500,7 +501,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
   return ret.str();
 }
 
-Bind2Backend::Bind2Backend(const string &suffix)
+Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
 #if __GNUC__ >= 3
     std::ios_base::sync_with_stdio(false);
@@ -508,15 +509,19 @@ Bind2Backend::Bind2Backend(const string &suffix)
   d_logprefix="[bind"+suffix+"backend]";
   setArgPrefix("bind"+suffix);
   Lock l(&s_startup_lock);
-
+  
   d_transaction_id=0;
+  setupDNSSEC();
   if(!s_first) {
     return;
   }
-  s_first=0;
+  
   s_state = shared_ptr<State>(new State);
-  loadConfig();
-
+  if(loadZones) {
+    loadConfig();
+    s_first=0;
+  }
+  
   extern DynListener *dl;
   dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler);
   dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler);
@@ -618,7 +623,6 @@ void Bind2Backend::loadConfig(string* status)
     }
 
     sort(domains.begin(), domains.end()); // put stuff in inode order
-    DNSSECKeeper dk;
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
         i!=domains.end();
         ++i) 
@@ -660,7 +664,7 @@ void Bind2Backend::loadConfig(string* status)
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 
           NSEC3PARAMRecordContent ns3pr;
-          bool nsec3zone=dk.getNSEC3PARAM(i->name, &ns3pr);
+          bool nsec3zone=getNSEC3PARAM(i->name, &ns3pr);
         
           try {
             // we need to allocate a new vector so we don't kill the original, which is still in use!
@@ -790,9 +794,8 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
     DNSResourceRecord rr;
     string hashed;
-    DNSSECKeeper dk;
     NSEC3PARAMRecordContent ns3pr;
-    bool nsec3zone=dk.getNSEC3PARAM(bbd->d_name, &ns3pr);
+    bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
     while(zpt.get(rr)) {
       if(nsec3zone)
         hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
@@ -862,11 +865,10 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 {
   shared_ptr<State> state = s_state;
   BB2DomainInfo& bbd = state->id_zone_map[id];  
-  DNSSECKeeper dk;
   NSEC3PARAMRecordContent ns3pr;
   string auth=state->id_zone_map[id].d_name;
     
-  if(!dk.getNSEC3PARAM(auth, &ns3pr)) {
+  if(!getNSEC3PARAM(auth, &ns3pr)) {
     //cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
     return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
   
@@ -1066,8 +1068,8 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   r.ttl=(d_iter)->ttl;
   r.priority=(d_iter)->priority;
 
-  if(!d_iter->auth && r.qtype.getCode() != QType::A && r.qtype.getCode()!=QType::AAAA && r.qtype.getCode() != QType::NS)
-    cerr<<"Warning! Unauth response!"<<endl;
+  //if(!d_iter->auth && r.qtype.getCode() != QType::A && r.qtype.getCode()!=QType::AAAA && r.qtype.getCode() != QType::NS)
+  //  cerr<<"Warning! Unauth response for qtype "<< r.qtype.getName() << " for '"<<r.qname<<"'"<<endl;
   r.auth = d_iter->auth;
 
   d_iter++;
@@ -1221,12 +1223,19 @@ class Bind2Factory : public BackendFactory
          declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
          declare(suffix,"supermasters","List of IP-addresses of supermasters","");
          declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
+         declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");
       }
 
       DNSBackend *make(const string &suffix="")
       {
          return new Bind2Backend(suffix);
       }
+      
+      DNSBackend *makeMetadataOnly(const string &suffix="")
+      {
+        return new Bind2Backend(suffix, false);
+      }
+
 };
 
 //! Magic class that is activated when the dynamic library is loaded
