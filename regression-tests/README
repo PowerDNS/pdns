@@ -44,13 +44,12 @@ $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --fancy-records --query-logging --send-root-referral --loglevel=9    \
 --cache-ttl=0 --no-config
 
-or (to test bind,gsqlite3):
+or (to test bind with DNSSEC):
 
-$ ./bind-gsqlite3-setup
+$ ./bind-dnssec-setup
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
---no-shuffle --launch=bind,gsqlite3 --bind-config=./named.conf       \
---gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
---fancy-records --query-logging --send-root-referral --loglevel=9    \
+--no-shuffle --launch=bind --bind-config=./named.conf                \
+--query-logging --send-root-referral --loglevel=9                    \
 --cache-ttl=0 --no-config
 
 Or only sqlite3:
@@ -66,7 +65,7 @@ echo 'analyze;' | sqlite3 powerdns.sqlite3
 $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gsqlite3 \
 --gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
---fancy-records --query-logging --send-root-referral --loglevel=9    \
+--query-logging --send-root-referral --loglevel=9                    \
 --cache-ttl=0 --no-config
 
 
