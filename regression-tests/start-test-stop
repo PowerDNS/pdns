@@ -145,10 +145,11 @@ export skipreasons
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
 nameserver=127.0.0.1 ./runtests
+./toxml
+./totar
 if [ "$wait" = "wait" ]
 then
 	echo tests done! push enter to terminate instance
 	read l
 fi
 kill $(cat pdns.pid)
-./toxml

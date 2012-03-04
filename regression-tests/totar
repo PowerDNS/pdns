@@ -1,0 +1,5 @@
+#!/bin/sh
+[ -z "$context" ] && context="global"
+
+# let ls sort our filenames
+tar cf testresults-${context}.tar $(ls */real_result */*.out testresults-${context}.xml)
