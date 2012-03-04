@@ -1,0 +1,7 @@
+#!/bin/sh -ex
+rm -f dnssec.sqlite3
+../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
+for zone in $(grep zone named.conf  | cut -f2 -d\")
+do
+	../pdns/pdnssec --config-dir=. secure-zone $zone 2>&1
+done
