@@ -44,14 +44,15 @@ try
   nrc2.toPacket(pw);
   */
 
-    string ping("hallo!");
 /*  DNSPacketWriter::optvect_t opts;
 
   opts.push_back(make_pair(5, ping));
-  pw.addOpt(5200, 0, 0x8000, opts);
+  
   pw.commit();
 */
-
+  // pw.addOpt(5200, 0, 0);
+  // pw.commit();
+  
   Socket sock(InterNetwork, Datagram);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
   sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
@@ -71,15 +72,14 @@ try
 
   EDNSOpts edo;
   if(getEDNSOpts(mdp, &edo)) {
-    
-    cerr<<"Have "<<edo.d_options.size()<<" options!"<<endl;
+//    cerr<<"Have "<<edo.d_options.size()<<" options!"<<endl;
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
         iter != edo.d_options.end(); 
         ++iter) {
       if(iter->first == 5) {// 'EDNS PING'
         cerr<<"Have ednsping: '"<<iter->second<<"'\n";
-        if(iter->second == ping) 
-          cerr<<"It is correct!"<<endl;
+        //if(iter->second == ping) 
+         // cerr<<"It is correct!"<<endl;
       }
       else {
         cerr<<"Have unknown option "<<(int)iter->first<<endl;
