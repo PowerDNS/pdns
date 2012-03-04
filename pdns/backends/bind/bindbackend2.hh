@@ -159,7 +159,7 @@ public:
   virtual bool activateDomainKey(const string& name, unsigned int id);
   virtual bool deactivateDomainKey(const string& name, unsigned int id);
   virtual bool getTSIGKey(const string& name, string* algorithm, string* content);
-  void createDNSSECDB(const string& fname="");
+  static void createDNSSECDB(const string& fname);
   // end of DNSSEC 
 
 

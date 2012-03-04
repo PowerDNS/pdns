@@ -20,6 +20,7 @@
 #include "../../../modules/gsqlite3backend/ssqlite3.hh"
 #include "dnsrecords.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
+#include <boost/foreach.hpp>
 
 void Bind2Backend::setupDNSSEC()
 {
@@ -37,13 +38,12 @@ void Bind2Backend::setupDNSSEC()
 
 void Bind2Backend::createDNSSECDB(const string& fname)
 {
-  string dbname = fname.empty() ? getArg("dnssec-db") : fname;
-  if(dbname.empty())
-    throw AhuException("Unable to generate DNSSEC database for BIND backend since no name was configured for it");
-  
   try {
-    SSQLite3 db(dbname, true); // create=ok
-    db.doCommand(sqlCreate);
+    SSQLite3 db(fname, true); // create=ok
+    vector<string> statements;
+    stringtok(statements, sqlCreate, ";");
+    BOOST_FOREACH(const string& statement, statements)
+      db.doCommand(statement);
   }
   catch(SSqlException& se) {
     throw AhuException("Error creating database in BIND backend: "+se.txtReason());
