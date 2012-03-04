@@ -90,10 +90,16 @@ case "$1" in
 
 	force-reload | restart)
 		echo -n "Restarting PowerDNS authoritative nameserver: "
-		echo -n stopping and waiting.. 
-		doPC quit
-		sleep 3
-		echo done
+		if test "$NOTRUNNING" = "1" 
+		then 
+			echo "not running, starting"
+		else
+			
+			echo -n stopping and waiting.. 
+			doPC quit
+			sleep 3
+			echo done
+		fi
 		$0 start
 	;;
 
