@@ -23,7 +23,7 @@ private:
 protected:
 public:
   //! Constructor.
-  SSQLite3( const std::string & database );
+  SSQLite3( const std::string & database, bool creat=false );
 
   //! Destructor.
   ~SSQLite3();

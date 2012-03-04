@@ -18,11 +18,12 @@
 #endif // Unix
 
 // Constructor.
-SSQLite3::SSQLite3( const std::string & database )
+SSQLite3::SSQLite3( const std::string & database, bool creat )
 {
   // Open the database connection.
-  if ( access( database.c_str(), F_OK ) == -1 )
-    throw sPerrorException( "SQLite database does not exist yet" );
+  if(!creat) 
+    if ( access( database.c_str(), F_OK ) == -1 )
+      throw sPerrorException( "SQLite database does not exist yet" );
 
   if ( sqlite3_open( database.c_str(), &m_pDB)!=SQLITE_OK )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
