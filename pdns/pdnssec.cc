@@ -469,8 +469,14 @@ try
       cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
       return 0;
     }
-    Bind2Backend::createDNSSECDB(cmds[1]);
-    return 1;
+    try {
+      Bind2Backend::createDNSSECDB(cmds[1]);
+    }
+    catch (AhuException& ae) {
+      cerr<<"Error: "<<ae.reason<<endl;
+      return 1;
+    }
+    return 0;
   }
   
   DNSSECKeeper dk;
