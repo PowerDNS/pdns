@@ -233,7 +233,7 @@ int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r, const SOAData
     rr.qtype=QType::NSEC3PARAM;
     rr.ttl=sd.default_ttl;
     rr.qname=p->qdomain;
-    ns3prc.d_flags = 0; // for unknown reasons, the NSEC3PARAM 'flag' always needs to be zero.
+    ns3prc.d_flags = 0; // the NSEC3PARAM 'flag' is defined to always be zero in RFC5155.
     rr.content=ns3prc.getZoneRepresentation(); 
     rr.auth = true;
     r->addRecord(rr);
