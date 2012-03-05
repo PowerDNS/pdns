@@ -43,7 +43,7 @@ case $context in
 			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf       \
 				--bind-dnssec-db=./dnssec.sqlite3 \
-			    --query-logging --send-root-referral --loglevel=9    \
+				--query-logging --send-root-referral --loglevel=9    \
 				--cache-ttl=0 --no-config &
 			if [ $context = bind-dnssec-nsec3 ]
 			then
