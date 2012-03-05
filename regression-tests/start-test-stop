@@ -40,21 +40,21 @@ case $context in
 			;;
 		bind-dnssec | bind-dnssec-nsec3 )
 			./bind-dnssec-setup
+            if [ $context = bind-dnssec-nsec3 ]
+            then
+                for zone in $(grep zone named.conf  | cut -f2 -d\")
+                do
+                    ../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' 2>&1
+                done
+                extracontexts="nsec3 bind"
+            else
+                extracontexts="bind"
+            fi
 			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf       \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--query-logging --send-root-referral --loglevel=9    \
 				--cache-ttl=0 --no-config &
-			if [ $context = bind-dnssec-nsec3 ]
-			then
-				for zone in $(grep zone named.conf  | cut -f2 -d\")
-				do
-					../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' 2>&1
-				done
-				extracontexts="nsec3 bind"
-			else
-				extracontexts="bind"
-			fi
 			;;
 		gmysql-nodnssec)
 			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
