@@ -186,6 +186,8 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
       rr.priority = atoi(parts[0].c_str());
       if(parts.size() > 1)
         rr.content=parts[1];
+      else
+        rr.content=".";
     } else if(rr.qtype.getCode() == QType::SRV) {
       rr.priority = atoi(rr.content.c_str());
       vector<pair<string::size_type, string::size_type> > fields;
