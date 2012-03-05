@@ -523,9 +523,9 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   }
   
   extern DynListener *dl;
-  dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler);
-  dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler);
-  dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler);
+  dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler, "bindbackend: reload domains", "<domains>");
+  dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler, "bindbackend: list status of all domains", "[domains]");
+  dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler, "bindbackend: list rejected domains");
 }
 
 Bind2Backend::~Bind2Backend()
