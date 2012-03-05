@@ -64,8 +64,10 @@ class PacketReader
 {
 public:
   PacketReader(const vector<uint8_t>& content) 
-    : d_pos(0), d_content(content)
-  {}
+    : d_pos(0), d_startrecordpos(0), d_content(content)
+  {
+    d_recordlen = content.size();
+  }
 
   uint32_t get32BitInt();
   uint16_t get16BitInt();
