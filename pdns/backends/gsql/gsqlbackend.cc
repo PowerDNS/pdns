@@ -278,6 +278,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
+  d_getAllDomainsQuery=getArg("get-all-domains-query");
   
   if (d_dnssecQueries)
   {
@@ -672,6 +673,49 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
     throw AhuException("Database error trying to insert new slave '"+domain+"': "+ e.txtReason());
   }
   return true;
+}
+
+void GSQLBackend::getAllDomains(vector<DomainInfo> *domains) 
+{
+  DLOG(L<<"GSQLBackend retrieving all domains."<<endl);
+
+  try {
+    d_db->doCommand(d_getAllDomainsQuery.c_str()); 
+  }
+  catch (SSqlException &e) {
+    throw AhuException("Database error trying to retrieve all domains:" + e.txtReason());
+  }
+
+  SSql::row_t row;
+  while (d_db->getRow(row)) {
+
+    DomainInfo di;
+    di.id = atol(row[0].c_str());
+    di.zone = row[1];
+
+    if (!row[4].empty()) {
+      stringtok(di.masters, row[4], " ,\t");
+    }
+    di.last_check=atol(row[6].c_str());
+
+    SOAData sd;
+    fillSOAData(row[2], sd);
+    di.serial = sd.serial;
+    if (!row[5].empty()) {
+      di.notified_serial = atol(row[5].c_str());
+    }
+    
+    if (pdns_iequals(row[3], "MASTER"))
+      di.kind = DomainInfo::Master;
+    else if (pdns_iequals(row[3], "SLAVE"))
+      di.kind = DomainInfo::Slave;
+    else
+      di.kind = DomainInfo::Native;
+
+    di.backend = this;
+
+    domains->push_back(di);
+  }
 }
 
 bool GSQLBackend::get(DNSResourceRecord &r)

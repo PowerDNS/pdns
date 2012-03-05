@@ -100,6 +100,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   scoped_ptr<UeberBackend> B(new UeberBackend("default"));
   bool doTransaction=true; // but see above
   SOAData sd;
+  sd.db = (DNSBackend*)-1;
   
   if(!B->getSOA(zone, sd)) {
     cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
@@ -155,11 +156,24 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
     sd.db->commitTransaction();
 }
 
+void rectifyAllZones(DNSSECKeeper &dk) 
+{
+  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  vector<DomainInfo> domainInfo;
+
+  B->getAllDomains(&domainInfo);
+  BOOST_FOREACH(DomainInfo di, domainInfo) {
+    cerr<<"Rectifying "<<di.zone<<": ";
+    rectifyZone(dk, di.zone);
+  }
+  cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
+}
+
 int checkZone(DNSSECKeeper& dk, const std::string& zone)
 {
   scoped_ptr<UeberBackend> B(new UeberBackend("default"));
   SOAData sd;
-  
+  sd.db=(DNSBackend*)-1;
   if(!B->getSOA(zone, sd)) {
     cout<<"No SOA for zone '"<<zone<<"'"<<endl;
     return -1;
@@ -196,6 +210,24 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
   cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors"<<endl;
   return numerrors;
 }
+
+int checkAllZones(DNSSECKeeper &dk) 
+{
+  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  vector<DomainInfo> domainInfo;
+
+  B->getAllDomains(&domainInfo);
+  int errors=0;
+  BOOST_FOREACH(DomainInfo di, domainInfo) {
+    if (checkZone(dk, di.zone) > 0) {
+       errors++;
+    }
+  }
+  cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
+  return 0;
+}
+
+
 
 void testAlgorithms()
 {
@@ -434,6 +466,7 @@ try
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                 Add a ZSK or KSK to zone and specify algo&bits\n";
     cerr<<"check-zone ZONE                  Check a zone for correctness\n";
+    cerr<<"check-all-zones                  Check all zones for correctness\n";
     cerr<<"create-bind-db FNAME             Create DNSSEC db for BIND backend (bind-dnssec-db)\n"; 
     cerr<<"deactivate-zone-key ZONE KEY-ID  Deactivate the key with key id KEY-ID in ZONE\n";
     cerr<<"disable-dnssec ZONE              Deactivate all keys and unset PRESIGNED in ZONE\n";
@@ -443,6 +476,7 @@ try
     cerr<<"import-zone-key ZONE FILE        Import from a file a private key, ZSK or KSK\n";            
     cerr<<"                [ksk|zsk]        Defaults to KSK\n";
     cerr<<"rectify-zone ZONE [ZONE ..]      Fix up DNSSEC fields (order, auth)\n";
+    cerr<<"rectify-all-zones                Rectify all zones.\n";
     cerr<<"remove-zone-key ZONE KEY-ID      Remove key with KEY-ID from ZONE\n";
     cerr<<"secure-zone ZONE [ZONE ..]       Add KSK and two ZSKs\n";
     cerr<<"set-nsec3 ZONE 'params' [narrow] Enable NSEC3 with PARAMs. Optionally narrow\n";
@@ -489,12 +523,18 @@ try
     for(unsigned int n = 1; n < cmds.size(); ++n) 
       rectifyZone(dk, cmds[n]);
   }
+  else if (cmds[0] == "rectify-all-zones") {
+    rectifyAllZones(dk);
+  }
   else if(cmds[0] == "check-zone") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec check-zone ZONE"<<endl;
       return 0;
     }
     exit(checkZone(dk, cmds[1]));
+  }
+  else if (cmds[0] == "check-all-zones") {
+    exit(checkAllZones(dk));
   }
 #if 0
   else if(cmds[0] == "signing-server" )
@@ -611,16 +651,24 @@ try
     }
     vector<string> mustRectify;
     dk.startTransaction();    
+    unsigned int zoneErrors=0;
     for(unsigned int n = 1; n < cmds.size(); ++n) {
       const string& zone=cmds[n];
       if(secureZone(dk, zone)) {
         mustRectify.push_back(zone);
+      } else {
+        zoneErrors++;
       }
     }
     
     dk.commitTransaction();
     BOOST_FOREACH(string& zone, mustRectify)
       rectifyZone(dk, zone);
+
+    if (zoneErrors) {
+      return 1;
+    }
+    return 0;
   }
   else if(cmds[0]=="set-nsec3") {
     if(cmds.size() < 2) {

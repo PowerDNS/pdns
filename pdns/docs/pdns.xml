@@ -10690,6 +10690,22 @@ $ pdnssec rectify-zone powerdnssec.org
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
+	    <term>check-zone ZONE</term>
+		<listitem>
+			<para>
+			Check a zone for DNSSEC correctness. Main goals is to check if the auth flag is set correctly.
+			</para>
+		</listitem>
+	</varlistentry>
+  <varlistentry>
+      <term>check-all-zones</term>
+      <listitem>
+        <para>
+	    Check all zones for DNSSEC correctness. Added in 3.1.
+        </para>
+      </listitem>
+  </varlistentry>
+	<varlistentry>
 	    <term>deactivate-zone-key ZONE KEY-ID</term>
 	    <listitem>
 	      <para>
@@ -10745,14 +10761,23 @@ $ pdnssec rectify-zone powerdnssec.org
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
-	    <term>rectify-zone ZONE</term>
+	    <term>rectify-zone ZONE [ZONE ..]</term>
 	    <listitem>
 	      <para>
 		Calculates the 'ordername' and 'auth' fields for a zone called ZONE so they comply with DNSSEC settings.
-		Can be used to fix up migrated data. Can always safely be run, it does no harm.
+		Can be used to fix up migrated data. Can always safely be run, it does no harm. Multiple zones can be supplied.
 	      </para>
 	    </listitem>
 	</varlistentry>
+	<varlistentry>
+      <term>rectify-all-zones</term>
+      <listitem>
+        <para>
+		Do a rectify-zone for all the zones. Be careful when running this. Only
+		bind and gmysql backends are supported. Added in 3.1.
+        </para>
+      </listitem>
+  </varlistentry>
 	<varlistentry>
 	    <term>remove-zone-key ZONE KEY-ID</term>
 	    <listitem>

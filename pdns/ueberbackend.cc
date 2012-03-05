@@ -435,6 +435,13 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   d_handle.parent=this;
 }
 
+void UeberBackend::getAllDomains(vector<DomainInfo> *domains) {
+  for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
+  {
+    (*i)->getAllDomains(domains);
+  }
+}
+
 bool UeberBackend::get(DNSResourceRecord &rr)
 {
   if(d_negcached) {

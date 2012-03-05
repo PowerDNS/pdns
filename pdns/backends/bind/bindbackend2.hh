@@ -136,6 +136,7 @@ public:
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int id);
   bool get(DNSResourceRecord &);
+  void getAllDomains(vector<DomainInfo> *domains);
 
   static DNSBackend *maker();
   static pthread_mutex_t s_startup_lock;

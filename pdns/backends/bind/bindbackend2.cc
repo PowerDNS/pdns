@@ -296,6 +296,27 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
   }
 }
 
+void Bind2Backend::getAllDomains(vector<DomainInfo> *domains) {
+  SOAData soadata;
+
+  shared_ptr<State> state = getState(); 
+
+  for(id_zone_map_t::const_iterator i = state->id_zone_map.begin(); i != state->id_zone_map.end() ; ++i) {
+    soadata.db=(DNSBackend *)-1; // makes getSOA() skip the cache. 
+    this->getSOA(i->second.d_name, soadata);
+    DomainInfo di;
+    di.id=i->first;
+    di.serial=soadata.serial;
+    di.zone=i->second.d_name;
+    di.last_check=i->second.d_lastcheck;
+    di.backend=this;
+    di.kind=i->second.d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave; //TODO: what about Native?
+
+    domains->push_back(di);
+  }
+}
+
+
 void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
   shared_ptr<State> state = getState();

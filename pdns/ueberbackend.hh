@@ -115,6 +115,7 @@ public:
   bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
   bool list(const string &target, int domain_id);
   bool get(DNSResourceRecord &r);
+  void getAllDomains(vector<DomainInfo> *domains);
 
   static DNSBackend *maker(const map<string,string> &);
   static void closeDynListener();

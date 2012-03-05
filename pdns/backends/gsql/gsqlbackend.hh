@@ -4,8 +4,9 @@
 
 #include "../../namespaces.hh"
 
-/** The GSQLBackend is a DNSBackend that can answer DNS related questions. It looks up data
-    in PostgreSQL */
+/* 
+GSQLBackend is a generic backend used by other sql backends
+*/
 class GSQLBackend : public DNSBackend
 {
 public:
@@ -25,6 +26,7 @@ public:
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int domain_id);
   bool get(DNSResourceRecord &r);
+  void getAllDomains(vector<DomainInfo> *domains);
   bool isMaster(const string &domain, const string &ip);
   void alsoNotifies(const string &domain, set<string> *ips);
   bool startTransaction(const string &domain, int domain_id=-1);
@@ -101,6 +103,9 @@ private:
   string d_DeactivateDomainKeyQuery;
   
   string d_getTSIGKeyQuery;
+
+  string d_getAllDomainsQuery;
+
 protected:  
   bool d_dnssecQueries;
 };

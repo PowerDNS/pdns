@@ -100,6 +100,8 @@ public:
   virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
 
+  virtual void getAllDomains(vector<DomainInfo> *domains) { }
+
   struct KeyData {
     unsigned int id;
     unsigned int flags;
