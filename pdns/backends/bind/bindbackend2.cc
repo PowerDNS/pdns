@@ -870,11 +870,21 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
   //cerr<<"Now upper bound"<<endl;
   iter = bbd.d_records->upper_bound(domain);
 
+
   if(iter == bbd.d_records->end()) {
     //cerr<<"\tFound the end, begin storage: '"<<bbd.d_records->begin()->qname<<"', '"<<bbd.d_name<<"'"<<endl;
-    after.clear(); // this does the right thing
+    after.clear(); // this does the right thing (i.e. point to apex, which is sure to have auth records)
   } else {
     //cerr<<"\tFound: '"<<(iter->qname)<<"' (nsec3hash='"<<(iter->nsec3hash)<<"')"<<endl;
+    while(!(iter->auth))
+    {
+      iter++;
+      if(iter == bbd.d_records->end())
+      {
+        after.clear();
+        break;
+      }
+    }
     after = (iter)->qname;
   }
 
