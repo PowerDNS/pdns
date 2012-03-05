@@ -78,7 +78,7 @@ case $context in
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
-				--gmysql-password="$GMYSQLPASS" &
+				--gmysql-password="$GMYSQLPASSWD" &
 			skipreasons=nodnssec
 			;;
 		gmysql | gmysql-nsec3)
@@ -103,7 +103,7 @@ launch=gmysql
 gmysql-dbname=$GMYSQLDB
 gmysql-user=$GMYSQLUSER
 gmysql-host=$GMYSQLHOST
-gmysql-password=$GMYSQLPASS
+gmysql-password=$GMYSQLPASSWD
 gmysql-dnssec
 __EOF__
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
@@ -123,7 +123,7 @@ __EOF__
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
-				--gmysql-password="$GMYSQLPASS" &
+				--gmysql-password="$GMYSQLPASSWD" &
 			if [ $context = gmysql-nsec3 ]
 			then
 				extracontexts=nsec3
