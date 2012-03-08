@@ -750,27 +750,29 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 {
-  char output[10240];
+  char *output;
   if(d_dnssecQueries) {
-    snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
-	   sqlEscape(r.content).c_str(),
-	   r.ttl, r.priority,
-	   sqlEscape(r.qtype.getName()).c_str(),
-	   r.domain_id, toLower(sqlEscape(r.qname)).c_str(), (int)r.auth); 
+    asprintf(&output, d_InsertRecordQuery.c_str(),
+      sqlEscape(r.content).c_str(),
+      r.ttl, r.priority,
+      sqlEscape(r.qtype.getName()).c_str(),
+      r.domain_id, toLower(sqlEscape(r.qname)).c_str(), (int)r.auth); 
   }
   else {
-    snprintf(output,sizeof(output)-1,d_InsertRecordQuery.c_str(),
-	   sqlEscape(r.content).c_str(),
-	   r.ttl, r.priority,
-	   sqlEscape(r.qtype.getName()).c_str(),
-	   r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
+    asprintf(&output, d_InsertRecordQuery.c_str(),
+      sqlEscape(r.content).c_str(),
+      r.ttl, r.priority,
+      sqlEscape(r.qtype.getName()).c_str(),
+      r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
   }
      
      
   try {
     d_db->doCommand(output);
+    free(output);
   }
   catch (SSqlException &e) {
+    free(output);
     throw AhuException(e.txtReason());
   }
   return true; // XXX FIXME this API should not return 'true' I think -ahu 
