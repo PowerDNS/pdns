@@ -105,7 +105,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     domain_id=di.id;
 
     Resolver::res_t recs;
-    set<string> nsset, qnames;
+    set<string> nsset, qnames, dsnames;
     
     ComboAddress raddr(remote, 53);
     
@@ -162,6 +162,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           nsset.insert(i->qname);
         if(i->qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
           qnames.insert(i->qname);
+        if(i->qtype.getCode() == QType::DS)
+          dsnames.insert(i->qname);
           
         i->domain_id=domain_id;
 #if 0
@@ -176,6 +178,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
               nsset.insert(rr.qname);
             if(rr.qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
               qnames.insert(rr.qname);
+            if(i->qtype.getCode() == QType::DS)
+              dsnames.insert(i->qname);
           }
         }
         else {
@@ -196,16 +200,32 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
       }while(chopOff(shorter));
       
-      if(dnssecZone && !haveNSEC3) // NSEC
-        di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
-      else {
-        if(dnssecZone && !narrow) { 
+      if(dsnames.count(qname))
+        auth=true;
+
+      if(dnssecZone && haveNSEC3)
+      {
+        if(!narrow) { 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
         }
         di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth); // this should always be done
+        if(!auth || dsnames.count(qname))
+        {
+          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "NS");
+          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
+          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+        }
+      }
+      else // NSEC
+      {
+        di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
+        if(!auth || dsnames.count(qname))
+        {
+          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
+          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+        }
       }
     }
-        
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<soa_serial<<endl;

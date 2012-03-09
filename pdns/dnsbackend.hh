@@ -136,6 +136,11 @@ public:
     return false;
   }
 
+  virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type)
+  {
+    return false;
+  }
+
   // end DNSSEC
 
   //! returns true if master ip is master for domain name.

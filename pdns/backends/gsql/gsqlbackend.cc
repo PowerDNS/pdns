@@ -287,6 +287,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_afterOrderQuery = getArg("get-order-after-query");
     d_lastOrderQuery = getArg("get-order-last-query");
     d_setOrderAuthQuery = getArg("set-order-and-auth-query");
+    d_nullifyOrderNameAndAuthQuery = getArg("nullify-ordername-and-auth-query");
     
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
@@ -321,6 +322,17 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
   snprintf(output, sizeof(output)-1, d_setOrderAuthQuery.c_str(), sqlEscape(ordername).c_str(), auth, sqlEscape(qname).c_str(), domain_id);
 //  cerr<<"sql: '"<<output<<"'\n";
   
+  d_db->doCommand(output);
+  return true;
+}
+
+bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type)
+{
+  if(!d_dnssecQueries)
+    return false;
+  char output[1024];
+
+  snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(qname).c_str(), sqlEscape(type).c_str(), domain_id);
   d_db->doCommand(output);
   return true;
 }

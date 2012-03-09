@@ -858,14 +858,10 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
 
   recordstorage_t::const_iterator iter = bbd.d_records->lower_bound(domain);
 
-  if (iter == bbd.d_records->end() || (iter->qname) > domain)
-  {
-    before = boost::prior(iter)->qname;
-  }
-  else
-  {
-    before = qname;
-  }
+  while(iter == bbd.d_records->end() || (iter->qname) > domain || (!(iter->auth) && !(iter->qtype == QType::NS)))
+    iter--;
+
+  before=iter->qname;
 
   //cerr<<"Now upper bound"<<endl;
   iter = bbd.d_records->upper_bound(domain);
@@ -876,7 +872,9 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
     after.clear(); // this does the right thing (i.e. point to apex, which is sure to have auth records)
   } else {
     //cerr<<"\tFound: '"<<(iter->qname)<<"' (nsec3hash='"<<(iter->nsec3hash)<<"')"<<endl;
-    while(!(iter->auth))
+    // this iteration is theoretically unnecessary - glue always sorts right behind a delegation
+    // so we will never get here. But let's do it anyway.
+    while(!(iter->auth) && !(iter->qtype == QType::NS))
     {
       iter++;
       if(iter == bbd.d_records->end())
@@ -906,7 +904,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   }
   else {
     string lqname = toLower(qname);
-    //cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
+    // cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
     typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
     records_by_hashindex_t& hashindex=boost::multi_index::get<HashedTag>(*bbd.d_records);
     
@@ -914,44 +912,42 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 //      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
 //    }
     
-    records_by_hashindex_t::const_iterator lowIter = hashindex.lower_bound(lqname);
-    records_by_hashindex_t::const_iterator highIter = hashindex.upper_bound(lqname);
-//    cerr<<"iter == hashindex.begin(): "<< (iter == hashindex.begin()) << ", ";
-  //  cerr<<"iter == hashindex.end(): "<< (iter == hashindex.end()) << endl;
-    if(lowIter == hashindex.end()) {  
-//      cerr<<"This hash is beyond the highest hash, wrapping around"<<endl;
-      before = hashindex.rbegin()->nsec3hash; // highest hash
-      after = hashindex.begin()->nsec3hash; // lowest hash
-      unhashed = dotConcat(labelReverse(hashindex.rbegin()->qname), auth);
+    records_by_hashindex_t::const_iterator iter = hashindex.lower_bound(lqname);
+
+    if(iter != hashindex.begin() && (iter == hashindex.end() || iter->nsec3hash > lqname))
+    {
+      iter--;
     }
-    else if(lowIter->nsec3hash == lqname) { // exact match
-      before = lowIter->nsec3hash;
-      unhashed = dotConcat(labelReverse(lowIter->qname), auth);
-  //    cerr<<"Had direct hit, setting unhashed: "<<unhashed<<endl;      
-      if(highIter != hashindex.end())
-       after = highIter->nsec3hash;
-      else
-       after = hashindex.begin()->nsec3hash;
+
+    while(iter == hashindex.end() || !(iter->auth))
+    {
+      iter--;
+      if(iter == hashindex.begin())
+        iter = hashindex.end();
     }
-    else  {
-     // iter will always be HIGHER than lqname, but that's not what we need
-     //  rest .. before pos_iter/after pos
-     //             lqname
-      if(highIter != hashindex.end())
-       after = highIter->nsec3hash; // that one is easy
-      else
-       after = hashindex.begin()->nsec3hash;
-       
-      if(lowIter != hashindex.begin()) {
-       --lowIter;
-       before = lowIter->nsec3hash;
-       unhashed = dotConcat(labelReverse(lowIter->qname), auth);
-      }
-      else {
-       before = hashindex.rbegin()->nsec3hash;
-       unhashed = dotConcat(labelReverse(hashindex.rbegin()->qname), auth);       
+
+    before = iter->nsec3hash;
+    unhashed = dotConcat(labelReverse(iter->qname), auth);
+    // cerr<<"before: "<<(iter->nsec3hash)<<"/"<<(iter->qname)<<endl;
+
+
+    iter = hashindex.upper_bound(lqname);
+    if(iter == hashindex.end())
+    {
+      iter = hashindex.begin();
+    }
+
+    while(!(iter->auth))
+    {
+      iter++;
+      if(iter == hashindex.end())
+      {
+        iter = hashindex.begin();
       }
     }
+
+    after = iter->nsec3hash;
+    // cerr<<"after: "<<(iter->nsec3hash)<<"/"<<(iter->qname)<<endl;
     
     //cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
     return true;

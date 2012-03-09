@@ -660,7 +660,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
 
   string before,after;
   //cerr<<"Calling getBeforeandAfter!"<<endl;
-  sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after); 
+  sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
   // cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
 
   // this stuff is wrong (but it appears to work)
@@ -672,8 +672,8 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
     emitNSEC(before, after, target, sd, r, mode);
 
     // this one does wildcard denial, if applicable
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after); 
-    emitNSEC(auth, after, auth, sd, r, mode);
+    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after);
+    emitNSEC(before, after, auth, sd, r, mode);
   }
 
   if(mode == 3)
@@ -895,7 +895,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   else {
     // now get the NSEC too (since we must sign it!)
     string before,after;
-    sd.db->getBeforeAndAfterNames(sd.domain_id, sd.qname, p->qdomain, before, after); 
+    sd.db->getBeforeAndAfterNames(sd.domain_id, sd.qname, p->qdomain, before, after);
   
     nrc.d_next=after;
   

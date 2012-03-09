@@ -634,7 +634,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   int records=0;
   while(sd.db->get(rr)) {
     records++;
-    if(securedZone && (rr.auth || rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::DS)) { // this is probably NSEC specific, NSEC3 is different
+    if(securedZone && (rr.auth || (!NSEC3Zone && rr.qtype.getCode() == QType::NS) || rr.qtype.getCode() == QType::DS)) { // this is probably NSEC specific, NSEC3 is different
       keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
       NSECXEntry& ne = nsecxrepo[keyname];
       ne.d_set.insert(rr.qtype.getCode());
@@ -671,7 +671,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         n3rc.d_set = iter->second.d_set;
         n3rc.d_set.insert(QType::RRSIG);
         n3rc.d_salt=ns3pr.d_salt;
-        n3rc.d_flags = 0;
+        n3rc.d_flags = 1;
         n3rc.d_iterations = ns3pr.d_iterations;
         n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
         if(boost::next(iter) != nsecxrepo.end()) {

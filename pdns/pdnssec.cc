@@ -109,12 +109,14 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
 
-  set<string> qnames, nsset;
+  set<string> qnames, nsset, dsnames;
   
   while(sd.db->get(rr)) {
     qnames.insert(rr.qname);
     if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, zone)) 
       nsset.insert(rr.qname);
+    if(rr.qtype.getCode() == QType::DS)
+      dsnames.insert(rr.qname);
   }
 
   NSEC3PARAMRecordContent ns3pr;
@@ -134,6 +136,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   {
     string shorter(qname);
     bool auth=true;
+
     do {
       if(nsset.count(shorter)) {  
         auth=false;
@@ -141,15 +144,32 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
       }
     }while(chopOff(shorter));
 
-    if(!haveNSEC3) // NSEC
-      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
-    else {
+    if(dsnames.count(qname))
+      auth=true;
+
+    if(haveNSEC3)
+    {
       if(!narrow) {
         hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
         if(g_verbose)
           cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
       }
       sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
+      if(!auth || dsnames.count(qname))
+      {
+        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "NS");
+        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
+        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
+      }
+    }
+    else // NSEC
+    {
+      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
+      if(!auth || dsnames.count(qname))
+      {
+        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
+        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
+      }
     }
   }
   if(doTransaction)
@@ -190,7 +210,7 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
       rr.content = "\""+rr.content+"\"";  
       
-    if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A)
+    if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A && rr.qtype.getCode()!=QType::AAAA)
     {
       cout<<"Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       numerrors++;
