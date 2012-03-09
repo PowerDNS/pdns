@@ -1,8 +1,0 @@
-0	example.com.	IN	DNSKEY	120	256 3 5 AwEAAarTiHhPgvD28WCN8UBXcEcf8f+OF+d/bEoN6zTuHl/oVra5/qfonhYK/RjI74RzHc2wli9TpXOWycQV3YSfpFZ9z+GB/bbsvBon1XMyNf5KXuOwRdHZXIZh1cku3AcIyNroD26MPkbFLHY0+xRI+7u7OsQ6nYcPBpqDiJnB2BMh
-0	example.com.	IN	MX	120	10 smtp-servers.example.com.
-0	example.com.	IN	MX	120	15 smtp-servers.test.com.
-0	example.com.	IN	NS	120	ns1.example.com.
-0	example.com.	IN	NS	120	ns2.example.com.
-0	example.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
-Rcode: 0, RD: 0, QR: 1, TC: 1, AA: 1, opcode: 0
-Reply to question for qname='example.com.', qtype=ANY
