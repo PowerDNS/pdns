@@ -17,11 +17,47 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "bindbackend2.hh"
-#include "../../../modules/gsqlite3backend/ssqlite3.hh"
 #include "dnsrecords.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>
+#include "config.h"
 
+#ifndef HAVE_SQLITE3
+void Bind2Backend::setupDNSSEC()
+{}
+
+void Bind2Backend::createDNSSECDB(const string& fname)
+{}
+
+bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
+{ return false; }
+
+bool Bind2Backend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
+{ return false; }
+
+bool Bind2Backend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
+{ return false; }
+
+bool Bind2Backend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
+{ return false; }
+
+bool Bind2Backend::removeDomainKey(const string& name, unsigned int id)
+{ return false; }
+
+int Bind2Backend::addDomainKey(const string& name, const KeyData& key)
+{ return false; }
+
+bool Bind2Backend::activateDomainKey(const string& name, unsigned int id)
+{ return false; }
+
+bool Bind2Backend::deactivateDomainKey(const string& name, unsigned int id)
+{ return false; }
+
+bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* content)
+{ return false; }
+#else
+
+#include "../../../modules/gsqlite3backend/ssqlite3.hh"
 void Bind2Backend::setupDNSSEC()
 {
   // cerr<<"Settting up dnssec db.. "<<getArg("dnssec-db") <<endl;
@@ -54,7 +90,6 @@ void Bind2Backend::createDNSSECDB(const string& fname)
 bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
 {
   string value;
-  
   vector<string> meta;
   getDomainMetadata(zname, "NSEC3PARAM", meta);
   if(!meta.empty())
@@ -232,3 +267,4 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
   return !content->empty();
 
 }
+#endif

@@ -493,9 +493,10 @@ fi
 
 if test "$needsqlite3"
 then
-	PKG_CHECK_MODULES(SQLITE3, sqlite3, HAVE_SQLITE=yes, AC_MSG_ERROR([+Could not find sqlite3]))
+	PKG_CHECK_MODULES(SQLITE3, sqlite3, HAVE_SQLITE3=yes, AC_MSG_ERROR([+Could not find sqlite3]))
         AC_SUBST(SQLITE3_LIBS)
         AC_SUBST(SQLITE3_CFLAGS)
+        AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
 fi
 
 if test "$needunixodbc"
