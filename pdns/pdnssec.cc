@@ -498,7 +498,7 @@ try
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)\n";
     cerr<<"rectify-all-zones                  Rectify all zones.\n";
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE\n";
-     cerr<<"secure-zone ZONE [ZONE ..]        Add KSK and two ZSKs\n";
+    cerr<<"secure-zone ZONE [ZONE ..]        Add KSK and two ZSKs\n";
     cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow\n";
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage\n";
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone\n";
