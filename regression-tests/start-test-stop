@@ -24,6 +24,7 @@ context is one of:
 bind bind-dnssec bind-dnssec-nsec3
 gmysql-nodnssec gmysql gmysql-nsec3
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
+gpgsql-nodnssec gpgsql gpgsql-nsec3
 
 add 'wait' (literally) after the context to not kill 
 pdns_server immediately after testing
@@ -134,6 +135,72 @@ __EOF__
 			fi
 
 			;;	
+		gpgsql | gpgsql-nsec3)
+			[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
+			[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
+
+			dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
+			createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
+			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/no-dnssec.schema.pgsql.sql
+			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/dnssec.schema.pgsql.sql
+
+			tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
+
+			cat > pdns-gpgsql.conf << __EOF__
+launch=gpgsql
+gpgsql-dbname=$GPGSQLDB
+gpgsql-user=$GPGSQLUSER
+gpgsql-dnssec
+__EOF__
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				../pdns/pdnssec --config-dir=. --config-name=gpgsql secure-zone $zone 2>&1
+				if [ $context = gpgsql-nsec3 ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone '1 1 1 abcd' 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
+				fi
+			done
+
+			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
+				--fancy-records --query-logging --send-root-referral --loglevel=9 \
+				--cache-ttl=0 --no-config \
+				--gpgsql-dbname="$GPGSQLDB" \
+				--gpgsql-user="$GPGSQLUSER" &
+			if [ $context = gpgsql-nsec3 ]
+			then
+				extracontexts="dnssec nsec3"
+			else
+				extracontexts="dnssec"
+			fi
+
+			;;	
+		gpgsql-nodnssec)
+			[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
+			[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
+
+			dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
+			createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
+			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/no-dnssec.schema.pgsql.sql
+
+			tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
+
+			cat > pdns-gpgsql.conf << __EOF__
+launch=gpgsql
+gpgsql-dbname=$GPGSQLDB
+gpgsql-user=$GPGSQLUSER
+__EOF__
+			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+				--no-shuffle --launch=gpgsql \
+				--fancy-records --query-logging --send-root-referral --loglevel=9 \
+				--cache-ttl=0 --no-config \
+				--gpgsql-dbname="$GPGSQLDB" \
+				--gpgsql-user="$GPGSQLUSER" &
+			skipreasons=nodnssec
+			;;	
+
+
 		gsqlite3-nodnssec)
 			rm -f pdns.sqlite3
 			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
