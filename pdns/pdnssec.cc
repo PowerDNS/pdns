@@ -604,6 +604,11 @@ try
     }
     const string& zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
+    if(!id)
+    {
+      cerr<<"Invalid KEY-ID"<<endl;
+      return 1;
+    }
     dk.activateKey(zone, id);
   }
   else if(cmds[0] == "deactivate-zone-key") {
@@ -613,6 +618,11 @@ try
     }
     const string& zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
+    if(!id)
+    {
+      cerr<<"Invalid KEY-ID"<<endl;
+      return 1;
+    }
     dk.deactivateKey(zone, id);
   }
   else if(cmds[0] == "add-zone-key") {
