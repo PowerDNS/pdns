@@ -22,10 +22,10 @@ create table cryptokeys (
 create index domainidindex on cryptokeys(domain_id);
 
 
-GRANT ALL ON domainmetadata TO pdns;
-GRANT ALL ON domainmetadata_id_seq TO pdns;
-GRANT ALL ON cryptokeys TO pdns;
-GRANT ALL ON cryptokeys_id_seq TO pdns;
+-- GRANT ALL ON domainmetadata TO pdns;
+-- GRANT ALL ON domainmetadata_id_seq TO pdns;
+-- GRANT ALL ON cryptokeys TO pdns;
+-- GRANT ALL ON cryptokeys_id_seq TO pdns;
 
 create table tsigkeys (
  id		SERIAL PRIMARY KEY,
@@ -36,6 +36,6 @@ create table tsigkeys (
 
 create unique index namealgoindex on tsigkeys(name, algorithm);
 
-GRANT ALL ON tsigkeys TO pdns;
-GRANT ALL ON tsigkeys_id_seq TO pdns;
+-- GRANT ALL ON tsigkeys TO pdns;
+-- GRANT ALL ON tsigkeys_id_seq TO pdns;
 alter table records alter column type type VARCHAR(10);
