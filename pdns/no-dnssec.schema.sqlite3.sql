@@ -15,7 +15,7 @@ CREATE TABLE records (
   domain_id       INTEGER DEFAULT NULL,
   name            VARCHAR(255) DEFAULT NULL, 
   type            VARCHAR(10) DEFAULT NULL,
-  content         VARCHAR(4096) DEFAULT NULL,
+  content         VARCHAR(65535) DEFAULT NULL,
   ttl             INTEGER DEFAULT NULL,
   prio            INTEGER DEFAULT NULL,
   change_date     INTEGER DEFAULT NULL
