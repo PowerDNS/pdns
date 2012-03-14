@@ -1,7 +1,0 @@
-#!/bin/sh
-echo You may have to run this twice
-aclocal
-autoconf
-autoheader
-automake --add-missing --foreign
-

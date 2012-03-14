@@ -13799,8 +13799,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem>
 	      <para>
 		A: If you have no external constraints, the Generic MySQL (gmysql) and Generic PostgreSQL (gpgsql) ones are probably the
-		most used and complete. By all means do not use the non-generic MySQL backend, which is deprecated and only available for older
-		installations.
+		most used and complete.
 	      </para>
 	      <para>
 		The Oracle backend also has happy users, we know of no deployments of the DB2 backend. The BIND backend is pretty capable
@@ -14595,132 +14594,6 @@ while(&lt;&gt;)
 	  And in fact, a backend may see almost exclusively ANY queries. This is not a bug.
 	</para>
       </sect2>
-    </sect1>
-    <sect1 id="mysqlbackend"><title>MySQL backend</title>
-      <para>
-	<warning>
-	  <para>
-	    This backend is deprecated! Use the Generic MySQL backend which is better in <command>all</command> respects.
-	    It does support master/slave operation, this backend does not. See <xref linkend="generic-mypgsql-backends"/>.
-	  </para>
-	  <para>
-	    So stop reading here unless you already have a database filled with 'mysql' records.
-	  </para>
-	</warning>
-      </para>
-      <para>
-	<table>
-	  <title>MySQL backend capabilities</title>
-	  <tgroup cols="2">
-	    <tbody>
-	      <row><entry>Native</entry><entry>Yes</entry></row>
-	      <row><entry>Master</entry><entry>No</entry></row>
-	      <row><entry>Slave</entry><entry>Yes</entry></row>
-	      <row><entry>Superslave</entry><entry>No</entry></row>
-	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
-	      <row><entry>Case</entry><entry>Insensitive</entry></row>
-	      <row><entry>DNSSEC</entry><entry>No (but see Generic backend!)</entry></row>
-	      <row><entry>Module name</entry><entry>mysql</entry></row>
-	      <row><entry>Launch name</entry><entry>mysql</entry></row>
-	    </tbody>
-	  </tgroup>
-	</table>
-      </para>
-      <para>
-        The MySQL Backend as present in PDNS is fixed - it requires a certain database schema to function. This schema corresponds to this create statement:
-        
-        <screen>
-          CREATE TABLE records (
-	  id int(11) NOT NULL auto_increment,
-	  domain_id int(11) NOT NULL,
-	  name varchar(255) NOT NULL,
-	  type varchar(10) NOT NULL,
-	  content varchar(255) NOT NULL,
-	  ttl int(11) NOT NULL,
-	  prio int(11) default NULL,
-	  change_date int(11) default NULL,
-	  PRIMARY KEY (id),
-	  KEY name_index(name),
-	  KEY nametype_index(name,type),
-	  KEY domainid_index(domain_id)
-	  );
-        </screen>
-        
-        Every domain should have a unique domain_id, which should remain identical for all records in a domain. Records with a domain_id that
-	differs from that in the domain SOA record will not appear in a zone transfer.
-
-      </para>
-      <para>
-	The change_date may optionally
-        be updated to the time_t (the number of seconds since midnight UTC at the start of 1970), and is in that case used to auto calculate the 
-        SOA serial number in case that is unspecified.
-        
-      </para>
-      <sect2><title>Configuration settings</title>
-        <para>
-	  WARNING! Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply
-	  an IP address here to prevent chicken/egg problems!
-	</para>
-	<para>
-          <variablelist>
-            <varlistentry>
-              <term>mysql-dbname</term>
-              <listitem>
-                <para>
-                  Database name to connect to
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>mysql-host</term>
-              <listitem>
-                <para>
-                  Database host to connect to
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>mysql-password</term>
-              <listitem>
-                <para>
-                  Password to connect with
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>mysql-socket</term>
-              <listitem>
-                <para>
-                  MySQL socket to use for connecting
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>mysql-table</term>
-              <listitem>
-                <para>
-                  MySQL table name. Defaults to 'records'.
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>mysql-user</term>
-              <listitem>
-                <para>
-                  MySQL user to connect as
-                </para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-	</para>
-      </sect2>
-      <sect2><title>Notes</title>
-	<para>
-	  It has been observed that InnoDB tables outperform the default MyISAM tables by a large margin. Furthermore, the default 
-	  number of backends (3) should be raised to 10 or 15 for busy servers.
-	</para>
-      </sect2>
-      
     </sect1>
     <sect1 id="randombackend"><title>Random Backend</title>
       <para>

@@ -247,9 +247,6 @@ AM_CONDITIONAL(RECURSOR,test x"$enable_recursor" = "xyes")
 for a in $modules $dynmodules
 do
 	case "$a" in
-		mysql )
-			needmysql=yes
-		;;
 		gmysql )
 			needmysql=yes
 		;;
@@ -592,7 +589,7 @@ export moduledirs moduleobjects modulelibs
 
 AC_OUTPUT(Makefile modules/Makefile pdns/Makefile codedocs/Makefile \
 pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns pdns/precursor \
-modules/mysqlbackend/Makefile modules/pdnsbackend/Makefile \
+modules/pdnsbackend/Makefile \
 modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/geobackend/Makefile modules/opendbxbackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
