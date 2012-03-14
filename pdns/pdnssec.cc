@@ -481,7 +481,7 @@ try
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] <command> [params ..]\n\n";
     cerr<<"Commands:\n";
-    cerr<<"activate-zone-key ZONE KEY-ID    Activate the key with key id KEY-ID in ZONE\n";
+    cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE\n";
     cerr<<"add-zone-key ZONE [zsk|ksk] [bits]\n";
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits\n";
