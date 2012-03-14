@@ -10,7 +10,7 @@ tosql ()
 port=$1
 [ -z "$port" ] && port=5300
 context=$2
-[ -z "$context" ] && context=bind-gsqlite3
+[ -z "$context" ] && context=bind-dnssec
 wait=$3
 
 if [ "$port" = help ] || [ "$context" = help ]
