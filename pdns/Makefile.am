@@ -234,3 +234,6 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 
 backends/bind/bindlexer.c:
 	make -C backends/bind bindlexer.c
+
+backends/bind/bindparser.cc:
+	make -C backends/bind bindparser.cc
