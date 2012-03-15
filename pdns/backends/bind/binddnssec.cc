@@ -24,7 +24,9 @@
 
 #ifndef HAVE_SQLITE3
 void Bind2Backend::setupDNSSEC()
-{}
+{
+  throw runtime_error("bind-dnssec-db requires building PowerDNS with SQLite3");
+}
 
 void Bind2Backend::createDNSSECDB(const string& fname)
 {}
@@ -57,7 +59,7 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
 { return false; }
 #else
 
-#include "../../../modules/gsqlite3backend/ssqlite3.hh"
+#include "pdns/ssqlite3.hh"
 void Bind2Backend::setupDNSSEC()
 {
   // cerr<<"Settting up dnssec db.. "<<getArg("dnssec-db") <<endl;

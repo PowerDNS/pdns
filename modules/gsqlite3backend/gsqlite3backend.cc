@@ -17,7 +17,7 @@
 #include "pdns/ahuexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
-#include "ssqlite3.hh"
+#include "pdns/ssqlite3.hh"
 #include "gsqlite3backend.hh"
 #include <boost/algorithm/string.hpp>
 

@@ -53,7 +53,19 @@ if test "$WITH_LUA" != "no"; then
  AC_SUBST(LUA_CFLAGS)
  AC_SUBST(LUA_LIBS)
 fi
-                                         
+         
+dnl Allow user to require SQLite3
+AC_MSG_CHECKING(whether user requires sqlite3)
+AC_ARG_WITH(sqlite3, AC_HELP_STRING([--with-sqlite3],[include sqlite3 driver]), [WITH_SQLITE3=$withval],[WITH_SQLITE3=no])
+AC_MSG_RESULT($WITH_SQLITE3)
+SQLITE3PC=sqlite3
+if test "$WITH_SQLITE3" != "no"; then
+  needsqlite3=yes
+  if test "$WITH_SQLITE3" != "yes"; then
+    SQLITE3PC=$WITH_SQLITE3
+  fi
+fi
+
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h  getopt.h limits.h strings.h sys/time.h syslog.h unistd.h)
@@ -490,11 +502,13 @@ fi
 
 if test "$needsqlite3"
 then
-	PKG_CHECK_MODULES(SQLITE3, sqlite3, HAVE_SQLITE3=yes, AC_MSG_ERROR([+Could not find sqlite3]))
+	PKG_CHECK_MODULES(SQLITE3, $SQLITE3PC, HAVE_SQLITE3=yes, AC_MSG_ERROR([+Could not find sqlite3]))
         AC_SUBST(SQLITE3_LIBS)
         AC_SUBST(SQLITE3_CFLAGS)
         AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
 fi
+
+AM_CONDITIONAL(SQLITE3, test "$needsqlite3")
 
 if test "$needunixodbc"
 then

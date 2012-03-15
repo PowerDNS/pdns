@@ -3,10 +3,6 @@ lib_LTLIBRARIES = libgsqlite3backend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 
-INCLUDES=@SQLITE3_CFLAGS@
+libgsqlite3backend_la_SOURCES=gsqlite3backend.cc gsqlite3backend.hh
 
-libgsqlite3backend_la_SOURCES=gsqlite3backend.cc gsqlite3backend.hh \
-                ssqlite3.hh ssqlite3.cc
-
-
-libgsqlite3backend_la_LDFLAGS=-module -avoid-version @SQLITE3_LIBS@
+libgsqlite3backend_la_LDFLAGS=-module -avoid-version
