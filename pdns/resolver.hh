@@ -101,6 +101,8 @@ class AXFRRetriever : public boost::noncopyable
     
     string d_tsigkeyname;
     string d_tsigsecret;
+    string d_prevMac; // RFC2845 4.4
+    uint d_nonSignedMessages; // RFC2845 4.4
     TSIGRecordContent d_trc;
 };
 

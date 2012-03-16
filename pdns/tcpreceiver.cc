@@ -452,35 +452,36 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 }
 
 namespace {
-struct NSECXEntry
-{
-  set<uint16_t> d_set;
-  unsigned int d_ttl;
-};
+  struct NSECXEntry
+  {
+    set<uint16_t> d_set;
+    unsigned int d_ttl;
+  };
 
-DNSResourceRecord makeDNSRRFromSOAData(const SOAData& sd)
-{
-  DNSResourceRecord soa;
-  soa.qname= sd.qname;
-  soa.qtype=QType::SOA;
-  soa.content=serializeSOAData(sd);
-  soa.ttl=sd.ttl;
-  soa.domain_id=sd.domain_id;
-  soa.auth = true;
-  soa.d_place=DNSResourceRecord::ANSWER;
-  return soa;
+  DNSResourceRecord makeDNSRRFromSOAData(const SOAData& sd)
+  {
+    DNSResourceRecord soa;
+    soa.qname= sd.qname;
+    soa.qtype=QType::SOA;
+    soa.content=serializeSOAData(sd);
+    soa.ttl=sd.ttl;
+    soa.domain_id=sd.domain_id;
+    soa.auth = true;
+    soa.d_place=DNSResourceRecord::ANSWER;
+    return soa;
+  }
+
+  shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
+  {
+    shared_ptr<DNSPacket> ret = shared_ptr<DNSPacket>(q->replyPacket());
+    ret->setCompress(false);
+    ret->d_dnssecOk=false; // RFC 5936, 2.2.5
+    ret->d_tcp = true;
+    return ret;
+  }
 }
 
-shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
-{
-  shared_ptr<DNSPacket> ret = shared_ptr<DNSPacket>(q->replyPacket());
-  ret->setCompress(false);
-  ret->d_dnssecOk=false; // RFC 5936, 2.2.5
-  ret->d_tcp = true;
-  return ret;
-}
 
-}
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int outsock)
 {
@@ -647,8 +648,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       for(;;) {
         outpacket->getRRS() = csp.getChunk();
         if(!outpacket->getRRS().empty()) {
-          if(!tsigkeyname.empty())
-            outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
+          if(!tsigkeyname.empty()) 
+            outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
           sendPacket(outpacket, outsock);
           trc.d_mac=outpacket->d_trc.d_mac;
           outpacket=getFreshAXFRPacket(q);

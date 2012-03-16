@@ -11093,7 +11093,7 @@ $ pdnssec rectify-zone powerdnssec.org
     the algorithm name will typically be 'hmac-md5'. The content is a Base64-encoded secret.
   </para>
   <para>
-  <note><para>For the Generic backends, make sure to use the DNSSEC enabled schema and to turn on the relevant '-dnssec' flag (for example, gmyql-dnssec)!</para></note>
+  <note><para>Most backends require DNSSEC support enabled to support TSIG. For the Generic SQL Backend make sure to use the DNSSEC enabled schema and to turn on the relevant '-dnssec' flag (for example, gmysql-dnssec)!</para></note>
   </para>
   <section id="tsig-outbound-axfr"><title>Provisioning outbound AXFR access</title>
   <para>
@@ -11171,9 +11171,6 @@ zone "powerdnssec.org" {
 </programlisting>
   Except that in this case, TSIG will be used for all communications with the master, not just those about AXFR requests.
   </para>
-  <para>
-  <warning><para>PowerDNS for now only verifies the TSIG signature on the first AXFR 'message', which helps for access control, but does not provide 100.0%
-  protection of subsequent AXFR zone content messages.</para></warning></para>
   </section>
   </chapter>
   <chapter id="allow-axfr-from"><title>AXFR ACLs</title>

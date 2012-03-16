@@ -308,7 +308,7 @@ void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, const string& tsigkeyname, const string& tsigalgorithm, 
   const string& tsigsecret)
-: d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret)
+: d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_nonSignedMessages(0)
 {
   ComboAddress local;
   if(remote.sin4.sin_family == AF_INET)
@@ -371,7 +371,9 @@ AXFRRetriever::~AXFRRetriever()
   close(d_sock);
 }
 
-int AXFRRetriever::getChunk(Resolver::res_t &res)
+
+
+int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making sure RFC2845 4.4 is followed.
 {
   if(d_soacount > 1)
     return false;
@@ -385,23 +387,47 @@ int AXFRRetriever::getChunk(Resolver::res_t &res)
 
   MOADNSParser mdp(d_buf.get(), len);
   
-  if(!d_soacount && !d_tsigkeyname.empty()) { // TSIG verify first message
+  if(!d_tsigkeyname.empty()) { // TSIG verify message
     string theirMac;
+    bool checkTSIG = false;
+    d_nonSignedMessages++;
     BOOST_FOREACH(const MOADNSParser::answers_t::value_type& answer, mdp.d_answers) {
+      if (answer.first.d_type == QType::SOA) { // A SOA is either the first or the last record. We need to check TSIG if that's the case.
+        checkTSIG = true;
+      }
       if(answer.first.d_type == QType::TSIG) {
         shared_ptr<TSIGRecordContent> trc = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;
+        checkTSIG = true;
       }
     }
-    if(theirMac.empty())
+
+
+    if(d_nonSignedMessages > 99) { // We're allowed to get 100 digest without a TSIG.
+      L<<Logger::Info<<"Received 100th envelope for AXFR transfer."<<endl;
+      checkTSIG = true;
+    }
+    
+    if(theirMac.empty() && checkTSIG)
       throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tsigkeyname+"'");
+
+    
+    if (checkTSIG) {
+      string message;
+      if (!d_prevMac.empty()) {
+        message = makeTSIGMessageFromTSIGPacket(string(d_buf.get(), len), mdp.getTSIGPos(), d_tsigkeyname, d_trc, d_prevMac, true);
+      } else {
+        message = makeTSIGMessageFromTSIGPacket(string(d_buf.get(), len), mdp.getTSIGPos(), d_tsigkeyname, d_trc, d_trc.d_mac, false); // insert our question MAC
+      }
       
-    string message = makeTSIGMessageFromTSIGPacket(string(d_buf.get(), len), mdp.getTSIGPos(), d_tsigkeyname, d_trc, d_trc.d_mac, false); // insert our question MAC
-    string ourMac=calculateMD5HMAC(d_tsigsecret, message);
-    // ourMac[0]++; // sabotage
-    if(ourMac != theirMac) {
-      throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+      string ourMac=calculateMD5HMAC(d_tsigsecret, message);
+      // ourMac[0]++; // sabotage == for testing :-)
+      if(ourMac != theirMac) {
+        throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+      }
+      d_prevMac = theirMac; // store the mac for the next chunk, see RFC2845 4.4
+      d_nonSignedMessages = 0; // reset message count, as we now allow another 100 to not be signed.
     }
   }
   
@@ -409,13 +435,21 @@ int AXFRRetriever::getChunk(Resolver::res_t &res)
   if(err) 
     throw ResolverException("AXFR chunk with a non-zero rcode "+lexical_cast<string>(err));
     
-  for(Resolver::res_t::const_iterator i= res.begin(); i!=res.end(); ++i)
+
+  vector<uint32_t> removeItems;
+  for(Resolver::res_t::const_iterator i= res.begin(); i!=res.end(); ++i) {
     if(i->qtype.getCode()==QType::SOA) {
+      removeItems.push_back(i-res.begin());
       d_soacount++;
     }
+  }
 
-  if(d_soacount>1 && !res.empty()) // chop off the last SOA
-    res.resize(res.size()-1);
+  if (!removeItems.empty() && d_soacount > 1) {
+    BOOST_FOREACH(uint32_t i, removeItems) {
+      res.erase(res.begin()+i);
+    }
+  }
+
   return true;
 }
 
