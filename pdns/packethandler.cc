@@ -1258,7 +1258,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(rrset.empty()) {
       // try NS referrals, and if they don't work, go look for wildcards
       
-      DLOG(L<<"Found nothing in the ANY and wildcards, let's try NS referral"<<endl);
+      DLOG(L<<"Found nothing for ANY, let's try NS referral"<<endl);
       if(tryReferral(p, r, sd, target))
         goto sendit;
 
