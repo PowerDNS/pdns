@@ -1,0 +1,1 @@
+Verify that asking for NS at a delegation point returns a referral.

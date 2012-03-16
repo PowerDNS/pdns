@@ -1212,12 +1212,18 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       addNSEC(p, r, target, sd.qname, 2); // only NSEC please
       goto sendit;
     }
-    
+
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::RRSIG && d_dk.isSecuredZone(sd.qname)) {
       synthesiseRRSIGs(p, r);
       goto sendit;  
     }
+
+    DLOG(L<<"Checking for referrals first, unless this is a DS query"<<endl);
+    if(p->qtype.getCode() != QType::DS && tryReferral(p, r, sd, target))
+      goto sendit;
+
+    DLOG(L<<"Got no referrals, trying ANY"<<endl);
 
     // see what we get..
     B.lookup(QType(QType::ANY), target, p, sd.domain_id);
@@ -1255,13 +1261,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     if(rrset.empty()) {
-      // try NS referrals, and if they don't work, go look for wildcards
-      
-      DLOG(L<<"Found nothing for ANY, let's try NS referral"<<endl);
-      if(tryReferral(p, r, sd, target))
-        goto sendit;
-
-      DLOG(L<<Logger::Warning<<"Found nothing in the ANY, but let's try wildcards.."<<endl);
+      DLOG(L<<Logger::Warning<<"Found nothing in the by-name ANY, but let's try wildcards.."<<endl);
       bool wereRetargeted(false), nodata(false);
       if(tryWildcard(p, r, sd, target, wereRetargeted, nodata)) {
         if(wereRetargeted) {
