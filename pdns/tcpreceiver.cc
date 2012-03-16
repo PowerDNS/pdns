@@ -671,7 +671,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         n3rc.d_set = iter->second.d_set;
         n3rc.d_set.insert(QType::RRSIG);
         n3rc.d_salt=ns3pr.d_salt;
-        n3rc.d_flags = 1;
+        n3rc.d_flags = ns3pr.d_flags;
         n3rc.d_iterations = ns3pr.d_iterations;
         n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
         if(boost::next(iter) != nsecxrepo.end()) {

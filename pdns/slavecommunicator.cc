@@ -79,16 +79,24 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   bool first=true;    
   try {
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
-    NSEC3PARAMRecordContent ns3pr;
-    bool narrow;
+    NSEC3PARAMRecordContent ns3pr, hadNs3pr;
+    bool narrow, hadNarrow;
     DNSSECKeeper dk; // has its own ueberbackend
     bool dnssecZone = false;
     bool haveNSEC3=false;
     if(dk.isSecuredZone(domain)) {
       dnssecZone=true;
       haveNSEC3=dk.getNSEC3PARAM(domain, &ns3pr, &narrow);
-    } 
-   
+      if (haveNSEC3) {
+        hadNs3pr = ns3pr;
+        hadNarrow = narrow;
+      }
+    }
+
+    const bool hadNSEC3 = haveNSEC3;
+    const bool hadPresigned = dk.isPresigned(domain);
+    const bool hadDnssecZone = dnssecZone;
+
     if(dnssecZone) {
       if(!haveNSEC3) 
 				L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
@@ -130,6 +138,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
     }
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret);
+
+    bool gotPresigned = false;
+    bool gotNSEC3 = false;
+    bool gotOptOutFlag = false;
     unsigned int soa_serial = 0;
     while(retriever.getChunk(recs)) {
       if(first) {
@@ -149,9 +161,19 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
           
         // we generate NSEC, NSEC3, NSEC3PARAM (sorry Olafur) on the fly, this could only confuse things
-        if(dnssecZone && (i->qtype.getCode() == QType::NSEC || i->qtype.getCode() == QType::NSEC3 || 
-                             i->qtype.getCode() == QType::NSEC3PARAM))
+        if (i->qtype.getCode() == QType::NSEC3PARAM) {
+          ns3pr = NSEC3PARAMRecordContent(i->content);
+          narrow = false;
+          dnssecZone = haveNSEC3 = gotPresigned = gotNSEC3 = true;
           continue;
+        } else if (i->qtype.getCode() == QType::NSEC3) {
+          dnssecZone = gotPresigned = true;
+          gotOptOutFlag = NSEC3RecordContent(i->content).d_flags & 1;
+          continue;
+        } else if (i->qtype.getCode() == QType::NSEC) {
+          dnssecZone = gotPresigned = true;
+          continue;
+        }
           
         if(!endsOn(i->qname, domain)) { 
           L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
@@ -187,7 +209,13 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
       }
     }
-    
+
+    if (hadPresigned && !gotNSEC3)
+    {
+      // we only had NSEC3 because we were a presigned zone...
+      haveNSEC3 = false;
+    }
+
     string hashed;
     BOOST_FOREACH(const string& qname, qnames)
     {
@@ -228,6 +256,39 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     }
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
+
+    // now we also need to update the presigned flag and NSEC3PARAM
+    // for the zone
+    if (gotPresigned) {
+      if (!hadDnssecZone && !hadPresigned) {
+        // zone is now presigned
+        dk.setPresigned(domain);
+      }
+
+      if (hadPresigned || !hadDnssecZone)
+      {
+        // this is a presigned zone, update NSEC3PARAM
+        if (gotNSEC3) {
+          ns3pr.d_flags = gotOptOutFlag ? 1 : 0;
+         // only update if there was a change
+          if (!hadNSEC3 || (narrow != hadNarrow) ||
+              (ns3pr.d_algorithm != hadNs3pr.d_algorithm) ||
+              (ns3pr.d_flags != hadNs3pr.d_flags) ||
+              (ns3pr.d_iterations != hadNs3pr.d_iterations) ||
+              (ns3pr.d_salt != hadNs3pr.d_salt)) {
+            dk.setNSEC3PARAM(domain, ns3pr, narrow);
+          }
+        } else if (hadNSEC3) {
+          dk.unsetNSEC3PARAM(domain);
+        }
+      }
+    } else if (hadPresigned) {
+      // zone is no longer presigned
+      dk.unsetPresigned(domain);
+      dk.unsetNSEC3PARAM(domain);
+    }
+
+
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<soa_serial<<endl;
     if(::arg().mustDo("slave-renotify"))
       notifyDomain(domain);
