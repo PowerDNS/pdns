@@ -99,12 +99,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     if(dnssecZone) {
       if(!haveNSEC3) 
-				L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
-			else if(!narrow)
+        L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
+      else if(!narrow)
         L<<Logger::Info<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
-			else 
+      else 
         L<<Logger::Info<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
-		}    
+    }    
 
     if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
