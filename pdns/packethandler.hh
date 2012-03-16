@@ -119,7 +119,6 @@ private:
   static int s_count;
   bool d_doFancyRecords;
   bool d_doRecursion;
-  bool d_doWildcards;
   bool d_doCNAME;
   bool d_logDNSDetails;
   bool d_doIPv6AdditionalProcessing;
