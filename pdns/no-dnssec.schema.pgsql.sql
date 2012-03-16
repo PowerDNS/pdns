@@ -20,7 +20,8 @@ CREATE TABLE records (
         change_date     INT DEFAULT NULL, 
         CONSTRAINT domain_exists 
         FOREIGN KEY(domain_id) REFERENCES domains(id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+        CONSTRAINT c_lowercase_name CHECK (((name)::text = lower((name)::text)))
 );
 
 CREATE INDEX rec_name_index ON records(name);
