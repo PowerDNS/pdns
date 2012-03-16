@@ -255,7 +255,7 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
     d_dnssecdb->doQuery( (fmt % d_dnssecdb->escape(name)).str());
   }
   catch (SSqlException &e) {
-    throw AhuException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
+    throw AhuException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
   }
   
   SSql::row_t row;
