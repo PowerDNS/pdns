@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig sub.usa.example.com DS dnssec | egrep -v 'IN[[:space:]]+(NSEC|RRSIG)'

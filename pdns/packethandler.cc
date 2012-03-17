@@ -1261,6 +1261,17 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     if(rrset.empty()) {
+      DLOG(L<<"checking qtype.getCode() ["<<(p->qtype.getCode())<<"] against QType::DS ["<<(QType::DS)<<endl);
+      if(p->qtype.getCode() == QType::DS)
+      {
+        DLOG(L<<"DS query found no direct result, trying referral now"<<endl);
+        if(tryReferral(p, r, sd, target))
+        {
+          DLOG(L<<"got referral for DS query"<<endl);
+          goto sendit;
+        }
+      }
+
       DLOG(L<<Logger::Warning<<"Found nothing in the by-name ANY, but let's try wildcards.."<<endl);
       bool wereRetargeted(false), nodata(false);
       if(tryWildcard(p, r, sd, target, wereRetargeted, nodata)) {

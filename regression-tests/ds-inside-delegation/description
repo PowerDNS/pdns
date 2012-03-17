@@ -1,0 +1,3 @@
+This test makes sure we return a referral for DS queries inside a delegation.
+FIXME: we also generate some useless NSECs in this case (in fact, in all
+delegation cases).
