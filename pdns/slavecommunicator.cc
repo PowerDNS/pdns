@@ -121,8 +121,15 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   
     if(dk.getTSIGForAccess(domain, remote, &tsigkeyname)) {
       string tsigsecret64;
-      B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
-      B64Decode(tsigsecret64, tsigsecret);
+      if(B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64))
+      {
+        B64Decode(tsigsecret64, tsigsecret);
+      }
+      else
+      {
+        L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' not found, ignoring 'AXFR-MASTER-TSIG' for domain '"<<domain<<"'"<<endl;
+        tsigkeyname="";
+      }
     }
     
     scoped_ptr<PowerDNSLua> pdl;
