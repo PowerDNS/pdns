@@ -10528,6 +10528,16 @@ local0.err                        /var/log/pdns.err
     </para>
   </sect2>
   </sect1>
+  <sect1 id="from3.0to3.1"><title>From PowerDNS Authoritative Server 3.0 to 3.1</title>
+    <para>
+    	PowerDNS 3.1 introduces native SQLite3 support for storing key material for DNSSEC in the bindbackend. With this change,
+    	support for bind+gsql-setups ('hybrid mode') has been dropped. If you were using this mode, you will need to switch to
+    	bind-dnssec-db and migrate your keying material.
+    </para>
+    <para>
+    	There have been changes to the SQL schemas for the generic backends.
+    </para>
+  </sect1>
   </chapter>
   <chapter id="powerdnssec-auth">
   <title>Serving authoritative DNSSEC data</title>
