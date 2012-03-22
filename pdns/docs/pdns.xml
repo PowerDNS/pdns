@@ -118,10 +118,30 @@
       <para>
 	DNSSEC related fixes:
 	<itemizedlist>
+		<listitem>
+			<para>
+			When slaving zones, PowerDNS now automatically detects that a zone is presigned. Code in c2502, closing t369.
+			</para>
+		</listitem>
+	  <listitem>
+		<para>
+		  The bindbackend can now manage its own SQLite3 database to store key data, removing the need to run it with a gsql backend. Code in c2448, c2449, c2450, c2451, c2452, c2453, c2455, c2482, c2496, c2499.
+		</para>
+	</listitem>
 	  <listitem>
 	    <para>
-	      NSEC/NSEC3 logic for picking 'boundary' names was tricky, and got it wrong in some cases. Fix in c2289.
+	      NSEC/NSEC3 logic for picking 'boundary' names was tricky, and got it wrong in some cases. Fixes in c2289, c2429, c2435 and c2473.
 	    </para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+  		  The subtle differences between 'what records get NSEC', 'what records get NSEC3' and 'what records should get signed' did not translate well to the SQL auth column. We now use 'ordername IS NULL' to map the whole spectrum. Code in c2477, c2480, c2492.
+  		</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  Pre-signed AXFR output, although correct, was different from our query responses. Rectified in c2477.
+	  	</para>
 	  </listitem>
 	  <listitem>
 	    <para>
@@ -139,6 +159,16 @@
 	      Spotted by Mark Scholten and Marco Davids, we would sometimes generate duplicate (and wrong) RRSIGs when signing an ANY answer
 	      because of record jumbling. Fix in c2381.
 	    </para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  Several fixes to handling of DS queries, in c2420, c2510, c2512.
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  We now lowercase the signer name in an RRSIG. This is not mandated by DNSSEC specification but it improves compatibility with some validators. Fix in c2426.
+	  	</para>
 	  </listitem>
 	</itemizedlist>
       </para>
@@ -243,7 +273,7 @@
 	  <listitem>
 	    <para>
 	      BIND backend would leak an fd when including a configuration file from named.conf. Spotted
-	      and fixed by Hannu Ylitalo of Nebula Oy in c2359.
+	      by Hannu Ylitalo of Nebula Oy in c2359.
 	    </para>
 	  </listitem>  
 	  <listitem>
@@ -257,17 +287,46 @@
 	      './configure --enable-verbose-logging' was broken, fixed in c2312.
 	    </para>
 	  </listitem>  
+	  <listitem>
+	    <para>
+	      PowerDNS would serve up old SOA data immediately after sending out a notification. Complicated bug
+	      documented perfectly in t427, which also came with not one but with two different patches to fix the problem.
+	      Thanks to Keith Buck. Code in c2408.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Flag '--start-id' in zone2sql was not functional. Removed for now in c2387, closing t332.
+	    </para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  Our distribution tarball did not have the SQL schemas. Fixed in c2459 and c2460.
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		"Empty" MX records would confuse one of our parsers. Fixed in c2468, closing Debian bug 533023.
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		The pdns.conf 'wildcards'-setting did not do anything in 3.0, so it was removed. Change in c2508, c2509.
+	  	</para>
+	  </listitem>
+
 	</itemizedlist>
       </para>
       <para>
 	New features:
 	<itemizedlist>
+
 	<listitem>
-	    <para>
-	      Per-zone AXFR ACLs, based on the allow-axfr-ips zone metadata item. Code in c2274. Also, remove
-	      some remains of our previous approach to supporting this in c2326.
-	    </para>
-	  </listitem>
+	  <para>
+	    Per-zone AXFR ACLs, based on the allow-axfr-ips zone metadata item. Code in c2274. Also, remove
+	    some remains of our previous approach to supporting this in c2326.
+	  </para>
+	</listitem>
 	  <listitem>
 	    <para>
 	      Alberto Donato and Zsolt Dollenstein implemented autoserial support for the Generic SQL backends. Code in c2290, c2294, c2296, c2299, 
@@ -278,11 +337,6 @@
 	    <para>
 	      New SOA Serial Tweak mode INCEPTION-EPOCH for when operating as a 'signing slave', contributed by Jimmy Bergman. Code and documentation 
 	      in c2320.
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>
-	      Flag '--start-id' in zone2sql was not functional. Removed for now in c2387, closing t332.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -302,18 +356,51 @@
 	      closing t410.
 	    </para>
 	  </listitem>
-	  <listitem>
-	    <para>
-	      PowerDNS would serve up old SOA data immediately after sending out a notification. Complicated bug
-	      documented perfectly in t427, which also came with not one but with two different patches to fix the problem.
-	      Thanks to Keith Buck. Code in c2408.
-	    </para>
-	  </listitem>
 	</itemizedlist>
       </para>
       <para>
 	Improvements:
 	<itemizedlist>
+		<listitem>
+			<para>
+			Ruben d'Arco submitted a full rework of our slave-side AXFR TSIG handling, closing t393 and t400 in the process. Code in c2506. Additional improvement in c2513.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The records.name-column in the gpgsql schema is now constrained to lowercase, as PowerDNS would be unable to find other entries anyway. Fix in c2503, closing t426.
+			</para>
+		</listitem>
+	  <listitem>
+	  	<para>
+	  	  The gsql-backends can now handle huge records, thanks to a patch by Ruben d'Arco. Code in c2476, closing t407. Additional changes in c2487, c2489.
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  Some of PowerDNS' internal classes would work with uninitialized data when repurposed outside of the PowerDNS core logic. Fix in c2469, 
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  pdnssec now has 'check-all-zones' and 'rectify-all-zones' commands. Submitted by Ruben d'Arco, code in c2467.
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  'restart' in our init.d-script would not start pdns if it was down before. Fixed in c2462.
+	  	</para>
+	  </listitem>
+      <listitem>
+		<para>
+		  'pdnssec rectify-zone' now honours --verbose and is rather quiet without it. Code in c2443.
+		</para>
+	  </listitem>
+      <listitem>
+		<para>
+		  Improved error messages for systems without IPv6. Changes in c2425.
+		</para>
+	  </listitem>
 	  <listitem>
 	    <para>
 	      The packet- and querycache now honour TTLs from backend data. Code in c2414.
@@ -321,7 +408,7 @@
 	  </listitem>
 	  <listitem>
 	    <para>
-	      'pdns_control help' now shows useful usage information. Code in c2410.
+	      'pdns_control help' now shows useful usage information. Code in c2410 and c2465.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -480,6 +567,26 @@
 	  </listitem>
 	</itemizedlist>
       </para>
+    <para>
+      Other changes:
+       <itemizedlist>
+       	 <listitem>
+       	 	<para>
+       	 		Removed the deprecated non-generic mysqlbackend, in c2488, c2514, c2515.
+       	 	</para>
+       	 </listitem>
+       	 <listitem>
+       	 	<para>
+       	 		Removed the deprecated 'pdnsbackend', in c2490, c2516.
+       	 	</para>
+       	 </listitem>
+       	 <listitem>
+       	 	<para>
+       	 		Removed GRANT statements from the gpgsql schema, as we can't assume they will work for everyone. Change in c2493.
+       	 	</para>
+       	 </listitem>
+       	</itemizedlist>
+       </para>
       <para>
 	Tickets closed but not associated with a commit:
 	<itemizedlist>
