@@ -11148,7 +11148,27 @@ $ pdnssec rectify-zone powerdnssec.org
       that all DNSSEC-related fields are set correctly.
     </para>
   </section>
-  <section id="dnssec-bind-hybrid"><title>PowerDNSSEC hybrid BIND-mode operation</title>
+  <section id="dnssec-bind"><title>PowerDNSSEC BIND-mode operation</title>
+  <para>
+  	Starting with PowerDNS 3.1, the bindbackend can manage keys in an SQLite3 database without launching
+  	a separate gsqlite3 backend.
+  </para>
+  <para>
+  	To use this mode, add "bind-dnssec-db=/var/db/bind-dnssec-db.sqlite3" to pdns.conf, and run
+  	"pdnssec create-bind-db /var/db/bind-dnssec-db.sqlite3". Then, restart PowerDNS.
+  </para>
+  <para>
+  	After this, you can use "pdnssec secure-zone" and all other pdnssec commands on your BIND zones
+  	without trouble.
+  </para>
+</section>
+  	<section id="dnssec-bind-hybrid"><title>PowerDNSSEC hybrid BIND-mode operation</title>
+    <warning>
+    <para>
+      This mode is only supported in 3.0 and 3.0.1! In 3.1 and up, the bindbackend
+      always does its own key storage. See FIXME for more details.
+    </para>
+    </warning>
     <para>
       PowerDNS can also operate based on 'BIND'-style zone &amp; configuration files. This 'bindbackend'
       has full knowledge of DNSSEC, but has no native way of storing keying material.
@@ -11182,7 +11202,7 @@ $ pdnssec rectify-zone powerdnssec.org
     on an incoming zone transfer, and also by running 'pdnssec rectify-zone', or 'zone2sql' with the --dnssec flag.
     </para>
     <para>The 'auth' field should be set to '1' for 
-    data for which is itself authoritative, which includes the SOA record and its own NS records. 
+    data for which the zone itself is authoritative, which includes the SOA record and its own NS records. 
   </para>
   <para>
     The 'auth' field should be 0 however for NS records which are used for delegation, and also for any glue (A, AAAA) records
@@ -11190,7 +11210,9 @@ $ pdnssec rectify-zone powerdnssec.org
   </para>
   <para>
     The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. When running in NSEC3 'Narrow' mode,
-    the ordername field is ignored and best left empty.
+    the ordername field is ignored and best left empty. In NSEC mode, the ordername field should be NULL for any glue but filled in
+    for delegation NS records and all authoritative records. In NSEC3 opt-out mode (the only NSEC3 mode PowerDNS currently
+    supports), any non-authoritative records (as described for the 'auth' field) should have ordername set to NULL.
   </para>
   <para>
     In 'NSEC' mode, it should contain the <emphasis>relative</emphasis> part of a domain name, in reverse order, with dots replaced
@@ -11201,7 +11223,7 @@ $ pdnssec rectify-zone powerdnssec.org
     of the full record name. <command>pdnssec hash-zone-record zone record</command> can be used to calculate this hash.
   </para>
   </section>
-  </section>
+</section>
   <section id="dnssec-security"><title>Security</title>
   <para>
     During typical PowerDNSSEC operation, the private part of the signing keys are 'online', which can be compared
