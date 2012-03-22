@@ -120,7 +120,7 @@
 	<itemizedlist>
 		<listitem>
 			<para>
-			When slaving zones, PowerDNS now automatically detects that a zone is presigned. Code in c2502, closing t369.
+			When slaving zones, PowerDNS now automatically detects that a zone is presigned. Code in c2502, closing t369, t392.
 			</para>
 		</listitem>
 	  <listitem>
@@ -146,7 +146,7 @@
 	  <listitem>
 	    <para>
 	      Spotted &amp; fixed by Jimmy Bergman of Atomia, CNAMEs and RRSIGs could have bad interactions. Fix in c2314, 
-	      further refined in c2318.
+	      further refined in c2318. Closes t411.
 	    </para>
 	  </listitem>
 	   <listitem>
@@ -178,7 +178,7 @@
 	  <listitem>
 	    <para>
 	      Winfried Angele discovered we would open an additional backend connection per zone in the BIND backend.
-	      This only impacted users with multiple simultaneous backends. Fix in c2253.
+	      This only impacted users with multiple simultaneous backends. Fix in c2253, closing t383.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -189,7 +189,7 @@
 	  </listitem>
 	  <listitem>
 	    <para>
-	      Wildcards in the presence of delegations were broken. Reported by a cast of thousands. Fix &amp; regression test in c2368.
+	      Wildcards in the presence of delegations were broken. Reported by a cast of thousands. Fix &amp; regression test in c2368. Closes t389.
 	    </para>
 	  </listitem>
 	   <listitem>
@@ -215,7 +215,7 @@
 	  </listitem> 
 	   <listitem>
 	    <para>
-	      Fix compilation against older versions of MySQL that do not have MYSQL_OPT_RECONNECT. c2264.
+	      Fix compilation against older versions of MySQL that do not have MYSQL_OPT_RECONNECT. c2264, closing t378.
 	    </para>
 	  </listitem> 
 	   <listitem>
@@ -225,7 +225,7 @@
 	  </listitem> 
 	  <listitem>
 	    <para>
-	      'pdnssec' did not work for records with NULL ttls. Fixed in c2266.
+	      'pdnssec' did not work for records with NULL ttls. Fixed in c2266, closing t432.
 	    </para>
 	  </listitem> 
 	  <listitem>
@@ -314,7 +314,11 @@
 	  		The pdns.conf 'wildcards'-setting did not do anything in 3.0, so it was removed. Change in c2508, c2509.
 	  	</para>
 	  </listitem>
-
+	  <listitem>
+	    <para>
+	      Additional processing based on records loaded by the BIND backend might fail because of a trailing dot mismatch. Fix in c2398.
+	    </para>
+	  </listitem>
 	</itemizedlist>
       </para>
       <para>
@@ -329,8 +333,7 @@
 	</listitem>
 	  <listitem>
 	    <para>
-	      Alberto Donato and Zsolt Dollenstein implemented autoserial support for the Generic SQL backends. Code in c2290, c2294, c2296, c2299, 
-	      c2300, c2303.
+	      Alberto Donato and Zsolt Dollenstein implemented autoserial support for the Generic SQL backends. Code in c2290, c2294, c2296, c2299, c2300, c2303. Closes t52, t299, t301, t336.
 	    </para>
 	  </listitem>
 	   <listitem>
@@ -345,22 +348,29 @@
 	      Update in c2394, closing t395.
 	    </para>
 	  </listitem>
-	  <listitem>
-	    <para>
-	      Additional processing based on records loaded by the BIND backend might fail because of a trailing dot mismatch. Fix in c2398.
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>
-	      Depending on the encoding used, MySQL could take issue with our 'tsigkeys' table which contained very large rows. Trimmed in c2400,
-	      closing t410.
-	    </para>
-	  </listitem>
+
+
 	</itemizedlist>
       </para>
       <para>
 	Improvements:
 	<itemizedlist>
+	 	<listitem>
+	    <para>
+	      Depending on the encoding used, MySQL could take issue with our 'tsigkeys' table which contained very large rows. Trimmed in c2400,
+	      closing t410.
+	    </para>
+	  </listitem>
+		<listitem>
+			<para>
+				Various build/configure-related fixes in c2319, c2373, c2386, closing t380, t405, t420.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				We now show the SOA serial after zone transfers. Code in c2385, closing t416.
+			</para>
+		</listitem>
 		<listitem>
 			<para>
 			Ruben d'Arco submitted a full rework of our slave-side AXFR TSIG handling, closing t393 and t400 in the process. Code in c2506. Additional improvement in c2513.
@@ -373,7 +383,7 @@
 		</listitem>
 	  <listitem>
 	  	<para>
-	  	  The gsql-backends can now handle huge records, thanks to a patch by Ruben d'Arco. Code in c2476, closing t407. Additional changes in c2487, c2489.
+	  	  The gsql-backends can now handle huge records, thanks to a patch by Ruben d'Arco. Code in c2476, closing t407. Additional changes in c2292, c2487, c2489. Closes t218, t316.
 	  	</para>
 	  </listitem>
 	  <listitem>
@@ -479,7 +489,7 @@
 	  </listitem>
 	   <listitem>
 	    <para>
-	      Compilation on OpenBSD was eased by patches from Brad Smith, which can be found in c2288 and c2291.
+	      Compilation on OpenBSD was eased by patches from Brad Smith, which can be found in c2288 and c2291, closing t95.
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -494,7 +504,7 @@
 	  </listitem>
 	  <listitem>
 	    <para>
-	      Documentation typos, Jake Spencer (c2304), Jose Arthur Benetasso Villanova (c2337). Code typos in c2324.
+	      Documentation typos, Jake Spencer (c2304), Jose Arthur Benetasso Villanova (c2337). Code typos in c2324 (closes t296).
 	    </para>
 	  </listitem>
 	   <listitem>
@@ -592,8 +602,63 @@
 	<itemizedlist>
 	<listitem>
 	    <para>
-	      Upcoming.
+	      t125: "PowerDNS offers wild card info. when it is not queried for."
 	    </para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t219: "Accept NOTIFY from masters on non-standard port"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t247: "pdns caching weirdness with recursion-desired flag"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t253: "bind backend crashes on long comment line in included file"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t271: "PowerDNS Server responding with out-of-zone authority section in case there is a cname"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t304: "also-notify option for pdns, also gives also-notify for bindbackend."
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t311: "PowerDNSSEC responding with SERVFAIL upon IN A query for a CNAME"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t325: "CNAME working strange!"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t376: "Unable to create long TXT records"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t412: "--without-lua doesn't disable lua"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t415: "Signing thread died during AXFR of signed domain"
+	  	</para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  		t422: "ecdsa256 keys bug"
+	  	</para>
 	  </listitem>
 	</itemizedlist>
       </para>
