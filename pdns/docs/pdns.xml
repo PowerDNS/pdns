@@ -102,6 +102,42 @@
       </warning>
       <note><para>RC1 released on the 23th of March 2012</para>
       </note>
+      <note><para>Downloads:
+      	<itemizedlist>
+      		<listitem>
+      			<para>
+      				<ulink url="http://powerdnssec.org/downloads/pdns-3.1-rc1.tar.gz">pdns-3.1-rc1.tar.gz</ulink>
+      			</para>
+      		</listitem>
+      		<listitem>
+      			<para>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc1-1.i386.rpm">pdns-static-3.1rc1-1.i386.rpm</ulink>
+      			</para>
+      		</listitem>
+      		<listitem>
+      			<para>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc1-1.x86_64.rpm">pdns-static-3.1rc1-1.x86_64.rpm</ulink>
+      			</para>
+      		</listitem>
+      		<listitem>
+      			<para>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc1-1_amd64.deb">pdns-static_3.1-rc1-1_amd64.deb</ulink>
+      			</para>
+      		</listitem>
+      		<listitem>
+      			<para>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc1-1_i386.deb">pdns-static_3.1-rc1-1_i386.deb</ulink>
+      			</para>
+      		</listitem>
+      	</itemizedlist>
+      </para>
+  </note>
+  
+
+
+
+
+
       <para>
 	Version 3.1 of the PowerDNS Authoritative Server represents the 'coming of age' of our DNSSEC implementation. 
 	In addition, 3.1 solves a lot of '.0' issues typically associated with a major new release.
