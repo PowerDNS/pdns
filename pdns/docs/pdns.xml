@@ -129,6 +129,11 @@
       				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc1-1_i386.deb">pdns-static_3.1-rc1-1_i386.deb</ulink>
       			</para>
       		</listitem>
+      		<listitem>
+      			<para>
+      				<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc1/">CentOS/RHEL 5/6 RPMs</ulink> kindly provided by Kees Monshouwer.
+      			</para>
+      		</listitem>
       	</itemizedlist>
       </para>
   </note>
