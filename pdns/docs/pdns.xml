@@ -10346,14 +10346,6 @@ local0.err                        /var/log/pdns.err
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>--startid</term>
-	    <listitem>
-	      <para>
-		Supply a value for the first domain_id generated. Defaults at 0.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
 	    <term>--transactions</term>
 	    <listitem>
 	      <para>
@@ -10498,6 +10490,11 @@ local0.err                        /var/log/pdns.err
   </sect2>
   </sect1>
   <sect1 id="from3.0to3.1"><title>From PowerDNS Authoritative Server 3.0 to 3.1</title>
+    <note>
+    	<para>
+    		If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />.
+    	</para>
+    </note>
     <para>
     	PowerDNS 3.1 introduces native SQLite3 support for storing key material for DNSSEC in the bindbackend. With this change,
     	support for bind+gsql-setups ('hybrid mode') has been dropped. If you were using this mode, you will need to switch to
@@ -10505,6 +10502,13 @@ local0.err                        /var/log/pdns.err
     </para>
     <para>
     	There have been changes to the SQL schemas for the generic backends.
+    </para>
+    <para>
+    	For MySQL:
+    	<screen>
+    		mysql> ALTER TABLE records MODIFY content VARCHAR(64000);
+    		mysql> ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
+    	</screen>
     </para>
   </sect1>
   </chapter>
@@ -11135,7 +11139,7 @@ $ pdnssec rectify-zone powerdnssec.org
     <warning>
     <para>
       This mode is only supported in 3.0 and 3.0.1! In 3.1 and up, the bindbackend
-      always does its own key storage. See FIXME for more details.
+      always does its own key storage.
     </para>
     </warning>
     <para>
