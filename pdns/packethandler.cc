@@ -55,7 +55,6 @@ PacketHandler::PacketHandler():B(s_programname)
 {
   s_count++;
   d_doFancyRecords = (::arg()["fancy-records"]!="no");
-  d_doCNAME = (::arg()["skip-cname"]=="no");
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");

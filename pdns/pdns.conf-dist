@@ -280,11 +280,6 @@
 # signing-threads=3
 
 #################################
-# skip-cname	Do not perform CNAME indirection for each query
-#
-# skip-cname=no
-
-#################################
 # slave	Act as a slave
 #
 # slave=no
