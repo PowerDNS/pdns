@@ -96,6 +96,12 @@
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
       <sect2 id="changelog-auth-3-1"><title>PowerDNS Authoritative Server 3.1 (UNRELEASED)</title>
+     <warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x.
+	Please refer to <xref linkend="from2.9to3.0"/> and <xref linkend="from3.0to3.1"/> for important information on 
+	correct and stable operation, as well as notes on performance and memory use.</para>
+      </warning>
+      <note><para>RC1 released on the 23th of March 2012</para>
+      </note>
       <para>
 	Version 3.1 of the PowerDNS Authoritative Server represents the 'coming of age' of our DNSSEC implementation. 
 	In addition, 3.1 solves a lot of '.0' issues typically associated with a major new release.
@@ -115,6 +121,9 @@
 	cleaned up years of accumulated dust in the code, and massively improved our regression testing into a full blown continuous integration setup 
 	with full DNSSEC tests!
       </para>
+      <para>
+      You can find tar.gz and static packages at <ulink url="http://powerdnssec.org/downloads/">powerdnssec.org/downloads/</ulink>.
+  </para>
       <para>
 	DNSSEC related fixes:
 	<itemizedlist>
@@ -475,6 +484,11 @@
 	    <para>
 	      In various places we would only accept UPPERCASE DNS typenames. Fixed in c2370, closing t390.
 	    </para>
+	  </listitem>
+	  <listitem>
+	  	<para>
+	  	  We would not always drop supplemental groups correctly. Reported by David Black.
+	  	</para>
 	  </listitem>
 	  <listitem>
 	    <para>
@@ -10509,6 +10523,9 @@ local0.err                        /var/log/pdns.err
     		mysql> ALTER TABLE records MODIFY content VARCHAR(64000);
     		mysql> ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
     	</screen>
+    </para>
+    <para>
+    	The definition of 'auth' and 'ordername' in backends has changed slightly, see <xref linkend="dnssec-direct-database" />.
     </para>
   </sect1>
   </chapter>
