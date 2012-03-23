@@ -9221,7 +9221,7 @@ name         IN            A        1.2.3.4
 
 	<warning>
 	  <para>
-	    As of 2.9.21, the BIND backend no longer features the 'bind-example-zones' command. These will return in 2.9.22.
+	    As of 2.9.21, the BIND backend no longer features the 'bind-example-zones' command.
 	  </para>
 	</warning>
 
@@ -9447,6 +9447,11 @@ name         IN            A        1.2.3.4
 <chapter id="windows">
   <title>Installing on Microsoft Windows</title>
     <para>
+    <warning>
+    	<para>
+    		As of 3.0 and up, Windows support is untested and probably does not work at all.
+    	</para>
+    </warning>
     <note>
       <para>
 	  PowerDNS support for Windows is, as of 1.99.12, very recent and therefore quite 'beta'. For reliability, we currently advise the use of 
@@ -9483,7 +9488,7 @@ name         IN            A        1.2.3.4
 
   <para>
     When you are in the ODBC sources dialog you activate the <filename>System DSN</filename> tab. 
-    <note><para>It is important to create a System DSN instead of an User DNS, otherwise the ODBC backend cannot function.</para></note>
+    <note><para>It is important to create a System DSN instead of an User DSN, otherwise the ODBC backend cannot function.</para></note>
   </para>
 
   <para>
@@ -9580,7 +9585,7 @@ name         IN            A        1.2.3.4
 	launch=gmysql
 	gmysql-host=127.0.0.1
 	gmysql-user=root
-	gmysql-dbname=pdnstest
+	gmysql-dbname=pdns
       </screen>
       
       Remove any earlier <command>launch</command> statements. Also remove the <command>bind-example-zones</command>
@@ -9597,6 +9602,7 @@ name         IN            A        1.2.3.4
 	<para>
 	  Be very very sure that you configure the *g*mysql backend and not the mysql backend. See
 	  <xref linkend="generic-mypgsql-backends"/>. If you use the 'mysql' backend things will only appear to work.
+	  (The 'mysql' backend was removed in version 3.1).
 	</para>
       </warning>
     </para>
@@ -9606,9 +9612,9 @@ name         IN            A        1.2.3.4
 	# /etc/init.d/pdns monitor
 	(...)
 	15:31:30 About to create 3 backend threads
-	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
-	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
-	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdnstest'
+	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
+	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
+	15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
       </screen>
       
       This is as to be expected - we did not yet add anything to MySQL for PDNS to read from. At this point you may also see
@@ -9621,41 +9627,8 @@ name         IN            A        1.2.3.4
     <sect1 id="configuring-mysql"><title>Example: configuring MySQL</title>
       <para>
 	Connect to MySQL as a user with sufficient privileges and issue the following commands:
-	<screen>
-create table domains (
- id		 INT auto_increment,
- name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(128) DEFAULT NULL,
- last_check	 INT DEFAULT NULL,
- type		 VARCHAR(6) NOT NULL,
- notified_serial INT DEFAULT NULL, 
- account         VARCHAR(40) DEFAULT NULL,
- primary key (id)
-) Engine=InnoDB;
-
-CREATE UNIQUE INDEX name_index ON domains(name);
-
-CREATE TABLE records (
-  id              INT auto_increment,
-  domain_id       INT DEFAULT NULL,
-  name            VARCHAR(255) DEFAULT NULL,
-  type            VARCHAR(10) DEFAULT NULL,
-  content         VARCHAR(4096) DEFAULT NULL,
-  ttl             INT DEFAULT NULL,
-  prio            INT DEFAULT NULL,
-  change_date     INT DEFAULT NULL,
-  primary key(id)
-) Engine=InnoDB;
-
-CREATE INDEX rec_name_index ON records(name);
-CREATE INDEX nametype_index ON records(name,type);
-CREATE INDEX domain_id ON records(domain_id);
-
-create table supermasters (
-  ip VARCHAR(25) NOT NULL, 
-  nameserver VARCHAR(255) NOT NULL, 
-  account VARCHAR(40) DEFAULT NULL
-) Engine=InnoDB;
+   <programlisting><xi:include  href="../no-dnssec.schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+   	<screen>
 
 GRANT SELECT ON supermasters TO pdns;
 GRANT ALL ON domains TO pdns;
@@ -9839,7 +9812,7 @@ GRANT ALL ON records TO pdns;
           </listitem>
         </itemizedlist>
 
-        For more information about how to write exciting backends with the PipeBackend, see Appendix A.
+        For more information about how to write exciting backends with the PipeBackend, see <xref linkend="pipebackend" />.
       </para>
     </sect1>
   </chapter>
