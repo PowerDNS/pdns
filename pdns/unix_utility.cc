@@ -99,6 +99,11 @@ void Utility::dropPrivs( int uid, int gid )
     else
       theL()<<Logger::Info<<"Set effective group id to "<<gid<<endl;
 
+    if(setgroups(0, NULL)<0) {
+      theL()<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
+      exit(1);
+    }
+
   }
 
   if(uid) {
