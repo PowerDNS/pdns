@@ -10077,7 +10077,7 @@ local0.err                        /var/log/pdns.err
 	or 'sa' user, and configure the chosen user to have very slight privileges.
       </para>
       <para>
-	Databases empathic-ally do not need to run on the same machine that runs PDNS! In fact, in benchmarks
+	Databases empathically do not need to run on the same machine that runs PDNS! In fact, in benchmarks
 	it has been discovered that having a separate database machine actually improves performance.
       </para>
       <para>
@@ -10177,10 +10177,6 @@ local0.err                        /var/log/pdns.err
     <para>
       To determine if PDNS is unable to keep up with packets, determine the value of the <command>qsize-q</command> variable. 
       This represents the number of packets waiting for database attention. During normal operations the queue should be small. 
-    </para>
-    <para>
-      If it is known that backends will not contain CNAME records, the <command>skip-cname</command> setting can be used to prevent 
-      the normally mandatory CNAME lookup that is needed at least once for each DNS query. 
     </para>
 
     <para>
@@ -13360,10 +13356,6 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <varlistentry><term>setuid=...</term>
 	    <listitem><para>
 		If set, change user id to this uid for more security. See <xref linkend="security"/>.
-	      </para></listitem></varlistentry>
-	  <varlistentry><term>skip-cname | --skip-cname=yes | --skip-cname=no</term>
-	    <listitem><para>
-		Do not perform CNAME indirection for each query. Has performance implications. See <xref linkend="performance"/>.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>slave-cycle-interval=60</term>
 	    <listitem><para>
@@ -17224,10 +17216,6 @@ VALUES (:zoneid, :ip)
       </para>
       <para>
 	If no SOA was found, an unauthoritative no-error is returned.
-      </para>
-      <para>
-	In reality, each query for a question tuple first involves checking for a CNAME, unless that resolution has been disabled with the
-	<command>skip-cname</command> option.
       </para>
       <para>
 	PDNS breaks strict RFC compatibility by not always checking for the presence of a SOA record first. This is unlikely to lead to 
