@@ -103,7 +103,6 @@ void DNSCryptoKeyEngine::testAll()
       BOOST_FOREACH(maker_t* verifier, value.second) {
         try {
           pair<unsigned int, unsigned int> res=testMakers(value.first, signer, verifier);
-          
         }
         catch(std::exception& e)
         {
@@ -123,7 +122,7 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13) // GOST or nistp256
+  else if(algo == 12 || algo == 13 || algo == 10014) // GOST or nistp256 or ED25519
     bits=256;
   else 
     bits=384;
