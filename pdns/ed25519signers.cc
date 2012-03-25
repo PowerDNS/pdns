@@ -55,7 +55,7 @@ DNSCryptoKeyEngine::storvector_t ED25519DNSCryptoKeyEngine::convertToISCVector()
   /*Algorithm: 13 (ED25519P256SHA256)
     PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   storvector_t storvector;
-  string algorithm = "15 (ED25519)";
+  string algorithm = "250 (ED25519)";
   
   storvector.push_back(make_pair("Algorithm", algorithm));
 
@@ -67,21 +67,21 @@ DNSCryptoKeyEngine::storvector_t ED25519DNSCryptoKeyEngine::convertToISCVector()
 void ED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
 {
   /*Private-key-format: v1.2
-   Algorithm: 15 (ED25519)
+   Algorithm: 250 (ED25519)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
      
   d_algorithm = drc.d_algorithm = atoi(stormap["algorithm"].c_str());
   string privateKey = stormap["privatekey"];
 
   memcpy(d_seckey, privateKey.c_str(), SECRETKEYBYTES);
-
+  memcpy(d_pubkey, privateKey.c_str() + PUBLICKEYBYTES, PUBLICKEYBYTES);
+  // need to set d_pubkey too..
 }
 
+// used for the cache, nothing external
 std::string ED25519DNSCryptoKeyEngine::getPubKeyHash() const
 {
-  throw runtime_error("getpubkeyhash not implemented");
-  // not quite sure what we should do here.
-  return "";
+  return string((const char*)d_pubkey, PUBLICKEYBYTES);
 }
 
 std::string ED25519DNSCryptoKeyEngine::getPublicKeyString() const
@@ -131,7 +131,7 @@ struct LoaderED25519Struct
 {
   LoaderED25519Struct()
   {
-    DNSCryptoKeyEngine::report(10014, &ED25519DNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(250, &ED25519DNSCryptoKeyEngine::maker);
   }
 } loadered25519;
 }

@@ -649,6 +649,8 @@ try
         algorithm=13;
       else if(pdns_iequals(cmds[n], "ecdsa384"))
         algorithm=14;
+      else if(pdns_iequals(cmds[n], "ed25519"))
+        algorithm=250;        
       else if(atoi(cmds[n].c_str()))
         bits = atoi(cmds[n].c_str());
       else { 
