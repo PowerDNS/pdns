@@ -124,7 +124,8 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
         // Decode a character
        if(strInput.at(iInNum)=='=')
          pad++;
-
+        while(isspace(strInput.at(iInNum)))
+          iInNum++;
         cChar = B64Decode1(strInput.at(iInNum++));
 
       } // if
