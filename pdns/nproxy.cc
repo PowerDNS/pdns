@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <grp.h>
 #include "dnsrecords.hh"
 #include "mplexer.hh"
 #include "statbag.hh"
