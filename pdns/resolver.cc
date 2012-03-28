@@ -439,12 +439,14 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
   vector<uint32_t> removeItems;
   for(Resolver::res_t::const_iterator i= res.begin(); i!=res.end(); ++i) {
     if(i->qtype.getCode()==QType::SOA) {
-      removeItems.push_back(i-res.begin());
       d_soacount++;
+      if (d_soacount>1)
+        removeItems.push_back(i-res.begin());
     }
   }
 
-  if (!removeItems.empty() && d_soacount > 1) {
+
+  if (!removeItems.empty()) {
     BOOST_FOREACH(uint32_t i, removeItems) {
       res.erase(res.begin()+i);
     }
