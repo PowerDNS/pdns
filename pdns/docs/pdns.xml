@@ -528,7 +528,7 @@
 	  </listitem>
 	  <listitem>
 	  	<para>
-	  	  We would not always drop supplemental groups correctly. Reported by David Black.
+	  	  We would not always drop supplemental groups correctly. Reported by David Black of Atlassian.
 	  	</para>
 	  </listitem>
 	  <listitem>
