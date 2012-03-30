@@ -79,6 +79,7 @@ private:
   string d_qname;
   SSql *d_db;
   bool d_lookupSuccess;
+  time_t d_silentuntil;
   SSql::result_t d_result;
 
   string d_wildCardNoIDQuery;
