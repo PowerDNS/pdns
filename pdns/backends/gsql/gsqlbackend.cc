@@ -156,21 +156,21 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   di.notified_serial = atol(d_result[0][4].c_str());
   string type=d_result[0][5];
   di.backend=this;
-
-  di.serial = 0;
-  try {
-    SOAData sd;
-    if(!getSOA(domain,sd))
-      L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
-    else
-      di.serial = sd.serial;
-  }
+  
+    di.serial=0;
+    try {
+      SOAData sd;
+      if(!getSOA(domain,sd)) 
+        L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      else
+        di.serial=sd.serial;
+    }
   catch(PDNSException &ae){
-    L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
-  }
-
+      L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+    }
+    
   di.kind = DomainInfo::stringToKind(type);
-
+  
   return true;
 }
 
@@ -771,8 +771,8 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
       BOOST_FOREACH(const std::string & value, meta) {
          snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
             sqlEscape(kind).c_str(), sqlEscape(value).c_str(), sqlEscape(toLower(name)).c_str());
-         d_db->doCommand(output);
-      }
+      d_db->doCommand(output);
+  }
     }
   }
   catch (SSqlException &e) {
@@ -833,9 +833,11 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
 
   try {
     d_db->doQuery(output);
+    d_lookupSuccess=true;
   }
   catch(SSqlException &e) {
-    throw PDNSException(e.txtReason());
+    DLOG(L<<"would have thrown "<<e.txtReason()<<endl);
+    d_lookupSuccess=false;
   }
 
   d_qname=qname;
@@ -1007,7 +1009,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 {
   // L << "GSQLBackend get() was called for "<<qtype.getName() << " record: ";
   SSql::row_t row;
-  if(d_db->getRow(row)) {
+  if(d_lookupSuccess && d_db->getRow(row)) {
     r.content=row[0];
     if (row[1].empty())
         r.ttl = ::arg().asNum( "default-ttl" );
