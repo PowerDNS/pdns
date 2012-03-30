@@ -14,7 +14,7 @@ bool SMySQL::s_dolog;
 pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
-               const string &password, const string &group, bool setIsolation)
+               const string &password, const string &group, unsigned int timeout, bool setIsolation)
 {
   int retry=1;
 
@@ -27,8 +27,11 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
     mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
 #endif
 
+    cerr<<"about to set mysql timeouts"<<endl;
+    cerr<<"MYSQL_VERSION_ID: "<<MYSQL_VERSION_ID<<endl;
 #if MYSQL_VERSION_ID >= 50100
-    unsigned int timeout = 10;
+    cerr<<"setting mysql timeouts!"<<endl;
+    mysql_options(&d_db, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
     mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
     mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
 #endif
