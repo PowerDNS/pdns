@@ -207,6 +207,8 @@ public:
   static unsigned int s_tcpoutqueries;
   static unsigned int s_nodelegated;
   static unsigned int s_unreachables;
+  static bool s_doAAAAAdditionalProcessing;
+  static bool s_doAdditionalProcessing;
   static bool s_doIPv6;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
