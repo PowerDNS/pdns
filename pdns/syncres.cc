@@ -62,6 +62,8 @@ bool SyncRes::s_log;
 
 bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
+bool SyncRes::s_doAdditionalProcessing;
+bool SyncRes::s_doAAAAAdditionalProcessing;
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
         					 d_now(now),
@@ -120,7 +122,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
   
   set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret, 0, beenthere);
-  if(!res)
+  if(!res && s_doAdditionalProcessing)
     addCruft(qname, ret);
   return res;
 }
@@ -1148,9 +1150,6 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
 
   LOG<<d_prefix<<qname<<": Starting additional processing"<<endl;
   vector<DNSResourceRecord> addit;
-  static optional<bool> l_doIPv6AP;
-  if(!l_doIPv6AP)
-    l_doIPv6AP=::arg().mustDo("aaaa-additional-processing");
 
   for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
     if( (k->d_place==DNSResourceRecord::ANSWER && (k->qtype==QType(QType::MX) || k->qtype==QType(QType::SRV)))  || 
@@ -1168,7 +1167,7 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
         host=string(k->content.c_str() + fields[3].first, fields[3].second - fields[3].first);
       else 
         continue;
-      doResolve(host, *l_doIPv6AP ? QType(QType::ADDR) : QType(QType::A), addit, 1, beenthere);
+      doResolve(host, s_doAAAAAdditionalProcessing ? QType(QType::ADDR) : QType(QType::A), addit, 1, beenthere);
     }
   
   if(!addit.empty()) {

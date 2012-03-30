@@ -1696,6 +1696,9 @@ int serviceMain(int argc, char*argv[])
     L<<Logger::Error<<"Assigning local query addresses: "<<e.what();
     exit(99);
   }
+
+  SyncRes::s_doAAAAAdditionalProcessing = ::arg().mustDo("aaaa-additional-processing");
+  SyncRes::s_doAdditionalProcessing = ::arg().mustDo("additional-processing") | SyncRes::s_doAAAAAdditionalProcessing;
   
   SyncRes::s_noEDNSPing = ::arg().mustDo("disable-edns-ping");
   SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
@@ -1945,6 +1948,7 @@ int main(int argc, char **argv)
     ::arg().set("soa-minimum-ttl","Don't change")="0";
     ::arg().set("soa-serial-offset","Don't change")="0";
     ::arg().set("no-shuffle","Don't change")="off";
+    ::arg().set("additional-processing","turn on to do additional processing")="off";
     ::arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     ::arg().set("local-port","port to listen on")="53";
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
@@ -2005,6 +2009,7 @@ int main(int argc, char **argv)
     ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-file", "File with (+)domain=ip pairs for forwarding")="";
     ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts")="off";
+    // ::arg().set("export-etc-hosts-search-suffix", "Also serve up the contents of /etc/hosts with this suffix")="";
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
