@@ -389,6 +389,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       L<<Logger::Warning<<"Could not open /etc/hosts for reading"<<endl;
     }
     else {
+      string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
       string::size_type pos;
       while(getline(ifs,line)) {
 	pos=line.find('#');
@@ -402,8 +403,15 @@ SyncRes::domainmap_t* parseAuthAndForwards()
 	if(parts[0].find(':')!=string::npos)
 	  continue;
 	
-	for(unsigned int n=1; n < parts.size(); ++n)
+	for(unsigned int n=1; n < parts.size(); ++n) {
 	  makeNameToIPZone(newMap, parts[n], parts[0]);
+	  if(!searchSuffix.empty()) {
+  	    string canonic=toCanonic(searchSuffix, parts[n]);
+  	    if(canonic != parts[n]) {
+	      makeNameToIPZone(newMap, canonic, parts[0]);
+            }
+          }
+        }
 	makeIPToNamesZone(newMap, parts);
       }
     }
