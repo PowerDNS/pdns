@@ -404,8 +404,9 @@ SyncRes::domainmap_t* parseAuthAndForwards()
 	  continue;
 	
 	for(unsigned int n=1; n < parts.size(); ++n) {
-	  makeNameToIPZone(newMap, parts[n], parts[0]);
-	  if(!searchSuffix.empty()) {
+	  if(searchSuffix.empty() || parts[n].find('.') != string::npos)
+  	    makeNameToIPZone(newMap, parts[n], parts[0]);
+	  else {
   	    string canonic=toCanonic(searchSuffix, parts[n]);
   	    if(canonic != parts[n]) {
 	      makeNameToIPZone(newMap, canonic, parts[0]);

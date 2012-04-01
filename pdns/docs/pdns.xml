@@ -11779,6 +11779,22 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>export-etc-hosts-suffix</term>
+	    <listitem>
+	      <para>
+		If set, all hostnames in the export-etc-hosts file are
+		loaded in canonical form, based on this suffix, unless the
+		name contain a '.', in which case the name is unchanged. 
+		So an entry called 'pc' with
+		export-etc-hosts-suffix='home.com' will lead to the
+		generation of 'pc.home.com' within the recursor.  An entry
+		called 'server1.home' will be stored as 'server1.home',
+		regardless of the export-etc-hosts setting. Available
+		in since 3.4.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
 	  <varlistentry>
 	    <term>fork</term>
