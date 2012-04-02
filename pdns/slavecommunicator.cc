@@ -162,6 +162,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           continue;
           
         if(i->qtype.getCode() == QType::SOA) {
+          if(soa_serial != 0)
+            continue; //skip the last SOA
           SOAData sd;
           fillSOAData(i->content,sd);
           soa_serial = sd.serial;

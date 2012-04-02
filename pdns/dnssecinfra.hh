@@ -128,7 +128,7 @@ class DNSPacket;
 void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::set<string, CIStringCompare>& authMap, vector<DNSResourceRecord>& rrs);
 
 string calculateMD5HMAC(const std::string& key_, const std::string& text);
-string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly);
+string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0);
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
 
 #endif
