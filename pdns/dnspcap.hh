@@ -10,7 +10,12 @@
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#if defined(__NetBSD__)
+#include <net/if.h>
+#include <net/if_ether.h>
+#else
 #include <net/ethernet.h>
+#endif
 #include <vector>
 #include <boost/format.hpp>
 #include "namespaces.hh"
