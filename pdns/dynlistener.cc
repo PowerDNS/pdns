@@ -357,7 +357,7 @@ string DynListener::getHelp()
   sort(funcs.begin(), funcs.end());
 
   // hack: this removes the duplicate quit method
-  unique(funcs.begin(), funcs.end());
+  funcs.resize(unique(funcs.begin(), funcs.end()) - funcs.begin());
   return boost::join(funcs, "\n");
 }
 
