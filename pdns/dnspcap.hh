@@ -13,6 +13,8 @@
 #if defined(__NetBSD__)
 #include <net/if.h>
 #include <net/if_ether.h>
+#elif defined(sun)
+#include <sys/ethernet.h>
 #else
 #include <net/ethernet.h>
 #endif

@@ -147,7 +147,7 @@ inline time_t str2tstamp( const string& str )
 
         if( tmp != NULL && *tmp == 0 )
         {
-        	return timegm( &tm );
+        	return Utility::timegm( &tm );
         }
 
         return 0;
