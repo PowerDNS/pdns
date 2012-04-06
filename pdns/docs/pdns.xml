@@ -10221,7 +10221,7 @@ local0.err                        /var/log/pdns.err
     </para>
     <para>
       Another very important setting <command>cache-ttl</command>. PDNS caches entire packets it sends out so as to save the
-      time to query backends to assemble all data. The default setting of 10 seconds may be low for high traffic sites, a value of
+      time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of
       60 seconds rarely leads to problems.
     </para>
     <para>
@@ -13437,7 +13437,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>slave-cycle-interval=60</term>
 	    <listitem><para>
-	      Schedule slave up-to-date checks of domains whose status is unknown every .. seconds. See <xref linkend="fancy-records"/>.
+	      Schedule slave up-to-date checks of domains whose status is unknown every .. seconds.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>smtpredirector=...</term>
 	    <listitem><para>
@@ -17333,10 +17333,10 @@ VALUES (:zoneid, :ip)
 	{
 	public:
 
-	virtual bool lookup(const QType &amp;qtype, const string &amp;qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
-	virtual bool list(int domain_id)=0; 
+	virtual void lookup(const QType &amp;qtype, const string &amp;qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0;
+	virtual bool list(const string &amp;target, int domain_id)=0;
 	virtual bool get(DNSResourceRecord &amp;r)=0;
-	virtual bool getSOA(const string &amp;name, SOAData &amp;soadata);
+	virtual bool getSOA(const string &amp;name, SOAData &amp;soadata, DNSPacket *p=0);
 	};
 	</programlisting>
       
@@ -17406,7 +17406,8 @@ VALUES (:zoneid, :ip)
 class RandomBackend : public DNSBackend
 {
 public:
-  bool list(int id) {
+  bool list(const string &amp;target, int id)
+  {
     return false; // we don't support AXFR
   }
     
@@ -17506,16 +17507,19 @@ static RandomLoader randomloader;
 		<entry>string content</entry><entry>ASCII representation of right hand side</entry>
 	      </row>
 	      <row>
-		<entry>u_int16_t priority</entry><entry>priority of an MX record.</entry>
+		<entry>uint16_t priority</entry><entry>priority of an MX record.</entry>
 	      </row>
 	      <row>
-		<entry>u_int32_t ttl</entry><entry>Time To Live of this record</entry>
+		<entry>uint32_t ttl</entry><entry>Time To Live of this record</entry>
 	      </row>
 	      <row>
 		<entry>int domain_id</entry><entry>ID of the domain this record belongs to</entry>
 	      </row>
 	      <row>
 		<entry>time_t last_modified</entry><entry>If unzero, last time_t this record was changed</entry>
+	      </row>
+	      <row>
+          	<entry>bool auth</entry><entry>Used for DNSSEC operations. See <xref linkend="powerdnssec-auth" /> and more specifically <xref linkend="dnssec-migration" />. It is also useful to check out the <function>rectifyZone()</function> in pdnssec.cc</entry>
 	      </row>
 	    </tbody>
 	  </tgroup>
@@ -17591,7 +17595,7 @@ static RandomLoader randomloader;
 		  that the backend considers itself broken - not that no answers are available for a question.
 		</para>
 		<para>
-		  It is legal to return here, and have the first call to <function>get()</function> return false. This is interpreted as 'no data'
+		  It is legal to return here, and have the first call to <function>get()</function> return false. This is interpreted as 'no data'.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -17823,16 +17827,16 @@ static RandomLoader randomloader;
 	  <tgroup cols="2">
 	    <tbody>
 	      <row>
-		<entry>int id</entry><entry>ID of this zone within this backend</entry>
+		<entry>uint32_t id</entry><entry>ID of this zone within this backend</entry>
 	      </row>
 	      <row>
 		<entry>string master</entry><entry>IP address of the master of this domain, if any</entry>
 	      </row>
 	      <row>
-		<entry>u_int32_t serial</entry><entry>Serial number of this zone</entry>
+		<entry>uint32_t serial</entry><entry>Serial number of this zone</entry>
 	      </row>
 	      <row>
-		<entry>u_int32_t notified_serial</entry><entry>Last serial number of this zone that slaves have seen</entry>
+		<entry>uint32_t notified_serial</entry><entry>Last serial number of this zone that slaves have seen</entry>
 	      </row>
 	      <row>
 		<entry>time_t last_check</entry><entry>Last time this zone was checked over at the master for changes</entry>
@@ -17993,7 +17997,7 @@ static RandomLoader randomloader;
 	  public:
            /* ... */
 	   virtual void getUpdatedMasters(vector&lt;DomainInfo&gt;* domains);
-	   virtual void setNotified(int id, u_int32_t serial);
+	   virtual void setNotified(uint32_t id, uint32_t serial);
            /* ... */
 	 }
 	</programlisting>
@@ -18014,7 +18018,7 @@ static RandomLoader randomloader;
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>bool setNotified(int domain_id, u_int32_t serial)</term>
+	    <term>bool setNotified(uint32_t domain_id, uint32_t serial)</term>
 	    <listitem>
 	      <para>
                 Indicate that notifications have been queued for this domain and that it need not be considered 'updated' anymore
