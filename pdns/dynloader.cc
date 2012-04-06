@@ -53,10 +53,7 @@ int main(int argc, char **argv)
   string s_programname="pdns";
   string localdir;
 
-  static char pietje[128]="!@@SYSCONFDIR@@:";
-  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=
-    strcmp(pietje+1,"@@SYSCONFDIR@@:") ? pietje+strlen("@@SYSCONFDIR@@:")+1 : SYSCONFDIR;
-  
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
   ::arg().set("remote-address","Remote address to query");
   ::arg().set("remote-port","Remote port to query")="53000";

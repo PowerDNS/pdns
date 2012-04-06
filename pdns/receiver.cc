@@ -333,10 +333,7 @@ static int guardian(int argc, char **argv)
 
 static void UNIX_declareArguments()
 {
-  static char pietje[128]="!@@SYSCONFDIR@@:";
-  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=
-    strcmp(pietje+1,"@@SYSCONFDIR@@:") ? pietje+strlen("@@SYSCONFDIR@@:")+1 : SYSCONFDIR;
-  
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
