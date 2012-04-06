@@ -153,7 +153,7 @@ dnsbulktest_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 dnsscan_SOURCES=dnsscan.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh \
-	unix_utility.cc utility.hh		
+	unix_utility.cc utility.hh sillyrecords.cc nsecrecords.cc base32.cc
 
 dnslog_SOURCES=dnslog.cc misc.cc  qtype.cc anadns.hh \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc dnsparser.hh  \
@@ -202,7 +202,7 @@ dnsgram_SOURCES=dnsgram.cc misc.cc unix_utility.cc qtype.cc \
 dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
 	base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
-	utility.hh dnsparser.hh sillyrecords.cc
+	utility.hh dnsparser.hh sillyrecords.cc nsecrecords.cc base32.cc
 
 rec_control_SOURCES=rec_channel.cc rec_channel.hh rec_control.cc arguments.cc arguments.hh misc.cc qtype.cc \
 	unix_utility.cc logger.cc statbag.cc
