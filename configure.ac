@@ -309,6 +309,9 @@ do
 				[AC_DEFINE([HAVE_LIBOPENDBX], 1, [Have -lopendbx]) LIBOPENDBX="opendbx"]
 			)
 		;;
+		tinydns)
+			needcdb=yes
+		;;
 	esac
 done
 
@@ -507,7 +510,15 @@ then
         AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
 fi
 
+if test "$needcdb"
+then
+	PKG_CHECK_MODULES(CDB, libcdb, HAVE_CDB=yes, AC_MSG_ERROR([+Could not find libcdb/tinycdb]))
+        AC_SUBST(CDB_LIBS)
+        AC_SUBST(CDB_CFLAGS)
+fi
+
 AM_CONDITIONAL(SQLITE3, test "$needsqlite3")
+
 
 if test "$needunixodbc"
 then
@@ -610,4 +621,4 @@ modules/odbcbackend/Makefile modules/mongodbbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
-modules/luabackend/Makefile)
+modules/luabackend/Makefile modules/tinydnsbackend/Makefile)

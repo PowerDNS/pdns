@@ -17049,6 +17049,115 @@ VALUES (:zoneid, :ip)
 	<filename>modules/luabackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
       </para>
     </sect1>
+    <sect1 id="tinydnsbackend"><title>TinyDNS Backend</title>
+      <para>
+        <warning>
+	        <para>
+            The TinyDNS Backend is available since PowerDNS Authoritative Server 3.1. This backend is marked as experimental!
+	        </para>
+	      </warning>
+      </para>
+    	<table>
+	      <title>TinyDNS backend capabilities</title>
+     	  <tgroup cols="2">
+          <tbody>
+            <row><entry>Native</entry><entry>Yes</entry></row>
+            <row><entry>Master</entry><entry>Yes</entry></row>
+     	      <row><entry>Slave</entry><entry>No</entry></row>
+     	      <row><entry>Superslave</entry><entry>No</entry></row>
+     	      <row><entry>Autoserial</entry><entry>No</entry></row>
+     	      <row><entry>DNSSEC</entry><entry>No</entry></row>
+            <row><entry>Multiple instances</entry><entry>Yes</entry></row>
+          </tbody>
+     	  </tgroup>
+     	</table>
+      <para>
+The TinyDNS backend allows you to use <ulink url="http://cr.yp.to/djbdns.html">djbdns's</ulink> data.cdb file format as
+the storage of your DNS records. The data.cdb file is created using 
+<ulink url="http://cr.yp.to/djbdns/tinydns-data.html">tinydns-data</ulink>. The backend is designed to be able to use 
+the data.cdb files without any changes.
+      </para>
+     <sect2 id="tinydnsbackend-parameters"><title>Configuration Parameters</title>
+        <para>
+          These are the configuration file parameters that are available for the TinyDNS backend. It is recommended to set the tinydns-dbfile.
+          <variablelist>
+            <varlistentry>
+              <term>tinydns-dbfile</term>
+              <listitem>
+                <para>Specifies the name of the data file to use. The default is 'data.cdb'.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>tinydns-tai-adjust</term>
+              <listitem>
+                <para>
+This adjusts the <ulink url="http://www.tai64.com/">TAI</ulink> value if timestamps are used.
+These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The current default is 10, 
+<ulink url="http://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat">but as of june 30th 2012</ulink> should be 11.
+                </para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>tinydns-notify-on-startup</term>
+              <listitem>
+                <para>Tell the TinyDNSBackend to notify all the slave nameservers on startup. This might cause broadcast storms. Default is no.</para>
+              </listitem>
+            </varlistentry>
+             <varlistentry>
+              <term>tinydns-locations</term>
+              <listitem>
+                <para>Enable or Disable location support in the backend. Changing the value to 'no' will make the backend ignore the locations. This then returns all records. When the setting is changed to 'no' an AXFR will also return all the records. With the setting on 'yes' an AXFR will only return records without a location.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+      </sect2>
+      <sect2 id="tinydnsbackend-features"><title>Location and Timestamp support</title>
+        <para>
+Both timestamp and location are supported in the backend. Locations support can be changed using the <command>tinydns-locations</command> setting.
+Timestamp and location only work as expected when <command>cache-ttl</command> and <command>query-cache-ttl</command> are set to 0 
+(which disables these caches). Timestamp can operate with <command>cache-ttl</command> if cache is needed, but the TTL returned for the 
+timestamped racked will not be totally correct. The record will expire once the cache is expired and the backend is queried again. 
+Please note that <command>cache-ttl</command> is a performance related setting. See <xref linkend="performance-settings" />.
+Location support only exists for IPv4!
+        </para>
+      </sect2>
+
+      <sect2 id="tinydnsbackend-master-mode"><title>Master mode</title>
+        <para>
+The TinyDNSBackend supports master mode. This allows it to notify slave nameservers of updates to a zone.
+You simply need to rewrite the data.cdb file with an updated/increased serial and PowerDNS will notify the slave nameservers 
+of that domain. The <command>tinydns-notify-on-startup</command> configuration setting tells the backend if it should 
+notify all the slave nameservers just after startup.
+        </para>
+        <para>
+The CDB datafile does not allow PowerDNS to easily query for newly added domains or updated serial numbers.
+The CDB datafile requires us to do a full scan of all the records. When running with verbose logging, this could 
+lead to a lot of output. The scanning of the CDB file may also take a while on systems with large files. The scan happens 
+at an interval set by the <command>slave-cycle-interval</command>. It might be useful to raise
+this value to limit the amount of scans on the CDB file.
+        </para>
+        <para>
+The TinyDNSBackend also keeps a list of all the zones. This is needed to detect an updated serial and to give
+every zone a unique id. The list is updated when a zone is added, but not when a zone is removed. This leads to some
+memory loss.
+        </para>
+      </sect2>
+      <sect2 id="tinydnsbackend-implementation-notes"><title>Useful implementation notes</title>
+        <para>
+This backend might solve some issues you have with the current tinydns noted on 
+<ulink url="http://homepage.ntlworld.com/jonathan.deboynepollard/author.html">Jonathan de Boyne Pollard's</ulink> 
+<ulink url="http://homepage.ntlworld.com/jonathan.deboynepollard/FGA/djbdns-problems.html">djbdns known problems page</ulink>.
+        </para>
+        <para>
+The data.cdb file format support all types of records. They are sometimes difficult to create because you need to specify the
+actual content of the rdata. <ulink url="http://tinydns.org/">Tinydns.org</ulink> provides a number of links to tools/cgi-scripts
+that allow you to create records. <ulink url="http://anders.com/">Anders Brownworth</ulink> also privides a number of useful 
+record building scripts on his <ulink url="http://anders.com/projects/sysadmin/djbdnsRecordBuilder/">djbdnsRecordBuilder</ulink>.
+        </para>
+        <para>Compiling the TinyDNS backend requires you to have <ulink url="http://www.corpit.ru/mjt/tinycdb.html">tinycdb</ulink> version 0.77.</para>
+      </sect2>
+    </sect1>
   </appendix>
 <appendix id="pdns-internals"><title>PDNS internals</title>
     <para>

@@ -1,0 +1,6 @@
+Check if the data.cdb file used for the tinydnsbackend is up-to-date with the 
+zone-files of the regression tests. If this test fails, re-generate the 
+data and data.cdb files in modules/tinydnsbackend/ using the generate-data.sh file.
+After generating, you must check if all the regression-tests still work. If that is the
+case, run this test again and copy real_results to expected_results as generating the 
+data.cdb file has caused this test to fail.
