@@ -63,7 +63,7 @@ static int wsa_init_done = 0;
 #include <sys/endian.h>
 #elif defined(__APPLE__)
 #include <machine/endian.h>
-#elif defined(sun)
+#elif defined (__SVR4) && defined (__sun)
 #include <sys/isa_defs.h>
 #else
 #include <endian.h>
