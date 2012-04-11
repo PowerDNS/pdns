@@ -35,7 +35,7 @@ fi
 
 case $context in
 		bind)
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
 				--fancy-records --query-logging --send-root-referral --loglevel=9    \
 				--cache-ttl=0 --no-config &
@@ -53,7 +53,7 @@ case $context in
             else
                 extracontexts="bind dnssec"
             fi
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf       \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--query-logging --send-root-referral --loglevel=9    \
@@ -74,7 +74,7 @@ case $context in
 			tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 				"$GMYSQLDB"
 
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--fancy-records --query-logging --send-root-referral --loglevel=9 \
 				--cache-ttl=0 --no-config \
@@ -120,7 +120,7 @@ __EOF__
 				fi
 			done
 
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql --gmysql-dnssec \
 				--fancy-records --query-logging --send-root-referral --loglevel=9 \
 				--cache-ttl=0 --no-config \
@@ -163,7 +163,7 @@ __EOF__
 				fi
 			done
 
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
 				--fancy-records --query-logging --send-root-referral --loglevel=9 \
 				--cache-ttl=0 --no-config \
@@ -192,7 +192,7 @@ launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
 __EOF__
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql \
 				--fancy-records --query-logging --send-root-referral --loglevel=9 \
 				--cache-ttl=0 --no-config \
@@ -213,7 +213,7 @@ launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
 __EOF__
 
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 \
 				--fancy-records --query-logging --send-root-referral --loglevel=9 \
 				--cache-ttl=0 --no-config \
@@ -243,7 +243,7 @@ __EOF__
 				fi
 			done
 
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 				--fancy-records --query-logging --send-root-referral --loglevel=9 \
 				--cache-ttl=0 --no-config \
@@ -256,7 +256,7 @@ __EOF__
 			fi
 			;;
 		tinydns)
-			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./ \
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=tinydns \
 				--query-logging --loglevel=9 --cache-ttl=0 --no-config \
 				--send-root-referral \
