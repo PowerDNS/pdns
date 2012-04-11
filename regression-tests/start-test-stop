@@ -266,7 +266,7 @@ __EOF__
 		*)
 			echo unknown context $context
 			: > passed_tests
-			echo 'unknown-context' > failed_tests
+			echo 'unknown-context-'"$context" > failed_tests
 			./toxml $context
 			exit 1
 esac
