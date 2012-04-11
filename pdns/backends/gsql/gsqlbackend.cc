@@ -762,29 +762,17 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 {
-  char *output;
+  string output;
   if(d_dnssecQueries) {
-    asprintf(&output, d_InsertRecordQuery.c_str(),
-      sqlEscape(r.content).c_str(),
-      r.ttl, r.priority,
-      sqlEscape(r.qtype.getName()).c_str(),
-      r.domain_id, toLower(sqlEscape(r.qname)).c_str(), (int)r.auth); 
+    output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % (int)r.auth).str();
+  } else {
+    output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname))).str();
   }
-  else {
-    asprintf(&output, d_InsertRecordQuery.c_str(),
-      sqlEscape(r.content).c_str(),
-      r.ttl, r.priority,
-      sqlEscape(r.qtype.getName()).c_str(),
-      r.domain_id, toLower(sqlEscape(r.qname)).c_str()); 
-  }
-     
      
   try {
-    d_db->doCommand(output);
-    free(output);
+    d_db->doCommand(output.c_str());
   }
   catch (SSqlException &e) {
-    free(output);
     throw AhuException(e.txtReason());
   }
   return true; // XXX FIXME this API should not return 'true' I think -ahu 
