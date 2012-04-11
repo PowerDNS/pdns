@@ -80,7 +80,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   try {
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
     NSEC3PARAMRecordContent ns3pr, hadNs3pr;
-    bool narrow, hadNarrow;
+    bool narrow, hadNarrow=false;
     DNSSECKeeper dk; // has its own ueberbackend
     bool dnssecZone = false;
     bool haveNSEC3=false;
