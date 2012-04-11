@@ -404,6 +404,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
 {
   DNSResourceRecord rr;
   SOAData sd;
+  sd.db=0;
 
   if(p->qtype.getCode()!=QType::AXFR) { // this packet needs additional processing
     vector<DNSResourceRecord *> arrs=r->getAPRecords();
