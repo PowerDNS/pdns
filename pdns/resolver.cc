@@ -308,7 +308,7 @@ void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, const string& tsigkeyname, const string& tsigalgorithm, 
   const string& tsigsecret)
-: d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_nonSignedMessages(0), d_tsigPos(0)
+: d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_tsigPos(0), d_nonSignedMessages(0)
 {
   ComboAddress local;
   if(remote.sin4.sin_family == AF_INET)

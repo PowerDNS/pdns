@@ -352,7 +352,7 @@ void UeberBackend::addNegCache(const Question &q)
 void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &rrs)
 {
   extern PacketCache PC;
-  static int queryttl=::arg().asNum("query-cache-ttl");
+  static unsigned int queryttl=::arg().asNum("query-cache-ttl");
   if(!queryttl)
     return;
   

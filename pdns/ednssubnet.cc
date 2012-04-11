@@ -40,7 +40,7 @@ bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso)
   esow.family = ntohs(esow.family);
   //cerr<<"Family when parsing from string: "<<esow.family<<endl;
   ComboAddress address;
-  int octetsin = ((esow.sourceMask - 1)>> 3)+1;
+  unsigned int octetsin = ((esow.sourceMask - 1)>> 3)+1;
   //cerr<<"octetsin:"<<octetsin<<endl;
   if(esow.family == 1) {
     if(options.size() != 4+octetsin)
