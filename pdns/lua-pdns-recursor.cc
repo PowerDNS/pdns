@@ -1,6 +1,9 @@
 #include "lua-pdns-recursor.hh"
-#include "syncres.hh"
+// #include "syncres.hh"
 #include <boost/foreach.hpp>
+
+// to avoid including all of syncres.hh
+int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
 
 #if !defined(PDNS_ENABLE_LUA)
 
