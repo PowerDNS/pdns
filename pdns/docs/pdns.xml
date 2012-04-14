@@ -214,7 +214,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				pdns_control help would report 'version' twice, reported by ..., fix in c2549.
+				pdns_control help would report 'version' twice, reported by Gerwin, fix in c2549.
 			</para>
 		</listitem>
 	</itemizedlist>	
