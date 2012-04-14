@@ -66,6 +66,7 @@ QType::QType()
       insert("DNSKEY", 48);
       insert("NSEC3", 50);
       insert("NSEC3PARAM", 51);
+      insert("TLSA",52);
       insert("SPF",99);
       insert("IXFR",251);
       insert("AXFR",252);
@@ -75,7 +76,6 @@ QType::QType()
       insert("CURL",258);
       insert("ADDR",259);
       insert("DLV",32769);
-      insert("TLSA",65468);
     }
 }
 

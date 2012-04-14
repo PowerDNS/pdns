@@ -223,7 +223,7 @@ boilerplate_conv(CERT, 37,
         	 conv.xfrBlob(d_certificate);
         	 )
 		 
-boilerplate_conv(TLSA, 65468, 
+boilerplate_conv(TLSA, 52, 
         	 conv.xfr8BitInt(d_certusage); 
         	 conv.xfr8BitInt(d_selector); 
         	 conv.xfr8BitInt(d_matchtype); 
