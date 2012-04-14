@@ -101,37 +101,38 @@
 	correct and stable operation, as well as notes on performance and memory use.</para>
       </warning>
       <note><para>RC1 released on the 23th of March 2012</para>
+      <para>RC2 released on the 14th of April 2012</para>
       </note>
       <note><para>Downloads:
       	<itemizedlist>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/pdns-3.1-rc1.tar.gz">pdns-3.1-rc1.tar.gz</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/pdns-3.1-rc2.tar.gz">pdns-3.1-rc2.tar.gz</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc1-1.i386.rpm">pdns-static-3.1rc1-1.i386.rpm</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc2-1.i386.rpm">pdns-static-3.1rc2-1.i386.rpm</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc1-1.x86_64.rpm">pdns-static-3.1rc1-1.x86_64.rpm</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc2-1.x86_64.rpm">pdns-static-3.1rc2-1.x86_64.rpm</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc1-1_amd64.deb">pdns-static_3.1-rc1-1_amd64.deb</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc2-1_amd64.deb">pdns-static_3.1-rc2-1_amd64.deb</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc1-1_i386.deb">pdns-static_3.1-rc1-1_i386.deb</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc2-1_i386.deb">pdns-static_3.1-rc2-1_i386.deb</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc1/">CentOS/RHEL 5/6 RPMs</ulink> kindly provided by Kees Monshouwer.
+      				<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc2/">CentOS/RHEL 5/6 RPMs</ulink> kindly provided by Kees Monshouwer.
       			</para>
       		</listitem>
       	</itemizedlist>
@@ -163,8 +164,62 @@
 	with full DNSSEC tests!
       </para>
       <para>
-      You can find tar.gz and static packages at <ulink url="http://powerdnssec.org/downloads/">powerdnssec.org/downloads/</ulink>.
-  </para>
+	Changes between RC1 and RC2:
+	<itemizedlist>
+		<listitem>
+			<para>
+				We imported the TinyDNS backend by Ruben d'Arco. Code mostly in c2559. See <xref linkend="tinydnsbackend" />.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Overriding C(XX)FLAGS is easier now. Problem pointed out by Jose Arthur Benetasso Villanova and others, fix suggested by Sten Spans. Patch in c2533.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				TSIG fixes: skip embedded spaces in keys (c2536), compute signatures correctly (by Ruben d'Arco in c2547), 
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				nproxy, dnsscan and dnsdemog did not compile at all. Fixes in c2538, c2554.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				We now allow unescaped tabs in TXT records. Fix in c2539.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				SOA records no longer disappear during incoming transfers. Fix by Ruben d'Arco in c2540.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				PowerDNS compiles on OS X (and other platforms that support our auth server but not the recursor) again, fix in c2566.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Cleanups related to warnings from gcc and valgrind in c2561, c2562, c2565.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Solaris compatibility fixes by Ruben d'Arco, Juraj Lutter and others in c2548, c2552, c2553, c2560.
+				Fixes for *BSD in c2546.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdns_control help would report 'version' twice, reported by ..., fix in c2549.
+			</para>
+		</listitem>
+	</itemizedlist>	
+	</para>
+
       <para>
 	DNSSEC related fixes:
 	<itemizedlist>
