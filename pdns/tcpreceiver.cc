@@ -362,7 +362,7 @@ void *TCPNameserver::doConnection(void *data)
 }
 
 
-
+// call this method with s_plock held!
 bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 {
   if(::arg().mustDo("disable-axfr"))
@@ -371,7 +371,6 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
   if(q->d_havetsig) { // if you have one, it must be good
     TSIGRecordContent trc;
     string keyname, secret;
-    Lock l(&s_plock);
     if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc))
       return false;
     
@@ -504,7 +503,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
   
-  if(!canDoAXFR(q) || noAXFRBecauseOfNSEC3Narrow) {
+  if(noAXFRBecauseOfNSEC3Narrow) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
     outpacket->setRcode(RCode::Refused); 
     // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
@@ -524,7 +523,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       s_P=new PacketHandler;
     }
 
-    if(!s_P->getBackend()->getSOA(target, sd)) {
+    if(!s_P->getBackend()->getSOA(target, sd) || !canDoAXFR(q)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
