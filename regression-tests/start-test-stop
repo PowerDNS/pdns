@@ -220,7 +220,24 @@ __EOF__
 				--gsqlite3-database=pdns.sqlite3 &
 			skipreasons=nodnssec
 
-			;;						
+			;;
+		opendbx-sqlite3)
+			rm -f pdns-opendbx.sqlite3
+			sqlite3 pdns-opendbx.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
+			tosql gsqlite | sqlite3 pdns-opendbx.sqlite3
+			sqlite3 pdns-opendbx.sqlite3 "ALTER TABLE domains ADD status CHARACTER(1) NOT NULL DEFAULT 'A'; \
+				ALTER TABLE domains ADD auto_serial INTEGER DEFAULT 0;"
+			echo ANALYZE\; | sqlite3 pdns-opendbx.sqlite3
+
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+				--no-shuffle --launch=opendbx \
+				--fancy-records --query-logging --send-root-referral --loglevel=9 \
+				--cache-ttl=0 --no-config \
+				--opendbx-backend=sqlite3 --opendbx-host-read=./ --opendbx-host-write=./ \
+				--opendbx-database=pdns-opendbx.sqlite3 &
+			skipreasons=nodnssec
+
+			;;									
 		gsqlite3 | gsqlite3-nsec3)
 			rm -f pdns.sqlite3
 			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
