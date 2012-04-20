@@ -25,7 +25,8 @@
 #ifndef HAVE_SQLITE3
 void Bind2Backend::setupDNSSEC()
 {
-  throw runtime_error("bind-dnssec-db requires building PowerDNS with SQLite3");
+  if(!getArg("dnssec-db").empty())
+    throw runtime_error("bind-dnssec-db requires building PowerDNS with SQLite3");
 }
 
 void Bind2Backend::createDNSSECDB(const string& fname)
