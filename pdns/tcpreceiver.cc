@@ -175,9 +175,9 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 
 void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
-  const string buffer = p->getString();
-  uint16_t len=htons(buffer.length());
-  writenWithTimeout(outsock, &len, 2);
+  uint16_t len=htons(p->getString().length());
+  string buffer((const char*)&len, 2);
+  buffer.append(p->getString());
   writenWithTimeout(outsock, buffer.c_str(), buffer.length());
 }
 
