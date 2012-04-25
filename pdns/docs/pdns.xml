@@ -16819,6 +16819,7 @@ VALUES (:zoneid, :ip)
   <sect1 id="odbc">
     <title>ODBC backend</title>
       <para>
+      <note><para>This backend was removed in version 3.1.</para></note>
 	<table>
 	  <title>ODBC backend capabilities</title>
 	  <tgroup cols="2">
