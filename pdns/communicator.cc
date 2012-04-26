@@ -103,17 +103,17 @@ void CommunicatorClass::mainloop(void)
     }
   }
   catch(AhuException &ae) {
-    L<<Logger::Error<<"Communicator thread died because of error: "<<ae.reason<<endl;
+    L<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
     Utility::sleep(1);
     exit(0);
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Communicator thread died because of STL error: "<<e.what()<<endl;
+    L<<Logger::Error<<"Exiting because communicator thread died with STL error: "<<e.what()<<endl;
     exit(0);
   }
   catch( ... )
   {
-    L << Logger::Error << "Communicator caught unknown exception." << endl;
+    L << Logger::Error << "Exiting because communicator caught unknown exception." << endl;
     exit( 0 );
   }
 }
