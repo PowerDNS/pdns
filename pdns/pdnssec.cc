@@ -203,10 +203,15 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
   uint64_t numrecords=0, numerrors=0;
   
   while(sd.db->get(rr)) {
-    if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) 
+    if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) {
+      cout<<"The recordtype "<<rr.qtype.getName()<<" for record '"<<rr.qname<<"' is no longer supported."<<endl;
+      numerrors++;
       continue;
+    }
+      
     if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
       rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
       rr.content = "\""+rr.content+"\"";  
       
