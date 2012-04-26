@@ -14,7 +14,7 @@ kill $(cat pdns_recursor.pid)
 mkdir -p recursor-bulktest
 rm -f failed_tests passed_tests
 touch failed_tests passed_tests
-if [ "$DBT_OKPERCENTAGEINT" -ge 90 ]
+if [ "$DBT_OKPERCENTAGEINT" -ge 95 ]
 then
 	echo recursor-bulktest >> passed_tests
 else
