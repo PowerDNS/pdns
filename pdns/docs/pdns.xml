@@ -15473,7 +15473,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
       </sect2>
       <sect2><title>Slave operation</title>
 	<para>
-	  The PostgreSQL backend is fully slave capable. To become a slave of the 'powerdns.com' domain, execute this:
+	  These backends are fully slave capable. To become a slave of the 'powerdns.com' domain, execute this:
 	  <programlisting>
 	    insert into domains (name,master,type) values ('powerdns.com','213.244.168.217','SLAVE');
 	  </programlisting>
