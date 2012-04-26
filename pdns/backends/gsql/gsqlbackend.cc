@@ -812,7 +812,7 @@ bool GSQLBackend::abortTransaction()
     d_db->doCommand("rollback");
   }
   catch(SSqlException &e) {
-    throw AhuException("MySQL failed to abort transaction: "+string(e.txtReason()));
+    throw AhuException("Database failed to abort transaction: "+string(e.txtReason()));
   }
   return true;
 }
