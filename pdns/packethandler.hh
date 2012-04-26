@@ -116,7 +116,7 @@ private:
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
   
-  static int s_count;
+  static AtomicCounter s_count;
   bool d_doFancyRecords;
   bool d_doRecursion;
   bool d_doCNAME;

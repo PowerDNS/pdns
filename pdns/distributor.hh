@@ -107,7 +107,7 @@ private:
   int nextid;
   time_t d_last_started;
   int d_num_threads;
-  int d_idle_threads;
+  AtomicCounter d_idle_threads;
   Backend *b;
 };
 
@@ -119,7 +119,7 @@ template<class Answer, class Question, class Backend>Distributor<Answer,Question
   b=0;
   d_overloaded = false;
   nextid=0;
-  d_idle_threads=0;
+  // d_idle_threads=0;
   d_last_started=time(0);
 //  sem_init(&numquestions,0,0);
   pthread_mutex_init(&q_lock,0);
@@ -160,13 +160,13 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
     // ick ick ick!
     static int overloadQueueLength=::arg().asNum("overload-queue-length");
     for(;;) {
-      us->d_idle_threads++;
+      ++(us->d_idle_threads);
 
       us->numquestions.getValue( &qcount );
 
       us->numquestions.wait();
 
-      us->d_idle_threads--;
+      --(us->d_idle_threads);
       pthread_mutex_lock(&us->q_lock);
 
       QuestionData QD=us->questions.front();

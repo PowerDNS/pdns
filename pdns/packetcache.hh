@@ -130,7 +130,7 @@ private:
 
   pthread_rwlock_t d_mut;
 
-  unsigned int d_ops;
+  AtomicCounter d_ops;
   int d_ttl;
   int d_recursivettl;
   bool d_doRecursion;

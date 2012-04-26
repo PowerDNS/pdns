@@ -48,12 +48,12 @@ extern PacketCache PC;
 extern CommunicatorClass Communicator;
 extern DNSProxy *DP;
 
-int PacketHandler::s_count;
+AtomicCounter PacketHandler::s_count;
 extern string s_programname;
 
 PacketHandler::PacketHandler():B(s_programname)
 {
-  s_count++;
+  ++s_count;
   d_doFancyRecords = (::arg()["fancy-records"]!="no");
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");

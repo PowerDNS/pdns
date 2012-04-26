@@ -28,7 +28,7 @@ extern StatBag S;
 PacketCache::PacketCache()
 {
   pthread_rwlock_init(&d_mut,0);
-  d_ops = 0;
+  // d_ops = 0;
 
   d_ttl=-1;
   d_recursivettl=-1;
@@ -54,7 +54,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
   if(d_ttl<0) 
     getTTLS();
 
-  if(!((d_ops++) % 300000)) {
+  if(!((++d_ops) % 300000)) {
     cleanup();
   }
 
@@ -135,7 +135,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl)
 void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
   bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk)
 {
-  if(!((d_ops++) % 300000)) {
+  if(!((++d_ops) % 300000)) {
     cleanup();
   }
 
@@ -259,7 +259,7 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
   if(d_ttl<0) 
     getTTLS();
 
-  if(!((d_ops++) % 300000)) {
+  if(!((++d_ops) % 300000)) {
     cleanup();
   }
 

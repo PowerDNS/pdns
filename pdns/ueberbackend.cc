@@ -477,17 +477,17 @@ bool UeberBackend::list(const string &target, int domain_id)
 }
 
 
-int UeberBackend::handle::instances=0;
+AtomicCounter UeberBackend::handle::instances(0);
 
 UeberBackend::handle::handle()
 {
   //  L<<Logger::Warning<<"Handle instances: "<<instances<<endl;
-  instances++;
+  ++instances;
 }
 
 UeberBackend::handle::~handle()
 {
-  instances--;
+  --instances;
 }
 
 bool UeberBackend::handle::get(DNSResourceRecord &r)

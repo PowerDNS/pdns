@@ -42,7 +42,7 @@ DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
 pthread_mutex_t DNSSECKeeper::s_metacachelock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
-unsigned int DNSSECKeeper::s_ops;
+AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
 
 bool DNSSECKeeper::isSecuredZone(const std::string& zone) 
@@ -50,7 +50,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
   if(isPresigned(zone))
     return true;
   
-  if(!((s_ops++) % 100000)) {
+  if(!((++s_ops) % 100000)) {
     cleanup();
   }
 
@@ -186,7 +186,7 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
   value.clear();
   unsigned int now = time(0);
 
-  if(!((s_ops++) % 100000)) {
+  if(!((++s_ops) % 100000)) {
     cleanup();
   }
 
@@ -276,7 +276,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
 {
   unsigned int now = time(0);
 
-  if(!((s_ops++) % 100000)) {
+  if(!((++s_ops) % 100000)) {
     cleanup();
   }
 

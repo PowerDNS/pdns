@@ -25,7 +25,10 @@
 #include <sstream>
 #include "qtype.hh"
 #include "misc.hh"
+#include "lock.hh"
 
+
+pthread_mutex_t QType::uninitlock = PTHREAD_MUTEX_INITIALIZER;
 bool QType::uninit=true;
 vector<QType::namenum> QType::names;
 
@@ -37,6 +40,7 @@ void QType::insert(const char *p, int n)
 
 QType::QType()
 {
+  Lock l(&uninitlock);
   if(uninit)
     {
       uninit=false;

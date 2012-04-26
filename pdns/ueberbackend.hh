@@ -107,7 +107,7 @@ public:
     QType qtype;
   private:
 
-    static int instances;
+    static AtomicCounter instances;
   };
 
   void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);

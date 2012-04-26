@@ -86,7 +86,7 @@ private:
   uint16_t code;
   void insert(const char *p, int n);
 
-
+  static pthread_mutex_t uninitlock;
   static bool uninit;
 };
 
