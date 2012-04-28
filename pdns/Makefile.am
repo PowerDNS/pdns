@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) -Iext/polarssl-1.1.1/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) -Iext/polarssl-1.1.2/include
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
 EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  \
@@ -7,7 +7,7 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 	no-dnssec.schema.mysql.sql no-dnssec.schema.pgsql.sql no-dnssec.schema.sqlite3.sql \
 	bind-dnssec.schema.sqlite3.sql
 
-SUBDIRS= ext/polarssl-1.1.1 backends 
+SUBDIRS= ext/polarssl-1.1.2 backends 
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h
 
@@ -52,7 +52,7 @@ ednssubnet.cc ednssubnet.hh cachecleaner.hh dnslabel.hh dnslabel.cc
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
-pdns_server_LDADD= ext/polarssl-1.1.1/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS)
+pdns_server_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS)
 
 
 if BOTAN110
@@ -87,7 +87,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
-pdnssec_LDADD= ext/polarssl-1.1.1/library/libpolarssl.a $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS)
+pdnssec_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS)
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
@@ -130,7 +130,7 @@ tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.
 	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 	randomhelper.cc dns.cc
-tsig_tests_LDFLAGS= -Lext/polarssl-1.1.1/library 	
+tsig_tests_LDFLAGS= -Lext/polarssl-1.1.2/library 	
 tsig_tests_LDADD= -lpolarssl
 
 

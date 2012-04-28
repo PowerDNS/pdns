@@ -34,10 +34,10 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 ../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc ../../md5.cc # ../../dbdnsseckeeper.cc
 
 zone2ldap_LDFLAGS=@THREADFLAGS@  
-zone2ldap_LDADD= ../../ext/polarssl-1.1.1/library/libpolarssl.a
+zone2ldap_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a
 
 zone2sql_LDFLAGS=@THREADFLAGS@  
-zone2sql_LDADD= ../../ext/polarssl-1.1.1/library/libpolarssl.a 
+zone2sql_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a 
 
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
