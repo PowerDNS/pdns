@@ -484,7 +484,7 @@ try
     cerr<<"Usage: \npdnssec [options] <command> [params ..]\n\n";
     cerr<<"Commands:\n";
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE\n";
-    cerr<<"add-zone-key ZONE [zsk|ksk] [bits]\n";
+    cerr<<"add-zone-key ZONE zsk|ksk [bits]\n";
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits\n";
     cerr<<"check-zone ZONE                    Check a zone for correctness\n";
@@ -500,7 +500,7 @@ try
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)\n";
     cerr<<"rectify-all-zones                  Rectify all zones.\n";
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE\n";
-    cerr<<"secure-zone ZONE [ZONE ..]        Add KSK and two ZSKs\n";
+    cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs\n";
     cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow\n";
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage\n";
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone\n";
@@ -629,7 +629,7 @@ try
   }
   else if(cmds[0] == "add-zone-key") {
     if(cmds.size() < 3 ) {
-      cerr << "Syntax: pdnssec add-zone-key ZONE [zsk|ksk] [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+      cerr << "Syntax: pdnssec add-zone-key ZONE zsk|ksk [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
       return 0;
     }
     const string& zone=cmds[1];
