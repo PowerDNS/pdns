@@ -28,7 +28,7 @@ public:
   // XXX FIXME NEEDS COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
   ~GOSTDNSCryptoKeyEngine(){}
   void create(unsigned int bits);
-  string getName() const { return "Botan 1.9 GOST"; }
+  string getName() const { return "Botan 1.10 GOST"; }
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
   std::string sign(const std::string& hash) const; 
@@ -256,7 +256,7 @@ public:
   
   ~ECDSADNSCryptoKeyEngine() {}
   // XXX FIXME NEEDS DEEP COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
-  string getName() const { return "Botan 1.9 ECDSA"; }
+  string getName() const { return "Botan 1.10 ECDSA"; }
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
