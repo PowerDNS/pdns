@@ -181,6 +181,13 @@ enum  {
         ns_t_dname = 39,        /* Non-terminal DNAME (for IPv6) */
         ns_t_sink = 40,         /* Kitchen sink (experimental) */
         ns_t_opt = 41,          /* EDNS0 option (meta-RR) */
+        ns_t_ds = 43,           /* Delegation signer */
+        ns_t_rrsig = 46,        /* Resoure Record signature */
+        ns_t_nsec = 47,         /* Next Record */
+        ns_t_dnskey = 48,       /* DNSKEY record */
+        ns_t_nsec3 = 50,        /* Next Record v3 */
+        ns_t_nsec3param = 51,   /* NSEC Parameters */
+        ns_t_tlsa = 52,         /* TLSA */
         ns_t_tsig = 250,        /* Transaction signature. */
         ns_t_ixfr = 251,        /* Incremental zone transfer. */
         ns_t_axfr = 252,        /* Transfer zone of authority. */
