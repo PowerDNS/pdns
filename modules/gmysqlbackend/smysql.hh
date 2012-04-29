@@ -28,6 +28,7 @@ private:
   MYSQL d_db;
   MYSQL_RES *d_rres;
   static bool s_dolog;
+  static pthread_mutex_t s_myinitlock;
 };
       
 #endif /* SSMYSQL_HH */
