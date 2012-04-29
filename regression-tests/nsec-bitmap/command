@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig hightype.example.com NSEC dnssec | egrep 'IN[[:space:]]+NSEC'

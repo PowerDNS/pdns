@@ -17,6 +17,9 @@ $ORIGIN example.com.
 ns1			IN	A	192.168.1.1
 ns2			IN	A	192.168.1.2
 ;
+hightype		IN	A	192.168.1.5
+hightype		IN	TYPE65534 \# 5 07ED260001
+;
 localhost		IN	A	127.0.0.1
 www			IN	CNAME	outpost.example.com.
 ;
