@@ -195,7 +195,7 @@ string DynListener::getLine()
         continue;
       }
 
-      if(d_tcp && !d_tcprange.match(&remote)) { // ????
+      if(d_tcp && !d_tcprange.match(&remote)) { // checks if the remote is within the permitted range.
         L<<Logger::Error<<"Access denied to remote "<<remote.toString()<<" because not allowed"<<endl;
         writen2(d_client, "Access denied to "+remote.toString()+"\n");
         close(d_client);
@@ -292,11 +292,9 @@ void DynListener::registerRestFunc(g_funk_t *gf)
 void DynListener::theListener()
 {
   try {
-    map<string,string> parameters;
     signal(SIGPIPE,SIG_IGN);
 
     for(int n=0;;++n) {
-      //      cerr<<"Reading new line, "<<d_client<<endl;
       string line=getLine();
       boost::trim_right(line);
 
@@ -306,18 +304,18 @@ void DynListener::theListener()
         sendLine("Empty line");
         continue;
       }
-      parts[0] = toUpper( parts[0] );
-      if(!s_funcdb.count(parts[0])) {
-        if(parts[0] == "HELP")
-          sendLine(getHelp());
-        else if(s_restfunc)
-          sendLine((*s_restfunc)(parts,d_ppid));
-        else
-          sendLine("Unknown command: '"+parts[0]+"'");
-        continue;
-      }
 
-      sendLine((*(s_funcdb[parts[0]].func))(parts,d_ppid));
+      parts[0] = toUpper( parts[0] );
+      if(s_funcdb.count(parts[0])) {
+        cerr<<parts[0]<<" found in s_funcdb"<<endl;
+        sendLine((*(s_funcdb[parts[0]].func))(parts,d_ppid));
+      } else if (parts[0] == "HELP") {
+        sendLine(getHelp());
+      }else if(s_restfunc) {
+        cerr<<"Calling restfunction."<<endl;
+        sendLine((*s_restfunc)(parts,d_ppid));
+      } else
+        sendLine("Unknown command: '"+parts[0]+"'");
     }
   }
   catch(AhuException &AE)
