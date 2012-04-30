@@ -271,7 +271,8 @@ void DynListener::sendLine(const string &l)
     string line=l;
     if(!line.empty() && line[line.length()-1]!='\n')
       line.append("\n");
-    line.append("\n");
+    line.append(1, '\0');
+    line.append(1, '\n');
     if((unsigned int)write(1,line.c_str(),line.length()) != line.length())
       L<<Logger::Error<<"Error sending data to console: "<<stringerror()<<endl;
       

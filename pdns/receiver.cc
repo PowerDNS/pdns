@@ -166,7 +166,7 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
   char mesg[512];
   string response;
   while(fgets(mesg,sizeof(mesg),g_fp)) {
-    if(*mesg=='\n')
+    if(*mesg=='\0')
       break;
     response+=mesg;
   }
