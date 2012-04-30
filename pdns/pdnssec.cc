@@ -252,7 +252,10 @@ int checkAllZones(DNSSECKeeper &dk)
   return 0;
 }
 
-
+void testAlgorithm(int algo) 
+{
+  DNSCryptoKeyEngine::testOne(algo);
+}
 
 void testAlgorithms()
 {
@@ -511,6 +514,11 @@ try
     return 0;
   }
   
+  if (cmds[0] == "test-algorithm") {
+    testAlgorithm(lexical_cast<int>(cmds[1]));
+    return 0; 
+  }
+
   if(cmds[0] == "test-algorithms") {
     testAlgorithms();
     return 0;

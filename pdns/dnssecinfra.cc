@@ -113,6 +113,23 @@ void DNSCryptoKeyEngine::testAll()
   }
 }
 
+void DNSCryptoKeyEngine::testOne(int algo)
+{
+    BOOST_FOREACH(maker_t* signer, getAllMakers()[algo]) {
+      // multi_map<unsigned int, maker_t*> bestSigner, bestVerifier;
+
+      BOOST_FOREACH(maker_t* verifier, getAllMakers()[algo]) {
+        try {
+          pair<unsigned int, unsigned int> res=testMakers(algo, signer, verifier);
+        }
+        catch(std::exception& e)
+        {
+          cerr<<e.what()<<endl;
+        }
+      }
+    }
+}
+
 pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* signer, maker_t* verifier)
 {
   shared_ptr<DNSCryptoKeyEngine> dckeSign(signer(algo));

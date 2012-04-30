@@ -47,6 +47,7 @@ class DNSCryptoKeyEngine
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
     static std::pair<unsigned int, unsigned int> testMakers(unsigned int algorithm, maker_t* signer, maker_t* verifier);
     static void testAll();
+    static void testOne(int algo);
   private:
     
     typedef std::map<unsigned int, maker_t*> makers_t;
