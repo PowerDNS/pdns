@@ -19591,6 +19591,19 @@ Reply:
 	      </listitem>
 	    </varlistentry>
 		<varlistentry>
+			<term>current-config</term>
+			<listitem>
+				<para>
+					Retrieves the current configuration settings from the PDNS instance. This can be useful to generate a
+					from a running instance.
+				</para>
+				<para>
+					The output has the same format as <command>pdns_server --config</command>. You'll notice that all the
+					are uncommented. This is because PDNS simply has values, and the default isn't known at runtime.
+				</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
 			<term>cycle</term>
 			<listitem>
 				<para>
@@ -19614,8 +19627,8 @@ Reply:
 		  Same as above but with operator specified IP address as destination, to be used if you know better than PowerDNS.
 		</para>
 	      </listitem>
-	    </varlistentry>
-		<varlistentry>
+    </varlistentry>
+    <varlistentry>
 			<term>ping</term>
 			<listitem>
 			<para>
@@ -19655,14 +19668,14 @@ Reply:
 		</para>
 	      </listitem>
 	    </varlistentry>
-            <varlistentry>
+		<varlistentry>
 			<term>rping</term>
 			<listitem>
 				<para>
 					'PING' the powerdns-instance. Will return 'PONG' when it is available.
 				</para>
 			</listitem>
-	    </varlistentry>
+		</varlistentry>
  	    <varlistentry>
 	      <term>rediscover</term>
 	      <listitem>
