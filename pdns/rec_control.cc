@@ -36,7 +36,7 @@ ArgvMap &arg()
 
 static void initArguments(int argc, char** argv)
 {
-  arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
+  arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
 
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
   arg().set("process","When controlling multiple recursors, the target process number")="";
