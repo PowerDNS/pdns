@@ -251,7 +251,7 @@ string DynListener::getLine()
   return &mesg[0];
 }
 
-void DynListener::sendLine(const string &l)
+void DynListener::sendlines(const string &l)
 {
   if(d_nonlocal) {
     unsigned int sent=0;
@@ -268,14 +268,13 @@ void DynListener::sendLine(const string &l)
     close(d_client);
   }
   else {
-    string line=l;
-    if(!line.empty() && line[line.length()-1]!='\n')
-      line.append("\n");
-    line.append(1, '\0');
-    line.append(1, '\n');
-    if((unsigned int)write(1,line.c_str(),line.length()) != line.length())
+    string lines=l;
+    if(!lines.empty() && lines[lines.length()-1] != '\n')
+      lines.append("\n");
+    lines.append(1, '\0');
+    lines.append(1, '\n');
+    if((unsigned int)write(1, lines.c_str(), lines.length()) != lines.length())
       L<<Logger::Error<<"Error sending data to console: "<<stringerror()<<endl;
-      
   }
 }
 
@@ -302,21 +301,19 @@ void DynListener::theListener()
       vector<string>parts;
       stringtok(parts,line," ");
       if(parts.empty()) {
-        sendLine("Empty line");
+        sendlines("Empty line");
         continue;
       }
 
       parts[0] = toUpper( parts[0] );
-      if(s_funcdb.count(parts[0])) {
-        cerr<<parts[0]<<" found in s_funcdb"<<endl;
-        sendLine((*(s_funcdb[parts[0]].func))(parts,d_ppid));
-      } else if (parts[0] == "HELP") {
-        sendLine(getHelp());
-      }else if(s_restfunc) {
-        cerr<<"Calling restfunction."<<endl;
-        sendLine((*s_restfunc)(parts,d_ppid));
-      } else
-        sendLine("Unknown command: '"+parts[0]+"'");
+      if(s_funcdb.count(parts[0])) 
+        sendlines((*(s_funcdb[parts[0]].func))(parts,d_ppid));
+      else if (parts[0] == "HELP")
+        sendlines(getHelp());
+      else if(s_restfunc)
+        sendlines((*s_restfunc)(parts,d_ppid));
+      else
+        sendlines("Unknown command: '"+parts[0]+"'");
     }
   }
   catch(AhuException &AE)
