@@ -102,37 +102,38 @@
       </warning>
       <note><para>RC1 released on the 23th of March 2012</para>
       <para>RC2 released on the 14th of April 2012</para>
+      <para>RC3 released on the 30th of April 2012</para>
       </note>
       <note><para>Downloads:
       	<itemizedlist>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/pdns-3.1-rc2.tar.gz">pdns-3.1-rc2.tar.gz</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/pdns-3.1-rc3.tar.gz">pdns-3.1-rc3.tar.gz</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc2-1.i386.rpm">pdns-static-3.1rc2-1.i386.rpm</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc3-1.i386.rpm">pdns-static-3.1rc3-1.i386.rpm</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc2-1.x86_64.rpm">pdns-static-3.1rc2-1.x86_64.rpm</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc3-1.x86_64.rpm">pdns-static-3.1rc3-1.x86_64.rpm</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc2-1_amd64.deb">pdns-static_3.1-rc2-1_amd64.deb</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc3-1_amd64.deb">pdns-static_3.1-rc3-1_amd64.deb</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc2-1_i386.deb">pdns-static_3.1-rc2-1_i386.deb</ulink>
+      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc3-1_i386.deb">pdns-static_3.1-rc3-1_i386.deb</ulink>
       			</para>
       		</listitem>
       		<listitem>
       			<para>
-      				<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc2/">CentOS/RHEL 5/6 RPMs</ulink> kindly provided by Kees Monshouwer.
+      				<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc3/">CentOS/RHEL 5/6 RPMs</ulink> kindly provided by Kees Monshouwer.
       			</para>
       		</listitem>
       	</itemizedlist>
@@ -163,7 +164,62 @@
 	cleaned up years of accumulated dust in the code, and massively improved our regression testing into a full blown continuous integration setup 
 	with full DNSSEC tests!
       </para>
-      <para>
+    <para>
+    	Changes between RC2 and RC3:
+    <itemizedlist>
+    	<listitem>
+    		<para>
+    			The hidden test-algorithms command for pdnssec now has a little brother 'test-algorithm X'. Code in c2596, by Aki Tuomi.
+    		</para>
+    	</listitem>
+    	<listitem>
+    		<para>
+    			PolarSSL upgraded to 1.1.2 due to weak RSA key generation (c2586). If you created RSA keys with RC1 or RC2 using PolarSSL, please replace them! This upgrade introduced a slowdown; speedup patch in c2593.
+    		</para>
+    	</listitem>
+    	<listitem>
+    		<para>
+    			It turns out we were using libmysqlclient in a thread-unsafe manner. This issue was reported and painstakingly debugged by Marc Haber. Presumably fixed in c2591.
+    		</para>
+    	</listitem>
+    	    <listitem>
+    	    	<para>
+    	    	Updated a bunch of internal counters to be threadsafe. Code in c2579.
+    		</para>
+    	 	</listitem>
+    	<listitem>
+    		<para>
+				NSEC(3) bitmaps can now cover RRtypes above 255. Reported by Michael Braunoeder, patch by Aki Tuomi in c2590.
+    		</para>
+    	</listitem>
+    	<listitem>
+    		<para>
+    			pdnssec check-zone now reports MBOXFW and URL records (as those are unsupported since 3.0). Reported by Gerwin Krist of Digitalus, patch by Ruben d'Arco. Closes t446.
+    		</para>
+    	</listitem>
+    	<listitem>
+    		<para>
+    			The odbcbackend was removed. It only runs on Windows and Windows is unsupported since 3.0. Removal in c2576.
+    		</para>
+    	</listitem>
+    	<listitem>
+    		<para>
+    			We used to send the chunk length and the actual chunk in two separate writes (often resulting in two separate TCP packets) during outbound AXFR. This confused MSDNS. We now combine those writes. Code in c2575.
+    		</para>
+    	</listitem>
+    	<listitem>
+    		<para>
+    			The bindbackend can now run without SQLite3, as previously intended. Fix in c2574.
+    		</para>
+    	</listitem>
+		<listitem>
+    		<para>
+    			Some high-concurrency master setups would crash under load. Fixed in c2571.
+    		</para>
+    	</listitem>
+    </itemizedlist>
+	</para>
+    <para>
 	Changes between RC1 and RC2:
 	<itemizedlist>
 		<listitem>
@@ -453,8 +509,6 @@
 	      Update in c2394, closing t395.
 	    </para>
 	  </listitem>
-
-
 	</itemizedlist>
       </para>
       <para>
