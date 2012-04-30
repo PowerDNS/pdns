@@ -10,6 +10,8 @@ Cexternal.example.com:somewhere.else.net.:120
 @external-mail.example.com::server1.test.com.:25:120
 &france.example.com::ns1.otherprovider.net.:120
 &france.example.com::ns2.otherprovider.net.:120
++hightype.example.com:192.168.1.5:120
+:hightype.example.com:65534:\007\355\046\000\001:120
 +host-0.example.com:192.168.1.0:120
 +host-1.example.com:192.168.1.1:120
 +host-10.example.com:192.168.1.10:120
@@ -20011,7 +20013,7 @@ Cexternal.example.com:somewhere.else.net.:120
 +host-9998.example.com:192.168.1.14:120
 +host-9999.example.com:192.168.1.15:120
 :hwinfo.example.com:13:\003abc\003def:120
-:ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
+3ipv6.example.com:200106a80000000102104bfffe4b4c61:120
 &italy.example.com::italy-ns1.example.com.:120
 &italy.example.com::italy-ns2.example.com.:120
 +italy-ns1.example.com:192.168.5.1:120
