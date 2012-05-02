@@ -15281,6 +15281,39 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 	  </variablelist>
 	</para>
       </sect2>
+      <sect2 id="dnssec-queries"><title>DNSSEC queries</title>
+      <para>
+      	If DNSSEC is enabled (through the -dnssec flag on a gsql backend), many queries are replaced by slightly 
+      	extended variants that also query the auth column. The auth column is always added as the rightmost column. These are the -auth defaults:
+      	<variablelist>
+      		<varlistentry><term>basic-query-auth</term><listitem><para>Basic query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name='%s'</command></para></listitem></varlistentry>
+      		<varlistentry><term>id-query-auth</term><listitem><para>Basic with ID query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name='%s' and domain_id=%d</command></para></listitem></varlistentry>
+      		<varlistentry><term>wildcard-query-auth</term><listitem><para>Wildcard query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name like '%s'</command></para></listitem></varlistentry>
+      		<varlistentry><term>wildcard-id-query-auth</term><listitem><para>Wildcard with ID query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name like '%s' and domain_id='%d'</command></para></listitem></varlistentry>
+      		<varlistentry><term>any-query-auth</term><listitem><para>Any query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where name='%s'</command></para></listitem></varlistentry>
+      		<varlistentry><term>any-id-query-auth</term><listitem><para>Any with ID query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where name='%s' and domain_id=%d</command></para></listitem></varlistentry>
+      		<varlistentry><term>wildcard-any-query-auth</term><listitem><para>Wildcard ANY query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where name like '%s'</command></para></listitem></varlistentry>
+      		<varlistentry><term>wildcard-any-id-query-auth</term><listitem><para>Wildcard ANY with ID query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where name like '%s' and domain_id='%d'</command></para></listitem></varlistentry>
+      		<varlistentry><term>list-query-auth</term><listitem><para>AXFR query. Default: <command>select content,ttl,prio,type,domain_id,name, auth from records where domain_id='%d' order by name, type</command></para></listitem></varlistentry>
+      	</variablelist>
+      	Additionally, there are some new queries to determine NSEC(3) order:
+      	<variablelist>
+      		<varlistentry><term>get-order-first-query</term><listitem><para>DNSSEC Ordering Query, first. Default: <command>select ordername, name from records where domain_id=%d and ordername is not null order by 1 asc limit 1</command></para></listitem></varlistentry>
+      		<varlistentry><term>get-order-before-query</term><listitem><para>DNSSEC Ordering Query, before. Default: <command>select ordername, name from records where ordername &lt;= '%s' and domain_id=%d and ordername is not null order by 1 desc limit 1</command></para></listitem></varlistentry>
+      		<varlistentry><term>get-order-after-query</term><listitem><para>DNSSEC Ordering Query, after. Default: <command>select min(ordername) from records where ordername &gt; '%s' and domain_id=%d and ordername is not null</command></para></listitem></varlistentry>
+      		<varlistentry><term>get-order-last-query</term><listitem><para>DNSSEC Ordering Query, last. Default: <command>select ordername, name from records where ordername != '' and domain_id=%d and ordername is not null order by 1 desc limit 1</command></para></listitem></varlistentry>
+      	</variablelist>
+
+      	Finally, these two queries are used to set ordername and auth correctly in a database:
+      	<variablelist>
+      		<varlistentry><term>set-order-and-auth-query</term><listitem><para>DNSSEC set ordering query. Default: <command>update records set ordername='%s',auth=%d where name='%s' and domain_id='%d'</command></para></listitem></varlistentry>
+      		<varlistentry><term>nullify-ordername-and-auth-query</term><listitem><para>DNSSEC nullify ordername query. Default: <command>update records set ordername=NULL,auth=0 where name='%s' and type='%s' and domain_id='%d'</command></para></listitem></varlistentry>
+      	</variablelist>
+
+      	Make sure to read <xref linkend="dnssec-direct-database" /> if you wish to calculate ordername and auth without
+      	using pdns-rectify.
+      </para>
+  </sect2>
       <sect2 id="master-slave-queries"><title>Master/slave queries</title>
 	<para>
 	  Most installations will have zero need to change the following settings, but should the need arise, here they are:
@@ -15393,6 +15426,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 	</para>
       </sect2>
       <sect2><title>Fancy records</title>
+      <warning><para>Fancy records are unsupported as of version 3.0</para></warning>
 	<para>
 	  If PDNS is used with so called 'Fancy Records', the 'MBOXFW' record exists which specifies an email address forwarding instruction, 
 	  wildcard queries are sometimes needed. This is not enabled by default.  A wildcard query is 
@@ -17109,7 +17143,7 @@ VALUES (:zoneid, :ip)
 	</table>
       </para>
       <para>
-      <warning><para>The MongoDB Backend is available since PowerDNS Authoritative Server 3.0. In 3.0, this backend is marked as
+      <warning><para>The MongoDB Backend is available since PowerDNS Authoritative Server 3.0. In 3.0 and 3.1, this backend is marked as
       Experimental!</para></warning>
       </para>
       <para>
@@ -17148,11 +17182,11 @@ VALUES (:zoneid, :ip)
 	</table>
       </para>
       <para>
-      <warning><para>The Lua Backend is available since PowerDNS Authoritative Server 3.0. In 3.0, this backend is marked as
+      <warning><para>The Lua Backend is available since PowerDNS Authoritative Server 3.0. In 3.0 and 3.1, this backend is marked as
       Experimental!</para></warning>
       </para>
       <para>
-	The MongoDB backend is a full service that can allows a Lua script to provide answers to DNS queries.
+	The Lua backend is a full service that can allows a Lua script to provide answers to DNS queries.
 	</para>
       <para>
 	More details can be found <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/luabackend/README">here</ulink>, or in
