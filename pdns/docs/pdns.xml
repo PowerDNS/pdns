@@ -17334,6 +17334,14 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
 		</para>
 	      </listitem>
 	    </varlistentry>
+		<varlistentry>
+			<term>cycle</term>
+			<listitem>
+				<para>
+					Restart a PowerDNS instance. Only available when running in guardian mode.
+				</para>
+				</listitem>
+		</varlistentry>
 	    <varlistentry>
 	      <term>notify <userinput>domain</userinput></term>
 	      <listitem>
@@ -17351,6 +17359,14 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
 		</para>
 	      </listitem>
 	    </varlistentry>
+		<varlistentry>
+			<term>ping</term>
+			<listitem>
+			<para>
+				'PING' the powerdns-guardian. Will return 'PONG' when it is available. (Only works when you are running in guardian mode)
+			</para>
+			</listitem>
+		</varlistentry>
 	    <varlistentry>
 	      <term>purge</term>
 	      <listitem>
@@ -17391,6 +17407,14 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
 		</para>
 	      </listitem>
 	    </varlistentry>
+		<varlistentry>
+			<term>rping</term>
+			<listitem>
+				<para>
+					'PING' the powerdns-instance. Will return 'PONG' when it is available.
+				</para>
+			</listitem>
+		</varlistentry>
  	    <varlistentry>
 	      <term>rediscover</term>
 	      <listitem>
@@ -17433,14 +17457,26 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
 		</para>
 	      </listitem>
 	    </varlistentry>
-	    <varlistentry>
-	      <term>version</term>
-	      <listitem>
-		<para>
-		  returns the version of a running pdns daemon.
-		</para>
-	      </listitem>
-	    </varlistentry>
+		<varlistentry>
+			<term>show <userinput>variable</userinput></term>
+			<listitem>
+				<para>Show a specific statistic. Use * for all. (You may need to quote as '*' or \*).</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
+			<term>version</term>
+			<listitem>
+				<para>Returns the version of a running pdns daemon.</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
+			<term>status</term>
+			<listitem>
+				<para>
+					Retrieves the status of PowerDNS. Only available when running with guardian.
+				</para>
+			</listitem>
+		</varlistentry>
 	  </variablelist>
 	</para>
       </sect2>
