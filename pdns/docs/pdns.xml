@@ -95,40 +95,22 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-1"><title>PowerDNS Authoritative Server 3.1 (UNRELEASED)</title>
-     <warning><para>Version 3.1 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x.
+      <sect2 id="changelog-auth-3-1"><title>PowerDNS Authoritative Server 3.1</title>
+     <warning><para>Version 3.1 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0.
 	Please refer to <xref linkend="from2.9to3.0"/> and <xref linkend="from3.0to3.1"/> for important information on 
 	correct and stable operation, as well as notes on performance and memory use.</para>
       </warning>
-      <note><para>RC1 released on the 23th of March 2012</para>
-      <para>RC2 released on the 14th of April 2012</para>
+      <note>
+      <para>Released on the 4th of May 2012</para>
       <para>RC3 released on the 30th of April 2012</para>
+      <para>RC2 released on the 14th of April 2012</para>
+      <para>RC1 released on the 23th of March 2012</para>
       </note>
       <note><para>Downloads:
       	<itemizedlist>
       		<listitem>
       			<para>
-      				<ulink url="http://powerdnssec.org/downloads/pdns-3.1-rc3.tar.gz">pdns-3.1-rc3.tar.gz</ulink>
-      			</para>
-      		</listitem>
-      		<listitem>
-      			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc3-1.i386.rpm">pdns-static-3.1rc3-1.i386.rpm</ulink>
-      			</para>
-      		</listitem>
-      		<listitem>
-      			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.1rc3-1.x86_64.rpm">pdns-static-3.1rc3-1.x86_64.rpm</ulink>
-      			</para>
-      		</listitem>
-      		<listitem>
-      			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc3-1_amd64.deb">pdns-static_3.1-rc3-1_amd64.deb</ulink>
-      			</para>
-      		</listitem>
-      		<listitem>
-      			<para>
-      				<ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.1-rc3-1_i386.deb">pdns-static_3.1-rc3-1_i386.deb</ulink>
+      				<ulink url="http://www.powerdns.com/content/downloads.html">Official download page</ulink>
       			</para>
       		</listitem>
       		<listitem>
@@ -136,14 +118,15 @@
       				<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc3/">CentOS/RHEL 5/6 RPMs</ulink> kindly provided by Kees Monshouwer.
       			</para>
       		</listitem>
+      		<listitem>
+      			<para>
+      				<ulink url="http://wiki.powerdns.com/trac#GettingPowerDNSpackages">Additional packages</ulink> kindly provided by various other people.
+      			</para>
+      		</listitem>
       	</itemizedlist>
       </para>
   </note>
   
-
-
-
-
 
       <para>
 	Version 3.1 of the PowerDNS Authoritative Server represents the 'coming of age' of our DNSSEC implementation. 
@@ -164,6 +147,19 @@
 	cleaned up years of accumulated dust in the code, and massively improved our regression testing into a full blown continuous integration setup 
 	with full DNSSEC tests!
       </para>
+      <para>
+      	Additionally, we would like to thank Ruben d'Arco, Jose Arthur Benetasso Villanova, Marc Haber, Jimmy Bergman, Aki Tuomi and everyone else who helped us out!
+      </para>
+    <para>
+    	Changes between RC3 and final:
+    	<itemizedlist>
+    		<listitem>
+    			<para>
+    				pdnssec now honours the default-soa-name setting. Reported by Kees Monshouder, fixed in c2600.
+    			</para>
+    		</listitem>
+    	</itemizedlist>
+    </para>
     <para>
     	Changes between RC2 and RC3:
     <itemizedlist>
@@ -10676,6 +10672,9 @@ local0.err                        /var/log/pdns.err
     </para>
     <para>
     	The definition of 'auth' and 'ordername' in backends has changed slightly, see <xref linkend="dnssec-direct-database" />.
+    </para>
+    <para>
+    	PowerDNS 3.0 and 3.1 will only fetch DNSSEC metadata and key material from the first DNSSEC-capable backend in the launch line. In 3.1, the bindbackend supports DNSSEC storage. This means that setups using launch=bind,gsqlite3 or launch=gsqlite3,bind may break. Please tread carefully!
     </para>
   </sect1>
   </chapter>
