@@ -155,7 +155,7 @@
     	<itemizedlist>
     		<listitem>
     			<para>
-    				pdnssec now honours the default-soa-name setting. Reported by Kees Monshouder, fixed in c2600.
+    				pdnssec now honours the default-soa-name setting. Reported by Kees Monshouwer, fixed in c2600.
     			</para>
     		</listitem>
     	</itemizedlist>
