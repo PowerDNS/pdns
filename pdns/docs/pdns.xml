@@ -11675,7 +11675,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	If that succeeds, the answer packet is sent back immediately without involving the recursor in any way. This means that for questions for which there is no answer, PowerDNS will consult the recursor for an recursive query, even if PowerDNS is authoritative for a domain! This will only cause problems if you 'fake' domains which don't really exist.
       </para>
       <para>
-	If you want to create such fake domains or override existing domains, please set the <command>allow-recursion-override</command> feature (available as of 2.9.14).
+	If you want to create such fake domains or override existing domains, please set the <command>allow-recursion-override</command> feature (available from 2.9.14 until 2.9.22.6).
       </para>
       <para>
 	Some packets, like those asking for MX records which are needed for SMTP transport of email, can be subject to 'additional processing'. This means
@@ -13345,8 +13345,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <listitem>
 	    <para>
 	      By specifying <command>allow-recursion-override</command>, local data even about hosts that don't exist will override
-	      the internet. This allows you to generate zones that don't really exist on the internet. Does increase the number of SQL queries for hosts that truly don't exist, also not in your database.
-
+	      the internet. This allows you to generate zones that don't really exist on the internet. Does increase the number of SQL queries for hosts that truly don't exist, also not in your database. (Setting did nothing in 3.0 and 3.1, removed in 3.1.1).
 	    </para>
 	  </listitem></varlistentry>
 	  <varlistentry><term>cache-ttl=...</term>
