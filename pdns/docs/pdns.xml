@@ -18342,15 +18342,7 @@ static RandomLoader randomloader;
         Starting with version 2.9.18, PowerDNS requires 'Boost' to compile, it is available for most operating systems. Otherwise, see <ulink url="http://www.boost.org">the Boost 
 	website</ulink>.
       </para>
-      <para>
-	If your operating system does not have a Boost package, you don't need to compile all of boost just for PowerDNS.
-	PowerDNS only uses Boost include files, so there is no need to install all of boost. Just untar the Boost distribution file and 
-	point instruct ./configure to find it, perhaps like this:
-	<screen>
-	$ CXXFLAGS=-I/home/bert/download/boost_1_33_0 ./configure ...
-    </screen>
-    </para>
-      <sect2 id="unix-aix"><title>AIX</title>
+          <sect2 id="unix-aix"><title>AIX</title>
 	<para>
 	  Known to compile with gcc, but only since 2.9.8. AIX lacks POSIX semaphores so they need to be emulated, as with MacOS X.
 	</para>
