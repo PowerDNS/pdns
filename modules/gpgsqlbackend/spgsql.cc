@@ -26,8 +26,12 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
   if(!port.empty())
     d_connectstr+=" port="+port;
 
-  if(!password.empty())
+  d_connectlogstr=d_connectstr;
+
+  if(!password.empty()) {
+    d_connectlogstr+=" password=XXX";
     d_connectstr+=" password="+password;
+  }
   
   ensureConnect();
 }
@@ -55,7 +59,7 @@ void SPgSQL::ensureConnect()
 
   if (!d_db || PQstatus(d_db)==CONNECTION_BAD) {
     try {
-      throw sPerrorException("Unable to connect to database, connect string: "+d_connectstr);
+      throw sPerrorException("Unable to connect to database, connect string: "+d_connectlogstr);
     }
     catch(...) {
       if(d_db)
