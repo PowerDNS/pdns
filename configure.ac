@@ -23,6 +23,9 @@ BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
 #BOOST_SYSTEM([mt])
 
+# detect pkg-config explicitly
+PKG_PROG_PKG_CONFIG
+
 dnl Check for lua
 AC_MSG_CHECKING(if with lua)
 AC_ARG_WITH(lua, AC_HELP_STRING([--with-lua],[lua]), [WITH_LUA=$withval],[WITH_LUA=yes])
