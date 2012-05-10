@@ -23,8 +23,9 @@ Usage: ./start-test-stop <port> [<context>] [wait]
 context is one of:
 bind bind-dnssec bind-dnssec-nsec3
 gmysql-nodnssec gmysql gmysql-nsec3
-gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 gpgsql-nodnssec gpgsql gpgsql-nsec3
+gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
+opendbx-sqlite3
 tinydns
 
 add 'wait' (literally) after the context to not kill 
