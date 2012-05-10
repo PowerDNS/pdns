@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2011  PowerDNS.COM BV
+    Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -144,7 +144,25 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         return;
       }
     }
-    AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret);
+    
+    vector<string> localaddr;
+    ComboAddress laddr;
+    
+    if(B->getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
+      try {
+        laddr = ComboAddress(localaddr[0]);
+        L<<Logger::Info<<"AXFR source for domain '"<<domain<<"' set to "<<localaddr[0]<<endl;
+      }
+      catch(std::exception& e) {
+        L<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
+        return;
+      }
+    } else {
+		laddr.sin4.sin_family = 0;
+	}
+
+    AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret,
+		(laddr.sin4.sin_family == 0) ? NULL : &laddr);
 
     bool gotPresigned = false;
     bool gotNSEC3 = false;

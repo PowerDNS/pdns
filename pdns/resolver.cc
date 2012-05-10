@@ -306,17 +306,25 @@ void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t
   *serial=(uint32_t)atol(parts[2].c_str());
 }
 
-AXFRRetriever::AXFRRetriever(const ComboAddress& remote, const string& domain, const string& tsigkeyname, const string& tsigalgorithm, 
-  const string& tsigsecret)
+AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
+	const string& domain,
+	const string& tsigkeyname,
+	const string& tsigalgorithm, 
+	const string& tsigsecret,
+	const ComboAddress* laddr)
 : d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_tsigPos(0), d_nonSignedMessages(0)
 {
   ComboAddress local;
-  if(remote.sin4.sin_family == AF_INET)
-    local=ComboAddress(::arg()["query-local-address"]);
-  else if(!::arg()["query-local-address6"].empty())
-    local=ComboAddress(::arg()["query-local-address6"]);
-  else
-    local=ComboAddress("::");
+  if (laddr != NULL) {
+	  local = (ComboAddress) (*laddr);
+  } else {
+	  if(remote.sin4.sin_family == AF_INET)
+	    local=ComboAddress(::arg()["query-local-address"]);
+	  else if(!::arg()["query-local-address6"].empty())
+	    local=ComboAddress(::arg()["query-local-address6"]);
+	  else
+	    local=ComboAddress("::");
+  }
   d_sock = -1;
   try {
     d_sock = makeQuerySocket(local, false); // make a TCP socket
