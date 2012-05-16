@@ -44,6 +44,9 @@
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
+  if(d_readonly)
+    throw AhuException("called setNotified("+itoa(domain_id)+","+itoa(serial)+") on readonly GSQLBackend");
+
   char output[1024];
   snprintf(output,sizeof(output)-1,
 	   d_UpdateSerialOfZoneQuery.c_str(),
@@ -59,6 +62,8 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 
 void GSQLBackend::setFresh(uint32_t domain_id)
 {
+  if(d_readonly)
+    throw AhuException("called setFresh("+itoa(domain_id)+") on readonly GSQLBackend");
   char output[1024];
   snprintf(output,sizeof(output)-1,d_UpdateLastCheckofZoneQuery.c_str(),
 	   time(0),
@@ -74,6 +79,9 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 
 bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
+  if(d_readonly)
+    throw AhuException("called isMaster("+domain+","+ip+") on readonly GSQLBackend");
+
   char output[1024];
   snprintf(output,sizeof(output)-1,
 	   d_MasterOfDomainsZoneQuery.c_str(),
@@ -135,6 +143,12 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type */
+  // do NOT remove this readonly check lightly! without it, ueberbackend will consider
+  // readonly backends to be eligible for storing slaved zones
+  if(d_readonly)
+    return false;
+
+  /* returns information about given zone */
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
 	   sqlEscape(domain).c_str());
@@ -176,6 +190,8 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 
 void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
+  if(d_readonly)
+    return;
   /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
      id,name,master IP,serial */
   try {
@@ -212,6 +228,9 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
 void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
 {
+  if(d_readonly)
+    return;
+
   /* list all domains that need notifications for which we are master, and insert into updatedDomains
      id,name,master IP,serial */
   try {
@@ -266,6 +285,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 {
   setArgPrefix(mode+suffix);
   d_db=0;
+  d_silentuntil=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
 	
   try
@@ -275,6 +295,15 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   catch (ArgException e)
   {
     d_dnssecQueries = false;
+  }
+
+  try
+  {
+    d_readonly = mustDo("readonly");
+  }
+  catch (ArgException e)
+  {
+    d_readonly = false;
   }
 
   string authswitch = d_dnssecQueries ? "-auth" : "";	  
@@ -350,6 +379,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
 {
+  if(d_readonly)
+    throw AhuException("called updateDNSSECOrderAndAuth("+itoa(domain_id)+","+zonename+","+qname+","+itoa(auth)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   string ins=toLower(labelReverse(makeRelative(qname, zonename)));
@@ -358,6 +389,9 @@ bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string
 
 bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth)
 {
+  if(d_readonly)
+    throw AhuException("called updateDNSSECOrderAndAuthAbsolute("+itoa(domain_id)+","+qname+","+ordername+","+itoa(auth)+") on readonly GSQLBackend");
+
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -390,8 +424,10 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const 
 
 bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type)
 {
-  if(!d_dnssecQueries)
+  if(d_readonly)
     return false;
+  if(!d_dnssecQueries)
+    throw AhuException("called nullifyDNSSECOrderNameAndAuth("+itoa(domain_id)+","+qname+","+type+") on readonly GSQLBackend");
   char output[1024];
 
   snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(qname).c_str(), sqlEscape(type).c_str(), domain_id);
@@ -544,6 +580,8 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
 
 int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 {
+  if(d_readonly)
+    throw AhuException("called addDomainKey("+name+",.. keymaterial ..) on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return -1;
   char output[16384];  
@@ -561,6 +599,8 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 
 bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 {
+  if(d_readonly)
+    throw AhuException("called activateDomainKey("+name+","+itoa(id)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -577,6 +617,8 @@ bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 {
+  if(d_readonly)
+    throw AhuException("called deactivateDomainKey("+name+","+itoa(id)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -593,6 +635,8 @@ bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
 {
+  if(d_readonly)
+    throw AhuException("called removeDomainKey("+name+","+itoa(id)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -759,6 +803,8 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
 
 bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
+  if(d_readonly)
+    throw AhuException("called setDomainMetadata("+name+","+kind+",<vector>) on readonly GSQLBackend");
   char output[16384];  
   if(!d_dnssecQueries)
     return false;
@@ -894,6 +940,8 @@ bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
 
 bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb)
 {
+  if(d_readonly)
+    throw AhuException("called superMasterBackend("+ip+","+domain+", ...) on readonly GSQLBackend");
   string format;
   char output[1024];
   format = d_SuperMasterInfoQuery;
@@ -930,6 +978,8 @@ bool GSQLBackend::createDomain(const string &domain)
 
 bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
+  if(d_readonly)
+    throw AhuException("called superMasterBackend("+ip+","+domain+","+account+") on readonly GSQLBackend");
   string format;
   char output[1024];
   format = d_InsertSlaveZoneQuery;
@@ -1070,6 +1120,9 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
+  if(d_readonly)
+    throw AhuException("called feedRecord(RR for "+r.qname+") on readonly GSQLBackend");
+
   string output;
   if(d_dnssecQueries) {
     if(ordername)
@@ -1131,6 +1184,8 @@ bool GSQLBackend::feedEnts3(int domain_id, const string &domain, set<string> &no
 
 bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 {
+  if(d_readonly)
+    throw AhuException("called startTransaction("+domain+","+itoa(domain_id)+") on readonly GSQLBackend");
   char output[1024];
   if(domain_id >= 0) 
    snprintf(output,sizeof(output)-1,d_DeleteZoneQuery.c_str(),domain_id);
@@ -1148,6 +1203,8 @@ bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 
 bool GSQLBackend::commitTransaction()
 {
+  if(d_readonly)
+    throw AhuException("called commitTransaction() on readonly GSQLBackend");
   try {
     d_db->doCommand("commit");
   }
@@ -1159,6 +1216,8 @@ bool GSQLBackend::commitTransaction()
 
 bool GSQLBackend::abortTransaction()
 {
+  if(d_readonly)
+    throw AhuException("called abortTransaction() on readonly GSQLBackend");
   try {
     d_db->doCommand("rollback");
   }

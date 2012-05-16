@@ -51,7 +51,10 @@ public:
 
     declare(suffix,"dnssec","Assume DNSSEC Schema is in place","no");
     declare(suffix,"timeout","Query timeout","10");
+
+    // FIXME: move gracetime and readonly to gsqlbackend (which actually uses them now) or nestbackend
     declare(suffix,"gracetime","Ignore queries for this long after noticing a timeout","0");
+    declare(suffix,"readonly","Configure backend as readonly", "no");
 
     declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
     declare(suffix,"id-query","Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d");
