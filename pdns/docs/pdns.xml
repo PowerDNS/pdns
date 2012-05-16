@@ -14184,6 +14184,17 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+
+          <varlistentry>
+            <term>notify-range</term>
+            <listitem>
+              <para>
+                This option tells PowerDNS to ONLY notify the networks in the parameter. The default is empty which notifies all possible
+                networks.
+              </para>
+            </listitem>
+          </varlistentry>
+
 	  <varlistentry>
 	    <term>packetcache-ttl</term>
 	    <listitem>
