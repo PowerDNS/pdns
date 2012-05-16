@@ -58,6 +58,14 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   
   // make calls to d_nq.add(domain, ip);
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+    if ( ! d_notifyOnly.empty()) {
+      ComboAddress addr = ComboAddress(*j);
+      if ( ! d_notifyOnly.match(&addr)) {
+        L<<Logger::Warning<<"Skipping notification of domain '"<<domain<<"' to "<<*j<<" because it does not match notify-range."<<endl;
+        continue;
+      }
+    }
+
     L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
   }

@@ -344,6 +344,10 @@ public:
     return d_masks.empty();
   }
 
+  void clear() {
+    d_masks.clear();
+  }
+
   unsigned int size()
   {
     return (unsigned int)d_masks.size();

@@ -199,6 +199,7 @@ private:
   set<DomainInfo> d_tocheck;
   vector<DNSPacket> d_potentialsupermasters;
   bool d_preventSelfNotification;
+  NetmaskGroup d_notifyOnly;
 };
 
 #endif
