@@ -9,6 +9,8 @@ all:
 
 install:
 
+uninstall:
+
 distclean: clean
 
 clean:
