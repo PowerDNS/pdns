@@ -77,20 +77,15 @@ DNSLabel::DNSLabel(const char* human)
 	for(p=human; *p; ++p) {
 		if(*p=='.') {
 			char labelLen = p - labelStart;
-			// cerr<<"input, labelLen: "<<(int)labelLen<<endl;
 			appendChar(labelLen);
-			
-			memcpy(d_storage+d_fulllen, labelStart, labelLen);
-			d_fulllen += labelLen;
+			appendRange(labelStart, labelLen);
 			labelStart=p+1;
 		}
 	}
 	if(labelStart != p) { // human input did not end on a trailing dot
 		char labelLen = p - labelStart;
-		// cerr<<"trailing input, labelLen: "<<(int)labelLen<<endl;
-		d_storage[d_fulllen++]= labelLen;
-		memcpy(d_storage + d_fulllen, labelStart, labelLen);
-		d_fulllen += labelLen;	
+		appendChar(labelLen);
+		appendRange(labelStart, labelLen);
 	}
 	d_storage[d_fulllen++]=0;
 }
