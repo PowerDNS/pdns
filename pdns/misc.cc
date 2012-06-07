@@ -559,6 +559,18 @@ void shuffle(vector<DNSResourceRecord>& rrs)
   // we don't shuffle the rest
 }
 
+static bool comparePlace(DNSResourceRecord a, DNSResourceRecord b)
+{
+  return (a.d_place < b.d_place);
+}
+
+// make sure rrs is sorted in d_place order to avoid surprises later
+// then shuffle the parts that desire shuffling
+void orderAndShuffle(vector<DNSResourceRecord>& rrs)
+{
+  std::stable_sort(rrs.begin(), rrs.end(), comparePlace);
+  shuffle(rrs);
+}
 
 void normalizeTV(struct timeval& tv)
 {

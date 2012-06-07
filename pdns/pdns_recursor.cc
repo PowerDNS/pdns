@@ -554,7 +554,7 @@ void startDoResolve(void *p)
       updateRcodeStats(res);
     
       if(ret.size()) {
-        shuffle(ret);
+        orderAndShuffle(ret);
         
         for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
           pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 

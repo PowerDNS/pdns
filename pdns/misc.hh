@@ -288,6 +288,7 @@ inline void unixDie(const string &why)
 
 string makeHexDump(const string& str);
 void shuffle(vector<DNSResourceRecord>& rrs);
+void orderAndShuffle(vector<DNSResourceRecord>& rrs);
 
 void normalizeTV(struct timeval& tv);
 const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);
