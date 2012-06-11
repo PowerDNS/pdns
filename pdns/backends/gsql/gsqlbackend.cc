@@ -425,9 +425,9 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const 
 bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type)
 {
   if(d_readonly)
-    return false;
-  if(!d_dnssecQueries)
     throw AhuException("called nullifyDNSSECOrderNameAndAuth("+itoa(domain_id)+","+qname+","+type+") on readonly GSQLBackend");
+  if(!d_dnssecQueries)
+    return false;
   char output[1024];
 
   snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(qname).c_str(), sqlEscape(type).c_str(), domain_id);
