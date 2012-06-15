@@ -1501,13 +1501,14 @@ FDMultiplexer* getMultiplexer()
 }
 
   
-void* doReloadLuaScript()
+string* doReloadLuaScript()
 {
   string fname= ::arg()["lua-dns-script"];
   try {
     if(fname.empty()) {
       t_pdl->reset();
       L<<Logger::Error<<t_id<<" Unloaded current lua script"<<endl;
+      return new string("unloaded\n");
     }
     else {
       *t_pdl = shared_ptr<PowerDNSLua>(new PowerDNSLua(fname));
@@ -1515,10 +1516,11 @@ void* doReloadLuaScript()
   }
   catch(std::exception& e) {
     L<<Logger::Error<<t_id<<" Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
+    return new string("retaining current script, error from '"+fname+"': "+e.what()+"\n");
   }
     
   L<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
-  return 0;
+  return new string("(re)loaded '"+fname+"'\n");
 }
 
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end)
@@ -1526,9 +1528,7 @@ string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<strin
   if(begin != end) 
     ::arg().set("lua-dns-script") = *begin;
   
-  broadcastFunction(doReloadLuaScript);
-  
-  return "ok, reload/unload queued\n";
+  return broadcastAccFunction<string>(doReloadLuaScript);
 }  
 
 void* recursorThread(void*);
