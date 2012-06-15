@@ -226,7 +226,7 @@ public:
     d_network=makeComboAddress(split.first);
     
     if(!split.second.empty()) {
-      d_bits = (uint8_t) atoi(split.second.c_str());
+      d_bits = lexical_cast<unsigned int>(split.second);
       if(d_bits<32)
         d_mask=~(0xFFFFFFFF>>d_bits);
       else
