@@ -544,6 +544,26 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   string cmd=toLower(words[0]);
   vector<string>::const_iterator begin=words.begin()+1, end=words.end();
 
+  // should probably have a smart dispatcher here, like auth has
+  if(cmd=="help")
+    return
+"current-queries                  show currently active queries\n"
+"dump-cache <filename>            dump cache contents to the named file\n"
+"dump-edns[status] <filename>     dump EDNS status to the named file\n"
+"get [key1] [key2] ..             get specific statistics\n"
+"get-all                          get all statistics\n"
+"get-parameter [key1] [key2] ..   get configuration parameters\n"
+"help                             get this list\n"
+"ping                             check that all threads are alive\n"
+"quit                             stop the recursor daemon\n"
+"quit-nicely                      stop the recursor daemon nicely\n"
+"reload-acls                      reload ACLS\n"
+"reload-lua-script [filename]     (re)load Lua script\n"
+"reload-zones                     reload all auth and forward zones\n"
+"top-remotes                      show top remotes\n"
+"unload-lua-script                unload Lua script\n"
+"wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
+
   if(cmd=="get-all")
     return getAllStats();
 
@@ -615,5 +635,5 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return reloadAuthAndForwards();
   }
   
-  return "Unknown command '"+cmd+"'\n";
+  return "Unknown command '"+cmd+"', try 'help'\n";
 }
