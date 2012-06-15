@@ -204,7 +204,7 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   luaL_openlibs(d_lua);
   if(luaL_dofile(d_lua,  fname.c_str())) 
 #endif
-    throw runtime_error(string("Error loading LUA file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
+    throw runtime_error(string("Error loading Lua file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
 
   lua_settop(d_lua, 0);
   
