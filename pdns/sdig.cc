@@ -10,17 +10,24 @@ int main(int argc, char** argv)
 try
 {
   bool dnssec=false;
+  bool recurse=false;
 
   reportAllTypes();
 
   if(argc < 5) {
-    cerr<<"Syntax: sdig IP-address port question question-type [dnssec]\n";
+    cerr<<"Syntax: sdig IP-address port question question-type [dnssec|recurse]\n";
     exit(EXIT_FAILURE);
   }
 
+  // FIXME: turn recurse and dnssec into proper flags or something
   if(argc > 5 && strcmp(argv[5], "dnssec")==0)
   {
     dnssec=true;
+  }
+
+  if(argc > 5 && strcmp(argv[5], "recurse")==0)
+  {
+    recurse=true;
   }
 
   vector<uint8_t> packet;
@@ -31,6 +38,11 @@ try
   {
     pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
     pw.commit();
+  }
+
+  if(recurse)
+  {
+    pw.getHeader()->rd=true;
   }
   //  pw.setRD(true);
  

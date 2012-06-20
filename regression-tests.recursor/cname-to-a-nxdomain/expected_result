@@ -1,0 +1,4 @@
+0	www-a.prefect.example.net.	IN	CNAME	3600	www-a-2.prefect.example.net.
+1	prefect.example.net.	IN	SOA	3600	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+Rcode: 3, RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='www-a.prefect.example.net.', qtype=A

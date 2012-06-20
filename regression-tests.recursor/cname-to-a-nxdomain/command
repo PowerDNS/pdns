@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig www-a.prefect.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'

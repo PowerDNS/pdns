@@ -1,0 +1,2 @@
+Query A for a valid CNAME to A in another zone, except the A query terminates
+after the CNAME and sets NXDOMAIN.

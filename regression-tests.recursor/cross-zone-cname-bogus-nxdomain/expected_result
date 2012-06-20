@@ -1,0 +1,4 @@
+0	www2.arthur.example.net.	IN	A	3600	192.0.2.6
+0	www.trillian.example.net.	IN	CNAME	3600	www2.arthur.example.net.
+Rcode: 0, RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='www.trillian.example.net.', qtype=A

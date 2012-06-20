@@ -1,0 +1,2 @@
+#!/bin/sh
+../pdns/sdig $nameserver $port $1 $2 recurse | sort

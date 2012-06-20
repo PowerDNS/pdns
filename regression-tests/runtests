@@ -1,7 +1,7 @@
 #!/bin/bash
 PATH=.:$PATH
 
-make -C ../pdns sdig || false
+make -C ../pdns sdig || exit 1
 
 rm -f test-results failed_tests passed_tests skipped_tests */real_result */diff */*.out
 
