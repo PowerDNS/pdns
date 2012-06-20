@@ -133,6 +133,8 @@ void declareArguments()
 
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
+
+  ::arg().set("lua-prequery-script", "Lua script with prequery handler")="";
 }
 
 void declareStats(void)

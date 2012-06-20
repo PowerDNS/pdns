@@ -47,7 +47,7 @@ aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
-md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns-recursor.cc serialtweaker.cc \
+md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns.cc lua-auth.cc serialtweaker.cc \
 ednssubnet.cc ednssubnet.hh cachecleaner.hh dnslabel.hh dnslabel.cc
 
 #
@@ -209,7 +209,7 @@ dnswriter.cc dnslabeltext.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerat
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
-lua-pdns-recursor.cc lua-pdns-recursor.hh randomhelper.cc  \
+lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)

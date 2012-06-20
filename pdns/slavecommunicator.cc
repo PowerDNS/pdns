@@ -37,7 +37,7 @@
 #include <boost/lexical_cast.hpp>
 #include "base64.hh"
 #include "inflighter.cc"
-#include "lua-pdns-recursor.hh"
+#include "lua-auth.hh"
 #include "namespaces.hh"
 #include "common_startup.hh"
 #include <boost/scoped_ptr.hpp>
@@ -132,11 +132,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
     }
     
-    scoped_ptr<PowerDNSLua> pdl;
+    scoped_ptr<AuthLua> pdl;
     vector<string> scripts;
     if(B->getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
       try {
-        pdl.reset(new PowerDNSLua(scripts[0]));
+        pdl.reset(new AuthLua(scripts[0]));
         L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
       }
       catch(std::exception& e) {

@@ -97,3 +97,24 @@ function postresolve ( remoteip, domain, qtype, records, origrcode )
 	end
 	return origrcode, records
 end	
+
+function prequery ( dnspacket )
+	-- pdnslog ("prequery called for ".. tostring(dnspacket) )
+	qname, qtype = dnspacket:getQuestion()
+	pdnslog ("q: ".. qname.." "..qtype)
+	if qtype == pdns.A and qname == "www.domain.com" 
+	then
+		pdnslog ("calling dnspacket:setRcode")
+		dnspacket:setRcode(pdns.NXDOMAIN)
+		pdnslog ("called dnspacket:setRcode")
+		pdnslog ("adding records")
+		ret = {}
+		ret[1] = {qname=qname, qtype=qtype, content="1.2.3.4", place=2}
+		ret[2] = {qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
+		dnspacket:addRecords(ret)
+		pdnslog ("returning true")
+		return true
+	end
+	pdnslog ("returning false")
+	return false
+end

@@ -58,6 +58,16 @@ PacketHandler::PacketHandler():B(s_programname)
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
+  string fname= ::arg()["lua-prequery-script"];
+  if(fname.empty())
+  {
+    d_pdl = NULL;
+  }
+  else
+  {
+    d_pdl = new AuthLua(fname);
+  }
+
 }
 
 DNSBackend *PacketHandler::getBackend()
@@ -839,8 +849,17 @@ bool validDNSName(const string &name)
 
 DNSPacket *PacketHandler::question(DNSPacket *p)
 {
+  DNSPacket *ret;
+
+  if(d_pdl)
+  {
+    ret=d_pdl->prequery(p);
+    if(ret)
+      return ret;
+  }
+
   bool shouldRecurse=false;
-  DNSPacket *ret=questionOrRecurse(p, &shouldRecurse);
+  ret=questionOrRecurse(p, &shouldRecurse);
   if(shouldRecurse) {
     DP->sendPacket(p);
   }
