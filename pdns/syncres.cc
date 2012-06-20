@@ -1025,10 +1025,11 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       for(LWResult::res_t::iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
         if(i->d_place==DNSResourceRecord::AUTHORITY && i->qtype.getCode()==QType::SOA && 
            lwr.d_rcode==RCode::NXDomain && dottedEndsOn(qname,i->qname) && dottedEndsOn(i->qname, auth)) {
-          LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"' (accept="<<dottedEndsOn(i->qname, auth)<<")"<<endl;
+          LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"' (accept="<<dottedEndsOn(i->qname, auth)<<"), newtarget='"<<newtarget<<"'"<<endl;
           
           i->ttl = min(i->ttl, s_maxnegttl);
-          ret.push_back(*i);
+          if(!newtarget.length()) // only add a SOA if we're not going anywhere after this
+            ret.push_back(*i);
 
           NegCacheEntry ne;
 
