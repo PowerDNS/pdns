@@ -155,6 +155,11 @@
 # loglevel=4
 
 #################################
+# lua-prequery-script	Lua script with prequery handler
+#
+# lua-prequery-script=
+
+#################################
 # master	Act as a master
 #
 # master=no
