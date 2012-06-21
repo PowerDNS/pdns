@@ -246,8 +246,18 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
     lua_pushnumber(d_lua, iter->second);
     lua_setfield(d_lua, -2, iter->first.c_str());
   }
+  lua_pushnumber(d_lua, 0);
+  lua_setfield(d_lua, -2, "NOERROR");
+  lua_pushnumber(d_lua, 1);
+  lua_setfield(d_lua, -2, "FORMERR");
+  lua_pushnumber(d_lua, 2);
+  lua_setfield(d_lua, -2, "SERVFAIL");
   lua_pushnumber(d_lua, 3);
   lua_setfield(d_lua, -2, "NXDOMAIN");
+  lua_pushnumber(d_lua, 4);
+  lua_setfield(d_lua, -2, "NOTIMP");
+  lua_pushnumber(d_lua, 5);
+  lua_setfield(d_lua, -2, "REFUSED");
   lua_setglobal(d_lua, "pdns");
   
   lua_pushlightuserdata(d_lua, (void*)this); 
