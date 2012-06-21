@@ -1,4 +1,4 @@
-0	www.arthur.example.net.	IN	A	3600	192.0.2.2
 0	www-d.prefect.example.net.	IN	CNAME	3600	www.arthur.example.net.
+0	www.arthur.example.net.	IN	A	3600	192.0.2.2
 Rcode: 0, RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='www-d.prefect.example.net.', qtype=A

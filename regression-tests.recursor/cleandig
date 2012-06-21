@@ -1,2 +1,2 @@
 #!/bin/sh
-../pdns/sdig $nameserver $port $1 $2 recurse | sort
+../pdns/sdig $nameserver $port $1 $2 recurse | LC_ALL=C sort
