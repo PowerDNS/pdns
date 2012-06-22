@@ -159,10 +159,17 @@ static int ldp_addRecords(lua_State *L) {
   return 0;
 }
 
+static int ldp_getRemote(lua_State *L) {
+  DNSPacket *p=ldp_checkDNSPacket(L);
+  lua_pushstring(L, p->getRemote().c_str());
+  return 1;
+}
+
 static const struct luaL_reg ldp_methods [] = {
       {"setRcode", ldp_setRcode},
       {"getQuestion", ldp_getQuestion},
       {"addRecords", ldp_addRecords},
+      {"getRemote", ldp_getRemote},
       {NULL, NULL}
     };
 
