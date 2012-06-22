@@ -137,7 +137,7 @@ function prequery ( dnspacket )
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
         ret[1] = {qname=qname, qtype=pdns.CNAME, content="www2.arthur.example.net", place=1}
-        ret[2] = {qname="trillian.example.net", qtype=pdns.SOA, content="$SOA", place=2}
+        ret[2] = {qname="", qtype=pdns.SOA, content="$SOA", place=2}
         dnspacket:addRecords(ret)
         return true
     end
