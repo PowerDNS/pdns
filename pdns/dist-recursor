@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-make dnslabeltext.cc
+set -e
+
+ragel dnslabeltext.rl -o dnslabeltext.cc
 
 VERSION=3.4-pre
 
