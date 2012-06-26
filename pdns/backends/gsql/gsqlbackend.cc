@@ -692,7 +692,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains)
   DLOG(L<<"GSQLBackend retrieving all domains."<<endl);
 
   try {
-    d_db->doCommand(d_getAllDomainsQuery.c_str()); 
+    d_db->doQuery(d_getAllDomainsQuery.c_str()); 
   }
   catch (SSqlException &e) {
     throw AhuException("Database error trying to retrieve all domains:" + e.txtReason());
