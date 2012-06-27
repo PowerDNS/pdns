@@ -679,7 +679,7 @@ try
   }
   else if(cmds[0] == "remove-zone-key") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec remove-zone-key ZONE KEY-ID";
+      cerr<<"Syntax: pdnssec remove-zone-key ZONE KEY-ID"<<endl;
       return 0;
     }
     const string& zone=cmds[1];
