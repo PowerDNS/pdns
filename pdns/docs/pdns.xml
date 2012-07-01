@@ -11230,6 +11230,7 @@ $ pdnssec rectify-zone powerdnssec.org
   </section>
   <section id="ksk-rollover"><title>KSK rollover</title>
   <para>
+  .. pdnssec add-zone-key ZONE ksk ..
   .. pdnssec show-zone ZONE and communicate duplicate DS ..
   .. pdnssec activate-zone-key ZONE next-key-id ..
   .. pdnssec deactivate-zone-key ZONE prev-key-id ..
@@ -11242,9 +11243,14 @@ $ pdnssec rectify-zone powerdnssec.org
   </para>
   </section>
   <section id="nsec3-change"><title>NSEC(3) change</title>
+  <para>This section describes how to change NSEC(3) parameters when they are already set.</para>
+  <para><warning><para>The following instructions might not be correct or complete!</para></warning></para>
   <para>
-  .. pdnssec show-zone ZONE and communicate duplicate DS ..
-  .. pdnssec set-nsec3 'parameters' ZONE
+    .. pdnssec set-nsec3 ZONE 'parameters'
+    .. pdnssec show-zone ZONE and communicate duplicate DS ..
+  </para>
+  <para>
+    For further details, please see <xref linkend="pdnssec"/>.
   </para>
   </section>
   </section>
