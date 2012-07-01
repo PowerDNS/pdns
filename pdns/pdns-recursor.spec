@@ -2,7 +2,7 @@
 
 Buildroot: /tmp/pdns/
 Name: pdns-recursor
-Version: 3.4pre
+Version: 3.5pre
 Release: 1
 Summary: extremely powerful and versatile recursing nameserver
 License: GPL
