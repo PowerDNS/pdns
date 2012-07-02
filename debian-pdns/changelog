@@ -1,3 +1,9 @@
+pdns (3.1.1-rc1-1) unstable; urgency=medium
+
+  * fill in the blanks
+
+ -- bert hubert <bert.hubert@netherlabs.nl>  Mon, 2 Jul 2012 12:23:33 +0100
+
 pdns (3.1-1) unstable; urgency=medium
 
   * fill in the blanks
