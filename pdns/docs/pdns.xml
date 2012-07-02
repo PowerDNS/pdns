@@ -868,20 +868,25 @@
       </sect2>
       <sect2 id="changelog-auth-3-0-1"><title>PowerDNS Authoritative Server 3.0.1</title>
       <para>
+        <warning><para>The DNSSEC implementation of PowerDNS Authoritative Server 3.0 and 3.0.1 contains many issues regarding
+    CNAMES, wildcards and (in)secure delegations. If you use any of these, and you use DNSSEC you MUST upgrade to 3.1 or beyond!</para></warning>
 	3.0.1 consists of 3.0, plus the patch from <xref linkend="powerdns-advisory-2012-01"/>
       </para>
       </sect2>
       <sect2 id="changelog-auth-3-0"><title>PowerDNS Authoritative Server 3.0</title>
       <para>
-	<warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade.
-	Please refer to <xref linkend="from2.9to3.0"/> for important information on 
-	correct and stable operation, as well as notes on performance and memory use.</para>
+        <warning><para>Version 3.0 of the PowerDNS Authoritative Server is a major upgrade.
+          Please refer to <xref linkend="from2.9to3.0"/> for important information on 
+          correct and stable operation, as well as notes on performance and memory use.</para></warning>
+      <warning><para>The DNSSEC implementation of PowerDNS Authoritative Server 3.0 and 3.0.1 contains many issues regarding
+    CNAMES, wildcards and (in)secure delegations. If you use any of these, and you use DNSSEC you MUST upgrade to 3.1 or beyond!</para></warning>
+  </para>
 	<para>
 	  Known issues as of RC3 include:
 	<itemizedlist>
-	<listitem><para>Not all new features are fully documented yet</para></listitem>
-	</itemizedlist></para>
-      </warning></para>
+    <listitem><para>Not all new features are fully documented yet</para></listitem>
+	</itemizedlist>
+      </para>
       <para><note><para>Released on the 22nd of July 2011</para><para>RC1 released on the 4th of April 2011</para>
       <para>RC2 released on the 19th of April 2011</para>
       <para>RC3 released on the 19th of July 2011</para>
