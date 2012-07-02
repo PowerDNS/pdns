@@ -567,6 +567,14 @@ try
   else if (cmds[0] == "check-all-zones") {
     exit(checkAllZones(dk));
   }
+  else if (cmds[0] == "test-zone") {
+    cerr << "Did you mean check-zone?"<<endl;
+    return 0;
+  }
+  else if (cmds[0] == "test-all-zones") {
+    cerr << "Did you mean check-all-zones?"<<endl;
+    return 0;
+  }
 #if 0
   else if(cmds[0] == "signing-server" )
   {
