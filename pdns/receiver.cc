@@ -414,9 +414,18 @@ int main(int argc, char **argv)
   try {
     declareArguments();
     UNIX_declareArguments();
-      
+
     ::arg().laxParse(argc,argv); // do a lax parse
     
+    if(::arg().mustDo("version")) {
+      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__;
+#ifdef __GNUC__ 
+      cerr<<" with gcc version "<<__VERSION__;
+#endif
+      cout<<endl;
+      exit(99);
+    }
+
     if(::arg()["config-name"]!="") 
       s_programname+="-"+::arg()["config-name"];
     
@@ -455,14 +464,6 @@ int main(int argc, char **argv)
       cerr<<"Um, we did get here!"<<endl;
     }
 
-    if(::arg().mustDo("version")) {
-      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__;
-#ifdef __GNUC__ 
-      cerr<<" with gcc version "<<__VERSION__;
-#endif
-      cout<<endl;
-      exit(99);
-    }
     
     // we really need to do work - either standalone or as an instance
     
