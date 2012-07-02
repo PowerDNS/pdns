@@ -363,7 +363,7 @@ void mainthread()
     g_mustlockdistributor=true;
   }
   unsigned int max_rthreads= ::arg().asNum("receiver-threads");
-  for(int n=0; n < max_rthreads; ++n)
+  for(unsigned int n=0; n < max_rthreads; ++n)
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
 
   void *p;
