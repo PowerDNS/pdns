@@ -169,6 +169,7 @@ private:
   string d_ednsping;
   bool d_wantsnsid;
   bool d_haveednssubnet;
+  bool d_haveednssection;
   EDNSSubnetOpts d_eso;
   string d_tsigsecret;
   string d_tsigkeyname;
