@@ -29,7 +29,7 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
   d_connectlogstr=d_connectstr;
 
   if(!password.empty()) {
-    d_connectlogstr+=" password=XXX";
+    d_connectlogstr+=" password=<HIDDEN>";
     d_connectstr+=" password="+password;
   }
   
