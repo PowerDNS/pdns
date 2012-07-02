@@ -42,7 +42,6 @@ void declareArguments()
   ::arg().setSwitch("log-failed-updates","If PDNS should log failed update requests")="";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
-  ::arg().setSwitch("allow-recursion-override","Set this so that local data fully overrides the recursor")="no";
   ::arg().set("urlredirector","Where we send hosts to that need to be url redirected")="127.0.0.1";
   ::arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
   ::arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0";

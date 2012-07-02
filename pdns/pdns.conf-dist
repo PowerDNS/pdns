@@ -10,11 +10,6 @@
 # allow-recursion=0.0.0.0/0
 
 #################################
-# allow-recursion-override	Set this so that local data fully overrides the recursor
-#
-# allow-recursion-override=no
-
-#################################
 # cache-ttl	Seconds to store packets in the PacketCache
 #
 # cache-ttl=20
