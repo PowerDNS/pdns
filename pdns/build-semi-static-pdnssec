@@ -1,0 +1,29 @@
+g++ -DSYSCONFDIR=\"/etc/powerdns\" -DLIBDIR=\"/usr/lib/powerdns\" \
+-DLOCALSTATEDIR=\"/var/run\" -Ibackends/bind -pthread -I/usr/include/lua5.1 \
+-Iext/polarssl-1.1.2/include -DPDNS_ENABLE_LUA -D_GNU_SOURCE -Wall -O2 \
+../modules/gmysqlbackend/gmysqlbackend.o ../modules/gmysqlbackend/smysql.o \
+../modules/gpgsqlbackend/gpgsqlbackend.o ../modules/gpgsqlbackend/spgsql.o \
+../modules/pipebackend/coprocess.o ../modules/pipebackend/pipebackend.o \
+../modules/gsqlitebackend/gsqlitebackend.o \
+../modules/gsqlitebackend/ssqlite.o \
+../modules/gsqlite3backend/gsqlite3backend.o \
+../modules/luabackend/luabackend.o ../modules/luabackend/minimal.o \
+../modules/luabackend/reload.o ../modules/luabackend/lua_functions.o \
+../modules/luabackend/master.o ../modules/luabackend/private.o \
+../modules/luabackend/slave.o ../modules/luabackend/supermaster.o \
+../modules/luabackend/dnssec.o ../modules/geobackend/geobackend.o \
+../modules/geobackend/ippreftree.o -rdynamic -pthread -Wl,-rpath \
+-Wl,/opt/postgresql/lib  -o pdnssec pdnssec.o dbdnsseckeeper.o \
+dnsparser.o dnsrecords.o dnswriter.o misc.o rcpgenerator.o base64.o \
+unix_utility.o logger.o statbag.o qtype.o sillyrecords.o nsecrecords.o \
+dnssecinfra.o base32.o ueberbackend.o dnsbackend.o arguments.o packetcache.o \
+dnspacket.o bindbackend2.o binddnssec.o bindparser.o bindlexer.o \
+gsqlbackend.o zoneparser-tng.o dynlistener.o dns.o randombackend.o \
+dnssecsigner.o polarrsakeyinfra.o md5.o signingpipe.o dnslabeltext.o \
+ednssubnet.o dnslabel.o botan110signers.o botansigners.o cryptoppsigners.o \
+ssqlite3.o -ldl -Wl,-Bstatic -lmysqlclient -lpq -lssl -lcrypto -lresolv -lnsl \
+/usr/lib/libsqlite.a -llua5.1 -L/usr/local/lib -L/opt/postgresql/lib \
+-L/usr/lib/x86_64-linux-gnu/ ext/polarssl-1.1.2/library/libpolarssl.a \
+-lboost_program_options-mt -lboost_serialization-mt \
+/usr/lib/x86_64-linux-gnu/libsqlite3.a -lbotan-1.10 -lgmp -lcryptopp -lz \
+-lcrypt -pthread -Wl,-rpath -Wl,/usr/local/lib -static-libgcc -static-libstdc++ 
