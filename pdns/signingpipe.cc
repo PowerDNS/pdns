@@ -63,7 +63,7 @@ try
   return 0;
 }
 catch(std::exception& e) {
-  cerr<<"Signing thread died with error "<<e.what()<<endl;
+  L<<Logger::Error<<"Signing thread died with error "<<e.what()<<endl;
   return 0;
 }
 
@@ -123,7 +123,7 @@ pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, 
   vector<pollfd> pfds;
   
   for(unsigned int n = 0; n < d_sockets.size(); ++n) {    
-    if(d_eof.count(n))  
+    if(d_eof.count(d_sockets[n]))  
       continue;
     struct pollfd pfd;
     memset(&pfd, 0, sizeof(pfd));
@@ -274,7 +274,7 @@ try
 }
 catch(std::exception& e)
 {
-  cerr<<"Signing thread died because of std::exception: "<<e.what()<<endl;
+  L<<Logger::Error<<"Signing thread died because of std::exception: "<<e.what()<<endl;
   close(fd);
 }
 
