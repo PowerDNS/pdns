@@ -10,7 +10,7 @@
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-#if defined(__NetBSD__)
+#if defined(__NetBSD__) || defined(__OpenBSD__)
 #include <net/if.h>
 #include <net/if_ether.h>
 #elif defined (__SVR4) && defined (__sun)
