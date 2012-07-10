@@ -84,7 +84,7 @@ void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, c
   vector<RRSIGRecordContent> rrcs;
   if(dk.isPresigned(signer)) {
     //cerr<<"Doing presignatures"<<endl;
-    dk.getPreRRSIGs(db, signer, signQName, QType(signQType), signPlace, outsigned); // does it all
+    dk.getPreRRSIGs(db, signer, signQName, wildcardname, QType(signQType), signPlace, outsigned); // does it all
   }
   else {
     if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0)  {
