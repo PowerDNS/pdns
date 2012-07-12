@@ -516,6 +516,10 @@ try
   }
   
   if (cmds[0] == "test-algorithm") {
+    if(cmds.size() != 2) {
+      cerr << "Syntax: pdnssec test-algorithm algonum"<<endl;
+      return 0;
+    }
     testAlgorithm(lexical_cast<int>(cmds[1]));
     return 0; 
   }
