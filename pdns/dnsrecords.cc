@@ -344,8 +344,20 @@ void reportBasicTypes()
   DNSRecordContent::regist(1, QType::ANY, 0, 0, "ANY");
 }
 
+void reportDNSSECTypes()
+{
+  DSRecordContent::report();
+  RRSIGRecordContent::report();
+  DNSKEYRecordContent::report();
+  NSECRecordContent::report();
+  NSEC3RecordContent::report();
+  NSEC3PARAMRecordContent::report();
+}
+
+
 void reportOtherTypes()
 {
+   reportDNSSECTypes();
    AFSDBRecordContent::report();
    SPFRecordContent::report();
    NAPTRRecordContent::report();
@@ -353,14 +365,10 @@ void reportOtherTypes()
    HINFORecordContent::report();
    RPRecordContent::report();
    KEYRecordContent::report();
-   DNSKEYRecordContent::report();
-   RRSIGRecordContent::report();
-   DSRecordContent::report();
+   
    SSHFPRecordContent::report();
    CERTRecordContent::report();
-   NSECRecordContent::report();
-   NSEC3RecordContent::report();
-   NSEC3PARAMRecordContent::report();
+   
    TLSARecordContent::report();
    DLVRecordContent::report();
    DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
