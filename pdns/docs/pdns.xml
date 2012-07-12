@@ -97,7 +97,7 @@
       </para>
       <sect2 id="changelog-auth-3-1-1"><title>PowerDNS Authoritative Server 3.1.1</title>
   	  <note>
-      	<para>RC1 released on the 2nd of July 2012</para>
+      	<para>..</para>
       </note>
       <para>
       	This is a maintenance update to the 3.1 release, fixing a few important issues.
@@ -11438,8 +11438,15 @@ $ pdnssec rectify-zone powerdnssec.org
   </section>
   <section id="dnssec-performance"><title>Performance</title>
   <para>
-    As of version 3.0, PowerDNSSEC has not be tuned for performance. In practice this means that operations
-    above 1000 queries per second should not yet be attempted.
+	DNSSEC has a performance impact, mostly measured in terms of
+	additional memory used for the signature caches. In addition, on
+	startup or AXFR-serving, a lot of signing needs to happen.
+  </para>
+  <para>
+  	Please see <ulink 
+  	url="http://wiki.powerdns.com/trac/wiki/LargeScaleDNSSECBCP">Large
+  	Scale DNSSEC Best Current Practices</ulink> for the most up to date
+  	information.
   </para>
   </section>
   <section id="dnssec-thanks-to"><title>Thanks to, acknowledgements</title>
