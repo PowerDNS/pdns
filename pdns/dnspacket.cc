@@ -266,6 +266,7 @@ void DNSPacket::wrapup()
   DNSPacketWriter pw(packet, qdomain, qtype.getCode(), qclass);
 
   pw.getHeader()->rcode=d.rcode;
+  pw.getHeader()->opcode = d.opcode;
   pw.getHeader()->aa=d.aa;
   pw.getHeader()->ra=d.ra;
   pw.getHeader()->qr=d.qr;
