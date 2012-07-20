@@ -139,7 +139,7 @@ try
     if(r.size()) cout<<r<<endl;
   } while(chopOff(shorter));
 
-  if(names.count(qname))
+  if(names.count(qname+"."))
   {
     cout<<"== qname found in names, not investigating denial any further"<<endl;
     exit(EXIT_SUCCESS);
