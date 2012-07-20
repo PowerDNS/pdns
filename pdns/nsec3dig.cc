@@ -17,7 +17,7 @@ string nsec3Hash(const string &qname, const string &salt, unsigned int iters)
   return toLower(toBase32Hex(hashQNameWithSalt(iters, salt, qname)));
 }
 
-string proveOrDeny(const nsec3set &nsec3s, const string &qname, const string &salt, unsigned int iters)
+string proveOrDeny(const nsec3set &nsec3s, const string &qname, const string &salt, unsigned int iters, set<string> &proven, set<string> &denied)
 {
   string hashed = nsec3Hash(qname, salt, iters);
 
@@ -28,15 +28,18 @@ string proveOrDeny(const nsec3set &nsec3s, const string &qname, const string &sa
 
     if(hashed == base)
     {
+      proven.insert(qname);
       return qname+" ("+hashed+") proven by base of "+base+".."+next;
     }
     if(hashed == next)
     {
+      proven.insert(qname);
       return qname+" ("+hashed+") proven by next of "+base+".."+next;
     }
     if((hashed > base && hashed < next) ||
        (next < base && (hashed < next || hashed > base)))
     {
+      denied.insert(qname);
       return qname+" ("+hashed+") denied by "+base+".."+next;
     }
   }
@@ -124,15 +127,65 @@ try
 #endif
 
   cout<<"== nsec3 prove/deny report follows =="<<endl;
-  string r=proveOrDeny(nsec3s, qname, nsec3salt, nsec3iters);
+  set<string> proven;
+  set<string> denied;
+  string r=proveOrDeny(nsec3s, qname, nsec3salt, nsec3iters, proven, denied);
   string shorter(qname);
   do {
     string r;
-    r=proveOrDeny(nsec3s, shorter, nsec3salt, nsec3iters);
+    r=proveOrDeny(nsec3s, shorter, nsec3salt, nsec3iters, proven, denied);
     if(r.size()) cout<<r<<endl;
-    r=proveOrDeny(nsec3s, "*."+shorter, nsec3salt, nsec3iters);
+    r=proveOrDeny(nsec3s, "*."+shorter, nsec3salt, nsec3iters, proven, denied);
     if(r.size()) cout<<r<<endl;
   } while(chopOff(shorter));
+
+  if(names.count(qname))
+  {
+    cout<<"== qname found in names, not investigating denial any further"<<endl;
+    exit(EXIT_SUCCESS);
+  }
+  cout<<"== qname not found in names, investigating denial"<<endl;
+  if(proven.count(qname))
+  {
+    cout<<"qname found proven, NODATA response?"<<endl;
+    exit(EXIT_SUCCESS);
+  }
+  shorter=qname;
+  string encloser;
+  string nextcloser;
+  string prev(qname);
+  while(chopOff(shorter))
+  {
+    if(proven.count(shorter))
+    {
+      encloser=shorter;
+      nextcloser=prev;
+      cout<<"found closest encloser at "<<encloser<<endl;
+      cout<<"next closer is "<<nextcloser<<endl;
+      break;
+    }
+    prev=shorter;
+  }
+  if(encloser.size() && nextcloser.size())
+  {
+    if(denied.count(nextcloser))
+    {
+      cout<<"next closer ("<<nextcloser<<") is denied correctly"<<endl;
+    }
+    else
+    {
+      cout<<"next closer ("<<nextcloser<<") NOT denied"<<endl;
+    }
+    if(denied.count("*."+encloser))
+    {
+      cout<<"wildcard at encloser (*."<<encloser<<") is denied correctly"<<endl;
+    }
+    else
+    {
+      cout<<"wildcard at encloser (*."<<encloser<<") is NOT denied"<<endl;
+    }
+  }
+  exit(EXIT_SUCCESS);
 }
 catch(std::exception &e)
 {
