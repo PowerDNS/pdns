@@ -287,27 +287,19 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   string var, val;
   string::size_type pos;
 
-  if(!arg.find("--") &&(pos=arg.find("="))!=string::npos)  // this is a --port=25 case
-    {
-      var=arg.substr(2,pos-2);
-      val=arg.substr(pos+1);
-    }
-  else if(!arg.find("--") && (arg.find("=")==string::npos))  // this is a --daemon case
-    { 
-      var=arg.substr(2);
-      val="";
-    }
-  else if(arg[0]=='-')
-    {
-      var=arg.substr(1);
-      val="";
-    }
-  else { // command 
+  if(!arg.find("--") &&(pos=arg.find("="))!=string::npos) {  // this is a --port=25 case
+    var=arg.substr(2,pos-2);
+    val=arg.substr(pos+1);
+  }  else if(!arg.find("--") && (arg.find("=")==string::npos)) { // this is a --daemon case
+    var=arg.substr(2);
+    val="";
+  } else if(arg[0]=='-') {
+    var=arg.substr(1);
+    val="";
+  } else // command 
     d_cmds.push_back(arg);
-  }
 
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
-
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
     if(pos && pos!=string::npos) 
       val=val.substr(pos);
