@@ -77,15 +77,13 @@ class ArgvMap
 public:
   ArgvMap();
   void parse(int &argc, char **argv, bool lax=false); //!< use this to parse from argc and argv
-  void laxParse(int &argc, char **argv) //!< use this to parse from argc and argv
-  {
+  void laxParse(int &argc, char **argv) {//!< use this to parse from argc and argv
     parse(argc,argv,true);
   }
   bool preParseFile(const char *fname, const string &arg, const string& theDefault=""); //!< use this to preparse a single var in configuration
 
   bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
-  bool laxFile(const char *fname) 
-  {
+  bool laxFile(const char *fname) { 
     return file(fname,true);
   }
   typedef map<string,string> param_t; //!< use this if you need to know the content of the map
