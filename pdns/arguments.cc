@@ -320,8 +320,19 @@ const vector<string>&ArgvMap::getCommands()
 void ArgvMap::parse(int &argc, char **argv, bool lax)
 {
   d_cmds.clear();
+  string curarg, nextarg;
   for(int n=1;n<argc;n++) {
-    parseOne(argv[n],"",lax);
+    curarg=argv[n];
+    if (curarg.find("=") == string::npos) {
+      if (n+1<argc) {
+        nextarg=argv[n+1];
+        if (nextarg.find("--") == string::npos) {
+          curarg+="="+nextarg;
+          n++;
+        }
+      }
+    }
+    parseOne(curarg,"",lax);
   }
 }
 
