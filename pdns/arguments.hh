@@ -81,7 +81,6 @@ public:
   {
     parse(argc,argv,true);
   }
-  void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
   bool preParseFile(const char *fname, const string &arg, const string& theDefault=""); //!< use this to preparse a single var in configuration
 
   bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
@@ -116,6 +115,7 @@ public:
   const string &operator[](const string &); //!< iterator semantics
   const vector<string>&getCommands();
 private:
+  void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
   void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
   typedef map<string,string> params_t;
   params_t params;
