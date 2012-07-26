@@ -198,6 +198,7 @@ try
     ("setgid", po::value<int>(), "setgid to this numerical user id")
     ("origin-address", po::value<string>()->default_value("::"), "Source address for notifications to PowerDNS")
     ("listen-address", po::value<vector<string> >(), "IP addresses to listen on")
+    ("listen-port", po::value<int>()->default_value(53), "Source port to listen on")
     ("daemon,d", po::value<bool>()->default_value(true), "operate in the background")
     ("verbose,v", "be verbose");
 
@@ -228,7 +229,7 @@ try
   
   syslogFmt(boost::format("Starting up"));
   for(vector<string>::const_iterator address = addresses.begin(); address != addresses.end(); ++address) {
-    ComboAddress local(*address, 53);
+    ComboAddress local(*address, g_vm["listen-port"].as<int>());
     int sock = socket(local.sin4.sin_family, SOCK_DGRAM, 0);
     if(sock < 0)
       throw runtime_error("Creating socket for incoming packets: "+stringerror());
@@ -241,12 +242,12 @@ try
   }
 
   // create socket that talks to inner PowerDNS
-
-  g_pdnssocket=socket(AF_INET, SOCK_DGRAM, 0);
+  ComboAddress originAddress(g_vm["origin-address"].as<string>(), 0);
+  g_pdnssocket=socket(originAddress.sin4.sin_family, SOCK_DGRAM, 0);
   if(g_pdnssocket < 0)
     throw runtime_error("Creating socket for packets to PowerDNS: "+stringerror());
 
-  ComboAddress originAddress(g_vm["origin-address"].as<string>(), 0);
+  
   if(::bind(g_pdnssocket,(sockaddr*) &originAddress, originAddress.getSocklen()) < 0)
       throw runtime_error("Binding local address of inward socket to '"+ originAddress.toStringWithPort()+"': "+stringerror());
   
