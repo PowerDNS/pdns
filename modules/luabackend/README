@@ -15,13 +15,13 @@ backend completely in Lua! Which database server to use etc is now up to you!
 What you have here is the possibility to make your own "dns-server" without the
 knowledge of programming in c/c++.
 
-There is one thing that needs to be sad. Remember that each thread 
-PowerDNS launch of this backend is completely different so they cannot 
+There is one thing that needs to be said. Remember that each thread 
+PowerDNS launches of this backend is completely different so they cannot 
 share information between each other! 
 
 You will need some kind of a database that can be shared for this.
 
-All the functionsname that PowerDNS except for a backend should be the same
+All the functionnames that PowerDNS accept for a backend should be the same
 in your Lua script, in lowercase. Also, the parameters should be in the same 
 order. Where there is a structure in c/c++ there is a table in the Lua backend.
 This is also true for return values. A few functions expect that you return a 
