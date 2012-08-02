@@ -1,0 +1,2 @@
+1	*.something.wtest.com.	IN	NSEC	3600	a.something.wtest.com. A RRSIG NSEC
+1	a.something.wtest.com.	IN	NSEC	3600	wtest.com. A RRSIG NSEC

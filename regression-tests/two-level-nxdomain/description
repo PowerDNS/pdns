@@ -1,0 +1,2 @@
+Make sure a name that is two labels beneath an apex, with even the first label
+not existing, generates a correct NSEC(3) denial.

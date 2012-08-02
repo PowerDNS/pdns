@@ -1,3 +1,1 @@
-1	dnssec-parent.com.	IN	SOA	3600	ns1.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='delegated.dnssec-parent.com.', qtype=DS
+1	delegated.dnssec-parent.com.	IN	NSEC	3600	ns1.dnssec-parent.com. NS RRSIG NSEC

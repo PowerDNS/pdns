@@ -1,0 +1,4 @@
+We would sometimes synthesize an NSEC from a wildcard. This test
+makes sure we have stopped doing that.
+(I have a feeling unbound only accepts our output because of the
+opt-out flags. FIXME?)

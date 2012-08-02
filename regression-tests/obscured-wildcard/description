@@ -1,0 +1,2 @@
+If there is a more-specific subtree that matches part of a name,
+a less-specific wildcard cannot match it.

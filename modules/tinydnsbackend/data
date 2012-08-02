@@ -20153,10 +20153,17 @@ Zwtest.com:ns1.wtest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:36
 @wtest.com::smtp-servers.example.com.:10:3600
 @wtest.com::smtp-servers.wtest.com.:15:3600
 C\052.wtest.com:server1.wtest.com.:3600
+:e.wtest.com:16:\011non-empty:3600
+:d.e.wtest.com:16:\011non-empty:3600
+:c.d.e.wtest.com:16:\011non-empty:3600
+:b.c.d.e.wtest.com:16:\011non-empty:3600
+:a.b.c.d.e.wtest.com:16:\011non-empty:3600
++\052.a.b.c.d.e.wtest.com:6.7.8.9:3600
 @secure.wtest.com::server1.wtest.com.:10:3600
 +server1.wtest.com:1.2.3.4:3600
 :something.wtest.com:16:\045make\040the\040empty\040non-terminal\040non-empty:3600
 +\052.something.wtest.com:4.3.2.1:3600
++a.something.wtest.com:10.11.12.13:3600
 #2005092501 auto axfr-get
 Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +dnssec-parent.com:9.9.9.9:3600

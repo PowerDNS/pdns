@@ -919,6 +919,11 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       iter--;
     }
 
+    if(iter == hashindex.begin() && (iter->nsec3hash > lqname))
+    {
+      iter = hashindex.end();
+    }
+
     while(iter == hashindex.end() || !(iter->auth))
     {
       iter--;

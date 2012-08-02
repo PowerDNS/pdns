@@ -99,7 +99,7 @@ private:
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
-  void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
+  void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const string& target3, const std::string& auth, int mode);
   void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
   void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode);
@@ -107,13 +107,13 @@ private:
   
 
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
-  void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);
-  void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd);
+  void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& nextcloser, SOAData& sd);
+  void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd, int mode);
   vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target);
   bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
 
-  bool getBestWildcard(DNSPacket *p, SOAData& sd, const string &target, vector<DNSResourceRecord>* ret);
-  bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, bool& retargeted, bool& nodata);
+  bool getBestWildcard(DNSPacket *p, SOAData& sd, const string &target, string &wildcard, vector<DNSResourceRecord>* ret);
+  bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, string &wildcard, bool& retargeted, bool& nodata);
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
   

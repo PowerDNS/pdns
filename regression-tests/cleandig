@@ -1,5 +1,6 @@
 #!/bin/sh
 ../pdns/sdig $nameserver $port $1 $2 $3 | LC_ALL=C sort
+../pdns/nsec3dig $nameserver $port $1 $2 > $testname/nsec3dig.out 2>&1
 drill -a -p $port -o rd -D -S -k trustedkeys $1 $2 @$nameserver > $testname/drillchase.out 2>&1 
 echo RETVAL: $? >> $testname/drillchase.out
 drill -a -p $port -o rd -D -k trustedkeys $1 $2 @$nameserver > $testname/drill.out 2>&1

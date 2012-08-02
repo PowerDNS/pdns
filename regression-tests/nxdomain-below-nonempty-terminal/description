@@ -1,0 +1,2 @@
+Make sure a name that is two labels beneath an existing name within a zone,
+generates a correct NSEC(3) denial.

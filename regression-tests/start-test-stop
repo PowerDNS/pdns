@@ -22,7 +22,7 @@ Usage: ./start-test-stop <port> [<context>] [wait]
 
 context is one of:
 bind bind-dnssec bind-dnssec-nsec3
-gmysql-nodnssec gmysql gmysql-nsec3
+gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 opendbx-sqlite3
@@ -86,7 +86,7 @@ case $context in
 			skipreasons=nodnssec
 			;;
 
-		gmysql | gmysql-nsec3)
+		gmysql | gmysql-nsec3 | gmysql-nsec3-narrow)
 			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
 			[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
 			[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
@@ -118,7 +118,13 @@ __EOF__
 				then
 					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone '1 1 1 abcd' 2>&1
 					../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
+				elif [ $context = gmysql-nsec3-narrow ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
 				fi
+				
+
 			done
 
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
@@ -132,6 +138,11 @@ __EOF__
 			if [ $context = gmysql-nsec3 ]
 			then
 				extracontexts="dnssec nsec3"
+				skipreasons="nsec3"
+			elif [ $context = gmysql-nsec3-narrow ]
+			then
+				extracontexts="dnssec narrow"
+				skipreasons="narrow"
 			else
 				extracontexts="dnssec"
 			fi
@@ -173,11 +184,14 @@ __EOF__
 			if [ $context = gpgsql-nsec3 ]
 			then
 				extracontexts="dnssec nsec3"
+			elif [ $context = gpgsql-nsec3-narrow ]
+			then
+				extracontexts="dnssec narrow"
 			else
 				extracontexts="dnssec"
 			fi
 
-			;;	
+			;;
 		gpgsql-nodnssec)
 			[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
 			[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
