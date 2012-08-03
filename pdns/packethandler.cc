@@ -659,12 +659,10 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     if (mode == 0 || mode == 5) {
       unhashed=target;
     }
-    else if (mode == 1 || mode == 2 || mode == 4) {
+    else {
       unhashed=closest;
     }
-    else {
-      unhashed=auth;
-    }
+
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     // L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl;
   
