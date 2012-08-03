@@ -88,7 +88,6 @@ private:
   int processNotify(DNSPacket *);
   void addRootReferral(DNSPacket *r);
   int makeCanonic(DNSPacket *p, DNSPacket *r, string &target);
-  int doWildcardRecords(DNSPacket *p, DNSPacket *r, string &target);
   int findMboxFW(DNSPacket *p, DNSPacket *r, string &target);
   int findUrl(DNSPacket *p, DNSPacket *r, string &target);
   int doFancyRecords(DNSPacket *p, DNSPacket *r, string &target);
