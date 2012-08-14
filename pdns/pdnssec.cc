@@ -657,7 +657,7 @@ try
     // need to get algorithm, bits & ksk or zsk from commandline
     bool keyOrZone=false;
     int bits=0;
-    int algorithm=5;
+    int algorithm=8;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
