@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig minimal.com TXT dnssec | egrep 'IN[[:space:]]+NSEC'

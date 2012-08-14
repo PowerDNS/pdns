@@ -1,0 +1,2 @@
+Minimal zone (only NS records) Make sure non-existent hosts generates a correct
+NSEC(3) denial.

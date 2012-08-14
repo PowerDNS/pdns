@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig a.minimal.com A dnssec | egrep 'IN[[:space:]]+NSEC'
