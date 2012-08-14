@@ -25,6 +25,7 @@
 #include <signal.h>
 #include "misc.hh"
 #include "communicator.hh"
+#include "dnsseckeeper.hh"
 
 static bool s_pleasequit;
 
@@ -112,16 +113,21 @@ string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   extern PacketCache PC;  
+  DNSSECKeeper dk;
   ostringstream os;
   int ret=0;
 
   if(parts.size()>1) {
     for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
       ret+=PC.purge(*i);
+      dk.clearCaches(*i);
     }
   }
-  else
+  else {
     ret=PC.purge();
+    dk.clearAllCaches();
+  }
+
   os<<ret;
   return os.str();
 }

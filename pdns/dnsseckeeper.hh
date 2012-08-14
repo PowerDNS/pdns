@@ -80,6 +80,7 @@ public:
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   void unsetNSEC3PARAM(const std::string& zname);
+  void clearAllCaches();
   void clearCaches(const std::string& name);
   bool getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, const std::string& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs);
   bool isPresigned(const std::string& zname);
@@ -91,12 +92,12 @@ public:
   
   void startTransaction()
   {
-	  (*d_keymetadb->backends.begin())->startTransaction("", -1);
+    (*d_keymetadb->backends.begin())->startTransaction("", -1);
   }
   
   void commitTransaction()
   {
-	  (*d_keymetadb->backends.begin())->commitTransaction();
+    (*d_keymetadb->backends.begin())->commitTransaction();
   }
   
   void getFromMeta(const std::string& zname, const std::string& key, std::string& value);

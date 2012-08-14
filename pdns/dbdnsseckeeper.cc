@@ -107,6 +107,15 @@ bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   return addKey(name, dspk, active);
 }
 
+void DNSSECKeeper::clearAllCaches() {
+  {
+    Lock l(&s_keycachelock);
+    s_keycache.clear();
+  }
+  Lock l(&s_metacachelock);
+  s_metacache.clear();
+}
+
 void DNSSECKeeper::clearCaches(const std::string& name)
 {
   {
