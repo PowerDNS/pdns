@@ -42,6 +42,11 @@ void proveOrDeny(const nsec3set &nsec3s, const string &qname, const string &salt
       denied.insert(qname);
       cout<<qname<<" ("<<hashed<<") denied by "<<base<<".."<<next<<endl;
     }
+    if (base == next && base != hashed)
+    {
+      denied.insert(qname);
+      cout<<qname<<" ("<<hashed<<") denied by "<<base<<".."<<next<<endl;
+    }
   }
 }
 
