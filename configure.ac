@@ -183,6 +183,21 @@ AC_ARG_ENABLE(cryptopp,
 AC_MSG_RESULT($enable_cryptopp)
 AM_CONDITIONAL(CRYPTOPP,test x"$enable_cryptopp" = "xyes")
 
+if test "x$enable_botan110" = "xyes"
+then
+	PKG_CHECK_MODULES(BOTAN110, botan-1.10, HAVE_BOTAN110=yes, AC_MSG_ERROR([+Could not find botan 1.10]))
+        AC_SUBST(BOTAN110_LIBS)
+        AC_SUBST(BOTAN110_CFLAGS)
+        AC_DEFINE(HAVE_BOTAN110,1,[If we have botan 1.10])
+fi
+
+if test "x$enable_botan18" = "xyes"
+then
+	PKG_CHECK_MODULES(BOTAN18, botan-1.8, HAVE_BOTAN18=yes, AC_MSG_ERROR([+Could not find botan 1.8]))
+        AC_SUBST(BOTAN18_LIBS)
+        AC_SUBST(BOTAN18_CFLAGS)
+        AC_DEFINE(HAVE_BOTAN18,1,[If we have botan 1.8])
+fi
 
 AC_MSG_CHECKING(whether we should build static binaries)
 
