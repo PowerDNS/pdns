@@ -1,4 +1,8 @@
+if HAVE_LIBPOLARSSL
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) -DPDNS_ENABLE_LUA
+else
 AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) -Iext/polarssl-1.1.2/include -DPDNS_ENABLE_LUA
+endif
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
 EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  \
@@ -7,7 +11,11 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 	no-dnssec.schema.mysql.sql no-dnssec.schema.pgsql.sql no-dnssec.schema.sqlite3.sql \
 	bind-dnssec.schema.sqlite3.sql
 
+if HAVE_LIBPOLARSSL
+SUBDIRS= backends
+else
 SUBDIRS= ext/polarssl-1.1.2 backends 
+endif
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h
 
@@ -143,7 +151,11 @@ tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.
 	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
 	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 	randomhelper.cc dns.cc
+if HAVE_LIBPOLARSSL
+tsig_tests_LDFLAGS=
+else
 tsig_tests_LDFLAGS= -Lext/polarssl-1.1.2/library 	
+endif
 tsig_tests_LDADD= -lpolarssl
 
 

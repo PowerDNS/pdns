@@ -9,7 +9,11 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
+#ifdef HAVE_LIBPOLARSSL
+#include <polarssl/sha1.h>
+#else
 #include "ext/polarssl-1.1.2/include/polarssl/sha1.h"
+#endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"

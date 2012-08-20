@@ -165,6 +165,32 @@ if test $enable_verbose_logging = yes; then AC_DEFINE(VERBOSELOG, 1, [If verbose
 fi
 AC_MSG_RESULT($enable_verbose_logging)
 
+AC_MSG_CHECKING(whether we will try to link in system PolarSSL)
+AC_ARG_WITH([system-polarssl],
+ [AC_HELP_STRING([--without-system-polarssl], [Do not use system PolarSSL])],
+ [system_polarssl=$withval],
+ [system_polarssl=yes])
+AC_MSG_RESULT($system_polarssl)
+AM_CONDITIONAL(HAVE_LIBPOLARSSL, false)
+if test x$system_polarssl = xyes; then
+ AC_MSG_CHECKING([PolarSSL version >= 1.1])
+ AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM(
+        [[
+#include <polarssl/version.h>
+        ]],
+        [[
+#if POLARSSL_VERSION_MAJOR < 1 || (POLARSSL_VERSION_MAJOR == 1 && POLARSSL_VERSION_MINOR < 1)
+#error invalid version
+#endif
+        ]]
+    )], [use_system_polarssl=yes], [use_system_polarssl=no])
+ AC_MSG_RESULT($use_system_polarssl)
+fi
+if test x$use_system_polarssl = xyes; then
+ AC_CHECK_LIB([polarssl], [sha1_hmac])
+fi
+
 AC_MSG_CHECKING(whether we will be linking in Botan 1.10)
 AC_ARG_ENABLE(botan1.10, 
  [  --enable-botan1.10	Use Botan 1.10],enable_botan110=yes, enable_botan110=no)
