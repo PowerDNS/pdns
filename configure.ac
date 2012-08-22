@@ -180,7 +180,7 @@ if test x$system_polarssl = xyes; then
 #include <polarssl/version.h>
         ]],
         [[
-#if POLARSSL_VERSION_MAJOR < 1 || (POLARSSL_VERSION_MAJOR == 1 && POLARSSL_VERSION_MINOR < 1)
+#if POLARSSL_VERSION_NUMBER < 0x01010000
 #error invalid version
 #endif
         ]]
