@@ -283,6 +283,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     }
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
+    PC.purge(domain+"$");
 
     // now we also need to update the presigned flag and NSEC3PARAM
     // for the zone
