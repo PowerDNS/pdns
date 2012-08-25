@@ -318,7 +318,6 @@ void verifyCrypto(const string& zone)
   RRSIGRecordContent rrc;
   DSRecordContent dsrc;
   vector<shared_ptr<DNSRecordContent> > toSign;
-  unsigned int ttl;
   string qname, apex;
   dsrc.d_digesttype=0;
   while(zpt.get(rr)) {
@@ -337,7 +336,6 @@ void verifyCrypto(const string& zone)
     }
     else {
       qname = rr.qname;
-      ttl = rr.ttl;
       toSign.push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content)));
     }
   }
