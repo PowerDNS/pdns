@@ -101,12 +101,35 @@ void DNSCryptoKeyEngine::testAll()
 {
   BOOST_FOREACH(const allmakers_t::value_type& value, getAllMakers())
   {
-    BOOST_FOREACH(maker_t* signer, value.second) {
+    BOOST_FOREACH(maker_t* creator, value.second) {
+
+      BOOST_FOREACH(maker_t* signer, value.second) {
+        // multi_map<unsigned int, maker_t*> bestSigner, bestVerifier;
+        
+        BOOST_FOREACH(maker_t* verifier, value.second) {
+          try {
+            pair<unsigned int, unsigned int> res=testMakers(value.first, creator, signer, verifier);
+          }
+          catch(std::exception& e)
+          {
+            cerr<<e.what()<<endl;
+          }
+        }
+      }
+    }
+  }
+}
+
+void DNSCryptoKeyEngine::testOne(int algo)
+{
+  BOOST_FOREACH(maker_t* creator, getAllMakers()[algo]) {
+
+    BOOST_FOREACH(maker_t* signer, getAllMakers()[algo]) {
       // multi_map<unsigned int, maker_t*> bestSigner, bestVerifier;
-      
-      BOOST_FOREACH(maker_t* verifier, value.second) {
+
+      BOOST_FOREACH(maker_t* verifier, getAllMakers()[algo]) {
         try {
-          pair<unsigned int, unsigned int> res=testMakers(value.first, signer, verifier);
+          pair<unsigned int, unsigned int> res=testMakers(algo, creator, signer, verifier);
         }
         catch(std::exception& e)
         {
@@ -117,29 +140,13 @@ void DNSCryptoKeyEngine::testAll()
   }
 }
 
-void DNSCryptoKeyEngine::testOne(int algo)
+pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
 {
-    BOOST_FOREACH(maker_t* signer, getAllMakers()[algo]) {
-      // multi_map<unsigned int, maker_t*> bestSigner, bestVerifier;
-
-      BOOST_FOREACH(maker_t* verifier, getAllMakers()[algo]) {
-        try {
-          pair<unsigned int, unsigned int> res=testMakers(algo, signer, verifier);
-        }
-        catch(std::exception& e)
-        {
-          cerr<<e.what()<<endl;
-        }
-      }
-    }
-}
-
-pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* signer, maker_t* verifier)
-{
+  shared_ptr<DNSCryptoKeyEngine> dckeCreate(creator(algo));
   shared_ptr<DNSCryptoKeyEngine> dckeSign(signer(algo));
   shared_ptr<DNSCryptoKeyEngine> dckeVerify(verifier(algo));
-  
-  cerr<<"Testing algorithm "<<algo<<": '"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
+
+  cerr<<"Testing algorithm "<<algo<<": '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
@@ -148,7 +155,32 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   else 
     bits=384;
     
-  dckeSign->create(bits);
+  dckeCreate->create(bits);
+
+  { // FIXME: this block copy/pasted from makeFromISCString
+    DNSKEYRecordContent dkrc;
+    int algorithm = 0;
+    string sline, key, value, raw;
+    std::istringstream str(dckeCreate->convertToISC());
+    map<string, string> stormap;
+
+    while(std::getline(str, sline)) {
+      tie(key,value)=splitField(sline, ':');
+      trim(value);
+      if(pdns_iequals(key,"algorithm")) {
+        algorithm = atoi(value.c_str());
+        stormap["algorithm"]=lexical_cast<string>(algorithm);
+        continue;
+      }
+      else if(pdns_iequals(key, "Private-key-format"))
+        continue;
+      raw.clear();
+      B64Decode(value, raw);
+      stormap[toLower(key)]=raw;
+    }
+    dckeSign->fromISCMap(dkrc, stormap);
+  }
+
   string message("Hi! How is life?");
   
   string signature;
@@ -165,7 +197,7 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
     cerr<<"Signature & verify ok, signature "<<udiffSign<<"usec, verify "<<udiffVerify<<"usec"<<endl;
   }
   else {
-    throw runtime_error("Verification of signer "+dckeSign->getName()+" with verifier "+dckeVerify->getName()+" failed");
+    throw runtime_error("Verification of creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
   }
   return make_pair(udiffSign, udiffVerify);
 }
