@@ -11875,7 +11875,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>auth-zones</term>
 	    <listitem>
 	      <para>
-		Comma separated list of 'zonename=filename' pairs. Zones read from these files are served authoritatively. Example:
+		Comma separated list of 'zonename=filename' pairs. Zones read from these files (in BIND format) are served authoritatively. Example:
 		<command>auth-zones= ds9a.nl=/var/zones/ds9a.nl, powerdns.com=/var/zones/powerdns.com</command>. Available since 3.1.
 	      </para>
 	    </listitem>
