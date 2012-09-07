@@ -152,8 +152,8 @@ __EOF__
 			[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
 			[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
 
-			dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
-			createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
+			dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring dropdb failure
+			createdb --user="$GPGSQLUSER" "$GPGSQLDB" || echo ignoring createdb failure # FIXME
 			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/no-dnssec.schema.pgsql.sql
 			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/dnssec.schema.pgsql.sql
 
