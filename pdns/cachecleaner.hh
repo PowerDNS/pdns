@@ -18,7 +18,7 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
 //  cout<<"Need to trim "<<toTrim<<" from cache to meet target!\n";
 
   typedef typename T::template nth_index<1>::type sequence_t;
-  sequence_t& sidx=collection.get<1>();
+  sequence_t& sidx=collection.template get<1>();
 
   unsigned int tried=0, lookAt, erased=0;
 
@@ -62,8 +62,8 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
 template <typename T> void moveCacheItemToFrontOrBack(T& collection, typename T::iterator& iter, bool front)
 {
   typedef typename T::template nth_index<1>::type sequence_t;
-  sequence_t& sidx=collection.get<1>();
-  typename sequence_t::iterator si=collection.project<1>(iter);
+  sequence_t& sidx=collection.template get<1>();
+  typename sequence_t::iterator si=collection.template project<1>(iter);
   if(front)
     sidx.relocate(sidx.begin(), si); // at the beginning of the delete queue
   else
