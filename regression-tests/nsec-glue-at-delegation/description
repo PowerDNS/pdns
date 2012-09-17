@@ -1,0 +1,1 @@
+Check that we generate the right NSECs when glue lives at a delegation point.
