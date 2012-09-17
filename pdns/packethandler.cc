@@ -204,12 +204,9 @@ int PacketHandler::doFancyRecords(DNSPacket *p, DNSPacket *r, string &target)
   return 0;
 }
 
-/** This catches DNSKEY requests. Returns 1 if it was handled, 0 if it wasn't */
-int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd)
+/** This adds DNSKEY records. Returns true if one was added */
+bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
-  if(p->qtype.getCode()!=QType::DNSKEY) 
-    return false;
-    
   DNSResourceRecord rr;
   bool haveOne=false;
   DNSSECPrivateKey dpk;
@@ -228,12 +225,9 @@ int PacketHandler::doDNSKEYRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd
 }
 
 
-/** This catches DNSKEY requests. Returns 1 if it was handled, 0 if it wasn't */
-int PacketHandler::doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd)
+/** This adds NSEC3PARAM records. Returns true if one was added */
+bool PacketHandler::addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
-  if(p->qtype.getCode()!=QType::NSEC3PARAM) 
-    return false;
-
   DNSResourceRecord rr;
 
   NSEC3PARAMRecordContent ns3prc;
@@ -331,7 +325,7 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const string &tar
   while ( chopOff( subdomain ) && !haveSomething ) {
     B.lookup(QType(QType::ANY), "*."+subdomain, p, sd.domain_id);
     while(B.get(rr)) {
-      if(rr.qtype == p->qtype ||rr.qtype.getCode() == QType::CNAME || p->qtype.getCode() == QType::ANY)
+      if(rr.qtype == p->qtype ||rr.qtype.getCode() == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() != QType::RRSIG))
         ret->push_back(rr);
       wildcard="*."+subdomain;
       haveSomething=true;
@@ -382,12 +376,14 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         //	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
 
+      string content = stripDot(i->content);
+
       QType qtypes[2];
       qtypes[0]="A"; qtypes[1]="AAAA";
       for(int n=0 ; n < d_doIPv6AdditionalProcessing + 1; ++n) {
         if (i->qtype.getCode()==QType::SRV) {
           vector<string>parts;
-          stringtok(parts,i->content);
+          stringtok(parts, content);
           if (parts.size() >= 3) {
             B.lookup(qtypes[n],parts[2],p);
           }
@@ -395,7 +391,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
             continue;
         }
         else {
-          B.lookup(qtypes[n],i->content,p);
+          B.lookup(qtypes[n], content, p);
         }
         bool foundOne=false;
         while(B.get(rr)) {
@@ -426,14 +422,15 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
     nrc.d_set.insert(QType::DNSKEY);
 
   DNSResourceRecord rr;
-  rr.ttl = sd.default_ttl;
   B.lookup(QType(QType::ANY), begin);
   while(B.get(rr)) {
-    if(rr.domain_id == sd.domain_id) 
+    if(rr.domain_id == sd.domain_id && (rr.qtype.getCode() == QType::NS || rr.auth)) 
       nrc.d_set.insert(rr.qtype.getCode());    
   }
   
   nrc.d_next=end;
+
+  rr.ttl = sd.default_ttl;
 
   rr.qname=begin;
   // we can leave ttl untouched, either it is the default, or it is what we retrieved above
@@ -455,8 +452,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
   n3rc.d_iterations = ns3prc.d_iterations;
   n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
 
-  DNSResourceRecord rr;
-  rr.ttl = sd.default_ttl;
+  DNSResourceRecord nsec3rr, rr;
   B.lookup(QType(QType::ANY), unhashed);
   while(B.get(rr)) {
     n3rc.d_set.insert(rr.qtype.getCode());    
@@ -469,6 +465,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
   
   n3rc.d_nexthash=end;
 
+  rr.ttl = sd.default_ttl;
   rr.qname=dotConcat(toLower(toBase32Hex(begin)), sd.qname);
   
   rr.qtype=QType::NSEC3;
@@ -684,42 +681,6 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
     emitNSEC(before, after, target, sd, r, mode);
 
   return;
-}
-
-bool PacketHandler::doDNSSECProcessing(DNSPacket *p, DNSPacket *r)
-{
-  if(!p->d_dnssecOk)
-    return false;
-
-  vector<DNSResourceRecord *> arrs=r->getAnswerRecords();
-  if(arrs.empty()) 
-    return false;
-  
-  DLOG(L<<"Have arrs "<<arrs.size()<<" records to sign"<<endl);
-  vector<DNSResourceRecord> crrs;
-  
-  for(vector<DNSResourceRecord *>::const_iterator i=arrs.begin();
-      i!=arrs.end();	++i) 
-    crrs.push_back(**i);
-  
-  // we now have a copy, push_back on packet might reallocate!
-  
-  for(vector<DNSResourceRecord>::const_iterator i=crrs.begin();
-      i!=crrs.end();
-      ++i) {
-    if(i->d_place!=DNSResourceRecord::ANSWER) 
-      continue;
-    
-    B.lookup(QType(QType::RRSIG),i->qname,p);  
-    DNSResourceRecord rr;
-    while(B.get(rr)) {
-      rr.d_place=DNSResourceRecord::ANSWER;
-      if(splitField(rr.content, ' ').first==i->qtype.getName())
-        r->addRecord(rr);
-    }
-  }
-  
-  return false;
 }
 
 /* Semantics:
@@ -951,7 +912,8 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.qname=sd.qname;
   rr.qtype=QType::SOA;
   rr.content=serializeSOAData(sd);
-  rr.ttl=sd.ttl;
+  rr.ttl=min(sd.ttl, sd.default_ttl);
+  rr.signttl=sd.ttl;
   rr.domain_id=sd.domain_id;
   rr.d_place=DNSResourceRecord::AUTHORITY;
   rr.auth = 1;
@@ -972,6 +934,8 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
   rr.qtype=QType::SOA;
   rr.content=serializeSOAData(sd);
   rr.ttl=sd.ttl;
+  rr.ttl=min(sd.ttl, sd.default_ttl);
+  rr.signttl=sd.ttl;
   rr.domain_id=sd.domain_id;
   rr.d_place=DNSResourceRecord::AUTHORITY;
   rr.auth = 1;
@@ -1030,16 +994,8 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
     
   addNSECX(p, r, target, target, sd.qname, 5); 
   if(pdns_iequals(sd.qname, p->qdomain)) {
-    DNSSECKeeper::keyset_t zskset = d_dk.getKeys(p->qdomain);
-    DNSResourceRecord rr;
-    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, zskset) {
-      rr.qtype=QType::DNSKEY;
-      rr.ttl=sd.default_ttl;
-      rr.qname=p->qdomain;
-      rr.content=value.first.getDNSKEY().getZoneRepresentation();
-      rr.auth = true;
-      r->addRecord(rr);
-    }
+    addDNSKEY(p, r, sd);
+    addNSEC3PARAM(p, r, sd);
   }
 }
 
@@ -1208,11 +1164,16 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     authSet.insert(sd.qname); 
 
     if(pdns_iequals(sd.qname, p->qdomain)) {
-      if(doDNSKEYRequest(p,r, sd))  
-        goto sendit;
-  
-      if(doNSEC3PARAMRequest(p,r, sd)) 
-        goto sendit;
+      if(p->qtype.getCode() == QType::DNSKEY)
+      {
+        if(addDNSKEY(p, r, sd))
+          goto sendit;
+      }
+      else if(p->qtype.getCode() == QType::NSEC3PARAM)
+      {
+        if(addNSEC3PARAM(p,r, sd))
+          goto sendit;
+      }
     }
 
     if(p->qtype.getCode() == QType::SOA && pdns_iequals(sd.qname, p->qdomain)) {
@@ -1251,6 +1212,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     weDone = weRedirected = weHaveUnauth = 0;
     
     while(B.get(rr)) {
+      if (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
+        continue; //TODO: this actually means addRRSig should check if the RRSig is already there.
+
       if(rr.qtype.getCode() == QType::DS)
         rr.auth = 1;
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.qtype == p->qtype)<<", "<<rr.qtype.getName()<<endl;
@@ -1353,7 +1317,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return 0;
     }
 
-    //    doDNSSECProcessing(p, r);
     editSOA(d_dk, sd.qname, r);
     
     if(p->d_dnssecOk)

@@ -1,2 +1,9 @@
-1	t66sektb7egvs7s57m1qged4h6809g8s.example.com.	IN	NSEC3	120	1 1 1 abcd T6A44A7N1B90T5RIS4IBQKT51MMDL0LO A RRSIG
-1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	NSEC3	120	1 1 1 abcd VTP9NUQBEH436S7J0K8TI2A32MMKCUUL NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	example.com.	IN	RRSIG	86400	SOA 8 2 100000 [expiry] [inception] [keytag] example.com. ...
+1	example.com.	IN	SOA	86400	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+1	t66sektb7egvs7s57m1qged4h6809g8s.example.com.	IN	NSEC3	86400	1 1 1 abcd T6A44A7N1B90T5RIS4IBQKT51MMDL0LO A RRSIG
+1	t66sektb7egvs7s57m1qged4h6809g8s.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
+1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	NSEC3	86400	1 1 1 abcd VTP9NUQBEH436S7J0K8TI2A32MMKCUUL NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='usa.example.com.', qtype=DS

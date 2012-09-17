@@ -12,3 +12,4 @@ then
 	unbound-host -v -C unbound-host.conf -t $2 $1 > $testname/unbound-host.out 2>&1
 	echo RETVAL: $? >> $testname/unbound-host.out
 fi
+grep -i bogus $testname/*.out

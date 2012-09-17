@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig nx.outpost.example.com A dnssec | egrep 'IN[[:space:]]+NSEC'
+cleandig nx.outpost.example.com A dnssec

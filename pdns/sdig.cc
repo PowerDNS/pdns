@@ -34,9 +34,16 @@ try
   
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
-  if(dnssec)
+  if(dnssec || getenv("SDIGBUFSIZE"))
   {
-    pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
+    char *sbuf=getenv("SDIGBUFSIZE");
+    int bufsize;
+    if(sbuf)
+      bufsize=atoi(sbuf);
+    else
+      bufsize=2800;
+
+    pw.addOpt(2800, 0, dnssec ? EDNSOpts::DNSSECOK : 0);
     pw.commit();
   }
 
@@ -79,7 +86,25 @@ try
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-    cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+    if(i->first.d_type == QType::RRSIG) 
+    {
+      string zoneRep = i->first.d_content->getZoneRepresentation();
+      vector<string> parts;
+      stringtok(parts, zoneRep);
+      cout<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...\n";
+    }
+    else if(i->first.d_type == QType::DNSKEY)
+    {
+      string zoneRep = i->first.d_content->getZoneRepresentation();
+      vector<string> parts;
+      stringtok(parts, zoneRep);
+      cout<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...\n";
+    }
+    else
+    {
+      cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+    }
+
   }
 
   EDNSOpts edo;

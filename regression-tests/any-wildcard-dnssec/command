@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cleandig www.something.wtest.com ANY dnssec
+

@@ -68,7 +68,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : qclass(1), priority(0), last_modified(0), d_place(ANSWER), auth(1), scopeMask(0) {};
+  DNSResourceRecord() : qclass(1), priority(0), signttl(0), last_modified(0), d_place(ANSWER), auth(1), scopeMask(0) {};
   ~DNSResourceRecord(){};
 
   // data
@@ -80,6 +80,7 @@ public:
   string content; //!< what this record points to. Example: 10.1.2.3
   uint16_t priority; //!< For qtypes that support a priority or preference (MX, SRV)
   uint32_t ttl; //!< Time To Live of this record
+  uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG
   int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
   time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
   enum Place {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket

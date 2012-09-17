@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig www.a.b.c.d.e.wtest.com A dnssec | egrep 'IN[[:space:]]+NSEC'
+cleandig www.a.b.c.d.e.wtest.com A dnssec

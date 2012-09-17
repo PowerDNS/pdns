@@ -593,17 +593,18 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   
   DNSResourceRecord rr;
   
+  rr.qname = target;
+  rr.ttl = sd.default_ttl;
+  rr.auth = 1; // please sign!
+
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
-    rr.qname = target;
     rr.qtype = QType(QType::DNSKEY);
-    rr.ttl = sd.default_ttl;
-    rr.auth = 1; // please sign! 
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
     string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(rr.qtype.getCode());
-    ne.d_ttl = rr.ttl;
+    ne.d_ttl = sd.default_ttl;
     csp.submit(rr);
   }
   
@@ -634,12 +635,14 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   dt.set();
   int records=0;
   while(sd.db->get(rr)) {
+    if (rr.qtype.getCode() == QType::RRSIG)
+      continue;
     records++;
     if(securedZone && (rr.auth || (!NSEC3Zone && rr.qtype.getCode() == QType::NS) || rr.qtype.getCode() == QType::DS)) { // this is probably NSEC specific, NSEC3 is different
       keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
       NSECXEntry& ne = nsecxrepo[keyname];
       ne.d_set.insert(rr.qtype.getCode());
-      ne.d_ttl = rr.ttl;
+      ne.d_ttl = sd.default_ttl;
     }
     if(rr.qtype.getCode() == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
@@ -722,7 +725,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       rr.qtype = QType::NSEC;
       rr.d_place = DNSResourceRecord::ANSWER;
       rr.auth=true;
-      
       if(csp.submit(rr)) {
         for(;;) {
           outpacket->getRRS() = csp.getChunk();

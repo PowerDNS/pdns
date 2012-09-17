@@ -353,18 +353,21 @@ bool DNSSECKeeper::secureZone(const std::string& name, int algorithm)
 
 bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, 
 	const std::string& wildcardname, const QType& qtype, 
-	DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs)
+	DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
 {
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
 	db.lookup(QType(QType::RRSIG), wildcardname.empty() ? qname : wildcardname);
 	DNSResourceRecord rr;
 	while(db.get(rr)) { 
 		// cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
-		if(boost::starts_with(rr.content, qtype.getName()+" ")) {
+		vector<string> parts;
+		stringtok(parts, rr.content);
+		if(parts[0] == qtype.getName() && pdns_iequals(parts[7], signer+".")) {
 			// cerr<<"Got it"<<endl;
 			if (!wildcardname.empty())
 				rr.qname = qname;
 			rr.d_place = (DNSResourceRecord::Place)signPlace;
+      rr.ttl = signTTL;
 			rrsigs.push_back(rr);
 		}
 		else ; // cerr<<"Skipping!"<<endl;

@@ -1,10 +1,9 @@
 #2000081501 auto axfr-get
-Zexample.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
+Zexample.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:100000
 &example.com::ns1.example.com.:120
 &example.com::ns2.example.com.:120
 @example.com::smtp-servers.example.com.:10:120
 @example.com::smtp-servers.test.com.:15:120
-:example.com:48:\001\000\003\005\003\001\000\001\252\323\210xO\202\360\366\361\140\215\361\100WpG\037\361\377\216\027\347\177lJ\015\3534\356\036\137\350V\266\271\376\247\350\236\026\012\375\030\310\357\204s\035\315\260\226\057S\245s\226\311\304\025\335\204\237\244V\175\317\341\201\375\266\354\274\032\047\325s25\376J\136\343\260E\321\331\134\206a\325\311.\334\007\010\310\332\350\017n\214\076F\305\054v4\373\024H\373\273\273\072\304\072\235\207\017\006\232\203\210\231\301\330\023\041:120
 :escapedtext.example.com:16:\005begin\022the\040\042middle\042\040p\134art\007the\040end:120
 Cexternal.example.com:somewhere.else.net.:120
 @external-mail.example.com::server1.test.com.:25:120
@@ -20130,7 +20129,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 &test.com::ns2.test.com.:3600
 @test.com::smtp-servers.example.com.:10:3600
 @test.com::smtp-servers.test.com.:15:3600
-+blah.test.com:9.9.9.9:3600
++blah.test.com:192.168.6.1:3600
 &blah.test.com::blah.test.com.:3600
 +counter.test.com:1.1.1.5:3600
 :_double._tcp.dc.test.com:33:\000\000\000d\001\205\007server1\004test\003com\000:3600

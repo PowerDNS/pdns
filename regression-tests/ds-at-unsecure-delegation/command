@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig usa.example.com DS dnssec | egrep 'IN[[:space:]]+NSEC'
+cleandig usa.example.com DS dnssec

@@ -92,8 +92,8 @@ private:
   int findUrl(DNSPacket *p, DNSPacket *r, string &target);
   int doFancyRecords(DNSPacket *p, DNSPacket *r, string &target);
   int doVersionRequest(DNSPacket *p, DNSPacket *r, string &target);
-  int doDNSKEYRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd);
-  int doNSEC3PARAMRequest(DNSPacket *p, DNSPacket *r, const SOAData& sd);
+  bool addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd);
+  bool addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd);
