@@ -28,3 +28,4 @@ blah			IN	A	192.168.6.1
 ;bert@auto.test.com.			IN	MBOXFW	"bert@ds9a.nl"
 very-long-txt		IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long!"
 within-server		IN	CNAME	outpost.example.com.
+_underscore		IN	TXT	"underscores are terrible"

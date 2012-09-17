@@ -1,6 +1,6 @@
 alter table records add ordername	VARCHAR(255);
 alter table records add auth bool;
-create index orderindex on records(ordername);
+create index recordorder on records (domain_id, ordername text_pattern_ops);
 
 create table domainmetadata (
  id		SERIAL PRIMARY KEY,

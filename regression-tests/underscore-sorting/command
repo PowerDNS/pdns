@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig z.test.com A dnssec | egrep 'IN[[:space:]]+NSEC'
+

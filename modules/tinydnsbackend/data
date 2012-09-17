@@ -20129,6 +20129,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 &test.com::ns2.test.com.:3600
 @test.com::smtp-servers.example.com.:10:3600
 @test.com::smtp-servers.test.com.:15:3600
+:_underscore.test.com:16:\030underscores\040are\040terrible:3600
 +blah.test.com:192.168.6.1:3600
 &blah.test.com::blah.test.com.:3600
 +counter.test.com:1.1.1.5:3600

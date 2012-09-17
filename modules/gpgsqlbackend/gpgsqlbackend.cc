@@ -84,10 +84,10 @@ public:
     declare(suffix,"insert-record-query","", "insert into records (content,ttl,prio,type,domain_id,name) values (E'%s',%d,%d,'%s',%d,E'%s')");
     declare(suffix,"insert-record-query-auth","", "insert into records (content,ttl,prio,type,domain_id,name,auth) values (E'%s',%d,%d,'%s',%d,E'%s', '%d')");
     
-    declare(suffix,"get-order-first-query","DNSSEC Ordering Query, last", "select ordername, name from records where domain_id=%d and ordername is not null order by 1 asc limit 1");
-    declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= E'%s' and domain_id=%d and ordername is not null order by 1 desc limit 1");
-    declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select min(ordername) from records where ordername > E'%s' and domain_id=%d and ordername is not null");
-    declare(suffix,"get-order-last-query","DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and domain_id=%d and ordername is not null order by 1 desc limit 1");
+    declare(suffix,"get-order-first-query","DNSSEC Ordering Query, last", "select ordername, name from records where domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
+    declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername ~<=~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
+    declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select ordername from records where ordername ~>~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
+    declare(suffix,"get-order-last-query","DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
     declare(suffix,"set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername=E'%s',auth=(%d = 1) where name=E'%s' and domain_id='%d'");
 
     declare(suffix,"nullify-ordername-and-auth-query", "DNSSEC nullify ordername query", "update records set ordername=NULL,auth=false where name=E'%s' and type=E'%s' and domain_id='%d'");

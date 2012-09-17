@@ -20,7 +20,7 @@ create table cryptokeys (
 
 create index domainidindex on cryptokeys(domain_id);           
 
-alter table records add ordername      VARCHAR(255);
+alter table records add ordername      VARCHAR(255) BINARY;
 alter table records add auth bool;
 create index orderindex on records(ordername);
 

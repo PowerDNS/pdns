@@ -1,0 +1,2 @@
+Different engines consider the underscore differently when sorting. This
+has an effect on NSEC calculation.
