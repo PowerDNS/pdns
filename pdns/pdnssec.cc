@@ -458,6 +458,107 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
   return true;
 }
 
+void testSchema(DNSSECKeeper& dk, const std::string& zone)
+{
+  cout<<"Note: test-schema will try to create the zone, but it will not remove it."<<endl;
+  cout<<"Please clean up after this."<<endl;
+  cout<<endl;
+  cout<<"Constructing UeberBackend"<<endl;
+  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
+  DNSBackend *db = B->backends[0];
+  cout<<"Creating slave domain "<<zone<<endl;
+  db->createSlaveDomain("127.0.0.1", zone, "_testschema");
+  cout<<"Slave domain created"<<endl;
+
+  DomainInfo di;
+  if(!B->getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
+    cout<<"Can't find domain we just created, aborting"<<endl;
+    return;
+  }
+  db=di.backend;
+  DNSResourceRecord rr, rrget;
+  cout<<"Starting transaction to feed records"<<endl;
+  db->startTransaction(zone, di.id);
+
+  rr.qtype=QType::SOA;
+  rr.qname=zone;
+  rr.ttl=86400;
+  rr.domain_id=di.id;
+  rr.auth=1;
+  rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
+  cout<<"Feeding SOA"<<endl;
+  db->feedRecord(rr);
+  rr.qtype=QType::TXT;
+  // 300 As
+  rr.content="\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"";
+  cout<<"Feeding overlong TXT"<<endl;
+  db->feedRecord(rr);
+  cout<<"Committing"<<endl;
+  db->commitTransaction();
+  cout<<"Querying TXT"<<endl;
+  db->lookup(QType(QType::TXT), zone, NULL, di.id);
+  if(db->get(rrget))
+  {
+    DNSResourceRecord rrthrowaway;
+    if(db->get(rrthrowaway)) // should not touch rr but don't assume anything
+    {
+      cout<<"Expected one record, got multiple, aborting"<<endl;
+      return;
+    }
+    int size=rrget.content.size();
+    if(size != 302)
+    {
+      cout<<"Expected 302 bytes, got "<<size<<", aborting"<<endl;
+      return;
+    }
+  }
+  cout<<"[+] content field is over 255 bytes"<<endl;
+
+  cout<<"Dropping all records, inserting SOA+2xA"<<endl;
+  db->startTransaction(zone, di.id);
+
+  rr.qtype=QType::SOA;
+  rr.qname=zone;
+  rr.ttl=86400;
+  rr.domain_id=di.id;
+  rr.auth=1;
+  rr.content="ns1.example.com. ahu.example.com. 2012081039 7200 3600 1209600 3600";
+  cout<<"Feeding SOA"<<endl;
+  db->feedRecord(rr);
+
+  rr.qtype=QType::A;
+  rr.qname="_underscore."+zone;
+  rr.content="127.0.0.1";
+  db->feedRecord(rr);
+
+  rr.qname="bla."+zone;
+  cout<<"Committing"<<endl;
+  db->commitTransaction();
+
+  cout<<"Securing zone"<<endl;
+  secureZone(dk, zone);
+  cout<<"Rectifying zone"<<endl;
+  rectifyZone(dk, zone);
+  cout<<"Checking underscore ordering"<<endl;
+  string before, after;
+  db->getBeforeAndAfterNames(di.id, zone, "z."+zone, before, after);
+  cout<<"got '"<<before<<"' < 'z."<<zone<<"' < '"<<after<<"'"<<endl;
+  if(before != "_underscore."+zone)
+  {
+    cout<<"before is wrong, got '"<<before<<"', expected '_underscore."<<zone<<"', aborting"<<endl;
+    return;
+  }
+  if(after != zone)
+  {
+    cout<<"after is wrong, got '"<<after<<"', expected '"<<zone<<"', aborting"<<endl;
+    return;
+  }
+  cout<<"[+] ordername sorting is correct for names starting with _"<<endl;
+  cout<<endl;
+  cout<<"End of tests, please remove "<<zone<<" from domains+records"<<endl;
+}
+
 int main(int argc, char** argv)
 try
 {  
@@ -507,7 +608,8 @@ try
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage\n";
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone\n";
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC\n";
-    cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs\n\n";
+    cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs\n";
+    cerr<<"test-schema ZONE                   Test DB schema - will create ZONE\n\n";
     cerr<<"Options:"<<endl;
     cerr<<desc<<endl;
     return 0;
@@ -548,6 +650,14 @@ try
   
   DNSSECKeeper dk;
 
+  if (cmds[0] == "test-schema") {
+    if(cmds.size() != 2) {
+      cerr << "Syntax: pdnssec test-schema ZONE"<<endl;
+      return 0;
+    }
+    testSchema(dk, cmds[1]);
+    return 0;
+  }
   if(cmds[0] == "rectify-zone") {
     if(cmds.size() < 2) {
       cerr << "Syntax: pdnssec rectify-zone ZONE [ZONE..]"<<endl;
@@ -894,3 +1004,4 @@ catch(AhuException& ae) {
 catch(std::exception& e) {
   cerr<<"Error: "<<e.what()<<endl;
 }
+
