@@ -8,16 +8,20 @@
 #include "namespaces.hh"
 
 /* based on freebsd:src/contrib/opie/libopie/btoe.c extract: get bit ranges from a char* */
-uint32_t extract_bits(const char *s, int start, int length)
+unsigned char extract_bits(const char *s, int start, int length)
 {
-  uint32_t x;
-  unsigned char cl, cc, cr;
+  uint16_t x;
+  unsigned char cl, cc;
+
+  if(!length)
+    return 0;
 
   cl = s[start / 8];
-  cc = s[start / 8 + 1];
-  cr = s[start / 8 + 2];
-  x = ((uint32_t) (cl << 8 | cc) << 8 | cr);
-  x = x >> (24 - (length + (start % 8)));
+  if(start / 8 < (start + length-1)/8)
+    cc = s[start / 8 + 1];
+
+  x = (uint16_t) (cl << 8 | cc);
+  x = x >> (16 - (length + (start % 8)));
   x = (x & (0xffff >> (16 - length)));
   return (x);
 }
