@@ -8,6 +8,7 @@
 #include "namespaces.hh"
 
 /* based on freebsd:src/contrib/opie/libopie/btoe.c extract: get bit ranges from a char* */
+/* NOTE: length should not exceed 8; all callers inside PowerDNS only pass length=5 though */
 unsigned char extract_bits(const char *s, int start, int length)
 {
   uint16_t x;
@@ -19,6 +20,8 @@ unsigned char extract_bits(const char *s, int start, int length)
   cl = s[start / 8];
   if(start / 8 < (start + length-1)/8)
     cc = s[start / 8 + 1];
+  else
+    cc = 0;
 
   x = (uint16_t) (cl << 8 | cc);
   x = x >> (16 - (length + (start % 8)));
