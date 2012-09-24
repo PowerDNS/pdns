@@ -37,6 +37,8 @@ class DNSBackend;
 
 struct SOAData
 {
+  SOAData() : scopeMask(0) {};
+
   string qname;
   string nameserver;
   string hostmaster;
