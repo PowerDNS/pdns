@@ -117,7 +117,7 @@ static void takedown(int i)
   if(cpid) {
     L<<Logger::Error<<"Guardian is killed, taking down children with us"<<endl;
     kill(cpid,SIGKILL);
-    exit(1);
+    exit(0);
   }
 }
 
