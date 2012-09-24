@@ -7,6 +7,19 @@ tosql ()
 
 }
 
+bindwait ()
+{
+	domcount=$(grep -c zone named.conf)
+	while sleep 10
+	do
+		done=$( (../pdns/pdns_control --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		if [ $done = $domcount ]
+		then
+			return
+		fi
+	done
+}
+
 port=$1
 [ -z "$port" ] && port=5300
 context=$2
@@ -41,7 +54,7 @@ rm -f pdns*.pid
 
 presigned=no
 
-if [ ${context: -10} = "-presigned" ]
+if [ "${context: -10}" = "-presigned" ]
 then
 	presigned=yes
 	port=$((port-100))
@@ -55,6 +68,7 @@ case $context in
 				--fancy-records --send-root-referral    \
 				--cache-ttl=0 --no-config &
 			skipreasons=nodnssec
+			bindwait
 			;;
 		bind-dnssec | bind-dnssec-nsec3 )
 			./bind-dnssec-setup
@@ -73,6 +87,7 @@ case $context in
 				--bind-dnssec-db=./dnssec.sqlite3 \
 			 --send-root-referral    \
 				--cache-ttl=0 --no-config &
+			bindwait
 			;;
 		gmysql-nodnssec)
 			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
