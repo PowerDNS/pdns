@@ -172,8 +172,11 @@ void NSEC3RecordContent::toPacket(DNSPacketWriter& pw)
 
   res[0] = static_cast<unsigned char>(window);
   res[1] = static_cast<unsigned char>(len);
-  tmp.assign(res, res+len+2);
-  pw.xfrBlob(tmp);
+
+  if (len) {
+    tmp.assign(res, res+len+2);
+    pw.xfrBlob(tmp);
+  }
 }
 
 NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &dr, PacketReader& pr) 

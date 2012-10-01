@@ -437,6 +437,9 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   bdr.qtype=qtype.getCode();
   bdr.content=content; 
   bdr.nsec3hash = hashed;
+  
+  if (!qtype.getCode()) // Set auth on empty non-terminals
+    bdr.auth=true;
 
   if(bdr.qtype == QType::MX || bdr.qtype == QType::SRV) { 
     prio=atoi(bdr.content.c_str());
@@ -602,6 +605,56 @@ void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
   }
 }
 
+void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
+{
+  BB2DomainInfo bb2 = stage->id_zone_map[id];
+
+  bool doent=true;
+  set<string> qnames, nonterm;
+  string qname, shorter, hashed;
+
+  uint32_t maxent = ::arg().asNum("max-ent-entries");
+
+  BOOST_FOREACH(const Bind2DNSRecord& bdr, *bb2.d_records)
+    if (bdr.auth)
+      qnames.insert(labelReverse(bdr.qname));
+
+  BOOST_FOREACH(const string& qname, qnames)
+  {
+    shorter=qname;
+
+    while(chopOff(shorter))
+    {
+      if(!qnames.count(shorter) && !nonterm.count(shorter))
+      {
+        if(!(maxent))
+        {
+          L<<Logger::Error<<"Zone '"<<bb2.d_name<<"' has too many empty non terminals."<<endl;
+          doent=false;
+          break;
+        }
+        nonterm.insert(shorter);
+        --maxent;
+      }
+    }
+    if(!doent)
+      return;
+  }
+
+  DNSResourceRecord rr;
+  rr.qtype="0";
+  rr.content="";
+  rr.ttl=0;
+  rr.priority=0;
+  BOOST_FOREACH(const string& qname, nonterm)
+  {
+    rr.qname=qname+"."+bb2.d_name+".";
+    if(nsec3zone)
+      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+    insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
+  }
+}
+
 void Bind2Backend::loadConfig(string* status)
 {
   // Interference with createSlaveDomain()
@@ -702,8 +755,8 @@ void Bind2Backend::loadConfig(string* status)
         
             // sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
             
-            shared_ptr<recordstorage_t > records=staging->id_zone_map[bbd->d_id].d_records;
-            fixupAuth(records);
+            fixupAuth(staging->id_zone_map[bbd->d_id].d_records);
+            doEmptyNonTerminals(staging, bbd->d_id, nsec3zone, ns3pr);
             
             staging->id_zone_map[bbd->d_id].setCtime();
             staging->id_zone_map[bbd->d_id].d_loaded=true; 
@@ -827,6 +880,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     // cerr<<"Sorting done"<<endl;
     
     fixupAuth(staging->id_zone_map[bbd->d_id].d_records);
+    doEmptyNonTerminals(staging, bbd->d_id, nsec3zone, ns3pr);
     staging->id_zone_map[bbd->d_id].setCtime();
 
     s_state->id_zone_map[bbd->d_id]=staging->id_zone_map[bbd->d_id]; // move over
@@ -856,9 +910,9 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
 
   //cout<<"starting lower bound for: '"<<domain<<"'"<<endl;
 
-  recordstorage_t::const_iterator iter = bbd.d_records->lower_bound(domain);
+  recordstorage_t::const_iterator iter = bbd.d_records->upper_bound(domain);
 
-  while(iter == bbd.d_records->end() || (iter->qname) > domain || (!(iter->auth) && !(iter->qtype == QType::NS)))
+  while(iter == bbd.d_records->end() || (iter->qname) > domain || (!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
     iter--;
 
   before=iter->qname;
@@ -874,7 +928,7 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
     //cerr<<"\tFound: '"<<(iter->qname)<<"' (nsec3hash='"<<(iter->nsec3hash)<<"')"<<endl;
     // this iteration is theoretically unnecessary - glue always sorts right behind a delegation
     // so we will never get here. But let's do it anyway.
-    while(!(iter->auth) && !(iter->qtype == QType::NS))
+    while((!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
     {
       iter++;
       if(iter == bbd.d_records->end())

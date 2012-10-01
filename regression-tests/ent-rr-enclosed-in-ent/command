@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig b.c.test.com TXT dnssec

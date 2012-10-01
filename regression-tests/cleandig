@@ -1,5 +1,8 @@
 #!/bin/sh
+if [ ! -f $testname/use.drill ]
+then
 ../pdns/sdig $nameserver $port $1 $2 $3 | LC_ALL=C sort
+fi
 ../pdns/nsec3dig $nameserver $port $1 $2 > $testname/nsec3dig.out 2>&1
 drill -a -p $port -o rd -D -S -k trustedkeys $1 $2 @$nameserver > $testname/drillchase.out 2>&1 
 echo RETVAL: $? >> $testname/drillchase.out
@@ -11,5 +14,9 @@ if [ ! -e $testname/skip-unboundhost ]
 then
 	unbound-host -v -C unbound-host.conf -t $2 $1 > $testname/unbound-host.out 2>&1
 	echo RETVAL: $? >> $testname/unbound-host.out
+fi
+if [ -f $testname/use.drill ]
+then
+	cat $testname/drill.out
 fi
 grep -i bogus $testname/*.out

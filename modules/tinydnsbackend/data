@@ -20132,6 +20132,8 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 :_underscore.test.com:16:\030underscores\040are\040terrible:3600
 +blah.test.com:192.168.6.1:3600
 &blah.test.com::blah.test.com.:3600
++b.c.test.com:5.6.7.8:3600
++\052.a.b.c.test.com:8.7.6.5:3600
 +counter.test.com:1.1.1.5:3600
 :_double._tcp.dc.test.com:33:\000\000\000d\001\205\007server1\004test\003com\000:3600
 :_double._tcp.dc.test.com:33:\000\001\000d\001\205\007server1\004test\003com\000:3600

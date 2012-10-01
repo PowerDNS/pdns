@@ -132,6 +132,7 @@ void declareArguments()
   ::arg().set("setgid","If set, change group id to this gid for more security")="";
 
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
+  ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler")="";

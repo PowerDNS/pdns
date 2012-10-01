@@ -113,7 +113,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     domain_id=di.id;
 
     Resolver::res_t recs;
-    set<string> nsset, qnames, dsnames;
+    set<string> nsset, qnames, dsnames, nonterm, delnonterm;
     
     ComboAddress raddr(remote, 53);
     
@@ -201,19 +201,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           dnssecZone = gotPresigned = true;
           continue;
         }
-          
+
         if(!endsOn(i->qname, domain)) { 
           L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
         
-        if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
-          nsset.insert(i->qname);
-        if(i->qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
-          qnames.insert(i->qname);
-        if(i->qtype.getCode() == QType::DS)
-          dsnames.insert(i->qname);
-          
         i->domain_id=domain_id;
 #if 0
         if(i->qtype.getCode()>=60000)
@@ -233,6 +226,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
         else {
           di.backend->feedRecord(*i);
+          if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
+            nsset.insert(i->qname);
+          if(i->qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
+            qnames.insert(i->qname);
+          if(i->qtype.getCode() == QType::DS)
+           dsnames.insert(i->qname);
         }
       }
     }
@@ -243,20 +242,29 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       haveNSEC3 = false;
     }
 
+    bool doent=true;
+    bool realrr=true;
     string hashed;
+
+    uint32_t maxent = ::arg().asNum("max-ent-entries");
+
+    dononterm:;
     BOOST_FOREACH(const string& qname, qnames)
     {
-      string shorter(qname);
       bool auth=true;
-      do {
-        if(nsset.count(shorter)) {  
-          auth=false;
-          break;
-        }
-      }while(chopOff(shorter));
-      
-      if(dsnames.count(qname))
-        auth=true;
+      string shorter(qname);
+
+      if(realrr) {
+        do {
+          if(nsset.count(shorter)) {
+            auth=false;
+            break;
+          }
+        }while(chopOff(shorter));
+
+        if(dsnames.count(qname))
+          auth=true;
+      }
 
       if(dnssecZone && haveNSEC3)
       {
@@ -264,7 +272,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
         }
         di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth); // this should always be done
-        if(!auth || dsnames.count(qname))
+        if((!auth || dsnames.count(qname)) && realrr)
         {
           di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "NS");
           di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
@@ -273,14 +281,48 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
       else // NSEC
       {
-        di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
-        if(!auth || dsnames.count(qname))
+        if(realrr)
         {
-          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
-          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+          di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
+          if(!auth || dsnames.count(qname))
+          {
+            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
+            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+          }
+        }
+      }
+
+      if(auth && realrr && doent)
+      {
+        shorter=qname;
+        while(!pdns_iequals(shorter, domain) && chopOff(shorter))
+        {
+          if(!qnames.count(shorter) && !nonterm.count(shorter))
+          {
+            if(!(maxent))
+            {
+              L<<Logger::Error<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
+              nonterm.empty();
+              doent=false;
+              break;
+            }
+            nonterm.insert(shorter);
+            --maxent;
+          }
         }
       }
     }
+
+    if(!nonterm.empty() && realrr && doent)
+    {
+      if(di.backend->updateEmptyNonTerminals(domain_id, domain, nonterm, delnonterm, false))
+      {
+        realrr=false;
+        qnames=nonterm;
+        goto dononterm;
+      }
+    }
+
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
     PC.purge(domain+"$");

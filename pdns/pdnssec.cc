@@ -66,6 +66,7 @@ void loadMainConfig(const std::string& configdir)
   cleanSlashes(configname);
   
   ::arg().laxFile(configname.c_str());
+  ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
@@ -108,22 +109,28 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
     return;
   } 
   sd.db->list(zone, sd.domain_id);
-  DNSResourceRecord rr;
 
-  set<string> qnames, nsset, dsnames;
+  DNSResourceRecord rr;
+  set<string> qnames, nsset, dsnames, nonterm, insnonterm, delnonterm;
+  bool doent=true;
   
   while(sd.db->get(rr)) {
-    qnames.insert(rr.qname);
-    if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, zone)) 
-      nsset.insert(rr.qname);
-    if(rr.qtype.getCode() == QType::DS)
-      dsnames.insert(rr.qname);
+    if (rr.qtype.getCode())
+    {
+      qnames.insert(rr.qname);
+      if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, zone)) 
+        nsset.insert(rr.qname);
+      if(rr.qtype.getCode() == QType::DS)
+        dsnames.insert(rr.qname);
+    }
+    else
+      if(doent)
+        delnonterm.insert(rr.qname);
   }
 
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
-  string hashed;
   if(!haveNSEC3) 
     cerr<<"Adding NSEC ordering information"<<endl;
   else if(!narrow)
@@ -133,20 +140,29 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   
   if(doTransaction)
     sd.db->startTransaction("", -1);
+    
+  bool realrr=true;
+  string hashed;
+
+  uint32_t maxent = ::arg().asNum("max-ent-entries");
+
+  dononterm:;
   BOOST_FOREACH(const string& qname, qnames)
   {
-    string shorter(qname);
     bool auth=true;
+    string shorter(qname);
 
-    do {
-      if(nsset.count(shorter)) {  
-        auth=false;
-        break;
-      }
-    }while(chopOff(shorter));
+    if(realrr) {
+      do {
+        if(nsset.count(shorter)) {
+          auth=false;
+          break;
+        }
+      } while(chopOff(shorter));
 
-    if(dsnames.count(qname))
-      auth=true;
+      if(dsnames.count(qname))
+        auth=true;
+    }
 
     if(haveNSEC3)
     {
@@ -156,7 +172,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
           cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
       }
       sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
-      if(!auth || dsnames.count(qname))
+      if((!auth || dsnames.count(qname)) && realrr)
       {
         sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "NS");
         sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
@@ -165,14 +181,62 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
     }
     else // NSEC
     {
-      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
-      if(!auth || dsnames.count(qname))
+      if(realrr)
       {
-        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
-        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
+        sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
+        if(!auth || dsnames.count(qname))
+        {
+          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
+          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
+        }
+      }
+      else
+      {
+        sd.db->nullifyDNSSECOrderName(sd.domain_id, qname);
+      }
+    }
+
+    if(auth && realrr && doent)
+    {
+      shorter=qname;
+      while(!pdns_iequals(shorter, zone) && chopOff(shorter))
+      {
+        if(!qnames.count(shorter) && !nonterm.count(shorter))
+        {
+          if(!(maxent))
+          {
+            cerr<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
+            insnonterm.clear();
+            delnonterm.clear();
+            doent=false;
+            break;
+          }
+          nonterm.insert(shorter);
+          if (!delnonterm.count(shorter))
+            insnonterm.insert(shorter);
+          else
+            delnonterm.erase(shorter);
+          --maxent;
+        }
       }
     }
   }
+
+  if(realrr)
+  {
+    //cerr<<"Total: "<<nonterm.size()<<" Insert: "<<insnonterm.size()<<" Delete: "<<delnonterm.size()<<endl;
+    if(!insnonterm.empty() || !delnonterm.empty() || !doent)
+    {
+      sd.db->updateEmptyNonTerminals(sd.domain_id, zone, insnonterm, delnonterm, !doent);
+    }
+    if(doent)
+    {
+      realrr=false;
+      qnames=nonterm;
+      goto dononterm;
+    }
+  }
+
   if(doTransaction)
     sd.db->commitTransaction();
 }

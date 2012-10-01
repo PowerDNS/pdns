@@ -29,3 +29,5 @@ blah			IN	A	192.168.6.1
 very-long-txt		IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long!"
 within-server		IN	CNAME	outpost.example.com.
 _underscore		IN	TXT	"underscores are terrible"
+b.c			IN	A	5.6.7.8
+*.a.b.c			IN	A	8.7.6.5

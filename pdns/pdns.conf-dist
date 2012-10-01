@@ -170,6 +170,11 @@
 # max-cache-entries=1000000
 
 #################################
+# max-ent-entries	Maximum number of empty non-terminals in a zone
+#
+# max-ent-entries=100000
+
+#################################
 # max-queue-length	Maximum queuelength before considering situation lost
 #
 # max-queue-length=5000

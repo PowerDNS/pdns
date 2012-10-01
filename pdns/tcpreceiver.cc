@@ -639,11 +639,19 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       continue;
     records++;
     if(securedZone && (rr.auth || (!NSEC3Zone && rr.qtype.getCode() == QType::NS) || rr.qtype.getCode() == QType::DS)) { // this is probably NSEC specific, NSEC3 is different
-      keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
-      NSECXEntry& ne = nsecxrepo[keyname];
-      ne.d_set.insert(rr.qtype.getCode());
-      ne.d_ttl = sd.default_ttl;
+      if (NSEC3Zone || rr.qtype.getCode()) {
+        keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
+        NSECXEntry& ne = nsecxrepo[keyname];
+        ne.d_ttl = sd.default_ttl;
+        if (rr.qtype.getCode()) {
+          ne.d_set.insert(rr.qtype.getCode());
+        }
+      }
     }
+
+    if (!rr.qtype.getCode())
+      continue; // skip empty non-terminals
+
     if(rr.qtype.getCode() == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
 
@@ -673,7 +681,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
         NSEC3RecordContent n3rc;
         n3rc.d_set = iter->second.d_set;
-        n3rc.d_set.insert(QType::RRSIG);
+        if (n3rc.d_set.size())
+          n3rc.d_set.insert(QType::RRSIG);
         n3rc.d_salt=ns3pr.d_salt;
         n3rc.d_flags = ns3pr.d_flags;
         n3rc.d_iterations = ns3pr.d_iterations;
@@ -686,7 +695,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     
         rr.qname = dotConcat(toLower(toBase32Hex(iter->first)), sd.qname);
     
-        rr.ttl = iter->second.d_ttl;
+        rr.ttl = sd.default_ttl;
         rr.content = n3rc.getZoneRepresentation();
         rr.qtype = QType::NSEC3;
         rr.d_place = DNSResourceRecord::ANSWER;
@@ -720,7 +729,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   
       rr.qname = labelReverse(iter->first);
   
-      rr.ttl = iter->second.d_ttl;
+      rr.ttl = sd.default_ttl;
       rr.content = nrc.getZoneRepresentation();
       rr.qtype = QType::NSEC;
       rr.d_place = DNSResourceRecord::ANSWER;

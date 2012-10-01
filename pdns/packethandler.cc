@@ -424,16 +424,14 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   DNSResourceRecord rr;
   B.lookup(QType(QType::ANY), begin);
   while(B.get(rr)) {
-    if(rr.domain_id == sd.domain_id && (rr.qtype.getCode() == QType::NS || rr.auth)) 
+    if(rr.domain_id == sd.domain_id && (rr.qtype.getCode() == QType::NS || rr.auth))
       nrc.d_set.insert(rr.qtype.getCode());    
   }
   
   nrc.d_next=end;
 
-  rr.ttl = sd.default_ttl;
-
   rr.qname=begin;
-  // we can leave ttl untouched, either it is the default, or it is what we retrieved above
+  rr.ttl = sd.default_ttl;
   rr.qtype=QType::NSEC;
   rr.content=nrc.getZoneRepresentation();
   rr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
@@ -446,33 +444,37 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
 {
 //  cerr<<"We should emit NSEC3 '"<<toLower(toBase32Hex(begin))<<"' - ('"<<toNSEC3<<"') - '"<<toLower(toBase32Hex(end))<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
-  n3rc.d_set.insert(QType::RRSIG);
   n3rc.d_salt=ns3prc.d_salt;
   n3rc.d_flags = ns3prc.d_flags;
   n3rc.d_iterations = ns3prc.d_iterations;
   n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
 
-  DNSResourceRecord nsec3rr, rr;
-  B.lookup(QType(QType::ANY), unhashed);
-  while(B.get(rr)) {
-    n3rc.d_set.insert(rr.qtype.getCode());    
+  DNSResourceRecord rr;
+  if(!unhashed.empty()) {
+    B.lookup(QType(QType::ANY), unhashed);
+    while(B.get(rr)) {
+      if(rr.domain_id == sd.domain_id && rr.qtype.getCode()) // skip out of zone data and empty non-terminals
+        n3rc.d_set.insert(rr.qtype.getCode());
+    }
+
+    if(unhashed == sd.qname) {
+      n3rc.d_set.insert(QType::NSEC3PARAM);
+      n3rc.d_set.insert(QType::DNSKEY);
+    }
   }
 
-  if(unhashed == sd.qname) {
-    n3rc.d_set.insert(QType::NSEC3PARAM);
-    n3rc.d_set.insert(QType::DNSKEY);
-  }
+  if (n3rc.d_set.size())
+    n3rc.d_set.insert(QType::RRSIG);
   
   n3rc.d_nexthash=end;
 
-  rr.ttl = sd.default_ttl;
   rr.qname=dotConcat(toLower(toBase32Hex(begin)), sd.qname);
-  
+  rr.ttl = sd.default_ttl;
   rr.qtype=QType::NSEC3;
   rr.content=n3rc.getZoneRepresentation();
-  
   rr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
+  
   r->addRecord(rr);
 }
 
@@ -484,7 +486,7 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOADa
 
 /*
    mode 0 = No Data Responses, QTYPE is not DS
-   mode 1 = No Data Responses, QTYPE is DS (can we do this already?)
+   mode 1 = No Data Responses, QTYPE is DS
    mode 2 = Wildcard No Data Responses
    mode 3 = Wildcard Answer Responses
    mode 4 = Name Error Responses
@@ -542,8 +544,10 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
   if(narrow) { // nsec3-narrow
     ret=true;
     before=hashed;
-    if(decrement)
+    if(decrement) {
       decrementHash(before);
+      unhashed.clear();
+    }
     after=hashed;
     incrementHash(after);
   }
@@ -650,35 +654,23 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
 
   string before,after;
   //cerr<<"Calling getBeforeandAfter!"<<endl;
+
   if (mode == 2) {
+    // wildcard NO-DATA
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, p->qdomain, before, after);
+    emitNSEC(before, after, target, sd, r, mode);
+    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
   }
   else {
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
   }
-  // cerr<<"Done calling, before='"<<before<<"', after='"<<after<<"'"<<endl;
-
-  // this stuff is wrong (but it appears to work)
+  emitNSEC(before, after, target, sd, r, mode);
   
-  if(mode == 0 || mode == 1 || mode == 5)
-    emitNSEC(target, after, target, sd, r, mode);
-  
-  if(mode == 2 || mode == 4)  {
-    emitNSEC(before, after, target, sd, r, mode);
-
-    if (mode == 2) {
-      sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
-      emitNSEC(target, after, auth, sd, r, mode);
-    }
-    else {
+  if (mode == 4) {
       // this one does wildcard denial, if applicable
       sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after);
       emitNSEC(auth, after, auth, sd, r, mode);
-    }
   }
-
-  if(mode == 3)
-    emitNSEC(before, after, target, sd, r, mode);
 
   return;
 }
@@ -1289,14 +1281,20 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       }
     }
     else if(weDone) {
+      bool haveRecords = false;
       BOOST_FOREACH(rr, rrset) {
-        if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
+        if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.qtype.getCode() && rr.auth) {
           r->addRecord(rr);
+          haveRecords = true;
+        }
       }
 
-      if(p->qtype.getCode() == QType::ANY) {
-        completeANYRecords(p, r, sd, target);
+      if (haveRecords) {
+        if(p->qtype.getCode() == QType::ANY)
+          completeANYRecords(p, r, sd, target);
       }
+      else
+        makeNOError(p, r, rr.qname, sd, 0);
 
       goto sendit;
     }

@@ -1,0 +1,2 @@
+#!/bin/sh
+USEDRILL=1 cleandig test.com AXFR dnssec | grep -P 'IN\tNSEC' | LC_ALL=C sort

@@ -1,7 +1,7 @@
 1	2eu2gulbu53h9uvhfalshpbo2a83t6l2.test.com.	IN	NSEC3	86400	1 1 1 abcd 2EU2GULBU53H9UVHFALSHPBO2A83T6L3 NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	2eu2gulbu53h9uvhfalshpbo2a83t6l2.test.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.com. ...
 1	blah.test.com.	IN	NS	3600	blah.test.com.
-1	s96h2qicbt8d9i5aa43kp8sjjresq4ka.test.com.	IN	NSEC3	86400	1 1 1 abcd S96H2QICBT8D9I5AA43KP8SJJRESQ4KC A NS RRSIG
+1	s96h2qicbt8d9i5aa43kp8sjjresq4ka.test.com.	IN	NSEC3	86400	1 1 1 abcd S96H2QICBT8D9I5AA43KP8SJJRESQ4KC
 1	s96h2qicbt8d9i5aa43kp8sjjresq4ka.test.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.com. ...
 2	.	IN	OPT	32768	
 2	blah.test.com.	IN	A	3600	192.168.6.1
