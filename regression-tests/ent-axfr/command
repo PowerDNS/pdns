@@ -1,2 +1,2 @@
 #!/bin/sh
-USEDRILL=1 cleandig test.com AXFR dnssec | grep -P 'IN\tNSEC' | sed 's/;.*//' | LC_ALL=C sort
+USEDRILL=1 cleandig test.com AXFR dnssec | grep -P 'IN\tNSEC' | sed 's/ ;.*//' | LC_ALL=C sort
