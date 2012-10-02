@@ -1,0 +1,17 @@
+.TH DNSWASHER 8 "September 2012" "PowerDNS"
+.SH NAME
+dnswasher \- A PowerDNS nameserver debugging tool
+.SH SYNOPSIS
+.B dnswasher  \fI[infile]\fR  \fI[outfile]\fR
+.SH DESCRIPTION
+dnswasher takes an \fIinfile\fR in PCAP format and writtes out \fIoutfile\fR 
+also in PCAP format. It copies all network traffic found in \fIinfile\fR to  \fIoutfile\fR
+except for non DNS traffic.
+This might be handy when creating bug reports or test cases for DNS software e.g. PowerDNS.
+.SH OPTIONS
+None.
+.SH SEE ALSO
+pcap(3PCAP), tcpdump(8)
+.SH AUTHORS
+This manpage was written by Joerg Jungermann (jj+debian At borkum.net) for the 
+Debian Project and the PowerDNS versatile DNS server.

@@ -1,0 +1,47 @@
+.TH DNSREPLAY 8 "September 2012" "PowerDNS"
+.SH NAME
+dnswasher \- A PowerDNS nameserver debugging tool
+.SH SYNOPSIS
+.B dnsreplay  \fI[options]\fR \fIfilename\fR \fIip-address\fR \fI[port]\fR
+.SH DESCRIPTION
+This program takes recorded questions and answers and replays them to a specified 
+nameserver and reporting afterwards which percentage of answers matched, were worse or better. 
+
+\fIfilename\fR is expected to be an PCAP file.
+The queries are send to the DNS server specified as  \fIip-address\fR and \fI[port]\fR.
+\fIip-address\fR is mandatory. If  \fI[port]\fR is omitted, 53 will be used.
+dnsreplay compares the answers and some other metrics with the actual ones with those found in the dumpfile.
+
+By default it only replay queries with recursion-desired flag set.
+.SH OPTIONS
+.TP
+.B \-\-help | \-h
+.br
+Show summary of options.
+.TP
+.B \-\-packet\-limit  \fInum\fR
+.br
+Stop after replaying \fInum\fR packets. Default for \fInum\fR is 0, which means no limit.
+.TP
+.B \-\-quiet  \fIflag\fR
+.br
+If \fIflag\fR is set to 1. dnsreplay will not be very noisy with its output. This is the default.
+.TP
+.B \-\-recursive  \fIflag\fR
+.br
+If \fIflag\fR is set to 1. dnsreplay will only replay queries with recursion desired flag set. This is the default.
+.TP
+.B \-\-speedup \fIfactor\fR
+.br
+Replay queries with this speedup factor. Default is 1.
+.TP
+.B \-\-timeout-msec \fItime\fR
+.br
+Wait at least this many milliseconds for a reply. Default is 500.
+.SH BUGS
+dnsreplay has no certain handling for timeouts. It handles around at most 65536 outstanding answers.
+.SH SEE ALSO
+pcap(3PCAP), tcpdump(8), dnswascher(8)
+.SH AUTHORS
+This manpage was written by Joerg Jungermann (jj+debian At borkum.net) for the 
+Debian Project and the PowerDNS versatile DNS server.
