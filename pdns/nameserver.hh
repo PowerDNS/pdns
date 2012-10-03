@@ -19,7 +19,7 @@
 #define NAMESERVER_HH
 
 #ifndef WIN32
-# include <sys/select.h>
+# include <poll.h>
 # include <sys/types.h>
 # include <sys/socket.h>
 # include <netinet/in.h>
@@ -31,6 +31,7 @@
 #endif // WIN32
 
 #include <vector>
+#include <boost/foreach.hpp>
 #include "statbag.hh"
 #include "namespaces.hh"
 
@@ -79,7 +80,7 @@ private:
   vector<int> d_sockets;
   void bindIPv4();
   void bindIPv6();
-  fd_set d_rfds;
+  vector<pollfd> d_rfds;
   int d_highfd;
 };
 
@@ -96,13 +97,16 @@ inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   memset( &remote, 0, sizeof( remote ));
   addrlen=sizeof(remote);  
   if(d_sockets.size()>1) {
-    fd_set rfds=d_rfds;
+    BOOST_FOREACH(struct pollfd &pfd, d_rfds) {
+      pfd.events = POLL_IN;
+      pfd.revents = 0;
+    }
     
-    select(d_highfd+1, &rfds, 0, 0,  0); // blocks
-
-    for(vector<int>::const_iterator i=d_sockets.begin();i!=d_sockets.end();++i) {
-      if(FD_ISSET(*i, &rfds)) {
-        sock=*i;
+    poll(&d_rfds[0], d_rfds.size(), -1);
+  
+    BOOST_FOREACH(struct pollfd &pfd, d_rfds) {
+      if(pfd.revents & POLL_IN) {
+        sock=pfd.fd;
         addrlen=sizeof(remote);
         
         len=0;

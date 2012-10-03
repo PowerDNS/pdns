@@ -125,7 +125,11 @@ void UDPNameserver::bindIPv4()
     d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
     L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
-    FD_SET(s, &d_rfds);
+    struct pollfd pfd;
+    pfd.fd = s;
+    pfd.events = POLL_IN;
+    pfd.revents = 0;
+    d_rfds.push_back(pfd);
   }
 }
 
@@ -159,8 +163,13 @@ void UDPNameserver::bindIPv6()
     }
     d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
+    struct pollfd pfd;
+    pfd.fd = s;
+    pfd.events = POLL_IN;
+    pfd.revents = 0;
+    d_rfds.push_back(pfd);
     L<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
-    FD_SET(s, &d_rfds);
+    
   }
 #endif // WIN32
 }
@@ -168,7 +177,6 @@ void UDPNameserver::bindIPv6()
 UDPNameserver::UDPNameserver()
 {
   d_highfd=0;
-  FD_ZERO(&d_rfds);  
   if(!::arg()["local-address"].empty())
     bindIPv4();
   if(!::arg()["local-ipv6"].empty())
