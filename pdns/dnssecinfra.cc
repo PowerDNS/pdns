@@ -108,7 +108,7 @@ void DNSCryptoKeyEngine::testAll()
         
         BOOST_FOREACH(maker_t* verifier, value.second) {
           try {
-            pair<unsigned int, unsigned int> res=testMakers(value.first, creator, signer, verifier);
+            /* pair<unsigned int, unsigned int> res=*/ testMakers(value.first, creator, signer, verifier);
           }
           catch(std::exception& e)
           {
@@ -129,7 +129,7 @@ void DNSCryptoKeyEngine::testOne(int algo)
 
       BOOST_FOREACH(maker_t* verifier, getAllMakers()[algo]) {
         try {
-          pair<unsigned int, unsigned int> res=testMakers(algo, creator, signer, verifier);
+          /* pair<unsigned int, unsigned int> res=*/testMakers(algo, creator, signer, verifier);
         }
         catch(std::exception& e)
         {
@@ -139,7 +139,7 @@ void DNSCryptoKeyEngine::testOne(int algo)
     }
   }
 }
-
+// returns times it took to sign and verify
 pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
 {
   shared_ptr<DNSCryptoKeyEngine> dckeCreate(creator(algo));
