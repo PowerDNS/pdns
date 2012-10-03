@@ -133,12 +133,6 @@ void fillSOAData(const string &content, SOAData &data)
 
   // fill out data with some plausible defaults:
   // 10800 3600 604800 3600
-  data.serial=0;
-  data.refresh=::arg().asNum("soa-refresh-default");
-  data.retry=::arg().asNum("soa-retry-default");
-  data.expire=::arg().asNum("soa-expire-default");
-  data.default_ttl=::arg().asNum("soa-minimum-ttl");
-
   vector<string>parts;
   stringtok(parts,content);
   int pleft=parts.size();
@@ -151,21 +145,19 @@ void fillSOAData(const string &content, SOAData &data)
   if(pleft>1) 
     data.hostmaster=attodot(parts[1]); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
 
-  if(pleft>2)
-    data.serial=strtoul(parts[2].c_str(), NULL, 10);
+  data.serial = pleft > 2 ? strtoul(parts[2].c_str(), NULL, 10) : 0;
 
-  if(pleft>3)
-    data.refresh=atoi(parts[3].c_str());
+  data.refresh = pleft > 3 ? atoi(parts[3].c_str())
+        : ::arg().asNum("soa-refresh-default");
 
-  if(pleft>4)
-    data.retry=atoi(parts[4].c_str());
+  data.retry = pleft > 4 ? atoi(parts[4].c_str())
+        : ::arg().asNum("soa-retry-default");
 
-  if(pleft>5)
-    data.expire=atoi(parts[5].c_str());
+  data.expire = pleft > 5 ? atoi(parts[5].c_str())
+        : ::arg().asNum("soa-expire-default");
 
-  if(pleft>6)
-    data.default_ttl=atoi(parts[6].c_str());
-
+  data.default_ttl = pleft > 6 ?atoi(parts[6].c_str())
+        : ::arg().asNum("soa-minimum-ttl");
 }
 
 string serializeSOAData(const SOAData &d)
