@@ -11855,7 +11855,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	      <para>
 		Like <command>allow-from</command>, except reading from file. Overrides the 'allow-from' setting. 
 		To use this feature, supply one netmask per line, with optional comments preceeded by a #.
-		Available since 3.1.5.
+		Available since version 3.1.5.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -11876,7 +11876,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Comma separated list of 'zonename=filename' pairs. Zones read from these files (in BIND format) are served authoritatively. Example:
-		<command>auth-zones= ds9a.nl=/var/zones/ds9a.nl, powerdns.com=/var/zones/powerdns.com</command>. Available since 3.1.
+		<command>auth-zones= ds9a.nl=/var/zones/ds9a.nl, powerdns.com=/var/zones/powerdns.com</command>. Available since version 3.1.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -11924,7 +11924,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>disable-packetcache</term>
 	    <listitem>
 	      <para>
-		Turn off the packet cache. Useful when running with Lua scripts that can not be cached. Available since 3.2.
+		Turn off the packet cache. Useful when running with Lua scripts that can not be cached. Available since version 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -11953,7 +11953,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>export-etc-hosts</term>
 	    <listitem>
 	      <para>
-		If set, this flag will export the host names and IP addresses mentioned in <filename>/etc/hosts</filename>. Available since 3.1.
+		If set, this flag will export the host names and IP addresses mentioned in <filename>/etc/hosts</filename>. Available since version 3.1.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -11969,7 +11969,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 		generation of 'pc.home.com' within the recursor.  An entry
 		called 'server1.home' will be stored as 'server1.home',
 		regardless of the export-etc-hosts setting. Available
-		in since 3.4.
+		in since version 3.4.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -11989,7 +11989,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Comma separated list of 'zonename=IP' pairs. Queries for zones listed here will be forwarded to the IP address listed.
-		<command>forward-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1</command>. Available since 3.1.
+		<command>forward-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1</command>. Available since version 3.1.
 	      </para>
 	      <para>
 		Since version 3.1.5, multiple IP addresses can be specified. Additionally, port numbers other than 53 can be configured.
@@ -12006,10 +12006,10 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Same as <command>forward-zones</command>, parsed from a file. Only 1 zone is allowed per line, specified as follows:
-		<command>ds9a.nl=213.244.168.210, 1.2.3.4:5300</command>. No comments are allowed. Available since 3.1.5. 
+		<command>ds9a.nl=213.244.168.210, 1.2.3.4:5300</command>. No comments are allowed. Available since version 3.1.5.
 	      </para>
 	      <para>
-		Since 3.2, zones prefixed with a '+' are forwarded with the recursion-desired bit set to one, for which see 'forward-zones-recurse'. Default behaviour without '+'
+		Since version 3.2, zones prefixed with a '+' are forwarded with the recursion-desired bit set to one, for which see 'forward-zones-recurse'. Default behaviour without '+'
 		is as with 'forward-zones'.
 	      </para>
 	    </listitem>
@@ -12019,7 +12019,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>	      
 	      <para>
 		Like regular 'forward-zones' (see above), but forwarded queries have the 'recursion desired' bit set to 1, meaning that this setting is intended to forward queries 
-		to authoritative servers or to resolving servers. Available since 3.2.
+		to authoritative servers or to resolving servers. Available since version 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12027,7 +12027,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>hint-file</term>
 	    <listitem>
 	      <para>
-		If set, the root-hints are read from this file. If unset, default root hints are used. Available since 2.9.19.
+		If set, the root-hints are read from this file. If unset, default root hints are used. Available since version 2.9.19.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12038,7 +12038,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	      <para>
 		Local IPv4 or IPv6 addresses to bind to, comma separated. Defaults to only loopback. Addresses can also contain port numbers,
 		for IPv4 specify like this: <command>1.2.3.4:5300</command>, for IPv6: <command>[::1]:5300</command>. Port specifications are available since
-		3.1.2.
+		version 3.1.2.
 	      </para>
 	      <para><warning><para>When binding to wildcard addresses, UNIX semantics mean that answers may not be sent
 	 	from the address a query was received on. It is highly recommended to bind to explicit addresses.</para></warning></para>
@@ -12085,7 +12085,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>max-packetcache-entries</term>
 	    <listitem>
 	      <para>
-		Maximum number of Packet Cache entries. 1 million per thread will generally suffice for most installations. Available since 3.2. 
+		Maximum number of Packet Cache entries. 1 million per thread will generally suffice for most installations. Available since version 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12093,7 +12093,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>max-cache-ttl</term>
 	    <listitem>
 	      <para>
-		Maximum number of seconds to cache an item in the DNS cache, no matter what the original TTL specified. Available since 3.2.
+		Maximum number of seconds to cache an item in the DNS cache, no matter what the original TTL specified. Available since version 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12112,7 +12112,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>max-tcp-clients</term>
 	    <listitem>
 	      <para>
-	      Maximum number of simultaneous incoming TCP connections allowed. Defaults to 128. Available since 2.9.18. 
+	      Maximum number of simultaneous incoming TCP connections allowed. Defaults to 128. Available since version 2.9.18.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12128,7 +12128,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>network-timeout</term>
 	    <listitem>
 	      <para>
-		Number of milliseconds to wait for a remote authoritative server to respond. Defaults to 1500 msec, available since 3.2.
+		Number of milliseconds to wait for a remote authoritative server to respond. Defaults to 1500 msec, available since version 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12136,7 +12136,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>packetcache-ttl</term>
 	    <listitem>
 	      <para>
-		Maximum number of seconds to cache an item in the packet cache, no matter what the original TTL specified. Available since 3.2.
+		Maximum number of seconds to cache an item in the packet cache, no matter what the original TTL specified. Available since version 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12144,7 +12144,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>packetcache-servfail-ttl</term>
 	    <listitem>
 	      <para>
-		Maximum number of seconds to cache a 'server failure' answer in the packet cache. Available since 3.2.
+		Maximum number of seconds to cache a 'server failure' answer in the packet cache. Available since version 3.2.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12152,7 +12152,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>query-local-address</term>
 	    <listitem>
 	      <para>
-		Send out local queries from this address, or addresses. Since 3.2, by adding multiple addresses, increased spoofing resilience is achieved. Addresses can be separated by a comma.
+		Send out local queries from this address, or addresses. Since version 3.2, by adding multiple addresses, increased spoofing resilience is achieved. Addresses can be separated by a comma.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12160,7 +12160,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>query-local-address6</term>
 	    <listitem>
 	      <para>
-		Send out local IPv6 queries from this address or addresses Disabled by default, which also disables
+		Send out local IPv6 queries from this address or addresses. Disabled by default, which also disables
 		outgoing IPv6 support. Since version 3.2, multiple addresses can be specified, separated by a comma.
 	      </para>
 	    </listitem>
@@ -12248,7 +12248,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <term>version</term>
 	    <listitem>
 	      <para>
-		Print version of this binary. Useful for checking which version of the PowerDNS recursor is installed on a system. Available since 3.1.5.
+		Print version of this binary. Useful for checking which version of the PowerDNS recursor is installed on a system. Available since version 3.1.5.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12327,7 +12327,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	      <term>get-all</term>
 	      <listitem>
 		<para>
-		  Retrieve all statistics in one go. Available since 3.2.
+		  Retrieve all statistics in one go. Available since version 3.2.
 		</para>
 	      </listitem>
 	    </varlistentry>	  
@@ -12335,7 +12335,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	      <term>get-parameter parameter1 parameter2 ..</term>
 	      <listitem>
 		<para>
-		  Retrieve a configuration parameter. All parameters from the configuration and command line can be queried. Available since 3.2.
+		  Retrieve a configuration parameter. All parameters from the configuration and command line can be queried. Available since version 3.2.
 		</para>
 	      </listitem>
 	    </varlistentry>	  
@@ -12719,14 +12719,14 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
 	</para>
 	<para>
-	  <function>postresolve ( remoteip, domain, qtype, records, origrcode )</function> is called right before returning a response to a client (and, unless <function>setvariable()</function> is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since 3.4.
+	  <function>postresolve ( remoteip, domain, qtype, records, origrcode )</function> is called right before returning a response to a client (and, unless <function>setvariable()</function> is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since version 3.4.
 	</para>
 	<para>
 	  <function>function nxdomain ( remoteip, domain, qtype )</function> is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain
 	  or the specific record does not exist. This can be used for various purposes.
 	</para>
 	<para>
-	  <function>function nodata ( remoteip, domain, qtype, records )</function> is just like <function>nxdomain</function>, except it gets called when a domain exists, but the requested type does not. This is where one would implement DNS64. Available since 3.4.
+	  <function>function nodata ( remoteip, domain, qtype, records )</function> is just like <function>nxdomain</function>, except it gets called when a domain exists, but the requested type does not. This is where one would implement DNS64. Available since version 3.4.
 	</para>
 		
 	<para>
@@ -12849,16 +12849,16 @@ end
 	  a number of netmasks. If any of these match, the function returns true.
 	</para>
 	<para>
-	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since 3.2.
+	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since version 3.2.
 	</para>
 	<para>
-	  To retrieve the IP address on which a query was received, use <function>getlocaladdress()</function>. Available since 3.2.	  
+	  To retrieve the IP address on which a query was received, use <function>getlocaladdress()</function>. Available since version 3.2.
 	</para>
 	<para>
-	  To indicate that an answer should not be cached in the packet cache, use <function>setvariable()</function>. Available since 3.3.
+	  To indicate that an answer should not be cached in the packet cache, use <function>setvariable()</function>. Available since version 3.3.
 	</para>
 	<para>
-	  To get fake AAAA records for DNS64 usage, use <function>return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"</function>. Available since 3.4.
+	  To get fake AAAA records for DNS64 usage, use <function>return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"</function>. Available since version 3.4.
 	</para>
       </sect2>
     </sect1>
@@ -13172,7 +13172,7 @@ end
 	is especially useful as it triggers an immediate retrieval of the zone from the configured master.
       </para>
       <para>
-	Since 2.9.21, PowerDNS supports multiple masters. For the BIND backend, the native BIND configuration language suffices to specify
+	Since version 2.9.21, PowerDNS supports multiple masters. For the BIND backend, the native BIND configuration language suffices to specify
 	multiple masters, for SQL based backends, list all master servers separated by commas in the 'master' field of the domains table.
       </para>
       <sect2 id="supermaster"><title>Supermaster automatic provisioning of slaves</title>
@@ -13525,7 +13525,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <term>max-cache-entries</term>
 	    <listitem>
 	      <para>
-		Maximum number of cache entries. 1 million will generally suffice for most installations. Available since 2.9.22.
+		Maximum number of cache entries. 1 million will generally suffice for most installations. Available since version 2.9.22.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -13599,10 +13599,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 	      If set, PowerDNS will send out old-fashioned root-referrals when queried for domains for which it is not authoritative. Wastes some bandwidth
 	      but may solve incoming query floods if domains are delegated to you for which you are not authoritative, but which are queried by broken
-	      recursors. Available since 2.9.19.
+	      recursors. Available since version 2.9.19.
 	      </para>
 	    <para>
-	      Since 2.9.21, it is possible to specify 'lean' root referrals, which waste less bandwidth.
+	      Since version 2.9.21, it is possible to specify 'lean' root referrals, which waste less bandwidth.
 	    </para></listitem></varlistentry>
 	<varlistentry><term>setgid=...</term>
 	    <listitem><para>
@@ -14605,7 +14605,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
   </chapter>
   <chapter id="analysis"><title>Tools to analyse DNS traffic</title>
     <para>
-      DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since 2.9.18, PowerDNS comes
+      DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since version 2.9.18, PowerDNS comes
       with three tools to aid in analysis:
       <warning>
 	<para>
@@ -14687,7 +14687,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem>
 	      <para>
 		Number of milliseconds to wait for an answer from the backend. If this time is ever exceeded, the backend
-		is declared dead and a new process is spawned. Available since 2.7.
+		is declared dead and a new process is spawned. Available since version 2.7.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -14705,7 +14705,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 		In the configuration file, the previous example would be stored as: pipe-regex=^www.powerdns.com;(A|ANY)$
 	      </para>
 	      <para>
-		Available since 2.8.
+		Available since version 2.8.
 	      </para>
 	    </listitem>
 	  </varlistentry>
