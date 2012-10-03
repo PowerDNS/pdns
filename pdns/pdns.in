@@ -54,6 +54,7 @@ case "$1" in
 			echo $ret
 		else
 			echo "not running"
+			exit 3
 		fi 
 	;;	
 
@@ -84,6 +85,9 @@ case "$1" in
 			if $pdns_server --daemon --guardian=yes
 			then
 				echo "started"	
+	            	else
+				echo "starting failed"
+		                exit 1
 			fi
 		fi 
 	;;		
