@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2012 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -88,94 +88,12 @@ Session::Session(const Session &s)
   memcpy(rdbuf,s.rdbuf,d_bufsize);
 }  
 
-Session::Session(const string &dest, int port, int timeout)
-{
-  struct hostent *h;
-  h=gethostbyname(dest.c_str());
-  if(!h)
-    throw SessionException("Unable to resolve target name");
-  
-  if(timeout)
-    d_timeout=timeout;
-
-  doConnect(*(int*)h->h_addr, port);
-}
-
-Session::Session(uint32_t ip, int port, int timeout)
-{
-  if(timeout)
-    d_timeout=timeout;
-
-  doConnect(ip, port);
-}
-
 void Session::setTimeout(unsigned int seconds)
 {
   d_timeout=seconds;
 }
 
   
-void Session::doConnect(uint32_t ip, int port)
-{
-  init();
-  clisock=socket(AF_INET,SOCK_STREAM,0);
-  Utility::setCloseOnExec(clisock);
-  
-  memset(&remote,0,sizeof(remote));
-  remote.sin_family=AF_INET;
-  remote.sin_port=htons(port);
-
-  remote.sin_addr.s_addr=ip;
-
-  Utility::setNonBlocking( clisock );
-
-  int err;
-#ifndef WIN32
-  if((err=connect(clisock,(struct sockaddr*)&remote,sizeof(remote)))<0 && errno!=EINPROGRESS) {
-#else
-  if((err=connect(clisock,(struct sockaddr*)&remote,sizeof(remote)))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) {
-#endif // WIN32
-    throw SessionException("connect: "+stringerror());
-  }
-
-  if(!err)
-    goto done;
-
-  fd_set rset,wset;
-  struct timeval tval;
-
-  FD_ZERO(&rset);
-  FD_SET(clisock, &rset);
-  wset=rset;
-  tval.tv_sec=d_timeout;
-  tval.tv_usec=0;
-
-  if(!select(clisock+1,&rset,&wset,0,tval.tv_sec ? &tval : 0))
-    {
-      Utility::closesocket(clisock); // timeout
-      clisock=-1;
-      errno=ETIMEDOUT;
-  
-      throw SessionTimeoutException("Timeout connecting to server");
-    }
-  
-  if(FD_ISSET(clisock, &rset) || FD_ISSET(clisock, &wset))
-    {
-    Utility::socklen_t len=sizeof(err);
-      if(getsockopt(clisock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-        throw SessionException("Error connecting: "+stringerror()); // Solaris
-
-      if(err)
-        throw SessionException("Error connecting: "+string(strerror(err)));
-
-    }
-  else
-    throw SessionException("nonblocking connect failed");
-
- done:
-      Utility::setBlocking( clisock );
-}
-
 bool Session::putLine(const string &s)
 {
   int length=s.length();
@@ -184,29 +102,11 @@ bool Session::putLine(const string &s)
 
   while(written<length)
     {
-      fd_set wset;
-      FD_ZERO(&wset);
-      FD_SET(clisock, &wset);
-      struct timeval tval;
-      tval.tv_sec=d_timeout;
-      tval.tv_usec=0;
-      
-      if(!select(clisock+1,0,&wset,0,tval.tv_sec ? &tval : 0))
-        throw SessionTimeoutException("timeout writing line");
+      err=waitForRWData(clisock, false, d_timeout, 0);
+      if(err<=0)
+        throw SessionException("nonblocking write failed: "+string(strerror(errno)));
 
-      if(FD_ISSET(clisock, &wset))
-        {
-        Utility::socklen_t len=sizeof(err);
-          if(getsockopt(clisock, SOL_SOCKET,SO_ERROR,(char *) &err,&len)<0)
-            throw SessionException(+strerror(err)); // Solaris..
-          
-          if(err)
-            throw SessionException(strerror(err));
-        }
-      else
-        throw SessionException("nonblocking write failed"+string(strerror(errno)));
-
-      err=send(clisock,s.c_str()+written,length-written,0);
+      err=send(clisock,s.c_str()+written,length-written, 0);
 
       if(err<0)
         return false;
@@ -228,33 +128,14 @@ char *strnchr(char *p, char c, int len)
 
 int Session::timeoutRead(int s, char *buf, size_t len)
 {
-  fd_set rset;
-  FD_ZERO(&rset);
-  FD_SET(clisock, &rset);
-  struct timeval tval;
-  tval.tv_sec=d_timeout;
-  tval.tv_usec=0;
+  int err = waitForRWData(clisock, true, d_timeout, 0);
   
-  int err;
-  
-  if(!select(clisock+1,&rset,0,0,tval.tv_sec ? &tval : 0))
+  if(!err)
     throw SessionTimeoutException("timeout reading");
-  
-  if(FD_ISSET(clisock, &rset))
-    {
-    Utility::socklen_t len=sizeof(err);
-      if(getsockopt(clisock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-        throw SessionException(strerror(errno)); // Solaris..
-      
-      if(err)
-        throw SessionException(strerror(err));
-    }
-  else
-    throw SessionException("nonblocking read failed"+string(strerror(errno)));
+  if(err < 0)
+    throw SessionException("nonblocking read failed: "+string(strerror(errno)));
   
   return recv(s,buf,len,0);
-      
-
 }
 
 bool 
