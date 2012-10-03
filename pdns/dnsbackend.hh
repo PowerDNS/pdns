@@ -151,6 +151,11 @@ public:
     return false;
   }
 
+  virtual bool doesDNSSEC()
+  {
+    return false;
+  }
+
   // end DNSSEC
 
   //! returns true if master ip is master for domain name.

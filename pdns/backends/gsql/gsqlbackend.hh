@@ -46,6 +46,7 @@ public:
   virtual bool nullifyDNSSECOrderName(uint32_t domain_id, const std::string& qname);
   virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type);
   virtual bool updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert ,set<string>& erase, bool remove);
+  virtual bool doesDNSSEC();
 
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 

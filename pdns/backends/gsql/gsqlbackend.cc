@@ -279,6 +279,10 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
   d_getAllDomainsQuery=getArg("get-all-domains-query");
+
+  d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
+  d_insertEmptyNonTerminalQuery = getArg("insert-empty-non-terminal-query"+authswitch);
+  d_deleteEmptyNonTerminalQuery = getArg("delete-empty-non-terminal-query");
   
   if (d_dnssecQueries)
   {
@@ -289,9 +293,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_setOrderAuthQuery = getArg("set-order-and-auth-query");
     d_nullifyOrderNameQuery = getArg("nullify-ordername-query");
     d_nullifyOrderNameAndAuthQuery = getArg("nullify-ordername-and-auth-query");
-    d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
-    d_insertEmptyNonTerminalQuery = getArg("insert-empty-non-terminal-query");
-    d_deleteEmptyNonTerminalQuery = getArg("delete-empty-non-terminal-query");
     
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
@@ -354,8 +355,6 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
 
 bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert, set<string>& erase, bool remove)
 {
-  if(!d_dnssecQueries)
-    return false;
   char output[1024];
 
   if(remove) {
@@ -394,6 +393,11 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string&
   }
 
   return true;
+}
+
+bool GSQLBackend::doesDNSSEC()
+{
+    return d_dnssecQueries;
 }
 
 bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)

@@ -60,6 +60,10 @@ public:
     declare(suffix,"wildcard-any-id-query","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name from records where name like E'%s' and domain_id='%d'");
 
     declare(suffix,"list-query","AXFR query", "select content,ttl,prio,type,domain_id,name from records where domain_id='%d'");
+
+    declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id='%d' and type is null");
+    declare(suffix,"insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type) values ('%d','%s',null)");
+    declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id='%d' and name='%s' and type is null");
   
     // and now with auth
     declare(suffix,"basic-query-auth","Basic query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where type='%s' and name=E'%s'");
@@ -73,6 +77,8 @@ public:
     declare(suffix,"wildcard-any-id-query-auth","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where name like E'%s' and domain_id='%d'");
 
     declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where domain_id='%d' order by name, type");
+
+    declare(suffix,"insert-empty-non-terminal-query-auth", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,auth) values ('%d','%s',null,true)");
     
     declare(suffix,"master-zone-query","Data", "select master from domains where name=E'%s' and type='SLAVE'");
 
@@ -92,9 +98,6 @@ public:
 
     declare(suffix,"nullify-ordername-query", "DNSSEC nullify ordername query", "update records set ordername=NULL where domain_id='%d' and name='%s' and type is null");
     declare(suffix,"nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=false where name=E'%s' and type=E'%s' and domain_id='%d'");
-    declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id='%d' and type is null");
-    declare(suffix,"insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,auth) values ('%d','%s',null,true)");
-    declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id='%d' and name='%s' and type is null");
     
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");

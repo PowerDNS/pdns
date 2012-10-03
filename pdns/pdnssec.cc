@@ -131,12 +131,17 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
-  if(!haveNSEC3) 
-    cerr<<"Adding NSEC ordering information"<<endl;
-  else if(!narrow)
-    cerr<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'"<<endl;
-  else 
-    cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
+  if(sd.db->doesDNSSEC())
+  {
+    if(!haveNSEC3) 
+      cerr<<"Adding NSEC ordering information "<<endl;
+    else if(!narrow)
+      cerr<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'"<<endl;
+    else 
+      cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
+  }
+  else
+    cerr<<"Non DNSSEC zone, only adding empty non-terminals"<<endl;
   
   if(doTransaction)
     sd.db->startTransaction("", -1);
