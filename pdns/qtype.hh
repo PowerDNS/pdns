@@ -82,12 +82,57 @@ public:
 		 TLSA=52, SPF=99, TSIG=250, AXFR=252, IXFR=251, ANY=255, URL=256, MBOXFW=257, CURL=258, ADDR=259, DLV=32769} types;
   typedef pair<string,uint16_t> namenum; 
   static vector<namenum> names;
-private:
-  uint16_t code;
-  void insert(const char *p, int n);
 
-  static pthread_mutex_t uninitlock;
-  static bool uninit;
+private:
+  static class init {
+    public:
+    void qtype_insert(const char* a, uint16_t num) 
+    {
+	names.push_back(make_pair(string(a), num));
+    }
+
+    init()
+    {
+      qtype_insert("A",1);
+      qtype_insert("NS",2);
+      qtype_insert("CNAME",5);
+      qtype_insert("SOA",6);
+      qtype_insert("MR",9);
+      qtype_insert("PTR",12);
+      qtype_insert("HINFO",13);
+      qtype_insert("MX",15);
+      qtype_insert("TXT",16);
+      qtype_insert("RP",17);
+      qtype_insert("AFSDB", 18);
+      qtype_insert("SIG",24);
+      qtype_insert("KEY",25);
+      qtype_insert("AAAA",28);
+      qtype_insert("LOC",29);
+      qtype_insert("SRV",33);
+      qtype_insert("CERT", 37);
+      qtype_insert("A6",38);
+      qtype_insert("NAPTR",35);
+      qtype_insert("DS", 43);
+      qtype_insert("SSHFP", 44);
+      qtype_insert("RRSIG", 46);
+      qtype_insert("NSEC", 47);
+      qtype_insert("DNSKEY", 48);
+      qtype_insert("NSEC3", 50);
+      qtype_insert("NSEC3PARAM", 51);
+      qtype_insert("TLSA",52);
+      qtype_insert("SPF",99);
+      qtype_insert("IXFR",251);
+      qtype_insert("AXFR",252);
+      qtype_insert("ANY",255);
+      qtype_insert("URL",256);
+      qtype_insert("MBOXFW",257);
+      qtype_insert("CURL",258);
+      qtype_insert("ADDR",259);
+      qtype_insert("DLV",32769);
+    }
+  } initializer;
+
+  uint16_t code;
 };
 
 struct QClass
