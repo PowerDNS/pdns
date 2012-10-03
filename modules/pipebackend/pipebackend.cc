@@ -196,7 +196,6 @@ bool PipeBackend::get(DNSResourceRecord &r)
      extraFields = 2;
      
    for(;;) {
-     
       d_coproc->receive(line);
       vector<string>parts;
       stringtok(parts,line,"\t");
@@ -233,8 +232,6 @@ bool PipeBackend::get(DNSResourceRecord &r)
          r.ttl=atoi(parts[4+extraFields].c_str());
          r.domain_id=atoi(parts[5+extraFields].c_str());
          
-         
- 
          if(r.qtype.getCode() != QType::MX && r.qtype.getCode() != QType::SRV) {
            r.content.clear();
            for(unsigned int n= 6 + extraFields; n < parts.size(); ++n) {

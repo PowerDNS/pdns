@@ -43,7 +43,7 @@ while(<>)
 		print "DATA	$bits	$auth	$qname	$qclass	NS	3600	-1	ns2.example.com\n";
 	}
 	if(($qtype eq "TXT" || $qtype eq "ANY") && $qname eq "example.com") {
-		print STDERR "$$ Sent NS records\n";
+		print STDERR "$$ Sent TXT records\n";
 		print "DATA	$bits	$auth	$qname	$qclass	TXT	3600	-1	\"hallo allemaal!\"\n";
 	}
 	if(($qtype eq "A" || $qtype eq "ANY") && $qname eq "webserver.example.com") {
@@ -52,13 +52,13 @@ while(<>)
 		print "DATA	$bits	$auth	$qname	$qclass	A	3600	-1	1.2.3.5\n";
 		print "DATA	$bits	$auth	$qname	$qclass	A	3600	-1	1.2.3.6\n";
 	}
-	elsif(($qtype eq "CNAME" || $qtype eq "ANY") && $qname eq "www.example.com") {
+	if(($qtype eq "CNAME" || $qtype eq "ANY") && $qname eq "www.example.com") {
 		print STDERR "$$ Sent CNAME records\n";
 		print "DATA	$bits	$auth	$qname	$qclass	CNAME	3600	-1	webserver.example.com\n";
 	}
-	elsif($qtype eq "MBOXFW") {
-		print STDERR "$$ Sent MBOXFW records\n";
-		print "DATA	$bits	$auth	$qname	$qclass	MBOXFW	3600	-1	powerdns\@example.com\n";
+	if(($qtype eq "MX" || $qtype eq "ANY") && $qname eq "example.com") {
+		print STDERR "$$ Sent MX records\n";
+		print "DATA	$bits	$auth	$qname	$qclass	MX	3600	-1	25	smtp.powerdns.com\n";
 	}
 
 
