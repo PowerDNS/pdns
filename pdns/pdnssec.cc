@@ -273,6 +273,15 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
   uint64_t numrecords=0, numerrors=0;
   
   while(sd.db->get(rr)) {
+    if(!rr.qtype.getCode())
+      continue;
+    
+    if(rr.qtype.getCode() == QType::SOA)
+    {
+      fillSOAData(rr.content, sd);
+      rr.content = serializeSOAData(sd);
+    }
+    
     if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) {
       cout<<"The recordtype "<<rr.qtype.getName()<<" for record '"<<rr.qname<<"' is no longer supported."<<endl;
       numerrors++;
