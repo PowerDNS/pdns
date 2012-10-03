@@ -72,7 +72,8 @@ bool UeberBackend::loadmodule(const string &name)
   
   if(dlib == NULL) {
     L<<Logger::Warning <<"Unable to load module '"<<name<<"': "<<dlerror() << endl; 
-    L<<Logger::Warning <<"Trying to load gsqlite3backend? Make sure pdns_server was compiled with sqlite3!" <<endl;
+    if(name.find("gsqlite3")!=string::npos)
+      L<<Logger::Warning <<"Trying to load gsqlite3backend? Make sure pdns_server was compiled with sqlite3!" <<endl;
     return false;
   }
   
