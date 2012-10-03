@@ -212,15 +212,11 @@ void sendout(const DNSDistributor::AnswerData &AD)
   delete AD.A;  
 }
 
-static DNSDistributor* g_distributor;
-static pthread_mutex_t d_distributorlock =PTHREAD_MUTEX_INITIALIZER;
-static bool g_mustlockdistributor;
-
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
 void *qthread(void *number)
 {
   DNSPacket *P;
-
+  DNSDistributor *distributor = new DNSDistributor(::arg().asNum("distributor-threads")); // the big dispatcher!
   DNSPacket question;
   DNSPacket cached;
 
@@ -240,7 +236,7 @@ void *qthread(void *number)
       if(!((numreceived++)%250)) { // maintenance tasks
         S.set("latency",(int)avg_latency);
         int qcount, acount;
-        g_distributor->getQueueSizes(qcount, acount);
+        distributor->getQueueSizes(qcount, acount);
         S.set("qsize-q",qcount);
       }
     }
@@ -291,7 +287,7 @@ void *qthread(void *number)
       continue;
     }
     
-    if(g_distributor->isOverloaded()) {
+    if(distributor->isOverloaded()) {
       if(logDNSQueries) 
         L<<"Dropped query, db is overloaded"<<endl;
       continue;
@@ -300,12 +296,7 @@ void *qthread(void *number)
     if(logDNSQueries) 
       L<<"packetcache MISS"<<endl;
 
-    if(g_mustlockdistributor) {
-      Lock l(&d_distributorlock);
-      g_distributor->question(P, &sendout); // otherwise, give to the distributor
-    }
-    else
-      g_distributor->question(P, &sendout); // otherwise, give to the distributor
+    distributor->question(P, &sendout); // otherwise, give to the distributor
   }
   return 0;
 }
@@ -361,10 +352,6 @@ void mainthread()
     TN->go(); // tcp nameserver launch
     
   //  fork(); (this worked :-))
-  g_distributor = new DNSDistributor(::arg().asNum("distributor-threads")); // the big dispatcher!
-  if(::arg().asNum("receiver-threads") > 1) {
-    g_mustlockdistributor=true;
-  }
   unsigned int max_rthreads= ::arg().asNum("receiver-threads");
   for(unsigned int n=0; n < max_rthreads; ++n)
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets

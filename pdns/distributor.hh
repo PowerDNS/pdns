@@ -171,15 +171,16 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
 
       QuestionData QD=us->questions.front();
 
+      us->questions.pop();
+      pthread_mutex_unlock(&us->q_lock);
+
       Question *q=QD.Q;
       
-      us->questions.pop();
 
       if(us->d_overloaded && qcount <= overloadQueueLength/10) {
         us->d_overloaded=false;
       }
       
-      pthread_mutex_unlock(&us->q_lock);
       Answer *a;      
 
 #ifndef SMTPREDIR
@@ -297,11 +298,12 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
     pthread_create(&tid,0,&makeThread,static_cast<void *>(this));
   }
 
-  pthread_mutex_lock(&q_lock);
   QuestionData QD;
   QD.Q=q;
   QD.id=nextid++;
   QD.callback=callback;
+
+  pthread_mutex_lock(&q_lock);
   questions.push(QD);
   pthread_mutex_unlock(&q_lock);
 
