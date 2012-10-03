@@ -31,7 +31,7 @@ do
 		SKIPIT=1
 		result="	Skipped test $a"
 	else
-		for reason in "$skipreasons" "$context"
+		for reason in $skipreasons "$context"
 		do
 			if [ -e $a/skip.$reason ]
 			then

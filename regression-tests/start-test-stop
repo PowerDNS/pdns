@@ -104,6 +104,19 @@ case $context in
 			tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 				"$GMYSQLDB"
 
+			cat > pdns-gmysql.conf << __EOF__
+launch=gmysql
+gmysql-dbname=$GMYSQLDB
+gmysql-user=$GMYSQLUSER
+gmysql-host=$GMYSQLHOST
+gmysql-password=$GMYSQLPASSWD
+__EOF__
+
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
+			done
+
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--fancy-records --send-root-referral \
@@ -236,6 +249,12 @@ launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
 __EOF__
+
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
+			done
+
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql \
 				--fancy-records --send-root-referral \
@@ -251,6 +270,15 @@ __EOF__
 			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
 			tosql gsqlite | sqlite3 pdns.sqlite3
 			echo ANALYZE\; | sqlite3 pdns.sqlite3
+
+			cat > pdns-gsqlite3.conf << __EOF__
+launch=gsqlite3
+gsqlite3-database=pdns.sqlite3
+__EOF__
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
+			done
 
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 \
@@ -274,7 +302,7 @@ __EOF__
 				--cache-ttl=0 --no-config \
 				--opendbx-backend=sqlite3 --opendbx-host-read=./ --opendbx-host-write=./ \
 				--opendbx-database=pdns-opendbx.sqlite3 &
-			skipreasons=nodnssec
+			skipreasons="nodnssec noent"
 
 			;;									
 		gsqlite3 | gsqlite3-nsec3)
@@ -317,7 +345,7 @@ __EOF__
 			 --cache-ttl=0 --no-config \
 				--send-root-referral \
 				--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
-			skipreasons=nodnssec
+			skipreasons="nodnssec noent"
 			;;
 		*)
 			echo unknown context $context
