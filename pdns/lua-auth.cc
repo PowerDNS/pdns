@@ -1,6 +1,6 @@
 #include "lua-auth.hh"
 
-#if !defined(PDNS_ENABLE_LUA)
+#if !defined(HAVE_LUA)
 
 AuthLua::AuthLua(const std::string &fname)
   : PowerDNSLua(fname)
@@ -8,7 +8,7 @@ AuthLua::AuthLua(const std::string &fname)
   // empty
 }
 
-bool AuthLua::prequery(DNSPacket *p)
+DNSPacket* AuthLua::prequery(DNSPacket *p)
 {
   return false;
 }

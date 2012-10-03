@@ -1,8 +1,9 @@
 #include "lua-pdns.hh"
 // #include "syncres.hh"
 #include <boost/foreach.hpp>
+#include "config.h"
 
-#if !defined(PDNS_ENABLE_LUA)
+#if !defined(HAVE_LUA)
 
 // stub implementation
 
