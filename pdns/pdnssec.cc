@@ -496,6 +496,13 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
     return false;
   }
 
+  DomainInfo di;
+  UeberBackend B("default");
+  if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
+    cout<<"Can't find a zone called '"<<zone<<"'"<<endl;
+    return false;
+  }
+
   if(!dk.secureZone(zone, 8)) {
     cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC\n";
     cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
@@ -533,15 +540,15 @@ void testSchema(DNSSECKeeper& dk, const std::string& zone)
   cout<<"Please clean up after this."<<endl;
   cout<<endl;
   cout<<"Constructing UeberBackend"<<endl;
-  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  UeberBackend B("default");
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
-  DNSBackend *db = B->backends[0];
+  DNSBackend *db = B.backends[0];
   cout<<"Creating slave domain "<<zone<<endl;
   db->createSlaveDomain("127.0.0.1", zone, "_testschema");
   cout<<"Slave domain created"<<endl;
 
   DomainInfo di;
-  if(!B->getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
+  if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
     cout<<"Can't find domain we just created, aborting"<<endl;
     return;
   }
