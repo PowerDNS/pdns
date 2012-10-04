@@ -836,7 +836,11 @@ try
       cerr<<"Invalid KEY-ID"<<endl;
       return 1;
     }
-    dk.activateKey(zone, id);
+    if (!dk.activateKey(zone, id)) {
+      cerr<<"Activation of key failed"<<endl;
+      return 1;
+    }
+    return 0;
   }
   else if(cmds[0] == "deactivate-zone-key") {
     if(cmds.size() != 3) {
@@ -850,7 +854,11 @@ try
       cerr<<"Invalid KEY-ID"<<endl;
       return 1;
     }
-    dk.deactivateKey(zone, id);
+    if (!dk.deactivateKey(zone, id)) {
+      cerr<<"Deactivation of key failed"<<endl;
+      return 1;
+    }
+    return 0;
   }
   else if(cmds[0] == "add-zone-key") {
     if(cmds.size() < 3 ) {
@@ -900,7 +908,10 @@ try
     }
     const string& zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
-    dk.removeKey(zone, id);
+    if (!dk.removeKey(zone, id)) {
+      return 1;
+    }
+    return 0;
   }
   
   else if(cmds[0] == "secure-zone") {
@@ -949,14 +960,20 @@ try
       cerr<<"Syntax: pdnssec set-presigned ZONE"<<endl;
       return 0; 
     }
-    dk.setPresigned(cmds[1]);
+    if (! dk.setPresigned(cmds[1])) {
+      return 1;
+    }
+    return 0;
   }
   else if(cmds[0]=="unset-presigned") {
     if(cmds.size() < 2) {
       cerr<<"Syntax: pdnssec unset-presigned ZONE"<<endl;
       return 0;  
     }
-    dk.unsetPresigned(cmds[1]);
+    if (! dk.unsetPresigned(cmds[1])) {
+      return 1;
+    }
+    return 0;
   }
   else if(cmds[0]=="hash-zone-record") {
     if(cmds.size() < 3) {
@@ -980,14 +997,17 @@ try
   else if(cmds[0]=="unset-nsec3") {
     if(cmds.size() < 2) {
       cerr<<"Syntax: pdnssec unset-nsec3 ZONE"<<endl;
-      exit(1);
+      return 0;
     }
-    dk.unsetNSEC3PARAM(cmds[1]);
+    if ( ! dk.unsetNSEC3PARAM(cmds[1])) {
+      return 1;
+    }
+    return 0;
   }
   else if(cmds[0]=="export-zone-key") {
     if(cmds.size() < 3) {
       cerr<<"Syntax: pdnssec export-zone-key ZONE KEY-ID"<<endl;
-      exit(1);
+      return 0;
     }
 
     string zone=cmds[1];

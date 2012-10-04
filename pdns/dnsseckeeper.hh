@@ -71,21 +71,21 @@ public:
   DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
   bool addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
   bool addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
-  void removeKey(const std::string& zname, unsigned int id);
-  void activateKey(const std::string& zname, unsigned int id);
-  void deactivateKey(const std::string& zname, unsigned int id);
+  bool removeKey(const std::string& zname, unsigned int id);
+  bool activateKey(const std::string& zname, unsigned int id);
+  bool deactivateKey(const std::string& zname, unsigned int id);
 
   bool secureZone(const std::string& fname, int algorithm);
 
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
-  void setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
-  void unsetNSEC3PARAM(const std::string& zname);
+  bool setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
+  bool unsetNSEC3PARAM(const std::string& zname);
   void clearAllCaches();
   void clearCaches(const std::string& name);
   bool getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, const std::string& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL);
   bool isPresigned(const std::string& zname);
-  void setPresigned(const std::string& zname);
-  void unsetPresigned(const std::string& zname);
+  bool setPresigned(const std::string& zname);
+  bool unsetPresigned(const std::string& zname);
   
   bool TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm);
   bool getTSIGForAccess(const string& zone, const string& master, string* keyname);

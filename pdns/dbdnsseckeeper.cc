@@ -171,22 +171,22 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int
 }
 
 
-void DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
+bool DNSSECKeeper::removeKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_keymetadb->removeDomainKey(zname, id);
+  return d_keymetadb->removeDomainKey(zname, id);
 }
 
-void DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
+bool DNSSECKeeper::deactivateKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_keymetadb->deactivateDomainKey(zname, id);
+  return d_keymetadb->deactivateDomainKey(zname, id);
 }
 
-void DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
+bool DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 {
   clearCaches(zname);
-  d_keymetadb->activateDomainKey(zname, id);
+  return d_keymetadb->activateDomainKey(zname, id);
 }
 
 
@@ -244,40 +244,42 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   return true;
 }
 
-void DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
+bool DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
 {
   clearCaches(zname);
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
   meta.push_back(descr);
-  d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", meta);
-  
-  meta.clear();
-  if(narrow)
-    meta.push_back("1");
-  d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", meta);
+  if (d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", meta)) {
+    meta.clear();
+    
+    if(narrow)
+      meta.push_back("1");
+    
+    return d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", meta);
+  }
+  return false;
 }
 
-void DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
+bool DNSSECKeeper::unsetNSEC3PARAM(const std::string& zname)
 {
   clearCaches(zname);
-  d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", vector<string>());
-  d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", vector<string>());
+  return (d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", vector<string>()) && d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", vector<string>()));
 }
 
 
-void DNSSECKeeper::setPresigned(const std::string& zname)
+bool DNSSECKeeper::setPresigned(const std::string& zname)
 {
   clearCaches(zname);
   vector<string> meta;
   meta.push_back("1");
-  d_keymetadb->setDomainMetadata(zname, "PRESIGNED", meta);
+  return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", meta);
 }
 
-void DNSSECKeeper::unsetPresigned(const std::string& zname)
+bool DNSSECKeeper::unsetPresigned(const std::string& zname)
 {
   clearCaches(zname);
-  d_keymetadb->setDomainMetadata(zname, "PRESIGNED", vector<string>());
+  return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", vector<string>());
 }
 
 
