@@ -33,7 +33,7 @@ all: message pdns_recursor rec_control
 
 ifeq ($(LUA), 1)
 	LUALIBS=$(LUA_LIBS_CONFIG)
-	CXXFLAGS+=$(LUA_CPPFLAGS_CONFIG) -DPDNS_ENABLE_LUA
+	CXXFLAGS+=$(LUA_CPPFLAGS_CONFIG) -DPDNS_ENABLE_LUA -DHAVE_LUA
 endif
 
 
