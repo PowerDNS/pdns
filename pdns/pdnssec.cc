@@ -259,9 +259,8 @@ void rectifyAllZones(DNSSECKeeper &dk)
   cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
 }
 
-int checkZone(DNSSECKeeper& dk, const std::string& zone)
+int checkZone(UeberBackend *B, const std::string& zone)
 {
-  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
   SOAData sd;
   sd.db=(DNSBackend*)-1;
   if(!B->getSOA(zone, sd)) {
@@ -327,7 +326,7 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
   return numerrors;
 }
 
-int checkAllZones(DNSSECKeeper &dk) 
+int checkAllZones() 
 {
   scoped_ptr<UeberBackend> B(new UeberBackend("default"));
   vector<DomainInfo> domainInfo;
@@ -335,9 +334,8 @@ int checkAllZones(DNSSECKeeper &dk)
   B->getAllDomains(&domainInfo);
   int errors=0;
   BOOST_FOREACH(DomainInfo di, domainInfo) {
-    if (checkZone(dk, di.zone) > 0) {
+    if (checkZone(B.get(), di.zone) > 0) 
        errors++;
-    }
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
   return 0;
@@ -771,10 +769,11 @@ try
       cerr << "Syntax: pdnssec check-zone ZONE"<<endl;
       return 0;
     }
-    exit(checkZone(dk, cmds[1]));
+    scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+    exit(checkZone(B.get(), cmds[1]));
   }
   else if (cmds[0] == "check-all-zones") {
-    exit(checkAllZones(dk));
+    exit(checkAllZones());
   }
   else if (cmds[0] == "test-zone") {
     cerr << "Did you mean check-zone?"<<endl;
