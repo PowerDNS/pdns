@@ -362,15 +362,11 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
 
     vector<DNSResourceRecord> crrs;
 
-    for(vector<DNSResourceRecord *>::const_iterator i=arrs.begin();
-        i!=arrs.end();	++i) 
+    for(vector<DNSResourceRecord *>::const_iterator i=arrs.begin(); i!=arrs.end(); ++i) 
       crrs.push_back(**i);
 
     // we now have a copy, push_back on packet might reallocate!
-    for(vector<DNSResourceRecord>::const_iterator i=crrs.begin();
-        i!=crrs.end();
-        ++i) {
-      
+    for(vector<DNSResourceRecord>::const_iterator i=crrs.begin(); i!=crrs.end(); ++i) {
       if(r->d.aa && !i->qname.empty() && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer, except for root referral
         r->setA(false);
         //	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME

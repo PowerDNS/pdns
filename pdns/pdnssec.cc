@@ -270,7 +270,7 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
   } 
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
-  uint64_t numrecords=0, numerrors=0;
+  uint64_t numrecords=0, numerrors=0, numwarnings=0;
   
   while(sd.db->get(rr)) {
     if(!rr.qtype.getCode())
@@ -283,20 +283,32 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
     }
     
     if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) {
-      cout<<"The recordtype "<<rr.qtype.getName()<<" for record '"<<rr.qname<<"' is no longer supported."<<endl;
+      cout<<"[Error] The recordtype "<<rr.qtype.getName()<<" for record '"<<rr.qname<<"' is no longer supported."<<endl;
       numerrors++;
       continue;
     }
       
+    if (rr.qname[rr.qname.size()-1] == '.') {
+      cout<<"[Error] Record '"<<rr.qname<<"' has a trailing dot. PowerDNS will ignore this record!"<<endl;
+      numerrors++;
+    }
+
+      
     if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
       rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+
+    if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX) &&
+         rr.content[rr.content.size()-1] == '.') {
+      cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" has a trailing dot in the content ("<<rr.content<<"). Your backend might not work well with this."<<endl;
+      numwarnings++;
+    }
 
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
       rr.content = "\""+rr.content+"\"";  
       
     if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A && rr.qtype.getCode()!=QType::AAAA)
     {
-      cout<<"Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"[Error] Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       numerrors++;
     }
     try {
@@ -305,13 +317,13 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
     }
     catch(std::exception& e) 
     {
-      cout<<"Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
-      cout<<"Error was: "<<e.what()<<endl;
+      cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"[Error] Error was: "<<e.what()<<endl;
       numerrors++;
     }
     numrecords++;
   }
-  cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors"<<endl;
+  cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
   return numerrors;
 }
 

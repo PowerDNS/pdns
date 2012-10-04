@@ -158,8 +158,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         return;
       }
     } else {
-		laddr.sin4.sin_family = 0;
-	}
+		  laddr.sin4.sin_family = 0;
+    }
 
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret,
 		(laddr.sin4.sin_family == 0) ? NULL : &laddr);
@@ -208,6 +208,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
         
         i->domain_id=domain_id;
+        if (i->qtype.getCode() == QType::SRV)
+          i->content = stripDot(i->content);
 #if 0
         if(i->qtype.getCode()>=60000)
           throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
