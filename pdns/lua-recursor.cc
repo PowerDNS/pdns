@@ -3,7 +3,7 @@
 // to avoid including all of syncres.hh
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
 
-#if !defined(PDNS_ENABLE_LUA)
+#if !defined(HAVE_LUA)
 
 RecursorLua::RecursorLua(const std::string &fname)
   : PowerDNSLua(fname)
