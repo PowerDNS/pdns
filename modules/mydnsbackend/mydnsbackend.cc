@@ -16,6 +16,7 @@
  * for even simple lookups is daft. It's quite trivial to craft a request
  * that'll require 128 database queries to answer with a servfail!
  *
+ * If you do not know what mydns is: http://mydns.bboy.net/
  */
 
 #include <string>
@@ -66,7 +67,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
 
 MyDNSBackend::~MyDNSBackend() {
         if (d_db)
-        	delete(d_db);
+                delete(d_db);
 }
 
 
@@ -86,17 +87,14 @@ bool MyDNSBackend::list(const string &target, int zoneId) {
         d_db->setLog(::arg().mustDo("query-logging"));
 
         query = "select origin, minimum from "+d_soatable+" where id = ";
-        ostringstream o;
-        o<<zoneId;
-        query+=o.str();
-        query+= " and "+d_soawhere;
+        query+=itoa(zoneId);
+        if (!d_soawhere.empty())
+                query+= " and "+d_soawhere;
 
         this->Query(query);
 
-        if(!d_db->getRow(rrow)) {
-        	// No such zone
-        	return false;
-        }
+        if(!d_db->getRow(rrow))
+        	return false; // No such zone
         
         d_origin = rrow[0];
         if (d_origin[d_origin.length()-1] == '.')
@@ -108,8 +106,10 @@ bool MyDNSBackend::list(const string &target, int zoneId) {
         };
 
         query = "select type, data, aux, ttl, zone, name from "+d_rrtable+" where zone = ";
-        query+=o.str();
-        query += " and "+d_rrwhere;
+        query+=itoa(zoneId);
+        if (!d_rrwhere.empty())
+                query += " and "+d_rrwhere;
+        
 
         this->Query(query);
 
@@ -134,7 +134,9 @@ bool MyDNSBackend::getSOA(const string& name, SOAData& soadata, DNSPacket*) {
         else
         	query+=name;
 
-        query+=".' and "+d_soawhere;
+        query+=".'";
+        if (! d_soawhere.empty())
+                query += " and "+d_soawhere;
 
         this->Query(query);
 
@@ -166,6 +168,7 @@ bool MyDNSBackend::getSOA(const string& name, SOAData& soadata, DNSPacket*) {
 void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p, int zoneId) {
         string query;
         string sname;
+        string zoneIdStr = itoa(zoneId);
         SSql::row_t rrow;
         bool found = false;
 
@@ -193,11 +196,14 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         	pos = 0;
         	sdom = sname;
         	while (!sdom.empty() && pos != string::npos) {
-        		query = "select id, origin, minimum from "+d_soatable+" where origin = '"+sdom+"' and "+d_soawhere;
+        		query = "select id, origin, minimum from "+d_soatable+" where origin = '"+sdom+"'";
+                        if (!d_soawhere.empty()) 
+                                query += " and "+d_soawhere;
 
         		this->Query(query);
         		if(d_db->getRow(rrow)) {
         			zoneId = atol(rrow[0].c_str());
+                                zoneIdStr=rrow[0];
         			d_origin = rrow[1];
         			if (d_origin[d_origin.length()-1] == '.')
         				d_origin.erase(d_origin.length()-1);
@@ -212,15 +218,14 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
 
         } else {
         	query = "select origin, minimum from "+d_soatable+" where id = ";
-        	ostringstream o;
-        	o<<zoneId;
-        	query+=o.str();
-        	query+= " and "+d_soawhere;
+        	query+=zoneIdStr;
+                if (!d_soawhere.empty()) 
+        	       query+= " and "+d_soawhere;
 
         	this->Query(query);
 
         	if(!d_db->getRow(rrow)) {
-        		throw AhuException("lookup() passed zoneId = "+o.str()+" but no such zone!");
+        		throw AhuException("lookup() passed zoneId = "+zoneIdStr+" but no such zone!");
         	}
         	
         	found = true;
@@ -232,6 +237,7 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
 
 
         if (found) {
+
         	while (d_db->getRow(rrow)) {
         		L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+d_origin<<endl;
         	};
@@ -248,17 +254,25 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         		host=d_db->escape(host);
 
         	query = "select type, data, aux, ttl, zone from "+d_rrtable+" where zone = ";
-        	ostringstream o;
-        	o<<zoneId;
-        	query+=o.str();
+        	query+= zoneIdStr;
         	query += " and (name = '"+host+"' or name = '"+sname+"')";
 
         	if(qtype.getCode()!=255) {  // ANY
         		query+=" and type='";
         		query+=qtype.getName();
         		query+="'";
+
         	}
-        	query += " and "+d_rrwhere+" order by type,aux,data";
+                if (!d_rrwhere.empty())
+                        query += " and "+d_rrwhere;
+
+
+                if (qtype.getCode() == 255) {
+                        query += " union select 'SOA' as type, origin as data, '0' as aux, ttl, id as zone from "+d_soatable+" where id= " + zoneIdStr + " and origin = '"+qname+".'";
+                        if (!d_soawhere.empty()) 
+                                query += " and " + d_soawhere;
+                }
+        	query += " order by type,aux,data";
 
         	this->Query(query);
 
@@ -294,6 +308,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
         			rr.qname += ".";
         		rr.qname += d_origin; // Not fully qualified
         	}
+
         }
 
         if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
@@ -315,7 +330,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
 
   
         rr.last_modified=0;
-  
+
         return true;
 
 }
