@@ -11,7 +11,7 @@ OFLAGS	= -O
 # CFLAGS += -D_BSD_EXTENSION
 
 # To compile as a shared library:
-# CFLAGS += -fPIC
+CFLAGS += -fPIC
 
 SONAME=libpolarssl.so.0
 
@@ -36,9 +36,6 @@ OBJS=	aes.o		arc4.o		asn1parse.o		\
 		ssl_tls.o	timing.o	version.o		\
 		x509parse.o	xtea.o
 	
-
-.SILENT:
-
 all: static
 
 static: libpolarssl.a
@@ -46,25 +43,19 @@ static: libpolarssl.a
 shared: libpolarssl.$(DLEXT)
 
 libpolarssl.a: $(OBJS)
-	echo "  AR    $@"
 	$(AR) r $@ $(OBJS)
-	echo "  RL    $@"
 	$(AR) s $@
 
 libpolarssl.so: libpolarssl.a
-	echo "  LD    $@"
 	$(CC) ${LDFLAGS} -shared -Wl,-soname,$(SONAME) -o $@ $(OBJS)
 
 libpolarssl.dylib: libpolarssl.a
-	echo "  LD    $@"
 	$(CC) ${LDFLAGS} -dynamiclib -o $@ $(OBJS)
 
 libpolarssl.dll: libpolarssl.a 
-	echo "  LD    $@" 
 	$(CC) -shared -Wl,-soname,$@ -o $@ $(OBJS) -lws2_32 -lwinmm -lgdi32 
 
 .c.o:
-	echo "  CC    $<"
 	$(CC) $(CFLAGS) $(OFLAGS) -c $<
 
 clean:
