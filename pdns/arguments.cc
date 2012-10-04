@@ -312,8 +312,15 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
     if(pos && pos!=string::npos) 
       val=val.substr(pos);
 
-    if(parmIsset(var))
-      params[var]=val;
+    if(parmIsset(var)) {
+      if(var != "launch")
+        params[var]=val;
+      else  {
+        if(!params[var].empty())
+          params[var]+=",";
+        params["launch"]+= val;
+      }
+    }
     else
       if(!lax)
         throw ArgException("Trying to set unexisting parameter '"+var+"'");
