@@ -6,6 +6,7 @@
 #include <botan/rsa.h>
 #include <botan/pubkey.h>
 #include <botan/look_pk.h>
+#include <botan/numthry.h>
 #include "dnssecinfra.hh"
 
 using namespace Botan;
@@ -92,13 +93,15 @@ DNSCryptoKeyEngine::storvector_t BotanRSADNSCryptoKeyEngine::convertToISCVector(
 #if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)  
   BigInt d1 = d_key->get_d() % (d_key->get_p() - 1);
   BigInt d2 = d_key->get_d() % (d_key->get_q() - 1);
+  BigInt c = inverse_mod(d_key->get_q(), d_key->get_p());
 #else
   BigInt d1 = d_key->get_d1();
   BigInt d2 = d_key->get_d2();
+  BigInt c = d_key->get_c();
 #endif
   storvect.push_back(make_pair("Exponent1", asRaw(d1)));
   storvect.push_back(make_pair("Exponent2", asRaw(d2)));
-  storvect.push_back(make_pair("Coefficient", asRaw(d_key->get_q())));
+  storvect.push_back(make_pair("Coefficient", asRaw(c)));
   return storvect;
 }
 
