@@ -17460,7 +17460,7 @@ remote-connection-string=unix:command=/path/to/executable
           </para>
           <para>
             HTTP backend calls methods based on URL and has parameters in the query string.
-            The calls are always GET calls.
+            Most calls are GET; see the methods listing for details.
           </para>
         </sect3>
         <sect3 id="remotebackend-api-replies"><title>Replies</title>
@@ -17510,23 +17510,23 @@ Method: getTSIGKey
 Parameters: name
 Reply: algorithm, content
 
-Method: setDomainMetadata
+Method: setDomainMetadata (POST)
 Parameters: name, kind, value
 Reply: true or false
 
-Method: addDomainKey
+Method: addDomainKey (POST)
 Parameters: flags, active, content
 Reply: id-of-key
 
-Method: remoteDomainKey
+Method: removeDomainKey (DELETE)
 Parameters: name, id
 Reply: true or false
 
-Method: activateDomainKey
+Method: activateDomainKey (POST)
 Parameters: name, id
 Reply: true or false
 
-Method: deactivateDomainKey
+Method: deactivateDomainKey (POST)
 Parameters: name, id
 Reply: true or false          
 </programlisting>
