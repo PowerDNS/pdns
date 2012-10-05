@@ -269,6 +269,7 @@ void *qthread(void *number)
         L<<"packetcache HIT"<<endl;
       cached.setRemote(&P->d_remote);  // inlined
       cached.setSocket(P->getSocket());                               // inlined
+      cached.d_anyLocal = P->d_anyLocal;
       cached.setMaxReplyLen(P->getMaxReplyLen());
       cached.d.rd=P->d.rd; // copy in recursion desired bit 
       cached.d.id=P->d.id;

@@ -89,7 +89,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_maxreplylen = orig.d_maxreplylen;
   d_ednsping = orig.d_ednsping;
   d_wantsnsid = orig.d_wantsnsid;
-  
+  d_anyLocal = orig.d_anyLocal;  
   d_eso = orig.d_eso;
   d_haveednssubnet = orig.d_haveednssubnet;
   d_haveednssection = orig.d_haveednssection;
@@ -357,7 +357,7 @@ DNSPacket *DNSPacket::replyPacket() const
 {
   DNSPacket *r=new DNSPacket;
   r->setSocket(d_socket);
-
+  r->d_anyLocal=d_anyLocal;
   r->setRemote(&d_remote);
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative

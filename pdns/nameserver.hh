@@ -73,7 +73,7 @@ class UDPNameserver
 {
 public:
   UDPNameserver();  //!< Opens the socket
-  inline DNSPacket *receive(DNSPacket *prefilled=0); //!< call this in a while or for(;;) loop to get packets
+  DNSPacket *receive(DNSPacket *prefilled=0); //!< call this in a while or for(;;) loop to get packets
   static void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   
 private:
@@ -84,78 +84,6 @@ private:
   int d_highfd;
 };
 
-inline DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
-{
-  ComboAddress remote;
-  extern StatBag S;
-
-  Utility::socklen_t addrlen;
-  int len=-1;
-  char mesg[513];
-  Utility::sock_t sock=-1;
-
-  memset( &remote, 0, sizeof( remote ));
-  addrlen=sizeof(remote);  
-  if(d_sockets.size()>1) {
-    BOOST_FOREACH(struct pollfd &pfd, d_rfds) {
-      pfd.events = POLL_IN;
-      pfd.revents = 0;
-    }
-    
-    poll(&d_rfds[0], d_rfds.size(), -1);
-  
-    BOOST_FOREACH(struct pollfd &pfd, d_rfds) {
-      if(pfd.revents & POLL_IN) {
-        sock=pfd.fd;
-        addrlen=sizeof(remote);
-        
-        len=0;
-
-        // XXX FIXME this code could be using recvmsg + ip_pktinfo on platforms that support it
-        
-        if((len=recvfrom(sock,mesg,sizeof(mesg)-1,0,(sockaddr*) &remote, &addrlen))<0) {
-          if(errno != EAGAIN)
-            L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
-          return 0;
-        }
-        break;
-      }
-    }
-    if(sock==-1)
-      throw AhuException("select betrayed us! (should not happen)");
-  }
-  else {
-    sock=d_sockets[0];
-
-    len=0;
-    if((len=recvfrom(sock,mesg,512,0,(sockaddr*) &remote, &addrlen))<0) {
-      if(errno != EAGAIN)
-        L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
-      return 0;
-    }
-  }
-  
-  DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
-  
-  DNSPacket *packet;
-  if(prefilled)  // they gave us a preallocated packet
-    packet=prefilled;
-  else
-    packet=new DNSPacket; // don't forget to free it!
-  packet->d_dt.set(); // timing
-  packet->setSocket(sock);
-  packet->setRemote(&remote);
-  if(packet->parse(mesg, len)<0) {
-    S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", packet->getRemote());
-
-    if(!prefilled)
-      delete packet;
-    return 0; // unable to parse
-  }
-  
-  return packet;
-}
 
 
 
