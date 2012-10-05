@@ -1,3 +1,6 @@
 - detect jsoncpp and libcurl in configure
 - move coprocess from pipebackend to core so remotebackend can run without pipebackend
 - make ruby scripts compatible with 1.8
+- Improve error handling and reply validation
+- Code coverage
+- move calls that change things to POST
