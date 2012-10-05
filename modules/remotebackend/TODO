@@ -1,0 +1,3 @@
+- detect jsoncpp and libcurl in configure
+- move coprocess from pipebackend to core so remotebackend can run without pipebackend
+- make ruby scripts compatible with 1.8

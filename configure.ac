@@ -666,4 +666,5 @@ modules/mongodbbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
-modules/luabackend/Makefile modules/tinydnsbackend/Makefile)
+modules/luabackend/Makefile modules/tinydnsbackend/Makefile \
+modules/remotebackend/Makefile)
