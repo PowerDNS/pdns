@@ -3,7 +3,7 @@ PATH=.:$PATH
 
 make -C ../pdns sdig nsec3dig || exit 1
 
-rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testdir}/*/diff ${testdir}/*/*.out
+rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testsdir}/*/diff ${testsdir}/*/*.out
 
 passed=0
 failed=0
