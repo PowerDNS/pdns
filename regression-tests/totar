@@ -2,4 +2,4 @@
 [ -z "$context" ] && context="global"
 
 # let ls sort our filenames
-tar cf testresults-${context}.tar $(ls */real_result */*.out testresults-${context}.xml)
+tar cf testresults-${context}.tar $(ls ${testsdir}/*/real_result ${testsdir}/*/*.out testresults-${context}.xml)

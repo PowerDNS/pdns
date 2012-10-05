@@ -26,6 +26,8 @@ context=$2
 [ -z "$context" ] && context=bind-dnssec
 wait=$3
 
+testsdir=.
+
 if [ "$port" = help ] || [ "$context" = help ]
 then
 	set +x
@@ -40,6 +42,8 @@ gpgsql-nodnssec gpgsql gpgsql-nsec3
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 opendbx-sqlite3
 tinydns
+remotebackend-pipe remotebackend-unix remotebackend-http 
+remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 
 add -presigned to any gmysql test (except narrow) to test 
 presigned operation
@@ -347,6 +351,50 @@ __EOF__
 				--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
 			skipreasons="nodnssec noent"
 			;;
+		remotebackend-*)
+			remotetype=$(echo $context | cut -d- -f 2)
+			remotesec=$(echo $context | cut -d- -f 3)
+
+			case $remotetype in
+			http)
+				connstr="http:url=http://localhost:62434/dns"
+				../modules/remotebackend/regression-tests/http-backend.rb &
+				echo $! > pdns-remotebackend.pid
+				;;
+			unix)
+				connstr="unix:path=/tmp/remote.socket"
+				socat unix-listen:/tmp/remote.socket exec:../modules/remotebackend/regression-tests/pipe-backend.rb &
+				echo $! > pdns-remotebackend.pid
+				;;
+			pipe)
+				connstr="pipe:command=../modules/remotebackend/regression-tests/pipe-backend.rb"
+				;;
+			*)
+				echo "Invalid usage"
+				exit 1
+				;;
+			esac
+
+			if [ "$remotesec" = "dnssec" ]; then
+				remote_add_param="--remote-dnssec=yes"
+			fi
+
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./ \
+				--no-shuffle --launch=remote \
+				--query-logging --loglevel=9 --cache-ttl=0 --no-config \
+				--send-root-referral \
+				--remote-connection-string="$connstr" $remote_add_param &
+                        
+			if [ "$remotesec" = "dnssec" ]
+			then
+				extracontexts="dnssec"
+			else
+				skipreasons="nodnssec"
+			fi
+
+			testsdir=../modules/remotebackend/regression-tests/
+
+			;;
 		*)
 			echo unknown context $context
 			: > passed_tests
@@ -359,6 +407,7 @@ export port
 export context
 export extracontexts
 export skipreasons
+export testsdir
 
 if [ $presigned = yes ] && [ ${context:0:6} = gmysql ]
 then

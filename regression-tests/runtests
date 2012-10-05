@@ -3,7 +3,7 @@ PATH=.:$PATH
 
 make -C ../pdns sdig nsec3dig || exit 1
 
-rm -f test-results failed_tests passed_tests skipped_tests */real_result */diff */*.out
+rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testdir}/*/diff ${testdir}/*/*.out
 
 passed=0
 failed=0
@@ -11,18 +11,18 @@ skipped=0
 
 touch passed_tests failed_tests skipped_tests
 
-for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
+for a in $(find $testsdir -type d | grep -v ^.$ | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
 do
 	if [ ! -x $a/command ]
 	then
 		continue
 	fi
-	testname=$a
+	testname=$(basename $a)
 	export testname
-	echo  "$a: "
+	echo  "$testname: "
 	cat $a/description 
 
-	echo  "$a: " >> test-results
+	echo  "$testname: " >> test-results
 	cat $a/description >> test-results
 	
 	SKIPIT=0
@@ -44,7 +44,7 @@ do
 				
 	if [ $SKIPIT = 1 ]
 	then
-		echo $a >> skipped_tests
+		echo $testname >> skipped_tests
 		skipped=$[$skipped+1]
 	else	
 		$a/command > /dev/null
@@ -59,11 +59,11 @@ do
 		if [ -s $a/diff ] 
 		then
 			result="	Failed test $a"
-			echo $a >> failed_tests
+			echo $testname >> failed_tests
 			failed=$[$failed+1]
 		else
 			result="	Passed test $a"
-			echo $a >> passed_tests
+			echo $testname >> passed_tests
 			passed=$[$passed+1]
 		fi
 	fi	

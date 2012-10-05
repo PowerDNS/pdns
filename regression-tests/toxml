@@ -2,10 +2,10 @@
 
 getstdout ()
 {
-	if [ -e "$t/stdout" ]
+	if [ -e "${testsdir}/$t/stdout" ]
 	then
 		echo '    <system-out>'
-			cat $t/stdout | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+			cat ${testsdir}/$t/stdout | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
 		echo '    </system-out>'
 	fi
 }
@@ -20,7 +20,7 @@ for t in $(cat failed_tests)
 do
 	echo '  <testcase name="'$t'" classname="'$context'" time="0">'
 	echo '    <error type="error" message="test failed">'
-	[ -e $t/diff ] && cat $t/diff | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+	[ -e ${testsdir}/$t/diff ] && cat ${testsdir}/$t/diff | sed -e 's/&/\&amp;/g' -e 's/"/\&quot;/g' -e "s/'/\\&apos;/g" -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
 	echo '    </error>'
 	getstdout
 	echo '  </testcase>'
