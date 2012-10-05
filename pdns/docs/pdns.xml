@@ -17275,10 +17275,10 @@ VALUES (:zoneid, :ip)
           <tbody>
             <row><entry>Native</entry><entry>Yes</entry></row>
             <row><entry>Master</entry><entry>Yes</entry></row>
-     	      <row><entry>Slave</entry><entry>No</entry></row>
-     	      <row><entry>Superslave</entry><entry>No</entry></row>
-     	      <row><entry>Autoserial</entry><entry>No</entry></row>
-     	      <row><entry>DNSSEC</entry><entry>No</entry></row>
+     	    <row><entry>Slave</entry><entry>No</entry></row>
+     	    <row><entry>Superslave</entry><entry>No</entry></row>
+     	    <row><entry>Autoserial</entry><entry>No</entry></row>
+     	    <row><entry>DNSSEC</entry><entry>No</entry></row>
             <row><entry>Multiple instances</entry><entry>Yes</entry></row>
           </tbody>
      	  </tgroup>
@@ -17304,8 +17304,8 @@ the data.cdb files without any changes.
               <listitem>
                 <para>
 This adjusts the <ulink url="http://www.tai64.com/">TAI</ulink> value if timestamps are used.
-These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The current default is 10, 
-<ulink url="http://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat">but as of june 30th 2012</ulink> should be 11.
+These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The current default is 11.
+The last update was on <ulink url="http://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat">june 30th 2012</ulink>.
                 </para>
               </listitem>
             </varlistentry>
@@ -17315,7 +17315,19 @@ These seconds will be added to the start point (1970) and will allow you to adju
                 <para>Tell the TinyDNSBackend to notify all the slave nameservers on startup. This might cause broadcast storms. Default is no.</para>
               </listitem>
             </varlistentry>
-             <varlistentry>
+            <varlistentry>
+              <term>tinydns-ignore-bogus-records</term>
+              <listitem>
+                <para>
+                  The <command>tinydns-data</command> program can create data.cdb files that have bad/corrupt RDATA. 
+                  PowerDNS will crash when it tries to read that bad/corrupt data. This option (change to yes), allows you to ignore that bad RDATA 
+                  to make PowerDNS operate when bad data is in your CDB file. Be aware that the records are then ignored, where tinydns would
+                  still send out the bogus data.
+                  The option is primarily useful in master mode, as that reads all the packets in the zone to find all the SOA records.
+                </para>
+               </listitem>
+            </varlistentry>
+            <varlistentry>
               <term>tinydns-locations</term>
               <listitem>
                 <para>Enable or Disable location support in the backend. Changing the value to 'no' will make the backend ignore the locations. This then returns all records. When the setting is changed to 'no' an AXFR will also return all the records. With the setting on 'yes' an AXFR will only return records without a location.</para>

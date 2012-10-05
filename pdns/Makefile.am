@@ -56,7 +56,7 @@ aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
 md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns.cc lua-auth.cc lua-auth.hh serialtweaker.cc \
-ednssubnet.cc ednssubnet.hh cachecleaner.hh dnslabel.hh dnslabel.cc
+ednssubnet.cc ednssubnet.hh cachecleaner.hh
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
@@ -94,7 +94,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	backends/gsql/gsqlbackend.cc \
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
 	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
-	signingpipe.cc dnslabeltext.cc ednssubnet.cc cachecleaner.hh dnslabel.hh dnslabel.cc
+	signingpipe.cc dnslabeltext.cc ednssubnet.cc cachecleaner.hh
 
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
@@ -135,7 +135,7 @@ nsec3dig_LDADD= -lpolarssl
 
 toysdig_SOURCES=toysdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
-	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc dnslabel.cc dnslabel.hh \
+	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc \
 	ednssubnet.cc ednssubnet.hh
 
 

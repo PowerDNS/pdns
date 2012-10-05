@@ -80,7 +80,7 @@ private:
 	bool d_isWildcardQuery; // Indicate if the query received was a wildcard query.
 	bool d_isAxfr; // Indicate if we received a list() and not a lookup().
 	bool d_locations;
-	bool d_timestamps;
+	bool d_ignorebogus;
 	string d_suffix;
 	
 

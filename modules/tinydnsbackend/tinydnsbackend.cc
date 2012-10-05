@@ -1,7 +1,6 @@
 #include "tinydnsbackend.hh"
 #include "pdns/lock.hh"
 #include <cdb.h>
-#include <pdns/dnslabel.hh>
 #include <pdns/misc.hh>
 #include <pdns/iputils.hh>
 #include <pdns/dnspacket.hh>
@@ -60,6 +59,7 @@ TinyDNSBackend::TinyDNSBackend(const string &suffix)
 	setArgPrefix("tinydns"+suffix);
 	d_suffix = suffix;
 	d_locations = mustDo("locations");
+	d_ignorebogus = mustDo("ignore-bogus-records");
 	d_taiepoch = 4611686018427387904ULL + getArgAsNum("tai-adjust");
 }
 
@@ -131,7 +131,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains) {
 	d_cdbReader->searchAll();
 	DNSResourceRecord rr;
 
-	while (get(rr)) {
+	while (get(rr)) { 
 		if (rr.qtype.getCode() == QType::SOA) {
 			SOAData sd;
 			fillSOAData(rr.content, sd);
@@ -151,8 +151,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains) {
 
 bool TinyDNSBackend::list(const string &target, int domain_id) {
 	d_isAxfr=true;
-	DNSLabel l(target.c_str());
-	string key = l.binary();
+	string key = simpleCompress(target);
 	d_cdbReader=new CDB(getArg("dbfile"));
 	return d_cdbReader->searchSuffix(key);
 }
@@ -161,11 +160,10 @@ void TinyDNSBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket
 	d_isAxfr = false;
 	string queryDomain = toLowerCanonic(qdomain);
 
-	DNSLabel l(queryDomain.c_str());
-	string key=l.binary();
+	string key=simpleCompress(queryDomain);
 
 	DLOG(L<<Logger::Debug<<backendname<<"[lookup] query for qtype ["<<qtype.getName()<<"] qdomain ["<<qdomain<<"]"<<endl);
-//	DLOG(L<<Logger::Debug<<"[lookup] key ["<<makeHexDump(key)<<"]"<<endl);
+	DLOG(L<<Logger::Debug<<"[lookup] key ["<<makeHexDump(key)<<"]"<<endl);
 
 	d_isWildcardQuery = false;
 	if (key[0] == '\001' && key[1] == '\052') {
@@ -216,42 +214,41 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 		PacketReader pr(bytes);
 		rr.qtype = QType(pr.get16BitInt());
 
-		char locwild = pr.get8BitInt();
-		if(locwild != '\075' && (locwild == '\076' || locwild == '\053')) {
-			if (d_isAxfr && d_locations) { // We skip records with a location in AXFR, unless we disable locations.
-				continue;
-			}
-			char recloc[2];
-			recloc[0] = pr.get8BitInt();
-			recloc[1] = pr.get8BitInt();
-			
-			if (d_locations) {
-				bool foundLocation = false;
-				vector<string> locations = getLocations();
-				while(locations.size() > 0) {
-					string locId = locations.back();
-					locations.pop_back();
-	
-					if (recloc[0] == locId[0] && recloc[1] == locId[1]) {
-						foundLocation = true;
-						break;
-					}
-				}
-				if (!foundLocation) {
-					continue;
-				} 
-			}
-		}
-
 		if(d_isAxfr || d_qtype.getCode() == QType::ANY || rr.qtype == d_qtype) {
-			
+			char locwild = pr.get8BitInt();
+			if(locwild != '\075' && (locwild == '\076' || locwild == '\053')) {
+				if (d_isAxfr && d_locations) { // We skip records with a location in AXFR, unless we disable locations.
+					continue;
+				}
+				char recloc[2];
+				recloc[0] = pr.get8BitInt();
+				recloc[1] = pr.get8BitInt();
+				
+				if (d_locations) {
+					bool foundLocation = false;
+					vector<string> locations = getLocations();
+					while(locations.size() > 0) {
+						string locId = locations.back();
+						locations.pop_back();
+		
+						if (recloc[0] == locId[0] && recloc[1] == locId[1]) {
+							foundLocation = true;
+							break;
+						}
+					}
+					if (!foundLocation) {
+						continue;
+					} 
+				}
+			}
+
 			if (d_isAxfr && (val[2] == '\052' || val[2] == '\053' )) { // Keys are not stored with wildcard character, with AXFR we need to add that.
 				key.insert(0, 1, '\052');
 				key.insert(0, 1, '\001');
 			}
-			DNSLabel dnsKey(key.c_str(), key.size());
-			rr.qname = dnsKey.human();
-			rr.qname = rr.qname.erase(rr.qname.size()-1, 1);// strip the last dot, packethandler needs this.
+			rr.qname.clear(); 
+			simpleExpandTo(key, 0, rr.qname);
+			rr.qname = stripDot(rr.qname); // strip the last dot, packethandler needs this.
 			rr.domain_id=-1;
 			// 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
 			// We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something ehre. 
@@ -272,24 +269,33 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 					continue;
 				}
 			}
-	
-			DNSRecord dr;
-			dr.d_class = 1;
-			dr.d_type = rr.qtype.getCode();
-			dr.d_clen = val.size()-pr.d_pos;
-			DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
+			try {
+				DNSRecord dr;
+				dr.d_class = 1;
+				dr.d_type = rr.qtype.getCode();
+				dr.d_clen = val.size()-pr.d_pos;
+				DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
 
-			string content = drc->getZoneRepresentation();
-			delete drc;
-			if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
-				vector<string>parts;
-				stringtok(parts,content," ");
-				rr.priority=atoi(parts[0].c_str());
-				rr.content=content.substr(parts[0].size()+1);
-			} else {
-				rr.content = content;
+				string content = drc->getZoneRepresentation();
+				cerr<<"CONTENT: "<<content<<endl;
+				delete drc;
+				if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
+					vector<string>parts;
+					stringtok(parts,content," ");
+					rr.priority=atoi(parts[0].c_str());
+					rr.content=content.substr(parts[0].size()+1);
+				} else {
+					rr.content = content;
+				}
 			}
-			DLOG(L<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.getName()<<"]"<<endl;);
+			catch (...) {
+				if (d_ignorebogus) {
+					L<<Logger::Error<<backendname<<"Failed to parse record content for "<<rr.qname<<" with type "<<rr.qtype.getName()<<". Ignoring!"<<endl;
+					continue;
+				} else
+					throw;
+			}
+//			DLOG(L<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.getName()<<"]"<<endl;);
 			return true;
 		}
 	} // end of while
@@ -308,8 +314,9 @@ public:
 	void declareArguments(const string &suffix="") {
 		declare(suffix, "notify-on-startup", "Tell the TinyDNSBackend to notify all the slave nameservers on startup. Default is no.", "no");
 		declare(suffix, "dbfile", "Location of the cdb data file", "data.cdb");
-		declare(suffix, "tai-adjust", "This adjusts the TAI value if timestamps are used. These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The default is 10.", "10");
+		declare(suffix, "tai-adjust", "This adjusts the TAI value if timestamps are used. These seconds will be added to the start point (1970) and will allow you to adjust for leap seconds. The default is 11.", "11");
 		declare(suffix, "locations", "Enable or Disable location support in the backend. Changing the value to 'no' will make the backend ignore the locations. This then returns all records!", "yes");
+		declare(suffix, "ignore-bogus-records", "The data.cdb file might have some wront record data, this causes PowerDNS to fail, where tinydns would send out truncated data. This option makes powerdns ignore that data!", "no");
 	}
 
 
