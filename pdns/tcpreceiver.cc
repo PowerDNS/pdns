@@ -213,13 +213,11 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
     writenWithTimeout(sock, &len, 2);
     writenWithTimeout(sock, buffer.c_str(), buffer.length());
     
-    int ret;
-    
-    ret=readnWithTimeout(sock, &len, 2);
+    readnWithTimeout(sock, &len, 2);
     len=ntohs(len);
 
     char answer[len];
-    ret=readnWithTimeout(sock, answer, len);
+    readnWithTimeout(sock, answer, len);
 
     slen=htons(len);
     writenWithTimeout(packet->getSocket(), &slen, 2);
@@ -894,9 +892,6 @@ TCPNameserver::TCPNameserver()
 //! Start of TCP operations thread, we launch a new thread for each incoming TCP question
 void TCPNameserver::thread()
 {
-  struct timeval tv;
-  tv.tv_sec=1;
-  tv.tv_usec=0;
   try {
     for(;;) {
       int fd;
