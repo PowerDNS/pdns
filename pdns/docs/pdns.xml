@@ -17369,7 +17369,231 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
         </para>
         <para>Compiling the TinyDNS backend requires you to have <ulink url="http://www.corpit.ru/mjt/tinycdb.html">tinycdb</ulink> version 0.77.</para>
       </sect2>
-    </sect1>
+  </sect1>
+    <sect1 id="remotebackend"><title>Remote Backend</title>
+      <para>
+        <warning>
+	        <para>
+            The Remote Backend is available since PowerDNS Authoritative Server 3.2. This backend is marked as experimental!
+	        </para>
+	      </warning>
+      </para>
+    	<table>
+	      <title>Remote backend capabilities</title>
+     	  <tgroup cols="2">
+          <tbody>
+            <row><entry>Native</entry><entry>Yes</entry></row>
+            <row><entry>Master</entry><entry></entry></row>
+     	      <row><entry>Slave</entry><entry></entry></row>
+     	      <row><entry>Superslave</entry><entry></entry></row>
+     	      <row><entry>Autoserial</entry><entry></entry></row>
+     	      <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+            <row><entry>Multiple instances</entry><entry>Yes</entry></row>
+          </tbody>
+     	  </tgroup>
+     	</table>
+      <para>
+        This backend provides unix socket / pipe / http remoting for powerdns.
+      </para>
+     <sect2 id="remotebackend-compiling"><title>Compiling</title>
+        <para>
+        Install following libraries for dependencies: libjsoncpp, libcurl. To compile this backend, you need to configure --with-modules="remote pipe", for now.
+      </para>
+      </sect2>
+      <sect2 id="remotebackend-usage"><title>Usage</title>
+        <para>
+          The only configuration option for this backend is remote-connection-string. It comprises of two elements: type of backend, and parameters.
+        </para>
+        <para>
+          <programlisting>
+remote-connection-string=&lt;type&gt;:&lt;param&gt;=&lt;value&gt;,&lt;param&gt;=&lt;value&gt;...
+</programlisting>
+        </para>
+        <para>
+          You can pass as many parameters as you want. For unix and pipe backends, these
+          are passed along to the remote end as initialization. See <xref linkend="remotebackend-api" />.
+        </para>
+
+      <sect3 id="remotebackend-unix"><title>Unix backend</title>
+        <para>
+          parameters: path 
+        </para>
+        <para>
+          <programlisting>
+remote-connection-string=unix:path=/path/to/socket
+</programlisting>
+        </para>
+      </sect3>
+
+            <sect3 id="remotebackend-pipe"><title>Pipe backend</title>
+        <para>
+          parameters: command 
+        </para>
+        <para>
+          <programlisting>
+remote-connection-string=unix:command=/path/to/executable
+</programlisting>
+        </para>
+      </sect3>
+
+
+      <sect3 id="remotebackend-HTTP"><title>HTTP backend</title>
+        <para>
+          parameters: url, url-suffix
+        </para>
+        <para>
+          HTTP backend tries to do RESTful requests to your server. See examples.
+        </para>
+        <para>
+          URL should not end with /, and url-suffix is optional, but if you define it, it's
+          up to you to write the ".php" or ".json". Lack of dot causes lack of dot in
+          URL. 
+        </para>
+      </sect3>
+		</sect2>
+
+      <sect2 id="remotebackend-api"><title>API</title>
+        <sect3 id="remotebackend-api-queries"><title>Queries</title>
+          <para>
+            Unix and Pipe backend sends JSON formatted string to the remote end. Each 
+            JSON query has two sections, 'method' and 'parameters'. 
+          </para>
+          <para>
+            HTTP backend calls methods based on URL and has parameters in the query string.
+            The calls are always GET calls.
+          </para>
+        </sect3>
+        <sect3 id="remotebackend-api-replies"><title>Replies</title>
+          <para>
+            You *must* always reply with JSON hash with at least one key, 'result'. This 
+            must be false if the query failed. Otherwise it must conform to the expected
+            result.
+          </para>
+          <para>
+            You can optionally add 'log' array, each line in this array will be logged in
+            PowerDNS.
+          </para>
+        </sect3>
+        <sect3 id="remotebackend-api-methods"><title>Methods</title>
+          <para>
+The following methods are used:
+</para>
+<para>
+  <programlisting>
+Method: lookup
+Parameters: qtype, domain, remote, local, real-remote, zone_id
+Reply: array of &lt;qtype,qname,content,ttl,domaind_id,priority,scopeMask&gt;
+Optional values: domain_id and scopeMask
+
+Method: list
+Parameters: zonename, domain_id
+Reply: array of &lt;qtype,qname,content,ttl,domaind_id,priority,scopeMask&gt;
+Optional values: domain_id and scopeMask
+
+Method: getBeforeAndAfterNamesAbsolute
+Parameters: id, qname
+Reply: unhashed, before, after
+
+Method: getBeforeAndAfterNames
+Parameters: id, zonename, qname
+Reply: before, after
+
+Method: getDomainMetadata
+Parameters: name, kind
+Reply: array of strings
+
+Method: getDomainKeys
+Parameters: name, kind
+Reply: array of domain keys &lt;id,flags,active,content&gt;
+
+Method: getTSIGKey
+Parameters: name
+Reply: algorithm, content
+
+Method: setDomainMetadata
+Parameters: name, kind, value
+Reply: true or false
+
+Method: addDomainKey
+Parameters: flags, active, content
+Reply: id-of-key
+
+Method: remoteDomainKey
+Parameters: name, id
+Reply: true or false
+
+Method: activateDomainKey
+Parameters: name, id
+Reply: true or false
+
+Method: deactivateDomainKey
+Parameters: name, id
+Reply: true or false          
+</programlisting>
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="remotebackend-examples"><title>Examples</title>
+<para>
+  Scenario: SOA lookup via pipe or unix
+</para>
+<para>
+Query:
+<programlisting>
+{ 
+  "method": "lookup",
+  "parameters": {
+     "qname": "example.com", 
+     "qtype": "SOA",
+     "zone_id": "-1"
+  }
+}
+</programlisting>
+</para>
+<para>
+Reply:
+<programlisting>
+{
+  "result": 
+   [ 
+     { "qtype": "SOA",
+       "qname": "example.com", 
+       "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
+       "ttl": 3600,
+       "priority": 0,
+       "domain_id": -1
+     }
+   ]
+}
+</programlisting>
+</para>
+<para>
+Scenario: SOA lookup via HTTP backend
+</para>
+<para>
+Query:
+<programlisting>
+/dns/lookup/example.com/SOA
+</programlisting>
+Reply:
+<programlisting>
+{
+  "result":
+   [
+     { "qtype": "SOA",
+       "qname": "example.com",
+       "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
+       "ttl": 3600,
+       "priority": 0,
+       "domain_id": -1
+     }
+   ]
+}
+</programlisting>
+</para>
+</sect2>
+</sect1>
   </appendix>
 <appendix id="pdns-internals"><title>PDNS internals</title>
     <para>
