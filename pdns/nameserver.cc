@@ -248,7 +248,7 @@ void UDPNameserver::send(DNSPacket *p)
       msgh.msg_controllen = CMSG_SPACE(sizeof(*pkt));
 
       cmsg = CMSG_FIRSTHDR(&msgh);
-      cmsg->cmsg_level = SOL_IP;
+      cmsg->cmsg_level = IPPROTO_IP;
       cmsg->cmsg_type = IP_PKTINFO;
       cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
 
@@ -288,7 +288,7 @@ static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destina
   struct cmsghdr *cmsg;
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
 #ifdef IP_PKTINFO
-     if ((cmsg->cmsg_level == SOL_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
+     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
         struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
         destination->sin4.sin_addr = i->ipi_addr;
         destination->sin4.sin_family = AF_INET;
@@ -296,7 +296,7 @@ static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destina
     }
 #endif
 #ifdef IP_RECVDSTADDR
-    if ((cmsg->cmsg_level == SOL_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
+    if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
       struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
       destination->sin4.sin_addr = *i;
       destination->sin4.sin_family = AF_INET;      
