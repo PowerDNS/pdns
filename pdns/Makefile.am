@@ -61,7 +61,7 @@ ednssubnet.cc ednssubnet.hh cachecleaner.hh
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
 pdns_server_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS)
-pdns_server_CPPFLAGS =
+pdns_server_CPPFLAGS = $(AM_CPPFLAGS)
 
 
 if BOTAN110
@@ -99,7 +99,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
 pdnssec_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS)
-pdnssec_CPPFLAGS=
+pdnssec_CPPFLAGS = $(AM_CPPFLAGS)
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
