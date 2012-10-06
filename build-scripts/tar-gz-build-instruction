@@ -2,6 +2,6 @@ rm -f $(find . -name "*~") &&
 ./bootstrap && 
 ./configure \
 --with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \
---with-modules="mydns gmysql mongodb lua gpgsql xdb pipe oracle pipe db2 ldap gsqlite gsqlite3 geo goracle opendbx godbc" \
+--with-modules="mydns gmysql mongodb lua gpgsql xdb pipe oracle pipe db2 ldap gsqlite3 geo goracle opendbx godbc" \
 --with-dynmodules="" &&
 make dist 

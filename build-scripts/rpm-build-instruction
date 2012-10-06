@@ -1,7 +1,7 @@
 #!/bin/sh
 #LIBS="-lkrb5 -lk5crypto -lpgport -lgssapi_krb5 -lkrb5support -lgssapi_krb5 -lcom_err -lnsl -lresolv" \
 CC="ccache gcc" CXX="ccache g++" CPPFLAGS=-I/usr/local/include/botan-1.10 ./configure \
-		--with-modules="gmysql gpgsql gsqlite gsqlite3 pipe geo lua" \
+		--with-modules="gmysql gpgsql gsqlite3 pipe geo lua" \
 	--with-dynmodules="" \
 	--enable-static-binaries \
 	--with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \

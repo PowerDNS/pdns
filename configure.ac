@@ -312,9 +312,6 @@ do
 		gpgsql )
 			needpgsql=yes
 		;;
-		gsqlite )
-			needsqlite=yes
-		;;
 		gsqlite3 )
 			needsqlite3=yes
 		;;
@@ -664,7 +661,7 @@ modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/godbcbackend/Makefile \
 modules/mongodbbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
-modules/gsqlitebackend/Makefile modules/gsqlite3backend/Makefile \
+modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
 modules/luabackend/Makefile modules/tinydnsbackend/Makefile \
 modules/remotebackend/Makefile)
