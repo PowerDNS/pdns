@@ -40,8 +40,8 @@ using namespace boost::assign;
 
 DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
 DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
-pthread_mutex_t DNSSECKeeper::s_metacachelock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t DNSSECKeeper::s_keycachelock = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t DNSSECKeeper::s_metacachelock = PTHREAD_RWLOCK_INITIALIZER;
+pthread_rwlock_t DNSSECKeeper::s_keycachelock = PTHREAD_RWLOCK_INITIALIZER;
 AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
 
@@ -55,7 +55,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
   }
 
   {
-    Lock l(&s_keycachelock);
+    ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
     if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) { 
       if(iter->d_keys.empty())
@@ -109,20 +109,20 @@ bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
 
 void DNSSECKeeper::clearAllCaches() {
   {
-    Lock l(&s_keycachelock);
+    WriteLock l(&s_keycachelock);
     s_keycache.clear();
   }
-  Lock l(&s_metacachelock);
+  WriteLock l(&s_metacachelock);
   s_metacache.clear();
 }
 
 void DNSSECKeeper::clearCaches(const std::string& name)
 {
   {
-    Lock l(&s_keycachelock);
+    WriteLock l(&s_keycachelock);
     s_keycache.erase(name); 
   }
-  Lock l(&s_metacachelock);
+  WriteLock l(&s_metacachelock);
   pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
   while(range.first != range.second)
     s_metacache.erase(range.first++);
@@ -200,7 +200,7 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
   }
 
   {
-    Lock l(&s_metacachelock); 
+    ReadLock l(&s_metacachelock); 
     
     metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
     if(iter != s_metacache.end() && iter->d_ttd > now) {
@@ -219,7 +219,7 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
   nce.d_key= key;
   nce.d_value = value;
   { 
-    Lock l(&s_metacachelock);
+    WriteLock l(&s_metacachelock);
     replacing_insert(s_metacache, nce);
   }
 }
@@ -292,7 +292,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   }
 
   {
-    Lock l(&s_keycachelock);
+    ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
       
     if(iter != s_keycache.end() && iter->d_ttd > now) { 
@@ -340,7 +340,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   kce.d_keys = allkeyset;
   kce.d_ttd = now + 30;
   {
-    Lock l(&s_keycachelock);
+    WriteLock l(&s_keycachelock);
     replacing_insert(s_keycache, kce);
   }
   
@@ -411,11 +411,11 @@ void DNSSECKeeper::cleanup()
 
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
     {
-        Lock l(&s_metacachelock);
+        WriteLock l(&s_metacachelock);
         pruneCollection(s_metacache, ::arg().asNum("max-cache-entries"));
     }
     {
-        Lock l(&s_keycachelock);
+        WriteLock l(&s_keycachelock);
         pruneCollection(s_keycache, ::arg().asNum("max-cache-entries"));
     }
     s_last_prune=time(0);

@@ -156,8 +156,8 @@ private:
 
   static keycache_t s_keycache;
   static metacache_t s_metacache;
-  static pthread_mutex_t s_metacachelock;
-  static pthread_mutex_t s_keycachelock;
+  static pthread_rwlock_t s_metacachelock;
+  static pthread_rwlock_t s_keycachelock;
   static AtomicCounter s_ops;
   static time_t s_last_prune;
 };
