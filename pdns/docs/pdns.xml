@@ -15610,7 +15610,15 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
               <term>backend-user</term>
               <listitem>
                 <para>
-                  PgSQL user to connect as
+                  User to connect as
+                </para>
+              </listitem>
+            </varlistentry>
+	    <varlistentry>
+              <term>backend-group (MySQL only, since 3.2)</term>
+              <listitem>
+                <para>
+                  MySQL 'group' to connect as, defaults to 'client'.
                 </para>
               </listitem>
             </varlistentry>
