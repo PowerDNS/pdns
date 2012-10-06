@@ -14,15 +14,14 @@ bool SMySQL::s_dolog;
 pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user, 
-               const string &password)
+               const string &password, const string &group)
 {
   {
     Lock l(&s_myinitlock);
     mysql_init(&d_db);
-    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, "client");
-  my_bool reconnect = 1;
 
   #if MYSQL_VERSION_ID >= 50013
+    my_bool reconnect = 1;
     mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
   #endif
 
@@ -31,12 +30,15 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
     mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
     mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
   #endif
+
+    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, &group);
     
-    if (!mysql_real_connect(&d_db, host.empty() ? 0 : host.c_str(), 
-          		  user.empty() ? 0 : user.c_str(), 
-          		  password.empty() ? 0 : password.c_str(),
-          		  database.c_str(), port,
-          		  msocket.empty() ? 0 : msocket.c_str(),
+    if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(), 
+          		  user.empty() ? NULL : user.c_str(), 
+          		  password.empty() ? NULL : password.c_str(),
+          		  database.empty() ? NULL : database.c_str(),
+          		  port,
+          		  msocket.empty() ? NULL : msocket.c_str(),
           		  CLIENT_MULTI_RESULTS)) {
 
       throw sPerrorException("Unable to connect to database");

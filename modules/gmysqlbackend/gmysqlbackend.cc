@@ -26,7 +26,8 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
         	     getArgAsNum("port"),
         	     getArg("socket"),
         	     getArg("user"),
-        	     getArg("password")));
+        	     getArg("password"),
+        	     getArg("group")));
     
   }
   
@@ -50,6 +51,7 @@ public:
     declare(suffix,"port","Database backend port to connect to","0");
     declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
+    declare(suffix,"group", "Pdns backend MySQL 'group' to connect as", "client");
     declare(suffix,"dnssec","Assume DNSSEC Schema is in place","no");
 
     declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
