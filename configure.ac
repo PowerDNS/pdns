@@ -1,6 +1,6 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
-AM_INIT_AUTOMAKE(pdns, 3.2-pre)
+AM_INIT_AUTOMAKE(pdns, 3.2-pre.20121006.2774)
 AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 AC_C_BIGENDIAN 
@@ -480,68 +480,6 @@ then
 	esac
 	AC_SUBST(PGSQL_incdir)
 	AC_MSG_RESULT([$PGSQL_incdir])
-fi
-
-if test "$needsqlite"
-then
-
-        AC_ARG_WITH(sqlite,
-            [  --with-sqlite=<path>     root directory path of SQLite installation],
-            [SQLITE_lib_check="$withval/lib/sqlite $with_sqlite/lib"
-        SQLITE_inc_check="$withval/include/sqlite"],
-            [SQLITE_lib_check="/usr/local/sqlite/lib/sqlite /usr/local/lib/sqlite /opt/pgsql/lib/sqlite /usr/lib/sqlite /usr/local/sqlite/lib /usr/local/lib /opt/sqlite/lib /usr/lib /usr/lib64"
-        SQLITE_inc_check="/usr/local/sqlite/include/sqlite /usr/local/include/sqlite/ /usr/local/include /opt/sqlite/include/sqlite /opt/sqlite/include /usr/include/ /usr/include/sqlite"])
-                AC_ARG_WITH(sqlite-lib,
-            [  --with-sqlite-lib=<path> directory path of SQLite library installation],
-            [SQLITE_lib_check="$withval/lib/sqlite $withval/sqlite $withval"])
-                AC_ARG_WITH(sqlite-includes,
-            [  --with-sqlite-includes=<path>
-                         directory path of SQLite header installation],
-            [SQLITE_inc_check="$withval/include/sqlite $withval/sqlite $withval"])
-                AC_MSG_CHECKING([for SQLite library directory])
-        SQLITE_libdir=
-        for m in $SQLITE_lib_check; do
-                if test -d "$m" && \
-                   (test -f "$m/libsqlite.so" || test -f "$m/libsqlite.a")
-                then
-                        SQLITE_libdir=$m
-                        break
-                fi
-        done
-                if test -z "$SQLITE_libdir"; then
-                AC_MSG_ERROR([Didn't find the sqlite library dir in '$SQLITE_lib_check'])
-        fi
-        case "$SQLITE_libdir" in
-          /usr/lib ) SQLITE_lib="" ;;
-          /usr/lib64 ) SQLITE_lib="" ;;
-          /* ) SQLITE_lib="-L$SQLITE_libdir -Wl,-rpath,$SQLITE_libdir"
-               LDFLAGS="$SQLITE_lib $LDFLAGS"
-               ;;
-          * )  AC_MSG_ERROR([The SQLite library directory ($SQLITE_libdir) must be an absolute path.]) ;;
-        esac
-
-        AC_SUBST(SQLITE_lib)
-        AC_MSG_RESULT([$SQLITE_libdir])
-                AC_MSG_CHECKING([for SQLite include directory])
-        SQLITE_incdir=
-        for m in $SQLITE_inc_check; do
-                if test -d "$m" && test -f "$m/sqlite.h"
-                then
-                        SQLITE_incdir=$m
-                        break
-                fi
-        done
-                if test -z "$SQLITE_incdir"; then
-                AC_MSG_ERROR([Didn't find the SQLite include dir in '$SQLITE_inc_check'])
-        fi
-        case "$SQLITE_incdir" in
-          /* ) ;;
-          * )  AC_MSG_ERROR([The SQLite include directory ($SQLITE_incdir) must be an absolute path.]) ;;
-        esac
-        AC_SUBST(SQLITE_incdir)
-        AC_MSG_RESULT([$SQLITE_incdir])
-
-#       LIBS="$LIBS -lsqlite"
 fi
 
 if test "$needsqlite3"
