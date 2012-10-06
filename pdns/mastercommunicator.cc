@@ -166,6 +166,9 @@ time_t CommunicatorClass::doNotifications()
     if(!purged) {
       try {
         ComboAddress remote(ip, 53); // default to 53
+        if((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) ||
+           (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET))
+             continue; // don't try to notify what we can't!
         sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id); 
         drillHole(domain, ip);
       }
