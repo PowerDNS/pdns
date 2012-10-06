@@ -31,7 +31,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
     mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
   #endif
 
-    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, &group);
+    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, (void*)group.c_str());
     
     if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(), 
           		  user.empty() ? NULL : user.c_str(), 
