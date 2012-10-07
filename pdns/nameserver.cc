@@ -14,7 +14,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
+#define __APPLE_USE_RFC_3542  // makes OSX do source selection / destination querying
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
