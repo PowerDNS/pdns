@@ -161,6 +161,7 @@ public:
   virtual bool deactivateDomainKey(const string& name, unsigned int id);
   virtual bool getTSIGKey(const string& name, string* algorithm, string* content);
   static void createDNSSECDB(const string& fname);
+  virtual bool doesDNSSEC();
   // end of DNSSEC 
 
 

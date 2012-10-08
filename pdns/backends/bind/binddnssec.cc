@@ -32,6 +32,9 @@ void Bind2Backend::setupDNSSEC()
 void Bind2Backend::createDNSSECDB(const string& fname)
 {}
 
+bool Bind2Backend::doesDNSSEC()
+{ return false; }
+
 bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
 { return false; }
 
@@ -89,6 +92,10 @@ void Bind2Backend::createDNSSECDB(const string& fname)
   }
 }
 
+bool Bind2Backend::doesDNSSEC()
+{
+  return true;
+}
 
 bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
 {
