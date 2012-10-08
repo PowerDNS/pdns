@@ -95,7 +95,7 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-1-1"><title>PowerDNS Authoritative Server 3.2</title>
+      <sect2 id="changelog-auth-3-2"><title>PowerDNS Authoritative Server 3.2</title>
   	  <note>
       	<para>UNRELEASED</para>
       </note>
@@ -117,7 +117,7 @@
   			<para>
   				Presigned wildcard operation was improved with the help of many parties (see commit message for c2676). Presigned operation
   				was also changed to be more consistent with master/live-signing operation. Code and a full test suite in c2709, which also improves
-  				TTL behaviour for various situations.
+  				TTL behaviour for various situations. Fixes t460.
   			</para>
   		</listitem>
   		<listitem>
@@ -143,7 +143,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				pdns_control purge now also purges DNSSEC-related caches (keys and metadata). Code in c2694, by Ruben d'Arco.
+				pdns_control purge now also purges DNSSEC-related caches (keys and metadata). Code in c2694, by Ruben d'Arco. Fixes t530.
 			</para>
 		</listitem>
 		<listitem>
@@ -162,7 +162,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				The gsqlite (SQLite 2) backend was removed. We were not aware of any users and it was not actually working anyway. Changes in c2773-c2777.
+				The gsqlite (SQLite 2) backend was removed. We were not aware of any users and it was not actually working anyway. Changes in c2773-c2777, closing t565.
 			</para>
 		</listitem>
 		<listitem>
@@ -172,7 +172,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				gpgsql no longer logs the database password in connection errors. Code in c2609, c2612.
+				gpgsql no longer logs the database password in connection errors. Code in c2609, c2612, closing t459.
 			</para>
 		</listitem>
 		<listitem>
@@ -182,7 +182,7 @@
 		</listitem>
   		<listitem>
   			<para>
-  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2666, c2671, c2673, c2696, c2697, c2698, c2708, c2742, c2752, c2764.
+  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2666, c2671, c2673 (t522), c2696, c2697, c2698, c2708, c2742 (t462), c2752 (t437), c2764.
 			</para>
 		</listitem>
 		<listitem>
@@ -197,12 +197,12 @@
 		</listitem>
 		<listitem>
 			<para>
-				Mark Zealey submitted various performance improvement patches and suggestions. Accepted as c2729, c2730, c2731, c2768. Please see commit messages for more details.
+				Mark Zealey submitted various performance improvement patches and suggestions. Accepted as c2729, c2730 (t584), c2731 (t583), c2768 (t578). Please see commit messages for more details.
 			</para>
 		</listitem>
 		<listitem>
 			<para>
-				pdnssec check-all-zones now reuses database connections, avoiding a socket exhaustion issue in some situations. Code in c2749.
+				pdnssec check-all-zones now reuses database connections, avoiding a socket exhaustion issue in some situations. Code in c2749, closes t519.
 			</para>
 		</listitem>
 		<listitem>
@@ -222,7 +222,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				gmysql users can now specify the 'group' we connect as, using the gmysql-group setting. Submitted by Kees Monshouwer, code in c2770, c2771, c2778, c2780.
+				gmysql users can now specify the 'group' we connect as, using the gmysql-group setting. Submitted by Kees Monshouwer, code in c2770, c2771, c2778, c2780, closing t463.
 			</para>
 		</listitem>
 		</itemizedlist>
@@ -236,7 +236,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				We would sometimes serve stale data after an incoming AXFR. Reported by Martin Draschl, fixed by Ruben d'Arco in c2699.
+				We would sometimes serve stale data after an incoming AXFR. Reported by Martin Draschl, fixed by Ruben d'Arco in c2699, closing t525.
 			</para>
 		</listitem>
 		<listitem>
@@ -266,7 +266,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				nproxy can now listen on a configurable port. Code in c2684.
+				nproxy can now listen on a configurable port. Code in c2684, fixes t534.
 			</para>
 		</listitem>
 		<listitem>
