@@ -109,21 +109,21 @@
   		<listitem>
   			<para>
       			Kees Monshouwer did a tremendous amount of work to improve and perfect our DNSSEC implementation,
-      			mostly in the NSEC3 area. Code in c2687, c2689, c2691. He also implemented support for Empty Non-Terminals,
-      			code in c2721, c2732, c2745.
+      			mostly in the NSEC3 area. Code in c2687, c2689, c2691, fixing t486, t537, t540. He also implemented support for Empty Non-Terminals,
+      			code in c2721, c2732, c2745, fixing t127 and t558.
       		</para>
   		</listitem>
   		<listitem>
   			<para>
   				Presigned wildcard operation was improved with the help of many parties (see commit message for c2676). Presigned operation
   				was also changed to be more consistent with master/live-signing operation. Code and a full test suite in c2709, which also improves
-  				TTL behaviour for various situations. Fixes t460.
+  				TTL behaviour for various situations. Fixes t460, t533, t559.
   			</para>
   		</listitem>
   		<listitem>
   			<para>
   				Depending on database &amp; locale settings, names starting with underscore would sometimes cause broken records. c2710 contains schema
-  				and code changes for the gpgsql and gmysql backends to sort this (no pun intended) definitively. In addition, a pdnssec test-schema command was added (experimental and incomplete). It can be used to verify underscore sorting and a few other parameters of the database. Code in c2714.
+  				and code changes for the gpgsql and gmysql backends to sort this (no pun intended) definitively, closing t550. In addition, a pdnssec test-schema command was added (experimental and incomplete). It can be used to verify underscore sorting and a few other parameters of the database. Code in c2714.
 			</para>
 		</listitem>
 		<listitem>
@@ -133,7 +133,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				It turns out we were storing Botan keys the wrong way. Botan did not care but Polar did, causing interoperability problems. Fixed in c2720, with the kind help of Paul Bakker of PolarSSL.
+				It turns out we were storing Botan keys the wrong way. Botan did not care but Polar did, causing interoperability problems. Fixed in c2720, with the kind help of Paul Bakker of PolarSSL. Fixes t492 as reported by Florian Obser via Debian.
 			</para>
 		</listitem>
   		<listitem>
@@ -148,7 +148,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				The signer thread would die in specific situations, leaving you with a non-working but very busy system. Fixed in c2670.
+				The signer thread would die in specific situations, leaving you with a non-working but very busy system. Fixed in c2668, c2670, closing t517.
 			</para>
 		</listitem>
 		</itemizedlist>
@@ -157,7 +157,7 @@
 		<itemizedlist>
 		<listitem>
 			<para>
-				A new backend, the 'Remote backend' <xref linkend="remotebackend" /> was submitted by Aki Tuomi. It aims to replace the pipebackend with a better protocol and support for more connection methods, including HTTP. Code in c2755, c2756, c2757, c2758, c2759.
+				A new backend, the 'Remote backend' <xref linkend="remotebackend" /> was submitted by Aki Tuomi. It aims to replace the pipebackend with a better protocol and support for more connection methods, including HTTP. Code in c2755, c2756, c2757, c2758, c2759, closing t529.
 			</para>
 		</listitem>
 		<listitem>
@@ -182,7 +182,7 @@
 		</listitem>
   		<listitem>
   			<para>
-  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2666, c2671, c2673 (t522), c2696, c2697, c2698, c2708, c2742 (t462), c2752 (t437), c2764.
+  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 (t461), c2666, c2671, c2672 (t522), c2673 (t522), c2696 (t555), c2697 (t457), c2698, c2708, c2742 (t462), c2752 (t437), c2764.
 			</para>
 		</listitem>
 		<listitem>
@@ -197,7 +197,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				Mark Zealey submitted various performance improvement patches and suggestions. Accepted as c2729, c2730 (t584), c2731 (t583), c2768 (t578). Please see commit messages for more details.
+				Mark Zealey submitted various performance improvement patches and suggestions. Accepted as c2729 (t579), c2730 (t584), c2731 (t583), c2768 (t578). Please see commit messages for more details.
 			</para>
 		</listitem>
 		<listitem>
@@ -241,6 +241,11 @@
 		</listitem>
 		<listitem>
 			<para>
+			Duplicate incoming NOTIFYs could cause PowerDNS to try to insert the same domain name into a database twice. Fixed in c2703, closing t453.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
 				pdnssec show-zone now works on a zone that has any number of keys, instead of requiring active keys. Reported by Jeroen Tushuizen of myH2Oservers, code in c2769, closes t586.
 			</para>
 		</listitem>
@@ -256,12 +261,12 @@
 		</listitem>
 		<listitem>
 			<para>
-				*-all-domains commands in pdnssec now work with Postgres (gpgsql) too. Code in c2645.
+				*-all-domains commands in pdnssec now work with Postgres (gpgsql) too. Code in c2645, closing t472.
 			</para>
 		</listitem>
 		<listitem>
 			<para>
-				We would sometimes leave the opcode of an outgoing packet uninitialized. Fixed in c2680.
+				We would sometimes leave the opcode of an outgoing packet uninitialized. Fixed in c2680, closing t532.
 			</para>
 		</listitem>
 		<listitem>
