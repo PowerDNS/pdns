@@ -95,7 +95,7 @@ try
   set<string> names;
   nsec3set nsec3s;
   string nsec3salt;
-  int nsec3iters;
+  int nsec3iters = 0;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {     
     if(i->first.d_type == QType::NSEC3)
     {
