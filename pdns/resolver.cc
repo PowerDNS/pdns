@@ -61,8 +61,6 @@ int sendNotification(int sock, const string& domain, const ComboAddress& remote,
 int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
 {
   ComboAddress ourLocal(local);
-  static uint16_t port_counter=5000;
-  port_counter++; // this makes us use a new port for each query, fixes ticket #2
   
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
   Utility::setCloseOnExec(sock);
