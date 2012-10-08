@@ -95,51 +95,190 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-1-1"><title>PowerDNS Authoritative Server 3.1.1</title>
+      <sect2 id="changelog-auth-3-1-1"><title>PowerDNS Authoritative Server 3.2</title>
   	  <note>
-      	<para>..</para>
+      	<para>UNRELEASED</para>
       </note>
       <para>
-      	This is a maintenance update to the 3.1 release, fixing a few important issues.
+      	This is a stability and confirmity update to 3.1. It mostly makes our DNSSEC implementation more robust,
+      	and improves interoperability with various validators.
       </para>
       <para>
-		Changes since 3.1, from most to least important:
-	    <itemizedlist>
-    	<listitem>
-	    	<para>
-	    		c2662/c2649: Make sure queries with EDNS also get EDNS in their response. Supposedly fixes interaction with BIND validators. Spotted by Mats Dufberg.
-	    	</para>
-	    </listitem>
-	    <listitem>
-	    	<para>
-	    		c2659/c2622: Stop tinydnsbackend from choking on request names longer than 64 bytes. Reported by PiZZaBoY, fixed by Ruben d'Arco.
-	    	</para>
-	    </listitem>
-	    <listitem>
-	    	<para>
-	    		c2654/c2609, c2657/c2612: obfuscate Postgres passwords in log messages. Reported by Stefan Kaltenbrunner.
-    		</para>
+      	DNSSEC changes in 3.2:
+      	<itemizedlist>
+  		<listitem>
+  			<para>
+      			Kees Monshouwer did a tremendous amount of work to improve and perfect our DNSSEC implementation,
+      			mostly in the NSEC3 area. Code in c2687, c2689, c2691. He also implemented support for Empty Non-Terminals,
+      			code in c2721, c2732, c2745.
+      		</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				Presigned wildcard operation was improved with the help of many parties (see commit message for c2676). Presigned operation
+  				was also changed to be more consistent with master/live-signing operation. Code and a full test suite in c2709, which also improves
+  				TTL behaviour for various situations.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				Depending on database &amp; locale settings, names starting with underscore would sometimes cause broken records. c2710 contains schema
+  				and code changes for the gpgsql and gmysql backends to sort this (no pun intended) definitively. In addition, a pdnssec test-schema command was added (experimental and incomplete). It can be used to verify underscore sorting and a few other parameters of the database. Code in c2714.
+			</para>
 		</listitem>
 		<listitem>
 			<para>
-				c2656/c2611: 3.1 accidentally shipped without Lua support. Reported by Jan-Piet Mens.
+				We now always include an EDNS section in responses to queries that also had an EDNS section. This was thought to improve BIND interoperability, but this turned out to be false. In any case, this change improves standards compliance. Spotted by Mats Dufberg, code in c2649.
 			</para>
 		</listitem>
-    	<listitem>
-    		<para>
-    			c2663/c2651: "Did you mean check-zone?"
-    		</para>
-    	</listitem>
-    	<listitem>
-    		<para>
-    			c2658/c2614: the pdns.conf 'allow-recursion-override' is gone, as it did not do anything anyway.
-    		</para>
-    	</listitem>
-    	<listitem>
-    		<para>
-    			Plus other very minor fixes.
-    		</para>
-    	</listitem>
+		<listitem>
+			<para>
+				It turns out we were storing Botan keys the wrong way. Botan did not care but Polar did, causing interoperability problems. Fixed in c2720, with the kind help of Paul Bakker of PolarSSL.
+			</para>
+		</listitem>
+  		<listitem>
+  			<para>
+  				pdnssec add-zone-key now defaults to RSASHA256, like secure-zone already did. Code in c2692.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdns_control purge now also purges DNSSEC-related caches (keys and metadata). Code in c2694, by Ruben d'Arco.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The signer thread would die in specific situations, leaving you with a non-working but very busy system. Fixed in c2670.
+			</para>
+		</listitem>
+		</itemizedlist>
+
+		Non-DNSSEC improvements/changes in 3.2:
+		<itemizedlist>
+		<listitem>
+			<para>
+				A new backend, the 'Remote backend' <xref linkend="remotebackend" /> was submitted by Aki Tuomi. It aims to replace the pipebackend with a better protocol and support for more connection methods, including HTTP. Code in c2755, c2756, c2757, c2758, c2759.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The gsqlite (SQLite 2) backend was removed. We were not aware of any users and it was not actually working anyway. Changes in c2773-c2777.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Various tinydnsbackend improvements: ignore-bogus-records option; TAI offset updated; strip dots on names where suitable; various internal improvements. Code in c2762.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				gpgsql no longer logs the database password in connection errors. Code in c2609, c2612.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				You can now finally specify 0.0.0.0 or :: as local-address/local-ipv6 without getting replies from the wrong address. This much-requested feature is implemented in c2763, c2766, c2779 and c2781. Tested on Linux, FreeBSD and Mac OS X.
+			</para>
+		</listitem>
+  		<listitem>
+  			<para>
+  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2666, c2671, c2673, c2696, c2697, c2698, c2708, c2742, c2752, c2764.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Juraj Lutter contributed AXFR-SOURCE per zone metadata settings. Code in c2616.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Initscripts now have exit codes, submitted by Sander Hoentjes. Code in c2728. Guardian now returns 0 instead of 1 when receiving SIGTERM, requested by Morten Stevens of Fedora. Code in c2717.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Mark Zealey submitted various performance improvement patches and suggestions. Accepted as c2729, c2730, c2731, c2768. Please see commit messages for more details.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdnssec check-all-zones now reuses database connections, avoiding a socket exhaustion issue in some situations. Code in c2749.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Ruben d'Arco submitted various improvements regarding trailing dots. Additional lookups now try harder, pdnssec errors about trailing dots in names, pdnssec warns about trailing dots in names inside content fields, AXFR now strips the dot from SRV hostnames. Code in c2748, fixes t289.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Pre-3.0, backends would get cycled if they threw the right error. 3.2 reinstates this behaviour, as it is more robust. Change in c2734 (reverting c2100), fixes t386.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				PowerDNS auth does not use the select() kernel/library call anymore. This means fd-numbers over 1023 (and, in general, more than 1024 sockets, including more than 1024 listening sockets) should now work reliably. Code in c2739, c2740, fixes t408.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				gmysql users can now specify the 'group' we connect as, using the gmysql-group setting. Submitted by Kees Monshouwer, code in c2770, c2771, c2778, c2780.
+			</para>
+		</listitem>
+		</itemizedlist>
+
+		Assorted bugfixes:
+		<itemizedlist>
+		<listitem>
+			<para>
+				We no longer send v6 notifications if v6 is not available. Same for IPv4. Code in c2772, fixes t515.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				We would sometimes serve stale data after an incoming AXFR. Reported by Martin Draschl, fixed by Ruben d'Arco in c2699.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdnssec show-zone now works on a zone that has any number of keys, instead of requiring active keys. Reported by Jeroen Tushuizen of myH2Oservers, code in c2769, closes t586.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdns-control notify-host now accepts v6 literals. Reported by Christof Meerwald, fixed in c2704.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The tinydnsbackend no longer chokes on questions longer than 64 bytes. Code in c2622.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				*-all-domains commands in pdnssec now work with Postgres (gpgsql) too. Code in c2645.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				We would sometimes leave the opcode of an outgoing packet uninitialized. Fixed in c2680.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				nproxy can now listen on a configurable port. Code in c2684.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Improve mydnsbackend for SOA queries. Code in c2751, fixes t439, by Ruben d'Arco.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Various non-functional fixes that make Valgrind happy (note that Valgrind was right to complain in all of these situations), in c2715, c2716, c2718.
+			</para>
+		</listitem>
 
     </itemizedlist>
    	</para>
