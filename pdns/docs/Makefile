@@ -6,7 +6,7 @@ pdns-expanded.xml: pdns.xml
 	./expand < $< > $@
 	
 clean:
-	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.gz html pdns pdns-expanded.html
+	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.gz html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1
 
 html/index.html: pdns-expanded.xml
 	xmlto xhtml -m config.xsl -o html $<
