@@ -19,4 +19,4 @@ if [ -f ${testsdir}/${testname}/use.drill ]
 then
 	cat ${testsdir}/${testname}/drill.out
 fi
-grep -i bogus ${testsdir}/${testname}/*.out
+grep -iw bogus ${testsdir}/${testname}/*.out
