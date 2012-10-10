@@ -61,9 +61,13 @@ void LUABackend::reload() {
 	lua_close(lua);
 	
     logging = ::arg().mustDo("query-logging") || mustDo("logging-query");
-    
+
+#ifdef LUA_VERSION_MAJOR == 5 && LUA_VERSION_MINOR > 1
+    lua = luaL_newstate();
+#else
     lua = lua_open();
-    
+#endif
+
     if (lua != NULL) {
 	lua_atpanic(lua, my_lua_panic);
 	
