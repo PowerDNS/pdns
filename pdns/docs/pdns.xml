@@ -10867,8 +10867,8 @@ local0.err                        /var/log/pdns.err
     <para>
     	For MySQL:
     	<screen>
-    		mysql> ALTER TABLE records MODIFY content VARCHAR(64000);
-    		mysql> ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
+mysql> ALTER TABLE records MODIFY content VARCHAR(64000);
+mysql> ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
     	</screen>
     </para>
     <para>
@@ -10878,6 +10878,33 @@ local0.err                        /var/log/pdns.err
     	PowerDNS 3.0 and 3.1 will only fetch DNSSEC metadata and key material from the first DNSSEC-capable backend in the launch line. In 3.1, the bindbackend supports DNSSEC storage. This means that setups using launch=bind,gsqlite3 or launch=gsqlite3,bind may break. Please tread carefully!
     </para>
   </sect1>
+  <sect1 id="from3.1to3.2"><title>From PowerDNS Authoritative Server 3.1 to 3.2</title>
+  	<note>
+  		<para>
+    		If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" /> and <xref linkend="from3.0to3.1" />.
+    	</para>
+    </note>
+    <para>
+    	3.2 again involves some SQL schema changes, to make sure 'ordername' is ordered correctly for NSEC generation. For MySQL:
+    	<screen>
+alter table records modify ordername    VARCHAR(255) BINARY;
+drop index orderindex on records;
+create index recordorder on records (domain_id, ordername);
+		</screen>
+
+		You can test the BINARY change with the new and experimental 'pdnssec test-schema' command.
+
+		For PostgreSQL, there are no real schema changes, but our indexes turned out to be inefficient, especially given the changed ordername queries in 3.2.
+		Changes:
+		<screen>
+drop index orderindex;
+create index recordorder on records (domain_id, ordername text_pattern_ops);
+		</screen>
+
+		Additionally, with 3.2 supporting empty non-terminals (see <xref linkend="dnssec-direct-database" />), your frontend may need some changes.
+	</para>
+  </sect1>
+
   </chapter>
   <chapter id="powerdnssec-auth">
   <title>Serving authoritative DNSSEC data</title>
@@ -11544,8 +11571,9 @@ $ pdnssec rectify-zone powerdnssec.org
   <note><para>The BIND Backend automates all the steps outlined below, and does not need 'manual' help
   </para></note></para>
   <para>
-    For DNSSEC, two additional fields are important: 'auth' and 'ordername'. These fields are set correctly
-    on an incoming zone transfer, and also by running 'pdnssec rectify-zone', or 'zone2sql' with the --dnssec flag.
+    In PowerDNS 3.0 and up, two additional fields are important: 'auth' and 'ordername'. These fields are set correctly
+    on an incoming zone transfer, and also by running 'pdnssec rectify-zone'. zone2sql with the --dnssec flag aims to
+    do this too but there are minor bugs in there, so please run 'pdnssec rectify-zone' after zone2sql.
     </para>
     <para>The 'auth' field should be set to '1' for 
     data for which the zone itself is authoritative, which includes the SOA record and its own NS records. 
@@ -11567,6 +11595,17 @@ $ pdnssec rectify-zone powerdnssec.org
   <para>
     In 'NSEC3' non-narrow mode, the ordername should contain a lowercase base32hex encoded representation of the salted &amp; iterated hash
     of the full record name. <command>pdnssec hash-zone-record zone record</command> can be used to calculate this hash.
+  </para>
+  <para>
+  	In addition, from 3.2 and up, PowerDNS fully supports empty non-terminals. If you have a zone example.com, and a host a.b.c.example.com in it,
+  	rectify-zone (and the AXFR client code) will insert b.c.example.com and c.example.com in the records table with type NULL (SQL NULL, not 'NULL').
+  	Having these entries provides several benefits. We no longer reply NXDOMAIN for these shorter names (this was an RFC violation but not one that caused trouble).
+  	But more importantly, to do NSEC3 correctly, we need to be able to prove existence of these shorter names. The type=NULL records entry gives us a place
+  	to store the NSEC3 hash of these names.
+  </para>
+  <para>
+  	If your frontend does not add empty non-terminal names to records, you will get DNSSEC replies of 3.1-quality, which has served many people well, but we
+  	suggest you update your code as soon as possible!
   </para>
   </section>
 </section>
