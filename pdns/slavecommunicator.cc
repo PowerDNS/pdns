@@ -577,8 +577,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   typedef DomainNotificationInfo val_t;
   BOOST_FOREACH(val_t& val, sdomains) {
     DomainInfo& di(val.di);
-    if(!di.backend) // might've come from the packethandler
-      B->getDomainInfo(di.zone, di);
+    // might've come from the packethandler
+    if(!di.backend && !B->getDomainInfo(di.zone, di)) {
+	L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
+	continue;
+    }
+      
     if(!ssr.d_freshness.count(di.id)) 
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
