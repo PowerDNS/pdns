@@ -174,8 +174,9 @@ void UDPNameserver::bindIPv6()
     
     if(IsAnyAddress(locala)) {
       int val=1;
-      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &val, sizeof(val));
-      setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &val, sizeof(val));
+      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &val, sizeof(val));     // linux supports this, so why not - might fail on other systems
+      setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &val, sizeof(val)); 
+      setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &val, sizeof(val));      // if this fails, we report an error in tcpreceiver too
     }
     
     if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
