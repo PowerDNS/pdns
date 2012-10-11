@@ -43,7 +43,7 @@ try
     else
       bufsize=2800;
 
-    pw.addOpt(2800, 0, dnssec ? EDNSOpts::DNSSECOK : 0);
+    pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0);
     pw.commit();
   }
 
