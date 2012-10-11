@@ -360,6 +360,11 @@
 # tcp-control-secret=
 
 #################################
+# traceback-handler	Enable the traceback handler (Linux only)
+#
+# traceback-handler=yes
+
+#################################
 # trusted-notification-proxy	IP address of incoming notification proxy
 #
 # trusted-notification-proxy=

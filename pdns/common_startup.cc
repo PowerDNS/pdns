@@ -136,6 +136,8 @@ void declareArguments()
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler")="";
+
+  ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
 }
 
 void declareStats(void)

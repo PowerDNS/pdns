@@ -466,7 +466,17 @@ int main(int argc, char **argv)
 
     
     // we really need to do work - either standalone or as an instance
-    
+
+#ifdef __linux__
+    if(!::arg().mustDo("traceback-handler")) {
+      L<<Logger::Warning<<"Disabling traceback handler"<<endl;
+      signal(SIGSEGV,SIG_DFL);
+      signal(SIGFPE,SIG_DFL);
+      signal(SIGABRT,SIG_DFL);
+      signal(SIGILL,SIG_DFL);
+    }
+#endif
+
     seedRandom(::arg()["entropy-source"]);
     
     loadModules();
