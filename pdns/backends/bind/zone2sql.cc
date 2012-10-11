@@ -64,7 +64,10 @@ static string sqlstr(const string &name)
     else
       a+=*i;
   }
-  return "'"+a+"'";
+  if(g_mode == POSTGRES)
+    return "E'"+a+"'";
+  else
+    return "'"+a+"'";
 }
 
 static void startNewTransaction()
