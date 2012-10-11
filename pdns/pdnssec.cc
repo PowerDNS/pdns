@@ -522,6 +522,12 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
     return false;
   }
 
+  if(di.kind == DomainInfo::Slave)
+  {
+    cout<<"Warning! This is a slave domain! If this was a mistake, please run"<<endl;
+    cout<<"pdnssec disable-dnssec "<<zone<<" right now!"<<endl;
+  }
+
   if(!dk.secureZone(zone, 8)) {
     cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC\n";
     cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
