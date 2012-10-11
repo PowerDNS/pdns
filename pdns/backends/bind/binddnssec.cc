@@ -255,6 +255,7 @@ bool Bind2Backend::deactivateDomainKey(const string& name, unsigned int id)
 
 bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* content)
 {
+  QType
   if(!d_dnssecdb)
     return false;
   boost::format fmt("select algorithm, secret from tsigkeys where name='%s'");

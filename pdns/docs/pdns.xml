@@ -101,7 +101,8 @@
       </note>
       <para>
       	This is a stability and confirmity update to 3.1. It mostly makes our DNSSEC implementation more robust,
-      	and improves interoperability with various validators.
+      	and improves interoperability with various validators. 3.2 has received very extensive testing on a lot
+      	of edge cases, verifying output both against common validators and compared against other authoritative servers.
       </para>
       <para>
       	DNSSEC changes in 3.2:
