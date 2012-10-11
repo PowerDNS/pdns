@@ -123,7 +123,7 @@ __EOF__
 
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
-				--fancy-records --send-root-referral \
+				--master --send-root-referral \
 				--cache-ttl=0 --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
