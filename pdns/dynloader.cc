@@ -60,6 +60,7 @@ int main(int argc, char **argv)
   ::arg().set("secret","Secret needed to connect to remote PowerDNS");
 
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().setCmd("no-config","Don't parse configuration file");
   ::arg().set("chroot","")="";
   ::arg().setCmd("help","Provide a helpful message");
   ::arg().laxParse(argc,argv);
@@ -70,25 +71,31 @@ int main(int argc, char **argv)
     exit(99);
   }
 
-  if(::arg()["config-name"]!="") 
-    s_programname+="-"+::arg()["config-name"];
-
-  string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
-  cleanSlashes(configname);
-  
-  ::arg().laxFile(configname.c_str());
-  string socketname=::arg()["socket-dir"]+"/"+s_programname+".controlsocket";
-  if(::arg()["chroot"].empty())
-    localdir="/tmp";
-  else
-    localdir=dirname(strdup(socketname.c_str()));
-
-  const vector<string>&commands=::arg().getCommands();
+  const vector<string>commands=::arg().getCommands();
 
   if(commands.empty()) {
     cerr<<"No command passed"<<endl;
     return 0;
   }
+
+  if(::arg()["config-name"]!="") 
+    s_programname+="-"+::arg()["config-name"];
+
+  string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
+  cleanSlashes(configname);
+
+  if(!::arg().mustDo("no-config")) {
+    ::arg().laxFile(configname.c_str());
+    ::arg().laxParse(argc,argv); // reparse so the commandline still wins
+  }
+  
+  string socketname=::arg()["socket-dir"]+"/"+s_programname+".controlsocket";
+  cleanSlashes(socketname);
+  
+  if(::arg()["chroot"].empty())
+    localdir="/tmp";
+  else
+    localdir=dirname(strdup(socketname.c_str()));
 
   try {
     string command=commands[0];
