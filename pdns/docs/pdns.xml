@@ -163,7 +163,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				The gsqlite (SQLite 2) backend was removed. We were not aware of any users and it was not actually working anyway. Changes in c2773-c2777, closing t565.
+				The gsqlite (SQLite 2) backend was removed. We were not aware of any users and it was not actually working anyway. Changes in commits C2773-C2777, closing t565.
 			</para>
 		</listitem>
 		<listitem>
@@ -183,7 +183,7 @@
 		</listitem>
   		<listitem>
   			<para>
-  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 (t461), c2666, c2671, c2672 (t522), c2673 (t522), c2696 (t555), c2697 (t457), c2698, c2708, c2742 (t462), c2752 (t437), c2764.
+  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 / t461, c2666, c2671, c2672 / t522, c2673 / t522, c2696 / t555, c2697 / t457, c2698, c2708, c2742 / t462), c2752 / t437, c2764.
 			</para>
 		</listitem>
 		<listitem>
@@ -198,7 +198,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				Mark Zealey submitted various performance improvement patches and suggestions. Accepted as c2729 (t579), c2730 (t584), c2731 (t583), c2768 (t578). Please see commit messages for more details.
+				Mark Zealey submitted various performance improvement patches and suggestions. Accepted as c2729 / t579, c2730 / t584), c2731 / t583), c2768 / t578). Please see commit messages for more details.
 			</para>
 		</listitem>
 		<listitem>
@@ -1521,7 +1521,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	<listitem>
 	  <para>
 	    In some cases, we would include duplicate CNAMEs. In addition, we would hand out
-	    a full root-referral when not configured to in some cases (ticket t223). Discovered by Andreas Jakum, fixed in c1344.
+	    a full root-referral when not configured to in some cases (ticket T223). Discovered by Andreas Jakum, fixed in c1344.
 	  </para>
 	</listitem>
 	<listitem>
@@ -2249,7 +2249,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	    </listitem>
 	    <listitem>
 	      <para>
-			PowerDNS Recursor can be a root-server again. Error spotted by the ever vigilant Darren Gamble (t229), fix in c1458.
+			PowerDNS Recursor can be a root-server again. Error spotted by the ever vigilant Darren Gamble (ticket T229), fix in c1458.
 	      </para>
 	    </listitem>
 	    
