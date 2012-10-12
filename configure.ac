@@ -581,6 +581,9 @@ do
 		case "$host_os" in
 		freebsd*)
 			;;
+		darwin*)
+			modulelibs="$modulelibs -lresolv"
+			;;
 		*)
 			modulelibs="$modulelibs -lresolv -lnsl"
 			;;
