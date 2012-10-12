@@ -45,7 +45,6 @@ void CommunicatorClass::retrievalLoopThread(void)
         continue;
 	
       sr=d_suckdomains.front();
-      d_suckdomains.pop_front();
     }
     try {
       suck(sr.domain,sr.master);
@@ -53,16 +52,23 @@ void CommunicatorClass::retrievalLoopThread(void)
     catch(AhuException& ae) {
       cerr<<"Error: "<<ae.reason<<endl;
     }
+
+    {
+      Lock l(&d_lock);
+      domains_by_name_t& uqIndex = d_suckdomains.get<IDTag>();
+      uqIndex.erase(sr);
+    }
   }
+
 }
 
 
 void CommunicatorClass::go()
 {
   pthread_t tid;
-  pthread_create(&tid,0,&launchhelper,this);
+  pthread_create(&tid,0,&launchhelper,this); // Starts CommunicatorClass::mainloop()
   for(int n=0; n < ::arg().asNum("retrieval-threads"); ++n)
-    pthread_create(&tid, 0, &retrieveLaunchhelper, this);
+    pthread_create(&tid, 0, &retrieveLaunchhelper, this); // Starts CommunicatorClass::retrievalLoopThread()
 
 }
 

@@ -322,7 +322,7 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
   return ret;
 }
 
-// returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
+// returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int*fd)
 {
   int ret;

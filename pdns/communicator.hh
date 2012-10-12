@@ -60,6 +60,7 @@ typedef multi_index_container<
     ordered_unique<tag<IDTag>, identity<SuckRequest> >
   >
 > UniQueue;
+typedef UniQueue::index<IDTag>::type domains_by_name_t;
 
 class NotificationQueue
 {
@@ -78,13 +79,13 @@ public:
   
   bool removeIf(const string &remote, uint16_t id, const string &domain)
   {
-    for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) {
+    for(d_nqueue_t::iterator i=d_nqueue.begin(); i!=d_nqueue.end(); ++i) {
       //      cout<<i->id<<" "<<id<<endl;
       //cout<<i->ip<<" "<<remote<<endl;
       //cout<<i->domain<<" "<<domain<<endl;
       string remoteIP, ourIP, port;
-      tie(remoteIP, port)=splitField(remote,':');
-      tie(ourIP, port)=splitField(i->ip,':');
+      tie(remoteIP, port)=splitField(remote, ':');
+      tie(ourIP, port)=splitField(i->ip, ':');
       if(i->id==id && ourIP == remoteIP && i->domain==domain) {
         d_nqueue.erase(i);
         return true;
@@ -131,7 +132,7 @@ private:
     time_t next;
   };
 
-  typedef std::list<NotificationRequest>d_nqueue_t;
+  typedef std::list<NotificationRequest> d_nqueue_t;
   d_nqueue_t d_nqueue;
 
 };
@@ -156,12 +157,14 @@ public:
   
   void drillHole(const string &domain, const string &ip);
   bool justNotified(const string &domain, const string &ip);
-  void addSuckRequest(const string &domain, const string &master, bool priority=false);
+  void addSuckRequest(const string &domain, const string &master);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(DNSPacket *p);
   void notify(const string &domain, const string &ip);
   void mainloop();
   void retrievalLoopThread();
+  void sendNotification(int sock, const string &domain, const ComboAddress& remote, uint16_t id);
+
   static void *launchhelper(void *p)
   {
     static_cast<CommunicatorClass *>(p)->mainloop();

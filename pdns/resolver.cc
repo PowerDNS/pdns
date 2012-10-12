@@ -45,19 +45,6 @@
 
 #include "namespaces.hh"
 
-int sendNotification(int sock, const string& domain, const ComboAddress& remote, uint16_t id)
-{
-  vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
-  pw.getHeader()->id = id;
-  pw.getHeader()->aa = true; 
-
-  if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen())<0) {
-    throw ResolverException("Unable to send notify to "+remote.toStringWithPort()+": "+stringerror());
-  }
-  return true;
-}
-
 int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
 {
   ComboAddress ourLocal(local);

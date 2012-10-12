@@ -48,20 +48,15 @@ template<typename T> bool rfc1982LessThan(T a, T b)
   return ((signed)(a - b)) < 0;
 }
 
-void CommunicatorClass::addSuckRequest(const string &domain, const string &master, bool priority)
+void CommunicatorClass::addSuckRequest(const string &domain, const string &master)
 {
   Lock l(&d_lock);
-  
   SuckRequest sr;
   sr.domain = domain;
   sr.master = master;
   pair<UniQueue::iterator, bool>  res;
-  if(priority) {
-    res=d_suckdomains.push_front(sr);
-  }
-  else {
-    res=d_suckdomains.push_back(sr);
-  }
+
+  res=d_suckdomains.push_back(sr);
   
   if(res.second) {
     d_suck_sem.post();
@@ -484,7 +479,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
   vector<DomainInfo> rdomains;
-  vector<DomainNotificationInfo > sdomains; // the bool is for 'presigned'
+  vector<DomainNotificationInfo> sdomains; // the bool is for 'presigned'
   vector<DNSPacket> trysuperdomains;
   
   {
@@ -513,7 +508,6 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
   {
     Lock l(&d_lock);
-    typedef UniQueue::index<IDTag>::type domains_by_name_t;
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
 
     BOOST_FOREACH(DomainInfo& di, rdomains) {
@@ -523,8 +517,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         continue;
       // remove unfresh domains already queued for AXFR, no sense polling them again
       sr.master=*di.masters.begin();
-      if(nameindex.count(sr))
+      if(nameindex.count(sr)) {
+        L<<Logger::Warning<<"Domain "<<sr.domain<<" already queued for AXFR."<<endl;
         continue;
+      }
       DomainNotificationInfo dni;
       dni.di=di;
       dni.dnssecOk = dk.isPresigned(di.zone);
