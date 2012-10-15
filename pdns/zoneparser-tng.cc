@@ -376,6 +376,15 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     }
     break;
   
+  case QType::RP:
+    stringtok(recparts, rr.content);
+    if(recparts.size()==2) {
+      recparts[0] = stripDot(toCanonic(d_zonename, recparts[0]));
+      recparts[1] = stripDot(toCanonic(d_zonename, recparts[1]));
+      rr.content=recparts[0]+" "+recparts[1];
+    }
+    break;
+
   case QType::SRV:
     stringtok(recparts, rr.content);
     if(recparts.size()==4) {
