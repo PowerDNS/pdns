@@ -20137,7 +20137,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +counter.test.com:1.1.1.5:3600
 :_double._tcp.dc.test.com:33:\000\000\000d\001\205\007server1\004test\003com\000:3600
 :_double._tcp.dc.test.com:33:\000\001\000d\001\205\007server1\004test\003com\000:3600
-:_ldap._tcp.dc.test.com:33:\000\000\000d\001\205\007server1\004test\003com\000:3600
+:_ldap._tcp.dc.test.com:33:\000\000\000d\001\205\007server2\007example\003net\000:3600
 :enum.test.com:35:\000d\0002\001u\007e2u\053sip\000\017testuser\100domain\003com\000:3600
 +server1.test.com:1.2.3.4:3600
 :server1.test.com:17:\003ahu\004ds9a\002nl\000\007counter\004test\003com\000:3600
