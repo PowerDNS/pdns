@@ -47,7 +47,7 @@ const string QType::getName() const
     if(pos->second==code)
       return pos->first;
 
-  return "#"+itoa(code);
+  return "TYPE"+itoa(code);
 }
 
 QType &QType::operator=(uint16_t n)
