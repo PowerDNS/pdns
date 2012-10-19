@@ -518,7 +518,6 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       // remove unfresh domains already queued for AXFR, no sense polling them again
       sr.master=*di.masters.begin();
       if(nameindex.count(sr)) {
-        L<<Logger::Warning<<"Domain "<<sr.domain<<" already queued for AXFR."<<endl;
         continue;
       }
       DomainNotificationInfo dni;

@@ -45,18 +45,13 @@ void CommunicatorClass::retrievalLoopThread(void)
         continue;
 	
       sr=d_suckdomains.front();
+      d_suckdomains.pop_front();
     }
     try {
       suck(sr.domain,sr.master);
     }
     catch(AhuException& ae) {
       cerr<<"Error: "<<ae.reason<<endl;
-    }
-
-    {
-      Lock l(&d_lock);
-      domains_by_name_t& uqIndex = d_suckdomains.get<IDTag>();
-      uqIndex.erase(sr);
     }
   }
 
