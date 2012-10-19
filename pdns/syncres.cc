@@ -815,7 +815,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
         return -1;
       }
-      if(qname==*tns && qtype.getCode()==QType::A) {
+      if(pdns_iequals(qname, *tns) && qtype.getCode()==QType::A && rnameservers.size() > 1) {
         LOG<<prefix<<qname<<": Not using NS to resolve itself!"<<endl;
         continue;
       }
@@ -949,7 +949,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail
           continue;
         }
-        LOG<<prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", in "<<lwr.d_usec/1000<<"ms"<<endl;
+        LOG<<prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl;
 
         /*  // for you IPv6 fanatics :-)
         if(remoteIP->sin4.sin_family==AF_INET6)
