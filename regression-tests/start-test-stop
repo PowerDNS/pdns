@@ -9,10 +9,11 @@ tosql ()
 
 bindwait ()
 {
+	configname=$1
 	domcount=$(grep -c zone named.conf)
 	while sleep 10
 	do
-		done=$( (../pdns/pdns_control --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]
 		then
 			return
@@ -89,7 +90,7 @@ case $context in
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf       \
 				--bind-dnssec-db=./dnssec.sqlite3 \
-			 --send-root-referral    \
+			    --send-root-referral    \
 				--cache-ttl=0 --no-config &
 			bindwait
 			;;
@@ -409,50 +410,78 @@ export extracontexts
 export skipreasons
 export testsdir
 
-if [ $presigned = yes ] && [ ${context:0:6} = gmysql ]
+if [ $presigned = yes ]
 then
-	context=${context}-presigned
-	[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
-	[ -z "$GMYSQL2USER" ] && GMYSQL2USER=root
-	[ -z "$GMYSQL2HOST" ] && GMYSQL2HOST=localhost
-	[ -z "$GMYSQL2PASSWD" ] && GMYSQL2PASSWD=''
+	if [ ${context:0:6} = gmysql ]
+	then
+		context=${context}-presigned
+		[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
+		[ -z "$GMYSQL2USER" ] && GMYSQL2USER=root
+		[ -z "$GMYSQL2HOST" ] && GMYSQL2HOST=localhost
+		[ -z "$GMYSQL2PASSWD" ] && GMYSQL2PASSWD=''
 
-	mysqladmin --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" --force drop "$GMYSQL2DB" \
-		|| echo ignoring mysqladmin drop failure
-	mysqladmin --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" create "$GMYSQL2DB"
-	mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-		"$GMYSQL2DB" < ../pdns/no-dnssec.schema.mysql.sql
-	mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-		"$GMYSQL2DB" < ../pdns/dnssec.schema.mysql.sql
-
-	for zone in $(grep zone named.conf  | cut -f2 -d\")
-	do
+		mysqladmin --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" --force drop "$GMYSQL2DB" \
+			|| echo ignoring mysqladmin drop failure
+		mysqladmin --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" create "$GMYSQL2DB"
 		mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-		"$GMYSQL2DB" \
-		-e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
-	done
+			"$GMYSQL2DB" < ../pdns/no-dnssec.schema.mysql.sql
+		mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
+			"$GMYSQL2DB" < ../pdns/dnssec.schema.mysql.sql
 
-	port=$((port+100))
+		for zone in $(grep zone named.conf  | cut -f2 -d\" | tac)
+		do
+			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
+			"$GMYSQL2DB" \
+			-e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
+		done
 
-	$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
-		--no-shuffle --launch=gmysql --gmysql-dnssec \
-		--fancy-records --send-root-referral \
-		--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
-		--gmysql-dbname="$GMYSQL2DB" \
-		--gmysql-user="$GMYSQL2USER" \
-		--gmysql-host="$GMYSQL2HOST" \
-		--gmysql-password="$GMYSQL2PASSWD" \
-		--config-name=gmysql2 |& egrep -v "update records set ordername|insert into records" &
-	echo 'waiting for zones to be slaved'
-	while sleep 10
-	do
-		todo=$(mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQl2HOST" \
-			   "$GMYSQL2DB" -ss -e 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
-		if [ $todo = 0 ]
-		then
-			break
-		fi
-	done
+		port=$((port+100))
+
+		$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			--no-shuffle --launch=gmysql --gmysql-dnssec \
+			--fancy-records --send-root-referral \
+			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
+			--gmysql-dbname="$GMYSQL2DB" \
+			--gmysql-user="$GMYSQL2USER" \
+			--gmysql-host="$GMYSQL2HOST" \
+			--gmysql-password="$GMYSQL2PASSWD" \
+			--config-name=gmysql2 |& egrep -v "update records set ordername|insert into records" &
+		echo 'waiting for zones to be slaved'
+		while sleep 10
+		do
+			todo=$(mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQl2HOST" \
+				   "$GMYSQL2DB" -ss -e 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
+			if [ $todo = 0 ]
+			then
+				break
+			fi
+		done
+	elif [ ${context:0:4} = bind ]
+	then
+		context=${context}-presigned
+		sed -e 's/type master;/type slave;\n\tmasters { 127.0.0.1:'$port'; };/' -e 's/file "\([^"]\+\)/file "\1-slave/' < named.conf > named-slave.conf
+
+		for zone in $(grep zone named.conf  | cut -f2 -d\")
+		do
+			rm -rf $zone-slave
+		done
+		
+		rm -f dnssec-slave.sqlite3
+		../pdns/pdnssec --config-dir=. create-bind-db dnssec-slave.sqlite3
+		port=$((port+100))
+
+		$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave         \
+			--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
+			--cache-ttl=0 --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
+		echo 'waiting for zones to be loaded'
+		bindwait bind-slave
+		echo 'reloading zones to work around metadata bug'
+		for zone in $(grep zone named.conf  | cut -f2 -d\")
+		do
+			../pdns/pdns_control --no-config --socket-dir=. --config-name=bind-slave bind-reload-now $zone
+		done
+	fi
 fi
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail

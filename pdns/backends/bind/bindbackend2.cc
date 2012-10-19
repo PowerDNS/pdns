@@ -441,6 +441,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   bdr.qtype=qtype.getCode();
   bdr.content=content; 
   bdr.nsec3hash = hashed;
+  // cerr<<"qname '"<<bdr.qname<<"' nsec3hash '"<<hashed<<"' qtype '"<<qtype.getName()<<"'"<<endl;
   
   if (!qtype.getCode()) // Set auth on empty non-terminals
     bdr.auth=true;
@@ -620,7 +621,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   BOOST_FOREACH(const Bind2DNSRecord& bdr, *bb2.d_records)
-    if (bdr.auth)
+    if (bdr.auth && (bdr.qtype != QType::RRSIG))
       qnames.insert(labelReverse(bdr.qname));
 
   BOOST_FOREACH(const string& qname, qnames)
@@ -646,7 +647,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
   }
 
   DNSResourceRecord rr;
-  rr.qtype="0";
+  rr.qtype="#0";
   rr.content="";
   rr.ttl=0;
   rr.priority=0;
@@ -752,8 +753,12 @@ void Bind2Backend::loadConfig(string* status)
             DNSResourceRecord rr;
             string hashed;
             while(zpt.get(rr)) {
-              if(nsec3zone)
-                hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+              if(nsec3zone) {
+                if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
+                  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+                else
+                  hashed="";
+              }
               insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
             }
         
@@ -875,8 +880,12 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     NSEC3PARAMRecordContent ns3pr;
     bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
     while(zpt.get(rr)) {
-      if(nsec3zone)
-        hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+      if(nsec3zone) {
+        if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
+          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+        else
+          hashed="";
+      }
       insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
     }
     // cerr<<"Start sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;        
@@ -982,7 +991,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       iter = hashindex.end();
     }
 
-    while(iter == hashindex.end() || !(iter->auth))
+    while(iter == hashindex.end() || !(iter->auth) || iter->nsec3hash.empty())
     {
       iter--;
       if(iter == hashindex.begin())
@@ -1000,7 +1009,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       iter = hashindex.begin();
     }
 
-    while(!(iter->auth))
+    while(!(iter->auth) || iter->nsec3hash.empty())
     {
       iter++;
       if(iter == hashindex.end())
@@ -1030,8 +1039,9 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   shared_ptr<State> state = s_state;
 
   name_id_map_t::const_iterator iditer;
-  while((iditer=state->name_id_map.find(domain)) == state->name_id_map.end() && chopOff(domain))
-    ;
+  do {
+    iditer=state->name_id_map.find(domain);
+  } while ((iditer == state->name_id_map.end() || (zoneId != iditer->second && zoneId != -1)) && chopOff(domain));
 
   if(iditer==state->name_id_map.end()) {
     if(mustlog)

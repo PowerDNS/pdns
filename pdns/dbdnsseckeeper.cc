@@ -358,7 +358,13 @@ bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const
 	DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
 {
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
-	db.lookup(QType(QType::RRSIG), wildcardname.empty() ? qname : wildcardname);
+	SOAData sd;
+	sd.db=(DNSBackend *)-1; // force uncached answer
+	if(!db.getSOA(signer, sd)) {
+		DLOG(L<<"Could not get SOA for domain"<<endl);
+		return false;
+	}
+	db.lookup(QType(QType::RRSIG), wildcardname.empty() ? qname : wildcardname, NULL, sd.domain_id);
 	DNSResourceRecord rr;
 	while(db.get(rr)) { 
 		// cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
@@ -369,7 +375,7 @@ bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const
 			if (!wildcardname.empty())
 				rr.qname = qname;
 			rr.d_place = (DNSResourceRecord::Place)signPlace;
-      rr.ttl = signTTL;
+			rr.ttl = signTTL;
 			rrsigs.push_back(rr);
 		}
 		else ; // cerr<<"Skipping!"<<endl;
