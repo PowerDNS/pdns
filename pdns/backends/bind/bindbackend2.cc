@@ -970,6 +970,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   
   }
   else {
+    bool wraponce;
     string lqname = toLower(qname);
     // cerr<<"\nin bind2backend::getBeforeAndAfterAbsolute: nsec3 HASH for "<<auth<<", asked for: "<<lqname<< " (auth: "<<auth<<".)"<<endl;
     typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
@@ -991,11 +992,18 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       iter = hashindex.end();
     }
 
+    wraponce = false;
     while(iter == hashindex.end() || !(iter->auth) || iter->nsec3hash.empty())
     {
       iter--;
-      if(iter == hashindex.begin())
-        iter = hashindex.end();
+      if(iter == hashindex.begin()) {
+        if (!wraponce) {
+          iter = hashindex.end();
+          wraponce = true;
+        }
+        else
+          break;
+      }
     }
 
     before = iter->nsec3hash;
@@ -1009,12 +1017,17 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       iter = hashindex.begin();
     }
 
+    wraponce = false;
     while(!(iter->auth) || iter->nsec3hash.empty())
     {
       iter++;
       if(iter == hashindex.end())
       {
         iter = hashindex.begin();
+        if (!wraponce)
+          wraponce = true;
+        else
+          break;
       }
     }
 
