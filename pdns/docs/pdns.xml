@@ -11415,6 +11415,9 @@ $ pdnssec rectify-zone powerdnssec.org
   <para>
     It is possible to operate a zone with different keying algorithms simultaneously, but it has also been observed that this is not reliable.
   </para>
+  <para>
+  	Depending on your master/slave setup, you may need to tinker with SOA-EDIT on your master.
+  </para>
   <section id="dnssec-packet-size-tcp"><title>Packet sizes, fragments, TCP/IP service</title>
   <para>
     DNSSEC answers contain (bulky) keying material and signatures, and are therefore a lot larger than regular DNS answers.
@@ -13479,6 +13482,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <para>
 	    Master support is OFF by default, turn it on by adding <command>master</command> to the configuration. The same 
 	    holds for slave operation. Both can be on simultaneously.
+	  </para>
+	</warning>
+	<warning>
+	  <para>
+	  	If you have DNSSEC-signed zones and non-PowerDNS slaves, please check your SOA-EDIT settings.
 	  </para>
 	</warning>
       </para>
