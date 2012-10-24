@@ -6,6 +6,7 @@
 #include "statbag.hh"
 #include "base32.hh"
 #include "dnssecinfra.hh"
+#include <boost/foreach.hpp>
 
 StatBag S;
 
@@ -21,6 +22,7 @@ void proveOrDeny(const nsec3set &nsec3s, const string &qname, const string &salt
 {
   string hashed = nsec3Hash(qname, salt, iters);
 
+  // cerr<<"proveOrDeny(.., '"<<qname<<"', ..)"<<endl;
   // cerr<<"hashed: "<<hashed<<endl;
   for(nsec3set::const_iterator pos=nsec3s.begin(); pos != nsec3s.end(); ++pos) {
     string base=(*pos).first;
@@ -93,6 +95,8 @@ try
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   set<string> names;
+  set<string> namesseen;
+  set<string> namestocheck;
   nsec3set nsec3s;
   string nsec3salt;
   int nsec3iters = 0;
@@ -112,7 +116,9 @@ try
     }
     else
     {
+      // cerr<<"namesseen.insert('"<<i->first.d_label<<"')"<<endl;
       names.insert(i->first.d_label);
+      namesseen.insert(i->first.d_label);
     }
 
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
@@ -133,11 +139,18 @@ try
   cout<<"== nsec3 prove/deny report follows =="<<endl;
   set<string> proven;
   set<string> denied;
-  string shorter(qname);
-  do {
-    proveOrDeny(nsec3s, shorter, nsec3salt, nsec3iters, proven, denied);
-    proveOrDeny(nsec3s, "*."+shorter, nsec3salt, nsec3iters, proven, denied);
-  } while(chopOff(shorter));
+  BOOST_FOREACH(string n, namesseen)
+  {
+    string shorter(n);
+    do {
+      namestocheck.insert(shorter);
+    } while(chopOff(shorter));
+  }
+  BOOST_FOREACH(string n, namestocheck)
+  {
+    proveOrDeny(nsec3s, n, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, "*."+n, nsec3salt, nsec3iters, proven, denied);
+  }
 
   if(names.count(qname+"."))
   {
@@ -150,7 +163,7 @@ try
     cout<<"qname found proven, NODATA response?"<<endl;
     exit(EXIT_SUCCESS);
   }
-  shorter=qname;
+  string shorter=qname;
   string encloser;
   string nextcloser;
   string prev(qname);
