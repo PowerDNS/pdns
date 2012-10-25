@@ -57,8 +57,12 @@ void HTTPConnector::requestbuilder(const std::string &method, const Json::Value 
 
     ss << "/" << method;
 
-    // add the url components, if found, in following order 
-
+    // add the url components, if found, in following order.
+    // id must be first due to the fact that the qname/name can be empty
+    if ((param = parameters.get("id", Json::Value())).isNull() == false) {
+       json2string(param, sparam);
+       ss << "/" << sparam;
+    }
     if ((param = parameters.get("zonename", Json::Value())).isNull() == false) {
        json2string(param, sparam);
        ss << "/" << sparam;
@@ -83,11 +87,6 @@ void HTTPConnector::requestbuilder(const std::string &method, const Json::Value 
        ss << "/" << sparam;
     }
 
-    if ((param = parameters.get("id", Json::Value())).isNull() == false) {
-       json2string(param, sparam);
-       ss << "/" << sparam;
-    }
-
     // finally add suffix
     ss << d_url_suffix;
     curl_easy_setopt(d_c, CURLOPT_URL, ss.str().c_str());
@@ -102,7 +101,7 @@ void HTTPConnector::requestbuilder(const std::string &method, const Json::Value 
         // create post with keydata
         std::stringstream ss2;
         param = parameters["key"]; 
-        ss2 << "flags" << param["flags"].asUInt() << "&active" << (param["active"].asBool() ? 1 : 0) << "&content=";
+        ss2 << "flags=" << param["flags"].asUInt() << "&active=" << (param["active"].asBool() ? 1 : 0) << "&content=";
         tmpstr = curl_easy_escape(d_c, param["content"].asCString(), 0);
         ss2 << tmpstr;
         sparam = ss2.str();

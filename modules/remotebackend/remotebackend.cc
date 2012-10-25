@@ -352,6 +352,10 @@ bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
    return answer.asBool();
 }
 
+bool RemoteBackend::doesDNSSEC() {
+   return d_dnssec;
+}
+
 bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, std::string* content) {
    Json::Value query,answer;
    query["method"] = "getTSIGKey";
@@ -366,6 +370,45 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
    if (content != NULL)
      content->assign(answer["content"].asString());
    
+   return true;
+}
+
+bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
+   Json::Value query,answer;
+   std::string kind;
+   query["method"] = "getDomainInfo";
+   query["parameters"] = Json::Value();
+   query["parameters"]["name"] = domain;
+
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+
+   // make sure we got zone & kind
+   if (!answer.isMember("zone")) {
+      L<<Logger::Error<<kBackendId<<"Missing zone in getDomainInfo return value"<<endl;
+      throw new AhuException();
+   }
+   // parse return value. we need at least zone,serial,kind
+   di.id = answer.get("id", Json::Value(-1)).asInt();
+   di.zone = answer["zone"].asString();
+   if (answer.isMember("masters") && answer["masters"].isArray()) {
+     Json::Value value = answer["masters"];
+     for(Json::Value::iterator i = value.begin(); i != value.end(); i++) {
+        di.masters.push_back((*i).asString());
+     }
+   }
+   di.notified_serial = -1;
+   di.serial = answer.get("serial", Json::Value(0)).asInt();
+   di.last_check = 0;
+   kind = answer.get("kind", Json::Value("native")).asString();
+   if (kind == "master") {
+      di.kind = DomainInfo::Master;
+   } else if (kind == "slave") {
+      di.kind = DomainInfo::Slave;
+   } else {
+      di.kind = DomainInfo::Native;
+   }
+   di.backend = this;
    return true;
 }
 

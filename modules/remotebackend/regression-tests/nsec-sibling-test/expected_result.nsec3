@@ -1,0 +1,6 @@
+0	jump.up.example.com.	IN	A	120	192.168.3.1
+0	jump.up.example.com.	IN	RRSIG	120	A 8 4 120 [expiry] [inception] [keytag] up.example.com. ...
+0	jump.up.example.com.	IN	RRSIG	120	A 8 4 120 [expiry] [inception] [keytag] up.example.com. ...
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='jump.up.example.com.', qtype=A

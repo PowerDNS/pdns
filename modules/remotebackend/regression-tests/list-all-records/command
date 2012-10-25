@@ -1,0 +1,3 @@
+#!/bin/sh
+
+dig example.com AXFR @$nameserver -p $port | grep "IN" | egrep -v "(NSEC|RRSIG|DNSKEY)" | LC_ALL=C sort

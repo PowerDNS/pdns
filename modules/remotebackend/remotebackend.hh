@@ -30,6 +30,14 @@ class UnixsocketConnector: public Connector {
     virtual ~UnixsocketConnector();
     virtual int send_message(const Json::Value &input);
     virtual int recv_message(Json::Value &output);
+  private:
+    ssize_t read(std::string &data);
+    ssize_t write(const std::string &data);
+    void reconnect();
+    std::map<std::string,std::string> options;
+    int fd;
+    std::string path;
+    bool connected;
 };
 
 class HTTPConnector: public Connector {
@@ -88,6 +96,8 @@ class RemoteBackend : public DNSBackend
   virtual int addDomainKey(const string& name, const KeyData& key);
   virtual bool activateDomainKey(const string& name, unsigned int id);
   virtual bool deactivateDomainKey(const string& name, unsigned int id);
+  virtual bool getDomainInfo(const string&, DomainInfo&);
+  virtual bool doesDNSSEC();
 
   static DNSBackend *maker();
 

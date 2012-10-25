@@ -1,0 +1,2 @@
+This test verifies that an NXDOMAIN in the middle of a zone
+generates a correct NSEC(3).

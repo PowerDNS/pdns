@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig a.example.com A dnssec
+

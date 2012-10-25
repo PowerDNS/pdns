@@ -1,0 +1,2 @@
+This test verifies that NXDOMAINS beyond the last record of a zone
+generate a correct wraparound NSEC.

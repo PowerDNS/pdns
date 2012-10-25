@@ -1,0 +1,14 @@
+example.com.		120	IN	NS	ns1.example.com.
+example.com.		120	IN	NS	ns2.example.com.
+example.com.		120	IN	SOA	ns1.example.com. hostmaster.example.com. 2000010101 28800 7200 1209600 120
+example.com.		120	IN	SOA	ns1.example.com. hostmaster.example.com. 2000010101 28800 7200 1209600 120
+ns1.example.com.	120	IN	A	192.168.2.2
+ns2.example.com.	120	IN	A	192.168.2.3
+outpost.example.com.	120	IN	A	192.168.2.1
+outpost.example.com.	120	IN	AAAA	fe80::1
+up.example.com.		120	IN	DS	38674 8 1 50EA84825288D03BF9DDDA0B0B5F8964C6FBAFA8
+up.example.com.		120	IN	DS	38674 8 2 BF31EF7AEA46F2ADCA7A61FBB0629FB5C24116DF0F22EC0115DBC7EB DDDEE04E
+up.example.com.		120	IN	DS	38674 8 3 6ED18DCEABA6D2547F2FC82BA3801FDC919DB51B0E44BAA261B887C8 24DD9A2D
+up.example.com.		120	IN	NS	ns1.example.com.
+up.example.com.		120	IN	NS	ns2.example.com.
+www.example.com.	120	IN	A	192.168.2.255

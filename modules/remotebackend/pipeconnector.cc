@@ -1,6 +1,10 @@
 #include "remotebackend.hh"
 
 PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
+  if (options.count("command") == 0) {
+    L<<Logger::Error<<"Cannot find 'command' option in connection string"<<endl;
+    throw new AhuException();
+  }
   this->command = options.find("command")->second;
   this->options = options;
   this->coproc = NULL;

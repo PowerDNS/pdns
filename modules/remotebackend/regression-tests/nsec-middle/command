@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig outerpost.example.com A dnssec
+

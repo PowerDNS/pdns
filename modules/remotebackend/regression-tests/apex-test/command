@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig up.example.com NS
