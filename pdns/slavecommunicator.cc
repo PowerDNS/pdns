@@ -324,10 +324,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
     }
 
-    di.backend->commitTransaction();
-    di.backend->setFresh(domain_id);
-    PC.purge(domain+"$");
-
     // now we also need to update the presigned flag and NSEC3PARAM
     // for the zone
     if (gotPresigned) {
@@ -358,6 +354,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       dk.unsetPresigned(domain);
       dk.unsetNSEC3PARAM(domain);
     }
+
+    di.backend->commitTransaction();
+    di.backend->setFresh(domain_id);
+    PC.purge(domain+"$");
 
 
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<soa_serial<<endl;

@@ -541,11 +541,6 @@ then
 			--cache-ttl=0 --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave
-		echo 'reloading zones to work around metadata bug'
-		for zone in $(grep zone named.conf  | cut -f2 -d\")
-		do
-			../pdns/pdns_control --no-config --socket-dir=. --config-name=bind-slave bind-reload-now $zone
-		done
 	fi
 fi
 
