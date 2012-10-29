@@ -4,6 +4,8 @@ Zexample.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:8640
 &example.com::ns2.example.com.:120
 @example.com::smtp-servers.example.com.:10:120
 @example.com::smtp-servers.test.com.:15:120
+&dsdelegation.example.com::ns.example.com.:120
+:dsdelegation.example.com:43:m\341\010\001\312\361\352\256\315\253\347afpx\217\220\042EK\365\375\237\332:120
 :escapedtext.example.com:16:\005begin\022the\040\042middle\042\040p\134art\007the\040end:120
 Cexternal.example.com:somewhere.else.net.:120
 @external-mail.example.com::server1.test.com.:25:120
