@@ -272,6 +272,12 @@ int checkZone(UeberBackend *B, const std::string& zone)
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
   
   while(sd.db->get(rr)) {
+    if(!endsOn(rr.qname, zone)) {
+      cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" in zone "<<zone<<" is out-of-zone."<<endl;
+      numwarnings++;
+      continue;
+    }
+
     if(!rr.qtype.getCode())
       continue;
     
