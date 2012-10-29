@@ -215,7 +215,8 @@ void UDPNameserver::send(DNSPacket *p)
   struct cmsghdr *cmsg;
   struct iovec iov;
   char cbuf[256];
-
+  memset(cbuf, 0, sizeof(cbuf)); // not strictly necessary, but valgrind triggers on this sometimes otherwise
+  
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
   iov.iov_base = (void*)buffer.c_str();
