@@ -12,7 +12,7 @@ echo RETVAL: $? >> ${testsdir}/${testname}/drill.out
 echo RETVAL: $? >> ${testsdir}/${testname}/q.out
 if [ ! -e ${testsdir}/${testname}/skip-unboundhost ]
 then
-	/usr/bin/unbound-host -v -C unbound-host.conf -t $2 $1 > ${testsdir}/${testname}/unbound-host.out 2>&1
+	unbound-host -v -C unbound-host.conf -t $2 $1 > ${testsdir}/${testname}/unbound-host.out 2>&1
 	echo RETVAL: $? >> ${testsdir}/${testname}/unbound-host.out
 fi
 if [ -f ${testsdir}/${testname}/use.drill ]
