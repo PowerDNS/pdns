@@ -37,7 +37,7 @@ then
 Usage: ./start-test-stop <port> [<context>] [wait]
 
 context is one of:
-bind bind-dnssec bind-dnssec-nsec3
+bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-narrow
 gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
@@ -48,7 +48,7 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
-add -presigned to any gmysql test (except narrow) to test 
+add -presigned to any bind or gmysql test (except narrow) to test 
 presigned operation
 
 add 'wait' (literally) after the context to not kill 
@@ -77,25 +77,40 @@ case $context in
 			skipreasons=nodnssec
 			bindwait
 			;;
-		bind-dnssec | bind-dnssec-nsec3 )
+
+		bind-dnssec | bind-dnssec-nsec3 | bind-dnssec-nsec3-narrow)
 			./bind-dnssec-setup
-            if [ $context = bind-dnssec-nsec3 ]
-            then
-                for zone in $(grep zone named.conf  | cut -f2 -d\")
-                do
-                    ../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' 2>&1
-                done
-                extracontexts="bind dnssec nsec3"
-            else
-                extracontexts="bind dnssec"
-            fi
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
-				--no-shuffle --launch=bind --bind-config=./named.conf       \
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				if [ $context = bind-dnssec-nsec3 ]
+				then
+					../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' 2>&1
+				elif [ $context = bind-dnssec-nsec3-narrow ]
+				then
+					../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				fi
+			done
+
+			if [ $context = bind-dnssec-nsec3 ]
+			then
+				extracontexts="bind dnssec nsec3"
+				skipreasons="nsec3"
+			elif [ $context = bind-dnssec-nsec3-narrow ]
+			then
+				extracontexts="bind dnssec narrow"
+				skipreasons="narrow"
+			else
+				extracontexts="bind dnssec"
+			fi
+
+			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./ \
+				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
-			    --send-root-referral    \
+				--send-root-referral \
 				--cache-ttl=0 --no-config &
 			bindwait
 			;;
+
 		gmysql-nodnssec)
 			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
 			[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
