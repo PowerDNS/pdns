@@ -215,7 +215,6 @@ void UDPNameserver::send(DNSPacket *p)
   struct cmsghdr *cmsg;
   struct iovec iov;
   char cbuf[256];
-  memset(cbuf, 0, sizeof(cbuf)); // not strictly necessary, but valgrind triggers on this sometimes otherwise
   
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
@@ -241,7 +240,7 @@ void UDPNameserver::send(DNSPacket *p)
       pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
       memset(pkt, 0, sizeof(*pkt));
       pkt->ipi6_addr = p->d_anyLocal->sin6.sin6_addr;
-//      cerr<<"Setting local ipv6 address"<<endl;
+      msgh.msg_controllen = cmsg->cmsg_len; // makes valgrind happy and is slightly better style
     }
     else {
 #ifdef IP_PKTINFO
@@ -257,7 +256,6 @@ void UDPNameserver::send(DNSPacket *p)
       pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
       memset(pkt, 0, sizeof(*pkt));
       pkt->ipi_spec_dst = p->d_anyLocal->sin4.sin_addr;
-//      cerr<<"Setting local ipv4 address Linux way"<<endl;
 #endif
 #ifdef IP_SENDSRCADDR
       struct in_addr *in;
@@ -272,8 +270,8 @@ void UDPNameserver::send(DNSPacket *p)
                             
       in = (struct in_addr *) CMSG_DATA(cmsg);
       *in = p->d_anyLocal->sin4.sin_addr;
-//      cerr<<"Setting local ipv4 address FreeBSD way"<<endl;
 #endif
+      msgh.msg_controllen = cmsg->cmsg_len;
     }
   }
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
