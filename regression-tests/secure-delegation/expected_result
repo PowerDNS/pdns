@@ -1,0 +1,4 @@
+1	dsdelegation.example.com.	IN	NS	120	ns.example.com.
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='www.dsdelegation.example.com.', qtype=A

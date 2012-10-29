@@ -30,6 +30,9 @@ location		IN	LOC	51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00m 10.00m
 ;
 unauth			IN	CNAME	no-idea.example.org.
 ;
+dsdelegation		IN	NS	ns.example.com.
+			IN	DS	28129 8 1 caf1eaaecdabe7616670788f9022454bf5fd9fda
+;
 nxd			IN	CNAME	nxdomain.example.com.
 ;
 hwinfo			IN	HINFO	"abc" "def"

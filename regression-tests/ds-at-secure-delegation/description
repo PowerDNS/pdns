@@ -1,0 +1,4 @@
+This test tries to resolve a DS question at a secure delegation.
+It was written specifically to verify that we do not sign NS records
+at secure delegations.
+

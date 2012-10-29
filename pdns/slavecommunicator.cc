@@ -258,22 +258,25 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
             break;
           }
         }while(chopOff(shorter));
-
-        if(dsnames.count(qname))
-          auth=true;
       }
 
       if(dnssecZone && haveNSEC3)
       {
         if(!narrow) { 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
+          di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth);
         }
-        di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth); // this should always be done
-        if((!auth || dsnames.count(qname)) && realrr)
+        else
+          di.backend->nullifyDNSSECOrderNameAndUpdateAuth(domain_id, qname, auth);
+        if(realrr)
         {
-          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "NS");
-          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
-          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+          if (dsnames.count(qname))
+            di.backend->setDNSSECAuthOnDsRecord(domain_id, qname);
+          if (!auth || nsset.count(qname)) {
+            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "NS");
+            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
+            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+          }
         }
       }
       else // NSEC
@@ -281,8 +284,9 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         if(realrr)
         {
           di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
-          if(!auth || dsnames.count(qname))
-          {
+          if (dsnames.count(qname))
+            di.backend->setDNSSECAuthOnDsRecord(domain_id, qname);
+          if (!auth || nsset.count(qname)) {
             di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
             di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
           }

@@ -291,8 +291,9 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_afterOrderQuery = getArg("get-order-after-query");
     d_lastOrderQuery = getArg("get-order-last-query");
     d_setOrderAuthQuery = getArg("set-order-and-auth-query");
-    d_nullifyOrderNameQuery = getArg("nullify-ordername-query");
+    d_nullifyOrderNameAndUpdateAuthQuery = getArg("nullify-ordername-and-update-auth-query");
     d_nullifyOrderNameAndAuthQuery = getArg("nullify-ordername-and-auth-query");
+    d_setAuthOnDsRecordQuery = getArg("set-auth-on-ds-record-query");
     
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
@@ -322,11 +323,8 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
   if(!d_dnssecQueries)
     return false;
   char output[1024];
-  // ordername='%s',auth=%d where name='%s' and domain_id='%d'
-  
+
   snprintf(output, sizeof(output)-1, d_setOrderAuthQuery.c_str(), sqlEscape(ordername).c_str(), auth, sqlEscape(qname).c_str(), domain_id);
-//  cerr<<"sql: '"<<output<<"'\n";
-  
   try {
     d_db->doCommand(output);
   }
@@ -336,18 +334,18 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
   return true;
 }
 
-bool GSQLBackend::nullifyDNSSECOrderName(uint32_t domain_id, const std::string& qname)
+bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth)
 {
   if(!d_dnssecQueries)
     return false;
   char output[1024];
 
-  snprintf(output, sizeof(output)-1, d_nullifyOrderNameQuery.c_str(), domain_id, sqlEscape(qname).c_str());
+  snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndUpdateAuthQuery.c_str(), auth, domain_id, sqlEscape(qname).c_str());
   try {
     d_db->doCommand(output);
   }
   catch(SSqlException &e) {
-    throw AhuException("GSQLBackend unable to nullify ordername for domain_id "+itoa(domain_id)+": "+e.txtReason());
+    throw AhuException("GSQLBackend unable to nullify ordername and update auth for domain_id "+itoa(domain_id)+": "+e.txtReason());
   }
   return true;
 }
@@ -364,6 +362,22 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
   }
   catch(SSqlException &e) {
     throw AhuException("GSQLBackend unable to nullify ordername/auth for domain_id "+itoa(domain_id)+": "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname)
+{
+  if(!d_dnssecQueries)
+    return false;
+  char output[1024];
+
+  snprintf(output, sizeof(output)-1, d_setAuthOnDsRecordQuery.c_str(), domain_id, sqlEscape(qname).c_str());
+  try {
+    d_db->doCommand(output);
+  }
+  catch(SSqlException &e) {
+    throw AhuException("GSQLBackend unable to set auth on DS record "+qname+" for domain_id "+itoa(domain_id)+": "+e.txtReason());
   }
   return true;
 }

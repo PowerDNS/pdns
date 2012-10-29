@@ -43,8 +43,9 @@ public:
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
   virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
-  virtual bool nullifyDNSSECOrderName(uint32_t domain_id, const std::string& qname);
+  virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth);
   virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type);
+  virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname);
   virtual bool updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert ,set<string>& erase, bool remove);
   virtual bool doesDNSSEC();
 
@@ -95,8 +96,9 @@ private:
   string d_afterOrderQuery;
   string d_lastOrderQuery;
   string d_setOrderAuthQuery;
-  string d_nullifyOrderNameQuery;
+  string d_nullifyOrderNameAndUpdateAuthQuery;
   string d_nullifyOrderNameAndAuthQuery;
+  string d_setAuthOnDsRecordQuery;
   string d_removeEmptyNonTerminalsFromZoneQuery;
   string d_insertEmptyNonTerminalQuery;
   string d_deleteEmptyNonTerminalQuery;

@@ -141,12 +141,17 @@ public:
     return false;
   }
 
-  virtual bool nullifyDNSSECOrderName(uint32_t domain_id, const std::string& qname)
+  virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth)
   {
     return false;
   }
 
   virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type)
+  {
+    return false;
+  }
+
+  virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname)
   {
     return false;
   }
