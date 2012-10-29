@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig unauth.example.com A dnssec
+

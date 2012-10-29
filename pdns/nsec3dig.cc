@@ -82,12 +82,32 @@ try
   pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
   pw.commit();
 
-  Socket sock(InterNetwork, Datagram);
+  Socket sock(InterNetwork, Stream);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
-  sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
+  sock.connect(dest);
+  uint16_t len;
+  len = htons(packet.size());
+  if(sock.write((char *) &len, 2) != 2)
+    throw AhuException("tcp write failed");
+
+  sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
   
-  string reply;
-  sock.recvFrom(reply, dest);
+  if(sock.read((char *) &len, 2) != 2)
+    throw AhuException("tcp read failed");
+
+  len=ntohs(len);
+  char *creply = new char[len];
+  int n=0;
+  int numread;
+  while(n<len) {
+    numread=sock.read(creply+n, len-n);
+    if(numread<0)
+      throw AhuException("tcp read failed");
+    n+=numread;
+  }
+
+  string reply(creply, len);
+  delete[] creply;
 
   MOADNSParser mdp(reply);
   cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
@@ -117,8 +137,13 @@ try
     else
     {
       // cerr<<"namesseen.insert('"<<i->first.d_label<<"')"<<endl;
-      names.insert(i->first.d_label);
-      namesseen.insert(i->first.d_label);
+      names.insert(stripDot(i->first.d_label));
+      namesseen.insert(stripDot(i->first.d_label));
+    }
+
+    if(i->first.d_type == QType::CNAME)
+    {
+      namesseen.insert(stripDot(i->first.d_content->getZoneRepresentation()));
     }
 
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
@@ -139,6 +164,7 @@ try
   cout<<"== nsec3 prove/deny report follows =="<<endl;
   set<string> proven;
   set<string> denied;
+  namesseen.insert(stripDot(qname));
   BOOST_FOREACH(string n, namesseen)
   {
     string shorter(n);

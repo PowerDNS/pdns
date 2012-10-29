@@ -20029,6 +20029,7 @@ Cloop3.example.com:loop1.example.com.:120
 :multitext.example.com:16:\015text\040part\040one\015text\040part\040two\017text\040part\040three:120
 +ns1.example.com:192.168.1.1:120
 +ns2.example.com:192.168.1.2:120
+Cnxd.example.com:nxdomain.example.com.:120
 +outpost.example.com:192.168.2.1:120
 Csemi-external.example.com:bla.something.wtest.com.:120
 Cserver1.example.com:server1.france.example.com.:120
@@ -20036,6 +20037,7 @@ Cserver1.example.com:server1.france.example.com.:120
 +smtp-servers.example.com:192.168.0.3:120
 +smtp-servers.example.com:192.168.0.4:120
 Csmtp1.example.com:outpost.example.com.:120
+Cstart.example.com:x.y.z.w1.example.com.:120
 Cstart1.example.com:start2.example.com.:120
 Cstart2.example.com:start3.example.com.:120
 Cstart3.example.com:start4.example.com.:120
@@ -20118,10 +20120,16 @@ Cstart3.example.com:start4.example.com.:120
 +toomuchinfo-b.example.com:192.168.99.88:120
 +toomuchinfo-b.example.com:192.168.99.89:120
 +toomuchinfo-b.example.com:192.168.99.90:120
+Cunauth.example.com:no-idea.example.org.:120
 &usa.example.com::usa-ns1.usa.example.com.:120
 &usa.example.com::usa-ns2.usa.example.com.:120
 +usa-ns1.usa.example.com:192.168.4.1:120
 +usa-ns2.usa.example.com:192.168.4.2:120
+C\052.w1.example.com:x.y.z.w2.example.com.:120
+C\052.w2.example.com:x.y.z.w3.example.com.:120
+C\052.w3.example.com:x.y.z.w4.example.com.:120
+C\052.w4.example.com:x.y.z.w5.example.com.:120
++\052.w5.example.com:1.2.3.5:120
 Cwww.example.com:outpost.example.com.:120
 #2005092501 auto axfr-get
 Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600

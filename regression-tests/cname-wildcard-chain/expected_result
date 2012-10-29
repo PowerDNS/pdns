@@ -1,0 +1,9 @@
+0	start.example.com.	IN	CNAME	120	x.y.z.w1.example.com.
+0	x.y.z.w1.example.com.	IN	CNAME	120	x.y.z.w2.example.com.
+0	x.y.z.w2.example.com.	IN	CNAME	120	x.y.z.w3.example.com.
+0	x.y.z.w3.example.com.	IN	CNAME	120	x.y.z.w4.example.com.
+0	x.y.z.w4.example.com.	IN	CNAME	120	x.y.z.w5.example.com.
+0	x.y.z.w5.example.com.	IN	A	120	1.2.3.5
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='start.example.com.', qtype=A

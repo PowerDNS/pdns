@@ -4,6 +4,7 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "statbag.hh"
+#include <boost/array.hpp>
 StatBag S;
 
 int main(int argc, char** argv)
@@ -11,6 +12,7 @@ try
 {
   bool dnssec=false;
   bool recurse=false;
+  bool tcp=false;
 
   reportAllTypes();
 
@@ -23,6 +25,12 @@ try
   if(argc > 5 && strcmp(argv[5], "dnssec")==0)
   {
     dnssec=true;
+  }
+  
+  if(argc > 5 && strcmp(argv[5], "dnssec-tcp")==0)
+  {
+    dnssec=true;
+    tcp=true;
   }
 
   if(argc > 5 && strcmp(argv[5], "recurse")==0)
@@ -72,13 +80,44 @@ try
   // pw.addOpt(5200, 0, 0);
   // pw.commit();
   
-  Socket sock(InterNetwork, Datagram);
-  ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
-  sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
-  
   string reply;
-  sock.recvFrom(reply, dest);
 
+  if(tcp) {
+    Socket sock(InterNetwork, Stream);
+    ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+    sock.connect(dest);
+    uint16_t len;
+    len = htons(packet.size());
+    if(sock.write((char *) &len, 2) != 2)
+      throw AhuException("tcp write failed");
+
+    sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+    
+    if(sock.read((char *) &len, 2) != 2)
+      throw AhuException("tcp read failed");
+
+    len=ntohs(len);
+    char *creply = new char[len];
+    int n=0;
+    int numread;
+    while(n<len) {
+      numread=sock.read(creply+n, len-n);
+      if(numread<0)
+        throw AhuException("tcp read failed");
+      n+=numread;
+    }
+
+    reply=string(creply, len);
+    delete[] creply;
+  }
+  else //udp
+  {
+    Socket sock(InterNetwork, Datagram);
+    ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+    sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
+    
+    sock.recvFrom(reply, dest);
+  }
   MOADNSParser mdp(reply);
   cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
   cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;

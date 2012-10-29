@@ -304,7 +304,7 @@ void DNSPacket::wrapup()
               drc->toPacket(pw);
         if(pw.size() + 20U > (d_tcp ? 65535 : getMaxReplyLen())) { // 20 = room for EDNS0
           pw.rollback();
-          if(pos->d_place == DNSResourceRecord::ANSWER) {
+          if(pos->d_place == DNSResourceRecord::ANSWER || pos->d_place == DNSResourceRecord::AUTHORITY) {
             pw.getHeader()->tc=1;
           }
           goto noCommit;

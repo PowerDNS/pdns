@@ -1,0 +1,30 @@
+0	unauth.example.com.	IN	CNAME	120	no-idea.example.org.
+1	.	IN	NS	518400	a.root-servers.net.
+1	.	IN	NS	518400	b.root-servers.net.
+1	.	IN	NS	518400	c.root-servers.net.
+1	.	IN	NS	518400	d.root-servers.net.
+1	.	IN	NS	518400	e.root-servers.net.
+1	.	IN	NS	518400	f.root-servers.net.
+1	.	IN	NS	518400	g.root-servers.net.
+1	.	IN	NS	518400	h.root-servers.net.
+1	.	IN	NS	518400	i.root-servers.net.
+1	.	IN	NS	518400	j.root-servers.net.
+1	.	IN	NS	518400	k.root-servers.net.
+1	.	IN	NS	518400	l.root-servers.net.
+1	.	IN	NS	518400	m.root-servers.net.
+2	.	IN	OPT	32768	
+2	a.root-servers.net.	IN	A	3600000	198.41.0.4
+2	b.root-servers.net.	IN	A	3600000	192.228.79.201
+2	c.root-servers.net.	IN	A	3600000	192.33.4.12
+2	d.root-servers.net.	IN	A	3600000	128.8.10.90
+2	e.root-servers.net.	IN	A	3600000	192.203.230.10
+2	f.root-servers.net.	IN	A	3600000	192.5.5.241
+2	g.root-servers.net.	IN	A	3600000	192.112.36.4
+2	h.root-servers.net.	IN	A	3600000	128.63.2.53
+2	i.root-servers.net.	IN	A	3600000	192.36.148.17
+2	j.root-servers.net.	IN	A	3600000	192.58.128.30
+2	k.root-servers.net.	IN	A	3600000	193.0.14.129
+2	l.root-servers.net.	IN	A	3600000	198.32.64.12
+2	m.root-servers.net.	IN	A	3600000	202.12.27.33
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='unauth.example.com.', qtype=ANY

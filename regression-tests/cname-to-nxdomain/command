@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig nxd.example.com A dnssec
+

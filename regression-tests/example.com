@@ -28,6 +28,10 @@ location		IN	LOC	51 56 0.123 N 5 54 0.000 E 4.00m 1.00m 10000.00m 10.00m
 			IN	LOC	51 56 2.789 N 5 54 0.000 W 4.00m 3.00m 10000.00m 10.00m
 			IN	LOC	51 56 3.012 S 5 54 0.000 W 4.00m 4.00m 10000.00m 10.00m
 ;
+unauth			IN	CNAME	no-idea.example.org.
+;
+nxd			IN	CNAME	nxdomain.example.com.
+;
 hwinfo			IN	HINFO	"abc" "def"
 ;
 smtp-servers		IN	A	192.168.0.2
@@ -35,6 +39,14 @@ smtp-servers		IN	A	192.168.0.3
 smtp-servers		IN	A	192.168.0.4
 ;
 outpost			IN	A	192.168.2.1
+
+start                   IN      CNAME   x.y.z.w1
+*.w1                    IN      CNAME   x.y.z.w2
+*.w2                    IN      CNAME   x.y.z.w3
+*.w3                    IN      CNAME   x.y.z.w4
+*.w4                    IN      CNAME   x.y.z.w5
+*.w5                    IN      A       1.2.3.5
+
 ;
 start1			IN	CNAME	start2
 start2			IN	CNAME	start3

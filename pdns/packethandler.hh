@@ -98,16 +98,16 @@ private:
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
-  void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const string& target3, const std::string& auth, int mode);
-  void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, int mode);
-  void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
+  void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string &auth, int mode);
+  void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string& auth, int mode);
+  void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode);
   void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
   
 
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
-  void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& nextcloser, SOAData& sd);
-  void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, SOAData& sd, int mode);
+  void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd);
+  void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd, int mode);
   vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target);
   bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
 
