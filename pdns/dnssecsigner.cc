@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2001 - 2011  PowerDNS.COM BV
+    Copyright (C) 2001 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -109,8 +109,10 @@ void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, c
   toSign.clear();
 }
 
-static pthread_mutex_t g_signatures_lock = PTHREAD_MUTEX_INITIALIZER;
-static map<pair<string, string>, string> g_signatures;
+static pthread_rwlock_t g_signatures_lock = PTHREAD_RWLOCK_INITIALIZER;
+typedef map<pair<string, string>, string> signaturecache_t;
+static signaturecache_t g_signatures;
+static int g_cacheweekno;
 
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
@@ -118,31 +120,33 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   const DNSCryptoKeyEngine* rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
-
   
   string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
-  pair<string, string> lookup(rc->getPubKeyHash(), pdns_md5sum(msg)); 
+  pair<string, string> lookup(rc->getPubKeyHash(), pdns_md5sum(msg));  // this hash is a memory saving exercise
   
   bool doCache=1;
   if(doCache)
   {
-    Lock l(&g_signatures_lock);
-    if(g_signatures.count(lookup)) {
-      // cerr<<"Hit!"<<endl;
-      rrc.d_signature=g_signatures[lookup];
+    ReadLock l(&g_signatures_lock);
+    signaturecache_t::const_iterator iter = g_signatures.find(lookup);
+    if(iter != g_signatures.end()) {
+      rrc.d_signature=iter->second;
       return;
     }
     else
       ; // cerr<<"Miss!"<<endl;
   }
   
-  //DTime dt;
-  //dt.set();
   rrc.d_signature = rc->sign(msg);
-  //cerr<<dt.udiff()<<endl;
 
   if(doCache) {
-    Lock l(&g_signatures_lock);
+    WriteLock l(&g_signatures_lock);
+    unsigned int weekno = time(0) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
+  
+    if(g_cacheweekno != weekno) {  // blunt but effective (C) Habbie
+      g_signatures.clear();
+      g_cacheweekno = weekno;
+    }
     g_signatures[lookup] = rrc.d_signature;
   }
 }
