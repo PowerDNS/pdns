@@ -91,10 +91,10 @@ class BB2DomainInfo
 {
 public:
   BB2DomainInfo();
-
   void setCtime();
-
   bool current();
+  //! configure how often this domain should be checked for changes (on disk)
+  void setCheckInterval(time_t seconds);
 
   bool d_loaded;  //!< if a domain is loaded
   string d_status; //!< message describing status of a domain, for human consumption
@@ -109,13 +109,9 @@ public:
 
   uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
 
-  //! configure how often this domain should be checked for changes (on disk)
-  void setCheckInterval(time_t seconds);
-
   shared_ptr<recordstorage_t > d_records;  //!< the actual records belonging to this domain
 private:
   time_t getCtime();
-
   time_t d_checkinterval;
 };
 
@@ -191,13 +187,8 @@ private:
   {
   public:
     bool get(DNSResourceRecord &);
-    void reset()
-    {
-      d_records.reset();
-      qname.clear();
-      mustlog=false;
-    }
-
+    void reset();
+    
     handle();
 
     shared_ptr<recordstorage_t > d_records;

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2011  PowerDNS.COM BV
+    Copyright (C) 2002 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -464,12 +464,6 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   records.insert(bdr);
 }
 
-void Bind2Backend::reload()
-{
-  Lock l(&s_state_lock);
-  for(id_zone_map_t::iterator i = s_state->id_zone_map.begin(); i != s_state->id_zone_map.end(); ++i) 
-    i->second.d_checknow=true;
-}
 
 string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
@@ -559,27 +553,19 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 
 Bind2Backend::~Bind2Backend()
 {
-
 }
 
 void Bind2Backend::rediscover(string *status)
 {
   loadConfig(status);
 }
-#if 0
-static void prefetchFile(const std::string& fname)
+
+void Bind2Backend::reload()
 {
-
-  static int fd;
-  if(fd > 0)
-    close(fd);
-  fd=open(fname.c_str(), O_RDONLY);
-  if(fd < 0)
-    return;
-
-  posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
+  Lock l(&s_state_lock);
+  for(id_zone_map_t::iterator i = s_state->id_zone_map.begin(); i != s_state->id_zone_map.end(); ++i) 
+    i->second.d_checknow=true;
 }
-#endif 
 
 void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
 {
@@ -870,9 +856,10 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
   // we reload *now* for the time being
 
   try {
-    nukeZoneRecords(bbd); // ? do we need this?
+    // nukeZoneRecords(bbd); // ? do we need this?
     staging->id_zone_map[bbd->d_id]=s_state->id_zone_map[bbd->d_id];
-    staging->id_zone_map[bbd->d_id].d_records=shared_ptr<recordstorage_t > (new recordstorage_t);  // nuke it
+    shared_ptr<recordstorage_t > newrecords(new recordstorage_t);
+    staging->id_zone_map[bbd->d_id].d_records=newrecords;
 
     ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
     DNSResourceRecord rr;
@@ -1085,7 +1072,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(!bbd.current()) {
     L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
     queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
-    state = s_state;
+    throw DBException("Zone for '"+bbd.d_name+"' in '"+bbd.d_filename+"' being reloaded"); // if we don't throw here, we crash for some reason
   }
 
   d_handle.d_records = bbd.d_records; // give it a reference counted copy
@@ -1149,6 +1136,13 @@ bool Bind2Backend::handle::get(DNSResourceRecord &r)
     return get_list(r);
   else
     return get_normal(r);
+}
+
+void Bind2Backend::handle::reset()
+{
+  d_records.reset();
+  qname.clear();
+  mustlog=false;
 }
 
 //#define DLOG(x) x
