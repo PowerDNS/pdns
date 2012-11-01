@@ -152,13 +152,80 @@
 				The signer thread would die in specific situations, leaving you with a non-working but very busy system. Fixed in c2668, c2670, closing t517.
 			</para>
 		</listitem>
+		<listitem>
+			<para>
+				pdnssec secure-zone now warns when you just signed a slave zone. Suggested by Mark Scholten, code in c2795, closes t592.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdnssec check-zone now warns about out-of-zone data. Patch by Kees Monshouwer in c2826, closing t604.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdnssec now honours --no-config. Patch by Kees Monshouwer in c2810.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Various fixes for bindbackend presigned operation, mostly by Kees Monshouwer. Code in c2815, closing t600.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Bindbackend could get confused about domain metadata, sometimes even causing hangs. Fixes by Kees Monshouwer in c2819 and c2834, closing t600 and t603.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				SQL queries in gsql backends that reference the domain_id column have been made explicit about from what table they want this column. This makes it
+				easier to operate custom schemas without changing the queries. Fix by Nicky Gerritsen in c2821.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				In various situations involving CNAMEs and wildcards, and for ANY queries involving CNAMEs, we would sometimes return bogus results. Fixed in c2825 by Kees Monshouwer.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				rectify-zone accidentally set auth=1 on NS records of secure delegations. Reported by George Notaras, fixed by Kees Monshouwer in r2831, closing t605.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The DNSSEC signature cache now actually gets cleaned up, avoiding lasting spikes in memory usage every thursday. Code in c2836, closing t594.
+			</para>
+		</listitem>
 		</itemizedlist>
 
 		Non-DNSSEC improvements/changes in 3.2:
 		<itemizedlist>
 		<listitem>
 			<para>
-				A new backend, the 'Remote backend' <xref linkend="remotebackend" /> was submitted by Aki Tuomi. It aims to replace the pipebackend with a better protocol and support for more connection methods, including HTTP. Code in c2755, c2756, c2757, c2758, c2759, closing t529.
+				Bindbackend would sometimes crash during reloads/rediscovers. The changes in c2837 get rid of the crash, at the cost of returning SERVFAIL
+				during reloads. Closes t564.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Our label decompression code was naive, causing troubles for slaving of very specifically formatted zones. Fix in t2822, closes t599.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Bindbackend slaves would choke on unknown RR types and do silly things with RP and SRV records. Fixed in c2811 and c2812.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The luabackend can now compile against Lua 5.2. Patch by Fredrik Danerklint in c2794.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				A new backend, the 'Remote backend' <xref linkend="remotebackend" /> was submitted by Aki Tuomi. It aims to replace the pipebackend with a better protocol and support for more connection methods, including HTTP. Code in c2755, c2756, c2757, c2758, c2759, c2824, closing t529, t597.
 			</para>
 		</listitem>
 		<listitem>
@@ -183,7 +250,7 @@
 		</listitem>
   		<listitem>
   			<para>
-  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 / t461, c2666, c2671, c2672 / t522, c2673 / t522, c2696 / t555, c2697 / t457, c2698, c2708, c2742 / t462), c2752 / t437, c2764.
+  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 / t461, c2666, c2671, c2672 / t522, c2673 / t522, c2696 / t555, c2697 / t457, c2698, c2708, c2742 / t462), c2752 / t437, c2764, c2809.
 			</para>
 		</listitem>
 		<listitem>
@@ -226,10 +293,41 @@
 				gmysql users can now specify the 'group' we connect as, using the gmysql-group setting. Submitted by Kees Monshouwer, code in c2770, c2771, c2778, c2780, closing t463.
 			</para>
 		</listitem>
+		<listitem>
+			<para>
+				The Linux-only traceback handler is now optional (use traceback-handler=off to disable it). Suggested by Marc Haber. Change in c2798, closes t497.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				We now use IPV6_V6ONLY to bind IPv6 sockets. This ensures consistent behaviour between different operating systems. Change in c2799.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				MySQL connections are now logged at a higher loglevel, reducing log clutter. Change in c2800.
+			</para>
+		</listitem>
 		</itemizedlist>
 
 		Assorted bugfixes:
 		<itemizedlist>
+		<listitem>
+			<para>
+				If a slave domain is removed while a transfer for it is queued, we no longer try the transfer. This also avoids a rare crash in similar circumstances. Code in c2802, closes t596.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				When using pdnssec with gsql backends, sometimes an SSqlException would pop up without any useful information. This no longer happens and errors are now in general more meaningful. Fix in c2803.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				zone2sql now uses correct string syntax for PostgreSQL. This is needed for importing with the changed default settings in PostgreSQL 9.2 and up.
+				Code in c2797, closes t471.
+			</para>
+		</listitem>
 		<listitem>
 			<para>
 				We no longer send v6 notifications if v6 is not available. Same for IPv4. Code in c2772, fixes t515.
