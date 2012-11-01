@@ -970,6 +970,7 @@ try
     }
     
     dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
+    cerr<<"NSEC3 set, please rectify-zone if your backend needs it"<<endl;
   }
   else if(cmds[0]=="set-presigned") {
     if(cmds.size() < 2) {
