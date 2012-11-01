@@ -12671,6 +12671,8 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	      Sample Linux command lines would be:
 	      <screen>
 	      # iptables -t raw -I OUTPUT -p udp --dport 53 -j NOTRACK
+	      # iptables -t raw -I OUTPUT -p udp --sport 53 -j NOTRACK
+	      # iptables -t raw -I PREROUTING -p udp --dport 53 -j NOTRACK
 	      # iptables -t raw -I PREROUTING -p udp --sport 53 -j NOTRACK
 	      # iptables -I INPUT -p udp --dport 53 -j ACCEPT
 	      # iptables -I INPUT -p udp --sport 53 -j ACCEPT
@@ -12678,7 +12680,9 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 
               # # optionally
 	      # ip6tables -t raw -I OUTPUT -p udp --dport 53 -j NOTRACK
+	      # ip6tables -t raw -I OUTPUT -p udp --sport 53 -j NOTRACK
 	      # ip6tables -t raw -I PREROUTING -p udp --sport 53 -j NOTRACK
+	      # ip6tables -t raw -I PREROUTING -p udp --dport 53 -j NOTRACK
 	      # ip6tables -I INPUT -p udp --dport 53 -j ACCEPT
 	      # ip6tables -I INPUT -p udp --sport 53 -j ACCEPT
 	      # ip6tables -I OUTPUT -p udp --dport 53 -j ACCEPT
