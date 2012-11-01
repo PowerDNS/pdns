@@ -119,6 +119,7 @@ AC_SUBST(LIBCRYPT)
 DYNLINKFLAGS=""
 THREADFLAGS=""
 
+AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
@@ -151,6 +152,7 @@ darwin11* | darwin12*)
 	DYNLINKFLAGS="-rdynamic"
 	LDFLAGS="-pthread $LDFLAGS"
 	CXXFLAGS="-pthread $CXXFLAGS -D__APPLE_USE_RFC_3542"
+	AM_CONDITIONAL([OS_MACOSX], true)
 	;;
 *)
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
