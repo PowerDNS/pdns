@@ -13606,14 +13606,6 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 1.2.3.4</command>.
 	    </para>
 	  </listitem></varlistentry>
-	<varlistentry>
-	  <term>allow-recursion-override=on|off</term>
-	  <listitem>
-	    <para>
-	      By specifying <command>allow-recursion-override</command>, local data even about hosts that don't exist will override
-	      the internet. This allows you to generate zones that don't really exist on the internet. Does increase the number of SQL queries for hosts that truly don't exist, also not in your database. (Setting did nothing in 3.0 and 3.1, removed in 3.1.1).
-	    </para>
-	  </listitem></varlistentry>
 	  <varlistentry><term>cache-ttl=...</term>
 	    <listitem><para>
 		Seconds to store packets in the PacketCache. See <xref linkend="packetcache"/>.
@@ -13642,6 +13634,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		name to insert in the SOA record if none set in the backend
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>default-ttl=...</term>
+	    <listitem><para>
+		TTL to use when none is provided.
+	      </para></listitem></varlistentry>
    	  <varlistentry><term>disable-axfr=...</term>
 	    <listitem><para>
 		Do not allow zone transfers. Before 2.9.10, this could be overridden by allow-axfr-ips.
@@ -13657,6 +13653,18 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <varlistentry><term>do-ipv6-additional-processing=...</term>
 	    <listitem><para>
 		Perform AAAA additional processing. 
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>edns-subnet-option-number=...</term>
+	    <listitem><para>
+		If edns-subnet-processing is enabled, this option allows the user to override the option number.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>edns-subnet-processing=...</term>
+	    <listitem><para>
+	    	Enables EDNS subnet processing, for backends that support it.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>entropy-source=...</term>
+	    <listitem><para>
+	    	Entropy source (like /dev/urandom).
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>fancy-records=...</term>
 	    <listitem><para>
@@ -13713,18 +13721,45 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		Amount of logging. Higher is more. Do not set below 3
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>log-dns-queries [,=no]</term>
+	    <listitem><para>
+Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of logging! Only enable for debugging!
+	      </para></listitem></varlistentry>
+
+	  <varlistentry>
+	    <term>lua-prequery-script=...</term>
+	    <listitem>
+	      <para>
+		Lua script to run before answering a query. Not for production use!
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+
+
 	  <varlistentry><term>master [,=on].</term>
 	    <listitem><para>
 	    Turn on master support. Boolean.
 	      </para></listitem></varlistentry>
 	  <varlistentry>
-	    <term>max-cache-entries</term>
+	    <term>max-cache-entries=...</term>
 	    <listitem>
 	      <para>
 		Maximum number of cache entries. 1 million will generally suffice for most installations. Available since version 2.9.22.
 	      </para>
 	    </listitem>
 	  </varlistentry>
+
+
+	  	  <varlistentry>
+	    <term>max-ent-entries=...</term>
+	    <listitem>
+	      <para>
+		Maximum number of empty non-terminals to add to a zone. This is a protection measure to avoid database explosion due to long names.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
 	  <varlistentry><term>max-queue-length=...</term>
 	    <listitem><para>
 	      If this many packets are waiting for database attention, consider the situation hopeless and respawn.
@@ -13749,6 +13784,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 	      Do not attempt to shuffle query results.
 	      </para></listitem></varlistentry>
+     	  <varlistentry><term>overload-queue-length=...</term>
+	    <listitem><para>
+	      If this many packets are waiting for database attention, answer any new questions strictly from the packet cache.
+	      </para></listitem></varlistentry>
 	  <varlistentry>
 	    <term>server-id</term>
 	    <listitem>
@@ -13763,6 +13802,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      Do out of zone additional processing. This means that if a malicious user adds a '.com' zone to your server, it is not used for 
 	      other domains and will not contaminate answers. Do not enable this setting if you run a public DNS service with untrusted users. Off by default.
 	    </para></listitem></varlistentry>
+	   <varlistentry><term>pipebackend-abi-version=...</term>
+	    <listitem><para>
+	      ABI version to use for the pipe backend. See <xref linkend="pipebackend-protocol"/>.
+	      </para></listitem></varlistentry>
+
 	  <varlistentry><term>query-cache-ttl=...</term>
 	    <listitem><para>
 	      Seconds to store queries with an answer in the Query Cache. See <xref linkend="querycache"/>.
@@ -13783,6 +13827,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		Maximum number of milliseconds to queue a query. See <xref linkend="performance"/>.
 	      </para></listitem></varlistentry>
+      	  <varlistentry><term>receiver-threads=...</term>
+	    <listitem><para>
+		Number of receiver threads to start. See <xref linkend="performance"/>.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>recursive-cache-ttl=...</term>
 	    <listitem><para>
 		Seconds to store recursive packets in the PacketCache. See <xref linkend="packetcache"/>.
@@ -13791,6 +13839,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 	      If set, recursive queries will be handed to the recursor specified here. See <xref linkend="recursion"/>.
 	    </para></listitem></varlistentry>
+	  <varlistentry><term>retrieval-threads=...</term>
+	    <listitem><para>
+		Number of AXFR slave threads to start.
+	      </para></listitem></varlistentry>
+
 	<varlistentry><term>send-root-referral | --send-root-referral=yes | --send-root-referral=no | --send-root-referral=lean</term>
 	    <listitem><para>
 	      If set, PowerDNS will send out old-fashioned root-referrals when queried for domains for which it is not authoritative. Wastes some bandwidth
@@ -13808,9 +13861,23 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		If set, change user id to this uid for more security. See <xref linkend="security"/>.
 	      </para></listitem></varlistentry>
+
+   	  <varlistentry><term>slave [,=on].</term>
+	    <listitem><para>
+	    	Turn on slave support. Boolean.
+  	      </para></listitem></varlistentry>
+
 	  <varlistentry><term>slave-cycle-interval=60</term>
 	    <listitem><para>
 	      Schedule slave up-to-date checks of domains whose status is unknown every .. seconds.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>slave-renotify [,=no]</term>
+	    <listitem><para>
+This setting will make PowerDNS renotify the after a AXFR is *received* from a master. This is useful when using when running a signing-slave.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>signing-threads=3</term>
+	    <listitem><para>
+		Tell PowerDNS how many threads to use for signing. It might help improve signing speed by changing this number.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>smtpredirector=...</term>
 	    <listitem><para>
@@ -13846,6 +13913,31 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 	      Perform strictly RFC-conforming AXFRs, which are slow, but may be necessary to placate some old client tools.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>tcp-control-address=...</term>
+	    <listitem><para>
+		Address to bind to for TCP control.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>tcp-control-port=...</term>
+	    <listitem><para>
+		Port to bind to for TCP control.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>tcp-control-range=...</term>
+	    <listitem><para>
+		Limit TCP control to a specific client range.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>tcp-control-secret=...</term>
+	    <listitem><para>
+		Password for TCP control.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>traceback-handler=...</term>
+	    <listitem><para>
+		Enable the Linux-only traceback handler (default on).
+	      </para></listitem></varlistentry>
+
+	  <varlistentry><term>trusted-notification-proxy=...</term>
+	    <listitem><para>
+			IP address of incoming notification proxy
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>urlredirector=...</term>
 	    <listitem><para>
 		Where we send hosts to that need to be url redirected. See <xref linkend="fancy-records"/>.
@@ -13875,13 +13967,13 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		Port of webserver to listen on. See <xref linkend="monitoring"/>.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>webserver-print-arguments=...</term>
+	    <listitem><para>
+        If the webserver should print arguments. See <xref linkend="monitoring"/>.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>wildcard-url=...</term>
 	    <listitem><para>
 	      Check for wildcard URL records.
-	      </para></listitem></varlistentry>
-	  <varlistentry><term>wildcards=...</term>
-	    <listitem><para>
-		Honor wildcards in the database. On by default. Turning this off has performance implications, see <xref linkend="performance"/>.
 	      </para></listitem></varlistentry>
       </variablelist>
     </para>
