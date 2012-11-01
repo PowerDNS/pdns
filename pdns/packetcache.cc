@@ -27,7 +27,7 @@ extern StatBag S;
 
 PacketCache::PacketCache()
 {
-  pthread_rwlock_init(&d_mut,0);
+  pthread_rwlock_init(&d_mut, 0);
   // d_ops = 0;
 
   d_ttl=-1;

@@ -60,8 +60,8 @@ int QType::chartocode(const char *p)
 {
   static QType qt;
   vector<namenum>::iterator pos;
-  for(pos=names.begin();pos<names.end();++pos)
-    if(pos->first==p)
+  for(pos=names.begin(); pos < names.end(); ++pos)
+    if(pos->first == p)
       return pos->second;
   
   if(*p=='#') {
