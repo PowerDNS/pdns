@@ -66,7 +66,7 @@ pdns_server_CPPFLAGS = $(AM_CPPFLAGS)
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN110_LIBS) -lgmp
+pdns_server_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
 pdns_server_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
 
@@ -106,7 +106,7 @@ pdnssec_CPPFLAGS = $(AM_CPPFLAGS)
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp
+pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
 pdnssec_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
 
