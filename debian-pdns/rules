@@ -43,7 +43,8 @@ binary-doc:
 
 build-static stamp-build-static:
 		./configure \
-		CC="ccache gcc" CPPFLAGS=-I/usr/local/include/botan-1.10 CXX="ccache g++"\
+		CXX=$(shell pwd)/build-scripts/semistaticg++ \
+		CC="ccache gcc" CPPFLAGS=-I/usr/local/include/botan-1.10 \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
 		--libdir='$${prefix}/lib/powerdns' \
