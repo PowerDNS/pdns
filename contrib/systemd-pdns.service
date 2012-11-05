@@ -1,0 +1,12 @@
+[Unit]
+Description=PowerDNS Authoritative Server
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/pdns_server --daemon --guardian=yes
+ExecReload=/usr/bin/pdns_control cycle
+ExecStop=/usr/bin/pdns_control quit
+
+[Install]
+WantedBy=multi-user.target
