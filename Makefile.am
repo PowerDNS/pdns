@@ -2,7 +2,7 @@ SUBDIRS=modules codedocs @programdescend@
 DIST_SUBDIRS=modules codedocs pdns
 EXTRA_DIST=TODO README HACKING INSTALL ChangeLog debian-pdns/* pdns.spec  \
 codedocs/Makefile codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
-bootstrap
+contrib/systemd-pdns.service bootstrap
 
 ACLOCAL_AMFLAGS = -I.
 
