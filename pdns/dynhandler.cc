@@ -32,6 +32,7 @@
 #include "dnsseckeeper.hh"
 #include "nameserver.hh"
 #include "responsestats.hh"
+#include "ueberbackend.hh"
 
 extern ResponseStats g_rs;
 
@@ -286,3 +287,35 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Ok";
 }
 
+string DLListZones(const vector<string>&parts, Utility::pid_t ppid) 
+{
+  UeberBackend B;
+  L<<Logger::Notice<<"Received request to list domains."<<endl;
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains);
+  ostringstream ret;
+  int kindFilter = -1;
+  if (parts.size() > 1) {
+    if (toUpper(parts[1]) == "MASTER")
+      kindFilter = 0;
+    else if (toUpper(parts[1]) == "SLAVE")
+      kindFilter = 1;
+    else if (toUpper(parts[1]) == "NATIVE")
+      kindFilter = 2;
+  }
+
+  int count = 0;
+
+  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
+    if (di->kind == kindFilter || kindFilter == -1) {
+      ret<<di->zone<<endl;
+      count++;
+    }
+  }
+  if (kindFilter != -1)
+    ret<<parts[1]<<" zonecount:"<<count<<endl;
+  else
+    ret<<"All zonecount:"<<count<<endl;
+
+  return ret.str();
+}
