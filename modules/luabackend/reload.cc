@@ -62,7 +62,7 @@ void LUABackend::reload() {
 	
     logging = ::arg().mustDo("query-logging") || mustDo("logging-query");
 
-#ifdef LUA_VERSION_MAJOR == 5 && LUA_VERSION_MINOR > 1
+#if LUA_VERSION_MAJOR == 5 && LUA_VERSION_MINOR > 1
     lua = luaL_newstate();
 #else
     lua = lua_open();
