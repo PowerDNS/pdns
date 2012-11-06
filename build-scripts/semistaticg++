@@ -10,10 +10,10 @@ otherargs = []
 for arg in args:
 	if arg == '-static':
 		continue
-	if arg.startswith('-l') and arg not in ('-lm','-ldl','-lpthread'):
+	if arg.startswith('/usr/lib') or (arg.startswith('-l') and arg not in ('-lm','-ldl','-lpthread')):
 		libs.append(arg)
 	else:
 		otherargs.append(arg)
 
-gargv=['gcc']+otherargs+['-Wl,-Bstatic']+libs+['-lstdc++','-Wl,-Bdynamic','-static-libgcc']
+gargv=['gcc']+otherargs+['-Wl,-Bstatic']+libs+['-lstdc++','-Wl,-Bdynamic','-static-libgcc','-lm']
 os.execvp('gcc', gargv)
