@@ -290,7 +290,7 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid) 
 {
   UeberBackend B;
-  L<<Logger::Notice<<"Received request to list domains."<<endl;
+  L<<Logger::Notice<<"Received request to list zones."<<endl;
   vector<DomainInfo> domains;
   B.getAllDomains(&domains);
   ostringstream ret;
@@ -313,9 +313,9 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
     }
   }
   if (kindFilter != -1)
-    ret<<parts[1]<<" zonecount:"<<count<<endl;
+    ret<<parts[1]<<" zonecount:"<<count;
   else
-    ret<<"All zonecount:"<<count<<endl;
+    ret<<"All zonecount:"<<count;
 
   return ret.str();
 }
