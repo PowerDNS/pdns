@@ -639,6 +639,38 @@ int deleteZone(const string &zone) {
   return 1;
 }
 
+int listAllZones(const string &type) {
+  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+
+  vector<DomainInfo> domains;
+  B->getAllDomains(&domains);
+
+  int kindFilter = -1;
+  if (type.size()) {
+    if (toUpper(type) == "MASTER")
+      kindFilter = 0;
+    else if (toUpper(type) == "SLAVE")
+      kindFilter = 1;
+    else if (toUpper(type) == "NATIVE")
+      kindFilter = 2;
+  }
+
+  int count = 0;
+
+  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
+    if (di->kind == kindFilter || kindFilter == -1) {
+      cout<<di->zone<<endl;
+      count++;
+    }
+  }
+
+  if (kindFilter != -1)
+    cout<<type<<" zonecount:"<<count<<endl;
+  else
+    cout<<"All zonecount:"<<count<<endl;
+  return 0;
+}
+
 void testAlgorithm(int algo) 
 {
   DNSCryptoKeyEngine::testOne(algo);
@@ -1088,6 +1120,7 @@ try
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;            
     cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active"<<endl;
+    cerr<<"list-all-zones MASTER|SLAVE|NATIVE List all zones\n";
     cerr<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
@@ -1178,6 +1211,9 @@ try
   }
   else if (cmds[0] == "check-all-zones") {
     exit(checkAllZones(dk));
+  }
+  else if (cmds[0] == "list-all-zones") {
+    exit(listAllZones(cmds[1]));
   }
   else if (cmds[0] == "test-zone") {
     cerr << "Did you mean check-zone?"<<endl;
