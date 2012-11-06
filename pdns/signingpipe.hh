@@ -31,7 +31,7 @@ public:
   unsigned int getReady();
 private:
   void flushToSign();	
-  
+  void dedupRRSet();
   void sendRRSetToWorker(); // dispatch RRSET to worker
   void addSignedToChunks(chunk_t* signedChunk);
   pair<vector<int>, vector<int> > waitForRW(bool rd, bool wr, int seconds);

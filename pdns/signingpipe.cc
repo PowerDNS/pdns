@@ -106,16 +106,44 @@ ChunkedSigningPipe::~ChunkedSigningPipe()
   //cout<<"Did: "<<d_signed<<", records (!= chunks) submitted: "<<d_submitted<<endl;
 }
 
+namespace {
+bool dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
+{
+  if(tie(a.content, a.ttl) < tie(b.content, b.ttl))
+    return true;
+  if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
+    return a.priority < b.priority;
+  return false;
+}
+
+bool dedupEqual(const DNSResourceRecord& a, const DNSResourceRecord &b)
+{
+  if(tie(a.content, a.ttl) != tie(b.content, b.ttl))
+    return false;
+  if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
+    return a.priority == b.priority;
+  return true;
+}
+}
+
+void ChunkedSigningPipe::dedupRRSet()
+{
+  // our set contains contains records for one type and one name, but might not be sorted otherwise
+  sort(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupLessThan);
+  d_rrsetToSign->erase(unique(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupEqual), d_rrsetToSign->end());
+}
+
 bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
 {
   ++d_submitted;
   // check if we have a full RRSET to sign
   if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  !pdns_iequals(d_rrsetToSign->begin()->qname, rr.qname))) 
   {
+    dedupRRSet();
     sendRRSetToWorker();
   }
   d_rrsetToSign->push_back(rr);
-  return !d_chunks.empty() && d_chunks.front().size() >= d_maxchunkrecords;
+  return !d_chunks.empty() && d_chunks.front().size() >= d_maxchunkrecords; // "you can send more"
 }
 
 pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, int seconds)
