@@ -624,6 +624,21 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
   return 0;
 }
 
+int deleteZone(const string &zone) {
+  UeberBackend B;
+  DomainInfo di;
+  if (! B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' not found!";
+    return 1;
+  }
+
+  if(di.backend->deleteDomain(zone))
+    return 0;
+
+  cerr<<"Failed to delete domain '"+zone+"'"<<endl;;
+  return 1;
+}
+
 void testAlgorithm(int algo) 
 {
   DNSCryptoKeyEngine::testOne(algo);
@@ -1060,6 +1075,7 @@ try
     cerr<<"                                   Disable TSIG key for a zone"<<endl;
     cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
+    cerr<<"delete-zone zone                   Delete the zone"<<endl;
     cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
     cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
@@ -1313,7 +1329,13 @@ try
     }
     return 0;
   }
-  
+  else if(cmds[0] == "delete-zone") {
+    if(cmds.size() != 2) {
+      cerr<<"Syntax: pdnssec delete-zone ZONE"<<endl;
+      return 0;
+    }
+    exit(deleteZone(cmds[1]));
+  }
   else if(cmds[0] == "secure-zone") {
     if(cmds.size() < 2) {
       cerr << "Syntax: pdnssec secure-zone ZONE"<<endl;
