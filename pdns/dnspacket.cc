@@ -158,6 +158,8 @@ void DNSPacket::clearRecords()
 
 void DNSPacket::addRecord(const DNSResourceRecord &rr)
 {
+  // this removes duplicates from the packet in case we are not compressing
+  // for AXFR, no such checking is performed!
   if(d_compress)
     for(vector<DNSResourceRecord>::const_iterator i=d_rrs.begin();i!=d_rrs.end();++i) 
       if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {

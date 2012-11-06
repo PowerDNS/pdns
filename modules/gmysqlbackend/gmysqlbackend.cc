@@ -1,9 +1,7 @@
 // $Id$ 
 #include <string>
 #include <map>
-
 #include "pdns/namespaces.hh"
-
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "gmysqlbackend.hh"
@@ -12,10 +10,7 @@
 #include "pdns/ahuexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
-
 #include "smysql.hh"
-
-
 #include <sstream>
 
 gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBackend(mode,suffix)

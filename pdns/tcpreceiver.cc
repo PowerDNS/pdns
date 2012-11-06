@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2011  PowerDNS.COM BV
+    Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -344,7 +344,7 @@ void *TCPNameserver::doConnection(void *data)
     L<<Logger::Error<<"TCP nameserver had error, cycling backend: "<<ae.reason<<endl;
   }
   catch(NetworkError &e) {
-    L<<Logger::Info<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
+    L<<Logger::Info<<"TCP Connection Thread died because of network error: "<<e.what()<<endl;
   }
 
   catch(std::exception &e) {
