@@ -117,7 +117,7 @@ class DNSSECKeeper;
 struct DNSSECPrivateKey;
 
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
-uint32_t getCurrentInception();
+uint32_t getCurrentInception(unsigned int safety=0);
 void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, 
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL);
 int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL, 

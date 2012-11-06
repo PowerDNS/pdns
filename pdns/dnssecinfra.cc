@@ -318,9 +318,9 @@ int countLabels(const std::string& signQName)
   return count;
 }
 
-uint32_t getCurrentInception()
+uint32_t getCurrentInception(unsigned int safety)
 {
-  uint32_t now = time(0);
+  uint32_t now = time(0) - safety; // if we sign 'now' all clocks have to be correct at UTC midnight
   now -= (now % (7*86400));
   return now;
 }
