@@ -587,12 +587,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
     
     if(rfc1982LessThan(theirserial, ourserial)) {
-      L<<Logger::Error<<"Domain "<<di.zone<<" more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
+      L<<Logger::Error<<"Domain '"<<di.zone<<"' more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
     else if(theirserial == ourserial) {
       if(!dk.isPresigned(di.zone)) {
-        L<<Logger::Warning<<"Domain "<< di.zone<<" is fresh (not presigned, no RRSIG check)"<<endl;
+        L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh (not presigned, no RRSIG check)"<<endl;
         di.backend->setFresh(di.id);
       }
       else {
@@ -607,17 +607,17 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
           }
         }
         if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-          L<<Logger::Warning<<"Domain "<< di.zone<<" is fresh and apex RRSIGs match"<<endl;
+          L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh and apex RRSIGs match"<<endl;
           di.backend->setFresh(di.id);
         }
         else {
-          L<<Logger::Warning<<"Domain "<< di.zone<<" is fresh, but RRSIGS differ, so DNSSEC stale"<<endl;
+          L<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGS differ, so DNSSEC stale"<<endl;
           addSuckRequest(di.zone, *di.masters.begin());
         }
       }
     }
     else {
-      L<<Logger::Warning<<"Domain "<< di.zone<<" is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
+      L<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
       addSuckRequest(di.zone, *di.masters.begin());
     }
   }
