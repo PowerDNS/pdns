@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig double.example.com A dnssec

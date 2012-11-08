@@ -17,6 +17,8 @@ $ORIGIN example.com.
 ns1			IN	A	192.168.1.1
 ns2			IN	A	192.168.1.2
 ;
+double			IN	A	192.168.5.1
+;
 hightype		IN	A	192.168.1.5
 hightype		IN	TYPE65534 \# 5 07ED260001
 ;
@@ -20172,3 +20174,5 @@ host-19996	IN	A	192.168.1.28
 host-19997	IN	A	192.168.1.29
 host-19998	IN	A	192.168.1.30
 host-19999	IN	A	192.168.1.31
+;
+double			IN	A	192.168.5.1

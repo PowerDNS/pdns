@@ -1,0 +1,1 @@
+Verify that we deduplicate records correctly for RRSIG generation.

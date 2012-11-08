@@ -1,0 +1,5 @@
+0	double.example.com.	IN	A	120	192.168.5.1
+0	double.example.com.	IN	RRSIG	120	A 8 3 120 [expiry] [inception] [keytag] example.com. ...
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='double.example.com.', qtype=A
