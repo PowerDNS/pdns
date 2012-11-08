@@ -632,18 +632,18 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   
   DLOG(L<<"Should add NSEC covering '"<<target<<"' from zone '"<<auth<<"', mode = "<<mode<<endl);
   SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
 
   if(auth.empty()) {
     getAuth(p, &sd, target, 0);
   }
-  else if(!B.getSOA(auth, sd)) {
+  sd.db=(DNSBackend *)-1; // force uncached answer
+  if(!B.getSOA(auth, sd)) {
     DLOG(L<<"Could not get SOA for domain"<<endl);
     return;
   }
 
   string before,after;
-  //cerr<<"Calling getBeforeandAfter!"<<endl;
+  //cerr<<"Calling getBeforeandAfter! "<<(void*)sd.db<<endl;
 
   if (mode == 2) {
     // wildcard NO-DATA
