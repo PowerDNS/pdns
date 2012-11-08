@@ -1,6 +1,6 @@
 BuildRoot: /tmp/pdns
 Name: pdns-static
-Version: 3.2pre
+Version: 3.2rc1
 Release: 1
 Summary: extremely powerful and versatile nameserver
 License: GPL
