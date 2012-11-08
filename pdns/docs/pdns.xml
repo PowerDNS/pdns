@@ -105,6 +105,10 @@
       	of edge cases, verifying output both against common validators and compared against other authoritative servers.
       </para>
       <para>
+      	In addition to all the changes below, we now auto-build semi-static packages. Relevant changes to
+      	make that possible are in c2849, c2853, 2858, c2859, c2860.
+      </para>
+      <para>
       	DNSSEC changes in 3.2:
       	<itemizedlist>
   		<listitem>
@@ -195,7 +199,19 @@
 		</listitem>
 		<listitem>
 			<para>
-				The DNSSEC signature cache now actually gets cleaned up, avoiding lasting spikes in memory usage every thursday. Code in c2836, closing t594.
+				The DNSSEC signature cache now actually gets cleaned up, avoiding lasting spikes in memory usage every thursday. Code in c2836 and c2843, closing t594.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Signatures roll at midnight on thursday. We now set their inception to be one hour before midnight,
+				to allow for some variations in clock quality on resolvers. Code in c2857.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Duplicate records (same name/type/content/priority) would sometimes get broken RRSIGs during
+				outgoing AXFR. Fixed in c2856.
 			</para>
 		</listitem>
 		</itemizedlist>
@@ -220,7 +236,8 @@
 		</listitem>
 		<listitem>
 			<para>
-				The luabackend can now compile against Lua 5.2. Patch by Fredrik Danerklint in c2794.
+				The luabackend can now compile against Lua 5.2. Patch by Fredrik Danerklint in c2794, additional
+				luabackend compile fixes in c2854.
 			</para>
 		</listitem>
 		<listitem>
@@ -250,7 +267,7 @@
 		</listitem>
   		<listitem>
   			<para>
-  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 / t461, c2666, c2671, c2672 / t522, c2673 / t522, c2696 / t555, c2697 / t457, c2698, c2708, c2742 / t462), c2752 / t437, c2764, c2809.
+  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 / t461, c2666, c2671, c2672 / t522, c2673 / t522, c2696 / t555, c2697 / t457, c2698, c2708, c2742 / t462), c2752 / t437, c2764, c2809, c2844, c2845, c2846.
 			</para>
 		</listitem>
 		<listitem>
@@ -306,6 +323,11 @@
 		<listitem>
 			<para>
 				MySQL connections are now logged at a higher loglevel, reducing log clutter. Change in c2800.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				We now ship a systemd unit file in contrib/. Added in c2847 and c2848, submitted by Morten Stevens.
 			</para>
 		</listitem>
 		</itemizedlist>
