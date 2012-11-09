@@ -21,12 +21,15 @@
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>
 #include "config.h"
+#include "pdns/arguments.hh"
 
 #ifndef HAVE_SQLITE3
 void Bind2Backend::setupDNSSEC()
 {
   if(!getArg("dnssec-db").empty())
     throw runtime_error("bind-dnssec-db requires building PowerDNS with SQLite3");
+
+  d_dnssecdb->setLog(::arg().mustDo("query-logging"));
 }
 
 void Bind2Backend::createDNSSECDB(const string& fname)

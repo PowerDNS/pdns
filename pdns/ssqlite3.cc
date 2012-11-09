@@ -4,10 +4,13 @@
 // Copyright (C) 2003, Michel Stol <michel@powerdns.com>
 //
 
-#include "pdns/utility.hh"
 #include <string>
+#include <sstream>
 #include "ssqlite3.hh"
 #include <iostream>
+#include <fstream>
+#include "pdns/logger.hh"
+#include "misc.hh"
 
 #ifdef WIN32
 # include <io.h>
@@ -29,6 +32,11 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
   m_pStmt = 0;
   sqlite3_busy_handler(m_pDB, busyHandler, 0);
+}
+
+void SSQLite3::setLog(bool state)
+{
+  s_dolog=state;
 }
 
 // Destructor.
@@ -77,8 +85,12 @@ int SSQLite3::doQuery( const std::string & query, result_t & result )
 int SSQLite3::doQuery( const std::string & query )
 {
   const char *pTail;
-  // Execute the query.
+
+  if(s_dolog)
+    L<<Logger::Warning<<"Query: "<<query<<endl;
   
+  // Execute the query.
+
 #if SQLITE_VERSION_NUMBER >=  3003009
   if ( sqlite3_prepare_v2( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )
 #else

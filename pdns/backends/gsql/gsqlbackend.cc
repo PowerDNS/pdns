@@ -729,7 +729,6 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
       snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str(),domain_id);
     }
   }
-  DLOG(L<< "Query: '" << output << "'"<<endl);
 
   try {
     d_db->doQuery(output);
