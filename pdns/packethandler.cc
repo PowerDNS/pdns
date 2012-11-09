@@ -832,6 +832,11 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     if(!rr.auth) 
       continue;
     
+    // make sure all fields are present in the SOA content
+    if(rr.qtype.getCode() == QType::SOA) {
+      rr.content = serializeSOAData(sd);
+    }
+ 
     // this deals with the 'prio' mismatch!
     if(rr.qtype.getCode()==QType::MX || rr.qtype.getCode() == QType::SRV) {  
       rr.content = lexical_cast<string>(rr.priority) + " " + rr.content;
