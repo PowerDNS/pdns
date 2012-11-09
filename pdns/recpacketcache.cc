@@ -12,6 +12,28 @@ RecursorPacketCache::RecursorPacketCache()
   d_hits = d_misses = 0;
 }
 
+int RecursorPacketCache::doWipePacketCache(const string& name, uint16_t qtype)
+{
+  int count=0;
+  for(packetCache_t::iterator iter = d_packetCache.begin(); iter != d_packetCache.end();)
+  {
+    const struct dnsheader* packet = reinterpret_cast<const struct dnsheader*>((*iter).d_packet.c_str());
+    if (packet->qdcount > 0) 
+    {
+	// find out type
+	const struct dnsrecordheader *header = reinterpret_cast<const struct dnsrecordheader*>((*iter).d_packet.c_str()+sizeof(struct dnsheader));
+	uint16_t type = header->d_type;
+	std::string domain=questionExpand((*iter).d_packet.c_str(), (*iter).d_packet.size(), type); 	
+	if (pdns_iequals(name,domain)) 
+	{ 
+  	  iter = d_packetCache.erase(iter);
+	  count++;
+	} else iter++;
+    }
+  }
+  return count;
+}
+
 bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time_t now, 
   std::string* responsePacket, uint32_t* age)
 {

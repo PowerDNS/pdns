@@ -179,7 +179,8 @@ string doDumpEDNSStatus(T begin, T end)
 
 uint64_t* pleaseWipeCache(const std::string& canon)
 {
-  return new uint64_t(t_RC->doWipeCache(canon));
+  // clear packet cache too
+  return new uint64_t(t_RC->doWipeCache(canon) + t_packetCache->doWipePacketCache(canon));
 }
 
 
@@ -590,8 +591,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="dump-ednsstatus" || cmd=="dump-edns") 
     return doDumpEDNSStatus(begin, end);
 
-
-  if(cmd=="wipe-cache") 
+  if(cmd=="wipe-cache" || cmd=="flushname") 
     return doWipeCache(begin, end);
 
   if(cmd=="reload-lua-script") 
