@@ -1,2 +1,2 @@
-This test tries to resolve a straight A record that is directly available in
+This test tries to resolve a straight AAAA record that is directly available in
 the database.
