@@ -119,13 +119,13 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
   rr.d_place = DNSResourceRecord::ANSWER;
   rr.ttl = 3600;
 
-  cerr<<"Lua stacksize "<<lua_gettop(lua)<<endl;
+//  cerr<<"Lua stacksize "<<lua_gettop(lua)<<endl;
 #ifndef LUA_VERSION_NUM
   int tableLen = luaL_getn(lua, 2);
 #else
   int tableLen = lua_objlen(lua, 2);
 #endif
-  cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
+//  cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
 
   for(int n=1; n < tableLen + 1; ++n) {
     lua_pushnumber(lua, n);
@@ -146,8 +146,11 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
 
     if(!getFromTable(lua, "place", tmpnum))
       rr.d_place = DNSResourceRecord::ANSWER;
-    else
+    else {
       rr.d_place = (DNSResourceRecord::Place) tmpnum;
+      if(rr.d_place > DNSResourceRecord::ADDITIONAL)
+        rr.d_place = DNSResourceRecord::ADDITIONAL;
+    }
 
     /* removes 'value'; keeps 'key' for next iteration */
     lua_pop(lua, 1); // table
