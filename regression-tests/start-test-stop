@@ -192,7 +192,7 @@ __EOF__
 			done
 
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
-				--no-shuffle --launch=gmysql --gmysql-dnssec \
+				--no-shuffle --launch=gmysql,random --gmysql-dnssec \
 				--fancy-records --send-root-referral \
 				--cache-ttl=0 --no-config \
 				--gmysql-dbname="$GMYSQLDB" \

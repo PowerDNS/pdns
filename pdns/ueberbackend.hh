@@ -166,6 +166,7 @@ private:
   int d_ancount;
   
   bool stale;
+  int domain_id;
 };
 
 

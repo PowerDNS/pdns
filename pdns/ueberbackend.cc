@@ -401,6 +401,8 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
     pthread_mutex_unlock(&d_mut);
   }
 
+  domain_id=zoneId;
+
   d_handle.i=0;
   d_handle.qtype=qtype;
   d_handle.qname=qname;
@@ -501,7 +503,7 @@ bool UeberBackend::handle::get(DNSResourceRecord &r)
            <<" out of answers, taking next"<<endl);
       
       d_hinterBackend=parent->backends[i++];
-      d_hinterBackend->lookup(qtype,qname,pkt_p);
+      d_hinterBackend->lookup(qtype,qname,pkt_p,parent->domain_id);
     }
     else 
       break;
