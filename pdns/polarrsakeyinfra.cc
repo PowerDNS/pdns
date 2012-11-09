@@ -4,14 +4,16 @@
 #include <polarssl/sha1.h>
 #include <polarssl/sha2.h>
 #include <polarssl/sha4.h>
-#include <polarssl/havege.h>
+#include <polarssl/entropy.h>
+#include <polarssl/ctr_drbg.h>
 #else
 #include "ext/polarssl-1.1.2/include/polarssl/rsa.h"
 #include "ext/polarssl-1.1.2/include/polarssl/base64.h"
 #include "ext/polarssl-1.1.2/include/polarssl/sha1.h"
 #include "ext/polarssl-1.1.2/include/polarssl/sha2.h"
 #include "ext/polarssl-1.1.2/include/polarssl/sha4.h"
-#include "ext/polarssl-1.1.2/include/polarssl/havege.h"
+#include "ext/polarssl-1.1.2/include/polarssl/entropy.h"
+#include "ext/polarssl-1.1.2/include/polarssl/ctr_drbg.h"
 #endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/foreach.hpp>
@@ -112,11 +114,15 @@ inline bool operator<(const mpi& a, const mpi& b)
 
 void RSADNSCryptoKeyEngine::create(unsigned int bits)
 {
-  havege_state hs;
-  havege_init( &hs );
+  entropy_context entropy;
+  ctr_drbg_context ctr_drbg;
   
+  entropy_init( &entropy );
+  int ret=ctr_drbg_init( &ctr_drbg, entropy_func, &entropy, (unsigned char *) "PowerDNS", 8);
+  if(ret < 0) 
+    throw runtime_error("Entropy gathering for key generation failed");
   rsa_init(&d_context, RSA_PKCS_V15, 0); // FIXME this leaks memory (it does?)
-  int ret=rsa_gen_key(&d_context, havege_random, (void*)&hs, bits, 65537);
+  ret=rsa_gen_key(&d_context, ctr_drbg_random, &ctr_drbg, bits, 65537);
   if(ret < 0) 
     throw runtime_error("Key generation failed");
 }
