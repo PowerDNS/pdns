@@ -5,6 +5,14 @@ AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=
 endif
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@
 
+if BOTAN110
+AM_CPPFLAGS += $(BOTAN110_CFLAGS)
+endif
+
+if BOTAN18
+AM_CPPFLAGS += $(BOTAN18_CFLAGS)
+endif
+
 EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  \
 	docs/pdns_server.8 docs/zone2sql.8 docs/zone2ldap.8 docs/pdnssec.8 \
 	dnssec.schema.mysql.sql dnssec.schema.pgsql.sql dnssec.schema.sqlite3.sql \
@@ -61,19 +69,15 @@ ednssubnet.cc ednssubnet.hh cachecleaner.hh
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS)  -rdynamic
 pdns_server_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS)
-pdns_server_CPPFLAGS = $(AM_CPPFLAGS)
-
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
 pdns_server_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
-pdns_server_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
 
 if BOTAN18
 pdns_server_SOURCES += botan18signers.cc botansigners.cc
 pdns_server_LDADD += $(BOTAN18_LIBS) -lgmp
-pdns_server_CPPFLAGS += $(BOTAN18_CFLAGS)
 endif
 
 if CRYPTOPP
@@ -102,18 +106,15 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
 pdnssec_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS)
-pdnssec_CPPFLAGS = $(AM_CPPFLAGS)
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
 pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
-pdnssec_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
 
 if BOTAN18
 pdnssec_SOURCES += botan18signers.cc botansigners.cc
 pdnssec_LDADD += $(BOTAN18_LIBS) -lgmp
-pdnssec_CPPFLAGS += $(BOTAN18_CFLAGS)
 endif
 
 if CRYPTOPP
