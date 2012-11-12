@@ -337,7 +337,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				Initscripts now have exit codes, submitted by Sander Hoentjes. Code in c2728. Guardian now returns 0 instead of 1 when receiving SIGTERM, requested by Morten Stevens of Fedora. Code in c2717.
+				Initscripts now have exit codes, submitted by Sander Hoentjen. Code in c2728. Guardian now returns 0 instead of 1 when receiving SIGTERM, requested by Morten Stevens of Fedora. Code in c2717.
 			</para>
 		</listitem>
 		<listitem>
