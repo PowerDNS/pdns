@@ -409,6 +409,9 @@ int main(int argc, char **argv)
   signal(SIGILL,tbhandler);
 #endif
 
+#if __GNUC__ >= 3
+  std::ios_base::sync_with_stdio(false);
+#endif
 
   L.toConsole(Logger::Warning);
   try {

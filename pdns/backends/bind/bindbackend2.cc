@@ -526,9 +526,6 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
 
 Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
-#if __GNUC__ >= 3
-    std::ios_base::sync_with_stdio(false);
-#endif
   d_logprefix="[bind"+suffix+"backend]";
   setArgPrefix("bind"+suffix);
   Lock l(&s_startup_lock);
