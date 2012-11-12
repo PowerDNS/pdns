@@ -96,8 +96,31 @@
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
       <sect2 id="changelog-auth-3-2"><title>PowerDNS Authoritative Server 3.2</title>
+      <warning><para>Version 3.2 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0 or 3.1
+	Please refer to <xref linkend="from2.9to3.0"/>, <xref linkend="from3.0to3.1"/> and <xref linkend="from3.1to3.2"/> for important information on 
+	correct and stable operation, as well as notes on performance and memory use.</para>
+      </warning>
   	  <note>
-      	<para>UNRELEASED</para>
+      	<para>RC1 released November 12th, 2012</para>
+      	<para>Downloads:
+      		<itemizedlist>
+      			<listitem>
+      				<para>
+      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc1.tar.gz">source</ulink>
+  					</para>
+  				</listitem>
+  				<listitem>
+  					<para>
+  						<ulink url="http://powerdnssec.org/downloads/packages/">semi-static packages (rpm, deb, i386, amd64)</ulink>
+  					</para>
+  				</listitem>
+  				<listitem>
+  					<para>
+  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc1/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+  					</para>
+  				</listitem>
+  			</itemizedlist>
+  		</para>
       </note>
       <para>
       	This is a stability and confirmity update to 3.1. It mostly makes our DNSSEC implementation more robust,
