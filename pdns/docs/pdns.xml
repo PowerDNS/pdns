@@ -214,10 +214,47 @@
 				outgoing AXFR. Fixed in c2856.
 			</para>
 		</listitem>
+		<listitem>
+			<para>
+				A root zone (name="") with DNSSEC would cause crashes in some situations. Reported by Luuk Hendriks. Fixed in c2867, c2868, closing t614.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Direct RRSIG queries for zones with auto-completed SOA records would cause trouble. Reported by Kees Monshouwer and fixed by him in r2869.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				When a name is matched only by a wildcard, but the type in the query is not present, we would be
+				lacking one NSEC(3) record to prove the existence of the wildcard. Fixed by Kees Monshouwer in r2872 and r2873.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Luuk Hendriks spotted that our PolarSSL RSA key generation code was using inferior entropy. This can be important on virtual machines with badly implemented clocks. Fixed in c2876, closing t615.
+			</para>
+		</listitem>
 		</itemizedlist>
 
 		Non-DNSSEC improvements/changes in 3.2:
 		<itemizedlist>
+		<listitem>
+			<para>
+				Bindbackend would sometimes crash on startup, due to a sync_with_stdio call. This call has been
+				moved to pdns_server proper to occur before any threads are spawned, avoiding race conditions in this call. Note that this crash has only been observed twice in thousands of regression test runs and has never been reported in the real world. Change in c2882.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Leen Besselink submitted query logging support for the SQLite3 parts in the bindbackend. Code in c2874.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Multi-backend operation would sometimes cause garbage domain IDs to be passed to backends. Reported by Kees Monshouwer and fixed by him in r2871.
+			</para>
+		</listitem>
 		<listitem>
 			<para>
 				Bindbackend would sometimes crash during reloads/rediscovers. The changes in c2837 get rid of the crash, at the cost of returning SERVFAIL
@@ -267,7 +304,7 @@
 		</listitem>
   		<listitem>
   			<para>
-  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 / t461, c2666, c2671, c2672 / t522, c2673 / t522, c2696 / t555, c2697 / t457, c2698, c2708, c2742 / t462), c2752 / t437, c2764, c2809, c2844, c2845, c2846.
+  				3.2 can be reliably built with or without Lua. This and many other configure/compile-related fixes in c2610, c2611 / t461, c2666, c2671, c2672 / t522, c2673 / t522, c2696 / t555, c2697 / t457, c2698, c2708, c2742 / t462), c2752 / t437, c2764, c2809, c2844, c2845, c2846, c2881.
 			</para>
 		</listitem>
 		<listitem>
