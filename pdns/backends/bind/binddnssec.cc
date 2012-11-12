@@ -28,8 +28,6 @@ void Bind2Backend::setupDNSSEC()
 {
   if(!getArg("dnssec-db").empty())
     throw runtime_error("bind-dnssec-db requires building PowerDNS with SQLite3");
-
-  d_dnssecdb->setLog(::arg().mustDo("query-logging"));
 }
 
 void Bind2Backend::createDNSSECDB(const string& fname)
@@ -79,6 +77,8 @@ void Bind2Backend::setupDNSSEC()
     // this error is meant to kill the server dead - it makes no sense to continue..
     throw runtime_error("Error opening DNSSEC database in BIND backend: "+se.txtReason());
   }
+
+  d_dnssecdb->setLog(::arg().mustDo("query-logging"));
 }
 
 void Bind2Backend::createDNSSECDB(const string& fname)
