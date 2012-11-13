@@ -19,7 +19,7 @@ private:
   //! Pointer to the SQLite virtual machine executing a query.
   sqlite3_stmt *m_pStmt;
 
-  bool s_dolog;
+  bool m_dolog;
 
   static int busyHandler(void*, int);
 protected:

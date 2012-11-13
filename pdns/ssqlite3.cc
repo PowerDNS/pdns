@@ -31,12 +31,13 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
   if ( sqlite3_open( database.c_str(), &m_pDB)!=SQLITE_OK )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
   m_pStmt = 0;
+  m_dolog = 0;
   sqlite3_busy_handler(m_pDB, busyHandler, 0);
 }
 
 void SSQLite3::setLog(bool state)
 {
-  s_dolog=state;
+  m_dolog=state;
 }
 
 // Destructor.
@@ -86,7 +87,7 @@ int SSQLite3::doQuery( const std::string & query )
 {
   const char *pTail;
 
-  if(s_dolog)
+  if(m_dolog)
     L<<Logger::Warning<<"Query: "<<query<<endl;
   
   // Execute the query.
