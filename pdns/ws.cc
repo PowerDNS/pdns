@@ -23,6 +23,7 @@
 #include "arguments.hh"
 #include "dns.hh"
 #include <boost/format.hpp>
+#include <boost/foreach.hpp>
 
 extern StatBag S;
 
@@ -231,17 +232,26 @@ string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool
   string ret="HTTP/1.1 200 OK\r\n"
   "Date: Wed, 30 Nov 2011 22:01:15 GMT\r\n" // XXX FIXME real date!
   "Server: PowerDNS/"VERSION"\r\n"
-  "Connection: Keep-Alive\r\n"
-  "Transfer-Encoding: chunked\r\n"
+  "Connection: close\r\n"
   "Access-Control-Allow-Origin: *\r\n"
   "Content-Type: application/json\r\n"
   "\r\n" ;
 
   typedef map<string,string> varmap_t;
+  varmap_t ourvarmap=varmap;
+  if(ourvarmap.empty()) {
+    vector<string> entries = S.getEntries();
+    BOOST_FOREACH(string& ent, entries) {
+      ourvarmap[ent];
+    }
+    ourvarmap["version"];
+  }
+
+
   string variable, value;
-  ret="{";
-  for(varmap_t::const_iterator iter = varmap.begin(); iter != varmap.end() ; ++iter) {
-    if(iter != varmap.begin())
+  ret+="{";
+  for(varmap_t::const_iterator iter = ourvarmap.begin(); iter != ourvarmap.end() ; ++iter) {
+    if(iter != ourvarmap.begin())
       ret += ",";
       
     variable = iter->first;
