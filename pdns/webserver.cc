@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2010  PowerDNS.COM BV
+    Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -122,7 +122,6 @@ void *WebServer::serveConnection(void *p)
         }
       }
     }while(!line.empty());
-
 
     if(!d_password.empty() && !authOK) {
       client->putLine("HTTP/1.1 401 OK\n");

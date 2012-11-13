@@ -87,7 +87,7 @@ private:
   static void *threadHelper(void *);
   static void *statThreadHelper(void *p);
   static string indexfunction(const map<string,string> &varmap, void *ptr, bool *custom);
-
+  static string jsonstat(const map<string,string> &varmap, void *ptr, bool *custom);
   void printvars(ostringstream &ret);
   void printargs(ostringstream &ret);
   void launch();
