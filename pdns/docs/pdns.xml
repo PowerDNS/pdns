@@ -18356,7 +18356,7 @@ Reply:
 	<command>domain_id</command>. This is why all records in a domain need to have the same domain_id.
       </para>
       <para>
-	When a query comes in for an unknown domain, PDNS starts looking for SOA records of all subdomains of the qname, so 
+	When a query comes in for a specific qname, PDNS starts looking for SOA records of all subdomains of the qname, so 
 	no.such.powerdns.com turns into a SOA query for no.such.powerdns.com, such.powerdns.com, powerdns.com, com, ''. When a SOA is found,
 	that zone is consulted for relevant NS instructions which lead to a referral. If nothing is found within the zone, an authoritative 
 	NXDOMAIN is sent out.
