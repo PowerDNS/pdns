@@ -16,12 +16,15 @@
 */
 #include "utility.hh"
 #include "ws.hh"
+#include "json.hh"
 #include "webserver.hh"
 #include "logger.hh"
+#include "packetcache.hh"
 #include "statbag.hh"
 #include "misc.hh"
 #include "arguments.hh"
 #include "dns.hh"
+#include "ueberbackend.hh"
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 
@@ -239,40 +242,145 @@ string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool
 
   typedef map<string,string> varmap_t;
   varmap_t ourvarmap=varmap;
-  if(ourvarmap.empty()) {
-    vector<string> entries = S.getEntries();
-    BOOST_FOREACH(string& ent, entries) {
-      ourvarmap[ent];
+  string callback;
+  string command;
+
+  if(ourvarmap.count("callback")) {
+    callback=ourvarmap["callback"];
+    ourvarmap.erase("callback");
+  }
+  
+  if(ourvarmap.count("command")) {
+    command=ourvarmap["command"];
+    ourvarmap.erase("command");
+  }
+  
+  ourvarmap.erase("_");
+  if(!callback.empty())
+      ret += callback+"(";
+    
+  if(command=="get") {
+    if(ourvarmap.empty()) {
+      vector<string> entries = S.getEntries();
+      BOOST_FOREACH(string& ent, entries) {
+        ourvarmap[ent];
+      }
+      ourvarmap["version"];
+      ourvarmap["uptime"];
     }
-    ourvarmap["version"];
+
+    string variable, value;
+    
+    ret+="{";
+    for(varmap_t::const_iterator iter = ourvarmap.begin(); iter != ourvarmap.end() ; ++iter) {
+      if(iter != ourvarmap.begin())
+        ret += ",";
+      
+      variable = iter->first;
+      if(variable == "version") {
+        value = '"'+string(VERSION)+'"';
+      }
+      else if(variable == "uptime") {
+        value = lexical_cast<string>(time(0) - s_starttime);
+      }
+      else 
+        value = lexical_cast<string>(S.read(variable));
+      
+        ret += '"'+ variable +"\": "+ value;
+    }
+    ret+="}";
+  }
+ 
+  if(command=="config") {
+    vector<string> items = ::arg().list();
+    ret += "[";
+    bool first=1;
+    BOOST_FOREACH(const string& var, items) {
+      if(!first) ret+=",";
+      first=false;
+      ret += "[";
+      ret += "\""+var+"\", \"";
+      ret += ::arg()[var] + "\"";
+      ret += "]";
+    }
+    ret += "]";
   }
 
-
-  string variable, value;
-  ret+="{";
-  for(varmap_t::const_iterator iter = ourvarmap.begin(); iter != ourvarmap.end() ; ++iter) {
-    if(iter != ourvarmap.begin())
-      ret += ",";
+  if(command == "flush-cache") {
+    extern PacketCache PC;
+    int number; 
+    if(ourvarmap["domain"].empty())
+      number = PC.purge();
+    else
+      number = PC.purge(ourvarmap["domain"]);
       
-    variable = iter->first;
-    if(variable == "version")
-      value = '"'+string(VERSION)+'"';
-    else 
-      value = lexical_cast<string>(S.read(variable));
-      
-    ret += '"'+ variable +"\": "+ value;
+    map<string, string> object;
+    object["number"]=lexical_cast<string>(number);
+    cerr<<"Flushed cache for '"<<ourvarmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
+    ret += returnJSONObject(object);
   }
-  ret+="}";
+  if(command=="get-zone") {
+    UeberBackend B;
+    SOAData sd;
+    sd.db= (DNSBackend*)-1;
+    B.getSOA(ourvarmap["zone"], sd);
+    sd.db->list(ourvarmap["zone"], sd.domain_id);
+    DNSResourceRecord rr;
+    
+    ret+="[";
+    map<string, string> object;
+    bool first=1;
+    while(sd.db->get(rr)) {
+      if(!first) ret += ", ";
+      first=false;
+      object.clear();
+      object["name"] = rr.qname;
+      object["type"] = rr.qtype.getName();
+      object["ttl"] = lexical_cast<string>(rr.ttl);
+      object["priority"] = lexical_cast<string>(rr.priority);
+      object["content"] = rr.content;
+      ret+=returnJSONObject(object);
+    }
+
+    ret += "]";
+  }
+
+ 
+  const char *kinds[]={"Master", "Slave", "Native"};
+  if(command=="domains") {
+    UeberBackend B;
+    vector<DomainInfo> domains;
+    B.getAllDomains(&domains);
+    ret += "{ domains: [ ";
+    bool first=true;
+    BOOST_FOREACH(DomainInfo& di, domains) {
+      if(!first) ret+=", ";
+      first=false;
+      
+      ret += "{ name: \"";
+      ret += di.zone +"\", kind: \""+ kinds[di.kind]+"\", masters: \"";
+      BOOST_FOREACH(const string& master, di.masters) {
+        ret += master+ " ";
+      }
+      ret+="\", serial: "+lexical_cast<string>(di.serial)+", notified_serial: "+lexical_cast<string>(di.notified_serial)+", last_check: "+lexical_cast<string>(di.last_check);
+      ret+=" }";
+    }
+    ret+= "]}";
+  }
+  
+  if(!callback.empty()) {
+    ret += ");";
+  }
   return ret;
 }
 
 void StatWebServer::launch()
 {
   try {
-    
     d_ws->setCaller(this);
     d_ws->registerHandler("",&indexfunction);
-    d_ws->registerHandler("jsonstat", &jsonstat);
+    if(::arg().mustDo("json-interface"))
+      d_ws->registerHandler("jsonstat", &jsonstat);
     d_ws->go();
   }
   catch(...) {

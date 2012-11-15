@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2009  PowerDNS.COM BV
+    Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -448,6 +448,5 @@ replacing_insert(Index& i,const typename Index::value_type& x)
   if(!res.second)res.second=i.replace(res.first,x);
   return res;
 }
-
 
 #endif

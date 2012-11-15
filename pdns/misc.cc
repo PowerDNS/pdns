@@ -777,3 +777,4 @@ bool stringfgets(FILE* fp, std::string& line)
   } while(!strchr(buffer, '\n'));
   return true;
 }
+
