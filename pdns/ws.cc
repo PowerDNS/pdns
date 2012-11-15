@@ -296,11 +296,15 @@ string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool
     ret += "[";
     bool first=1;
     BOOST_FOREACH(const string& var, items) {
+      
       if(!first) ret+=",";
       first=false;
       ret += "[";
       ret += "\""+var+"\", \"";
-      ret += ::arg()[var] + "\"";
+      if(var.find("password") != string::npos)
+        ret += "*****\"";
+      else 
+        ret += ::arg()[var] + "\"";
       ret += "]";
     }
     ret += "]";

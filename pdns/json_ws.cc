@@ -25,6 +25,7 @@
 #include "rec_channel.hh"
 #include "arguments.hh"
 #include "misc.hh"
+#include "syncres.hh"
 
 JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
 {
@@ -75,15 +76,31 @@ void JWebserver::readRequest(int fd)
     content=callback+"(";
 
   map<string, string> stats; 
-  if(sbuffer.find("stats") != string::npos) 
+  if(sbuffer.find("stats") != string::npos) {
     stats = getAllStatsMap();
+    content += returnJSONObject(stats);  
+  } else if(sbuffer.find("domains") != string::npos) {
+    content += "[";
+    bool first=1;
+    BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
+      if(!first) content+= ", ";
+      first=false;
+      stats.clear();
+      stats["name"] = val.first;
+      stats["type"] = val.second.d_servers.empty() ? "Native" : "Forwarded";
+      // fill out forwarders too one day, and rdrequired
+      content += returnJSONObject(stats);
+    }
+    content += "]";
+  }
   else {
     vector<string> items = ::arg().list();
     BOOST_FOREACH(const string& var, items) {
       stats[var] = ::arg()[var];
     }
+    content += returnJSONObject(stats);  
   }
-  content += returnJSONObject(stats);  
+
 
   if(!callback.empty())
     content += ");";
