@@ -129,8 +129,10 @@ try
 
   unsigned int unanswered=0;
   for(statmap_t::const_iterator i=statmap.begin(); i!=statmap.end(); ++i) {
-    if(!i->second.d_answercount)
+    if(!i->second.d_answercount) {
       unanswered++;
+      // cout << i->first.d_qname <<" " <<i->first.d_qtype<<endl;
+    }
   }
 
   cerr<<statmap.size()<<" packets went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
