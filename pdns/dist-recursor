@@ -12,7 +12,7 @@ recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh ahuexception.hh \
 mplexer.hh win32_mtasker.hh win32_utility.cc ntservice.hh singleton.hh \
 recursorservice.hh dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
-recpacketcache.hh base32.hh cachecleaner.hh"
+recpacketcache.hh base32.hh cachecleaner.hh json.hh"
 
 CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
@@ -22,7 +22,7 @@ selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 win32_mtasker.cc win32_rec_channel.cc win32_logger.cc ntservice.cc \
 recursorservice.cc sillyrecords.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
-dnslabeltext.cc"
+dnslabeltext.cc json.cc json_ws.cc json_ws.hh"
 
 cd docs
 make pdns_recursor.1 rec_control.1
