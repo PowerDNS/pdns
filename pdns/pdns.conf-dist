@@ -95,6 +95,11 @@
 # guardian=no
 
 #################################
+# json-interface	If the webserver should serve JSON data
+#
+# json-interface=no
+
+#################################
 # launch	Which backends to launch and order to query them in
 #
 # launch=
