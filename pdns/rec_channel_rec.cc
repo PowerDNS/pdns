@@ -56,20 +56,33 @@ optional<uint64_t> get(const string& name)
   return ret;
 }
 
-string getAllStats()
+map<string,string> getAllStatsMap()
 {
-  string ret;
+  map<string,string> ret;
+  
   pair<string, const uint32_t*> the32bits;
   pair<string, const uint64_t*> the64bits;
   pair<string, function< uint32_t() > >  the32bitmembers;
+  
   BOOST_FOREACH(the32bits, d_get32bitpointers) {
-    ret += the32bits.first + "\t" + lexical_cast<string>(*the32bits.second) + "\n";
+    ret.insert(make_pair(the32bits.first, lexical_cast<string>(*the32bits.second)));
   }
   BOOST_FOREACH(the64bits, d_get64bitpointers) {
-    ret += the64bits.first + "\t" + lexical_cast<string>(*the64bits.second) + "\n";
+    ret.insert(make_pair(the64bits.first, lexical_cast<string>(*the64bits.second)));
   }
   BOOST_FOREACH(the32bitmembers, d_get32bitmembers) {
-    ret += the32bitmembers.first + "\t" + lexical_cast<string>(the32bitmembers.second()) + "\n";
+    ret.insert(make_pair(the32bitmembers.first, lexical_cast<string>(the32bitmembers.second())));
+  }
+  return ret;
+}
+
+string getAllStats()
+{
+  typedef map<string, string> varmap_t;
+  varmap_t varmap = getAllStatsMap();
+  string ret;
+  BOOST_FOREACH(varmap_t::value_type& tup, varmap) {
+    ret += tup.first + "\t" + tup.second +"\n";
   }
   return ret;
 }

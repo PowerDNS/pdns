@@ -46,5 +46,6 @@ public:
   std::string getAnswer(const std::string& question, func_t** func);
 };
 
+std::map<std::string, std::string> getAllStatsMap();
 
 #endif 
