@@ -479,11 +479,8 @@ bool g_rdSelector;
 
 bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
 {
-  //  static struct timeval lastsent;
-
   dnsheader* dh=(dnsheader*)pr.d_payload;
   bool sent=false;
-  //                                                             non-recursive  
   if((ntohs(pr.d_udp->uh_dport)!=53 && ntohs(pr.d_udp->uh_sport)!=53) || dh->rd != g_rdSelector || (unsigned int)pr.d_len <= sizeof(dnsheader))
     return sent;
 
@@ -624,7 +621,7 @@ try
   struct timeval mental_time;
   mental_time.tv_sec=0; mental_time.tv_usec=0;
 
-  if(!pr.getUDPPacket())
+  if(!pr.getUDPPacket()) // we do this here so we error out more cleanly on no packets
     return 0;
   unsigned int count=0;
 
@@ -635,10 +632,11 @@ try
     struct timeval packet_ts;
     packet_ts.tv_sec = 0; 
     packet_ts.tv_usec = 0; 
+    bool first = true;
     while(packet_ts < mental_time) {
-      if(!pr.getUDPPacket())
+      if(!first && !pr.getUDPPacket()) // otherwise we miss the first packet
         goto out;
-      
+      first=false;
       packet_ts.tv_sec = pr.d_pheader.ts.tv_sec;
       packet_ts.tv_usec = pr.d_pheader.ts.tv_usec;
 
