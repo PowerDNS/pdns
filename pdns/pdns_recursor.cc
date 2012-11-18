@@ -26,7 +26,7 @@
 #endif // WIN32
 
 #include <boost/foreach.hpp>
-
+#include "json_ws.hh"
 #include <pthread.h>
 #include "recpacketcache.hh"
 #include "utility.hh" 
@@ -1832,8 +1832,13 @@ try
   PacketID pident;
 
   t_fdm=getMultiplexer();
-  if(!t_id) 
+  if(!t_id) {
+    if(::arg().mustDo("json-interface")) {
+      L<<Logger::Warning << "Enabling JSON interface" << endl;
+      new JWebserver(t_fdm);
+    }
     L<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
+  }
 
   t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
 
@@ -1968,8 +1973,9 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "ntservice", "Run as service" )= "no";
     ::arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes"; 
     ::arg().setSwitch( "use-logfile", "Use a log file" )= "no"; 
-    ::arg().setSwitch( "logfile", "Filename of the log file" )= "recursor.log"; 
 #else
+    ::arg().set( "logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log"; 
+    ::arg().setSwitch( "json-interface", "If we should run a JSON webserver") = "no";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
 #endif

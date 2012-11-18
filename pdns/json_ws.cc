@@ -129,7 +129,7 @@ void JWebserver::readRequest(int fd)
     content += returnJSONObject(stats);  
   }
   else if(varmap["command"]=="log-grep") {
-    content += makeLogGrepJSON(varmap, "/var/log/pdns.log", " pdns_recursor[");
+    content += makeLogGrepJSON(varmap, ::arg()["logfile"], " pdns_recursor[");
   }
   else { //  if(varmap["command"] == "stats") {
     stats = getAllStatsMap();
