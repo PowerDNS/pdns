@@ -22,3 +22,4 @@
 
 std::string returnJSONObject(const std::map<std::string, std::string>& items);
 std::string escapeJSON( const std::string & name);
+std::string makeLogGrepJSON(std::map<std::string, std::string>& varmap, const std::string& fname, const std::string& prefix="");
