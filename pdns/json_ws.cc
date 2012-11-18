@@ -26,6 +26,7 @@
 #include "arguments.hh"
 #include "misc.hh"
 #include "syncres.hh"
+#include "config.h"
 
 JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
 {
@@ -47,23 +48,40 @@ void JWebserver::readRequest(int fd)
     d_fdm->removeReadFD(fd);
     close(fd);
     cerr<<"Lost connection"<<endl;
+    return;
   }
   buffer[res]=0;
   cerr<< buffer << endl;
   
-  string callback; 
-  string sbuffer(buffer);
-  string::size_type pos= sbuffer.find("callback");
-  if(pos != string::npos) {
-    unsigned int scanpos = pos + 9;
-    while((sbuffer[scanpos]=='_' || isalnum(sbuffer[scanpos])) && scanpos < sbuffer.length())
-      ++scanpos;
-    callback=sbuffer.substr(pos+9, scanpos - pos -9); 
+  char * p = strchr(buffer, '\r');
+  if(p) *p = 0;
+  if(strstr(buffer, "GET ") != buffer) {
+    d_fdm->removeReadFD(fd);
+    close(fd);
+    cerr<<"Invalid request"<<endl;
+    return;
   }
+
+    
+  map<string, string> varmap;
+  if((p = strchr(buffer, '?'))) {
+    vector<string> variables;
+    string line(p+1);
+    line.resize(line.length() - strlen(" HTTP/1.0"));
+    
+    stringtok(variables, line, "&");
+    BOOST_FOREACH(const string& var, variables) {
+      varmap.insert(splitField(var, '='));
+      cout<<"Variable: '"<<var<<"'"<<endl;
+    }
+  }
+  
+  string callback=varmap["callback"];
   cout <<"Callback: '"<<callback<<"'\n";
+
   char response[]="HTTP/1.1 200 OK\r\n"
   "Date: Wed, 30 Nov 2011 22:01:15 GMT\r\n"
-  "Server: Apache/2.2.17 (Ubuntu)\r\n"
+  "Server: PowerDNS Recursor "VERSION"\r\n"
   "Connection: keep-alive\r\n"
   "Content-Length: %d\r\n"
   "Access-Control-Allow-Origin: *\r\n"
@@ -76,10 +94,7 @@ void JWebserver::readRequest(int fd)
     content=callback+"(";
 
   map<string, string> stats; 
-  if(sbuffer.find("stats") != string::npos) {
-    stats = getAllStatsMap();
-    content += returnJSONObject(stats);  
-  } else if(sbuffer.find("domains") != string::npos) {
+  if(varmap["command"] =="domains") {
     content += "[";
     bool first=1;
     BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
@@ -88,26 +103,49 @@ void JWebserver::readRequest(int fd)
       stats.clear();
       stats["name"] = val.first;
       stats["type"] = val.second.d_servers.empty() ? "Native" : "Forwarded";
+      stats["servers"];
+      BOOST_FOREACH(const ComboAddress& server, val.second.d_servers) {
+        stats["servers"]+= server.toStringWithPort() + " ";
+      }
+      stats["rdbit"] = lexical_cast<string>(val.second.d_servers.empty() ? 0 : val.second.d_rdForward);
       // fill out forwarders too one day, and rdrequired
       content += returnJSONObject(stats);
     }
     content += "]";
+  } 
+  else if(varmap["command"]=="flush-cache") {
+    string canon=toCanonic("", varmap["domain"]);
+    cerr<<"Canon: '"<<canon<<"'\n";
+    int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
+    count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
+    stats["number"]=lexical_cast<string>(count);
+    content += returnJSONObject(stats);  
   }
-  else {
+  else if(varmap["command"] == "config") {
     vector<string> items = ::arg().list();
     BOOST_FOREACH(const string& var, items) {
       stats[var] = ::arg()[var];
     }
     content += returnJSONObject(stats);  
   }
-
+  else if(varmap["command"]=="log-grep") {
+    content += makeLogGrepJSON(varmap, "/var/log/pdns.log", " pdns_recursor[");
+  }
+  else { //  if(varmap["command"] == "stats") {
+    stats = getAllStatsMap();
+    content += returnJSONObject(stats);  
+  } 
 
   if(!callback.empty())
     content += ");";
 
-  string header = (boost::format(response) % content.length()).str();
-  write(fd, header.c_str(), header.length());
-  write(fd, content.c_str(), content.length());
+  string tot = (boost::format(response) % content.length()).str();
+  tot += content;
+  cout << "Starting write"<<endl;
+  Utility::setBlocking(fd);
+  writen2(fd, tot.c_str(), tot.length());
+  Utility::setNonBlocking(fd);
+  cout <<"And done"<<endl;
 }
 
 void JWebserver::newConnection()

@@ -27,6 +27,7 @@
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
+#include "namespaces.hh"
 
 extern StatBag S;
 
@@ -229,6 +230,7 @@ string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr,
   return ret.str();
 }
 
+
 string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool *custom)
 {
   *custom=1;
@@ -348,7 +350,9 @@ string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool
 
     ret += "]";
   }
-
+  if(command=="log-grep") {
+    ret += makeLogGrepJSON(ourvarmap, ::arg()["logfile"], " pdns[");
+  }
  
   const char *kinds[]={"Master", "Slave", "Native"};
   if(command=="domains") {
