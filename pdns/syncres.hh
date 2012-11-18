@@ -551,5 +551,6 @@ uint64_t* pleaseGetThrottleSize();
 uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
 uint64_t* pleaseWipeCache(const std::string& canon);
+uint64_t* pleaseWipeAndCountNegCache(const std::string& canon);
 
 #endif

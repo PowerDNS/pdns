@@ -197,7 +197,7 @@ uint64_t* pleaseWipeCache(const std::string& canon)
 }
 
 
-static uint64_t* pleaseWipeAndCountNegCache(const std::string& canon)
+uint64_t* pleaseWipeAndCountNegCache(const std::string& canon)
 {
   uint64_t res = t_sstorage->negcache.count(tie(canon));
   pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=t_sstorage->negcache.equal_range(tie(canon));
