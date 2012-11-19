@@ -329,7 +329,10 @@ string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool
     UeberBackend B;
     SOAData sd;
     sd.db= (DNSBackend*)-1;
-    B.getSOA(ourvarmap["zone"], sd);
+    if(!B.getSOA(ourvarmap["zone"], sd) || !sd.db) {
+      cerr<<"Could not find domain '"<<ourvarmap["zone"]<<"'\n";
+      return "";
+    }
     sd.db->list(ourvarmap["zone"], sd.domain_id);
     DNSResourceRecord rr;
     
@@ -359,18 +362,18 @@ string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool
     UeberBackend B;
     vector<DomainInfo> domains;
     B.getAllDomains(&domains);
-    ret += "{ domains: [ ";
+    ret += "{ \"domains\": [ ";
     bool first=true;
     BOOST_FOREACH(DomainInfo& di, domains) {
       if(!first) ret+=", ";
       first=false;
       
-      ret += "{ name: \"";
-      ret += di.zone +"\", kind: \""+ kinds[di.kind]+"\", masters: \"";
+      ret += "{ \"name\": \"";
+      ret += di.zone +"\", \"kind\": \""+ kinds[di.kind]+"\", \"masters\": \"";
       BOOST_FOREACH(const string& master, di.masters) {
         ret += master+ " ";
       }
-      ret+="\", serial: "+lexical_cast<string>(di.serial)+", notified_serial: "+lexical_cast<string>(di.notified_serial)+", last_check: "+lexical_cast<string>(di.last_check);
+      ret+="\", \"serial\": "+lexical_cast<string>(di.serial)+", \"notified_serial\": "+lexical_cast<string>(di.notified_serial)+", \"last_check\": "+lexical_cast<string>(di.last_check);
       ret+=" }";
     }
     ret+= "]}";
