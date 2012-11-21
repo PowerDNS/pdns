@@ -1,7 +1,7 @@
 d59f36f23f780429676fbab5ac07e0d9  ../regression-tests/example.com
-66e79fb95029616572d1a100489d6b92  ../regression-tests/test.com
+dde2d1eaa47f453e0d64705a5315adb0  ../regression-tests/test.com
 7d726bc367bf5e6ee5f1689994c6b6d4  ../regression-tests/wtest.com
 a0670eef8fba3e16908057af8de2c2f2  ../regression-tests/dnssec-parent.com
 42dd3a56c7d268e75836371878819ec4  ../regression-tests/delegated.dnssec-parent.com
 24514dc104b22206daeb973ff9303545  ../regression-tests/minimal.com
-699c30ab663864d37ef5cca41d0490f3  ../modules/tinydnsbackend/data.cdb
+c499970b7dc7372f431665990a9f6692  ../modules/tinydnsbackend/data.cdb
