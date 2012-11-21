@@ -1,0 +1,11 @@
+Usage: ldns-verify-zone [OPTIONS] <zonefile>
+--- ldns-verify-zone test.com
+RETVAL: 0
+--- ldns-verify-zone wtest.com
+RETVAL: 0
+--- ldns-verify-zone dnssec-parent.com
+RETVAL: 0
+--- ldns-verify-zone delegated.dnssec-parent.com
+RETVAL: 0
+--- ldns-verify-zone minimal.com
+RETVAL: 0
