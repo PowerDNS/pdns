@@ -17,7 +17,7 @@ server1			IN	A	1.2.3.4
 *.test			IN	CNAME	server1
 www.test		IN	A	4.3.2.1
 sub.test		IN	NS	ns-test.example.net
-enum			IN	NAPTR 100 50 "u" "e2u+sip" "" testuser@domain.com.
+enum			IN	NAPTR 100 50 "u" "e2u+sip" "" testuser.domain.com.
 counter			IN	A	1.1.1.5
 _ldap._tcp.dc		IN	SRV 	0 100 389 server2.example.net.
 _double._tcp.dc		IN	SRV 	0 100 389 server1
