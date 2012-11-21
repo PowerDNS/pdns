@@ -1,1 +1,0 @@
-AXFR all zones except the big example.com, and test them with ldns-verify-zone
