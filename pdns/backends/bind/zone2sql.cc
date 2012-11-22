@@ -95,6 +95,10 @@ static void emitRecord(const string& zoneName, const string &qname, const string
 {
   g_numRecords++;
   string content(ocontent);
+
+  if(qtype == "NSEC" || qtype == "NSEC3")
+    return; // NSECs do not go in the database
+
   if(qtype == "MX" || qtype == "SRV") { 
     prio=atoi(content.c_str());
     
