@@ -735,7 +735,10 @@ void Bind2Backend::loadConfig(string* status)
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
             string hashed;
-            while(zpt.get(rr)) {
+            while(zpt.get(rr)) {  // FIXME this code is duplicate
+              if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
+                continue; // we synthesise NSECs on demand
+
               if(nsec3zone) {
                 if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
                   hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
@@ -864,6 +867,9 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     NSEC3PARAMRecordContent ns3pr;
     bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
     while(zpt.get(rr)) {
+      if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
+        continue; // we synthesise NSECs on demand
+
       if(nsec3zone) {
         if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
