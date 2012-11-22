@@ -11791,6 +11791,10 @@ $ pdnssec rectify-zone powerdnssec.org
   	If your frontend does not add empty non-terminal names to records, you will get DNSSEC replies of 3.1-quality, which has served many people well, but we
   	suggest you update your code as soon as possible!
   </para>
+  <para>
+  	If you import presigned zones into your database, please do not import the NSEC or NSEC3 records. PowerDNS will synthesize these itself. Putting
+  	them in the database might cause duplicate records in responses. zone2sql filters NSEC and NSEC3 automatically.
+  </para>
   </section>
 </section>
   <section id="dnssec-security"><title>Security</title>
