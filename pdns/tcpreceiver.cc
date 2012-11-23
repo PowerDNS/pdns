@@ -607,6 +607,14 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     csp.submit(rr);
   }
   
+  if(::arg().mustDo("direct-dnskey")) {
+    sd.db->lookup(QType(QType::DNSKEY), target, NULL, sd.domain_id);
+    while(sd.db->get(rr)) {
+      rr.ttl = sd.default_ttl;
+      csp.submit(rr);
+    }
+  }
+
   if(NSEC3Zone) { // now stuff in the NSEC3PARAM
     rr.qtype = QType(QType::NSEC3PARAM);
     ns3pr.d_flags = 0;
@@ -636,6 +644,12 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   while(sd.db->get(rr)) {
     if (rr.qtype.getCode() == QType::RRSIG)
       continue;
+
+    // only skip the DNSKEY if direct-dnskey is enabled, to avoid changing behaviour
+    // when it is not enabled.
+    if(::arg().mustDo("direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY)
+      continue;
+
     records++;
     if(securedZone && (rr.auth || (!NSEC3Zone && rr.qtype.getCode() == QType::NS) || rr.qtype.getCode() == QType::DS)) { // this is probably NSEC specific, NSEC3 is different
       if (NSEC3Zone || rr.qtype.getCode()) {
