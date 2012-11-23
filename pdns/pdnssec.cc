@@ -285,6 +285,13 @@ int checkZone(UeberBackend *B, const std::string& zone)
     if(!rr.qtype.getCode())
       continue;
     
+    if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
+    {
+      cout<<"[Error] NSEC or NSEC3 found at '"<<rr.qname<<"'. These do not belong in the database."<<endl;
+      numerrors++;
+      continue;
+    }
+
     if(rr.qtype.getCode() == QType::SOA)
     {
       fillSOAData(rr.content, sd);
