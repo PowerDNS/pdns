@@ -11,6 +11,8 @@ $ORIGIN test.com.
 @			IN	NS	ns2
 @			IN	MX	10	smtp-servers.example.com.
 @			IN	MX	15	smtp-servers
+ns1			IN	A	1.1.1.1
+ns2			IN	A	2.2.2.2
 www			IN	CNAME	server1
 server1			IN	A	1.2.3.4
 			IN	RP	ahu.ds9a.nl. counter

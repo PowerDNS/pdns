@@ -1,4 +1,3 @@
-Usage: ldns-verify-zone [OPTIONS] <zonefile>
 --- ldns-verify-zone -V2 test.com
 RETVAL: 0
 
@@ -7,6 +6,13 @@ RETVAL: 0
 
 --- jdnssec-verifyzone test.com
 zone verified.
+RETVAL: 0
+
+--- named-checkzone test.com
+zone test.com/IN: test.com/MX 'smtp-servers.test.com' has no address records (A or AAAA)
+zone test.com/IN: sub.test.test.com/NS 'ns-test.example.net.test.com' has no address records (A or AAAA)
+zone test.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 wtest.com
@@ -19,6 +25,12 @@ RETVAL: 0
 zone verified.
 RETVAL: 0
 
+--- named-checkzone wtest.com
+zone wtest.com/IN: wtest.com/MX 'smtp-servers.wtest.com' is a CNAME (illegal)
+zone wtest.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
 --- ldns-verify-zone -V2 dnssec-parent.com
 RETVAL: 0
 
@@ -27,6 +39,11 @@ RETVAL: 0
 
 --- jdnssec-verifyzone dnssec-parent.com
 zone verified.
+RETVAL: 0
+
+--- named-checkzone dnssec-parent.com
+zone dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 delegated.dnssec-parent.com
@@ -39,6 +56,11 @@ RETVAL: 0
 zone verified.
 RETVAL: 0
 
+--- named-checkzone delegated.dnssec-parent.com
+zone delegated.dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
+OK
+RETVAL: 0
+
 --- ldns-verify-zone -V2 minimal.com
 RETVAL: 0
 
@@ -47,5 +69,10 @@ RETVAL: 0
 
 --- jdnssec-verifyzone minimal.com
 zone verified.
+RETVAL: 0
+
+--- named-checkzone minimal.com
+zone minimal.com/IN: loaded serial 2000081501 (DNSSEC signed)
+OK
 RETVAL: 0
 

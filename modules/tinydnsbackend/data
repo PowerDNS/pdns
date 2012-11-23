@@ -20150,6 +20150,8 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 :_double._tcp.dc.test.com:33:\000\001\000d\001\205\007server1\004test\003com\000:3600
 :_ldap._tcp.dc.test.com:33:\000\000\000d\001\205\007server2\007example\003net\000:3600
 :enum.test.com:35:\000d\0002\001u\007e2u\053sip\000\010testuser\006domain\003com\000:3600
++ns1.test.com:1.1.1.1:3600
++ns2.test.com:2.2.2.2:3600
 +server1.test.com:1.2.3.4:3600
 :server1.test.com:17:\003ahu\004ds9a\002nl\000\007counter\004test\003com\000:3600
 C\052.test.test.com:server1.test.com.:3600
@@ -20172,6 +20174,8 @@ C\052.wtest.com:server1.wtest.com.:3600
 :b.c.d.e.wtest.com:16:\011non-empty:3600
 :a.b.c.d.e.wtest.com:16:\011non-empty:3600
 +\052.a.b.c.d.e.wtest.com:6.7.8.9:3600
++ns1.wtest.com:2.3.4.5:3600
++ns2.wtest.com:5.6.7.8:3600
 @secure.wtest.com::server1.wtest.com.:10:3600
 +server1.wtest.com:1.2.3.4:3600
 :something.wtest.com:16:\045make\040the\040empty\040non-terminal\040non-empty:3600

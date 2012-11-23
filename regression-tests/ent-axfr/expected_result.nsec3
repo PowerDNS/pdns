@@ -1,4 +1,5 @@
-2eu2gulbu53h9uvhfalshpbo2a83t6l2.test.com.	86400	IN	NSEC3	1 1 1 abcd  79u3das6ucctns1br3tvd8qkanni351l NS SOA MX RRSIG DNSKEY NSEC3PARAM 
+2eu2gulbu53h9uvhfalshpbo2a83t6l2.test.com.	86400	IN	NSEC3	1 1 1 abcd  79ra8k3g5kai1hg9jlhbr6p0tp933m7v NS SOA MX RRSIG DNSKEY NSEC3PARAM 
+79ra8k3g5kai1hg9jlhbr6p0tp933m7v.test.com.	86400	IN	NSEC3	1 1 1 abcd  79u3das6ucctns1br3tvd8qkanni351l A RRSIG 
 79u3das6ucctns1br3tvd8qkanni351l.test.com.	86400	IN	NSEC3	1 1 1 abcd  7mmura8h40be5n4koan7rnmkursamh99
 7mmura8h40be5n4koan7rnmkursamh99.test.com.	86400	IN	NSEC3	1 1 1 abcd  88f1bqrb2iscvfel2sqqcksvflnekap6
 88f1bqrb2iscvfel2sqqcksvflnekap6.test.com.	86400	IN	NSEC3	1 1 1 abcd  a5labagjjevr86gh0hf3jg7nufhga5ar CNAME RRSIG 
@@ -15,6 +16,7 @@ plud9qqecuril62gcfp8br44i7eoq7c9.test.com.	86400	IN	NSEC3	1 1 1 abcd  qd81ag9inq
 qd81ag9inqts1ocs7api0pji94k27btr.test.com.	86400	IN	NSEC3	1 1 1 abcd  s6g5shc1jvovl5fl9e943adlonqln7g4 CNAME RRSIG 
 s6g5shc1jvovl5fl9e943adlonqln7g4.test.com.	86400	IN	NSEC3	1 1 1 abcd  sa5vvpqn1coejgj3hbkfekdnii8kksqa
 sa5vvpqn1coejgj3hbkfekdnii8kksqa.test.com.	86400	IN	NSEC3	1 1 1 abcd  sra2sm4pl136bultass7qqnlblipe8am NAPTR RRSIG 
-sra2sm4pl136bultass7qqnlblipe8am.test.com.	86400	IN	NSEC3	1 1 1 abcd  vlvujatanof6feajoesti9kq4s0crst3 CNAME RRSIG 
+sra2sm4pl136bultass7qqnlblipe8am.test.com.	86400	IN	NSEC3	1 1 1 abcd  u02utt5q2bhjcq986f05mbap0pgamt5o CNAME RRSIG 
 test.com.	86400	IN	NSEC3PARAM	1 0 1 abcd 
+u02utt5q2bhjcq986f05mbap0pgamt5o.test.com.	86400	IN	NSEC3	1 1 1 abcd  vlvujatanof6feajoesti9kq4s0crst3 A RRSIG 
 vlvujatanof6feajoesti9kq4s0crst3.test.com.	86400	IN	NSEC3	1 1 1 abcd  2eu2gulbu53h9uvhfalshpbo2a83t6l2

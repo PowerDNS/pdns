@@ -1,13 +1,17 @@
 #!/bin/sh
-ldns-verify-zone -h | head -n 1
 for zone in $(grep zone named.conf  | cut -f2 -d\" | grep -v '^example.com$')
 do
 	TFILE=$(mktemp)
 	dig axfr $zone @$nameserver -p $port | ldns-read-zone -z > $TFILE
-	for validator in "ldns-verify-zone -V2" validns jdnssec-verifyzone
+	for validator in "ldns-verify-zone -V2" validns jdnssec-verifyzone named-checkzone
 	do
 		echo --- $validator $zone
-		$validator $TFILE 2>&1
+		if [ "$validator" = "named-checkzone" ]
+		then
+			named-checkzone -i local $zone $TFILE 2>&1 | grep -v 'addnode: NSEC node already exists'
+		else
+			$validator $TFILE 2>&1
+		fi
 		RETVAL=$?
 		echo RETVAL: $RETVAL
 		if [ $RETVAL -gt 0 ]
