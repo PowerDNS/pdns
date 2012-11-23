@@ -50,6 +50,11 @@
 # default-ttl=3600
 
 #################################
+# direct-dnskey	EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis
+#
+# direct-dnskey=no
+
+#################################
 # disable-axfr	Disable zonetransfers but do allow TCP queries
 #
 # disable-axfr=no

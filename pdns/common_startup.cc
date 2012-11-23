@@ -139,6 +139,7 @@ void declareArguments()
   ::arg().set("lua-prequery-script", "Lua script with prequery handler")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
+  ::arg().setSwitch("direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
 }
 
 void declareStats(void)

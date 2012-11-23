@@ -221,6 +221,15 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
     r->addRecord(rr);
     haveOne=true;
   }
+
+  if(::arg().mustDo("direct-dnskey")) {
+    B.lookup(QType(QType::DNSKEY), p->qdomain, p, sd.domain_id);
+    while(B.get(rr)) {
+      r->addRecord(rr);
+      haveOne=true;
+    }
+  }
+
   return haveOne;
 }
 
