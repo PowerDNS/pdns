@@ -101,12 +101,12 @@ void loadMainConfig(const std::string& configdir)
 // I think this has to do with interlocking transactions between B and DK, but unsure.
 void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 {
-  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  UeberBackend B("default");
   bool doTransaction=true; // but see above
   SOAData sd;
   sd.db = (DNSBackend*)-1;
   
-  if(!B->getSOA(zone, sd)) {
+  if(!B.getSOA(zone, sd)) {
     cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
     return;
   } 
@@ -254,10 +254,10 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 
 void rectifyAllZones(DNSSECKeeper &dk) 
 {
-  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  UeberBackend B("default");
   vector<DomainInfo> domainInfo;
 
-  B->getAllDomains(&domainInfo);
+  B.getAllDomains(&domainInfo);
   BOOST_FOREACH(DomainInfo di, domainInfo) {
     cerr<<"Rectifying "<<di.zone<<": ";
     rectifyZone(dk, di.zone);
@@ -265,11 +265,11 @@ void rectifyAllZones(DNSSECKeeper &dk)
   cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
 }
 
-int checkZone(DNSSECKeeper &dk, UeberBackend *B, const std::string& zone)
+int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 {
   SOAData sd;
   sd.db=(DNSBackend*)-1;
-  if(!B->getSOA(zone, sd)) {
+  if(!B.getSOA(zone, sd)) {
     cout<<"No SOA for zone '"<<zone<<"'"<<endl;
     return -1;
   } 
@@ -367,13 +367,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend *B, const std::string& zone)
 
 int checkAllZones(DNSSECKeeper &dk) 
 {
-  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+  UeberBackend B("default");
   vector<DomainInfo> domainInfo;
 
-  B->getAllDomains(&domainInfo);
+  B.getAllDomains(&domainInfo);
   int errors=0;
   BOOST_FOREACH(DomainInfo di, domainInfo) {
-    if (checkZone(dk, B.get(), di.zone) > 0) 
+    if (checkZone(dk, B, di.zone) > 0) 
        errors++;
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
@@ -814,8 +814,8 @@ try
       cerr << "Syntax: pdnssec check-zone ZONE"<<endl;
       return 0;
     }
-    scoped_ptr<UeberBackend> B(new UeberBackend("default"));
-    exit(checkZone(dk, B.get(), cmds[1]));
+    UeberBackend B("default");
+    exit(checkZone(dk, B, cmds[1]));
   }
   else if (cmds[0] == "check-all-zones") {
     exit(checkAllZones(dk));
