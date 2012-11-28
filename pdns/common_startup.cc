@@ -107,7 +107,7 @@ void declareArguments()
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
 
   ::arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="yes";
-  ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="no";
+  ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
