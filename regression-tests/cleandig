@@ -8,8 +8,11 @@ drill -a -p $port -o rd -D -S -k trustedkeys $1 $2 @$nameserver > ${testsdir}/${
 echo RETVAL: $? >> ${testsdir}/${testname}/drillchase.out
 drill -a -p $port -o rd -D -k trustedkeys $1 $2 @$nameserver > ${testsdir}/${testname}/drill.out 2>&1
 echo RETVAL: $? >> ${testsdir}/${testname}/drill.out
-/usr/lib/go/bin/q -tcp=true -short=true -rd=false -check -dnssec -port=$port @$nameserver $2 $1 > ${testsdir}/${testname}/q.out 2>&1
-echo RETVAL: $? >> ${testsdir}/${testname}/q.out
+if [ ! -e ${testsdir}/${testname}/skip-q ]
+then
+	/usr/lib/go/bin/q -tcp=true -short=true -rd=false -check -dnssec -port=$port @$nameserver $2 $1 > ${testsdir}/${testname}/q.out 2>&1
+	echo RETVAL: $? >> ${testsdir}/${testname}/q.out
+fi
 if [ ! -e ${testsdir}/${testname}/skip-unboundhost ]
 then
 	unbound-host -v -C unbound-host.conf -t $2 $1 > ${testsdir}/${testname}/unbound-host.out 2>&1
