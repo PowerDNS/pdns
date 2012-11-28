@@ -72,7 +72,7 @@
 #################################
 # do-ipv6-additional-processing	Do AAAA additional processing
 #
-# do-ipv6-additional-processing=no
+# do-ipv6-additional-processing=yes
 
 #################################
 # edns-subnet-option-number	EDNS option number to use
