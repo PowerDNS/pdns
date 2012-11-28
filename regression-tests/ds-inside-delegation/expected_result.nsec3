@@ -1,7 +1,9 @@
 1	t66sektb7egvs7s57m1qged4h6809g8s.example.com.	IN	NSEC3	86400	1 1 1 abcd T6A44A7N1B90T5RIS4IBQKT51MMDL0LO A RRSIG
+1	t66sektb7egvs7s57m1qged4h6809g8s.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
 1	usa.example.com.	IN	NS	120	usa-ns1.usa.example.com.
 1	usa.example.com.	IN	NS	120	usa-ns2.usa.example.com.
 1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	NSEC3	86400	1 1 1 abcd VTP9NUQBEH436S7J0K8TI2A32MMKCUUL NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
 2	.	IN	OPT	32768	
 2	usa-ns1.usa.example.com.	IN	A	120	192.168.4.1
 2	usa-ns2.usa.example.com.	IN	A	120	192.168.4.2
