@@ -277,6 +277,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
   
+  set<string> cnames, noncnames;
+
   while(sd.db->get(rr)) {
     if(!endsOn(rr.qname, zone)) {
       cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" in zone "<<zone<<" is out-of-zone."<<endl;
@@ -287,6 +289,14 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     if(!rr.qtype.getCode())
       continue;
     
+    if (rr.qtype.getCode() == QType::CNAME) {
+      cnames.insert(rr.qname);
+    }
+    else {
+      if (rr.qtype.getCode() != QType::RRSIG)
+        noncnames.insert(rr.qname);
+    }
+
     if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
     {
       cout<<"[Error] NSEC or NSEC3 found at '"<<rr.qname<<"'. These do not belong in the database."<<endl;
@@ -361,6 +371,16 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     }
     numrecords++;
   }
+
+  for(set<string>::const_iterator i = cnames.begin(); i != cnames.end(); i++) {
+    if (noncnames.find(*i) != noncnames.end()) {
+      cout<<"[Error] CNAME "<<*i<<" found, but other records with same label exist."<<endl;
+      numerrors++;
+    }
+  }
+
+
+
   cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
   return numerrors;
 }
