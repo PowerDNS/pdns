@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig example.com DNSKEY dnssec

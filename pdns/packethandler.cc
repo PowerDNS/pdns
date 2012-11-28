@@ -824,13 +824,15 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
 void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
 {
-  DLOG(L<<"Need to fake up the RRSIGs if someone asked for them explicitly"<<endl);
+  DLOG(L<<"Need to synthesise the RRSIGs if someone asked for them explicitly"<<endl);
   typedef map<uint16_t, vector<shared_ptr<DNSRecordContent> > > records_t;
+  typedef map<uint16_t, uint32_t> ttls_t;
   records_t records;
+  ttls_t ttls;
 
   NSECRecordContent nrc;
+  NSEC3RecordContent n3rc;
   nrc.d_set.insert(QType::RRSIG);
-  nrc.d_set.insert(QType::NSEC);
 
   DNSResourceRecord rr;
 
@@ -838,13 +840,18 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
   sd.db=(DNSBackend *)-1; // force uncached answer
   getAuth(p, &sd, p->qdomain, 0);
 
-  rr.ttl=sd.default_ttl;
+  bool narrow;
+  NSEC3PARAMRecordContent ns3pr;
+  bool doNSEC3= d_dk.getNSEC3PARAM(sd.qname, &ns3pr, &narrow);
+
   B.lookup(QType(QType::ANY), p->qdomain, p);
 
+  bool haveone=false;
   while(B.get(rr)) {
-    if(!rr.auth) 
+    haveone=true;
+    if(!((rr.auth && rr.qtype.getCode()) || (!(doNSEC3 && ns3pr.d_flags) && rr.qtype.getCode() == QType::NS)))
       continue;
-    
+
     // make sure all fields are present in the SOA content
     if(rr.qtype.getCode() == QType::SOA) {
       rr.content = serializeSOAData(sd);
@@ -855,6 +862,11 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
       rr.content = lexical_cast<string>(rr.priority) + " " + rr.content;
     }
     
+    // fix direct DNSKEY ttl
+    if(::arg().mustDo("direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY) {
+      rr.ttl = sd.default_ttl;
+    }
+
     if(!rr.content.empty() && rr.qtype.getCode()==QType::TXT && rr.content[0]!='"') {
       rr.content="\""+rr.content+"\"";
     }
@@ -863,46 +875,86 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content)); 
     
     records[rr.qtype.getCode()].push_back(drc);
+    ttls[rr.qtype.getCode()]=rr.ttl;
     nrc.d_set.insert(rr.qtype.getCode());
   }
-  bool narrow;
-  NSEC3PARAMRecordContent ns3pr;
-  bool doNSEC3= d_dk.getNSEC3PARAM(sd.qname, &ns3pr, &narrow);
+
+  if(records.empty()) {
+    if (haveone)
+      makeNOError(p, r, p->qdomain, "", sd, 0);
+    return;
+  }
+
+  if(pdns_iequals(p->qdomain, sd.qname)) { // Add DNSKEYs at apex
+    DNSSECPrivateKey dpk;
+
+    DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
+    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+
+      records[QType::DNSKEY].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::DNSKEY, 1, value.first.getDNSKEY().getZoneRepresentation())));
+      ttls[QType::DNSKEY]=sd.default_ttl;
+      nrc.d_set.insert(QType::DNSKEY);
+    }
+  }
+
+  string before,after;
+  string unhashed(p->qdomain);
+
   if(doNSEC3) {
-    DLOG(L<<"We don't yet add NSEC3 to explicit RRSIG queries correctly yet! (narrow="<<narrow<<")"<<endl);
+    // now get the NSEC3 and NSEC3PARAM
+    string hashed=hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, unhashed);
+    getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
+    unhashed=dotConcat(toLower(toBase32Hex(before)), sd.qname);
+
+    n3rc.d_set=nrc.d_set; // Copy d_set from NSEC
+    n3rc.d_algorithm=ns3pr.d_algorithm;
+    n3rc.d_flags=ns3pr.d_flags;
+    n3rc.d_iterations=ns3pr.d_iterations;
+    n3rc.d_salt=ns3pr.d_salt;
+    n3rc.d_nexthash=after;
+
+    if(pdns_iequals(p->qdomain, sd.qname)) {
+      ns3pr.d_flags = 0; // the NSEC3PARAM 'flag' is defined to always be zero in RFC5155.
+
+      records[QType::NSEC3PARAM].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, ns3pr.getZoneRepresentation())));
+      ttls[QType::NSEC3PARAM]=sd.default_ttl;
+      n3rc.d_set.insert(QType::NSEC3PARAM);
+    }
+
+    records[QType::NSEC3].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::NSEC3, 1, n3rc.getZoneRepresentation())));
+    ttls[QType::NSEC3]=sd.default_ttl;
+
+    // ok, the NSEC3 and NSEC3PARAM are in..
   }
   else {
     // now get the NSEC too (since we must sign it!)
-    string before,after;
     sd.db->getBeforeAndAfterNames(sd.domain_id, sd.qname, p->qdomain, before, after);
-  
+
+    nrc.d_set.insert(QType::NSEC);
     nrc.d_next=after;
-  
-    rr.qname=p->qdomain;
-    // rr.ttl is already set.. we hope
-    rr.qtype=QType::NSEC;
-    rr.content=nrc.getZoneRepresentation();
-    records[QType::NSEC].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content)));
-  
+
+    records[QType::NSEC].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::NSEC, 1, nrc.getZoneRepresentation())));
+    ttls[QType::NSEC]=sd.default_ttl;
+
     // ok, the NSEC is in..
   }
   DLOG(L<<"Have "<<records.size()<<" rrsets to sign"<<endl);
 
-  rr.qname = p->qdomain;
-  // again, rr.ttl is already set
   rr.auth = 0; // please don't sign this!
   rr.d_place = DNSResourceRecord::ANSWER;
   rr.qtype = QType::RRSIG;
 
+  vector<DNSResourceRecord> rrsigs;
+
   BOOST_FOREACH(records_t::value_type& iter, records) {
-    vector<RRSIGRecordContent> rrcs;
-    
-    getRRSIGsForRRSET(d_dk, sd.qname, p->qdomain, iter.first, 3600, iter.second, rrcs, iter.first == QType::DNSKEY);
-    BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
-      rr.content=rrc.getZoneRepresentation();
-      r->addRecord(rr);
-    }
+    rr.qname=(doNSEC3 && iter.first == QType::NSEC3) ? unhashed : p->qdomain;
+    rr.ttl=ttls[iter.first];
+
+    addSignature(d_dk, B, sd.qname, rr.qname, rr.qname, iter.first, rr.ttl, DNSPacketWriter::ANSWER, iter.second, rrsigs, rr.ttl);
   }
+
+  BOOST_FOREACH(DNSResourceRecord& rr, rrsigs)
+    r->addRecord(rr);
 }
 
 void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd)
