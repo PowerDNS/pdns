@@ -17875,15 +17875,18 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
      	  <tgroup cols="2">
           <tbody>
             <row><entry>Native</entry><entry>Yes</entry></row>
-            <row><entry>Master</entry><entry>Yes</entry></row>
+            <row><entry>Master</entry><entry>Yes*</entry></row>
      	      <row><entry>Slave</entry><entry></entry></row>
      	      <row><entry>Superslave</entry><entry></entry></row>
-     	      <row><entry>Autoserial</entry><entry></entry></row>
-     	      <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+     	      <row><entry>Autoserial</entry><entry>Yes*</entry></row>
+     	      <row><entry>DNSSEC</entry><entry>Yes*</entry></row>
             <row><entry>Multiple instances</entry><entry>Yes</entry></row>
           </tbody>
      	  </tgroup>
      	</table>
+      <para>
+        * If provided by the underlying backend.
+      </para>
       <para>
         This backend provides unix socket / pipe / http remoting for powerdns.
       </para>
@@ -17958,8 +17961,8 @@ remote-connection-string=unix:command=/path/to/executable
         <sect3 id="remotebackend-api-replies"><title>Replies</title>
           <para>
             You *must* always reply with JSON hash with at least one key, 'result'. This 
-            must be false if the query failed. Otherwise it must conform to the expected
-            result.
+            must be boolean false if the query failed. Otherwise it must conform to the expected
+            result. For HTTP backend, to signal bare success, you can just reply with HTTP 200 OK, and omit any output. This will result in same outcome as sending {"result":true}.
           </para>
           <para>
             You can optionally add 'log' array, each line in this array will be logged in
@@ -17967,62 +17970,869 @@ remote-connection-string=unix:command=/path/to/executable
           </para>
         </sect3>
         <sect3 id="remotebackend-api-methods"><title>Methods</title>
-          <para>
-The following methods are used:
-</para>
+<sect4 id="remotebackend-api-methods-lookup"><title>Method: lookup</title>
+<variablelist>
+ <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>Yes</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>qtype, qname, zone_id</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Optional parameters:</term>
+   <listitem><para>remote, local, real-remote</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,priority,scopeMask,auth&gt;</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Optional values:</term>
+   <listitem><para>domain_id, scopeMask and auth</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>This method is used to do the basic query. You can omit auth, but if you
+ are using DNSSEC this can lead into trouble. </para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+<listitem>
 <para>
-  <programlisting>
-Method: lookup
-Parameters: qtype, domain, remote, local, real-remote, zone_id
-Reply: array of &lt;qtype,qname,content,ttl,domaind_id,priority,scopeMask&gt;
-Optional values: domain_id and scopeMask
-
-Method: list
-Parameters: zonename, domain_id
-Reply: array of &lt;qtype,qname,content,ttl,domaind_id,priority,scopeMask&gt;
-Optional values: domain_id and scopeMask
-
-Method: getBeforeAndAfterNamesAbsolute
-Parameters: id, qname
-Reply: unhashed, before, after
-
-Method: getBeforeAndAfterNames
-Parameters: id, zonename, qname
-Reply: before, after
-
-Method: getDomainMetadata
-Parameters: name, kind
-Reply: array of strings
-
-Method: getDomainKeys
-Parameters: name, kind
-Reply: array of domain keys &lt;id,flags,active,content&gt;
-
-Method: getTSIGKey
-Parameters: name
-Reply: algorithm, content
-
-Method: setDomainMetadata (POST)
-Parameters: name, kind, value
-Reply: true or false
-
-Method: addDomainKey (POST)
-Parameters: flags, active, content
-Reply: id-of-key
-
-Method: removeDomainKey (DELETE)
-Parameters: name, id
-Reply: true or false
-
-Method: activateDomainKey (POST)
-Parameters: name, id
-Reply: true or false
-
-Method: deactivateDomainKey (POST)
-Parameters: name, id
-Reply: true or false          
+Query:
+<programlisting>
+{"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com", "remote":"192.168.0.24", "local":"192.168.0.1", "real-remote":"192.168.0.24", "zone-id":-1}}
 </programlisting>
 </para>
+<para>
+Response:
+<programlisting>
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60}]}
+</programlisting>
+</para>
+</listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Example HTTP/RPC:</term>
+<listitem>
+<para>
+Query:
+<programlisting>
+GET /dnsapi/lookup/www.example.com/ANY HTTP/1.1
+X-RemoteBackend-remote: 192.168.0.24
+X-RemoteBackend-local: 192.168.0.1
+X-RemoteBackend-real-remote: 192.168.0.24
+X-RemoteBackend-zone-id: -1
+</programlisting>
+</para>
+<para>
+Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60}]}
+</programlisting>
+</para>
+</listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-list"><title>Method: list</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No (Gives AXFR support)</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>zonename, domain_id</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Optional parameters:</term>
+   <listitem><para>domain_id</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,priority,scopeMask,auth&gt;</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Optional values:</term>
+   <listitem><para>domain_id, scopeMask and auth</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Lists all records for the zonename. If you are running dnssec, you should take care of setting auth
+to appropriate value, otherwise things can go wrong. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"list", "parameters":{"zonename":"example.com","domain_id":-1}}
+</programlisting>
+   </para>
+   <para>
+    Response (split into lines for ease of reading)
+<programlisting>
+{"result":[
+  {"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},
+  {"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},
+  {"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},
+  {"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},
+  {"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},
+  {"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60} 
+]}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/list/example.com HTTP/1.1
+X-RemoteBackend-domain-id: -1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4> 
+
+<sect4 id="remotebackend-api-method-getbeforeandafternamesabsolute"><title>Method: getBeforeAndAfterNamesAbsolute</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>for NSEC/NSEC3 non-narrow</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>id, qname</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>before, after</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Asks the names before and after qname. qname is given without dots or domain part. The query
+can also be hashed. Care must be taken to handle wrap-around when qname is first or last in
+the ordered list. Do not return nil for either one. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"getbeforeandafternamesabsolute", "params":{"id":0,"qname":"www.example.com"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{”result":{"before":"ns1","after":""}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+/dnsapi/getbeforeandafternamesabsolute/0/www.example.com
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+{”result":{"before":"ns1","after":""}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-getdomainmetadata"><title>Method: getDomainMetadata</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name, kind</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>array of strings</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Returns the value(s) for variable kind for zone name. Most commonly it's one of 
+NSEC3PARAM, PRESIGNED, SOA-EDIT. Can be others, too. You *must* always return 
+something, if there are no values, you shall return empty array or false.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"getdomainmetadata", "parameters":{"name":"example.com","kind":"PRESIGNED"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":["NO"]}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/getdomainmetadata/example.com/PRESIGNED HTTP/1.1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":["NO"]}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-setdomainmetadata"><title>Method: setDomainMetadata </title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name, kind, value</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true on success, false on failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Replaces the value(s) on domain name for variable kind to string(s) on array value. The 
+old value is discarded. Value can be an empty array, which can be interprepted as 
+deletion request.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"setdomainmetadata","parameters":{"name":"example.com","kind":"PRESIGNED","value":["YES"]}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/setdomainmetadata/example.com/PRESIGNED HTTP/1.1
+Content-Type: application/x-www-form-urlencoded 
+Content-Length: 12
+
+value1=YES&amp;
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-getdomainkeys"><title>Method: getDomainKeys</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>for DNSSEC</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name, kind</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>array of &lt;id, flags, active, content&gt;</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Retrieves any keys of kind. The id, flags are unsigned integers, and active is boolean. Content must be valid key record in format that PowerDNS understands. You are encouraged to implement <xref linkend="remotebackend-api-method-adddomainkey" />, as you can use <xref linkend="pdnssec" /> to provision keys. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"getdomainkeys","parameters":{"name":"example.com","kind":0}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":[{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
+Algorithm: 8 (RSASHA256)
+Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
+PublicExponent: AQAB
+PrivateExponent: CYC93UtVnOM6wrFJZ+qA9+Yx+p5yk0CSi0Q7c+/6EVMuABQ5gNyTuu0j65lU3X81bwUk2wHPx6smfgoVDRAW5jjO4jgIFV6nE4inzk5YQKycQSL8YG3Nm9GciLFya1KUXs81sHsQpkvK7MNaSbvkaHZQ6iv16bZ4t73Wascwa/E=
+Prime1: 6a165cIC0nNsGlTW/s2jRu7idq5+U203iE1HzSIddmWgx5KIKE/s3I+pwfmXYRUmq+4H9ASd/Yot1lSYW98szw==
+Prime2: wLoCPKxxnuxDx6/9IKOYz8t9ZNLY74iCeQ85koqvTctkFmB9jpOUHTU9BhecaFY2euP9CuHV7z3PLtCoO8s1MQ==
+Exponent1: CuzJaiR/7UboLvL4ekEy+QYCIHpX/Z6FkiHK0ZRevEJUGgCHzRqvgEBXN3Jr2WYbwL4IMShmGoxzSCn8VY9BkQ==
+Exponent2: LDR9/tyu0vzuLwc20B22FzNdd5rFF2wAQTQ0yF/3Baj5NAi9w84l0u07KgKQZX4g0N8qUyypnU5YDyzc6ZoagQ==
+Coefficient: 6S0vhIQITWzqfQSLj+wwRzs6qCvJckHb1+SD1XpwYjSgMTEUlZhf96m8WiaE1/fIt4Zl2PC3fF7YIBoFLln22w=="}]}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/getdomainkeys/example.com/0 HTTP/1.1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":[{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
+Algorithm: 8 (RSASHA256)
+Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
+PublicExponent: AQAB
+PrivateExponent: CYC93UtVnOM6wrFJZ+qA9+Yx+p5yk0CSi0Q7c+/6EVMuABQ5gNyTuu0j65lU3X81bwUk2wHPx6smfgoVDRAW5jjO4jgIFV6nE4inzk5YQKycQSL8YG3Nm9GciLFya1KUXs81sHsQpkvK7MNaSbvkaHZQ6iv16bZ4t73Wascwa/E=
+Prime1: 6a165cIC0nNsGlTW/s2jRu7idq5+U203iE1HzSIddmWgx5KIKE/s3I+pwfmXYRUmq+4H9ASd/Yot1lSYW98szw==
+Prime2: wLoCPKxxnuxDx6/9IKOYz8t9ZNLY74iCeQ85koqvTctkFmB9jpOUHTU9BhecaFY2euP9CuHV7z3PLtCoO8s1MQ==
+Exponent1: CuzJaiR/7UboLvL4ekEy+QYCIHpX/Z6FkiHK0ZRevEJUGgCHzRqvgEBXN3Jr2WYbwL4IMShmGoxzSCn8VY9BkQ==
+Exponent2: LDR9/tyu0vzuLwc20B22FzNdd5rFF2wAQTQ0yF/3Baj5NAi9w84l0u07KgKQZX4g0N8qUyypnU5YDyzc6ZoagQ==
+Coefficient: 6S0vhIQITWzqfQSLj+wwRzs6qCvJckHb1+SD1XpwYjSgMTEUlZhf96m8WiaE1/fIt4Zl2PC3fF7YIBoFLln22w=="}]}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-adddomainkey"><title>Method: addDomainKey</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name, key=&lt;flags,active,content&gt;</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Adds key into local storage. See <xref linkend="remotebackend-api-method-getdomainkeys" /> for more information.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"adddomainkey", "parameters":{"key":{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
+Algorithm: 8 (RSASHA256)
+Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
+PublicExponent: AQAB
+PrivateExponent: CYC93UtVnOM6wrFJZ+qA9+Yx+p5yk0CSi0Q7c+/6EVMuABQ5gNyTuu0j65lU3X81bwUk2wHPx6smfgoVDRAW5jjO4jgIFV6nE4inzk5YQKycQSL8YG3Nm9GciLFya1KUXs81sHsQpkvK7MNaSbvkaHZQ6iv16bZ4t73Wascwa/E=
+Prime1: 6a165cIC0nNsGlTW/s2jRu7idq5+U203iE1HzSIddmWgx5KIKE/s3I+pwfmXYRUmq+4H9ASd/Yot1lSYW98szw==
+Prime2: wLoCPKxxnuxDx6/9IKOYz8t9ZNLY74iCeQ85koqvTctkFmB9jpOUHTU9BhecaFY2euP9CuHV7z3PLtCoO8s1MQ==
+Exponent1: CuzJaiR/7UboLvL4ekEy+QYCIHpX/Z6FkiHK0ZRevEJUGgCHzRqvgEBXN3Jr2WYbwL4IMShmGoxzSCn8VY9BkQ==
+Exponent2: LDR9/tyu0vzuLwc20B22FzNdd5rFF2wAQTQ0yF/3Baj5NAi9w84l0u07KgKQZX4g0N8qUyypnU5YDyzc6ZoagQ==
+Coefficient: 6S0vhIQITWzqfQSLj+wwRzs6qCvJckHb1+SD1XpwYjSgMTEUlZhf96m8WiaE1/fIt4Zl2PC3fF7YIBoFLln22w=="}}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/adddomainkey/example.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 965
+
+flags=256&amp;active=1&amp;content=Private-key-format: v1.2
+Algorithm: 8 (RSASHA256)
+Modulus: r+vmQll38ndQqNSCx9eqRBUbSOLcH4PZFX824sGhY2NSQChqt1G4ZfndzRwgjXMUwiE7GkkqU2Vbt/g4iP67V/+MYecMV9YHkCRnEzb47nBXvs9JCf8AHMCnma567GQjPECh4HevPE9wmcOfpy/u7UN1oHKSKRWuZJadUwcjbp8=
+PublicExponent: AQAB
+PrivateExponent: CYC93UtVnOM6wrFJZ+qA9+Yx+p5yk0CSi0Q7c+/6EVMuABQ5gNyTuu0j65lU3X81bwUk2wHPx6smfgoVDRAW5jjO4jgIFV6nE4inzk5YQKycQSL8YG3Nm9GciLFya1KUXs81sHsQpkvK7MNaSbvkaHZQ6iv16bZ4t73Wascwa/E=
+Prime1: 6a165cIC0nNsGlTW/s2jRu7idq5+U203iE1HzSIddmWgx5KIKE/s3I+pwfmXYRUmq+4H9ASd/Yot1lSYW98szw==
+Prime2: wLoCPKxxnuxDx6/9IKOYz8t9ZNLY74iCeQ85koqvTctkFmB9jpOUHTU9BhecaFY2euP9CuHV7z3PLtCoO8s1MQ==
+Exponent1: CuzJaiR/7UboLvL4ekEy+QYCIHpX/Z6FkiHK0ZRevEJUGgCHzRqvgEBXN3Jr2WYbwL4IMShmGoxzSCn8VY9BkQ==
+Exponent2: LDR9/tyu0vzuLwc20B22FzNdd5rFF2wAQTQ0yF/3Baj5NAi9w84l0u07KgKQZX4g0N8qUyypnU5YDyzc6ZoagQ==
+Coefficient: 6S0vhIQITWzqfQSLj+wwRzs6qCvJckHb1+SD1XpwYjSgMTEUlZhf96m8WiaE1/fIt4Zl2PC3fF7YIBoFLln22w==
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-removedomainkey"><title>Method: removeDomainKey </title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name, id</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Removes key id from domain name. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"removedomainkey","parameters":"{"name":"example.com","id":1}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+DELETE /dnsapi/removedomainkey/example.com/1 HTTP/1.1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-activatedomainkey"><title>Method: activateDomainKey</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name, id</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Activates key id for domain name.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"activatedomainkey","parameters":{"name":"example.com","id":1}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/activatedomainkey/example.com/1 HTTP/1.1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; utf-8
+
+{"result": true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-deactivatedomainkey"><title>Method deactivateDomainKey</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name, id</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>Deactivates key id for domain name.</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"deactivatedomainkey","parameters":{"name":"example.com","id":1}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result": true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/deactivatedomainkey/example.com/1 HTTP/1.1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; utf-8
+
+{"result": true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-gettsigkey"><title>Method: getTSIGKey</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>algorithm, content</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Retrieves the key needed to sign AXFR. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"gettsigkey","parameters":{"name":"example.com"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":{"algorithm":"hmac-md5","content:"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/gettsigkey/example.com
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":{"algorithm":"hmac-md5","content:"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-getdomaininfo"><title>Method: getDomainInfo</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>zone</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Optional values:</term>
+   <listitem><para>serial, kind, id, notified_serial, last_check, masters</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Retrieves information about given domain from the backend. If your return value has no zone
+attribute, the backend will signal error. Everything else will default to something. 
+Default values: serial:0, kind:NATIVE, id:-1, notified_serial:-1, last_check:0, masters: [].
+Masters, if present, must be array of strings. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"getdomaininfo","parameters":{"name":"example.com"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":{id:1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/getdomaininfo/example.com HTTP/1.1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+content-Type: text/javascript: charset=utf-8
+
+{"result":{id:1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-setnotified"><title>Method: setNotified</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>id, serial</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Updates last notified serial for the domain id. Any errors are ignored. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"setnotified","parameters":{"id":1,"serial":2002010100}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/setnotified/1
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 17
+
+serial=2002010100
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
 </sect3>
 </sect2>
 

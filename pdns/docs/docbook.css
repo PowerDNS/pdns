@@ -2,6 +2,10 @@ body {
          font-family: luxi sans,sans-serif;
 }
 
+h5 {
+  	font-size: 1.1em;
+}
+
 .screen {
         font-family: monospace;
         font-size: 1em;
