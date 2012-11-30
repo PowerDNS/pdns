@@ -14367,8 +14367,8 @@ This setting will make PowerDNS renotify the after a AXFR is *received* from a m
 	  <term>DNSKEY (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The DNSKEY DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
-	      and serve DNSSEC records, no further DNSSEC processing is performed.
+	      The DNSKEY DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS
+		  is able to fully process DNSSEC. This can be done with <link linkend="pdnssec">pdnssec</link>.
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -14376,8 +14376,8 @@ This setting will make PowerDNS renotify the after a AXFR is *received* from a m
 	  <term>DS (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The DS DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
-	      and serve DNSSEC records, no further DNSSEC processing is performed.
+	      The DS DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS
+		  is able to fully process DNSSEC. This can be done with <link linkend="pdnssec">pdnssec</link>.
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -14442,8 +14442,8 @@ This setting will make PowerDNS renotify the after a AXFR is *received* from a m
 	  <term>NSEC (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The NSEC DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
-	      and serve DNSSEC records, no further DNSSEC processing is performed.
+	      The NSEC DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS
+		  is able to fully process DNSSEC. This can be done with <link linkend="pdnssec">pdnssec</link>.
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -14470,8 +14470,8 @@ This setting will make PowerDNS renotify the after a AXFR is *received* from a m
 	  <term>RRSIG (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The RRSIG DNSSEC record type is fully supported, as described in RFC 3757. Note that while PowerDNS can store, retrieve 
-	      and serve DNSSEC records, no further DNSSEC processing is performed.
+	      The RRSIG DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS
+		  is able to fully process DNSSEC. This can be done with <link linkend="pdnssec">pdnssec</link>.
 	    </para>
 	  </listitem>      
 	</varlistentry>
