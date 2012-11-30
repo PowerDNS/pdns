@@ -25,12 +25,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sstream>
-
-
+#include "misc.hh"
 
 void Session::init()
 {
-  d_bufsize=15049;
+  d_bufsize=15049; // why?!
 
   d_verbose=false;
 
@@ -126,9 +125,31 @@ char *strnchr(char *p, char c, int len)
   return 0;
 }
 
+string Session::get(unsigned int bytes)
+{
+  string ret;
+  if(wroffset - rdoffset >= (int)bytes) 
+  {
+    ret = string(rdbuf + rdoffset, bytes);
+    bytes -= ret.length();
+    rdoffset += ret.length();
+  }
+  
+  if(bytes) {
+    scoped_array<char> buffer(new char[bytes]);
+    int err = read(clisock, &buffer[0], bytes);  // XXX FIXME should be nonblocking
+    if(err < 0)
+      throw SessionException("Error reading bytes from client: "+string(strerror(errno)));
+    if(err != (int)bytes)
+      throw SessionException("Error reading bytes from client: partial read");
+    ret.append(&buffer[0], err);
+  }
+  return ret;
+}
+
 int Session::timeoutRead(int s, char *buf, size_t len)
 {
-  int err = waitForRWData(clisock, true, d_timeout, 0);
+  int err = waitForRWData(s, true, d_timeout, 0);
   
   if(!err)
     throw SessionTimeoutException("timeout reading");
@@ -155,7 +176,6 @@ Session::getLine(string &line)
   
   // read data into a buffer
   // find first \n, and return that as string, store how far we were
-
 
   for(;;)
     {

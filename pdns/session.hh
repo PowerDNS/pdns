@@ -58,6 +58,7 @@ public:
   bool putLine(const string &s); //!< Write a line to the remote
   bool sendFile(int fd); //!< Send a file out
   int timeoutRead(int s,char *buf, size_t len);
+  string get(unsigned int bytes);
 
   Session(int s, struct sockaddr_in r); //!< Start a session on an existing socket, and inform this class of the remotes name
 
