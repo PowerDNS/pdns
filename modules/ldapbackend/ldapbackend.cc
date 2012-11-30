@@ -134,7 +134,10 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 
         if( m_result.count( "dn" ) && !m_result["dn"].empty() )
         {
-        	dn = m_result["dn"][0];
+		if( !mustDo( "basedn-axfr-override" ) )
+		{
+			dn = m_result["dn"][0];
+		}
         	m_result.erase( "dn" );
         }
 
@@ -531,6 +534,7 @@ public:
         	declare( suffix, "host", "One or more LDAP server with ports or LDAP URIs (separated by spaces)","ldap://127.0.0.1:389/" );
         	declare( suffix, "starttls", "Use TLS to encrypt connection (unused for LDAP URIs)", "no" );
         	declare( suffix, "basedn", "Search root in ldap tree (must be set)","" );
+        	declare( suffix, "basedn-axfr-override", "Override base dn for AXFR subtree search", "no" );
         	declare( suffix, "binddn", "User dn for non anonymous binds","" );
         	declare( suffix, "secret", "User password for non anonymous binds", "" );
         	declare( suffix, "timeout", "Seconds before connecting to server fails", "5" );
