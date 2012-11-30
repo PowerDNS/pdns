@@ -96,6 +96,11 @@ public:
   //! Calculates a SOA serial for the zone and stores it in the third argument.
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 
+  virtual bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+  {
+    return false;
+  }
+
   // the DNSSEC related (getDomainMetadata has broader uses too)
   virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}

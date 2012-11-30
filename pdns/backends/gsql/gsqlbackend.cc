@@ -872,6 +872,19 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   return false;
 }
 
+bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+{
+  
+  string deleteRRSet = "delete from records where domain_id = %d and name='%s' and type='%s'";
+  string deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname) % sqlEscape(qt.getName())).str();
+  d_db->doCommand(deleteQuery);
+  BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
+    feedRecord(rr);
+  }
+  
+  return true;
+}
+
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
 {
   string output;

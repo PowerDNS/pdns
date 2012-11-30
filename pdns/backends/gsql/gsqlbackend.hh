@@ -51,6 +51,7 @@ public:
 
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 
+  bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
   int addDomainKey(const string& name, const KeyData& key);
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
