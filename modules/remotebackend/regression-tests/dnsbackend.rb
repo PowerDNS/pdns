@@ -73,6 +73,13 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
         }
      end
 
+     if method == "do_setdomainmetadata"
+        args["value"] = []
+        args.each do |k,a|
+            args["value"] << a if k[/^value/]
+        end
+     end
+
      @f.puts method
      @f.puts args
 

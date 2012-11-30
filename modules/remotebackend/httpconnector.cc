@@ -109,6 +109,7 @@ void HTTPConnector::requestbuilder(const std::string &method, const Json::Value 
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, sparam.c_str());
         curl_free(tmpstr);
     } else if (method == "setDomainMetadata") {
+        int n=0;
         // copy all metadata values into post
         std::stringstream ss2;
         param = parameters["value"];
@@ -116,7 +117,7 @@ void HTTPConnector::requestbuilder(const std::string &method, const Json::Value 
         // this one has values too
         if (param.isArray()) {
            for(Json::ValueIterator i = param.begin(); i != param.end(); i++) {
-              ss2 << "value[]=" << (*i).asString() << "&";
+              ss2 << "value" << (++n) << "=" << (*i).asString() << "&";
            }
         }
         sparam = ss2.str();

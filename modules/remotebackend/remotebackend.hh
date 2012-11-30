@@ -90,13 +90,13 @@ class RemoteBackend : public DNSBackend
   virtual bool getDomainKeys(const std::string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
   virtual bool getTSIGKey(const std::string& name, std::string* algorithm, std::string* content);
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
-  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after);
   virtual bool setDomainMetadata(const string& name, const string& kind, const std::vector<std::basic_string<char> >& meta);
   virtual bool removeDomainKey(const string& name, unsigned int id);
   virtual int addDomainKey(const string& name, const KeyData& key);
   virtual bool activateDomainKey(const string& name, unsigned int id);
   virtual bool deactivateDomainKey(const string& name, unsigned int id);
   virtual bool getDomainInfo(const string&, DomainInfo&);
+  virtual void setNotified(uint32_t id, uint32_t serial);
   virtual bool doesDNSSEC();
 
   static DNSBackend *maker();

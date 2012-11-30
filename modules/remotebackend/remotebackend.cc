@@ -118,7 +118,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
 
    if (d_index != -1) 
       throw AhuException("Attempt to lookup while one running");
- 
+
    args["qtype"] = qtype.getName();
    args["qname"] = qdomain;
    if (pkt_p != NULL) {
@@ -204,27 +204,6 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    return true;
 }
 
-bool RemoteBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after) {
-   Json::Value query,answer;
-
-   // no point doing dnssec if it's not supported
-   if (d_dnssec == false) return false;
-
-   query["method"] = "getBeforeAndAfterNames";
-   query["parameters"] = Json::Value();
-   query["parameters"]["id"] = id;
-   query["parameters"]["zonename"] = zonename;
-   query["parameters"]["qname"] = qname;
-
-   if (connector->send(query) == false || connector->recv(answer) == false)
-     return false;
-
-   before = answer["before"].asString();
-   after = answer["after"].asString();
-
-   return true;
-}
-
 bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta) {
    Json::Value query,answer;
 
@@ -232,10 +211,13 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
    query["parameters"] = Json::Value();
    query["parameters"]["name"] = name;
    query["parameters"]["kind"] = kind;
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (connector->send(query) == false)
      return false;
-
    meta.clear();
+
+   // not mandatory to implement
+   if (connector->recv(answer) == false)
+     return true;
 
    for(Json::ValueIterator iter = answer.begin(); iter != answer.end(); iter++) {
           meta.push_back((*iter).asString());
@@ -397,9 +379,9 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
         di.masters.push_back((*i).asString());
      }
    }
-   di.notified_serial = -1;
+   di.notified_serial = answer.get("notified_serial", Json::Value(-1)).asInt();
    di.serial = answer.get("serial", Json::Value(0)).asInt();
-   di.last_check = 0;
+   di.last_check = answer.get("last_check", Json::Value(0)).asInt();
    kind = answer.get("kind", Json::Value("native")).asString();
    if (kind == "master") {
       di.kind = DomainInfo::Master;
@@ -410,6 +392,18 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
    }
    di.backend = this;
    return true;
+}
+
+void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
+   Json::Value query,answer;
+   std::string kind;
+   query["method"] = "setNotified";
+   query["parameters"] = Json::Value();
+   query["parameters"]["id"] = id;
+   query["parameters"]["serial"] = serial;
+   if (connector->send(query) == false || connector->recv(answer) == false) {
+      L<<Logger::Error<<kBackendId<<"Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
+   }
 }
 
 DNSBackend *RemoteBackend::maker()
