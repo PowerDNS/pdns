@@ -52,7 +52,7 @@ build-static stamp-build-static:
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
 		--with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \
-		--with-modules="gmysql gpgsql pipe gsqlite3 lua geo tinydns mydns opendbx" \
+		--with-modules="gmysql gpgsql pipe gsqlite3 lua geo tinydns mydns opendbx remote" \
 		--with-dynmodules="" \
 		--enable-botan1.10 --enable-cryptopp \
 		--enable-static-binaries 
