@@ -17875,7 +17875,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
      	  <tgroup cols="2">
           <tbody>
             <row><entry>Native</entry><entry>Yes</entry></row>
-            <row><entry>Master</entry><entry></entry></row>
+            <row><entry>Master</entry><entry>Yes</entry></row>
      	      <row><entry>Slave</entry><entry></entry></row>
      	      <row><entry>Superslave</entry><entry></entry></row>
      	      <row><entry>Autoserial</entry><entry></entry></row>
