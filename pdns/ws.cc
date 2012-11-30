@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2002 - 2007  PowerDNS.COM BV
+    Copyright (C) 2002 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -28,6 +28,7 @@
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include "namespaces.hh"
+#include <jsoncpp/json/json.h>
 
 extern StatBag S;
 
@@ -152,7 +153,7 @@ string StatWebServer::makePercentage(const double& val)
   return (boost::format("%.01f%%") % val).str();
 }
 
-string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr, bool *custom)
+string StatWebServer::indexfunction(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
 {
   StatWebServer *sws=static_cast<StatWebServer *>(ptr);
   map<string,string>rvarmap=varmap;
@@ -231,11 +232,10 @@ string StatWebServer::indexfunction(const map<string,string> &varmap, void *ptr,
 }
 
 
-string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool *custom)
+string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
 {
-  *custom=1;
+  *custom=1; // indicates we build the response
   string ret="HTTP/1.1 200 OK\r\n"
-  "Date: Wed, 30 Nov 2011 22:01:15 GMT\r\n" // XXX FIXME real date!
   "Server: PowerDNS/"VERSION"\r\n"
   "Connection: close\r\n"
   "Access-Control-Allow-Origin: *\r\n"
@@ -352,6 +352,95 @@ string StatWebServer::jsonstat(const map<string,string> &varmap, void *ptr, bool
     }
 
     ret += "]";
+  }
+  if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
+    vector<string> parts;
+    stringtok(parts, ourvarmap["rest"], "/");
+    if(parts.size() != 3) 
+      return ret+"{\"error\": \"Could not parse rest parameter\"}";
+    UeberBackend B;
+    SOAData sd;
+    sd.db = (DNSBackend*)-1;
+    if(!B.getSOA(parts[0], sd) || !sd.db) {
+      map<string, string> err;
+      err["error"]= "Could not find domain '"+ourvarmap["zone"]+"'";
+      return ret+returnJSONObject(err);
+    }
+    
+    QType qtype;
+    qtype=parts[2];
+    string qname=parts[1];
+    extern PacketCache PC;
+    PC.purge(qname);
+    // cerr<<"domain id: "<<sd.domain_id<<", lookup name: '"<<parts[1]<<"', for type: '"<<qtype.getName()<<"'"<<endl;
+    
+    if(method == "GET" ) {
+      B.lookup(qtype, parts[1], 0, sd.domain_id);
+      
+      DNSResourceRecord rr;
+      ret+="{ \"records\": [";
+      map<string, string> object;
+      bool first=1;
+      
+      while(B.get(rr)) {
+	if(!first) ret += ", ";
+	  first=false;
+	object.clear();
+	object["name"] = rr.qname;
+	object["type"] = rr.qtype.getName();
+	object["ttl"] = lexical_cast<string>(rr.ttl);
+	object["priority"] = lexical_cast<string>(rr.priority);
+	object["content"] = rr.content;
+	ret+=returnJSONObject(object);
+      }
+      ret+="]}";
+    }
+    else if(method=="DELETE") {
+      sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
+      
+    }
+    else if(method=="POST") {
+      Json::Value root;   // will contains the root value after parsing.
+      Json::Reader reader;
+      if(!reader.parse(post, root )) {
+	return ret+"{\"error\": \"Unable to parse JSON\"";
+      }
+      
+      const Json::Value records=root["records"];
+      
+      DNSResourceRecord rr;
+      vector<DNSResourceRecord> rrset;
+      for(unsigned int i = 0 ; i < records.size(); ++i) {
+	const Json::Value& record = records[i];
+	rr.qname=record["name"].asString();
+	rr.content=record["content"].asString();
+	rr.qtype=record["type"].asString();
+	rr.domain_id = sd.domain_id;
+	rr.auth=0;
+	rr.ttl=atoi(record["ttl"].asString().c_str());
+	rr.priority=atoi(record["priority"].asString().c_str());
+	
+	rrset.push_back(rr);
+	
+	if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
+	  rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+	  
+	try {
+	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+	  string tmp=drc->serialize(rr.qname);
+	}
+	catch(std::exception& e) 
+	{
+	  map<string, string> err;
+	  err["error"]= "Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what();
+	  return ret+returnJSONObject(err);
+	}
+      }
+      // but now what
+      sd.db->startTransaction(qname);
+      sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
+      sd.db->commitTransaction();
+    }  
   }
   if(command=="log-grep") {
     ret += makeLogGrepJSON(ourvarmap, ::arg()["logfile"], " pdns[");

@@ -62,9 +62,11 @@ void *WebServer::serveConnection(void *p)
     vector<string> parts;
     stringtok(parts,line);
     
-    string uri;
-    if(parts.size()>1)
+    string method, uri;
+    if(parts.size()>1) {
+      method=parts[0];
       uri=parts[1];
+    }
 
     vector<string>variables;
 
@@ -102,7 +104,7 @@ void *WebServer::serveConnection(void *p)
     }
 
     bool authOK=0;
-
+    int postlen = 0;
     // read & ignore other lines
     do {
       client->getLine(line);
@@ -121,7 +123,20 @@ void *WebServer::serveConnection(void *p)
           authOK=1;
         }
       }
+      else if(boost::starts_with(line, "Content-Length: ") && method=="POST") {
+	postlen = atoi(line.c_str() + strlen("Content-Length: "));
+//	cout<<"Got a post: "<<postlen<<" bytes"<<endl;
+      }
+      else
+	; // cerr<<"Ignoring line: "<<line<<endl;
+      
     }while(!line.empty());
+
+    string post;
+    if(postlen) 
+      post = client->get(postlen);
+  
+ //   cout<<"Post: '"<<post<<"'"<<endl;
 
     if(!d_password.empty() && !authOK) {
       client->putLine("HTTP/1.1 401 OK\n");
@@ -138,7 +153,7 @@ void *WebServer::serveConnection(void *p)
     HandlerFunction *fptr;
     if(d_functions.count(baseUrl) && (fptr=d_functions[baseUrl])) {
       bool custom=false;
-      string ret=(*fptr)(varmap, d_that, &custom);
+      string ret=(*fptr)(method, post, varmap, d_that, &custom);
 
       if(!custom) {
         client->putLine("HTTP/1.1 200 OK\n");

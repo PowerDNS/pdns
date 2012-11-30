@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -32,7 +32,7 @@ public:
   void go();
   static void* serveConnection(void *);
   void setCaller(void *that);
-  typedef string HandlerFunction(const map<string,string>&varmap, void *that, bool *custom);
+  typedef string HandlerFunction(const string& method, const string& post, const map<string,string>&varmap, void *that, bool *custom);
   void registerHandler(const string &, HandlerFunction *ptr);
 private:
   static char B64Decode1(char cInChar);
