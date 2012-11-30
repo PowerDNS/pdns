@@ -595,7 +595,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   }
   
   // add matching NSEC3 RR
-  if (mode != 3) {
+  if (mode != 3 && mode != 5) {
     unhashed=(mode == 0 || mode == 5) ? target : closest;
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
