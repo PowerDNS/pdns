@@ -363,7 +363,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     sd.db = (DNSBackend*)-1;
     if(!B.getSOA(parts[0], sd) || !sd.db) {
       map<string, string> err;
-      err["error"]= "Could not find domain '"+ourvarmap["zone"]+"'";
+      err["error"]= "Could not find domain '"+parts[0]+"'";
       return ret+returnJSONObject(err);
     }
     
@@ -383,15 +383,15 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       bool first=1;
       
       while(B.get(rr)) {
-	if(!first) ret += ", ";
-	  first=false;
-	object.clear();
-	object["name"] = rr.qname;
-	object["type"] = rr.qtype.getName();
-	object["ttl"] = lexical_cast<string>(rr.ttl);
-	object["priority"] = lexical_cast<string>(rr.priority);
-	object["content"] = rr.content;
-	ret+=returnJSONObject(object);
+        if(!first) ret += ", ";
+          first=false;
+        object.clear();
+        object["name"] = rr.qname;
+        object["type"] = rr.qtype.getName();
+        object["ttl"] = lexical_cast<string>(rr.ttl);
+        object["priority"] = lexical_cast<string>(rr.priority);
+        object["content"] = rr.content;
+        ret+=returnJSONObject(object);
       }
       ret+="]}";
     }
@@ -403,7 +403,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       Json::Value root;   // will contains the root value after parsing.
       Json::Reader reader;
       if(!reader.parse(post, root )) {
-	return ret+"{\"error\": \"Unable to parse JSON\"";
+        return ret+"{\"error\": \"Unable to parse JSON\"";
       }
       
       const Json::Value records=root["records"];
@@ -411,35 +411,36 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       DNSResourceRecord rr;
       vector<DNSResourceRecord> rrset;
       for(unsigned int i = 0 ; i < records.size(); ++i) {
-	const Json::Value& record = records[i];
-	rr.qname=record["name"].asString();
-	rr.content=record["content"].asString();
-	rr.qtype=record["type"].asString();
-	rr.domain_id = sd.domain_id;
-	rr.auth=0;
-	rr.ttl=atoi(record["ttl"].asString().c_str());
-	rr.priority=atoi(record["priority"].asString().c_str());
-	
-	rrset.push_back(rr);
-	
-	if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
-	  rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
-	  
-	try {
-	  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
-	  string tmp=drc->serialize(rr.qname);
-	}
-	catch(std::exception& e) 
-	{
-	  map<string, string> err;
-	  err["error"]= "Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what();
-	  return ret+returnJSONObject(err);
-	}
+        const Json::Value& record = records[i];
+        rr.qname=record["name"].asString();
+        rr.content=record["content"].asString();
+        rr.qtype=record["type"].asString();
+        rr.domain_id = sd.domain_id;
+        rr.auth=0;
+        rr.ttl=atoi(record["ttl"].asString().c_str());
+        rr.priority=atoi(record["priority"].asString().c_str());
+        
+        rrset.push_back(rr);
+        
+        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
+          rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+          
+        try {
+          shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+          string tmp=drc->serialize(rr.qname);
+        }
+        catch(std::exception& e) 
+        {
+          map<string, string> err;
+          err["error"]= "Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what();
+          return ret+returnJSONObject(err);
+        }
       }
       // but now what
       sd.db->startTransaction(qname);
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
       sd.db->commitTransaction();
+      return ret+post;
     }  
   }
   if(command=="log-grep") {
