@@ -15,5 +15,5 @@ for arg in args:
 	else:
 		otherargs.append(arg)
 
-gargv=['gcc']+otherargs+['-Wl,-Bstatic']+libs+['-lstdc++','-Wl,-Bdynamic','-static-libgcc','-lm']
+gargv=['gcc']+otherargs+['-Wl,-Bstatic']+libs+['-lstdc++','-Wl,-Bdynamic','-static-libgcc','-lm','-ldl']
 os.execvp('gcc', gargv)
