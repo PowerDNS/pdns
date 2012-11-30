@@ -494,7 +494,7 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOADa
    mode 2 = Wildcard No Data Responses
    mode 3 = Wildcard Answer Responses
    mode 4 = Name Error Responses
-   mode 5 = ANY or direct NSEC request
+   mode 5 = Direct NSEC request
 */
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& wildcard, const string& auth, int mode)
 {
@@ -503,7 +503,8 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, c
   bool narrow;
   if(d_dk.getNSEC3PARAM(auth, &ns3rc, &narrow))  {
     // cerr<<"Present, narrow="<<narrow<<endl;
-    addNSEC3(p, r, target, wildcard, auth, ns3rc, narrow, mode);
+    if (mode != 5) // no direct NSEC3 please
+      addNSEC3(p, r, target, wildcard, auth, ns3rc, narrow, mode);
   }
   else {
     // cerr<<"Not present"<<endl;
@@ -595,8 +596,8 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   }
   
   // add matching NSEC3 RR
-  if (mode != 3 && mode != 5) {
-    unhashed=(mode == 0) ? target : closest;
+  if (mode != 3) {
+    unhashed=(mode == 0 || mode == 5) ? target : closest;
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     // L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl;
@@ -921,10 +922,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
       n3rc.d_set.insert(QType::NSEC3PARAM);
     }
 
-    records[QType::NSEC3].push_back(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::NSEC3, 1, n3rc.getZoneRepresentation())));
-    ttls[QType::NSEC3]=sd.default_ttl;
-
-    // ok, the NSEC3 and NSEC3PARAM are in..
+    // ok, the NSEC3PARAM is in..
   }
   else {
     // now get the NSEC too (since we must sign it!)
@@ -1242,7 +1240,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::NSEC && p->d_dnssecOk && d_dk.isSecuredZone(sd.qname) && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
-      addNSEC(p, r, target, "", sd.qname, 5); // only NSEC please
+      addNSECX(p, r, target, "", sd.qname, 5);
       goto sendit;
     }
 
