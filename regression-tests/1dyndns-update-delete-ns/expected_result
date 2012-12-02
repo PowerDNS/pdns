@@ -1,0 +1,52 @@
+0	test.dyndns.	IN	NS	3600	ns1.test.dyndns.
+0	test.dyndns.	IN	NS	3600	ns2.test.dyndns.
+2	ns1.test.dyndns.	IN	A	3600	127.0.0.1
+2	ns2.test.dyndns.	IN	A	3600	127.0.0.2
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NS
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	NS	3600	ns1.test.dyndns.
+0	test.dyndns.	IN	NS	3600	ns2.test.dyndns.
+2	ns1.test.dyndns.	IN	A	3600	127.0.0.1
+2	ns2.test.dyndns.	IN	A	3600	127.0.0.2
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NS
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	NS	3600	ns1.test.dyndns.
+0	test.dyndns.	IN	NS	3600	ns2.test.dyndns.
+2	ns1.test.dyndns.	IN	A	3600	127.0.0.1
+2	ns2.test.dyndns.	IN	A	3600	127.0.0.2
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NS
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	NS	3600	ns2.test.dyndns.
+2	ns2.test.dyndns.	IN	A	3600	127.0.0.2
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NS
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	NS	3600	ns1.test.dyndns.
+0	test.dyndns.	IN	NS	3600	ns2.test.dyndns.
+2	ns1.test.dyndns.	IN	A	3600	127.0.0.1
+2	ns2.test.dyndns.	IN	A	3600	127.0.0.2
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NS

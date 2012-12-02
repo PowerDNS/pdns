@@ -1,0 +1,61 @@
+#!/bin/sh
+
+cleandig delegate1.test.dyndns ANY hidesoadetails
+
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update add delegate1.test.dyndns 3600 NS ns1.delegate1.test.dyndns
+update add delegate1.test.dyndns 3600 NS ns2.delegate1.test.dyndns
+update add ns1.delegate1.test.dyndns 3600 A 127.0.0.1
+update add ns2.delegate1.test.dyndns 3600 A 127.0.0.2
+send
+answer
+!
+
+cleandig delegate1.test.dyndns ANY
+
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update add ns1.delegate2.test.dyndns 3600 A 127.0.0.1
+update add ns2.delegate2.test.dyndns 3600 A 127.0.0.1
+update add delegate2.test.dyndns 3600 NS ns1.delegate2.test.dyndns
+update add delegate2.test.dyndns 3600 NS ns2.example.com 
+send
+answer
+!
+
+cleandig delegate2.test.dyndns ANY
+
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update delete delegate2.test.dyndns NS
+update delete delegate1.test.dyndns NS
+send
+answer
+!
+
+cleandig delegate2.test.dyndns ANY hidesoadetails
+cleandig delegate1.test.dyndns ANY hidesoadetails
+cleandig ns1.delegate1.test.dyndns ANY
+cleandig ns2.delegate1.test.dyndns ANY
+cleandig ns1.delegate2.test.dyndns ANY
+cleandig ns2.delegate2.test.dyndns ANY
+
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update delete ns1.delegate2.test.dyndns A
+update delete ns2.delegate2.test.dyndns A 
+update delete ns1.delegate1.test.dyndns A
+update delete ns2.delegate1.test.dyndns A
+send
+answer
+!
+
+cleandig ns1.delegate1.test.dyndns ANY hidesoadetails
+cleandig ns2.delegate1.test.dyndns ANY hidesoadetails
+cleandig ns1.delegate2.test.dyndns ANY hidesoadetails
+cleandig ns2.delegate2.test.dyndns ANY hidesoadetails

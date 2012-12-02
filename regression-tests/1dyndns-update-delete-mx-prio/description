@@ -1,0 +1,2 @@
+This test checks to see if deleting a MX record with a specific Priority works correctly. This is
+interesting because the gsql-backends store priority in a seperate field, where other backends probably store it together with the content (or RDATA).

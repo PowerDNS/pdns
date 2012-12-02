@@ -1,0 +1,4 @@
+A test for RFC2136 which checks section 3.4.2.2 - Replacing a SOA record.
+This is special because we can 'set' the soa serial. 
+This test also does not use the hidesoaserial option because we want to compare that serial. It's also the reason why the test is run only once.
+

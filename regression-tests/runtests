@@ -1,6 +1,11 @@
 #!/bin/bash
 PATH=.:$PATH
 
+spectest=$1
+[ -z $spectest ] && spectest=""
+
+make -C ../pdns sdig nsec3dig || exit 1
+
 rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testsdir}/*/diff ${testsdir}/*/*.out
 
 passed=0
@@ -29,7 +34,7 @@ do
 		SKIPIT=1
 		result="	Skipped test $a"
 	else
-		for reason in $skipreasons "$context"
+		for reason in $skipreasons $context
 		do
 			if [ -e $a/skip.$reason ]
 			then
@@ -39,6 +44,13 @@ do
 			fi
 		done
 	fi
+
+	if [ "$spectest" != "" ] && [ "$spectest" != "$testname" ] && [ "$testname" != "00dnssec-grabkeys" ]
+	then
+		SKIPIT=1
+		result="	Skipped test $a because it's not the specified single test"
+	fi
+
 				
 	if [ $SKIPIT = 1 ]
 	then

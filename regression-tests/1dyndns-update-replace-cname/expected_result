@@ -1,0 +1,21 @@
+0	cname1.test.dyndns.	IN	CNAME	3600	host-1.test.dyndns.
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname1.test.dyndns.', qtype=CNAME
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	cname1.test.dyndns.	IN	CNAME	3600	host-2.test.dyndns.
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname1.test.dyndns.', qtype=CNAME
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	cname1.test.dyndns.	IN	CNAME	3600	host-1.test.dyndns.
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname1.test.dyndns.', qtype=CNAME

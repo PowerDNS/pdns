@@ -1,0 +1,39 @@
+0	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=SOA
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	SOA	3600	ns2.test.dyndns. ahu.example.dyndns. 2050101000 28800 7200 604800 86400
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=SOA
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	SOA	3600	ns2.test.dyndns. ahu.example.dyndns. 2050101000 28800 7200 604800 86400
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=SOA
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	SOA	3600	ns2.test.dyndns. ahu.example.dyndns. 2050101000 28800 7200 604800 86400
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=SOA
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	SOA	3600	ns2.test.dyndns. ahu.example.dyndns. 2050101001 28800 7200 604800 86400
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=SOA

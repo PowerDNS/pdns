@@ -1,0 +1,2 @@
+A test for RFC2136 which checks section 3.4.2.2 - Replacing a record. 
+In this test, we specifically use MX record, to see if the TTL changes of the MX record with the correct priority.

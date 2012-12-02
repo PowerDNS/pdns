@@ -50,6 +50,10 @@ port=$1
 context=$2
 [ -z "$context" ] && context=bind-dnssec
 wait=$3
+[ -z "$wait" ] && wait=nowait
+cachettl=$4
+[ -z "$cachettl" ] && cachettl=0
+spectest=$5
 
 testsdir=.
 
@@ -58,7 +62,7 @@ then
 	set +x
 	grep -v '^#' << '__EOF__'
 
-Usage: ./start-test-stop <port> [<context>] [wait]
+Usage: ./start-test-stop <port> [<context>] [wait|nowait] [<cachettl>] [<specifictest>]
 
 context is one of:
 bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
@@ -73,16 +77,26 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
-add -presigned to any bind, gmysql or gsqlite3 test (except narrow)
-to test presigned operation
+* Add -presigned to any gmysql test (except narrow) to
+  test presigned operation
 
-add 'wait' (literally) after the context to not kill 
-pdns_server immediately after testing
+* Add 'wait' (literally) after the context to not kill
+  pdns_server immediately after testing. 'nowait' will kill it.
+
+* A cachettl can be supplied if you want to run tests with a
+  ttl setting set. The default cachettl is 0.
+
+* Specifictest can be used to run only one single test.
 __EOF__
 	exit 1
 fi
 
 make -C ../pdns sdig nsec3dig || exit 1
+# Copy zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
+for zone in $(grep zone named.conf  | cut -f2 -d\")
+do
+       cp $zone $zone.backup
+done
 
 rm -f pdns*.pid
 
@@ -673,7 +687,7 @@ fi
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
-nameserver=127.0.0.1 ./runtests
+nameserver=127.0.0.1 ./runtests $spectest
 ./toxml
 ./totar
 if [ "$wait" = "wait" ]
@@ -684,6 +698,11 @@ fi
 kill $(cat pdns*.pid)
 rm pdns*.pid
 
+for zone in $(grep zone named.conf  | cut -f2 -d\")
+do
+       mv $zone.backup $zone
+done
+
 if [ -s "./failed_tests" ]
 then
 	for t in `cat failed_tests`
@@ -693,3 +712,4 @@ then
 	done
 	exit 1
 fi
+

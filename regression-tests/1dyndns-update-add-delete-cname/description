@@ -1,0 +1,2 @@
+A test to see if RFC2136 add and delete record works properly on a cname record. This is important because CNAME's have a special function
+when they are replaced. This test aims to check add/delete of the cname.

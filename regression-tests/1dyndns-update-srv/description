@@ -1,0 +1,2 @@
+This test checks to see if SRV records are parsed/handled correctly when adding/updating/deleting
+via RFC2136.

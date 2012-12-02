@@ -1,0 +1,33 @@
+#!/bin/sh
+cleandig srv.test.dyndns SRV hidesoadetails
+
+# Insert a SRV record
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update add srv.test.dyndns 3600 SRV 0 100 389 server1
+send
+answer
+!
+cleandig srv.test.dyndns SRV
+
+# Insert anthoer with different prio, and update the other.
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update add srv.test.dyndns 3600 SRV 1 100 389 server2
+update add srv.test.dyndns 3601 SRV 0 100 389 server1
+send
+answer
+!
+cleandig srv.test.dyndns SRV
+
+# And cleanup
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update delete srv.test.dyndns SRV
+send
+!
+
+cleandig srv.test.dyndns SRV hidesoadetails

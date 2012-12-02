@@ -1,0 +1,3 @@
+A test to see if RFC2136 add and delete record works properly on an MX record,
+this is interesting because the priority is stored seperately in powerdns and 
+it is part of the RDATA.
