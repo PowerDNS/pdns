@@ -53,7 +53,7 @@ void declareArguments()
   ::arg().set("soa-serial-offset","Make sure that no SOA serial is less than this number")="0";
   
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
-  ::arg().setSwitch("json-interface", "If the webserver should serve JSON data")="no";
+  ::arg().setSwitch("experimental-json-interface", "If the webserver should serve JSON data")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
   ::arg().setCmd("version","Output version and compilation date");
@@ -127,7 +127,7 @@ void declareArguments()
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
-  ::arg().set("logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
+  ::arg().set("experimental-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
   ::arg().set("setuid","If set, change user id to this uid for more security")="";
   ::arg().set("setgid","If set, change group id to this gid for more security")="";
 
@@ -138,7 +138,7 @@ void declareArguments()
   ::arg().set("lua-prequery-script", "Lua script with prequery handler")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
-  ::arg().setSwitch("direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
 }
 
 void declareStats(void)

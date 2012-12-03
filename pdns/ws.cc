@@ -443,7 +443,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }  
   }
   if(command=="log-grep") {
-    ret += makeLogGrepJSON(ourvarmap, ::arg()["logfile"], " pdns[");
+    ret += makeLogGrepJSON(ourvarmap, ::arg()["experimental-logfile"], " pdns[");
   }
  
   const char *kinds[]={"Master", "Slave", "Native"};
@@ -479,7 +479,7 @@ void StatWebServer::launch()
   try {
     d_ws->setCaller(this);
     d_ws->registerHandler("",&indexfunction);
-    if(::arg().mustDo("json-interface"))
+    if(::arg().mustDo("experimental-json-interface"))
       d_ws->registerHandler("jsonstat", &jsonstat);
     d_ws->go();
   }

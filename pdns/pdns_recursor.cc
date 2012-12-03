@@ -1833,7 +1833,7 @@ try
 
   t_fdm=getMultiplexer();
   if(!t_id) {
-    if(::arg().mustDo("json-interface")) {
+    if(::arg().mustDo("experimental-json-interface")) {
       L<<Logger::Warning << "Enabling JSON interface" << endl;
       new JWebserver(t_fdm);
     }
@@ -1974,8 +1974,8 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes"; 
     ::arg().setSwitch( "use-logfile", "Use a log file" )= "no"; 
 #else
-    ::arg().set( "logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log"; 
-    ::arg().setSwitch( "json-interface", "If we should run a JSON webserver") = "no";
+    ::arg().set( "experimental-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log"; 
+    ::arg().setSwitch( "experimental-json-interface", "If we should run a JSON webserver") = "no";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
 #endif

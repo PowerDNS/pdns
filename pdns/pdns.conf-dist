@@ -50,11 +50,6 @@
 # default-ttl=3600
 
 #################################
-# direct-dnskey	EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis
-#
-# direct-dnskey=no
-
-#################################
 # disable-axfr	Disable zonetransfers but do allow TCP queries
 #
 # disable-axfr=no
@@ -90,6 +85,21 @@
 # entropy-source=/dev/urandom
 
 #################################
+# experimental-direct-dnskey	EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis
+#
+# experimental-direct-dnskey=no
+
+#################################
+# experimental-json-interface	If the webserver should serve JSON data
+#
+# experimental-json-interface=no
+
+#################################
+# experimental-logfile	Filename of the log file for JSON parser
+#
+# experimental-logfile=/var/log/pdns.log
+
+#################################
 # fancy-records	Process URL and MBOXFW records
 #
 # fancy-records=no
@@ -98,11 +108,6 @@
 # guardian	Run within a guardian process
 #
 # guardian=no
-
-#################################
-# json-interface	If the webserver should serve JSON data
-#
-# json-interface=no
 
 #################################
 # launch	Which backends to launch and order to query them in
@@ -148,11 +153,6 @@
 # log-failed-updates	If PDNS should log failed update requests
 #
 # log-failed-updates=
-
-#################################
-# logfile	Filename of the log file for JSON parser
-#
-# logfile=/var/log/pdns.log
 
 #################################
 # logging-facility	Log under a specific facility

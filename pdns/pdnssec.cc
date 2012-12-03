@@ -68,7 +68,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().laxFile(configname.c_str());
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
-  ::arg().setSwitch("direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
 
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
@@ -308,7 +308,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     {
       if(!dk.isPresigned(zone))
       {
-        if(::arg().mustDo("direct-dnskey"))
+        if(::arg().mustDo("experimental-direct-dnskey"))
         {
           if(rr.ttl != sd.default_ttl)
           {

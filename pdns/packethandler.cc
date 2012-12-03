@@ -222,7 +222,7 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
     haveOne=true;
   }
 
-  if(::arg().mustDo("direct-dnskey")) {
+  if(::arg().mustDo("experimental-direct-dnskey")) {
     B.lookup(QType(QType::DNSKEY), p->qdomain, p, sd.domain_id);
     while(B.get(rr)) {
       rr.ttl=sd.default_ttl;
@@ -864,7 +864,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     }
     
     // fix direct DNSKEY ttl
-    if(::arg().mustDo("direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY) {
+    if(::arg().mustDo("experimental-direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY) {
       rr.ttl = sd.default_ttl;
     }
 

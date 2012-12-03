@@ -607,7 +607,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     csp.submit(rr);
   }
   
-  if(::arg().mustDo("direct-dnskey")) {
+  if(::arg().mustDo("experimental-direct-dnskey")) {
     sd.db->lookup(QType(QType::DNSKEY), target, NULL, sd.domain_id);
     while(sd.db->get(rr)) {
       rr.ttl = sd.default_ttl;
@@ -647,7 +647,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 
     // only skip the DNSKEY if direct-dnskey is enabled, to avoid changing behaviour
     // when it is not enabled.
-    if(::arg().mustDo("direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY)
+    if(::arg().mustDo("experimental-direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY)
       continue;
 
     records++;
