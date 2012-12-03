@@ -28,7 +28,7 @@
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include "namespaces.hh"
-#include <jsoncpp/json/json.h>
+#include "rapidjson/document.h"
 
 extern StatBag S;
 
@@ -400,25 +400,24 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       
     }
     else if(method=="POST") {
-      Json::Value root;   // will contains the root value after parsing.
-      Json::Reader reader;
-      if(!reader.parse(post, root )) {
+      rapidjson::Document document;
+      if(document.Parse<0>(post.c_str()).HasParseError()) {
         return ret+"{\"error\": \"Unable to parse JSON\"";
       }
       
-      const Json::Value records=root["records"];
-      
+    
       DNSResourceRecord rr;
       vector<DNSResourceRecord> rrset;
-      for(unsigned int i = 0 ; i < records.size(); ++i) {
-        const Json::Value& record = records[i];
-        rr.qname=record["name"].asString();
-        rr.content=record["content"].asString();
-        rr.qtype=record["type"].asString();
+      const rapidjson::Value &records= document["records"];
+      for(rapidjson::SizeType i = 0; i < records.Size(); ++i) {
+        const rapidjson::Value& record = records[i];
+        rr.qname=record["name"].GetString();
+        rr.content=record["content"].GetString();
+        rr.qtype=record["type"].GetString();
         rr.domain_id = sd.domain_id;
         rr.auth=0;
-        rr.ttl=atoi(record["ttl"].asString().c_str());
-        rr.priority=atoi(record["priority"].asString().c_str());
+        rr.ttl=atoi(record["ttl"].GetString());
+        rr.priority=atoi(record["priority"].GetString());
         
         rrset.push_back(rr);
         

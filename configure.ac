@@ -498,10 +498,6 @@ then
         AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
 fi
 
-PKG_CHECK_MODULES(JSONCPP, jsoncpp, HAVE_JSONCPP=yes, AC_MSG_ERROR([Could not find jsoncpp])
-AC_SUBST(JSONCPP_LIBS)
-AC_SUBST(JSONCPP_CFLAGS))
-
 if test "$needcdb"
 then
 	PKG_CHECK_MODULES(CDB, libcdb, HAVE_CDB=yes, AC_MSG_ERROR([+Could not find libcdb/tinycdb]))
