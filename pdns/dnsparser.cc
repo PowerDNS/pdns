@@ -170,6 +170,24 @@ DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
   return i->second(content);
 }
 
+DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t oc) {
+  // For opcode UPDATE and where the DNSRecord is an answer record, we don't care about content, because this is
+  // not used within the prerequisite section of RFC2136, so - we can simply use unknownrecordcontent.
+  // For section 3.2.3, we do need content so we need to get it properly. But only for the correct Qclasses.
+  if (oc == Opcode::Update && dr.d_place == DNSRecord::Answer && dr.d_class != 1)
+    return new UnknownRecordContent(dr, pr);
+  
+  uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
+
+  typemap_t::const_iterator i=getTypemap().find(make_pair(searchclass, dr.d_type));
+  if(i==getTypemap().end() || !i->second) {
+    return new UnknownRecordContent(dr, pr);
+  }
+
+  return i->second(dr, pr);
+}
+
+
 DNSRecordContent::typemap_t& DNSRecordContent::getTypemap()
 {
   static DNSRecordContent::typemap_t typemap;
@@ -202,7 +220,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   
   memcpy(&d_header, packet, sizeof(dnsheader));
 
-  if(d_header.opcode!=0 && d_header.opcode != 4) // notification
+  if(d_header.opcode != Opcode::Query && d_header.opcode != Opcode::Notify && d_header.opcode != Opcode::Update)
     throw MOADNSException("Can't parse non-query packet with opcode="+ lexical_cast<string>(d_header.opcode));
 
   d_header.qdcount=ntohs(d_header.qdcount);
@@ -253,7 +271,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_label=label;
       dr.d_clen=ah.d_clen;
 
-      dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr));
+      dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
       if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
