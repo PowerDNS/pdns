@@ -150,9 +150,9 @@
 # log-failed-updates=
 
 #################################
-# logfile	Logfile to use (Windows only)
+# logfile	Filename of the log file for JSON parser
 #
-# logfile=pdns.log
+# logfile=/var/log/pdns.log
 
 #################################
 # logging-facility	Log under a specific facility
@@ -383,11 +383,6 @@
 # urlredirector	Where we send hosts to that need to be url redirected
 #
 # urlredirector=127.0.0.1
-
-#################################
-# use-logfile	Use a log file (Windows only)
-#
-# use-logfile=no
 
 #################################
 # version-string	PowerDNS version in packets - full, anonymous, powerdns or custom

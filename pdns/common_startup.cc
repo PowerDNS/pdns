@@ -127,8 +127,7 @@ void declareArguments()
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
-  ::arg().setSwitch( "use-logfile", "Use a log file (Windows only)" )= "no";
-  ::arg().set( "logfile", "Logfile to use (Windows only)" )= "pdns.log";
+  ::arg().set("logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
   ::arg().set("setuid","If set, change user id to this uid for more security")="";
   ::arg().set("setgid","If set, change group id to this gid for more security")="";
 
