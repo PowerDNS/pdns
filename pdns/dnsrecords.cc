@@ -20,6 +20,77 @@
 #include "dnsrecords.hh"
 #include <boost/foreach.hpp>
 
+void DNSResourceRecord::setContent(const string &cont) {
+  content = cont;
+  if(!content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
+    boost::erase_tail(content, 1);
+
+  if(qtype.getCode() == QType::MX) {
+    vector<string> parts;
+    stringtok(parts, content);
+    priority = atoi(parts[0].c_str());
+    if(parts.size() > 1)
+      content=parts[1];
+    else
+      content=".";
+  } else if(qtype.getCode() == QType::SRV) {
+    priority = atoi(content.c_str());
+    vector<pair<string::size_type, string::size_type> > fields;
+    vstringtok(fields, content, " ");
+    if(fields.size()==4) {
+      content=string(content.c_str() + fields[1].first, fields[3].second - fields[1].first);
+      content=stripDot(content);
+    }
+  }
+}
+
+string DNSResourceRecord::getZoneRepresentation() {
+  ostringstream ret;
+  switch(qtype.getCode()) {
+    case QType::SRV:
+    case QType::MX:
+      ret<<priority;
+      ret<<" "<<content<<".";
+    break;
+    case QType::CNAME:
+    case QType::NS:
+      ret<<content<<".";
+    break;
+    default:
+      ret<<content;
+    break;
+  }
+  return ret.str();
+}
+
+bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
+{
+  string lcontent=toLower(content);
+  string rcontent=toLower(rhs.content);
+   
+  string llabel=toLower(qname);
+  string rlabel=toLower(rhs.qname);
+    
+  return 
+    tie(llabel, qtype, lcontent, ttl, priority) ==
+    tie(rlabel, rhs.qtype, rcontent, rhs.ttl, rhs.priority);
+}
+
+
+
+DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
+  auth=true;
+  qname = p.d_label;
+  if(!qname.empty())
+    boost::erase_tail(qname, 1); // strip .
+  
+  qtype = p.d_type;
+  ttl = p.d_ttl;
+  priority=0;
+  setContent(p.d_content->getZoneRepresentation());
+}
+
+
 boilerplate_conv(A, ns_t_a, conv.xfrIP(d_ip));
 
 ARecordContent::ARecordContent(uint32_t ip) : DNSRecordContent(ns_t_a)

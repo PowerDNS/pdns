@@ -43,10 +43,6 @@
 #include <boost/scoped_ptr.hpp>
 using boost::scoped_ptr;
 
-template<typename T> bool rfc1982LessThan(T a, T b)
-{
-  return ((signed)(a - b)) < 0;
-}
 
 void CommunicatorClass::addSuckRequest(const string &domain, const string &master)
 {

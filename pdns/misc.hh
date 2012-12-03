@@ -126,6 +126,11 @@ stringtok (Container &container, string const &in,
   }
 }
 
+template<typename T> bool rfc1982LessThan(T a, T b)
+{
+  return ((signed)(a - b)) < 0;
+}
+
 // fills container with ranges, so {posbegin,posend}
 template <typename Container>
 void
