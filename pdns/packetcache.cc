@@ -253,6 +253,39 @@ int PacketCache::purge(const string &match)
   *d_statnumentries=d_map.size();
   return delcount;
 }
+
+int PacketCache::purgeRange(const string &begin, const string &end, const string &zone) {
+  WriteLock l(&d_mut);
+  int size=d_map.size();
+  if (size == 0)
+    return 0;
+
+  // Search for the beginning for the purge range
+  cmap_t::const_iterator beginIter = d_map.lower_bound(tie(begin));
+  if (beginIter == d_map.end() || !iends_with(beginIter->qname,zone)) {
+    beginIter = d_map.lower_bound(tie(zone));
+  }
+
+  if (beginIter == d_map.end() || !iends_with(beginIter->qname,zone)) // Couldn't find begin and not the zone? This thing is simply not in the cache!
+    return 0;
+
+  // Search for the end. We make sure we run all the way to the end (because the first match might be a different qtype)
+  cmap_t::const_iterator endIter = beginIter;
+  bool endIterFound=false;
+  for (; endIter != d_map.end(); ++endIter) {
+    if ((endIterFound && !iends_with(endIter->qname, end)) || !iends_with(endIter->qname, zone))
+      break;
+
+    if (iends_with(endIter->qname, end))
+      endIterFound=true;
+  }
+  
+  // Finally erase things.
+  d_map.erase(beginIter, endIter);
+  *d_statnumentries=d_map.size();
+  return size - *d_statnumentries;
+}
+
 // called from ueberbackend
 bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
   unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS)
