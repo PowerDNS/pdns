@@ -1,3 +1,17 @@
+.SILENT:
+
+all:
+
+install:
+
+uninstall:
+
+distclean: clean
+
+clean:
+
+check:
+
 distdir:
 	mkdir -p $(distdir)/include/rapidjson/internal
 	cp license.txt $(distdir)
