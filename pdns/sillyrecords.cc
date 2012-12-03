@@ -150,6 +150,7 @@ latlon2ul(const char **latlonstrptr, int *which)
 void LOCRecordContent::report(void)
 {
   regist(1, ns_t_loc, &make, &make, "LOC");
+  regist(254, ns_t_loc, &make, &make, "LOC");
 }
 
 DNSRecordContent* LOCRecordContent::make(const string& content)

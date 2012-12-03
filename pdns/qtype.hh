@@ -166,6 +166,6 @@ private:
 
 struct QClass
 {
-	enum QClassEnum {IN=1, CHAOS=3};
+	enum QClassEnum {IN=1, CHAOS=3, NONE=254, ANY=255};
 };
 #endif
