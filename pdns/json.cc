@@ -12,7 +12,7 @@
 
 using namespace rapidjson;                        
 
-string makeStringFromDocument(Document& doc)
+string makeStringFromDocument(const Document& doc)
 {
   StringBuffer output;
   Writer<StringBuffer> w(output);
