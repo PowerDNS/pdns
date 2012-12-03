@@ -3,7 +3,7 @@ SBINDIR=/usr/sbin/
 BINDIR=/usr/bin/
 CONFIGDIR="/etc/powerdns/"
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
+CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread
 

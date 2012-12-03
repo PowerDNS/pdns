@@ -37,6 +37,9 @@ cp Makefile-recursor.win32 $DIRNAME/Makefile.win32
 cp README-recursor $DIRNAME/README
 cp ../COPYING $DIRNAME/
 cp config-recursor.h $DIRNAME/config.h
+mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
+cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
+cp -a ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
 cp aes/*.{c,cc,h} $DIRNAME
