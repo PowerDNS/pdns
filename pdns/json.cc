@@ -6,34 +6,24 @@
 #include "namespaces.hh"
 #include "misc.hh"
 #include <boost/foreach.hpp>
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
-std::string escapeJSON( const std::string & name)
-{
-  std::string a;
-  
-  for( std::string::const_iterator i = name.begin(); i != name.end(); ++i ) 
-  {
-    if( *i == '\"' || *i == '\\' )
-      a += '\\';
-                
-    a += *i;
-  }
-  return a;
-}
-                        
+using namespace rapidjson;                        
 
 string returnJSONObject(const map<string, string>& items)
 {
-  ostringstream ostr;
-  typedef map<string, string> map_t;
-  ostr<<"{";
-  for(map_t::const_iterator val = items.begin(); val != items.end(); ++val)
-  {
-    if(val != items.begin()) ostr<<", ";
-    ostr << "\"" << val->first <<"\": \""<<escapeJSON(val->second)<<"\"\n";
+  Document doc;
+  doc.SetObject();
+  typedef map<string, string> items_t;
+  BOOST_FOREACH(const items_t::value_type& val, items) {
+    doc.AddMember(val.first.c_str(), val.second.c_str(), doc.GetAllocator());
   }
-  ostr<<"}";
-  return ostr.str();
+  StringBuffer output;
+  Writer<StringBuffer> w(output);
+  doc.Accept(w);
+  return string(output.GetString(), output.Size());
 }
 
 string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const string& prefix)
@@ -67,17 +57,16 @@ string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const s
       lines.push_front(line);
     }
   }
-  bool first=true;
-  string ret="[";
+
+  Document doc;
+  doc.SetArray();
   if(!lines.empty()) {
     BOOST_FOREACH(const string& line, lines) {
-      if(!first) {
-        ret += ",\n";
-      }
-      else first=false;
-      ret += "[\"" + escapeJSON(line)+"\"]";
+      doc.PushBack(line.c_str(), doc.GetAllocator());
     }
   }
-  ret+="]";
-  return ret;
+  StringBuffer output;
+  Writer<StringBuffer> w(output);
+  doc.Accept(w);
+  return string(output.GetString(), output.Size());
 }
