@@ -132,6 +132,69 @@
       	make that possible are in c2849, c2853, 2858, c2859, c2860.
       </para>
       <para>
+      	Changes between 3.2-RC1 and 3.2-RC2:
+      	<itemizedlist>
+  		<listitem>
+  			<para>
+				Superslave errors ('Unable to find backend willing to host ..') now include the NSset found at the master, to aid debugging. Code in c2887.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				c2874 in RC1 broke compilation without SQLite3 and made query logging unreliable. Fixed in c2888, c2889.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The dnsreplay tool now processes single packet pcaps. Fix in c2895.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				PowerDNS always derives NSEC/NSEC3 from the actual zone content. To accomodate this, zone2sql now drops NSEC/NSEC3 records, as those should never be in a PowerDNS backend directly (c2915), bindbackend ignores NSEC/NSEC3 while reading zonefiles (c2917) and pdnssec reports NSEC/NSEC3 in the database as an error condition (c2918).
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The bindbackend now ignores NSEC/NSEC3 records while reading zonefiles. Change in c2917.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				An EXPERIMENTAL feature ('direct-dnskey') for reading ZSKs from the records table/your BIND zonefile was added in c2920, c2921, c2922.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				While fully optional, PowerDNS supports direct RRSIG queries. Kees Monshouwer improved on our behaviour for those queries in c2927.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				IPv6 glue situations require AAAA records for the receiving end of a delegation in the ADDITIONAL section of a referral. This was supported ('do-ipv6-additional-processing') but not enabled by default. c2929 enables it by default.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				pdnssec check-zone now warns for CNAME-and-other data at names in your zones. Code by Ruben d'Arco in c2930.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				Positive ANY-responses would include a spurious NSEC3. Corrected in c2932 and c2933, cleaned up by Kees Monshouwer in c2935.
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+				The ldapbackend now allows overriding the base dn for AXFR subtree search. Fixed in c2934, closing t536.
+			</para>
+		</listitem>
+		</itemizedlist>
+	</para>
+      <para>
+      	Changes below are in 3.2-RC1 but not RC2 and up.
+      </para>
+      	<para>
       	DNSSEC changes in 3.2:
       	<itemizedlist>
   		<listitem>
