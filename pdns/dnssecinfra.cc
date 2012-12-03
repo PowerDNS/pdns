@@ -477,7 +477,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfrLabel(keyname, false);
     dw.xfr16BitInt(0xff); // class
     dw.xfr32BitInt(0);    // TTL
-    dw.xfrLabel(trc.d_algoName, false); 
+    dw.xfrLabel(toLower(trc.d_algoName), false); 
   }
   
   uint32_t now = trc.d_time; 
