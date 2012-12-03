@@ -35,10 +35,29 @@ QType::QType()
 {
 }
 
+bool QType::isSupportedType() {
+  for(vector<namenum>::iterator pos=names.begin();pos<names.end();++pos)
+    if(pos->second==code) 
+      return true;
+  return false;
+}
+
+bool QType::isMetadataType() {
+  if (code == QType::AXFR ||
+      code == QType::MAILA ||
+      code == QType::MAILB ||
+      code == QType::TSIG ||
+      code == QType::IXFR)  
+    return true;
+
+  return false;
+}
+
 uint16_t QType::getCode() const
 {
   return code;
 }
+
 
 const string QType::getName() const
 {
@@ -78,6 +97,21 @@ QType &QType::operator=(const char *p)
 {
   code=chartocode(p);
   return *this;
+}
+
+bool QType::operator==(const QType &comp) const
+{
+  return(comp.code==code);
+}
+
+bool QType::operator!=(const QType &comp) const
+{
+  return(comp.code!=code);
+}
+
+bool QType::operator==(const uint16_t comp) const
+{
+  return(comp==code);
 }
 
 QType &QType::operator=(const string &s)
