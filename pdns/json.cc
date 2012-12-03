@@ -12,6 +12,14 @@
 
 using namespace rapidjson;                        
 
+string makeStringFromDocument(Document& doc)
+{
+  StringBuffer output;
+  Writer<StringBuffer> w(output);
+  doc.Accept(w);
+  return string(output.GetString(), output.Size());
+}
+
 string returnJSONObject(const map<string, string>& items)
 {
   Document doc;
@@ -20,10 +28,7 @@ string returnJSONObject(const map<string, string>& items)
   BOOST_FOREACH(const items_t::value_type& val, items) {
     doc.AddMember(val.first.c_str(), val.second.c_str(), doc.GetAllocator());
   }
-  StringBuffer output;
-  Writer<StringBuffer> w(output);
-  doc.Accept(w);
-  return string(output.GetString(), output.Size());
+  return makeStringFromDocument(doc);
 }
 
 string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const string& prefix)
@@ -65,8 +70,5 @@ string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const s
       doc.PushBack(line.c_str(), doc.GetAllocator());
     }
   }
-  StringBuffer output;
-  Writer<StringBuffer> w(output);
-  doc.Accept(w);
-  return string(output.GetString(), output.Size());
+  return makeStringFromDocument(doc);
 }
