@@ -14,29 +14,28 @@ try
   bool recurse=false;
   bool tcp=false;
   bool showflags=false;
+  bool hidesoadetails=false;
 
   reportAllTypes();
 
   if(argc < 5) {
-    cerr<<"Syntax: sdig IP-address port question question-type [dnssec|dnssec-tcp|recurse] [showflags]\n";
+    cerr<<"Syntax: sdig IP-address port question question-type [dnssec|dnssec-tcp|recurse|hidesoadetails] [showflags]\n";
     exit(EXIT_FAILURE);
   }
 
-  // FIXME: turn recurse and dnssec into proper flags or something
-  if(argc > 5 && strcmp(argv[5], "dnssec")==0)
-  {
-    dnssec=true;
-  }
-  
-  if(argc > 5 && strcmp(argv[5], "dnssec-tcp")==0)
-  {
-    dnssec=true;
-    tcp=true;
-  }
-
-  if(argc > 5 && strcmp(argv[5], "recurse")==0)
-  {
-    recurse=true;
+  if (argc > 5) {
+    for(int i=5; i<argc; i++) {
+      if (strcmp(argv[i], "dnssec") == 0)
+        dnssec=true;
+      if (strcmp(argv[i], "recurse") == 0)
+        recurse=true;
+      if (strcmp(argv[i], "hidesoadetails") == 0)
+        hidesoadetails=true;
+      if (strcmp(argv[i], "dnssec-tcp") == 0) {
+        dnssec=true;
+        tcp=true;
+      }
+    }
   }
 
   if((argc > 5 && strcmp(argv[5], "showflags")==0) || (argc > 6 && strcmp(argv[6], "showflags")==0))
@@ -154,6 +153,13 @@ try
       vector<string> parts;
       stringtok(parts, zoneRep);
       cout<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...\n";
+    }
+    else if (i->first.d_type == QType::SOA && hidesoadetails)
+    {
+      string zoneRep = i->first.d_content->getZoneRepresentation();
+      vector<string> parts;
+      stringtok(parts, zoneRep);
+      cout<<"\t"<<i->first.d_ttl<<"\t"<<parts[0]<<" "<<parts[1]<<" [serial] "<<parts[3]<<" "<<parts[4]<<" "<<parts[5]<<" "<<parts[6]<<"\n";
     }
     else
     {
