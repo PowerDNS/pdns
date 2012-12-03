@@ -122,6 +122,7 @@ case $context in
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
 				--fancy-records --send-root-referral    \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config &
 			skipreasons=nodnssec
 			bindwait
@@ -162,6 +163,7 @@ case $context in
 				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config &
 			bindwait
 			;;
@@ -197,6 +199,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--master --send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
@@ -282,6 +285,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=random,gmysql --gmysql-dnssec \
 				--fancy-records --send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
@@ -334,6 +338,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
 				--fancy-records --send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
@@ -375,6 +380,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql \
 				--fancy-records --send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
@@ -416,6 +422,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=opendbx \
 				--fancy-records --send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config \
 				--opendbx-backend=sqlite3 --opendbx-host-read=./ --opendbx-host-write=./ \
 				--opendbx-database=pdns-opendbx.sqlite3 &
@@ -447,6 +454,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 				--fancy-records --send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=0 --no-config \
 				--gsqlite3-database=pdns.sqlite3 &
 			if [ $context = gsqlite3-nsec3 ]
@@ -464,6 +472,7 @@ __EOF__
 				--no-shuffle --launch=tinydns \
 			 --cache-ttl=0 --no-config \
 				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
 			skipreasons="nodnssec noent"
 			;;
@@ -537,6 +546,7 @@ EOF
 				--no-shuffle --launch=remote \
 				--query-logging --loglevel=9 --cache-ttl=0 --no-config \
 				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--remote-connection-string="$connstr" $remote_add_param &
                         
 			echo "Setting up test database..."
@@ -612,6 +622,7 @@ then
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=gmysql --gmysql-dnssec \
 			--fancy-records --send-root-referral \
+			--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
 			--gmysql-dbname="$GMYSQL2DB" \
 			--gmysql-user="$GMYSQL2USER" \
@@ -679,6 +690,7 @@ then
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave         \
 			--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
+			--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 			--cache-ttl=0 --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave
