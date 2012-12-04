@@ -15,6 +15,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "utility.hh"
+#include "dynlistener.hh"
 #include "ws.hh"
 #include "json.hh"
 #include "webserver.hh"
@@ -327,7 +328,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
-    cerr<<"Flushed cache for '"<<ourvarmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
+    //cerr<<"Flushed cache for '"<<ourvarmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
     ret += returnJSONObject(object);
   }
   if(command=="get-zone") {
@@ -357,6 +358,34 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
 
     ret += "]";
+  }
+  if(command == "pdns-control") {
+    if(method!="POST") {
+      map<string, string> m;
+      m["error"]="pdns-control requires a POST";
+      return ret + returnJSONObject(m);
+    }
+    // cout<<"post: "<<post<<endl;
+    rapidjson::Document document;
+    if(document.Parse<0>(post.c_str()).HasParseError()) {
+      return ret+"{\"error\": \"Unable to parse JSON\"";
+    }
+    // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
+    vector<string> parameters;
+    stringtok(parameters, document["parameters"].GetString(), " \t");
+    
+    DynListener::g_funk_t* ptr=0;
+    if(!parameters.empty())
+      ptr = DynListener::getFunc(toUpper(parameters[0]));
+    map<string, string> m;
+    
+    if(ptr) {
+      m["result"] = (*ptr)(parameters, 0);
+    } else {
+      m["error"]="No such function "+toUpper(parameters[0]);
+    }
+    ret+= returnJSONObject(m);
+      
   }
   if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
     vector<string> parts;
@@ -410,7 +439,6 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
         return ret+"{\"error\": \"Unable to parse JSON\"";
       }
       
-    
       DNSResourceRecord rr;
       vector<DNSResourceRecord> rrset;
       const rapidjson::Value &records= document["records"];

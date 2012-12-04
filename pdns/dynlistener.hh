@@ -55,6 +55,7 @@ public:
   
   static void registerFunc(const string &name, g_funk_t *gf, const string &usage="", const string &args="");
   static void registerRestFunc(g_funk_t *gf);
+  static g_funk_t* getFunc(const string& fname) { return s_funcdb[fname].func; } 
 private:
   void sendLine(const string &line);
   string getHelp();
