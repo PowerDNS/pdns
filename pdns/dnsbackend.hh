@@ -101,6 +101,11 @@ public:
     return false;
   }
 
+  virtual bool listSubZone(const string &zone, int domain_id)
+  {
+    return false;
+  }
+
   // the DNSSEC related (getDomainMetadata has broader uses too)
   virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}

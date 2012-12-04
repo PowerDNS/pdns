@@ -770,6 +770,25 @@ bool GSQLBackend::list(const string &target, int domain_id )
   return true;
 }
 
+bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
+  string wildzone = "%." + zone;
+  string listSubZone = "select content,ttl,prio,type,domain_id,name from records where (name='%s' OR name like '%s') and domain_id=%d";
+  if (d_dnssecQueries)
+    listSubZone = "select content,ttl,prio,type,domain_id,name,auth from records where (name='%s' OR name like '%s') and domain_id=%d";
+  string output = (boost::format(listSubZone) % sqlEscape(zone) % sqlEscape(wildzone) % domain_id).str();
+  try {
+    d_db->doQuery(output.c_str());
+  }
+  catch(SSqlException &e) {
+    throw AhuException("GSQLBackend listSubZone query: "+e.txtReason());
+  }
+  d_qname="";
+  d_count=0;
+  return true;
+}
+
+
+
 bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb)
 {
   string format;
@@ -884,10 +903,20 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
-  string deleteQuery = (boost::format(d_DeleteRRSet) % domain_id % sqlEscape(qname) % sqlEscape(qt.getName())).str();
+  string deleteQuery; 
+  string deleteRRSet;
+  if (qt != QType::ANY) {
+    deleteRRSet = "delete from records where domain_id = %d and name='%s' and type='%s'";
+    deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname) % sqlEscape(qt.getName())).str();
+  } else {
+    deleteRRSet = "delete from records where domain_id = %d and name='%s'";
+    deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname)).str();
+  }
   d_db->doCommand(deleteQuery);
-  BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
-    feedRecord(rr);
+  if (rrset.size() > 0) {
+    BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
+      feedRecord(rr);
+    }
   }
   
   return true;
