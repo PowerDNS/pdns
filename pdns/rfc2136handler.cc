@@ -80,7 +80,7 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
 // Implements section 3.4.2 of RFC2136
 uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool narrow, bool haveNSEC3, const NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
-  uint16_t addedRecords = 0, updatedRecords = 0;
+  uint16_t changedRecords = 0;
   DNSResourceRecord rec;
   vector<DNSResourceRecord> rrset, recordsToDelete;
   set<string> delnonterm, insnonterm; // used to (at the end) fix ENT records.
@@ -109,7 +109,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         oldRec->setContent(rr->d_content->getZoneRepresentation());
         fillSOAData(oldRec->content, sdUpdate);
         if (rfc1982LessThan(sdOld.serial, sdUpdate.serial)) {
-          updatedRecords++;
+          changedRecords++;
           di->backend->replaceRRSet(di->id, oldRec->qname, oldRec->qtype, rrset);
           *updatedSerial = true;
         }
@@ -121,7 +121,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
           i->ttl = rr->d_ttl;
           i->setContent(rr->d_content->getZoneRepresentation());
-          updatedRecords++;
+          changedRecords++;
         }
         di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
 
@@ -133,7 +133,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           if (rrType == i->qtype.getCode() && i->getZoneRepresentation() == content) {
             foundRecord = true;
             i->ttl = rr->d_ttl;
-            updatedRecords++;
+            changedRecords++;
           }
         }
         if (foundRecord)
@@ -148,7 +148,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       DNSResourceRecord newRec(*rr);
       newRec.domain_id = di->id;
       di->backend->feedRecord(newRec);
-      addedRecords++;
+      changedRecords++;
 
 
       // because we added a record, we need to fix DNSSEC data.
@@ -335,7 +335,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     }
   }
 
-  return recordsToDelete.size() + addedRecords + updatedRecords;
+  return recordsToDelete.size() + changedRecords;
 }
 
 int PacketHandler::processUpdate(DNSPacket *p) {
