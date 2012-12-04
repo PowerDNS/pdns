@@ -913,10 +913,8 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
     deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname)).str();
   }
   d_db->doCommand(deleteQuery);
-  if (rrset.size() > 0) {
-    BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
-      feedRecord(rr);
-    }
+  BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
+    feedRecord(rr);
   }
   
   return true;
