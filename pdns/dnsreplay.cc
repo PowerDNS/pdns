@@ -486,7 +486,6 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
 
   QuestionData qd;
   try {
-    dnsheader* dh=(dnsheader*)pr.d_payload;
     if(!dh->qr) {
       qd.d_assignedID = s_idmanager.peakID();
       uint16_t tmp=dh->id;
