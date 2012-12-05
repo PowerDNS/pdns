@@ -93,10 +93,10 @@ void DynListener::listenOnUnixDomain(const string& fname)
   createSocketAndBind(AF_UNIX, (struct sockaddr*)& local, sizeof(local));
   d_socketname=fname;
   if(!arg()["setgid"].empty()) {
-    if(chown(fname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
-      L<<Logger::Error<<"Unable to change group ownership of controlsocket: "<<strerror(errno)<<endl;
     if(chmod(fname.c_str(),0660)<0)
       L<<Logger::Error<<"Unable to change group access mode of controlsocket: "<<strerror(errno)<<endl;
+    if(chown(fname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
+      L<<Logger::Error<<"Unable to change group ownership of controlsocket: "<<strerror(errno)<<endl;
   }
   
   listen(d_s, 10);
