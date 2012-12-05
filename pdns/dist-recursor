@@ -47,6 +47,8 @@ cp pdns-recursor.init.d $DIRNAME
 cp docs/pdns_recursor.1 docs/rec_control.1 $DIRNAME
 cp configure-recursor $DIRNAME/configure
 cp powerdns-example-script.lua $DIRNAME
+mkdir -p $DIRNAME/contrib
+cp ../contrib/systemd-pdns-recursor.service $DIRNAME/contrib
 
 mkdir -p $DIRNAME/sysdeps
 rm -f sysdeps-recursor/*~

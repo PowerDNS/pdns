@@ -1,0 +1,10 @@
+[Unit]
+Description=PowerDNS recursing nameserver
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/pdns_recursor --daemon
+
+[Install]
+WantedBy=multi-user.target
