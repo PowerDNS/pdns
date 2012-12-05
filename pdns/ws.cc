@@ -502,7 +502,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       jdi.AddMember("masters", jmasters, doc.GetAllocator()); // ^^^ this makes an actual copy, otherwise the zerocopy behaviour bites us!
       jdi.AddMember("serial", di.serial, doc.GetAllocator());
       jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
-      jdi.AddMember("last_check", di.last_check, doc.GetAllocator());
+      jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
       jdomains.PushBack(jdi, doc.GetAllocator());
     }
     doc.AddMember("domains", jdomains, doc.GetAllocator());
