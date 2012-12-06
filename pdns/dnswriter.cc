@@ -250,7 +250,10 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
       pos+=(part.size())+1;        		 
     }
     else {
-      d_record.push_back((char)(i->second - i->first));
+      char labelsize=(char)(i->second - i->first);
+      if(!labelsize) // empty label in the middle of name
+        throw MOADNSException("DNSPacketWriter::xfrLabel() found empty label in the middle of name");
+      d_record.push_back(labelsize);
       unsigned int len=d_record.size();
       d_record.resize(len + i->second - i->first);
       memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
