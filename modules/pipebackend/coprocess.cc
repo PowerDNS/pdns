@@ -134,7 +134,7 @@ void CoProcess::receive(string &receive)
   receive.clear();
     
   if(d_timeout) {
-    struct timeval tv={tv_sec: d_timeout, tv_usec: 0,};
+    struct timeval tv={tv_sec: d_timeout/1000, tv_usec: (d_timeout % 1000) * 1000,};
     fd_set rds;
     FD_ZERO(&rds);
     FD_SET(fileno(d_fp),&rds);

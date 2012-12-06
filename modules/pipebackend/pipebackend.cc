@@ -269,7 +269,7 @@ class PipeFactory : public BackendFactory
       void declareArguments(const string &suffix="")
       {
          declare(suffix,"command","Command to execute for piping questions to","");
-         declare(suffix,"timeout","Number of milliseconds to wait for an answer","1000");
+         declare(suffix,"timeout","Number of milliseconds to wait for an answer","2000");
          declare(suffix,"regex","Regular exception of queries to pass to coprocess","");
       }
 
