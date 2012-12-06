@@ -18,14 +18,19 @@ PipeConnector::~PipeConnector(){
 
 void PipeConnector::launch() {
   if (coproc != NULL) return;
+  rapidjson::Value val;
+  rapidjson::Document init,res;
+  coproc = new CoProcess(this->command, 2000);
+  init.SetObject();
+  val = "initialize";
+  init.AddMember("method",val, init.GetAllocator());
+  val.SetObject();
+  init.AddMember("parameters", val, init.GetAllocator());
 
-  Json::Value init,res;
-  coproc = new CoProcess(this->command, 2);
-  init["method"] = "initialize";
-  init["parameters"] = Json::Value();
-
-  for(std::map<std::string,std::string>::iterator i = options.begin(); i != options.end(); i++)
-    init["parameters"][i->first] = i->second;
+  for(std::map<std::string,std::string>::iterator i = options.begin(); i != options.end(); i++) {
+    val = i->second.c_str();
+    init["parameters"].AddMember(i->first.c_str(), val, init.GetAllocator());
+  }
 
   this->send(init);
   if (this->recv(res)==false) {
@@ -33,11 +38,11 @@ void PipeConnector::launch() {
   }
 }
 
-int PipeConnector::send_message(const Json::Value &input)
+int PipeConnector::send_message(const rapidjson::Document &input)
 {
    std::string data;
-   Json::FastWriter writer;
-   data = writer.write(input);
+
+   data = makeStringFromDocument(input);
 
    launch();
    try {
@@ -51,22 +56,24 @@ int PipeConnector::send_message(const Json::Value &input)
    } 
 }
 
-int PipeConnector::recv_message(Json::Value &output) 
+int PipeConnector::recv_message(rapidjson::Document &output) 
 {
-   Json::Reader r;
+   rapidjson::GenericReader<rapidjson::UTF8<> , rapidjson::MemoryPoolAllocator<> > r;
    std::string tmp;
-   std::string data;
+   std::string s_output;
+   int nread=0;
+
    launch();
    try {
-      std::string line;
       while(1) {
         coproc->receive(tmp);
-        data.append(tmp);
-        if (r.parse(data,output) == true) 
-          return data.size();
+        s_output.append(tmp);
+        rapidjson::StringStream ss(s_output.c_str());
+        output.ParseStream<0>(ss); 
+        if (output.HasParseError() == false)
+          return s_output.size();
       }
-   }
-   catch(AhuException &ae) {
+   } catch(AhuException &ae) {
       L<<Logger::Warning<<"[pipeconnector] "<<" unable to receive data from coprocess. "<<ae.reason<<endl;
       delete coproc;
       coproc = NULL;

@@ -1,6 +1,7 @@
 #ifndef REMOTEBACKEND_REMOTEBACKEND_HH
 
 #include <string>
+#include <sstream>
 #include "pdns/namespaces.hh"
 #include <pdns/dns.hh>
 #include <pdns/dnsbackend.hh>
@@ -10,17 +11,22 @@
 #include <pdns/logger.hh>
 #include <pdns/arguments.hh>
 #include <boost/lexical_cast.hpp>
-#include <jsoncpp/json/json.h>
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/document.h>
 #include "../pipebackend/coprocess.hh"
 #include <curl/curl.h>
+#include "pdns/json.hh"
+
+#define JSON_GET(obj,val,def) (obj.HasMember(val)?obj["" val ""]:def)
+#define JSON_ADD_MEMBER(obj, name, val, alloc) { rapidjson::Value __xval; __xval = val; obj.AddMember(name, __xval, alloc); }
 
 class Connector {
    public:
     virtual ~Connector() {};
-    bool send(Json::Value &value);
-    bool recv(Json::Value &value);
-    virtual int send_message(const Json::Value &input) = 0;
-    virtual int recv_message(Json::Value &output) = 0;
+    bool send(rapidjson::Document &value);
+    bool recv(rapidjson::Value &value);
+    virtual int send_message(const rapidjson::Document &input) = 0;
+    virtual int recv_message(rapidjson::Document &output) = 0;
 };
 
 // fwd declarations
@@ -28,8 +34,8 @@ class UnixsocketConnector: public Connector {
   public:
     UnixsocketConnector(std::map<std::string,std::string> options);
     virtual ~UnixsocketConnector();
-    virtual int send_message(const Json::Value &input);
-    virtual int recv_message(Json::Value &output);
+    virtual int send_message(const rapidjson::Document &input);
+    virtual int recv_message(rapidjson::Document &output);
   private:
     ssize_t read(std::string &data);
     ssize_t write(const std::string &data);
@@ -40,24 +46,26 @@ class UnixsocketConnector: public Connector {
     bool connected;
 };
 
+#ifdef REMOTEBACKEND_HTTP
 class HTTPConnector: public Connector {
   public:
 
   HTTPConnector(std::map<std::string,std::string> options);
   ~HTTPConnector();
 
-  virtual int send_message(const Json::Value &input);
-  virtual int recv_message(Json::Value &output);
-  friend size_t ::httpconnector_write_data(void*, size_t, size_t, void*);
-
+  virtual int send_message(const rapidjson::Document &input);
+  virtual int recv_message(rapidjson::Document &output);
+  friend size_t ::httpconnector_write_data(void*, size_t, size_t, void *value);
   private:
     std::string d_url;
     std::string d_url_suffix;
     CURL *d_c;
     std::string d_data;
-    void json2string(const Json::Value &input, std::string &output);
-    void requestbuilder(const std::string &method, const Json::Value &parameters, struct curl_slist **slist);
+    void json2string(const rapidjson::Value &input, std::string &output);
+    void requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
+    void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
 };
+#endif
 
 class PipeConnector: public Connector {
   public:
@@ -65,8 +73,8 @@ class PipeConnector: public Connector {
   PipeConnector(std::map<std::string,std::string> options);
   ~PipeConnector();
 
-  virtual int send_message(const Json::Value &input);
-  virtual int recv_message(Json::Value &output);
+  virtual int send_message(const rapidjson::Document &input);
+  virtual int recv_message(rapidjson::Document &output);
 
   private:
 
@@ -105,7 +113,7 @@ class RemoteBackend : public DNSBackend
     int build(const std::string &connstr);
     Connector *connector;
     bool d_dnssec;
-    Json::Value d_result;
+    rapidjson::Value d_result;
     int d_index; 
 };
 #endif

@@ -217,7 +217,6 @@ AC_ARG_ENABLE(cryptopp,
  [  --enable-cryptopp	Use Crypto++],enable_cryptopp=yes, enable_cryptopp=no)
 AC_MSG_RESULT($enable_cryptopp)
 AM_CONDITIONAL(CRYPTOPP,test x"$enable_cryptopp" = "xyes")
-
 if test "x$enable_botan110" = "xyes"
 then
 	PKG_CHECK_MODULES(BOTAN110, botan-1.10, HAVE_BOTAN110=yes, AC_MSG_ERROR([Could not find botan 1.10]))
@@ -232,6 +231,19 @@ then
         AC_SUBST(BOTAN18_LIBS)
         AC_SUBST(BOTAN18_CFLAGS)
         AC_DEFINE(HAVE_BOTAN18,1,[If we have botan 1.8])
+fi
+
+AC_ARG_ENABLE(remotebackend_http, [  --enable-remotebackend-http	Enable HTTP connector for remotebackend],enable_remotebackend_http=yes, enable_remotebackend_http=no)
+AC_MSG_CHECKING(whether to enable http connector in remotebackend)
+AC_MSG_RESULT($enable_remotebackend_http)
+AM_CONDITIONAL(REMOTEBACKEND_HTTP,test x"$enable_remotebackend_http" = "xyes")
+if test "x$enable_remotebackend_http" = "xyes"
+then
+        PKG_CHECK_MODULES(LIBCURL, libcurl, HAVE_LIBCURL=yes, AC_MSG_ERROR([Could not find libcurl]))
+        AC_SUBST(LIBCURL_LIBS)
+        AC_SUBST(LIBCURL_CFLAGS)
+        AC_DEFINE(HAVE_LIBCURL,1,[If we have libcurl])
+	AC_DEFINE(REMOTEBACKEND_HTTP,1,[If we want HTTP connector])
 fi
 
 AC_MSG_CHECKING(whether we should build static binaries)
