@@ -3,9 +3,13 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <fcntl.h>
-#include <curl/curl.h>
 #include <boost/foreach.hpp>
 #include <sstream>
+
+#ifdef REMOTEBACKEND_HTTP
+#include <curl/curl.h>
+#endif
+
 #ifndef UNIX_PATH_MAX 
 #define UNIX_PATH_MAX 108
 #endif
