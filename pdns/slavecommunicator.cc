@@ -392,6 +392,13 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       di.backend->abortTransaction();
     }
   }
+  catch(AhuException &ae) {
+    L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (AhuException): "<<ae.reason<<endl;
+    if(di.backend && !first) {
+      L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      di.backend->abortTransaction();
+    }
+  }
 }
 namespace {
 struct QueryInfo
