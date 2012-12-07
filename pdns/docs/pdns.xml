@@ -11147,6 +11147,12 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
 
 		Additionally, with 3.2 supporting empty non-terminals (see <xref linkend="dnssec-direct-database" />), your frontend may need some changes.
 	</para>
+	<para>
+		Due to a bug, in 3.1 and earlier releases, the pipebackend would default to a 1000 second timeout for
+		responses from scripts, instead of the intended and documented 1000 milliseconds (1 second). In 3.2,
+		pipe-timeout is in fact in milliseconds. To avoid some surprise, the default is now 2000 (2 seconds). If you
+		have slow pipebackend scripts, make sure to increase pipe-timeout.
+	</para>
   </sect1>
 
   </chapter>
