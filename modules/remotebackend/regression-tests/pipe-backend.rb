@@ -1,4 +1,4 @@
-#!/usr/bin/ruby1.9.1
+#!/usr/bin/ruby
 
 require 'json'
 require '../modules/remotebackend/regression-tests/backend'
@@ -28,7 +28,7 @@ begin
          res, log = h.send(method)
       end
       puts ({:result => res, :log => log}).to_json
-      f.puts ({:result => res, :log => log}).to_json
+      f.puts({:result => res, :log => log}).to_json
     rescue JSON::ParserError
       puts ({:result => false, :log => "Cannot parse input #{line}"}).to_json
       next

@@ -375,6 +375,9 @@ __EOF__
 			narrow=$(echo $context | cut -d- -f 4)
                         testsdir=../modules/remotebackend/regression-tests/
 
+                        # cleanup unbound-host.conf to avoid failures
+                        rm -f unbound-host.conf
+
 			case $remotetype in
 			http)
 				connstr="http:url=http://localhost:62434/dns"

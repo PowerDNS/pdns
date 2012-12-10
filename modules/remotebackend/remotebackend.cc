@@ -136,11 +136,18 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
    JSON_ADD_MEMBER(parameters, "qtype", qtype.getName().c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "qname", qdomain.c_str(), query.GetAllocator());
 
-   if (pkt_p != NULL) {
-     JSON_ADD_MEMBER(parameters, "remote", pkt_p->getRemote().c_str(), query.GetAllocator());
-     JSON_ADD_MEMBER(parameters, "local", pkt_p->getRemote().c_str(), query.GetAllocator());
-     JSON_ADD_MEMBER(parameters, "real-remote", pkt_p->getRealRemote().toString().c_str(), query.GetAllocator());
+   string localIP="0.0.0.0";
+   string remoteIP="0.0.0.0";
+   string realRemote="0.0.0.0/0";
+   if (pkt_p) {
+     localIP=pkt_p->getLocal();
+     realRemote = pkt_p->getRealRemote().toString();
+     remoteIP = pkt_p->getRemote();
    }
+
+   JSON_ADD_MEMBER(parameters, "remote", remoteIP.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "local", localIP.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "real-remote", realRemote.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "zone-id", zoneId, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -249,8 +256,12 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
    if (connector->recv(answer) == false)
      return true;
 
-   for(rapidjson::Value::ValueIterator iter = answer.Begin(); iter != answer.End(); iter++) {
-          meta.push_back(iter->GetString());
+   if (answer.IsArray()) {
+      for(rapidjson::Value::ValueIterator iter = answer.Begin(); iter != answer.End(); iter++) {
+         meta.push_back(iter->GetString());
+      }
+   } else if (answer.IsString()) {
+      meta.push_back(answer.GetString());
    }
 
    return true;
@@ -501,7 +512,6 @@ class RemoteBackendFactory : public BackendFactory
       {
           declare(suffix,"dnssec","Enable dnssec support","no");
           declare(suffix,"connection-string","Connection string","");
-          declare(suffix,"timeout","Timeout in milliseconds to wait for reply","2000");
       }
 
       DNSBackend *make(const std::string &suffix="")

@@ -20,7 +20,11 @@ void PipeConnector::launch() {
   if (coproc != NULL) return;
   rapidjson::Value val;
   rapidjson::Document init,res;
-  coproc = new CoProcess(this->command, 2000);
+  int timeout=2000;
+  if (options.find("timeout") != options.end()) { 
+     timeout = boost::lexical_cast<int>(options.find("timeout")->second);
+  }
+  coproc = new CoProcess(this->command, timeout);
   init.SetObject();
   val = "initialize";
   init.AddMember("method",val, init.GetAllocator());

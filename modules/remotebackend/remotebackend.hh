@@ -47,6 +47,7 @@ class UnixsocketConnector: public Connector {
     int fd;
     std::string path;
     bool connected;
+    int timeout;
 };
 
 #ifdef REMOTEBACKEND_HTTP
@@ -64,6 +65,7 @@ class HTTPConnector: public Connector {
     std::string d_url_suffix;
     CURL *d_c;
     std::string d_data;
+    int timeout;
     void json2string(const rapidjson::Value &input, std::string &output);
     void requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);

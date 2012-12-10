@@ -1,4 +1,4 @@
-#!/usr/bin/ruby1.9.1
+#!/usr/bin/ruby
 require "rubygems"
 #require "bundler/setup"
 require "webrick"
@@ -6,10 +6,10 @@ require "../modules/remotebackend/regression-tests/dnsbackend"
 require "../modules/remotebackend/regression-tests/backend"
 
 server = WEBrick::HTTPServer.new(
-	Port: 62434,
-	BindAddress: "localhost",
+	:Port=>62434,
+	:BindAddress=>"localhost",
 #	Logger: WEBrick::Log.new("remotebackend-server.log"),
-	AccessLog: [ [ File.open("remotebackend-access.log", "w"), WEBrick::AccessLog::COMBINED_LOG_FORMAT ] ] 
+	:AccessLog=>[ [ File.open("remotebackend-access.log", "w"), WEBrick::AccessLog::COMBINED_LOG_FORMAT ] ] 
 )
 
 be = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3") 

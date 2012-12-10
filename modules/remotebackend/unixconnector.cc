@@ -13,6 +13,10 @@ UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optio
      L<<Logger::Error<<"Cannot find 'path' option in connection string"<<endl;
      throw new AhuException();
    } 
+   this->timeout = 2000;
+   if (options.find("timeout") != options.end()) { 
+     this->timeout = boost::lexical_cast<int>(options.find("timeout")->second);
+   }
    this->path = options.find("path")->second;
    this->options = options;
    this->connected = false;
@@ -41,13 +45,14 @@ int UnixsocketConnector::recv_message(rapidjson::Document &output) {
         std::string s_output;
         rapidjson::GenericReader<rapidjson::UTF8<> , rapidjson::MemoryPoolAllocator<> > r;
 
-        time_t t0;
+        struct timeval t0,t;
 
         nread = 0;
-        t0 = time(NULL);
+        gettimeofday(&t0, NULL);
+        memcpy(&t,&t0,sizeof(t0));
         s_output = "";       
- 
-        while(time(NULL) - t0 < 2) { // 2 second timeout 
+
+        while((t.tv_sec - t0.tv_sec)*1000 + (t.tv_usec - t0.tv_usec)/1000 < this->timeout) { 
           std::string temp;
           temp.clear();
 
@@ -63,6 +68,7 @@ int UnixsocketConnector::recv_message(rapidjson::Document &output) {
             if (output.HasParseError() == false)
               return s_output.size();
           }
+          gettimeofday(&t, NULL);
         }
 
         return -1;

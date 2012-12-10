@@ -22,6 +22,10 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     } else {
       this->d_url_suffix = "";
     }
+    this->timeout = 2;
+    if (options.find("timeout") != options.end()) { 
+      this->timeout = boost::lexical_cast<int>(options.find("timeout")->second)/1000;
+    }
 }
 
 HTTPConnector::~HTTPConnector() {
@@ -83,7 +87,7 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     // finally add suffix
     ss << d_url_suffix;
     curl_easy_setopt(d_c, CURLOPT_URL, ss.str().c_str());
-
+    
     (*slist) = NULL;
     // set the correct type of request based on method
     if (method == "activateDomainKey" || method == "deactivateDomainKey") { 
@@ -154,7 +158,8 @@ int HTTPConnector::send_message(const rapidjson::Document &input) {
     d_c = curl_easy_init();
     d_data = "";
     curl_easy_setopt(d_c, CURLOPT_NOSIGNAL, 1);
-    curl_easy_setopt(d_c, CURLOPT_TIMEOUT, 2);
+    curl_easy_setopt(d_c, CURLOPT_TIMEOUT, this->timeout);
+
     slist = NULL;
 
     // build request
