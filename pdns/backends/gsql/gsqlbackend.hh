@@ -90,6 +90,7 @@ private:
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
   string d_DeleteZoneQuery;		
+  string d_DeleteRRSet;
   string d_ZoneLastChangeQuery;
   
   string d_firstOrderQuery;
