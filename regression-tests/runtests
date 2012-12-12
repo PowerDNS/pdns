@@ -46,8 +46,7 @@ do
 	then
 		echo $testname >> skipped_tests
 		skipped=$[$skipped+1]
-	else	
-		$a/command > /dev/null
+	else
 		$a/command > $a/real_result
 		expected=$a/expected_result
 		for extracontext in $extracontexts
