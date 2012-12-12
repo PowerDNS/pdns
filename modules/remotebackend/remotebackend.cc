@@ -76,7 +76,7 @@ int RemoteBackend::build(const std::string &connstr) {
       size_t pos;
       pos = connstr.find_first_of(":");
       if (pos == std::string::npos)
-         throw new AhuException("Invalid connection string: malformed");
+         throw AhuException("Invalid connection string: malformed");
 
       type = connstr.substr(0, pos);
       opts = connstr.substr(pos+1);
@@ -106,14 +106,16 @@ int RemoteBackend::build(const std::string &connstr) {
       // connectors know what they are doing
       if (type == "unix") {
         this->connector = new UnixsocketConnector(options);
-#ifdef REMOTEBACKEND_HTTP
       } else if (type == "http") {
+#ifdef REMOTEBACKEND_HTTP
         this->connector = new HTTPConnector(options);
+#else
+	throw AhuException("Invalid connection string: http connector support not enabled. Recompile with --enable-remotebackend-http");
 #endif
       } else if (type == "pipe") {
         this->connector = new PipeConnector(options);
       } else {
-        throw new AhuException("Invalid connection string: unknown connector");
+        throw AhuException("Invalid connection string: unknown connector");
       }
 
       return -1;
@@ -448,7 +450,7 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
    // make sure we got zone & kind
    if (!answer.HasMember("zone")) {
       L<<Logger::Error<<kBackendId<<"Missing zone in getDomainInfo return value"<<endl;
-      throw new AhuException();
+      throw AhuException();
    }
    value = -1;
    // parse return value. we need at least zone,serial,kind
