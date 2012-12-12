@@ -277,7 +277,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 				DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
 
 				string content = drc->getZoneRepresentation();
-				cerr<<"CONTENT: "<<content<<endl;
+				// cerr<<"CONTENT: "<<content<<endl;
 				delete drc;
 				if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
 					vector<string>parts;
