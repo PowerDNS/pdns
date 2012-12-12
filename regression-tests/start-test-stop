@@ -173,7 +173,7 @@ mydns-host=$MYDNSHOST
 mydns-password=$MYDNSPASSWD
 __EOF__
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
-				--no-shuffle --launch=mydns --loglevel=99999 --query-logging=yes \
+				--no-shuffle --launch=mydns \
 				--master --send-root-referral \
 				--cache-ttl=0 --no-config \
 				--mydns-rr-active=no --mydns-soa-active=no --mydns-use-minimal-ttl=no \
