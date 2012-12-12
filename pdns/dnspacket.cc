@@ -557,6 +557,11 @@ bool DNSPacket::hasEDNSSubnet()
   return d_haveednssubnet;
 }
 
+bool DNSPacket::hasEDNS() 
+{
+  return d_haveednssection;
+}
+
 Netmask DNSPacket::getRealRemote() const
 {
   if(d_haveednssubnet)

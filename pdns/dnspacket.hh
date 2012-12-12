@@ -138,6 +138,7 @@ public:
 
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet();
+  bool hasEDNS();
   //////// DATA !
 
   ComboAddress d_remote;

@@ -1,0 +1,7 @@
+The authoritative packet cache does not check whether a cached packet and the
+response is it being matched again, have the same EDNS status (present vs.
+not-present).
+
+Because it does take max reply length into account, the impact of this is
+limited - non-EDNS clients would only get EDNS replies from the cache if the
+EDNS bufsize happened to be 512.

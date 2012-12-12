@@ -85,7 +85,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     }
 
     uint16_t maxReplyLen = p->d_tcp ? 0xffff : p->getMaxReplyLen();
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk);
+    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk, p->hasEDNS());
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -128,12 +128,12 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl)
   if(maxttl<ourttl)
     ourttl=maxttl;
   insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), ourttl, -1, packetMeritsRecursion,
-    maxReplyLen, q->d_dnssecOk);
+    maxReplyLen, q->d_dnssecOk, q->hasEDNS());
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
 void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
-  bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk)
+  bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk, bool EDNS)
 {
   if(!((++d_ops) % 300000)) {
     cleanup();
@@ -142,7 +142,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   if(!ttl)
     return;
   
-  //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", value: '"<< (cet ? value : "PACKET") <<"', qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<endl;
+  //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<", hasEDNS: "<<EDNS<<endl;
   CacheEntry val;
   val.ttd=time(0)+ttl;
   val.qname=qname;
@@ -153,6 +153,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   val.maxReplyLen = maxReplyLen;
   val.dnssecOk = dnssecOk;
   val.zoneID = zoneID;
+  val.hasEDNS = EDNS;
   
   TryWriteLock l(&d_mut);
   if(l.gotIt()) { 
@@ -254,7 +255,7 @@ int PacketCache::purge(const string &match)
 }
 // called from ueberbackend
 bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
-  unsigned int maxReplyLen, bool dnssecOk)
+  unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS)
 {
   if(d_ttl<0) 
     getTTLS();
@@ -269,16 +270,16 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     return false;
   }
 
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk);
+  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS);
 }
 
 
 bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
-  unsigned int maxReplyLen, bool dnssecOK)
+  unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS)
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK));
+  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);
   if(ret)

@@ -1,0 +1,37 @@
+#!/bin/bash -ex
+
+bindwait ()
+{
+	configname=$1
+	domcount=1
+	while sleep 1
+	do
+		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		if [ $done = $domcount ]
+		then
+			return
+		fi
+	done
+}
+
+port=5501
+rm -f pdns*.pid
+
+../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./          \
+	--no-shuffle --launch=bind --bind-config=edns-packet-cache/named.conf   \
+	--fancy-records --send-root-referral                                    \
+	--cache-ttl=60 --no-config &
+bindwait
+	
+# prime cache without EDNS
+../pdns/sdig 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
+# expect EDNS in identical query with EDNS
+SDIGBUFSIZE=512 ../pdns/sdig 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
+
+# prime cache with EDNS
+SDIGBUFSIZE=512 ../pdns/sdig 127.0.0.1 5501 minimal.com NS | LC_ALL=C sort
+# expect no EDNS in identical query without EDNS
+../pdns/sdig 127.0.0.1 5501 minimal.com NS | LC_ALL=C sort
+
+kill $(cat pdns*.pid)
+rm pdns*.pid
