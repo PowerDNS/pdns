@@ -61,6 +61,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
         d_soatable=getArg("soa-table");
         d_rrwhere=(mustDo("rr-active")?"active = 1 and ":"")+getArg("rr-where");
         d_soawhere=(mustDo("soa-active")?"active = 1 and ":"")+getArg("soa-where");
+        d_useminimalttl=mustDo("use-minimal-ttl");
 
         L<<Logger::Warning<<backendName<<" Connection successful"<<endl;
 }
@@ -153,7 +154,7 @@ bool MyDNSBackend::getSOA(const string& name, SOAData& soadata, DNSPacket*) {
         soadata.expire = atol(rrow[6].c_str());
         soadata.default_ttl = atol(rrow[7].c_str());
         soadata.ttl = atol(rrow[8].c_str());
-        if (soadata.ttl < soadata.default_ttl) {
+        if (d_useminimalttl && soadata.ttl < soadata.default_ttl) {
         	soadata.ttl = soadata.default_ttl;
         }
         soadata.db = this;
@@ -324,7 +325,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
 
         rr.priority = atol(rrow[2].c_str());
         rr.ttl = atol(rrow[3].c_str());
-        if (rr.ttl < d_minimum)
+        if (d_useminimalttl && rr.ttl < d_minimum)
         	rr.ttl = d_minimum;
         rr.domain_id=atol(rrow[4].c_str());
 
@@ -353,6 +354,7 @@ public:
         	declare(suffix,"rr-where","Additional WHERE clause for RR","1 = 1");
         	declare(suffix,"soa-active","Use the active column in the SOA table","yes");
         	declare(suffix,"rr-active","Use the active column in the RR table","yes");
+        	declare(suffix,"use-minimal-ttl","Setting this to 'yes' will make the backend behave like MyDNS on the TTL values. Setting it to 'no' will make it ignore the minimal-ttl of the zone.","yes");
         }
 
         MyDNSBackend *make(const string &suffix = "") {

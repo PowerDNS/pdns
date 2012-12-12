@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS soa (
   minimum    INT UNSIGNED NOT NULL default '86400',
   ttl        INT UNSIGNED NOT NULL default '86400',
   UNIQUE KEY (origin)
-) TYPE=MyISAM;
+);
 
 --
 --  Table structure for table 'rr' (resource records)
@@ -36,6 +36,6 @@ CREATE TABLE IF NOT EXISTS rr (
   data       CHAR(128) NOT NULL,
   aux        INT UNSIGNED NOT NULL,
   ttl        INT UNSIGNED NOT NULL default '86400',
-  UNIQUE KEY rr (zone,name,type,data)
-) TYPE=MyISAM;
+  UNIQUE KEY rr (zone,name,type,data,aux)
+);
 

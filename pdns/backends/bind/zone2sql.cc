@@ -44,7 +44,7 @@
 StatBag S;
 static bool g_doDNSSEC;
 
-enum dbmode_t {MYSQL, ORACLE, POSTGRES, SQLITE};
+enum dbmode_t {MYSQL, ORACLE, POSTGRES, SQLITE, MYDNS};
 static dbmode_t g_mode;
 static bool g_intransaction;
 static int g_numRecords;
@@ -79,13 +79,13 @@ static void startNewTransaction()
     if(g_mode==POSTGRES || g_mode==ORACLE) {
       cout<<"COMMIT WORK;"<<endl;
     }
-    else if(g_mode == MYSQL || g_mode == SQLITE) {
+    else if(g_mode == MYSQL || g_mode == SQLITE || g_mode == MYDNS) {
       cout<<"COMMIT;"<<endl;
     }
   }
   g_intransaction=1;
   
-  if(g_mode == MYSQL)
+  if(g_mode == MYSQL || g_mode == MYDNS)
     cout<<"BEGIN;"<<endl;
   else
     cout<<"BEGIN TRANSACTION;"<<endl;
@@ -154,6 +154,33 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
       " from Domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
+  else if (g_mode == MYDNS) {
+    string zoneNameDot = zoneName + ".";
+    if (qtype == "A" || qtype == "AAAA" || qtype == "CNAME" || qtype == "HINFO" || qtype == "MX" || qtype == "NAPTR" || 
+        qtype == "NS" || qtype == "PTR" || qtype == "RP" || qtype == "SRV" || qtype == "TXT")
+    {
+      if ((qtype == "MX" || qtype == "NS" || qtype == "SRV" || qtype == "CNAME") && content[content.size()-1] != '.')
+        content.append(".");
+      cout<<"INSERT INTO rr(zone, name, type, data, aux, ttl) VALUES("<<
+      "(SELECT id FROM soa WHERE origin = "<< 
+      sqlstr(toLower(zoneNameDot))<<"), "<<
+      sqlstr(toLower(qname))<<", "<<
+      sqlstr(qtype)<<", "<<sqlstr(content)<<", "<<prio<<", "<<ttl<<");\n";
+    }
+    else if (qtype == "SOA") {
+      //pdns CONTENT = ns1.wtest.com. ahu.example.com. 2005092501 28800 7200 604800 86400 
+      vector<string> parts;
+      stringtok(parts, content);
+ 
+      cout<<"INSERT INTO soa(origin, ns, mbox, serial, refresh, retry, expire, minimum, ttl) VALUES("<<
+      sqlstr(toLower(zoneNameDot))<<", "<<sqlstr(parts[0])<<", "<<sqlstr(parts[1])<<", "<<atoi(parts[2].c_str())<<", "<<
+      atoi(parts[3].c_str())<<", "<<atoi(parts[4].c_str())<<", "<<atoi(parts[5].c_str())<<", "<<atoi(parts[6].c_str())<<", "<<ttl<<");\n";
+    }
+    else
+    {
+      cerr<<"Record type "<<qtype<<" is not supported."<<endl;
+    }
+  }
 }
 
 
@@ -179,6 +206,7 @@ int main(int argc, char **argv)
    
     ::arg().setSwitch("gpgsql","Output in format suitable for default gpgsqlbackend")="no";
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
+    ::arg().setSwitch("mydns","Output in format suitable for default mydnsbackend")="no";
     ::arg().setSwitch("oracle","Output in format suitable for the oraclebackend")="no";
     ::arg().setSwitch("gsqlite","Output in format suitable for default gsqlitebackend")="no";
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
@@ -221,6 +249,8 @@ int main(int argc, char **argv)
       if(!::arg().mustDo("transactions"))
         cout<<"set autocommit on;"<<endl;
     }
+    else if(::arg().mustDo("mydns"))
+      g_mode=MYDNS;
     else {
       cerr<<"Unknown SQL mode!\n\n";
       cerr<<"syntax:"<<endl<<endl;

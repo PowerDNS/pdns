@@ -30,6 +30,7 @@ private:
         string d_soawhere;
         string d_rrwhere;
         string d_origin;
+        bool d_useminimalttl;
         unsigned int d_minimum;
 
 };
