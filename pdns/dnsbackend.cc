@@ -182,7 +182,13 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
       ret.push_back(made);
     }
   }
-  catch(...) {
+  catch(AhuException &ae) {
+    L<<Logger::Error<<"Caught an exception instantiating a backend: "<<ae.reason<<endl;
+    L<<Logger::Error<<"Cleaning up"<<endl;
+    for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
+      delete *i;
+    throw;
+  } catch(...) {
     // and cleanup
     L<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
