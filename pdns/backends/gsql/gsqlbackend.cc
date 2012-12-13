@@ -408,6 +408,8 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
 
 bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth)
 {
+  if(d_readonly)
+    throw AhuException("called nullifyDNSSECOrderNameAndUpdateAuth("+itoa(domain_id)+","+qname+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -442,6 +444,9 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
 
 bool GSQLBackend::setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname)
 {
+  if(d_readonly)
+    throw AhuException("called setDNSSECAuthOnDsRecord("+itoa(domain_id)+","+qname+") on readonly GSQLBackend");
+
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -458,6 +463,8 @@ bool GSQLBackend::setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string&
 
 bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert, set<string>& erase, bool remove)
 {
+  if(d_readonly)
+    throw AhuException("called updateEmptyNonTerminals("+itoa(domain_id)+","+zonename+", ...) on readonly GSQLBackend");
   char output[1024];
 
   if(remove) {
@@ -1101,6 +1108,8 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
+  if(d_readonly)
+    throw AhuException("called replaceRRset(RR for "+qname+","+qt.getName()+") on readonly GSQLBackend");
   string deleteQuery;
   string deleteRRSet;
   if (qt != QType::ANY) {

@@ -1,4 +1,4 @@
-/* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
+/* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
    $Id$  */
 #include "smysql.hh"
@@ -27,10 +27,11 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   d_msocket = msocket;
   d_user = user;
   d_password = password;
+  d_group = group;
   d_timeout = timeout;
 
   d_connected=false;
-
+  
   d_rres=0;
 
   // ensureConnect();
@@ -45,7 +46,6 @@ void SMySQL::ensureConnect()
     Lock l(&s_myinitlock);
     mysql_init(&d_db);
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, "client");
-    my_bool reconnect = 1;
 
 #if MYSQL_VERSION_ID >= 50013
     my_bool reconnect = 1;
@@ -70,19 +70,12 @@ void SMySQL::ensureConnect()
 
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, group.c_str());
 
-    if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(),
-                          user.empty() ? NULL : user.c_str(),
-                          password.empty() ? NULL : password.c_str(),
-                          database.empty() ? NULL : database.c_str(),
-                          port,
-                          msocket.empty() ? NULL : msocket.c_str(),
-    if (!mysql_real_connect(&d_db, d_host.empty() ? 0 : d_host.c_str(),
-                          d_user.empty() ? 0 : d_user.c_str(),
-                          d_password.empty() ? 0 : d_password.c_str(),
-                          d_database.empty()? NULL : d_database.c_str(),
-                          d_port,
-                          d_msocket.empty() ? 0 : d_msocket.c_str(),
-                          CLIENT_MULTI_RESULTS)) {
+    if (!mysql_real_connect(&d_db, d_host.empty() ? NULL : d_host.c_str(),
+              d_user.empty() ? NULL : d_user.c_str(),
+              d_password.empty() ? NULL : d_password.c_str(),
+              d_database.c_str(), d_port,
+              d_msocket.empty() ? NULL : d_msocket.c_str(),
+              CLIENT_MULTI_RESULTS)) {
 
       if (retry == 0)
         throw sPerrorException("Unable to connect to database");
@@ -91,9 +84,9 @@ void SMySQL::ensureConnect()
       if (retry == 0) {
         mysql_close(&d_db);
         throw sPerrorException("Please add '(gmysql-)innodb-read-committed=no' to your PowerDNS configuration, and reconsider your storage engine if it does not support transactions.");
-      }
-      retry=-1;
     }
+    retry=-1;
+  }
   } while (retry >= 0);
 
   d_rres=0;
@@ -133,7 +126,7 @@ int SMySQL::doQuery(const string &query)
     L<<Logger::Warning<<"Query: "<<query<<endl;
 
   int err;
-  if((err=mysql_query(&d_db,query.c_str())))
+  if((err=mysql_query(&d_db,query.c_str()))) 
     throw sPerrorException("Failed to execute mysql_query, perhaps connection died? Err="+itoa(err));
 
   return 0;
@@ -154,7 +147,7 @@ int SMySQL::doQuery(const string &query, result_t &result)
 bool SMySQL::getRow(row_t &row)
 {
   row.clear();
-  if(!d_rres)
+  if(!d_rres) 
     if(!(d_rres = mysql_use_result(&d_db)))
       throw sPerrorException("Failed on mysql_use_result");
 
@@ -165,7 +158,7 @@ bool SMySQL::getRow(row_t &row)
       row.push_back(rrow[i] ?: "");
     return true;
   }
-  mysql_free_result(d_rres);
+  mysql_free_result(d_rres);  
 
   while (mysql_next_result(&d_db) == 0) {
     if ((d_rres = mysql_use_result(&d_db))) {

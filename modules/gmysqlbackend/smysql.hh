@@ -36,6 +36,7 @@ private:
   string d_msocket;
   string d_user;
   string d_password;
+  string d_group;
   unsigned int d_timeout;
   bool d_connected;
 
