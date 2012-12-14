@@ -15,7 +15,7 @@
 2	a.root-servers.net.	IN	A	3600000	198.41.0.4
 2	b.root-servers.net.	IN	A	3600000	192.228.79.201
 2	c.root-servers.net.	IN	A	3600000	192.33.4.12
-2	d.root-servers.net.	IN	A	3600000	128.8.10.90
+2	d.root-servers.net.	IN	A	3600000	199.7.91.13
 2	e.root-servers.net.	IN	A	3600000	192.203.230.10
 2	f.root-servers.net.	IN	A	3600000	192.5.5.241
 2	g.root-servers.net.	IN	A	3600000	192.112.36.4
