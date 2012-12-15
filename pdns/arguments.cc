@@ -327,6 +327,7 @@ const vector<string>&ArgvMap::getCommands()
 
 void ArgvMap::parse(int &argc, char **argv, bool lax)
 {
+  d_cmds.clear();
   for(int n=1;n<argc;n++) {
     parseOne(argv[n],"",lax);
   }
