@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig aland.test.com TXT
+

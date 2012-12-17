@@ -33,3 +33,4 @@ within-server		IN	CNAME	outpost.example.com.
 _underscore		IN	TXT	"underscores are terrible"
 b.c			IN	A	5.6.7.8
 *.a.b.c			IN	A	8.7.6.5
+aland		IN TXT "\195\133LAND ISLANDS"

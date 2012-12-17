@@ -20,6 +20,7 @@
 #include "dnswriter.hh"
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 
 #include "namespaces.hh"
 
@@ -388,10 +389,15 @@ string PacketReader::getLabel(unsigned int recurs)
 static string txtEscape(const string &name)
 {
   string ret;
+  char ebuf[5];
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i)
+  for(string::const_iterator i=name.begin();i!=name.end();++i) {
     if(*i=='\n') {  // XXX FIXME this should do a way better job!
       ret += "\\010";
+    }
+    else if((unsigned char) *i > 127) {
+      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)*i);
+      ret += ebuf;
     }
     else if(*i=='"' || *i=='\\'){
       ret += '\\';
@@ -399,6 +405,7 @@ static string txtEscape(const string &name)
     }
     else
       ret += *i;
+  }
   return ret;
 }
 
