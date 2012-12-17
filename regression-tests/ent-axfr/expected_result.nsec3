@@ -1,4 +1,5 @@
-2eu2gulbu53h9uvhfalshpbo2a83t6l2.test.com.	86400	IN	NSEC3	1 1 1 abcd  79ra8k3g5kai1hg9jlhbr6p0tp933m7v NS SOA MX RRSIG DNSKEY NSEC3PARAM 
+2eu2gulbu53h9uvhfalshpbo2a83t6l2.test.com.	86400	IN	NSEC3	1 1 1 abcd  2gks2n3jpqf62qohavfq1pholm3hr7ra NS SOA MX RRSIG DNSKEY NSEC3PARAM 
+2gks2n3jpqf62qohavfq1pholm3hr7ra.test.com.	86400	IN	NSEC3	1 1 1 abcd  79ra8k3g5kai1hg9jlhbr6p0tp933m7v TXT RRSIG 
 79ra8k3g5kai1hg9jlhbr6p0tp933m7v.test.com.	86400	IN	NSEC3	1 1 1 abcd  79u3das6ucctns1br3tvd8qkanni351l A RRSIG 
 79u3das6ucctns1br3tvd8qkanni351l.test.com.	86400	IN	NSEC3	1 1 1 abcd  7mmura8h40be5n4koan7rnmkursamh99
 7mmura8h40be5n4koan7rnmkursamh99.test.com.	86400	IN	NSEC3	1 1 1 abcd  88f1bqrb2iscvfel2sqqcksvflnekap6
