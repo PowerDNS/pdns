@@ -17961,7 +17961,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       </para>
      <sect2 id="remotebackend-compiling"><title>Compiling</title>
         <para>
-        Install following libraries for dependencies: libjsoncpp. To compile this backend, you need to configure --with-modules="remote pipe", for
+        To compile this backend, you need to configure --with-modules="remote pipe", for
         now. If you want to use http connector, you need libcurl and use --enable-remotebackend-http. 
       </para>
       </sect2>
