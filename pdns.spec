@@ -27,6 +27,7 @@ backend'.
 "/usr/sbin/pdns_server"
 "/usr/bin/pdns_control"
 "/usr/bin/zone2sql"
+"/usr/bin/zone2json"
 "/usr/bin/pdnssec"
 #"/usr/bin/zone2ldap"
 "/usr/man/man8/pdns_control.8"
