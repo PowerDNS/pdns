@@ -136,6 +136,70 @@
       	<itemizedlist>
   		<listitem>
   			<para>
+  				Aki Tuomi contributed zone2json, a great way for programmers to benefit from our zone file parser.
+  				Code in c2997, closes t509.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+	  			Our DNS TXT parser is not 8-bit safe, but our DNS TXT writer assumes the reader is! Reported by Jan-Piet Mens in t541, c2993 fixes our writer but not yet our parser.
+	  		</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				Ruben d'Arco did some improvements to the MyDNS backend, and provided a full test suite for it, that we
+  				now run after every commit. Code in c2988.
+  			</para>
+		</listitem>
+  		<listitem>
+  			<para>
+  				Some exceptions from backends would lose their meaning while bubbling up. Fixed by Aki Tuomi
+  				in c2985, closing t639.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+	  			The packet-cache honours max reply length while matching cached packets against queries, but not EDNS
+	  			status. This would mean that EDNS-enabled replies with a 512 reply len could be returned on non-EDNS queries.
+	  			Spotted while investigating a report from Winfried Angele, patched by Ruben d'Arco in c2982, closing t630.
+	  		</para>
+	  	</listitem>
+  		<listitem>
+  			<para>
+  				Errors involving creating, deletion or changing permissions on the control socket were unclear.
+  				Ruben d'Arco improved this in c2981.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				pipe-timeout was always documented to be in milliseconds, but it turns out it was in seconds! c2971 changes 
+  				them to actually be in ms, and 'increases' the default from 1000 seconds to 2000 milliseconds.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				Some exceptions would get dropped during inbound AXFR, yielding a log file that says 'transaction started'
+  				and nothing after that, making AXFR fail silently. c2976 and c2977 improve this somewhat.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				We now error out on empty labels inside of names (www..example.com) instead of generating bogus reply
+  				packets. Code in c2972, reported by several users.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				Doing chmod before chown, instead of the other way around, apparently avoids requiring a whole SELinux capability. Reported by Sander Hoentjen, fixed in r2965.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				Christian Hofstaedtler fixed a bug in our Debian init.d script. Code in c2963.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
 				Superslave errors ('Unable to find backend willing to host ..') now include the NSset found at the master, to aid debugging. Code in c2887.
 			</para>
 		</listitem>
@@ -290,8 +354,8 @@
 		</listitem>
 		<listitem>
 			<para>
-				Signatures roll at midnight on thursday. We now set their inception to be one hour before midnight,
-				to allow for some variations in clock quality on resolvers. Code in c2857.
+				Signatures used to roll at midnight on thursday. We now roll them one hour after midnight, with inception
+				still set to midnight, to allow for some variations in clock quality on resolvers. Code in c2857.
 			</para>
 		</listitem>
 		<listitem>
