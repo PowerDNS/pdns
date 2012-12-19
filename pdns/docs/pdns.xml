@@ -101,12 +101,12 @@
 	correct and stable operation, as well as notes on performance and memory use.</para>
       </warning>
   	  <note>
-      	<para>RC1 released November 12th, 2012</para>
+      	<para>RC2 released December 19th, 2012</para>
       	<para>Downloads:
       		<itemizedlist>
       			<listitem>
       				<para>
-      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc1.tar.gz">source</ulink>
+      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc2.tar.gz">source</ulink>
   					</para>
   				</listitem>
   				<listitem>
@@ -116,7 +116,7 @@
   				</listitem>
   				<listitem>
   					<para>
-  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc1/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc2/">native RHEL5/6 packages from Kees Monshouwer</ulink>
   					</para>
   				</listitem>
   			</itemizedlist>

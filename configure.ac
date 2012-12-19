@@ -1,6 +1,6 @@
 dnl intro
 AC_INIT(pdns/receiver.cc)
-AM_INIT_AUTOMAKE(pdns, 3.2-rc1)
+AM_INIT_AUTOMAKE(pdns, 3.2-rc2)
 AC_CANONICAL_HOST
 AM_CONFIG_HEADER(config.h)
 AC_C_BIGENDIAN 
