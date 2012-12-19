@@ -231,12 +231,19 @@ void *qthread(void *number)
 
   unsigned int &numreceived6=*S.getPointer("udp6-queries");
   unsigned int &numanswered6=*S.getPointer("udp6-answers");
-  numreceived=-1;
+
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
+  bool skipfirst=true;
+  unsigned int maintcount = 0;
   for(;;) {
+    if (skipfirst)
+      skipfirst=false;
+    else  
+      numreceived++;
+
     if(number==0) { // only run on main thread
-      if(!((numreceived++)%250)) { // maintenance tasks
+      if(!((maintcount++)%250)) { // maintenance tasks
         S.set("latency",(int)avg_latency);
         int qcount, acount;
         distributor->getQueueSizes(qcount, acount);
