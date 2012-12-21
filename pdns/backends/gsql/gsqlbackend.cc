@@ -79,8 +79,10 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 
 bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
-  if(d_readonly)
-    throw AhuException("called isMaster("+domain+","+ip+") on readonly GSQLBackend");
+  if(d_readonly) {
+    DLOG(L<<"called isMaster("<<domain<<","<<ip<<") on readonly GSQLBackend, returning false"<<endl);
+    return false;
+  }
 
   char output[1024];
   snprintf(output,sizeof(output)-1,
@@ -947,8 +949,10 @@ bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
 
 bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb)
 {
-  if(d_readonly)
-    throw AhuException("called superMasterBackend("+ip+","+domain+", ...) on readonly GSQLBackend");
+  if(d_readonly) {
+    DLOG(L<<"called superMasterBackend("<<ip<<","<<domain<<", ...) on readonly GSQLBackend, returning false"<<endl);
+    return false;
+  }
   string format;
   char output[1024];
   format = d_SuperMasterInfoQuery;
