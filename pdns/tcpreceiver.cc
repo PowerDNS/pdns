@@ -822,8 +822,6 @@ TCPNameserver::TCPNameserver()
   if(locals.empty() && locals6.empty())
     throw AhuException("No local address specified");
 
-  d_highfd=0;
-
   vector<string> parts;
   stringtok( parts, ::arg()["allow-axfr-ips"], ", \t" ); // is this IP on the guestlist?
   for( vector<string>::const_iterator i = parts.begin(); i != parts.end(); ++i ) {
@@ -863,8 +861,6 @@ TCPNameserver::TCPNameserver()
     pfd.events = POLLIN;
 
     d_prfds.push_back(pfd);
-
-    d_highfd=max(s,d_highfd);
   }
 
 #if !WIN32 && HAVE_IPV6
@@ -900,7 +896,6 @@ TCPNameserver::TCPNameserver()
     pfd.events = POLLIN;
 
     d_prfds.push_back(pfd);
-    d_highfd=max(s, d_highfd);
   }
 #endif // WIN32
 }

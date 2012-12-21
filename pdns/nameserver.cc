@@ -131,7 +131,6 @@ void UDPNameserver::bindIPv4()
       L<<Logger::Error<<"binding UDP socket to '"+localname+"' port "+lexical_cast<string>(ntohs(locala.sin_port))+": "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to UDP socket");
     }
-    d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
     L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
     struct pollfd pfd;
@@ -183,7 +182,6 @@ void UDPNameserver::bindIPv6()
       L<<Logger::Error<<"binding to UDP ipv6 socket: "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to UDP ipv6 socket");
     }
-    d_highfd=max(s,d_highfd);
     d_sockets.push_back(s);
     struct pollfd pfd;
     pfd.fd = s;
@@ -198,7 +196,6 @@ void UDPNameserver::bindIPv6()
 
 UDPNameserver::UDPNameserver()
 {
-  d_highfd=0;
   if(!::arg()["local-address"].empty())
     bindIPv4();
   if(!::arg()["local-ipv6"].empty())
@@ -340,17 +337,18 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   msgh.msg_flags = 0;
   
   int err;
+  vector<struct pollfd> rfds= d_rfds;
   if(d_sockets.size()>1) {
-    BOOST_FOREACH(struct pollfd &pfd, d_rfds) {
+    BOOST_FOREACH(struct pollfd &pfd, rfds) {
       pfd.events = POLL_IN;
       pfd.revents = 0;
     }
     
-    err = poll(&d_rfds[0], d_rfds.size(), -1);
+    err = poll(&rfds[0], rfds.size(), -1);
     if(err < 0)
       unixDie("Unable to poll for new UDP events");
     
-    BOOST_FOREACH(struct pollfd &pfd, d_rfds) {
+    BOOST_FOREACH(struct pollfd &pfd, rfds) {
       if(pfd.revents & POLL_IN) {
         sock=pfd.fd;        
         len=0;
@@ -364,7 +362,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
       }
     }
     if(sock==-1)
-      throw AhuException("select betrayed us! (should not happen)");
+      throw AhuException("poll betrayed us! (should not happen)");
   }
   else {
     sock=d_sockets[0];

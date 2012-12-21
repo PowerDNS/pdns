@@ -351,7 +351,6 @@ void mainthread()
 
   pthread_t qtid;
 
-
   if(::arg().mustDo("webserver"))
     sws.go();
   

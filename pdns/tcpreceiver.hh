@@ -64,7 +64,6 @@ private:
   static NetmaskGroup d_ng;
 
   vector<int>d_sockets;
-  int d_highfd;
   vector<struct pollfd> d_prfds;
   static int s_timeout;
 };

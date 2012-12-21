@@ -81,7 +81,6 @@ private:
   void bindIPv4();
   void bindIPv6();
   vector<pollfd> d_rfds;
-  int d_highfd;
 };
 
 
