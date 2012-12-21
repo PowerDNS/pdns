@@ -115,11 +115,6 @@
 # launch=
 
 #################################
-# lazy-recursion	Only recurse if question cannot be answered locally
-#
-# lazy-recursion=yes
-
-#################################
 # load-modules	Load this module - supply absolute or relative path
 #
 # load-modules=
