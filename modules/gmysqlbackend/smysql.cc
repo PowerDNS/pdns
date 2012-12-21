@@ -123,7 +123,7 @@ int SMySQL::doQuery(const string &query)
     throw SSqlException("Attempt to start new MySQL query while old one still in progress");
 
   if(s_dolog)
-    L<<Logger::Warning<<"Query: "<<query<<endl;
+    L<<Logger::Warning<<"Query ("<<d_user<<"): "<<query<<endl;
 
   int err;
   if((err=mysql_query(&d_db,query.c_str()))) 
