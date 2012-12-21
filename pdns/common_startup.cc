@@ -72,7 +72,6 @@ void declareArguments()
   ::arg().set("receiver-threads","Default number of Distributor (backend) threads to start")="1";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
-  ::arg().set("lazy-recursion","Only recurse if question cannot be answered locally")="yes";
   ::arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
   ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
   
