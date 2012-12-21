@@ -325,6 +325,7 @@ protected:
   int getArgAsNum(const string &key);
   string getRemote(DNSPacket *p);
   bool getRemote(DNSPacket *p, struct sockaddr *in, Utility::socklen_t *len);
+  void clearUpstreamCaches(void);
 
 private:
   string d_prefix;

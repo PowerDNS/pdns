@@ -909,6 +909,13 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
     d_lookupSuccess=false;
   }
 
+  if(d_silentuntil && d_lookupSuccess) {
+    // we just came out of gracetime and stuff appears to be up again
+    // flush some caches
+    clearUpstreamCaches();
+    d_silentuntil = 0;
+  }
+
   d_qname=qname;
 }
 
