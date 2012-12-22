@@ -134,6 +134,13 @@
       <para>
       	Changes between 3.2-RC1 and 3.2-RC2:
       	<itemizedlist>
+      	<listitem>
+      		<para>
+      			The udp-queries metric would only count on the first thread launched, instead of on all threads. 
+      			Additionally, it was initialised at MAXINT at startup, instead of at 0. Both issues fixed by Kees 
+      			Monshouwer in c2999, closing t491 and t582.
+      		</para>
+      	</listitem>
   		<listitem>
   			<para>
   				Aki Tuomi contributed zone2json, a great way for programmers to benefit from our zone file parser.
