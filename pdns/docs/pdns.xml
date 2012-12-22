@@ -101,12 +101,12 @@
 	correct and stable operation, as well as notes on performance and memory use.</para>
       </warning>
   	  <note>
-      	<para>RC2 released December 19th, 2012</para>
+      	<para>RC3 released December 22nd, 2012</para>
       	<para>Downloads:
       		<itemizedlist>
       			<listitem>
       				<para>
-      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc2.tar.gz">source</ulink>
+      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc3.tar.gz">source</ulink>
   					</para>
   				</listitem>
   				<listitem>
@@ -116,7 +116,7 @@
   				</listitem>
   				<listitem>
   					<para>
-  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc2/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc3/">native RHEL5/6 packages from Kees Monshouwer</ulink>
   					</para>
   				</listitem>
   			</itemizedlist>
@@ -131,6 +131,23 @@
       	In addition to all the changes below, we now auto-build semi-static packages. Relevant changes to
       	make that possible are in c2849, c2853, 2858, c2859, c2860.
       </para>
+      <para>
+      	Changes between 3.2-RC3 and 3.2-RC2:
+      	<itemizedlist>
+  		<listitem>
+  			<para>
+  				Michael Scheffler noticed that the lazy-recursion setting had no effect at all. Setting removed in
+  				c3003.
+  			</para>
+  		</listitem>
+  		<listitem>
+  			<para>
+  				Mark Zealey found that an earlier performance improvement could cause crashes under high load,
+  				with lots of IPs configured in local-address and receiver-threads higher than 1. Fixed in c3005.
+  			</para>
+  		</listitem>
+	  	</itemizedlist>
+	  </para>
       <para>
       	Changes between 3.2-RC1 and 3.2-RC2:
       	<itemizedlist>
