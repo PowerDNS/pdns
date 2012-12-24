@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# check if we are empty.
+cleandig big-txt.test.dyndns TXT
+
+
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update add big-txt.test.dyndns. 600 TXT "99 bottles of beer on the wall, 99 bottles of beer. Take one down, pass it around, 98 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "98 bottles of beer on the wall, 98 bottles of beer. Take one down, pass it around, 97 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "97 bottles of beer on the wall, 97 bottles of beer. Take one down, pass it around, 96 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "96 bottles of beer on the wall, 96 bottles of beer. Take one down, pass it around, 95 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "95 bottles of beer on the wall, 95 bottles of beer. Take one down, pass it around, 94 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "94 bottles of beer on the wall, 94 bottles of beer. Take one down, pass it around, 93 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "93 bottles of beer on the wall, 93 bottles of beer. Take one down, pass it around, 92 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "92 bottles of beer on the wall, 92 bottles of beer. Take one down, pass it around, 91 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "91 bottles of beer on the wall, 91 bottles of beer. Take one down, pass it around, 90 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "90 bottles of beer on the wall, 90 bottles of beer. Take one down, pass it around, 89 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "89 bottles of beer on the wall, 89 bottles of beer. Take one down, pass it around, 88 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "88 bottles of beer on the wall, 88 bottles of beer. Take one down, pass it around, 87 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "87 bottles of beer on the wall, 87 bottles of beer. Take one down, pass it around, 86 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "86 bottles of beer on the wall, 86 bottles of beer. Take one down, pass it around, 85 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "85 bottles of beer on the wall, 85 bottles of beer. Take one down, pass it around, 84 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "84 bottles of beer on the wall, 84 bottles of beer. Take one down, pass it around, 83 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "83 bottles of beer on the wall, 83 bottles of beer. Take one down, pass it around, 82 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "82 bottles of beer on the wall, 82 bottles of beer. Take one down, pass it around, 81 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "81 bottles of beer on the wall, 81 bottles of beer. Take one down, pass it around, 80 bottles of beer on the wall."
+update add big-txt.test.dyndns. 600 TXT "80 bottles of beer on the wall, 80 bottles of beer. Take one down, pass it around, 79 bottles of beer on the wall."
+send
+answer
+!
+
+# check if things are added
+cleandig big-txt.test.dyndns TXT
+
+nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+server $nameserver $port
+zone test.dyndns
+update delete big-txt.test.dyndns. TXT
+send
+answer
+!
+
+
+# check if we deleted properly.
+cleandig big-txt.test.dyndns TXT
