@@ -7,8 +7,6 @@ Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host.test.dyndns.', qtype=ANY
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
-0	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
-0	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
@@ -52,8 +50,6 @@ Reply to question for qname='a.c.host.test.dyndns.', qtype=ANY
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
-0	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
-0	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	e.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
@@ -85,8 +81,6 @@ Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host.test.dyndns.', qtype=ANY
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
-0	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
-0	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
@@ -121,15 +115,11 @@ Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.c.host.test.dyndns.', qtype=ANY
-0	4lu40mioapf67tru8es6u204hifn8p3m.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 A RRSIG
-0	4lu40mioapf67tru8es6u204hifn8p3m.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 0	d.host.test.dyndns.	IN	A	3600	127.0.0.1
 0	d.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
-0	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
-0	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	e.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
@@ -161,8 +151,6 @@ Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='host.test.dyndns.', qtype=ANY
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
-0	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
-0	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
@@ -206,8 +194,6 @@ Reply to question for qname='a.c.host.test.dyndns.', qtype=ANY
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
-0	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
-0	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	e.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
