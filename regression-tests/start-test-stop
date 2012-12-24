@@ -407,6 +407,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 \
 				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=$cachettl --no-config \
 				--gsqlite3-database=pdns.sqlite3 &
 			skipreasons=nodnssec
@@ -423,7 +424,6 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=opendbx \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
 				--cache-ttl=$cachettl --no-config \
 				--opendbx-backend=sqlite3 --opendbx-host-read=./ --opendbx-host-write=./ \
 				--opendbx-database=pdns-opendbx.sqlite3 &
