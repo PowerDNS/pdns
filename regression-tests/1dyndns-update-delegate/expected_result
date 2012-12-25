@@ -9,8 +9,8 @@ Answer:
 
 1	delegate1.test.dyndns.	IN	NS	3600	ns1.delegate1.test.dyndns.
 1	delegate1.test.dyndns.	IN	NS	3600	ns2.delegate1.test.dyndns.
-2	ns1.delegate1.test.dyndns.	IN	A	3600	127.0.0.1
-2	ns2.delegate1.test.dyndns.	IN	A	3600	127.0.0.2
+2	ns1.delegate1.test.dyndns.	IN	A	3600	192.168.0.1
+2	ns2.delegate1.test.dyndns.	IN	A	3600	192.168.0.2
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='delegate1.test.dyndns.', qtype=ANY
 Answer:
@@ -21,7 +21,7 @@ Answer:
 
 1	delegate2.test.dyndns.	IN	NS	3600	ns1.delegate2.test.dyndns.
 1	delegate2.test.dyndns.	IN	NS	3600	ns2.example.com.
-2	ns1.delegate2.test.dyndns.	IN	A	3600	127.0.0.1
+2	ns1.delegate2.test.dyndns.	IN	A	3600	192.168.0.3
 2	ns2.example.com.	IN	A	120	192.168.1.2
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='delegate2.test.dyndns.', qtype=ANY
@@ -37,16 +37,16 @@ Reply to question for qname='delegate2.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='delegate1.test.dyndns.', qtype=ANY
-0	ns1.delegate1.test.dyndns.	IN	A	3600	127.0.0.1
+0	ns1.delegate1.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns1.delegate1.test.dyndns.', qtype=ANY
-0	ns2.delegate1.test.dyndns.	IN	A	3600	127.0.0.2
+0	ns2.delegate1.test.dyndns.	IN	A	3600	192.168.0.2
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns2.delegate1.test.dyndns.', qtype=ANY
-0	ns1.delegate2.test.dyndns.	IN	A	3600	127.0.0.1
+0	ns1.delegate2.test.dyndns.	IN	A	3600	192.168.0.3
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns1.delegate2.test.dyndns.', qtype=ANY
-0	ns2.delegate2.test.dyndns.	IN	A	3600	127.0.0.1
+0	ns2.delegate2.test.dyndns.	IN	A	3600	192.168.0.4
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns2.delegate2.test.dyndns.', qtype=ANY
 Answer:

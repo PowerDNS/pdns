@@ -119,7 +119,7 @@ Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NSEC	86400	e.host.test.dyndns. NS RRSIG NSEC
 1	c.host.test.dyndns.	IN	RRSIG	86400	NSEC 8 4 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-2	ns1.c.host.test.dyndns.	IN	A	3600	127.0.0.2
+2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NSEC	86400	e.host.test.dyndns. NS RRSIG NSEC
@@ -169,7 +169,7 @@ Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NSEC	86400	e.host.test.dyndns. NS RRSIG NSEC
 1	c.host.test.dyndns.	IN	RRSIG	86400	NSEC 8 4 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-2	ns1.c.host.test.dyndns.	IN	A	3600	127.0.0.2
+2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NSEC	86400	e.host.test.dyndns. NS RRSIG NSEC

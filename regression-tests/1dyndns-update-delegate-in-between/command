@@ -15,7 +15,7 @@ nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
 server $nameserver $port
 zone test.dyndns
 update add c.host.test.dyndns 3600 NS ns1.c.host.test.dyndns
-update add ns1.c.host.test.dyndns 3600 A 127.0.0.2
+update add ns1.c.host.test.dyndns 3600 A 192.168.0.1 
 send
 answer
 !

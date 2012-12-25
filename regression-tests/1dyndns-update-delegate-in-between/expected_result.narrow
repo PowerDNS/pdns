@@ -135,7 +135,7 @@ Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd LMRSADK2BB62QPRUAULES5I5AP06CP56
 1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-2	ns1.c.host.test.dyndns.	IN	A	3600	127.0.0.2
+2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	4lu40mioapf67tru8es6u204hifn8p3l.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 4LU40MIOAPF67TRU8ES6U204HIFN8P3N
@@ -193,7 +193,7 @@ Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd LMRSADK2BB62QPRUAULES5I5AP06CP56
 1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-2	ns1.c.host.test.dyndns.	IN	A	3600	127.0.0.2
+2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	4lu40mioapf67tru8es6u204hifn8p3l.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 4LU40MIOAPF67TRU8ES6U204HIFN8P3N

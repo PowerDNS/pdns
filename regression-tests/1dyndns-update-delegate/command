@@ -7,8 +7,8 @@ server $nameserver $port
 zone test.dyndns
 update add delegate1.test.dyndns 3600 NS ns1.delegate1.test.dyndns
 update add delegate1.test.dyndns 3600 NS ns2.delegate1.test.dyndns
-update add ns1.delegate1.test.dyndns 3600 A 127.0.0.1
-update add ns2.delegate1.test.dyndns 3600 A 127.0.0.2
+update add ns1.delegate1.test.dyndns 3600 A 192.168.0.1
+update add ns2.delegate1.test.dyndns 3600 A 192.168.0.2
 send
 answer
 !
@@ -18,8 +18,8 @@ cleandig delegate1.test.dyndns ANY
 nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
 server $nameserver $port
 zone test.dyndns
-update add ns1.delegate2.test.dyndns 3600 A 127.0.0.1
-update add ns2.delegate2.test.dyndns 3600 A 127.0.0.1
+update add ns1.delegate2.test.dyndns 3600 A 192.168.0.3
+update add ns2.delegate2.test.dyndns 3600 A 192.168.0.4
 update add delegate2.test.dyndns 3600 NS ns1.delegate2.test.dyndns
 update add delegate2.test.dyndns 3600 NS ns2.example.com 
 send
