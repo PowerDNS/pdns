@@ -1296,7 +1296,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   c_of << "};" << endl;
   c_of.close();
 
-  int newid=0;
+  int newid=1;
   // Find a free zone id nr.  
   
   if (!s_state->id_zone_map.empty()) {
