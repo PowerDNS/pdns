@@ -42,7 +42,6 @@
 
 
 StatBag S;
-static bool g_intransaction;
 static int g_numRecords;
 
 static void quoteValue(string &value) 
@@ -80,11 +79,6 @@ static string emitRecord(const string& zoneName, const string &qname, const stri
     trim_left(content);
   }
 
-  bool auth = true;
-  if(qtype == "NS" && !pdns_iequals(stripDot(qname), zoneName)) {
-    auth=false;
-  }
- 
   quoteValue(content);
  
   retval = "{";

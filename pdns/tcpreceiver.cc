@@ -937,7 +937,7 @@ void TCPNameserver::thread()
             if(room<1)
               L<<Logger::Warning<<Logger::NTLog<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
 
-            if(pthread_create(&tid, 0, &doConnection, (void *)fd)) {
+            if(pthread_create(&tid, 0, &doConnection, reinterpret_cast<void*>(fd))) {
               L<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
               d_connectionroom_sem->post();
             }

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
+#define YY_NO_INPUT 1
 #define YYSTYPE char *
 
 #ifdef WIN32
@@ -39,6 +40,10 @@ extern const char *bind_directory;
 %x incl
 %x quoted
 %option stack
+%option nounput
+%option noyy_top_state
+%option noinput
+
 %%
 
 

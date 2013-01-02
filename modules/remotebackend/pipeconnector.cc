@@ -65,7 +65,6 @@ int PipeConnector::recv_message(rapidjson::Document &output)
    rapidjson::GenericReader<rapidjson::UTF8<> , rapidjson::MemoryPoolAllocator<> > r;
    std::string tmp;
    std::string s_output;
-   int nread=0;
 
    launch();
    try {

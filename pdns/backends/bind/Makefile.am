@@ -5,7 +5,7 @@ AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h
 
 bind-dnssec.schema.sqlite3.sql.h: ../../bind-dnssec.schema.sqlite3.sql
-	( echo 'static char sqlCreate[]=' ; sed 's/$$/"/g' ../../bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
+	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' ../../bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
 
 
 libbind2backend_la_SOURCES=bindbackend2.cc bindbackend2.hh bindparser.yy \

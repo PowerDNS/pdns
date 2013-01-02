@@ -143,7 +143,7 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   if(doCache) {
     WriteLock l(&g_signatures_lock);
     /* we add some jitter here so not all your slaves start pruning their caches at the very same millisecond */
-    unsigned int weekno = (time(0) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
+    int weekno = (time(0) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
   
     if(g_cacheweekno < weekno) {  // blunt but effective (C) Habbie
       g_signatures.clear();
