@@ -9,6 +9,7 @@ clean:
 	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.gz html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1
 
 html/index.html: pdns-expanded.xml
+	rm -rf html
 	xmlto xhtml -m config.xsl -o html $<
 	cp docbook.css html
 
