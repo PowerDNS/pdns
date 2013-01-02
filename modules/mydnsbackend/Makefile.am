@@ -1,5 +1,5 @@
 AM_CPPFLAGS=@THREADFLAGS@
-INCLUDES=-I@MYSQL_incdir@ 
+INCLUDES=@MYSQL_inc@
 lib_LTLIBRARIES = libmydnsbackend.la 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 libmydnsbackend_la_SOURCES=mydnsbackend.cc mydnsbackend.hh 
