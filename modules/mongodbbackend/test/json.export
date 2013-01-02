@@ -1,6 +1,0 @@
-time mongoexport -d dns -c records >json.exported.records
-time mongoexport -d dns -c domains >json.exported.domains
-
-time mongoexport -d dns -c cryptokeys >json.exported.cryptokeys
-time mongoexport -d dns -c domainmetadata >json.exported.domainmetadata
-time mongoexport -d dns -c tsigkeys >json.exported.tsigkeys

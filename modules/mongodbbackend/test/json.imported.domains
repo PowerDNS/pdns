@@ -1,3 +1,0 @@
-{"domain_id" : 10, "name" : "example.com", "type" : "NATIVE", "ttl" : 120, "SOA" : {"hostmaster" : "ahu.example.com", "nameserver" : "ns1.example.com", "serial" : 2000081501, "refresh" : 28800, "retry" : 7200, "expire" : 604800, "default_ttl" : 86400 } }
-{"domain_id" : 11, "name" : "test.com", "type" : "NATIVE", "ttl" : 3600, "SOA" : {"hostmaster" : "ahu.example.com", "nameserver" : "ns1.test.com", "serial" : 2005092501, "refresh" : 28800, "retry" : 7200, "expire" : 604800, "default_ttl" : 86400 } }
-{"domain_id" : 12, "name" : "wtest.com", "type" : "NATIVE", "ttl" : 3600, "SOA" : {"hostmaster" : "ahu.example.com", "nameserver" : "ns1.wtest.com", "serial" : 2005092501, "refresh" : 28800, "retry" : 7200, "expire" : 604800, "default_ttl" : 86400 } }

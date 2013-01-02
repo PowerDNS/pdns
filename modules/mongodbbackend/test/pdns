@@ -1,4 +1,0 @@
-../../../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
---no-shuffle --launch=mongodb \
---fancy-records --query-logging --send-root-referral --loglevel=9 \
---cache-ttl=0 --config-dir=./

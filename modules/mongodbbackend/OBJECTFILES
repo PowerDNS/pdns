@@ -1,1 +1,0 @@
-mongodbbackend.o minimal.o slave.o master.o reload.o private.o dnssec.o supermaster.o crc32.o

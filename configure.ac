@@ -661,7 +661,6 @@ modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/geobackend/Makefile modules/opendbxbackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \
 modules/xdbbackend/Makefile modules/godbcbackend/Makefile \
-modules/mongodbbackend/Makefile \
 modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \

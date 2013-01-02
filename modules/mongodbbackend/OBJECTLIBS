@@ -1,1 +1,0 @@
--L/opt/mongo/lib64/ -lmongoclient -lboost_thread -lboost_filesystem -lboost_system
