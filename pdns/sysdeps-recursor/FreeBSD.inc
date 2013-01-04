@@ -1,4 +1,4 @@
-CXXFLAGS+=-I/usr/local/include/
+CXXFLAGS+=-I/usr/local/include/ -DHAVE_STRCASESTR
 OPTIONALS:=optional/kqueuemplexer.o
 
 optional/kqueuemplexer.o: kqueuemplexer.cc
