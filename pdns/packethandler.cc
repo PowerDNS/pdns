@@ -260,10 +260,10 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   
-  // modes: anonymous, powerdns only, full, spoofed
-  const string mode=::arg()["version-string"];
-  
   if(p->qclass == QClass::CHAOS && p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
+    // modes: anonymous, powerdns only, full, spoofed
+    const static string mode=::arg()["version-string"];
+  
     if(mode.empty() || mode=="full") 
       rr.content="Served by POWERDNS "VERSION" $Id$";
     else if(mode=="anonymous") {
