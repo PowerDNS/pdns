@@ -80,7 +80,7 @@ AC_STRUCT_TM
 
 dnl Checks for library functions.
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS(gethostname gettimeofday mkdir mktime select socket strerror)
+AC_CHECK_FUNCS(gethostname gettimeofday mkdir mktime select socket strerror strcasestr)
 
 # Check for libdl
 
