@@ -450,20 +450,19 @@ then
 	        AC_MSG_ERROR([Did not find the mysql library dir in '$MYSQL_lib_check'])
 	fi
 	case "$MYSQL_libdir" in
-                 /usr/lib ) MYSQL_lib="" ;;
-	  /* ) MYSQL_lib=-L$MYSQL_libdir; LDFLAGS="$MYSQL_lib $LDFLAGS";;
-	  * )  AC_MSG_ERROR([The MySQL library directory ($MYSQL_libdir) must be an absolute path.]) ;;
+	  /*) MYSQL_lib="-L$MYSQL_libdir -lmysqlclient" 
+          ;;
+	  *)  AC_MSG_ERROR([The MySQL library directory ($MYSQL_libdir) must be an absolute path.]) 
+          ;;
 	esac
-	
-	AC_SUBST(MYSQL_lib)
-	
 	AC_MSG_RESULT([$MYSQL_libdir])
-		AC_MSG_CHECKING([for MySQL include directory])
+        AC_SUBST(MYSQL_lib)
+	AC_MSG_CHECKING([for MySQL include directory])
 	MYSQL_inc=
 	for m in $MYSQL_inc_check; do
 	        if test -d "$m" && test -f "$m/mysql.h"
 	        then
-	                MYSQL_inc=-I$m
+                        MYSQL_inc="$m"
 	                break
 	        fi
 	done
@@ -472,14 +471,15 @@ then
 	fi
 	
 	case "$MYSQL_inc" in
-	  /* ) ;;
-	  * )  AC_MSG_ERROR([The MySQL include directory ($MYSQL_inc) must be an absolute path.]) ;;
+	  /*) AC_MSG_RESULT($MYSQL_inc) 
+          ;;
+	  *)  AC_MSG_ERROR([The MySQL include directory ($MYSQL_inc) must be an absolute path.]) 
+          ;;
 	esac
-        AC_MSG_RESULT([$MYSQL_inc])
+        MYSQL_inc="-I$MYSQL_inc"
      fi
 	AC_SUBST(MYSQL_lib)
 	AC_SUBST(MYSQL_inc)
-#	LIBS="$LIBS -lmysqlclient"
 fi
 
 
