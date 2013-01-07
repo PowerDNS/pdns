@@ -354,6 +354,8 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
 {
   extern PacketCache PC;
   static unsigned int queryttl=::arg().asNum("query-cache-ttl");
+  unsigned int cachettl;
+
   if(!queryttl)
     return;
   
@@ -361,13 +363,14 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
   std::ostringstream ostr;
   boost::archive::binary_oarchive boa(ostr, boost::archive::no_header);
 
+  cachettl = queryttl;
   BOOST_FOREACH(DNSResourceRecord rr, rrs) {
     if (rr.ttl < queryttl)
-      queryttl = rr.ttl;
+      cachettl = rr.ttl;
   }
-  
+
   boa << rrs;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), queryttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), cachettl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const string &domain, set<string> *ips)
