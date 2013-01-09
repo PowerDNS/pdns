@@ -4,9 +4,10 @@ After=network.target
 
 [Service]
 Type=forking
-ExecStart=/usr/sbin/pdns_server --daemon --guardian=yes
-ExecReload=/usr/bin/pdns_control cycle
+ExecStart=/usr/sbin/pdns_server --daemon
 ExecStop=/usr/bin/pdns_control quit
+Restart=on-failure
+RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
