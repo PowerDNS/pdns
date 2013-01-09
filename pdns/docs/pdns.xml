@@ -132,7 +132,51 @@
       	make that possible are in c2849, c2853, 2858, c2859, c2860.
       </para>
       <para>
-      	Changes between 3.2-RC3 and 3.2-RC2:
+        Changes between 3.2-RC3 and 3.2-RC4:
+        <itemizedlist>
+      <listitem>
+        <para>
+          The experimental undocumented bindbackend superslave mode would break the first added domain until a restart. Fixed by Kees Monshouwer in c3013.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Sander Hoentjen reported an issue with our choice of ports for outgoing TCP connections. Investigating it
+          turned up that we were randomizing TCP connections on purpose while leaving UDP port choice to the kernel,
+          which should be the other way around. Fixed in c3014, closing t643 and t644.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Aki Tuomi contributed some autoconf code to use mysql_config if it is available. Code in c3015 and c3019, closing t458.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The Mongo backend was removed at the author's request, as it does not work with any current libmongo versions.
+          Change in c3017.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Mark Zealey discovered we were retrieving the ascii powerdns version string for each packet, not just for version string queries. Fixed in c3018, closing t651.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Our new json code would not compile on solaris 9 and 10 due to lack of strcasestr. Juraj Lutter contributed
+          a portable version in c3020.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Mark Zealey noted that RRs with low TTLs could lower our query-cache-ttl persistently. Fixed in c3023, closing t662.
+        </para>
+      </listitem>
+      </itemizedlist>
+    </para>
+      <para>
+      	Changes between 3.2-RC2 and 3.2-RC3:
       	<itemizedlist>
   		<listitem>
   			<para>
