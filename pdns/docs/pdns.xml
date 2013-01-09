@@ -101,12 +101,12 @@
 	correct and stable operation, as well as notes on performance and memory use.</para>
       </warning>
   	  <note>
-      	<para>RC3 released December 22nd, 2012</para>
+      	<para>RC4 released January 9th, 2012</para>
       	<para>Downloads:
       		<itemizedlist>
       			<listitem>
       				<para>
-      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc3.tar.gz">source</ulink>
+      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc4.tar.gz">source</ulink>
   					</para>
   				</listitem>
   				<listitem>
@@ -116,7 +116,7 @@
   				</listitem>
   				<listitem>
   					<para>
-  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc3/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc4/">native RHEL5/6 packages from Kees Monshouwer</ulink>
   					</para>
   				</listitem>
   			</itemizedlist>
@@ -171,6 +171,11 @@
       <listitem>
         <para>
           Mark Zealey noted that RRs with low TTLs could lower our query-cache-ttl persistently. Fixed in c3023, closing t662.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          pdnssec now honours module-dir, patch by Fredrik Danerklint in c3026.
         </para>
       </listitem>
       </itemizedlist>
