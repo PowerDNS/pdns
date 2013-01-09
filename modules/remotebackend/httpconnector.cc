@@ -96,15 +96,17 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
     } else if (method == "addDomainKey") {
         // create post with keydata
-        std::stringstream ss2;
-        const rapidjson::Value& param = parameters["key"]; 
-        ss2 << "flags=" << param["flags"].GetUint() << "&active=" << (param["active"].GetBool() ? 1 : 0) << "&content=";
+        char *postfields;
+        int nsize;
+        const rapidjson::Value& param = parameters["key"];
         tmpstr = curl_easy_escape(d_c, param["content"].GetString(), 0);
-        ss2 << tmpstr;
-        sparam = ss2.str();
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, sparam.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, sparam.c_str());
+        nsize = 35 + strlen(tmpstr);
+        postfields = new char[nsize];
+        nsize = snprintf(postfields, nsize, "flags=%u&active=%d&content=%s", param["flags"].GetUint(), (param["active"].GetBool() ? 1 : 0), tmpstr);
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, nsize);
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, postfields);
         curl_free(tmpstr);
+        delete postfields;
     } else if (method == "setDomainMetadata") {
         int n=0;
         // copy all metadata values into post

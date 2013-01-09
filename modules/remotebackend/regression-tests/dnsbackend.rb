@@ -48,6 +48,8 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    end
 
    def do_GET(req,res)
+     req.continue
+
      tmp = req.path[/dns\/(.*)/,1]
      return 400, "Bad request" if (tmp.nil?)
 
