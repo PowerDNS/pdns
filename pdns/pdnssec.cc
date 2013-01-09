@@ -65,10 +65,10 @@ void loadMainConfig(const std::string& configdir)
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
   
-  ::arg().laxFile(configname.c_str());
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
   ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().laxFile(configname.c_str());
 
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
