@@ -82,18 +82,26 @@ DNSCryptoKeyEngine::storvector_t CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BI
   storvect.push_back(make_pair("PrivateKey", string((char*)buffer, sizeof(buffer))));
   return storvect;
 }
+
 template<class HASHER, class CURVE, int BITS>
 void CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
 {
+  AutoSeededRandomPool prng;
   privatekey_t* privateKey = new privatekey_t;
-  const CryptoPP::Integer x;
+  const CryptoPP::Integer x(reinterpret_cast<const unsigned char*>(stormap["privatekey"].c_str()), BITS/8); // well it should be this long
   CryptoPP::OID oid=CURVE();
-  privateKey->Initialize(oid, x );
+  privateKey->Initialize(oid, x);
+  bool result = privateKey->Validate(prng, 3);
+  if (!result) {
+      throw "Cannot load private key - validation failed!";
+  }
   d_key = shared_ptr<privatekey_t>(privateKey);
   publickey_t* publicKey = new publickey_t();
   d_key->MakePublicKey(*publicKey);
   d_pubkey = shared_ptr<publickey_t>(publicKey);
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
 }
+
 template<class HASHER, class CURVE, int BITS>
 std::string CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::getPubKeyHash() const
 {
