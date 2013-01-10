@@ -1541,6 +1541,9 @@ void* pleaseSupplantACLs(NetmaskGroup *ng)
   return 0;
 }
 
+int g_argc;
+char** g_argv;
+
 void parseACLs()
 {
   static bool l_initialized;
@@ -1551,8 +1554,9 @@ void parseACLs()
     
     if(!::arg().preParseFile(configname.c_str(), "allow-from-file")) 
       L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
-    
+    ::arg().preParse(g_argc, g_argv, "allow-from-file");
     ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
+    ::arg().preParse(g_argc, g_argv, "allow-from");
   }
 
   NetmaskGroup* oldAllowFrom = t_allowFrom, *allowFrom=new NetmaskGroup;
@@ -1937,6 +1941,8 @@ void doWindowsServiceArguments(RecursorService& recursor)
 
 int main(int argc, char **argv) 
 {
+  g_argc = argc;
+  g_argv = argv;
   g_stats.startupTime=time(0);
   reportBasicTypes();
 
