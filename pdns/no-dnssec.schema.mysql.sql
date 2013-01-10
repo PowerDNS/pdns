@@ -1,9 +1,9 @@
 create table domains (
- id		 INT auto_increment,
- name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(128) DEFAULT NULL,
- last_check	 INT DEFAULT NULL,
- type		 VARCHAR(6) NOT NULL,
+ id              INT auto_increment,
+ name            VARCHAR(255) NOT NULL,
+ master          VARCHAR(128) DEFAULT NULL,
+ last_check      INT DEFAULT NULL,
+ type            VARCHAR(6) NOT NULL,
  notified_serial INT DEFAULT NULL, 
  account         VARCHAR(40) DEFAULT NULL,
  primary key (id)
@@ -28,7 +28,7 @@ CREATE INDEX nametype_index ON records(name,type);
 CREATE INDEX domain_id ON records(domain_id);
 
 create table supermasters (
-  ip VARCHAR(25) NOT NULL, 
+  ip         VARCHAR(25) NOT NULL, 
   nameserver VARCHAR(255) NOT NULL, 
-  account VARCHAR(40) DEFAULT NULL
+  account    VARCHAR(40) DEFAULT NULL
 ) Engine=InnoDB;
