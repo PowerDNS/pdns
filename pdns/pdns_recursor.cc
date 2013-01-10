@@ -816,6 +816,8 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
 string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, int fd)
 {
   ++g_stats.qcounter;
+  if(fromaddr.sin4.sin_family==AF_INET6)
+     g_stats.ipv6qcounter++;
 
   string response;
   try {

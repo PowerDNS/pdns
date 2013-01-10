@@ -13209,6 +13209,7 @@ packetcache-hits    Packet cache hits (since 3.2)
 packetcache-misses  Packet cache misses (since 3.2)
 qa-latency          shows the current latency average, in microseconds
 questions           counts all End-user initiated queries with the RD bit set
+ipv6-questions      counts all End-user initiated queries with the RD bit set, received over IPv6 UDP
 resource-limits     counts number of queries that could not be performed because of resource limits
 server-parse-errors counts number of server replied packets that could not be parsed
 servfail-answers    counts the number of times it answered SERVFAIL since starting

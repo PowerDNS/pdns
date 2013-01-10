@@ -402,6 +402,7 @@ uint64_t doGetMallocated()
 RecursorControlParser::RecursorControlParser()
 {
   addGetStat("questions", &g_stats.qcounter);
+  addGetStat("ipv6-questions", &g_stats.ipv6qcounter);
   addGetStat("tcp-questions", &g_stats.tcpqcounter);
 
   addGetStat("cache-hits", doGetCacheHits);
