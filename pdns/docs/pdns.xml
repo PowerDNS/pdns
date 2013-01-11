@@ -12968,6 +12968,34 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 		</para>
 	      </listitem>
 	    </varlistentry>	  
+	    	    <varlistentry>
+	      <term>trace-regex regex</term>
+	      <listitem>
+		<para>
+		  Queries matching this regular expression will generate
+		  voluminous tracing output. Be aware that matches from the
+		  packet cache will still not generate tracing. To unset the
+		  regex, pass 'trace-regex' without a new regex.
+		</para>
+		<para>
+		  The regular expression is matched against domain queries
+		  terminated with a '.'. So, for example the regex
+		  'powerdns.com$' will not match a query for
+		  'www.powerdns.com', since the attempted match will be with
+		  'www.powerdns.com.'.
+		</para>
+		<para>
+		  In addition, since this is a regular expression, to
+		  exclusively match queries for 'www.powerdns.com', one
+		  should escape the dots: '^www\.powerdns\.com\.$'.
+		</para>
+		<para>
+		  Multiple matches can be chained with the | operator. For
+		  example, to match all queries for Dutch (.nl) and German
+		  (.de) domain names, use: '\.nl\.$|\.de\.$'.
+		</para>
+	      </listitem>
+	    </varlistentry>	  
 	    <varlistentry>
 	      <term>wipe-cache domain0. [domain1. domain2.]</term>
 	      <listitem>

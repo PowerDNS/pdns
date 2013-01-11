@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2012  PowerDNS.COM BV
+    Copyright (C) 2003 - 2013  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -78,6 +78,7 @@ unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
 __thread shared_ptr<RecursorLua>* t_pdl;
 __thread RemoteKeeper* t_remotes;
+__thread shared_ptr<Regex>* t_traceRegex;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 
@@ -510,8 +511,14 @@ void startDoResolve(void *p)
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
 
     SyncRes sr(dc->d_now);
-    if(!g_quiet)
-      L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
+    bool tracedQuery=false; // we could consider letting Lua know about this too
+    if(t_traceRegex->get() && (*t_traceRegex)->match(dc->d_mdp.d_qname)) {
+      sr.setLogMode(SyncRes::Store);
+      tracedQuery=true;
+    }
+    
+    if(!g_quiet || tracedQuery)
+      L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
 
     sr.setId(MT->getTid());
@@ -540,10 +547,18 @@ void startDoResolve(void *p)
       (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
-
-
     
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
+      
+    string trace(sr.getTrace());
+    if(!trace.empty()) {
+      vector<string> lines;
+      boost::split(lines, trace, boost::is_any_of("\n"));
+      BOOST_FOREACH(const string& line, lines) {
+        if(!line.empty())
+          L<<Logger::Warning<< line << endl;
+      }
+    }
     if(res < 0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
@@ -552,7 +567,7 @@ void startDoResolve(void *p)
     else {
       pw.getHeader()->rcode=res;
       updateRcodeStats(res);
-    
+      
       if(ret.size()) {
         orderAndShuffle(ret);
         
@@ -1054,7 +1069,7 @@ void usr1Handler(int)
 
 void usr2Handler(int)
 {
-  SyncRes::setLog(true);
+  SyncRes::setDefaultLogMode(SyncRes::Log);
   g_quiet=false;
   ::arg().set("quiet")="no";
 
@@ -1309,6 +1324,7 @@ void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   string msg=s_rcc.recv(&remote);
   RecursorControlParser rcp;
   RecursorControlParser::func_t* command;
+  
   string answer=rcp.getAnswer(msg, &command);
   try {
     s_rcc.send(answer, &remote);
@@ -1533,6 +1549,29 @@ string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<strin
   return broadcastAccFunction<string>(doReloadLuaScript);
 }  
 
+string* pleaseUseNewTraceRegex(const std::string& newRegex)
+try
+{
+  if(newRegex.empty()) {
+    t_traceRegex->reset();
+    return new string("unset\n");
+  }
+  else {
+    (*t_traceRegex) = shared_ptr<Regex>(new Regex(newRegex));
+    return new string("ok\n");
+  }
+}
+catch(AhuException& ae)
+{
+  return new string(ae.reason+"\n");
+}
+
+string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end)
+{
+  return broadcastAccFunction<string>(boost::bind(pleaseUseNewTraceRegex, begin!=end ? *begin : ""));
+}
+
+
 void* recursorThread(void*);
 
 void* pleaseSupplantACLs(NetmaskGroup *ng)
@@ -1672,11 +1711,15 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
   }
   
-  if(::arg().mustDo("trace")) {
-    SyncRes::setLog(true);
+  if(::arg()["trace"]=="fail") {
+    SyncRes::setDefaultLogMode(SyncRes::Store);
+  }
+  else if(::arg().mustDo("trace")) {
+    SyncRes::setDefaultLogMode(SyncRes::Log);
     ::arg().set("quiet")="no";
     g_quiet=false;
   }
+  
   
   try {
     vector<string> addrs;  
@@ -1786,7 +1829,7 @@ int serviceMain(int argc, char*argv[])
     pthread_t tid;
     L<<Logger::Warning<<"Launching "<< g_numThreads <<" threads"<<endl;
     for(unsigned int n=0; n < g_numThreads; ++n) {
-      pthread_create(&tid, 0, recursorThread, (void*)n);
+      pthread_create(&tid, 0, recursorThread, (void*)(long)n);
     }
     void* res;
 
@@ -1825,6 +1868,9 @@ try
     L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
     exit(99);
   }
+  
+  t_traceRegex = new shared_ptr<Regex>();
+  
   
   t_remotes = new RemoteKeeper();
   t_remotes->remotes.resize(::arg().asNum("remotes-ringbuffer-entries") / g_numThreads); 
@@ -1965,7 +2011,7 @@ int main(int argc, char **argv)
     ::arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     ::arg().set("local-port","port to listen on")="53";
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
-    ::arg().set("trace","if we should output heaps of logging")="off";
+    ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
     ::arg().set("log-common-errors","If we should log rather common errors")="yes";
     ::arg().set("chroot","switch to chroot jail")="";

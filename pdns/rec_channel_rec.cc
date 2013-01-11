@@ -575,6 +575,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-acls                      reload ACLS\n"
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-zones                     reload all auth and forward zones\n"
+"trace-regex regex                emit resolution trace for matching queries\n"
 "top-remotes                      show top remotes\n"
 "unload-lua-script                unload Lua script\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
@@ -610,6 +611,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="reload-lua-script") 
     return doQueueReloadLuaScript(begin, end);
+
+  if(cmd=="trace-regex") 
+    return doTraceRegex(begin, end);
 
   if(cmd=="unload-lua-script") {
     vector<string> empty;
