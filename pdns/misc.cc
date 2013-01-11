@@ -778,3 +778,8 @@ bool stringfgets(FILE* fp, std::string& line)
   return true;
 }
 
+Regex::Regex(const string &expr)
+{
+  if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
+    throw AhuException("Regular expression did not compile");
+}
