@@ -1,0 +1,5 @@
+#!/bin/bash 
+VERSION=$1
+[ -z "$VERSION" ] && exit
+
+ssed -r "s/^VERSION=(.*)/VERSION=\\1.$VERSION/" -i pdns/dist-recursor
