@@ -769,7 +769,6 @@ try
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC\n";
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs\n";
     cerr<<"test-schema ZONE                   Test DB schema - will create ZONE\n\n";
-    cerr<<"Options:"<<endl;
     cerr<<desc<<endl;
     return 0;
   }
