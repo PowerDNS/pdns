@@ -11266,6 +11266,14 @@ mysql> ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
     	</para>
     </note>
     <para>
+      Previously, on Linux, if the PowerDNS Authoritative Server was configured to bind to the IPv6 address ::, the server would answer
+      questions that came in via IPv6 *and* IPv4. 
+    </para>
+    <para>
+      As of 3.2, binding to :: on Linux now does the same thing as binding to :: on other operating systems: perform IPv6 service. To continue
+      the old behaviour, use 'local-address=0.0.0.0' and 'local-ipv6=::'. 
+    </para>
+    <para>
     	3.2 again involves some SQL schema changes, to make sure 'ordername' is ordered correctly for NSEC generation. For MySQL:
     	<screen>
 alter table records modify ordername    VARCHAR(255) BINARY;
