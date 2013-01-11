@@ -24,4 +24,4 @@ fi
 echo "$DBT_OKPERCENTAGE% of domains resolved" > recursor-bulktest/diff
 echo "<measurement><name>% domains resolved</name><value>$DBT_OKPERCENTAGE</value></measurement>" > recursor-bulktest/stdout
 
-context=recursor-bulktest ./toxml
+testsdir=. context=recursor-bulktest ./toxml
