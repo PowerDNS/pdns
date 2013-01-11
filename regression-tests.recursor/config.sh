@@ -34,8 +34,24 @@ $RECRUN
 EOF
 chmod +x recursor-service/run
 
+cat > recursor-service/hintfile << EOF
+.                        3600 IN NS  ns.root.
+ns.root.                 3600 IN A   $PREFIX.8
+EOF
+
 SOA="ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
 
+### fake root zone
+mkdir $PREFIX.8
+cat > $PREFIX.8/ROOT.zone <<EOF
+.                        3600 IN SOA $SOA
+.                        3600 IN NS  ns.root.
+ns.root.                 3600 IN A   $PREFIX.8
+net.                     3600 IN NS  ns.example.net.
+net.                     3600 IN NS  ns2.example.net.
+ns.example.net.          3600 IN A   $PREFIX.10
+ns2.example.net.         3600 IN A   $PREFIX.11
+EOF
 
 ### plain example.net zone
 mkdir $PREFIX.10
@@ -169,8 +185,13 @@ options {
 EOF
     for zone in $(ls $dir | grep '\.zone$' | sed 's/\.zone$//') 
     do
+        realzone=$zone
+        if [ $realzone = ROOT ]
+        then
+            realzone='.'
+        fi
         cat >> $dir/named.conf <<EOF
-zone "$zone"{
+zone "$realzone"{
     type master;
     file "./$zone.zone";
 };
