@@ -1081,7 +1081,7 @@ try
   }  
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
-      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE algorithm [zsk|ksk]"<<endl;
+      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE algorithm [ksk|zsk]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -1125,8 +1125,8 @@ try
     
   }
   else if(cmds[0]=="import-zone-key") {
-    if(cmds.size() < 4) {
-      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE [zsk|ksk]"<<endl;
+    if(cmds.size() < 3) {
+      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE [ksk|zsk]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
