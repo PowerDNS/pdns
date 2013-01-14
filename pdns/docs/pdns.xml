@@ -17808,6 +17808,12 @@ VALUES (:zoneid, :ip)
 	    to rectify this situation.
 	  </para>
 	</warning>
+  <warning>
+    <para>
+      Grégory Oestreicher has forked the LDAP backend shortly before our 3.2 release. Please visit his
+      <ulink url="http://repo.or.cz/w/pdns-ldap-backend.git">repository</ulink> for the latest code.
+    </para>
+  </warning>
       </para>
       <para>
 	<warning>
@@ -17923,6 +17929,12 @@ VALUES (:zoneid, :ip)
 	    the PowerDNS distribution.
 	  </para>
 	</warning>
+  <warning>
+    <para>
+      The most up to date version of this backend can be found at <ulink url="https://github.com/fredan/luabackend">Fredrik's github</ulink>.
+    </para>
+  </warning>
+
       </para>
       <para>
 	The main author for this module is Fredrik Danerklint.

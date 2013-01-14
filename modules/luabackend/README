@@ -2,6 +2,10 @@
 This is the luabackend for PowerDNS!
 ====================================
 
+Note: shortly before the 3.2 release of PowerDNS, Fredrik Danerklinkt
+(author of this Luabackend) opened https://github.com/fredan/luabackend
+and is doing development there.
+
 
 http://www.lua.org for more information about what Lua really is.
 
