@@ -3,3 +3,4 @@ VERSION=$1
 [ -z "$VERSION" ] && exit
 
 ssed -r "s/^VERSION=(.*)/VERSION=\\1.$VERSION/" -i pdns/dist-recursor
+ssed -r "s/Version: (.*)/Version: \\1.$VERSION/" -i pdns/pdns-recursor.spec
