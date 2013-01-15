@@ -1,3 +1,9 @@
+pdns (3.2-1) unstable; urgency=medium
+
+  * fill in the blanks
+
+ -- peter van dijk <peter.van.dijk@netherlabs.nl>  Tue, 15 Jan 2013 15:00:00 +0100
+
 pdns (3.2-rc4-1) unstable; urgency=medium
 
   * fill in the blanks
