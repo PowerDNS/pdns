@@ -93,7 +93,7 @@ void CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::fromISCMap(DNSKEYRecord
   privateKey->Initialize(oid, x);
   bool result = privateKey->Validate(prng, 3);
   if (!result) {
-      throw "Cannot load private key - validation failed!";
+      throw runtime_error("Cannot load private key - validation failed!");
   }
   d_key = shared_ptr<privatekey_t>(privateKey);
   publickey_t* publicKey = new publickey_t();
