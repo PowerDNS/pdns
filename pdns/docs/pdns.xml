@@ -168,7 +168,7 @@
       </listitem>
       <listitem>
         <para>
-          The Mongo backend was removed at the author's request, as it does not work with any current libmongo versions.
+          The MongoDB backend was removed at the author's request, as it does not work with any current libmongo versions.
           Change in c3017.
         </para>
       </listitem>
