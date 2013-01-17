@@ -11313,6 +11313,10 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
 		pipe-timeout is in fact in milliseconds. To avoid some surprise, the default is now 2000 (2 seconds). If you
 		have slow pipebackend scripts, make sure to increase pipe-timeout.
 	</para>
+  <para>
+    Some configuration settings (that did not do anything, anyway) have been removed. You need to remove
+    them from your configuration to start pdns_server. They are: lazy-recursion, use-logfile, logfile.
+  </para>
   </sect1>
 
   </chapter>
