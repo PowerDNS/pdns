@@ -101,24 +101,24 @@
 	correct and stable operation, as well as notes on performance and memory use.</para>
       </warning>
   	  <note>
-      	<para>RC4 released January 9th, 2013</para>
+      	<para>Released January 17th, 2013</para>
       	<para>Downloads:
       		<itemizedlist>
       			<listitem>
       				<para>
-      					<ulink url="http://powerdnssec.org/downloads/pdns-3.2-rc4.tar.gz">source</ulink>
+      					<ulink url="http://www.powerdns.com/content/downloads.html">Official download page</ulink>
   					</para>
   				</listitem>
   				<listitem>
   					<para>
-  						<ulink url="http://powerdnssec.org/downloads/packages/">semi-static packages (rpm, deb, i386, amd64)</ulink>
+  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/">native RHEL5/6 packages from Kees Monshouwer</ulink>
   					</para>
   				</listitem>
-  				<listitem>
-  					<para>
-  						<ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/rc4/">native RHEL5/6 packages from Kees Monshouwer</ulink>
-  					</para>
-  				</listitem>
+          <listitem>
+            <para>
+              <ulink url="http://wiki.powerdns.com/trac#GettingPowerDNSpackages">additional third-party builds</ulink>
+            </para>
+          </listitem>
   			</itemizedlist>
   		</para>
       </note>
@@ -130,6 +130,21 @@
       <para>
       	In addition to all the changes below, we now auto-build semi-static packages. Relevant changes to
       	make that possible are in c2849, c2853, 2858, c2859, c2860.
+      </para>
+      <para>
+        Changes between 3.2-RC4 and the final 3.2 release:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Aki Tuomi contributed a bunch of fixes to our crypto drivers. Code in c3036 and c3055/c3057.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The ksk|zsk argument for pdnssec import-zone-key was required while it should be optional. Fixed in r3051.
+            </para>
+          </listitem>
+        </itemizedlist>
       </para>
       <para>
         Changes between 3.2-RC3 and 3.2-RC4:
