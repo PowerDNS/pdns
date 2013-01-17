@@ -13948,6 +13948,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  	If you have DNSSEC-signed zones and non-PowerDNS slaves, please check your SOA-EDIT settings.
 	  </para>
 	</warning>
+  <warning>
+    <para>
+      Notifications are only sent for domains with type MASTER in your backend.
+    </para>
+  </warning>
       </para>
 
       <para>
@@ -14328,7 +14333,7 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of loggin
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>slave-renotify [,=no]</term>
 	    <listitem><para>
-This setting will make PowerDNS renotify the after a AXFR is *received* from a master. This is useful when using when running a signing-slave.
+This setting will make PowerDNS renotify the slaves after an AXFR is *received* from a master. This is useful when using when running a signing-slave.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>signing-threads=3</term>
 	    <listitem><para>
