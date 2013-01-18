@@ -87,8 +87,3 @@ RUNNING ON A DIFFERENT MACHINE
 ------------------------------
 To prevent hassles with g++/c++ dependencies, you can build like this:
    $ STATIC=semi make all
-
-PROBLEMS
---------
-If you have problems linking, try removing the GCC_SKIP_LOCKING line from
-config.h
