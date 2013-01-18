@@ -9,6 +9,10 @@ LUA_LIBS_CONFIG ?= -llua
 
 CXXFLAGS+= -D__MAKECONTEXT_V2_SOURCE
 
+ifeq ($(shell uname -r),5.11)
+	CXXFLAGS+= -DHAVE_STRCASESTR
+endif
+
 OPTIONALS:=optional/portsmplexer.o optional/devpollmplexer.o
 	
 optional/portsmplexer.o: portsmplexer.cc
