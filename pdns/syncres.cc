@@ -17,6 +17,7 @@
 */
 
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 #include "utility.hh"
 #include "syncres.hh"
 #include <iostream>
@@ -451,10 +452,9 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 }
 #endif
 
-/** This function explicitly goes out for A addresses, but if configured to use IPv6 as well, will also return any IPv6 addresses in the cache
-    Additionally, it will return the 'best' address up front, and the rest shuffled
+/** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
+vector<ComboAddress> SyncRes::getAddrs(const string &qname, int type, int depth, set<GetBestNSAnswer>& beenthere)
 {
   typedef vector<DNSResourceRecord> res_t;
   res_t res;
@@ -462,19 +462,19 @@ vector<ComboAddress> SyncRes::getAs(const string &qname, int depth, set<GetBestN
   typedef vector<ComboAddress> ret_t;
   ret_t ret;
 
-  if(!doResolve(qname, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A), res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
+  if(!doResolve(qname, QType(type), res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
     for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
       if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
-        ret.push_back(ComboAddress(i->content, 53));
+	ret.push_back(ComboAddress(i->content, 53));
       }
     }
   }
-  
+
   if(ret.size() > 1) {
     random_shuffle(ret.begin(), ret.end(), dns_random);
 
     // move 'best' address for this nameserver name up front
-    nsspeeds_t::iterator best = t_sstorage->nsSpeeds.find(qname);  
+    nsspeeds_t::iterator best = t_sstorage->nsSpeeds.find(make_pair(qname, type));  
 
     if(best != t_sstorage->nsSpeeds.end())
       for(ret_t::iterator i=ret.begin(); i != ret.end(); ++i) {  
@@ -730,25 +730,28 @@ bool SyncRes::moreSpecificThan(const string& a, const string &b)
 
 struct speedOrder
 {
-  speedOrder(map<string,double> &speeds) : d_speeds(speeds) {}
-  bool operator()(const string &a, const string &b) const
+  speedOrder(map<SyncRes::typedns_t,double> &speeds) : d_speeds(speeds) {}
+  bool operator()(const SyncRes::typedns_t &a, const SyncRes::typedns_t &b) const
   {
     return d_speeds[a] < d_speeds[b];
   }
-  map<string,double>& d_speeds;
+  map<SyncRes::typedns_t, double>& d_speeds;
 };
 
-inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix)
+inline vector<SyncRes::typedns_t> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> &tnameservers, const string &prefix)
 {
-  vector<string> rnameservers;
-  rnameservers.reserve(nameservers.size());
-  map<string,double> speeds;
-
-  for(set<string, CIStringCompare>::const_iterator i=nameservers.begin();i!=nameservers.end();++i) {
-    rnameservers.push_back(*i);
+  vector<typedns_t> rnameservers;
+  rnameservers.reserve(tnameservers.size()*(1+1*s_doIPv6));
+  BOOST_FOREACH(const string& str, tnameservers) {
+    rnameservers.push_back(make_pair(str, QType::A));
+    if(s_doIPv6)
+      rnameservers.push_back(make_pair(str, QType::AAAA));
+  }
+  map<typedns_t, double> speeds;
+  BOOST_FOREACH(const typedns_t& val, rnameservers) {
     double speed;
-    speed=t_sstorage->nsSpeeds[*i].get(&d_now);
-    speeds[*i]=speed;
+    speed=t_sstorage->nsSpeeds[val].get(&d_now);
+    speeds[val]=speed;
   }
   random_shuffle(rnameservers.begin(),rnameservers.end(), dns_random);
   speedOrder so(speeds);
@@ -756,14 +759,14 @@ inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> 
   
   if(doLog()) {
     LOG(prefix<<"Nameservers: ");
-    for(vector<string>::const_iterator i=rnameservers.begin();i!=rnameservers.end();++i) {
+    for(vector<typedns_t>::const_iterator i=rnameservers.begin();i!=rnameservers.end();++i) {
       if(i!=rnameservers.begin()) {
         LOG(", ");
         if(!((i-rnameservers.begin())%3)) {
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG(*i<<"(" << (int)(speeds[*i]/1000.0) <<"ms)");
+      LOG(i->first<<"|"<<((i->second==QType::A) ? "A" : "AAAA") <<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
@@ -804,9 +807,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
   LOG(prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact"<<endl);
 
   for(;;) { // we may get more specific nameservers
-    vector<string> rnameservers=shuffleInSpeedOrder(nameservers, doLog() ? (prefix+qname+": ") : string() );
-
-    for(vector<string>::const_iterator tns=rnameservers.begin();;++tns) { 
+    vector<typedns_t > rnameservers = shuffleInSpeedOrder(nameservers, doLog() ? (prefix+qname+": ") : string() );
+    
+    for(vector<typedns_t >::const_iterator tns=rnameservers.begin();;++tns) { 
       if(tns==rnameservers.end()) {
         LOG(prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl);
         if(auth!="." && flawedNSSet) {
@@ -816,7 +819,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
         return -1;
       }
-      if(pdns_iequals(qname, *tns) && qtype.getCode()==QType::A && rnameservers.size() > 1) {
+      // this line needs to identify the 'self-resolving' behaviour, but we get it wrong now
+      if(pdns_iequals(qname, tns->first) && qtype.getCode()==QType::A && rnameservers.size() > (unsigned)(1+1*s_doIPv6)) { 
         LOG(prefix<<qname<<": Not using NS to resolve itself!"<<endl);
         continue;
       }
@@ -829,20 +833,20 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
       LWResult lwr;
-      if(tns->empty()) {
+      if(tns->first.empty()) {
         LOG(prefix<<qname<<": Domain is out-of-band"<<endl);
         doOOBResolve(qname, qtype, lwr.d_result, depth, lwr.d_rcode);
         lwr.d_tcbit=false;
         lwr.d_aabit=true;
       }
       else {
-        LOG(prefix<<qname<<": Trying to resolve NS '"<<*tns<<"' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
+        LOG(prefix<<qname<<": Trying to resolve NS '"<<tns->first<<"|"<< (tns->second == QType::A ? "A" : "AAAA") << "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
 
-        if(!isCanonical(*tns)) {
+        if(!isCanonical(tns->first)) {
           LOG(prefix<<qname<<": Domain has hardcoded nameserver(s)"<<endl);
 
-          string txtAddr = *tns;
-          if(!tns->empty()) {
+          string txtAddr = tns->first;
+          if(!tns->first.empty()) {
             sendRDQuery = txtAddr[0] == '+';
             txtAddr=txtAddr.c_str()+1;
           }
@@ -852,17 +856,18 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           pierceDontQuery=true;
         }
         else {
-          remoteIPs=getAs(*tns, depth+1, beenthere);
+          remoteIPs=getAddrs(tns->first, tns->second, depth+1, beenthere);
           pierceDontQuery=false;
         }
 
         if(remoteIPs.empty()) {
-          LOG(prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
+          LOG(prefix<<qname<<": Failed to get "<< (tns->second == QType::A ? "IP" : "IPv6") << " for NS "<<tns->first<<", trying next if available"<<endl);
           flawedNSSet=true;
           continue;
         }
         else {
-          LOG(prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to: ");
+
+          LOG(prefix<<qname<<": Resolved '"+auth+"' NS "<<tns->first<<" to: ");
           for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
             if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
@@ -895,8 +900,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               s_tcpoutqueries++; d_tcpoutqueries++;
             }
             
-            resolveret=asyncresolveWrapper(*remoteIP, qname, 
-        			    (qtype.getCode() == QType::ADDR ? QType::ANY : qtype.getCode()), 
+            resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(), 
         				   doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
             if(resolveret != 1) {
               if(resolveret==0) {
@@ -928,7 +932,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             
             break;  // this IP address worked!
           wasLame:; // well, it didn't
-            LOG(prefix<<qname<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl);
+            LOG(prefix<<qname<<": status=NS "<<tns->first<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl);
             t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // lame
           }
         }
@@ -947,11 +951,11 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
         
         if(lwr.d_rcode==RCode::ServFail) {
-          LOG(prefix<<qname<<": "<<*tns<<" returned a ServFail, trying sibling IP or NS"<<endl);
+          LOG(prefix<<qname<<": "<<tns->first<<" returned a ServFail, trying sibling IP or NS"<<endl);
           t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail
           continue;
         }
-        LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
+        LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<tns->first<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
         /*  // for you IPv6 fanatics :-)
         if(remoteIP->sin4.sin_family==AF_INET6)
@@ -1126,7 +1130,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         nameservers=nsset;
         break; 
       }
-      else if(isCanonical(*tns)) {
+      else if(isCanonical(tns->first)) { // means: not OOB (I think)
         goto wasLame;
       }
     }
@@ -1168,7 +1172,8 @@ void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
         host=string(k->content.c_str() + fields[3].first, fields[3].second - fields[3].first);
       else 
         continue;
-      doResolve(host, s_doAAAAAdditionalProcessing ? QType(QType::ADDR) : QType(QType::A), addit, 1, beenthere);
+      // we used to do additional processing here.. no more
+      // doResolve(host, QType(QType::A), addit, 1, beenthere);
     }
   
   if(!addit.empty()) {

@@ -403,6 +403,19 @@ struct CIStringCompare: public std::binary_function<string, string, bool>
   }
 };
 
+struct CIStringPairCompare: public std::binary_function<pair<string, uint16_t>, pair<string,uint16_t>, bool>  
+{
+  bool operator()(const pair<string, uint16_t>& a, const pair<string, uint16_t>& b) const
+  {
+    if(pdns_ilexicographical_compare(a.first, b.first))
+	return true;
+    if(pdns_ilexicographical_compare(b.first, a.first))
+	return false;
+    return a.second < b.second;
+  }
+};
+
+
 pair<string, string> splitField(const string& inp, char sepa);
 
 inline bool isCanonical(const string& dom)

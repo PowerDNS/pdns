@@ -134,14 +134,17 @@ public:
 
     if(d_needinit) {
       d_last=now;
+      d_lastget=now;
       d_needinit=false;
+      d_val = val;
     }
+    else {
+      float diff= makeFloat(d_last - now);
 
-    float diff= makeFloat(d_last - now);
-
-    d_last=now;
-    double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
-    d_val=(float)((1-factor)*val+ (float)factor*d_val); 
+      d_last=now;
+      double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
+      d_val=(float)((1-factor)*val+ (float)factor*d_val); 
+    }
   }
 
   double get(struct timeval* tv)
@@ -301,8 +304,8 @@ public:
     ComboAddress d_best;
   };
 
-  typedef map<string, DecayingEwmaCollection, CIStringCompare> nsspeeds_t;
-  
+  typedef pair<string, uint16_t> typedns_t;
+  typedef map<typedns_t, DecayingEwmaCollection, CIStringPairCompare> nsspeeds_t;  
 
   struct EDNSStatus
   {
@@ -313,8 +316,6 @@ public:
   };
 
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
-
-  
 
   static bool s_noEDNSPing;
   static bool s_noEDNS;
@@ -375,9 +376,9 @@ private:
   string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
   void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
 
-  inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
+  inline vector<typedns_t> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
-  vector<ComboAddress> getAs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
+  vector<ComboAddress> getAddrs(const string &qname, int type, int depth, set<GetBestNSAnswer>& beenthere);
 
 private:
   ostringstream d_trace;
