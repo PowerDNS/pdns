@@ -33,24 +33,24 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
       SOAData sd;
       fillSOAData(rr.content, sd);
       if(pdns_iequals(kind,"INCEPTION")) {        
-	time_t inception = getCurrentInception();
-	struct tm tm;
-	localtime_r(&inception, &tm);
-	boost::format fmt("%04d%02d%02d%02d");
-	
-	string newserdate=(fmt % (tm.tm_year+1900) % (tm.tm_mon +1 )% tm.tm_mday % 1).str();
+        time_t inception = getCurrentInception();
+        struct tm tm;
+        localtime_r(&inception, &tm);
+        boost::format fmt("%04d%02d%02d%02d");
+
+        string newserdate=(fmt % (tm.tm_year+1900) % (tm.tm_mon +1 )% tm.tm_mday % 1).str();
         sd.serial = lexical_cast<uint32_t>(newserdate);
       }
       else if(pdns_iequals(kind,"INCEPTION-WEEK")) {        
-	time_t inception = getCurrentInception();
-	sd.serial = inception / (7*86400);
+        time_t inception = getCurrentInception();
+        sd.serial = inception / (7*86400);
       }
       else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {        
-	time_t inception = getCurrentInception();
-	sd.serial += inception / (7*86400);
+        time_t inception = getCurrentInception();
+        sd.serial += inception / (7*86400);
       }
       else if(pdns_iequals(kind,"EPOCH")) {        
-	sd.serial = time(0);
+        sd.serial = time(0);
       }
       else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {        
        time_t inception = getCurrentInception();
