@@ -12277,8 +12277,8 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	  </para>
 	  <para>
  	  	Available modes are: INCEPTION (which sets the SOA Serial to
- 	  	the current two-week signing period start in seconds since
- 	  	the UNIX epoch), INCEPTION-WEEK (number of weeks since the
+ 	  	the current two-week signing period start in YYYYMMDD01 format),
+      INCEPTION-WEEK (number of weeks since the
  	  	epoch), INCREMENT-WEEKS (which increments the serial with
  	  	the number of weeks since the epoch), EPOCH (number of
  	  	seconds since the epoch).  Finally, INCEPTION-EPOCH
