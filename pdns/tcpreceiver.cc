@@ -834,10 +834,11 @@ TCPNameserver::TCPNameserver()
 
   for(vector<string>::const_iterator laddr=locals.begin();laddr!=locals.end();++laddr) {
     int s=socket(AF_INET,SOCK_STREAM,0); 
-    Utility::setCloseOnExec(s);
     
     if(s<0) 
       throw AhuException("Unable to acquire TCP socket: "+stringerror());
+
+    Utility::setCloseOnExec(s);
 
     ComboAddress local(*laddr, ::arg().asNum("local-port"));
       
@@ -866,10 +867,11 @@ TCPNameserver::TCPNameserver()
 #if !WIN32 && HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     int s=socket(AF_INET6,SOCK_STREAM,0); 
-    Utility::setCloseOnExec(s);
 
     if(s<0) 
       throw AhuException("Unable to acquire TCPv6 socket: "+stringerror());
+
+    Utility::setCloseOnExec(s);
 
     ComboAddress local(*laddr, ::arg().asNum("local-port"));
 

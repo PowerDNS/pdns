@@ -165,9 +165,10 @@ void UDPNameserver::bindIPv6()
     string localname(*i);
 
     s=socket(AF_INET6,SOCK_DGRAM,0);
-    Utility::setCloseOnExec(s);
     if(s<0)
       throw AhuException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
+
+    Utility::setCloseOnExec(s);
 
     ComboAddress locala(localname, ::arg().asNum("local-port"));
     
