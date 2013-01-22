@@ -550,19 +550,24 @@ void startDoResolve(void *p)
     
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
       
-    string trace(sr.getTrace());
-    if(!trace.empty()) {
-      vector<string> lines;
-      boost::split(lines, trace, boost::is_any_of("\n"));
-      BOOST_FOREACH(const string& line, lines) {
-        if(!line.empty())
-          L<<Logger::Warning<< line << endl;
-      }
-    }
     if(res < 0) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
+    }
+
+    if(tracedQuery || pw.getHeader()->rcode == RCode::ServFail)
+    {
+      // log trace, if we have one
+      string trace(sr.getTrace());
+      if(!trace.empty()) {
+        vector<string> lines;
+        boost::split(lines, trace, boost::is_any_of("\n"));
+        BOOST_FOREACH(const string& line, lines) {
+          if(!line.empty())
+            L<<Logger::Warning<< line << endl;
+        }
+      }
     }
     else {
       pw.getHeader()->rcode=res;
