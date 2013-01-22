@@ -550,15 +550,8 @@ void startDoResolve(void *p)
     
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
       
-    if(res < 0) {
-      pw.getHeader()->rcode=RCode::ServFail;
-      // no commit here, because no record
-      g_stats.servFails++;
-    }
-
-    if(tracedQuery || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res < 0 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
-      // log trace, if we have one
       string trace(sr.getTrace());
       if(!trace.empty()) {
         vector<string> lines;
@@ -568,6 +561,12 @@ void startDoResolve(void *p)
             L<<Logger::Warning<< line << endl;
         }
       }
+    }
+
+    if(res < 0) {
+      pw.getHeader()->rcode=RCode::ServFail;
+      // no commit here, because no record
+      g_stats.servFails++;
     }
     else {
       pw.getHeader()->rcode=res;
