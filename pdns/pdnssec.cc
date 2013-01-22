@@ -344,7 +344,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
       rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
 
-    if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX) &&
+    if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) &&
          rr.content[rr.content.size()-1] == '.') {
       cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" has a trailing dot in the content ("<<rr.content<<"). Your backend might not work well with this."<<endl;
       numwarnings++;
