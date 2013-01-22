@@ -4,7 +4,7 @@ port=$1
 limit=$2
 [ -z "$limit" ] && limit=100000
 
-../pdns/pdns_recursor --daemon=no --local-port=$port --socket-dir=./ --trace=no --config-dir=. &
+../pdns/pdns_recursor --daemon=no --local-port=$port --socket-dir=./ --trace=fail --config-dir=. > recursor.log 2>&1 &
 sleep 3
 ../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < top-1m.csv > bulktest.results
 kill $(cat pdns_recursor.pid)
