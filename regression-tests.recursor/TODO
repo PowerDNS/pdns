@@ -1,0 +1,8 @@
+Test suggestions:
+- r1619
+- r2625
+- export-etc-hosts and -suffix
+- lua stuff
+- auth-zones
+- delegation-only
+- forward-zones
