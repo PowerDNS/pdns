@@ -929,6 +929,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               }
               continue;
             }
+
+            if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
+              LOG(prefix<<qname<<": "<<tns->first<<" returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
+              t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail or refused
+              continue;
+            }
             
             break;  // this IP address worked!
           wasLame:; // well, it didn't
@@ -950,11 +956,6 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           return RCode::ServFail;
         }
         
-        if(lwr.d_rcode==RCode::ServFail) {
-          LOG(prefix<<qname<<": "<<tns->first<<" returned a ServFail, trying sibling IP or NS"<<endl);
-          t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail
-          continue;
-        }
         LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<tns->first<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<", aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
         /*  // for you IPv6 fanatics :-)
