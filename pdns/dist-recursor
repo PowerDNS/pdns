@@ -4,7 +4,7 @@ set -e
 
 ragel dnslabeltext.rl -o dnslabeltext.cc
 
-VERSION=3.5-pre
+VERSION=3.5-rc1
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
