@@ -122,18 +122,50 @@
         </para>
       </note>
       <para>
-        This is a stability and bugfix update to 3.3/3.3.1.
+        This is a stability and bugfix update to 3.3/3.3.1. It contains
+        important fixes for slightly broken domain names, which your
+        users expect to work anyhow.
       </para>
+      <para><note>
       <para>
         Because a semi-sanctioned 3.4-pre was distributed for a long time, and people have come to call that
         3.4, we are skipping an actual 3.4 release to avoid confusion.
       </para>
+      </note></para>
       <para>
-        Changes since 3.3.1:
+      New features:
+      <itemizedlist>
+          <listitem>
+            <para>
+              The local zone server now understands wilcards, code in c2062.
+            </para>
+          </listitem>
+         <listitem>
+            <para>
+              The Lua postresolve and nodata hooks, that had been distributed as a '3.3-hooks' snapshot earlier,
+              have been merged. Code in c2309.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              A new feature, rec_control trace-regex allows the tracing of lookups for specific names. Code in c3044, 
+              c3073.
+            </para>
+          </listitem>          
+          <listitem>
+            <para>
+              A new setting, export-etc-hosts-suffix, adds a configurable suffix to names imported from /etc/hosts. 
+              Code in c2544, c2545.
+            </para>
+          </listitem>                            
+      </itemizedlist>
+      </para>
+      <para>
+        Improvements:
         <itemizedlist>
           <listitem>
             <para>
-              We now throttle less agressively, code in c1766.
+              We now throttle queries that don't work less agressively, code in c1766.
             </para>
           </listitem>
           <listitem>
@@ -141,20 +173,65 @@
             Various improvements in tolerance against broken auths, code in c1996, c2188, c3074 (thanks Winfried). 
             </para>
           </listitem>
+
           <listitem>
             <para>
-              Some unaligned memory access was corrected, code in c2060, c2122, c2123.
+              Additional processing is now optional, and disabled by default. Presumably this yields a performance
+              improvement. Change in c2542.
+            </para>
+          </listitem>
+
+
+          <listitem>
+            <para>
+              rec_control reload-lua-script now reports errors. Code in c2627, closing t278.
             </para>
           </listitem>
           <listitem>
             <para>
-              The local zone server now understands wilcards, code in c2062.
+              rec_control help now lists commands. Code in c2628.
+            </para>
+          </listitem>
+
+
+          <listitem>
+            <para>
+              rec_control wipe-cache now also wipes the recursor's packet cache. Code in c2880 from t333.
             </para>
           </listitem>
           <listitem>
             <para>
-              The Lua postresolve and nodata hooks, that had been distributed as a '3.3-hooks' snapshot earlier,
-              have been merged. Code in c2309.
+              Morten Stevens contributed a systemd file. Import in c2966, now part of the recursor tarball.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              c2990 updates the address of D.root-servers.net.
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              Winfried Angele implemented and documented the ipv6-questions metric. Merge in c3034, closing t619.
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              We no longer use ANY to get A+AAAA for nameservers, because some auth operators have decided to break
+              ANY lookups. As a bonus, we now track v4 and v6 latency separately. Change in c3064.
+            </para>
+          </listitem>
+
+        </itemizedlist>
+      </para>
+      <para>
+      Bugs fixed:
+      <itemizedlist>
+      <listitem>
+            <para>
+              Some unaligned memory access was corrected, code in c2060, c2122,
+              c2123, which would cause problems on UltraSPARC.
             </para>
           </listitem>
           <listitem>
@@ -175,29 +252,36 @@
           </listitem>
           <listitem>
             <para>
-              Additional processing is now optional, and disabled by default. Presumably this yields a performance
-              improvement. Change in c2542.
+              Cache aging would sometimes get confused when we had a mix of expired and non-expired records in cache.
+              Spotted and fixed by Winfried Angele in c3068, closing t438.
+            </para>
+          </listitem>          
+          <listitem>
+            <para>
+              rec_control reload-acl no longer ignores arguments. Fix in c3037, closing t490.
             </para>
           </listitem>
           <listitem>
             <para>
-              A new setting, export-etc-hosts-suffix, adds a configurable suffix to names imported from /etc/hosts. 
-              Code in c2544, c2545.
+              Since we re-parse our commandline in rec_control we've been doubling the commands on the commandline, causing weird output. Reported by Winfried Angele. Fixed in c2992, closing t618.
+              This issue was not present in any officially released
+              versions.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              c2879 drops some spurious stderr logging from Lua scripts, and makes sure 'place' is always valid.
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              We would sometimes refuse to resolve domains with just one nameserver living at the apex. Fixed in c2817.
             </para>
           </listitem>
           <listitem>
             <para>
               We would sometimes stick RRs in the wrong parts of response packets. Fixed in c2625.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              rec_control reload-lua-script now reports errors. Code in c2627, closing t278.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              rec_control help now lists commands. Code in c2628.
             </para>
           </listitem>
           <listitem>
@@ -215,67 +299,12 @@
               When traversing CNAME chains, sometimes we would end up with multiple SOAs in the result. 
               Fixed in c2633.
             </para>
-          </listitem>
-          <listitem>
-            <para>
-              We would sometimes refuse to resolve domains with just one nameserver living at the apex. Fixed in c2817.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              c2879 drops some spurious stderr logging from Lua scripts, and makes sure 'place' is always valid.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              rec_control wipe-cache now also wipes the recursor's packet cache. Code in c2880 from t333.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              Morten Stevens contributed a systemd file. Import in c2966, now part of the recursor tarball.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              c2990 updates the address of D.root-servers.net.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              Since we re-parse our commandline in rec_control we've been doubling the commands on the commandline, causing weird output. Reported by Winfried Angele. Fixed in c2992, closing t618.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              Winfried Angele implemented and documented the ipv6-questions metric. Merge in c3034, closing t619.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              rec_control reload-acl no longer ignores arguments. Fix in c3037, closing t490.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              A new feature, rec_control trace-regex allows the tracing of lookups for specific names. Code in c3044, 
-              c3073.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              We no longer use ANY to get A+AAAA for nameservers, because some auth operators have decided to break
-              ANY lookups. As a bonus, we now track v4 and v6 latency separately. Change in c3064.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              Cache aging would sometimes get confused when we had a mix of expired and non-expired records in cache.
-              Spotted and fixed by Winfried Angele in c3068, closing t438.
-            </para>
-          </listitem>
-        </itemizedlist>
+          </listitem>            
+      </itemizedlist>
       </para>
+
+      
+      
       </sect2>
       <sect2 id="changelog-auth-3-2"><title>PowerDNS Authoritative Server 3.2</title>
       <warning><para>Version 3.2 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0 or 3.1
