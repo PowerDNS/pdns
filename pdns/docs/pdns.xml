@@ -98,7 +98,7 @@
       <sect2 id="changelog-recursor-3.5"><title>PowerDNS Recursor version 3.5</title>
       <note>
         <para>
-          3.5-RC1 released on ...
+          3.5-RC1 released on January 25th 2013
         </para>
       </note>
       <para>
@@ -118,7 +118,7 @@
           </listitem>
           <listitem>
             <para>
-              Various improvements in tolerance against broken auths, code in c1996, c2188, 
+            Various improvements in tolerance against broken auths, code in c1996, c2188, c3074 (thanks Winfried). 
             </para>
           </listitem>
           <listitem>
@@ -238,7 +238,8 @@
           </listitem>
           <listitem>
             <para>
-              A new feature, rec_control trace-regex allows the tracing of lookups for specific names. Code in c3044.
+              A new feature, rec_control trace-regex allows the tracing of lookups for specific names. Code in c3044, 
+              c3073.
             </para>
           </listitem>
           <listitem>
