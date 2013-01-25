@@ -100,6 +100,26 @@
         <para>
           3.5-RC1 released on January 25th 2013
         </para>
+        <para>
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                <ulink url="http://powerdnssec.org/downloads/pdns-recursor-3.5-rc1.tar.bz2">source</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://powerdnssec.org/downloads/packages/">semi-static packages (rpm, deb, i386, amd64)</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/rc1/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
       </note>
       <para>
         This is a stability and bugfix update to 3.3/3.3.1.
