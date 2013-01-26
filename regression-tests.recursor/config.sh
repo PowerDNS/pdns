@@ -72,6 +72,8 @@ marvin.example.net.      3600 IN NS  ns.marvin.example.net.
 ns.marvin.example.net.   3600 IN A   $PREFIX.15
 trillian.example.net.    3600 IN NS  ns.trillian.example.net.
 ns.trillian.example.net. 3600 IN A   $PREFIX.16
+ghost.example.net.       3600 IN NS  ns.ghost.example.net.
+ns.ghost.example.net.    3600 IN A   $PREFIX.17
 EOF
 
 mkdir $PREFIX.11
@@ -161,6 +163,48 @@ function prequery ( dnspacket )
 end
 EOF
 
+### parent zone for ghost testing
+mkdir $PREFIX.17
+cat > $PREFIX.17/ghost.example.net.zone <<EOF
+ghost.example.net.      3600 IN SOA $SOA
+ghost.example.net.      3600 IN NS  ns.ghost.example.net.
+ns.ghost.example.net.   3600 IN A   $PREFIX.17
+1.ghost.example.net.      10 IN NS  ns.1.ghost.example.net.
+ns.1.ghost.example.net.   10 IN A   $PREFIX.18
+EOF
+
+### ghost domain
+mkdir $PREFIX.18
+cat > $PREFIX.18/1.ghost.example.net.zone <<EOF
+1.ghost.example.net.    3600 IN SOA $SOA
+1.ghost.example.net.      20 IN NS  ns.1.ghost.example.net.
+ns.1.ghost.example.net.   20 IN A   $PREFIX.18
+www.1.ghost.example.net.  20 IN A   192.0.2.7
+EOF
+
+cat > $PREFIX.18/prequery.lua <<EOF
+i=0
+
+function prequery ( dnspacket )
+    i = i + 1
+    qname, qtype = dnspacket:getQuestion()
+    if qtype == pdns.A and string.sub(qname, -20) == ".1.ghost.example.net"
+    then
+        dnspacket:setRcode(pdns.NOERROR)
+        ret = {}
+        -- www.1.ghost.example.net. 20  IN  A   192.0.2.7
+        ret[1] = {qname=qname, qtype=pdns.A, content="192.0.2.7", ttl=20, place=1}
+        -- 1.ghost.example.net. 20  IN  NS  ns.1.ghost.example.net.
+        ret[2] = {qname="1.ghost.example.net", qtype=pdns.NS, content="ns"..i..".1.ghost.example.net", ttl=20, place=2}
+        -- ns.1.ghost.example.net.  20  IN  A   10.0.3.18
+        ret[3] = {qname="ns"..i..".1.ghost.example.net", qtype=pdns.A, content="10.0.3.18", ttl=20, place=3}
+        dnspacket:addRecords(ret)
+        return true
+    end
+    return false
+end
+EOF
+
 
 for dir in $PREFIX.*
 do
@@ -171,6 +215,11 @@ local-address=$dir
 bind-config=named.conf
 no-shuffle
 socket-dir=.
+cache-ttl=0
+negquery-cache-ttl=0
+query-cache-ttl=0
+distributor-threads=1
+
 EOF
 
     if [ -e $dir/prequery.lua ]
@@ -200,3 +249,6 @@ EOF
     ln -s ../run-auth $dir/run
 done
 
+cat > recursor-service/recursor.conf << EOF
+socket-dir=$(pwd)/recursor-service
+EOF
