@@ -175,6 +175,24 @@ ns.1.ghost.example.net.   10 IN A   $PREFIX.18
 ns.2.ghost.example.net.   10 IN A   $PREFIX.19
 EOF
 
+cat > $PREFIX.17/prequery.lua <<EOF
+require 'posix'
+
+function prequery ( dnspacket )
+    qname, qtype = dnspacket:getQuestion()
+    if (string.sub(qname, -20) == ".1.ghost.example.net" and posix.stat('drop-1')) or
+       (string.sub(qname, -20) == ".2.ghost.example.net" and posix.stat('drop-2'))
+    then
+        dnspacket:setRcode(pdns.NXDOMAIN)
+        ret = {}
+        ret[1] = {qname="ghost.example.net", qtype=pdns.SOA, content="$SOA", place=2}
+        dnspacket:addRecords(ret)
+        return true
+    end
+    return false
+end
+EOF
+
 ### ghost domain with ever-changing NSset
 mkdir $PREFIX.18
 cat > $PREFIX.18/1.ghost.example.net.zone <<EOF

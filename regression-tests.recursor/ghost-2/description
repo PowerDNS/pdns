@@ -1,0 +1,2 @@
+Simple ghost domain test - delegation is removed and receiver does no tricks
+to prolong existence other than sending AUTHORITY with every response.

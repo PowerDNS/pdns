@@ -1,0 +1,13 @@
+#!/bin/sh
+. vars
+rm configs/$PREFIX.17/drop-2
+cleandig a.www.2.ghost.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+sleep 5
+touch configs/$PREFIX.17/drop-2
+cleandig b.www.2.ghost.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+sleep 5
+cleandig c.www.2.ghost.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+sleep 5
+cleandig d.www.2.ghost.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+sleep 5
+cleandig e.www.2.ghost.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
