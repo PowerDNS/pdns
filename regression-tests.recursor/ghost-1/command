@@ -2,7 +2,7 @@
 . vars
 rm -f configs/$PREFIX.17/drop-1
 cleandig a.www.1.ghost.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
-sleep 5
+sleep 8
 touch configs/$PREFIX.17/drop-1
 cleandig b.www.1.ghost.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
 sleep 5
