@@ -190,6 +190,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   d_cachecachevalid=false;
   tuple<string, uint16_t> key=make_tuple(qname, qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
+  uint32_t maxTTD=UINT_MAX;
 
   bool isNew=false;
   if(stored == d_cache.end()) {
@@ -222,9 +223,18 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     }
   }
   
+  // limit TTL of auth->auth NSset update if needed, except for root
+  if(ce.d_auth && auth && qt.getCode()==QType::NS && !((qname.length()==1 && qname[0]=='.'))) {
+    // cerr<<"\tLimiting TTL of auth->auth NS set replace"<<endl;
+    vector<StoredRecord>::iterator j;
+    for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) {
+      maxTTD=min(maxTTD, j->d_ttd);
+    }      
+  }
+
   // make sure that we CAN refresh the root
   if(auth && ((qname.length()==1 && qname[0]=='.') || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
-    // cerr<<"\tGot auth data, and it was not refresh attempt of an NS record, nuking storage"<<endl;
+    // cerr<<"\tGot auth data, and it was not refresh attempt of an unchanged NS set, nuking storage"<<endl;
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
     isNew=true;           // data should be sorted again
@@ -234,8 +244,8 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
 
   // cerr<<"\tHave "<<content.size()<<" records to store\n";
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
-    // cerr<<"To store: "<<i->content<<endl;
-    dr.d_ttd=i->ttl;
+    // cerr<<"To store: "<<i->content<<" with ttl/ttd "<<i->ttl<<endl;
+    dr.d_ttd=min(maxTTD, i->ttl);
     dr.d_string=DNSRR2String(*i);
     
     if(isNew) 
