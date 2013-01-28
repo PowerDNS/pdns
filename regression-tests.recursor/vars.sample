@@ -1,3 +1,3 @@
 PREFIX=10.0.3
 AUTHRUN="exec authbind ../../../pdns/pdns_server --config-dir=. > logfile 2>&1"
-RECRUN="exec authbind ../../../pdns/pdns_recursor --config-dir=. --socket-dir=. --daemon=no --trace=yes --dont-query= --local-address=$PREFIX.9 --hint-file=hintfile --threads=1 > logfile 2>&1"
+RECRUN="exec authbind ../../../pdns/pdns_recursor --config-dir=. --socket-dir=. --daemon=no --trace=yes --dont-query= --local-address=$PREFIX.9 --hint-file=hintfile --packetcache-ttl=0 --max-cache-ttl=15 --threads=1 > logfile 2>&1"
