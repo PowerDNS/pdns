@@ -1858,7 +1858,6 @@ try
   
   L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
     
-  t_RC->d_followRFC2181=::arg().mustDo("auth-can-lower-ttl");
   t_pdl = new shared_ptr<RecursorLua>();
   
   try {
@@ -2076,7 +2075,6 @@ int main(int argc, char **argv)
     ::arg().set("export-etc-hosts-search-suffix", "Also serve up the contents of /etc/hosts with this suffix")="";
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
-    ::arg().set("auth-can-lower-ttl", "If we follow RFC 2181 to the letter, an authoritative server can lower the TTL of NS records")="off";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().setSwitch( "ignore-rd-bit", "Assume each packet requires recursion, for compatibility" )= "off"; 
     ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing" )= "no"; 

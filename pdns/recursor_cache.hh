@@ -25,7 +25,7 @@ using namespace ::boost::multi_index;
 class MemRecursorCache : public boost::noncopyable //  : public RecursorCache
 {
 public:
-  MemRecursorCache() : d_followRFC2181(false), d_cachecachevalid(false)
+  MemRecursorCache() : d_cachecachevalid(false)
   {
     cacheHits = cacheMisses = 0;
   }
@@ -41,7 +41,6 @@ public:
   int doWipeCache(const string& name, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL);
   uint64_t cacheHits, cacheMisses;
-  bool d_followRFC2181;
 
 private:
   struct StoredRecord

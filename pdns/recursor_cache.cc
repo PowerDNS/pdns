@@ -261,7 +261,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
             //~ cerr<<"\t\tNot doing so, trying to raise TTL NS\n";
             continue;
           }
-          if(i->ttl > j->d_ttd || (auth && d_followRFC2181) ) { // authoritative packets can override the TTL to be lower
+          if(i->ttl > j->d_ttd || (auth) ) { // authoritative packets can override the TTL to be lower
             //~ cerr<<"\t\tUpdating the ttl, diff="<<j->d_ttd - i->ttl<<endl;;
             j->d_ttd=i->ttl;
           }
