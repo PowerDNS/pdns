@@ -133,6 +133,28 @@
       </para>
       </note></para>
       <para>
+        Changes between RC1 and RC2:
+        <itemizedlist>
+          <listitem>
+            <para>
+              While Recursor 3.3 was not vulnerable to the specific attack noted in
+              <ulink url="https://www.isc.org/files/imce/ghostdomain_camera.pdf">'Ghost Domain Names: Revoked Yet Still Resolvable'</ulink>,
+              further investigation showed that a variant of the attack could work. This was fixed in r3085.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The auth-can-lower-ttl flag was removed, as it did not have any effect in most situations, and thus
+              did not operate as advertised. We now always comply with the related parts of RFC2181. Change in
+              r3092, closing t88.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        Changes below are in RC1 (and up).
+      </para>
+      <para>
       New features:
       <itemizedlist>
           <listitem>
