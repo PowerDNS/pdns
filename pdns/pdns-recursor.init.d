@@ -1,4 +1,12 @@
 #!/bin/sh
+### BEGIN INIT INFO
+# Provides:          pdns-recursor
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start the recursor at boot time.
+### END INIT INFO
 # chkconfig: - 80 75
 # description: pdns_recursor is a versatile high performance recursing nameserver
 
