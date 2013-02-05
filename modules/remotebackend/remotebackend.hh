@@ -27,7 +27,7 @@ class Connector {
    public:
     virtual ~Connector() {};
     bool send(rapidjson::Document &value);
-    bool recv(rapidjson::Value &value);
+    bool recv(rapidjson::Document &value);
     virtual int send_message(const rapidjson::Document &input) = 0;
     virtual int recv_message(rapidjson::Document &output) = 0;
 };
@@ -118,7 +118,7 @@ class RemoteBackend : public DNSBackend
     int build(const std::string &connstr);
     Connector *connector;
     bool d_dnssec;
-    rapidjson::Value d_result;
+    rapidjson::Document d_result;
     int d_index; 
 };
 #endif

@@ -18,23 +18,18 @@ bool Connector::send(rapidjson::Document &value) {
  * that the receiving happened ok, and extract
  * result. Logging is performed here, too. 
  */
-bool Connector::recv(rapidjson::Value &value) {
-    rapidjson::Document input;
-    if (recv_message(input)>0) {
+bool Connector::recv(rapidjson::Document &value) {
+    if (recv_message(value)>0) {
        bool rv = true;
        // check for error
-       if (input.HasMember("result")) {
-          value = input["result"];
-       } else {
-          value = false;
+       if (!value.HasMember("result")) {
           return false;
        }
-       if (!value.IsObject() && (value.IsBool() && value.GetBool() == false)) {
+       if (!value["result"].IsObject() && (value["result"].IsBool() && value["result"].GetBool() == false)) {
            rv = false;
-	   value = false;
         }
-        if (input.HasMember("log")) {
-           const rapidjson::Value& messages = input["log"];
+        if (value.HasMember("log")) {
+           const rapidjson::Value& messages = value["log"];
            if (messages.IsArray()) {
               // log em all
               for (rapidjson::Value::ConstValueIterator iter = messages.Begin(); iter != messages.End(); ++iter)
@@ -126,7 +121,7 @@ int RemoteBackend::build(const std::string &connstr) {
  * data is mainly left alone, some defaults are assumed. 
  */
 void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPacket *pkt_p, int zoneId) {
-   rapidjson::Document query;
+   rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
    if (d_index != -1) 
@@ -156,7 +151,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
    if (connector->send(query) == false || connector->recv(d_result) == false)  return;
 
    // OK. we have result parametersues in result
-   if (d_result.IsArray() == false) return;
+   if (d_result["result"].IsArray() == false) return;
    d_index = 0;
 }
 
@@ -165,26 +160,26 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    rapidjson::Value value;
 
    value = "";
-   rr.qtype = JSON_GET(d_result[d_index], "qtype", value).GetString();
-   rr.qname = JSON_GET(d_result[d_index], "qname", value).GetString();
+   rr.qtype = JSON_GET(d_result["result"][d_index], "qtype", value).GetString();
+   rr.qname = JSON_GET(d_result["result"][d_index], "qname", value).GetString();
    rr.qclass = QClass::IN;
-   rr.content = JSON_GET(d_result[d_index], "content",value).GetString();
+   rr.content = JSON_GET(d_result["result"][d_index], "content",value).GetString();
    value = -1;
-   rr.ttl = JSON_GET(d_result[d_index], "ttl",value).GetInt();
-   rr.domain_id = JSON_GET(d_result[d_index],"domain_id",value).GetInt();
-   rr.priority = JSON_GET(d_result[d_index],"priority",value).GetInt();
+   rr.ttl = JSON_GET(d_result["result"][d_index], "ttl",value).GetInt();
+   rr.domain_id = JSON_GET(d_result["result"][d_index],"domain_id",value).GetInt();
+   rr.priority = JSON_GET(d_result["result"][d_index],"priority",value).GetInt();
    value = 1;
    if (d_dnssec) 
-     rr.auth = JSON_GET(d_result[d_index],"auth", value).GetInt();
+     rr.auth = JSON_GET(d_result["result"][d_index],"auth", value).GetInt();
    else
      rr.auth = 1;
    value = 0;
-   rr.scopeMask = JSON_GET(d_result[d_index],"scopeMask", value).GetInt();
+   rr.scopeMask = JSON_GET(d_result["result"][d_index],"scopeMask", value).GetInt();
 
    d_index++;
    
    // id index is out of bounds, we know the results end here. 
-   if (d_index == static_cast<int>(d_result.Size())) {
+   if (d_index == static_cast<int>(d_result["result"].Size())) {
      d_result.SetNull();
      d_index = -1;
    }
@@ -192,7 +187,7 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
 }
 
 bool RemoteBackend::list(const std::string &target, int domain_id) {
-   rapidjson::Document query;
+   rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
    if (d_index != -1) 
@@ -208,7 +203,7 @@ bool RemoteBackend::list(const std::string &target, int domain_id) {
 
    if (connector->send(query) == false || connector->recv(d_result) == false) 
      return false;
-   if (d_result.IsArray() == false) 
+   if (d_result["result"].IsArray() == false) 
      return false;
 
    d_index = 0;
@@ -216,8 +211,8 @@ bool RemoteBackend::list(const std::string &target, int domain_id) {
 }
 
 bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after) {
-   rapidjson::Document query;
-   rapidjson::Value answer,parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
 
@@ -232,16 +227,16 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   unhashed = answer["unhashed"].GetString();
-   before = answer["before"].GetString();
-   after = answer["after"].GetString();
+   unhashed = answer["result"]["unhashed"].GetString();
+   before = answer["result"]["before"].GetString();
+   after = answer["result"]["after"].GetString();
   
    return true;
 }
 
 bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta) {
-   rapidjson::Document query;
-   rapidjson::Value answer,parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getDomainMetadata", query.GetAllocator());
@@ -252,6 +247,7 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
 
    if (connector->send(query) == false)
      return false;
+
    meta.clear();
 
    // not mandatory to implement
@@ -259,10 +255,10 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
      return true;
 
    if (answer.IsArray()) {
-      for(rapidjson::Value::ValueIterator iter = answer.Begin(); iter != answer.End(); iter++) {
+      for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
          meta.push_back(iter->GetString());
       }
-   } else if (answer.IsString()) {
+   } else if (answer["result"].IsString()) {
       meta.push_back(answer.GetString());
    }
 
@@ -270,8 +266,8 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
 }
 
 bool RemoteBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {
-   rapidjson::Document query;
-   rapidjson::Value answer,parameters,val;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters,val;
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "setDomainMetadata", query.GetAllocator());
    parameters.SetObject();
@@ -287,15 +283,15 @@ bool RemoteBackend::setDomainMetadata(const string& name, const std::string& kin
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   if (answer.IsBool())
+   if (answer["result"].IsBool())
       return answer.GetBool();
    return false;
 }
 
 
 bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys) {
-   rapidjson::Document query;
-   rapidjson::Value answer,parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
 
@@ -311,7 +307,7 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
 
    keys.clear();
 
-   for(rapidjson::Value::ValueIterator iter = answer.Begin(); iter != answer.End(); iter++) {
+   for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
       DNSBackend::KeyData key;
       key.id = (*iter)["id"].GetUint();
       key.flags = (*iter)["flags"].GetUint();
@@ -324,8 +320,8 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
 }
 
 bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) { 
-   rapidjson::Document query;
-   rapidjson::Value answer,parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
 
@@ -339,12 +335,12 @@ bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer.GetBool();
+   return answer["result"].GetBool();
 }
 
 int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
-   rapidjson::Document query;
-   rapidjson::Value answer,parameters,jkey;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters,jkey;
 
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
@@ -362,12 +358,12 @@ int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer.GetInt();
+   return answer["result"].GetInt();
 }
 
 bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
-   rapidjson::Document query;
-   rapidjson::Value answer, parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
 
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
@@ -382,12 +378,12 @@ bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer.GetBool();
+   return answer["result"].GetBool();
 }
 
 bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
-   rapidjson::Document query;
-   rapidjson::Value answer, parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
 
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
@@ -402,7 +398,7 @@ bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer.GetBool();
+   return answer["result"].GetBool();
 }
 
 bool RemoteBackend::doesDNSSEC() {
@@ -410,8 +406,8 @@ bool RemoteBackend::doesDNSSEC() {
 }
 
 bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, std::string* content) {
-   rapidjson::Document query;
-   rapidjson::Value answer, parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
 
    // no point doing dnssec if it's not supported
    if (d_dnssec == false) return false;
@@ -425,16 +421,16 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
      return false;
 
    if (algorithm != NULL)
-     algorithm->assign(answer["algorithm"].GetString());
+     algorithm->assign(answer["result"]["algorithm"].GetString());
    if (content != NULL)
-     content->assign(answer["content"].GetString());
+     content->assign(answer["result"]["content"].GetString());
    
    return true;
 }
 
 bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
-   rapidjson::Document query;
-   rapidjson::Value answer, parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
    rapidjson::Value value;
    std::string kind;
 
@@ -448,26 +444,26 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
      return false;
 
    // make sure we got zone & kind
-   if (!answer.HasMember("zone")) {
+   if (!answer["result"].HasMember("zone")) {
       L<<Logger::Error<<kBackendId<<"Missing zone in getDomainInfo return value"<<endl;
       throw AhuException();
    }
    value = -1;
    // parse return value. we need at least zone,serial,kind
-   di.id = JSON_GET(answer,"id",value).GetInt();
-   di.zone = answer["zone"].GetString();
-   if (answer.HasMember("masters") && answer["masters"].IsArray()) {
-     rapidjson::Value& value = answer["masters"];
+   di.id = JSON_GET(answer["result"],"id",value).GetInt();
+   di.zone = answer["result"]["zone"].GetString();
+   if (answer["result"].HasMember("masters") && answer["result"]["masters"].IsArray()) {
+     rapidjson::Value& value = answer["result"]["masters"];
      for(rapidjson::Value::ValueIterator i = value.Begin(); i != value.End(); i++) {
         di.masters.push_back(i->GetString());
      }
    }
-   di.notified_serial = JSON_GET(answer, "notified_serial", value).GetInt();
+   di.notified_serial = JSON_GET(answer["result"], "notified_serial", value).GetInt();
    value = 0;
-   di.serial = JSON_GET(answer,"serial", value).GetInt();
-   di.last_check = JSON_GET(answer,"last_check", value).GetInt();
+   di.serial = JSON_GET(answer["result"],"serial", value).GetInt();
+   di.last_check = JSON_GET(answer["result"],"last_check", value).GetInt();
    value = "native";
-   kind = JSON_GET(answer, "kind", value).GetString();
+   kind = JSON_GET(answer["result"], "kind", value).GetString();
    if (kind == "master") {
       di.kind = DomainInfo::Master;
    } else if (kind == "slave") {
@@ -480,8 +476,8 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
 }
 
 void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
-   rapidjson::Document query;
-   rapidjson::Value answer, parameters;
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
   
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "setNotified", query.GetAllocator());
