@@ -146,7 +146,7 @@
           <listitem>
             <para>
               The auth-can-lower-ttl flag was removed, as it did not have any effect in most situations, and thus
-              did not operate as advertised. We now always comply with the related parts of RFC2181. Change in
+              did not operate as advertised. We now always comply with the related parts of RFC 2181. Change in
               r3092, closing t88.
             </para>
           </listitem>
