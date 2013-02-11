@@ -5,7 +5,7 @@ cleandig host-255.test.dyndns ANY hidesoadetails
 
 # check if a domain exists, this should result in an NXDomain (section 3.2.1)
 # if the check fails, it will delete a record, which should not happen.
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq yxdomain host-255.test.dyndns
@@ -19,7 +19,7 @@ cleandig host-1.test.dyndns ANY
 
 # check if the record exists, should result in an NXRRSET (section 3.2.1)
 # if the check fails, it will delete a record. 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq yxrrset host-255.test.dyndns A
@@ -34,7 +34,7 @@ cleandig host-2.test.dyndns A
 
 # check if host-2 does not exist, if so, delete host-2.
 # this checks section 3.2.2
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq nxdomain host-2.test.dyndns
@@ -47,7 +47,7 @@ answer
 cleandig host-2.test.dyndns A
 
 # check if the specific record type styll exists, if not the case, delete it.
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq nxrrset host-2.test.dyndns A
@@ -60,7 +60,7 @@ answer
 cleandig host-2.test.dyndns A
 
 # Check ENT records
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq yxdomain host.test.dyndns 

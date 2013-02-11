@@ -1,17 +1,17 @@
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NOTZONE ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NOTZONE, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NOTAUTH ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NOTAUTH, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test2.dyndns.			IN	SOA
 
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NOTZONE ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NOTZONE, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA

@@ -1,7 +1,7 @@
 #!/bin/sh
 cleandig cname1.test.dyndns CNAME
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add cname1.test.dyndns. 3600 CNAME host-2.test.dyndns.
@@ -11,7 +11,7 @@ answer
 
 cleandig cname1.test.dyndns CNAME
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add cname1.test.dyndns. 3600 CNAME host-1.test.dyndns.

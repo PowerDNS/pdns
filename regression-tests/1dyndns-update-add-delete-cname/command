@@ -4,7 +4,7 @@
 cleandig cname3.test.dyndns CNAME hidesoadetails 
 
 # add mx record
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add cname3.test.dyndns. 3600 CNAME cname1.test.dyndns.
@@ -16,7 +16,7 @@ answer
 cleandig cname3.test.dyndns CNAME
 
 # delete the just added record
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update delete cname3.test.dyndns. 3600 CNAME cname1.test.dyndns.

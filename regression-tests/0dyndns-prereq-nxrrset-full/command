@@ -3,7 +3,7 @@
 # query to see if the records that we need, are actually there.
 cleandig multi.test.dyndns ANY
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq yxrrset multi.test.dyndns IN A 127.0.0.1
@@ -12,7 +12,7 @@ send
 answer
 !
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq yxrrset multi.test.dyndns IN A 127.0.0.1
@@ -22,7 +22,7 @@ send
 answer
 !
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 prereq yxrrset multi.test.dyndns IN A 127.0.0.1

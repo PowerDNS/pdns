@@ -2,7 +2,7 @@
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='replace.test.dyndns.', qtype=A
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
@@ -11,7 +11,7 @@ Answer:
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='replace.test.dyndns.', qtype=A
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA

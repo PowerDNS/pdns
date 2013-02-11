@@ -2,7 +2,7 @@
 
 cleandig delegate1.test.dyndns ANY hidesoadetails
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add delegate1.test.dyndns 3600 NS ns1.delegate1.test.dyndns
@@ -15,7 +15,7 @@ answer
 
 cleandig delegate1.test.dyndns ANY
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add ns1.delegate2.test.dyndns 3600 A 192.168.0.3
@@ -28,7 +28,7 @@ answer
 
 cleandig delegate2.test.dyndns ANY
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update delete delegate2.test.dyndns NS
@@ -44,7 +44,7 @@ cleandig ns2.delegate1.test.dyndns ANY
 cleandig ns1.delegate2.test.dyndns ANY
 cleandig ns2.delegate2.test.dyndns ANY
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update delete ns1.delegate2.test.dyndns A

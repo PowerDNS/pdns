@@ -11,7 +11,7 @@ cleandig c.c.host.test.dyndns ANY dnssec hidesoadetails
 cleandig d.d.host.test.dyndns ANY dnssec hidesoadetails
 cleandig e.e.host.test.dyndns ANY dnssec hidesoadetails
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add c.host.test.dyndns 3600 NS ns1.c.host.test.dyndns
@@ -32,7 +32,7 @@ cleandig c.c.host.test.dyndns ANY dnssec hidesoadetails
 cleandig d.d.host.test.dyndns ANY dnssec hidesoadetails
 cleandig e.e.host.test.dyndns ANY dnssec hidesoadetails
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update delete c.host.test.dyndns NS
@@ -52,7 +52,7 @@ cleandig c.c.host.test.dyndns ANY dnssec hidesoadetails
 cleandig d.d.host.test.dyndns ANY dnssec hidesoadetails
 cleandig e.e.host.test.dyndns ANY dnssec hidesoadetails
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update delete ns1.c.host.test.dyndns A

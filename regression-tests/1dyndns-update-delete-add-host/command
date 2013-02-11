@@ -4,7 +4,7 @@
 cleandig delete-add.test.dyndns ANY
 
 # add the record
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update delete delete-add.test.dyndns. 3600 A 127.0.0.108
@@ -16,7 +16,7 @@ answer
 cleandig delete-add.test.dyndns ANY
 
 # add the record again
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add delete-add.test.dyndns. 3600 A 127.0.0.108

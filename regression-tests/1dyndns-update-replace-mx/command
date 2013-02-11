@@ -1,7 +1,7 @@
 #!/bin/sh
 cleandig test.dyndns MX 
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add test.dyndns. 3000 MX 10 host-1.test.dyndns.
@@ -11,7 +11,7 @@ answer
 
 cleandig test.dyndns MX
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add test.dyndns. 3600 MX 10 host-1.test.dyndns.

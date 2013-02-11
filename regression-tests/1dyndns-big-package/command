@@ -4,7 +4,7 @@
 cleandig big-txt.test.dyndns TXT
 
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add big-txt.test.dyndns. 600 TXT "99 bottles of beer on the wall, 99 bottles of beer. Take one down, pass it around, 98 bottles of beer on the wall."
@@ -34,7 +34,7 @@ answer
 # check if things are added
 cleandig big-txt.test.dyndns TXT
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update delete big-txt.test.dyndns. TXT

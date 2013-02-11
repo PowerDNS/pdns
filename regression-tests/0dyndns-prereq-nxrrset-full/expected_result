@@ -4,19 +4,19 @@
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='multi.test.dyndns.', qtype=ANY
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NXRRSET ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NXRRSET, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NOERROR ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
 Answer:
-;; ->>HEADER<<- opcode: UPDATE, status: NXRRSET ID_REPLACED
+;; ->>HEADER<<- opcode: UPDATE, status: NXRRSET, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA

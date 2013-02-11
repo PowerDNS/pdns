@@ -1,7 +1,7 @@
 #!/bin/sh
 cleandig ttl.test.dyndns A
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add ttl.test.dyndns. 31337 A 127.0.0.1
@@ -11,7 +11,7 @@ answer
 
 cleandig ttl.test.dyndns A
 
-nsupdate <<! | sed 's/\, id:.*/ ID_REPLACED/'
+cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add ttl.test.dyndns. 3600 A 127.0.0.1
