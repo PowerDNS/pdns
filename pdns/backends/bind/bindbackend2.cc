@@ -1306,6 +1306,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   
   BB2DomainInfo &bbd = s_state->id_zone_map[newid];
 
+  bbd.d_id = newid;
   bbd.d_records = shared_ptr<recordstorage_t >(new recordstorage_t);
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
