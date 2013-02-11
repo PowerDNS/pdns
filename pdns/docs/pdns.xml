@@ -101,11 +101,13 @@
           3.5-RC1 released on January 25th 2013
         </para>
         <para>
+          3.5-RC2 released on February 11th 2013
+        <para>
           Downloads:
           <itemizedlist>
             <listitem>
               <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-recursor-3.5-rc1.tar.bz2">source</ulink>
+                <ulink url="http://powerdnssec.org/downloads/pdns-recursor-3.5-rc2.tar.bz2">source</ulink>
               </para>
             </listitem>
             <listitem>
@@ -115,7 +117,7 @@
             </listitem>
             <listitem>
               <para>
-                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/rc1/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/rc2/">native RHEL5/6 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
