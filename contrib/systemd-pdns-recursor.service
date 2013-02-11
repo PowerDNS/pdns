@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Type=forking
 ExecStart=/usr/sbin/pdns_recursor --daemon
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
