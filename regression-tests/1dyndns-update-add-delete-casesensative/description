@@ -1,0 +1,2 @@
+This test performs a simple add and delete of a A and TXT record. This is typically with ISC's DHCPD does.
+The interesting thing is the case-sensativity, as hosts can have capital letters in them (it's how you configure the dhcpd's client machine). 
