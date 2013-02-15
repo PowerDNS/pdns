@@ -671,6 +671,8 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo& di
   
 
   newRec.content = serializeSOAData(soa2Update);
-  //di.backend->updateRecord(rec, newRec);
+  vector<DNSResourceRecord> rrset;
+  rrset.push_back(newRec);
+  di.backend->replaceRRSet(di.id, newRec.qname, newRec.qtype, rrset);
   PC.purge(newRec.qname); 
 }
