@@ -86,6 +86,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
   set<string> delnonterm, insnonterm; // used to (at the end) fix ENT records.
 
   string rrLabel = stripDot(rr->d_label);
+  rrLabel = toLower(rrLabel);
   QType rrType = QType(rr->d_type);
 
   if (rr->d_class == QClass::IN) { // 3.4.2.2 QClass::IN means insert or update
@@ -233,7 +234,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
   // Delete records - section 3.4.2.3 and 3.4.2.4 with the exception of the 'always leave 1 NS rule' as that's handled by
   // the code that calls this performUpdate().
   if ((rr->d_class == QClass::ANY || rr->d_class == QClass::NONE) && rrType != QType::SOA) { // never delete a SOA.
-    DLOG(L<<msgPrefix<<"Deleting records QClasse:"<<rr->d_class<<"; rrType: "<<rrType.getName()<<endl);
+    DLOG(L<<msgPrefix<<"Deleting records: "<<rrLabel<<"; QClasse:"<<rr->d_class<<"; rrType: "<<rrType.getName()<<endl);
     di->backend->lookup(rrType, rrLabel);
     while(di->backend->get(rec)) {
       if (rr->d_class == QClass::ANY) { // 3.4.2.3
@@ -278,7 +279,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // Fix ENT records.
       // We must check if we have a record below the current level and if we removed the 'last' record
       // on that level. If so, we must insert an ENT record.
-      // We take extra care here to not 'include' the record that we just deleted. Some backends will still return it.
+      // We take extra care here to not 'include' the record that we just deleted. Some backends will still return it as they only reload on a commit.
       bool foundDeeper = false, foundOther = false;
       di->backend->listSubZone(rrLabel, di->id);
       while (di->backend->get(rec)) {
