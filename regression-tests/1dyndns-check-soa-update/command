@@ -1,0 +1,27 @@
+#!/bin/sh
+BEFORE=$(getserial test.dyndns)
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add dummy.test.dyndns 600 A 127.0.0.1
+send
+answer
+!
+
+AFTER1=$(getserial test.dyndns)
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete dummy.test.dyndns 600 A 127.0.0.1
+send
+answer
+!
+
+AFTER2=$(getserial test.dyndns)
+
+if [ $((AFTER2 - AFTER1)) -lt 1 ] || [ $((AFTER1 - BEFORE)) -lt 1 ]
+then
+	echo "SOA was not raised!";
+fi
