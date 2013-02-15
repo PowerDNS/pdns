@@ -13181,11 +13181,11 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
       <para>There are two configuration parameters that can be used within the powerdns configuration file.</para>
       <variablelist>
         <varlistentry>
-          <term>disable-rfc2136 [=yes]</term>
+          <term>experimental-rfc2136 [=no]</term>
           <listitem>
             <para>
-              A setting to enable/disable RFC2136 support completely. The default is yes, which means that RFC2136 updates are ignored by PowerDNS (no message is logged about this!).
-              Change the setting to <command>disable-rfc2136=no</command> to enable RFC2136 support.
+              A setting to enable/disable RFC2136 support completely. The default is no, which means that RFC2136 updates are ignored by PowerDNS (no message is logged about this!).
+              Change the setting to <command>experimental-rfc2136=yes</command> to enable RFC2136 support.
             </para>
           </listitem>
         </varlistentry>
@@ -13408,12 +13408,12 @@ zone 1.168.192.in-addr.arpa. {
          Enabled RFC2136 (dynamic update) support functionality in PowerDNS by adding the following to the 
          PowerDNS configuration file (pdns.conf).
 <programlisting>
-disable-rfc2136=no
+experimental-rfc2136=yes
 allow-2136-from=
 </programlisting>
          This tells PowerDNS to:
          <orderedlist>
-           <listitem><para>Enable RFC2136 support(<command>disable-rfc21356</command>)</para></listitem>
+           <listitem><para>Enable RFC2136 support(<command>experimental-rfc21356</command>)</para></listitem>
            <listitem><para>Allow updates from NO ip-address (<command>allow-2136-from=</command>)</para></listitem>
          </orderedlist>
         </para>
@@ -13459,7 +13459,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
             If it is not valid, Refused is returned to the requestor.
           </para></listitem>
           <listitem><para>A check is performed on the zone to see if it is a valid zone. ServFail is returned when not valid.</para></listitem>
-          <listitem><para>The <command>disable-rfc2136</command> setting is checked. Refused is returned when the setting is 'yes'.</para></listitem>
+          <listitem><para>The <command>experimental-rfc2136</command> setting is checked. Refused is returned when the setting is 'no'.</para></listitem>
           <listitem><para>
             If the <command>ALLOW-2136-FROM</command> has a value (from both domainmetadata and the configuration file), a check on the value is performed.
             If the requestor (sender of the update message) does not match the values in <command>ALLOW-2136-FROM</command>, Refused is returned.
@@ -22274,7 +22274,7 @@ select content,ttl,prio,type,domain_id,name from records where (name='%s' OR nam
 	      <para>
 	      	This method should remove all the records with <function>qname</function> of type <function>qt</function>. <function>qt</function> 
 	      	might also be ANY, which means all the records with that <function>qname</function> need to be removed.
-	      	After removal, the records in <function>rrset</function> must be added to the zone. <function>rrset</function> might be empty.
+	      	After removal, the records in <function>rrset</function> must be added to the zone. <function>rrset</function> can be empty in which case the method is used to remove a RRset.
           </para>
 	    </listitem>
 	  </varlistentry>

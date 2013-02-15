@@ -122,7 +122,7 @@ case $context in
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
 				--send-root-referral    \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config &
 			skipreasons="nodnssec nodyndns"
 			bindwait
@@ -164,7 +164,7 @@ case $context in
 				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config &
 			bindwait
 			;;
@@ -200,7 +200,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--master --send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
@@ -286,7 +286,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=random,gmysql --gmysql-dnssec \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
@@ -339,7 +339,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
@@ -381,7 +381,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
@@ -407,7 +407,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gsqlite3-database=pdns.sqlite3 &
 			skipreasons=nodnssec
@@ -455,7 +455,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gsqlite3-database=pdns.sqlite3 &
 			if [ $context = gsqlite3-nsec3 ]
@@ -473,7 +473,7 @@ __EOF__
 				--no-shuffle --launch=tinydns \
 			 --cache-ttl=$cachettl --no-config \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
 			skipreasons="nodnssec noent nodyndns"
 			;;
@@ -547,7 +547,7 @@ EOF
 				--no-shuffle --launch=remote \
 				--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--remote-connection-string="$connstr" $remote_add_param &
                         
 			echo "Setting up test database..."
@@ -623,7 +623,7 @@ then
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=gmysql --gmysql-dnssec \
 			--send-root-referral \
-			--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 			--cache-ttl=$cachettl --query-cache-ttl=$cachettl --no-config --slave --retrieval-threads=1 \
 			--gmysql-dbname="$GMYSQL2DB" \
 			--gmysql-user="$GMYSQL2USER" \
@@ -691,7 +691,7 @@ then
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave         \
 			--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
-			--allow-2136-from=127.0.0.0/8 --disable-rfc2136=no \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 			--cache-ttl=$cachettl --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave

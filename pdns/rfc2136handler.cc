@@ -340,7 +340,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
 }
 
 int PacketHandler::processUpdate(DNSPacket *p) {
-  if (::arg().mustDo("disable-rfc2136"))
+  if (! ::arg().mustDo("experimental-rfc2136"))
     return RCode::Refused;
   
   string msgPrefix="UPDATE from " + p->getRemote() + " for " + p->qdomain + ": ";
