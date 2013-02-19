@@ -24,6 +24,7 @@
 
 #include <sys/types.h>
 #include "dnspacket.hh"
+#include "dns.hh"
 
 string DNSBackend::getRemote(DNSPacket *p)
 {
@@ -236,8 +237,14 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   if(sd.nameserver.empty())
     sd.nameserver=arg()["default-soa-name"];
   
-  if(sd.hostmaster.empty())
-    sd.hostmaster="hostmaster."+domain;
+  if(sd.hostmaster.empty()) {
+    if (!arg().isEmpty("default-soa-mail")) {
+      sd.hostmaster=arg()["default-soa-mail"];
+      attodot(sd.hostmaster);
+    }
+    else
+      sd.hostmaster="hostmaster."+domain;
+  }
 
   if(!sd.serial) { // magic time!
     DLOG(L<<Logger::Warning<<"Doing soa serialnumber autocalculation for "<<rr.qname<<endl);
