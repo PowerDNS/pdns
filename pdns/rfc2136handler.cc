@@ -7,6 +7,8 @@
 #include "base32.hh"
 #include "misc.hh"
 #include "arguments.hh"
+#include "resolver.hh"
+#include "dns_random.hh"
 
 extern PacketCache PC;
 
@@ -339,6 +341,91 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
   return recordsToDelete.size() + changedRecords;
 }
 
+int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di) {
+  for(vector<string>::const_iterator master=di->masters.begin(); master != di->masters.end(); master++) {
+    ComboAddress remote;
+    try {
+      remote =ComboAddress(*master, 53); //TODO: parse master and check if it has a port, also delete?
+    }
+    catch (...) {
+      L<<Logger::Error<<msgPrefix<<"Failed to parse "<<*master<<" as valid remote."<<endl;
+      continue;
+    }
+
+    ComboAddress local;
+    if(remote.sin4.sin_family == AF_INET)
+      local=ComboAddress(::arg()["query-local-address"]);
+    else if(!::arg()["query-local-address6"].empty())
+      local=ComboAddress(::arg()["query-local-address6"]);
+    else
+      local=ComboAddress("::");
+    int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
+
+    if( connect(sock, (struct sockaddr*)&remote, remote.getSocklen()) < 0 ) {
+      L<<Logger::Error<<msgPrefix<<"Failed to connect to "<<remote.toStringWithPort()<<": "<<stringerror()<<endl;
+      Utility::closesocket(sock);
+      continue;
+    }
+
+    DNSPacket forwardPacket(*p);
+    forwardPacket.setID(dns_random(0xffff));
+    forwardPacket.setRemote(&remote);
+    uint16_t len=htons(forwardPacket.getString().length());
+    string buffer((const char*)&len, 2);
+    buffer.append(forwardPacket.getString());
+    if(write(sock, buffer.c_str(), buffer.length()) < 0) { 
+      L<<Logger::Error<<msgPrefix<<"Unable to forward update message to "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      continue;
+    }
+
+    int res = waitForData(sock, 10, 0);
+    if (!res) {
+      L<<Logger::Error<<msgPrefix<<"Timeout waiting for reply from master at "<<remote.toStringWithPort()<<"."<<endl;
+      Utility::closesocket(sock);
+      continue;
+    }
+    if (res < 0) {
+      L<<Logger::Error<<msgPrefix<<"Error waiting for answer from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      Utility::closesocket(sock);
+      continue;
+    }
+
+    char lenBuf[2];
+    int recvRes;
+    recvRes = recv(sock, &lenBuf, sizeof(lenBuf), 0);
+    if (recvRes < 0) {
+      L<<Logger::Error<<msgPrefix<<"Could not receive data (length) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      Utility::closesocket(sock);
+      continue;
+    }
+    int packetLen = lenBuf[0]*256+lenBuf[1];
+
+
+    char buf[packetLen];
+    recvRes = recv(sock, &buf, packetLen, 0);
+    if (recvRes < 0) {
+      L<<Logger::Error<<msgPrefix<<"Could not receive data (dnspacket) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      Utility::closesocket(sock);
+      continue;
+    }
+    Utility::closesocket(sock);
+
+    try {
+      //TODO: Do we need to check message ID's? I think not because we're doing TCP.
+      MOADNSParser mdp(buf, recvRes);
+      L<<Logger::Info<<msgPrefix<<"Forward update message to "<<remote.toStringWithPort()<<", result was RCode "<<mdp.d_header.rcode<<endl;
+      return mdp.d_header.rcode;
+    }
+    catch (...) {
+      L<<Logger::Error<<msgPrefix<<"Failed to parse response packet from master at "<<remote.toStringWithPort()<<endl;
+      continue;
+    }
+  }
+  L<<Logger::Error<<msgPrefix<<"Failed to forward packet to master(s). Returning ServFail."<<endl;
+  return RCode::ServFail;
+
+}
+
 int PacketHandler::processUpdate(DNSPacket *p) {
   if (! ::arg().mustDo("experimental-rfc2136"))
     return RCode::Refused;
@@ -415,10 +502,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     return RCode::NotAuth;
   }
 
-  if (di.kind == DomainInfo::Slave) { //TODO: We do not support the forwarding to master stuff.. which we should ;-)
-    L<<Logger::Error<<msgPrefix<<"We are slave for the domain and do not support forwarding to master, sending NotImp"<<endl;
-    return RCode::NotImp;
-  }
+  if (di.kind == DomainInfo::Slave)
+    return forwardPacket(msgPrefix, p, &di);
 
   // Check if all the records provided are within the zone 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
