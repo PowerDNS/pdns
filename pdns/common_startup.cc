@@ -40,7 +40,7 @@ void declareArguments()
 {
   ::arg().set("local-port","The port on which we listen")="53";
   ::arg().setSwitch("experimental-rfc2136","Enable/Disable RFC2136 (Dynamic DNS) support. Default is no.")="no";
-  ::arg().setSwitch("allow-2136-from","A global setting to allow RFC2136 from these IP ranges.")="0.0.0.0/0";
+  ::arg().set("allow-2136-from","A global setting to allow RFC2136 from these IP ranges.")="0.0.0.0/0";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
   ::arg().set("urlredirector","Where we send hosts to that need to be url redirected")="127.0.0.1";
