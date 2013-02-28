@@ -350,11 +350,10 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     return RCode::NotImp;
   }
 
-
   for(vector<string>::const_iterator master=di->masters.begin(); master != di->masters.end(); master++) {
     ComboAddress remote;
     try {
-      remote =ComboAddress(*master, 53); //TODO: parse master and check if it has a port, also delete?
+      remote = ComboAddress(*master, 53);
     }
     catch (...) {
       L<<Logger::Error<<msgPrefix<<"Failed to parse "<<*master<<" as valid remote."<<endl;
@@ -363,11 +362,11 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 
     ComboAddress local;
     if(remote.sin4.sin_family == AF_INET)
-      local=ComboAddress(::arg()["query-local-address"]);
+      local = ComboAddress(::arg()["query-local-address"]);
     else if(!::arg()["query-local-address6"].empty())
-      local=ComboAddress(::arg()["query-local-address6"]);
+      local = ComboAddress(::arg()["query-local-address6"]);
     else
-      local=ComboAddress("::");
+      local = ComboAddress("::");
     int sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
 
     if( connect(sock, (struct sockaddr*)&remote, remote.getSocklen()) < 0 ) {
@@ -389,7 +388,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 
     int res = waitForData(sock, 10, 0);
     if (!res) {
-      L<<Logger::Error<<msgPrefix<<"Timeout waiting for reply from master at "<<remote.toStringWithPort()<<"."<<endl;
+      L<<Logger::Error<<msgPrefix<<"Timeout waiting for reply from master at "<<remote.toStringWithPort()<<endl;
       Utility::closesocket(sock);
       continue;
     }
@@ -420,7 +419,6 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     Utility::closesocket(sock);
 
     try {
-      //TODO: Do we need to check message ID's? I think not because we're doing TCP.
       MOADNSParser mdp(buf, recvRes);
       L<<Logger::Info<<msgPrefix<<"Forward update message to "<<remote.toStringWithPort()<<", result was RCode "<<mdp.d_header.rcode<<endl;
       return mdp.d_header.rcode;
