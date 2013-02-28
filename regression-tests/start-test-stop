@@ -716,13 +716,10 @@ do
        mv $zone.backup $zone
 done
 
-if [ -s "./failed_tests" ]
+failed_tests=`wc -l failed_tests | cut -f 1 -d ' '`
+if [ $failed_tests = 0 ];
 then
-	for t in `cat failed_tests`
-	do
-		echo $t
-		cat $t/diff
-	done
-	exit 1
+        exit 0;
+else
+        exit 1;
 fi
-
