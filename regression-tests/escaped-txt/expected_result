@@ -1,0 +1,12 @@
+0	text0.example.com.	IN	TXT	120	"k=rsa; p=one"
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='text0.example.com.', qtype=TXT
+0	text1.example.com.	IN	TXT	120	"k=rsa; p=one"
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='text1.example.com.', qtype=TXT
+0	text2.example.com.	IN	TXT	120	"k=rsa\\; p=one"
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='text2.example.com.', qtype=TXT
+0	text3.example.com.	IN	TXT	120	"k=rsa\\; p=one"
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='text3.example.com.', qtype=TXT

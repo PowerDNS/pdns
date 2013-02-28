@@ -61,7 +61,7 @@ vector<string> segmentDNSText(const string& input )
                   appendSplit(ret, segment, *(fpc));
                 }
 
-                escaped = '\\' ((["\\]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
+                escaped = '\\' (([^0-9]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
                 plain = ((print-'\\'-'"')|'\n'|'\t') $ reportPlain;
                 txtElement = escaped | plain;
             

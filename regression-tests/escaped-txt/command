@@ -1,0 +1,5 @@
+#!/bin/sh
+cleandig text0.example.com TXT
+cleandig text1.example.com TXT
+cleandig text2.example.com TXT
+cleandig text3.example.com TXT
