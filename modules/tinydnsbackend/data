@@ -20046,6 +20046,10 @@ Cstart2.example.com:start3.example.com.:120
 Cstart3.example.com:start4.example.com.:120
 +start4.example.com:192.168.2.2:120
 :text.example.com:16:\025Hi\054\040this\040is\040some\040text:120
+:text0.example.com:16:\014k\075rsa\073\040p\075one:120
+:text1.example.com:16:\014k\075rsa\073\040p\075one:120
+:text2.example.com:16:\015k\075rsa\134\073\040p\075one:120
+:text3.example.com:16:\015k\075rsa\134\073\040p\075one:120
 @together-too-much.example.com::toomuchinfo-a.example.com.:25:120
 @together-too-much.example.com::toomuchinfo-b.example.com.:25:120
 +toomuchinfo-a.example.com:192.168.99.1:120
