@@ -13012,6 +13012,14 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
           </listitem>
         </varlistentry>
         <varlistentry>
+          <term>FORWARD-2136</term>
+          <listitem>
+            <para>
+              See <xref linkend="rfc2136-domainmetadata" />
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
           <term>SOA-EDIT-2136</term>
           <listitem>
             <para>
@@ -13200,6 +13208,17 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
             </para>
           </listitem>
         </varlistentry>
+        <varlistentry>
+          <term>forward-2136 [=yes]</term>
+          <listitem>
+            <para>
+              Tell PowerDNS to forward 2136 to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table.
+              The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the <command>allow-2136-from</command> and
+              <command>TSIG-2136-ALLOW</command> are processed first, so those permissions apply before the <command>forward-2136</command> is used.
+            </para>
+          </listitem>
+        </varlistentry>
+
       </variablelist>
     </sect1>
 
@@ -13252,6 +13271,23 @@ send
               If a TSIG key is set for the domain, it is required to be used for the update. 
               The TSIG is extra security on top of the <command>ALLOW-2136-FROM</command> setting.
               If a TSIG key is set, the IP(-range) still needs to be allowed via <command>ALLOW-2136-FROM</command>.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>FORWARD-2136</term>
+          <listitem>
+            <para>
+              See <xref linkend="rfc2136-configuration" /> for what it does, but per domain.
+              <programlisting>
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-2136’,’’);
+              </programlisting>
+              
+              There is no content, the existance of the entry enables the forwarding.
+              This domain-specific setting is only useful when the configuration option <command>forward-2136</command> is set to 'no', as that will disable it globally.
+              Using the domainmetadata setting than allows you to enable it per domain.
             </para>
           </listitem>
         </varlistentry>
@@ -13469,7 +13505,11 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
             The TSIG-ALLOW-2136 domainmetadata setting is used to find which key belongs to the domain.
           </para></listitem>
           <listitem><para>The backends are queried to find the backend for the given domain.</para></listitem>
-          <listitem><para>If the powerdns instance is a slave for the given domain, NotImp is returned.</para></listitem>
+          <listitem><para>
+            If the domain is a slave domain, the <command>forward-2136</command> option and domainmetadata settings are checked.
+            If forwarding to a master is enabled, the message is forward to the master. If that fails, the next master is tried until all masters are tried.
+            If all masters fail, ServFail is returned. If a master succeeds, the result from that master is returned.
+          </para></listitem>
           <listitem><para>
             A check is performed to make sure all updates/prerequisites are for the given zone. NotZone is returned if this is not the case.
           </para></listitem>
