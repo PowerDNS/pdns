@@ -1994,6 +1994,7 @@ int main(int argc, char **argv)
   g_argv = argv;
   g_stats.startupTime=time(0);
   reportBasicTypes();
+  reportOtherTypes();
 
   int ret = EXIT_SUCCESS;
 #ifdef WIN32
