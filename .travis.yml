@@ -47,7 +47,6 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-optout-presigned nowait 3600
  - cd ../regression-tests.nobackend/
  - ./runtests
- - test ! -s ./failed_tests
 notifications:
   irc:
     channels:
