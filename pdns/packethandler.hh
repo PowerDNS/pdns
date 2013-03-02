@@ -108,7 +108,7 @@ private:
   uint16_t performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool narrow, bool haveNSEC3, const NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial);
   int checkUpdatePrescan(const DNSRecord *rr);
   int checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di);
-  void increaseSerial(const string &msgPrefix, const DomainInfo& di);
+  void increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr);
 
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd);

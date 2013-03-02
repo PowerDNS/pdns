@@ -682,7 +682,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 */
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
     if (changedRecords > 0 && !updatedSerial)
-      increaseSerial(msgPrefix, di);
+      increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
   }
   catch (AhuException &e) {
     L<<Logger::Error<<msgPrefix<<"Caught AhuException: "<<e.reason<<"; Sending ServFail!"<<endl;
@@ -704,11 +704,11 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   return RCode::NoError; //rfc 2136 3.4.2.5
 }
 
-void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo& di) {
+void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr) {
   DNSResourceRecord rec, newRec;
-  di.backend->lookup(QType(QType::SOA), di.zone);
+  di->backend->lookup(QType(QType::SOA), di->zone);
   bool foundSOA=false;
-  while (di.backend->get(rec)) {
+  while (di->backend->get(rec)) {
     newRec = rec;
     foundSOA=true;
   }
@@ -719,14 +719,14 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo& di
   fillSOAData(rec.content, soa2Update);
 
   vector<string> soaEdit2136Setting;
-  B.getDomainMetadata(di.zone, "SOA-EDIT-2136", soaEdit2136Setting);
+  B.getDomainMetadata(di->zone, "SOA-EDIT-2136", soaEdit2136Setting);
   string soaEdit2136 = "DEFAULT";
   string soaEdit;
   if (!soaEdit2136Setting.empty()) {
     soaEdit2136 = soaEdit2136Setting[0];
     if (pdns_iequals(soaEdit2136, "SOA-EDIT") || pdns_iequals(soaEdit2136,"SOA-EDIT-INCREASE") ){
       vector<string> soaEditSetting;
-      B.getDomainMetadata(di.zone, "SOA-EDIT", soaEditSetting);
+      B.getDomainMetadata(di->zone, "SOA-EDIT", soaEditSetting);
       if (soaEditSetting.empty()) {
         L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-2136 increase on RFC2136, but SOA-EDIT is not set for domain. Using DEFAULT for SOA-EDIT-2136"<<endl;
         soaEdit2136 = "DEFAULT";
@@ -765,6 +765,19 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo& di
   newRec.content = serializeSOAData(soa2Update);
   vector<DNSResourceRecord> rrset;
   rrset.push_back(newRec);
-  di.backend->replaceRRSet(di.id, newRec.qname, newRec.qtype, rrset);
+  di->backend->replaceRRSet(di->id, newRec.qname, newRec.qtype, rrset);
+
+  //Correct ordername + auth flag
+  if(haveNSEC3) {
+    string hashed;
+    if(!narrow) 
+      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, newRec.qname)));
+        
+    di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, newRec.qname, hashed, true);
+  }
+  else // NSEC
+    di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, newRec.qname, true);
+
+  // purge the cache for the SOA record.
   PC.purge(newRec.qname); 
 }
