@@ -178,6 +178,8 @@ void declareStats(void)
   S.declare("rfc2136-queries", "RFC2136 packets received.");
   S.declare("rfc2136-answers", "RFC2136 packets succesfully answered.");
   S.declare("rfc2136-refused", "RFC2136 packets that are refused.");
+  S.declare("rfc2136-changes", "RFC2136 changes to records in total.");
+
 
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("latency","Average number of microseconds needed to answer a question");

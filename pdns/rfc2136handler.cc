@@ -12,6 +12,7 @@
 #include "backends/gsql/ssql.hh"
 
 extern PacketCache PC;
+extern StatBag S;
 
 pthread_mutex_t PacketHandler::s_rfc2136lock=PTHREAD_MUTEX_INITIALIZER;
 
@@ -715,6 +716,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
     if (changedRecords > 0 && !updatedSerial)
       increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
+    S.deposit("rfc2136-changes", changedRecords);
 
   }
   catch (DBException &e) {
