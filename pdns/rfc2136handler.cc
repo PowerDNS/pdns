@@ -379,8 +379,8 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
   B.getDomainMetadata(p->qdomain, "FORWARD-2136", forward);
 
   if (forward.size() == 0 && ! ::arg().mustDo("forward-2136")) {
-    L<<Logger::Notice<<msgPrefix<<"Not configured to forward to master, returning NotImpl."<<endl;
-    return RCode::NotImp;
+    L<<Logger::Notice<<msgPrefix<<"Not configured to forward to master, returning Refused."<<endl;
+    return RCode::Refused;
   }
 
   for(vector<string>::const_iterator master=di->masters.begin(); master != di->masters.end(); master++) {
