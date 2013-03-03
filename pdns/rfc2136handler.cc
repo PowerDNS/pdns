@@ -149,7 +149,31 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
         }
       }
-    }
+
+      // ReplaceRRSet dumps our ordername and auth flag, so we need to correct it.
+      // We can take the auth flag from the first RR in the set, as the name is different, so should the auth be.
+      bool auth = rrset.front().auth;
+      if(haveNSEC3) {
+        string hashed;
+        if(!narrow) 
+          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
+        
+        di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
+        if(!auth || rrType == QType::DS) {
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+        }
+
+      } else { // NSEC
+        di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, rrLabel, auth);
+        if(!auth || rrType == QType::DS) {
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+        }
+      }
+
+    } // if (foundRecord)
 
     // If we haven't found a record that matches, we must add it.
     if (! foundRecord) {
