@@ -9,6 +9,7 @@
 #include "arguments.hh"
 #include "resolver.hh"
 #include "dns_random.hh"
+#include "backends/gsql/ssql.hh"
 
 extern PacketCache PC;
 
@@ -115,6 +116,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           changedRecords++;
           di->backend->replaceRRSet(di->id, oldRec->qname, oldRec->qtype, rrset);
           *updatedSerial = true;
+          L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
         }
         else
           L<<Logger::Notice<<msgPrefix<<"Provided serial ("<<sdUpdate.serial<<") is older than the current serial ("<<sdOld.serial<<"), ignoring SOA update."<<endl;
@@ -127,6 +129,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           changedRecords++;
         }
         di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
+        L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
 
       // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectily means a update of TTL)
       } else {
@@ -139,8 +142,10 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             changedRecords++;
           }
         }
-        if (foundRecord)
+        if (foundRecord) {
           di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
+          L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+        }
       }
     }
 
@@ -254,6 +259,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
 
     }
     di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
+    L<<Logger::Notice<<msgPrefix<<"Deleting record "<<rrLabel<<"|"<<rrType.getName()<<endl;
 
 
     if (recordsToDelete.size()) {
@@ -437,7 +443,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   if (! ::arg().mustDo("experimental-rfc2136"))
     return RCode::Refused;
   
-  string msgPrefix="UPDATE from " + p->getRemote() + " for " + p->qdomain + ": ";
+  string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote() + " for " + p->qdomain + ": ";
   L<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // Check permissions - IP based
@@ -683,6 +689,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
     if (changedRecords > 0 && !updatedSerial)
       increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
+
   }
   catch (AhuException &e) {
     L<<Logger::Error<<msgPrefix<<"Caught AhuException: "<<e.reason<<"; Sending ServFail!"<<endl;
