@@ -122,6 +122,7 @@ private:
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
   
   static AtomicCounter s_count;
+  static pthread_mutex_t s_rfc2136lock;
   bool d_doFancyRecords;
   bool d_doRecursion;
   bool d_doCNAME;

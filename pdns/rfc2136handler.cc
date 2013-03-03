@@ -13,6 +13,8 @@
 
 extern PacketCache PC;
 
+pthread_mutex_t PacketHandler::s_rfc2136lock=PTHREAD_MUTEX_INITIALIZER;
+
 // Implement section 3.2.1 and 3.2.2 of RFC2136
 int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di) {
   if (rr->d_ttl != 0)
@@ -534,7 +536,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
   }
 
-  //TODO: Start a lock here, to make section 3.7 correct???
+  Lock l(&s_rfc2136lock);
   L<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
   if (!di.backend->startTransaction(p->qdomain, -1)) { // Not giving the domain_id means that we do not delete the records.
     L<<Logger::Error<<msgPrefix<<"Backend for domain "<<p->qdomain<<" does not support transaction. Can't do Update packet."<<endl;
@@ -691,11 +693,21 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
 
   }
+  catch (DBException &e) {
+    L<<Logger::Error<<msgPrefix<<"Caught DBException: "<<e.reason<<"; Sending ServFail!"<<endl;
+    di.backend->abortTransaction();
+    return RCode::ServFail;
+  }
   catch (AhuException &e) {
     L<<Logger::Error<<msgPrefix<<"Caught AhuException: "<<e.reason<<"; Sending ServFail!"<<endl;
     di.backend->abortTransaction();
     return RCode::ServFail;
   }
+  catch (SSqlException &e) {
+    L<<Logger::Error<<msgPrefix<<"Caught SSqlException: "<<e.txtReason()<<"; Sending ServFail!"<<endl;
+    di.backend->abortTransaction();
+    return RCode::ServFail;
+  }  
   catch (...) {
     L<<Logger::Error<<msgPrefix<<"Caught unknown exception when performing update. Sending ServFail!"<<endl;
     di.backend->abortTransaction();
