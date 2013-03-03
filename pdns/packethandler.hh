@@ -54,24 +54,6 @@ class NSEC3PARAMRecordContent;
 class PacketHandler
 {
 public:
-  template<class T> class Guard
-  {
-  public:
-    Guard(T **guard)
-    {
-      d_guard=guard;
-    }
-    
-    ~Guard()
-    {
-      if(*d_guard)
-        delete *d_guard;
-    }
-    
-  private:
-    T **d_guard;
-  };
-
   DNSPacket *questionOrRecurse(DNSPacket *, bool* shouldRecurse); //!< hand us a DNS packet with a question, we'll tell you answer, or that you should recurse
   DNSPacket *question(DNSPacket *); //!< hand us a DNS packet with a question, we give you an answer
   PacketHandler(); 
