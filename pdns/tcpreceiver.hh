@@ -53,6 +53,7 @@ private:
   static int readLength(int fd, ComboAddress *remote);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote);
   static int doAXFR(const string &target, boost::shared_ptr<DNSPacket> q, int outsock);
+  static int doIXFR(boost::shared_ptr<DNSPacket> q, int outsock);
   static bool canDoAXFR(boost::shared_ptr<DNSPacket> q);
   static void *doConnection(void *data);
   static void *launcher(void *data);
