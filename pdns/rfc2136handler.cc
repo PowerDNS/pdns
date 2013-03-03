@@ -714,8 +714,11 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
 */
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
-    if (changedRecords > 0 && !updatedSerial)
+    if (changedRecords > 0 && !updatedSerial) {
       increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
+      changedRecords++;
+    }
+
     S.deposit("rfc2136-changes", changedRecords);
 
   }
@@ -762,6 +765,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   }
   SOAData soa2Update;
   fillSOAData(rec.content, soa2Update);
+  int oldSerial = soa2Update.serial;
 
   vector<string> soaEdit2136Setting;
   B.getDomainMetadata(di->zone, "SOA-EDIT-2136", soaEdit2136Setting);
@@ -811,6 +815,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   vector<DNSResourceRecord> rrset;
   rrset.push_back(newRec);
   di->backend->replaceRRSet(di->id, newRec.qname, newRec.qtype, rrset);
+  L<<Logger::Error<<msgPrefix<<"Increasing SOA serial ("<<oldSerial<<" -> "<<soa2Update.serial<<")"<<endl;
 
   //Correct ordername + auth flag
   if(haveNSEC3) {
