@@ -118,7 +118,7 @@ class RemoteBackend : public DNSBackend
     int build(const std::string &connstr);
     Connector *connector;
     bool d_dnssec;
-    rapidjson::Document d_result;
+    rapidjson::Document *d_result;
     int d_index; 
 };
 #endif

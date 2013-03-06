@@ -121,7 +121,7 @@ int RemoteBackend::build(const std::string &connstr) {
  * data is mainly left alone, some defaults are assumed. 
  */
 void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPacket *pkt_p, int zoneId) {
-   rapidjson::Document query,answer;
+   rapidjson::Document query;
    rapidjson::Value parameters;
 
    if (d_index != -1) 
@@ -148,11 +148,50 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
    JSON_ADD_MEMBER(parameters, "zone-id", zoneId, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(d_result) == false)  return;
+   d_result = new rapidjson::Document();
 
-   // OK. we have result parametersues in result
-   if (d_result["result"].IsArray() == false) return;
+   if (connector->send(query) == false || connector->recv(*d_result) == false) { 
+      delete d_result;
+      return;
+   }
+
+   // OK. we have result parameters in result
+   if ((*d_result)["result"].IsArray() == false) {
+      delete d_result;
+      return;
+   }
+
    d_index = 0;
+}
+
+bool RemoteBackend::list(const std::string &target, int domain_id) {
+   rapidjson::Document query;
+   rapidjson::Value parameters;
+
+   if (d_index != -1)
+      throw AhuException("Attempt to lookup while one running");
+
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "list", query.GetAllocator());
+   query["method"] = "list";
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "zonename", target.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "domain-id", domain_id, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   d_result = new rapidjson::Document();
+
+   if (connector->send(query) == false || connector->recv(*d_result) == false) {
+     delete d_result;
+     return false;
+   }
+   if ((*d_result)["result"].IsArray() == false) {
+      delete d_result;
+      return false;
+   }
+
+   d_index = 0;
+   return true;
 }
 
 bool RemoteBackend::get(DNSResourceRecord &rr) {
@@ -160,53 +199,30 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    rapidjson::Value value;
 
    value = "";
-   rr.qtype = JSON_GET(d_result["result"][d_index], "qtype", value).GetString();
-   rr.qname = JSON_GET(d_result["result"][d_index], "qname", value).GetString();
+   rr.qtype = JSON_GET((*d_result)["result"][d_index], "qtype", value).GetString();
+   rr.qname = JSON_GET((*d_result)["result"][d_index], "qname", value).GetString();
    rr.qclass = QClass::IN;
-   rr.content = JSON_GET(d_result["result"][d_index], "content",value).GetString();
+   rr.content = JSON_GET((*d_result)["result"][d_index], "content",value).GetString();
    value = -1;
-   rr.ttl = JSON_GET(d_result["result"][d_index], "ttl",value).GetInt();
-   rr.domain_id = JSON_GET(d_result["result"][d_index],"domain_id",value).GetInt();
-   rr.priority = JSON_GET(d_result["result"][d_index],"priority",value).GetInt();
+   rr.ttl = JSON_GET((*d_result)["result"][d_index], "ttl",value).GetInt();
+   rr.domain_id = JSON_GET((*d_result)["result"][d_index],"domain_id",value).GetInt();
+   rr.priority = JSON_GET((*d_result)["result"][d_index],"priority",value).GetInt();
    value = 1;
    if (d_dnssec) 
-     rr.auth = JSON_GET(d_result["result"][d_index],"auth", value).GetInt();
+     rr.auth = JSON_GET((*d_result)["result"][d_index],"auth", value).GetInt();
    else
      rr.auth = 1;
    value = 0;
-   rr.scopeMask = JSON_GET(d_result["result"][d_index],"scopeMask", value).GetInt();
+   rr.scopeMask = JSON_GET((*d_result)["result"][d_index],"scopeMask", value).GetInt();
 
    d_index++;
    
    // id index is out of bounds, we know the results end here. 
-   if (d_index == static_cast<int>(d_result["result"].Size())) {
-     d_result.SetNull();
+   if (d_index == static_cast<int>((*d_result)["result"].Size())) {
+     delete d_result;
+     d_result = NULL;
      d_index = -1;
    }
-   return true;
-}
-
-bool RemoteBackend::list(const std::string &target, int domain_id) {
-   rapidjson::Document query,answer;
-   rapidjson::Value parameters;
-
-   if (d_index != -1) 
-      throw AhuException("Attempt to lookup while one running");
-
-   query.SetObject();
-   JSON_ADD_MEMBER(query, "method", "list", query.GetAllocator());
-   query["method"] = "list";
-   parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "zonename", target.c_str(), query.GetAllocator()); 
-   JSON_ADD_MEMBER(parameters, "domain-id", domain_id, query.GetAllocator());
-   query.AddMember("parameters", parameters, query.GetAllocator());
-
-   if (connector->send(query) == false || connector->recv(d_result) == false) 
-     return false;
-   if (d_result["result"].IsArray() == false) 
-     return false;
-
-   d_index = 0;
    return true;
 }
 
@@ -254,12 +270,12 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
    if (connector->recv(answer) == false)
      return true;
 
-   if (answer.IsArray()) {
+   if (answer["result"].IsArray()) {
       for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
          meta.push_back(iter->GetString());
       }
    } else if (answer["result"].IsString()) {
-      meta.push_back(answer.GetString());
+      meta.push_back(answer["result"].GetString());
    }
 
    return true;
