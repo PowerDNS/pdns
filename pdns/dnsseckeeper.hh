@@ -75,7 +75,7 @@ public:
   bool activateKey(const std::string& zname, unsigned int id);
   bool deactivateKey(const std::string& zname, unsigned int id);
 
-  bool secureZone(const std::string& fname, int algorithm);
+  bool secureZone(const std::string& fname, int algorithm, int size);
 
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   bool setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);

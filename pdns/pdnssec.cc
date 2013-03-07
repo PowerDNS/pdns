@@ -42,6 +42,22 @@ string humanTime(time_t t)
   return ret;
 }
 
+static int shorthand2algorithm(const string &algorithm)
+{
+  if (!algorithm.compare("rsamd5")) return 1;
+  if (!algorithm.compare("dh")) return 2;
+  if (!algorithm.compare("dsa")) return 3;
+  if (!algorithm.compare("ecc")) return 4;
+  if (!algorithm.compare("rsasha1")) return 5;
+  if (!algorithm.compare("rsasha256")) return 8;
+  if (!algorithm.compare("rsasha512")) return 10;
+  if (!algorithm.compare("gost")) return 12;
+  if (!algorithm.compare("ecdsa256")) return 13;
+  if (!algorithm.compare("ecdsa384")) return 14;
+  if (!algorithm.compare("ed25519")) return 250;
+  return -1;
+}
+
 void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
@@ -64,6 +80,11 @@ void loadMainConfig(const std::string& configdir)
 
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
+
+  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="rsasha256";
+  ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
+  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
+  ::arg().set("default-zsk-size","Default KSK size (0 means default)")="0";
   
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
@@ -568,6 +589,33 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
 
 bool secureZone(DNSSECKeeper& dk, const std::string& zone)
 {
+  // parse attribute
+  vector<string> k_algos;
+  vector<string> z_algos;
+  int k_size;
+  int z_size; 
+
+  stringtok(k_algos, ::arg()["default-ksk-algorithms"], " ,");
+  k_size = ::arg().asNum("default-ksk-size");
+  stringtok(z_algos, ::arg()["default-zsk-algorithms"], " ,");
+  z_size = ::arg().asNum("default-zsk-size");
+
+  if (k_size < 0) {
+     throw runtime_error("KSK key size must be equal to or greater than 0");
+  }
+
+  if (k_algos.size() < 1) {
+     throw runtime_error("No algorithm(s) given for KSK");
+  }
+
+  if (z_size < 0) {
+     throw runtime_error("ZSK key size must be equal to or greater than 0");
+  }
+
+  if (z_algos.size() < 1) {
+     throw runtime_error("No algorithm(s) given for ZSK");
+  }
+
   if(dk.isSecuredZone(zone)) {
     cerr << "Zone '"<<zone<<"' already secure, remove keys with pdnssec remove-zone-key if needed"<<endl;
     return false;
@@ -586,7 +634,13 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
     cout<<"pdnssec disable-dnssec "<<zone<<" right now!"<<endl;
   }
 
-  if(!dk.secureZone(zone, 8)) {
+  if (k_size)
+    cout << "Securing zone with " << k_algos[0] << " algorithm with key size " << k_size << endl;
+  else
+    cout << "Securing zone with " << k_algos[0] << " algorithm with default key size" << endl;
+
+  // run secure-zone with first default algorith, then add keys
+  if(!dk.secureZone(zone, shorthand2algorithm(k_algos[0]), k_size)) {
     cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC\n";
     cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
     cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or\n";
@@ -608,9 +662,17 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
     cerr<<"There were ZSKs already for zone '"<<zone<<"', no need to add more"<<endl;
     return false;
   }
-    
-  dk.addKey(zone, false, 8);
-  dk.addKey(zone, false, 8, 0, false); // not active
+  
+  for(vector<string>::iterator i = k_algos.begin()+1; i != k_algos.end(); i++)
+     dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true);
+
+  BOOST_FOREACH(string z_algo, z_algos)
+  {
+    int algo = shorthand2algorithm(z_algo);
+    dk.addKey(zone, false, algo, z_size);
+    dk.addKey(zone, false, algo, z_size, false); // not active
+  }
+
   // rectifyZone(dk, zone);
   // showZone(dk, zone);
   cout<<"Zone "<<zone<<" secured"<<endl;
@@ -931,6 +993,7 @@ try
     const string& zone=cmds[1];
     // need to get algorithm, bits & ksk or zsk from commandline
     bool keyOrZone=false;
+    int tmp_algo=0;
     int bits=0;
     int algorithm=8;
     for(unsigned int n=2; n < cmds.size(); ++n) {
@@ -938,21 +1001,9 @@ try
         keyOrZone = false;
       else if(pdns_iequals(cmds[n], "ksk"))
         keyOrZone = true;
-      else if(pdns_iequals(cmds[n], "rsasha1"))
-        algorithm=5;
-      else if(pdns_iequals(cmds[n], "rsasha256"))
-        algorithm=8;
-      else if(pdns_iequals(cmds[n], "rsasha512"))
-        algorithm=10;
-      else if(pdns_iequals(cmds[n], "gost"))
-        algorithm=12;
-      else if(pdns_iequals(cmds[n], "ecdsa256"))
-        algorithm=13;
-      else if(pdns_iequals(cmds[n], "ecdsa384"))
-        algorithm=14;
-      else if(pdns_iequals(cmds[n], "ed25519"))
-        algorithm=250;        
-      else if(atoi(cmds[n].c_str()))
+      else if((tmp_algo = shorthand2algorithm(cmds[n]))>0) {
+        algorithm = tmp_algo;
+      } else if(atoi(cmds[n].c_str()))
         bits = atoi(cmds[n].c_str());
       else { 
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
