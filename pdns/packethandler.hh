@@ -87,7 +87,7 @@ private:
   void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
   int processUpdate(DNSPacket *p);
   int forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di);
-  uint16_t performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool narrow, bool haveNSEC3, const NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial);
+  uint16_t performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial);
   int checkUpdatePrescan(const DNSRecord *rr);
   int checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di);
   void increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr);

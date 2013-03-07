@@ -1,0 +1,4 @@
+We allow to add/remove the NSEC3PARAM record, this test confirms that everything is working correctly.
+The test operates a bit different when in NSEC mode, as we don't add a NSEC3PARAM at the end.
+In NSEC3-NARROW mode, we do add NSEC3PARAM's at the end, but these are then in non-narrow mode as we cannot 
+specify that and the delete of the NSEC3PARAM also removed the narrow flag.

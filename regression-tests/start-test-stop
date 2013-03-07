@@ -99,6 +99,7 @@ do
 done
 
 rm -f pdns*.pid
+rm -f *_tests
 
 presigned=no
 
@@ -721,5 +722,10 @@ if [ $failed_tests = 0 ];
 then
         exit 0;
 else
+	for t in `cat failed_tests`
+	do
+		echo $t
+		cat $t/diff
+	done
         exit 1;
 fi

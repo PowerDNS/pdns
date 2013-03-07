@@ -246,6 +246,7 @@ string NSEC3RecordContent::getZoneRepresentation() const
 void NSEC3PARAMRecordContent::report(void)
 {
   regist(1, 51, &make, &make, "NSEC3PARAM");
+  regist(254, 51, &make, &make, "NSEC3PARAM");
 }
 
 DNSRecordContent* NSEC3PARAMRecordContent::make(const string& content)

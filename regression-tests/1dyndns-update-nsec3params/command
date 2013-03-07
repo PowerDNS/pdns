@@ -1,0 +1,43 @@
+#!/bin/sh
+	
+NSEC3=`cleandig test.dyndns NSEC3PARAM hidesoadetails dnssec`
+echo $NSEC3
+HAVENSEC3=`echo $NSEC3 | egrep 'IN[[:space:]]NSEC3PARAM' | wc -l`
+
+cleandig b.host.test.dyndns A hidesoadetails dnssec
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns. 3600 NSEC3PARAM 1 1 10 DCBE
+send
+answer
+!
+
+cleandig test.dyndns NSEC3PARAM hidesoadetails dnssec
+cleandig b.host.test.dyndns A hidesoadetails dnssec
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update DELETE test.dyndns. NSEC3PARAM
+send
+answer
+!
+
+cleandig test.dyndns NSEC3PARAM hidesoadetails dnssec
+cleandig b.host.test.dyndns A hidesoadetails dnssec
+
+if [ $HAVENSEC3 != 0 ]
+then
+	cleannsupdate <<!
+	server $nameserver $port
+	zone test.dyndns
+	update add test.dyndns. 3600 NSEC3PARAM 1 1 1 abcd
+	send
+	answer
+!
+
+	cleandig test.dyndns NSEC3PARAM hidesoadetails dnssec
+	cleandig b.host.test.dyndns A hidesoadetails dnssec
+fi

@@ -85,31 +85,67 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
 
 // Implements section 3.4.2 of RFC2136
-uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool narrow, bool haveNSEC3, const NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
+uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
+  string rrLabel = stripDot(rr->d_label);
+  rrLabel = toLower(rrLabel);
+  QType rrType = QType(rr->d_type);
+
+
+  if (rrType == QType::NSEC || rrType == QType::NSEC3) {
+    L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<". These are generated records, ignoring!"<<endl;
+    return 0;    
+  }
+
+  if (!isPresigned && (rrType == QType::RRSIG || rrType == QType::DNSKEY) ) {
+    L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<" in non-presigned zone, ignoring!"<<endl;
+    return 0;
+  }
+
+  if (rrType == QType::NSEC3PARAM && rrLabel != di->zone) {
+    L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|NSEC3PARAM, NSEC3PARAM must be at zone apex, ignoring!"<<endl;
+    return 0;
+  }
+
+  
   uint16_t changedRecords = 0;
   DNSResourceRecord rec;
   vector<DNSResourceRecord> rrset, recordsToDelete;
   set<string> delnonterm, insnonterm; // used to (at the end) fix ENT records.
 
-  string rrLabel = stripDot(rr->d_label);
-  rrLabel = toLower(rrLabel);
-  QType rrType = QType(rr->d_type);
 
   if (rr->d_class == QClass::IN) { // 3.4.2.2 QClass::IN means insert or update
     DLOG(L<<msgPrefix<<"Add/Update record (QClass == IN) "<<rrLabel<<"|"<<rrType.getName()<<endl);
 
+    if (rrType == QType::NSEC3PARAM) {
+      L<<Logger::Notice<<msgPrefix<<"Setting NSEC3PARAM for zone, resetting ordernames."<<endl;  
+      NSEC3PARAMRecordContent nsec3param(rr->d_content->getZoneRepresentation(), di->zone);
+      d_dk.setNSEC3PARAM(di->zone, nsec3param, (*narrow));
+      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
+      di->backend->list(di->zone, di->id);
+      vector<DNSResourceRecord> rrs;
+      while (di->backend->get(rec)) {
+        rrs.push_back(rec);
+      }
+      for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
+        if (*narrow) {
+          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
+        } else {
+          string hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, i->qname)));
+          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, i->qname, hashed, i->auth);
+        }
+      }
+      return 1;
+    }
+
     bool foundRecord = false;
     di->backend->lookup(rrType, rrLabel);
     while (di->backend->get(rec)) {
-        rrset.push_back(rec);
-        foundRecord = true;
+      rrset.push_back(rec);
+      foundRecord = true;
     }
-
     
     if (foundRecord) {
-
-      // SOA updates require the serial to be updated.
-      if (rrType == QType::SOA) {
+      if (rrType == QType::SOA) { // SOA updates require the serial to be higher than the current
         SOAData sdOld, sdUpdate;
         DNSResourceRecord *oldRec = &rrset.front();
         fillSOAData(oldRec->content, sdOld);
@@ -154,9 +190,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // ReplaceRRSet dumps our ordername and auth flag, so we need to correct it.
       // We can take the auth flag from the first RR in the set, as the name is different, so should the auth be.
       bool auth = rrset.front().auth;
-      if(haveNSEC3) {
+      if(*haveNSEC3) {
         string hashed;
-        if(!narrow) 
+        if(! *narrow) 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
         
         di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
@@ -210,10 +246,10 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         } while(chopOff(shorter));
       }
 
-      if(haveNSEC3)
+      if(*haveNSEC3)
       {
         string hashed;
-        if(!narrow) 
+        if(! *narrow) 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
         
         di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
@@ -246,9 +282,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             qnames.push_back(rec.qname);
         }
         for(vector<string>::const_iterator qname=qnames.begin(); qname != qnames.end(); ++qname) {
-          if(haveNSEC3)  {
+          if(*haveNSEC3)  {
             string hashed;
-            if(!narrow) 
+            if(! *narrow) 
               hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname)));
         
             di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *qname, hashed, auth);
@@ -269,6 +305,33 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
   // the code that calls this performUpdate().
   if ((rr->d_class == QClass::ANY || rr->d_class == QClass::NONE) && rrType != QType::SOA) { // never delete a SOA.
     DLOG(L<<msgPrefix<<"Deleting records: "<<rrLabel<<"; QClasse:"<<rr->d_class<<"; rrType: "<<rrType.getName()<<endl);
+
+    if (rrType == QType::NSEC3PARAM) {
+      L<<Logger::Notice<<msgPrefix<<"Removing NSEC3PARAM from zone, resetting ordernames."<<endl;  
+      if (rr->d_class == QClass::ANY)
+        d_dk.unsetNSEC3PARAM(rrLabel);
+      else if (rr->d_class == QClass::NONE) {
+        NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone);
+	if (ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
+          d_dk.unsetNSEC3PARAM(rrLabel);
+        else
+          return 0;
+      } else 
+        return 0;
+
+      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
+      di->backend->list(di->zone, di->id);
+      vector<DNSResourceRecord> rrs;
+      while (di->backend->get(rec)) {
+        rrs.push_back(rec);
+      }
+      for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
+        di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, i->qname, i->auth);
+      }
+      return 1;
+    }
+
+
     di->backend->lookup(rrType, rrLabel);
     while(di->backend->get(rec)) {
       if (rr->d_class == QClass::ANY) { // 3.4.2.3
@@ -299,9 +362,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             changeAuth.push_back(rec.qname);
         }
         for (vector<string>::const_iterator changeRec=changeAuth.begin(); changeRec!=changeAuth.end(); ++changeRec) {
-          if(haveNSEC3)  {
+          if(*haveNSEC3)  {
             string hashed;
-            if(!narrow) 
+            if(! *narrow) 
               hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *changeRec)));
         
             di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *changeRec, hashed, true);
@@ -340,6 +403,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           // a.b.d.e.test.com
           // if we delete a.b.c.d.e.test.com, we go up to d.e.test.com and then find a.b.d.e.test.com
           // At that point we can stop deleting ENT's because the tree is in tact again.
+          //TODO: I think we do not need listSubZone() here, as we're moving up the tree with the chopOff(); i consider the listSubZone query more expensive and a lookup would be better.
           di->backend->listSubZone(shorter, di->id);
           while (di->backend->get(rec)) {
             if (rec.qtype.getCode())
@@ -361,10 +425,10 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     di->backend->updateEmptyNonTerminals(di->id, di->zone, insnonterm, delnonterm, false);
     for (set<string>::const_iterator i=insnonterm.begin(); i!=insnonterm.end(); i++) {
       string hashed;
-      if(haveNSEC3)
+      if(*haveNSEC3)
       {
         string hashed;
-        if(!narrow) 
+        if(! *narrow) 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *i)));
         di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *i, hashed, false);
       }
@@ -384,6 +448,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
   }
 
   for(vector<string>::const_iterator master=di->masters.begin(); master != di->masters.end(); master++) {
+    L<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<*master<<endl;
     ComboAddress remote;
     try {
       remote = ComboAddress(*master, 53);
@@ -549,7 +614,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
     const DNSRecord *rr = &i->first;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
-    // For a TSIG, the label is the dnskey.
+    // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
     if (! (rr->d_place == DNSRecord::Answer || rr->d_place == DNSRecord::Nameserver)) 
       continue;
 
@@ -561,9 +626,10 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
   }
 
-  Lock l(&s_rfc2136lock);
+
+  Lock l(&s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   L<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
-  if (!di.backend->startTransaction(p->qdomain, -1)) { // Not giving the domain_id means that we do not delete the records.
+  if (!di.backend->startTransaction(p->qdomain, -1)) { // Not giving the domain_id means that we do not delete the existing records.
     L<<Logger::Error<<msgPrefix<<"Backend for domain "<<p->qdomain<<" does not support transaction. Can't do Update packet."<<endl;
     return RCode::NotImp;
   }
@@ -649,8 +715,9 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
     bool updatedSerial=false;
     NSEC3PARAMRecordContent ns3pr;
-    bool narrow; 
+    bool narrow=false; 
     bool haveNSEC3 = d_dk.getNSEC3PARAM(di.zone, &ns3pr, &narrow);
+    bool isPresigned = d_dk.isPresigned(di.zone);
 
     // We get all the before/after fields before doing anything to the db.
     // We can't do this inside performUpdate() because when we remove a delegate, the before/after result is different to what it should be
@@ -677,7 +744,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && stripDot(rr->d_label) == di.zone)
           nsRRtoDelete.push_back(rr);
         else
-          changedRecords += performUpdate(msgPrefix, rr, &di, narrow, haveNSEC3, &ns3pr, &updatedSerial);
+          changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
       }
     }
     if (nsRRtoDelete.size()) {
@@ -691,7 +758,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         for (vector<DNSResourceRecord>::iterator inZone=nsRRInZone.begin(); inZone != nsRRInZone.end(); inZone++) {
           for (vector<const DNSRecord *>::iterator rr=nsRRtoDelete.begin(); rr != nsRRtoDelete.end(); rr++) {
             if (inZone->getZoneRepresentation() == (*rr)->d_content->getZoneRepresentation())
-              changedRecords += performUpdate(msgPrefix, *rr, &di, narrow, haveNSEC3, &ns3pr, &updatedSerial);
+              changedRecords += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
           }
         }
       }
@@ -815,7 +882,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   vector<DNSResourceRecord> rrset;
   rrset.push_back(newRec);
   di->backend->replaceRRSet(di->id, newRec.qname, newRec.qtype, rrset);
-  L<<Logger::Error<<msgPrefix<<"Increasing SOA serial ("<<oldSerial<<" -> "<<soa2Update.serial<<")"<<endl;
+  L<<Logger::Notice<<msgPrefix<<"Increasing SOA serial ("<<oldSerial<<" -> "<<soa2Update.serial<<")"<<endl;
 
   //Correct ordername + auth flag
   if(haveNSEC3) {
