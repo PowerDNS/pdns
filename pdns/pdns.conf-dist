@@ -40,6 +40,16 @@
 # daemon=no
 
 #################################
+# default-ksk-algorithms	Default KSK algorithms
+#
+# default-ksk-algorithms=rsasha256
+
+#################################
+# default-ksk-size	Default KSK size (0 means default)
+#
+# default-ksk-size=0
+
+#################################
 # default-soa-name	name to insert in the SOA record if none set in the backend
 #
 # default-soa-name=a.misconfigured.powerdns.server
@@ -48,6 +58,16 @@
 # default-ttl	Seconds a result is valid if not set otherwise
 #
 # default-ttl=3600
+
+#################################
+# default-zsk-algorithms	Default ZSK algorithms
+#
+# default-zsk-algorithms=rsasha256
+
+#################################
+# default-zsk-size	Default KSK size (0 means default)
+#
+# default-zsk-size=0
 
 #################################
 # disable-axfr	Disable zonetransfers but do allow TCP queries
