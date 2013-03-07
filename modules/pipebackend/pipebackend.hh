@@ -25,7 +25,7 @@ public:
   void send(const string &line);
   void receive(string &line);
 private:
-  CoProcess* d_cp;
+  CoRemote* d_cp;
   string d_command;
   void launch();
   int d_timeout;

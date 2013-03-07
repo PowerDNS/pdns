@@ -7,21 +7,26 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/un.h>
 #include <pdns/misc.hh>
 #include <pdns/ahuexception.hh>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <boost/algorithm/string.hpp>
+#include <vector>
 
 CoProcess::CoProcess(const string &command,int timeout, int infd, int outfd)
 {
-  const char *argv[2];
-  argv[0]=strdup(command.c_str());
-  argv[1]=0;
+  vector <string> v;
+  split(v, command, is_any_of(" "));
 
-  launch(argv,timeout,infd,outfd);
-}
+  const char *argv[v.size()+1];
+  argv[v.size()]=0;
 
-CoProcess::CoProcess(const char **argv, int timeout, int infd, int outfd)
-{
-  launch(argv,timeout,infd,outfd);
+  for (size_t n = 0; n < v.size(); n++)
+    argv[n]=v[n].c_str();
+  // we get away with not copying since nobody resizes v 
+  launch(argv, timeout, infd, outfd);
 }
 
 void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
@@ -158,6 +163,58 @@ void CoProcess::sendReceive(const string &snd, string &rcv)
   receive(rcv);
 
 }
+
+UnixRemote::UnixRemote(const string& path, int timeout) 
+{
+  d_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
+  if(d_fd < 0)
+    throw AhuException("Unable to create UNIX domain socket: "+string(strerror(errno)));
+
+  struct sockaddr_un remote;
+  memset(&remote, 0, sizeof(remote));
+  remote.sun_family = AF_UNIX;
+  memset(remote.sun_path, 0, sizeof(remote.sun_path));
+  path.copy(remote.sun_path, sizeof(remote.sun_path), 0);
+
+  // fcntl(fd, F_SETFL, O_NONBLOCK, &sock);
+
+  if(connect(d_fd, (struct sockaddr*)&remote, sizeof(remote)) < 0)
+    unixDie("Unable to connect to remote '"+path+"' using UNIX domain socket");
+
+  d_fp = fdopen(d_fd, "r");
+}
+
+void UnixRemote::send(const string& line)
+{
+  string nline(line);
+  nline.append(1, '\n');
+  writen2(d_fd, nline);
+}
+
+void UnixRemote::receive(string& line)
+{
+  line.clear();
+  stringfgets(d_fp, line);
+  trim_right(line);
+}
+
+void UnixRemote::sendReceive(const string &snd, string &rcv)
+{
+  //  checkStatus();
+  send(snd);
+  receive(rcv);
+}
+
+bool isUnixSocket(const string& fname)
+{
+  struct stat st;
+  if(stat(fname.c_str(), &st) < 0)
+    return false; // not a unix socket in any case ;-)
+
+  return (st.st_mode & S_IFSOCK) == S_IFSOCK;
+}
+
+
 #ifdef TESTDRIVER
 main()
 {

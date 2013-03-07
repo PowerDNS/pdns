@@ -48,7 +48,10 @@ void CoWrapper::launch()
    if(d_cp)
       return;
 
-   d_cp=new CoProcess(d_command, d_timeout); 
+   if(isUnixSocket(d_command))
+     d_cp = new UnixRemote(d_command, d_timeout);
+   else
+     d_cp = new CoProcess(d_command, d_timeout); 
    d_cp->send("HELO\t"+lexical_cast<string>(::arg().asNum("pipebackend-abi-version")));
    string banner;
    d_cp->receive(banner); 
