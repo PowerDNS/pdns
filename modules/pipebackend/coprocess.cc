@@ -184,6 +184,11 @@ UnixRemote::UnixRemote(const string& path, int timeout)
   d_fp = fdopen(d_fd, "r");
 }
 
+UnixRemote::~UnixRemote()
+{
+  fclose(d_fp);
+}
+
 void UnixRemote::send(const string& line)
 {
   string nline(line);

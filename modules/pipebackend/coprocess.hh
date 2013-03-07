@@ -10,6 +10,7 @@
 class CoRemote
 {
 public:
+  virtual ~CoRemote();
   virtual void sendReceive(const string &send, string &receive) = 0;
   virtual void receive(string &rcv) = 0;
   virtual void send(const string &send) = 0;
