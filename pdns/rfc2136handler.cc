@@ -312,14 +312,14 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         d_dk.unsetNSEC3PARAM(rrLabel);
       else if (rr->d_class == QClass::NONE) {
         NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone);
-	if (ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
+        if (ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
           d_dk.unsetNSEC3PARAM(rrLabel);
         else
           return 0;
       } else 
         return 0;
 
-      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
+      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow); // still update, as other records in this update packet need to use it as well.
       di->backend->list(di->zone, di->id);
       vector<DNSResourceRecord> rrs;
       while (di->backend->get(rec)) {
@@ -413,22 +413,6 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           else
             break;
         }
-
-/*        do {
-          bool foundRealRR=false;
-          if (shorter == di->zone)
-            break; //we're at the top.
-
-          di->backend->lookup(QType(QType::ANY), shorter);
-          while (di->backend->get(rec)) {
-            if (rec.qtype.getCode())
-              foundRealRR=true;
-          }
-          if (!foundRealRR)
-            delnonterm.insert(shorter);
-          else
-            break; // we found a real record - tree is ok again.
-        }while(chopOff(shorter));*/
       }
     }
   }
@@ -711,10 +695,9 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
 
 
-  // 3.4 - Prescan & Add/Update/Delete records
-  uint16_t changedRecords = 0;
+  // 3.4 - Prescan & Add/Update/Delete records - is all done within a try block.
   try {
-
+    uint16_t changedRecords = 0;
     // 3.4.1 - Prescan section
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
@@ -733,21 +716,6 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     bool narrow=false; 
     bool haveNSEC3 = d_dk.getNSEC3PARAM(di.zone, &ns3pr, &narrow);
     bool isPresigned = d_dk.isPresigned(di.zone);
-
-    // We get all the before/after fields before doing anything to the db.
-    // We can't do this inside performUpdate() because when we remove a delegate, the before/after result is different to what it should be
-    // to purge the cache correctly - One update/delete might cause a before/after to be created which is before/after the original before/after.
-    vector< pair<string, string> > beforeAfterSet;
-    /*if (!haveNSEC3) {
-      for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-        const DNSRecord *rr = &i->first;
-        if (rr->d_place == DNSRecord::Nameserver) {
-          string before, after;
-          di.backend->getBeforeAndAfterNames(di.id, di.zone, stripDot(rr->d_label), before, after, (rr->d_class != QClass::IN));
-          beforeAfterSet.push_back(make_pair(before, after));
-        }
-      }
-    }*/
 
     // 3.4.2 - Perform the updates.
     // There's a special condition where deleting the last NS record at zone apex is never deleted (3.4.2.4)
@@ -779,30 +747,31 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       }
     }
 
-    // Purge the records!
-    string zone(di.zone);
-    zone.append("$");
-    PC.purge(zone);  // For NSEC3, nuke the complete zone.
-/*
-    if (changedRecords > 0) {
-      if (haveNSEC3) {
-        string zone(di.zone);
-        zone.append("$");
-        PC.purge(zone);  // For NSEC3, nuke the complete zone.
-      } else {
-        //for(vector< pair<string, string> >::const_iterator i=beforeAfterSet.begin(); i != beforeAfterSet.end(); i++)
-          //PC.purgeRange(i->first, i->second, di.zone);
-      }
-    }
-*/
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
     if (changedRecords > 0 && !updatedSerial) {
       increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
       changedRecords++;
     }
 
+    if (!di.backend->commitTransaction()) {
+      L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
+      return RCode::ServFail;
+    }
+   
     S.deposit("rfc2136-changes", changedRecords);
 
+    // Purge the records!
+    string zone(di.zone);
+    zone.append("$");
+    PC.purge(zone);
+
+    L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
+    return RCode::NoError; //rfc 2136 3.4.2.5
+  }
+  catch (SSqlException &e) {
+    L<<Logger::Error<<msgPrefix<<"Caught SSqlException: "<<e.txtReason()<<"; Sending ServFail!"<<endl;
+    di.backend->abortTransaction();
+    return RCode::ServFail;
   }
   catch (DBException &e) {
     L<<Logger::Error<<msgPrefix<<"Caught DBException: "<<e.reason<<"; Sending ServFail!"<<endl;
@@ -814,24 +783,11 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     di.backend->abortTransaction();
     return RCode::ServFail;
   }
-  catch (SSqlException &e) {
-    L<<Logger::Error<<msgPrefix<<"Caught SSqlException: "<<e.txtReason()<<"; Sending ServFail!"<<endl;
-    di.backend->abortTransaction();
-    return RCode::ServFail;
-  }  
   catch (...) {
     L<<Logger::Error<<msgPrefix<<"Caught unknown exception when performing update. Sending ServFail!"<<endl;
     di.backend->abortTransaction();
     return RCode::ServFail;
   }
-  
-  if (!di.backend->commitTransaction()) {
-    L<<Logger::Error<<msgPrefix<<"Failed to commit update for domain "<<di.zone<<"!"<<endl;
-    return RCode::ServFail;
-  }
- 
-  L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
-  return RCode::NoError; //rfc 2136 3.4.2.5
 }
 
 void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr) {
@@ -909,7 +865,4 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   }
   else // NSEC
     di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, newRec.qname, true);
-
-  // purge the cache for the SOA record.
-  PC.purge(newRec.qname); 
 }
