@@ -1,0 +1,99 @@
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd Q75PNOE7PB74PND6OGN44T5BTUURBHRF A RRSIG
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd Q75PNOE7PB74PND6OGN44T5BTUURBHRF A RRSIG
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd Q75PNOE7PB74PND6OGN44T5BTUURBHRF A RRSIG
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	a.b.c.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
+0	a.b.c.d.e.f.test.dyndns.	IN	RRSIG	3600	A 8 8 3600 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
+0	a.b.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
+0	a.b.d.e.f.test.dyndns.	IN	RRSIG	3600	A 8 7 3600 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQHG4B60ON9MNERF7BLIPAI4EJ9GKPDK A RRSIG
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd Q75PNOE7PB74PND6OGN44T5BTUURBHRF A RRSIG
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd Q75PNOE7PB74PND6OGN44T5BTUURBHRF A RRSIG
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd Q75PNOE7PB74PND6OGN44T5BTUURBHRF A RRSIG
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P A RRSIG
+1	dsa3ti9nu3apdsvl3f63qlvakv555sr6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd Q75PNOE7PB74PND6OGN44T5BTUURBHRF A RRSIG
+1	lresbbp3lv8blgj9fsgtdmm4q7vj3d6j.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 1 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A

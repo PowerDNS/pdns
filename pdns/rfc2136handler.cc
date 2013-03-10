@@ -378,33 +378,48 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // We must check if we have a record below the current level and if we removed the 'last' record
       // on that level. If so, we must insert an ENT record.
       // We take extra care here to not 'include' the record that we just deleted. Some backends will still return it as they only reload on a commit.
-      bool foundDeeper = false, foundOther = false;
+      bool foundDeeper = false, foundOtherWithSameName = false;
       di->backend->listSubZone(rrLabel, di->id);
       while (di->backend->get(rec)) {
         if (rec.qname == rrLabel && !count(recordsToDelete.begin(), recordsToDelete.end(), rec))
-          foundOther = true;
+          foundOtherWithSameName = true;
         if (rec.qname != rrLabel)
           foundDeeper = true;
       }
 
-      if (foundDeeper && !foundOther) {
+      if (foundDeeper && !foundOtherWithSameName) {
         insnonterm.insert(rrLabel);
-      } else if (!foundOther) {
+      } else if (!foundOtherWithSameName) {
         // If we didn't have to insert an ENT, we might have deleted a record at very deep level
         // and we must then clean up the ENT's above the deleted record.
         string shorter(rrLabel);
-        do {
+        while (shorter != di->zone) {
+          chopOff(shorter);
+          bool foundRealRR = false;
+
+          // The reason for a listSubZone here is because might go up the tree and find the ENT of another branch
+          // consider these non ENT-records:
+          // b.c.d.e.test.com
+          // b.d.e.test.com
+          // if we delete b.c.d.e.test.com, we go up to d.e.test.com and then find b.d.e.test.com because that's below d.e.test.com.
+          // At that point we can stop deleting ENT's because the tree is in tact again.
+          di->backend->listSubZone(shorter, di->id);
+          while (di->backend->get(rec)) {
+            if (rec.qtype.getCode())
+              foundRealRR = true;
+          }
+          if (!foundRealRR)
+            delnonterm.insert(shorter);
+          else
+            break;
+        }
+
+/*        do {
           bool foundRealRR=false;
           if (shorter == di->zone)
-            break;
-          // The reason for a listSubZone here is because might go up the tree and find the root ENT of another branch
-          // consider these non ENT-records:
-          // a.b.c.d.e.test.com
-          // a.b.d.e.test.com
-          // if we delete a.b.c.d.e.test.com, we go up to d.e.test.com and then find a.b.d.e.test.com
-          // At that point we can stop deleting ENT's because the tree is in tact again.
-          //TODO: I think we do not need listSubZone() here, as we're moving up the tree with the chopOff(); i consider the listSubZone query more expensive and a lookup would be better.
-          di->backend->listSubZone(shorter, di->id);
+            break; //we're at the top.
+
+          di->backend->lookup(QType(QType::ANY), shorter);
           while (di->backend->get(rec)) {
             if (rec.qtype.getCode())
               foundRealRR=true;
@@ -413,7 +428,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             delnonterm.insert(shorter);
           else
             break; // we found a real record - tree is ok again.
-        }while(chopOff(shorter));
+        }while(chopOff(shorter));*/
       }
     }
   }

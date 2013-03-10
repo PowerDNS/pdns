@@ -1,0 +1,31 @@
+#!/bin/sh
+
+cleandig a.b.c.d.e.f.test.dyndns A hidesoadetails dnssec
+cleandig a.b.d.e.f.test.dyndns A hidesoadetails dnssec
+cleandig x.d.e.f.test.dyndns A hidesoadetails dnssec
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add a.b.c.d.e.f.test.dyndns. 3600 A 127.0.0.1
+update add a.b.d.e.f.test.dyndns. 3600 A 127.0.0.1
+send
+answer
+!
+
+cleandig a.b.c.d.e.f.test.dyndns A hidesoadetails dnssec
+cleandig a.b.d.e.f.test.dyndns A hidesoadetails dnssec
+cleandig x.d.e.f.test.dyndns A hidesoadetails dnssec
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete a.b.c.d.e.f.test.dyndns. 3600 A 127.0.0.1
+update delete a.b.d.e.f.test.dyndns. 3600 A 127.0.0.1
+send
+answer
+!
+
+cleandig a.b.c.d.e.f.test.dyndns A hidesoadetails dnssec
+cleandig a.b.d.e.f.test.dyndns A hidesoadetails dnssec
+cleandig x.d.e.f.test.dyndns A hidesoadetails dnssec
