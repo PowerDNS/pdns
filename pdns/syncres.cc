@@ -1053,10 +1053,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           ret.push_back(*i);
           newtarget=i->content;
         }
-        // for ANY answers we *must* have an authoritive answer
+        // for ANY answers we *must* have an authoritive answer, unless we are forwarding recursively
         else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && 
         	(
-        	 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) )
+        	 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) ) || sendRDQuery
         	) 
                )   
           {
