@@ -1,7 +1,6 @@
 #include "remotebackend.hh"
 #include <sys/socket.h>
 #include <unistd.h>
-#include <sys/select.h>
 #include <fcntl.h>
 #include <boost/foreach.hpp>
 #include <sstream>

@@ -2,7 +2,6 @@
 #include <sys/socket.h>
 #include <pdns/lock.hh> 
 #include <unistd.h>
-#include <sys/select.h>
 #include <fcntl.h>
 #ifndef UNIX_PATH_MAX 
 #define UNIX_PATH_MAX 108
@@ -120,7 +119,6 @@ ssize_t UnixsocketConnector::write(const std::string &data) {
 void UnixsocketConnector::reconnect() {
    struct sockaddr_un sock;
    struct timeval tv;
-   fd_set rd;
    rapidjson::Document init,res;
    rapidjson::Value val;
 
@@ -140,11 +138,7 @@ void UnixsocketConnector::reconnect() {
    fcntl(fd, F_SETFL, O_NONBLOCK, &fd);
 
    while(connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock)==-1 && (errno == EINPROGRESS)) {
-     tv.tv_sec = 0;
-     tv.tv_usec = 500;
-     FD_ZERO(&rd);
-     FD_SET(fd, &rd);
-     select(fd+1,&rd,NULL,NULL,&tv); // wait a moment
+     waitForData(fd, 0, 500);
    }
 
    if (errno != EISCONN && errno != 0) {
