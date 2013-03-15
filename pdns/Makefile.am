@@ -40,6 +40,7 @@ bin_PROGRAMS = pdns_control pdnssec dnsreplay
 endif
 
 EXTRA_PROGRAMS=pdns_recursor sdig tsig-tests speedtest pdns_control dnsscope dnsgram \
+testrunner \
 toysdig dnsdemog dnswasher dnsscan nproxy notify pdnssec dnsbulktest nsec3dig # dnslabel # tcptorture
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
@@ -231,6 +232,10 @@ dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 
 rec_control_SOURCES=rec_channel.cc rec_channel.hh rec_control.cc arguments.cc arguments.hh misc.cc qtype.cc \
 	unix_utility.cc logger.cc statbag.cc
+
+testrunner_SOURCES=testrunner.c test-misc_hh.cc
+testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+testrunner_LDADD= $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
 
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc arguments.cc  lwres.cc pdns_recursor.cc reczones.cc lwres.hh \

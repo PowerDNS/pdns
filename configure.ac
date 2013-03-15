@@ -22,6 +22,7 @@ BOOST_FOREACH
 #BOOST_FILESYSTEM([mt])
 BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
+BOOST_TEST([mt])
 #BOOST_SYSTEM([mt])
 
 # detect pkg-config explicitly
