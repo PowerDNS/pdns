@@ -121,7 +121,7 @@ __thread MT_t* MT; // the big MTasker
 
 unsigned int g_numThreads;
 
-#define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10"
+#define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10"
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
