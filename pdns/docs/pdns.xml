@@ -123,7 +123,7 @@
         </para>
       </note>
       <para>
-        This is a stability and bugfix update to 3.3/3.3.1. It contains
+        This is a stability, security and bugfix update to 3.3/3.3.1. It contains
         important fixes for slightly broken domain names, which your
         users expect to work anyhow.
       </para>
@@ -140,7 +140,9 @@
             <para>
               While Recursor 3.3 was not vulnerable to the specific attack noted in
               <ulink url="https://www.isc.org/files/imce/ghostdomain_camera.pdf">'Ghost Domain Names: Revoked Yet Still Resolvable'</ulink>,
-              further investigation showed that a variant of the attack could work. This was fixed in r3085.
+              further investigation showed that a variant of the attack could work. This was fixed in r3085. This should
+              also close the slightly bogus
+              <ulink url="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193">CVE-2012-1193</ulink>.
             </para>
           </listitem>
           <listitem>
