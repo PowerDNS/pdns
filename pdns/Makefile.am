@@ -233,7 +233,7 @@ dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 rec_control_SOURCES=rec_channel.cc rec_channel.hh rec_control.cc arguments.cc arguments.hh misc.cc qtype.cc \
 	unix_utility.cc logger.cc statbag.cc
 
-testrunner_SOURCES=testrunner.c test-misc_hh.cc
+testrunner_SOURCES=testrunner.cc test-misc_hh.cc
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
 
