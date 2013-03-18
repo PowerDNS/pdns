@@ -811,8 +811,6 @@ try
     cerr<<"add-zone-key ZONE zsk|ksk [bits]\n";
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits\n";
-    cerr<<"generate-zone-key zsk|ksk [bits] [algorithm]\n";
-    cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits\n";
     cerr<<"check-zone ZONE                    Check a zone for correctness\n";
     cerr<<"check-all-zones                    Check all zones for correctness\n";
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)\n"; 
@@ -820,6 +818,8 @@ try
     cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE\n";
     cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described\n";
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described\n";
+    cerr<<"generate-zone-key zsk|ksk [bits] [algorithm]\n";
+    cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits\n";
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE\n";
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK\n";            
     cerr<<"                [ksk|zsk]          Defaults to KSK\n";
