@@ -2,8 +2,6 @@
 
 set -e
 
-ragel dnslabeltext.rl -o dnslabeltext.cc
-
 VERSION=3.5-rc2
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
@@ -22,7 +20,7 @@ selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 win32_mtasker.cc win32_rec_channel.cc win32_logger.cc ntservice.cc \
 recursorservice.cc sillyrecords.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
-dnslabeltext.cc json.cc json_ws.cc json_ws.hh"
+json.cc json_ws.cc json_ws.hh"
 
 cd docs
 make pdns_recursor.1 rec_control.1
@@ -31,6 +29,8 @@ cd ..
 DIRNAME=pdns-recursor-$VERSION
 rm -rf $DIRNAME
 mkdir  $DIRNAME
+cp dnslabeltext.rl $DIRNAME/
+ragel dnslabeltext.rl -o $DIRNAME/dnslabeltext.cc
 cp $INCLUDES $CFILES $DIRNAME
 cp Makefile-recursor $DIRNAME/Makefile
 cp Makefile-recursor.win32 $DIRNAME/Makefile.win32
@@ -42,7 +42,8 @@ cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjs
 cp -a ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
-cp aes/*.{c,cc,h} $DIRNAME
+mkdir $DIRNAME/aes
+cp aes/*.{c,cc,h} $DIRNAME/aes
 cp pdns-recursor.init.d $DIRNAME
 cp docs/pdns_recursor.1 docs/rec_control.1 $DIRNAME
 cp configure-recursor $DIRNAME/configure
@@ -50,9 +51,9 @@ cp powerdns-example-script.lua $DIRNAME
 mkdir -p $DIRNAME/contrib
 cp ../contrib/systemd-pdns-recursor.service $DIRNAME/contrib
 
-mkdir -p $DIRNAME/sysdeps
+mkdir -p $DIRNAME/sysdeps-recursor
 rm -f sysdeps-recursor/*~
-cp  sysdeps-recursor/* $DIRNAME/sysdeps
+cp  sysdeps-recursor/* $DIRNAME/sysdeps-recursor
 cp "PowerDNS Recursor.vcproj" $DIRNAME/
 tar cf $DIRNAME.tar $DIRNAME
 bzip2 -f $DIRNAME.tar # .. solaris
