@@ -811,6 +811,8 @@ try
     cerr<<"add-zone-key ZONE zsk|ksk [bits]\n";
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits\n";
+    cerr<<"generate-zone-key zsk|ksk [bits] [algorithm]\n";
+    cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits\n";
     cerr<<"check-zone ZONE                    Check a zone for correctness\n";
     cerr<<"check-all-zones                    Check all zones for correctness\n";
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)\n"; 
@@ -1222,6 +1224,58 @@ try
       cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), 1).getZoneRepresentation() << endl;
       cout << zone << " IN DS "<<makeDSFromDNSKey(zone, dpk.getDNSKEY(), 2).getZoneRepresentation() << endl;
     }
+  }
+  else if(cmds[0] == "generate-zone-key") {
+    if(cmds.size() < 2 ) {
+      cerr << "Syntax: pdnssec generate-zone-key zsk|ksk [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+      return 0;
+    }
+    // need to get algorithm, bits & ksk or zsk from commandline
+    bool keyOrZone=false;
+    int tmp_algo=0;
+    int bits=0;
+    int algorithm=8;
+    for(unsigned int n=1; n < cmds.size(); ++n) {
+      if(pdns_iequals(cmds[n], "zsk"))
+        keyOrZone = false;
+      else if(pdns_iequals(cmds[n], "ksk"))
+        keyOrZone = true;
+      else if((tmp_algo = shorthand2algorithm(cmds[n]))>0) {
+        algorithm = tmp_algo;
+      } else if(atoi(cmds[n].c_str()))
+        bits = atoi(cmds[n].c_str());
+      else {
+        cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
+        return 0;
+      }
+    }
+    cerr<<"Generating a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<endl;
+    if(bits)
+      cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
+
+    DNSSECPrivateKey dspk; 
+    shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm)); // defaults to RSA for now, could be smart w/algorithm! XXX FIXME 
+    if(!bits) {
+      if(algorithm <= 10)
+        bits = keyOrZone ? 2048 : 1024;
+      else {
+        if(algorithm == 12 || algorithm == 13 || algorithm == 250) // ECDSA, GOST, ED25519
+          bits = 256;
+        else if(algorithm == 14)
+          bits = 384;
+        else {
+          throw runtime_error("Can't guess key size for algoritm "+lexical_cast<string>(algorithm));
+        }
+      }
+    }
+    dpk->create(bits); 
+    dspk.setKey(dpk); 
+    dspk.d_algorithm = algorithm; 
+    dspk.d_flags = keyOrZone ? 257 : 256; 
+
+    // print key to stdout 
+    cout << "Flags: " << dspk.d_flags << endl << 
+             dspk.getKey()->convertToISC() << endl; 
   }
   else {
     cerr<<"Unknown command '"<<cmds[0]<<"'\n";
