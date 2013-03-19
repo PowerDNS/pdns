@@ -22,7 +22,11 @@ BOOST_FOREACH
 #BOOST_FILESYSTEM([mt])
 BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
-BOOST_TEST([mt])
+AC_ARG_ENABLE(unit-tests, AC_HELP_STRING([--enable-unit-tests],[Enable unit test building]), [enable_unit_tests=yes],[enable_unit_tests=no])
+
+if test x"$enable_unit_tests" = "xyes"; then
+   BOOST_TEST([mt])
+fi
 #BOOST_SYSTEM([mt])
 
 # detect pkg-config explicitly
