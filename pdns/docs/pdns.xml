@@ -12490,7 +12490,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	  <listitem>
 	  <para>
 	    NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the NSEC3PARAM record. If present, NSEC3 is used, if not
-	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />).
+	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />). Example content: "1 1 1 ab".
 	  </para>
 	</listitem>
       </varlistentry>
