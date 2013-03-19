@@ -12001,7 +12001,7 @@ $ pdnssec rectify-zone powerdnssec.org
 		The NSEC3 parameters must be quoted on the command line.
 		<warning><para>If running in RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update at the parent zone! </para></warning>
 		The NSEC3 fields are: 'algorithm flags iterations salt'. Both 'algorithm' and 'flags' should be 1 for PowerDNS
-		operation.
+		operation. The salt is hexadecimal.
 	      </para>
 	    </listitem>
 	</varlistentry>
