@@ -13271,7 +13271,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	  </para>
 	</listitem>
       </varlistentry>
-      <varlistentry>
+  <varlistentry>
 	<term>NSEC3PARAM</term>
 	  <listitem>
 	  <para>
@@ -13279,7 +13279,16 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />). Example content: "1 0 1 ab".
 	  </para>
 	</listitem>
-      </varlistentry>
+  </varlistentry>
+  <varlistentry>
+  <term>NOTIFY-RANGE</term>
+    <listitem>
+    <para>
+      This option tells PowerDNS to ONLY notify the networks in the parameter. There is also a global <command>notify-only</command> setting.
+      The ip's in <command>also-notify</command> will still receive a notify if they match this range.
+    </para>
+  </listitem>
+  </varlistentry>
       
       <varlistentry>
 	<term>PRESIGNED</term>
