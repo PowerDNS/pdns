@@ -345,6 +345,28 @@ bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype
   return false;
 }
 
+uint64_t MemRecursorCache::doDumpNSSpeeds(int fd)
+{
+  FILE* fp=fdopen(dup(fd), "w");
+  if(!fp)
+    return 0;
+  fprintf(fp, "; nsspeed dump from thread follows\n;\n");
+  uint64_t count=0;
+
+  for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); ++i)
+  {
+    count++;
+    fprintf(fp, "%s|%d -> ", i->first.first.c_str(), i->first.second);
+    for(SyncRes::DecayingEwmaCollection::collection_t::iterator j = i->second.d_collection.begin(); j!= i->second.d_collection.end(); ++j)
+    {
+      // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
+      fprintf(fp, "%s/%f ", j->first.toString().c_str(), j->second.peek());
+    }
+    fprintf(fp, "\n");
+  }
+  fclose(fp);
+  return count;
+}
 
 uint64_t MemRecursorCache::doDump(int fd)
 {

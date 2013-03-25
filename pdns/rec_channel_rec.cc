@@ -150,6 +150,33 @@ static uint64_t* pleaseDump(int fd)
   return new uint64_t(t_RC->doDump(fd) + dumpNegCache(t_sstorage->negcache, fd));
 }
 
+static uint64_t* pleaseDumpNSSpeeds(int fd)
+{
+  return new uint64_t(t_RC->doDumpNSSpeeds(fd));
+}
+
+template<typename T>
+string doDumpNSSpeeds(T begin, T end)
+{
+  T i=begin;
+  string fname;
+
+  if(i!=end)
+    fname=*i;
+
+  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+  if(fd < 0)
+    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+  uint64_t total = 0;
+  try {
+    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpNSSpeeds, fd));
+  }
+  catch(...){}
+
+  close(fd);
+  return "dumped "+lexical_cast<string>(total)+" records\n";
+}
+
 template<typename T>
 string doDumpCache(T begin, T end)
 {
@@ -565,6 +592,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "current-queries                  show currently active queries\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns[status] <filename>     dump EDNS status to the named file\n"
+"dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
@@ -589,7 +617,6 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="get-parameter") 
     return doGetParameter(begin, end);
 
-
   if(cmd=="quit") {
     *command=&doExit;
     return "bye\n";
@@ -605,6 +632,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="dump-ednsstatus" || cmd=="dump-edns") 
     return doDumpEDNSStatus(begin, end);
+
+  if(cmd=="dump-nsspeeds")
+    return doDumpNSSpeeds(begin, end);
 
   if(cmd=="wipe-cache" || cmd=="flushname") 
     return doWipeCache(begin, end);

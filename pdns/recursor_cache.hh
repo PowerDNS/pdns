@@ -38,6 +38,8 @@ public:
   void doPrune(void);
   void doSlash(int perc);
   uint64_t doDump(int fd);
+  uint64_t doDumpNSSpeeds(int fd);
+
   int doWipeCache(const string& name, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL);
   uint64_t cacheHits, cacheMisses;

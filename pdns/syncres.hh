@@ -156,6 +156,11 @@ public:
     return d_val*=factor;
   }
 
+  double peek(void)
+  {
+    return d_val;
+  }
+
   bool stale(time_t limit) const
   {
     return limit > d_lastget.tv_sec;
