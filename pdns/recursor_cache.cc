@@ -356,7 +356,7 @@ uint64_t MemRecursorCache::doDumpNSSpeeds(int fd)
   for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); ++i)
   {
     count++;
-    fprintf(fp, "%s|%d -> ", i->first.first.c_str(), i->first.second);
+    fprintf(fp, "%s -> ", i->first.c_str());
     for(SyncRes::DecayingEwmaCollection::collection_t::iterator j = i->second.d_collection.begin(); j!= i->second.d_collection.end(); ++j)
     {
       // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
