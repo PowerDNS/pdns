@@ -1809,6 +1809,11 @@ private:
     sword err;
 
     try {
+      // set some envionment variables
+      setenv("ORACLE_HOME", arg()["oracle-home"].c_str(), 1);
+      setenv("ORACLE_SID", arg()["oracle-sid"].c_str(), 1);
+      setenv("NLS_LANG", arg()["oracle-nls-lang"].c_str(), 1);
+
       // Initialize and create the environment
       err = OCIEnvCreate(&oraenv, OCI_THREADED, NULL, NULL,
                          NULL, NULL, 0, NULL);
@@ -1910,6 +1915,10 @@ OracleFactory () : BackendFactory("oracle") {
   }
 
   void declareArguments (const string & suffix = "") {
+    declare(suffix,"home", "Oracle home path", "");
+    declare(suffix,"sid", "Oracle sid", "XE");
+    declare(suffix,"nls-lang", "Oracle language", "AMERICAN_AMERICA.AL32UTF8");
+
     declare(suffix, "pool-database", "Database to connect to for the session pool", "powerdns");
     declare(suffix, "pool-username", "Username to connect as for the session pool", "powerdns");
     declare(suffix, "pool-password", "Password to connect with for the session pool", "");

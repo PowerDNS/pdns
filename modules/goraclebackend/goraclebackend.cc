@@ -15,12 +15,16 @@
 
 #include "soracle.hh"
 
-
 #include <sstream>
 
 gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQLBackend(mode,suffix)
 {
   try {
+    // set some envionment variables
+    setenv("ORACLE_HOME", getArg("home").c_str(), 1);
+    setenv("ORACLE_SID", getArg("sid").c_str(), 1);
+    setenv("NLS_LANG", getArg("nls-lang").c_str(), 1);
+ 
     setDB(new SOracle(getArg("tnsname"),
         	     getArg("user"),
         	     getArg("password")));
@@ -41,10 +45,15 @@ public:
   
   void declareArguments(const string &suffix="")
   {
+    declare(suffix,"home", "Oracle home path", "");
+    declare(suffix,"sid", "Oracle sid", "XE");
+    declare(suffix,"nls-lang", "Oracle language", "AMERICAN_AMERICA.AL32UTF8");
+
     declare(suffix,"tnsname","Generic Oracle backend TNSNAME to connect to","powerdns");
     declare(suffix,"user","Database backend user to connect as","powerdns");
     declare(suffix,"password","Pdns backend password to connect with","");
 
+    declare(suffix,"get-all-domains-query", "Get all domain","select id,name,master,last_check,type,notified_serial,account from domains");
     declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
     declare(suffix,"id-query","Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d");
     declare(suffix,"wildcard-query","Wildcard query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s'");
