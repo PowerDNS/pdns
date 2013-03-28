@@ -102,11 +102,14 @@
           3.5-RC2 released on February 11th 2013
         </para>
         <para>
+          3.5-RC3 release on March 28th 2013
+        </para>
+        <para>
           Downloads:
           <itemizedlist>
             <listitem>
               <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-recursor-3.5-rc2.tar.bz2">source</ulink>
+                <ulink url="http://powerdnssec.org/downloads/pdns-recursor-3.5-rc3.tar.bz2">source</ulink>
               </para>
             </listitem>
             <listitem>
@@ -116,7 +119,7 @@
             </listitem>
             <listitem>
               <para>
-                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/rc2/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/rc3/">native RHEL5/6 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
@@ -134,6 +137,49 @@
       </para>
       </note></para>
       <para>
+        Changes between RC2 and RC3:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Use private temp dir when running under systemd, thanks Morten Stevens and Ruben Kerkhof. Change in r3105.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              NSD mistakenly compresses labels for RP and other types, violating a MUST in RFC 3597.
+              Recursor does not decompress these labels, violating a SHOULD in RFC3597. We now 
+              decompress these labels, and reportedly NSD will stop compressing them. Reported by
+              Jan-Piet Mens, fixed in r3109.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              When forwarding to another recursor, we would handle responses to ANY queries
+              incorrectly. Spotted by Jan-Piet Mens, fixed in r3116, closes t704.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Our local-nets definition (used as a default for some settings) now includes the
+              networks from RFC 3927 and RFC 6598. Reported by Maik Zumstrull, fixed in r3122.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The RC1 change to stop using ANY queries to get A+AAAA for name servers in one go
+              had a 5% performance impact. This impact is corrected in r3132. Thanks to Winfried
+              Angele for measuring and reporting this. Closees t710.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              New command 'rec_control dump-nsspeeds' will dump our NS speeds (latency) cache. 
+              Code in r3131.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
         Changes between RC1 and RC2:
         <itemizedlist>
           <listitem>
@@ -142,7 +188,7 @@
               <ulink url="https://www.isc.org/files/imce/ghostdomain_camera.pdf">'Ghost Domain Names: Revoked Yet Still Resolvable'</ulink>,
               further investigation showed that a variant of the attack could work. This was fixed in r3085. This should
               also close the slightly bogus
-              <ulink url="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193">CVE-2012-1193</ulink>.
+              <ulink url="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193">CVE-2012-1193</ulink>. Closes t668.
             </para>
           </listitem>
           <listitem>
