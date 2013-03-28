@@ -6,16 +6,13 @@ lib_LTLIBRARIES = libgoraclebackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 
-ORACLE_HOME	?= /opt/oracle
-
-INCLUDES= -I$(ORACLE_HOME)/rdbms/demo \
-		  -I$(ORACLE_HOME)/rdbms/public 
+INCLUDES= $(ORACLE_CFLAGS) 
 
 libgoraclebackend_la_SOURCES=goraclebackend.cc goraclebackend.hh \
 		soracle.hh soracle.cc
 
 
-libgoraclebackend_la_LDFLAGS=-module -avoid-version -L$(ORACLE_HOME)/lib -lclient9  -lclntst9
+libgoraclebackend_la_LDFLAGS=-module -avoid-version $(ORACLE_LIBS)
 #soracle_LDFLAGS=-module  -L$(ORACLE_HOME)/lib -lclient9  -lclntst9 -ldl -pthread
 
 #	-Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto

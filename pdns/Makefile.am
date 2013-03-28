@@ -90,6 +90,10 @@ endif
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 endif
+
+if ORACLE
+pdns_server_LDADD += $(ORACLE_LIBS)
+endif
   
 pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -126,6 +130,10 @@ endif
 
 if SQLITE3
 pdnssec_SOURCES += ssqlite3.cc ssqlite3.hh
+endif
+
+if ORACLE
+pdnssec_LDADD += $(ORACLE_LIBS)
 endif
 
 sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \

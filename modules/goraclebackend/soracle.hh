@@ -8,6 +8,10 @@
 #include "pdns/utility.hh" 
 #include <oci.h>
 
+#ifndef dsword
+typedef sb4 dsword;
+#endif
+
 class SOracle : public SSql
 {
 public:
