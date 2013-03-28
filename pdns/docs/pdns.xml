@@ -362,7 +362,7 @@
           </listitem>
           <listitem>
             <para>
-              rec_control now honours config-dir from recursor.conf. Fixed in c2630.
+              rec_control now honours socket-dir from recursor.conf. Fixed in c2630.
             </para>
           </listitem>
           <listitem>
