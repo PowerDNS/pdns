@@ -454,7 +454,7 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const string &qname, int type, int depth, set<GetBestNSAnswer>& beenthere)
+vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {
   typedef vector<DNSResourceRecord> res_t;
   res_t res;
@@ -462,10 +462,16 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int type, int depth,
   typedef vector<ComboAddress> ret_t;
   ret_t ret;
 
-  if(!doResolve(qname, QType(type), res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
-    for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
-      if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
-	ret.push_back(ComboAddress(i->content, 53));
+  QType type;
+  for(int j=0; j<1+s_doIPv6; j++)
+  {
+    type = j ? QType::AAAA : QType::A;
+
+    if(!doResolve(qname, type, res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
+      for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
+        if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
+  	ret.push_back(ComboAddress(i->content, 53));
+        }
       }
     }
   }
@@ -854,7 +860,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           pierceDontQuery=true;
         }
         else {
-          remoteIPs=getAddrs(*tns, QType::A, depth+1, beenthere);
+          remoteIPs=getAddrs(*tns, depth+1, beenthere);
           pierceDontQuery=false;
         }
 

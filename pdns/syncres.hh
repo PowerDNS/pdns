@@ -382,7 +382,7 @@ private:
 
   inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
-  vector<ComboAddress> getAddrs(const string &qname, int type, int depth, set<GetBestNSAnswer>& beenthere);
+  vector<ComboAddress> getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
 
 private:
   ostringstream d_trace;
