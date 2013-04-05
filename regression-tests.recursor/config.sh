@@ -74,6 +74,8 @@ trillian.example.net.    3600 IN NS  ns.trillian.example.net.
 ns.trillian.example.net. 3600 IN A   $PREFIX.16
 ghost.example.net.       3600 IN NS  ns.ghost.example.net.
 ns.ghost.example.net.    3600 IN A   $PREFIX.17
+ford.example.net.        3600 IN NS  ns.ford.example.net.
+ns.ford.example.net.     3600 IN A   $PREFIX.12
 EOF
 
 mkdir $PREFIX.11
