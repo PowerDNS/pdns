@@ -57,12 +57,12 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   }
   
 
-  // Check notify-range and add to nofity queue
+  // Check notify-only and add to nofity queue
   NetmaskGroup notifyOnly;
   vector<string> parts;
-  B->getDomainMetadata(domain, "NOTIFY-RANGE", parts);
-  if (!(::arg()["notify-range"].empty())) {
-    stringtok(parts, ::arg()["notify-range"], ", \t");
+  B->getDomainMetadata(domain, "NOTIFY-ONLY", parts);
+  if (!(::arg()["notify-only"].empty())) {
+    stringtok(parts, ::arg()["notify-only"], ", \t");
   }
   for (vector<string>::const_iterator i=parts.begin(); i!=parts.end(); ++i)
     notifyOnly.addMask(*i);
@@ -71,7 +71,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     if ( ! notifyOnly.empty()) {
       ComboAddress addr = ComboAddress(*j);
       if ( ! notifyOnly.match(&addr)) {
-        L<<Logger::Warning<<"Skipping notification of domain '"<<domain<<"' to "<<*j<<" because it does not match notify-range."<<endl;
+        L<<Logger::Warning<<"Skipping notification of domain '"<<domain<<"' to "<<*j<<" because it does not match notify-only."<<endl;
         continue;
       }
     }
