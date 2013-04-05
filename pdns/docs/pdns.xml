@@ -102,7 +102,10 @@
           3.5-RC2 released on February 11th 2013
         </para>
         <para>
-          3.5-RC3 release on March 28th 2013
+          3.5-RC3 was not released
+        </para>
+        <para>
+          3.5-RC4 released on April 5th 2013
         </para>
         <para>
           Downloads:
@@ -130,14 +133,25 @@
         important fixes for slightly broken domain names, which your
         users expect to work anyhow.
       </para>
-      <para><note>
+      <note>
       <para>
         Because a semi-sanctioned 3.4-pre was distributed for a long time, and people have come to call that
         3.4, we are skipping an actual 3.4 release to avoid confusion.
       </para>
-      </note></para>
+      </note>
       <para>
-        Changes between RC2 and RC3:
+        Changes between RC3 (unreleased) and RC4:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Winfried Angele spotted, even before release, that r3132 in RC3 broke outgoing IPv6
+              queries. We are grateful for his attention to detail! Fixed in r3141.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        Changes between RC2 and RC3 (unreleased):
         <itemizedlist>
           <listitem>
             <para>
