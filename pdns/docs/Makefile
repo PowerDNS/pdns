@@ -45,3 +45,7 @@ publish:
 publish2:
 	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \
 	ds9a.nl:/var/www/ds9a.nl/tmp/pdns-docs/
+
+publish3:
+	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.gz \
+		peter@xs.powerdns.com:doc.powerdns.com/
