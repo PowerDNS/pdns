@@ -1,0 +1,35 @@
+language: cpp
+compiler:
+  - gcc
+before_script:
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils
+script:
+ - ./bootstrap
+ - ./configure --with-modules='gmysql' --with-sqlite3
+ - make -j 4
+ - cd regression-tests
+ - touch verify-dnssec-zone/skip
+ - ./start-test-stop 5300 bind
+ - ./start-test-stop 5300 bind-presigned
+ - ./start-test-stop 5300 bind-dnssec
+ - ./start-test-stop 5300 bind-dnssec-presigned
+ - ./start-test-stop 5300 bind-dnssec-nsec3
+ - ./start-test-stop 5300 bind-dnssec-nsec3-presigned
+ - ./start-test-stop 5300 bind-dnssec-nsec3-optout
+ - ./start-test-stop 5300 bind-dnssec-nsec3-optout-presigned
+ - ./start-test-stop 5300 gmysql-nodnssec
+ - ./start-test-stop 5300 gmysql-nodnssec-presigned
+ - ./start-test-stop 5300 gmysql
+ - ./start-test-stop 5300 gmysql-presigned
+ - ./start-test-stop 5300 gmysql-nsec3
+ - ./start-test-stop 5300 gmysql-nsec3-presigned
+ - ./start-test-stop 5300 gmysql-nsec3-optout
+ - ./start-test-stop 5300 gmysql-nsec3-optout-presigned
+ - ./start-test-stop 5300 gmysql-nsec3-narrow
+notifications:
+  irc:
+    channels:
+      - "irc.oftc.net#powerdns-dev"
+    use_notice: true
+    skip_join: true

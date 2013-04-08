@@ -593,3 +593,13 @@ then
 fi
 kill $(cat pdns*.pid)
 rm pdns*.pid
+
+if [ -s "./failed_tests" ]
+then
+	for t in `cat failed_tests`
+	do
+		echo $t
+		cat $t/diff
+	done
+	exit 1
+fi

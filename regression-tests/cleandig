@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ ! -f ${testsdir}/${testname}/use.drill ]
+if [ ! -e ${testsdir}/${testname}/use.drill ]
 then
 ../pdns/sdig $nameserver $port $1 $2 $3 | LC_ALL=C sort
 fi
@@ -18,7 +18,7 @@ then
 	unbound-host -v -C unbound-host.conf -t $2 $1 > ${testsdir}/${testname}/unbound-host.out 2>&1
 	echo RETVAL: $? >> ${testsdir}/${testname}/unbound-host.out
 fi
-if [ -f ${testsdir}/${testname}/use.drill ]
+if [ -e ${testsdir}/${testname}/use.drill ]
 then
 	cat ${testsdir}/${testname}/drill.out
 fi
