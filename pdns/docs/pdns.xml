@@ -108,6 +108,9 @@
           3.5-RC4 released on April 5th 2013
         </para>
         <para>
+          3.5-RC5 released on April 8th 2013
+        </para>
+        <para>
           Downloads:
           <itemizedlist>
             <listitem>
@@ -140,12 +143,23 @@
       </para>
       </note>
       <para>
+        Changes between RC4 and RC5:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Bernd-René Predota of Liberty Global reported that Recursor 3.3 would treat empty non-AA NOERROR responses
+              as authoritative NXDATA responses. This bug turned out to be in 3.5-RC4 too. Fixed in c3146, related to t731.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
         Changes between RC3 (unreleased) and RC4:
         <itemizedlist>
           <listitem>
             <para>
-              Winfried Angele spotted, even before release, that r3132 in RC3 broke outgoing IPv6
-              queries. We are grateful for his attention to detail! Fixed in r3141.
+              Winfried Angele spotted, even before release, that c3132 in RC3 broke outgoing IPv6
+              queries. We are grateful for his attention to detail! Fixed in c3141.
             </para>
           </listitem>
         </itemizedlist>
@@ -155,7 +169,7 @@
         <itemizedlist>
           <listitem>
             <para>
-              Use private temp dir when running under systemd, thanks Morten Stevens and Ruben Kerkhof. Change in r3105.
+              Use private temp dir when running under systemd, thanks Morten Stevens and Ruben Kerkhof. Change in c3105.
             </para>
           </listitem>
           <listitem>
@@ -163,32 +177,32 @@
               NSD mistakenly compresses labels for RP and other types, violating a MUST in RFC 3597.
               Recursor does not decompress these labels, violating a SHOULD in RFC3597. We now 
               decompress these labels, and reportedly NSD will stop compressing them. Reported by
-              Jan-Piet Mens, fixed in r3109.
+              Jan-Piet Mens, fixed in c3109.
             </para>
           </listitem>
           <listitem>
             <para>
               When forwarding to another recursor, we would handle responses to ANY queries
-              incorrectly. Spotted by Jan-Piet Mens, fixed in r3116, closes t704.
+              incorrectly. Spotted by Jan-Piet Mens, fixed in c3116, closes t704.
             </para>
           </listitem>
           <listitem>
             <para>
               Our local-nets definition (used as a default for some settings) now includes the
-              networks from RFC 3927 and RFC 6598. Reported by Maik Zumstrull, fixed in r3122.
+              networks from RFC 3927 and RFC 6598. Reported by Maik Zumstrull, fixed in c3122.
             </para>
           </listitem>
           <listitem>
             <para>
               The RC1 change to stop using ANY queries to get A+AAAA for name servers in one go
-              had a 5% performance impact. This impact is corrected in r3132. Thanks to Winfried
+              had a 5% performance impact. This impact is corrected in c3132. Thanks to Winfried
               Angele for measuring and reporting this. Closees t710.
             </para>
           </listitem>
           <listitem>
             <para>
               New command 'rec_control dump-nsspeeds' will dump our NS speeds (latency) cache. 
-              Code in r3131.
+              Code in c3131.
             </para>
           </listitem>
         </itemizedlist>
@@ -200,7 +214,7 @@
             <para>
               While Recursor 3.3 was not vulnerable to the specific attack noted in
               <ulink url="https://www.isc.org/files/imce/ghostdomain_camera.pdf">'Ghost Domain Names: Revoked Yet Still Resolvable'</ulink>,
-              further investigation showed that a variant of the attack could work. This was fixed in r3085. This should
+              further investigation showed that a variant of the attack could work. This was fixed in c3085. This should
               also close the slightly bogus
               <ulink url="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193">CVE-2012-1193</ulink>. Closes t668.
             </para>
@@ -209,7 +223,7 @@
             <para>
               The auth-can-lower-ttl flag was removed, as it did not have any effect in most situations, and thus
               did not operate as advertised. We now always comply with the related parts of RFC 2181. Change in
-              r3092, closing t88.
+              c3092, closing t88.
             </para>
           </listitem>
         </itemizedlist>
@@ -437,7 +451,7 @@
           </listitem>
           <listitem>
             <para>
-              The ksk|zsk argument for pdnssec import-zone-key was required while it should be optional. Fixed in r3051.
+              The ksk|zsk argument for pdnssec import-zone-key was required while it should be optional. Fixed in c3051.
             </para>
           </listitem>
         </itemizedlist>
@@ -574,7 +588,7 @@
   		</listitem>
   		<listitem>
   			<para>
-  				Doing chmod before chown, instead of the other way around, apparently avoids requiring a whole SELinux capability. Reported by Sander Hoentjen, fixed in r2965.
+  				Doing chmod before chown, instead of the other way around, apparently avoids requiring a whole SELinux capability. Reported by Sander Hoentjen, fixed in c2965.
   			</para>
   		</listitem>
   		<listitem>
@@ -728,7 +742,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				rectify-zone accidentally set auth=1 on NS records of secure delegations. Reported by George Notaras, fixed by Kees Monshouwer in r2831, closing t605.
+				rectify-zone accidentally set auth=1 on NS records of secure delegations. Reported by George Notaras, fixed by Kees Monshouwer in c2831, closing t605.
 			</para>
 		</listitem>
 		<listitem>
@@ -755,13 +769,13 @@
 		</listitem>
 		<listitem>
 			<para>
-				Direct RRSIG queries for zones with auto-completed SOA records would cause trouble. Reported by Kees Monshouwer and fixed by him in r2869.
+				Direct RRSIG queries for zones with auto-completed SOA records would cause trouble. Reported by Kees Monshouwer and fixed by him in c2869.
 			</para>
 		</listitem>
 		<listitem>
 			<para>
 				When a name is matched only by a wildcard, but the type in the query is not present, we would be
-				lacking one NSEC(3) record to prove the existence of the wildcard. Fixed by Kees Monshouwer in r2872 and r2873.
+				lacking one NSEC(3) record to prove the existence of the wildcard. Fixed by Kees Monshouwer in c2872 and c2873.
 			</para>
 		</listitem>
 		<listitem>
@@ -786,7 +800,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				Multi-backend operation would sometimes cause garbage domain IDs to be passed to backends. Reported by Kees Monshouwer and fixed by him in r2871.
+				Multi-backend operation would sometimes cause garbage domain IDs to be passed to backends. Reported by Kees Monshouwer and fixed by him in c2871.
 			</para>
 		</listitem>
 		<listitem>
