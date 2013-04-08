@@ -16,16 +16,12 @@ script:
  - ./start-test-stop 5300 bind-dnssec-presigned
  - ./start-test-stop 5300 bind-dnssec-nsec3
  - ./start-test-stop 5300 bind-dnssec-nsec3-presigned
- - ./start-test-stop 5300 bind-dnssec-nsec3-optout
- - ./start-test-stop 5300 bind-dnssec-nsec3-optout-presigned
  - ./start-test-stop 5300 gmysql-nodnssec
  - ./start-test-stop 5300 gmysql-nodnssec-presigned
  - ./start-test-stop 5300 gmysql
  - ./start-test-stop 5300 gmysql-presigned
  - ./start-test-stop 5300 gmysql-nsec3
  - ./start-test-stop 5300 gmysql-nsec3-presigned
- - ./start-test-stop 5300 gmysql-nsec3-optout
- - ./start-test-stop 5300 gmysql-nsec3-optout-presigned
  - ./start-test-stop 5300 gmysql-nsec3-narrow
 notifications:
   irc:
