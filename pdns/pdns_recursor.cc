@@ -324,15 +324,15 @@ public:
   static int makeClientSocket(int family)
   {
     int ret=(int)socket(family, SOCK_DGRAM, 0);
-    Utility::setCloseOnExec(ret);
 
     if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
       return ret;
     
     if(ret<0) 
-      throw AhuException("Making a socket for resolver: "+stringerror());
+      throw AhuException("Making a socket for resolver (family =)"+lexical_cast<string>(family)+"): "+stringerror());
 
-    
+    Utility::setCloseOnExec(ret);
+
     int tries=10;
     while(--tries) {
       uint16_t port;
