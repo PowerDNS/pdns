@@ -327,7 +327,7 @@ protected:
   bool getRemote(DNSPacket *p, struct sockaddr *in, Utility::socklen_t *len);
   void clearUpstreamCaches(void);
 
-private:
+public: // for logging inside gsql, FIXME
   string d_prefix;
 };
 
