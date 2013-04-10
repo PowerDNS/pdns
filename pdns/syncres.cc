@@ -1082,7 +1082,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
         else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
            lwr.d_rcode==RCode::NoError) {
-          LOG(prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+i->qtype.getName()+"'") <<endl);
+          LOG(prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+qtype.getName()+"'") <<endl);
           
           if(!newtarget.empty()) {
             LOG(prefix<<qname<<": Hang on! Got a redirect to '"<<newtarget<<"' already"<<endl);
