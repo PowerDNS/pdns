@@ -92,7 +92,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     if(cached->noparse(value.c_str(), value.size()) < 0) {
       return 0;
     }
-    cached->spoofQuestion(p->qdomain); // for correct case
+    cached->spoofQuestion(p); // for correct case
     return 1;
   }
 

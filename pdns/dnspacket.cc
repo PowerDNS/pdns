@@ -393,18 +393,20 @@ DNSPacket *DNSPacket::replyPacket() const
   return r;
 }
 
-void DNSPacket::spoofQuestion(const string &qd)
+void DNSPacket::spoofQuestion(const DNSPacket *qd)
 {
-  string label=simpleCompress(qd);
   d_wrapped=true; // if we do this, don't later on wrapup
   
-  if(label.size() + sizeof(d) > d_rawpacket.size()) { // probably superfluous
-    return; 
+  int labellen;
+  string::size_type i=sizeof(d);
+
+  for(;;) {
+    labellen = qd->d_rawpacket[i];
+    if(!labellen) break;
+    i++;
+    d_rawpacket.replace(i, labellen, qd->d_rawpacket, i, labellen);
+    i = i + labellen;
   }
-    
-  for(string::size_type i=0; i < label.size(); ++i)
-    d_rawpacket[i+sizeof(d)]=label[i];
-  
 }
 
 int DNSPacket::noparse(const char *mesg, int length)

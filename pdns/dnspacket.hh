@@ -123,7 +123,7 @@ public:
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
   void wrapup();  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
-  void spoofQuestion(const string &qd); //!< paste in the exact right case of the question. Useful for PacketCache
+  void spoofQuestion(const DNSPacket *qd); //!< paste in the exact right case of the question. Useful for PacketCache
   unsigned int getMinTTL(); //!< returns lowest TTL of any record in the packet
 
   vector<DNSResourceRecord*> getAPRecords(); //!< get a vector with DNSResourceRecords that need additional processing
