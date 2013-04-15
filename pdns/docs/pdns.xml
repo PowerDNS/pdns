@@ -96,36 +96,19 @@
       <sect2 id="changelog-recursor-3.5"><title>PowerDNS Recursor version 3.5 RC</title>
       <note>
         <para>
-          3.5-RC1 released on January 25th 2013
-        </para>
-        <para>
-          3.5-RC2 released on February 11th 2013
-        </para>
-        <para>
-          3.5-RC3 was not released
-        </para>
-        <para>
-          3.5-RC4 released on April 5th 2013
-        </para>
-        <para>
-          3.5-RC5 released on April 8th 2013
+          Released April 15th, 2013
         </para>
         <para>
           Downloads:
           <itemizedlist>
             <listitem>
               <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-recursor-3.5-rc3.tar.bz2">source</ulink>
+                <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
               </para>
             </listitem>
             <listitem>
               <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/">semi-static packages (rpm, deb, i386, amd64)</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/rc3/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
@@ -142,6 +125,16 @@
         3.4, we are skipping an actual 3.4 release to avoid confusion.
       </para>
       </note>
+      <para>
+        Changes between RC5 and the final 3.5 release:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Winfried Angele reported that restarting a very busy recursor could lead to crashes. Fixed in r3153, closing t735.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
       <para>
         Changes between RC4 and RC5:
         <itemizedlist>
