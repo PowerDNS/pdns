@@ -544,6 +544,12 @@ bool UeberBackend::handle::get(DNSResourceRecord &r)
   DLOG(L << "Ueber get() was called for a "<<qtype.getName()<<" record" << endl);
   bool isMore=false;
   while(d_hinterBackend && !(isMore=d_hinterBackend->get(r))) { // this backend out of answers
+    // FIXME only for consistent-backends
+    if(::arg().mustDo("experimental-consistent-backends") && !d_hinterBackend->lookupfailed()) {
+      isMore=false;
+      break;
+    }
+
     if(i<parent->backends.size()) {
       DLOG(L<<"Backend #"<<i<<" of "<<parent->backends.size()
            <<" out of answers, taking next"<<endl);
@@ -564,5 +570,5 @@ bool UeberBackend::handle::get(DNSResourceRecord &r)
 
   DLOG(L<<"Found an answering backend - will not try another one"<<endl);
   i=parent->backends.size(); // don't go on to the next backend
-  return true;
+  return isMore;
 }

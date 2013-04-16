@@ -323,3 +323,8 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
 
     return true;
 }
+
+bool DNSBackend::lookupfailed(void)
+{
+  return false;
+}

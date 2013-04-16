@@ -919,6 +919,11 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   d_qname=qname;
 }
 
+bool GSQLBackend::lookupfailed(void)
+{
+  return !d_lookupSuccess;
+}
+
 bool GSQLBackend::list(const string &target, int domain_id )
 {
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
