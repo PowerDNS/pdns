@@ -1,8 +1,7 @@
-AM_CPPFLAGS=@THREADFLAGS@
+AM_CPPFLAGS=-I/usr/include/lua5.1 @THREADFLAGS@
+#AM_CPPFLAGS=-I/usr/local/include/luajit-2.0 -DUSE_LUAJIT @THREADFLAGS@
 EXTRA_DIST=OBJECTFILES OBJECTLIBS 
 
-INCLUDES=-I/usr/include/lua5.1
-#INCLUDES=-I/usr/local/include/luajit-2.0 -DUSE_LUAJIT
 
 lib_LTLIBRARIES = libluabackend.la
 

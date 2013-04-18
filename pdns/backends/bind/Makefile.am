@@ -1,6 +1,5 @@
-INCLUDES=-I../.. 
 noinst_LTLIBRARIES = libbind2backend.la
-AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@
+AM_CPPFLAGS=-I../.. $(BOOST_CPPFLAGS) @THREADFLAGS@
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h
 

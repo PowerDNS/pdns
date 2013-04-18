@@ -1,8 +1,7 @@
-AM_CPPFLAGS=@THREADFLAGS@
+AM_CPPFLAGS=-I@PGSQL_incdir@ @THREADFLAGS@
 lib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
-INCLUDES=-I@PGSQL_incdir@
 
 libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \
 		spgsql.hh spgsql.cc

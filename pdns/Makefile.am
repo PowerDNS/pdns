@@ -262,7 +262,6 @@ pdns_recursor_LDADD=
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
 misc.cc unix_utility.cc qtype.cc
 
-pdns_control_INCLUDES=path.hh
 pdns_control_LDFLAGS=@THREADFLAGS@
 
 dnslabeltext.cc: dnslabeltext.rl
