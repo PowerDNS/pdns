@@ -488,6 +488,7 @@ AES_RETURN aes_decrypt_key192(const unsigned char *key, aes_decrypt_ctx cx[1])
     ss[3] ^= ss[2]; k[v(56,(8*(i))+11)] = ss[3]; \
 }
 
+#if 0
 AES_RETURN aes_decrypt_key256(const unsigned char *key, aes_decrypt_ctx cx[1])
 {   uint_32t    ss[9];
 #if defined( d_vars )
@@ -536,11 +537,13 @@ AES_RETURN aes_decrypt_key256(const unsigned char *key, aes_decrypt_ctx cx[1])
 #endif
     return EXIT_SUCCESS;
 }
+#endif
 
 #endif
 
 #if defined( AES_VAR )
 
+#if 0
 AES_RETURN aes_decrypt_key(const unsigned char *key, int key_len, aes_decrypt_ctx cx[1])
 {
     switch(key_len)
@@ -551,6 +554,7 @@ AES_RETURN aes_decrypt_key(const unsigned char *key, int key_len, aes_decrypt_ct
     default: return EXIT_FAILURE;
     }
 }
+#endif
 
 #endif
 
