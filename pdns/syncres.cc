@@ -606,7 +606,7 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
     prefix.append(depth, ' ');
   }
 
-  if(depth>10) {
+  if(depth>9) {
     LOG(prefix<<qname<<": CNAME loop too deep, depth="<<depth<<endl);
     res=RCode::ServFail;
     return true;
@@ -860,7 +860,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           pierceDontQuery=true;
         }
         else {
-          remoteIPs=getAddrs(*tns, depth+1, beenthere);
+          remoteIPs=getAddrs(*tns, depth+2, beenthere);
           pierceDontQuery=false;
         }
 
