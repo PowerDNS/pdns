@@ -28,7 +28,7 @@
 
 #include "dns.hh"
 #include "arguments.hh"
-#include "bindparser.hh"
+#include "bindparserclasses.hh"
 #include "statbag.hh"
 #include "misc.hh"
 #include "dnspacket.hh"

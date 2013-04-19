@@ -24,7 +24,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "arguments.hh"
-#include "bindparser.hh"
+#include "bindparserclasses.hh"
 #include "statbag.hh"
 #include <boost/function.hpp>
 #include "dnsrecords.hh"

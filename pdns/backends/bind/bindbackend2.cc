@@ -39,7 +39,7 @@
 #include "bindbackend2.hh"
 #include "dnspacket.hh"
 #include "zoneparser-tng.hh"
-#include "bindparser.hh"
+#include "bindparserclasses.hh"
 #include "logger.hh"
 #include "arguments.hh"
 #include "qtype.hh"
