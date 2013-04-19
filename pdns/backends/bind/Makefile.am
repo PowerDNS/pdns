@@ -1,7 +1,7 @@
 noinst_LTLIBRARIES = libbind2backend.la
 AM_CPPFLAGS=-I../.. $(BOOST_CPPFLAGS) @THREADFLAGS@
 
-BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h
+BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h bindparser.h
 
 bind-dnssec.schema.sqlite3.sql.h: ../../bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' ../../bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
@@ -69,3 +69,5 @@ AM_YFLAGS = -d --verbose --debug
 dnslabeltext.cc: ../../dnslabeltext.rl
 	ragel ../../dnslabeltext.rl -o dnslabeltext.cc
 
+.hh.h:
+	cp $< $@
