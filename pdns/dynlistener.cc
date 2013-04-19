@@ -172,6 +172,7 @@ void *DynListener::theListenerHelper(void *p)
 {
   DynListener *us=static_cast<DynListener *>(p);
   us->theListener();
+  L<<Logger::Error<<"Control listener aborted, please file a bug!"<<endl;
   return 0;
 }
 
