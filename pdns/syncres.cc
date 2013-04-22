@@ -1126,7 +1126,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         return RCode::NXDomain;
       }
       if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit)) {
-        LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done"<<endl);
+        LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
         return 0;
       }
       else if(realreferral) {
