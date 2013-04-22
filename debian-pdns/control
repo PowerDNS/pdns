@@ -3,7 +3,7 @@ Section: net
 Priority: extra
 Standards-Version: 3.5.8
 Maintainer: bert hubert <bert.hubert@netherlabs.nl>
-Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev, tdb-dev, libgdbm-dev, libldap2-dev, libsqlite0-dev, dpkg-dev (> 1.10.17)
+Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev | libpq-dev, tdb-dev, libgdbm-dev, libldap2-dev, libsqlite3-dev, dpkg-dev (>= 1.10.17), libboost-dev (>=1.34), libboost-program-options-dev, libboost-serialization-dev, pkg-config, ragel, libbotan1.10-dev, liblua5.1-dev
 
 Package: pdns
 Architecture: any
