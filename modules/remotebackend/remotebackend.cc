@@ -300,7 +300,7 @@ bool RemoteBackend::setDomainMetadata(const string& name, const std::string& kin
      return false;
 
    if (answer["result"].IsBool())
-      return answer.GetBool();
+      return answer["result"].GetBool();
    return false;
 }
 
