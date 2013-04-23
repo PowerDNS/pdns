@@ -1,26 +1,11 @@
-1	delete-add.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A TXT RRSIG NSEC
-1	delete-add.test.dyndns.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	86400	NSEC 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
-1	delete-add.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A TXT RRSIG NSEC
-1	delete-add.test.dyndns.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	86400	NSEC 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
-1	delete-add.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A TXT RRSIG NSEC
-1	delete-add.test.dyndns.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	86400	NSEC 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
@@ -32,20 +17,13 @@ Answer:
 ;test.dyndns.			IN	SOA
 
 0	a.b.c.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
-0	a.b.c.d.e.f.test.dyndns.	IN	RRSIG	3600	A 8 8 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
 0	a.b.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
-0	a.b.d.e.f.test.dyndns.	IN	RRSIG	3600	A 8 7 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
-1	a.b.c.d.e.f.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A RRSIG NSEC
-1	a.b.c.d.e.f.test.dyndns.	IN	RRSIG	86400	NSEC 8 8 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	86400	NSEC 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
@@ -56,29 +34,14 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	delete-add.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A TXT RRSIG NSEC
-1	delete-add.test.dyndns.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	86400	NSEC 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
-1	delete-add.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A TXT RRSIG NSEC
-1	delete-add.test.dyndns.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	86400	NSEC 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
-1	delete-add.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A TXT RRSIG NSEC
-1	delete-add.test.dyndns.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	86400	NSEC 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
