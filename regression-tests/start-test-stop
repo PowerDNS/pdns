@@ -596,6 +596,8 @@ export testsdir
 
 if [ $presigned = yes ]
 then
+	skipreasons="$skipreasons nodyndns"
+
 	if [ ${context:0:6} = gmysql ]
 	then
 		context=${context}-presigned
