@@ -461,7 +461,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
         n3rc.d_set.insert(rr.qtype.getCode());
     }
 
-    if(unhashed == sd.qname) {
+    if(toLower(unhashed) == toLower(sd.qname)) {
       n3rc.d_set.insert(QType::NSEC3PARAM);
       n3rc.d_set.insert(QType::DNSKEY);
     }
