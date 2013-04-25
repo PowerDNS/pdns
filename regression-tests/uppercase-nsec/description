@@ -1,0 +1,2 @@
+Make sure we lowercase the next name in an NSEC because validators
+do not (RFC6840 5.1).
