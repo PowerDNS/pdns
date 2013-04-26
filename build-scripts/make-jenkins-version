@@ -1,0 +1,8 @@
+#!/bin/sh
+if [ $GIT_BRANCH = master ]
+then
+	echo $(date +%Y%m%d).${BUILD_NUMBER}.$(git rev-parse --short $GIT_COMMIT)
+else
+	branch="$(echo ${GIT_BRANCH} | tr ' /-' _)"
+	echo $(date +%Y%m%d).${branch}-${BUILD_NUMBER}.$(git rev-parse --short $GIT_COMMIT)
+fi
