@@ -99,15 +99,15 @@ bool Session::putLine(const string &s)
   int written=0;
   int err;
 
-  while(written<length)
+  while(written < length)
     {
       err=waitForRWData(clisock, false, d_timeout, 0);
       if(err<=0)
         throw SessionException("nonblocking write failed: "+string(strerror(errno)));
 
-      err=send(clisock,s.c_str()+written,length-written, 0);
+      err = send(clisock, s.c_str() + written, length-written, 0);
 
-      if(err<0)
+      if(err < 0)
         return false;
       
       written+=err;

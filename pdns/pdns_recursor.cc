@@ -329,7 +329,7 @@ public:
       return ret;
     
     if(ret<0) 
-      throw AhuException("Making a socket for resolver (family =)"+lexical_cast<string>(family)+"): "+stringerror());
+      throw AhuException("Making a socket for resolver (family = "+lexical_cast<string>(family)+"): "+stringerror());
 
     Utility::setCloseOnExec(ret);
 
