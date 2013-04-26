@@ -13301,6 +13301,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    	    <varlistentry>
 	      <term>trace-regex regex</term>
 	      <listitem>
+	        <para>Available since 3.5.</para>
 		<para>
 		  Queries matching this regular expression will generate
 		  voluminous tracing output. Be aware that matches from the
