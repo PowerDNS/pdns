@@ -1,0 +1,10 @@
+diff
+real_result
+*.out
+/*.xml
+/*.tar
+/dnssec-validation-failures
+/skipped_tests
+/test-results
+/passed_tests
+/failed_tests

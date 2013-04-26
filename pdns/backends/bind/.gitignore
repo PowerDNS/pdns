@@ -1,0 +1,10 @@
+/Makefile.in
+/Makefile
+/zone2ldap
+/zone2sql
+/bindlexer.c
+/bindparser.cc
+/bindparser.h
+/bindparser.output
+/dnslabeltext.cc
+/bind-dnssec.schema.sqlite3.sql.h
