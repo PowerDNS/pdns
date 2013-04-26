@@ -969,7 +969,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 //      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
 //    }
     
-    records_by_hashindex_t::const_iterator iter = hashindex.lower_bound(lqname);
+    records_by_hashindex_t::const_iterator iter = hashindex.upper_bound(lqname);
 
     if(iter != hashindex.begin() && (iter == hashindex.end() || iter->nsec3hash > lqname))
     {
@@ -982,7 +982,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     }
 
     bool wraponce = false;
-    while(iter == hashindex.end() || !(iter->auth) || iter->nsec3hash.empty())
+    while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
     {
       iter--;
       if(iter == hashindex.begin()) {
@@ -1009,7 +1009,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       iter = hashindex.begin();
     }
 
-    while(!(iter->auth) || iter->nsec3hash.empty())
+    while((!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
     {
       iter++;
       if(iter == hashindex.end())

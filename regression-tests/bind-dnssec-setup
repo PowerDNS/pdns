@@ -3,5 +3,14 @@ rm -f dnssec.sqlite3
 ../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do
-	../pdns/pdnssec --config-dir=. secure-zone $zone 2>&1
+    if [ "${zone: 0:16}" = "secure-delegated" ]
+    then
+        ../pdns/pdnssec --config-dir=. import-zone-key $zone $zone.key ksk 2>&1
+        ../pdns/pdnssec --config-dir=. add-zone-key $zone 1024 zsk 2>&1
+        keyid=`../pdns/pdnssec --config-dir=. show-zone delegated.dnssec-parent.com | grep ZSK | cut -d' ' -f3`
+        ../pdns/pdnssec --config-dir=. activate-zone-key $zone $keyid 2>&1
+        ../pdns/pdnssec --config-dir=. add-zone-key $zone 1024 zsk 2>&1
+    else
+        ../pdns/pdnssec --config-dir=. secure-zone $zone 2>&1
+    fi
 done

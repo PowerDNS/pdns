@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig www.dsdelegation.example.com A dnssec
+cleandig secure-delegated.dnssec-parent.com A dnssec

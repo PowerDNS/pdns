@@ -21,6 +21,27 @@ bindwait ()
 	done
 }
 
+securezone ()
+{
+	local zone=$1
+	local configname=$2
+	if [ -n "$configname" ]
+	then
+		configname="--config-name=$configname"
+	fi
+	if [ "${zone: 0:16}" = "secure-delegated" ]
+	then
+		../pdns/pdnssec --config-dir=. $configname import-zone-key $zone $zone.key ksk 2>&1
+		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
+		keyid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
+		../pdns/pdnssec --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
+		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
+		../pdns/pdnssec --config-dir=. $configname rectify-zone $zone 2>&1
+	else
+		../pdns/pdnssec --config-dir=. $configname secure-zone $zone 2>&1
+	fi
+}
+
 port=$1
 [ -z "$port" ] && port=5300
 context=$2
@@ -37,8 +58,8 @@ then
 Usage: ./start-test-stop <port> [<context>] [wait]
 
 context is one of:
-bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-narrow
-gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-narrow
+bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
+gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-optout gmysql-nsec3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 opendbx-sqlite3
@@ -71,6 +92,14 @@ then
 	context=${context%-presigned}
 fi
 
+optout=0
+
+if [ "${context: -13}" = "-nsec3-optout" ]
+then
+	optout=1
+fi
+
+
 case $context in
 		bind)
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
@@ -81,13 +110,15 @@ case $context in
 			bindwait
 			;;
 
-		bind-dnssec | bind-dnssec-nsec3 | bind-dnssec-nsec3-narrow)
-			./bind-dnssec-setup
+		bind-dnssec | bind-dnssec-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
+			rm -f dnssec.sqlite3
+			../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
-				if [ $context = bind-dnssec-nsec3 ]
+				securezone $zone
+				if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ]
 				then
-					../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' 2>&1
+					../pdns/pdnssec --config-dir=. set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 				elif [ $context = bind-dnssec-nsec3-narrow ]
 				then
 					../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
@@ -98,6 +129,10 @@ case $context in
 			then
 				extracontexts="bind dnssec nsec3"
 				skipreasons="nsec3"
+			elif [ $context = bind-dnssec-nsec3-optout ]
+			then
+				extracontexts="bind dnssec nsec3 nsec3-optout"
+				skipreasons="optout"
 			elif [ $context = bind-dnssec-nsec3-narrow ]
 			then
 				extracontexts="bind dnssec narrow"
@@ -186,7 +221,7 @@ __EOF__
 			skipreasons="nodnssec noent"
 			;;
 
-		gmysql | gmysql-nsec3 | gmysql-nsec3-narrow)
+		gmysql | gmysql-nsec3 | gmysql-nsec3-optout |gmysql-nsec3-narrow)
 			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
 			[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
 			[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
@@ -213,10 +248,10 @@ gmysql-dnssec
 __EOF__
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
-				../pdns/pdnssec --config-dir=. --config-name=gmysql	secure-zone $zone 2>&1
-				if [ $context = gmysql-nsec3 ]
+				securezone $zone gmysql
+				if [ $context = gmysql-nsec3 ] || [ $context = gmysql-nsec3-optout ]
 				then
-					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone '1 1 1 abcd' 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 					../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
 				elif [ $context = gmysql-nsec3-narrow ]
 				then
@@ -239,6 +274,10 @@ __EOF__
 			then
 				extracontexts="dnssec nsec3"
 				skipreasons="nsec3"
+			elif [ $context = gmysql-nsec3-optout ]
+			then
+				extracontexts="dnssec nsec3 nsec3-optout"
+				skipreasons="optout"
 			elif [ $context = gmysql-nsec3-narrow ]
 			then
 				extracontexts="dnssec narrow"
@@ -248,7 +287,7 @@ __EOF__
 			fi
 
 			;;	
-		gpgsql | gpgsql-nsec3)
+		gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout)
 			[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
 			[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
 
@@ -267,10 +306,10 @@ gpgsql-dnssec
 __EOF__
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
-				../pdns/pdnssec --config-dir=. --config-name=gpgsql secure-zone $zone 2>&1
-				if [ $context = gpgsql-nsec3 ]
+				securezone $zone gpgsql
+				if [ $context = gpgsql-nsec3 ] || [ $context = gpgsql-nsec3-optout ]
 				then
-					../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone '1 1 1 abcd' 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 					../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
 				fi
 			done
@@ -284,6 +323,9 @@ __EOF__
 			if [ $context = gpgsql-nsec3 ]
 			then
 				extracontexts="dnssec nsec3"
+			elif [ $context = gpgsql-nsec3-optout ]
+			then
+				extracontexts="dnssec nsec3 nsec3-optout"
 			elif [ $context = gpgsql-nsec3-narrow ]
 			then
 				extracontexts="dnssec narrow"
@@ -363,7 +405,7 @@ __EOF__
 			skipreasons="nodnssec noent"
 
 			;;									
-		gsqlite3 | gsqlite3-nsec3)
+		gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
 			rm -f pdns.sqlite3
 			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
 			sqlite3 pdns.sqlite3 < ../pdns/dnssec.schema.sqlite3.sql
@@ -377,10 +419,10 @@ gsqlite3-dnssec
 __EOF__
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
-				../pdns/pdnssec --config-dir=. --config-name=gsqlite3	secure-zone $zone 2>&1
-				if [ $context = gsqlite3-nsec3 ]
+				securezone $zone gsqlite3
+				if [ $context = gsqlite3-nsec3 ] || [ $context = gsqlite3-nsec3-optout ]
 				then
-					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 set-nsec3 $zone '1 1 1 abcd' 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
 				fi
 			done
@@ -393,6 +435,9 @@ __EOF__
 			if [ $context = gsqlite3-nsec3 ]
 			then
 				extracontexts="dnssec nsec3"
+			elif [ $context = gsqlite3-nsec3-optout ]
+			then
+				extracontexts="dnssec nsec3 nsec3-optout"
 			else
 				extracontexts="dnssec"
 			fi

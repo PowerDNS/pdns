@@ -1,8 +1,8 @@
-1	2eu2gulbu53h9uvhfalshpbo2a83t6l2.Test.com.	IN	NSEC3	86400	1 1 1 abcd 2GKS2N3JPQF62QOHAVFQ1PHOLM3HR7RA NS SOA MX RRSIG DNSKEY NSEC3PARAM
+1	2eu2gulbu53h9uvhfalshpbo2a83t6l2.Test.com.	IN	NSEC3	86400	1 [flags] 1 abcd 2GKS2N3JPQF62QOHAVFQ1PHOLM3HR7RA NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	2eu2gulbu53h9uvhfalshpbo2a83t6l2.Test.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.com. ...
 1	Test.com.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.com. ...
 1	Test.com.	IN	SOA	3600	ns1.Test.com. ahu.example.com. 2005092501 28800 7200 604800 86400
-1	igf4m7otecach14p0a6ingi7dbuas5b2.Test.com.	IN	NSEC3	86400	1 1 1 abcd O1L0FB73HI3QP4A3FNQJSLEANLC883I3 A RP RRSIG
+1	igf4m7otecach14p0a6ingi7dbuas5b2.Test.com.	IN	NSEC3	86400	1 [flags] 1 abcd O1L0FB73HI3QP4A3FNQJSLEANLC883I3 A RP RRSIG
 1	igf4m7otecach14p0a6ingi7dbuas5b2.Test.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.com. ...
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
