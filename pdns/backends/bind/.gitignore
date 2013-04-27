@@ -2,6 +2,7 @@
 /Makefile
 /zone2ldap
 /zone2sql
+/zone2json
 /bindlexer.c
 /bindparser.cc
 /bindparser.h

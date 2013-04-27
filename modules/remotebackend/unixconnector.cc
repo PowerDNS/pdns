@@ -118,7 +118,6 @@ ssize_t UnixsocketConnector::write(const std::string &data) {
 
 void UnixsocketConnector::reconnect() {
    struct sockaddr_un sock;
-   struct timeval tv;
    rapidjson::Document init,res;
    rapidjson::Value val;
 
