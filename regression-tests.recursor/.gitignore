@@ -1,0 +1,9 @@
+diff
+real_result
+/configs
+/failed_tests
+/passed_tests
+/skipped_tests
+/test-results
+/*.xml
+/vars
