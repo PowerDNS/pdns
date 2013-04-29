@@ -1,7 +1,9 @@
 #!/bin/bash 
 VERSION=$1
-[ -z "$VERSION" ] && exit
+DEB_VERSION=$2
+RPM_VERSION=$3
+[ -z "$VERSION" -o -z "$DEB_VERSION" -o -z "$RPM_VERSION" ] && exit 1
 
-ssed -r "s/Version: (.*)/Version: \\1.$VERSION/" -i pdns.spec
-ssed -r "s/AC_INIT\\(\\[pdns\\],\\[(.*)\\]\\)/AC_INIT\([pdns],[\\1.$VERSION\])/" -i configure.ac
-ssed -r "1 s/^pdns \\(([^)]*)-([0-9.])\\)/pdns \\(\\1.$VERSION-\\2\\)/" -i debian-pdns/changelog
+ssed -r "s/Version: (.*)/Version: $RPM_VERSION/" -i pdns.spec
+ssed -r "s/AC_INIT\\(\\[pdns\\],\\[(.*)\\]\\)/AC_INIT\([pdns],[$VERSION\])/" -i configure.ac
+ssed -r "1 s/^pdns \\(([^)]*)-([0-9.])\\)/pdns \\($DEB_VERSION-\\2\\)/" -i debian-pdns/changelog
