@@ -386,7 +386,6 @@ do
 done
 
 AM_CONDITIONAL(ORACLE,test x"$needoracle" = "xyes")
-
 if test "$needoracle"
 then
 	AC_ARG_WITH(oracle_includes, AC_HELP_STRING([--with-oracle-includes=<path>],[instantclient sdk include dir]))
@@ -619,6 +618,7 @@ then
 	AC_MSG_RESULT([$PGSQL_incdir])
 fi
 
+AM_CONDITIONAL(SQLITE3, test "$needsqlite3")
 if test "$needsqlite3"
 then
 	PKG_CHECK_MODULES(SQLITE3, $SQLITE3PC, HAVE_SQLITE3=yes, AC_MSG_ERROR([+Could not find sqlite3]))
@@ -634,9 +634,6 @@ then
         AC_SUBST(CDB_CFLAGS)
 fi
 
-AM_CONDITIONAL(SQLITE3, test "$needsqlite3")
-
-
 if test "$needunixodbc"
 then
         AC_ARG_WITH(unixodbc,
@@ -651,7 +648,7 @@ then
         AC_ARG_WITH(unixodbc-includes,
             AC_HELP_STRING([--with-unixodbc-includes=<path>],[directory path of unixodbc header installation]),
             [UNIXODBC_inc_check="$withval/include $withval/include/unixodbc $withval/unixodbc $withval"])
-        AC_MSG_CHECKING([for SQLite3 library directory])
+        AC_MSG_CHECKING([for unixodbc library directory])
         UNIXODBC_libdir=
         for m in $UNIXODBC_lib_check; do
                 if test -d "$m" && \
