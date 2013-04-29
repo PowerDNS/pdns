@@ -135,7 +135,7 @@ void UDPNameserver::bindIPv4()
     L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
     struct pollfd pfd;
     pfd.fd = s;
-    pfd.events = POLL_IN;
+    pfd.events = POLLIN;
     pfd.revents = 0;
     d_rfds.push_back(pfd);
   }
@@ -186,7 +186,7 @@ void UDPNameserver::bindIPv6()
     d_sockets.push_back(s);
     struct pollfd pfd;
     pfd.fd = s;
-    pfd.events = POLL_IN;
+    pfd.events = POLLIN;
     pfd.revents = 0;
     d_rfds.push_back(pfd);
     L<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
@@ -341,7 +341,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   vector<struct pollfd> rfds= d_rfds;
   if(d_sockets.size()>1) {
     BOOST_FOREACH(struct pollfd &pfd, rfds) {
-      pfd.events = POLL_IN;
+      pfd.events = POLLIN;
       pfd.revents = 0;
     }
     
@@ -350,7 +350,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
       unixDie("Unable to poll for new UDP events");
     
     BOOST_FOREACH(struct pollfd &pfd, rfds) {
-      if(pfd.revents & POLL_IN) {
+      if(pfd.revents & POLLIN) {
         sock=pfd.fd;        
         len=0;
         
