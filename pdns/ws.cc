@@ -101,18 +101,18 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
   }
 
 
-  ret<<"<table border=1><tr><td colspan=3 bgcolor=#0000ff>"
-    "<a href=?ring="<<ringname<<"><font color=#ffffff>Top-"<<limit<<" of ";
-  ret<<entries<<": "<<title<<"</a></td>"<<endl;
+  ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\">"
+    "<a href=\"?ring="<<ringname<<"\"><font color=\"#ffffff\">Top-"<<limit<<" of ";
+  ret<<entries<<": "<<title<<"</font></a></td>"<<endl;
 
-  ret<<"<tr><td colspan=3><table bgcolor=#ff0000 width=100%><tr><td align=left>"
-    "<a href=?resetring="<<ringname<<"><font color=#ffffff>Reset</a></td>";
+  ret<<"<tr><td colspan=3><table bgcolor=\"#ff0000\" width=\"100%\"><tr><td align=left>"
+    "<a href=\"?resetring="<<ringname<<"\"><font color=\"#ffffff\">Reset</font></a></td>";
   ret<<"<td align=right>Resize: ";
   
   unsigned int sizes[]={10,100,500,1000,10000,500000,0};
   for(int i=0;sizes[i];++i) {
     if(S.getRingSize(ringname)!=sizes[i])
-      ret<<"<a href=?resizering="<<ringname<<"&size="<<sizes[i]<<">"<<sizes[i]<<"</a> ";
+      ret<<"<a href=\"?resizering="<<ringname<<"&amp;size="<<sizes[i]<<"\">"<<sizes[i]<<"</a> ";
     else
       ret<<"("<<sizes[i]<<") ";
   }
@@ -128,24 +128,26 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
   if(printed!=tot)
     ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< StatWebServer::makePercentage((tot-printed)*100.0/tot)<<"</b></td>"<<endl;
 
-  ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</td><td align=right><b>100%</b></td>";
-  ret<<"</table><p>"<<endl;
+  ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</b></td><td align=right><b>100%</b></td>";
+  ret<<"</table><br>"<<endl;
 }
 
 void StatWebServer::printvars(ostringstream &ret)
 {
-  ret<<"<table border=1><tr><td colspan=3 bgcolor=#0000ff><font color=#ffffff>Variables</td>"<<endl;
+  ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Variables</font></td>"<<endl;
   
 
   vector<string>entries=S.getEntries();
   for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
     ret<<"<tr><td>"<<*i<<"</td><td>"<<S.read(*i)<<"</td><td>"<<S.getDescrip(*i)<<"</td>"<<endl;
   }
+
+  ret<<"</table>"<<endl;
 }
 
 void StatWebServer::printargs(ostringstream &ret)
 {
-  ret<<"<table border=1><tr><td colspan=3 bgcolor=#0000ff><font color=#ffffff>Arguments</td>"<<endl;
+  ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Arguments</font></td>"<<endl;
 
   vector<string>entries=arg().list();
   for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i) {
@@ -175,7 +177,8 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
 
   ostringstream ret;
 
-  ret<<"<html><head><title>PowerDNS Operational Monitor</title></head><body bgcolor=#ffffff>"<<endl;
+  ret<<"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">"<<endl;
+  ret<<"<html><head><title>PowerDNS Operational Monitor</title></head><body bgcolor=\"#ffffff\">"<<endl;
 
 
   ret<<"<h2>";
@@ -184,13 +187,13 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
   if(rvarmap["ring"].empty())
     ret<<"PDNS "VERSION" Main Page</h2>"<<endl;
   else
-    ret<<"Details page</h2><a href=/>Back to main page</a><p>"<<endl;
+    ret<<"Details page</h2><a href=\"/\">Back to main page</a>"<<endl;
 
   time_t passed=time(0)-s_starttime;
 
-  ret<<"Uptime: ";
-  ret<<humanDuration(passed)<<endl;
-
+  ret<<"<p>Uptime: "<<
+    humanDuration(passed)<<
+    "<br>"<<endl;
 
   ret<<"Queries/second, 1, 5, 10 minute averages:  "<<std::setprecision(3)<<
     sws->d_queries.get1()<<", "<<
@@ -218,7 +221,7 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     sws->d_qcachemisses.get10()<<". Max queries/second: "<<sws->d_qcachemisses.getMax()<<
     "<br>"<<endl;
 
-  ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms<p>"<<endl;
+  ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p>"<<endl;
   if(rvarmap["ring"].empty()) {
     vector<string>entries=S.listRings();
     for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
