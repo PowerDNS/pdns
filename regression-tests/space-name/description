@@ -1,0 +1,2 @@
+Make sure we answer queries with spaces in the name correctly, including the
+right NSEC(3) records.

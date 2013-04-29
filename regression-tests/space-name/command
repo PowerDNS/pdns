@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig 'space name'.example.com A dnssec
