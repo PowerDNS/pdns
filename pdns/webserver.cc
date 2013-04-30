@@ -143,7 +143,7 @@ void *WebServer::serveConnection(void *p)
       client->putLine("WWW-Authenticate: Basic realm=\"PowerDNS\"\n");
       
       client->putLine("Connection: close\n");
-      client->putLine("Content-type: text/html\n\n");
+      client->putLine("Content-type: text/html; charset=UTF-8\n\n");
       client->putLine("Please enter a valid password!\n");
       client->close();
       delete client;
@@ -158,14 +158,14 @@ void *WebServer::serveConnection(void *p)
       if(!custom) {
         client->putLine("HTTP/1.1 200 OK\n");
         client->putLine("Connection: close\n");
-        client->putLine("Content-type: text/html\n\n");
+        client->putLine("Content-type: text/html; charset=UTF-8\n\n");
       }
       client->putLine(ret);
     }
     else {
       client->putLine("HTTP/1.1 404 Not found\n");
       client->putLine("Connection: close\n");
-      client->putLine("Content-type: text/html\n\n");
+      client->putLine("Content-type: text/html; charset=UTF-8\n\n");
       // FIXME: CSS problem?
       client->putLine("<html><body><h1>Did not find file '"+baseUrl+"'</body></html>\n");
     }
