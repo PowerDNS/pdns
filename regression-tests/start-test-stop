@@ -558,6 +558,39 @@ then
 				break
 			fi
 		done
+	elif [ ${context:0:8} = gsqlite3 ]
+	then
+		rm -f pdns.sqlite31
+		sqlite3 pdns.sqlite31 < ../pdns/no-dnssec.schema.sqlite3.sql
+		sqlite3 pdns.sqlite31 < ../pdns/dnssec.schema.sqlite3.sql
+
+		for zone in $(grep zone named.conf  | cut -f2 -d\" | tac)
+		do
+			sqlite3 pdns.sqlite31 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
+		done
+
+		port=$((port+100))
+
+		$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
+			--fancy-records --send-root-referral \
+			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
+			--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 |& egrep -v "update records set ordername|insert into records" &
+		echo 'waiting for zones to be slaved'
+		set +e
+		while sleep 10
+		do
+			todo=$(sqlite3 pdns.sqlite31 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
+			if [ $? -eq 0 ]
+			then
+				if [ $todo = 0 ]
+				then
+					break
+				fi
+			fi
+		done
+		set -e
+		sqlite3 pdns.sqlite31 ANALYZE;
 	elif [ ${context:0:4} = bind ]
 	then
 		context=${context}-presigned
