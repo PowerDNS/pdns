@@ -12,6 +12,11 @@ eval $(build-scripts/make-jenkins-version)
 build-scripts/set-version-auth $SOURCE_VERSION $DEB_VERSION $RPM_VERSION
 build-scripts/set-version-recursor $SOURCE_VERSION $DEB_VERSION $RPM_VERSION
 
+if [ "${JENKINS_URL}" = "https://autotest.powerdns.com/" ]
+then
+    JENKINS_URL=http://localhost:8080/
+fi
+
 if [ -n "${JENKINS_URL}" ]
 then
     DESC="#${BUILD_NUMBER} [${GIT_BRANCH#origin/} $(git rev-parse --short $GIT_COMMIT)]"
