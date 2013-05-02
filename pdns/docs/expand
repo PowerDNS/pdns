@@ -4,6 +4,10 @@ sed \
 sed \
 's|C\([0-9][0-9][0-9]*\)|<ulink url="http://wiki.powerdns.com/projects/trac/changeset/\1">\1</ulink>|g' |
 sed \
-'s|\sT\([0-9][0-9]*\)| <ulink url="http://wiki.powerdns.com/projects/trac/ticket/\1">\1</ulink>|g' |
+'s|g\([0-9a-f]\{7\}\)|<ulink url="https://github.com/PowerDNS/pdns/commit/\1">commit \1</ulink>|g' |
 sed \
-'s|\st\([0-9][0-9]*\)| <ulink url="http://wiki.powerdns.com/projects/trac/ticket/\1">ticket \1</ulink>|g' 
+'s|G\([0-9a-f]\{7\}\)|<ulink url="https://github.com/PowerDNS/pdns/commit/\1">\1</ulink>|g' |
+sed \
+'s|\sT\([0-9][0-9]*\)| <ulink url="https://github.com/PowerDNS/pdns/issues/\1">\1</ulink>|g' |
+sed \
+'s|\st\([0-9][0-9]*\)| <ulink url="https://github.com/PowerDNS/pdns/issues/\1">ticket \1</ulink>|g' 
