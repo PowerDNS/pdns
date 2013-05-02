@@ -1,5 +1,4 @@
-PowerDNS has moved to SVN, the repository is at svn://svn.powerdns.com/
-To check out the latest source, run svn co svn://svn.powerdns.com/trunk/pdns
+PowerDNS has moved to GitHub, the repository is at https://github.com/PowerDNS/pdns
 
 Then:
 
