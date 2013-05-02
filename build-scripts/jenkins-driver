@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+if [ "${PDNS_TAG}" != 'HEAD' ]
+then
+	git checkout $PDNS_TAG
+        export GIT_BRANCH=unknown
+        export GIT_COMMIT=$(git rev-parse $PDNS_TAG)
+fi
+
+eval $(build-scripts/make-jenkins-version)
+
+build-scripts/set-version-auth $SOURCE_VERSION $DEB_VERSION $RPM_VERSION
+build-scripts/set-version-recursor $SOURCE_VERSION $DEB_VERSION $RPM_VERSION
