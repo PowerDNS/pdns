@@ -93,6 +93,56 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-recursor-3.5.1"><title>PowerDNS Recursor version 3.5.1</title>
+      <note>
+        <para>
+          Released May 3th, 2013
+        </para>
+        <para>
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </note>
+      <para>
+        This is a stability and bugfix update to 3.5. It contains important fixes that improve operation for certain domains.
+      </para>
+      <para>
+        Changes since 3.5:
+        <itemizedlist>
+          <listitem>
+            <para>
+              We now abort earlier while following endless glue or CNAME chains. Fix in g02d1742.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Some unused code would crash certain gcc versions on ARM. Reported by Morten Stevens, fixed in g5b188e8.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The 3.5 fix for t731 was too strict, causing trouble with at least one domain. Reported by Aki Tuomi, check slightly relaxed in g4134690.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Automake/autoconf now use non-deprecated syntax. Reported by Morten Stevens, change in gca17ef2.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      </sect2>
       <sect2 id="changelog-recursor-3.5"><title>PowerDNS Recursor version 3.5</title>
       <note>
         <para>
