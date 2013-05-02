@@ -560,6 +560,7 @@ then
 		done
 	elif [ ${context:0:8} = gsqlite3 ]
 	then
+		context=${context}-presigned
 		rm -f pdns.sqlite31
 		sqlite3 pdns.sqlite31 < ../pdns/no-dnssec.schema.sqlite3.sql
 		sqlite3 pdns.sqlite31 < ../pdns/dnssec.schema.sqlite3.sql
