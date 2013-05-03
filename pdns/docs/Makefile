@@ -37,14 +37,8 @@ html.tar.gz: html/index.html
 	asciidoc -b xhtml11 -d manpage  $<
                         
 publish:
-	rsync --rsync-path=./rsync --exclude "*.png" --copy-links --delete -avrze 'ssh -p 2222' ./html pdns.txt pdns.pdf html.tar.gz \
-		localhost:/opt/websites/downloads.powerdns.com/www/documentation/
-#	ssh localhost -p 2222 cp /usr/share/doc/libboost-doc/HTML/doc/html/images/*.png \
-#		/opt/websites/downloads.powerdns.com/www/documentation/html/
-
-publish2:
-	rsync --copy-links --delete -avrze ssh ./html pdns.txt pdns.pdf \
-	ds9a.nl:/var/www/ds9a.nl/tmp/pdns-docs/
+	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.gz \
+		xs.powerdns.com:/var/www/doc.powerdns.com/
 
 publish3:
 	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.gz \

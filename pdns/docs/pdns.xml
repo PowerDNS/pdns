@@ -15927,7 +15927,9 @@ local-ip-address is the ip-address that was queried locally. edns-subnet-address
 is the actual client subnet as provided via edns-subnet support. Note that for the SOA
 query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
 </para>
-
+<para><note><para>Queries for wildcard names should be answered literally, without expansion. So, 
+      if a backend gets a question for "*.powerdns.com", it should only answer with data if there is
+      an actual "*.powerdns.com" name</para></note></para>
 <para>
 AXFR-queries look like this:
 <screen>
@@ -19953,6 +19955,10 @@ Now add TLSRecordContent::report() to <ulink url="http://wiki.powerdns.com/trac/
 	The semantics are simple. Each instance of your class only handles one (1) query at a time. There is no need for locking as PDNS guarantees
 	that your backend will never be called reentrantly. 
       </para>
+      <para><note><para>Queries for wildcard names should be answered literally, without expansion. So, 
+      if a backend gets a question for "*.powerdns.com", it should only answer with data if there is
+      an actual "*.powerdns.com" name</para></note></para>
+
       <para>
 	Some examples, a more formal specification is down below. A normal lookup starts like this:
 	
