@@ -29,7 +29,12 @@ struct DNSResult
   bool seenauthsoa;
 };
 
-//  = 
+struct TypedQuery
+{
+  TypedQuery(const string& name_, uint16_t type_) : name(name_), type(type_){}
+  string name;
+  uint16_t type;
+};
 
 struct SendReceive
 {
@@ -37,8 +42,7 @@ struct SendReceive
   typedef DNSResult Answer; // ip 
   int d_socket;
   deque<uint16_t> d_idqueue;
-  
-  
+    
   typedef accumulator_set<
         double
       , stats<boost::accumulators::tag::extended_p_square,
@@ -74,14 +78,14 @@ struct SendReceive
     close(d_socket);
   }
   
-  Identifier send(string& domain)
+  Identifier send(TypedQuery& domain)
   {
     //cerr<<"Sending query for '"<<domain<<"'"<<endl;
     
     // send it, copy code from 'sdig'
     vector<uint8_t> packet;
   
-    DNSPacketWriter pw(packet, domain, QType::A);
+    DNSPacketWriter pw(packet, domain.name, domain.type);
 
     if(d_idqueue.empty()) {
       cerr<<"Exhausted ids!"<<endl;
@@ -121,7 +125,7 @@ struct SendReceive
       }
       dr.rcode = mdp.d_header.rcode;
       for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-        if(i->first.d_place == 1 && i->first.d_type == QType::A)
+        if(i->first.d_place == 1 && i->first.d_type == mdp.d_qtype)
           dr.ips.push_back(ComboAddress(i->first.d_content->getZoneRepresentation()));
         if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
           dr.seenauthsoa = 1;
@@ -146,13 +150,13 @@ struct SendReceive
     d_idqueue.push_back(id);
   }
   
-  void deliverAnswer(string& domain, const DNSResult& dr, unsigned int usec)
+  void deliverAnswer(TypedQuery& domain, const DNSResult& dr, unsigned int usec)
   {
     (*d_acc)(usec/1000.0);
 //    if(usec > 1000000)
   //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" msec)\n";
     if(!g_quiet) {
-      cout<<domain<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
+      cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
       BOOST_FOREACH(const ComboAddress& ca, dr.ips) {
         cout<<", "<<ca.toString();
       }
@@ -175,8 +179,6 @@ struct SendReceive
   }
   unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
   unsigned int d_receiveds, d_receiveerrors, d_senderrors;
-  
-  
 };
 
 int main(int argc, char** argv)
@@ -185,6 +187,7 @@ int main(int argc, char** argv)
   desc.add_options()
     ("help,h", "produce help message")
     ("quiet,q", "be quiet about individual queries")
+    ("type,t",  po::value<string>()->default_value("A"), "What type to query for")
     ("envoutput,e", "write report in shell environment format")
   ;
 
@@ -217,16 +220,24 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  g_quiet = g_vm.count("quiet")>0;
-  g_envoutput = g_vm.count("envoutput")>0;
+  g_quiet = g_vm.count("quiet") > 0;
+  g_envoutput = g_vm.count("envoutput") > 0;
+  uint16_t qtype;
+  reportAllTypes();
+  try {
+    qtype = DNSRecordContent::TypeToNumber(g_vm["type"].as<string>());
+  }
+  catch(std::exception& e) {
+    cerr << e.what() << endl;
+    return EXIT_FAILURE;
+  }
 
   SendReceive sr(g_vm["ip-address"].as<string>(), g_vm["portnumber"].as<uint16_t>());
   unsigned int limit = g_vm["limit"].as<unsigned int>();
     
-  reportAllTypes();
-  vector<string> domains;
+  vector<TypedQuery> domains;
     
-  Inflighter<vector<string>, SendReceive> inflighter(domains, sr);
+  Inflighter<vector<TypedQuery>, SendReceive> inflighter(domains, sr);
   inflighter.d_maxInFlight = 100;
   inflighter.d_timeoutSeconds = 3;
   string line;
@@ -246,8 +257,8 @@ int main(int argc, char** argv)
     {
       continue; // this was an IP address
     }
-    domains.push_back(split.second);
-    domains.push_back("www."+split.second);
+    domains.push_back(TypedQuery(split.second, qtype));
+    domains.push_back(TypedQuery("www."+split.second, qtype));
   }
   cerr<<"Read "<<domains.size()<<" domains!"<<endl;
   random_shuffle(domains.begin(), domains.end());
