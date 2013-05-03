@@ -27,9 +27,15 @@ then
 	rpm_version=0.0.${rpm_dbg}
 elif [[ $GIT_BRANCH = rel/* ]] || [ $PDNS_TAG != HEAD ]
 then
-	# on release branch
-	product_version=${GIT_BRANCH#rel/}
-	product=${product_version%-*} # ex: "rec" or "auth"
+	# on release branch or doing a release
+	if [[ $PDNS_TAG = $BUILDING_PRODUCT-* ]]
+	then
+		product_version=${PDNS_TAG}
+		product=$BUILDING_PRODUCT
+	else
+		product_version=${GIT_BRANCH#rel/}
+		product=${product_version%-*} # ex: "rec" or "auth"
+	fi
 	version=${product_version#*-} # ex: "3.5.1"
 	if [ "$product" = "$BUILDING_PRODUCT" ]
 	then
