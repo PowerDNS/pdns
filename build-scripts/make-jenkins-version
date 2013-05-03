@@ -25,7 +25,7 @@ then
 	source_version=git-${source_dbg}
 	deb_version=0.0.${deb_dbg}
 	rpm_version=0.0.${rpm_dbg}
-elif [[ $GIT_BRANCH = rel/* ]]
+elif [[ $GIT_BRANCH = rel/* ]] || [ $PDNS_TAG != HEAD ]
 then
 	# on release branch
 	product_version=${GIT_BRANCH#rel/}
