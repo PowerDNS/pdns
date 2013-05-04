@@ -77,7 +77,7 @@ PowerDNS is available through Homebrew:
 If you want to compile yourself, the dependencies can be installed using
 Homebrew:
 
-    $ brew install boost lua ragel
+    $ brew install boost lua pkg-config ragel
 
 For PostgreSQL support:
 
