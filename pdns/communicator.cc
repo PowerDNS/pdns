@@ -58,6 +58,7 @@ void CommunicatorClass::go()
   for(int n=0; n < ::arg().asNum("retrieval-threads"); ++n)
     pthread_create(&tid, 0, &retrieveLaunchhelper, this); // Starts CommunicatorClass::retrievalLoopThread()
 
+  d_preventSelfNotification =::arg().mustDo("prevent-self-notification");
 }
 
 void CommunicatorClass::mainloop(void)

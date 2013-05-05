@@ -14628,6 +14628,12 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of loggin
 	    <listitem><para>
 	      ABI version to use for the pipe backend. See <xref linkend="pipebackend-protocol"/>.
 	      </para></listitem></varlistentry>
+	   <varlistentry><term>prevent-self-notification | prevent-self-notification = yes | prevent-self-notification = no</term>
+	    <listitem><para>
+		Available as of 3.3. PowerDNS Authoritative Server attempts to not send out notifications to itself in master mode.
+		In very complicated situations we could guess wrong and not notify a server that should be notified. In that case,
+		set prevent-self-notification to "no".
+	      </para></listitem></varlistentry>
 
 	  <varlistentry><term>query-cache-ttl=...</term>
 	    <listitem><para>

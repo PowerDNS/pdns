@@ -198,6 +198,7 @@ private:
   bool d_masterschanged, d_slaveschanged;
   set<DomainInfo> d_tocheck;
   vector<DNSPacket> d_potentialsupermasters;
+  bool d_preventSelfNotification;
 };
 
 #endif
