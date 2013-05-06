@@ -49,8 +49,8 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
-add -presigned to any bind or gmysql test (except narrow) to test 
-presigned operation
+add -presigned to any bind, gmysql or gsqlite3 test (except narrow)
+to test presigned operation
 
 add 'wait' (literally) after the context to not kill 
 pdns_server immediately after testing
