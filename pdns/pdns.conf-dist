@@ -240,6 +240,11 @@
 # pipebackend-abi-version=1
 
 #################################
+# prevent-self-notification	Don't send notifications to what we think is ourself
+#
+# prevent-self-notification=yes
+
+#################################
 # query-cache-ttl	Seconds to store query results in the QueryCache
 #
 # query-cache-ttl=20
