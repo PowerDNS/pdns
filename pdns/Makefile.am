@@ -247,7 +247,7 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc nameserve
 	rcpgenerator.cc ednssubnet.cc nsecrecords.cc sillyrecords.cc dnssecinfra.cc \
 	md5.cc
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
-testrunner_LDADD= $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
+testrunner_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
 
 pdns_recursor_SOURCES=syncres.cc resolver.hh misc.cc unix_utility.cc qtype.cc \
 logger.cc statbag.cc arguments.cc  lwres.cc pdns_recursor.cc reczones.cc lwres.hh \
