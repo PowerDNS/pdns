@@ -83,7 +83,7 @@ extern StatBag S;
   #define GEN_IP_PKTINFO IP_RECVDSTADDR 
 #endif
 
-vector<ComboAddress> g_localaddresses;
+vector<ComboAddress> g_localaddresses; // not static, our unit tests need to poke this
 
 void UDPNameserver::bindIPv4()
 {
@@ -159,7 +159,7 @@ bool AddressIsUs(const ComboAddress& remote)
     if(remote == us)
       return true;
     if(IsAnyAddress(us)) {
-      int s = socket(AF_INET, SOCK_DGRAM, 0);
+      int s = socket(remote.sin4.sin_family, SOCK_DGRAM, 0);
       if(s < 0) 
 	continue;
 
