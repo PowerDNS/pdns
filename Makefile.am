@@ -5,7 +5,7 @@ codedocs/Makefile codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
 bootstrap build-scripts/semistaticg++
 
-ACLOCAL_AMFLAGS = -I.
+ACLOCAL_AMFLAGS = -I m4
 
 man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdns_server.8 pdns/docs/zone2sql.8 
 

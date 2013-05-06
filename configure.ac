@@ -3,8 +3,10 @@ AC_INIT([pdns],[3.2])
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AM_INIT_AUTOMAKE([tar-ustar])
 AC_CANONICAL_HOST
-AM_CONFIG_HEADER(config.h)
-AC_C_BIGENDIAN 
+LT_INIT
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_HEADERS([config.h])
+AC_C_BIGENDIAN
 AC_PREREQ(2.52)
 : ${CXXFLAGS="-Wall -O2"}
 AC_PREFIX_DEFAULT(/usr/local)
@@ -15,7 +17,7 @@ AC_PROG_YACC
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL 
+AC_PROG_LIBTOOL
 AC_LANG_CPLUSPLUS
 
 BOOST_REQUIRE([1.34])
@@ -62,7 +64,7 @@ if test "$WITH_LUA" != "no"; then
  AC_SUBST(LUA_CFLAGS)
  AC_SUBST(LUA_LIBS)
 fi
-         
+
 dnl Allow user to require SQLite3
 AC_MSG_CHECKING(whether user requires sqlite3)
 AC_ARG_WITH(sqlite3, AC_HELP_STRING([--with-sqlite3],[include sqlite3 driver]), [WITH_SQLITE3=$withval],[WITH_SQLITE3=no])
@@ -133,14 +135,14 @@ solaris2.10)
 	CXXFLAGS="-D_REENTRANT $CXXFLAGS"
 	;;
 
-solaris2.8 | solaris2.9 ) 
+solaris2.8 | solaris2.9 )
 	AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
 	AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
 	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
 	LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
 	CXXFLAGS="-D_REENTRANT $CXXFLAGS"
 	;;
-solaris2.6 | solaris2.7) 
+solaris2.6 | solaris2.7)
 	AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
 	AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
 	LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
@@ -173,10 +175,10 @@ AC_SUBST(THREADFLAGS)
 AC_SUBST(DYNLINKFLAGS)
 
 AC_MSG_CHECKING(whether we will be doing verbose logging)
-AC_ARG_ENABLE(verbose-logging, 
+AC_ARG_ENABLE(verbose-logging,
  AC_HELP_STRING([--enable-verbose-logging],[do verbose logging]), [enable_verbose_logging=yes], [enable_verbose_logging=no])
 
-if test $enable_verbose_logging = yes; then AC_DEFINE(VERBOSELOG, 1, [If verbose logging should be enabled]) 
+if test $enable_verbose_logging = yes; then AC_DEFINE(VERBOSELOG, 1, [If verbose logging should be enabled])
 fi
 AC_MSG_RESULT($enable_verbose_logging)
 
@@ -207,19 +209,19 @@ if test x$use_system_polarssl = xyes; then
 fi
 
 AC_MSG_CHECKING(whether we will be linking in Botan 1.10)
-AC_ARG_ENABLE(botan1.10, 
+AC_ARG_ENABLE(botan1.10,
  AC_HELP_STRING([--enable-botan1.10],[use Botan 1.10]), [enable_botan110=yes], [enable_botan110=no])
 AC_MSG_RESULT($enable_botan110)
 AM_CONDITIONAL(BOTAN110,test x"$enable_botan110" = "xyes")
 
 AC_MSG_CHECKING(whether we will be linking in Botan 1.8)
-AC_ARG_ENABLE(botan1.8, 
+AC_ARG_ENABLE(botan1.8,
  AC_HELP_STRING([--enable-botan1.8],[use Botan 1.8]), [enable_botan18=yes], [enable_botan18=no])
 AC_MSG_RESULT($enable_botan18)
 AM_CONDITIONAL(BOTAN18,test x"$enable_botan18" = "xyes")
 
 AC_MSG_CHECKING(whether we will be linking in Crypto++)
-AC_ARG_ENABLE(cryptopp, 
+AC_ARG_ENABLE(cryptopp,
  AC_HELP_STRING([--enable-cryptopp],[use Crypto++]), [enable_cryptopp=yes], [enable_cryptopp=no])
 AC_MSG_RESULT($enable_cryptopp)
 AM_CONDITIONAL(CRYPTOPP,test x"$enable_cryptopp" = "xyes")
@@ -264,8 +266,8 @@ AC_MSG_RESULT($static)
 
 AM_CONDITIONAL(ALLSTATIC, test x$static = xtrue)
 
-if test x$static = xtrue; 
-then 
+if test x$static = xtrue;
+then
 	LDFLAGS="-all-static $LDFLAGS"
 fi
 
@@ -289,7 +291,7 @@ AC_SUBST(socketdir)
 socketdir="/var/run"
 AC_ARG_WITH(socketdir, AC_HELP_STRING([--with-socketdir],[where the controlsocket lives]),
 [
-        socketdir="$withval"  
+        socketdir="$withval"
 ])
 
 AC_SUBST(moduledirs)
@@ -305,13 +307,13 @@ AC_ARG_ENABLE(pdns-server,
 AC_MSG_RESULT($enable_pdns_server)
 
 if test x"$enable_pdns_server" = "xyes"
-then 
+then
 	programdescend=pdns
 fi
 
 AC_SUBST(programdescend)
 
-AC_ARG_ENABLE(gcc-skip-locking, 
+AC_ARG_ENABLE(gcc-skip-locking,
  AC_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking]),
 	AC_DEFINE(GCC_SKIP_LOCKING,,[Skip gcc locking]),
  )
@@ -394,19 +396,19 @@ then
         if test x"$with_oracle_includes" = "x"
         then
            # check possible locations
-           for p1 in /usr/include/oracle /usr/local/include/oracle 
+           for p1 in /usr/include/oracle /usr/local/include/oracle
            do
              for p2 in $p1/*/client*
              do
 if test -d "$p2"
-then 
+then
 with_oracle_includes=$p2
 fi
              done
            done
         fi
 
-        if test x"$with_oracle_includes" = x && test "$ORACLE_HOME/rdbms/public" != "/rdbms/public"; then 
+        if test x"$with_oracle_includes" = x && test "$ORACLE_HOME/rdbms/public" != "/rdbms/public"; then
 if test -d $ORACLE_HOME/rdbms/public; then
   with_oracle_includes=$ORACLE_HOME/rdbms/public
 fi
@@ -438,7 +440,7 @@ fi
            done
         fi
 
-        if test x"$with_oracle_libs" = x && test "$ORACLE_HOME/lib" != "/lib"; then 
+        if test x"$with_oracle_libs" = x && test "$ORACLE_HOME/lib" != "/lib"; then
 if test -d $ORACLE_HOME/lib; then
   with_oracle_libs=$ORACLE_HOME/lib
 fi
@@ -491,11 +493,11 @@ then
                fi
              done
 
-             if test "x$MYSQL_config" == "x"; then 
+             if test "x$MYSQL_config" == "x"; then
                 AC_MSG_RESULT([not found])
              else
                 AC_MSG_RESULT([$MYSQL_config])
-             fi 
+             fi
            else
              if test -x $MYSQL_config_check; then
                MYSQL_config="$MYSQL_config_check"
@@ -505,7 +507,7 @@ then
                AC_MSG_ERROR([not found])
              fi
            fi
-        fi            
+        fi
 
      if test "x$MYSQL_config" != "x"; then
         # use this to configure everything
@@ -526,9 +528,9 @@ then
 	        AC_MSG_ERROR([Did not find the mysql library dir in '$MYSQL_lib_check'])
 	fi
 	case "$MYSQL_libdir" in
-	  /*) MYSQL_lib="-L$MYSQL_libdir -lmysqlclient" 
+	  /*) MYSQL_lib="-L$MYSQL_libdir -lmysqlclient"
           ;;
-	  *)  AC_MSG_ERROR([The MySQL library directory ($MYSQL_libdir) must be an absolute path.]) 
+	  *)  AC_MSG_ERROR([The MySQL library directory ($MYSQL_libdir) must be an absolute path.])
           ;;
 	esac
 	AC_MSG_RESULT([$MYSQL_libdir])
@@ -547,9 +549,9 @@ then
 	fi
 	
 	case "$MYSQL_inc" in
-	  /*) AC_MSG_RESULT($MYSQL_inc) 
+	  /*) AC_MSG_RESULT($MYSQL_inc)
           ;;
-	  *)  AC_MSG_ERROR([The MySQL include directory ($MYSQL_inc) must be an absolute path.]) 
+	  *)  AC_MSG_ERROR([The MySQL include directory ($MYSQL_inc) must be an absolute path.])
           ;;
 	esac
         MYSQL_inc="-I$MYSQL_inc"
@@ -560,7 +562,7 @@ fi
 
 
 
-if test "$needpgsql" 
+if test "$needpgsql"
 then
 	AC_ARG_WITH(pgsql,
 	    AC_HELP_STRING([--with-pgsql=<path>],[root directory path of PgSQL installation]),
@@ -590,7 +592,7 @@ then
 	case "$PGSQL_libdir" in
 	  /usr/lib ) PGSQL_lib="" ;;
 	  /usr/lib64 ) PGSQL_lib="" ;;
-	  /* ) PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir" 
+	  /* ) PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir"
 	       LDFLAGS="$PGSQL_lib $LDFLAGS"
                ;;
 	  * )  AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.]) ;;
