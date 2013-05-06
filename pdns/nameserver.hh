@@ -34,6 +34,7 @@
 #include <boost/foreach.hpp>
 #include "statbag.hh"
 #include "namespaces.hh"
+#include "dnspacket.hh"
 
 /** This is the main class. It opens a socket on udp port 53 and waits for packets. Those packets can 
     be retrieved with the receive() member function, which returns a DNSPacket.
