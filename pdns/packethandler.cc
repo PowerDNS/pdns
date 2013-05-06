@@ -265,7 +265,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
     const static string mode=::arg()["version-string"];
   
     if(mode.empty() || mode=="full") 
-      rr.content="Served by POWERDNS "VERSION" $Id$";
+      rr.content="Served by PowerDNS "VERSION" "DIST_HOST" built "BUILD_DATE" "BUILD_HOST;
     else if(mode=="anonymous") {
       r->setRcode(RCode::ServFail);
       return 1;

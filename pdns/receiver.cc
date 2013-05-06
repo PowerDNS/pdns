@@ -369,7 +369,10 @@ static void loadModules()
   }
 }
 
-
+static void showServiceVersion()
+{
+  showProductVersion("Authoritative Server");
+}
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -421,11 +424,7 @@ int main(int argc, char **argv)
     ::arg().laxParse(argc,argv); // do a lax parse
     
     if(::arg().mustDo("version")) {
-      cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__;
-#ifdef __GNUC__ 
-      cerr<<" with gcc version "<<__VERSION__;
-#endif
-      cout<<endl;
+      showServiceVersion();
       exit(99);
     }
 
@@ -584,17 +583,8 @@ int main(int argc, char **argv)
   
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
-  
-  L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2013 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
-#ifdef __GNUC__
-  L<<", gcc "__VERSION__;
-#endif // add other compilers here
-  L<<") starting up"<<endl;
 
-  L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-    "This is free software, and you are welcome to redistribute it "
-    "according to the terms of the GPL version 2."<<endl;
-
+  showServiceVersion();
 
   try {
 
