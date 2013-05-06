@@ -48,5 +48,34 @@ BOOST_AUTO_TEST_CASE(test_CIStringPairCompare) {
 	BOOST_CHECK_EQUAL(s.str(), "(|1)(abc|1)(abc|2)(def|1)(ns.example.com|0)(ns.example.com|1)");
 }
 
+BOOST_AUTO_TEST_CASE(test_stripDot) {
+    BOOST_CHECK_EQUAL(stripDot("www.powerdns.com."), "www.powerdns.com");
+}
+
+BOOST_AUTO_TEST_CASE(test_labelReverse) {
+    BOOST_CHECK_EQUAL(labelReverse("www.powerdns.com"), "com powerdns www");
+}
+
+BOOST_AUTO_TEST_CASE(test_makeRelative) {
+    BOOST_CHECK_EQUAL(makeRelative("www.powerdns.com", "powerdns.com"), "www");
+}
+
+BOOST_AUTO_TEST_CASE(test_AtomicConter) {
+    AtomicCounter ac;
+    ++ac;
+    ++ac;
+    BOOST_CHECK_EQUAL(ac, 2);
+}
+
+
+BOOST_AUTO_TEST_CASE(test_parseService) {
+    ServiceTuple tp;
+    parseService("smtp.powerdns.com:25", tp);
+    BOOST_CHECK_EQUAL(tp.host, "smtp.powerdns.com");
+    BOOST_CHECK_EQUAL(tp.port, 25);
+    parseService("smtp.powerdns.com", tp);    
+    BOOST_CHECK_EQUAL(tp.port, 25);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
