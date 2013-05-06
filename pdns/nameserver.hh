@@ -83,7 +83,6 @@ private:
   vector<pollfd> d_rfds;
 };
 
-
-
+bool AddressIsUs(const ComboAddress& remote);
 
 #endif
