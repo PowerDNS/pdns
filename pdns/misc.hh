@@ -89,6 +89,8 @@ uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
 int logFacilityToLOG(unsigned int facility);
+string compilerVersion();
+void showProductVersion(string product);
 
 struct ServiceTuple
 {

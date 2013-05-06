@@ -12,6 +12,11 @@ CC?=gcc
 
 # Lua 5.1 settings
 
+BUILD_DATE=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
+BUILD_HOST=$(shell id -u -n)@$(shell hostname -f)
+CFLAGS:=$(CFLAGS) -DBUILD_HOST=\"$(BUILD_HOST)\" -DBUILD_DATE=\"$(BUILD_DATE)\"
+CXXFLAGS:=$(CXXFLAGS) -DBUILD_HOST=\"$(BUILD_HOST)\" -DBUILD_DATE=\"$(BUILD_DATE)\"
+
 # static dependencies
 
 PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
