@@ -52,7 +52,7 @@ ueberbackend.hh pdns.conf-dist ws.hh ws.cc webserver.cc webserver.hh \
 session.cc session.hh misc.cc misc.hh receiver.cc ueberbackend.cc \
 dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.cc communicator.hh dnsproxy.cc \
-dnsproxy.hh randombackend.cc unix_utility.cc common_startup.cc \
+dnsproxy.hh unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
 backends/bind/bindbackend2.cc  backends/bind/binddnssec.cc bind-dnssec.schema.sqlite3.sql.h \
 backends/bind/bindparser.cc backends/bind/bindlexer.c \
@@ -103,7 +103,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	backends/bind/bindparser.cc backends/bind/bindlexer.c \
 	backends/gsql/gsqlbackend.cc \
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
-	dynlistener.cc dns.cc randombackend.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
+	dynlistener.cc dns.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
 	signingpipe.cc dnslabeltext.cc ednssubnet.cc cachecleaner.hh \
 	aes/aescpp.h \
 	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \

@@ -6,7 +6,7 @@ before_script:
  - sudo apt-get install -qq libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils
 script:
  - ./bootstrap
- - ./configure --with-modules='gmysql' --with-sqlite3
+ - ./configure --with-modules='gmysql random' --with-dynmodules='' --with-sqlite3
  - make -j 4
  - cd regression-tests
  - touch verify-dnssec-zone/skip
