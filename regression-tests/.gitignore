@@ -15,6 +15,6 @@ real_result
 /unbound-host.conf
 /*.controlsocket
 /pdns-*.conf
-/*.sqlite3
+/*.sqlite3*
 /*.com-slave
 /named-slave.conf
