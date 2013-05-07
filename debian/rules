@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 # Backends (mongodb removed for now, fails to compile)
-backends := remote pipe gmysql gsqlite3 geo lua
+backends := remote pipe gmysql gsqlite3 gpgsql geo lua
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 # Use new build system
