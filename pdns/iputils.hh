@@ -318,6 +318,7 @@ class NetmaskGroup
 {
 public:
   //! If this IP address is matched by any of the classes within
+
   bool match(const ComboAddress *ip)
   {
     for(container_t::const_iterator i=d_masks.begin();i!=d_masks.end();++i)
@@ -326,6 +327,12 @@ public:
 
     return false;
   }
+
+  bool match(const ComboAddress& ip)
+  {
+    return match(&ip);
+  }
+
   //! Add this Netmask to the list of possible matches
   void addMask(const string &ip)
   {
