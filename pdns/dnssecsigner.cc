@@ -30,13 +30,14 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
 {
   if(toSign.empty())
     return -1;
+  uint32_t startOfWeek = getStartOfWeek();
   RRSIGRecordContent rrc;
   rrc.d_type=signQType;
 
   rrc.d_labels=countLabels(signQName); 
   rrc.d_originalttl=signTTL; 
-  rrc.d_siginception=getCurrentInception(3600); // 1 hour safety margin, we start dishing out new week after an hour
-  rrc.d_sigexpire = rrc.d_siginception + 14*86400; // XXX should come from zone metadata
+  rrc.d_siginception=startOfWeek - 7*86400; // XXX should come from zone metadata
+  rrc.d_sigexpire=startOfWeek + 14*86400;
   rrc.d_signer = signer.empty() ? "." : toLower(signer);
   rrc.d_tag = 0;
   
