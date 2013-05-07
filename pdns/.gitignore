@@ -20,4 +20,14 @@
 /nsec3dig
 /bind-dnssec.schema.sqlite3.sql.h
 /pdns-recursor-*
+/dnsdemog
+/dnsgram
+/dnsscan
+/dnsscope
+/dnswasher
+/notify
+/nproxy
+/speedtest
+/toysdig
+/tsig-tests
 *~
