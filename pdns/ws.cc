@@ -235,7 +235,7 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     printtable(ret,rvarmap["ring"],S.getRingTitle(rvarmap["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">PowerDNS Authoritative Server "VERSION" ("DIST_HOST" built "BUILD_DATE" by "BUILD_HOST"). &copy; 2013 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">PowerDNS Authoritative Server "VERSION". &copy; 2013 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   return ret.str();

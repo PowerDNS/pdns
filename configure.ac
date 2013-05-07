@@ -1,5 +1,5 @@
 dnl intro
-AC_INIT([pdns], m4_esyscmd_s([test -f ./VERSION && (. ./VERSION; echo $VERSION) || (git describe --always 2>/dev/null || echo "exported")]))
+AC_INIT([pdns],[3.2])
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AM_INIT_AUTOMAKE([tar-ustar])
 AC_CANONICAL_HOST
@@ -19,13 +19,6 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LANG_CPLUSPLUS
-
-AC_DEFINE([DIST_HOST], m4_esyscmd_s([test -f ./VERSION && (. ./VERSION; echo \"$DIST_HOST\") || (echo \"$(id -u -n)@$(hostname -f)\")]), [Where sources were built.])
-
-build_date=$(LC_TIME=C date '+%Y%m%d%H%M%S')
-AC_DEFINE_UNQUOTED([BUILD_DATE], ["$build_date"], [When binaries were built.])
-build_host=$(id -u -n)@$(hostname -f)
-AC_DEFINE_UNQUOTED([BUILD_HOST], ["$build_host"], [Where binaries were built.])
 
 BOOST_REQUIRE([1.34])
 BOOST_FOREACH

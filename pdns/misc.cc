@@ -43,7 +43,6 @@
 #include <sys/types.h>
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
-#include "logger.hh"
 
 bool g_singleThreaded;
 
@@ -783,28 +782,4 @@ Regex::Regex(const string &expr)
 {
   if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
     throw AhuException("Regular expression did not compile");
-}
-
-string compilerVersion()
-{
-#if defined(__clang__)
-  // clang defines __GNUC__ as well, so put it first.
-  return string("clang "__clang__version);
-#elif defined(__GNUC__)
-  return string("gcc "__VERSION__);
-#elif defined(_MSC_VER)
-  return string("MSVC "<<_MSC_VER);
-#endif // add other compilers here
-  return string("Unknown compiler");
-}
-
-void showProductVersion(string product)
-{
-  L<<Logger::Warning<<"PowerDNS "<<product<<" "<<VERSION<<" ("DIST_HOST") "
-    "(C) 2001-2013 PowerDNS.COM BV" << endl;
-  L<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
-    "Built on "BUILD_DATE" by "BUILD_HOST", "<<compilerVersion()<<"."<<endl;
-  L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-    "This is free software, and you are welcome to redistribute it "
-    "according to the terms of the GPL version 2." << endl;
 }

@@ -4,20 +4,7 @@ set -e
 
 ragel dnslabeltext.rl -o dnslabeltext.cc
 
-## The following lines will be patched by set-version-recursor.
-VERSION=""
-DIST_HOST=""
-## End patch area.
-
-if [ -z "$VERSION" ]; then
-  VERSION=$(git rev-parse HEAD 2>/dev/null)
-  if [ -z "$VERSION" ]; then
-    VERSION="exported"
-  else
-    VERSION="git-"$VERSION
-  fi
-  DIST_HOST="$(id -u -n)@$(hostname -f)"
-fi
+VERSION=3.5.1
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
@@ -50,10 +37,6 @@ cp Makefile-recursor.win32 $DIRNAME/Makefile.win32
 cp README-recursor $DIRNAME/README
 cp ../COPYING $DIRNAME/
 cp config-recursor.h $DIRNAME/config.h
-cat >>$DIRNAME/config.h <<EOF
-#define VERSION "$VERSION"
-#define DIST_HOST "$DIST_HOST"
-EOF
 mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
 cp -a ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
