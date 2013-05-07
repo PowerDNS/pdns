@@ -20197,6 +20197,11 @@ Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200
 +ns2.delegated.dnssec-parent.com:5.6.7.8:3600
 +ns1.dnssec-parent.com:1.2.3.4:3600
 +ns2.dnssec-parent.com:4.3.2.1:3600
+&secure-delegated.dnssec-parent.com::ns1.secure-delegated.dnssec-parent.com.:3600
+&secure-delegated.dnssec-parent.com::ns2.secure-delegated.dnssec-parent.com.:3600
+:secure-delegated.dnssec-parent.com:43:\324\057\010\002\240\271\303\214\323\044\030\052\360\357f\203\015\012\016\205\241\325\211y\311\203N\030\310qw\236\004\010W\267:3600
++ns1.secure-delegated.dnssec-parent.com:1.2.3.4:3600
++ns2.secure-delegated.dnssec-parent.com:5.6.7.8:3600
 #2005092501 auto axfr-get
 Zdelegated.dnssec-parent.com:ns1.delegated.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +delegated.dnssec-parent.com:9.9.9.9:3600
