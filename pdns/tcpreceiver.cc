@@ -454,6 +454,7 @@ namespace {
   {
     set<uint16_t> d_set;
     unsigned int d_ttl;
+    bool d_auth;
   };
 
   DNSResourceRecord makeDNSRRFromSOAData(const SOAData& sd)
@@ -651,11 +652,12 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       continue;
 
     records++;
-    if(securedZone && (rr.auth || (!NSEC3Zone && rr.qtype.getCode() == QType::NS) || rr.qtype.getCode() == QType::DS)) { // this is probably NSEC specific, NSEC3 is different
+    if(securedZone && (rr.auth || rr.qtype.getCode() == QType::NS)) {
       if (NSEC3Zone || rr.qtype.getCode()) {
         keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
+        ne.d_auth = (ne.d_auth || rr.auth);
         if (rr.qtype.getCode()) {
           ne.d_set.insert(rr.qtype.getCode());
         }
@@ -689,42 +691,49 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
   cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
   */
-  if(securedZone) {   
+  if(securedZone) {
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
-        NSEC3RecordContent n3rc;
-        n3rc.d_set = iter->second.d_set;
-        if (n3rc.d_set.size())
-          n3rc.d_set.insert(QType::RRSIG);
-        n3rc.d_salt=ns3pr.d_salt;
-        n3rc.d_flags = ns3pr.d_flags;
-        n3rc.d_iterations = ns3pr.d_iterations;
-        n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
-        if(boost::next(iter) != nsecxrepo.end()) {
-          n3rc.d_nexthash = boost::next(iter)->first;
-        }
-        else
-          n3rc.d_nexthash=nsecxrepo.begin()->first;
-    
-        rr.qname = dotConcat(toLower(toBase32Hex(iter->first)), sd.qname);
-    
-        rr.ttl = sd.default_ttl;
-        rr.content = n3rc.getZoneRepresentation();
-        rr.qtype = QType::NSEC3;
-        rr.d_place = DNSResourceRecord::ANSWER;
-        rr.auth=true;
-        if(csp.submit(rr)) {
-          for(;;) {
-            outpacket->getRRS() = csp.getChunk();
-            if(!outpacket->getRRS().empty()) {
-              if(!tsigkeyname.empty())
-                outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
-              sendPacket(outpacket, outsock);
-              trc.d_mac=outpacket->d_trc.d_mac;
-              outpacket=getFreshAXFRPacket(q);
+        if(iter->second.d_auth) {
+          NSEC3RecordContent n3rc;
+          n3rc.d_set = iter->second.d_set;
+          if (n3rc.d_set.size() && (n3rc.d_set.size() != 1 || !n3rc.d_set.count(QType::NS)))
+            n3rc.d_set.insert(QType::RRSIG);
+          n3rc.d_salt=ns3pr.d_salt;
+          n3rc.d_flags = ns3pr.d_flags;
+          n3rc.d_iterations = ns3pr.d_iterations;
+          n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
+          nsecxrepo_t::const_iterator inext = iter;
+          inext++;
+          if(inext == nsecxrepo.end())
+            inext = nsecxrepo.begin();
+          while(!(inext->second.d_auth) && inext != iter)
+          {
+            inext++;
+            if(inext == nsecxrepo.end())
+              inext = nsecxrepo.begin();
+          }
+          n3rc.d_nexthash = inext->first;
+          rr.qname = dotConcat(toLower(toBase32Hex(iter->first)), sd.qname);
+
+          rr.ttl = sd.default_ttl;
+          rr.content = n3rc.getZoneRepresentation();
+          rr.qtype = QType::NSEC3;
+          rr.d_place = DNSResourceRecord::ANSWER;
+          rr.auth=true;
+          if(csp.submit(rr)) {
+            for(;;) {
+              outpacket->getRRS() = csp.getChunk();
+              if(!outpacket->getRRS().empty()) {
+                if(!tsigkeyname.empty())
+                  outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
+                sendPacket(outpacket, outsock);
+                trc.d_mac=outpacket->d_trc.d_mac;
+                outpacket=getFreshAXFRPacket(q);
+              }
+              else
+                break;
             }
-            else
-              break;
           }
         }
       }
