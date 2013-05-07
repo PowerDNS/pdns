@@ -1,0 +1,5 @@
+# Variables for PowerDNS recursor
+#
+# Set START to yes to start the pdns-recursor
+START=yes
+

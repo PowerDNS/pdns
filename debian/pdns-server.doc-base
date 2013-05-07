@@ -1,0 +1,12 @@
+Document: pdns
+Title: PowerDNS manual
+Author: PowerDNS B.V.
+Section: Apps/System
+Abstract: PowerDNS manual
+ This is the complete manual for PowerDNS, documenting both
+ how to install and configure it as well as how to write
+ new backend modules.
+
+Format: html
+Index: /usr/share/doc/pdns/html/index.html
+Files: /usr/share/doc/pdns/html/*.html

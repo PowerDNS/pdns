@@ -1,0 +1,8 @@
+usr/bin
+usr/sbin
+etc/init.d
+etc/default
+etc/powerdns
+usr/share/man/man8
+usr/share/pdns-server
+etc/insserv.conf.d
