@@ -19655,22 +19655,14 @@ Reply:
 		</para>
 	      </listitem>
 	    </varlistentry>
-	    <varlistentry>
-	      <term>purge <userinput>record</userinput></term>
-	      <listitem>
-		<para>
-		  Purges all entries for this exact record name - see <xref linkend="performance"/>.
-		</para>
-	      </listitem>
-	    </varlistentry>
-		<varlistentry>
+            <varlistentry>
 			<term>rping</term>
 			<listitem>
 				<para>
 					'PING' the powerdns-instance. Will return 'PONG' when it is available.
 				</para>
 			</listitem>
-		</varlistentry>
+	    </varlistentry>
  	    <varlistentry>
 	      <term>rediscover</term>
 	      <listitem>
