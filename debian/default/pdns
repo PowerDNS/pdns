@@ -1,0 +1,4 @@
+# Variables for PowerDNS
+#
+# Whether you want to start PowerDNS automatically.
+START=no

@@ -1,0 +1,72 @@
+Source: pdns
+Section: net
+Priority: extra
+Standards-Version: 3.5.8
+Maintainer: bert hubert <bert.hubert@netherlabs.nl>
+Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev | libpq-dev, libgdbm-dev, libsqlite3-dev, dpkg-dev (>= 1.10.17), libboost-dev (>=1.34), libboost-program-options-dev, libboost-serialization-dev, pkg-config, ragel, libbotan1.10-dev, liblua5.1-dev
+
+Package: pdns-server
+Architecture: any
+Depends: ${shlibs:Depends}
+Recommends: pdns-doc
+Suggests: pdns-backend
+Description: extremely powerful and versatile nameserver
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+
+Package: pdns-server-dbg
+Architecture: any
+Depends: ${shlibs:Depends}
+Recommends: pdns-doc
+Suggests: pdns-backend
+Provides: pdns-server
+Description: PowerDNS server with debugging symbols
+ PowerDNS server with debugging symbols
+
+Package: pdns-doc
+Section: doc
+Architecture: all
+Description: PowerDNS manual
+ This is the complete manual for PowerDNS, documenting both
+ how to install and configure it as well as how to write
+ new backend modules.
+
+Package: pdns-backend-pipe
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: pipe/coprocess backend for pDNS
+ This package contains the pipe backend for the PowerDNS nameserver. This
+ allows PowerDNS to retrieve domain info from a process that accepts
+ questions on stdin and returns answers on stdout. 
+
+Package: pdns-backend-mysql
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: MySQL backend for pDNS
+ This package contains a MySQL backend for the PowerDNS nameserver.
+
+Package: pdns-backend-pgsql
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: Generic PostgreSQL backend for pDNS
+ This package contains a generic PostgreSQL backend 
+ for the PowerDNS nameserver. It has configurable SQL statements.
+
+Package: pdns-backend-sqlite3
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: SQLite backend for pDNS
+ This package contains a generic SQLite backend for SQLite.
+
+Package: pdns-backend-remote
+Architecture: any
+Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
+Provides: pdns-backend
+Description: Remote backend for pDNS
+ This package contains a JSON Remote backend for PowerDNS.
+

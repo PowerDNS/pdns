@@ -1,0 +1,3 @@
+usr/lib/powerdns
+usr/share/doc/pdns-backend-sqlite3
+var/lib/powerdns
