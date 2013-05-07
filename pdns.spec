@@ -33,6 +33,11 @@ backend'.
 "/usr/man/man8/pdns_control.8"
 "/usr/man/man8/pdns_server.8"
 "/usr/man/man8/zone2sql.8"
+"/usr/man/man8/dnsreplay.8"
+"/usr/man/man8/dnsscope.8"
+"/usr/man/man8/dnswasher.8"
+"/usr/man/man8/pdnssec.8"
+"/usr/man/man8/zone2ldap.8"
 
 %dir "/etc/powerdns/"
 %config(noreplace) "/etc/powerdns/pdns.conf"
