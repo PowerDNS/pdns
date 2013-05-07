@@ -1,0 +1,2 @@
+debian/tmp/usr/lib/powerdns/libgpgsqlbackend.so* usr/lib/powerdns/
+debian/tmp/usr/lib/powerdns/libgpgsqlbackend.a usr/lib/powerdns/

@@ -1,0 +1,2 @@
+debian/tmp/usr/lib/powerdns/libluabackend.so* usr/lib/powerdns/
+debian/tmp/usr/lib/powerdns/libluabackend.a usr/lib/powerdns/
