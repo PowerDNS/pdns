@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 # Backends (mongodb removed for now, fails to compile)
-backends := remote pipe gmysql gpgsql gsqlite3 geo lua
+backends := remote pipe gmysql gsqlite3 geo lua
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 # Use new build system
@@ -12,8 +12,25 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 override_dh_auto_configure:
 	# First run the bootstrap.
 	./bootstrap
-	
-	# Add here commands to configure the package.
+ifdef STATIC
+	CC="$(CC)" CXX="$(CURDIR)/build-scripts/semistaticg++" CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" LDFLAGS="-L/usr/lib/$(DEB_HOST_MULTIARCH)" ./configure \
+                --host=$(DEB_HOST_GNU_TYPE) \
+                --build=$(DEB_BUILD_GNU_TYPE) \
+                --prefix=/usr \
+                --sysconfdir=/etc/powerdns \
+                --mandir=\$${prefix}/share/man \
+                --infodir=\$${prefix}/share/info \
+                --libdir='$${prefix}/lib/powerdns' \
+                --libexecdir='$${prefix}/lib' \
+                --with-modules="$(backends)" \
+                --with-pgsql-includes=`pg_config --includedir` \
+                --with-mysql-lib=/usr/lib/$(DEB_HOST_MULTIARCH) \
+                --with-boost=/usr \
+                --enable-cryptopp \
+                --disable-recursor \
+                --enable-static-binaries \
+		--enable-static
+else
 	CC="$(CC)" CXX="$(CXX)" CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure \
 		--host=$(DEB_HOST_GNU_TYPE) \
 		--build=$(DEB_BUILD_GNU_TYPE) \
@@ -30,36 +47,12 @@ override_dh_auto_configure:
 		--with-boost=/usr \
 		--enable-cryptopp \
 		--disable-recursor
+endif
 
 # pdns-server has a debug package
 override_dh_strip:
 	dh_strip --dbg-package=pdns-server-dbg
 
-build-static build-static-stamp: clean
-	# First run the bootstrap.
-	./bootstrap
-	
-	# Add here commands to configure the package.
-	CC="$(CC)" CXX="$(CXX)" CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure \
-	 --host=$(DEB_HOST_GNU_TYPE) \
-	 --build=$(DEB_BUILD_GNU_TYPE) \
-	 --prefix=/usr \
-	 --sysconfdir=/etc/powerdns \
-	 --mandir=\$${prefix}/share/man \
-	 --infodir=\$${prefix}/share/info \
-	 --libdir='$${prefix}/lib/powerdns' \
-	 --libexecdir='$${prefix}/lib' \
-	 --with-modules="$(backends)" \
-	 --with-pgsql-includes=`pg_config --includedir` \
-	 --with-mysql-lib=/usr/lib/$(DEB_HOST_MULTIARCH) \
-	 --with-boost=/usr \
-	 --enable-cryptopp \
-	 --disable-recursor \
-	 --enable-static-binaries
-	
-	make
-	make install DESTDIR=debian/tmp
-
-	# then build package
-	dpkg-gencontrol -ppdns-server-static -cdebian/control -ldebian/changelog -fdebian/pdns-server-static.files 
-	dpkg-deb -b debian/tmp pdns-server-static
+override_dh_installdocs:
+	make -C pdns/docs
+	dh_installdocs 

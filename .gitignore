@@ -37,3 +37,7 @@ ltversion.m4
 lt~obsolete.m4
 pdns-*.tar.gz
 .*DS_Store
+debian/*.log
+debian/pdns-doc/
+debian/pdns-server-dbg/
+debian/pdns-server/

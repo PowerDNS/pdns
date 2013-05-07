@@ -3,9 +3,6 @@ usr/sbin
 etc/init.d
 etc/default
 etc/powerdns
-etc/powerdns/pdns.d
-etc/resolvconf
-etc/resolvconf/update.d
 usr/share/man/man8
 usr/share/pdns-server
 etc/insserv.conf.d
