@@ -13,11 +13,12 @@ try
   bool dnssec=false;
   bool recurse=false;
   bool tcp=false;
+  bool showflags=false;
 
   reportAllTypes();
 
   if(argc < 5) {
-    cerr<<"Syntax: sdig IP-address port question question-type [dnssec|recurse]\n";
+    cerr<<"Syntax: sdig IP-address port question question-type [dnssec|dnssec-tcp|recurse] [showflags]\n";
     exit(EXIT_FAILURE);
   }
 
@@ -36,6 +37,11 @@ try
   if(argc > 5 && strcmp(argv[5], "recurse")==0)
   {
     recurse=true;
+  }
+
+  if((argc > 5 && strcmp(argv[5], "showflags")==0) || (argc > 6 && strcmp(argv[6], "showflags")==0))
+  {
+    showflags=true;
   }
 
   vector<uint8_t> packet;
@@ -131,6 +137,16 @@ try
       vector<string> parts;
       stringtok(parts, zoneRep);
       cout<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...\n";
+    }
+    else if(!showflags && i->first.d_type == QType::NSEC3)
+    {
+      string zoneRep = i->first.d_content->getZoneRepresentation();
+      vector<string> parts;
+      stringtok(parts, zoneRep);
+      cout<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<parts[4];
+      for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
+        cout<<" "<<*iter;
+      cout<<"\n";
     }
     else if(i->first.d_type == QType::DNSKEY)
     {

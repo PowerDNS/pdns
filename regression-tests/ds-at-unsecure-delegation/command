@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig usa.example.com DS dnssec
+cleandig usa.example.com DS dnssec showflags

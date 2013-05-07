@@ -1,6 +1,6 @@
 0	www.a.b.c.d.e.wtest.com.	IN	A	3600	6.7.8.9
 0	www.a.b.c.d.e.wtest.com.	IN	RRSIG	3600	A 8 7 3600 [expiry] [inception] [keytag] wtest.com. ...
-1	pd15qdsjjbfosu5fg2oqrnlb8r8oifl6.wtest.com.	IN	NSEC3	86400	1 1 1 abcd SHEGK154N8362AG22AR9VDDRF3127M6I A RRSIG
+1	pd15qdsjjbfosu5fg2oqrnlb8r8oifl6.wtest.com.	IN	NSEC3	86400	1 [flags] 1 abcd SHEGK154N8362AG22AR9VDDRF3127M6I A RRSIG
 1	pd15qdsjjbfosu5fg2oqrnlb8r8oifl6.wtest.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] wtest.com. ...
 2	.	IN	OPT	32768	
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0

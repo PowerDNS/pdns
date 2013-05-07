@@ -1,4 +1,2 @@
-This test checks the DS/NS response for a secure referral.
-It was written specifically to verify that we do not sign NS records
-at secure delegations.
+This test checks a secure delegations.
 
