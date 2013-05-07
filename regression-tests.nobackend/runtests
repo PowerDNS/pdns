@@ -1,4 +1,5 @@
 #!/bin/sh
 set -ex
+export testsdir=$(pwd)
 ../regression-tests/runtests
 ../regression-tests/toxml
