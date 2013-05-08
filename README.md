@@ -72,7 +72,7 @@ You need to compile using gmake - regular make only appears to work, but doesn't
 MAC OS X NOTES
 --------------
 
-PowerDNS is available through Homebrew:
+PowerDNS Authoritative Server is available through Homebrew:
 
     $ brew install pdns
 
