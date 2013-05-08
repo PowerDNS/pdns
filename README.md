@@ -1,6 +1,8 @@
 PowerDNS is copyright Ⓒ 2012-2013 by PowerDNS.COM BV & lots of
 contributors, using the GNU GPLv2 license.
 
+All documentation can be found on http://doc.powerdns.com/
+
 This file may lag behind at times. For most recent updates, always check
 http://doc.powerdns.com/changelog.html and http://wiki.powerdns.com
 
@@ -12,23 +14,32 @@ https://github.com/PowerDNS/pdns/issues
 
 But please check if the issue is already reported there first.
 
-COMPILING
----------
-PowerDNS 3.0 and beyond depend on Lua and Boost. To get these libraries,
-install the relevant packages. On Debian and Ubuntu, try:
+SOURCE CODE / GIT
+-----------------
 
-    # apt-get install g++ libboost-program-options-dev \
-      libboost-serialization-dev libpqclient-dev libmysqlclient-dev \
-      libsqlite3-dev libpq-dev
+Source code is available on GitHub:
 
+    $ git clone https://github.com/PowerDNS/pdns.git
+    
+This repository contains the sources both for the PowerDNS Recursor and for PowerDNS Authoritative Server,
+and both can be built from this repository. Both are released separately as .tar.gz, .deb and .rpm however!
+
+COMPILING Authoritative Server
+------------------------------
+PowerDNS Authoritative Server 3.0 and beyond depend on Boost.
+
+On Debian 7.0, the following is useful:
+
+    apt-get install autoconf automake bison flex g++ git libboost-all-dev libtool make pkg-config ragel
+    
 To compile a very clean version, use:
 
-    $ ./configure --with-modules=""
+    $ ./configure --with-modules="" --without-lua
     $ make
     # make install
 
-This generates a PowerDNS binary with no modules, except the bind backend,
-built in, and the pipe-backend available for runtime loading.
+This generates a PowerDNS Authoritative Server binary with no modules, except the bind backend,
+built in.
 
 When ./configure is run without --with-modules, the gmysql module is
 built-in by default and the pipe-backend is compiled for runtime loading.
@@ -37,35 +48,26 @@ To add multiple modules, try:
 
     $ ./configure --with-modules="gmysql gpgsql"
 
-See http://rtfm.powerdns.com/compiling-powerdns.html for more details.
+See http://doc.powerdns.com/compiling-powerdns.html for more details.
 
 Please don't use the 'mysql' backend, it is deprecated. Use the 'gmysql'
 one!
 
-SOURCE CODE / GIT
------------------
-
-Source code is available on GitHub:
-
-    $ git clone https://github.com/PowerDNS/pdns.git
+COMPILING THE RECURSOR
+----------------------
+Either use ./configure --enable-recursor or explicitly do 'make pdns_recursor'. Releases
+are built by first running dist-recursor and compiling from the pdns-recursor-x.y subdirectory.
 
 SOLARIS NOTES
 -------------
 You need gcc 3.x, preferably 3.2! The 'Sunpro' compiler is currently not
 supported (patches are welcome if not too intrusive).
 
-If you encounter problems with the Solaris make, gmake is advised
-
-IPv6 is broken in Solaris 2.7, use 2.8 or higher for that. PowerDNS on
-Solaris 2.7 won't even serve AAAA records.
+If you encounter problems with the Solaris make, gmake is advised.
 
 FREEBSD NOTES
 -------------
-gcc 2.95.x works. You need to compile using gmake - regular make only
-appears to work, but doesn't in fact. Use gmake, not make.
-
-pipebackend does not work due to bad interaction between fork and pthreads.
-Amazingly, running the Linux version under the linuxulator DOES work!
+You need to compile using gmake - regular make only appears to work, but doesn't in fact. Use gmake, not make.
 
 MAC OS X NOTES
 --------------
@@ -91,14 +93,4 @@ LINUX NOTES
 -----------
 None really.
 
-WIN32 NOTES
------------
-See http://rtfm.powerdns.com/compiling-powerdns.html#ON-WINDOWS
-
-Needs Visual C++
-
----
-
-After compiling, you may find the file 'pdns/pdns' helpful, we suggest you
-place it in /etc/init.d/ or your operating system's equivalent.
 
