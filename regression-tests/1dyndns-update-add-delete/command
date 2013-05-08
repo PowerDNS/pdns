@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# check if add-delete.test.dyndns exists. It should not.
-cleandig add-delete.test.dyndns ANY hidesoadetails
+mysqldiff
 
 # add a record
 cleannsupdate <<!
@@ -13,8 +12,8 @@ send
 answer
 !
 
-# query if the record now exists
-cleandig add-delete.test.dyndns ANY
+# check if the record was added
+mysqldiff 1 "Check if add-delete.test.dyndns. 3600 A 127.0.0.108 exists"
 
 # delete the just added record
 cleannsupdate <<!
@@ -26,5 +25,5 @@ send
 answer
 !
 
-# check if the record was deleted.
-cleandig add-delete.test.dyndns ANY hidesoadetails
+# check if the record was deleted
+mysqldiff 2 "Check if record is gone" 1
