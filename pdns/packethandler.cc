@@ -332,10 +332,14 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const string &tar
   bool haveSomething=false;
 
   wildcard=subdomain;
-  while ( chopOff( subdomain ) && !haveSomething ) {
-    B.lookup(QType(QType::ANY), "*."+subdomain, p, sd.domain_id);
+  while( chopOff( subdomain ) && !haveSomething )  {
+    if (subdomain.empty()) {
+      B.lookup(QType(QType::ANY), "*", p, sd.domain_id); 
+    } else {
+      B.lookup(QType(QType::ANY), "*."+subdomain, p, sd.domain_id);
+    }
     while(B.get(rr)) {
-      if(rr.qtype == p->qtype ||rr.qtype.getCode() == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() != QType::RRSIG))
+      if(rr.qtype == p->qtype || rr.qtype.getCode() == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() != QType::RRSIG))
         ret->push_back(rr);
       wildcard="*."+subdomain;
       haveSomething=true;
