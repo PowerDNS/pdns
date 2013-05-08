@@ -104,7 +104,7 @@ public:
   void setCmd(const string &, const string &); //!< Add a command flag
   string &setSwitch(const string &, const string &); //!< Add a command flag
   string helpstring(string prefix=""); //!< generates the --help
-  string configstring(); //!< generates the --mkconfig
+  string configstring(bool current=false); //!< generates the --mkconfig
   bool contains(const string &var, const string &val);
   bool isEmpty(const string &var); //<! checks if variable has value
 

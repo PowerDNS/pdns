@@ -135,6 +135,15 @@ int g_fd1[2], g_fd2[2];
 FILE *g_fp;
 pthread_mutex_t g_guardian_lock = PTHREAD_MUTEX_INITIALIZER;
 
+// The next two methods are not in dynhandler.cc because they use a few items declared in this file.
+static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
+{
+  kill(cpid, SIGKILL); // why?
+  kill(cpid, SIGKILL); // why?
+  sleep(1);
+  return "ok";
+}
+
 static string DLRestHandler(const vector<string>&parts, pid_t ppid)
 {
   string line;
@@ -157,7 +166,7 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
   char mesg[512];
   string response;
   while(fgets(mesg,sizeof(mesg),g_fp)) {
-    if(*mesg=='\n')
+    if(*mesg=='\0')
       break;
     response+=mesg;
   }
@@ -165,13 +174,7 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
   return response;
 }
 
-static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
-{
-  kill(cpid, SIGKILL); // why?
-  kill(cpid, SIGKILL); // why?
-  sleep(1);
-  return "ok";
-}
+
 
 static int guardian(int argc, char **argv)
 {
@@ -561,6 +564,7 @@ int main(int argc, char **argv)
     DynListener::registerFunc("CCOUNTS",&DLCCHandler, "get cache statistics");
     DynListener::registerFunc("SET",&DLSettingsHandler, "set config variables", "<var> <value>");
     DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler, "retrieve slave domain", "<domain>");
+    DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "Retrieve the current configuration");
 
     if(!::arg()["tcp-control-address"].empty()) {
       DynListener* dlTCP=new DynListener(ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));

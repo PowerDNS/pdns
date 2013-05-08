@@ -195,7 +195,7 @@ string DynListener::getLine()
         continue;
       }
 
-      if(d_tcp && !d_tcprange.match(&remote)) { // ????
+      if(d_tcp && !d_tcprange.match(&remote)) { // checks if the remote is within the permitted range.
         L<<Logger::Error<<"Access denied to remote "<<remote.toString()<<" because not allowed"<<endl;
         writen2(d_client, "Access denied to "+remote.toString()+"\n");
         close(d_client);
@@ -251,7 +251,7 @@ string DynListener::getLine()
   return &mesg[0];
 }
 
-void DynListener::sendLine(const string &l)
+void DynListener::sendlines(const string &l)
 {
   if(d_nonlocal) {
     unsigned int sent=0;
@@ -268,13 +268,13 @@ void DynListener::sendLine(const string &l)
     close(d_client);
   }
   else {
-    string line=l;
-    if(!line.empty() && line[line.length()-1]!='\n')
-      line.append("\n");
-    line.append("\n");
-    if((unsigned int)write(1,line.c_str(),line.length()) != line.length())
+    string lines=l;
+    if(!lines.empty() && lines[lines.length()-1] != '\n')
+      lines.append("\n");
+    lines.append(1, '\0');
+    lines.append(1, '\n');
+    if((unsigned int)write(1, lines.c_str(), lines.length()) != lines.length())
       L<<Logger::Error<<"Error sending data to console: "<<stringerror()<<endl;
-      
   }
 }
 
@@ -292,32 +292,28 @@ void DynListener::registerRestFunc(g_funk_t *gf)
 void DynListener::theListener()
 {
   try {
-    map<string,string> parameters;
     signal(SIGPIPE,SIG_IGN);
 
     for(int n=0;;++n) {
-      //      cerr<<"Reading new line, "<<d_client<<endl;
       string line=getLine();
       boost::trim_right(line);
 
       vector<string>parts;
       stringtok(parts,line," ");
       if(parts.empty()) {
-        sendLine("Empty line");
-        continue;
-      }
-      parts[0] = toUpper( parts[0] );
-      if(!s_funcdb.count(parts[0])) {
-        if(parts[0] == "HELP")
-          sendLine(getHelp());
-        else if(s_restfunc)
-          sendLine((*s_restfunc)(parts,d_ppid));
-        else
-          sendLine("Unknown command: '"+parts[0]+"'");
+        sendlines("Empty line");
         continue;
       }
 
-      sendLine((*(s_funcdb[parts[0]].func))(parts,d_ppid));
+      parts[0] = toUpper( parts[0] );
+      if(s_funcdb.count(parts[0])) 
+        sendlines((*(s_funcdb[parts[0]].func))(parts,d_ppid));
+      else if (parts[0] == "HELP")
+        sendlines(getHelp());
+      else if(s_restfunc)
+        sendlines((*s_restfunc)(parts,d_ppid));
+      else
+        sendlines("Unknown command: '"+parts[0]+"'");
     }
   }
   catch(AhuException &AE)
