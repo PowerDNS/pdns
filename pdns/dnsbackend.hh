@@ -201,10 +201,19 @@ public:
   }
 
   //! feeds a record to a zone, needs a call to startTransaction first
-  virtual bool feedRecord(const DNSResourceRecord &rr)
+  virtual bool feedRecord(const DNSResourceRecord &rr, string *ordername=0)
   {
     return false; // no problem!
   }
+  virtual bool feedEnts(int domain_id, set<string> &nonterm)
+  {
+    return false;
+  }
+  virtual bool feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow)
+  {
+    return false;
+  }
+
   //! if this returns true, DomainInfo di contains information about the domain
   virtual bool getDomainInfo(const string &domain, DomainInfo &di)
   {

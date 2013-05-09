@@ -106,9 +106,14 @@ public:
     declare( suffix, "info-all-slaves-query", "","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare( suffix, "supermaster-query", "", "select account from supermasters where ip='%s' and nameserver='%s'");
     declare( suffix, "insert-slave-query", "", "insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')");
+
     declare( suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')");
-    declare( suffix, "insert-record-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,name,auth) values ('%s',%d,%d,'%s',%d,'%s', %d)");
-    
+    declare( suffix, "insert-record-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,name,auth) values ('%s',%d,%d,'%s',%d,'%s',%d)");
+    declare( suffix, "insert-record-order-query-auth","", "insert into records (content,ttl,prio,type,domain_id,name,ordername,auth) values ('%s',%d,%d,'%s',%d,'%s','%s','%d')");
+    declare( suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,name) values (null,'%d','%s')");
+    declare( suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,auth) values (null,'%d','%s','1')");
+    declare( suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,ordername,auth) values (null,'%d','%s','%s','1')");
+
     declare( suffix, "update-serial-query", "", "update domains set notified_serial=%d where id=%d");
     declare( suffix, "update-lastcheck-query", "", "update domains set last_check=%d where id=%d");
     declare (suffix, "zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");

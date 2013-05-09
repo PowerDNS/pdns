@@ -32,7 +32,9 @@ public:
   bool startTransaction(const string &domain, int domain_id=-1);
   bool commitTransaction();
   bool abortTransaction();
-  bool feedRecord(const DNSResourceRecord &r);
+  bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
+  bool feedEnts(int domain_id, set<string>& nonterm);
+  bool feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow);
   bool createSlaveDomain(const string &ip, const string &domain, const string &account);
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
   void setFresh(uint32_t domain_id);
@@ -86,6 +88,9 @@ private:
   string d_SuperMasterInfoQuery;
   string d_InsertSlaveZoneQuery;
   string d_InsertRecordQuery;
+  string d_InsertEntQuery;
+  string d_InsertRecordOrderQuery;
+  string d_InsertEntOrderQuery;
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;

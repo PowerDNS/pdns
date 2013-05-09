@@ -233,7 +233,7 @@ bool Bind2Backend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const st
   return false;
 }
 
-bool Bind2Backend::feedRecord(const DNSResourceRecord &r)
+bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
   string qname=r.qname;
 
