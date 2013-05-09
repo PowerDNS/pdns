@@ -13285,7 +13285,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
     <listitem>
     <para>
       This option tells PowerDNS to ONLY notify the networks in the parameter. There is also a global <command>notify-only</command> setting.
-      The ip's in <command>also-notify</command> will still receive a notify if they match this range.
+      The IPs in <command>also-notify</command> will still receive a notify if they match this range.
     </para>
   </listitem>
   </varlistentry>
@@ -14199,7 +14199,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
             <listitem>
               <para>
                 This option tells PowerDNS to ONLY notify the networks in the parameter. The default is empty which notifies all possible
-                networks. The ip's in <command>also-notify</command> are not checked and will always still receive a NOTIFY.
+                networks. The IPs in <command>also-notify</command> are not checked and will always still receive a NOTIFY.
               </para>
             </listitem>
           </varlistentry>
