@@ -11,7 +11,9 @@ script:
  - cd pdns
  - make testrunner
  - ./testrunner
- - cd ../regression-tests.nobackend
+ - cd docs
+ - make
+ - cd ../../regression-tests.nobackend
  - ./runtests
  - cd ../regression-tests
  - touch verify-dnssec-zone/skip
