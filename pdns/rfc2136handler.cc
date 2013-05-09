@@ -856,11 +856,13 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   L<<Logger::Notice<<msgPrefix<<"Increasing SOA serial ("<<oldSerial<<" -> "<<soa2Update.serial<<")"<<endl;
 
   //Correct ordername + auth flag
-  if(haveNSEC3) {
+  if (haveNSEC3 && narrow)
+    di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, newRec.qname, true);
+  else if (haveNSEC3) {
     string hashed;
-    if(!narrow) 
-      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, newRec.qname)));
-        
+    if (!narrow)
+      hashed = toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, newRec.qname)));
+
     di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, newRec.qname, hashed, true);
   }
   else // NSEC
