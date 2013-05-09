@@ -3,14 +3,16 @@ compiler:
   - gcc
 before_script:
  - sudo apt-get update -qq
- - sudo apt-get install -qq libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool
+ - sudo apt-get install -qq libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev
 script:
  - ./bootstrap
- - ./configure --with-modules='gmysql' --with-sqlite3 --enable-unit-tests
+ - ./configure --with-modules='gmysq tinydnsl' --with-sqlite3 --enable-unit-tests
  - make -j 4
  - cd pdns
  - make testrunner
  - ./testrunner
+ - cd ../regression-tests.nobackend
+ - ./runtests
  - cd ../regression-tests
  - touch verify-dnssec-zone/skip
  - ./start-test-stop 5300 bind
@@ -30,6 +32,7 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-optout
  - ./start-test-stop 5300 gmysql-nsec3-optout-presigned 
  - ./start-test-stop 5300 gmysql-nsec3-narrow
+ - ./start-test-stop 5300 tinydns 
 notifications:
   irc:
     channels:
