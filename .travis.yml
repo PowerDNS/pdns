@@ -13,9 +13,7 @@ script:
  - ./testrunner
  - cd docs
  - make
- - cd ../../regression-tests.nobackend
- - ./runtests
- - cd ../regression-tests
+ - cd ../../regression-tests
  - touch verify-dnssec-zone/skip
  - ./start-test-stop 5300 bind
  - ./start-test-stop 5300 bind-presigned
@@ -35,6 +33,8 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-optout-presigned 
  - ./start-test-stop 5300 gmysql-nsec3-narrow
  - ./start-test-stop 5300 tinydns 
+ - cd ../regression-tests.nobackend/
+ - ./runtests
 notifications:
   irc:
     channels:
