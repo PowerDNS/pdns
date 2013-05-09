@@ -1,0 +1,2 @@
+This test checks if adding/updating an NSEC3PARAM with other records in one go works.
+When adding/updating the NSEC3PARAM, the new values must also be used on the other records as well.

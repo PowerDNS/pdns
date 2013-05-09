@@ -16,11 +16,11 @@ if [ "${context: -9}" = "-nodnssec" ]
 then
 	mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 		"$GMYSQLDB" \
-		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND r.type != 'SOA' ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
+		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
 else
 	mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 		"$GMYSQLDB" \
-		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl, CONCAT('''', CONCAT(r.ordername, '''')), r.auth FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND r.type != 'SOA' ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
+		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl, CONCAT('''', CONCAT(r.ordername, '''')), r.auth FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
 fi
 
 if [ ! "$step" == "start" ]
