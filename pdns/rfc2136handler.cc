@@ -218,13 +218,14 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       delnonterm.insert(rrLabel); // always remove any ENT's in the place where we're going to add a record.
       DNSResourceRecord newRec(*rr);
       newRec.domain_id = di->id;
+      newRec.auth = (rrType.getCode() != QType::NS);
       di->backend->feedRecord(newRec);
       changedRecords++;
 
 
       // because we added a record, we need to fix DNSSEC data.
       string shorter(rrLabel);
-      bool auth=true;
+      bool auth=newRec.auth;
 
       if (shorter != di->zone && rrType != QType::DS) {
         while(chopOff(shorter)) {
@@ -234,10 +235,10 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           di->backend->lookup(QType(QType::ANY), shorter);
           while (di->backend->get(rec)) {
             foundShorter = true;
-            if (rec.qtype == QType::NS)
+            if (rec.qtype == QType::NS) // are we inserting below a delegate?
               auth=false;
           }
-          if (!foundShorter)
+          if (!foundShorter) 
             insnonterm.insert(shorter);
           else
             break; // if we find a shorter record, we can stop searching
@@ -273,6 +274,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // Auth can only be false when the rrLabel is not the zone 
       if (auth == false && rrType == QType::NS) {
         DLOG(L<<msgPrefix<<"Going to fix auth flags below "<<rrLabel<<endl);
+        insnonterm.clear(); // clean ENT's again, as it's a delegate and auth=false;
         vector<string> qnames;
         di->backend->listSubZone(rrLabel, di->id);
         while(di->backend->get(rec)) {
