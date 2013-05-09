@@ -1,0 +1,35 @@
+#!/bin/sh
+
+mysqldiff
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add a.b.c.delegate.test.dyndns. 3600 NS ns1.test.dyndns
+update add c.delegate.test.dyndns. 3600 NS ns1.test.dyndns
+send
+answer
+!
+
+mysqldiff 1 "Check if delegates are added."
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete c.delegate.test.dyndns.
+send
+answer
+!
+
+mysqldiff 2 "Check if c.delegate.test.dyndns. was removed correctly."
+
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete a.b.c.delegate.test.dyndns.
+send
+answer
+!
+
+mysqldiff 3 "Check if records are all removed"

@@ -1,0 +1,59 @@
+TODO: UPDATE!
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if delegates are added.
+--- Start: diff start step.1 ---
+< test.dyndns	MX	10	host-1.test.dyndns	3600	NULL	1
+< test.dyndns	MX	20	host-2.test.dyndns	3600	NULL	1
+< test.dyndns	NS	0	ns1.test.dyndns	3600	NULL	1
+< test.dyndns	NS	0	ns2.test.dyndns	3600	NULL	1
+> a.b.c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600	NULL	0
+> c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600	NULL	0
+> test.dyndns	MX	10	host-1.test.dyndns	3600	''	1
+> test.dyndns	MX	20	host-2.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns1.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns2.test.dyndns	3600	''	1
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if c.delegate.test.dyndns. was removed correctly.
+--- Start: diff start step.2 ---
+< test.dyndns	MX	10	host-1.test.dyndns	3600	NULL	1
+< test.dyndns	MX	20	host-2.test.dyndns	3600	NULL	1
+< test.dyndns	NS	0	ns1.test.dyndns	3600	NULL	1
+< test.dyndns	NS	0	ns2.test.dyndns	3600	NULL	1
+> a.b.c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600	NULL	0
+> test.dyndns	MX	10	host-1.test.dyndns	3600	''	1
+> test.dyndns	MX	20	host-2.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns1.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns2.test.dyndns	3600	''	1
+--- End: diff start step.2 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if records are all removed
+--- Start: diff start step.3 ---
+< test.dyndns	MX	10	host-1.test.dyndns	3600	NULL	1
+< test.dyndns	MX	20	host-2.test.dyndns	3600	NULL	1
+< test.dyndns	NS	0	ns1.test.dyndns	3600	NULL	1
+< test.dyndns	NS	0	ns2.test.dyndns	3600	NULL	1
+> test.dyndns	MX	10	host-1.test.dyndns	3600	''	1
+> test.dyndns	MX	20	host-2.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns1.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns2.test.dyndns	3600	''	1
+--- End: diff start step.3 ---
+
