@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig blah.test.com MX dnssec
+cleandig blah.test.com MX dnssec showflags

@@ -459,9 +459,9 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
 
   DNSResourceRecord rr;
   if(!unhashed.empty()) {
-    B.lookup(QType(QType::ANY), unhashed);
+    B.lookup(QType(QType::ANY), unhashed, NULL, sd.domain_id);
     while(B.get(rr)) {
-      if(rr.domain_id == sd.domain_id && rr.qtype.getCode()) // skip out of zone data and empty non-terminals
+      if(rr.qtype.getCode() && (rr.qtype.getCode() == QType::NS || rr.auth)) // skip empty non-terminals
         n3rc.d_set.insert(rr.qtype.getCode());
     }
 
@@ -471,7 +471,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
     }
   }
 
-  if (n3rc.d_set.size())
+  if (n3rc.d_set.size() && !(n3rc.d_set.size() == 1 && n3rc.d_set.count(QType::NS)))
     n3rc.d_set.insert(QType::RRSIG);
   
   n3rc.d_nexthash=end;
@@ -571,7 +571,7 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
 
 void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& wildcard, const string& auth, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
-  // L<<"mode="<<mode<<" target="<<target<<" wildcard="<<wildcard<<" auth="<<auth<<endl;
+  DLOG(L<<"mode="<<mode<<" target="<<target<<" wildcard="<<wildcard<<" auth="<<auth<<endl);
   
   SOAData sd;
   sd.db = (DNSBackend*)-1;
@@ -604,7 +604,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     unhashed=(mode == 0 || mode == 5) ? target : closest;
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
-    // L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl;
+    DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
   
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
     DLOG(L<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
@@ -620,7 +620,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     while( chopOff( next ) && !pdns_iequals(next, closest));
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
-    // L<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl;
+    DLOG(L<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
     getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after);
     DLOG(L<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
@@ -632,7 +632,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     unhashed=dotConcat("*", closest);
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
-    // L<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl;
+    DLOG(L<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
     
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, (mode != 2), unhashed, before, after);
     DLOG(L<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
@@ -1010,7 +1010,6 @@ bool PacketHandler::addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const st
   while(B.get(rr)) {
     gotOne=true;
     rr.d_place = DNSResourceRecord::AUTHORITY;
-    rr.auth=true; // please sign it!
     r->addRecord(rr);
   }
   return gotOne;
@@ -1269,8 +1268,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
         continue; //TODO: this actually means addRRSig should check if the RRSig is already there.
 
-      if(rr.qtype.getCode() == QType::DS)
-        rr.auth = 1;
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.qtype == p->qtype)<<", "<<rr.qtype.getName()<<endl;
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
         weDone=1;

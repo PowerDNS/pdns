@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig c.test.com SOA dnssec
+cleandig c.test.com SOA dnssec showflags

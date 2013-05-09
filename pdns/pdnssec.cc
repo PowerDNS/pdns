@@ -199,56 +199,47 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
       }
       else
         sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, qname, auth);
-      if(realrr)
-      {
-        if (dsnames.count(qname))
-          sd.db->setDNSSECAuthOnDsRecord(sd.domain_id, qname);
-        if (!auth || nsset.count(qname)) {
-          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "NS");
-          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
-          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
-        }
-      }
     }
     else // NSEC
     {
-      if(realrr)
-      {
-        sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
-        if (dsnames.count(qname))
-          sd.db->setDNSSECAuthOnDsRecord(sd.domain_id, qname);
-        if (!auth || nsset.count(qname)) {
-          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
-          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
-        }
-      }
-      else
-      {
+      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
+      if (!realrr)
         sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, qname, auth);
-      }
     }
 
-    if(auth && realrr && doent)
+    if(realrr)
     {
-      shorter=qname;
-      while(!pdns_iequals(shorter, zone) && chopOff(shorter))
+      if (dsnames.count(qname))
+        sd.db->setDNSSECAuthOnDsRecord(sd.domain_id, qname);
+      if (!auth || nsset.count(qname)) {
+        if(haveNSEC3 && ns3pr.d_flags)
+          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "NS");
+        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
+        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
+      }
+
+      if(auth && doent)
       {
-        if(!qnames.count(shorter) && !nonterm.count(shorter))
+        shorter=qname;
+        while(!pdns_iequals(shorter, zone) && chopOff(shorter))
         {
-          if(!(maxent))
+          if(!qnames.count(shorter) && !nonterm.count(shorter))
           {
-            cerr<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
-            insnonterm.clear();
-            delnonterm.clear();
-            doent=false;
-            break;
+            if(!(maxent))
+            {
+              cerr<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
+              insnonterm.clear();
+              delnonterm.clear();
+              doent=false;
+              break;
+            }
+            nonterm.insert(shorter);
+            if (!delnonterm.count(shorter))
+              insnonterm.insert(shorter);
+            else
+              delnonterm.erase(shorter);
+            --maxent;
           }
-          nonterm.insert(shorter);
-          if (!delnonterm.count(shorter))
-            insnonterm.insert(shorter);
-          else
-            delnonterm.erase(shorter);
-          --maxent;
         }
       }
     }
@@ -1061,16 +1052,14 @@ try
       cerr<<"Syntax: pdnssec set-nsec3 ZONE 'params' [narrow]"<<endl;
       return 0;
     }
-    string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 1 1 ab";
+    string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
     bool narrow = cmds.size() > 3 && cmds[3]=="narrow";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
-    if(!ns3pr.d_flags) {
-      cerr<<"PowerDNS only implements opt-out zones, please set the second parameter to '1' (example, '1 1 1 ab')"<<endl;
-      return 0;
-    }
-    
     dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
-    cerr<<"NSEC3 set, please rectify-zone if your backend needs it"<<endl;
+    if (!ns3pr.d_flags)
+      cerr<<"NSEC3 set, please rectify-zone if your backend needs it"<<endl;
+    else
+      cerr<<"NSEC3 (opt-out) set, please rectify-zone if your backend needs it"<<endl;
   }
   else if(cmds[0]=="set-presigned") {
     if(cmds.size() < 2) {

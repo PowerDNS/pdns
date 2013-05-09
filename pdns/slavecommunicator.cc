@@ -260,7 +260,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }while(chopOff(shorter));
       }
 
-      if(dnssecZone && haveNSEC3)
+      if(haveNSEC3)
       {
         if(!narrow) { 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
@@ -268,47 +268,42 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
         else
           di.backend->nullifyDNSSECOrderNameAndUpdateAuth(domain_id, qname, auth);
-        if(realrr)
-        {
-          if (dsnames.count(qname))
-            di.backend->setDNSSECAuthOnDsRecord(domain_id, qname);
-          if (!auth || nsset.count(qname)) {
-            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "NS");
-            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
-            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
-          }
-        }
       }
       else // NSEC
       {
-        if(realrr)
-        {
-          di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
-          if (dsnames.count(qname))
-            di.backend->setDNSSECAuthOnDsRecord(domain_id, qname);
-          if (!auth || nsset.count(qname)) {
-            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
-            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
-          }
-        }
+        di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
+        if (!realrr)
+          di.backend->nullifyDNSSECOrderNameAndUpdateAuth(domain_id, qname, auth);
       }
 
-      if(auth && realrr && doent)
+      if(realrr)
       {
-        shorter=qname;
-        while(!pdns_iequals(shorter, domain) && chopOff(shorter))
+        if (dsnames.count(qname))
+          di.backend->setDNSSECAuthOnDsRecord(domain_id, qname);
+        if (!auth || nsset.count(qname)) {
+          if(haveNSEC3 && gotOptOutFlag)
+            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "NS");
+          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
+          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+        }
+
+        if(auth && doent)
         {
-          if(!qnames.count(shorter) && !nonterm.count(shorter))
+          shorter=qname;
+          while(!pdns_iequals(shorter, domain) && chopOff(shorter))
           {
-            if(!(maxent))
+            if(!qnames.count(shorter) && !nonterm.count(shorter))
             {
-              L<<Logger::Error<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
-              nonterm.empty();
-              doent=false;
-              break;
+              if(!(maxent))
+              {
+                L<<Logger::Error<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
+                nonterm.empty();
+                doent=false;
+                break;
+              }
+              nonterm.insert(shorter);
+              --maxent;
             }
-            nonterm.insert(shorter);
-            --maxent;
           }
         }
       }

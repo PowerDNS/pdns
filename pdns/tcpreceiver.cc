@@ -616,11 +616,14 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     }
   }
 
+  uint8_t flags;
+
   if(NSEC3Zone) { // now stuff in the NSEC3PARAM
+    flags = ns3pr.d_flags;
     rr.qtype = QType(QType::NSEC3PARAM);
     ns3pr.d_flags = 0;
     rr.content = ns3pr.getZoneRepresentation();
-    ns3pr.d_flags = 1;
+    ns3pr.d_flags = flags;
     string keyname = hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname);
     NSECXEntry& ne = nsecxrepo[keyname];
     
@@ -657,7 +660,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
-        ne.d_auth = (ne.d_auth || rr.auth);
+        ne.d_auth = (ne.d_auth || rr.auth || (NSEC3Zone && !ns3pr.d_flags));
         if (rr.qtype.getCode()) {
           ne.d_set.insert(rr.qtype.getCode());
         }
