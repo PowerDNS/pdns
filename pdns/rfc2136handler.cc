@@ -358,7 +358,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         vector<string> changeAuth;
         di->backend->listSubZone(rrLabel, di->id);
         while (di->backend->get(rec)) {
-          if (rec.qtype.getCode()) // skip ENT records, they are always false.
+          if (rec.qtype.getCode()) // skip ENT records, they are always auth=false
             changeAuth.push_back(rec.qname);
         }
         for (vector<string>::const_iterator changeRec=changeAuth.begin(); changeRec!=changeAuth.end(); ++changeRec) {
@@ -383,7 +383,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       while (di->backend->get(rec)) {
         if (rec.qname == rrLabel && !count(recordsToDelete.begin(), recordsToDelete.end(), rec))
           foundOtherWithSameName = true;
-        if (rec.qname != rrLabel)
+        if (rec.qname != rrLabel && rec.qtype.getCode() != QType::NS) //Skip NS records, as this would be a delegate that we can ignore as this does not require us to create a ENT
           foundDeeper = true;
       }
 
