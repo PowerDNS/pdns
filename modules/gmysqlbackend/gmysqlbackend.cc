@@ -30,7 +30,7 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
     L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw AhuException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
-  L<<Logger::Info<<mode<<" Connection successful"<<endl;
+  L<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
 }
 
 class gMySQLFactory : public BackendFactory
