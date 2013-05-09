@@ -37,6 +37,7 @@
 #include "resolver.hh"
 #include "communicator.hh"
 #include "dnsproxy.hh"
+#include "version.hh"
 
 #if 0
 #undef DLOG
@@ -265,7 +266,7 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
     const static string mode=::arg()["version-string"];
   
     if(mode.empty() || mode=="full") 
-      rr.content="Served by POWERDNS "VERSION" $Id$";
+      rr.content=fullVersionString();
     else if(mode=="anonymous") {
       r->setRcode(RCode::ServFail);
       return 1;

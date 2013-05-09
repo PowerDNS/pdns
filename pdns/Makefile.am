@@ -27,7 +27,7 @@ else
 SUBDIRS= ext/polarssl-1.1.2 backends 
 endif
 
-BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h
+BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h
 
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
@@ -67,7 +67,8 @@ aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc md5.cc \
 md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns.cc lua-auth.cc lua-auth.hh serialtweaker.cc \
-ednssubnet.cc ednssubnet.hh cachecleaner.hh json.cc json.hh 
+ednssubnet.cc ednssubnet.hh cachecleaner.hh json.cc json.hh \
+version.hh version.cc
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic 
@@ -95,7 +96,7 @@ endif
 if ORACLE
 pdns_server_LDADD += $(ORACLE_LIBS)
 endif
-  
+
 pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
@@ -259,7 +260,7 @@ rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc ht
 aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
 lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh json_ws.cc json_ws.hh \
-json.cc json.hh
+json.cc json.hh version.hh version.cc
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)
 pdns_recursor_LDADD=
@@ -280,3 +281,26 @@ backends/bind/bindlexer.c:
 
 backends/bind/bindparser.cc:
 	make -C backends/bind bindparser.cc
+
+
+build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
+build_host=$(shell id -u -n)@$(shell hostname -f)
+if RELEASE_BUILD
+pdns_version=$(PACKAGE_VERSION)
+dist_host=$(DIST_HOST)
+else
+git_version=$(shell git describe --always --dirty=+ 2>/dev/null)
+# Do the test in shell, so we don't confuse automake with ifeq/ifneq.
+pdns_version=$(shell test -z "$(git_version)" && echo UNKNOWN || echo "git-$(git_version)")
+dist_host=$(build_host)
+endif
+
+.PHONY: version_generated.h
+version_generated.h:
+	echo '#ifndef VERSION_GENERATED_H' > $@
+	echo '#define VERSION_GENERATED_H' >> $@
+	echo '#define PDNS_VERSION "$(pdns_version)"' >> $@
+	echo '#define DIST_HOST "$(dist_host)"' >> $@
+	echo '#define BUILD_DATE "$(build_date)"' >> $@
+	echo '#define BUILD_HOST "$(build_host)"' >> $@
+	echo '#endif //!VERSION_GENERATED_H' >> $@
