@@ -20210,6 +20210,14 @@ Zdelegated.dnssec-parent.com:ns1.delegated.dnssec-parent.com.:ahu.example.com.:2
 +ns1.delegated.dnssec-parent.com:4.5.6.7:3600
 +ns2.delegated.dnssec-parent.com:5.6.7.8:3600
 Cwww.delegated.dnssec-parent.com:delegated.dnssec-parent.com.:3600
+#2005092501 auto axfr-get
+Zsecure-delegated.dnssec-parent.com:ns1.secure-delegated.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
++secure-delegated.dnssec-parent.com:9.9.9.9:3600
+&secure-delegated.dnssec-parent.com::ns1.secure-delegated.dnssec-parent.com.:3600
+&secure-delegated.dnssec-parent.com::ns2.secure-delegated.dnssec-parent.com.:3600
++ns1.secure-delegated.dnssec-parent.com:1.2.3.4:3600
++ns2.secure-delegated.dnssec-parent.com:5.6.7.8:3600
+Cwww.secure-delegated.dnssec-parent.com:secure-delegated.dnssec-parent.com.:3600
 #2000081501 auto axfr-get
 Zminimal.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
 &minimal.com::ns1.example.com.:120
