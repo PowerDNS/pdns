@@ -226,24 +226,22 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       string shorter(rrLabel);
       bool auth=true;
 
-      set<string> insnonterm;
       if (shorter != di->zone && rrType != QType::DS) {
-        do {
+        while(chopOff(shorter)) {
           if (shorter == di->zone)
             break;
-
           bool foundShorter = false;
           di->backend->lookup(QType(QType::ANY), shorter);
           while (di->backend->get(rec)) {
-            if (rec.qname != rrLabel)
-              foundShorter = true;
+            foundShorter = true;
             if (rec.qtype == QType::NS)
               auth=false;
           }
-          if (!foundShorter && shorter != rrLabel && shorter != di->zone)
+          if (!foundShorter)
             insnonterm.insert(shorter);
-
-        } while(chopOff(shorter));
+          else
+            break; // if we find a shorter record, we can stop searching
+        }
       }
 
       if(*haveNSEC3)
@@ -355,13 +353,29 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     if (recordsToDelete.size()) {
       // If we remove an NS which is not at apex of the zone, we need to make everthing below it auth=true as those now are not delegated anymore.
       if (rrType == QType::NS && rrLabel != di->zone) {
-        vector<string> changeAuth;
+        vector<string> belowOldDelegate, nsRecs, updateAuthFlag;
         di->backend->listSubZone(rrLabel, di->id);
         while (di->backend->get(rec)) {
           if (rec.qtype.getCode()) // skip ENT records, they are always auth=false
-            changeAuth.push_back(rec.qname);
+            belowOldDelegate.push_back(rec.qname);
+          if (rec.qtype.getCode() == QType::NS && rec.qname != rrLabel)
+            nsRecs.push_back(rec.qname);
         }
-        for (vector<string>::const_iterator changeRec=changeAuth.begin(); changeRec!=changeAuth.end(); ++changeRec) {
+
+        for(vector<string>::const_iterator belowOldDel=belowOldDelegate.begin(); belowOldDel!= belowOldDelegate.end(); belowOldDel++)
+        {
+          bool isBelowDelegate = false;
+          for(vector<string>::const_iterator ns=nsRecs.begin(); ns!= nsRecs.end(); belowOldDel++) {
+            if (endsOn(*ns, *belowOldDel)) {
+              isBelowDelegate=true;
+              break;
+            }
+          }
+          if (!isBelowDelegate)
+            updateAuthFlag.push_back(*belowOldDel);
+        }
+
+        for (vector<string>::const_iterator changeRec=updateAuthFlag.begin(); changeRec!=updateAuthFlag.end(); ++changeRec) {
           if(*haveNSEC3)  {
             string hashed;
             if(! *narrow) 
@@ -396,6 +410,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         while (shorter != di->zone) {
           chopOff(shorter);
           bool foundRealRR = false;
+          bool foundEnt = false;
 
           // The reason for a listSubZone here is because might go up the tree and find the ENT of another branch
           // consider these non ENT-records:
@@ -404,12 +419,16 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           // if we delete b.c.d.e.test.com, we go up to d.e.test.com and then find b.d.e.test.com because that's below d.e.test.com.
           // At that point we can stop deleting ENT's because the tree is in tact again.
           di->backend->listSubZone(shorter, di->id);
+          
           while (di->backend->get(rec)) {
             if (rec.qtype.getCode())
               foundRealRR = true;
+            else
+              foundEnt = true;
           }
           if (!foundRealRR)
-            delnonterm.insert(shorter);
+            if (foundEnt) // only delete the ENT if we actually found one.
+              delnonterm.insert(shorter);
           else
             break;
         }

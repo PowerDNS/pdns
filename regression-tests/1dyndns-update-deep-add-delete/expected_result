@@ -28,6 +28,45 @@ Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
+Check if records are added
+--- Start: diff start step.1 ---
+> a.b.c.d.e.f.test.dyndns	A	0	127.0.0.1	3600
+> a.b.d.e.f.test.dyndns	A	0	127.0.0.1	3600
+> b.c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL
+> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL
+> c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL
+> d.e.f.test.dyndns	NULL	NULL	NULL	NULL
+> e.f.test.dyndns	NULL	NULL	NULL	NULL
+> f.test.dyndns	NULL	NULL	NULL	NULL
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
+0	a.b.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	IN	OPT	32768	
+Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
+Check if a.b.c.d.e.f is removed correctly
+--- Start: diff start step.2 ---
+> a.b.d.e.f.test.dyndns	A	0	127.0.0.1	3600
+> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL
+> d.e.f.test.dyndns	NULL	NULL	NULL	NULL
+> e.f.test.dyndns	NULL	NULL	NULL	NULL
+> f.test.dyndns	NULL	NULL	NULL	NULL
+--- End: diff start step.2 ---
+
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
@@ -46,3 +85,8 @@ Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
 2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
+Check if everything is removed correctly
+--- Start: diff start step.3 ---
+no differnce
+--- End: diff start step.3 ---
+
