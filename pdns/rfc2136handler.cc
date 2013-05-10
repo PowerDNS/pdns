@@ -117,7 +117,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     DLOG(L<<msgPrefix<<"Add/Update record (QClass == IN) "<<rrLabel<<"|"<<rrType.getName()<<endl);
 
     if (rrType == QType::NSEC3PARAM) {
-      L<<Logger::Notice<<msgPrefix<<"Setting NSEC3PARAM for zone, resetting ordernames."<<endl;  
+      L<<Logger::Notice<<msgPrefix<<"Setting NSEC3PARAM for zone, resetting ordernames and auth flags."<<endl;  
       NSEC3PARAMRecordContent nsec3param(rr->d_content->getZoneRepresentation(), di->zone);
       d_dk.setNSEC3PARAM(di->zone, nsec3param, (*narrow));
       *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
