@@ -218,7 +218,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       delnonterm.insert(rrLabel); // always remove any ENT's in the place where we're going to add a record.
       DNSResourceRecord newRec(*rr);
       newRec.domain_id = di->id;
-      newRec.auth = (rrType.getCode() != QType::NS);
+      newRec.auth = (rrLabel == di->zone || rrType.getCode() != QType::NS);
       di->backend->feedRecord(newRec);
       changedRecords++;
 
