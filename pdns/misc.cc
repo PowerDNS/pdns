@@ -43,6 +43,7 @@
 #include <sys/types.h>
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
+#include "logger.hh"
 
 bool g_singleThreaded;
 

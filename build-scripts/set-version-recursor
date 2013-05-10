@@ -4,5 +4,8 @@ DEB_VERSION=$2
 RPM_VERSION=$3
 [ -z "$VERSION" -o -z "$DEB_VERSION" -o -z "$RPM_VERSION" ] && exit 1
 
+DIST_HOST="$(id -u -n)@$(hostname -f)"
+
 ssed -r "s/^VERSION=(.*)/VERSION=$VERSION/" -i pdns/dist-recursor
+ssed -r "s/^DIST_HOST=(.*)/DIST_HOST=$DIST_HOST/" -i pdns/dist-recursor
 ssed -r "s/Version: (.*)/Version: $RPM_VERSION/" -i pdns/pdns-recursor.spec

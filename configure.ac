@@ -1,7 +1,10 @@
 dnl intro
-AC_INIT([pdns],[3.2])
+dnl The following lines may be patched by set-version-auth.
+AC_INIT([pdns], [git])
+dnl AC_SUBST([DIST_HOST], [TO_BE_PATCHED])
+dnl End patch area.
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
-AM_INIT_AUTOMAKE([tar-ustar])
+AM_INIT_AUTOMAKE([tar-ustar -Wno-portability])
 AC_CANONICAL_HOST
 LT_INIT
 AC_CONFIG_MACRO_DIR([m4])
@@ -19,6 +22,8 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LANG_CPLUSPLUS
+
+AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
 BOOST_REQUIRE([1.34])
 BOOST_FOREACH

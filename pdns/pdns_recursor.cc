@@ -65,6 +65,7 @@
 #include "mplexer.hh"
 #include "config.h"
 #include "lua-recursor.hh"
+#include "version.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -1666,20 +1667,7 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
   }
 
-  L<<Logger::Warning<<"PowerDNS recursor "<<VERSION<<" (C) 2001-2013 PowerDNS.COM BV ("<<__DATE__", "__TIME__;
-#ifdef __GNUC__
-  L<<", gcc "__VERSION__;
-#endif // add other compilers here
-#ifdef _MSC_VER
-  L<<", MSVC "<<_MSC_VER;
-#endif
-  L<<") starting up"<<endl;
-  
-  L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-    "This is free software, and you are welcome to redistribute it "
-    "according to the terms of the GPL version 2."<<endl;
-  
-  L<<Logger::Warning<<"Operating in "<<(sizeof(unsigned long)*8) <<" bits mode"<<endl;
+  showProductVersion();
   
   #if 0
   unsigned int maxFDs, curFDs;
@@ -1993,6 +1981,7 @@ int main(int argc, char **argv)
   g_argc = argc;
   g_argv = argv;
   g_stats.startupTime=time(0);
+  versionSetProduct("Recursor");
   reportBasicTypes();
   reportOtherTypes();
 
@@ -2060,7 +2049,7 @@ int main(int argc, char **argv)
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
     ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
-    ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Recursor "VERSION" $Id$";
+    ::arg().set("version-string", "string reported on version.pdns or version.bind")=fullVersionString();
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
@@ -2085,7 +2074,7 @@ int main(int argc, char **argv)
     
 
     ::arg().setCmd("help","Provide a helpful message");
-    ::arg().setCmd("version","Print version string ("VERSION")");
+    ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
     L.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
@@ -2112,7 +2101,7 @@ int main(int argc, char **argv)
       exit(99);
     }
     if(::arg().mustDo("version")) {
-      cerr<<"version: "VERSION<<endl;
+      showProductVersion();
       exit(99);
     }
 

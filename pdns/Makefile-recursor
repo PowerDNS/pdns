@@ -20,13 +20,26 @@ dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
 dns_random.o aescrypt.o aeskey.o aes_modes.o aestab.o dnslabeltext.o \
 lua-pdns.o lua-recursor.o randomhelper.o recpacketcache.o dns.o \
-reczones.o base32.o nsecrecords.o json.o json_ws.o
+reczones.o base32.o nsecrecords.o json.o json_ws.o version.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
 	unix_utility.o logger.o qtype.o
 
 # what we need 
-all: message pdns_recursor rec_control 
+all: message version_generated.h pdns_recursor rec_control
+
+# Version
+build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
+build_host=$(shell id -u -n)@$(shell hostname -f)
+.PHONY: version_generated.h
+version_generated.h:
+	echo '#ifndef VERSION_GENERATED_H' > $@
+	echo '#define VERSION_GENERATED_H' >> $@
+	echo '#include "config.h"' >> $@
+	echo '#define PDNS_VERSION VERSION' >> $@
+	echo '#define BUILD_DATE "$(build_date)"' >> $@
+	echo '#define BUILD_HOST "$(build_host)"' >> $@
+	echo '#endif //!VERSION_GENERATED_H' >> $@
 
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
@@ -88,7 +101,7 @@ clean: binclean
 
 binclean:
 	-rm -f *.o  pdns_recursor rec_control optional/*.o
-	
+
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.c *.hh > $@
 
