@@ -28,19 +28,6 @@ REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
 # what we need 
 all: message version_generated.h pdns_recursor rec_control
 
-# Version
-build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host=$(shell id -u -n)@$(shell hostname -f)
-.PHONY: version_generated.h
-version_generated.h:
-	echo '#ifndef VERSION_GENERATED_H' > $@
-	echo '#define VERSION_GENERATED_H' >> $@
-	echo '#include "config.h"' >> $@
-	echo '#define PDNS_VERSION VERSION' >> $@
-	echo '#define BUILD_DATE "$(build_date)"' >> $@
-	echo '#define BUILD_HOST "$(build_host)"' >> $@
-	echo '#endif //!VERSION_GENERATED_H' >> $@
-
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
 
@@ -65,6 +52,20 @@ endif
 
 
 LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
+
+# Version
+build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
+build_host=$(shell id -u -n)@$(shell hostname -f)
+
+.PHONY: version_generated.h
+version_generated.h:
+	echo '#ifndef VERSION_GENERATED_H' > $@
+	echo '#define VERSION_GENERATED_H' >> $@
+	echo '#include "config.h"' >> $@
+	echo '#define PDNS_VERSION VERSION' >> $@
+	echo '#define BUILD_DATE "$(build_date)"' >> $@
+	echo '#define BUILD_HOST "$(build_host)"' >> $@
+	echo '#endif //!VERSION_GENERATED_H' >> $@
 
 message: 
 	@echo
