@@ -10,13 +10,13 @@ DIST_HOST=""
 ## End patch area.
 
 if [ -z "$VERSION" ]; then
-  VERSION=$(git describe --always --dirty=+ 2>/dev/null)
+  VERSION=$(git describe --always --dirty=+ 2>/dev/null || true)
   if [ -z "$VERSION" ]; then
     VERSION="UNKNOWN"
   else
     VERSION="git-"$VERSION
   fi
-  DIST_HOST="$(id -u -n)@$(hostname -f)"
+  DIST_HOST="$(id -u -n)@$(hostname -f || hostname)"
 fi
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
