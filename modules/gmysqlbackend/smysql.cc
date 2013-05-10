@@ -1,4 +1,4 @@
-/* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+/* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information.
    $Id$  */
 #include "smysql.hh"
@@ -13,7 +13,7 @@
 bool SMySQL::s_dolog;
 pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 
-SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user, 
+SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
                const string &password, const string &group)
 {
   {
@@ -32,9 +32,9 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   #endif
 
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, group.c_str());
-    
-    if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(), 
-          		  user.empty() ? NULL : user.c_str(), 
+
+    if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(),
+          		  user.empty() ? NULL : user.c_str(),
           		  password.empty() ? NULL : password.c_str(),
           		  database.empty() ? NULL : database.c_str(),
           		  port,
@@ -77,7 +77,7 @@ int SMySQL::doQuery(const string &query)
     L<<Logger::Warning<<"Query: "<<query<<endl;
 
   int err;
-  if((err=mysql_query(&d_db,query.c_str()))) 
+  if((err=mysql_query(&d_db,query.c_str())))
     throw sPerrorException("Failed to execute mysql_query, perhaps connection died? Err="+itoa(err));
 
 
@@ -99,7 +99,7 @@ int SMySQL::doQuery(const string &query, result_t &result)
 bool SMySQL::getRow(row_t &row)
 {
   row.clear();
-  if(!d_rres) 
+  if(!d_rres)
     if(!(d_rres = mysql_use_result(&d_db)))
       throw sPerrorException("Failed on mysql_use_result");
 
@@ -110,7 +110,7 @@ bool SMySQL::getRow(row_t &row)
       row.push_back(rrow[i] ?: "");
     return true;
   }
-  mysql_free_result(d_rres);  
+  mysql_free_result(d_rres);
 
   while (mysql_next_result(&d_db) == 0) {
     if ((d_rres = mysql_use_result(&d_db))) {
@@ -141,10 +141,10 @@ int main()
   try {
     SMySQL s("kkfnetmail","127.0.0.1","readonly");
     SSql::result_t juh;
-    
+
     int num=s.doQuery("select *, from mboxes", juh);
     cout<<num<<" responses"<<endl;
-    
+
     for(int i=0;i<num;i++) {
       const SSql::row_t &row=juh[i];
 

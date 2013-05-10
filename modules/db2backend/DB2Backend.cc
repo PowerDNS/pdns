@@ -27,26 +27,26 @@ static const int kForwardWildcardQuery    = 3;
 static const int kForwardWildcardAnyQuery = 4;
 
 static const int kListQuery               = 5;
-      
+
 static const int kNumQueries              = 6;
 
 static const char *kQueries[kNumQueries] =
 {
    // ForwardQuery
    "select Content, TimeToLive, Priority, Type, ZoneId, 0 as ChangeDate, Name from Records where Name = ? and type = ?",
-   
+
    // ForwardByZoneQuery
    "select Content, TimeToLive, Priority, Type, ZoneId, 0 as ChangeDate, Name from Records where Name = ? and Type = ? and ZoneId = ?",
-         
+
    // ForwardAnyQuery
    "select Content, TimeToLive, Priority, Type, ZoneId, 0 as ChangeDate, Name from Records where Name = ?",
-   
+
    // ForwardWildcardQuery
    "select Content, TimeToLive, Priority, Type, ZoneId, 0 as ChangeDate, Name from Records where Name like ? and Type = ?",
-   
+
    // ForwardWildcardAnyQuery
    "select Content, TimeToLive, Priority, Type, ZoneId, 0 as ChangeDate, Name from Records where Name like ?",
-   
+
    // ListQuery
    "select Content, TimeToLive, Priority, Type, ZoneId, 0 as ChangeDate, Name from Records where ZoneId = ?"
 };
@@ -97,7 +97,7 @@ DB2Backend::DB2Backend(const string &suffix)
          theError = SQLAllocHandle(SQL_HANDLE_STMT, mConnection, &(mStatements[i]));
          if (theError != SQL_SUCCESS) {
             throw DB2Exception(theError, SQL_HANDLE_DBC, mConnection);
-         }         
+         }
 
          // Prepare the statement
          theError = SQLPrepare(mStatements[i], (SQLCHAR*) kQueries[i], SQL_NTS);
@@ -127,11 +127,11 @@ DB2Backend::DB2Backend(const string &suffix)
 
          // Bind the ZoneId parameter for the kForwardByZoneQuery and kListQuery queries
          if (i == kForwardByZoneQuery || i == kListQuery) {
-            int theIndex = (i == kForwardByZoneQuery) ? 3 : 1;            
+            int theIndex = (i == kForwardByZoneQuery) ? 3 : 1;
             theError = SQLBindParameter(mStatements[i], theIndex, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &mParamZoneId, 0, NULL);
             if (theError != SQL_SUCCESS) {
                throw DB2Exception(theError, SQL_HANDLE_DBC, mStatements[i]);
-            }            
+            }
          }
 
          //
@@ -179,7 +179,7 @@ DB2Backend::DB2Backend(const string &suffix)
          if (theError != SQL_SUCCESS) {
             throw DB2Exception(theError, SQL_HANDLE_DBC, mStatements[i]);
          }
-         
+
          // Bind the Name column
          mResultNameIndicator = 0;
          theError = SQLBindCol(mStatements[i], 7, SQL_C_CHAR, mResultName, sizeof(mResultName), &mResultNameIndicator);
@@ -205,7 +205,7 @@ DB2Backend::DB2Backend(const string &suffix)
          throw DB2Exception(theError, SQL_HANDLE_STMT, mSoaStatement);
       }
 
-      // Bind the Name parameter      
+      // Bind the Name parameter
       theError = SQLBindParameter(mSoaStatement, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, 256, 0, mSoaParamName, 256, NULL);
       if (theError != SQL_SUCCESS) {
          throw DB2Exception(theError, SQL_HANDLE_STMT, mSoaStatement);
@@ -216,7 +216,7 @@ DB2Backend::DB2Backend(const string &suffix)
       theError = SQLBindCol(mSoaStatement, 1, SQL_C_LONG, &mSoaResultZoneId, sizeof(mSoaResultZoneId), &mSoaResultZoneIdIndicator);
       if (theError != SQL_SUCCESS) {
          throw DB2Exception(theError, SQL_HANDLE_STMT, mSoaStatement);
-      }      
+      }
 
       // Bind the Hostmaster column
       mSoaResultHostmasterIndicator = 0;
@@ -232,26 +232,26 @@ DB2Backend::DB2Backend(const string &suffix)
          throw DB2Exception(theError, SQL_HANDLE_STMT, mSoaStatement);
       }
    }
-   
+
    catch (DB2Exception& theException)
    {
       //
       // Print out diagnostics
       //
-      
+
       int theNativeError;
       string theSqlState, theSqlMessage;
-      
+
       while (theException.GetNextSqlError(theNativeError, theSqlState, theSqlMessage) == true) {
          L << Logger::Warning << kBackendName << " Statement initialization failed with error " << theNativeError << endl;
          L << Logger::Warning << kBackendName << "  SQL State : " << theSqlState << endl;
          L << Logger::Warning << kBackendName << "  SQL Msg   : " << theSqlMessage << endl;
       }
-      
+
       this->Cleanup();
       throw AhuException("DB2Backend Failed to Start");
    }
-   
+
    L << Logger::Warning << kBackendName << " Connection succeeded" << endl;
 }
 
@@ -266,7 +266,7 @@ void DB2Backend::Cleanup()
    if (mConnection != SQL_NULL_HANDLE) {
       (void) SQLFreeHandle(SQL_HANDLE_DBC, mConnection);
    }
-   
+
    if (mEnvironment != SQL_NULL_HANDLE) {
       (void) SQLFreeHandle(SQL_HANDLE_ENV, mEnvironment);
    }
@@ -305,13 +305,13 @@ void DB2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_
          }
       }
    }
-   
+
    //
    // Fill in the correct query parameters
    //
 
    //cerr << ">>>>>>>> Query = " << kQueries[theQueryType] << endl;
-   
+
    switch (theQueryType)
    {
       case kForwardQuery:
@@ -323,7 +323,7 @@ void DB2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_
 
       case kForwardByZoneQuery:
          strncpy(mParamName, qname.c_str(), sizeof(mParamName));
-         strncpy(mParamType, qtype.getName().c_str(), sizeof(mParamType));	 
+         strncpy(mParamType, qtype.getName().c_str(), sizeof(mParamType));
          mParamZoneId = zoneId;
          //cerr << ">>>>>>>>  Name = " << mParamName << " Type = " << mParamType << " ZoneId = " << mParamZoneId << endl;
          break;
@@ -358,7 +358,7 @@ void DB2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_
 
       mResultContent[0] = mResultType[0] = mResultName[0] = 0x00;
       mResultTimeToLive = mResultPriority = mResultZoneId = mResultChangeDate = 0;
-      
+
       theError = SQLExecute(mStatements[theQueryType]);
       if (theError != SQL_SUCCESS && theError != SQL_SUCCESS_WITH_INFO && theError != SQL_NO_DATA_FOUND) {
          throw DB2Exception(theError, SQL_HANDLE_STMT, mStatements[theQueryType]);
@@ -367,16 +367,16 @@ void DB2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_
       mCurrentStatement = mStatements[theQueryType];
       mStatementStates[theQueryType] = true;
    }
-   
+
    catch (DB2Exception& theException)
    {
       //
       // Print out diagnostics
       //
-      
+
       int theNativeError;
       string theSqlState, theSqlMessage;
-      
+
       while (theException.GetNextSqlError(theNativeError, theSqlState, theSqlMessage) == true) {
          L << Logger::Warning << kBackendName << " SQLExecute() failed with error " << theNativeError << endl;
          L << Logger::Warning << kBackendName << "  SQL State : " << theSqlState << endl;
@@ -386,7 +386,7 @@ void DB2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_
       //
       // Rethrow for the nameserver
       //
-      
+
       throw AhuException("Execute failed");
    }
 }
@@ -401,7 +401,7 @@ bool DB2Backend::list(int inZoneId)
       //
       // Close the cursor
       //
-      
+
       if (mStatementStates[kListQuery] == true) {
          theError = SQLCloseCursor(mStatements[kListQuery]);
          if (theError != SQL_SUCCESS && theError != SQL_SUCCESS_WITH_INFO) {
@@ -454,7 +454,7 @@ bool DB2Backend::get(DNSResourceRecord& outRecord)
       //
       // If we have data then return it
       //
-   
+
       //cerr << ">>>>>>>> Get theError = " << theError << endl;
 
       if (theError != SQL_NO_DATA_FOUND)
@@ -462,7 +462,7 @@ bool DB2Backend::get(DNSResourceRecord& outRecord)
          //cerr << ">>>>>>>> Name    = " << mResultName << endl;
          //cerr << ">>>>>>>> Content = " << mResultContent << endl;
          //cerr << ">>>>>>>> Type    = " << mResultType << endl;
-         
+
          outRecord.content       = mResultContent;
          outRecord.ttl           = mResultTimeToLive;
          outRecord.priority      = mResultPriority;
@@ -470,7 +470,7 @@ bool DB2Backend::get(DNSResourceRecord& outRecord)
          outRecord.domain_id     = mResultZoneId;
          outRecord.last_modified = mResultChangeDate;
          outRecord.qname         = mResultName;
-         
+
          theResult = true;
       }
    }
@@ -480,10 +480,10 @@ bool DB2Backend::get(DNSResourceRecord& outRecord)
       //
       // Print out diagnostics
       //
-      
+
       int theNativeError;
       string theSqlState, theSqlMessage;
-      
+
       while (theException.GetNextSqlError(theNativeError, theSqlState, theSqlMessage) == true) {
          L << Logger::Warning << kBackendName << " SQLFetch() failed with error " << theNativeError << endl;
          L << Logger::Warning << kBackendName << "  SQL State : " << theSqlState << endl;
@@ -493,17 +493,17 @@ bool DB2Backend::get(DNSResourceRecord& outRecord)
       //
       // Rethrow for the nameserver
       //
-      
+
       throw AhuException("Fetch failed");
    }
-   
+
    return theResult;
 }
 
 bool DB2Backend::getSOA(const string& inZoneName, SOAData& outSoaData)
 {
    bool theResult = false;
-   
+
    try
    {
       //
@@ -515,7 +515,7 @@ bool DB2Backend::getSOA(const string& inZoneName, SOAData& outSoaData)
       SQLRETURN theError = SQLExecute(mSoaStatement);
       if (theError != SQL_SUCCESS && theError != SQL_SUCCESS_WITH_INFO && theError != SQL_NO_DATA_FOUND) {
          throw DB2Exception(theError, SQL_HANDLE_STMT, mSoaStatement);
-      }      
+      }
 
       if (theError != SQL_NO_DATA_FOUND)
       {
@@ -526,19 +526,19 @@ bool DB2Backend::getSOA(const string& inZoneName, SOAData& outSoaData)
          if (theError != SQL_SUCCESS && theError != SQL_SUCCESS_WITH_INFO) {
             throw DB2Exception(theError, SQL_HANDLE_STMT, mSoaStatement);
          }
-         
-         outSoaData.domain_id   = mSoaResultZoneId;         
+
+         outSoaData.domain_id   = mSoaResultZoneId;
          outSoaData.nameserver  = arg()["default-soa-name"];
          outSoaData.hostmaster  = mSoaResultHostmaster;
-         outSoaData.serial      = mSoaResultSerial;         
+         outSoaData.serial      = mSoaResultSerial;
          outSoaData.refresh     = 10800;
          outSoaData.retry       = 3600;
          outSoaData.expire      = 604800;
          outSoaData.default_ttl = 3600;
-         
+
          theResult = true;
       }
-      
+
       //
       // Close the cursor
       //
@@ -554,10 +554,10 @@ bool DB2Backend::getSOA(const string& inZoneName, SOAData& outSoaData)
       //
       // Print out diagnostics
       //
-      
+
       int theNativeError;
       string theSqlState, theSqlMessage;
-      
+
       while (theException.GetNextSqlError(theNativeError, theSqlState, theSqlMessage) == true) {
          L << Logger::Warning << kBackendName << " SOA Record Lookup Failed: " << theNativeError << endl;
          L << Logger::Warning << kBackendName << "  SQL State : " << theSqlState << endl;
@@ -567,10 +567,10 @@ bool DB2Backend::getSOA(const string& inZoneName, SOAData& outSoaData)
       //
       // Rethrow for the nameserver
       //
-      
+
       throw AhuException("GetSOA failed");
    }
-   
+
    return theResult;
 }
 
@@ -578,13 +578,13 @@ bool DB2Backend::getSOA(const string& inZoneName, SOAData& outSoaData)
 DNSBackend *DB2Backend::maker()
 {
    DNSBackend *theBackend;
-   
+
    try {
       theBackend = new DB2Backend;
    } catch (...) {
       theBackend = NULL;
    }
-   
+
    return theBackend;
 }
 
@@ -593,14 +593,14 @@ class DB2Factory : public BackendFactory
    public:
 
       DB2Factory() : BackendFactory("db2") {}
-  
+
       void declareArguments(const string &suffix="")
       {
          declare(suffix,"server","Server","powerdns");
          declare(suffix,"user","User","powerdns");
          declare(suffix,"password","Password","powerdns");
       }
-      
+
       DNSBackend *make(const string &suffix="")
       {
          return new DB2Backend(suffix);

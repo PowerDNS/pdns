@@ -7,4 +7,4 @@ export LUA=1
 export STATIC=semi
 fakeroot debian/rules binary
 fakeroot rpmbuild -bb ../pdns-recursor.spec
- 
+

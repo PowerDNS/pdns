@@ -2,7 +2,7 @@
     Copyright (C) 2011 Fredrik Danerklint
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as published 
+    it under the terms of the GNU General Public License version 2 as published
     by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -24,20 +24,20 @@ class LUAFactory : public BackendFactory
 {
 public:
   LUAFactory() : BackendFactory("lua") {}
-  
+
   void declareArguments(const string &suffix="")
   {
-  
+
     declare(suffix,"filename","Filename of the script for lua backend","powerdns-luabackend.lua");
     declare(suffix,"logging-query","Logging of the LUA Backend","no");
 
   }
-  
+
   DNSBackend *make(const string &suffix="")
   {
     return new LUABackend(suffix);
   }
-  
+
 };
 
 /* THIRD PART */
@@ -48,9 +48,9 @@ public:
   LUALoader()
   {
     BackendMakers().report(new LUAFactory);
-    
+
     L<<Logger::Notice<<"[LUABackend] This is the luabackend ("__DATE__", "__TIME__") reporting"<<endl;
-  }  
+  }
 };
 
 static LUALoader luaLoader;

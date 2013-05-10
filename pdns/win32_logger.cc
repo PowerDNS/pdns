@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +19,7 @@
 
 #include "utility.hh"
 #include "logger.hh"
-#include "ntservice.hh" 
+#include "ntservice.hh"
 #include "pdnsmsg.hh"
 #include "namespaces.hh"
 
@@ -70,7 +70,7 @@ void Logger::toFile( const string & filename )
 
 void Logger::toNTLog( void )
 {
-  m_eventLogHandle = RegisterEventSource( NULL, 
+  m_eventLogHandle = RegisterEventSource( NULL,
           NTService::instance()->getServiceName().c_str());
 }
 
@@ -173,7 +173,7 @@ Logger& Logger::operator<<( ostream & (blah)(ostream &))
 {
   log(d_strings[0], d_outputurgencies[0]);
 
-  d_strings.erase(0);  
+  d_strings.erase(0);
   d_outputurgencies.erase(0);
 
   return *this;

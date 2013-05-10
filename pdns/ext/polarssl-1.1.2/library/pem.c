@@ -265,7 +265,7 @@ int pem_read_buffer( pem_context *ctx, char *header, char *footer, const unsigne
             s1 += 32;
         }
 #endif /* POLARSSL_AES_C */
-        
+
         if( enc_alg == POLARSSL_CIPHER_NONE )
             return( POLARSSL_ERR_PEM_UNKNOWN_ENC_ALG );
 
@@ -291,7 +291,7 @@ int pem_read_buffer( pem_context *ctx, char *header, char *footer, const unsigne
         free( buf );
         return( POLARSSL_ERR_PEM_INVALID_DATA + ret );
     }
-    
+
     if( enc != 0 )
     {
 #if defined(POLARSSL_MD5_C) && (defined(POLARSSL_DES_C) || defined(POLARSSL_AES_C))

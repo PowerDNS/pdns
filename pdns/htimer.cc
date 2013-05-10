@@ -54,7 +54,7 @@ HTimer::~HTimer()
       s_timers.erase(iter);
       break;
     }
-  }  
+  }
 }
 
 void HTimer::start()
@@ -87,7 +87,7 @@ uint64_t HTimer::getAccumulated() const
   return accumulated;
 }
 
-uint64_t HTimer::getAccumulatedReset() 
+uint64_t HTimer::getAccumulatedReset()
 {
   uint64_t accumulated = d_accumulated;
   if(d_started) {

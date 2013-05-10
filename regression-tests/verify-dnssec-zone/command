@@ -23,6 +23,6 @@ do
 		fi
 		echo
 	done
-	
+
 	rm -f $TFILE
 done

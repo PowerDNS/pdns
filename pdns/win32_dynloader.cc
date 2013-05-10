@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -55,12 +55,12 @@ int main(int argc, char **argv)
   arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   arg().laxParse(argc,argv);
 
-  if(arg()["config-name"]!="") 
+  if(arg()["config-name"]!="")
     s_programname+="-"+arg()["config-name"];
 
   string configname=arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
-  
+
   arg().laxFile(configname.c_str());
 
   const vector<string>&commands=arg().getCommands();
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
               message+=" ";
       message+=*i;
     }
-    
+
     if( command=="show") {
       message="SHOW ";
       for(unsigned int n=1;n<commands.size();n++) {
@@ -102,15 +102,15 @@ int main(int argc, char **argv)
     else if(command=="version" || command=="VERSION") {
       message="VERSION";
     }
-    
-    
+
+
     if(D.send(message)<0) {
       cerr<<"Error sending command"<<endl;
       return 1;
     }
-    
+
     string resp=D.receive();
-    
+
     cout<<resp<<endl;
   }
   catch(AhuException &ae) {

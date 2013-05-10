@@ -42,7 +42,7 @@ Provides: pdns-backend
 Description: pipe/coprocess backend for pDNS
  This package contains the pipe backend for the PowerDNS nameserver. This
  allows PowerDNS to retrieve domain info from a process that accepts
- questions on stdin and returns answers on stdout. 
+ questions on stdin and returns answers on stdout.
 
 Package: pdns-backend-ldap
 Architecture: any
@@ -70,7 +70,7 @@ Architecture: any
 Depends: pdns (= ${dpkg:Version}), ${shlibs:Depends}
 Provides: pdns-backend
 Description: Generic PostgreSQL backend for pDNS
- This package contains a generic PostgreSQL backend 
+ This package contains a generic PostgreSQL backend
  for the PowerDNS nameserver. It has configurable SQL statements.
 
 Package: pdns-backend-sqlite

@@ -7,18 +7,18 @@ require 'json'
 ## to add more methods, just write
 ## def do_<methodname>(args)
 ## end
-## look at the existing methods to find out 
-## how to customize this. 
+## look at the existing methods to find out
+## how to customize this.
 
-## WARNING: this contains some code that 
-## should never be used in production, but 
+## WARNING: this contains some code that
+## should never be used in production, but
 ## is provided to give a more comprehensive
-## example code. 
+## example code.
 
 ## Code provided only as example, not suitable
-## for production. 
+## for production.
 
-## Usage: 
+## Usage:
 ##  launch=remote
 ##  remote-dnssec=yes
 ##  remote-connection-string=pipe:command=/path/to/example.rb,timeout=2000
@@ -39,7 +39,7 @@ protected
   def do_initialize(args)
      if @initialized
        raise "Cannot reinitialize"
-     end 
+     end
      log "Example backend v1.0 starting"
      @initialized = true
      true
@@ -60,7 +60,7 @@ protected
   ## returns keys, do not use in production
   def do_getdomainkeys(args)
      if args["name"] == "example.com"
-        return [ 
+        return [
           {
              "id" => 1,
              "flags" => 257,
@@ -99,14 +99,14 @@ Coefficient: 5lP9IFknvFgaXKCs8MproehHSFhFTWac4557HIn03KrnlGOKDcY6DC/vgu1e42bEZ4J
   ## Example lookup
   ## Returns SOA, MX, NS and A records for example.com
   ## also static A record for test.example.com
-  ## and dynamic A record for anything else in example.com domain 
+  ## and dynamic A record for anything else in example.com domain
   def do_lookup(args)
      if args["qname"] == "example.com" and args["qtype"].downcase == "soa"
        return [
           record("SOA","example.com", "sns.dns.icann.org noc.dns.icann.org 2013012485 7200 3600 1209600 3600"),
               ]
      elsif args["qname"] == "example.com" and args["qtype"].downcase == "any"
-       return [ 
+       return [
           record("SOA","example.com", "sns.dns.icann.org noc.dns.icann.org 2013012485 7200 3600 1209600 3600"),
           record("NS","example.com","sns.dns.icann.org"),
           record_prio("MX","example.com","test.example.com",10)
@@ -140,13 +140,13 @@ Coefficient: 5lP9IFknvFgaXKCs8MproehHSFhFTWac4557HIn03KrnlGOKDcY6DC/vgu1e42bEZ4J
           record("A","test.example.com","127.0.0.1")
        ]
      end
-     false          
+     false
   end
 
   ## Please see http://doc.powerdns.com/remotebackend.html for methods to add here
   ## Just remember to prefix them with do_
 
-  ## Some helpers after this 
+  ## Some helpers after this
 
   def record_prio_ttl(qtype,qname,content,prio,ttl)
     {:qtype => qtype, :qname => qname, :content => content, :priority => prio, :ttl => ttl, :auth => 1}
@@ -177,9 +177,9 @@ public
      STDIN.each_line do |line|
         # So far rapidjson has managed to follow RFC4627
         # and hasn't done formatted json so there should be
-        # no newlines. 
+        # no newlines.
         msg = JSON.parse(line)
-       
+
         # it's a good idea to prefix methods with do_ to prevent
         # clashes with initialize et al, and downcase it for simplicity
         method = "do_#{msg["method"].downcase}".to_sym
@@ -196,7 +196,7 @@ public
   end
 end
 
-begin 
+begin
   RequestHandler.new.run
 rescue Interrupt
   # ignore this exception, caused by ctrl+c in foreground mode

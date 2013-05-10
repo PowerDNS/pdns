@@ -9,9 +9,9 @@ public:
   MemcachedCommunicator(const std::string& servers);
   string get(const std::string& key);
   void set(const std::string& key, const std::string& value);
-  struct UDPHeader 
+  struct UDPHeader
   {
-    UDPHeader() 
+    UDPHeader()
     {
       memset(this, 0, sizeof(*this));
     }

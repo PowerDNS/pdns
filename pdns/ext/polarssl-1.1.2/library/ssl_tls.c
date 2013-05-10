@@ -403,7 +403,7 @@ void ssl_calc_verify( ssl_context *ssl, unsigned char hash[36] )
         md5_update( &md5, pad_2, 48 );
         md5_update( &md5, hash,  16 );
         md5_finish( &md5, hash );
-        
+
         sha1_update( &sha1, ssl->session->master, 48 );
         sha1_update( &sha1, pad_1, 40 );
         sha1_finish( &sha1, hash + 16 );
@@ -489,7 +489,7 @@ static void ssl_mac_sha1( unsigned char *secret,
 
 /*
  * Encryption/decryption functions
- */ 
+ */
 static int ssl_encrypt_buf( ssl_context *ssl )
 {
     size_t i, padlen;
@@ -521,7 +521,7 @@ static int ssl_encrypt_buf( ssl_context *ssl )
         if( ssl->maclen == 20 )
             sha1_hmac( ssl->mac_enc, 20,
                        ssl->out_ctr,  ssl->out_msglen + 13,
-                       ssl->out_msg + ssl->out_msglen );               
+                       ssl->out_msg + ssl->out_msglen );
     }
 
     SSL_DEBUG_BUF( 4, "computed mac",
@@ -857,7 +857,7 @@ static int ssl_decrypt_buf( ssl_context *ssl )
     }
     else
         ssl->nb_zero = 0;
-            
+
     for( i = 8; i > 0; i-- )
         if( ++ssl->in_ctr[i - 1] != 0 )
             break;
@@ -1746,7 +1746,7 @@ int ssl_init( ssl_context *ssl )
 void ssl_session_reset( ssl_context *ssl )
 {
     ssl->state = SSL_HELLO_REQUEST;
-    
+
     ssl->in_offt = NULL;
 
     ssl->in_msgtype = 0;
@@ -1925,7 +1925,7 @@ int ssl_set_hostname( ssl_context *ssl, const char *hostname )
 
     memcpy( ssl->hostname, (unsigned char *) hostname,
             ssl->hostname_len );
-    
+
     ssl->hostname[ssl->hostname_len] = '\0';
 
     return( 0 );

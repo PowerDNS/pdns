@@ -36,7 +36,7 @@ for me so I ended up having to do it another way, but anyhow..
    $ cvs -d :pserver:anon@cvs.blitzed.org:/data/cvs login
    (press <return> at password prompt)
    $ cvs -d :pserver:anon@cvs.blitzed.org:/data/cvs co -d geobackend geo-dns
-   
+
    $ cd ..
 
    to return to top of build directory.
@@ -221,7 +221,7 @@ by a RIR, or maybe something unexpected happened like you got a query from IPv6
 or from an RFC1918 address.  Or, there could be some error elsewhere in the
 geobackend that makes it want to give up.  In any of these cases it needs to
 return a CNAME to a useful default.
- 
+
 The default chosen for blitzed is "pool.blitzed.org." (note the trailing dot
 puts it outside the $ORIGIN!).  At the moment, pool.blitzed.org is a
 round-robin of A records of all our connected servers, but the best way to
@@ -319,7 +319,7 @@ Time to configure the things that go into your existing DNS setup:
 
 Testing
 =======
- 
+
 OK!  If you're still awake after all that, it is ready to test.
 
 By the way, at the moment some of the logging from the geobackend is a severity

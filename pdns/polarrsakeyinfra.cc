@@ -32,13 +32,13 @@ public:
   explicit RSADNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm)
   {
     memset(&d_context, 0, sizeof(d_context));
-    PDNSSEC_MI(N); 
+    PDNSSEC_MI(N);
     PDNSSEC_MI(E); PDNSSEC_MI(D); PDNSSEC_MI(P); PDNSSEC_MI(Q); PDNSSEC_MI(DP); PDNSSEC_MI(DQ); PDNSSEC_MI(QP); PDNSSEC_MI(RN); PDNSSEC_MI(RP); PDNSSEC_MI(RQ);
   }
 
   ~RSADNSCryptoKeyEngine()
   {
-    PDNSSEC_MF(N); 
+    PDNSSEC_MF(N);
     PDNSSEC_MF(E); PDNSSEC_MF(D); PDNSSEC_MF(P); PDNSSEC_MF(Q); PDNSSEC_MF(DP); PDNSSEC_MF(DQ); PDNSSEC_MF(QP); PDNSSEC_MF(RN); PDNSSEC_MF(RP); PDNSSEC_MF(RQ);
   }
 
@@ -51,17 +51,17 @@ public:
   RSADNSCryptoKeyEngine(const RSADNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_algorithm)
   {
     // this part is a little bit scary.. we make a 'deep copy' of an RSA state, and polarssl isn't helping us so we delve into thr struct
-    d_context.ver = orig.d_context.ver; 
+    d_context.ver = orig.d_context.ver;
     d_context.len = orig.d_context.len;
 
     d_context.padding = orig.d_context.padding;
     d_context.hash_id = orig.d_context.hash_id;
-    
-    PDNSSEC_MC(N); 
+
+    PDNSSEC_MC(N);
     PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
   }
 
-  RSADNSCryptoKeyEngine& operator=(const RSADNSCryptoKeyEngine& orig) 
+  RSADNSCryptoKeyEngine& operator=(const RSADNSCryptoKeyEngine& orig)
   {
     *this = RSADNSCryptoKeyEngine(orig);
     return *this;
@@ -72,7 +72,7 @@ public:
     return d_context;
   }
 
-  rsa_context& getContext() 
+  rsa_context& getContext()
   {
     return d_context;
   }
@@ -80,8 +80,8 @@ public:
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& hash) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const
@@ -116,14 +116,14 @@ void RSADNSCryptoKeyEngine::create(unsigned int bits)
 {
   entropy_context entropy;
   ctr_drbg_context ctr_drbg;
-  
+
   entropy_init( &entropy );
   int ret=ctr_drbg_init( &ctr_drbg, entropy_func, &entropy, (unsigned char *) "PowerDNS", 8);
-  if(ret < 0) 
+  if(ret < 0)
     throw runtime_error("Entropy gathering for key generation failed");
   rsa_init(&d_context, RSA_PKCS_V15, 0); // FIXME this leaks memory (it does?)
   ret=rsa_gen_key(&d_context, ctr_drbg_random, &ctr_drbg, bits, 65537);
-  if(ret < 0) 
+  if(ret < 0)
     throw runtime_error("Key generation failed");
 }
 
@@ -134,7 +134,7 @@ std::string RSADNSCryptoKeyEngine::getPubKeyHash() const
   mpi_write_binary(&d_context.N, N, sizeof(N));
   unsigned char E[mpi_size(&d_context.E)];
   mpi_write_binary(&d_context.E, E, sizeof(E));
-  
+
   sha1_context ctx;
   sha1_starts(&ctx);
   sha1_update(&ctx, N, sizeof(N));
@@ -150,16 +150,16 @@ std::string RSADNSCryptoKeyEngine::sign(const std::string& msg) const
   int hashKind;
   if(hash.size()==20)
     hashKind= SIG_RSA_SHA1;
-  else if(hash.size()==32) 
+  else if(hash.size()==32)
     hashKind= SIG_RSA_SHA256;
   else
     hashKind = SIG_RSA_SHA512;
-  
-  int ret=rsa_pkcs1_sign(const_cast<rsa_context*>(&d_context), NULL, NULL, RSA_PRIVATE, 
+
+  int ret=rsa_pkcs1_sign(const_cast<rsa_context*>(&d_context), NULL, NULL, RSA_PRIVATE,
     hashKind,
     hash.size(),
     (const unsigned char*) hash.c_str(), signature);
-  
+
   if(ret!=0) {
     cerr<<"signing returned: "<<ret<<endl;
     exit(1);
@@ -173,16 +173,16 @@ bool RSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& si
   string hash=this->hash(msg);
   if(hash.size()==20)
     hashKind= SIG_RSA_SHA1;
-  else if(hash.size()==32) 
+  else if(hash.size()==32)
     hashKind= SIG_RSA_SHA256;
   else
     hashKind = SIG_RSA_SHA512;
-  
-  int ret=rsa_pkcs1_verify(const_cast<rsa_context*>(&d_context), RSA_PUBLIC, 
+
+  int ret=rsa_pkcs1_verify(const_cast<rsa_context*>(&d_context), RSA_PUBLIC,
     hashKind,
     hash.size(),
     (const unsigned char*) hash.c_str(), (unsigned char*) signature.c_str());
-  
+
   return ret==0; // 0 really IS ok ;-)
 }
 
@@ -192,12 +192,12 @@ std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
     unsigned char hash[20];
     sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
     return string((char*)hash, sizeof(hash));
-  } 
+  }
   else if(d_algorithm == 8) { // RSASHA256
     unsigned char hash[32];
     sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
     return string((char*)hash, sizeof(hash));
-  } 
+  }
   else if(d_algorithm == 10) { // RSASHA512
     unsigned char hash[64];
     sha4((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
@@ -247,7 +247,7 @@ void RSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::
   string key,value;
   typedef map<string, mpi*> places_t;
   places_t places;
-  
+
   rsa_init(&d_context, RSA_PKCS_V15, 0);
 
   places["Modulus"]=&d_context.N;
@@ -258,9 +258,9 @@ void RSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::
   places["Exponent1"]=&d_context.DP;
   places["Exponent2"]=&d_context.DQ;
   places["Coefficient"]=&d_context.QP;
-  
+
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
-  
+
   string raw;
   BOOST_FOREACH(const places_t::value_type& val, places) {
     raw=stormap[toLower(val.first)];
@@ -276,9 +276,9 @@ void RSADNSCryptoKeyEngine::fromPEMString(DNSKEYRecordContent& drc, const std::s
 {
   vector<string> integers;
   decodeDERIntegerSequence(raw, integers);
-  cerr<<"Got "<<integers.size()<<" integers"<<endl; 
+  cerr<<"Got "<<integers.size()<<" integers"<<endl;
   map<int, mpi*> places;
-  
+
   rsa_init(&d_context, RSA_PKCS_V15, 0);
 
   places[1]=&d_context.N;
@@ -291,7 +291,7 @@ void RSADNSCryptoKeyEngine::fromPEMString(DNSKEYRecordContent& drc, const std::s
   places[8]=&d_context.QP;
 
   string modulus, exponent;
-  
+
   for(int n = 0; n < 9 ; ++n) {
     if(places.count(n)) {
       if(places[n]) {
@@ -305,7 +305,7 @@ void RSADNSCryptoKeyEngine::fromPEMString(DNSKEYRecordContent& drc, const std::s
   }
   d_context.len = ( mpi_msb( &d_context.N ) + 7 ) >> 3; // no clue what this does
 
-  if(exponent.length() < 255) 
+  if(exponent.length() < 255)
     drc.d_key.assign(1, (char) (unsigned int) exponent.length());
   else {
     drc.d_key.assign(1, 0);
@@ -322,7 +322,7 @@ void RSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString)
   rsa_init(&d_context, RSA_PKCS_V15, 0);
   string exponent, modulus;
   const unsigned char* raw = (const unsigned char*)rawString.c_str();
-  
+
   if(raw[0] != 0) {
     exponent=rawString.substr(1, raw[0]);
     modulus=rawString.substr(raw[0]+1);
@@ -330,8 +330,8 @@ void RSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString)
     exponent=rawString.substr(3, raw[1]*0xff + raw[2]);
     modulus = rawString.substr(3+ raw[1]*0xff + raw[2]);
   }
-  mpi_read_binary(&d_context.E, (unsigned char*)exponent.c_str(), exponent.length());   
-  mpi_read_binary(&d_context.N, (unsigned char*)modulus.c_str(), modulus.length());    
+  mpi_read_binary(&d_context.E, (unsigned char*)exponent.c_str(), exponent.length());
+  mpi_read_binary(&d_context.N, (unsigned char*)modulus.c_str(), modulus.length());
   d_context.len = ( mpi_msb( &d_context.N ) + 7 ) >> 3; // no clue what this does
 }
 
@@ -346,7 +346,7 @@ string RSADNSCryptoKeyEngine::getPublicKeyString()  const
   mpi_write_binary(&d_context.N, (unsigned char*)tmp, mpi_size(&d_context.N) );
   string modulus((char*)tmp, mpi_size(&d_context.N));
 
-  if(exponent.length() < 255) 
+  if(exponent.length() < 255)
     keystring.assign(1, (char) (unsigned int) exponent.length());
   else {
     keystring.assign(1, 0);

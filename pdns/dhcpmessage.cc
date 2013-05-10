@@ -85,9 +85,9 @@ u_int8_t *dm_next_option(struct dhcp_message *msg) {
    * leaves the dhcp_message structure, the next
    * check would catch this as long as we don't
    * try to access an unmapped page ;-)
-   */   
+   */
   if (pos+1 >= msg->last) return NULL;
-  
+
   length = *(pos+1);
   /* Length overflow */
   if (pos + length + 2 > msg->last) return NULL;
@@ -105,7 +105,7 @@ DHCPCommunicator::DHCPCommunicator(const std::string& remoteAddr)
   Utility::setCloseOnExec(d_socket)
 
   int tmp = 1;
-  if(setsockopt(d_socket, SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
+  if(setsockopt(d_socket, SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     unixDie("Setting reuse flag");
 
   ComboAddress local("0.0.0.0", 67);
@@ -156,7 +156,7 @@ string DHCPCommunicator::getMac(const std::string& ip)
   if(ret > 0) {
     memcpy((char*)&msg.op, packet, ret);
     char mac[19];
-    snprintf(mac, 19, "%02x:%02x:%02x:%02x:%02x:%02x", msg.chaddr[0], msg.chaddr[1], msg.chaddr[2], 
+    snprintf(mac, 19, "%02x:%02x:%02x:%02x:%02x:%02x", msg.chaddr[0], msg.chaddr[1], msg.chaddr[2],
              msg.chaddr[3], msg.chaddr[4], msg.chaddr[5]);
     return mac;
   }

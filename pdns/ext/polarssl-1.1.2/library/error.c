@@ -132,7 +132,7 @@ void error_strerror( int ret, char *buf, size_t buflen )
     int use_ret;
 
     memset( buf, 0x00, buflen );
-     
+
     if( ret < 0 )
         ret = -ret;
 

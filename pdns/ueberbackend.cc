@@ -3,7 +3,7 @@
     Copyright (C) 2005 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -69,14 +69,14 @@ bool UeberBackend::loadmodule(const string &name)
   // TODO: Implement dynamic loading?
 #if !defined(WIN32) && !defined(DARWIN)
   void *dlib=dlopen(name.c_str(), RTLD_NOW);
-  
+
   if(dlib == NULL) {
-    L<<Logger::Warning <<"Unable to load module '"<<name<<"': "<<dlerror() << endl; 
+    L<<Logger::Warning <<"Unable to load module '"<<name<<"': "<<dlerror() << endl;
     if(name.find("gsqlite3")!=string::npos)
       L<<Logger::Warning <<"Trying to load gsqlite3backend? Make sure pdns_server was compiled with sqlite3!" <<endl;
     return false;
   }
-  
+
   return true;
 
 #else
@@ -187,12 +187,12 @@ void UeberBackend::reload()
 
 void UeberBackend::rediscover(string *status)
 {
-  
+
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     string tmpstr;
     ( *i )->rediscover(&tmpstr);
-    if(status) 
+    if(status)
       *status+=tmpstr + (i!=backends.begin() ? "\n" : "");
   }
 }
@@ -203,7 +203,7 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     ( *i )->getUnfreshSlaveInfos( domains );
-  }  
+  }
 }
 
 
@@ -222,7 +222,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
   d_question.zoneId=-1;
-    
+
   if(sd.db!=(DNSBackend *)-1) {
     int cstat=cacheHas(d_question,d_answers);
     if(cstat==0) { // negative
@@ -236,7 +236,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       return true;
     }
   }
-    
+
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd, p)) {
       DNSResourceRecord rr;
@@ -251,7 +251,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       return true;
     }
 
-  addNegCache(d_question); 
+  addNegCache(d_question);
   return false;
 }
 
@@ -275,7 +275,7 @@ UeberBackend::UeberBackend(const string &pname)
   instances.push_back(this); // report to the static list of ourself
   pthread_mutex_unlock(&instances_lock);
 
-  tid=pthread_self(); 
+  tid=pthread_self();
   stale=false;
 
   backends=BackendMakers().all(pname=="key-only");
@@ -333,7 +333,7 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
   (*qcachehit)++;
   if(content.empty()) // negatively cached
     return 0;
-  
+
   std::istringstream istr(content);
   boost::archive::binary_iarchive boa(istr, boost::archive::no_header);
   rrs.clear();
@@ -358,7 +358,7 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
 
   if(!queryttl)
     return;
-  
+
   //  L<<Logger::Warning<<"inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
   std::ostringstream ostr;
   boost::archive::binary_oarchive boa(ostr, boost::archive::no_header);
@@ -414,7 +414,7 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
 
   if(!backends.size()) {
     L<<Logger::Error<<Logger::NTLog<<"No database backends available - unable to answer questions."<<endl;
-    stale=true; // please recycle us! 
+    stale=true; // please recycle us!
     throw AhuException("We are stale, please recycle");
   }
   else {
@@ -424,9 +424,9 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
     int cstat=cacheHas(d_question, d_answers);
     if(cstat<0) { // nothing
       d_negcached=d_cached=false;
-      d_answers.clear(); 
+      d_answers.clear();
       (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,pkt_p,zoneId);
-    } 
+    }
     else if(cstat==0) {
       d_negcached=true;
       d_cached=false;
@@ -452,7 +452,7 @@ void UeberBackend::getAllDomains(vector<DomainInfo> *domains) {
 bool UeberBackend::get(DNSResourceRecord &rr)
 {
   if(d_negcached) {
-    return false; 
+    return false;
   }
 
   if(d_cached) {
@@ -504,11 +504,11 @@ bool UeberBackend::handle::get(DNSResourceRecord &r)
     if(i<parent->backends.size()) {
       DLOG(L<<"Backend #"<<i<<" of "<<parent->backends.size()
            <<" out of answers, taking next"<<endl);
-      
+
       d_hinterBackend=parent->backends[i++];
       d_hinterBackend->lookup(qtype,qname,pkt_p,parent->domain_id);
     }
-    else 
+    else
       break;
 
     DLOG(L<<"Now asking backend #"<<i<<endl);

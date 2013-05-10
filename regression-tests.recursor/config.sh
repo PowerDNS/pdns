@@ -4,13 +4,13 @@ set -x
 
 . ./vars
 
-if [ -z "$PREFIX" ] 
+if [ -z "$PREFIX" ]
 then
     echo "config not found or PREFIX not set"
     exit 1
 fi
 
-if [ -z "$AUTHRUN" ] 
+if [ -z "$AUTHRUN" ]
 then
     echo "config not found or AUTHRUN not set"
     exit 1
@@ -272,13 +272,13 @@ EOF
     then
         echo 'lua-prequery-script=prequery.lua' >> $dir/pdns.conf
     fi
-    
+
     cat > $dir/named.conf <<EOF
 options {
     directory "./";
 };
 EOF
-    for zone in $(ls $dir | grep '\.zone$' | sed 's/\.zone$//') 
+    for zone in $(ls $dir | grep '\.zone$' | sed 's/\.zone$//')
     do
         realzone=$zone
         if [ $realzone = ROOT ]

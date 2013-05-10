@@ -20,11 +20,11 @@
 // Connects to the database.
 gODBCBackend::gODBCBackend (const std::string & mode, const std::string & suffix)  : GSQLBackend( mode, suffix )
 {
-  try 
+  try
   {
-    setDB( new SODBC( getArg( "datasource" ), getArg( "username" ), getArg( "password" )));    
-  }  
-  catch( SSqlException & e ) 
+    setDB( new SODBC( getArg( "datasource" ), getArg( "username" ), getArg( "password" )));
+  }
+  catch( SSqlException & e )
   {
     L<<Logger::Error<< mode << " Connection failed: " << e.txtReason() << std::endl;
     throw AhuException( "Unable to launch " + mode + " connection: " + e.txtReason());
@@ -42,7 +42,7 @@ public:
   gODBCFactory( const std::string & mode ) : BackendFactory( mode ), d_mode( mode )
   {
   }
-  
+
   //! Declares all needed arguments.
   void declareArguments( const std::string & suffix = "" )
   {
@@ -74,7 +74,7 @@ public:
     declare( suffix, "info-all-master-query", "", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
     declare( suffix, "delete-zone-query", "", "delete from records where domain_id=%d");
   }
-  
+
   //! Constructs a new gODBCBackend object.
   DNSBackend *make(const string & suffix = "" )
   {

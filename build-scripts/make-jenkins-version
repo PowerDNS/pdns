@@ -55,16 +55,16 @@ then
 			deb_version=${source_version}
 			rpm_version="$(echo ${source_version} | sed -e 's/-//' )"
 			is_release_build=1
-                fi
-        else
-                # building auth on recursor release branch, or v.v.
+		fi
+	else
+		# building auth on recursor release branch, or v.v.
 		source_version=git-unknown-${source_dbg}
 		deb_version=0.0~unknown.${deb_dbg}
 		rpm_version=0.0unknown_${rpm_dbg}
-        fi
+	fi
 else
-        # must be a test branch
-        source_version=git-${source_branch}-${source_dbg}
+	# must be a test branch
+	source_version=git-${source_branch}-${source_dbg}
 	deb_version=0.0~${deb_branch}.${deb_dbg}
 	rpm_version=0.0.${rpm_branch}_${rpm_dbg}
 fi

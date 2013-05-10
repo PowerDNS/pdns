@@ -1,6 +1,6 @@
-// -*- sateh-c -*- 
+// -*- sateh-c -*-
 // File    : pdnsbackend.cc
-// Version : $Id$ 
+// Version : $Id$
 //
 
 #include <string>
@@ -51,10 +51,10 @@ void CoWrapper::launch()
    if(isUnixSocket(d_command))
      d_cp = new UnixRemote(d_command, d_timeout);
    else
-     d_cp = new CoProcess(d_command, d_timeout); 
+     d_cp = new CoProcess(d_command, d_timeout);
    d_cp->send("HELO\t"+lexical_cast<string>(::arg().asNum("pipebackend-abi-version")));
    string banner;
-   d_cp->receive(banner); 
+   d_cp->receive(banner);
    L<<Logger::Error<<"Backend launched with banner: "<<banner<<endl;
 }
 
@@ -108,7 +108,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
 {
    try {
       d_disavow=false;
-      if(d_regex && !d_regex->match(qname+";"+qtype.getName())) { 
+      if(d_regex && !d_regex->match(qname+";"+qtype.getName())) {
          if(::arg().mustDo("query-logging"))
             L<<Logger::Error<<"Query for '"<<qname<<"' type '"<<qtype.getName()<<"' failed regex '"<<d_regexstr<<"'"<<endl;
          d_disavow=true; // don't pass to backend
@@ -131,7 +131,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
          if (abiVersion >= 2)
             query<<"\t"<<localIP;
          if(abiVersion >= 3)
-           query <<"\t"<<realRemote.toString(); 
+           query <<"\t"<<realRemote.toString();
 
          if(::arg().mustDo("query-logging"))
             L<<Logger::Error<<"Query: '"<<query.str()<<"'"<<endl;
@@ -192,12 +192,12 @@ bool PipeBackend::get(DNSResourceRecord &r)
    string line;
 
    // The answer format:
-   // DATA    qname           qclass  qtype   ttl     id      content 
+   // DATA    qname           qclass  qtype   ttl     id      content
    int abiVersion = ::arg().asNum("pipebackend-abi-version");
    unsigned int extraFields = 0;
    if(abiVersion == 3)
      extraFields = 2;
-     
+
    for(;;) {
       d_coproc->receive(line);
       vector<string>parts;
@@ -222,7 +222,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
             throw AhuException("Format error communicating with coprocess in data section");
             // now what?
          }
-         
+
          if(abiVersion == 3) {
            r.scopeMask = atoi(parts[1].c_str());
            r.auth = atoi(parts[2].c_str());
@@ -234,7 +234,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
          r.qtype=parts[3+extraFields];
          r.ttl=atoi(parts[4+extraFields].c_str());
          r.domain_id=atoi(parts[5+extraFields].c_str());
-         
+
          if(r.qtype.getCode() != QType::MX && r.qtype.getCode() != QType::SRV) {
            r.content.clear();
            for(unsigned int n= 6 + extraFields; n < parts.size(); ++n) {
@@ -248,7 +248,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
             L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX/SRV line in data section for query for "<<d_qname<<endl;
             throw AhuException("Format error communicating with coprocess in data section of MX/SRV record");
            }
-           
+
            r.priority=atoi(parts[6+extraFields].c_str());
            r.content=parts[7+extraFields];
          }
@@ -256,7 +256,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
       }
       else
          throw AhuException("Coprocess backend sent incorrect response '"+line+"'");
-   }   
+   }
    return true;
 }
 
@@ -288,9 +288,9 @@ class PipeLoader
       PipeLoader()
       {
          BackendMakers().report(new PipeFactory);
-         
+
          L<<Logger::Notice<<kBackendId<<" This is the pipebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
-      }  
+      }
 };
 
 static PipeLoader pipeloader;

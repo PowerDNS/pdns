@@ -20,6 +20,6 @@
 1	lr0g3vnj9r0nvtlsjnf8eqa68sqj06qg.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
 1	vsfa79vv78gd61567bkcai646ta0p276.example.com.	IN	NSEC3	86400	1 [flags] 1 abcd VSFA79VV78GD61567BKCAI646TA0P278
 1	vsfa79vv78gd61567bkcai646ta0p276.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='start.example.com.', qtype=A

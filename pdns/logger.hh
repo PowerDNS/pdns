@@ -3,7 +3,7 @@
     Copyright (C) 2005  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -53,17 +53,17 @@ public:
   Logger( const string &, int facility = 0 ); //!< pass the identification you wish to appear in the log
 
   //! The urgency of a log message
-  enum Urgency 
+  enum Urgency
   {
     All     = 99999,
     NTLog   = 12345,
-    Alert   = EVENTLOG_ERROR_TYPE, 
-    Critical= EVENTLOG_ERROR_TYPE, 
-    Error   = EVENTLOG_ERROR_TYPE, 
+    Alert   = EVENTLOG_ERROR_TYPE,
+    Critical= EVENTLOG_ERROR_TYPE,
+    Error   = EVENTLOG_ERROR_TYPE,
     Warning = EVENTLOG_WARNING_TYPE,
         	Notice  = EVENTLOG_INFORMATION_TYPE,
-    Info    = EVENTLOG_INFORMATION_TYPE, 
-    Debug   = EVENTLOG_INFORMATION_TYPE, 
+    Info    = EVENTLOG_INFORMATION_TYPE,
+    Debug   = EVENTLOG_INFORMATION_TYPE,
     None    = -1
   };
 
@@ -83,11 +83,11 @@ public:
 
 #endif // WIN32
 
-  /** Log a message. 
-      \param msg Message you wish to log 
+  /** Log a message.
+      \param msg Message you wish to log
       \param Urgency Urgency of the message you wish to log
   */
-  void log(const string &msg, Urgency u=Notice); 
+  void log(const string &msg, Urgency u=Notice);
 
   void setFacility(int f){d_facility=f;open();} //!< Choose logging facility
   void setFlag(int f){flags|=f;open();} //!< set a syslog flag
@@ -99,12 +99,12 @@ public:
 
   //! Log to a file.
   void toFile( const string & filename );
-  
+
   void resetFlags(){flags=0;open();} //!< zero the flags
   /** Use this to stream to your log, like this:
       \code
       L<<"This is an informational message"<<endl; // logged at default loglevel (Info)
-      L<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning 
+      L<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning
       L<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
@@ -142,7 +142,7 @@ extern Logger &theL(const string &pname="");
 #ifdef VERBOSELOG
 #define DLOG(x) x
 #else
-#define DLOG(x) 
+#define DLOG(x)
 #endif
 
 

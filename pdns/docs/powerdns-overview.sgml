@@ -21,7 +21,7 @@ PowerDNS consists of:
 </itemize>
 <sect1>What is a Nameserver?
 <p>
-A Nameserver is a device which translates a human-friendly name 
+A Nameserver is a device which translates a human-friendly name
 like 'www.cnn.com' into an Internet Protocol (IP) Address that can be used to
 connect to the actual webserver. This functionality is vital as the
 numerical IP Addresses are unknown to end users so an inability to serve
@@ -120,7 +120,7 @@ database solutions out there that achieve tens of thousands of transactions
 per second, there is no bottleneck in sight.
 <sect1>Instant updates
 <p>
-Because of this high performance, it is possible to lower the so 
+Because of this high performance, it is possible to lower the so
 called 'Time To Live' of DNS answers. This in turn means that changes to the
 Nameservers configuration go live nearly instantaneously, instead of taking
 over 24 hours to propagate, as is usually the case.

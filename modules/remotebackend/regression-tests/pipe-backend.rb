@@ -8,7 +8,7 @@ h = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3")
 f = File.open "/tmp/tmp.txt","a"
 
 STDOUT.sync = true
-begin 
+begin
   STDIN.each_line do |line|
     f.puts line
     # expect json

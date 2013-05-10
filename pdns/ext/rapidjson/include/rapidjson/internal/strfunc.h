@@ -7,7 +7,7 @@ namespace internal {
 //! Custom strlen() which works on different character types.
 /*!	\tparam Ch Character type (e.g. char, wchar_t, short)
 	\param s Null-terminated input string.
-	\return Number of characters in the string. 
+	\return Number of characters in the string.
 	\note This has the same semantics as strlen(), the return value is not number of Unicode codepoints.
 */
 template <typename Ch>

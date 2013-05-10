@@ -3,7 +3,7 @@
     Copyright (C) 2005 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -45,7 +45,7 @@ void RecordTextReader::xfr64BitInt(uint64_t &val)
   char *endptr;
   unsigned long ret=strtoull(d_string.c_str() + d_pos, &endptr, 10);
   val=ret;
-  
+
   d_pos = endptr - d_string.c_str();
 }
 
@@ -60,7 +60,7 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
   char *endptr;
   unsigned long ret=strtoul(d_string.c_str() + d_pos, &endptr, 10);
   val=ret;
-  
+
   d_pos = endptr - d_string.c_str();
 }
 
@@ -68,17 +68,17 @@ void RecordTextReader::xfrTime(uint32_t &val)
 {
   struct tm tm;
   memset(&tm, 0, sizeof(tm));
-  
-  string tmp;
-  xfrLabel(tmp); // ends on number, so this works 
 
-  sscanf(tmp.c_str(), "%04d%02d%02d" "%02d%02d%02d", 
-         &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
+  string tmp;
+  xfrLabel(tmp); // ends on number, so this works
+
+  sscanf(tmp.c_str(), "%04d%02d%02d" "%02d%02d%02d",
+         &tm.tm_year, &tm.tm_mon, &tm.tm_mday,
          &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
 
   tm.tm_year-=1900;
   tm.tm_mon-=1;
-  val=(uint32_t)Utility::timegm(&tm); 
+  val=(uint32_t)Utility::timegm(&tm);
 }
 
 void RecordTextReader::xfrIP(uint32_t &val)
@@ -91,7 +91,7 @@ void RecordTextReader::xfrIP(uint32_t &val)
   uint32_t octet=0;
   val=0;
   char count=0;
-  
+
   for(;;) {
     if(d_string.at(d_pos)=='.') {
       val<<=8;
@@ -107,7 +107,7 @@ void RecordTextReader::xfrIP(uint32_t &val)
       if(octet > 255)
         throw RecordTextException("unable to parse IP address");
     }
-    else if(dns_isspace(d_string.at(d_pos))) 
+    else if(dns_isspace(d_string.at(d_pos)))
       break;
     else {
       throw RecordTextException(string("unable to parse IP address, strange character: ")+d_string.at(d_pos));
@@ -147,8 +147,8 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
     throw RecordTextException("Overflow reading 8 bit integer from record content"); // fixme improve
 }
 
-// this code should leave all the escapes around 
-void RecordTextReader::xfrLabel(string& val, bool) 
+// this code should leave all the escapes around
+void RecordTextReader::xfrLabel(string& val, bool)
 {
   skipSpaces();
   val.clear();
@@ -159,16 +159,16 @@ void RecordTextReader::xfrLabel(string& val, bool)
   while(d_pos < d_end) {
     if(strptr[d_pos]!='\r' && dns_isspace(strptr[d_pos]))
       break;
-      
+
     d_pos++;
   }
-  val.append(strptr+begin_pos, strptr+d_pos);      
+  val.append(strptr+begin_pos, strptr+d_pos);
 
   if(val.empty())
     val=d_zone;
   else if(!d_zone.empty()) {
     char last=val[val.size()-1];
-   
+
     if(last =='.')
       val.resize(val.size()-1);
     else if(last != '.' && !isdigit(last)) // don't add zone to IP address
@@ -182,9 +182,9 @@ static bool isbase64(char c)
     return true;
   if(c >= '0' && c <= '9')
     return true;
-  if(c >= 'a' && c <= 'z') 
+  if(c >= 'a' && c <= 'z')
     return true;
-  if(c >= 'A' && c <= 'Z') 
+  if(c >= 'A' && c <= 'Z')
     return true;
   if(c=='+' || c=='/' || c=='=')
     return true;
@@ -198,7 +198,7 @@ void RecordTextReader::xfrBlob(string& val, int)
   const char* strptr=d_string.c_str();
   while(d_pos < d_end && isbase64(strptr[d_pos]))
     d_pos++;
-  
+
   string tmp;
   tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
   boost::erase_all(tmp," ");
@@ -236,7 +236,7 @@ void HEXDecode(const char* begin, const char* end, string& out)
       val = 16*hextodec(*begin);
       mode=1;
     } else {
-      val += hextodec(*begin); 
+      val += hextodec(*begin);
       out.append(1, (char) val);
       mode = 0;
       val = 0;
@@ -405,7 +405,7 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  
+
   struct tm tm;
   time_t time=val; // Y2038 bug!
 #ifndef WIN32
@@ -417,12 +417,12 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
     throw RecordTextException("Unable to convert timestamp into pretty printable time");
   tm=*tmptr;
 #endif
-  
+
   char tmp[16];
-  snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
-           tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
+  snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d",
+           tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
            tm.tm_hour, tm.tm_min, tm.tm_sec);
-  
+
   d_string += tmp;
 }
 
@@ -442,7 +442,7 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  
+
   d_string+=val;
 }
 
@@ -487,7 +487,7 @@ int main(int argc, char**argv)
 try
 {
   RecordTextReader rtr(argv[1], argv[2]);
-  
+
   unsigned int order, pref;
   string flags, services, regexp, replacement;
   string mx;
@@ -513,7 +513,7 @@ try
   rtw.xfrLabel(replacement);
 
   cout<<"Regenerated: '"<<out<<"'\n";
-  
+
 }
 catch(std::exception& e)
 {

@@ -19,8 +19,8 @@ public:
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& hash) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& msg, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -40,7 +40,7 @@ private:
   shared_ptr<ECDSA_PublicKey> d_pubkey;
 };
 
-EC_Domain_Params ECDSADNSCryptoKeyEngine::getECParams(unsigned int algorithm) 
+EC_Domain_Params ECDSADNSCryptoKeyEngine::getECParams(unsigned int algorithm)
 {
   if(algorithm==13)
     return get_EC_Dom_Pars_by_oid("1.2.840.10045.3.1.7");
@@ -57,11 +57,11 @@ void ECDSADNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error("Unknown key length of "+lexical_cast<string>(bits)+" bits requested from ECDSA class");
   }
   d_key = shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(rng, getECParams((bits == 256) ? 13 : 14)));
-  
+
 //  PKCS8_Encoder* pk8e= d_key->pkcs8_encoder();
 //  MemoryVector<byte> getbits=pk8e->key_bits();
 //  cerr<<makeHexDump(string((char*)&*getbits.begin(), (char*)&*getbits.end()))<<endl;
-  
+
 //  const BigInt&x = d_key->private_value();
 //  SecureVector<byte> buffer=BigInt::encode(x);
 //   cerr<<makeHexDump(string((char*)&*buffer.begin(), (char*)&*buffer.end()))<<endl;
@@ -82,15 +82,15 @@ DNSCryptoKeyEngine::storvector_t ECDSADNSCryptoKeyEngine::convertToISCVector() c
     PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   storvector_t storvector;
   string algorithm;
-  if(getBits()==256) 
+  if(getBits()==256)
     algorithm= "13 (ECDSAP256SHA256)";
-  else if(getBits()==384) 
+  else if(getBits()==384)
     algorithm=  "14 (ECDSAP384SHA384)";
-  else 
+  else
     algorithm= " ? (?)";
-  
+
   storvector.push_back(make_pair("Algorithm", algorithm));
-  
+
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
   storvector.push_back(make_pair("PrivateKey", string((char*)&*buffer.begin(), (char*)&*buffer.end())));
@@ -102,17 +102,17 @@ void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std:
   /*Private-key-format: v1.2
    Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-     
+
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
-  if(drc.d_algorithm != d_algorithm) 
+  if(drc.d_algorithm != d_algorithm)
     throw runtime_error("Tried to feed an algorithm "+lexical_cast<string>(drc.d_algorithm)+" to a "+lexical_cast<string>(d_algorithm)+" key!");
 
   string privateKey = stormap["privatekey"];
-  
+
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
-  
+
   EC_Domain_Params params=getECParams(drc.d_algorithm);
-  
+
   d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey);
   AutoSeeded_RNG rng;
 
@@ -148,19 +148,19 @@ std::string ECDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   BigInt x =d_key->public_point().get_affine_x().get_value();
   BigInt y =d_key->public_point().get_affine_y().get_value();
-  
+
   size_t part_size = std::max(x.bytes(), y.bytes());
   MemoryVector<byte> bits(2*part_size);
-  
+
   x.binary_encode(&bits[part_size - x.bytes()]);
   y.binary_encode(&bits[2*part_size - y.bytes()]);
   return string((const char*)bits.begin(), (const char*)bits.end());
 }
 
-void ECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input) 
+void ECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input)
 {
   BigInt x, y;
-  
+
   x.binary_decode((const byte*)input.c_str(), input.length()/2);
   y.binary_decode((const byte*)input.c_str() + input.length()/2, input.length()/2);
 
@@ -192,7 +192,7 @@ std::string ECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
     SHA_384 hasher;
     result = hasher.process(orig);
   }
-  
+
   return string((const char*)result.begin(), (const char*) result.end());
 }
 

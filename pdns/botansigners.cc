@@ -18,15 +18,15 @@ public:
   {
   //  cerr<<"Called"<<endl;
   }
-  
+
   ~BotanRSADNSCryptoKeyEngine(){}
-    
+
   string getName() const { return "Botan RSA"; }
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& msg) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& msg) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& msg, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -89,8 +89,8 @@ DNSCryptoKeyEngine::storvector_t BotanRSADNSCryptoKeyEngine::convertToISCVector(
   storvect.push_back(make_pair("PrivateExponent",asRaw(d_key->get_d())));
   storvect.push_back(make_pair("Prime1",asRaw(d_key->get_p())));
   storvect.push_back(make_pair("Prime2",asRaw(d_key->get_q())));
-  
-#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)  
+
+#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)
   BigInt d1 = d_key->get_d() % (d_key->get_p() - 1);
   BigInt d2 = d_key->get_d() % (d_key->get_q() - 1);
   BigInt c = inverse_mod(d_key->get_q(), d_key->get_p());
@@ -109,20 +109,20 @@ void BotanRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<s
 {
   // wants p (Prime1), q (Prime2), d (PrivateExponent), e (PublicExponent) & n Modulus
   BigInt n, e, d, p, q;
-  
+
   p=fromRaw(stormap["prime1"]);
   q=fromRaw(stormap["prime2"]);
   d=fromRaw(stormap["privateexponent"]);
   e=fromRaw(stormap["publicexponent"]);
   n=fromRaw(stormap["modulus"]);
-  
+
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
-  if(drc.d_algorithm != d_algorithm) 
+  if(drc.d_algorithm != d_algorithm)
     throw runtime_error("Unpossible, loaded a key from storage with wrong algorithm!");
-    
+
   AutoSeeded_RNG rng;
   d_key = shared_ptr<RSA_PrivateKey>(new RSA_PrivateKey(rng, p, q, e, d, n)); // this calculates d1, d2 & other stuff, plus does load checks..
-  
+
   d_pubkey.reset();
 }
 
@@ -131,7 +131,7 @@ std::string BotanRSADNSCryptoKeyEngine::getPubKeyHash() const
   const BigInt& n = d_key->get_n();
   const BigInt& e = d_key->get_e();
   SecureVector<byte> buffer=BigInt::encode(n);
-  
+
   SHA_160 hasher;
   hasher.update(buffer);
   buffer=BigInt::encode(e);
@@ -146,9 +146,9 @@ std::string BotanRSADNSCryptoKeyEngine::getPublicKeyString() const
   string exponent(&*bits.begin(), &*bits.end());
   bits = BigInt::encode(d_key->get_n());
   string modulus(&*bits.begin(), &*bits.end());
-  
+
   string keystring;
-  if(exponent.length() < 255) 
+  if(exponent.length() < 255)
     keystring.assign(1, (char) (unsigned int) exponent.length());
   else {
     keystring.assign(1, 0);
@@ -160,11 +160,11 @@ std::string BotanRSADNSCryptoKeyEngine::getPublicKeyString() const
   return keystring;
 }
 
-void BotanRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString) 
+void BotanRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawString)
 {
   string exponent, modulus;
   const unsigned char* raw = (const unsigned char*)rawString.c_str();
-  
+
   if(raw[0] != 0) {
     exponent=rawString.substr(1, raw[0]);
     modulus=rawString.substr(raw[0]+1);
@@ -174,20 +174,20 @@ void BotanRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& rawStrin
   }
   BigInt e = BigInt::decode((const byte*)exponent.c_str(), exponent.length());
   BigInt n = BigInt::decode((const byte*)modulus.c_str(), modulus.length());
-  
+
   d_pubkey = shared_ptr<RSA_PublicKey>(new RSA_PublicKey(n, e));
   d_key.reset();
 }
 
 std::string BotanRSADNSCryptoKeyEngine::sign(const std::string& msg) const
-{  
-#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)  
+{
+#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)
   EMSA* emsaptr;
-  if(d_algorithm == 5 || d_algorithm ==7) 
+  if(d_algorithm == 5 || d_algorithm ==7)
     emsaptr=new EMSA3(new SHA_160);
   else if(d_algorithm==8)
     emsaptr=new EMSA3(new SHA_256);
-  else 
+  else
     emsaptr=new EMSA3(new SHA_512);
   PK_Signer pks(*d_key, emsaptr);
 #else
@@ -196,7 +196,7 @@ std::string BotanRSADNSCryptoKeyEngine::sign(const std::string& msg) const
     emsa="EMSA3(SHA-160)";
   else if(d_algorithm==8)
     emsa="EMSA3(SHA-256)";
-  else 
+  else
     emsa="EMSA3(SHA-512)";
   PK_Signer pks(*d_key, emsa);
 #endif
@@ -221,7 +221,7 @@ std::string BotanRSADNSCryptoKeyEngine::hash(const std::string& orig) const
     SHA_512 hasher;
     result = hasher.process(orig);
   }
-  
+
   return string((const char*)result.begin(), (const char*) result.end());
 }
 
@@ -229,17 +229,17 @@ std::string BotanRSADNSCryptoKeyEngine::hash(const std::string& orig) const
 bool BotanRSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
   RSA_PublicKey* key = d_key ? d_key.get() : d_pubkey.get();
-  
+
   string emsa;
-  
+
   if(d_algorithm == 5 || d_algorithm ==7)
     emsa = "EMSA3(SHA-1)";
   else if(d_algorithm==8)
     emsa = "EMSA3(SHA-256)";
-  else 
+  else
     emsa = "EMSA3(SHA-512)";
-    
-#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0) 
+
+#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(1,9,0)
   std::auto_ptr<PK_Verifier> ver(get_pk_verifier(*key, emsa));
   return ver->verify_message((byte*)msg.c_str(), msg.length(), (byte*)signature.c_str(), signature.length());
 #else

@@ -22,7 +22,7 @@ cd -
 echo done
 echo -n "Creating launch script: "
 echo \#\!/bin/sh > $prefix/launch
-echo cd $prefix >> $prefix/launch 
+echo cd $prefix >> $prefix/launch
 echo export ORACLE_HOME=$prefix/oracle >> $prefix/launch
 echo chroot . ./bin/ahudns >> $prefix/launch
 chmod +x $prefix/launch

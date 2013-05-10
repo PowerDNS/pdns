@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -36,10 +36,10 @@ class NTService : public Singleton< NTService >
 private:
   //! Is the program running as a NT Service?
   bool m_runningAsService;
-  
+
   //! Service status handle.
   SERVICE_STATUS_HANDLE m_serviceStatusHandle;
-  
+
 protected:
   //! Status code.
   DWORD m_statusCode;
@@ -60,7 +60,7 @@ protected:
 
   //! Sets the service's status and error codes.
   void setStatus( DWORD status, DWORD error = 0 );
-  
+
 public:
   //! Default constructor.
   NTService( void );
@@ -73,10 +73,10 @@ public:
 
   //! Control handler (calls NTService::ctrlHandler()).
   static void WINAPI s_ctrlHandler( DWORD controlCode );
-  
+
   //! Service main (calls NTService::main()).
   static void WINAPI s_serviceMain( DWORD argc, LPTSTR *argv );
-  
+
   //! Returns the name of the service.
   virtual std::string getServiceName( void )
   {
@@ -85,13 +85,13 @@ public:
 
   //! Returns whether the program is running as a service or not.
   bool isRunningAsService( void );
-  
+
   //! Registers the service with the system.
   bool registerService( const std::string & description, bool registerLog = true );
 
   //! Unregisters the service.
   bool unregisterService( void );
-  
+
   //! Stops the service.
   bool stop( void );
 

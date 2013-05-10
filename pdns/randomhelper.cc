@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "dns_random.hh"                     
+#include "dns_random.hh"
 
 void seedRandom(const string& source)
 {
@@ -19,7 +19,7 @@ void seedRandom(const string& source)
   int pos=0;
   while(pos!=sizeof(seed)) {
     ret = read(fd, seed+pos, sizeof(seed)-pos);
-    if(ret < 0) { 
+    if(ret < 0) {
       L<<Logger::Error<<"Unable to read random seed from "<<source<<": "<<stringerror()<<endl;
       close(fd);
       exit(EXIT_FAILURE);

@@ -5,4 +5,4 @@
 extern int my_lua_panic(lua_State* lua);
 extern void register_lua_functions(lua_State* lua);
 
-#endif 
+#endif

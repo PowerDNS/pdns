@@ -3,7 +3,7 @@
     Copyright (C) 2002 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -20,7 +20,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include "ahuexception.hh"
 #include "logger.hh"
 #include "misc.hh"
@@ -43,14 +43,14 @@ int Utility::closesocket( Utility::sock_t socket )
   int ret=::close(socket);
   if(ret < 0 && errno == ECONNRESET) // see ticket 192, odd BSD behaviour
     return 0;
-  if(ret < 0) 
+  if(ret < 0)
     throw AhuException("Error closing socket: "+stringerror());
   return ret;
 }
 
 bool Utility::setNonBlocking(sock_t sock)
 {
-  int flags=fcntl(sock,F_GETFL,0);    
+  int flags=fcntl(sock,F_GETFL,0);
   if(flags<0 || fcntl(sock, F_SETFL,flags|O_NONBLOCK) <0)
     return false;
   return true;
@@ -58,7 +58,7 @@ bool Utility::setNonBlocking(sock_t sock)
 
 bool Utility::setBlocking(sock_t sock)
 {
-  int flags=fcntl(sock,F_GETFL,0);    
+  int flags=fcntl(sock,F_GETFL,0);
   if(flags<0 || fcntl(sock, F_SETFL,flags&(~O_NONBLOCK)) <0)
     return false;
   return true;
@@ -66,7 +66,7 @@ bool Utility::setBlocking(sock_t sock)
 
 bool Utility::setCloseOnExec(sock_t sock)
 {
-  int flags=fcntl(sock,F_GETFD,0);    
+  int flags=fcntl(sock,F_GETFD,0);
   if(flags<0 || fcntl(sock, F_SETFD,flags|FD_CLOEXEC) <0)
     return false;
   return true;
@@ -204,7 +204,7 @@ static int isleap(int year) {
   return (!(year%4) && ((year%100) || !(year%400)));
 }
 
-time_t Utility::timegm(struct tm *const t) 
+time_t Utility::timegm(struct tm *const t)
 {
   const static short spm[13] = /* days per month -- nonleap! */
   { 0,
@@ -230,7 +230,7 @@ time_t Utility::timegm(struct tm *const t)
   if (t->tm_min>60) { t->tm_hour += t->tm_min/60; t->tm_min%=60; }
   if (t->tm_hour>60) { t->tm_mday += t->tm_hour/60; t->tm_hour%=60; }
   if (t->tm_mon>12) { t->tm_year += t->tm_mon/12; t->tm_mon%=12; }
- 
+
   while (t->tm_mday>spm[1+t->tm_mon]) {
     if (t->tm_mon==1 && isleap(t->tm_year+1900)) {
       if (t->tm_mon==31+29) break;

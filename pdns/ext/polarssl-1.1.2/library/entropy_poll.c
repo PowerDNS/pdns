@@ -83,7 +83,7 @@ int platform_entropy_poll( void *data,
     file = fopen( "/dev/urandom", "rb" );
     if( file == NULL )
         return POLARSSL_ERR_ENTROPY_SOURCE_FAILED;
-    
+
     ret = fread( output, 1, len, file );
     if( ret != len )
     {

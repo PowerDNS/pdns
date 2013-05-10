@@ -3,8 +3,8 @@
     Copyright (C) 2002-2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation; 
+    it under the terms of the GNU General Public License version 2 as
+    published by the Free Software Foundation;
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -41,9 +41,9 @@ void CommunicatorClass::retrievalLoopThread(void)
     SuckRequest sr;
     {
       Lock l(&d_lock);
-      if(d_suckdomains.empty()) 
+      if(d_suckdomains.empty())
         continue;
-	
+
       sr=d_suckdomains.front();
       d_suckdomains.pop_front();
     }
@@ -79,9 +79,9 @@ void CommunicatorClass::mainloop(void)
       slaveRefresh(&P);
       masterUpdateCheck(&P);
       tick=doNotifications(); // this processes any notification acknowledgements and actually send out our own notifications
-      
-      tick = min (tick, d_tickinterval); 
-      
+
+      tick = min (tick, d_tickinterval);
+
       next=time(0)+tick;
 
       while(time(0) < next) {
@@ -89,7 +89,7 @@ void CommunicatorClass::mainloop(void)
 
         if(rc)
           Utility::sleep(1);
-        else { 
+        else {
           break; // something happened
         }
         // this gets executed at least once every second

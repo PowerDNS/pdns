@@ -3,7 +3,7 @@
     Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -36,7 +36,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <boost/algorithm/string.hpp> 
+#include <boost/algorithm/string.hpp>
 #include "misc.hh"
 #include "dns.hh"
 #include "arguments.hh"
@@ -69,11 +69,11 @@ void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t 
       L<<Logger::Error<<"Unable to create control socket on '"<<((ComboAddress *)local)->toStringWithPort()<<"', reason: "<<strerror(errno)<<endl;
     exit(1);
   }
-  
+
   int tmp=1;
   if(setsockopt(d_s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     throw AhuException(string("Setsockopt failed on control socket: ")+strerror(errno));
-    
+
   if(bind(d_s, local, len) < 0) {
     if (family == AF_UNIX)
       L<<Logger::Critical<<"Unable to bind to control socket at '"<<((struct sockaddr_un*)local)->sun_path<<"', reason: "<<strerror(errno)<<endl;
@@ -95,7 +95,7 @@ void DynListener::listenOnUnixDomain(const string& fname)
   memset(&local,0,sizeof(local));
   local.sun_family=AF_UNIX;
   strncpy(local.sun_path, fname.c_str(), fname.length());
-  
+
   createSocketAndBind(AF_UNIX, (struct sockaddr*)& local, sizeof(local));
   d_socketname=fname;
   if(!arg()["setgid"].empty()) {
@@ -104,9 +104,9 @@ void DynListener::listenOnUnixDomain(const string& fname)
     if(chown(fname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
       L<<Logger::Error<<"Unable to change group ownership of controlsocket at '"<<fname<<"', reason: "<<strerror(errno)<<endl;
   }
-  
+
   listen(d_s, 10);
-  
+
   L<<Logger::Warning<<"Listening on controlsocket in '"<<fname<<"'"<<endl;
   d_nonlocal=true;
 }
@@ -146,14 +146,14 @@ DynListener::DynListener(const string &progname)
   if(!progname.empty()) {
     string socketname=arg()["socket-dir"]+"/";
     cleanSlashes(socketname);
-    
+
     if(!mkdir(socketname.c_str(),0700)) // make /var directory, if needed
       L<<Logger::Warning<<"Created local state directory '"<<socketname<<"'"<<endl;
     else if(errno!=EEXIST) {
       L<<Logger::Critical<<"FATAL: Unable to create socket directory ("<<socketname<<") and it does not exist yet"<<endl;
       exit(1);
     }
-    
+
     socketname+=progname+".controlsocket";
     listenOnUnixDomain(socketname);
   }
@@ -224,7 +224,7 @@ string DynListener::getLine()
         close(d_client);
         continue;
       }
-      
+
       if(strlen(&mesg[0]) == mesg.size()) {
         L<<Logger::Error<<"Line on controlsocket ("<<d_client<<") was too long"<<endl;
         close(d_client);
@@ -237,7 +237,7 @@ string DynListener::getLine()
     if(isatty(0))
       if(write(1, "% ", 2) !=2)
         throw AhuException("Writing to console: "+stringerror());
-    if((len=read(0, &mesg[0], mesg.size())) < 0) 
+    if((len=read(0, &mesg[0], mesg.size())) < 0)
       throw AhuException("Reading from the control pipe: "+stringerror());
     else if(len==0)
       throw AhuException("Guardian exited - going down as well");
@@ -247,7 +247,7 @@ string DynListener::getLine()
     }
     mesg[len]=0;
   }
-  
+
   return &mesg[0];
 }
 
@@ -257,7 +257,7 @@ void DynListener::sendLine(const string &l)
     unsigned int sent=0;
     int ret;
     while(sent < l.length()) {
-      ret=send(d_client, l.c_str()+sent, l.length()-sent, 0); 
+      ret=send(d_client, l.c_str()+sent, l.length()-sent, 0);
 
       if(ret<0 || !ret) {
         L<<Logger::Error<<"Error sending data to pdns_control: "<<stringerror()<<endl;
@@ -274,7 +274,7 @@ void DynListener::sendLine(const string &l)
     line.append("\n");
     if((unsigned int)write(1,line.c_str(),line.length()) != line.length())
       L<<Logger::Error<<"Error sending data to console: "<<stringerror()<<endl;
-      
+
   }
 }
 

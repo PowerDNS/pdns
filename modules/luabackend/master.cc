@@ -2,7 +2,7 @@
     Copyright (C) 2011 Fredrik Danerklint
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as published 
+    it under the terms of the GNU General Public License version 2 as published
     by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -21,18 +21,18 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-/* 
+/*
     virtual void getUpdatedMasters(vector<DomainInfo>* domains);
     virtual void setNotifed(int id, u_int32_t serial);
 */
 
 void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
-	
+
     if (f_lua_getupdatedmasters == 0)
-	return;
+        return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(getUpdatedMasters) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(getUpdatedMasters) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getupdatedmasters);
 
@@ -49,20 +49,20 @@ void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
         lua_pop(lua, 1 );
         return;
     }
-    
+
     domains_from_table(domains, "getUpdatedMasters");
-    
+
     if (logging)
-	L << Logger::Info << backend_name << "(getUpdatedMasters) END" << endl;
+        L << Logger::Info << backend_name << "(getUpdatedMasters) END" << endl;
 }
 
 void LUABackend::setNotifed(int id, u_int32_t serial) {
-	
+
     if (f_lua_setnotifed == 0)
-	return;
+        return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(setNotifed) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(setNotifed) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setnotifed);
 
@@ -78,6 +78,6 @@ void LUABackend::setNotifed(int id, u_int32_t serial) {
     }
 
     if (logging)
-	L << Logger::Info << backend_name << "(setNotifed) END" << endl;
+        L << Logger::Info << backend_name << "(setNotifed) END" << endl;
 }
 

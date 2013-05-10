@@ -1,5 +1,5 @@
 -- THIS IS NOT PRODUCTION-QUALITY CODE
--- 
+--
 -- This database schema is meant to serve as documentation-by-example for how
 -- certain things might be done. It has also been used for early testing of the
 -- backend. It should not be deployed as-is.
@@ -399,7 +399,7 @@ BEGIN
     WHEN NO_DATA_FOUND THEN
       SELECT * INTO out_next
         FROM (
-          SELECT fqdnhash 
+          SELECT fqdnhash
             FROM Records
             WHERE zone_id = in_zone_id
               AND auth = 1

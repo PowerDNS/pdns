@@ -26,7 +26,7 @@ void dns_random_init(const char data[16])
   memcpy(g_counter, &now.tv_usec, sizeof(now.tv_usec));
   memcpy(g_counter+sizeof(now.tv_usec), &now.tv_sec, sizeof(now.tv_sec));
   g_in = getpid() | (getppid()<<16);
-  
+
   g_initialized = true;
   srandom(dns_random(numeric_limits<uint32_t>::max()));
 }
@@ -49,7 +49,7 @@ static void counterIncrement(unsigned char* counter)
         		    if(!++counter[13])
         		      if(!++counter[14])
         			++counter[15];
-  
+
 }
 
 unsigned int dns_random(unsigned int n)

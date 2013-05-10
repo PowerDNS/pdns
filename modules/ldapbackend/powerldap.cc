@@ -151,7 +151,7 @@ int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
         tv.tv_sec = timeout;
         tv.tv_usec = 0;
         int rc;
-      
+
         rc = ldap_result( d_ld, msgid, LDAP_MSG_ONE, &tv, &res );
 
         switch( rc )

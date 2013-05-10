@@ -22,7 +22,7 @@ rm -f pdns*.pid
 	--fancy-records --send-root-referral                                    \
 	--cache-ttl=60 --no-config &
 bindwait
-	
+
 # prime cache without EDNS
 ../pdns/sdig 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
 # expect EDNS in identical query with EDNS

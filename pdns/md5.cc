@@ -11,12 +11,12 @@
 #include "namespaces.hh"
 
 namespace {
-  
+
   void md5_starts( MD5Summer::md5_context *ctx );
   void md5_update( MD5Summer::md5_context *ctx, const uint8_t *input, uint32_t length );
   void md5_finish( MD5Summer::md5_context *ctx, uint8_t digest[16] );
-  
-  
+
+
 #define GET_UINT32(n,b,i)                       \
 {                                               \
     (n) = ( (uint32_t) (b)[(i)    ]       )       \
@@ -118,7 +118,7 @@ void md5_process( MD5Summer::md5_context *ctx, const uint8_t data[64] )
     P( B, C, D, A, 12, 20, 0x8D2A4C8A );
 
 #undef F
-    
+
 #define F(x,y,z) (x ^ y ^ z)
 
     P( A, B, C, D,  5,  4, 0xFFFA3942 );
@@ -264,7 +264,7 @@ const string MD5Summer::get() const
 
   uint8_t buf[16];
   md5_finish(&ctx2, buf);
-  
+
   return string(buf, buf+16);
 }
 

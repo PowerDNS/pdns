@@ -1,9 +1,9 @@
 #include "remotebackend.hh"
 #include <sys/socket.h>
-#include <pdns/lock.hh> 
+#include <pdns/lock.hh>
 #include <unistd.h>
 #include <fcntl.h>
-#ifndef UNIX_PATH_MAX 
+#ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
 #endif
 
@@ -11,9 +11,9 @@ UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optio
    if (options.count("path") == 0) {
      L<<Logger::Error<<"Cannot find 'path' option in connection string"<<endl;
      throw new AhuException();
-   } 
+   }
    this->timeout = 2000;
-   if (options.find("timeout") != options.end()) { 
+   if (options.find("timeout") != options.end()) {
      this->timeout = boost::lexical_cast<int>(options.find("timeout")->second);
    }
    this->path = options.find("path")->second;
@@ -49,21 +49,21 @@ int UnixsocketConnector::recv_message(rapidjson::Document &output) {
         nread = 0;
         gettimeofday(&t0, NULL);
         memcpy(&t,&t0,sizeof(t0));
-        s_output = "";       
+        s_output = "";
 
-        while((t.tv_sec - t0.tv_sec)*1000 + (t.tv_usec - t0.tv_usec)/1000 < this->timeout) { 
+        while((t.tv_sec - t0.tv_sec)*1000 + (t.tv_usec - t0.tv_usec)/1000 < this->timeout) {
           std::string temp;
           temp.clear();
 
           rv = this->read(temp);
-          if (rv == -1) 
+          if (rv == -1)
             return -1;
 
           if (rv>0) {
             nread += rv;
             s_output.append(temp);
             rapidjson::StringStream ss(s_output.c_str());
-            output.ParseStream<0>(ss); 
+            output.ParseStream<0>(ss);
             if (output.HasParseError() == false)
               return s_output.size();
           }
@@ -157,7 +157,7 @@ void UnixsocketConnector::reconnect() {
    for(std::map<std::string,std::string>::iterator i = options.begin(); i != options.end(); i++) {
      val = i->second.c_str();
      init["parameters"].AddMember(i->first.c_str(), val, init.GetAllocator());
-   } 
+   }
 
    this->send_message(init);
    if (this->recv_message(res) == false) {

@@ -4,7 +4,7 @@
 #include "misc.hh"
 #include <boost/lexical_cast.hpp>
 #include "syncres.hh"
-#include "utility.hh" 
+#include "utility.hh"
 
 
 #include "namespaces.hh"
@@ -50,7 +50,7 @@ int SelectFDMultiplexer::run(struct timeval* now)
   fd_set readfds, writefds;
   FD_ZERO(&readfds);
   FD_ZERO(&writefds);
-  
+
   int fdmax=0;
 
   for(callbackmap_t::const_iterator i=d_readCallbacks.begin(); i != d_readCallbacks.end(); ++i) {
@@ -62,11 +62,11 @@ int SelectFDMultiplexer::run(struct timeval* now)
     FD_SET(i->first, &writefds);
     fdmax=max(i->first, fdmax);
   }
-  
+
   struct timeval tv={0,500000};
   int ret=select(fdmax + 1, &readfds, &writefds, 0, &tv);
   Utility::gettimeofday(now, 0); // MANDATORY!
-  
+
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("select returned error: "+stringerror());
 
@@ -75,7 +75,7 @@ int SelectFDMultiplexer::run(struct timeval* now)
 
   d_iter=d_readCallbacks.end();
   d_inrun=true;
-  
+
   for(callbackmap_t::iterator i=d_readCallbacks.begin(); i != d_readCallbacks.end() && i->first <= fdmax; ) {
     d_iter=i++;
 
@@ -112,7 +112,7 @@ void acceptData(int fd, boost::any& parameter)
 int main()
 {
   Socket s(InterNetwork, Datagram);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 

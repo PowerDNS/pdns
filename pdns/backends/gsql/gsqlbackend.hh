@@ -4,7 +4,7 @@
 
 #include "../../namespaces.hh"
 
-/* 
+/*
 GSQLBackend is a generic backend used by other sql backends
 */
 class GSQLBackend : public DNSBackend
@@ -16,12 +16,12 @@ public:
     if(d_db)
       delete d_db;
   }
-  
+
   void setDB(SSql *db)
   {
     d_db=db;
   }
-  
+
   virtual string sqlEscape(const string &name);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int domain_id);
@@ -56,11 +56,11 @@ public:
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
-  
+
   bool removeDomainKey(const string& name, unsigned int id);
   bool activateDomainKey(const string& name, unsigned int id);
   bool deactivateDomainKey(const string& name, unsigned int id);
-  
+
   bool getTSIGKey(const string& name, string* algorithm, string* content);
 private:
   string d_qname;
@@ -79,7 +79,7 @@ private:
   string d_wildCardANYIDQuery;
   string d_listQuery;
   string d_logprefix;
-  
+
   string d_MasterOfDomainsZoneQuery;
   string d_InfoOfDomainsZoneQuery;
   string d_InfoOfAllSlaveDomainsQuery;
@@ -89,10 +89,10 @@ private:
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
-  string d_DeleteZoneQuery;		
+  string d_DeleteZoneQuery;
   string d_DeleteRRSet;
   string d_ZoneLastChangeQuery;
-  
+
   string d_firstOrderQuery;
   string d_beforeOrderQuery;
   string d_afterOrderQuery;
@@ -114,11 +114,11 @@ private:
   string d_RemoveDomainKeyQuery;
   string d_ActivateDomainKeyQuery;
   string d_DeactivateDomainKeyQuery;
-  
+
   string d_getTSIGKeyQuery;
 
   string d_getAllDomainsQuery;
 
-protected:  
+protected:
   bool d_dnssecQueries;
 };

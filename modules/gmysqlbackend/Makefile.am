@@ -12,4 +12,4 @@ libgmysqlbackend_la_LDFLAGS=-module -avoid-version $(MYSQL_lib)
 #	-Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
 
 
-	
+

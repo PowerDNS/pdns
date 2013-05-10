@@ -104,26 +104,27 @@ aligned_array(unsigned long, dec_hybrid_table, 12, 16) = NEH_DEC_HYBRID_DATA;
 
 /* test the code for detecting and setting pointer alignment */
 
-AES_RETURN aes_test_alignment_detection(unsigned int n)	/* 4 <= n <= 16 */
-{	uint_8t	p[16];
-	uint_32t i, count_eq = 0, count_neq = 0;
+AES_RETURN aes_test_alignment_detection(unsigned int n) /* 4 <= n <= 16 */
+{
+    uint_8t p[16];
+    uint_32t i, count_eq = 0, count_neq = 0;
 
-	if(n < 4 || n > 16)
-		return EXIT_FAILURE;
+    if(n < 4 || n > 16)
+        return EXIT_FAILURE;
 
-	for(i = 0; i < n; ++i)
-	{
-		uint_8t *qf = ALIGN_FLOOR(p + i, n),
-				*qh =  ALIGN_CEIL(p + i, n);
-		
-		if(qh == qf)
-			++count_eq;
-		else if(qh == qf + n)
-			++count_neq;
-		else
-			return EXIT_FAILURE;
-	}
-	return (count_eq != 1 || count_neq != n - 1 ? EXIT_FAILURE : EXIT_SUCCESS);
+    for(i = 0; i < n; ++i)
+    {
+        uint_8t *qf = ALIGN_FLOOR(p + i, n),
+                *qh =  ALIGN_CEIL(p + i, n);
+
+        if(qh == qf)
+            ++count_eq;
+        else if(qh == qf + n)
+            ++count_neq;
+        else
+            return EXIT_FAILURE;
+    }
+    return (count_eq != 1 || count_neq != n - 1 ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 AES_RETURN aes_mode_reset(aes_encrypt_ctx ctx[1])
@@ -186,7 +187,7 @@ AES_RETURN aes_ecb_encrypt(const unsigned char *ibuf, unsigned char *obuf,
     while(nb--)
     {
         if(aes_encrypt(ibuf, obuf, ctx) != EXIT_SUCCESS)
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
         ibuf += AES_BLOCK_SIZE;
         obuf += AES_BLOCK_SIZE;
     }
@@ -248,7 +249,7 @@ AES_RETURN aes_ecb_decrypt(const unsigned char *ibuf, unsigned char *obuf,
     while(nb--)
     {
         if(aes_decrypt(ibuf, obuf, ctx) != EXIT_SUCCESS)
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
         ibuf += AES_BLOCK_SIZE;
         obuf += AES_BLOCK_SIZE;
     }
@@ -326,7 +327,7 @@ AES_RETURN aes_cbc_encrypt(const unsigned char *ibuf, unsigned char *obuf,
             lp32(iv)[2] ^= lp32(ibuf)[2];
             lp32(iv)[3] ^= lp32(ibuf)[3];
             if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-				return EXIT_FAILURE;
+                return EXIT_FAILURE;
             memcpy(obuf, iv, AES_BLOCK_SIZE);
             ibuf += AES_BLOCK_SIZE;
             obuf += AES_BLOCK_SIZE;
@@ -344,7 +345,7 @@ AES_RETURN aes_cbc_encrypt(const unsigned char *ibuf, unsigned char *obuf,
             iv[12] ^= ibuf[12]; iv[13] ^= ibuf[13];
             iv[14] ^= ibuf[14]; iv[15] ^= ibuf[15];
             if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-				return EXIT_FAILURE;
+                return EXIT_FAILURE;
             memcpy(obuf, iv, AES_BLOCK_SIZE);
             ibuf += AES_BLOCK_SIZE;
             obuf += AES_BLOCK_SIZE;
@@ -420,7 +421,7 @@ AES_RETURN aes_cbc_decrypt(const unsigned char *ibuf, unsigned char *obuf,
         {
             memcpy(tmp, ibuf, AES_BLOCK_SIZE);
             if(aes_decrypt(ibuf, obuf, ctx) != EXIT_SUCCESS)
-				return EXIT_FAILURE;
+                return EXIT_FAILURE;
             lp32(obuf)[0] ^= lp32(iv)[0];
             lp32(obuf)[1] ^= lp32(iv)[1];
             lp32(obuf)[2] ^= lp32(iv)[2];
@@ -435,7 +436,7 @@ AES_RETURN aes_cbc_decrypt(const unsigned char *ibuf, unsigned char *obuf,
         {
             memcpy(tmp, ibuf, AES_BLOCK_SIZE);
             if(aes_decrypt(ibuf, obuf, ctx) != EXIT_SUCCESS)
-				return EXIT_FAILURE;
+                return EXIT_FAILURE;
             obuf[ 0] ^= iv[ 0]; obuf[ 1] ^= iv[ 1];
             obuf[ 2] ^= iv[ 2]; obuf[ 3] ^= iv[ 3];
             obuf[ 4] ^= iv[ 4]; obuf[ 5] ^= iv[ 5];
@@ -525,7 +526,7 @@ AES_RETURN aes_cfb_encrypt(const unsigned char *ibuf, unsigned char *obuf,
             {
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-					return EXIT_FAILURE;
+                    return EXIT_FAILURE;
                 lp32(obuf)[0] = lp32(iv)[0] ^= lp32(ibuf)[0];
                 lp32(obuf)[1] = lp32(iv)[1] ^= lp32(ibuf)[1];
                 lp32(obuf)[2] = lp32(iv)[2] ^= lp32(ibuf)[2];
@@ -540,7 +541,7 @@ AES_RETURN aes_cfb_encrypt(const unsigned char *ibuf, unsigned char *obuf,
             {
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-					return EXIT_FAILURE;
+                    return EXIT_FAILURE;
                 obuf[ 0] = iv[ 0] ^= ibuf[ 0]; obuf[ 1] = iv[ 1] ^= ibuf[ 1];
                 obuf[ 2] = iv[ 2] ^= ibuf[ 2]; obuf[ 3] = iv[ 3] ^= ibuf[ 3];
                 obuf[ 4] = iv[ 4] ^= ibuf[ 4]; obuf[ 5] = iv[ 5] ^= ibuf[ 5];
@@ -559,7 +560,7 @@ AES_RETURN aes_cfb_encrypt(const unsigned char *ibuf, unsigned char *obuf,
     while(cnt < len)
     {
         if(!b_pos && aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
 
         while(cnt < len && b_pos < AES_BLOCK_SIZE)
             *obuf++ = iv[b_pos++] ^= *ibuf++, cnt++;
@@ -646,7 +647,7 @@ AES_RETURN aes_cfb_decrypt(const unsigned char *ibuf, unsigned char *obuf,
 
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-					return EXIT_FAILURE;
+                    return EXIT_FAILURE;
                 t = lp32(ibuf)[0], lp32(obuf)[0] = t ^ lp32(iv)[0], lp32(iv)[0] = t;
                 t = lp32(ibuf)[1], lp32(obuf)[1] = t ^ lp32(iv)[1], lp32(iv)[1] = t;
                 t = lp32(ibuf)[2], lp32(obuf)[2] = t ^ lp32(iv)[2], lp32(iv)[2] = t;
@@ -662,7 +663,7 @@ AES_RETURN aes_cfb_decrypt(const unsigned char *ibuf, unsigned char *obuf,
 
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-					return EXIT_FAILURE;
+                    return EXIT_FAILURE;
                 t = ibuf[ 0], obuf[ 0] = t ^ iv[ 0], iv[ 0] = t;
                 t = ibuf[ 1], obuf[ 1] = t ^ iv[ 1], iv[ 1] = t;
                 t = ibuf[ 2], obuf[ 2] = t ^ iv[ 2], iv[ 2] = t;
@@ -690,7 +691,7 @@ AES_RETURN aes_cfb_decrypt(const unsigned char *ibuf, unsigned char *obuf,
     {   uint_8t t;
 
         if(!b_pos && aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
 
         while(cnt < len && b_pos < AES_BLOCK_SIZE)
             t = *ibuf++, *obuf++ = t ^ iv[b_pos], iv[b_pos++] = t, cnt++;
@@ -775,7 +776,7 @@ AES_RETURN aes_ofb_crypt(const unsigned char *ibuf, unsigned char *obuf,
             {
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-					return EXIT_FAILURE;
+                    return EXIT_FAILURE;
                 lp32(obuf)[0] = lp32(iv)[0] ^ lp32(ibuf)[0];
                 lp32(obuf)[1] = lp32(iv)[1] ^ lp32(ibuf)[1];
                 lp32(obuf)[2] = lp32(iv)[2] ^ lp32(ibuf)[2];
@@ -790,7 +791,7 @@ AES_RETURN aes_ofb_crypt(const unsigned char *ibuf, unsigned char *obuf,
             {
                 assert(b_pos == 0);
                 if(aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-					return EXIT_FAILURE;
+                    return EXIT_FAILURE;
                 obuf[ 0] = iv[ 0] ^ ibuf[ 0]; obuf[ 1] = iv[ 1] ^ ibuf[ 1];
                 obuf[ 2] = iv[ 2] ^ ibuf[ 2]; obuf[ 3] = iv[ 3] ^ ibuf[ 3];
                 obuf[ 4] = iv[ 4] ^ ibuf[ 4]; obuf[ 5] = iv[ 5] ^ ibuf[ 5];
@@ -809,7 +810,7 @@ AES_RETURN aes_ofb_crypt(const unsigned char *ibuf, unsigned char *obuf,
     while(cnt < len)
     {
         if(!b_pos && aes_encrypt(iv, iv, ctx) != EXIT_SUCCESS)
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
 
         while(cnt < len && b_pos < AES_BLOCK_SIZE)
             *obuf++ = iv[b_pos++] ^ *ibuf++, cnt++;
@@ -840,7 +841,7 @@ AES_RETURN aes_ctr_crypt(const unsigned char *ibuf, unsigned char *obuf,
     {
         memcpy(buf, cbuf, AES_BLOCK_SIZE);
         if(aes_ecb_encrypt(buf, buf, AES_BLOCK_SIZE, ctx) != EXIT_SUCCESS)
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
         while(b_pos < AES_BLOCK_SIZE && len)
             *obuf++ = *ibuf++ ^ buf[b_pos++], --len;
         if(len)
@@ -870,7 +871,7 @@ AES_RETURN aes_ctr_crypt(const unsigned char *ibuf, unsigned char *obuf,
         else
 #endif
         if(aes_ecb_encrypt(buf, buf, i * AES_BLOCK_SIZE, ctx) != EXIT_SUCCESS)
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
 
         i = 0; ip = buf;
 # ifdef FAST_BUFFER_OPERATIONS

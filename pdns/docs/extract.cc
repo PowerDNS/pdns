@@ -15,7 +15,7 @@ void printAndClearWords(words_t& words)
       if(iter->find('(') != string::npos)
         noparen=false;
 
-      if(iter != words.begin()) 
+      if(iter != words.begin())
         cout<<" ";
       else if((*iter)[0]=='(') {
         iter->assign(iter->c_str()+1);
@@ -59,11 +59,11 @@ int main()
         word.clear();
         inword=false;
       }
-      else 
+      else
         word.append(1, (char)c);
       continue;
     }
-    
+
     if(!isspace(c)) {
       word.append(1, (char) c);
       inword=true;

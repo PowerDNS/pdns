@@ -12,8 +12,8 @@ PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
 }
 
 PipeConnector::~PipeConnector(){
-  if (this->coproc != NULL) 
-    delete coproc; 
+  if (this->coproc != NULL)
+    delete coproc;
 }
 
 void PipeConnector::launch() {
@@ -21,7 +21,7 @@ void PipeConnector::launch() {
   rapidjson::Value val;
   rapidjson::Document init,res;
   int timeout=2000;
-  if (options.find("timeout") != options.end()) { 
+  if (options.find("timeout") != options.end()) {
      timeout = boost::lexical_cast<int>(options.find("timeout")->second);
   }
   coproc = new CoProcess(this->command, timeout);
@@ -57,10 +57,10 @@ int PipeConnector::send_message(const rapidjson::Document &input)
       delete coproc;
       coproc=NULL;
       throw;
-   } 
+   }
 }
 
-int PipeConnector::recv_message(rapidjson::Document &output) 
+int PipeConnector::recv_message(rapidjson::Document &output)
 {
    rapidjson::GenericReader<rapidjson::UTF8<> , rapidjson::MemoryPoolAllocator<> > r;
    std::string tmp;
@@ -72,7 +72,7 @@ int PipeConnector::recv_message(rapidjson::Document &output)
         coproc->receive(tmp);
         s_output.append(tmp);
         rapidjson::StringStream ss(s_output.c_str());
-        output.ParseStream<0>(ss); 
+        output.ParseStream<0>(ss);
         if (output.HasParseError() == false)
           return s_output.size();
       }

@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -31,7 +31,7 @@ class Singleton
 private:
   static long m_refCount;   //! Reference counter.
   static _Ty *m_pInstance;  //! Pointer to the actual instance.
-  
+
   //! No assign operator allowed.
   const _Ty & operator=( const _Ty & rhv )
   {
@@ -41,7 +41,7 @@ private:
   Singleton( const _Ty & copy )
   {
   }
-  
+
 protected:
 public:
   //! Default constructor.
@@ -113,7 +113,7 @@ public:
   {
     return true;
   }
-  
+
 };
 
 

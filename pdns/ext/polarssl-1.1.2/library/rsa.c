@@ -78,7 +78,7 @@ int rsa_gen_key( rsa_context *ctx,
 
     do
     {
-        MPI_CHK( mpi_gen_prime( &ctx->P, ( nbits + 1 ) >> 1, 0, 
+        MPI_CHK( mpi_gen_prime( &ctx->P, ( nbits + 1 ) >> 1, 0,
                                 f_rng, p_rng ) );
 
         MPI_CHK( mpi_gen_prime( &ctx->Q, ( nbits + 1 ) >> 1, 0,
@@ -124,7 +124,7 @@ cleanup:
         return( POLARSSL_ERR_RSA_KEY_GEN_FAILED + ret );
     }
 
-    return( 0 );   
+    return( 0 );
 }
 
 #endif
@@ -137,7 +137,7 @@ int rsa_check_pubkey( const rsa_context *ctx )
     if( !ctx->N.p || !ctx->E.p )
         return( POLARSSL_ERR_RSA_KEY_CHECK_FAILED );
 
-    if( ( ctx->N.p[0] & 1 ) == 0 || 
+    if( ( ctx->N.p[0] & 1 ) == 0 ||
         ( ctx->E.p[0] & 1 ) == 0 )
         return( POLARSSL_ERR_RSA_KEY_CHECK_FAILED );
 
@@ -178,7 +178,7 @@ int rsa_check_privkey( const rsa_context *ctx )
     MPI_CHK( mpi_gcd( &G, &ctx->E, &H  ) );
 
     MPI_CHK( mpi_gcd( &G2, &P1, &Q1 ) );
-    MPI_CHK( mpi_div_mpi( &L1, &L2, &H, &G2 ) );  
+    MPI_CHK( mpi_div_mpi( &L1, &L2, &H, &G2 ) );
     MPI_CHK( mpi_mod_mpi( &I, &DE, &L1  ) );
 
     /*
@@ -192,7 +192,7 @@ int rsa_check_privkey( const rsa_context *ctx )
         ret = POLARSSL_ERR_RSA_KEY_CHECK_FAILED;
     }
 
-    
+
 cleanup:
 
     mpi_free( &PQ ); mpi_free( &DE ); mpi_free( &P1 ); mpi_free( &Q1 );
@@ -313,7 +313,7 @@ cleanup:
  * \param slen      length of the source buffer
  * \param md_ctx    message digest context to use
  */
-static void mgf_mask( unsigned char *dst, size_t dlen, unsigned char *src, size_t slen,  
+static void mgf_mask( unsigned char *dst, size_t dlen, unsigned char *src, size_t slen,
                        md_context_t *md_ctx )
 {
     unsigned char mask[POLARSSL_MD_MAX_SIZE];
@@ -406,7 +406,7 @@ int rsa_pkcs1_encrypt( rsa_context *ctx,
             *p++ = 0;
             memcpy( p, input, ilen );
             break;
-        
+
 #if defined(POLARSSL_PKCS1_V21)
         case RSA_PKCS_V21:
 
@@ -439,16 +439,16 @@ int rsa_pkcs1_encrypt( rsa_context *ctx,
             p += hlen;
             p += olen - 2 * hlen - 2 - ilen;
             *p++ = 1;
-            memcpy( p, input, ilen ); 
+            memcpy( p, input, ilen );
 
             // maskedDB: Apply dbMask to DB
             //
-            mgf_mask( output + hlen + 1, olen - hlen - 1, output + 1, hlen,  
+            mgf_mask( output + hlen + 1, olen - hlen - 1, output + 1, hlen,
                        &md_ctx );
 
             // maskedSeed: Apply seedMask to seed
             //
-            mgf_mask( output + 1, hlen, output + hlen + 1, olen - hlen - 1,  
+            mgf_mask( output + 1, hlen, output + hlen + 1, olen - hlen - 1,
                        &md_ctx );
             break;
 #endif
@@ -515,19 +515,19 @@ int rsa_pkcs1_decrypt( rsa_context *ctx,
 
 #if defined(POLARSSL_PKCS1_V21)
         case RSA_PKCS_V21:
-            
+
             if( *p++ != 0 )
                 return( POLARSSL_ERR_RSA_INVALID_PADDING );
 
             md_info = md_info_from_type( ctx->hash_id );
             if( md_info == NULL )
                 return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
-                
+
             hlen = md_get_size( md_info );
             memset( &md_ctx, 0, sizeof( md_context_t ) );
 
             md_init_ctx( &md_ctx, md_info );
-            
+
             // Generate lHash
             //
             md( md_info, lhash, 0, lhash );
@@ -539,7 +539,7 @@ int rsa_pkcs1_decrypt( rsa_context *ctx,
 
             // DB: Apply dbMask to maskedDB
             //
-            mgf_mask( buf + hlen + 1, ilen - hlen - 1, buf + 1, hlen,  
+            mgf_mask( buf + hlen + 1, ilen - hlen - 1, buf + 1, hlen,
                        &md_ctx );
 
             p += hlen;
@@ -748,7 +748,7 @@ int rsa_pkcs1_sign( rsa_context *ctx,
             md_info = md_info_from_type( ctx->hash_id );
             if( md_info == NULL )
                 return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
-                
+
             hlen = md_get_size( md_info );
             slen = hlen;
 
@@ -872,7 +872,7 @@ int rsa_pkcs1_verify( rsa_context *ctx,
                         ( c == 4 && hash_id == SIG_RSA_MD4 ) ||
                         ( c == 5 && hash_id == SIG_RSA_MD5 ) )
                 {
-                    if( memcmp( p + 18, hash, 16 ) == 0 ) 
+                    if( memcmp( p + 18, hash, 16 ) == 0 )
                         return( 0 );
                     else
                         return( POLARSSL_ERR_RSA_VERIFY_FAILED );
@@ -916,7 +916,7 @@ int rsa_pkcs1_verify( rsa_context *ctx,
 
 #if defined(POLARSSL_PKCS1_V21)
         case RSA_PKCS_V21:
-            
+
             if( buf[siglen - 1] != 0xBC )
                 return( POLARSSL_ERR_RSA_INVALID_PADDING );
 
@@ -955,7 +955,7 @@ int rsa_pkcs1_verify( rsa_context *ctx,
             md_info = md_info_from_type( ctx->hash_id );
             if( md_info == NULL )
                 return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
-                
+
             hlen = md_get_size( md_info );
             slen = siglen - hlen - 1;
 
@@ -1093,7 +1093,7 @@ static int myrand( void *rng_state, unsigned char *output, size_t len )
 
     for( i = 0; i < len; ++i )
         output[i] = rand();
-    
+
     return( 0 );
 }
 

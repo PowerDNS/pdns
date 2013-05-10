@@ -2,7 +2,7 @@
     Copyright (C) 2011 Fredrik Danerklint
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as published 
+    it under the terms of the GNU General Public License version 2 as published
     by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -21,8 +21,8 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-/* 
-    
+/*
+
    virtual bool startTransaction(const string &qname, int id);
    virtual bool commitTransaction();
    virtual bool abortTransaction();
@@ -57,15 +57,15 @@ bool LUABackend::startTransaction(const string &qname, int id) {
 
     size_t returnedwhat = lua_type(lua, -1);
     bool ok = false;
-    
+
     if (returnedwhat == LUA_TBOOLEAN)
         ok = lua_toboolean(lua, -1);
-    
+
     lua_pop(lua, 1);
-    
+
     if (logging)
-	L << Logger::Info << backend_name << "(startTransaction) END" << endl;
-	
+        L << Logger::Info << backend_name << "(startTransaction) END" << endl;
+
     return ok;
 }
 
@@ -73,9 +73,9 @@ bool LUABackend::commitTransaction() {
 
     if (f_lua_committransaction == 0)
         return false;
-        
+
     if (logging)
-	L << Logger::Info << backend_name << "(commitTransaction) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(commitTransaction) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_committransaction);
 
@@ -89,15 +89,15 @@ bool LUABackend::commitTransaction() {
 
     size_t returnedwhat = lua_type(lua, -1);
     bool ok = false;
-    
+
     if (returnedwhat == LUA_TBOOLEAN)
         ok = lua_toboolean(lua, -1);
-    
+
     lua_pop(lua, 1);
-    
+
     if (logging)
-	L << Logger::Info << backend_name << "(commitTransaction) END" << endl;
-	
+        L << Logger::Info << backend_name << "(commitTransaction) END" << endl;
+
     return ok;
 }
 
@@ -107,7 +107,7 @@ bool LUABackend::abortTransaction() {
         return false;
 
     if (logging)
-	L << Logger::Info << backend_name << "(abortTransaction) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(abortTransaction) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_aborttransaction);
 
@@ -121,14 +121,14 @@ bool LUABackend::abortTransaction() {
 
     size_t returnedwhat = lua_type(lua, -1);
     bool ok = false;
-    
+
     if (returnedwhat == LUA_TBOOLEAN)
         ok = lua_toboolean(lua, -1);
-    
+
     lua_pop(lua, 1);
 
     if (logging)
-	L << Logger::Info << backend_name << "(abortTransaction) END" << endl;
+        L << Logger::Info << backend_name << "(abortTransaction) END" << endl;
     return ok;
 }
 
@@ -138,7 +138,7 @@ bool LUABackend::feedRecord(const DNSResourceRecord &rr) {
         return false;
 
     if (logging)
-	L << Logger::Info << backend_name << "(feedRecord) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(feedRecord) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_feedrecord);
     dnsrr_to_table(lua, &rr);
@@ -153,25 +153,25 @@ bool LUABackend::feedRecord(const DNSResourceRecord &rr) {
 
     size_t returnedwhat = lua_type(lua, -1);
     bool ok = false;
-    
+
     if (returnedwhat == LUA_TBOOLEAN)
         ok = lua_toboolean(lua, -1);
-    
+
     lua_pop(lua, 1);
 
     if (logging)
-	L << Logger::Info << backend_name << "(feedRecord) END" << endl;
-	
+        L << Logger::Info << backend_name << "(feedRecord) END" << endl;
+
     return ok;
 }
 
 void LUABackend::setFresh(int id) {
-    
+
     if (f_lua_setfresh == 0)
         return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(setFresh) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(setFresh) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setfresh);
 
@@ -186,17 +186,17 @@ void LUABackend::setFresh(int id) {
     }
 
     if (logging)
-	L << Logger::Info << backend_name << "(setFresh) END" << endl;
+        L << Logger::Info << backend_name << "(setFresh) END" << endl;
 
 }
 
 void LUABackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
-    
+
     if (f_lua_getunfreshslaveinfos == 0)
         return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(getUnfreshSlaveInfos) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(getUnfreshSlaveInfos) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getunfreshslaveinfos);
 
@@ -213,27 +213,27 @@ void LUABackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
         lua_pop(lua, 1 );
         return;
     }
-    
+
     domains_from_table(domains, "getUnfreshSlaveInfos");
-    
+
     if (logging)
-	L << Logger::Info << backend_name << "(getUnfreshSlaveInfos) END" << endl;
+        L << Logger::Info << backend_name << "(getUnfreshSlaveInfos) END" << endl;
 
 }
 
 bool LUABackend::isMaster(const string &domain, const string &ip) {
-	
+
     if (f_lua_ismaster == 0)
         return false;
 
     if (logging)
-	L << Logger::Error << backend_name << "(isMaster) BEGIN" << endl;
+        L << Logger::Error << backend_name << "(isMaster) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_ismaster);
 
     lua_pushstring(lua, domain.c_str());
     lua_pushstring(lua, ip.c_str());
-    
+
     if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
         lua_pop(lua, 1);
@@ -244,14 +244,14 @@ bool LUABackend::isMaster(const string &domain, const string &ip) {
 
     size_t returnedwhat = lua_type(lua, -1);
     bool ok = false;
-    
+
     if (returnedwhat == LUA_TBOOLEAN)
         ok = lua_toboolean(lua, -1);
-    
+
     lua_pop(lua, 1);
-    
+
     if (logging)
-	L << Logger::Info << backend_name << "(isMaster) END" << endl;
+        L << Logger::Info << backend_name << "(isMaster) END" << endl;
 
     return ok;
 }
@@ -261,12 +261,12 @@ bool LUABackend::getDomainInfo(const string &domain, DomainInfo &di) {
         return false;
 
     if (logging)
-	L << Logger::Info << backend_name << "(getDomainInfo) BEGIN" << endl;
+        L << Logger::Info << backend_name << "(getDomainInfo) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomaininfo);
 
     lua_pushstring(lua, domain.c_str());
-    
+
     if(lua_pcall(lua, 1, 1, f_lua_exec_error) != 0) {
         string e = backend_name + lua_tostring(lua, -1);
         lua_pop(lua, 1);
@@ -282,7 +282,7 @@ bool LUABackend::getDomainInfo(const string &domain, DomainInfo &di) {
     }
 
     if (logging)
-	L << Logger::Info << backend_name << "(getDomainInfo) END" << endl;
-	
+        L << Logger::Info << backend_name << "(getDomainInfo) END" << endl;
+
     return domaininfo_from_table(&di);
 }

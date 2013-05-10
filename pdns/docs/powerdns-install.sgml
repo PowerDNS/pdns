@@ -4,7 +4,7 @@
 <!-- Title information -->
 
 <title>PowerDNS 1.2 Install &amp; Usage guide
-<author>PowerDNS BV 
+<author>PowerDNS BV
 Trilab BV
 <date>v1.1 $Date$
 <abstract>
@@ -84,7 +84,7 @@ dynamically at runtime. This is done by executing the ahudns.rc script found
 in the configuration directory, where ahudns.conf also resides.
 
 You will find ahudns.rc-dist which you can rename to ahudns.rc, and edit at
-will to have PowerDNS load additional modules. 
+will to have PowerDNS load additional modules.
 
 When no modules are loaded, the daemon responds to queries with a 'SERVFAIL'
 packet, indicating that client nameservers should query other servers.
@@ -118,7 +118,7 @@ Stop the daemon with the 'killall' or 'pkill command'
 <sect2>With the safe_ahudns wrapper
 <p>
 A better way of running ahudns is with the safe_ahudns wrapper, which is
-distributed with PowerDNS. 
+distributed with PowerDNS.
 
 This approach is a lot like that taken by safe_mysql from the MySQL
 distribution, should ahudns ever fail for whatever reason, safe_ahudns will
@@ -131,12 +131,12 @@ To stop, use the dynloader programm and pass the command 'quit', which will
 make the daemon exit with error code 99. safe_ahudns interprets 99 as a
 healthy exit with no need to restart the daemon.
 
-<sect1>Running controlled with init.d scripts 
-<p> 
+<sect1>Running controlled with init.d scripts
+<p>
 This is the preferred way of running ahudns. For easy control of both ahudns
 and smtpredir, use the init.d scripts provided in the 'sample' directory.
 They are usually placed in /etc/init.d, but because of unix variations, they
-are not installed there by default. 
+are not installed there by default.
 
 Available commands are 'stop', 'start', 'status' and 'restart'. The init.d
 scripts use the safe_* wrappers internally, which will take care of
@@ -162,13 +162,13 @@ for virtual configurations is:
 /opt/ahudns/etc-customer2/ahudns.conf	Customer2 configuration
 /opt/ahudns/etc-customer2/ahudns.rc	Customer2
 /opt/ahudns/var/ahudns.controlsocket	Default control socket (for dynloader)
-/opt/ahudns/var/ahudns-customer1.controlsocket	
-/opt/ahudns/var/ahudns-customer2.controlsocket	
+/opt/ahudns/var/ahudns-customer1.controlsocket
+/opt/ahudns/var/ahudns-customer2.controlsocket
 </verb></tscreen>
 
 The init.d scripts are aware of virtual configurations. If the 'CONFIGNAME'
 parameter is set, they will automatically start and stop the right instance
-of the daemon, and also pass the name of the virtual configuration file. 
+of the daemon, and also pass the name of the virtual configuration file.
 
 Be aware that your ahudns.rc script should refer to the right controlsocket!
 
@@ -177,7 +177,6 @@ A typical virtual installation will have several ahudns- files in
 
 <sect>Logging
 <p>
-Logging is regular syslog, with facility DAEMON. 
+Logging is regular syslog, with facility DAEMON.
 
 </article>
- 

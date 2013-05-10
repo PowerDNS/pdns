@@ -24,19 +24,19 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 if HAVE_LIBPOLARSSL
 SUBDIRS= backends
 else
-SUBDIRS= ext/polarssl-1.1.2 backends 
+SUBDIRS= ext/polarssl-1.1.2 backends
 endif
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h
 
 noinst_SCRIPTS = pdns
-sysconf_DATA = pdns.conf-dist 
+sysconf_DATA = pdns.conf-dist
 
 if RECURSOR
 sbin_PROGRAMS = pdns_server pdns_recursor
 bin_PROGRAMS = pdns_control rec_control pdnssec dnsreplay
 else
-sbin_PROGRAMS = pdns_server 
+sbin_PROGRAMS = pdns_server
 bin_PROGRAMS = pdns_control pdnssec dnsreplay
 endif
 
@@ -71,7 +71,7 @@ ednssubnet.cc ednssubnet.hh cachecleaner.hh json.cc json.hh \
 version.hh version.cc
 
 #
-pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic 
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
 pdns_server_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS) $(MYSQL_lib)
 
 if BOTAN110
@@ -98,10 +98,10 @@ pdns_server_LDADD += $(ORACLE_LIBS)
 endif
 
 pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
-        misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
+	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
-        base32.cc  ueberbackend.cc dnsbackend.cc arguments.cc packetcache.cc dnspacket.cc  \
-        backends/bind/bindbackend2.cc backends/bind/binddnssec.cc  bind-dnssec.schema.sqlite3.sql.h\
+	base32.cc  ueberbackend.cc dnsbackend.cc arguments.cc packetcache.cc dnspacket.cc  \
+	backends/bind/bindbackend2.cc backends/bind/binddnssec.cc  bind-dnssec.schema.sqlite3.sql.h\
 	backends/bind/bindparser.cc backends/bind/bindlexer.c \
 	backends/gsql/gsqlbackend.cc \
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
@@ -143,10 +143,10 @@ sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc
 
 nsec3dig_SOURCES=nsec3dig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc \
-    dnswriter.hh dnssecinfra.cc md5.cc \
+	dnswriter.hh dnssecinfra.cc md5.cc \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc
-nsec3dig_LDFLAGS= -Lext/polarssl-1.1.2/library 	
+nsec3dig_LDFLAGS= -Lext/polarssl-1.1.2/library
 nsec3dig_LDADD= -lpolarssl
 
 toysdig_SOURCES=toysdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
@@ -170,7 +170,7 @@ tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.
 if HAVE_LIBPOLARSSL
 tsig_tests_LDFLAGS=
 else
-tsig_tests_LDFLAGS= -Lext/polarssl-1.1.2/library 	
+tsig_tests_LDFLAGS= -Lext/polarssl-1.1.2/library
 endif
 tsig_tests_LDADD= -lpolarssl
 
@@ -180,12 +180,12 @@ speedtest_SOURCES=speedtest.cc dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter
 	qtype.cc sillyrecords.cc logger.cc statbag.cc nsecrecords.cc base32.cc
 
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
-	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
+	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh
 
 dnswasher_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
 
 dnsbulktest_SOURCES=dnsbulktest.cc misc.cc unix_utility.cc qtype.cc logger.cc statbag.cc dnsparser.cc \
-	dnsrecords.cc dnswriter.cc dnslabeltext.cc rcpgenerator.cc base32.cc base64.cc sillyrecords.cc nsecrecords.cc 
+	dnsrecords.cc dnswriter.cc dnslabeltext.cc rcpgenerator.cc base32.cc base64.cc sillyrecords.cc nsecrecords.cc
 dnsbulktest_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 dnsbulktest_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 

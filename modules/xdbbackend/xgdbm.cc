@@ -16,8 +16,8 @@ XGDBMWrapper::XGDBMWrapper(const string &fname, Mode mode)
   if(!s_db) {
     s_db = gdbm_open(const_cast<char *>(fname.c_str()), 2048,
         	  mode==ReadWrite ? GDBM_WRITER|GDBM_WRCREAT|GDBM_FAST : GDBM_READER,
-        	  0666 , 0); 
-    if(!s_db) 
+        	  0666 , 0);
+    if(!s_db)
       throw XDBException("Unable to open database: "+string(strerror(errno)));
   }
   s_usecount++;
@@ -34,7 +34,7 @@ XGDBMWrapper::~XGDBMWrapper()
 bool XGDBMWrapper::get(const string &key, string &value)
 {
   datum kdatum={const_cast<char *>(key.c_str()),key.size()+1};
-  
+
   datum vdatum=gdbm_fetch(s_db,kdatum);
   if(!vdatum.dptr)
     return false;
@@ -63,11 +63,11 @@ main()
     XDBWrapper *xdb=new XGDBMWrapper("wuh",XDBWrapper::ReadWrite);
     xdb->put("ahu","toffe gast");
     xdb->append("ahu",", echt waar!");
-    
+
     string tst;
     xdb->get("ahu",tst);
     cout<<"Database zegt over ahu: '"<<tst<<"'"<<endl;
-    
+
     xdb->append("ahu"," Toch niet!");
     xdb->get("ahu",tst);
     cout<<"Database zegt over ahu: '"<<tst<<"'"<<endl;

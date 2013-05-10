@@ -3,7 +3,7 @@
     Copyright (C) 2002 - 2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -51,7 +51,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
 {
   extern StatBag S;
 
-  if(d_ttl<0) 
+  if(d_ttl<0)
     getTTLS();
 
   if(!((++d_ops) % 300000)) {
@@ -70,7 +70,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       return 0;
     }
   }
-    
+
   bool packetMeritsRecursion=d_doRecursion && p->d.rd;
   if(ntohs(p->d.qdcount)!=1) // we get confused by packets with more than one question
     return 0;
@@ -106,7 +106,7 @@ void PacketCache::getTTLS()
   d_ttl=::arg().asNum("cache-ttl");
   d_recursivettl=::arg().asNum("recursive-cache-ttl");
 
-  d_doRecursion=::arg().mustDo("recursor"); 
+  d_doRecursion=::arg().mustDo("recursor");
 }
 
 
@@ -114,7 +114,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl)
 {
   if(d_ttl < 0)
     getTTLS();
-  
+
   if(ntohs(q->d.qdcount)!=1) {
     return; // do not try to cache packets with multiple questions
   }
@@ -132,7 +132,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl)
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
-void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
+void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID,
   bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk, bool EDNS)
 {
   if(!((++d_ops) % 300000)) {
@@ -141,7 +141,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
 
   if(!ttl)
     return;
-  
+
   //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<", hasEDNS: "<<EDNS<<endl;
   CacheEntry val;
   val.ttd=time(0)+ttl;
@@ -154,19 +154,19 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   val.dnssecOk = dnssecOk;
   val.zoneID = zoneID;
   val.hasEDNS = EDNS;
-  
+
   TryWriteLock l(&d_mut);
-  if(l.gotIt()) { 
+  if(l.gotIt()) {
     bool success;
     cmap_t::iterator place;
     tie(place, success)=d_map.insert(val);
     //    cerr<<"Insert succeeded: "<<success<<endl;
     if(!success)
       d_map.replace(place, val);
-    
+
   }
-  else 
-    S.inc("deferred-cache-inserts"); 
+  else
+    S.inc("deferred-cache-inserts");
 }
 
 /* clears the entire packetcache. */
@@ -185,7 +185,7 @@ int PacketCache::purge(const string &match)
   WriteLock l(&d_mut);
   int delcount=0;
 
-  /* ok, the suffix delete plan. We want to be able to delete everything that 
+  /* ok, the suffix delete plan. We want to be able to delete everything that
      pertains 'www.powerdns.com' but we also want to be able to delete everything
      in the powerdns.com zone, so: 'powerdns.com' and '*.powerdns.com'.
 
@@ -201,7 +201,7 @@ int PacketCache::purge(const string &match)
      'com.usepowerdns.www'
 
      If we get a request to remove 'everything above powerdns.com', we do a search for 'com.powerdns' which is guaranteed to come first (it is shortest!)
-     Then we delete everything that is either equal to 'com.powerdns' or begins with 'com.powerdns.' This trailing dot saves us 
+     Then we delete everything that is either equal to 'com.powerdns' or begins with 'com.powerdns.' This trailing dot saves us
      from deleting 'com.powerdnsiscool'.
 
      We can stop the process once we reach something that doesn't match.
@@ -210,7 +210,7 @@ int PacketCache::purge(const string &match)
 
      In that case our request doesn't find anything.. now what.
      lower_bound to the rescue! It finds the place where 'com.powerdns' *would* be.
-     
+
      Ok - next step, can we get away with simply reversing the string?
 
      'moc.sndrewop'
@@ -254,10 +254,10 @@ int PacketCache::purge(const string &match)
   return delcount;
 }
 // called from ueberbackend
-bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
+bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
   unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS)
 {
-  if(d_ttl<0) 
+  if(d_ttl<0)
     getTTLS();
 
   if(!((++d_ops) % 300000)) {
@@ -284,7 +284,7 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
   bool ret=(i!=d_map.end() && i->ttd > now);
   if(ret)
     value = i->value;
-  
+
   return ret;
 }
 
@@ -330,7 +330,7 @@ void PacketCache::cleanup()
 
   unsigned int maxCached=::arg().asNum("max-cache-entries");
   unsigned int toTrim=0;
-  
+
   unsigned int cacheSize=*d_statnumentries;
 
   if(maxCached && cacheSize > maxCached) {

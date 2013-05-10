@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -33,7 +33,7 @@ void Session::init()
 
   d_verbose=false;
 
-  rdbuf=new char[d_bufsize];  
+  rdbuf=new char[d_bufsize];
   rdoffset=0;
   wroffset=0;
 }
@@ -53,7 +53,7 @@ Session::Session(int s, struct sockaddr_in r)
 int Session::close()
 {
   int rc=0;
-  
+
   if(clisock>=0)
     rc=Utility::closesocket(clisock);
 
@@ -67,7 +67,7 @@ Session::~Session()
   /* NOT CLOSING AUTOMATICALLY ANYMORE!
     if(clisock>=0)
     ::close(clisock);
-  */  
+  */
 
   delete[] rdbuf;
 }
@@ -85,14 +85,14 @@ Session::Session(const Session &s)
   remote=s.remote;
 
   memcpy(rdbuf,s.rdbuf,d_bufsize);
-}  
+}
 
 void Session::setTimeout(unsigned int seconds)
 {
   d_timeout=seconds;
 }
 
-  
+
 bool Session::putLine(const string &s)
 {
   int length=s.length();
@@ -109,7 +109,7 @@ bool Session::putLine(const string &s)
 
       if(err < 0)
         return false;
-      
+
       written+=err;
     }
 
@@ -128,13 +128,13 @@ char *strnchr(char *p, char c, int len)
 string Session::get(unsigned int bytes)
 {
   string ret;
-  if(wroffset - rdoffset >= (int)bytes) 
+  if(wroffset - rdoffset >= (int)bytes)
   {
     ret = string(rdbuf + rdoffset, bytes);
     bytes -= ret.length();
     rdoffset += ret.length();
   }
-  
+
   if(bytes) {
     scoped_array<char> buffer(new char[bytes]);
     int err = read(clisock, &buffer[0], bytes);  // XXX FIXME should be nonblocking
@@ -150,30 +150,30 @@ string Session::get(unsigned int bytes)
 int Session::timeoutRead(int s, char *buf, size_t len)
 {
   int err = waitForRWData(s, true, d_timeout, 0);
-  
+
   if(!err)
     throw SessionTimeoutException("timeout reading");
   if(err < 0)
     throw SessionException("nonblocking read failed: "+string(strerror(errno)));
-  
+
   return recv(s,buf,len,0);
 }
 
-bool 
+bool
 Session::haveLine()
 {
   return (wroffset!=rdoffset && (strnchr(rdbuf+rdoffset,'\n',wroffset-rdoffset)!=NULL));
 }
-        
 
-bool 
+
+bool
 Session::getLine(string &line)
 {
   int bytes;
   char *p;
 
   int linelength;
-  
+
   // read data into a buffer
   // find first \n, and return that as string, store how far we were
 
@@ -184,17 +184,17 @@ Session::getLine(string &line)
           wroffset=rdoffset=0;
         }
 
-      if(wroffset!=rdoffset && (p=strnchr(rdbuf+rdoffset,'\n',wroffset-rdoffset))) // we have a full line in store, return that 
+      if(wroffset!=rdoffset && (p=strnchr(rdbuf+rdoffset,'\n',wroffset-rdoffset))) // we have a full line in store, return that
         {
           // from rdbuf+rdoffset to p should become the new line
 
-          linelength=p-(rdbuf+rdoffset); 
-          
+          linelength=p-(rdbuf+rdoffset);
+
           *p=0; // terminate
-          
+
           line=rdbuf+rdoffset;
           line+="\n";
-          
+
           rdoffset+=linelength+1;
 
           return true;
@@ -226,7 +226,7 @@ Session::getLine(string &line)
     }
   // we never get here
 }
-  
+
 int Session::getSocket()
 {
   return clisock;
@@ -262,7 +262,7 @@ string Session::getRemoteIP()
 
   return o.str();
 }
-  
+
 
 Session *Server::accept()
 {
@@ -298,11 +298,11 @@ Server::Server(int p, const string &p_localaddress)
 
   if(s<0)
     throw Exception(string("socket: ")+strerror(errno));
-  
+
   memset(&local,0,sizeof(local));
-  
+
   local.sin_family=AF_INET;
-  
+
   struct hostent *h;
   if(localaddress=="")
     localaddress=d_localaddress;
@@ -312,8 +312,8 @@ Server::Server(int p, const string &p_localaddress)
     h=gethostbyname(localaddress.c_str());
 
     if(!h)
-      throw Exception(); 
-  
+      throw Exception();
+
     local.sin_addr.s_addr=*(int*)h->h_addr;
   }
   else
@@ -322,14 +322,14 @@ Server::Server(int p, const string &p_localaddress)
   }
 
   local.sin_port=htons(port);
-  
+
   int tmp=1;
   if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     throw SessionException(string("Setsockopt failed: ")+strerror(errno));
 
   if(bind(s, (sockaddr*)&local,sizeof(local))<0)
       throw SessionException("binding to port "+itoa(port)+string(" on ")+localaddress+": "+strerror(errno));
-  
+
   if(listen(s,128)<0)
       throw SessionException("listen: "+stringerror());
 

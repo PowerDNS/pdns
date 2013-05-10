@@ -35,15 +35,15 @@
 
 #include <string.h>
 
-/** 
+/**
  * \addtogroup asn1_module
- * \{ 
+ * \{
  */
- 
+
 /**
  * \name ASN1 Error codes
  * These error codes are OR'ed to X509 error codes for
- * higher error granularity. 
+ * higher error granularity.
  * ASN1 is a standard to specify data structures.
  * \{
  */

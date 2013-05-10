@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,13 +25,13 @@
 
 #include "namespaces.hh"
 
-class BindDomainInfo 
+class BindDomainInfo
 {
 public:
   BindDomainInfo() : d_dev(0), d_ino(0)
   {}
 
-  void clear() 
+  void clear()
   {
     name=filename=type="";
     masters.clear();
@@ -45,7 +45,7 @@ public:
   vector<string> masters;
   set<string> alsoNotify;
   string type;
-    
+
   dev_t d_dev;
   ino_t d_ino;
 
@@ -65,8 +65,8 @@ class BindParser
     yyin=0;
     extern int include_stack_ptr;
     include_stack_ptr=0;
- 
-    bind_directory=d_dir.c_str(); 
+
+    bind_directory=d_dir.c_str();
   }
   ~BindParser()
   {
@@ -82,7 +82,7 @@ class BindParser
   const vector<BindDomainInfo>& getDomains();
   void setVerbose(bool verbose);
   void addAlsoNotify(const string &host);
-  set<string> & getAlsoNotify() { return this->alsoNotify; } 
+  set<string> & getAlsoNotify() { return this->alsoNotify; }
 private:
   string d_dir;
   bool d_verbose;

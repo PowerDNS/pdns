@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-                     
+
 void randombytes(unsigned char* sk, unsigned int amount)
 {
   int fd = open("/dev/urandom", O_RDONLY);

@@ -75,7 +75,7 @@ current nameservers need to handle.
 <sect1>Maintaining and configuring domains
 <p>
 Great care has been taken to make the maintenance and configuration of
-domains as easy as possible. Two modes are available, 'Wizard' 
+domains as easy as possible. Two modes are available, 'Wizard'
 and 'Advanced'. This latest mode is 'vocabulary compatible' with the Bind
 nameserver, so existing administrators will feel right at home. The Wizard
 mode has been stripped of all jargon, and should be easy to follow for most
@@ -103,7 +103,7 @@ Arrowpoint (now both Cisco property).
 However, these machines can only function on local networks, as they
 function as a network-element. All your servers need to be in the same
 location for this to work. This is clearly not appropriate in case of
-maximum availability. 
+maximum availability.
 <tag>Global Redirection</tag>
 In combination with Failover support, it is possible to support smart global
 redirection, whereby American customers might get connected to a server in
@@ -136,7 +136,7 @@ almost all webmail solutions available.
 <sect1>Security
 <p>
 Nameserving is a complex business. Currently, it is evident that existing
-servers suffer from security and Denial of Service vulnerabilities. 
+servers suffer from security and Denial of Service vulnerabilities.
 
 There are several reasons for these problems:
 <descrip>
@@ -151,13 +151,13 @@ The support for these protocols also causes other nameservers to be bigger
 than they need be.
 
 <tag>Support for undesirable features</tag>
-This is the cause of the most recent bout of Bind problems. Bind 
+This is the cause of the most recent bout of Bind problems. Bind
 supports 'inverse queries', also known as 'iqueries'. This is a Jeopardy like
 situation whereby you ask a nameserver 'Which question has this answer'.
 These questions are no longer appropriate in a time where the Internet can
 at best be considered a unfriendly place.
 
-<tag>Complete integration</tag> 
+<tag>Complete integration</tag>
 Current nameservers are completely integrated solutions, carrying within
 their codebase a complete database and replication facility - which is
 exposed to the world.  By offloading this functionality to a separate
@@ -168,12 +168,12 @@ them.
 <tag>Use of outdated languages</tag>
 With languages like C it is very easy to make programming mistakes which
 endanger system security. By using C++ with full typechecking and dynamic
-strings, a lot of problems are avoided. It is no longer possible 
+strings, a lot of problems are avoided. It is no longer possible
 to 'overflow the buffer', as it is called.
 </descrip>
 
-<sect1>Reliability 
-<p> 
+<sect1>Reliability
+<p>
 PowerDNS can be operated from two or more completely independent locations.
 Failure of the one does not hamper the other. Each of these locations can
 easily be redundant in itself. UDP, the protocol over which DNS questions
@@ -185,7 +185,7 @@ suffices, one of the easiest ways to set up a redundant group of computers.
 Regular nameservers can only run off their secondary for a limited period of
 time (often measured in days!). PowerDNS does not have this limitation.
 
-<sect>Statistics, Logging &amp; Monitoring 
+<sect>Statistics, Logging &amp; Monitoring
 <p>
 PowerDNS can be configured to keep extensive details on its operation. From
 these details, which are available in an easily parseable ASCII form, it is
@@ -222,15 +222,15 @@ available. Each of these solutions has its pros and cons.
 <p>
 
 Based on an expanded version of BIND, it offers a lot of interesting
-features, like global redirection and loadbalancing. It needs 
-several 'probes' at your datacenters, which attempt to measure network 
+features, like global redirection and loadbalancing. It needs
+several 'probes' at your datacenters, which attempt to measure network
 connectivity.
 
 Unclear how it scales to larger number of domains, or even subdomains. Might
 conflict with plans of being a 'subdomain registrar'.
 
 Can combine with the 'Big-IP Controller' for local failover and
-loadbalancing. 
+loadbalancing.
 <sect1>Cisco Distributed Director
 <p>
 Is a weird contraption, which has been reported to take up to an hour to
@@ -246,7 +246,7 @@ are in the MCI Worldcom network.
 This machine also appears to require machines at each server location.
 
 Also unclear how it handles large numbers of domains, especially given the
-time it needs to process configuration changes. 
+time it needs to process configuration changes.
 
 </article>
 

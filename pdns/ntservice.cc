@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -62,18 +62,18 @@ bool NTService::registerService( const std::string & description, bool registerL
   SC_HANDLE         sc;
   char              temp[ 512 ];
   DWORD             flags;
-  
+
   sc = OpenSCManager( NULL, NULL, SC_MANAGER_ALL_ACCESS );
   if ( sc == NULL )
     return false; // Could not open the Service Control Manager.
 
   GetModuleFileName( NULL, temp, sizeof( temp ));
-        
+
   str << temp << " --ntservice";
-  
-  if ( CreateService( 
-    sc, 
-    getServiceName().c_str(), 
+
+  if ( CreateService(
+    sc,
+    getServiceName().c_str(),
     getServiceName().c_str(),
     SERVICE_ALL_ACCESS,
     SERVICE_WIN32_OWN_PROCESS,
@@ -92,7 +92,7 @@ bool NTService::registerService( const std::string & description, bool registerL
   CloseServiceHandle( sc );
 
   str.str( "" );
-  
+
   // Set description.
   if ( !description.empty())
   {
@@ -120,7 +120,7 @@ bool NTService::registerService( const std::string & description, bool registerL
       return false;
 
     flags = EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
-    
+
     if ( RegSetValueEx( pkey, "TypesSupported", 0, REG_DWORD, reinterpret_cast< const unsigned char * >( &flags ), sizeof( flags )) != ERROR_SUCCESS )
     {
       RegCloseKey( pkey );
@@ -143,7 +143,7 @@ bool NTService::registerService( const std::string & description, bool registerL
 
     RegCloseKey( pkey );
   }
-  
+
   return true;
 }
 
@@ -159,7 +159,7 @@ void WINAPI NTService::s_ctrlHandler( DWORD controlCode )
 void WINAPI NTService::s_serviceMain( DWORD argc, LPTSTR *argv )
 {
   // IEEEEUUWWWW!!
-  
+
   NTService::instance()->m_serviceStatusHandle = RegisterServiceCtrlHandler( NTService::instance()->getServiceName().c_str(), s_ctrlHandler );
   if ( NTService::instance()->m_serviceStatusHandle == 0 )
   {
@@ -176,7 +176,7 @@ void WINAPI NTService::s_serviceMain( DWORD argc, LPTSTR *argv )
   }
 
   NTService::instance()->setStatus( SERVICE_RUNNING );
-  
+
   // Run.
   NTService::instance()->main( argc, argv );
 
@@ -184,7 +184,7 @@ void WINAPI NTService::s_serviceMain( DWORD argc, LPTSTR *argv )
 
   // Shut down.
   NTService::instance()->shutdown();
-  
+
   NTService::instance()->setStatus( SERVICE_STOPPED );
 }
 
@@ -205,7 +205,7 @@ void NTService::setStatus( DWORD status, DWORD error )
   stat.dwCheckPoint               = 0;
   stat.dwWaitHint                 = 0;
 
-  SetServiceStatus( m_serviceStatusHandle, &stat );  
+  SetServiceStatus( m_serviceStatusHandle, &stat );
 }
 
 
@@ -216,13 +216,13 @@ int NTService::start( int argc, char *argv[], bool asService )
   char name[ 128 ];
 
   strncpy( name, getServiceName().c_str(), sizeof( name ));
-  
+
   SERVICE_TABLE_ENTRY entries[] =
   {
     { name, s_serviceMain },
     { NULL, NULL }
   };
-  
+
   if ( asService )
   {
     // Run as service.
@@ -276,7 +276,7 @@ bool NTService::unregisterService( void )
   sc = OpenSCManager( NULL, NULL, SC_MANAGER_ALL_ACCESS );
   if ( sc == NULL )
     return false;
-  
+
   svc = OpenService( sc, getServiceName().c_str(), DELETE );
   if ( GetLastError() != ERROR_SERVICE_DOES_NOT_EXIST )
   {
@@ -297,6 +297,6 @@ bool NTService::unregisterService( void )
   RegDeleteKey( key, getServiceName().c_str());
 
   RegCloseKey( key );
-  
+
   return true;
 }

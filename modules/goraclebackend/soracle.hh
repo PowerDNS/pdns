@@ -1,11 +1,11 @@
-/* Copyright 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+/* Copyright 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information. */
 
 #ifndef SORACLE_HH
 #define SORACLE_HH
 
 #include "pdns/backends/gsql/ssql.hh"
-#include "pdns/utility.hh" 
+#include "pdns/utility.hh"
 #include <oci.h>
 
 #ifndef dsword
@@ -15,18 +15,18 @@ typedef sb4 dsword;
 class SOracle : public SSql
 {
 public:
-  SOracle(const string &database, 
-          const string &user="", 
+  SOracle(const string &database,
+          const string &user="",
           const string &password="");
-  
+
   ~SOracle();
-  
+
   SSqlException sPerrorException(const string &reason);
   int doQuery(const string &query, result_t &result);
   int doQuery(const string &query);
   int doCommand(const string &query);
   bool getRow(row_t &row);
-  string escape(const string &str);    
+  string escape(const string &str);
   void setLog(bool state);
 private:
   OCIEnv    *d_environmentHandle;
@@ -48,5 +48,5 @@ private:
   int d_numfields;
   //  int getNumFields(const string& query);
 };
-      
+
 #endif /* SSORACLE_HH */

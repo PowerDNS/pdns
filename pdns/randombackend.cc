@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,7 +29,7 @@
 class RandomBackend : public DNSBackend
 {
 public:
-  RandomBackend(const string &suffix="") 
+  RandomBackend(const string &suffix="")
   {
     setArgPrefix("random"+suffix);
     d_ourname=getArg("hostname");
@@ -38,7 +38,7 @@ public:
   bool list(const string &target, int id) {
     return false; // we don't support AXFR
   }
-    
+
   void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
   {
     if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || !pdns_iequals(qdomain, d_ourname))  // we only know about random.example.com A by default
@@ -61,12 +61,12 @@ public:
       rr.content=d_answer;
 
       d_answer="";                                                  // this was the last answer
-      
+
       return true;
     }
     return false;                                                   // no more data
   }
-  
+
 private:
   string d_answer;
   string d_ourname;
@@ -96,9 +96,9 @@ public:
   RandomLoader()
   {
     BackendMakers().report(new RandomFactory);
-    
+
     L<<Logger::Info<<" [RandomBackend] This is the randombackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
-  }  
+  }
 };
 
 static RandomLoader randomLoader;

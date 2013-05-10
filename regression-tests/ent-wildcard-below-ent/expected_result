@@ -1,4 +1,4 @@
 0	something.a.b.c.test.com.	IN	A	3600	8.7.6.5
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='something.a.b.c.test.com.', qtype=A

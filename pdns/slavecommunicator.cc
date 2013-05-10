@@ -3,8 +3,8 @@
     Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation; 
+    it under the terms of the GNU General Public License version 2 as
+    published by the Free Software Foundation;
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -57,7 +57,7 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   pair<UniQueue::iterator, bool>  res;
 
   res=d_suckdomains.push_back(sr);
-  
+
   if(res.second) {
     d_suck_sem.post();
   }
@@ -71,7 +71,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
   DomainInfo di;
   di.backend=0;
-  bool first=true;    
+  bool first=true;
   try {
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
     NSEC3PARAMRecordContent ns3pr, hadNs3pr;
@@ -93,13 +93,13 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     const bool hadDnssecZone = dnssecZone;
 
     if(dnssecZone) {
-      if(!haveNSEC3) 
+      if(!haveNSEC3)
         L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
       else if(!narrow)
         L<<Logger::Info<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
-      else 
+      else
         L<<Logger::Info<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
-    }    
+    }
 
     if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
@@ -109,11 +109,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     Resolver::res_t recs;
     set<string> nsset, qnames, dsnames, nonterm, delnonterm;
-    
+
     ComboAddress raddr(remote, 53);
-    
+
     string tsigkeyname, tsigalgorithm, tsigsecret;
-  
+
     if(dk.getTSIGForAccess(domain, remote, &tsigkeyname)) {
       string tsigsecret64;
       if(B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64))
@@ -126,7 +126,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         tsigkeyname="";
       }
     }
-    
+
     scoped_ptr<AuthLua> pdl;
     vector<string> scripts;
     if(B->getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
@@ -139,10 +139,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         return;
       }
     }
-    
+
     vector<string> localaddr;
     ComboAddress laddr;
-    
+
     if(B->getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
       try {
         laddr = ComboAddress(localaddr[0]);
@@ -153,11 +153,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         return;
       }
     } else {
-		  laddr.sin4.sin_family = 0;
+      laddr.sin4.sin_family = 0;
     }
 
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret,
-		(laddr.sin4.sin_family == 0) ? NULL : &laddr);
+                            (laddr.sin4.sin_family == 0) ? NULL : &laddr);
 
     bool gotPresigned = false;
     bool gotNSEC3 = false;
@@ -169,11 +169,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         di.backend->startTransaction(domain, domain_id);
         first=false;
       }
-      
+
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
         if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
           continue;
-          
+
         if(i->qtype.getCode() == QType::SOA) {
           if(soa_serial != 0)
             continue; //skip the last SOA
@@ -181,7 +181,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           fillSOAData(i->content,sd);
           soa_serial = sd.serial;
         }
-          
+
         // we generate NSEC, NSEC3, NSEC3PARAM (sorry Olafur) on the fly, this could only confuse things
         if (i->qtype.getCode() == QType::NSEC3PARAM) {
           ns3pr = NSEC3PARAMRecordContent(i->content);
@@ -197,11 +197,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           continue;
         }
 
-        if(!endsOn(i->qname, domain)) { 
+        if(!endsOn(i->qname, domain)) {
           L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
-        
+
         i->domain_id=domain_id;
         if (i->qtype.getCode() == QType::SRV)
           i->content = stripDot(i->content);
@@ -213,7 +213,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         if(pdl && pdl->axfrfilter(raddr, domain, *i, out)) {
           BOOST_FOREACH(const DNSResourceRecord& rr, out) {
             di.backend->feedRecord(rr);
-            if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, domain)) 
+            if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, domain))
               nsset.insert(rr.qname);
             if(rr.qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
               qnames.insert(rr.qname);
@@ -223,7 +223,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
         else {
           di.backend->feedRecord(*i);
-          if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
+          if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain))
             nsset.insert(i->qname);
           if(i->qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
             qnames.insert(i->qname);
@@ -262,7 +262,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
       if(haveNSEC3)
       {
-        if(!narrow) { 
+        if(!narrow) {
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
           di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth);
         }
@@ -414,32 +414,32 @@ struct DomainNotificationInfo
 struct SlaveSenderReceiver
 {
   typedef pair<string, uint16_t> Identifier;
-  
+
   struct Answer {
     uint32_t theirSerial;
     uint32_t theirInception;
     uint32_t theirExpire;
   };
-  
+
   map<uint32_t, Answer> d_freshness;
-  
+
   SlaveSenderReceiver()
   {
   }
-  
+
   void deliverTimeout(const Identifier& i)
   {
   }
-  
+
   Identifier send(DomainNotificationInfo& dni)
   {
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
       ComboAddress remote(*dni.di.masters.begin());
-      return make_pair(dni.di.zone, 
-        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), 
-          dni.di.zone.c_str(), 
-          QType::SOA, 
+      return make_pair(dni.di.zone,
+        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53),
+          dni.di.zone.c_str(),
+          QType::SOA,
           dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
       );
     }
@@ -447,7 +447,7 @@ struct SlaveSenderReceiver
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone+"': "+e.reason);
     }
   }
-  
+
   bool receive(Identifier& id, Answer& a)
   {
     if(d_resolver.tryGetSOASerial(&id.first, &a.theirSerial, &a.theirInception, &a.theirExpire, &id.second)) {
@@ -455,12 +455,12 @@ struct SlaveSenderReceiver
     }
     return 0;
   }
-  
+
   void deliverAnswer(DomainNotificationInfo& dni, const Answer& a, unsigned int usec)
   {
     d_freshness[dni.di.id]=a;
   }
-  
+
   Resolver d_resolver;
 };
 
@@ -487,7 +487,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   vector<DomainInfo> rdomains;
   vector<DomainNotificationInfo> sdomains; // the bool is for 'presigned'
   vector<DNSPacket> trysuperdomains;
-  
+
   {
     Lock l(&d_lock);
     rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
@@ -495,7 +495,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     trysuperdomains.insert(trysuperdomains.end(), d_potentialsupermasters.begin(), d_potentialsupermasters.end());
     d_potentialsupermasters.clear();
   }
-  
+
   BOOST_FOREACH(DNSPacket& dp, trysuperdomains) {
     int res;
     res=P->trySuperMasterSynchronous(&dp);
@@ -510,7 +510,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
   if(rdomains.empty()) // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
-    
+
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
   {
     Lock l(&d_lock);
@@ -529,7 +529,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       DomainNotificationInfo dni;
       dni.di=di;
       dni.dnssecOk = dk.isPresigned(di.zone);
-      
+
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
         B->getTSIGKey(dni.tsigkeyname, &dni.tsigalgname, &secret64);
@@ -538,7 +538,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       sdomains.push_back(dni);
     }
   }
-  
+
   if(sdomains.empty())
   {
     if(d_slaveschanged) {
@@ -554,11 +554,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       (sdomains.size()>1 ? "" : "s")<<
       " checking, "<<d_suckdomains.size()<<" queued for AXFR"<<endl;
   }
-      
+
   SlaveSenderReceiver ssr;
-  
+
   Inflighter<vector<DomainNotificationInfo>, SlaveSenderReceiver> ifl(sdomains, ssr);
-  
+
   ifl.d_maxInFlight = 200;
 
   for(;;) {
@@ -569,7 +569,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     catch(std::exception& e) {
       L<<Logger::Error<<"While checking domain freshness: " << e.what()<<endl;
     }
-    catch(AhuException &re) {  
+    catch(AhuException &re) {
       L<<Logger::Error<<"While checking domain freshness: " << re.reason<<endl;
     }
   }
@@ -580,14 +580,14 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     DomainInfo& di(val.di);
     // might've come from the packethandler
     if(!di.backend && !B->getDomainInfo(di.zone, di)) {
-	L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
-	continue;
+      L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
+      continue;
     }
-      
-    if(!ssr.d_freshness.count(di.id)) 
+
+    if(!ssr.d_freshness.count(di.id))
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
-    
+
     if(rfc1982LessThan(theirserial, ourserial)) {
       L<<Logger::Error<<"Domain '"<<di.zone<<"' more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
@@ -623,7 +623,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       addSuckRequest(di.zone, *di.masters.begin());
     }
   }
-}  
+}
 
 // stub for PowerDNSLua linking
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)

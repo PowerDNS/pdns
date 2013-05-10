@@ -44,8 +44,8 @@ bool netmaskMatchTable(lua_State* lua, const std::string& ip)
     Netmask nm(netmask);
     ComboAddress ca(ip);
     lua_pop(lua, 1);
-    
-    if(nm.match(ip)) 
+
+    if(nm.match(ip))
       return true;
   }
   return false;
@@ -80,10 +80,10 @@ static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value
 }
 
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& records)
-{  
+{
   // make a table of tables
   lua_newtable(lua);
-  
+
   int pos=0;
   BOOST_FOREACH(const DNSResourceRecord& rr, records)
   {
@@ -91,22 +91,22 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
     lua_pushnumber(lua, ++pos);
     // "row" table
     lua_newtable(lua);
-    
+
     lua_pushstring(lua, rr.qname.c_str());
     lua_setfield(lua, -2, "qname");  // pushes value at the top of the stack to the table immediately below that (-1 = top, -2 is below)
-    
+
     lua_pushstring(lua, rr.content.c_str());
     lua_setfield(lua, -2, "content");
-    
+
     lua_pushnumber(lua, rr.qtype.getCode());
     lua_setfield(lua, -2, "qtype");
-    
+
     lua_pushnumber(lua, rr.ttl);
     lua_setfield(lua, -2, "ttl");
-    
+
     lua_pushnumber(lua, rr.d_place);
     lua_setfield(lua, -2, "place");
-    
+
     lua_settable(lua, -3); // pushes the table we just built into the master table at position pushed above
   }
 }
@@ -132,7 +132,7 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
     lua_gettable(lua, 2);
 
     uint32_t tmpnum=0;
-    if(!getFromTable(lua, "qtype", tmpnum)) 
+    if(!getFromTable(lua, "qtype", tmpnum))
       rr.qtype=QType::A;
     else
       rr.qtype=tmpnum;
@@ -171,27 +171,27 @@ int netmaskMatchLua(lua_State *lua)
       result = netmaskMatchTable(lua, ip);
     }
     else {
-      for(int n=2 ; n <= lua_gettop(lua); ++n) { 
+      for(int n=2 ; n <= lua_gettop(lua); ++n) {
         string netmask=lua_tostring(lua, n);
         Netmask nm(netmask);
         ComboAddress ca(ip);
-        
+
         result = nm.match(ip);
         if(result)
           break;
       }
     }
   }
-  
+
   lua_pushboolean(lua, result);
   return 1;
 }
 
 int getLocalAddressLua(lua_State* lua)
 {
-  lua_getfield(lua, LUA_REGISTRYINDEX, "__PowerDNSLua"); 
+  lua_getfield(lua, LUA_REGISTRYINDEX, "__PowerDNSLua");
   PowerDNSLua* pl = (PowerDNSLua*)lua_touserdata(lua, -1);
-  
+
   lua_pushstring(lua, pl->getLocal().toString().c_str());
   return 1;
 }
@@ -199,7 +199,7 @@ int getLocalAddressLua(lua_State* lua)
 // called by lua to indicate that this answer is 'variable' and should not be cached
 int setVariableLua(lua_State* lua)
 {
-  lua_getfield(lua, LUA_REGISTRYINDEX, "__PowerDNSLua"); 
+  lua_getfield(lua, LUA_REGISTRYINDEX, "__PowerDNSLua");
   PowerDNSLua* pl = (PowerDNSLua*)lua_touserdata(lua, -1);
   pl->setVariable();
   return 0;
@@ -223,15 +223,15 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   luaopen_base(d_lua);
   luaopen_string(d_lua);
 
-  if(lua_dofile(d_lua,  fname.c_str())) 
+  if(lua_dofile(d_lua,  fname.c_str()))
 #else
   luaL_openlibs(d_lua);
-  if(luaL_dofile(d_lua,  fname.c_str())) 
+  if(luaL_dofile(d_lua,  fname.c_str()))
 #endif
     throw runtime_error(string("Error loading Lua file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
 
   lua_settop(d_lua, 0);
-  
+
   lua_pushcfunction(d_lua, netmaskMatchLua);
   lua_setglobal(d_lua, "matchnetmask");
 
@@ -263,8 +263,8 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_pushnumber(d_lua, 5);
   lua_setfield(d_lua, -2, "REFUSED");
   lua_setglobal(d_lua, "pdns");
-  
-  lua_pushlightuserdata(d_lua, (void*)this); 
+
+  lua_pushlightuserdata(d_lua, (void*)this);
   lua_setfield(d_lua, LUA_REGISTRYINDEX, "__PowerDNSLua");
 }
 

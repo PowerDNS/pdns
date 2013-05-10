@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -95,7 +95,7 @@ void StatBag::declare(const string &key, const string &descrip)
 }
 
 
-          
+
 void StatBag::set(const string &key, unsigned int value)
 {
   lock();
@@ -132,7 +132,7 @@ unsigned int StatBag::readZero(const string &key)
       return 0;
     }
 
-  
+
   unsigned int tmp=*d_stats[key];
   d_stats[key]=0;
 
@@ -170,7 +170,7 @@ StatBag::~StatBag()
     {
       delete i->second;
     }
-  
+
 }
 
 StatRing::StatRing(unsigned int size)
@@ -237,9 +237,9 @@ vector<pair<string,unsigned int> >StatRing::get() const
     if(!i->empty())
       res[*i]++;
   }
-  
+
   vector<pair<string,unsigned int> > tmp;
-  for(map<string,unsigned int>::const_iterator i=res.begin();i!=res.end();++i) 
+  for(map<string,unsigned int>::const_iterator i=res.begin();i!=res.end();++i)
     tmp.push_back(*i);
 
   sort(tmp.begin(),tmp.end(),popisort);

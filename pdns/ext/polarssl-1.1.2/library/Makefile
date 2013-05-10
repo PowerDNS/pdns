@@ -35,7 +35,7 @@ OBJS=	aes.o		arc4.o		asn1parse.o		\
 		sha4.o		ssl_cli.o	ssl_srv.o		\
 		ssl_tls.o	timing.o	version.o		\
 		x509parse.o	xtea.o
-	
+
 all: static
 
 static: libpolarssl.a
@@ -52,8 +52,8 @@ libpolarssl.so: libpolarssl.a
 libpolarssl.dylib: libpolarssl.a
 	$(CC) ${LDFLAGS} -dynamiclib -o $@ $(OBJS)
 
-libpolarssl.dll: libpolarssl.a 
-	$(CC) -shared -Wl,-soname,$@ -o $@ $(OBJS) -lws2_32 -lwinmm -lgdi32 
+libpolarssl.dll: libpolarssl.a
+	$(CC) -shared -Wl,-soname,$@ -o $@ $(OBJS) -lws2_32 -lwinmm -lgdi32
 
 .c.o:
 	$(CC) $(CFLAGS) $(OFLAGS) -c $<

@@ -28,8 +28,8 @@ vector<string> TinyDNSBackend::getLocations()
 	if (remote.getBits() != 32) {
 		return ret;
 	}
-	
-	unsigned long addr = remote.getNetwork().sin4.sin_addr.s_addr;	
+
+	unsigned long addr = remote.getNetwork().sin4.sin_addr.s_addr;
 
 	char key[6];
 	key[0] = '\000';
@@ -51,7 +51,7 @@ vector<string> TinyDNSBackend::getLocations()
 		}
 	}
 
-	return ret; 
+	return ret;
 }
 
 TinyDNSBackend::TinyDNSBackend(const string &suffix)
@@ -65,12 +65,12 @@ TinyDNSBackend::TinyDNSBackend(const string &suffix)
 
 void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
 	Lock l(&s_domainInfoLock); //TODO: We could actually lock less if we do it per suffix.
-	
+
 	TDI_t *domains;
 	if (! s_domainInfo.count(d_suffix)) {
 		domains = new TDI_t;
 		s_domainInfo[d_suffix] = *domains;
-	} 
+	}
 	domains = &s_domainInfo[d_suffix];
 
 	vector<DomainInfo> allDomains;
@@ -94,7 +94,7 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
 			domains->insert(tmp);
 
 			di->id = s_lastId;
-			if (di->notified_serial > 0) { 
+			if (di->notified_serial > 0) {
 				retDomains->push_back(*di);
 			}
 		} else {
@@ -131,13 +131,13 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains) {
 	d_cdbReader->searchAll();
 	DNSResourceRecord rr;
 
-	while (get(rr)) { 
+	while (get(rr)) {
 		if (rr.qtype.getCode() == QType::SOA) {
 			SOAData sd;
 			fillSOAData(rr.content, sd);
 
 			DomainInfo di;
-			di.id = -1; //TODO: Check if this is ok. 
+			di.id = -1; //TODO: Check if this is ok.
 			di.backend=this;
 			di.zone = rr.qname;
 			di.serial = sd.serial;
@@ -184,7 +184,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 	pair<string, string> record;
 
 	while (d_cdbReader->readNext(record)) {
-		string val = record.second; 
+		string val = record.second;
 		string key = record.first;
 
 		//DLOG(L<<Logger::Debug<<"[GET] Key: "<<makeHexDump(key)<<endl);
@@ -199,12 +199,12 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 				continue;
 			}
 
-			// If it is NOT a wildcard query, but we do find a wildcard record, we skip it.	
+			// If it is NOT a wildcard query, but we do find a wildcard record, we skip it.
 			if (!d_isWildcardQuery && (val[2] == '\052' || val[2] == '\053')) {
 				continue;
 			}
 		}
-		
+
 
 		vector<uint8_t> bytes;
 		const char *sval = val.c_str();
@@ -223,14 +223,14 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 				char recloc[2];
 				recloc[0] = pr.get8BitInt();
 				recloc[1] = pr.get8BitInt();
-				
+
 				if (d_locations) {
 					bool foundLocation = false;
 					vector<string> locations = getLocations();
 					while(locations.size() > 0) {
 						string locId = locations.back();
 						locations.pop_back();
-		
+
 						if (recloc[0] == locId[0] && recloc[1] == locId[1]) {
 							foundLocation = true;
 							break;
@@ -238,7 +238,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 					}
 					if (!foundLocation) {
 						continue;
-					} 
+					}
 				}
 			}
 
@@ -246,12 +246,12 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 				key.insert(0, 1, '\052');
 				key.insert(0, 1, '\001');
 			}
-			rr.qname.clear(); 
+			rr.qname.clear();
 			simpleExpandTo(key, 0, rr.qname);
 			rr.qname = stripDot(rr.qname); // strip the last dot, packethandler needs this.
 			rr.domain_id=-1;
 			// 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
-			// We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something ehre. 
+			// We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something ehre.
 			rr.auth = true;
 
 			rr.ttl = pr.get32BitInt();
@@ -264,7 +264,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 					if (timestamp < now) {
 						continue;
 					}
-					rr.ttl = timestamp - now; 
+					rr.ttl = timestamp - now;
 				} else if (now <= timestamp) {
 					continue;
 				}
@@ -300,7 +300,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 		}
 	} // end of while
 	DLOG(L<<Logger::Debug<<backendname<<"No more records to return."<<endl);
-	
+
 	delete d_cdbReader;
 	return false;
 }

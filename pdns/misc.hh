@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -104,23 +104,23 @@ stringtok (Container &container, string const &in,
 {
   const string::size_type len = in.length();
   string::size_type i = 0;
-  
+
   while (i<len) {
     // eat leading whitespace
     i = in.find_first_not_of (delimiters, i);
     if (i == string::npos)
       return;   // nothing left but white space
-    
+
     // find the end of the token
     string::size_type j = in.find_first_of (delimiters, i);
-    
+
     // push token
     if (j == string::npos) {
       container.push_back (in.substr(i));
       return;
     } else
       container.push_back (in.substr(i, j-i));
-    
+
     // set up for next loop
     i = j + 1;
   }
@@ -133,23 +133,23 @@ vstringtok (Container &container, string const &in,
 {
   const string::size_type len = in.length();
   string::size_type i = 0;
-  
+
   while (i<len) {
     // eat leading whitespace
     i = in.find_first_not_of (delimiters, i);
     if (i == string::npos)
       return;   // nothing left but white space
-    
+
     // find the end of the token
     string::size_type j = in.find_first_of (delimiters, i);
-    
+
     // push token
     if (j == string::npos) {
       container.push_back (make_pair(i, len));
       return;
     } else
       container.push_back (make_pair(i, j));
-    
+
     // set up for next loop
     i = j + 1;
   }
@@ -173,9 +173,9 @@ int makeGidNumeric(const string &group);
 int makeUidNumeric(const string &user);
 void cleanSlashes(string &str);
 
-/** The DTime class can be used for timing statistics with microsecond resolution. 
+/** The DTime class can be used for timing statistics with microsecond resolution.
 On 32 bits systems this means that 2147 seconds is the longest time that can be measured. */
-class DTime 
+class DTime
 {
 public:
   DTime(); //!< Does not set the timer for you! Saves lots of gettimeofday() calls
@@ -254,11 +254,11 @@ inline const string toLowerCanonic(const string &upper)
       c = dns_tolower(upper[i]);
       if(c != upper[i])
         reply[i] = c;
-    }   
+    }
     if(upper[i-1]=='.')
       reply.resize(i-1);
   }
-      
+
   return reply;
 }
 
@@ -267,18 +267,18 @@ inline const string toLowerCanonic(const string &upper)
 // Make s uppercase:
 inline string toUpper( const string& s )
 {
-        string r(s);
-        for( unsigned int i = 0; i < s.length(); i++ ) {
-        	r[i] = toupper( r[i] );
-        }
-        return r;
+  string r(s);
+  for( unsigned int i = 0; i < s.length(); i++ ) {
+    r[i] = toupper( r[i] );
+  }
+  return r;
 }
 
 inline double getTime()
 {
   struct timeval now;
   Utility::gettimeofday(&now,0);
-  
+
   return now.tv_sec+now.tv_usec/1000000.0;
 }
 
@@ -299,37 +299,37 @@ inline float makeFloat(const struct timeval& tv)
   return tv.tv_sec + tv.tv_usec/1000000.0f;
 }
 
-inline bool operator<(const struct timeval& lhs, const struct timeval& rhs) 
+inline bool operator<(const struct timeval& lhs, const struct timeval& rhs)
 {
   return make_pair(lhs.tv_sec, lhs.tv_usec) < make_pair(rhs.tv_sec, rhs.tv_usec);
 }
 
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b) 
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
 {
   string::size_type aLen = a.length(), bLen = b.length(), n;
   const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
   int result;
-  
+
   for(n = 0 ; n < aLen && n < bLen ; ++n) {
       if((result = dns_tolower(*aPtr++) - dns_tolower(*bPtr++))) {
         return result < 0;
       }
   }
   if(n == aLen && n == bLen) // strings are equal (in length)
-    return 0; 
+    return 0;
   if(n == aLen) // first string was shorter
-    return true; 
+    return true;
   return false;
 }
 
 inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
 
-inline bool pdns_iequals(const std::string& a, const std::string& b) 
+inline bool pdns_iequals(const std::string& a, const std::string& b)
 {
   string::size_type aLen = a.length(), bLen = b.length(), n;
   const char *aPtr = a.c_str(), *bPtr = b.c_str();
-  
+
   for(n = 0 ; n < aLen && n < bLen ; ++n) {
       if(dns_tolower(*aPtr++) != dns_tolower(*bPtr++))
         return false;
@@ -364,8 +364,8 @@ private:
     AtomicCounter &operator=(AtomicCounter const &);
 
     mutable unsigned int value_;
-    
-    // the below is necessary because __sync_fetch_and_add is not universally available on i386.. I 3> RHEL5. 
+
+    // the below is necessary because __sync_fetch_and_add is not universally available on i386.. I 3> RHEL5.
     #if defined( __GNUC__ ) && ( defined( __i386__ ) || defined( __x86_64__ ) )
     static int atomic_exchange_and_add( unsigned int * pw, int dv )
     {
@@ -386,7 +386,7 @@ private:
 
         return r;
     }
-    #else 
+    #else
     static int atomic_exchange_and_add( unsigned int * pw, int dv )
     {
       return __sync_fetch_and_add(pw, dv);
@@ -395,7 +395,7 @@ private:
 };
 
 
-struct CIStringCompare: public std::binary_function<string, string, bool>  
+struct CIStringCompare: public std::binary_function<string, string, bool>
 {
   bool operator()(const string& a, const string& b) const
   {
@@ -403,14 +403,14 @@ struct CIStringCompare: public std::binary_function<string, string, bool>
   }
 };
 
-struct CIStringPairCompare: public std::binary_function<pair<string, uint16_t>, pair<string,uint16_t>, bool>  
+struct CIStringPairCompare: public std::binary_function<pair<string, uint16_t>, pair<string,uint16_t>, bool>
 {
   bool operator()(const pair<string, uint16_t>& a, const pair<string, uint16_t>& b) const
   {
     if(pdns_ilexicographical_compare(a.first, b.first))
-	return true;
+      return true;
     if(pdns_ilexicographical_compare(b.first, a.first))
-	return false;
+      return false;
     return a.second < b.second;
   }
 };
@@ -469,7 +469,7 @@ class Regex
 public:
   /** constructor that accepts the expression to regex */
   Regex(const string &expr);
-  
+
   ~Regex()
   {
     regfree(&d_preg);
@@ -479,7 +479,7 @@ public:
   {
     return regexec(&d_preg,line.c_str(),0,0,0)==0;
   }
-  
+
 private:
   regex_t d_preg;
 };

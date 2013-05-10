@@ -27,7 +27,7 @@ protected: // FIXME?
   bool getFromTable(const std::string& key, std::string& value);
   bool getFromTable(const std::string& key, uint32_t& value);
   bool d_failed;
-  bool d_variable;  
+  bool d_variable;
   ComboAddress d_local;
 };
 

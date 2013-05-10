@@ -18,7 +18,7 @@ extern int yydebug;
 
 
 #ifndef WIN32
-extern "C" 
+extern "C"
 {
 #endif // WIN32
 	int yyparse(void);
@@ -38,7 +38,7 @@ const char *bind_directory;
 extern int linenumber;
 static void yyerror(const char *str)
 {
-  extern char *current_filename;	
+  extern char *current_filename;
   throw AhuException("Error in bind configuration '"+string(current_filename)+"' on line "+itoa(linenumber)+": "+str);
 }
 
@@ -47,7 +47,7 @@ static BindParser *parent;
 BindDomainInfo s_di;
 
 void BindParser::parse(const string &fname)
-{	
+{
 	yydebug=0;
 	yyin=fopen(fname.c_str(),"r");
 	yyrestart(yyin);
@@ -111,7 +111,7 @@ void BindParser::commit(BindDomainInfo DI)
 %%
 
 root_commands:
-	|	 
+	|
 	root_commands root_command SEMICOLON
   	;
 
@@ -124,7 +124,7 @@ commands:
 	;
 
 command:
-	terms 
+	terms
 	;
 
 zone_command:
@@ -135,7 +135,7 @@ zone_command:
 		parent->commit(s_di);
 		s_di.clear();
 	}
-	|	
+	|
 	ZONETOK quotedname AWORD zone_block
 	{
 	        s_di.name=stripDot($2);
@@ -159,8 +159,8 @@ acl_command:
 
 acl_block: OBRACE acls EBRACE
 	;
-	
-acls: 
+
+acls:
 	|
 	acl SEMICOLON acls
 	;
@@ -184,10 +184,10 @@ options_directory_command: DIRECTORYTOK quotedname
 	}
 	;
 
-also_notify_command: ALSONOTIFYTOK OBRACE also_notify_list EBRACE 
+also_notify_command: ALSONOTIFYTOK OBRACE also_notify_list EBRACE
 	;
 
-also_notify_list: 
+also_notify_list:
 	|
 	also_notify SEMICOLON also_notify_list
 	;
@@ -205,15 +205,15 @@ terms: /* empty */
 
 term: AWORD | block | quotedname
 	;
-block: 
-	OBRACE commands EBRACE 
+block:
+	OBRACE commands EBRACE
 	;
 
 zone_block:
 	OBRACE zone_commands EBRACE
 	;
 
-zone_commands:	
+zone_commands:
 	|
 	zone_commands zone_command SEMICOLON
 	;
@@ -240,8 +240,8 @@ zone_also_notify: AWORD
         ;
 
 masters: /* empty */
-	| 
-	masters master SEMICOLON 
+	|
+	masters master SEMICOLON
 	;
 
 master: AWORD

@@ -45,7 +45,7 @@ static void set_bits(char* s, int x, int start, int length)
     s[start / 8] |= cl;
     s[start / 8 + 1] |= cc;
     s[start / 8 + 2] |= cr;
-  } 
+  }
   else {
     if (shift + length > 8) {
       s[start / 8] |= cc;
@@ -61,9 +61,9 @@ static int unbase32hex(char c)
 {
   if(c >= '0' && c<='9')
     return c-'0';
-  if(c >= 'a' && c<='z') 
+  if(c >= 'a' && c<='z')
     return 10 + (c-'a');
-  if(c >= 'A' && c<='Z') 
+  if(c >= 'A' && c<='Z')
     return 10 + (c-'A');
   if(c=='=')
     return '=';
@@ -76,11 +76,11 @@ string toBase32Hex(const std::string& input)
   static const char base32hex[] = "0123456789ABCDEFGHIJKLMNOPQRSTUV=";
   string ret;
   ret.reserve(4+ 8*input.length()/5); // optimization
-  // process input in groups of 5 8-bit chunks, emit 8 5-bit chunks 
+  // process input in groups of 5 8-bit chunks, emit 8 5-bit chunks
   for(string::size_type offset = 0 ; offset < input.length(); offset+=5) {
     int todo = input.length() - offset;
     int stuffing; // how much '=' to add at the end
-    
+
     switch(todo) {
     case 1:
       stuffing = 6; break;
@@ -93,7 +93,7 @@ string toBase32Hex(const std::string& input)
     default: // ->  0 or more than 5, no stuffing
       stuffing = 0; break;
     }
-   
+
     for(int n=0; n < 8 - stuffing; ++n)
       ret.append(1, base32hex[extract_bits(input.c_str()+offset, n*5, 5)]);
     ret.append(stuffing, '=');
@@ -119,7 +119,7 @@ string fromBase32Hex(const std::string& input)
       toWrite = 0;
     }
   }
-  ret.append(block, (toWrite*5)/8); 
+  ret.append(block, (toWrite*5)/8);
 
   return ret;
 }
@@ -133,8 +133,8 @@ int main(int argc, char **argv)
   }
   if(!strcmp(argv[1],"to")) {
     printf("input: '%s'\noutput: '%s'\n",
-	   argv[2], 
-	   toBase32Hex(argv[2]).c_str());
+           argv[2],
+           toBase32Hex(argv[2]).c_str());
   }
   else {
     cout<<"input: '"<<argv[2]<<"'\noutput: '"<<fromBase32Hex(argv[2])<<"'\n";

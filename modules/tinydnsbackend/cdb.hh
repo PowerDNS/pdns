@@ -31,4 +31,4 @@ private:
 	enum SearchType { SearchSuffix, SearchKey, SearchAll } d_searchType;
 };
 
-#endif // CDB_HH 
+#endif // CDB_HH

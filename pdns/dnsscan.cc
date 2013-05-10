@@ -28,7 +28,7 @@ try
   Socket sock(InterNetwork, Datagram);
 
   /*
-  IPEndpoint remote(argc > 2 ? argv[2] : "127.0.0.1", 
+  IPEndpoint remote(argc > 2 ? argv[2] : "127.0.0.1",
         	    argc > 3 ? atoi(argv[3]) : 5300);
 
   */
@@ -39,12 +39,12 @@ try
   }
 
   unsigned int counts[256];
-  for(unsigned int n=0 ; n < 256; ++n) 
+  for(unsigned int n=0 ; n < 256; ++n)
     counts[n]=0;
-    
+
   for(int n=1; n < argc; ++n) {
     PcapPacketReader pr(argv[n]);
-    
+
     while(pr.getUDPPacket()) {
       try {
         MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
@@ -59,12 +59,12 @@ try
           }
         if(mdp.d_qtype > 256 || mdp.d_qclass!=1 ) {
           //	sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
-          
+
         }
-        for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-          
+        for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+
         }
-        
+
       }
       catch(MOADNSException &e) {
         cout<<"Error from remote "<<U32ToIP(ntohl(*((uint32_t*)&pr.d_ip->ip_src)))<<": "<<e.what()<<"\n";

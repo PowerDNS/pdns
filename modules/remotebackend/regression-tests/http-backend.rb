@@ -9,10 +9,10 @@ server = WEBrick::HTTPServer.new(
 	:Port=>62434,
 	:BindAddress=>"localhost",
 #	Logger: WEBrick::Log.new("remotebackend-server.log"),
-	:AccessLog=>[ [ File.open("remotebackend-access.log", "w"), WEBrick::AccessLog::COMBINED_LOG_FORMAT ] ] 
+	:AccessLog=>[ [ File.open("remotebackend-access.log", "w"), WEBrick::AccessLog::COMBINED_LOG_FORMAT ] ]
 )
 
-be = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3") 
+be = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3")
 server.mount "/dns", DNSBackendHandler, be
 
 trap('INT') { server.stop }

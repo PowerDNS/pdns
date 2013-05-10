@@ -43,14 +43,14 @@ public:
     d_parent = orig.d_parent;
     orig.d_rc++;
   }
-  
+
   ~HTimerSentinel()
   {
     if(!--d_rc)
       d_parent->stop();
   }
 
-private:  
+private:
   HTimerSentinel& operator=(const HTimerSentinel& rhs);
   HTimer* d_parent;
 

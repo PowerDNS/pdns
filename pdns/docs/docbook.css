@@ -13,12 +13,12 @@ h5 {
         padding: 10px;
         border: 1px solid #bbb;
         background-color: #eee;
-        color: #000;   
+        color: #000;
         overflow: auto;
         border-radius: 2.5px;
         -moz-border-radius: 2.5px;
         margin: 0.5em 2em;
- 
+
 }
 
 .programlisting {
@@ -28,7 +28,7 @@ h5 {
         padding: 10px;
         border: 1px solid #bbb;
         background-color: #ddd;
-        color: #000;   
+        color: #000;
         overflow: auto;
         border-radius: 2.5px;
         -moz-border-radius: 2.5px;

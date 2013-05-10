@@ -26,7 +26,7 @@
 9: icing on the cake, sign with identical timestamps
 
  $ STAMPS=$(dig -t ns powerdnssec.org @127.0.0.1 -p 5300 +dnssec | grep RRSIG | awk '{printf "-s %d -e %d", $10, $9}')
- $ dnssec-signzone -P $STAMPS powerdnssec.org 
+ $ dnssec-signzone -P $STAMPS powerdnssec.org
 
 10: load it all up in BIND too
 
@@ -47,7 +47,7 @@ zone "powerdnssec.org" {
         file "powerdnssec.org.signed";
 };
 
-EOF 
+EOF
 
  $ named -c minconfig.conf
 

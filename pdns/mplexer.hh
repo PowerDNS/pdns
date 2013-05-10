@@ -21,7 +21,7 @@ public:
 
 
 /** Very simple FD multiplexer, based on callbacks and boost::any parameters
-    As a special service, this parameter is kept around and can be modified, 
+    As a special service, this parameter is kept around and can be modified,
     allowing for state to be stored inside the multiplexer.
 
     It has some "interesting" semantics
@@ -84,7 +84,7 @@ public:
     d_readCallbacks[fd].d_ttd=tv;
   }
 
-  virtual funcparam_t& getReadParameter(int fd) 
+  virtual funcparam_t& getReadParameter(int fd)
   {
     if(!d_readCallbacks.count(fd))
       throw FDMultiplexerException("attempt to look up data in multiplexer for unlisted fd "+boost::lexical_cast<std::string>(fd));
@@ -95,7 +95,7 @@ public:
   {
     std::vector<std::pair<int, funcparam_t> > ret;
     for(callbackmap_t::iterator i=d_readCallbacks.begin(); i!=d_readCallbacks.end(); ++i)
-      if(i->second.d_ttd.tv_sec && boost::tie(tv.tv_sec, tv.tv_usec) > boost::tie(i->second.d_ttd.tv_sec, i->second.d_ttd.tv_usec)) 
+      if(i->second.d_ttd.tv_sec && boost::tie(tv.tv_sec, tv.tv_usec) > boost::tie(i->second.d_ttd.tv_sec, i->second.d_ttd.tv_usec))
         ret.push_back(std::make_pair(i->first, i->second.d_parameter));
     return ret;
   }
@@ -108,7 +108,7 @@ public:
     static FDMultiplexermap_t theMap;
     return theMap;
   }
-  
+
   virtual std::string getName() = 0;
 
 
@@ -127,15 +127,15 @@ protected:
     cb.d_callback=toDo;
     cb.d_parameter=parameter;
     memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
-  
+
     if(cbmap.count(fd))
       throw FDMultiplexerException("Tried to add fd "+boost::lexical_cast<std::string>(fd)+ " to multiplexer twice");
     cbmap[fd]=cb;
   }
 
-  void accountingRemoveFD(callbackmap_t& cbmap, int fd) 
+  void accountingRemoveFD(callbackmap_t& cbmap, int fd)
   {
-    if(!cbmap.erase(fd)) 
+    if(!cbmap.erase(fd))
       throw FDMultiplexerException("Tried to remove unlisted fd "+boost::lexical_cast<std::string>(fd)+ " from multiplexer");
   }
 };

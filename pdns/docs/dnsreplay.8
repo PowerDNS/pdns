@@ -4,8 +4,8 @@ dnswasher \- A PowerDNS nameserver debugging tool
 .SH SYNOPSIS
 .B dnsreplay  \fI[options]\fR \fIfilename\fR \fIip-address\fR \fI[port]\fR
 .SH DESCRIPTION
-This program takes recorded questions and answers and replays them to a specified 
-nameserver and reporting afterwards which percentage of answers matched, were worse or better. 
+This program takes recorded questions and answers and replays them to a specified
+nameserver and reporting afterwards which percentage of answers matched, were worse or better.
 
 \fIfilename\fR is expected to be an PCAP file.
 The queries are send to the DNS server specified as  \fIip-address\fR and \fI[port]\fR.
@@ -43,5 +43,5 @@ dnsreplay has no certain handling for timeouts. It handles around at most 65536 
 .SH SEE ALSO
 pcap(3PCAP), tcpdump(8), dnswascher(8)
 .SH AUTHORS
-This manpage was written by Joerg Jungermann (jj+debian At borkum.net) for the 
+This manpage was written by Joerg Jungermann (jj+debian At borkum.net) for the
 Debian Project and the PowerDNS versatile DNS server.

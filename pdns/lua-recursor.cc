@@ -61,11 +61,11 @@ RecursorLua::RecursorLua(const std::string &fname)
 int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)
 {
   int rcode=directResolve(qname, QType(QType::A), 1, ret);
-  
+
   ComboAddress prefixAddress(prefix);
 
   BOOST_FOREACH(DNSResourceRecord& rr, ret)
-  {    
+  {
     if(rr.qtype.getCode() == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
       ComboAddress ipv4(rr.content);
       uint32_t tmp;
@@ -100,7 +100,7 @@ bool RecursorLua::postresolve(const ComboAddress& remote, const ComboAddress& lo
 }
 
 
-bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 
+bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret,
   int& res, bool* variable)
 {
   d_variable = false;
@@ -110,8 +110,8 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     lua_pop(d_lua, 1);
     return false;
   }
-  
-  d_local = local; 
+
+  d_local = local;
   /* the first argument */
   lua_pushstring(d_lua,  remote.toString().c_str() );
   lua_pushstring(d_lua,  query.c_str() );
@@ -128,16 +128,16 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     extraParameter+=2;
   }
 
-  if(lua_pcall(d_lua,  3 + extraParameter, 3, 0)) { 
+  if(lua_pcall(d_lua,  3 + extraParameter, 3, 0)) {
     string error=string("lua error in '"+func+"' while processing query for '"+query+"|"+qtype.getName()+": ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);
     return false;
   }
-  
+
   *variable |= d_variable;
-  
-  
+
+
   if(!lua_isnumber(d_lua, 1)) {
     string tocall = lua_tostring(d_lua,1);
     string luaqname = lua_tostring(d_lua,2);
@@ -147,9 +147,9 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     ret.clear();
     res=getFakeAAAARecords(luaqname, luaprefix, ret);
     return true;
-    // returned a followup 
+    // returned a followup
   }
-  
+
   int newres = (int)lua_tonumber(d_lua, 1); // new rcode
   if(newres < 0) {
     //    cerr << "handler did not handle"<<endl;

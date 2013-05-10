@@ -8,22 +8,22 @@ standardConfig()
 daemon=no
 local-port=5299
 socket-dir=./
-no-shuffle 
+no-shuffle
 fancy-records
-send-root-referral 
-cache-ttl=0 
+send-root-referral
+cache-ttl=0
 EOF
 }
 
-initSQLite3() 
+initSQLite3()
 {
 	rm powerdns.sqlite3
 	sqlite3 powerdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
 	../pdns/backends/bind/zone2sql --gsqlite --named-conf=./named.conf --transactions | sqlite3 powerdns.sqlite3
 	echo analyze\; | sqlite3 powerdns.sqlite3
-	
+
 	standardConfig > pdns.conf
-	(echo launch=gsqlite3 
+	(echo launch=gsqlite3
 	echo gsqlite3-database=./powerdns.sqlite3 ) >> pdns.conf
 }
 
@@ -40,15 +40,15 @@ setDSSQLite3()
 }
 
 
-initPostgreSQL() 
+initPostgreSQL()
 {
 	dropdb pdnsregress
 	createdb pdnsregress
 	psql pdnsregress < ../pdns/no-dnssec.schema.pgsql.sql
 	../pdns/backends/bind/zone2sql --gpgsql --named-conf=./named.conf --transactions | psql -q pdnsregress
-	echo analyze | psql pdnsregress	
+	echo analyze | psql pdnsregress
 	standardConfig > pdns.conf
-	(echo launch=gpgsql 
+	(echo launch=gpgsql
 	echo gpgsql-dbname=pdnsregress
 	echo gpgsql-user=ahu
 	echo gpgsql-host=/var/run/postgresql/ ) >> pdns.conf
@@ -70,7 +70,7 @@ setDSPostgreSQL()
 function doTests()
 {
 	DBTYPE=$1
-	
+
 	init$DBTYPE
 	../pdns/pdns_server --config-dir=./ --daemon=no &
 
@@ -80,7 +80,7 @@ function doTests()
 
 	kill %1
 
-	upgrade$DBTYPE										       	
+	upgrade$DBTYPE
 	PDNSSEC="../pdns/pdnssec --config-dir=./"
 
 	$PDNSSEC rectify-zone example.com
@@ -129,4 +129,3 @@ function doTests()
 
 doTests SQLite3
 doTests PostgreSQL
- 

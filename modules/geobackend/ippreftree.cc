@@ -1,7 +1,7 @@
 /*        ippreftree.cc
  *         Copyright (C) 2004 Mark Bergsma <mark@nedworks.org>
  *        	This software is licensed under the terms of the GPL, version 2.
- * 
+ *
  *         $Id$
  */
 
@@ -22,7 +22,7 @@ void IPPrefTree::add(const string &prefix, const short value) {
         uint32_t ip;
         int preflen;
         parsePrefix(prefix, ip, preflen);
-        
+
         add(ip, preflen, value);
 }
 
@@ -34,7 +34,7 @@ short IPPrefTree::lookup(const string &prefix) const {
         uint32_t ip;
         int preflen;
         parsePrefix(prefix, ip, preflen);
-        
+
         return lookup(ip, preflen);
 }
 
@@ -69,7 +69,7 @@ inline void IPPrefTree::parsePrefix(const string &prefix, uint32_t &ip, int &pre
         std::istringstream is(prefix);
         ip = 0; preflen = 32;
         char c;
-        
+
         for (int i = 0; i < 4; i++) {
         	int octet = 0;
         	is >> octet;
@@ -78,11 +78,11 @@ inline void IPPrefTree::parsePrefix(const string &prefix, uint32_t &ip, int &pre
         	if (c != '.' && c != '/')
         		throw ParsePrefixException("Invalid format: expected '.' or '/'");
         }
-        
+
         if (is.good() && c == '/') {
         	// Read the prefix length
         	is >> preflen;
-        }	
+        }
 }
 
 void IPPrefTree::addNode(node_t *node, const uint32_t ip, const uint32_t mask, const short value) {
@@ -93,12 +93,12 @@ void IPPrefTree::addNode(node_t *node, const uint32_t ip, const uint32_t mask, c
         else {	/* mask > 0 */
         	// We need to walk deeper into the tree, and extend it if needed
         	int b = (ip >> 31);
-        	
+
         	if (node->child[b] == NULL) {
         		node->child[b] = allocateNode();
         		nodecount++;
         	}
-        	
+
         	// Recursively add
         	addNode(node->child[b], ip << 1, mask << 1, value);
         }
@@ -106,17 +106,17 @@ void IPPrefTree::addNode(node_t *node, const uint32_t ip, const uint32_t mask, c
 
 node_t * IPPrefTree::allocateNode() {
         node_t *node = new node_t;
-        
+
         // Initialize
         node->child[0] = node->child[1] = NULL;
         node->value = 0;
-        
-        return node;	
+
+        return node;
 }
 
 const node_t * IPPrefTree::findDeepestFilledNode(const node_t *node, const uint32_t ip, const uint32_t mask) const {
         if (node == NULL) return NULL;
-        
+
         if (mask == 0) {
         	return (node->value == 0 ? NULL : node);
         }
@@ -136,11 +136,11 @@ const node_t * IPPrefTree::findDeepestFilledNode(const node_t *node, const uint3
 
 void IPPrefTree::removeNode(node_t *node) {
         if (node == NULL) return;
-        
+
         // Recursively remove and deallocate all descendants
         removeNode(node->child[0]);
         removeNode(node->child[1]);
         nodecount--;
-        
+
         delete node;
-}        
+}

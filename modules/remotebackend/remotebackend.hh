@@ -119,6 +119,6 @@ class RemoteBackend : public DNSBackend
     Connector *connector;
     bool d_dnssec;
     rapidjson::Document *d_result;
-    int d_index; 
+    int d_index;
 };
 #endif

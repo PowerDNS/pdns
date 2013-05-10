@@ -37,12 +37,12 @@ void addGetStat(const string& name, const uint64_t* place)
 {
   d_get64bitpointers[name]=place;
 }
-void addGetStat(const string& name, function<uint32_t ()> f ) 
+void addGetStat(const string& name, function<uint32_t ()> f )
 {
   d_get32bitmembers[name]=f;
 }
 
-optional<uint64_t> get(const string& name) 
+optional<uint64_t> get(const string& name)
 {
   optional<uint64_t> ret;
 
@@ -59,11 +59,11 @@ optional<uint64_t> get(const string& name)
 map<string,string> getAllStatsMap()
 {
   map<string,string> ret;
-  
+
   pair<string, const uint32_t*> the32bits;
   pair<string, const uint64_t*> the64bits;
   pair<string, function< uint32_t() > >  the32bitmembers;
-  
+
   BOOST_FOREACH(the32bits, d_get32bitpointers) {
     ret.insert(make_pair(the32bits.first, lexical_cast<string>(*the32bits.second)));
   }
@@ -131,7 +131,7 @@ static uint64_t dumpNegCache(SyncRes::negcache_t& negcache, int fd)
   }
   fprintf(fp, "; negcache dump from thread follows\n;\n");
   time_t now = time(0);
-  
+
   typedef SyncRes::negcache_t::nth_index<1>::type sequence_t;
   sequence_t& sidx=negcache.get<1>();
 
@@ -183,18 +183,18 @@ string doDumpCache(T begin, T end)
   T i=begin;
   string fname;
 
-  if(i!=end) 
+  if(i!=end)
     fname=*i;
 
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-  if(fd < 0) 
+  if(fd < 0)
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
   uint64_t total = 0;
   try {
     total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDump, fd));
   }
   catch(...){}
-  
+
   close(fd);
   return "dumped "+lexical_cast<string>(total)+" records\n";
 }
@@ -205,11 +205,11 @@ string doDumpEDNSStatus(T begin, T end)
   T i=begin;
   string fname;
 
-  if(i!=end) 
+  if(i!=end)
     fname=*i;
 
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
-  if(fd < 0) 
+  if(fd < 0)
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
 
   SyncRes::doEDNSDumpAndClose(fd);
@@ -278,8 +278,8 @@ static string* pleaseGetCurrentQueries()
   int n=0;
   for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end() && n < 100; ++mthread, ++n) {
     const PacketID& pident = mthread->key;
-    ostr << (fmt 
-             % pident.domain % DNSRecordContent::NumberToType(pident.type) 
+    ostr << (fmt
+             % pident.domain % DNSRecordContent::NumberToType(pident.type)
              % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
              );
@@ -326,7 +326,7 @@ uint64_t getNsSpeedsSize()
 
 uint64_t* pleaseGetConcurrentQueries()
 {
-  return new uint64_t(MT->numProcesses()); 
+  return new uint64_t(MT->numProcesses());
 }
 
 static uint64_t getConcurrentQueries()
@@ -433,17 +433,17 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("tcp-questions", &g_stats.tcpqcounter);
 
   addGetStat("cache-hits", doGetCacheHits);
-  addGetStat("cache-misses", doGetCacheMisses); 
-  addGetStat("cache-entries", doGetCacheSize); 
-  addGetStat("cache-bytes", doGetCacheBytes); 
-  
+  addGetStat("cache-misses", doGetCacheMisses);
+  addGetStat("cache-entries", doGetCacheSize);
+  addGetStat("cache-bytes", doGetCacheBytes);
+
   addGetStat("packetcache-hits", doGetPacketCacheHits);
-  addGetStat("packetcache-misses", doGetPacketCacheMisses); 
-  addGetStat("packetcache-entries", doGetPacketCacheSize); 
-  addGetStat("packetcache-bytes", doGetPacketCacheBytes); 
-  
+  addGetStat("packetcache-misses", doGetPacketCacheMisses);
+  addGetStat("packetcache-entries", doGetPacketCacheSize);
+  addGetStat("packetcache-bytes", doGetPacketCacheBytes);
+
   addGetStat("malloc-bytes", doGetMallocated);
-  
+
   addGetStat("servfail-answers", &g_stats.servFails);
   addGetStat("nxdomain-answers", &g_stats.nxDomains);
   addGetStat("noerror-answers", &g_stats.noErrors);
@@ -473,13 +473,13 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("no-packet-error", &g_stats.noPacketError);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
-  
+
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
-  addGetStat("throttle-entries", boost::bind(getThrottleSize)); 
+  addGetStat("throttle-entries", boost::bind(getThrottleSize));
 
   addGetStat("nsspeeds-entries", boost::bind(getNsSpeedsSize));
 
-  addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
+  addGetStat("concurrent-queries", boost::bind(getConcurrentQueries));
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
@@ -510,10 +510,10 @@ static void doExitGeneric(bool nicely)
 {
   L<<Logger::Error<<"Exiting on user request"<<endl;
   extern RecursorControlChannel s_rcc;
-  s_rcc.~RecursorControlChannel(); 
+  s_rcc.~RecursorControlChannel();
 
   extern string s_pidfname;
-  if(!s_pidfname.empty()) 
+  if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // we can at least try..
   if(nicely)
     exit(1);
@@ -544,7 +544,7 @@ string doTopRemotes()
   counts_t counts;
 
   vector<ComboAddress> remotes=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRemotes);
-    
+
   unsigned int total=0;
   for(RemoteKeeper::remotes_t::const_iterator i = remotes.begin(); i != remotes.end(); ++i)
     if(i->sin4.sin_family) {
@@ -554,7 +554,7 @@ string doTopRemotes()
 
   typedef std::multimap<int, ComboAddress> rcounts_t;
   rcounts_t rcounts;
-  
+
   for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
     rcounts.insert(make_pair(-i->second, i->first));
 
@@ -611,38 +611,38 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="get-all")
     return getAllStats();
 
-  if(cmd=="get") 
+  if(cmd=="get")
     return doGet(begin, end);
-  
-  if(cmd=="get-parameter") 
+
+  if(cmd=="get-parameter")
     return doGetParameter(begin, end);
 
   if(cmd=="quit") {
     *command=&doExit;
     return "bye\n";
   }
-  
+
   if(cmd=="quit-nicely") {
     *command=&doExitNicely;
     return "bye nicely\n";
-  }  
+  }
 
-  if(cmd=="dump-cache") 
+  if(cmd=="dump-cache")
     return doDumpCache(begin, end);
 
-  if(cmd=="dump-ednsstatus" || cmd=="dump-edns") 
+  if(cmd=="dump-ednsstatus" || cmd=="dump-edns")
     return doDumpEDNSStatus(begin, end);
 
   if(cmd=="dump-nsspeeds")
     return doDumpNSSpeeds(begin, end);
 
-  if(cmd=="wipe-cache" || cmd=="flushname") 
+  if(cmd=="wipe-cache" || cmd=="flushname")
     return doWipeCache(begin, end);
 
-  if(cmd=="reload-lua-script") 
+  if(cmd=="reload-lua-script")
     return doQueueReloadLuaScript(begin, end);
 
-  if(cmd=="trace-regex") 
+  if(cmd=="trace-regex")
     return doTraceRegex(begin, end);
 
   if(cmd=="unload-lua-script") {
@@ -654,8 +654,8 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="reload-acls") {
     try {
       parseACLs();
-    } 
-    catch(std::exception& e) 
+    }
+    catch(std::exception& e)
     {
       L<<Logger::Error<<"reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
       return e.what() + string("\n");
@@ -674,7 +674,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="current-queries")
     return doCurrentQueries();
-  
+
   if(cmd=="ping") {
     return broadcastAccFunction<string>(nopFunction);
   }
@@ -682,6 +682,6 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="reload-zones") {
     return reloadAuthAndForwards();
   }
-  
+
   return "Unknown command '"+cmd+"', try 'help'\n";
 }

@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -61,7 +61,7 @@ union ComboAddress {
       return true;
     if(boost::tie(sin4.sin_family, sin4.sin_port) > boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return false;
-    
+
     if(sin4.sin_family == AF_INET)
       return sin4.sin_addr.s_addr < rhs.sin4.sin_addr.s_addr;
     else
@@ -74,7 +74,7 @@ union ComboAddress {
       return true;
     if(boost::tie(sin4.sin_family, sin4.sin_port) < boost::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
       return false;
-    
+
     if(sin4.sin_family == AF_INET)
       return sin4.sin_addr.s_addr > rhs.sin4.sin_addr.s_addr;
     else
@@ -103,8 +103,8 @@ union ComboAddress {
     else
       return sizeof(sin6);
   }
-  
-  ComboAddress() 
+
+  ComboAddress()
   {
     sin4.sin_family=AF_INET;
     sin4.sin_addr.s_addr=0;
@@ -120,8 +120,8 @@ union ComboAddress {
     if(makeIPv4sockaddr(str, &sin4)) {
       sin6.sin6_family = AF_INET6;
       if(makeIPv6sockaddr(str, &sin6) < 0)
-        throw AhuException("Unable to convert presentation address '"+ str +"'"); 
-      
+        throw AhuException("Unable to convert presentation address '"+ str +"'");
+
     }
     if(!sin4.sin_port) // 'str' overrides port!
       sin4.sin_port=htons(port);
@@ -131,20 +131,20 @@ union ComboAddress {
   {
     if(sin4.sin_family!=AF_INET6)
       return false;
-    
+
     int n=0;
     const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
     for(n=0; n < 10; ++n)
       if(ptr[n])
         return false;
-    
+
     for(; n < 12; ++n)
       if(ptr[n]!=0xff)
         return false;
-    
+
     return true;
   }
-  
+
   ComboAddress mapToIPv4() const
   {
     if(!isMappedIPv4())
@@ -152,7 +152,7 @@ union ComboAddress {
     ComboAddress ret;
     ret.sin4.sin_family=AF_INET;
     ret.sin4.sin_port=sin4.sin_port;
-    
+
     const unsigned char*ptr = (unsigned char*) &sin6.sin6_addr.s6_addr;
     ptr+=12;
     memcpy(&ret.sin4.sin_addr.s_addr, ptr, 4);
@@ -163,7 +163,7 @@ union ComboAddress {
   {
     char host[1024];
     getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST);
-      
+
     return host;
   }
 
@@ -177,7 +177,7 @@ union ComboAddress {
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
-class NetmaskException: public AhuException 
+class NetmaskException: public AhuException
 {
 public:
   NetmaskException(const string &a) : AhuException(a) {}
@@ -190,7 +190,7 @@ inline ComboAddress makeComboAddress(const string& str)
   if(Utility::inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
     address.sin4.sin_family=AF_INET6;
     if(makeIPv6sockaddr(str, &address.sin6) < 0)
-      throw NetmaskException("Unable to convert '"+str+"' to a netmask");        
+      throw NetmaskException("Unable to convert '"+str+"' to a netmask");
   }
   return address;
 }
@@ -202,29 +202,29 @@ class Netmask
 public:
   Netmask()
   {
-	d_network.sin4.sin_family=0; // disable this doing anything useful
+    d_network.sin4.sin_family=0; // disable this doing anything useful
   }
-  
+
   Netmask(const ComboAddress& network, uint8_t bits=0xff)
   {
     d_network = network;
-    
+
     if(bits == 0xff)
       bits = (network.sin4.sin_family == AF_INET) ? 32 : 128;
-    
+
     d_bits = bits;
     if(d_bits<32)
       d_mask=~(0xFFFFFFFF>>d_bits);
     else
       d_mask=0xFFFFFFFF; // not actually used for IPv6
   }
-  
-  //! Constructor supplies the mask, which cannot be changed 
-  Netmask(const string &mask) 
+
+  //! Constructor supplies the mask, which cannot be changed
+  Netmask(const string &mask)
   {
     pair<string,string> split=splitField(mask,'/');
     d_network=makeComboAddress(split.first);
-    
+
     if(!split.second.empty()) {
       d_bits = lexical_cast<unsigned int>(split.second);
       if(d_bits<32)
@@ -260,7 +260,7 @@ public:
       uint8_t bytes=d_bits/8, n;
       const uint8_t *us=(const uint8_t*) &d_network.sin6.sin6_addr.s6_addr;
       const uint8_t *them=(const uint8_t*) &ip->sin6.sin6_addr.s6_addr;
-      
+
       for(n=0; n < bytes; ++n) {
         if(us[n]!=them[n]) {
           return false;
@@ -338,7 +338,7 @@ public:
   {
     d_masks.push_back(Netmask(ip));
   }
-  
+
   bool empty()
   {
     return d_masks.empty();
@@ -364,7 +364,7 @@ public:
 private:
   typedef vector<Netmask> container_t;
   container_t d_masks;
-  
+
 };
 
 #endif

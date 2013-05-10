@@ -36,7 +36,7 @@ using std::min; // these are a bit scary, everybody uses 'min'
 using std::max;
 
 namespace pdns {
-  typedef std::string string;  
+  typedef std::string string;
 };
 
 typedef pdns::string string;

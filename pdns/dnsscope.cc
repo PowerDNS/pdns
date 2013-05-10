@@ -67,14 +67,14 @@ try
         highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
         string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
-        
+
         QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
 
         if(!mdp.d_header.qr) {
           //	  cout<<"Question for '"<< name <<"'\n";
 
           QuestionData& qd=statmap[qi];
-          
+
           if(!qd.d_firstquestiontime.tv_sec)
             qd.d_firstquestiontime=pr.d_pheader.ts;
           qd.d_qcount++;
@@ -88,7 +88,7 @@ try
           qd.d_answercount++;
           //	  cout<<"Answer to '"<< name <<"': RCODE="<<(int)mdp.d_rcode<<", "<<mdp.d_answers.size()<<" answers\n";
           if(qd.d_qcount) {
-            uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
+            uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +
                             (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
             //	    cout<<"Took: "<<usecs<<"usec\n";
             if(usecs<2049000)
@@ -96,8 +96,8 @@ try
             else
               reallylate++;
 
-            
-            if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
+
+            if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3)
               errorresult++;
           }
 
@@ -189,7 +189,7 @@ try
   cout.setf(std::ios::fixed);
   cout.precision(2);
   sum=0;
-  
+
   double lastperc=0, perc=0;
   for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
     sum+=i->second;
@@ -203,13 +203,13 @@ try
           cout<< perc <<"% of questions answered within " << j->first << " usec (";
         else
           cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
-        
+
         cout<<perc-lastperc<<"%)\n";
         lastperc=sum*100.0/totpackets;
       }
   }
 
-  
+
   if(totpackets)
     cerr<<"Average response time: "<<tottime/totpackets<<" usec"<<endl;
 }

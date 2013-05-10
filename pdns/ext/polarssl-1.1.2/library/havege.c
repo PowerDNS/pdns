@@ -220,7 +220,7 @@ int havege_random( void *p_rng, unsigned char *buf, size_t len )
         val ^= hs->pool[hs->offset[1]++];
 
         memcpy( p, &val, use_len );
-        
+
         len -= use_len;
         p += use_len;
     }

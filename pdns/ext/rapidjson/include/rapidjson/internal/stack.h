@@ -55,7 +55,7 @@ public:
 	}
 
 	template<typename T>
-	T* Top() { 
+	T* Top() {
 		RAPIDJSON_ASSERT(GetSize() >= sizeof(T));
 		return (T*)(stack_top_ - sizeof(T));
 	}

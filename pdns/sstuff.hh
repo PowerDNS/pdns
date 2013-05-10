@@ -109,7 +109,7 @@ public:
     local.sin_family=d_family;
     local.sin_addr.s_addr=ep.address.byte;
     local.sin_port=htons(ep.port);
-    
+
     bind(local);
   }
 #endif
@@ -131,7 +131,7 @@ public:
     int bytes;
     if((bytes=recvfrom(d_socket, d_buffer, d_buflen, 0, (sockaddr *)&ep , &remlen)) <0)
       throw NetworkError(strerror(errno));
-    
+
     dgram.assign(d_buffer,bytes);
   }
 
@@ -163,7 +163,7 @@ public:
       throw NetworkError(strerror(errno));
   }
 
-  //! Write this data to the socket, taking care that all bytes are written out 
+  //! Write this data to the socket, taking care that all bytes are written out
   void writen(const string &data)
   {
     if(data.empty())
@@ -175,7 +175,7 @@ public:
 
     do {
       res=::send(d_socket, ptr, toWrite, 0);
-      if(res<0) 
+      if(res<0)
         throw NetworkError("Writing to a socket: "+string(strerror(errno)));
       if(!res)
         throw NetworkError("EOF on socket");
@@ -202,7 +202,7 @@ public:
 
     if(errno==EAGAIN)
       return 0;
-    
+
     throw NetworkError("Writing to a socket: "+string(strerror(errno)));
   }
 
@@ -219,7 +219,7 @@ public:
   }
 
 
-  //! reads one character from the socket 
+  //! reads one character from the socket
   int getChar()
   {
     char c;
@@ -245,7 +245,7 @@ public:
   void read(string &data)
   {
     int res=::recv(d_socket,d_buffer,d_buflen,0);
-    if(res<0) 
+    if(res<0)
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
     data.assign(d_buffer,res);
   }
@@ -254,13 +254,13 @@ public:
   int read(char *buffer, int bytes)
   {
     int res=::recv(d_socket,buffer,bytes,0);
-    if(res<0) 
+    if(res<0)
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
     return res;
 
   }
 
-  //! Sets the socket to listen with a default listen backlog of 10 bytes 
+  //! Sets the socket to listen with a default listen backlog of 10 bytes
   void listen(unsigned int length=10)
   {
     if(::listen(d_socket,length)<0)
@@ -272,7 +272,7 @@ public:
   {
     return d_socket;
   }
-  
+
 private:
   int d_socket;
   char *d_buffer;

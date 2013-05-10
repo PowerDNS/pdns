@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -136,7 +136,7 @@ public:
 #ifdef WIN32
 
   //! iovec structure for windows.
-  typedef struct 
+  typedef struct
   {
     void  *iov_base;  //!< Base address.
     size_t iov_len;   //!< Number of bytes.
@@ -146,13 +146,13 @@ public:
   typedef DWORD     pid_t;
   typedef SOCKET    sock_t;
   typedef int       socklen_t;
-  
+
 #else
   typedef ::iovec iovec;
   typedef ::pid_t     pid_t;
   typedef int       sock_t;
   typedef ::socklen_t        socklen_t;
-  
+
 #endif // WIN32
 
   //! Closes a socket.
@@ -175,7 +175,7 @@ public:
 
   //! Retrieves a gid using a groupname.
   static int makeGidNumeric( const string & group );
-  
+
   //! Retrieves an uid using an username.
   static int makeUidNumeric( const string & username );
 
@@ -189,24 +189,24 @@ public:
 
   //! Drops the program's privileges.
   static void dropPrivs( int uid, int gid );
-  
+
   //! Sets the socket into blocking mode.
   static bool setBlocking( Utility::sock_t socket );
 
   //! Sets the socket into non-blocking mode.
   static bool setNonBlocking( Utility::sock_t socket );
-  
+
   //! Marks the socket to be closed on exec().
   static bool setCloseOnExec ( Utility::sock_t socket );
-  
+
   //! Sleeps for a number of seconds.
   static unsigned int sleep( unsigned int seconds );
-  
+
   //! Sleeps for a number of microseconds.
   static void usleep( unsigned long usec );
 
   static time_t timegm(struct tm *tm);
-  
+
 };
 
 

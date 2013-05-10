@@ -6,5 +6,5 @@ echo Rene van der Meijden
 echo Marc Laros
 echo Hans Veldhuijzen van Zanten
 echo Remco van Mook ) | sort -u | # perl -pi -e 's/^(.*) (\w+)$/$2 $1/g' | sort | perl -pi -e 's/^(\w+) (.*)$/$2 $1/g' |
-sed 's/$/,/g' | tr "\n" " " |  sed 's/, $//' | sed 's/ We, /, /' 
+sed 's/$/,/g' | tr "\n" " " |  sed 's/, $//' | sed 's/ We, /, /'
 

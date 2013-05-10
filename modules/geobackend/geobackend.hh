@@ -1,7 +1,7 @@
 /*        geobackend.hh
  *        	Copyright (C) 2004 Mark Bergsma <mark@nedworks.org>
  *        	This software is licensed under the terms of the GPL, version 2.
- * 
+ *
  *        	$Id$
  */
 
@@ -32,15 +32,15 @@ public:
 
         GeoBackend(const string &suffix);
         ~GeoBackend();
-        
+
         virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
         virtual bool list(const string &target, int domain_id);
         virtual bool get(DNSResourceRecord &r);
         virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
-        
+
         virtual void reload();
         virtual void rediscover(string *status = 0);
-        
+
 private:
         // Static resources, shared by all instances
         static IPPrefTree *ipt;
@@ -53,9 +53,9 @@ private:
         static uint32_t nsTTL;
         static time_t lastDiscoverTime;
         const static string logprefix;
-        
+
         bool forceReload;
-        
+
         // Locking
         static bool first;
         static int backendcount;
@@ -64,7 +64,7 @@ private:
 
         vector<DNSResourceRecord*> answers;
         vector<DNSResourceRecord*>::const_iterator i_answers;
-        
+
         void answerGeoRecord(const QType &qtype, const string &qdomain, DNSPacket *p);
         void answerLocalhostRecord(const string &qdomain, DNSPacket *p);
         void queueNSRecords(const string &qname);
@@ -85,7 +85,7 @@ private:
 class GeoFactory : public BackendFactory{
 public:
         GeoFactory() : BackendFactory("geo") {}
-        
+
         void declareArguments(const string &suffix = "") {
         	declare(suffix, "zone", "zonename to be served", "");
         	declare(suffix, "soa-values", "values of the SOA master nameserver and hostmaster fields, comma seperated", "");
@@ -95,7 +95,7 @@ public:
         	declare(suffix, "ip-map-zonefile", "path to the rbldnsd format zonefile", "zz.countries.nerd.dk.rbldnsd");
         	declare(suffix, "maps", "list of paths to director maps or directories containing director map files", "");
         }
-        
+
         DNSBackend *make(const string &suffix) {
         	return new GeoBackend(suffix);
         }
@@ -105,7 +105,7 @@ class GeoLoader {
 public:
         GeoLoader() {
         	BackendMakers().report(new GeoFactory);
-        	
+
         	L << Logger::Info << "[GeoBackend] This is the geobackend ("
         		__DATE__", "__TIME__" - $Revision: 1.1 $) reporting" << endl;
         }

@@ -22,31 +22,31 @@ VARIABLES="questions                    \
            cache-entries                \
            packetcache-entries          \
            concurrent-queries           \
-	   nxdomain-answers             \
+           nxdomain-answers             \
            noerror-answers              \
-	   servfail-answers             \
+           servfail-answers             \
            tcp-outqueries               \
-	   outgoing-timeouts            \
+           outgoing-timeouts            \
            nsspeeds-entries             \
            negcache-entries             \
            all-outqueries               \
            throttled-out                \
-	   packetcache-hits             \
+           packetcache-hits             \
            packetcache-misses           \
-	   cache-hits                   \
+           cache-hits                   \
            cache-misses                 \
            answers0-1                   \
            answers1-10                  \
            answers10-100                \
            answers100-1000              \
            answers-slow                 \
- 	   qa-latency                   \
+            qa-latency                   \
            throttle-entries             \
            sys-msec user-msec           \
            unauthorized-udp             \
            unauthorized-tcp             \
            client-parse-errors          \
-	   server-parse-errors          \
+           server-parse-errors          \
            uptime unexpected-packets    \
            resource-limits              \
            over-capacity-drops"
@@ -57,19 +57,19 @@ rec_control --socket-dir=$SOCKETDIR  GET $VARIABLES |
 (
   for a in $UVARIABLES
   do
-	  read $a
+    read $a
   done
   rrdtool update pdns_recursor.rrd  \
-	-t "udp-overruns:"$(for a in $VARIABLES 
-	do
-		echo -n $a:
-	done | sed 's/:$//' ) \
+  -t "udp-overruns:"$(for a in $VARIABLES
+  do
+    echo -n $a:
+  done | sed 's/:$//' ) \
 $TSTAMP$(
-	echo -n : 
-	netstat -s | grep "$NETSTAT_GREP" | awk '{printf $1}' 
-	for a in $UVARIABLES
-	do
-		echo -n :${!a}
-	done
-	)
+  echo -n :
+  netstat -s | grep "$NETSTAT_GREP" | awk '{printf $1}'
+  for a in $UVARIABLES
+  do
+    echo -n :${!a}
+  done
+  )
 )

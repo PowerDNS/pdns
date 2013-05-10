@@ -9,7 +9,7 @@ create table domainmetadata (
  content    TEXT
 );
 
-create index domainidmetaindex on domainmetadata(domain_id);               
+create index domainidmetaindex on domainmetadata(domain_id);
 
 
 create table cryptokeys (
@@ -18,7 +18,7 @@ create table cryptokeys (
  flags      INT NOT NULL,
  active     BOOL,
  content    TEXT
-);       
+);
 create index domainidindex on cryptokeys(domain_id);
 
 
@@ -30,7 +30,7 @@ create index domainidindex on cryptokeys(domain_id);
 create table tsigkeys (
  id         SERIAL PRIMARY KEY,
  name       VARCHAR(255),
- algorithm  VARCHAR(50), 
+ algorithm  VARCHAR(50),
  secret     VARCHAR(255)
 );
 

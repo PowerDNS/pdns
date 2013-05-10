@@ -5,7 +5,7 @@ for analysis.
 
 algorithm:
 
-read a packet, check if it has the recursion desired bit set. 
+read a packet, check if it has the recursion desired bit set.
 
 If the question has the response bit set, obfuscate the destination IP address
 otherwise, obfuscate the response IP address
@@ -60,14 +60,14 @@ try
 
       uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
       uint32_t *dst=(uint32_t*)&pr.d_ip->ip_dst;
-      
+
       if(dh->qr)
         *dst=htonl(ipo.obf(*dst));
       else
         *src=htonl(ipo.obf(*src));
-      
+
       pr.d_ip->ip_sum=0;
-      
+
       pw.write();
     }
   }

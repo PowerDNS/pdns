@@ -8,7 +8,7 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
 {
   uint32_t now=(uint32_t)time(0);
   unsigned int toTrim=0;
-  
+
   unsigned int cacheSize=collection.size();
 
   if(cacheSize > maxCached) {
@@ -22,7 +22,7 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
 
   unsigned int tried=0, lookAt, erased=0;
 
-  // two modes - if toTrim is 0, just look through 1/scanFraction of all records 
+  // two modes - if toTrim is 0, just look through 1/scanFraction of all records
   // and nuke everything that is expired
   // otherwise, scan first 5*toTrim records, and stop once we've nuked enough
   if(toTrim)
@@ -32,7 +32,7 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
 
   typename sequence_t::iterator iter=sidx.begin(), eiter;
   for(; iter != sidx.end() && tried < lookAt ; ++tried) {
-    if(iter->getTTD() < now) { 
+    if(iter->getTTD() < now) {
       sidx.erase(iter++);
       erased++;
     }
@@ -44,17 +44,17 @@ template <typename T> void pruneCollection(T& collection, unsigned int maxCached
   }
 
   //cout<<"erased "<<erased<<" records based on ttd\n";
-  
+
   if(erased >= toTrim) // done
     return;
 
   toTrim -= erased;
 
   //if(toTrim)
-    // cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n"; 
+    // cout<<"Still have "<<toTrim - erased<<" entries left to erase to meet target\n";
 
   eiter=iter=sidx.begin();
-  std::advance(eiter, toTrim); 
+  std::advance(eiter, toTrim);
   sidx.erase(iter, eiter);      // just lob it off from the beginning
 }
 

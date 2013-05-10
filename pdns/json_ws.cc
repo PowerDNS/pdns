@@ -3,7 +3,7 @@
     Copyright (C) 2003 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 
+    it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -36,7 +36,7 @@ JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
   ComboAddress local("::", 8082);
   bind(d_socket, (struct sockaddr*)&local, local.getSocklen());
   listen(d_socket, 5);
-  
+
   d_fdm->addReadFD(d_socket, boost::bind(&JWebserver::newConnection, this));
 }
 
@@ -52,7 +52,7 @@ void JWebserver::readRequest(int fd)
   }
   buffer[res]=0;
   cerr<< buffer << endl;
-  
+
   char * p = strchr(buffer, '\r');
   if(p) *p = 0;
   if(strstr(buffer, "GET ") != buffer) {
@@ -62,20 +62,20 @@ void JWebserver::readRequest(int fd)
     return;
   }
 
-    
+
   map<string, string> varmap;
   if((p = strchr(buffer, '?'))) {
     vector<string> variables;
     string line(p+1);
     line.resize(line.length() - strlen(" HTTP/1.0"));
-    
+
     stringtok(variables, line, "&");
     BOOST_FOREACH(const string& var, variables) {
       varmap.insert(splitField(var, '='));
       cout<<"Variable: '"<<var<<"'"<<endl;
     }
   }
-  
+
   string callback=varmap["callback"];
   cout <<"Callback: '"<<callback<<"'\n";
 
@@ -87,13 +87,13 @@ void JWebserver::readRequest(int fd)
   "Access-Control-Allow-Origin: *\r\n"
   "Content-Type: application/json\r\n"
   "\r\n" ;
-  
+
 
   string content;
   if(!callback.empty())
     content=callback+"(";
 
-  map<string, string> stats; 
+  map<string, string> stats;
   if(varmap["command"] =="domains") {
     content += "[";
     bool first=1;
@@ -112,29 +112,29 @@ void JWebserver::readRequest(int fd)
       content += returnJSONObject(stats);
     }
     content += "]";
-  } 
+  }
   else if(varmap["command"]=="flush-cache") {
     string canon=toCanonic("", varmap["domain"]);
     cerr<<"Canon: '"<<canon<<"'\n";
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
     stats["number"]=lexical_cast<string>(count);
-    content += returnJSONObject(stats);  
+    content += returnJSONObject(stats);
   }
   else if(varmap["command"] == "config") {
     vector<string> items = ::arg().list();
     BOOST_FOREACH(const string& var, items) {
       stats[var] = ::arg()[var];
     }
-    content += returnJSONObject(stats);  
+    content += returnJSONObject(stats);
   }
   else if(varmap["command"]=="log-grep") {
     content += makeLogGrepJSON(varmap, ::arg()["experimental-logfile"], " pdns_recursor[");
   }
   else { //  if(varmap["command"] == "stats") {
     stats = getAllStatsMap();
-    content += returnJSONObject(stats);  
-  } 
+    content += returnJSONObject(stats);
+  }
 
   if(!callback.empty())
     content += ");";
@@ -156,7 +156,7 @@ void JWebserver::newConnection()
   int sock = accept(d_socket, (struct sockaddr*) &remote, &remlen);
   if(sock < 0)
     return;
-    
+
   cerr<<"Connection from "<< remote.toStringWithPort() <<endl;
   Utility::setNonBlocking(sock);
   d_fdm->addReadFD(sock, boost::bind(&JWebserver::readRequest, this, _1));

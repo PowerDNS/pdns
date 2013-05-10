@@ -10,7 +10,7 @@ SOCKETPATH=@socketdir@
 
 PIDFILE=@socketdir@/pdns_recursor.pid
 
-if [ -s $PIDFILE -a -d /proc/$(cat $PIDFILE) 2>/dev/null ] 
+if [ -s $PIDFILE -a -d /proc/$(cat $PIDFILE) 2>/dev/null ]
 then
 	RUNNING=1
 	PID=$(cat $PIDFILE)
@@ -28,7 +28,7 @@ case "$1" in
 			echo pdns_recursor is not running
 		fi
 	;;
-	
+
 	stop)
 		echo -n "Stopping PowerDNS recursor: "
 		if [ $RUNNING = "1" ]
@@ -61,5 +61,5 @@ case "$1" in
 	;;
 
 esac
-		
+
 

@@ -3,7 +3,7 @@
     Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
@@ -38,7 +38,7 @@
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
 
-/** This struct is used within the Bind2Backend to store DNS information. 
+/** This struct is used within the Bind2Backend to store DNS information.
     It is almost identical to a DNSResourceRecord, but then a bit smaller and with different sorting rules, which make sure that the SOA record comes up front.
 */
 struct Bind2DNSRecord
@@ -49,7 +49,7 @@ struct Bind2DNSRecord
   uint32_t ttl;
   uint16_t qtype;
   uint16_t priority;
-  mutable bool auth; 
+  mutable bool auth;
   bool operator<(const Bind2DNSRecord& rhs) const
   {
     if(qname < rhs.qname)
@@ -62,19 +62,19 @@ struct Bind2DNSRecord
   }
 };
 
-struct Bind2DNSCompare : std::less<Bind2DNSRecord> 
-{ 
-    using std::less<Bind2DNSRecord>::operator(); 
-    // use operator< 
-    bool operator() (const std::string& a, const Bind2DNSRecord& b) const 
-    {return a < b.qname;} 
-    bool operator() (const Bind2DNSRecord& a, const std::string& b) const 
-    {return a.qname < b;} 
+struct Bind2DNSCompare : std::less<Bind2DNSRecord>
+{
+    using std::less<Bind2DNSRecord>::operator();
+    // use operator<
+    bool operator() (const std::string& a, const Bind2DNSRecord& b) const
+    {return a < b.qname;}
+    bool operator() (const Bind2DNSRecord& a, const std::string& b) const
+    {return a.qname < b;}
     bool operator() (const Bind2DNSRecord& a, const Bind2DNSRecord& b) const
     {
       return a < b;
     }
-}; 
+};
 
 struct HashedTag{};
 
@@ -121,7 +121,7 @@ class NSEC3PARAMRecordContent;
 class Bind2Backend : public DNSBackend
 {
 public:
-  Bind2Backend(const string &suffix="", bool loadZones=true); 
+  Bind2Backend(const string &suffix="", bool loadZones=true);
   ~Bind2Backend();
   void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains);
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
@@ -158,7 +158,7 @@ public:
   virtual bool getTSIGKey(const string& name, string* algorithm, string* content);
   static void createDNSSECDB(const string& fname);
   virtual bool doesDNSSEC();
-  // end of DNSSEC 
+  // end of DNSSEC
 
 
   typedef map<string, int, CIStringCompare> name_id_map_t;
@@ -170,7 +170,7 @@ public:
     id_zone_map_t id_zone_map;
   };
 
-  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string());  
+  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string());
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -178,7 +178,7 @@ public:
   // for supermaster support
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
   bool createSlaveDomain(const string &ip, const string &domain, const string &account);
-  
+
 private:
   void setupDNSSEC();
   shared_ptr<SSQLite3> d_dnssecdb;
@@ -188,7 +188,7 @@ private:
   public:
     bool get(DNSResourceRecord &);
     void reset();
-    
+
     handle();
 
     shared_ptr<recordstorage_t > d_records;
@@ -216,7 +216,7 @@ private:
 
   static shared_ptr<State> s_state;
   static pthread_mutex_t s_state_lock;               //!< lock protecting ???
-  static pthread_mutex_t s_state_swap_lock;               
+  static pthread_mutex_t s_state_swap_lock;
   static shared_ptr<State> getState();
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
 

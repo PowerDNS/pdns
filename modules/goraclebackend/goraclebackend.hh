@@ -11,6 +11,6 @@ class gOracleBackend : public GSQLBackend
 {
 public:
   gOracleBackend(const string &mode, const string &suffix); //!< Makes our connection to the database. Throws an exception if it fails.
- 
+
 private:
 };

@@ -4,7 +4,7 @@
  *
  * Maik Zumstrull <maik@zumstrull.net>
  * Steinbuch Centre for Computing <http://www.scc.kit.edu/>
- * Karlsruhe Institute of Technology <http://www.kit.edu/> 
+ * Karlsruhe Institute of Technology <http://www.kit.edu/>
  *
  */
 

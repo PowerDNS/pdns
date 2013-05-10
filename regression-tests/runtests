@@ -9,7 +9,7 @@ skipped=0
 
 touch passed_tests failed_tests skipped_tests
 
-for a in $(find $testsdir -type d | grep -v ^.$ | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
+for a in $(find $testsdir -type d | grep -v ^.$ | grep -v .svn | grep -v ^confdir | LC_ALL=C sort)
 do
 	if [ ! -x $a/command ]
 	then
@@ -18,13 +18,13 @@ do
 	testname=$(basename $a)
 	export testname
 	echo  "$testname: "
-	cat $a/description 
+	cat $a/description
 
 	echo  "$testname: " >> test-results
 	cat $a/description >> test-results
-	
+
 	SKIPIT=0
-	if [ -e $a/skip ] 
+	if [ -e $a/skip ]
 	then
 		SKIPIT=1
 		result="	Skipped test $a"
@@ -39,7 +39,7 @@ do
 			fi
 		done
 	fi
-				
+
 	if [ $SKIPIT = 1 ]
 	then
 		echo $testname >> skipped_tests
@@ -53,7 +53,7 @@ do
 		done
 		[ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
 		diff -u $expected $a/real_result > $a/diff 2>&1
-		if [ -s $a/diff ] 
+		if [ -s $a/diff ]
 		then
 			result="	Failed test $a"
 			echo $testname >> failed_tests
@@ -63,7 +63,7 @@ do
 			echo $testname >> passed_tests
 			passed=$[$passed+1]
 		fi
-	fi	
+	fi
 	echo "$result"
 	echo
 	echo "$result" >> test-results

@@ -557,7 +557,7 @@ int ssl_set_dh_param_ctx( ssl_context *ssl, dhm_context *dhm_ctx );
 
 /**
  * \brief          Set hostname for ServerName TLS Extension
- *                 
+ *
  *
  * \param ssl      SSL context
  * \param hostname the server hostname
@@ -568,7 +568,7 @@ int ssl_set_hostname( ssl_context *ssl, const char *hostname );
 
 /**
  * \brief          Set the maximum supported version sent from the client side
- * 
+ *
  * \param ssl      SSL context
  * \param major    Major version number (only SSL_MAJOR_VERSION_3 supported)
  * \param minor    Minor version number (SSL_MINOR_VERSION_0,

@@ -3,7 +3,7 @@
     Copyright (C) 2002-2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -16,7 +16,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-// $Id$ 
+// $Id$
 #ifdef WIN32
 # pragma warning ( disable: 4786 )
 #endif // WIN32
@@ -45,8 +45,8 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,
-	   d_UpdateSerialOfZoneQuery.c_str(),
-	   serial, domain_id);
+          d_UpdateSerialOfZoneQuery.c_str(),
+          serial, domain_id);
 
   try {
     d_db->doCommand(output);
@@ -60,8 +60,8 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,d_UpdateLastCheckofZoneQuery.c_str(),
-	   time(0),
-	   domain_id);
+           time(0),
+           domain_id);
 
   try {
     d_db->doCommand(output);
@@ -75,8 +75,8 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
   char output[1024];
   snprintf(output,sizeof(output)-1,
-	   d_MasterOfDomainsZoneQuery.c_str(),
-	   sqlEscape(domain).c_str());
+           d_MasterOfDomainsZoneQuery.c_str(),
+           sqlEscape(domain).c_str());
   try {
     d_db->doQuery(output, d_result);
   }
@@ -100,7 +100,7 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
   }
 
  // if no masters matched then this is not a master
-  return 0;  
+  return 0;
 }
 
 bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
@@ -109,7 +109,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
      id,name,master IP,serial */
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
-	   sqlEscape(domain).c_str());
+           sqlEscape(domain).c_str());
   try {
     d_db->doQuery(output,d_result);
   }
@@ -120,19 +120,19 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   int numanswers=d_result.size();
   if(!numanswers)
     return false;
-  
+
   di.id=atol(d_result[0][0].c_str());
   di.zone=d_result[0][1];
   stringtok(di.masters, d_result[0][2], " ,\t");
   di.last_check=atol(d_result[0][3].c_str());
   di.backend=this;
-  
+
   string type=d_result[0][5];
   if(pdns_iequals(type,"SLAVE")) {
     di.serial=0;
     try {
       SOAData sd;
-      if(!getSOA(domain,sd)) 
+      if(!getSOA(domain,sd))
         L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
       else
         di.serial=sd.serial;
@@ -140,14 +140,14 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     catch(AhuException &ae){
       L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
     }
-    
+
     di.kind=DomainInfo::Slave;
   }
   else if(pdns_iequals(type,"MASTER"))
     di.kind=DomainInfo::Master;
-  else 
+  else
     di.kind=DomainInfo::Native;
-  
+
   return true;
 }
 
@@ -244,7 +244,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   setArgPrefix(mode+suffix);
   d_db=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
-	
+
   try
   {
     d_dnssecQueries = mustDo("dnssec");
@@ -254,7 +254,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_dnssecQueries = false;
   }
 
-  string authswitch = d_dnssecQueries ? "-auth" : "";	  
+  string authswitch = d_dnssecQueries ? "-auth" : "";
   d_noWildCardNoIDQuery=getArg("basic-query"+authswitch);
   d_noWildCardIDQuery=getArg("id-query"+authswitch);
   d_wildCardNoIDQuery=getArg("wildcard-query"+authswitch);
@@ -264,7 +264,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_noWildCardANYIDQuery=getArg("any-id-query"+authswitch);
   d_wildCardANYNoIDQuery=getArg("wildcard-any-query"+authswitch);
   d_wildCardANYIDQuery=getArg("wildcard-any-id-query"+authswitch);
-  
+
   d_listQuery=getArg("list-query"+authswitch);
 
   d_MasterOfDomainsZoneQuery=getArg("master-zone-query");
@@ -284,7 +284,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
   d_insertEmptyNonTerminalQuery = getArg("insert-empty-non-terminal-query"+authswitch);
   d_deleteEmptyNonTerminalQuery = getArg("delete-empty-non-terminal-query");
-  
+
   if (d_dnssecQueries)
   {
     d_firstOrderQuery = getArg("get-order-first-query");
@@ -295,18 +295,18 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_nullifyOrderNameAndUpdateAuthQuery = getArg("nullify-ordername-and-update-auth-query");
     d_nullifyOrderNameAndAuthQuery = getArg("nullify-ordername-and-auth-query");
     d_setAuthOnDsRecordQuery = getArg("set-auth-on-ds-record-query");
-    
+
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
-    
+
     d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
     d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
     d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
-    
+
     d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
     d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
     d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
-    
+
     d_getTSIGKeyQuery = getArg("get-tsig-key-query");
   }
 }
@@ -437,13 +437,13 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
   // cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
   unhashed.clear(); before.clear(); after.clear();
   string lcqname=toLower(qname);
-  
+
   SSql::row_t row;
 
   char output[1024];
 
   snprintf(output, sizeof(output)-1, d_afterOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
-  
+
   try {
     d_db->doQuery(output);
   }
@@ -457,7 +457,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
 
   if(after.empty() && !lcqname.empty()) {
     snprintf(output, sizeof(output)-1, d_firstOrderQuery.c_str(), id);
-  
+
     try {
       d_db->doQuery(output);
     }
@@ -480,7 +480,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
     before=row[0];
     unhashed=row[1];
   }
-  
+
   if(! unhashed.empty())
   {
     // cerr<<"unhashed="<<unhashed<<",before="<<before<<", after="<<after<<endl;
@@ -506,9 +506,9 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 {
   if(!d_dnssecQueries)
     return -1;
-  char output[16384];  
+  char output[16384];
   snprintf(output,sizeof(output)-1,d_AddDomainKeyQuery.c_str(),
-	   key.flags, (int)key.active, sqlEscape(key.content).c_str(), sqlEscape(toLower(name)).c_str());
+           key.flags, (int)key.active, sqlEscape(key.content).c_str(), sqlEscape(toLower(name)).c_str());
 
   try {
     d_db->doCommand(output);
@@ -571,8 +571,8 @@ bool GSQLBackend::getTSIGKey(const string& name, string* algorithm, string* cont
 {
   if(!d_dnssecQueries)
     return false;
-    
-  char output[1024];  
+
+  char output[1024];
   snprintf(output,sizeof(output)-1,d_getTSIGKeyQuery.c_str(), sqlEscape(toLower(name)).c_str());
 
   try {
@@ -581,9 +581,9 @@ bool GSQLBackend::getTSIGKey(const string& name, string* algorithm, string* cont
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
   }
-  
+
   SSql::row_t row;
-  
+
   content->clear();
   while(d_db->getRow(row)) {
     *algorithm = row[0];
@@ -597,7 +597,7 @@ bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vect
 {
   if(!d_dnssecQueries)
     return false;
-  char output[1024];  
+  char output[1024];
   snprintf(output,sizeof(output)-1,d_ListDomainKeysQuery.c_str(), sqlEscape(toLower(name)).c_str());
 
   try {
@@ -606,7 +606,7 @@ bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vect
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to list keys: "+e.txtReason());
   }
-  
+
   SSql::row_t row;
   //  "select id, kind, active, content from domains, cryptokeys where domain_id=domains.id and name='%s'";
   KeyData kd;
@@ -639,7 +639,7 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
 {
   if(!d_dnssecQueries)
     return false;
-  char output[1024];  
+  char output[1024];
   snprintf(output,sizeof(output)-1,d_GetDomainMetadataQuery.c_str(), sqlEscape(name).c_str(), sqlEscape(kind).c_str());
 
   try {
@@ -648,9 +648,9 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to list metadata: "+e.txtReason());
   }
-  
+
   SSql::row_t row;
-  
+
   while(d_db->getRow(row)) {
     meta.push_back(row[0]);
   }
@@ -659,7 +659,7 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
 
 bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  char output[16384];  
+  char output[16384];
   if(!d_dnssecQueries)
     return false;
 
@@ -677,7 +677,7 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to store metadata key: "+e.txtReason());
   }
-  
+
   return true;
 }
 
@@ -690,7 +690,7 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   d_db->setLog(::arg().mustDo("query-logging"));
 
   string lcqname=toLower(qname);
-  
+
   // lcqname=labelReverse(makeRelative(lcqname, "net"));
 
   if(qtype.getCode()!=QType::ANY) {
@@ -800,12 +800,12 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
   return true;
 }
 
-void GSQLBackend::getAllDomains(vector<DomainInfo> *domains) 
+void GSQLBackend::getAllDomains(vector<DomainInfo> *domains)
 {
   DLOG(L<<"GSQLBackend retrieving all domains."<<endl);
 
   try {
-    d_db->doQuery(d_getAllDomainsQuery.c_str()); 
+    d_db->doQuery(d_getAllDomainsQuery.c_str());
   }
   catch (SSqlException &e) {
     throw AhuException("Database error trying to retrieve all domains:" + e.txtReason());
@@ -829,7 +829,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains)
     if (!row[5].empty()) {
       di.notified_serial = atol(row[5].c_str());
     }
-    
+
     if (pdns_iequals(row[3], "MASTER"))
       di.kind = DomainInfo::Master;
     else if (pdns_iequals(row[3], "SLAVE"))
@@ -851,7 +851,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
     r.content=row[0];
     if (row[1].empty())
         r.ttl = ::arg().asNum( "default-ttl" );
-    else 
+    else
         r.ttl=atol(row[1].c_str());
     r.priority=atol(row[2].c_str());
     if(!d_qname.empty())
@@ -860,16 +860,16 @@ bool GSQLBackend::get(DNSResourceRecord &r)
       r.qname=row[5];
     r.qtype=row[3];
     r.last_modified=0;
-    
+
     if(d_dnssecQueries)
       r.auth = !row[6].empty() && row[6][0]=='1';
     else
-      r.auth = 1; 
-    
+      r.auth = 1;
+
     r.domain_id=atoi(row[4].c_str());
     return true;
   }
-  
+
   return false;
 }
 
@@ -880,7 +880,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
   BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
     feedRecord(rr);
   }
-  
+
   return true;
 }
 
@@ -892,20 +892,20 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
   } else {
     output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname))).str();
   }
-     
+
   try {
     d_db->doCommand(output.c_str());
   }
   catch (SSqlException &e) {
     throw AhuException("GSQLBackend unable to feed record: "+e.txtReason());
   }
-  return true; // XXX FIXME this API should not return 'true' I think -ahu 
+  return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
 
 bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 {
   char output[1024];
-  if(domain_id >= 0) 
+  if(domain_id >= 0)
    snprintf(output,sizeof(output)-1,d_DeleteZoneQuery.c_str(),domain_id);
   try {
     d_db->doCommand("begin");
@@ -947,9 +947,9 @@ bool GSQLBackend::calculateSOASerial(const string& domain, const SOAData& sd, ti
     // query not set => fall back to default impl
     return DNSBackend::calculateSOASerial(domain, sd, serial);
   }
-  
+
   char output[1024];
-  
+
   snprintf(output, sizeof(output)-1,
            d_ZoneLastChangeQuery.c_str(),
            sd.domain_id);

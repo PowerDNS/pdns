@@ -4,11 +4,11 @@ create table domains (
  master          VARCHAR(128) DEFAULT NULL,
  last_check      INT DEFAULT NULL,
  type            VARCHAR(6) NOT NULL,
- notified_serial INT DEFAULT NULL, 
+ notified_serial INT DEFAULT NULL,
  account         VARCHAR(40) DEFAULT NULL
 );
 CREATE UNIQUE INDEX name_index ON domains(name);
-  
+
 CREATE TABLE records (
         id              SERIAL PRIMARY KEY,
         domain_id       INT DEFAULT NULL,
@@ -17,8 +17,8 @@ CREATE TABLE records (
         content         VARCHAR(65535) DEFAULT NULL,
         ttl             INT DEFAULT NULL,
         prio            INT DEFAULT NULL,
-        change_date     INT DEFAULT NULL, 
-        CONSTRAINT domain_exists 
+        change_date     INT DEFAULT NULL,
+        CONSTRAINT domain_exists
         FOREIGN KEY(domain_id) REFERENCES domains(id)
         ON DELETE CASCADE,
         CONSTRAINT c_lowercase_name CHECK (((name)::text = lower((name)::text)))
@@ -29,8 +29,8 @@ CREATE INDEX nametype_index ON records(name,type);
 CREATE INDEX domain_id ON records(domain_id);
 
 create table supermasters (
-          ip VARCHAR(25) NOT NULL, 
-          nameserver VARCHAR(255) NOT NULL, 
+          ip VARCHAR(25) NOT NULL,
+          nameserver VARCHAR(255) NOT NULL,
           account VARCHAR(40) DEFAULT NULL
 );
 
@@ -40,4 +40,4 @@ create table supermasters (
 -- GRANT ALL ON records TO pdns;
 -- GRANT ALL ON records_id_seq TO pdns;
 
-        
+

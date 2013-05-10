@@ -13,7 +13,7 @@
 1	.	IN	NS	518400	k.root-servers.net.
 1	.	IN	NS	518400	l.root-servers.net.
 1	.	IN	NS	518400	m.root-servers.net.
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 2	a.root-servers.net.	IN	A	3600000	198.41.0.4
 2	b.root-servers.net.	IN	A	3600000	192.228.79.201
 2	c.root-servers.net.	IN	A	3600000	192.33.4.12

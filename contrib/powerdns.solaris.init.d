@@ -101,7 +101,7 @@ case "$1" in
 			$0 start
 		fi
 	;;
-		
+
 	monitor)
 		/bin/echo "$PROGNAME: \c"
 
@@ -162,7 +162,7 @@ case "$1" in
 		else
 			/bin/echo "not running"
 		fi
-	
+
 	;;
 
 	cricket)

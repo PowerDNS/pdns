@@ -46,12 +46,12 @@ static struct DevPollRegisterOurselves
 
 
 //int DevPollFDMultiplexer::s_maxevents=1024;
-DevPollFDMultiplexer::DevPollFDMultiplexer() 
+DevPollFDMultiplexer::DevPollFDMultiplexer()
 {
   d_devpollfd=open("/dev/poll", O_RDWR);
   if(d_devpollfd < 0)
     throw FDMultiplexerException("Setting up /dev/poll: "+stringerror());
-    
+
 }
 
 void DevPollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)
@@ -94,9 +94,9 @@ int DevPollFDMultiplexer::run(struct timeval* now)
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
   dvp.dp_fds = new pollfd[dvp.dp_nfds];
   dvp.dp_timeout = 500;
-  int ret=ioctl(d_devpollfd, DP_POLL, &dvp); 
+  int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
   gettimeofday(now,0); // MANDATORY!
-  
+
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("/dev/poll returned error: "+stringerror());
 
@@ -106,13 +106,13 @@ int DevPollFDMultiplexer::run(struct timeval* now)
   d_inrun=true;
   for(int n=0; n < ret; ++n) {
     d_iter=d_readCallbacks.find(dvp.dp_fds[n].fd);
-    
+
     if(d_iter != d_readCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
       continue; // so we don't refind ourselves as writable!
     }
     d_iter=d_writeCallbacks.find(dvp.dp_fds[n].fd);
-    
+
     if(d_iter != d_writeCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
     }
@@ -137,7 +137,7 @@ void acceptData(int fd, funcparam_t& parameter)
 int main()
 {
   Socket s(InterNetwork, Datagram);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 

@@ -82,7 +82,7 @@ private:
 	bool d_locations;
 	bool d_ignorebogus;
 	string d_suffix;
-	
+
 
 	// Statics
 	static pthread_mutex_t s_domainInfoLock;
@@ -90,4 +90,4 @@ private:
 	static uint32_t s_lastId; // used to give a domain an id.
 };
 
-#endif // TINYDNSBACKEND_HH 
+#endif // TINYDNSBACKEND_HH

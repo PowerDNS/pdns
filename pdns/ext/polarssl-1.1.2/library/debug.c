@@ -148,7 +148,7 @@ void debug_print_mpi( const ssl_context *ssl, int level,
             break;
 
     snprintf( str, maxlen, "%s(%04d): value of '%s' (%lu bits) is:\n",
-              file, line, text, 
+              file, line, text,
               (unsigned long) ( ( n * ( sizeof(t_uint) << 3 ) ) + j + 1 ) );
 
     str[maxlen] = '\0';

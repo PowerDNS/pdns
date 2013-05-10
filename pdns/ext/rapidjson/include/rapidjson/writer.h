@@ -20,7 +20,7 @@ namespace rapidjson {
 
 	User may programmatically calls the functions of a writer to generate JSON text.
 
-	On the other side, a writer can also be passed to objects that generates events, 
+	On the other side, a writer can also be passed to objects that generates events,
 
 	for example Reader::Parse() and Document::Accept().
 
@@ -33,7 +33,7 @@ class Writer {
 public:
 	typedef typename Encoding::Ch Ch;
 
-	Writer(Stream& stream, Allocator* allocator = 0, size_t levelDepth = kDefaultLevelDepth) : 
+	Writer(Stream& stream, Allocator* allocator = 0, size_t levelDepth = kDefaultLevelDepth) :
 		stream_(stream), level_stack_(allocator, levelDepth * sizeof(Level)) {}
 
 	//@name Implementation of Handler
@@ -211,7 +211,7 @@ protected:
 		if (level_stack_.GetSize() != 0) { // this value is not at root
 			Level* level = level_stack_.template Top<Level>();
 			if (level->valueCount > 0) {
-				if (level->inArray) 
+				if (level->inArray)
 					stream_.Put(','); // add comma if it is not the first element in array
 				else  // in object
 					stream_.Put((level->valueCount % 2 == 0) ? ',' : ':');

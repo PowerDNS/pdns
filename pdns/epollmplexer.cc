@@ -69,7 +69,7 @@ EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents
     close(d_epollfd);
     throw FDMultiplexerException("epoll multiplexer failed self-test: "+string(fe.what()));
   }
-    
+
 }
 
 void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter)
@@ -77,11 +77,11 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
   accountingAddFD(cbmap, fd, toDo, parameter);
 
   struct epoll_event eevent;
-  
+
   eevent.events = (&cbmap == &d_readCallbacks) ? EPOLLIN : EPOLLOUT;
-  
+
   eevent.data.u64=0; // placate valgrind (I love it so much)
-  eevent.data.fd=fd; 
+  eevent.data.fd=fd;
 
   if(epoll_ctl(d_epollfd, EPOLL_CTL_ADD, fd, &eevent) < 0) {
     cbmap.erase(fd);
@@ -107,10 +107,10 @@ int EpollFDMultiplexer::run(struct timeval* now)
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
-  
+
   int ret=epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, 500);
   gettimeofday(now,0); // MANDATORY
-  
+
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("epoll returned error: "+stringerror());
 
@@ -120,13 +120,13 @@ int EpollFDMultiplexer::run(struct timeval* now)
   d_inrun=true;
   for(int n=0; n < ret; ++n) {
     d_iter=d_readCallbacks.find(d_eevents[n].data.fd);
-    
+
     if(d_iter != d_readCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
       continue; // so we don't refind ourselves as writable!
     }
     d_iter=d_writeCallbacks.find(d_eevents[n].data.fd);
-    
+
     if(d_iter != d_writeCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
     }
@@ -150,7 +150,7 @@ void acceptData(int fd, funcparam_t& parameter)
 int main()
 {
   Socket s(InterNetwork, Datagram);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 

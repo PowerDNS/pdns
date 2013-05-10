@@ -263,8 +263,8 @@ static int x509_get_name( unsigned char **p,
     int ret;
     size_t len;
     const unsigned char *end2;
-    x509_name *use; 
-    
+    x509_name *use;
+
     if( ( ret = asn1_get_tag( p, end, &len,
             ASN1_CONSTRUCTED | ASN1_SET ) ) != 0 )
         return( POLARSSL_ERR_X509_CERT_INVALID_NAME + ret );
@@ -277,7 +277,7 @@ static int x509_get_name( unsigned char **p,
     {
         if( ( ret = x509_get_attr_type_value( p, end, use ) ) != 0 )
             return( ret );
-        
+
         if( *p != end )
         {
             use->next = (x509_name *) malloc(
@@ -285,7 +285,7 @@ static int x509_get_name( unsigned char **p,
 
             if( use->next == NULL )
                 return( POLARSSL_ERR_X509_MALLOC_FAILED );
-            
+
             memset( use->next, 0, sizeof( x509_name ) );
 
             use = use->next;
@@ -332,7 +332,7 @@ static int x509_get_time( unsigned char **p,
     {
         (*p)++;
         ret = asn1_get_len( p, end, &len );
-        
+
         if( ret != 0 )
             return( POLARSSL_ERR_X509_CERT_INVALID_DATE + ret );
 
@@ -356,7 +356,7 @@ static int x509_get_time( unsigned char **p,
     {
         (*p)++;
         ret = asn1_get_len( p, end, &len );
-        
+
         if( ret != 0 )
             return( POLARSSL_ERR_X509_CERT_INVALID_DATE + ret );
 
@@ -652,7 +652,7 @@ static int x509_get_crl_entry_ext( unsigned char **p,
         return( POLARSSL_ERR_X509_CERT_INVALID_EXTENSIONS + ret );
     }
 
-	end = *p + ext->len;
+    end = *p + ext->len;
 
     if( end != *p + ext->len )
         return( POLARSSL_ERR_X509_CERT_INVALID_EXTENSIONS +
@@ -1309,7 +1309,7 @@ int x509parse_crt( x509_cert *chain, const unsigned char *buf, size_t buflen )
 
     if( buf_format == X509_FORMAT_DER )
         return x509parse_crt_der( crt, buf, buflen );
-    
+
 #if defined(POLARSSL_PEM_C)
     if( buf_format == X509_FORMAT_PEM )
     {
@@ -1367,7 +1367,7 @@ int x509parse_crt( x509_cert *chain, const unsigned char *buf, size_t buflen )
 
                 if( first_error == 0 )
                     first_error = ret;
-                
+
                 total_failed++;
 
                 memset( crt, 0, sizeof( x509_cert ) );
@@ -1632,7 +1632,7 @@ int x509parse_crl( x509_crl *chain, const unsigned char *buf, size_t buflen )
     if( crl->version == 2 )
     {
         ret = x509_get_crl_ext( &p, end, &crl->crl_ext );
-                            
+
         if( ret != 0 )
         {
             x509_crl_free( crl );
@@ -1937,7 +1937,7 @@ int x509parse_key( rsa_context *rsa, const unsigned char *key, size_t keylen,
 #endif
             rsa_free( rsa );
             return( POLARSSL_ERR_X509_KEY_INVALID_FORMAT );
-        } 
+        }
     }
     else
     {
@@ -1972,7 +1972,7 @@ int x509parse_key( rsa_context *rsa, const unsigned char *key, size_t keylen,
         /*
          * Parse the PKCS#8 format
          */
-        
+
         p = p_alt;
         if( ( ret = asn1_get_tag( &p, end, &len, ASN1_OCTET_STRING ) ) != 0 )
         {
@@ -2175,7 +2175,7 @@ int x509parse_dhm( dhm_context *dhm, const unsigned char *dhmin, size_t dhminlen
 
     pem_init( &pem );
 
-    ret = pem_read_buffer( &pem, 
+    ret = pem_read_buffer( &pem,
                            "-----BEGIN DH PARAMETERS-----",
                            "-----END DH PARAMETERS-----",
                            dhmin, NULL, 0, &dhminlen );
@@ -2296,7 +2296,7 @@ int compat_snprintf(char *str, size_t size, const char *format, ...)
     // No quick fix possible
     if ( res < 0 )
         return( (int) size + 20 );
-    
+
     return res;
 }
 
@@ -2531,19 +2531,19 @@ const char *x509_oid_get_description( x509_buf *oid )
 {
     if ( oid == NULL )
         return ( NULL );
-    
+
     else if( OID_CMP( OID_SERVER_AUTH, oid ) )
         return( STRING_SERVER_AUTH );
-    
+
     else if( OID_CMP( OID_CLIENT_AUTH, oid ) )
         return( STRING_CLIENT_AUTH );
-    
+
     else if( OID_CMP( OID_CODE_SIGNING, oid ) )
         return( STRING_CODE_SIGNING );
-    
+
     else if( OID_CMP( OID_EMAIL_PROTECTION, oid ) )
         return( STRING_EMAIL_PROTECTION );
-    
+
     else if( OID_CMP( OID_TIME_STAMPING, oid ) )
         return( STRING_TIME_STAMPING );
 
@@ -2933,7 +2933,7 @@ int x509parse_verify( x509_cert *crt,
         if( rsa_pkcs1_verify( &parent->rsa, RSA_PUBLIC, hash_id, 0, hash,
                     crt->sig.p ) != 0 )
             *flags |= BADCERT_NOT_TRUSTED;
-        
+
         /* Check trusted CA's CRL for the given crt */
         *flags |= x509parse_verifycrl(crt, parent, ca_crl);
 
@@ -2996,7 +2996,7 @@ int x509parse_verify( x509_cert *crt,
     /* Verification succeeded, call callback on top cert */
     if( NULL != f_vrfy )
     {
-        if( f_vrfy(p_vrfy, crt, pathlen-1, ( *flags == 0 ) ) != 0 ) 
+        if( f_vrfy(p_vrfy, crt, pathlen-1, ( *flags == 0 ) ) != 0 )
             return( POLARSSL_ERR_X509_CERT_VERIFY_FAILED );
         else
             *flags = 0;

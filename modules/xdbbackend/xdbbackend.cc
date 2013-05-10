@@ -12,7 +12,7 @@
 class XDBBackend : public DNSBackend
 {
 public:
-  XDBBackend(const string &suffix="") 
+  XDBBackend(const string &suffix="")
   {
     setArgPrefix("xdb"+suffix);
     try {
@@ -33,7 +33,7 @@ public:
   bool list(const string &target, int id) {
     return false; // we don't support AXFR (go away)
   }
-    
+
   void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
   {
     d_answer="";
@@ -71,7 +71,7 @@ public:
     }
     return false;                                                   // no more data
   }
-  
+
 private:
   string d_answer;
   QType d_qtype;
@@ -102,9 +102,9 @@ public:
   XDBLoader()
   {
     BackendMakers().report(new XDBFactory);
-    
+
     L<<Logger::Info<<" [XDBBackend] This is the xdbbackend ("__DATE__", "__TIME__") reporting"<<endl;
-  }  
+  }
 };
 
 static XDBLoader xdbLoader;

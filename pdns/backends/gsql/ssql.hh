@@ -1,4 +1,4 @@
-/* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+/* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information.
    $Id$  */
 #ifndef SSQL_HH
@@ -13,14 +13,14 @@
 #include "../../namespaces.hh"
 
 
-class SSqlException 
+class SSqlException
 {
-public: 
-  SSqlException(const string &reason) 
+public:
+  SSqlException(const string &reason)
   {
       d_reason=reason;
   }
-  
+
   string txtReason()
   {
     return d_reason;

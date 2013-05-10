@@ -64,7 +64,7 @@ class PowerLDAP
         const string getError( int rc = -1 );
         int waitResult( int msgid = LDAP_RES_ANY, int timeout = 0, LDAPMessage** result = NULL );
         void ensureConnect();
-        
+
 public:
         typedef map<string, vector<string> > sentry_t;
         typedef vector<sentry_t> sresult_t;

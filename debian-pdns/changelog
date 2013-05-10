@@ -209,7 +209,7 @@ pdns (2.9.13-1) unstable; urgency=low
 
   * New upstream release
   * Stop using my debian.org email address
-  * Change init scripts to conform to Debian policy 
+  * Change init scripts to conform to Debian policy
 
  -- Wichert Akkerman <wichert@wiggy.net>  Thu, 25 Dec 2003 13:33:40 +0100
 
@@ -306,7 +306,7 @@ pdns (2.9.2-3) unstable; urgency=low
 pdns (2.9.2-2) unstable; urgency=low
 
   * Add Build-Depends on libgdbmg1-dev, which is needed by the pipe backend
- 
+
  -- Wichert Akkerman <wakkerma@debian.org>  Mon, 16 Dec 2002 11:18:11 +0100
 
 pdns (2.9.2-1) unstable; urgency=low

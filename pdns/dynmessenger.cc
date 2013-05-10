@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,11 +29,11 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
 {
   d_s=socket(AF_UNIX,SOCK_STREAM,0);
   Utility::setCloseOnExec(d_s);
-  
+
   if(d_s<0) {
     throw AhuException(string("socket")+strerror(errno));
   }
-  
+
   memset(&d_local,0,sizeof(d_local));
 
   string localname=localdir;
@@ -44,14 +44,14 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
 
   if(mkstemp(d_local.sun_path)<0)
     throw AhuException("Unable to generate local temporary file: "+string(strerror(errno)));
-  
+
   unlink(d_local.sun_path);
-  
+
   if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0) {
     unlink(d_local.sun_path);
     throw AhuException("Unable to bind to local temporary file: "+string(strerror(errno)));
   }
-  
+
   if(chmod(d_local.sun_path,0666)<0) { // make sure that pdns can reply!
     unlink(d_local.sun_path);
     perror("fchmod");
@@ -59,14 +59,14 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   }
 
   memset(&d_remote,0,sizeof(d_remote));
-  
+
   d_remote.sun_family=AF_UNIX;
   strcpy(d_remote.sun_path,fname.c_str());
   if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0) {
     unlink(d_local.sun_path);
     throw AhuException("Unable to connect to remote '"+fname+"': "+string(strerror(errno)));
   }
-  
+
 }
 
 DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
@@ -74,11 +74,11 @@ DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
   *d_local.sun_path=0;
   d_s=socket(AF_INET, SOCK_STREAM,0);
   Utility::setCloseOnExec(d_s);
- 
+
   if(d_s<0) {
     throw AhuException(string("socket")+strerror(errno));
   }
-  
+
   if(connect(d_s, (sockaddr*)&remote, remote.getSocklen())<0) {
     close(d_s);
     throw AhuException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
@@ -93,7 +93,7 @@ DynMessenger::~DynMessenger()
   if(*d_local.sun_path && unlink(d_local.sun_path)<0)
     cerr<<"Warning: unable to unlink local unix domain endpoint: "<<strerror(errno)<<endl;
   close(d_s);
-}   
+}
 
 int DynMessenger::send(const string &msg) const
 {
@@ -104,7 +104,7 @@ int DynMessenger::send(const string &msg) const
   return 0;
 }
 
-string DynMessenger::receive() const 
+string DynMessenger::receive() const
 {
   char buffer[1500];
 

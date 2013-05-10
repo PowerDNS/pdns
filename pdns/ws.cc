@@ -2,7 +2,7 @@
     Copyright (C) 2002 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 
+    it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -201,7 +201,7 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     sws->d_queries.get5()<<", "<<
     sws->d_queries.get10()<<". Max queries/second: "<<sws->d_queries.getMax()<<
     "<br>"<<endl;
-  
+
   if(sws->d_cachemisses.get10()+sws->d_cachehits.get10()>0)
     ret<<"Cache hitrate, 1, 5, 10 minute averages: "<<
       makePercentage((sws->d_cachehits.get1()*100.0)/((sws->d_cachehits.get1())+(sws->d_cachemisses.get1())))<<", "<<
@@ -262,16 +262,16 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     callback=ourvarmap["callback"];
     ourvarmap.erase("callback");
   }
-  
+
   if(ourvarmap.count("command")) {
     command=ourvarmap["command"];
     ourvarmap.erase("command");
   }
-  
+
   ourvarmap.erase("_");
   if(!callback.empty())
       ret += callback+"(";
-    
+
   if(command=="get") {
     if(ourvarmap.empty()) {
       vector<string> entries = S.getEntries();
@@ -283,7 +283,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
 
     string variable, value;
-    
+
     Document doc;
     doc.SetObject();
     for(varmap_t::const_iterator iter = ourvarmap.begin(); iter != ourvarmap.end() ; ++iter) {
@@ -294,7 +294,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       else if(variable == "uptime") {
         value = lexical_cast<string>(time(0) - s_starttime);
       }
-      else 
+      else
         value = lexical_cast<string>(S.read(variable));
       Value jval;
       jval.SetString(value.c_str(), value.length(), doc.GetAllocator());
@@ -302,7 +302,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
     ret+=makeStringFromDocument(doc);
   }
- 
+
   if(command=="config") {
     vector<string> items = ::arg().list();
     Document doc;
@@ -312,12 +312,12 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       kv.SetArray();
       key.SetString(var.c_str(), var.length());
       kv.PushBack(key, doc.GetAllocator());
-      
+
       if(var.find("password") != string::npos)
         value="*****";
-      else 
+      else
         value.SetString(::arg()[var].c_str(), ::arg()[var].length(), doc.GetAllocator());
-      
+
       kv.PushBack(value, doc.GetAllocator());
       doc.PushBack(kv, doc.GetAllocator());
     }
@@ -326,12 +326,12 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
 
   if(command == "flush-cache") {
     extern PacketCache PC;
-    int number; 
+    int number;
     if(ourvarmap["domain"].empty())
       number = PC.purge();
     else
       number = PC.purge(ourvarmap["domain"]);
-      
+
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
     //cerr<<"Flushed cache for '"<<ourvarmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
@@ -347,7 +347,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
     sd.db->list(ourvarmap["zone"], sd.domain_id);
     DNSResourceRecord rr;
-    
+
     ret+="[";
     map<string, string> object;
     bool first=1;
@@ -379,24 +379,24 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
     stringtok(parameters, document["parameters"].GetString(), " \t");
-    
+
     DynListener::g_funk_t* ptr=0;
     if(!parameters.empty())
       ptr = DynListener::getFunc(toUpper(parameters[0]));
     map<string, string> m;
-    
+
     if(ptr) {
       m["result"] = (*ptr)(parameters, 0);
     } else {
       m["error"]="No such function "+toUpper(parameters[0]);
     }
     ret+= returnJSONObject(m);
-      
+
   }
   if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
     vector<string> parts;
     stringtok(parts, ourvarmap["rest"], "/");
-    if(parts.size() != 3) 
+    if(parts.size() != 3)
       return ret+"{\"error\": \"Could not parse rest parameter\"}";
     UeberBackend B;
     SOAData sd;
@@ -406,22 +406,22 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       err["error"]= "Could not find domain '"+parts[0]+"'";
       return ret+returnJSONObject(err);
     }
-    
+
     QType qtype;
     qtype=parts[2];
     string qname=parts[1];
     extern PacketCache PC;
     PC.purge(qname);
     // cerr<<"domain id: "<<sd.domain_id<<", lookup name: '"<<parts[1]<<"', for type: '"<<qtype.getName()<<"'"<<endl;
-    
+
     if(method == "GET" ) {
       B.lookup(qtype, parts[1], 0, sd.domain_id);
-      
+
       DNSResourceRecord rr;
       ret+="{ \"records\": [";
       map<string, string> object;
       bool first=1;
-      
+
       while(B.get(rr)) {
         if(!first) ret += ", ";
           first=false;
@@ -437,14 +437,14 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
     else if(method=="DELETE") {
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
-      
+
     }
     else if(method=="POST") {
       rapidjson::Document document;
       if(document.Parse<0>(post.c_str()).HasParseError()) {
         return ret+"{\"error\": \"Unable to parse JSON\"";
       }
-      
+
       DNSResourceRecord rr;
       vector<DNSResourceRecord> rrset;
       const rapidjson::Value &records= document["records"];
@@ -457,17 +457,17 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
         rr.auth=0;
         rr.ttl=atoi(record["ttl"].GetString());
         rr.priority=atoi(record["priority"].GetString());
-        
+
         rrset.push_back(rr);
-        
-        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
+
+        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
           rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
-          
+
         try {
           shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
           string tmp=drc->serialize(rr.qname);
         }
-        catch(std::exception& e) 
+        catch(std::exception& e)
         {
           map<string, string> err;
           err["error"]= "Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what();
@@ -479,24 +479,24 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
       sd.db->commitTransaction();
       return ret+post;
-    }  
+    }
   }
   if(command=="log-grep") {
     ret += makeLogGrepJSON(ourvarmap, ::arg()["experimental-logfile"], " pdns[");
   }
- 
+
   const char *kinds[]={"Master", "Slave", "Native"};
   if(command=="domains") {
     UeberBackend B;
     vector<DomainInfo> domains;
     B.getAllDomains(&domains);
-    
+
     Document doc;
     doc.SetObject();
-    
+
     Value jdomains;
     jdomains.SetArray();
-    
+
     BOOST_FOREACH(const DomainInfo& di, domains) {
       Value jdi;
       jdi.SetObject();
@@ -514,7 +514,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     doc.AddMember("domains", jdomains, doc.GetAllocator());
     ret.append(makeStringFromDocument(doc));
   }
-  
+
   if(!callback.empty()) {
     ret += ");";
   }

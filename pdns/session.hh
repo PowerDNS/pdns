@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -28,7 +28,7 @@
 # include <unistd.h>
 # include <sys/time.h>
 # include <sys/socket.h>
-# include <arpa/inet.h>  
+# include <arpa/inet.h>
 # include <netinet/in.h>
 # include <sys/types.h>
 # include <strings.h>
@@ -62,14 +62,14 @@ public:
 
   Session(int s, struct sockaddr_in r); //!< Start a session on an existing socket, and inform this class of the remotes name
 
-  /** Create a session to a remote host and port. This function reads a timeout value from the ArgvMap class 
-      and does a nonblocking connect to support this timeout. It should be noted that nonblocking connects 
+  /** Create a session to a remote host and port. This function reads a timeout value from the ArgvMap class
+      and does a nonblocking connect to support this timeout. It should be noted that nonblocking connects
       suffer from bad portability problems, so look here if you see weird problems on new platforms */
-  Session(const string &remote, int port, int timeout=0); 
+  Session(const string &remote, int port, int timeout=0);
   Session(uint32_t ip, int port, int timeout=0);
 
-  Session(const Session &s); 
-  
+  Session(const Session &s);
+
   ~Session();
   int getSocket(); //!< return the filedescriptor for layering violations
   string getRemote();

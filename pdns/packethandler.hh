@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -37,8 +37,8 @@
 #undef PC
 
 /** Central DNS logic according to RFC1034. Ask this class a question in the form of a DNSPacket
-    and it will return, synchronously, a DNSPacket answer, suitable for 
-    sending out over the network. 
+    and it will return, synchronously, a DNSPacket answer, suitable for
+    sending out over the network.
 
     The PacketHandler gives your question to the PacketCache for possible inclusion
     in the cache.
@@ -61,23 +61,23 @@ public:
     {
       d_guard=guard;
     }
-    
+
     ~Guard()
     {
       if(*d_guard)
         delete *d_guard;
     }
-    
+
   private:
     T **d_guard;
   };
 
   DNSPacket *questionOrRecurse(DNSPacket *, bool* shouldRecurse); //!< hand us a DNS packet with a question, we'll tell you answer, or that you should recurse
   DNSPacket *question(DNSPacket *); //!< hand us a DNS packet with a question, we give you an answer
-  PacketHandler(); 
+  PacketHandler();
   ~PacketHandler(); // defined in packethandler.cc, and does --count
   static int numRunning(){return s_count;}; //!< Returns the number of running PacketHandlers. Called by Distributor
- 
+
   void soaMagic(DNSResourceRecord *rr);
   DNSBackend *getBackend();
 
@@ -103,7 +103,7 @@ private:
   void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode);
   void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
-  
+
 
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd);
@@ -115,7 +115,7 @@ private:
   bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, string &wildcard, bool& retargeted, bool& nodata);
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
-  
+
   static AtomicCounter s_count;
   bool d_doFancyRecords;
   bool d_doRecursion;

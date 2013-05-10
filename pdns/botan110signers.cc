@@ -14,7 +14,7 @@ using namespace Botan;
 /*  Государственный гимн Российской Федерации
     (Gosudarstvenny Gimn Rossiyskoy Federatsii)
     "The National Anthem of the Russian Federation"
-    
+
  ~  Rossiya - svyashchennaya nasha derzhava,  ~
  ~  Rossiya - lyubimaya nasha strana.         ~
  ~  Moguchaya volya, velikaya slava -         ~
@@ -31,8 +31,8 @@ public:
   string getName() const { return "Botan 1.10 GOST"; }
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& hash) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -79,13 +79,13 @@ int GOSTDNSCryptoKeyEngine::getBits() const
 */
 
 DNSCryptoKeyEngine::storvector_t GOSTDNSCryptoKeyEngine::convertToISCVector() const
-{ 
+{
   storvector_t storvect;
   storvect.push_back(make_pair("Algorithm", "12 (ECC-GOST)"));
-  
+
   unsigned char asn1Prefix[]=
-  {0x30, 0x45, 0x02, 0x01, 0x00, 0x30, 0x1c, 0x06, 0x06, 0x2a, 0x85, 0x03, 0x02, 0x02, 
-   0x13, 0x30, 0x12, 0x06, 0x07, 0x2a, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01, 0x06, 0x07, 
+  {0x30, 0x45, 0x02, 0x01, 0x00, 0x30, 0x1c, 0x06, 0x06, 0x2a, 0x85, 0x03, 0x02, 0x02,
+   0x13, 0x30, 0x12, 0x06, 0x07, 0x2a, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01, 0x06, 0x07,
    0x2a, 0x85, 0x03, 0x02, 0x02, 0x1e, 0x01, 0x04, 0x22, 0x04, 0x20}; // this is DER, fixed for a 32 byte key
 
   SecureVector<byte> buffer=BigInt::encode(d_key->private_value());
@@ -103,27 +103,27 @@ DNSCryptoKeyEngine::storvector_t GOSTDNSCryptoKeyEngine::convertToISCVector() co
 */
 
 void GOSTDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
-{ 
+{
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
   string privateKey=stormap["gostasn1"];
   //cerr<<"PrivateKey.size() = "<<privateKey.size()<<endl;
   //cerr<<makeHexDump(string(privateKey.c_str(), 39))<<endl;
   string rawKey(privateKey.c_str()+39, privateKey.length()-39);
-  
+
   for(size_t i = 0; i < rawKey.size() / 2; ++i)
   {
     std::swap(rawKey[i], rawKey[rawKey.size()-1-i]);
   }
-  
+
   BigInt bigint((byte*)rawKey.c_str(), rawKey.size());
- 
+
   EC_Group params("1.2.643.2.2.35.1");
   AutoSeeded_RNG rng;
   d_key=shared_ptr<GOST_3410_PrivateKey>(new GOST_3410_PrivateKey(rng, params, bigint));
-  
+
   //cerr<<"Is the just imported key on the curve? " << d_key->public_point().on_the_curve()<<endl;
   //cerr<<"Is the just imported key zero? " << d_key->public_point().is_zero()<<endl;
-  
+
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
  // cerr<<"And out again! "<<makeHexDump(string((const char*)buffer.begin(), (const char*)buffer.end()))<<endl;
@@ -144,7 +144,7 @@ BigInt decode_le(const byte msg[], size_t msg_len)
 void GOSTDNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
 {
   BigInt x, y;
-  
+
   x=decode_le((const byte*)input.c_str(), input.length()/2);
   y=decode_le((const byte*)input.c_str() + input.length()/2, input.length()/2);
 
@@ -165,11 +165,11 @@ std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
 {
   const BigInt&x =d_key->public_point().get_affine_x();
   const BigInt&y =d_key->public_point().get_affine_y();
-  
+
   size_t part_size = std::max(x.bytes(), y.bytes());
- 
+
   MemoryVector<byte> bits(2*part_size);
- 
+
   x.binary_encode(&bits[part_size - x.bytes()]);
   y.binary_encode(&bits[2*part_size - y.bytes()]);
 
@@ -179,31 +179,31 @@ std::string GOSTDNSCryptoKeyEngine::getPublicKeyString() const
     std::swap(bits[i], bits[part_size-1-i]);
     std::swap(bits[part_size+i], bits[2*part_size-1-i]);
   }
- 
+
   return string((const char*)bits.begin(), (const char*)bits.end());
 }
 
 /*
- ~ Shirokiy prostor dlya mechty i dlya zhizni. ~ 
+ ~ Shirokiy prostor dlya mechty i dlya zhizni. ~
  ~ Gryadushchiye nam otkryvayut goda.          ~
  ~ Nam silu dayot nasha vernost' Otchizne.     ~
- ~ Tak bylo, tak yest' i tak budet vsegda!     ~  
+ ~ Tak bylo, tak yest' i tak budet vsegda!     ~
  */
 
 std::string GOSTDNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   GOST_3410_Signature_Operation ops(*d_key);
   AutoSeeded_RNG rng;
-  
+
   string hash= this->hash(msg);
-  
+
   SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);
 
 #if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
   string reversed((const char*)signature.begin()+ signature.size()/2, signature.size()/2);
   reversed.append((const char*)signature.begin(), signature.size()/2);
   return reversed;
-#else  
+#else
   return string((const char*)signature.begin(), (const char*) signature.end());
 #endif
 }
@@ -211,7 +211,7 @@ std::string GOSTDNSCryptoKeyEngine::sign(const std::string& msg) const
 std::string GOSTDNSCryptoKeyEngine::hash(const std::string& orig) const
 {
   SecureVector<byte> result;
-  
+
   GOST_34_11 hasher;
   result= hasher.process(orig);
   return string((const char*)result.begin(), (const char*) result.end());
@@ -227,7 +227,7 @@ bool GOSTDNSCryptoKeyEngine::verify(const std::string& message, const std::strin
   }
   else
     pk = d_key.get();
-    
+
   GOST_3410_Verification_Operation ops(*pk);
 #if BOTAN_VERSION_CODE <= BOTAN_VERSION_CODE_FOR(1,9,12)  // see http://bit.ly/gTytUf
   string rsignature(signature.substr(32));
@@ -253,15 +253,15 @@ class ECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 public:
   explicit ECDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
   {}
-  
+
   ~ECDSADNSCryptoKeyEngine() {}
   // XXX FIXME NEEDS DEEP COPY CONSTRUCTOR SO WE DON'T SHARE KEYS
   string getName() const { return "Botan 1.10 ECDSA"; }
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& hash) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& hash, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -281,7 +281,7 @@ private:
   shared_ptr<ECDSA_PublicKey> d_pubkey;
 };
 
-EC_Domain_Params ECDSADNSCryptoKeyEngine::getECParams(unsigned int algorithm) 
+EC_Domain_Params ECDSADNSCryptoKeyEngine::getECParams(unsigned int algorithm)
 {
   if(algorithm==13)
     return EC_Domain_Params("1.2.840.10045.3.1.7");
@@ -297,7 +297,7 @@ void ECDSADNSCryptoKeyEngine::create(unsigned int bits)
   EC_Domain_Params params;
   if(bits==256) {
     params = getECParams(13);
-  } 
+  }
   else if(bits == 384){
     params = getECParams(14);
   }
@@ -321,20 +321,20 @@ DNSCryptoKeyEngine::storvector_t ECDSADNSCryptoKeyEngine::convertToISCVector() c
   /* Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   storvector_t storvect;
-  
+
   string algorithm;
-  if(getBits()==256) 
+  if(getBits()==256)
     algorithm = "13 (ECDSAP256SHA256)";
-  else if(getBits()==384) 
+  else if(getBits()==384)
     algorithm ="14 (ECDSAP384SHA384)";
-  else 
+  else
     algorithm =" ? (?)";
   storvect.push_back(make_pair("Algorithm", algorithm));
-  
+
   const BigInt&x = d_key->private_value();
   SecureVector<byte> buffer=BigInt::encode(x);
   storvect.push_back(make_pair("PrivateKey", string((char*)&*buffer.begin(), (char*)&*buffer.end())));
-  
+
   return storvect;
 }
 
@@ -343,12 +343,12 @@ void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std:
   /*Private-key-format: v1.2
    Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-  
+
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
-  if(drc.d_algorithm != d_algorithm) 
+  if(drc.d_algorithm != d_algorithm)
     throw runtime_error("Tried to feed an algorithm "+lexical_cast<string>(drc.d_algorithm)+" to a "+lexical_cast<string>(d_algorithm)+" key!");
   string privateKey=stormap["privatekey"];
-  
+
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());
   EC_Domain_Params params=getECParams(d_algorithm);
   AutoSeeded_RNG rng;
@@ -356,7 +356,7 @@ void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std:
   d_key=shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(rng, params, bigint));
 }
 
-std::string ECDSADNSCryptoKeyEngine::getPubKeyHash() const 
+std::string ECDSADNSCryptoKeyEngine::getPubKeyHash() const
 {
   const BigInt&x = d_key->private_value();   // um, this is not the 'pubkeyhash', ahu
   SecureVector<byte> buffer=BigInt::encode(x);
@@ -367,19 +367,19 @@ std::string ECDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   const BigInt&x =d_key->public_point().get_affine_x();
   const BigInt&y =d_key->public_point().get_affine_y();
-  
+
   size_t part_size = std::max(x.bytes(), y.bytes());
   MemoryVector<byte> bits(2*part_size);
-  
+
   x.binary_encode(&bits[part_size - x.bytes()]);
   y.binary_encode(&bits[2*part_size - y.bytes()]);
   return string((const char*)bits.begin(), (const char*)bits.end());
 }
 
-void ECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input) 
+void ECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input)
 {
   BigInt x, y;
-  
+
   x.binary_decode((const byte*)input.c_str(), input.length()/2);
   y.binary_decode((const byte*)input.c_str() + input.length()/2, input.length()/2);
 
@@ -396,7 +396,7 @@ std::string ECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   ECDSA_Signature_Operation ops(*d_key);
   AutoSeeded_RNG rng;
   SecureVector<byte> signature=ops.sign((byte*)hash.c_str(), hash.length(), rng);
-  
+
   return string((const char*)signature.begin(), (const char*) signature.end());
 }
 
@@ -411,7 +411,7 @@ std::string ECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
     SHA_384 hasher;
     result = hasher.process(orig);
   }
-  
+
   return string((const char*)result.begin(), (const char*) result.end());
 }
 
