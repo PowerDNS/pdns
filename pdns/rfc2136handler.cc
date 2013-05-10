@@ -254,7 +254,8 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
         if(!auth || rrType == QType::DS)
         {
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
+          if (ns3pr->d_flags) 
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
           di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
           di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
         }
@@ -274,7 +275,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // Auth can only be false when the rrLabel is not the zone 
       if (auth == false && rrType == QType::NS) {
         DLOG(L<<msgPrefix<<"Going to fix auth flags below "<<rrLabel<<endl);
-        insnonterm.clear(); // clean ENT's again, as it's a delegate and auth=false;
+        insnonterm.clear(); // clean ENT's again, as it's a delegate
         vector<string> qnames;
         di->backend->listSubZone(rrLabel, di->id);
         while(di->backend->get(rec)) {
@@ -288,7 +289,8 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
               hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname)));
         
             di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *qname, hashed, auth);
-            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, *qname, "NS");
+            if (ns3pr->d_flags)
+              di->backend->nullifyDNSSECOrderNameAndAuth(di->id, *qname, "NS");
           }
           else // NSEC
             di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, *qname, auth);
@@ -307,7 +309,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     DLOG(L<<msgPrefix<<"Deleting records: "<<rrLabel<<"; QClasse:"<<rr->d_class<<"; rrType: "<<rrType.getName()<<endl);
 
     if (rrType == QType::NSEC3PARAM) {
-      L<<Logger::Notice<<msgPrefix<<"Removing NSEC3PARAM from zone, resetting ordernames."<<endl;  
+      L<<Logger::Notice<<msgPrefix<<"Deleting NSEC3PARAM from zone, resetting ordernames."<<endl;  
       if (rr->d_class == QClass::ANY)
         d_dk.unsetNSEC3PARAM(rrLabel);
       else if (rr->d_class == QClass::NONE) {
