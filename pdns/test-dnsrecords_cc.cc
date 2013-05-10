@@ -12,8 +12,8 @@ BOOST_AUTO_TEST_SUITE(dnsrecords_cc)
 
 BOOST_AUTO_TEST_CASE(test_EUI48) {
    EUI48RecordContent::report();
-   string lineformat="\x00\x11\x22\x33\x44\x55";
-   string zoneformat="00-11-22-33-44-55";
+   std::string lineformat="\x00\x11\x22\x33\x44\x55";
+   std::string zoneformat="00-11-22-33-44-55";
 
    DNSRecordContent *rec = DNSRecordContent::mastermake(QType::EUI48, 1, zoneformat);
    
@@ -29,8 +29,8 @@ BOOST_AUTO_TEST_CASE(test_EUI48) {
 
 BOOST_AUTO_TEST_CASE(test_EUI64) {
    EUI64RecordContent::report();
-   string lineformat="\x00\x11\x22\x33\x44\x55\x66\x77";
-   string zoneformat="00-11-22-33-44-55-66-77";
+   std::string lineformat="\x00\x11\x22\x33\x44\x55\x66\x77";
+   std::string zoneformat="00-11-22-33-44-55-66-77";
 
    DNSRecordContent *rec = DNSRecordContent::mastermake(QType::EUI64, 1, zoneformat);
 
