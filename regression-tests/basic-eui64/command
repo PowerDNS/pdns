@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig host-1.example.com EUI64
