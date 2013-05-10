@@ -471,6 +471,33 @@ private:
   string d_mboxfw;
 };
 
+class EUI48RecordContent : public DNSRecordContent 
+{
+public:
+  EUI48RecordContent() : DNSRecordContent(ns_t_eui48) {};
+  static void report(void);
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
+  static DNSRecordContent* make(const string& zone);
+  void toPacket(DNSPacketWriter& pw);
+  string getZoneRepresentation() const;
+private:
+ // storage for the bytes
+ uint8_t d_eui48[6]; 
+};
+
+class EUI64RecordContent : public DNSRecordContent
+{
+public:
+  EUI64RecordContent() : DNSRecordContent(ns_t_eui64) {};
+  static void report(void);
+  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
+  static DNSRecordContent* make(const string& zone);
+  void toPacket(DNSPacketWriter& pw);
+  string getZoneRepresentation() const;
+private:
+ // storage for the bytes
+ uint8_t d_eui64[8];
+};
 
 #define boilerplate(RNAME, RTYPE)                                                                         \
 RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \

@@ -276,6 +276,95 @@ boilerplate_conv(DNSKEY, 48,
         	 )
 DNSKEYRecordContent::DNSKEYRecordContent() : DNSRecordContent(48) {}
 
+/* EUI48 start */
+
+void EUI48RecordContent::report(void) 
+{
+    regist(1, ns_t_eui48, &make, &make, "EUI48");
+}
+DNSRecordContent* EUI48RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+{
+    if(dr.d_clen!=6)
+      throw MOADNSException("Wrong size for EUI48 record");
+
+    EUI48RecordContent* ret=new EUI48RecordContent();
+    pr.copyRecord((uint8_t*) &ret->d_eui48, 6);
+    return ret;
+}
+DNSRecordContent* EUI48RecordContent::make(const string& zone)
+{
+    // try to parse
+    EUI48RecordContent *ret=new EUI48RecordContent();
+    // format is 6 hex bytes and dashes    
+    if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
+           ret->d_eui48, ret->d_eui48+1, ret->d_eui48+2, 
+           ret->d_eui48+3, ret->d_eui48+4, ret->d_eui48+5) != 6) {
+       throw MOADNSException("Asked to encode '"+zone+"' as an EUI47 address, but does not parse");
+    }
+    return ret;
+}
+void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
+{
+    string blob(d_eui48, d_eui48+6);
+    pw.xfrBlob(blob); 
+}
+string EUI48RecordContent::getZoneRepresentation() const
+{
+    char tmp[18]; 
+    snprintf(tmp,18,"%02x-%02x-%02x-%02x-%02x-%02x", 
+           d_eui48[0], d_eui48[1], d_eui48[2], 
+           d_eui48[3], d_eui48[4], d_eui48[5]);
+    return tmp;
+}
+
+/* EUI48 end */
+
+/* EUI64 start */
+
+void EUI64RecordContent::report(void)
+{
+    regist(1, ns_t_eui64, &make, &make, "EUI64");
+}
+DNSRecordContent* EUI64RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+{
+    if(dr.d_clen!=8)
+      throw MOADNSException("Wrong size for EUI64 record");
+
+    EUI64RecordContent* ret=new EUI64RecordContent();
+    pr.copyRecord((uint8_t*) &ret->d_eui64, 8);
+    return ret;
+}
+DNSRecordContent* EUI64RecordContent::make(const string& zone)
+{
+    // try to parse
+    EUI64RecordContent *ret=new EUI64RecordContent();
+    // format is 8 hex bytes and dashes
+    if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
+           ret->d_eui64, ret->d_eui64+1, ret->d_eui64+2,
+           ret->d_eui64+3, ret->d_eui64+4, ret->d_eui64+5,
+           ret->d_eui64+6, ret->d_eui64+7) != 8) {
+       throw MOADNSException("Asked to encode '"+zone+"' as an EUI64 address, but does not parse");
+    }
+    return ret;
+}
+void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
+{
+    string blob(d_eui64, d_eui64+8);
+    pw.xfrBlob(blob);
+}
+string EUI64RecordContent::getZoneRepresentation() const
+{
+    char tmp[24]; 
+    snprintf(tmp,24,"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
+           d_eui64[0], d_eui64[1], d_eui64[2],
+           d_eui64[3], d_eui64[4], d_eui64[5],
+           d_eui64[6], d_eui64[7]);
+    return tmp;
+}
+
+/* EUI64 end */
+
+
 uint16_t DNSKEYRecordContent::getTag()
 {
   string data=this->serialize("");
@@ -365,6 +454,8 @@ void reportOtherTypes()
    DLVRecordContent::report();
    DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    OPTRecordContent::report();
+   EUI48RecordContent::report();
+   EUI64RecordContent::report();
 }
 
 void reportFancyTypes()
