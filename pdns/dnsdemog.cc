@@ -21,7 +21,7 @@ struct Entry
   uint16_t port;
   uint16_t id;
 
-  bool operator<(const struct Entry& rhs) const 
+  bool operator<(const struct Entry& rhs) const
   {
     return tie(ip, port, id) < tie(rhs.ip, rhs.port, rhs.id);
   }
@@ -37,7 +37,7 @@ try
   cout << "begin;";
   for(int n=1 ; n < argc; ++n) {
     PcapPacketReader pr(argv[n]);
-    
+
     Entry entry;
     while(pr.getUDPPacket()) {
       if(ntohs(pr.d_udp->uh_dport)==53 &&  pr.d_len > 12) {

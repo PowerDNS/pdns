@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -30,7 +30,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 using namespace boost::multi_index;
 
-#ifndef WIN32 
+#ifndef WIN32
 # include <unistd.h>
 # include <fcntl.h>
 # include <netdb.h>
@@ -76,7 +76,7 @@ public:
 
     d_nqueue.push_back(nr);
   }
-  
+
   bool removeIf(const string &remote, uint16_t id, const string &domain)
   {
     for(d_nqueue_t::iterator i=d_nqueue.begin(); i!=d_nqueue.end(); ++i) {
@@ -96,7 +96,7 @@ public:
 
   bool getOne(string &domain, string &ip, uint16_t *id, bool &purged)
   {
-    for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
+    for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i)
       if(i->next <= time(0)) {
         i->attempts++;
         purged=false;
@@ -113,11 +113,11 @@ public:
       }
     return false;
   }
-  
+
   time_t earliest()
   {
-    time_t early=std::numeric_limits<time_t>::max() - 1; 
-    for(d_nqueue_t::const_iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
+    time_t early=std::numeric_limits<time_t>::max() - 1;
+    for(d_nqueue_t::const_iterator i=d_nqueue.begin();i!=d_nqueue.end();++i)
       early=min(early,i->next);
     return early-time(0);
   }
@@ -143,7 +143,7 @@ private:
 class CommunicatorClass
 {
 public:
-  CommunicatorClass() 
+  CommunicatorClass()
   {
     pthread_mutex_init(&d_lock,0);
     pthread_mutex_init(&d_holelock,0);
@@ -151,10 +151,10 @@ public:
     d_tickinterval=60;
     d_masterschanged=d_slaveschanged=true;
   }
-  time_t doNotifications();    
+  time_t doNotifications();
   void go();
-  
-  
+
+
   void drillHole(const string &domain, const string &ip);
   bool justNotified(const string &domain, const string &ip);
   void addSuckRequest(const string &domain, const string &master);
@@ -187,9 +187,9 @@ private:
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;
-  
+
   UniQueue d_suckdomains;
-  
+
   bool d_havepriosuckrequest;
   Semaphore d_suck_sem;
   Semaphore d_any_sem;

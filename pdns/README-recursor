@@ -29,7 +29,7 @@ $ tar xjf boost_1_39_0.tar.bz2
 3) Compile the PowerDNS recursor using:
 
 $ CXXFLAGS=-I./boost_1_39_0/ ./configure
-$ CXXFLAGS=-I./boost_1_39_0/ make clean 
+$ CXXFLAGS=-I./boost_1_39_0/ make clean
 $ CXXFLAGS=-I./boost_1_39_0/ make all
 (the 'clean' is needed to have make pick up the new boost)
 
@@ -56,7 +56,7 @@ installation resides. PowerDNS supports both Lua 5.0 and 5.1.
 PLATFORM SPECIFIC NOTES
 -----------------------
 When compiling on Solaris 8, use:
-$ CPPFLAGS=-DSOLARIS8 ... gmake 
+$ CPPFLAGS=-DSOLARIS8 ... gmake
 
 where ... stands for any possible CXXFLAGS or PROFILEFLAGS, see below.
 

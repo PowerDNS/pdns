@@ -14,9 +14,9 @@ int SpoofPolicy::getPolicy(const ComboAddress& remote, const std::string& auth, 
   if(iter == d_spoofmap.end())
     return 0;
 
-  if(iter->second.ttd > tv.tv_sec) 
+  if(iter->second.ttd > tv.tv_sec)
     return iter->second.policy;
-  else 
+  else
     d_spoofmap.erase(iter);
 
   return 0;

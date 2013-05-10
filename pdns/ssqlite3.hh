@@ -42,7 +42,7 @@ public:
     result_t result;
     return doQuery(query, result); // 'result' is necessary to force doQuery to do the work, closing Debian bug 280359
   }
-  
+
   //! Returns a row from a result set.
   bool getRow( row_t & row );
 

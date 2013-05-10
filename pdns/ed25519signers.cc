@@ -15,8 +15,8 @@ public:
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& hash) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& msg, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -34,7 +34,7 @@ private:
   unsigned int d_algorithm;
   unsigned char d_pubkey[PUBLICKEYBYTES];
   unsigned char d_seckey[SECRETKEYBYTES];
-            
+
 };
 
 void ED25519DNSCryptoKeyEngine::create(unsigned int bits)
@@ -56,7 +56,7 @@ DNSCryptoKeyEngine::storvector_t ED25519DNSCryptoKeyEngine::convertToISCVector()
     PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   storvector_t storvector;
   string algorithm = "250 (ED25519)";
-  
+
   storvector.push_back(make_pair("Algorithm", algorithm));
 
   vector<unsigned char> buffer;
@@ -69,7 +69,7 @@ void ED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<st
   /*Private-key-format: v1.2
    Algorithm: 250 (ED25519)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-     
+
   d_algorithm = drc.d_algorithm = atoi(stormap["algorithm"].c_str());
   string privateKey = stormap["privatekey"];
 
@@ -89,7 +89,7 @@ std::string ED25519DNSCryptoKeyEngine::getPublicKeyString() const
   return string((char*)d_pubkey, PUBLICKEYBYTES);
 }
 
-void ED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string&input) 
+void ED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string&input)
 {
   memcpy(d_pubkey, input.c_str(), PUBLICKEYBYTES);
 }
@@ -98,10 +98,10 @@ std::string ED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   // full signature, including us making the hash from the message
   unsigned long long smlen = msg.length() + SIGNATUREBYTES;
-  scoped_ptr<unsigned char> sm(new unsigned char[smlen]);  
+  scoped_ptr<unsigned char> sm(new unsigned char[smlen]);
 
   crypto_sign(sm.get(), &smlen, (const unsigned char*)msg.c_str(), msg.length(), d_seckey);
-  
+
   return string((const char*)sm.get(), SIGNATUREBYTES);
 }
 
@@ -116,12 +116,12 @@ bool ED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::string
   // we have to do the hash too
   // full signature, including us making the hash from the message
   unsigned long long smlen = msg.length() + SIGNATUREBYTES;
-  scoped_ptr<unsigned char> sm(new unsigned char[smlen]);  
+  scoped_ptr<unsigned char> sm(new unsigned char[smlen]);
 
   memcpy(sm.get(), signature.c_str(), SIGNATUREBYTES);
   memcpy(sm.get() + SIGNATUREBYTES, msg.c_str(), msg.length());
-  
-  scoped_ptr<unsigned char> m(new unsigned char[smlen]);   
+
+  scoped_ptr<unsigned char> m(new unsigned char[smlen]);
 
   return crypto_sign_open(m.get(), &smlen, sm.get(), smlen, d_pubkey) == 0;
 }

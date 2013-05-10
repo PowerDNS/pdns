@@ -64,7 +64,7 @@ public:
     }
   };
 
-  PcapPacketReader(const string& fname); 
+  PcapPacketReader(const string& fname);
 
   ~PcapPacketReader();
 
@@ -98,9 +98,9 @@ private:
 
 class PcapPacketWriter
 {
-public: 
+public:
   PcapPacketWriter(const string& fname, PcapPacketReader& ppr);
-  
+
   void write();
 
   ~PcapPacketWriter();
@@ -110,6 +110,6 @@ private:
   const PcapPacketReader& d_ppr;
 
   FILE *d_fp;
-}; 
+};
 
 #endif // DNSPCAP_HH

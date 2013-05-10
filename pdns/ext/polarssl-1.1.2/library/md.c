@@ -1,6 +1,6 @@
 /**
  * \file md.c
- * 
+ *
  * \brief Generic message digest wrapper for PolarSSL
  *
  * \author Adriaan de Jong <dejong@fox-it.com>

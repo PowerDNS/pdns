@@ -16,7 +16,7 @@
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
 {
   DNSResourceRecord rr;
-  rr.ttl=ttd; 
+  rr.ttl=ttd;
   rr.qtype=qt;
   rr.qname=qname;
 
@@ -122,16 +122,16 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   if(res)
     res->clear();
 
-  if(d_cachecache.first!=d_cachecache.second) { 
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
-      if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY || 
+  if(d_cachecache.first!=d_cachecache.second) {
+    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
+      if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
          (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )
-         ) {     
+         ) {
         for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
           if(k->d_ttd < 1000000000 || k->d_ttd > (uint32_t) now) {  // FIXME what does the 100000000 number mean?
             ttd=k->d_ttd;
             if(res) {
-              DNSResourceRecord rr=String2DNSRR(qname, QType(i->d_qtype),  k->d_string, ttd); 
+              DNSResourceRecord rr=String2DNSRR(qname, QType(i->d_qtype),  k->d_string, ttd);
               res->insert(rr);
             }
           }
@@ -153,7 +153,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 }
 
 
- 
+
 bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored)
 {
   if(!stored.d_auth) {
@@ -211,8 +211,8 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     vector<StoredRecord>::iterator j;
-    for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) 
-      if((time_t)j->d_ttd > now) 
+    for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j)
+      if((time_t)j->d_ttd > now)
         break;
     if(j != ce.d_records.end()) { // we still have valid data, ignore unauth data
       //      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
@@ -222,14 +222,14 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
       ce.d_auth = false;  // new data won't be auth
     }
   }
-  
+
   // limit TTL of auth->auth NSset update if needed, except for root
   if(ce.d_auth && auth && qt.getCode()==QType::NS && !((qname.length()==1 && qname[0]=='.'))) {
     // cerr<<"\tLimiting TTL of auth->auth NS set replace"<<endl;
     vector<StoredRecord>::iterator j;
     for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) {
       maxTTD=min(maxTTD, j->d_ttd);
-    }      
+    }
   }
 
   // make sure that we CAN refresh the root
@@ -247,8 +247,8 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     // cerr<<"To store: "<<i->content<<" with ttl/ttd "<<i->ttl<<endl;
     dr.d_ttd=min(maxTTD, i->ttl);
     dr.d_string=DNSRR2String(*i);
-    
-    if(isNew) 
+
+    if(isNew)
       ce.d_records.push_back(dr);
     else {
       range=equal_range(ce.d_records.begin(), ce.d_records.end(), dr);
@@ -282,10 +282,10 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     //    cerr<<"\tSorting (because of isNew)\n";
     sort(ce.d_records.begin(), ce.d_records.end());
   }
-  
+
   if(ce.d_records.capacity() != ce.d_records.size())
     vector<StoredRecord>(ce.d_records).swap(ce.d_records);
-  
+
   d_cache.replace(stored, ce);
 }
 
@@ -333,12 +333,12 @@ bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype
     d_cachecachevalid=false;
 
     uint32_t newTTD = now + newTTL;
-    
+
     for(vector<StoredRecord>::iterator j = ce.d_records.begin() ; j != ce.d_records.end(); ++j)  {
       if(j->d_ttd>newTTD) // do never renew expired or older TTLs
         j->d_ttd = newTTD;
     }
-    
+
     d_cache.replace(iter, ce);
     return true;
   }

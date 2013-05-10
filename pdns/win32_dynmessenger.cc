@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -38,7 +38,7 @@ DynMessenger::DynMessenger(const string &dname, const string &fname)
 DynMessenger::~DynMessenger()
 {
   CloseHandle( m_pipeHandle );
-}   
+}
 
 int DynMessenger::send(const string &msg) const
 {
@@ -48,11 +48,11 @@ int DynMessenger::send(const string &msg) const
     return -1; // Could not write.
 
   FlushFileBuffers( m_pipeHandle );
-  
+
   return 0;
 }
 
-string DynMessenger::receive() const 
+string DynMessenger::receive() const
 {
   char buffer[1024];
 

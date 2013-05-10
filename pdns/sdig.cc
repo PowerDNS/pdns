@@ -27,7 +27,7 @@ try
   {
     dnssec=true;
   }
-  
+
   if(argc > 5 && strcmp(argv[5], "dnssec-tcp")==0)
   {
     dnssec=true;
@@ -45,7 +45,7 @@ try
   }
 
   vector<uint8_t> packet;
-  
+
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
   if(dnssec || getenv("SDIGBUFSIZE"))
@@ -66,7 +66,7 @@ try
     pw.getHeader()->rd=true;
   }
   //  pw.setRD(true);
- 
+
   /*
   pw.startRecord("powerdns.com", DNSRecordContent::TypeToNumber("NS"));
   NSRecordContent nrc("ns1.powerdns.com");
@@ -80,12 +80,12 @@ try
 /*  DNSPacketWriter::optvect_t opts;
 
   opts.push_back(make_pair(5, ping));
-  
+
   pw.commit();
 */
   // pw.addOpt(5200, 0, 0);
   // pw.commit();
-  
+
   string reply;
 
   if(tcp) {
@@ -98,7 +98,7 @@ try
       throw AhuException("tcp write failed");
 
     sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
-    
+
     if(sock.read((char *) &len, 2) != 2)
       throw AhuException("tcp read failed");
 
@@ -121,7 +121,7 @@ try
     Socket sock(InterNetwork, Datagram);
     ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
     sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
-    
+
     sock.recvFrom(reply, dest);
   }
   MOADNSParser mdp(reply);
@@ -129,9 +129,9 @@ try
   cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-    if(i->first.d_type == QType::RRSIG) 
+    if(i->first.d_type == QType::RRSIG)
     {
       string zoneRep = i->first.d_content->getZoneRepresentation();
       vector<string> parts;
@@ -166,11 +166,11 @@ try
   if(getEDNSOpts(mdp, &edo)) {
 //    cerr<<"Have "<<edo.d_options.size()<<" options!"<<endl;
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-        iter != edo.d_options.end(); 
+        iter != edo.d_options.end();
         ++iter) {
       if(iter->first == 5) {// 'EDNS PING'
         cerr<<"Have ednsping: '"<<iter->second<<"'\n";
-        //if(iter->second == ping) 
+        //if(iter->second == ping)
          // cerr<<"It is correct!"<<endl;
       }
       else {

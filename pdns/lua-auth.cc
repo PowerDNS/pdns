@@ -52,7 +52,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
     lua_pop(d_lua, 1);
     return false;
   }
-  
+
   lua_pushstring(d_lua,  remote.toString().c_str() );
   lua_pushstring(d_lua,  zone.c_str() );
   lua_pushstring(d_lua,  in.qname.c_str() );
@@ -61,13 +61,13 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
   lua_pushnumber(d_lua,  in.priority );
   lua_pushstring(d_lua,  in.content.c_str() );
 
-  if(lua_pcall(d_lua,  7, 2, 0)) { // error 
+  if(lua_pcall(d_lua,  7, 2, 0)) { // error
     string error=string("lua error in axfrfilter: ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);
     return false;
   }
-  
+
   int newres = (int)lua_tonumber(d_lua, 1); // did we handle it?
   if(newres < 0) {
     //cerr << "handler did not handle"<<endl;
@@ -97,7 +97,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
     lua_gettable(d_lua, 2);
 
     uint32_t tmpnum=0;
-    if(!getFromTable("qtype", tmpnum)) 
+    if(!getFromTable("qtype", tmpnum))
       rr.qtype=QType::A;
     else
       rr.qtype=tmpnum;
@@ -194,7 +194,7 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
     lua_pop(d_lua, 1);
     return 0;
   }
-  
+
   DNSPacket *r=0;
   // allocate a fresh packet and prefill the question
   r=p->replyPacket();
@@ -202,12 +202,12 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
   // wrap it
   LuaDNSPacket* lua_dp = (LuaDNSPacket *)lua_newuserdata(d_lua, sizeof(LuaDNSPacket));
   lua_dp->d_p=r;
-  
+
   // make it of the right type
   luaL_getmetatable(d_lua, "LuaDNSPacket");
   lua_setmetatable(d_lua, -2);
 
-  if(lua_pcall(d_lua,  1, 1, 0)) { // error 
+  if(lua_pcall(d_lua,  1, 1, 0)) { // error
     string error=string("lua error in prequery: ")+lua_tostring(d_lua, -1);
     theL()<<Logger::Error<<error<<endl;
 

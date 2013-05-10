@@ -78,7 +78,7 @@ source_state;
 /**
  * \brief           Entropy context structure
  */
-typedef struct 
+typedef struct
 {
     sha4_context    accumulator;
     int             source_count;
@@ -133,7 +133,7 @@ int entropy_func( void *data, unsigned char *output, size_t len );
 
 /**
  * \brief           Add data to the accumulator manually
- * 
+ *
  * \param ctx       Entropy context
  * \param data      Data to add
  * \param len       Length of data

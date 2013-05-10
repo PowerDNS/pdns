@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -39,8 +39,8 @@ class DNSPacket;
 #include "dns.hh"
 #include <vector>
 #include "namespaces.hh"
-  
-class DNSBackend;  
+
+class DNSBackend;
 struct DomainInfo
 {
   DomainInfo() : backend(0) {}
@@ -52,7 +52,7 @@ struct DomainInfo
   time_t last_check;
   enum {Master,Slave,Native} kind;
   DNSBackend *backend;
-  
+
   bool operator<(const DomainInfo& rhs) const
   {
     return zone < rhs.zone;
@@ -62,7 +62,7 @@ struct DomainInfo
 class DNSPacket;
 
 
-//! This virtual base class defines the interface for backends for the ahudns. 
+//! This virtual base class defines the interface for backends for the ahudns.
 /** To create a backend, inherit from this class and implement functions for all virtual methods.
     Methods should not throw an exception if they are sure they did not find the requested data. However,
     if an error occurred which prevented them temporarily from performing a lockup, they should throw a DBException,
@@ -77,7 +77,7 @@ class DNSBackend
 {
 public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
-  virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
+  virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0;
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
 
 
@@ -86,7 +86,7 @@ public:
       if the backend does not consider itself responsible for the id passed.
       \param domain_id ID of which a list is requested
   */
-  virtual bool list(const string &target, int domain_id)=0;  
+  virtual bool list(const string &target, int domain_id)=0;
 
   virtual ~DNSBackend(){};
 
@@ -173,7 +173,7 @@ public:
   {
     return false;
   }
-  
+
   //! starts the transaction for updating domain qname (FIXME: what is id?)
   virtual bool startTransaction(const string &qname, int id=-1)
   {
@@ -224,7 +224,7 @@ public:
   virtual void getUpdatedMasters(vector<DomainInfo>* domains)
   {
   }
-  
+
   //! Called by PowerDNS to inform a backend that a domain has been checked for freshness
   virtual void setFresh(uint32_t domain_id)
   {
@@ -273,7 +273,7 @@ public:
   }
   virtual void declareArguments(const string &suffix=""){}
   const string &getName() const;
-  
+
 protected:
   void declare(const string &suffix, const string &param, const string &explanation, const string &value);
 

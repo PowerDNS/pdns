@@ -55,7 +55,7 @@ strcasestr(const char *s1, const char *s2)
 
 #endif // HAVE_STRCASESTR
 
-using namespace rapidjson;                        
+using namespace rapidjson;
 
 string makeStringFromDocument(const Document& doc)
 {
@@ -88,13 +88,13 @@ string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const s
   string needle=varmap["needle"];
   trim_right(needle);
 
-  boost::replace_all(needle, "%20", " ");  
-  boost::replace_all(needle, "%22", "\"");    
+  boost::replace_all(needle, "%20", " ");
+  boost::replace_all(needle, "%22", "\"");
 
   boost::tokenizer<boost::escaped_list_separator<char> > t(needle, boost::escaped_list_separator<char>("\\", " ", "\""));
   vector<string> matches(t.begin(), t.end());
   matches.push_back(prefix);
-  
+
   boost::circular_buffer<string> lines(200);
   while(stringfgets(fp.get(), line)) {
     vector<string>::const_iterator iter;
@@ -102,7 +102,7 @@ string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const s
       if(!strcasestr(line.c_str(), iter->c_str()))
         break;
     }
-    if(iter == matches.end()) { 
+    if(iter == matches.end()) {
       trim_right(line);
       lines.push_front(line);
     }

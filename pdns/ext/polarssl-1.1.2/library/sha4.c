@@ -451,7 +451,7 @@ void sha4_hmac( const unsigned char *key, size_t keylen,
 /*
  * FIPS-180-2 test vectors
  */
-static unsigned char sha4_test_buf[3][113] = 
+static unsigned char sha4_test_buf[3][113] =
 {
     { "abc" },
     { "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"

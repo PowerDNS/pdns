@@ -83,7 +83,7 @@ typedef unsigned SizeType;
 ///////////////////////////////////////////////////////////////////////////////
 // Helpers
 
-#define RAPIDJSON_MULTILINEMACRO_BEGIN do {  
+#define RAPIDJSON_MULTILINEMACRO_BEGIN do {
 #define RAPIDJSON_MULTILINEMACRO_END \
 } while((void)0, 0)
 
@@ -94,10 +94,10 @@ namespace rapidjson {
 
 /*! \class rapidjson::Allocator
 	\brief Concept for allocating, resizing and freeing memory block.
-	
+
 	Note that Malloc() and Realloc() are non-static but Free() is static.
-	
-	So if an allocator need to support Free(), it needs to put its pointer in 
+
+	So if an allocator need to support Free(), it needs to put its pointer in
 	the header of memory block.
 
 \code
@@ -141,31 +141,31 @@ public:
 // MemoryPoolAllocator
 
 //! Default memory allocator used by the parser and DOM.
-/*! This allocator allocate memory blocks from pre-allocated memory chunks. 
+/*! This allocator allocate memory blocks from pre-allocated memory chunks.
 
-    It does not free memory blocks. And Realloc() only allocate new memory.
+	It does not free memory blocks. And Realloc() only allocate new memory.
 
-    The memory chunks are allocated by BaseAllocator, which is CrtAllocator by default.
+	The memory chunks are allocated by BaseAllocator, which is CrtAllocator by default.
 
-    User may also supply a buffer as the first chunk.
+	User may also supply a buffer as the first chunk.
 
-    If the user-buffer is full then additional chunks are allocated by BaseAllocator.
+	If the user-buffer is full then additional chunks are allocated by BaseAllocator.
 
-    The user-buffer is not deallocated by this allocator.
+	The user-buffer is not deallocated by this allocator.
 
-    \tparam BaseAllocator the allocator type for allocating memory chunks. Default is CrtAllocator.
+	\tparam BaseAllocator the allocator type for allocating memory chunks. Default is CrtAllocator.
 	\implements Allocator
 */
 template <typename BaseAllocator = CrtAllocator>
 class MemoryPoolAllocator {
 public:
-	static const bool kNeedFree = false;	//!< Tell users that no need to call Free() with this allocator. (concept Allocator)
+	static const bool kNeedFree = false; //!< Tell users that no need to call Free() with this allocator. (concept Allocator)
 
 	//! Constructor with chunkSize.
 	/*! \param chunkSize The size of memory chunk. The default is kDefaultChunkSize.
 		\param baseAllocator The allocator for allocating memory chunks.
 	*/
-	MemoryPoolAllocator(size_t chunkSize = kDefaultChunkCapacity, BaseAllocator* baseAllocator = 0) : 
+	MemoryPoolAllocator(size_t chunkSize = kDefaultChunkCapacity, BaseAllocator* baseAllocator = 0) :
 		chunkHead_(0), chunk_capacity_(chunkSize), userBuffer_(0), baseAllocator_(baseAllocator), ownBaseAllocator_(0)
 	{
 		if (!baseAllocator_)
@@ -336,7 +336,7 @@ struct UTF8 {
 	typedef CharType Ch;
 
 	static Ch* Encode(Ch *buffer, unsigned codepoint) {
-		if (codepoint <= 0x7F) 
+		if (codepoint <= 0x7F)
 			*buffer++ = codepoint & 0xFF;
 		else if (codepoint <= 0x7FF) {
 			*buffer++ = 0xC0 | ((codepoint >> 6) & 0xFF);
@@ -372,7 +372,7 @@ struct UTF16 {
 
 	static Ch* Encode(Ch* buffer, unsigned codepoint) {
 		if (codepoint <= 0xFFFF) {
-			RAPIDJSON_ASSERT(codepoint < 0xD800 || codepoint > 0xDFFF); // Code point itself cannot be surrogate pair 
+			RAPIDJSON_ASSERT(codepoint < 0xD800 || codepoint > 0xDFFF); // Code point itself cannot be surrogate pair
 			*buffer++ = static_cast<Ch>(codepoint);
 		}
 		else {
@@ -388,7 +388,7 @@ struct UTF16 {
 ///////////////////////////////////////////////////////////////////////////////
 // UTF32
 
-//! UTF-32 encoding. 
+//! UTF-32 encoding.
 /*! http://en.wikipedia.org/wiki/UTF-32
 	\tparam Ch Type for storing 32-bit UTF-32 data. Default is unsigned. C++11 may use char32_t instead.
 	\implements Encoding
@@ -515,7 +515,7 @@ enum Type {
 	kFalseType = 1,		//!< false
 	kTrueType = 2,		//!< true
 	kObjectType = 3,	//!< object
-	kArrayType = 4,		//!< array 
+	kArrayType = 4,		//!< array
 	kStringType = 5,	//!< string
 	kNumberType = 6,	//!< number
 };

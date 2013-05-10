@@ -76,7 +76,7 @@ int xtea_crypt_ecb( xtea_context *ctx, int mode, unsigned char input[8],
     uint32_t *k, v0, v1, i;
 
     k = ctx->k;
-    
+
     GET_ULONG_BE( v0, input, 0 );
     GET_ULONG_BE( v1, input, 4 );
 
@@ -125,14 +125,14 @@ int xtea_crypt_cbc( xtea_context *ctx,
     if(length % 8)
         return( POLARSSL_ERR_XTEA_INVALID_INPUT_LENGTH );
 
-    if( mode == XTEA_DECRYPT ) 
+    if( mode == XTEA_DECRYPT )
     {
         while( length > 0 )
         {
             memcpy( temp, input, 8 );
             xtea_crypt_ecb( ctx, mode, input, output );
 
-            for(i = 0; i < 8; i++) 
+            for(i = 0; i < 8; i++)
                 output[i] = (unsigned char)( output[i] ^ iv[i] );
 
             memcpy( iv, temp, 8 );
@@ -141,8 +141,8 @@ int xtea_crypt_cbc( xtea_context *ctx,
             output += 8;
             length -= 8;
         }
-    } 
-    else 
+    }
+    else
     {
         while( length > 0 )
         {
@@ -151,7 +151,7 @@ int xtea_crypt_cbc( xtea_context *ctx,
 
             xtea_crypt_ecb( ctx, mode, output, output );
             memcpy( iv, output, 8 );
-            
+
             input  += 8;
             output += 8;
             length -= 8;

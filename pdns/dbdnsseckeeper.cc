@@ -3,7 +3,7 @@
     Copyright (C) 2001 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -45,11 +45,11 @@ pthread_rwlock_t DNSSECKeeper::s_keycachelock = PTHREAD_RWLOCK_INITIALIZER;
 AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
 
-bool DNSSECKeeper::isSecuredZone(const std::string& zone) 
+bool DNSSECKeeper::isSecuredZone(const std::string& zone)
 {
   if(isPresigned(zone))
     return true;
-  
+
   if(!((++s_ops) % 100000)) {
     cleanup();
   }
@@ -57,17 +57,17 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
   {
     ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
-    if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) { 
+    if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) {
       if(iter->d_keys.empty())
         return false;
       else
         return true;
     }
     else
-      ; 
-  }  
+      ;
+  }
   keyset_t keys = getKeys(zone, true); // does the cache
-  
+
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
     if(val.second.active) {
       return true;
@@ -120,7 +120,7 @@ void DNSSECKeeper::clearCaches(const std::string& name)
 {
   {
     WriteLock l(&s_keycachelock);
-    s_keycache.erase(name); 
+    s_keycache.erase(name);
   }
   WriteLock l(&s_metacachelock);
   pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
@@ -148,24 +148,24 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
 }
 
 DNSSECPrivateKey DNSSECKeeper::getKeyById(const std::string& zname, unsigned int id)
-{  
+{
   vector<DNSBackend::KeyData> keys;
   d_keymetadb->getDomainKeys(zname, 0, keys);
   BOOST_FOREACH(const DNSBackend::KeyData& kd, keys) {
-    if(kd.id != id) 
+    if(kd.id != id)
       continue;
-    
+
     DNSSECPrivateKey dpk;
     DNSKEYRecordContent dkrc;
     dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content)));
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
-    
+
     if(dpk.d_algorithm == 5 && getNSEC3PARAM(zname)) {
       dpk.d_algorithm += 2;
     }
-    
-    return dpk;    
+
+    return dpk;
   }
   throw runtime_error("Can't find a key with id "+lexical_cast<string>(id)+" for zone '"+zname+"'");
 }
@@ -200,8 +200,8 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
   }
 
   {
-    ReadLock l(&s_metacachelock); 
-    
+    ReadLock l(&s_metacachelock);
+
     metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
     if(iter != s_metacache.end() && iter->d_ttd > now) {
       value = iter->d_value;
@@ -212,13 +212,13 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
   d_keymetadb->getDomainMetadata(zname, key, meta);
   if(!meta.empty())
     value=*meta.begin();
-    
+
   METACacheEntry nce;
   nce.d_domain=zname;
   nce.d_ttd = now+60;
   nce.d_key= key;
   nce.d_value = value;
-  { 
+  {
     WriteLock l(&s_metacachelock);
     replacing_insert(s_metacache, nce);
   }
@@ -231,7 +231,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   if(value.empty()) { // "no NSEC3"
     return false;
   }
-     
+
   if(ns3p) {
     NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
     *ns3p = *tmp;
@@ -252,10 +252,10 @@ bool DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecor
   meta.push_back(descr);
   if (d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", meta)) {
     meta.clear();
-    
+
     if(narrow)
       meta.push_back("1");
-    
+
     return d_keymetadb->setDomainMetadata(zname, "NSEC3NARROW", meta);
   }
   return false;
@@ -283,7 +283,7 @@ bool DNSSECKeeper::unsetPresigned(const std::string& zname)
 }
 
 
-DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
+DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone)
 {
   unsigned int now = time(0);
 
@@ -294,8 +294,8 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   {
     ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
-      
-    if(iter != s_keycache.end() && iter->d_ttd > now) { 
+
+    if(iter != s_keycache.end() && iter->d_ttd > now) {
       keyset_t ret;
       BOOST_FOREACH(const keyset_t::value_type& value, iter->d_keys) {
         if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
@@ -303,38 +303,38 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
       }
       return ret;
     }
-  }    
+  }
   keyset_t retkeyset, allkeyset;
   vector<UeberBackend::KeyData> dbkeyset;
-  
+
   d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
-  
-  BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset) 
+
+  BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset)
   {
     DNSSECPrivateKey dpk;
 
     DNSKEYRecordContent dkrc;
-    
+
     dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content)));
-    
+
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
       dpk.d_algorithm+=2;
-    
+
     KeyMetaData kmd;
 
     kmd.active = kd.active;
     kmd.keyOrZone = (kd.flags == 257);
     kmd.id = kd.id;
-    
+
     if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == kmd.keyOrZone)
       retkeyset.push_back(make_pair(dpk, kmd));
     allkeyset.push_back(make_pair(dpk, kmd));
   }
   sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
   sort(allkeyset.begin(), allkeyset.end(), keyCompareByKindAndID);
-  
+
   KeyCacheEntry kce;
   kce.d_domain=zone;
   kce.d_keys = allkeyset;
@@ -343,7 +343,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
     WriteLock l(&s_keycachelock);
     replacing_insert(s_keycache, kce);
   }
-  
+
   return retkeyset;
 }
 
@@ -353,42 +353,42 @@ bool DNSSECKeeper::secureZone(const std::string& name, int algorithm, int size)
   return addKey(name, true, algorithm, size);
 }
 
-bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, 
-	const std::string& wildcardname, const QType& qtype, 
-	DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
+bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname,
+  const std::string& wildcardname, const QType& qtype,
+  DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
 {
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
-	SOAData sd;
-	sd.db=(DNSBackend *)-1; // force uncached answer
-	if(!db.getSOA(signer, sd)) {
-		DLOG(L<<"Could not get SOA for domain"<<endl);
-		return false;
-	}
-	db.lookup(QType(QType::RRSIG), wildcardname.empty() ? qname : wildcardname, NULL, sd.domain_id);
-	DNSResourceRecord rr;
-	while(db.get(rr)) { 
-		// cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
-		vector<string> parts;
-		stringtok(parts, rr.content);
-		if(parts[0] == qtype.getName() && pdns_iequals(parts[7], signer+".")) {
-			// cerr<<"Got it"<<endl;
-			if (!wildcardname.empty())
-				rr.qname = qname;
-			rr.d_place = (DNSResourceRecord::Place)signPlace;
-			rr.ttl = signTTL;
-			rrsigs.push_back(rr);
-		}
-		else ; // cerr<<"Skipping!"<<endl;
-	}
-	return true;
+  SOAData sd;
+  sd.db=(DNSBackend *)-1; // force uncached answer
+  if(!db.getSOA(signer, sd)) {
+    DLOG(L<<"Could not get SOA for domain"<<endl);
+    return false;
+  }
+  db.lookup(QType(QType::RRSIG), wildcardname.empty() ? qname : wildcardname, NULL, sd.domain_id);
+  DNSResourceRecord rr;
+  while(db.get(rr)) {
+    // cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
+    vector<string> parts;
+    stringtok(parts, rr.content);
+    if(parts[0] == qtype.getName() && pdns_iequals(parts[7], signer+".")) {
+      // cerr<<"Got it"<<endl;
+      if (!wildcardname.empty())
+        rr.qname = qname;
+      rr.d_place = (DNSResourceRecord::Place)signPlace;
+      rr.ttl = signTTL;
+      rrsigs.push_back(rr);
+    }
+    else ; // cerr<<"Skipping!"<<endl;
+  }
+  return true;
 }
 
 bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm)
 {
   vector<string> allowed;
-  
+
   d_keymetadb->getDomainMetadata(zone, "TSIG-ALLOW-AXFR", allowed);
-  
+
   BOOST_FOREACH(const string& dbkey, allowed) {
     if(pdns_iequals(dbkey, keyname))
       return true;
@@ -401,7 +401,7 @@ bool DNSSECKeeper::getTSIGForAccess(const string& zone, const string& master, st
   vector<string> keynames;
   d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
   keyname->clear();
-  
+
   // XXX FIXME this should check for a specific master!
   BOOST_FOREACH(const string& dbkey, keynames) {
     *keyname=dbkey;

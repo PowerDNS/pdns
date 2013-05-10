@@ -4,6 +4,6 @@
 1	example.com.	IN	SOA	120	ns1.example.com. hostmaster.example.com. 2000010101 28800 7200 1209600 120
 1	ns2.example.com.	IN	NSEC	120	outpost.example.com. A RRSIG NSEC
 1	ns2.example.com.	IN	RRSIG	120	NSEC 8 3 120 [expiry] [inception] [keytag] example.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='outerpost.example.com.', qtype=A

@@ -845,7 +845,7 @@ EOF
 		;;
 	  a.out-i386-linux)
 		echo "${UNAME_MACHINE}-pc-linux-gnuaout"
-		exit 0 ;;		
+		exit 0 ;;
 	  coff-i386)
 		echo "${UNAME_MACHINE}-pc-linux-gnucoff"
 		exit 0 ;;

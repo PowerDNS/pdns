@@ -6,6 +6,6 @@
 1	onn5kjcskcfqisao7tmqpjkp5kkh111o.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
 1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	NSEC3	86400	1 [flags] 1 abcd VTP9NUQBEH436S7J0K8TI2A32MMKCUUL NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='nxdomain.example.com.', qtype=ANY

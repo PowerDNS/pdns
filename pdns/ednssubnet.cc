@@ -3,7 +3,7 @@
     Copyright (C) 2011  Netherlabs Computer Consulting BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -34,7 +34,7 @@ bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso)
 {
   //cerr<<"options.size:"<<options.size()<<endl;
   if(options.size() <= 4)
-    return false;  
+    return false;
   EDNSSubnetOptsWire esow;
   memcpy(&esow, options.c_str(), sizeof(esow));
   esow.family = ntohs(esow.family);
@@ -78,7 +78,7 @@ string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
   ret.assign((const char*)&esow, sizeof(esow));
   int octetsout = ((esow.sourceMask - 1)>> 3)+1;
 
-  if(family == htons(1)) 
+  if(family == htons(1))
     ret.append((const char*) &eso.source.getNetwork().sin4.sin_addr.s_addr, octetsout);
   else
     ret.append((const char*) &eso.source.getNetwork().sin6.sin6_addr.s6_addr, octetsout);

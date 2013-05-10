@@ -30,7 +30,7 @@ template<typename C> void doRun(const C& cmd, int mseconds=100)
 
   signal(SIGVTALRM, alarmHandler);
   setitimer(ITIMER_VIRTUAL, &it, 0);
-  
+
   unsigned int runs=0;
   g_stop=false;
   DTime dt;
@@ -81,7 +81,7 @@ struct MakeStringFromCharStarTest
   {
     string name("outpost.ds9a.nl");
     d_size += name.length();
-    
+
   }
   mutable int d_size;
 };
@@ -159,7 +159,7 @@ struct MakeARecordTestMM
 
   void operator()() const
   {
-      DNSRecordContent*drc = DNSRecordContent::mastermake(QType::A, 1, 
+      DNSRecordContent*drc = DNSRecordContent::mastermake(QType::A, 1,
         						  "1.2.3.4");
       delete drc;
   }
@@ -218,12 +218,12 @@ struct TXTRecordTest
 
 struct GenericRecordTest
 {
-  explicit GenericRecordTest(int records, uint16_t type, const std::string& content) 
+  explicit GenericRecordTest(int records, uint16_t type, const std::string& content)
     : d_records(records), d_type(type), d_content(content) {}
 
   string getName() const
   {
-    return (boost::format("%d %s records") % d_records % 
+    return (boost::format("%d %s records") % d_records %
             DNSRecordContent::NumberToType(d_type)).str();
   }
 
@@ -233,7 +233,7 @@ struct GenericRecordTest
     DNSPacketWriter pw(packet, "outpost.ds9a.nl", d_type);
     for(int records = 0; records < d_records; records++) {
       pw.startRecord("outpost.ds9a.nl", d_type);
-      DNSRecordContent*drc = DNSRecordContent::mastermake(d_type, 1, 
+      DNSRecordContent*drc = DNSRecordContent::mastermake(d_type, 1,
         						  d_content);
       drc->toPacket(pw);
       delete drc;
@@ -309,12 +309,12 @@ vector<uint8_t> makeRootReferral()
   DNSPacketWriter pw(packet, "outpost.ds9a.nl", QType::SOA);
 
   // nobody reads what we output, but it appears to be the magic that shuts some nameservers up
-  static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
+  static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53",
         	     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   static char templ[40];
   strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
-  
-  
+
+
   for(char c='a';c<='m';++c) {
     *templ=c;
     pw.startRecord(".", QType::NS, 3600, 1, DNSPacketWriter::AUTHORITY);
@@ -461,7 +461,7 @@ bool moreSpecificThan(const string& a, const string &b)
 {
   static string dot(".");
   int counta=(a!=dot), countb=(b!=dot);
-  
+
   for(string::size_type n=0;n<a.size();++n)
     if(a[n]=='.')
       counta++;
@@ -474,7 +474,7 @@ bool moreSpecificThan(const string& a, const string &b)
 
 struct ParsePacketTest
 {
-  explicit ParsePacketTest(const vector<uint8_t>& packet, const std::string& name) 
+  explicit ParsePacketTest(const vector<uint8_t>& packet, const std::string& name)
     : d_packet(packet), d_name(name)
   {}
 
@@ -488,26 +488,26 @@ struct ParsePacketTest
     MOADNSParser mdp((const char*)&*d_packet.begin(), d_packet.size());
     typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;
     tcache_t tcache;
-    
+
     struct {
             vector<DNSResourceRecord> d_result;
             bool d_aabit;
             int d_rcode;
     } lwr;
     DNSResourceRecord rr;
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       DNSResourceRecord rr;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;
-    
+
       rr.ttl=i->first.d_ttl;
       rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
       rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
       lwr.d_result.push_back(rr);
     }
 
-    
-    
+
+
 
       // reap all answers from this packet that are acceptable
       for(vector<DNSResourceRecord>::iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
@@ -531,7 +531,7 @@ struct ParsePacketTest
             // LOG<<"YES!"<<endl;
 
           //  i->ttl=min(s_maxcachettl, i->ttl);
-            
+
             DNSResourceRecord rr=*i;
             rr.d_place=DNSResourceRecord::ANSWER;
 
@@ -541,25 +541,25 @@ struct ParsePacketTest
               rr.content=toLower(rr.content); // this must stay! (the cache can't be case-insensitive on the RHS of records)
             tcache[make_pair(i->qname,i->qtype)].insert(rr);
           }
-        }	  
+        }
         else
           ; // LOG<<"NO!"<<endl;
       }
-    
+
       // supplant
       for(tcache_t::iterator i=tcache.begin();i!=tcache.end();++i) {
         if(i->second.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
           uint32_t lowestTTL=std::numeric_limits<uint32_t>::max();
           for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
             lowestTTL=min(lowestTTL, j->ttl);
-          
+
           for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
             ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
         }
 
         // RC.replace(d_now.tv_sec, i->first.first, i->first.second, i->second, lwr.d_aabit);
       }
-      set<string, CIStringCompare> nsset;  
+      set<string, CIStringCompare> nsset;
       // LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
 
       bool done=false, realreferral=false, negindic=false;
@@ -568,9 +568,9 @@ struct ParsePacketTest
       vector<DNSResourceRecord> ret;
       QType qtype(QType::A);
       string auth(".");
- 
+
       for(vector<DNSResourceRecord>::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
-        if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
+        if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA &&
            lwr.d_rcode==RCode::NXDomain) {
           // LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"'"<<endl;
           ret.push_back(*i);
@@ -581,7 +581,7 @@ struct ParsePacketTest
           ne.d_ttd=d_now.tv_sec + min(i->ttl, 3600U); // controversial
           ne.d_name=qname;
           ne.d_qtype=QType(0); // this encodes 'whole record'
-          
+
           {
             // Lock l(&s_negcachelock);
             // replacing_insert(s_negcache, ne);
@@ -593,33 +593,33 @@ struct ParsePacketTest
           newtarget=i->content;
         }
         // for ANY answers we *must* have an authoritive answer
-        else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && 
+        else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) &&
         	(
         	 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) )
-        	) 
-               )   
+        	)
+               )
           {
-          
+
           // LOG<<prefix<<qname<<": answer is in: resolved to '"<< i->content<<"|"<<i->qtype.getName()<<"'"<<endl;
 
           done=true;
           ret.push_back(*i);
         }
-        else if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::NS) { 
+        else if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::NS) {
           if(moreSpecificThan(i->qname,auth)) {
             newauth=i->qname;
             // LOG<<prefix<<qname<<": got NS record '"<<i->qname<<"' -> '"<<i->content<<"'"<<endl;
             realreferral=true;
           }
-          else 
+          else
             ;// // LOG<<prefix<<qname<<": got upwards/level NS record '"<<i->qname<<"' -> '"<<i->content<<"', had '"<<auth<<"'"<<endl;
           nsset.insert(i->content);
         }
-        else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
+        else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA &&
            lwr.d_rcode==RCode::NoError) {
           // LOG<<prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+i->qtype.getName()+"'") <<endl;
           ret.push_back(*i);
-          
+
           NegCacheEntry ne;
           ne.d_qname=i->qname;
           ne.d_ttd=d_now.tv_sec + i->ttl;
@@ -640,7 +640,7 @@ struct ParsePacketTest
 
 struct ParsePacketBareTest
 {
-  explicit ParsePacketBareTest(const vector<uint8_t>& packet, const std::string& name) 
+  explicit ParsePacketBareTest(const vector<uint8_t>& packet, const std::string& name)
     : d_packet(packet), d_name(name)
   {}
 
@@ -660,7 +660,7 @@ struct ParsePacketBareTest
 
 struct SimpleCompressTest
 {
-  explicit SimpleCompressTest(const std::string& name) 
+  explicit SimpleCompressTest(const std::string& name)
     : d_name(name)
   {}
 
@@ -792,14 +792,14 @@ try
 
   doRun(SimpleCompressTest("www.france.ds9a.nl"));
 
-  
+
   doRun(VectorExpandTest());
 
   doRun(GetTimeTest());
-  
+
   doRun(GetLockUncontendedTest());
   doRun(StaticMemberTest());
-  
+
   doRun(ARecordTest(1));
   doRun(ARecordTest(2));
   doRun(ARecordTest(4));

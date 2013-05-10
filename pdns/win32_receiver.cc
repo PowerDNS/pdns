@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -84,14 +84,14 @@ char *funnytext=
 
 // start (sys)logging
 
-/** \var Logger L 
+/** \var Logger L
 \brief All logging is done via L, a Logger instance
 */
 
 
 /**
 \file receiver.cc
-\brief The main loop of powerdns 
+\brief The main loop of powerdns
 
 This file is where it all happens - main is here, as are the two pivotal threads qthread() and athread()
 */
@@ -99,7 +99,7 @@ This file is where it all happens - main is here, as are the two pivotal threads
 
 static void WIN32_declareArguments()
 {
-  arg().set("config-dir","Location of configuration directory (pdns.conf)")="./";  
+  arg().set("config-dir","Location of configuration directory (pdns.conf)")="./";
   //arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   arg().set("module-dir","Default directory for modules")="/../lib";
 
@@ -108,8 +108,8 @@ static void WIN32_declareArguments()
   arg().setSwitch( "ntservice", "Run as service" )= "no";
 
   arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes";
-  arg().setSwitch( "use-logfile", "Use a log file" )= "no"; 
-  arg().setSwitch( "logfile", "Filename of the log file" )= "powerdns.log"; 
+  arg().setSwitch( "use-logfile", "Use a log file" )= "no";
+  arg().setSwitch( "logfile", "Filename of the log file" )= "powerdns.log";
 }
 
 static void loadModules()
@@ -130,7 +130,7 @@ BOOL WINAPI consoleHandler( DWORD ctrl )
 
 //! The main function of pdns, the pdns process
 int main(int argc, char **argv)
-{ 
+{
   s_programname="pdns";
   s_starttime=time(0);
 
@@ -149,9 +149,9 @@ int main(int argc, char **argv)
   try {
     declareArguments();
     WIN32_declareArguments();
-      
+
     arg().laxParse(argc,argv); // do a lax parse
-    
+
     // If we have to run as a nt service change the current directory to the executable directory.
     if ( arg().mustDo( "ntservice" ))
     {
@@ -165,20 +165,20 @@ int main(int argc, char **argv)
 
       SetCurrentDirectory( newdir.c_str());
     }
-    
-    if(arg()["config-name"]!="") 
+
+    if(arg()["config-name"]!="")
       s_programname+="-"+arg()["config-name"];
-    
+
     (void)theL(s_programname);
-    
+
     string configname=arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
 
     if(!arg().mustDo("config") && !arg().mustDo("no-config")) // "config" == print a configuration file
       arg().laxFile(configname.c_str());
-    
+
     arg().laxParse(argc,argv); // reparse so the commandline still wins
-    L.toConsole((Logger::Urgency)(arg().asNum("loglevel")));  
+    L.toConsole((Logger::Urgency)(arg().asNum("loglevel")));
 
     if(arg().mustDo("help") || arg().mustDo("config")) {
       arg().set("daemon")="no";
@@ -206,19 +206,19 @@ int main(int argc, char **argv)
 
     // we really need to do work - either standalone or as an instance
     BackendMakers().launch(arg()["launch"]); // vrooooom!
-      
+
     if(arg().mustDo("version")) {
       cerr<<"Version: "VERSION", compiled on "<<__DATE__", "__TIME__<<endl;
       exit(99);
     }
 
-    
+
     if(arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
       cerr<<arg().helpstring(arg()["help"])<<endl;
       exit(99);
     }
-    
+
     if(arg().mustDo("config")) {
       cout<<arg().configstring()<<endl;
       exit(99);
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
         dl=new DynListener();
       else
         dl=new DynListener(s_programname);
-      
+
     DynListener::registerFunc("SHOW",&DLShowHandler);
     DynListener::registerFunc("RPING",&DLPingHandler);
     DynListener::registerFunc("QUIT",&DLRQuitHandler);
@@ -256,48 +256,48 @@ int main(int argc, char **argv)
     DynListener::registerFunc("SET",&DLSettingsHandler);
     DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler);
 
-      
+
     // reparse, with error checking
     if(!arg().mustDo("no-config"))
       arg().file(configname.c_str());
     arg().parse(argc,argv);
     UeberBackend::go();
     N=new UDPNameserver; // this fails when we are not root, throws exception
-    
+
     if(!arg().mustDo("disable-tcp"))
-      TN=new TCPNameserver; 
+      TN=new TCPNameserver;
   }
   catch(const ArgException &A) {
     L<<Logger::Error<<"Fatal error: "<<A.reason<<endl;
     exit(1);
   }
-  
+
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
-  
+
   if ( arg().mustDo( "use-ntlog" ) && arg().mustDo( "ntservice" ))
     L.toNTLog();
 
   if ( arg().mustDo( "use-logfile" ))
     L.toFile( arg()[ "logfile" ] );
-  
+
   L<<Logger::Warning<<"PowerDNS "<<VERSION<<" (C) 2001-2003 PowerDNS.COM BV ("<<__DATE__", "__TIME__<<") starting up"<<endl;
 
   L<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2."<<endl;
 
-  
+
   // Register console control handler.
   if ( !arg().mustDo( "ntservice" ))
     SetConsoleCtrlHandler( consoleHandler, true );
-  
+
   PDNSService::instance()->start( argc, argv, arg().mustDo( "ntservice" ));
-  
+
   WSACleanup();
 
   exit(1);
-  
+
   return 0;
 }
 

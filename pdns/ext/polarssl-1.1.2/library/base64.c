@@ -220,7 +220,7 @@ int base64_self_test( int verbose )
     src = (unsigned char *) base64_test_dec;
 
     if( base64_encode( buffer, &len, src, 64 ) != 0 ||
-         memcmp( base64_test_enc, buffer, 88 ) != 0 ) 
+         memcmp( base64_test_enc, buffer, 88 ) != 0 )
     {
         if( verbose != 0 )
             printf( "failed\n" );

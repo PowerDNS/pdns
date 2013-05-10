@@ -55,7 +55,7 @@ build-static stamp-build-static:
 		--with-modules="gmysql gpgsql pipe gsqlite3 lua geo tinydns mydns opendbx remote" \
 		--with-dynmodules="" \
 		--enable-botan1.10 --enable-cryptopp \
-		--enable-static-binaries 
+		--enable-static-binaries
 	make -j4
 	touch stamp-build-static
 
@@ -69,12 +69,12 @@ build stamp-build: configure
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
 		--with-dynmodules="$(backends)" \
-		--with-modules="geo" 
+		--with-modules="geo"
 	make
 	touch stamp-build
 
 
-binary-main-prepare: 
+binary-main-prepare:
 	rm -f debian-pdns/substvars
 	rm -rf "$(tmpdir)" "$(tmpdir)"-*
 	install -d -m 755 -o root -g root "$(tmpdir)"
@@ -104,7 +104,7 @@ binary-main-prepare:
 	gzip -9 "$(tmpdir)"/usr/share/doc/pdns/c*
 	install -p -m 644 -o root -g root debian-pdns/copyright \
 			"$(tmpdir)"/usr/share/doc/pdns/
-	
+
 	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
 	install -p -m 755 -o root -g root debian-pdns/pdns.prerm \
 			"$(tmpdir)"/DEBIAN/prerm

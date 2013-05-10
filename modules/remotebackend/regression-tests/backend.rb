@@ -34,7 +34,7 @@ class Handler
 
    def getbeforename(qname, id)
         before = db.get_first_value("SELECT ordername FROM records WHERE ordername < ? AND domain_id = ? ORDER BY ordername DESC", qname, id)
-        if (before.nil?) 
+        if (before.nil?)
            before = db.get_first_value("SELECT ordername FROM records WHERE domain_id = ? ORDER by ordername DESC LIMIT 1", id)
         end
         before
@@ -63,7 +63,7 @@ class Handler
        ret = []
        db.execute("SELECT cryptokeys.id,flags,active,content FROM domains JOIN cryptokeys ON domains.id = cryptokeys.domain_id WHERE domains.name = ?", [args["name"]]) do |row|
           ret << {:id => row[0].to_i, :flags => row[1].to_i, :active => !(row[2].to_i.zero?), :content => row[3]}
-       end 
+       end
        return false if ret.empty?
        return [ret,nil]
    end
@@ -91,7 +91,7 @@ class Handler
                 sql = "SELECT domain_id,name,type,content,ttl,prio,auth FROM records WHERE name = :qname AND type = :qtype"
                 sargs["qname"] = args["qname"]
                 sargs["qtype"] = args["qtype"]
-             end  
+             end
           end
           db.execute(sql, sargs) do |row|
             ret << rr(row[1], row[2], row[3], row[4], row[5], row[6], row[0])
@@ -104,8 +104,8 @@ class Handler
      return false unless ret.size > 0
      return [ret,nil]
    end
-  
-   def do_getdomaininfo(args) 
+
+   def do_getdomaininfo(args)
      ret = {}
      sql = "SELECT name,content FROM records WHERE name = :name AND type = 'SOA'"
      db.execute(sql, args) do |row|
@@ -142,7 +142,7 @@ class Handler
      return false if d_id.nil?
      sql = "INSERT INTO cryptokeys (domain_id, flags, active, content) VALUES(?,?,?,?)"
      active = args["key"]["active"]
-     if (active) 
+     if (active)
         active = 1
      else
         active = 0
@@ -157,7 +157,7 @@ class Handler
      d_id = db.get_first_value("SELECT id FROM domains WHERE name = ?", args["name"])
      return false if d_id.nil?
      db do |tx|
-       tx.execute("UPDATE cryptokeys SET active = 0 WHERE domain_id = ? AND id = ?", [d_id, args["id"]])  
+       tx.execute("UPDATE cryptokeys SET active = 0 WHERE domain_id = ? AND id = ?", [d_id, args["id"]])
      end
      return true
    end
@@ -171,8 +171,8 @@ class Handler
      return true
    end
 
-   def do_getdomainmetadata(args) 
-	ret = []
+   def do_getdomainmetadata(args)
+        ret = []
         sql = "SELECT content FROM domainmetadata JOIN domains WHERE name = :name AND kind = :kind"
         sargs = {:name => args["name"], :kind => args["kind"]}
         db.execute(sql,sargs) do |row|
@@ -187,13 +187,13 @@ class Handler
         return false if d_id.nil?
         db do |tx|
            sql = "DELETE FROM domainmetadata WHERE domain_id = ?"
-           tx.execute(sql, [d_id]) 
+           tx.execute(sql, [d_id])
            break if args["value"].nil?
            sql = "INSERT INTO domainmetadata (domain_id,kind,content) VALUES(?,?,?)"
            args["value"].each do |value|
              tx.execute(sql,[d_id, args["kind"], value])
            end
         end
-	return true
+        return true
    end
 end

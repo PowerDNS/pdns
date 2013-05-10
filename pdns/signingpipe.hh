@@ -18,9 +18,9 @@ bool readLStringFromSocket(int fd, string& msg);
 class ChunkedSigningPipe
 {
 public:
-  typedef vector<DNSResourceRecord> rrset_t; 
+  typedef vector<DNSResourceRecord> rrset_t;
   typedef rrset_t chunk_t; // for now
-  
+
   ChunkedSigningPipe(const std::string& signerName, bool mustSign, const pdns::string& servers=pdns::string(), unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
   bool submit(const DNSResourceRecord& rr);
@@ -30,21 +30,21 @@ public:
   int d_outstanding;
   unsigned int getReady();
 private:
-  void flushToSign();	
+  void flushToSign();
   void dedupRRSet();
   void sendRRSetToWorker(); // dispatch RRSET to worker
   void addSignedToChunks(chunk_t* signedChunk);
   pair<vector<int>, vector<int> > waitForRW(bool rd, bool wr, int seconds);
 
   void worker(int n, int fd);
-  
+
   static void* helperWorker(void* p);
   rrset_t* d_rrsetToSign;
   std::deque< std::vector<DNSResourceRecord> > d_chunks;
   string d_signer;
-  
+
   chunk_t::size_type d_maxchunkrecords;
-  
+
   std::vector<int> d_sockets;
   std::set<int> d_eof;
   unsigned int d_numworkers;

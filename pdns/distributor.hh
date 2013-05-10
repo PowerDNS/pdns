@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -41,12 +41,12 @@
 
 extern StatBag S;
 
-/** the Distributor template class enables you to multithread slow question/answer 
-    processes. 
-    
+/** the Distributor template class enables you to multithread slow question/answer
+    processes.
+
     Questions are posed to the Distributor, which can either hand back the answer,
-    or give it directly to a callback. Only the latter mode of operation is used in 
-    PowerDNS. 
+    or give it directly to a callback. Only the latter mode of operation is used in
+    PowerDNS.
 
     The Distributor takes care that there are enough Backends alive at any one
     time and will try to spawn additional ones should they die.
@@ -64,7 +64,7 @@ public:
   {
     Answer *A;
     time_t created;
-  };  
+  };
   int question(Question *, void (*)(const AnswerData &)=0); //!< Submit a question to the Distributor
   Answer *answer(void); //!< Wait for any answer from the Distributor
   Answer *wait(Question *); //!< wait for an answer to a specific question
@@ -89,12 +89,12 @@ public:
   {
     return d_overloaded;
   }
-  
+
 private:
   bool d_overloaded;
   std::queue<QuestionData> questions;
   pthread_mutex_t q_lock;
-  
+
   deque<tuple_t> answers;
   pthread_mutex_t a_lock;
 
@@ -131,7 +131,7 @@ template<class Answer, class Question, class Backend>Distributor<Answer,Question
   pthread_cond_init(&to_cond,0);
 
   pthread_t tid;
-  
+
   d_num_threads=n;
 
   L<<Logger::Warning<<"About to create "<<n<<" backend threads for UDP"<<endl;
@@ -154,9 +154,9 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
     int qcount;
 
     // this is so gross
-#ifndef SMTPREDIR 
-    int queuetimeout=::arg().asNum("queue-limit"); 
-#endif 
+#ifndef SMTPREDIR
+    int queuetimeout=::arg().asNum("queue-limit");
+#endif
     // ick ick ick!
     static int overloadQueueLength=::arg().asNum("overload-queue-length");
     for(;;) {
@@ -175,21 +175,21 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
       pthread_mutex_unlock(&us->q_lock);
 
       Question *q=QD.Q;
-      
+
 
       if(us->d_overloaded && qcount <= overloadQueueLength/10) {
         us->d_overloaded=false;
       }
-      
-      Answer *a;      
+
+      Answer *a;
 
 #ifndef SMTPREDIR
       if(queuetimeout && q->d_dt.udiff()>queuetimeout*1000) {
         delete q;
         S.inc("timedout-packets");
         continue;
-      }        
-#endif  
+      }
+#endif
       // this is the only point where we interact with the backend (synchronous)
       try {
         a=b->question(q); // a can be NULL!
@@ -219,17 +219,17 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
 
         us->answers.push_back(tuple);
         pthread_mutex_unlock(&us->a_lock);
-      
+
         //	  L<<"We have an answer to send! Trying to get to to_mut lock"<<endl;
-        pthread_mutex_lock(&us->to_mut); 
+        pthread_mutex_lock(&us->to_mut);
         // L<<"Yes, we got the lock, we can transmit! First we post"<<endl;
         us->numanswers.post();
         // L<<"And now we broadcast!"<<endl;
-        pthread_cond_broadcast(&us->to_cond); // for timeoutWait(); 
+        pthread_cond_broadcast(&us->to_cond); // for timeoutWait();
         pthread_mutex_unlock(&us->to_mut);
       }
     }
-    
+
     delete b;
   }
   catch(const AhuException &AE) {
@@ -270,7 +270,7 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
     AnswerData AD;
     AD.A=a;
     AD.created=time(0);
-    callback(AD); 
+    callback(AD);
     return 0;
   }
   else {
@@ -288,10 +288,10 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
      The solutionis to add '+2' below, but it is not a pretty solution. Better solution is
      to only account the number of threads within the Distributor, and not in the backend.
 
-     XXX FIXME 
+     XXX FIXME
   */
 
-  if(Backend::numRunning() < d_num_threads+2 && time(0)-d_last_started>5) { 
+  if(Backend::numRunning() < d_num_threads+2 && time(0)-d_last_started>5) {
     d_last_started=time(0);
     L<<"Distributor misses a thread ("<<Backend::numRunning()<<"<"<<d_num_threads + 2<<"), spawning new one"<<endl;
     pthread_t tid;
@@ -308,13 +308,13 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
   pthread_mutex_unlock(&q_lock);
 
   numquestions.post();
-  
+
   static int overloadQueueLength=::arg().asNum("overload-queue-length");
 
   if(!(nextid%50)) {
     int val;
     numquestions.getValue( &val );
-    
+
     if(!d_overloaded)
       d_overloaded = overloadQueueLength && (val > overloadQueueLength);
 
@@ -347,7 +347,7 @@ template<class Answer, class Question,class Backend>Answer* Distributor<Answer,Q
     {
       numanswers.wait();
       pthread_mutex_lock(&a_lock);
-      
+
       // search if the answer is there
       tuple_t tuple=answers.front();
       if(tuple.first==q)

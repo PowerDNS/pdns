@@ -212,7 +212,7 @@ int crypto_hashblocks(unsigned char *statebytes,const unsigned char *in,unsigned
     f += state[5];
     g += state[6];
     h += state[7];
-  
+
     state[0] = a;
     state[1] = b;
     state[2] = c;

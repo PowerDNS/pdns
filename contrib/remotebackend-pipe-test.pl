@@ -14,7 +14,7 @@ use JSON::Any;
 my $script = "/home/cmouse/projects/pdns-v6-autorev/rev.pl";
 
 ## These are used to send initialize method before your actual code
-my $initparams = { value => "foo", value2 => "bar" }; 
+my $initparams = { value => "foo", value2 => "bar" };
 
 ## END CONFIGURATION
 
@@ -45,9 +45,9 @@ if (@ARGV>1) {
 ## this lets you call whatever method with simple parameters
 ## like this:
 
-# perl remotebackend-pipe-test.pl lookup qtype SOA qname powerdns.com 
+# perl remotebackend-pipe-test.pl lookup qtype SOA qname powerdns.com
 
-## this will execute 
+## this will execute
 ## {"parameters":{"qname":"powerdns.com","qtype":"SOA"},"method":"lookup"}
 ## on your remotebackend
 

@@ -192,7 +192,7 @@ int mpi_set_bit( mpi *X, size_t pos, unsigned char val )
 
     if( val != 0 && val != 1 )
         return POLARSSL_ERR_MPI_BAD_INPUT_DATA;
-        
+
     if( X->n * biL <= pos )
     {
         if( val == 0 )
@@ -204,7 +204,7 @@ int mpi_set_bit( mpi *X, size_t pos, unsigned char val )
     X->p[off] = ( X->p[off] & ~( 0x01 << idx ) ) | ( val << idx );
 
 cleanup:
-    
+
     return( ret );
 }
 
@@ -733,7 +733,7 @@ int mpi_add_abs( mpi *X, const mpi *A, const mpi *B )
 
     if( X != A )
         MPI_CHK( mpi_copy( X, A ) );
-   
+
     /*
      * X should always be positive as a result of unsigned additions.
      */
@@ -929,7 +929,7 @@ int mpi_sub_int( mpi *X, const mpi *A, t_sint b )
 
 /*
  * Helper for mpi multiplication
- */ 
+ */
 static void mpi_mul_hlp( size_t i, t_uint *s, t_uint *d, t_uint b )
 {
     t_uint c = 0, t = 0;
@@ -1454,7 +1454,7 @@ int mpi_exp_mod( mpi *X, const mpi *A, const mpi *E, const mpi *N, mpi *_RR )
 
         for( i = 0; i < wsize - 1; i++ )
             mpi_montmul( &W[j], &W[j], N, mm, &T );
-    
+
         /*
          * W[i] = W[i - 1] * W[1]
          */
@@ -2077,15 +2077,15 @@ int mpi_self_test( int verbose )
         MPI_CHK( mpi_lset( &X, gcd_pairs[i][0] ) );
         MPI_CHK( mpi_lset( &Y, gcd_pairs[i][1] ) );
 
-	    MPI_CHK( mpi_gcd( &A, &X, &Y ) );
+        MPI_CHK( mpi_gcd( &A, &X, &Y ) );
 
-	    if( mpi_cmp_int( &A, gcd_pairs[i][2] ) != 0 )
-	    {
-		    if( verbose != 0 )
-			    printf( "failed at %d\n", i );
+        if( mpi_cmp_int( &A, gcd_pairs[i][2] ) != 0 )
+        {
+            if( verbose != 0 )
+                printf( "failed at %d\n", i );
 
-		    return( 1 );
-	    }
+            return( 1 );
+        }
     }
 
     if( verbose != 0 )

@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-// $Id$ 
+// $Id$
 /* (C) 2002 POWERDNS.COM BV */
 #ifndef DNS_HH
 #define DNS_HH
@@ -74,7 +74,7 @@ public:
   ~DNSResourceRecord(){};
 
   // data
-  
+
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
   uint16_t qclass; //!< class of this record
   string qname; //!< the name of this record, for example: www.powerdns.com
@@ -132,14 +132,14 @@ struct dnsrecordheader
   uint16_t d_clen;
 } GCCPACKATTRIBUTE;
 
-struct EDNS0Record 
-{ 
-        uint8_t extRCode, version; 
-        uint16_t Z; 
+struct EDNS0Record
+{
+        uint8_t extRCode, version;
+        uint16_t Z;
 } GCCPACKATTRIBUTE;
 #ifdef _MSC_VER
 #pragma pack (pop)
-#endif 
+#endif
 
 enum  {
         ns_t_invalid = 0,       /* Cookie. */
@@ -209,7 +209,7 @@ enum  {
 #elif __linux__
 # include <endian.h>
 
-#else  // with thanks to <arpa/nameser.h> 
+#else  // with thanks to <arpa/nameser.h>
 
 # define LITTLE_ENDIAN   1234    /* least-significant byte first (vax, pc) */
 # define BIG_ENDIAN      4321    /* most-significant byte first (IBM, net) */

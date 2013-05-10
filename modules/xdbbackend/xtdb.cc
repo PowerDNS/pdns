@@ -21,8 +21,8 @@ XTDBWrapper::XTDBWrapper(const string &fname)
   if(!s_db) {
     s_db = tdb_open(const_cast<char *>(fname.c_str()), 5213331,
         	  TDB_NOLOCK,
-        	  O_RDWR | O_CREAT , 0600); 
-    if(!s_db) 
+        	  O_RDWR | O_CREAT , 0600);
+    if(!s_db)
       throw XDBException("Unable to open database: "+string(strerror(errno)));
   }
   s_usecount++;
@@ -44,7 +44,7 @@ bool XTDBWrapper::get(const string &key, string &value)
   TDB_DATA vdatum;
 
   {
-    //Lock l(&s_lock);  
+    //Lock l(&s_lock);
     vdatum=tdb_fetch(s_db,kdatum);
   }
   if(!vdatum.dptr)
@@ -73,7 +73,7 @@ main()
   XDBWrapper *xdb=new XTDBWrapper("wuh");
   xdb->put("ahu","toffe gast");
   xdb->append("ahu",", echt waar!");
-  
+
   string tst;
   xdb->get("ahu",tst);
   cout<<"Database zegt over ahu: '"<<tst<<"'"<<endl;

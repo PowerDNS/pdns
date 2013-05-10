@@ -3,7 +3,7 @@
     Copyright (C) 2005 - 2010  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -37,7 +37,7 @@
   static DNSRecordContent* make(const string& zonedata);                                         \
   string getZoneRepresentation() const;                                                          \
   void toPacket(DNSPacketWriter& pw);                                                            \
-  template<class Convertor> void xfrPacket(Convertor& conv);                             
+  template<class Convertor> void xfrPacket(Convertor& conv);
 
 class NAPTRRecordContent : public DNSRecordContent
 {
@@ -318,7 +318,7 @@ private:
 class RRSIGRecordContent : public DNSRecordContent
 {
 public:
-  RRSIGRecordContent(); 
+  RRSIGRecordContent();
   includeboilerplate(RRSIG)
 
   uint16_t d_type;
@@ -331,7 +331,7 @@ public:
 
 
 //namespace {
-  struct soatimes 
+  struct soatimes
   {
     uint32_t serial;
     uint32_t refresh;
@@ -431,7 +431,7 @@ public:
 
   uint8_t d_version, d_size, d_horizpre, d_vertpre;
   uint32_t d_latitude, d_longitude, d_altitude;
-  
+
 private:
 };
 
@@ -471,7 +471,7 @@ private:
   string d_mboxfw;
 };
 
-class EUI48RecordContent : public DNSRecordContent 
+class EUI48RecordContent : public DNSRecordContent
 {
 public:
   EUI48RecordContent() : DNSRecordContent(ns_t_eui48) {};
@@ -482,7 +482,7 @@ public:
   string getZoneRepresentation() const;
 private:
  // storage for the bytes
- uint8_t d_eui48[6]; 
+ uint8_t d_eui48[6];
 };
 
 class EUI64RecordContent : public DNSRecordContent
@@ -547,8 +547,8 @@ string RNAME##RecordContent::getZoneRepresentation() const                      
   RecordTextWriter rtw(ret);                                                                       \
   const_cast<RNAME##RecordContent*>(this)->xfrPacket(rtw);                                         \
   return ret;                                                                                      \
-}                                                                                                  
-                                                                                           
+}
+
 
 #define boilerplate_conv(RNAME, TYPE, CONV)                       \
 boilerplate(RNAME, TYPE)                                          \
@@ -576,4 +576,4 @@ void reportOtherTypes();
 void reportAllTypes();
 void reportFancyTypes();
 
-#endif 
+#endif

@@ -1,9 +1,9 @@
-#!/bin/bash 
+#!/bin/bash
 
 # Internal script used to build daily snapshots (if there is a change in svn, that is)
 
 cd /home/ahu/auto-build
-if [ -e pdns ] 
+if [ -e pdns ]
 then
 	cd pdns
 	LATEST=$(svn info svn://svn.powerdns.com/pdns/ | awk  '/^Revision/ { print $2 }'  )

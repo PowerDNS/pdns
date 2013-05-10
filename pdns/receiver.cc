@@ -82,14 +82,14 @@ const char *funnytext=
 
 // start (sys)logging
 
-/** \var Logger L 
+/** \var Logger L
 \brief All logging is done via L, a Logger instance
 */
 
 
 /**
 \file receiver.cc
-\brief The main loop of powerdns 
+\brief The main loop of powerdns
 
 This file is where it all happens - main is here, as are the two pivotal threads qthread() and athread()
 */
@@ -98,11 +98,11 @@ void daemonize(void)
 {
   if(fork())
     exit(0); // bye bye
-  
-  setsid(); 
+
+  setsid();
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
-  if(i < 0) 
+  if(i < 0)
     L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
   else {
     dup2(i,0); /* stdin */
@@ -139,14 +139,14 @@ pthread_mutex_t g_guardian_lock = PTHREAD_MUTEX_INITIALIZER;
 static string DLRestHandler(const vector<string>&parts, pid_t ppid)
 {
   string line;
-  
+
   for(vector<string>::const_iterator i=parts.begin();i!=parts.end();++i) {
     if(i!=parts.begin())
       line.append(1,' ');
     line.append(*i);
   }
   line.append(1,'\n');
-  
+
   Lock l(&g_guardian_lock);
 
   try {
@@ -198,7 +198,7 @@ static int guardian(int argc, char **argv)
   for(;;) {
     int pid;
     setStatus("Launching child");
-    
+
     if(pipe(g_fd1)<0 || pipe(g_fd2)<0) {
       L<<Logger::Critical<<"Unable to open pipe for coprocess: "<<strerror(errno)<<endl;
       exit(1);
@@ -230,7 +230,7 @@ static int guardian(int argc, char **argv)
         newargv[n]=argv[n];
       }
       newargv[n]=0;
-      
+
       L<<Logger::Error<<"Guardian is launching an instance"<<endl;
       close(g_fd1[1]);
       fclose(g_fp); // this closes g_fd2[0] for us
@@ -269,7 +269,7 @@ static int guardian(int argc, char **argv)
 
         writePid();
       }
-      pthread_mutex_unlock(&g_guardian_lock);  
+      pthread_mutex_unlock(&g_guardian_lock);
       int status;
       cpid=pid;
       for(;;) {
@@ -283,7 +283,7 @@ static int guardian(int argc, char **argv)
         else if(ret) // something exited
           break;
         else { // child is alive
-          // execute some kind of ping here 
+          // execute some kind of ping here
           if(DLQuitPlease())
             takedown(1); // needs a parameter..
           setStatus("Child running on pid "+itoa(pid));
@@ -315,7 +315,7 @@ static int guardian(int argc, char **argv)
         setStatus("Child died because of signal "+itoa(sig));
         L<<Logger::Error<<"Our pdns instance ("<<pid<<") exited after signal "<<sig<<endl;
 #ifdef WCOREDUMP
-        if(WCOREDUMP(status)) 
+        if(WCOREDUMP(status))
           L<<Logger::Error<<"Dumped core"<<endl;
 #endif
 
@@ -346,22 +346,22 @@ static void UNIX_declareArguments()
 
 static void loadModules()
 {
-  if(!::arg()["load-modules"].empty()) { 
+  if(!::arg()["load-modules"].empty()) {
     vector<string>modules;
-    
+
     stringtok(modules,::arg()["load-modules"],",");
-    
+
     for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i) {
       bool res;
       const string &module=*i;
-      
+
       if(module.find(".")==string::npos)
         res=UeberBackend::loadmodule(::arg()["module-dir"]+"/lib"+module+"backend.so");
       else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
         res=UeberBackend::loadmodule(module);
       else
         res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
-      
+
       if(res==false) {
         L<<Logger::Error<<"receiver unable to load module "<<module<<endl;
         exit(1);
@@ -379,14 +379,14 @@ static void tbhandler(int num)
   size_t size;
   char **strings;
   size_t i;
-  
+
   size = backtrace (array, 20);
   strings = backtrace_symbols (array, size); //Need -rdynamic gcc (linker) flag for this to work
-  
+
   for (i = 0; i < size; i++) //skip useless functions
     L<<Logger::Error<<strings[i]<<endl;
-  
-  
+
+
   signal(SIGABRT, SIG_DFL);
   abort();//hopefully will give core
 
@@ -419,23 +419,23 @@ int main(int argc, char **argv)
     UNIX_declareArguments();
 
     ::arg().laxParse(argc,argv); // do a lax parse
-    
+
     if(::arg().mustDo("version")) {
       showProductVersion();
       exit(99);
     }
 
-    if(::arg()["config-name"]!="") 
+    if(::arg()["config-name"]!="")
       s_programname+="-"+::arg()["config-name"];
-    
+
     (void)theL(s_programname);
-    
+
     string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
 
     if(!::arg().mustDo("config") && !::arg().mustDo("no-config")) // "config" == print a configuration file
       ::arg().laxFile(configname.c_str());
-    
+
     ::arg().laxParse(argc,argv); // reparse so the commandline still wins
     if(!::arg()["logging-facility"].empty()) {
       int val=logFacilityToLOG(::arg().asNum("logging-facility") );
@@ -446,7 +446,7 @@ int main(int argc, char **argv)
     }
 
     L.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
-    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
+    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));
 
     if(::arg().mustDo("help") || ::arg().mustDo("config")) {
       ::arg().set("daemon")="no";
@@ -458,12 +458,12 @@ int main(int argc, char **argv)
         L.toConsole(Logger::Critical);
         daemonize();
       }
-      guardian(argc, argv);  
+      guardian(argc, argv);
       // never get here, guardian will reinvoke process
       cerr<<"Um, we did get here!"<<endl;
     }
 
-    
+
     // we really need to do work - either standalone or as an instance
 
 #ifdef __linux__
@@ -477,7 +477,7 @@ int main(int argc, char **argv)
 #endif
 
     seedRandom(::arg()["entropy-source"]);
-    
+
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
 
@@ -485,13 +485,13 @@ int main(int argc, char **argv)
       cerr<<"Fatal: non-option on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
       exit(99);
     }
-    
+
     if(::arg().mustDo("help")) {
       cerr<<"syntax:"<<endl<<endl;
       cerr<<::arg().helpstring(::arg()["help"])<<endl;
       exit(99);
     }
-    
+
     if(::arg().mustDo("config")) {
       cout<<::arg().configstring()<<endl;
       exit(99);
@@ -517,7 +517,7 @@ int main(int argc, char **argv)
     if(!BackendMakers().numLauncheable()) {
       L<<Logger::Error<<"Unable to launch, no backends configured for querying"<<endl;
       exit(99); // this isn't going to fix itself either
-    }    
+    }
     if(::arg().mustDo("daemon")) {
       L.toConsole(Logger::None);
       if(!isGuarded(argv))
@@ -532,16 +532,16 @@ int main(int argc, char **argv)
 
     if(isGuarded(argv)) {
       L<<Logger::Warning<<"This is a guarded instance of pdns"<<endl;
-      dl=new DynListener; // listens on stdin 
+      dl=new DynListener; // listens on stdin
     }
     else {
-      L<<Logger::Warning<<"This is a standalone pdns"<<endl; 
-      
+      L<<Logger::Warning<<"This is a standalone pdns"<<endl;
+
       if(::arg().mustDo("control-console"))
         dl=new DynListener();
       else
         dl=new DynListener(s_programname);
-      
+
       writePid();
     }
     DynListener::registerFunc("SHOW",&DLShowHandler, "show a specific statistic or * to get a list", "<statistic>");
@@ -569,15 +569,15 @@ int main(int argc, char **argv)
     ::arg().parse(argc,argv);
     UeberBackend::go();
     N=new UDPNameserver; // this fails when we are not root, throws exception
-    
+
     if(!::arg().mustDo("disable-tcp"))
-      TN=new TCPNameserver; 
+      TN=new TCPNameserver;
   }
   catch(const ArgException &A) {
     L<<Logger::Error<<"Fatal error: "<<A.reason<<endl;
     exit(1);
   }
-  
+
   declareStats();
   DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
 
@@ -591,7 +591,7 @@ int main(int argc, char **argv)
     if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because: "<<AE.reason<<endl;
     L<<Logger::Error<<"Exiting because: "<<AE.reason<<endl;
-  }      
+  }
   catch(std::exception &e) {
     if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because of STL error: "<<e.what()<<endl;
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
   }
 
   exit(1);
-  
+
 }
 
 

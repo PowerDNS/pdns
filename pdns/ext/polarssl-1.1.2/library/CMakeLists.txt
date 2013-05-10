@@ -31,8 +31,8 @@ set(src
      sha1.c
      sha2.c
      sha4.c
-     ssl_cli.c 
-     ssl_srv.c 
+     ssl_cli.c
+     ssl_srv.c
      ssl_tls.c
      timing.c
      version.c

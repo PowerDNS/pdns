@@ -4,7 +4,7 @@
 1	usa.example.com.	IN	NS	120	usa-ns2.usa.example.com.
 1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	NSEC3	86400	1 0 1 abcd VTP9NUQBEH436S7J0K8TI2A32MMKCUUL NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] example.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 2	usa-ns1.usa.example.com.	IN	A	120	192.168.4.1
 2	usa-ns2.usa.example.com.	IN	A	120	192.168.4.2
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0

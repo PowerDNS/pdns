@@ -7,10 +7,10 @@ message DNSResourceRecord {
   required int32 ttl = 4;
   optional int32 priority = 5;
   enum Place {
-	QUESTION = 0;
-	ANSWER = 1;
-	AUTHORITY = 2;
-	ADDITIONAL = 3;
+    QUESTION = 0;
+    ANSWER = 1;
+    AUTHORITY = 2;
+    ADDITIONAL = 3;
   }
   required Place place = 6;
 }

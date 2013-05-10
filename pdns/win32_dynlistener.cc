@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-// $Id$ 
+// $Id$
 /* (C) Copyright 2002 PowerDNS.COM BV */
 #include "utility.hh"
 #include <string>
@@ -55,7 +55,7 @@ DynListener::DynListener(const string &pname)
   if(!programname.empty()) {
     string pipename = "\\\\.\\pipe\\" + programname;
 
-    m_pipeHandle = CreateNamedPipe( 
+    m_pipeHandle = CreateNamedPipe(
       pipename.c_str(),
       PIPE_ACCESS_DUPLEX,
       PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
@@ -64,7 +64,7 @@ DynListener::DynListener(const string &pname)
       1024,
       5000,
       NULL );
-    
+
     if ( m_pipeHandle == INVALID_HANDLE_VALUE )
     {
       L << Logger::Error << "creating named pipe for dynlistener failed." << endl;
@@ -76,7 +76,7 @@ DynListener::DynListener(const string &pname)
   }
   else
     d_udp=false;
-  
+
 
 }
 
@@ -97,14 +97,14 @@ string DynListener::getLine()
 {
   char mesg[512];
   memset(mesg,0,512);
-  
+
   DWORD bytesRead;
 
   if ( !ConnectNamedPipe( m_pipeHandle, NULL ))
     throw AhuException( "Reading from named pipe failed." );
 
   if ( !ReadFile( m_pipeHandle, mesg, sizeof( mesg ), &bytesRead, NULL ))
-    throw AhuException( "Reading from named pipe failed." );  
+    throw AhuException( "Reading from named pipe failed." );
 
   return mesg;
 }
@@ -148,9 +148,9 @@ void DynListener::theListener()
         sendLine("Empty line");
         continue;
       }
-      parts[0] = toUpper( parts[0] ); 
+      parts[0] = toUpper( parts[0] );
       if(!d_funcdb[parts[0]]) {
-        if(d_restfunc) 
+        if(d_restfunc)
           sendLine((*d_restfunc)(parts,d_ppid));
         else
           sendLine("Unknown command: '"+parts[0]+"'");
@@ -174,4 +174,4 @@ void DynListener::theListener()
     }
 }
 
- 
+

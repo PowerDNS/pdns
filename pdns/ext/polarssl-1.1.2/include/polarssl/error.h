@@ -47,7 +47,7 @@
  *
  * Low-level module errors (0x007E-0x0002)
  *
- * Module   Nr  Codes assigned 
+ * Module   Nr  Codes assigned
  * MPI       7  0x0002-0x0010
  * ASN1      6  0x0014-0x001E
  * AES       2  0x0020-0x0022

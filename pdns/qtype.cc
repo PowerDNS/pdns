@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,7 +29,7 @@
 
 vector<QType::namenum> QType::names;
 // XXX FIXME we need to do something with initializer order here!
-QType::init QType::initializer; 
+QType::init QType::initializer;
 
 QType::QType()
 {
@@ -63,14 +63,14 @@ int QType::chartocode(const char *p)
   for(pos=names.begin(); pos < names.end(); ++pos)
     if(pos->first == p)
       return pos->second;
-  
+
   if(*p=='#') {
     return atoi(p+1);
   }
 
   if(boost::starts_with(p, "TYPE"))
     return atoi(p+4);
-    
+
   return 0;
 }
 

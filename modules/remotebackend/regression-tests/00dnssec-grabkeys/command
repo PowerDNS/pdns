@@ -2,7 +2,7 @@
 set pipefail
 rm -f trustedkeys
 rm -f unbound-host.conf
-for zone in example.com 
+for zone in example.com
 do
        drill -p $port -o rd -D dnskey $zone @$nameserver | grep -v '^;' | grep -v AwEAAarTiHhPgvD28WCN8UBXcEcf8f >> trustedkeys
        echo "stub-zone:" >> unbound-host.conf

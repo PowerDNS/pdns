@@ -36,17 +36,17 @@
 #include "namespaces.hh"
 #include "dnspacket.hh"
 
-/** This is the main class. It opens a socket on udp port 53 and waits for packets. Those packets can 
+/** This is the main class. It opens a socket on udp port 53 and waits for packets. Those packets can
     be retrieved with the receive() member function, which returns a DNSPacket.
 
     Some sample code in main():
     \code
     typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
     DNSDistributor D(6); // the big dispatcher!
-    
+
     pthread_t qtid, atid;
     N=new UDPNameserver;
-    
+
     pthread_create(&qtid,0,qthread,static_cast<void *>(&D)); // receives packets
     pthread_create(&atid,0,athread,static_cast<void *>(&D)); // sends packets
     \endcode
@@ -56,9 +56,9 @@
     void *qthread(void *p)
     {
       DNSDistributor *D=static_cast<DNSDistributor *>(p);
-    
+
       DNSPacket *P;
-    
+
       while((P=N->receive())) // receive a packet
       {
          D->question(P); // and give to the distributor, they will delete it
@@ -76,7 +76,7 @@ public:
   UDPNameserver();  //!< Opens the socket
   DNSPacket *receive(DNSPacket *prefilled=0); //!< call this in a while or for(;;) loop to get packets
   static void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
-  
+
 private:
   vector<int> d_sockets;
   void bindIPv4();

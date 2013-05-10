@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,7 +17,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "utility.hh" 
+#include "utility.hh"
 #include <iostream>
 #include <errno.h>
 #include <map>
@@ -88,7 +88,7 @@ bool operator<(const PacketID& a, const PacketID& b)
 MTasker<PacketID,string>* MT;
 
 /* these two functions are used by LWRes */
-int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id) 
+int asendto(const char *data, int len, int flags, struct sockaddr *toaddr, int addrlen, int id)
 {
   return sendto(d_clientsock, data, len, flags, toaddr, addrlen);
 }
@@ -101,7 +101,7 @@ int arecvfrom(char *data, int len, int flags, struct sockaddr *toaddr, Utility::
 
   string packet;
   if(!MT->waitEvent(pident,&packet,1)) { // timeout
-    return 0; 
+    return 0;
   }
 
   *d_len=packet.size();
@@ -130,7 +130,7 @@ void replaceCache(const string &qname, const QType& qt,  const set<DNSResourceRe
 {
 
   // bogus code to generate root with very low ttl
-  /*  
+  /*
   if((0 && qname.empty()) || qname.rfind(".root-servers.net")==1) {
     cout<<"qname: '"<<qname<<"'"<<endl;
     set<DNSResourceRecord> changed;
@@ -151,7 +151,7 @@ void doPrune(void)
   unsigned int names=0, records=0;
 
   for(cache_t::iterator j=cache.begin();j!=cache.end();){
-    for(set<DNSResourceRecord>::iterator k=j->second.begin();k!=j->second.end();) 
+    for(set<DNSResourceRecord>::iterator k=j->second.begin();k!=j->second.end();)
       if((unsigned int)k->ttl < (unsigned int)time(0)) {
         j->second.erase(k++);
         records++;
@@ -174,14 +174,14 @@ void doPrune(void)
 void primeHints(void)
 {
   // prime root cache
-  static char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
+  static char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53",
         	     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   DNSResourceRecord arr, nsrr;
   arr.qtype=QType::A;
   arr.ttl=time(0)+3600000;
   nsrr.qtype=QType::NS;
   nsrr.ttl=time(0)+3600000;
-  
+
   set<DNSResourceRecord>nsset;
   for(char c='a';c<='m';++c) {
     static char templ[40];
@@ -244,7 +244,7 @@ void startDoResolve(void *p)
       L<<"': "<<ntohs(R->d.ancount)<<" answers, "<<ntohs(R->d.arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
         sr.d_throttledqueries<<" throttled, rcode="<<res<<endl;
     }
-    
+
     sr.d_outqueries ? cacheMisses++ : cacheHits++;
 
     delete R;
@@ -262,23 +262,23 @@ void makeClientSocket()
   d_clientsock=socket(AF_INET, SOCK_DGRAM,0);
   Utility::setCloseOnExec(d_clientsock);
 
-  if(d_clientsock<0) 
+  if(d_clientsock<0)
     throw AhuException("Making a socket for resolver: "+stringerror());
-  
+
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
-  
+
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = INADDR_ANY;
-  
+
   int tries=10;
   while(--tries) {
     uint16_t port=10000+Utility::random()%10000;
-    sin.sin_port = htons(port); 
-    
-    if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0) 
+    sin.sin_port = htons(port);
+
+    if (bind(d_clientsock, (struct sockaddr *)&sin, sizeof(sin)) >= 0)
       break;
-    
+
   }
   if(!tries)
     throw AhuException("Resolver binding to local socket: "+stringerror());
@@ -289,12 +289,12 @@ void makeTCPServerSocket()
   d_tcpserversock=socket(AF_INET, SOCK_STREAM,0);
   Utility::setCloseOnExec(d_tcpserversock);
 
-  if(d_tcpserversock<0) 
+  if(d_tcpserversock<0)
     throw AhuException("Making a server socket for resolver: "+stringerror());
-  
+
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
-  
+
   sin.sin_family = AF_INET;
 
   if(arg()["local-address"]=="0.0.0.0") {
@@ -302,18 +302,18 @@ void makeTCPServerSocket()
   }
   else {
     if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address"); 
+      throw AhuException("Unable to resolve local address");
   }
 
-  sin.sin_port = htons(arg().asNum("local-port")); 
-    
-  if (bind(d_tcpserversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
+  sin.sin_port = htons(arg().asNum("local-port"));
+
+  if (bind(d_tcpserversock, (struct sockaddr *)&sin, sizeof(sin))<0)
     throw AhuException("TCP Resolver binding to server socket: "+stringerror());
-  
+
   int tmp=1;
   if(setsockopt(d_tcpserversock,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
     L<<Logger::Error<<"Setsockopt failed"<<endl;
-    exit(1);  
+    exit(1);
   }
 
   listen(d_tcpserversock, 128);
@@ -323,12 +323,12 @@ void makeServerSocket()
 {
   d_serversock=socket(AF_INET, SOCK_DGRAM,0);
   Utility::setCloseOnExec(d_serversock);
-  if(d_serversock<0) 
+  if(d_serversock<0)
     throw AhuException("Making a server socket for resolver: "+stringerror());
-  
+
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
-  
+
   sin.sin_family = AF_INET;
 
   if(arg()["local-address"]=="0.0.0.0") {
@@ -336,15 +336,15 @@ void makeServerSocket()
     sin.sin_addr.s_addr = INADDR_ANY;
   }
   else {
-    
+
     if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address"); 
+      throw AhuException("Unable to resolve local address");
 
   }
 
-  sin.sin_port = htons(arg().asNum("local-port")); 
-    
-  if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
+  sin.sin_port = htons(arg().asNum("local-port"));
+
+  if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0)
     throw AhuException("Resolver binding to server socket: "+stringerror());
   L<<Logger::Error<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
 }
@@ -374,11 +374,11 @@ void houseKeeping(void *)
 {
   static time_t last_stat, last_rootupdate, last_prune;
 
-  if(time(0)-last_stat>30) { 
+  if(time(0)-last_stat>30) {
     doPrune();
     last_prune=time(0);
   }
-  if(time(0)-last_stat>1800) { 
+  if(time(0)-last_stat>1800) {
     doStats();
     last_stat=time(0);
   }
@@ -415,7 +415,7 @@ BOOL WINAPI consoleHandler( DWORD ctrl )
 
   // This will never be reached.
   return true;
-} 
+}
 
 
 int serviceMain( int argc, char *argv[] )
@@ -425,21 +425,21 @@ int serviceMain( int argc, char *argv[] )
     makeClientSocket();
     makeServerSocket();
     makeTCPServerSocket();
-        
+
     MT=new MTasker<PacketID,string>(100000);
 
     char data[1500];
     struct sockaddr_in fromaddr;
-    
+
     PacketID pident;
-    primeHints();    
+    primeHints();
     L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
     vector<TCPConnection> tcpconnections;
     for(;;) {
       while(MT->schedule()); // housekeeping, let threads do their thing
-      
-      if(!((counter++)%100)) 
+
+      if(!((counter++)%100))
         MT->makeThread(houseKeeping,0);
       if(statsWanted)
         doStats();
@@ -447,11 +447,11 @@ int serviceMain( int argc, char *argv[] )
       Utility::socklen_t addrlen=sizeof(fromaddr);
       int d_len;
       DNSPacket P;
-      
+
       struct timeval tv;
       tv.tv_sec=0;
       tv.tv_usec=500000;
-      
+
       fd_set readfds;
       FD_ZERO( &readfds );
       FD_SET( d_clientsock, &readfds );
@@ -466,22 +466,22 @@ int serviceMain( int argc, char *argv[] )
 
       /* this should listen on a TCP port as well for new connections,  */
       int selret = select(  fdmax + 1, &readfds, NULL, NULL, &tv );
-      if(selret<=0) 
-        if (selret == -1 && errno!=EINTR) 
+      if(selret<=0)
+        if (selret == -1 && errno!=EINTR)
           throw AhuException("Select returned: "+stringerror());
         else
           continue;
 
       if(FD_ISSET(d_clientsock,&readfds)) { // do we have a question response?
-        d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-        if(d_len<0) 
+        d_len=recvfrom(d_clientsock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
+        if(d_len<0)
           continue;
-        
+
         P.setRemote((struct sockaddr *)&fromaddr, addrlen);
         if(P.parse(data,d_len)<0) {
           L<<Logger::Error<<"Unparseable packet from remote server "<<P.getRemote()<<endl;
         }
-        else { 
+        else {
           if(P.d.qr) {
 
             pident.remote=fromaddr;
@@ -490,20 +490,20 @@ int serviceMain( int argc, char *argv[] )
             packet.assign(data,d_len);
             MT->sendEvent(pident,&packet);
           }
-          else 
+          else
             L<<Logger::Warning<<"Ignoring question on outgoing socket from "<<P.getRemote()<<endl;
         }
       }
-      
+
       if(FD_ISSET(d_serversock,&readfds)) { // do we have a new question on udp?
-        d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);    
-        if(d_len<0) 
+        d_len=recvfrom(d_serversock, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
+        if(d_len<0)
           continue;
          P.setRemote((struct sockaddr *)&fromaddr, addrlen);
         if(P.parse(data,d_len)<0) {
           L<<Logger::Error<<"Unparseable packet from remote client "<<P.getRemote()<<endl;
         }
-        else { 
+        else {
           if(P.d.qr)
             L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
           else {
@@ -520,7 +520,7 @@ int serviceMain( int argc, char *argv[] )
   Utility::socklen_t addrlen=sizeof(addr);
         int newsock=accept(d_tcpserversock, (struct sockaddr*)&addr, &addrlen);
         Utility::setNonBlocking(newsock);
-        
+
         if(newsock>0) {
           TCPConnection tc;
           tc.fd=newsock;
@@ -537,7 +537,7 @@ int serviceMain( int argc, char *argv[] )
             int bytes=recv(i->fd,i->data,2,0);
             if(bytes==1)
               i->state=TCPConnection::BYTE1;
-            if(bytes==2) { 
+            if(bytes==2) {
               i->qlen=(i->data[0]<<8)+i->data[1];
               i->bytesread=0;
               i->state=TCPConnection::GETQUESTION;
@@ -562,7 +562,7 @@ int serviceMain( int argc, char *argv[] )
               tcpconnections.erase(i);
               break;
             }
-            
+
           }
           else if(i->state==TCPConnection::GETQUESTION) {
             int bytes=recv(i->fd,i->data + i->bytesread,i->qlen - i->bytesread,0);
@@ -582,7 +582,7 @@ int serviceMain( int argc, char *argv[] )
         	tcpconnections.erase(i);
         	break;
               }
-              else { 
+              else {
         	P.setSocket(i->fd);
         	P.setRemote((struct sockaddr *)&i->remote,sizeof(i->remote));
         	if(P.d.qr)
@@ -607,7 +607,7 @@ int serviceMain( int argc, char *argv[] )
   catch(...) {
     L<<Logger::Error<<"any other exception in main: "<<endl;
   }
-  
+
 #ifdef WIN32
   WSACleanup();
 #endif // WIN32
@@ -615,7 +615,7 @@ int serviceMain( int argc, char *argv[] )
   return 0;
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
   RecursorService recursor;
 
@@ -646,9 +646,9 @@ int main(int argc, char **argv)
     arg().setSwitch( "unregister-service", "Unregister the service" )= "no";
     arg().setSwitch( "ntservice", "Run as service" )= "no";
 
-    arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes"; 
-    arg().setSwitch( "use-logfile", "Use a log file" )= "no"; 
-    arg().setSwitch( "logfile", "Filename of the log file" )= "recursor.log"; 
+    arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes";
+    arg().setSwitch( "use-logfile", "Use a log file" )= "no";
+    arg().setSwitch( "logfile", "Filename of the log file" )= "recursor.log";
 
     L.toConsole(Logger::Warning);
     arg().laxParse(argc,argv); // do a lax parse
@@ -670,7 +670,7 @@ int main(int argc, char **argv)
     string configname=arg()["config-dir"]+"/recursor.conf";
     cleanSlashes(configname);
 
-    if(!arg().file(configname.c_str())) 
+    if(!arg().file(configname.c_str()))
       L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
 
     arg().parse(argc,argv);
@@ -692,7 +692,7 @@ int main(int argc, char **argv)
       recursor.unregisterService();
       exit( 0 );
     }
-    
+
     arg().set("delegation-only")=toLower(arg()["delegation-only"]);
 
     if(arg().mustDo("help")) {
@@ -710,13 +710,13 @@ int main(int argc, char **argv)
       L.toNTLog();
 
     if ( arg().mustDo( "use-logfile" ))
-      L.toFile( arg()[ "logfile" ] ); 
-  
+      L.toFile( arg()[ "logfile" ] );
+
     // Register console control handler.
     if ( !arg().mustDo( "ntservice" ))
       SetConsoleCtrlHandler( consoleHandler, true );
-  
-    RecursorService::instance()->start( argc, argv, arg().mustDo( "ntservice" )); 
+
+    RecursorService::instance()->start( argc, argv, arg().mustDo( "ntservice" ));
 
   }
   catch(AhuException &ae) {
@@ -728,6 +728,6 @@ int main(int argc, char **argv)
   catch(...) {
     L<<Logger::Error<<"any other exception in main: "<<endl;
   }
-    
+
   return 0;
 }

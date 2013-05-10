@@ -2,12 +2,12 @@
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='minimal.com.', qtype=SOA
 0	minimal.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
-2	.	IN	OPT	0	
+2	.	IN	OPT	0
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='minimal.com.', qtype=SOA
 0	minimal.com.	IN	NS	120	ns1.example.com.
 0	minimal.com.	IN	NS	120	ns2.example.com.
-2	.	IN	OPT	0	
+2	.	IN	OPT	0
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='minimal.com.', qtype=NS
 0	minimal.com.	IN	NS	120	ns1.example.com.

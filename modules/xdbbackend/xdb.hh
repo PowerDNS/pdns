@@ -26,4 +26,4 @@ public:
   typedef enum {ReadOnly, ReadWrite} Mode;
 };
 
-#endif 
+#endif

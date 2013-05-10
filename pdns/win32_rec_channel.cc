@@ -12,7 +12,7 @@ RecursorControlChannel::RecursorControlChannel()
 {
 }
 
-RecursorControlChannel::~RecursorControlChannel() 
+RecursorControlChannel::~RecursorControlChannel()
 {
 }
 

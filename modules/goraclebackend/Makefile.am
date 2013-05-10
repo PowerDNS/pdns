@@ -2,7 +2,7 @@ AM_CPPFLAGS=$(ORACLE_CFLAGS) @THREADFLAGS@
 lib_LTLIBRARIES = libgoraclebackend.la
 #bin_PROGRAMS = soracle
 
-#soracle_SOURCES=soracle.cc soracle.hh 
+#soracle_SOURCES=soracle.cc soracle.hh
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 
@@ -16,4 +16,4 @@ libgoraclebackend_la_LDFLAGS=-module -avoid-version $(ORACLE_LIBS)
 #	-Wl,-Bstatic -lpq++ -lpq -Wl,-Bdynamic -lssl -lcrypt -lcrypto
 
 
-	
+

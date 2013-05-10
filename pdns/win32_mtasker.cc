@@ -53,7 +53,7 @@
     \section events Events
     By default, Events are recognized by an int and their value is also an int.
     This can be overridden by specifying the EventKey and EventVal template parameters.
-   
+
     An event can be a keypress, but also a UDP packet, or a bit of data from a TCP socket. The
     sample code provided works with keypresses, but that is just a not very useful example.
 
@@ -80,7 +80,7 @@ int main()
 
   for(int i=0;i<10;++i)
     MT.makeThread(menuHandler,(void *)i);
- 
+
   for(;;) {
     while(MT.schedule()); // do everything we can do
     if(MT.noProcesses())  // exit if no processes are left
@@ -88,7 +88,7 @@ int main()
 
     if(!fgets(line,sizeof(line),stdin))
       break;
-   
+
     MT.sendEvent(*line-'0');
   }
 }
@@ -127,16 +127,16 @@ int main()
 //! puts a thread to sleep waiting until a specified event arrives
 /** Threads can call waitEvent to register that they are waiting on an event with a certain key.
     If so desired, the event can carry data which is returned in val in case that is non-zero.
-   
+
     Furthermore, a timeout can be specified in seconds.
-   
+
     Only one thread can be waiting on a key, results of trying to have more threads
     waiting on the same key are undefined.
-   
+
     \param key Event key to wait for. Needs to match up to a key reported to sendEvent
     \param val If non-zero, the value of the event will be stored in *val
     \param timeout If non-zero, number of seconds to wait for an event.
-   
+
     \return returns -1 in case of error, 0 in case of timeout, 1 in case of an answer
 */
 template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEvent(EventKey &key, EventVal *val, unsigned int timeout)
@@ -177,24 +177,24 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
 */
 template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEvent(const EventKey& key, const EventVal* val)
 {
- 
+
  typename waiters_t::iterator waiter=d_waiters.find(key);
 
   if(waiter == d_waiters.end()) {
     //    cout<<"Event sent nobody was waiting for!"<<endl;
     return 0;
   }
-  
+
   d_waitstatus=Answer;
   if(val)
     d_waitval=*val;
- 
+
   LPVOID userspace=waiter->context;
   d_tid=waiter->tid;         // set tid
   d_eventkey=waiter->key;        // pass waitEvent the exact key it was woken for
   d_waiters.erase(waiter);             // removes the waitpoint
   SwitchToFiber(userspace);         // swaps back to the above point 'A'
- 
+
   return 1;
 }
 
@@ -225,9 +225,9 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
     - reported an event
     - called makeThread
     - want to have threads running waitEvent() to get a timeout if enough time passed
-   
+
     \return Returns if there is more work scheduled and recalling schedule now would be useful
-     
+
 */
 template<class Key, class Val>bool MTasker<Key,Val>::schedule()
 {
@@ -254,7 +254,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule()
       if(i->ttd && (unsigned int)i->ttd < now) {
         d_waitstatus=TimeOut;
         SwitchToFiber(i->context);
-        ttdindex.erase(i++);                  // removes the waitpoint 
+        ttdindex.erase(i++);                  // removes the waitpoint
       }
       else if(i->ttd)
         break;

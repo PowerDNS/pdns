@@ -13,7 +13,7 @@ string stringerror()
 }
 
 
-string escape(const string &name) 
+string escape(const string &name)
 {
   string a;
 
@@ -36,7 +36,7 @@ void doAList(int domain_id, const string &qname, const string &qtype, const stri
   if(qtype!="A")
     return;
   else arecords[qname]=content;
-  
+
 }
 
 void doInsert(int domain_id, const string &qname, const string &qtype, const string &content, int ttl)
@@ -60,7 +60,7 @@ void doInsert(int domain_id, const string &qname, const string &qtype, const str
   ostringstream ostr;
   ostr<<escape(qname)<<"|"<<qtype<<"|"<<escape(rcontent)<<"|"<<3600<<"|"<<0<<"|"<<domain_id<<"|"<<0<<"|";
   writestr+=ostr.str();
-    
+
   lastname=qname;
 }
 
@@ -79,15 +79,15 @@ void walk(FILE *fp, insertFunc *ifp)
     //      cout<<"id="<<domain_id<<endl;
     char *p=line;
     while(*p++!='\'');
-    
+
     char *q=p;
     while(*++p!='\'');
-    
+
     *p=0;
     //      cout<<"qdomain='"<<q<<"'"<<endl;
     string qname=q;
     p=q;
-    
+
     while(*p++!='\'');
     q=p;
     while(*++p!='\'');
@@ -95,7 +95,7 @@ void walk(FILE *fp, insertFunc *ifp)
     //      cout<<"type='"<<q<<"'"<<endl;
     string qtype=q;
     p=q;
-    
+
     while(*p++!='\'');
     q=p;
     while(*++p!='\'');
@@ -103,9 +103,9 @@ void walk(FILE *fp, insertFunc *ifp)
     //      cout<<"content='"<<q<<"'"<<endl;
     string content=q;
     p=q;
-  
+
     (*ifp)(domain_id,qname,qtype,content,3600);
-  
+
   }
   (*ifp)(0,"","","",0);
 }
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 
   try {
     db=new XTDBWrapper("./powerdns.xdb"); //, XDBWrapper::ReadWrite);
-    
+
     walk(fp,&doAList);
     cerr<<"Number of glue records: "<<arecords.size()<<endl;
     fseek(fp,0,SEEK_SET);
@@ -130,6 +130,6 @@ int main(int argc, char **argv)
   catch(XDBException &e) {
     cerr<<"DB Error: "<<e.what<<endl;
   }
-  
-  
+
+
 }

@@ -4,6 +4,6 @@
 1	a.something.wtest.com.	IN	RRSIG	86400	NSEC 8 4 86400 [expiry] [inception] [keytag] wtest.com. ...
 1	wtest.com.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] wtest.com. ...
 1	wtest.com.	IN	SOA	3600	ns1.wtest.com. ahu.example.com. 2005092501 28800 7200 604800 86400
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='t.something.wtest.com.', qtype=TXT

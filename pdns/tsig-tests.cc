@@ -35,11 +35,11 @@ try
   }
 
   vector<uint8_t> packet;
-  
+
   DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
 
   pw.getHeader()->id=htons(0x4831);
-  
+
   string key;
   B64Decode("Syq9L9WrBWdxBC+HxKok2g==", key);
 
@@ -58,7 +58,7 @@ try
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
 #if 0
   sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
-  
+
   string reply;
   sock.recvFrom(reply, dest);
 
@@ -68,23 +68,23 @@ try
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   shared_ptr<TSIGRecordContent> trc2;
-  
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type, i->first.d_class);
     cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
-    
+
     if(i->first.d_type == QType::TSIG)
       trc2 = boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
   }
 
-  if(mdp.getTSIGPos()) {    
+  if(mdp.getTSIGPos()) {
     string message = makeTSIGMessageFromTSIGPacket(reply, mdp.getTSIGPos(), keyname, trc, trc.d_mac, false); // insert our question MAC
-    
+
     string hmac2=calculateMD5HMAC(key, message);
     cerr<<"Calculated mac: "<<Base64Encode(hmac2)<<endl;
     if(hmac2 == trc2->d_mac)
       cerr<<"MATCH!"<<endl;
-    else 
+    else
       cerr<<"Mismatch!"<<endl;
   }
 #endif

@@ -3,7 +3,7 @@
     Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
@@ -64,7 +64,7 @@ string DLRQuitHandler(const vector<string>&parts, Utility::pid_t ppid)
     GenerateConsoleCtrlEvent( CTRL_C_EVENT, 0 );
   else
     PDNSService::instance()->stop();
-  
+
 #endif // WIN32
 
   return "Exiting";
@@ -112,7 +112,7 @@ string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  extern PacketCache PC;  
+  extern PacketCache PC;
   DNSSECKeeper dk;
   ostringstream os;
   int ret=0;
@@ -134,12 +134,12 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  extern PacketCache PC;  
+  extern PacketCache PC;
   map<char,int> counts=PC.getCounts();
   ostringstream os;
   bool first=true;
   for(map<char,int>::const_iterator i=counts.begin();i!=counts.end();++i) {
-    if(!first) 
+    if(!first)
       os<<", ";
     first=false;
 
@@ -151,7 +151,7 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
       os<<"non-recursive packets: ";
     else if(i->first=='r')
       os<<"recursive packets: ";
-    else 
+    else
       os<<"unknown: ";
 
     os<<i->second;
@@ -169,7 +169,7 @@ string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(parts.size()!=3) {
     return "Syntax: set variable value";
   }
-  
+
   for(p=whitelist;*p;p++)
     if(*p==parts[1])
       break;
@@ -199,7 +199,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   PacketHandler P;
   if(!P.getBackend()->getDomainInfo(domain, di))
     return "Domain '"+domain+"' unknown";
-  
+
   if(di.masters.empty())
     return "Domain '"+domain+"' is not a slave domain (or has no master defined)";
 
@@ -223,7 +223,7 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   {
     return "Unable to convert '"+parts[2]+"' to an IP address";
   }
-  
+
   L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<parts[1]<<"' received"<<endl;
   Communicator.notify(parts[1],parts[2]);
   return "Added to queue";

@@ -216,7 +216,7 @@ AES_RETURN aes_encrypt_key256(const unsigned char *key, aes_encrypt_ctx cx[1])
 #if defined( AES_VAR )
 
 AES_RETURN aes_encrypt_key(const unsigned char *key, int key_len, aes_encrypt_ctx cx[1])
-{   
+{
     switch(key_len)
     {
     case 16: case 128: return aes_encrypt_key128(key, cx);

@@ -3,7 +3,7 @@
     Copyright (C) 2002-2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -29,10 +29,10 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
       string kind;
       dk.getFromMeta(qname, "SOA-EDIT", kind);
       if(kind.empty())
-	return false;
+        return false;
       SOAData sd;
       fillSOAData(rr.content, sd);
-      if(pdns_iequals(kind,"INCEPTION")) {        
+      if(pdns_iequals(kind,"INCEPTION")) {
         time_t inception = getStartOfWeek();
         struct tm tm;
         localtime_r(&inception, &tm);
@@ -41,24 +41,24 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
         string newserdate=(fmt % (tm.tm_year+1900) % (tm.tm_mon +1 )% tm.tm_mday % 1).str();
         sd.serial = lexical_cast<uint32_t>(newserdate);
       }
-      else if(pdns_iequals(kind,"INCEPTION-WEEK")) {        
+      else if(pdns_iequals(kind,"INCEPTION-WEEK")) {
         time_t inception = getStartOfWeek();
         sd.serial = inception / (7*86400);
       }
-      else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {        
+      else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {
         time_t inception = getStartOfWeek();
         sd.serial += inception / (7*86400);
       }
-      else if(pdns_iequals(kind,"EPOCH")) {        
+      else if(pdns_iequals(kind,"EPOCH")) {
         sd.serial = time(0);
       }
-      else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {        
+      else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {
        time_t inception = getStartOfWeek();
        if (sd.serial < inception) {
           sd.serial = inception;
         }
       }
-      rr.content = serializeSOAData(sd);      
+      rr.content = serializeSOAData(sd);
       return true;
     }
   }

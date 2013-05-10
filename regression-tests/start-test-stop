@@ -65,7 +65,7 @@ gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 opendbx-sqlite3
 tinydns
 mydns
-remotebackend-pipe remotebackend-unix remotebackend-http 
+remotebackend-pipe remotebackend-unix remotebackend-http
 remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
@@ -73,7 +73,7 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 add -presigned to any bind, gmysql or gsqlite3 test (except narrow)
 to test presigned operation
 
-add 'wait' (literally) after the context to not kill 
+add 'wait' (literally) after the context to not kill
 pdns_server immediately after testing
 __EOF__
 	exit 1
@@ -103,7 +103,7 @@ fi
 case $context in
 		bind)
 			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
-				--no-shuffle --launch=bind --bind-config=./named.conf                \
+				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--fancy-records --send-root-referral    \
 				--cache-ttl=0 --no-config &
 			skipreasons=nodnssec
@@ -258,7 +258,7 @@ __EOF__
 					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
 					../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
 				fi
-				
+
 
 			done
 
@@ -286,7 +286,7 @@ __EOF__
 				extracontexts="dnssec"
 			fi
 
-			;;	
+			;;
 		gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout)
 			[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
 			[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
@@ -362,7 +362,7 @@ __EOF__
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
 			skipreasons=nodnssec
-			;;	
+			;;
 
 
 		gsqlite3-nodnssec)
@@ -404,7 +404,7 @@ __EOF__
 				--opendbx-database=pdns-opendbx.sqlite3 &
 			skipreasons="nodnssec noent"
 
-			;;									
+			;;
 		gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
 			rm -f pdns.sqlite3
 			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
@@ -447,17 +447,17 @@ __EOF__
 				--no-shuffle --launch=tinydns \
 			 --cache-ttl=0 --no-config \
 				--send-root-referral \
-				--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
+				--tinydns-dbfile=../modules/tinydnsbackend/data.cdb &
 			skipreasons="nodnssec noent"
 			;;
 		remotebackend-*)
 			remotetype=$(echo $context | cut -d- -f 2)
 			remotesec=$(echo $context | cut -d- -f 3)
 			narrow=$(echo $context | cut -d- -f 4)
-                        testsdir=../modules/remotebackend/regression-tests/
+			testsdir=../modules/remotebackend/regression-tests/
 
-                        # cleanup unbound-host.conf to avoid failures
-                        rm -f unbound-host.conf
+			# cleanup unbound-host.conf to avoid failures
+			rm -f unbound-host.conf
 
 			case $remotetype in
 			http)
@@ -488,14 +488,14 @@ __EOF__
 			if [ "$remotesec" = "nsec3" ]; then
 				remotedosec="yes"
 				if [ "$narrow" = "narrow" ]; then
-	                                extracontexts="dnssec nsec3 narrow"
+					extracontexts="dnssec nsec3 narrow"
 					skipreasons="narrow nsec3"
-        			else 
+				else
 					extracontexts="dnssec nsec3"
 					skipreasons="nsec3"
 				fi
-	                        remote_add_param="--remote-dnssec=yes"
-                        else 
+				remote_add_param="--remote-dnssec=yes"
+			else
 				if [ "$remotesec" = "dnssec" ]; then
 					remotedosec="yes"
 					remote_add_param="--remote-dnssec=yes"
@@ -515,31 +515,31 @@ EOF
 				--query-logging --loglevel=9 --cache-ttl=0 --no-config \
 				--send-root-referral \
 				--remote-connection-string="$connstr" $remote_add_param &
-                        
+
 			echo "Setting up test database..."
 			# setup test database
 			rm -f $testsdir/remote.sqlite3
 			sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
 			chmod 0666 $testsdir/remote.sqlite3
 			if [ "$remotedosec" = "yes" ]; then
-                                echo "remote-dnssec=yes" >> pdns-remote.conf
-                                ../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
-                                ../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
-                                ../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
-                                ../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
-                                ../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
-                                ../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
+				echo "remote-dnssec=yes" >> pdns-remote.conf
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
+				../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
 
-                                ../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
-                                ../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
-                                ../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
-                                ../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
-                                ../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
-                                ../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
+				../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
 
 				if [ "$remotesec" = "nsec3" ]; then
 					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 example.com
-                                        ../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
+					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
 				fi
 
 			fi
@@ -552,7 +552,7 @@ EOF
 			./toxml $context
 			exit 1
 esac
-		
+
 export port
 export context
 export extracontexts
@@ -648,13 +648,13 @@ then
 		do
 			rm -rf $zone-slave
 		done
-		
+
 		rm -f dnssec-slave.sqlite3
 		../pdns/pdnssec --config-dir=. create-bind-db dnssec-slave.sqlite3
 		port=$((port+100))
 
 		$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
-			--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave         \
+			--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave \
 			--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
 			--cache-ttl=0 --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'

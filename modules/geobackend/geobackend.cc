@@ -1,7 +1,7 @@
 /*        geobackend.cc
  *         Copyright (C) 2004 Mark Bergsma <mark@nedworks.org>
  *        	This software is licensed under the terms of the GPL, version 2.
- * 
+ *
  *         $Id$
  */
 
@@ -48,7 +48,7 @@ GeoRecord::GeoRecord() : origin(".") {}
 
 GeoBackend::GeoBackend(const string &suffix) : forceReload(false) {
         setArgPrefix("geo" + suffix);
-        
+
         // Make sure only one (the first) backend instance is initializing static things
         Lock lock(&startup_lock);
 
@@ -57,9 +57,9 @@ GeoBackend::GeoBackend(const string &suffix) : forceReload(false) {
         if (!first)
         	return;
         first = false;
-        
+
         ipt = NULL;
-        
+
         loadZoneName();
         loadTTLValues();
         loadSOAValues();
@@ -69,11 +69,11 @@ GeoBackend::GeoBackend(const string &suffix) : forceReload(false) {
 
 GeoBackend::~GeoBackend() {
         Lock lock(&startup_lock);
-        backendcount--;	
+        backendcount--;
         if (backendcount == 0) {
         	for (map<string, GeoRecord*>::iterator i = georecords.begin(); i != georecords.end(); ++i)
         		delete i->second;
-        	
+
         	if (ipt != NULL) {
         		delete ipt;
         		ipt = NULL;
@@ -84,38 +84,38 @@ GeoBackend::~GeoBackend() {
 bool GeoBackend::getSOA(const string &name, SOAData &soadata, DNSPacket *p) {
         if (toLower(name) != toLower(zoneName) || soaMasterServer.empty() || soaHostmaster.empty())
         	return false;
-        
+
         soadata.nameserver = soaMasterServer;
         soadata.hostmaster = soaHostmaster;
         soadata.domain_id = 1;	// We serve only one zone
         soadata.db = this;
-        
+
         // These values are bogus for backends like this one
         soadata.serial = 1;
         soadata.refresh = 86400;
         soadata.retry = 2*soadata.refresh;
         soadata.expire = 7*soadata.refresh;
-        soadata.default_ttl = 3600;	
-        
+        soadata.default_ttl = 3600;
+
         return true;
 }
 
 void GeoBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p, int zoneId) {
         answers.clear();
-        
+
         if ((qtype.getCode() == QType::NS || qtype.getCode() == QType::ANY)
         	&& toLower(qdomain) == toLower(zoneName))
         	queueNSRecords(qdomain);
-        
+
         if (qtype.getCode() == QType::ANY || qtype.getCode() == QType::CNAME)
         	answerGeoRecord(qtype, qdomain, pkt_p);
-        
+
         if ((qtype.getCode() == QType::ANY || qtype.getCode() == QType::A)
         	&& toLower(qdomain) == "localhost." + toLower(zoneName))
         	answerLocalhostRecord(qdomain, pkt_p);
-        
-        if (!answers.empty())	
-        	i_answers = answers.begin();		
+
+        if (!answers.empty())
+        	i_answers = answers.begin();
 }
 
 bool GeoBackend::list(const string &target, int domain_id) {
@@ -123,7 +123,7 @@ bool GeoBackend::list(const string &target, int domain_id) {
         queueNSRecords(zoneName);
         answerLocalhostRecord("localhost."+zoneName, NULL);
         queueGeoRecords();
-        
+
         if (!answers.empty())
         	i_answers = answers.begin();
         return true;
@@ -131,7 +131,7 @@ bool GeoBackend::list(const string &target, int domain_id) {
 
 bool GeoBackend::get(DNSResourceRecord &r) {
         if (answers.empty()) return false;
-        
+
         if (i_answers != answers.end()) {
         	// FIXME DNSResourceRecord could do with a copy constructor
         	DNSResourceRecord *ir = *i_answers;
@@ -143,7 +143,7 @@ bool GeoBackend::get(DNSResourceRecord &r) {
         	r.domain_id = ir->domain_id;
         	r.last_modified = ir->last_modified;
           r.auth = 1;
-        			
+
         	delete ir;
         	i_answers++;
         	return true;
@@ -164,10 +164,10 @@ void GeoBackend::rediscover(string *status) {
         // Store current time for use after discovery
         struct timeval nowtime;
         gettimeofday(&nowtime, NULL);
-        
+
         loadIPLocationMap();
         loadGeoRecords();
-        
+
         // Use time at start of discovery for checking whether files have changed
         // next time
         lastDiscoverTime = nowtime.tv_sec;
@@ -175,14 +175,14 @@ void GeoBackend::rediscover(string *status) {
 
 // Private methods
 
-void GeoBackend::answerGeoRecord(const QType &qtype, const string &qdomain, DNSPacket *p) {        	
+void GeoBackend::answerGeoRecord(const QType &qtype, const string &qdomain, DNSPacket *p) {
         const string lqdomain = toLower(qdomain);
 
-        if (georecords.count(lqdomain) == 0) 
+        if (georecords.count(lqdomain) == 0)
         	return;
-        
+
         GeoRecord *gr = georecords[lqdomain];
-        				
+
         // Try to find the isocode of the country corresponding to the source ip
         // If that fails, use the default
         short isocode = 0;
@@ -195,16 +195,16 @@ void GeoBackend::answerGeoRecord(const QType &qtype, const string &qdomain, DNSP
         			<< p->getRemote()	<< " as IPv4 prefix" << endl;
         	}
         }
-        
+
         DNSResourceRecord *rr = new DNSResourceRecord;
         string target = resolveTarget(*gr, isocode);
         fillGeoResourceRecord(qdomain, target, rr);
-        
+
         L << Logger::Debug << logprefix << "Serving " << qdomain << " "
         	<< rr->qtype.getName() << " " << target << " to " << p->getRemote()
         	<< " (" << isocode << ")" << endl;
-        	
-        answers.push_back(rr);		
+
+        answers.push_back(rr);
 }
 
 void GeoBackend::answerLocalhostRecord(const string &qdomain, DNSPacket *p) {
@@ -215,10 +215,10 @@ void GeoBackend::answerLocalhostRecord(const string &qdomain, DNSPacket *p) {
         	}
         	catch(ParsePrefixException &e) {}	// Ignore
         }
-        
+
         ostringstream target;
         target << "127.0." << ((isocode >> 8) & 0xff) << "." << (isocode & 0xff);
-        
+
         DNSResourceRecord *rr = new DNSResourceRecord;
         rr->qtype = QType::A;
         rr->qname = qdomain;
@@ -227,13 +227,13 @@ void GeoBackend::answerLocalhostRecord(const string &qdomain, DNSPacket *p) {
         rr->ttl = geoTTL;
         rr->domain_id = 1;
         rr->last_modified = 0;
-        
-        answers.push_back(rr);	
+
+        answers.push_back(rr);
 }
 
 void GeoBackend::queueNSRecords(const string &qname) {
         // nsRecords may be empty, e.g. when used in overlay mode
-        
+
         for (vector<string>::const_iterator i = nsRecords.begin(); i != nsRecords.end(); ++i) {
         	DNSResourceRecord *rr = new DNSResourceRecord;
         	rr->qtype = QType::NS;
@@ -243,16 +243,16 @@ void GeoBackend::queueNSRecords(const string &qname) {
         	rr->ttl = nsTTL;
         	rr->domain_id = 1;
         	rr->last_modified = 0;
-        	
+
         	answers.push_back(rr);
-        }	
+        }
 }
 
 void GeoBackend::queueGeoRecords() {
         for (map<string, GeoRecord*>::const_iterator i = georecords.begin(); i != georecords.end(); ++i) {
         	GeoRecord *gr = i->second;
         	DNSResourceRecord *rr = new DNSResourceRecord;
-        	
+
         	fillGeoResourceRecord(gr->qname, resolveTarget(*gr, 0), rr);
         	answers.push_back(rr);
         }
@@ -272,21 +272,21 @@ const string GeoBackend::resolveTarget(const GeoRecord &gr, short isocode) const
         // If no mapping exists for this isocode, use the default
         if (gr.dirmap.count(isocode) == 0)
         	isocode = 0;
-        
-        // Append $ORIGIN only if target does not end with a dot		
+
+        // Append $ORIGIN only if target does not end with a dot
         string target(gr.dirmap.find(isocode)->second);
         if (target[target.size()-1] != '.')
         	target += gr.origin;
         else
         	target.resize(target.size()-1);
-        	
+
         return target;
 }
 
 void GeoBackend::loadZoneName() {
         zoneName = getArg("zone");
         if (zoneName.empty())
-        	throw AhuException("zone parameter must be set");	
+        	throw AhuException("zone parameter must be set");
 }
 
 void GeoBackend::loadTTLValues() {
@@ -297,16 +297,16 @@ void GeoBackend::loadTTLValues() {
 void GeoBackend::loadSOAValues() {
         vector<string> values;
         stringtok(values, getArg("soa-values"), " ,");
-        
+
         if (values.empty())
         	// No SOA values, probably no SOA record wanted because of overlay mode
         	return;
-        
+
         if (values.size() != 2)
         	throw AhuException("Invalid number of soa-values specified in configuration");
-        
+
         soaMasterServer = values[0];
-        soaHostmaster = values[1];	
+        soaHostmaster = values[1];
 }
 
 void GeoBackend::loadNSRecords() {
@@ -315,10 +315,10 @@ void GeoBackend::loadNSRecords() {
 
 void GeoBackend::loadIPLocationMap() {
         string filename = getArg("ip-map-zonefile");
-        
+
         if (filename.empty())
         	throw AhuException("No IP map zonefile specified in configuration");
-        
+
         // Stat file to see if it has changed since last read
         struct stat stbuf;
         if (stat(filename.c_str(), &stbuf) != 0 || !S_ISREG(stbuf.st_mode)) {
@@ -331,33 +331,33 @@ void GeoBackend::loadIPLocationMap() {
         		return;
         	}
         }
-        
+
         if (stbuf.st_mtime < lastDiscoverTime && !forceReload)	// File hasn't changed
         	return;
-        
+
         std::ifstream ifs(filename.c_str(), std::ios::in);
         if (!ifs)
         	throw AhuException("Unable to open IP map zonefile for read: " + stringerror());
-        	
+
         L << Logger::Info << logprefix << "Parsing IP map zonefile" << endl;
-        
+
         IPPrefTree *new_ipt = new IPPrefTree;
         string line;
         int linenr = 0, entries = 0;
-        
+
         while (getline(ifs, line)) {
-        	linenr++;		
+        	linenr++;
         	trim_right(line);	// Erase whitespace
-        	
+
         	if (line[0] == '#')
         		continue;	// Skip comments
 
         	vector<string> words;
         	stringtok(words, line, " :");
-        	
+
         	if (words.empty() || words[0] == "$SOA")
         		continue;
-        		
+
         	// Assume words[0] is a prefix. Feed it to the ip prefix tree
         	try {
         		// Parse country code nr
@@ -366,7 +366,7 @@ void GeoBackend::loadIPLocationMap() {
         				<< "Country code number is missing at line " << linenr << endl;
         			continue;
         		}
-        		
+
         		struct in_addr addr;
         		if (inet_aton(words[1].c_str(), &addr) < 0) {
         			L << Logger::Warning << logprefix << "Invalid IP address '"
@@ -374,7 +374,7 @@ void GeoBackend::loadIPLocationMap() {
         			continue;
         		}
         		short value = ntohl(addr.s_addr) & 0x7fff;
-        		
+
         		new_ipt->add(words[0], value);
         		entries++;
         	}
@@ -384,21 +384,21 @@ void GeoBackend::loadIPLocationMap() {
         	}
         }
         ifs.close();
-        
-        L << Logger::Info << logprefix << "Finished parsing IP map zonefile: added " 
+
+        L << Logger::Info << logprefix << "Finished parsing IP map zonefile: added "
         	<< entries << " prefixes, stored in " << new_ipt->getNodeCount()
         	<< " nodes using " << new_ipt->getMemoryUsage() << " bytes of memory"
         	<< endl;
-        
+
         // Swap the new tree with the old tree
         IPPrefTree *oldipt = NULL;
         {
         	Lock iptl(&ipt_lock);
-        	
+
         	oldipt = ipt;
         	ipt = new_ipt;
         }
-        
+
         // Delete the old ip prefix tree
         if (oldipt != NULL)
         	delete oldipt;
@@ -406,15 +406,15 @@ void GeoBackend::loadIPLocationMap() {
 
 void GeoBackend::loadGeoRecords() {
         vector<GeoRecord*> newgrs;
-        	
+
         vector<string> maps;
         stringtok(maps, getArg("maps"), " ,");
         for (vector<string>::const_iterator i = maps.begin(); i != maps.end(); ++i) {
         	struct stat stbuf;
-        	
+
         	if (stat(i->c_str(), &stbuf) != 0)
         		continue;
-        	
+
         	if (S_ISREG(stbuf.st_mode)) {
         		// Regular file
         		GeoRecord *gr = new GeoRecord;
@@ -429,30 +429,30 @@ void GeoBackend::loadGeoRecords() {
         				string filename(*i);
         				if (filename[filename.size()-1] != '/')
         					filename += '/';
-        				
+
         				if (dent->d_name[0] == '.')
         					continue;	// skip filenames starting with a dot
-        					
+
         				filename += dent->d_name;
-        				
+
         				if (stat(filename.c_str(), &stbuf) != 0 || !S_ISREG(stbuf.st_mode))
         					continue;	// skip everything but regular files
-        					
+
         				GeoRecord *gr = new GeoRecord;
         				gr->directorfile = filename;
         				newgrs.push_back(gr);
         			}
         			closedir(dir);
-        		}	
+        		}
         	}
         }
-        
+
         loadDirectorMaps(newgrs);
 }
 
 void GeoBackend::loadDirectorMaps(const vector<GeoRecord*> &newgrs) {
         map<string, GeoRecord*> new_georecords;
-        
+
         int mapcount = 0;
         for (vector<GeoRecord*>::const_iterator i = newgrs.begin(); i != newgrs.end(); ++i) {
         	GeoRecord *gr = *i;
@@ -471,11 +471,11 @@ void GeoBackend::loadDirectorMaps(const vector<GeoRecord*> &newgrs) {
         		delete gr;
         	}
         }
-        
+
         // Swap the new georecord map with the old one.
         georecords.swap(new_georecords);
-        	
-        L << Logger::Notice << logprefix << "Finished parsing " << mapcount 
+
+        L << Logger::Notice << logprefix << "Finished parsing " << mapcount
         	<< " director map files, "	<< newgrs.size() - mapcount << " failures" << endl;
 
         // Cleanup old georecords
@@ -485,18 +485,18 @@ void GeoBackend::loadDirectorMaps(const vector<GeoRecord*> &newgrs) {
 
 void GeoBackend::loadDirectorMap(GeoRecord &gr) {
         L << Logger::Info << logprefix << "Parsing director map " << gr.directorfile << endl;
-        
+
         std::ifstream ifs(gr.directorfile.c_str(), std::ios::in);
         if (!ifs)
         	throw AhuException("Error opening file.");
-        
+
         string line;
         while(getline(ifs, line)) {
         	trim_right(line);	// Erase whitespace
 
         	if (line.empty() || line[0] == '#')
         		continue;	// Skip empty lines and comments
-        
+
         	// Parse $RECORD
         	if (line.substr(0, 7) == "$RECORD") {
         		gr.qname = line.substr(8);
@@ -511,28 +511,28 @@ void GeoBackend::loadDirectorMap(GeoRecord &gr) {
         		}
         		continue;
         	}
-        
+
         	// Parse $ORIGIN
         	if (line.substr(0, 7) == "$ORIGIN") {
         		gr.origin = line.substr(8);
         		trim_right_if(gr.origin, boost::is_any_of(" \t."));
         		gr.origin.insert(0, ".");
         		continue;
-        	}	
-        	
+        	}
+
         	std::istringstream ii(line);
         	short isocode;
         	string target;
         	ii >> isocode >> target;
-        	
+
         	gr.dirmap[isocode] = target;
         }
-        
+
         // Do some checks on the validness of this director map / georecord
-        
+
         if (gr.qname.empty())
         	throw AhuException("$RECORD line empty or missing, georecord qname unknown");
-        
+
         if (gr.dirmap.count(0) == 0)
         	throw AhuException("No default (0) director map entry");
 }

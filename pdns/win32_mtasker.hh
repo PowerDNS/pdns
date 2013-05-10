@@ -23,14 +23,14 @@
 #include <windows.h>
 
 #include <queue>
-#include <vector> 
+#include <vector>
 #include <map>
 #include <time.h>
 #include <boost/multi_index_container.hpp>
 
 struct KeyTag {};
 
-//! The main MTasker class    
+//! The main MTasker class
 /** The main MTasker class. See the main page for more information.
     \param EventKey Type of the key with which events are to be identified. Defaults to int.
     \param EventVal Type of the content or value of an event. Defaults to int. Cannot be set to void.
@@ -56,8 +56,8 @@ public:
 
   waiters_t d_waiters;
 
-private:  
-  LPVOID d_kernel;     
+private:
+  LPVOID d_kernel;
   std::queue<int> d_runQueue;
   std::queue<int> d_zombiesQueue;
 
@@ -73,9 +73,9 @@ private:
 
 public:
   //! Constructor
-  /** Constructor with a small default stacksize. If any of your threads exceeds this stack, your application will crash. 
+  /** Constructor with a small default stacksize. If any of your threads exceeds this stack, your application will crash.
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
-      the use of new/delete is suggested. 
+      the use of new/delete is suggested.
    */
   MTasker(size_t stacksize=8192) : d_stacksize(stacksize)
   {
@@ -83,7 +83,7 @@ public:
     d_maxtid=0;
   }
 
-  typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
+  typedef void tfunc_t(void *); //!< type of the pointer that starts a thread
   int waitEvent(EventKey &key, EventVal *val=0, unsigned int timeout=0);
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val=0);
@@ -92,18 +92,18 @@ public:
   bool schedule();
   bool noProcesses();
   unsigned int numProcesses();
-  int getTid(); 
+  int getTid();
 
 private:
   //! This structure holds some fiber data that is passed to the threadWrapper.
   struct ThreadParam
   {
-    tfunc_t *tf; 
-    MTasker *self; 
-    int tid; 
-    LPVOID val; 
+    tfunc_t *tf;
+    MTasker *self;
+    int tid;
+    LPVOID val;
   };
- 
+
   static void WINAPI threadWrapper( LPVOID lpFiberParameter );
 };
 

@@ -8,7 +8,7 @@
 #include "dnssecinfra.hh"
 using namespace CryptoPP;
 
-template<class HASHER, class CURVE, int BITS> 
+template<class HASHER, class CURVE, int BITS>
 class CryptoPPECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
@@ -18,8 +18,8 @@ public:
   string getName() const { return "CryptoPP ECDSA"; }
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& msg) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& msg) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& msg, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -48,7 +48,7 @@ template<class HASHER, class CURVE, int BITS> void CryptoPPECDSADNSCryptoKeyEngi
   CryptoPP::OID oid=CURVE();
   privateKey->Initialize( prng, oid);
   d_key= shared_ptr<privatekey_t>(privateKey);
-    
+
   publickey_t* publicKey = new publickey_t();
   d_key->MakePublicKey(*publicKey);
   d_pubkey = shared_ptr<publickey_t>(publicKey);
@@ -66,16 +66,16 @@ DNSCryptoKeyEngine::storvector_t CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BI
    /* Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   string algostr=lexical_cast<string>(d_algorithm);
-  if(d_algorithm==13) 
+  if(d_algorithm==13)
     algostr+=" (ECDSAP256SHA256)";
   else if(d_algorithm==14)
     algostr+=" (ECDSAP384SHA384)";
   else
     algostr+=" (?)";
-  
+
   storvector_t storvect;
   storvect.push_back(make_pair("Algorithm", algostr));
-  
+
   const CryptoPP::Integer& pe=d_key->GetPrivateExponent();
   unsigned char buffer[pe.MinEncodedSize()];
   pe.Encode(buffer, pe.MinEncodedSize());
@@ -114,22 +114,22 @@ std::string CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::getPublicKeyStri
 
   const CryptoPP::Integer& qx = q.x;
   const CryptoPP::Integer& qy = q.y;
-  
+
   unsigned char buffer[qx.MinEncodedSize() + qy.MinEncodedSize()];
   qx.Encode(buffer, qx.MinEncodedSize());
   qy.Encode(buffer + qx.MinEncodedSize(), qy.MinEncodedSize());
-  
+
   return string((char*)buffer, sizeof(buffer));
 }
 template<class HASHER, class CURVE, int BITS>
-void CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::fromPublicKeyString(const std::string& rawString) 
+void CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::fromPublicKeyString(const std::string& rawString)
 {
   CryptoPP::Integer x, y;
   x.Decode((byte*)rawString.c_str(), rawString.size()/2);
   y.Decode((byte*)rawString.c_str() + rawString.size()/2, rawString.size()/2);
-  
+
   ECP::Point q(x,y);
-  
+
   publickey_t* pubkey = new publickey_t;
   CryptoPP::OID oid=CURVE();
   pubkey->Initialize(oid, q);
@@ -138,7 +138,7 @@ void CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::fromPublicKeyString(con
 }
 template<class HASHER, class CURVE, int BITS>
 std::string CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::sign(const std::string& msg) const
-{  
+{
   string signature;
   AutoSeededRandomPool prng;
   StringSource( msg, true /*pump all*/,

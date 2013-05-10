@@ -6,6 +6,6 @@
 1	npce7etkesd3umcst08psfape1cnno5o.Test.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.com. ...
 1	nqf0papl2qmp38upr87f930kmebc0o0n.Test.com.	IN	NSEC3	86400	1 [flags] 1 abcd NQF0PAPL2QMP38UPR87F930KMEBC0O0P
 1	nqf0papl2qmp38upr87f930kmebc0o0n.Test.com.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='z.Test.com.', qtype=A

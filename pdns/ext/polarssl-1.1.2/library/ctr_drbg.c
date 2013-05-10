@@ -92,12 +92,12 @@ void ctr_drbg_set_entropy_len( ctr_drbg_context *ctx, size_t len )
 {
     ctx->entropy_len = len;
 }
-    
+
 void ctr_drbg_set_reseed_interval( ctr_drbg_context *ctx, int interval )
 {
     ctx->reseed_interval = interval;
 }
-    
+
 int block_cipher_df( unsigned char *output,
                      const unsigned char *data, size_t data_len )
 {
@@ -154,7 +154,7 @@ int block_cipher_df( unsigned char *output,
 
             aes_crypt_ecb( &aes_ctx, AES_ENCRYPT, chain, chain );
         }
-        
+
         memcpy( tmp + j, chain, CTR_DRBG_BLOCKSIZE );
 
         /*
@@ -276,7 +276,7 @@ int ctr_drbg_reseed( ctr_drbg_context *ctx,
 
     return( 0 );
 }
-    
+
 int ctr_drbg_random_with_add( void *p_rng,
                               unsigned char *output, size_t output_len,
                               const unsigned char *additional, size_t add_len )
@@ -395,9 +395,9 @@ int ctr_drbg_update_seed_file( ctr_drbg_context *ctx, const char *path )
     }
 
     ctr_drbg_update( ctx, buf, n );
-    
+
     fclose( f );
-    
+
     return( ctr_drbg_write_seed_file( ctx, path ) );
 }
 #endif /* POLARSSL_FS_IO */
@@ -502,7 +502,7 @@ int ctr_drbg_self_test( int verbose )
 
         return( 1 );
     }
-    
+
     if( verbose != 0 )
         printf( "passed\n" );
 
@@ -552,7 +552,7 @@ int ctr_drbg_self_test( int verbose )
 
         return( 1 );
     }
-    
+
     if( verbose != 0 )
         printf( "passed\n" );
 

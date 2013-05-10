@@ -77,7 +77,7 @@
  * By default we assume at least a 10 char label, a minimum radix of 10
  * (decimal) and a maximum of 4096 bit numbers (1234 decimal chars).
  */
-#define POLARSSL_MPI_READ_BUFFER_SIZE                       1250   
+#define POLARSSL_MPI_READ_BUFFER_SIZE                       1250
 
 /*
  * Define the base integer type, architecture-wise
@@ -529,7 +529,7 @@ int mpi_mod_int( t_uint *r, const mpi *A, t_sint b );
 /**
  * \brief          Sliding-window exponentiation: X = A^E mod N
  *
- * \param X        Destination MPI 
+ * \param X        Destination MPI
  * \param A        Left-hand MPI
  * \param E        Exponent MPI
  * \param N        Modular MPI

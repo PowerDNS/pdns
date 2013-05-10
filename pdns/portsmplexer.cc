@@ -83,12 +83,12 @@ int PortsFDMultiplexer::run(struct timeval* now)
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
-  
+
   struct timespec timeout;
   timeout.tv_sec=0; timeout.tv_nsec=500000000;
   unsigned int numevents=1;
   int ret= port_getn(d_portfd, d_pevents.get(), min(PORT_MAX_LIST, s_maxevents), &numevents, &timeout);
-  
+
   /* port_getn has an unusual API - (ret == -1, errno == ETIME) can
      mean partial success; you must check (*numevents) in this case
      and process anything in there, otherwise you'll never see any
@@ -110,20 +110,20 @@ int PortsFDMultiplexer::run(struct timeval* now)
 
   for(unsigned int n=0; n < numevents; ++n) {
     d_iter=d_readCallbacks.find(d_pevents[n].portev_object);
-    
+
     if(d_iter != d_readCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
-      if(d_readCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, 
+      if(d_readCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object,
         		POLLIN, 0) < 0)
         throw FDMultiplexerException("Unable to add fd back to ports (read): "+stringerror());
       continue; // so we don't find ourselves as writable again
     }
 
     d_iter=d_writeCallbacks.find(d_pevents[n].portev_object);
-    
+
     if(d_iter != d_writeCallbacks.end()) {
       d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
-      if(d_writeCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, 
+      if(d_writeCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object,
         		POLLOUT, 0) < 0)
         throw FDMultiplexerException("Unable to add fd back to ports (write): "+stringerror());
     }
@@ -149,7 +149,7 @@ void acceptData(int fd, boost::any& parameter)
 int main()
 {
   Socket s(InterNetwork, Datagram);
-  
+
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
 

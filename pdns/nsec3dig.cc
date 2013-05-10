@@ -91,7 +91,7 @@ try
     throw AhuException("tcp write failed");
 
   sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
-  
+
   if(sock.read((char *) &len, 2) != 2)
     throw AhuException("tcp read failed");
 
@@ -120,7 +120,7 @@ try
   nsec3set nsec3s;
   string nsec3salt;
   int nsec3iters = 0;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {     
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     if(i->first.d_type == QType::NSEC3)
     {
       // cerr<<"got nsec3 ["<<i->first.d_label<<"]"<<endl;

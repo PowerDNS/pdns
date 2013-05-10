@@ -7,7 +7,7 @@ AM_CPPFLAGS=@THREADFLAGS@ $(BOOST_CPPFLAGS) $(LIBCURL_CFLAGS) -I../../pdns/ext/r
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 lib_LTLIBRARIES = libremotebackend.la
 
-libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc 
+libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc
 
 libremotebackend_la_LDFLAGS=-module -avoid-version
 libremotebackend_la_LIBS=$(LIBCURL_LIBS)

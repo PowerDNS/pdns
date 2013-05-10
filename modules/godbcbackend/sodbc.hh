@@ -19,7 +19,7 @@
 //! ODBC SSql implementation for use with the Generic ODBC Backend.
 class SODBC : public SSql
 {
-private:  
+private:
   //! Column type.
   struct column_t
   {
@@ -31,9 +31,9 @@ private:
 
   bool m_log;               //!< Should we log?
   bool m_busy;              //!< Are we busy executing a query?
-  
-  SQLHDBC   m_connection;   //!< Database connection handle. 
-  SQLHENV   m_environment;  //!< Database environment handle  
+
+  SQLHDBC   m_connection;   //!< Database connection handle.
+  SQLHENV   m_environment;  //!< Database environment handle
   SQLHSTMT  m_statement;    //!< Database statement handle.
 
   //! Column info.
@@ -54,10 +54,10 @@ public:
   \param username Username to use.
   \param password Password to use.
   */
-  SODBC( 
-    const std::string & dsn       = "PowerDNS", 
-    const std::string & username  = "", 
-    const std::string & password  = "" 
+  SODBC(
+    const std::string & dsn       = "PowerDNS",
+    const std::string & username  = "",
+    const std::string & password  = ""
     );
 
   //! Destructor.

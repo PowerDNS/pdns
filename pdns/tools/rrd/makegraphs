@@ -1,5 +1,5 @@
 #!/bin/bash
-WWWPREFIX=. 
+WWWPREFIX=.
 WSIZE=800
 HSIZE=250
 
@@ -9,9 +9,9 @@ GRAPHOPTS=--slope-mode
 function makeGraphs()
 {
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/questions-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Questions and answers per second" \
-	-v "packets" \
-	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
+        -t "Questions and answers per second" \
+        -v "packets" \
+        DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
         DEF:nxdomainanswers=pdns_recursor.rrd:nxdomain-answers:AVERAGE \
         DEF:noerroranswers=pdns_recursor.rrd:noerror-answers:AVERAGE \
         DEF:servfailanswers=pdns_recursor.rrd:servfail-answers:AVERAGE \
@@ -21,40 +21,40 @@ function makeGraphs()
         STACK:servfailanswers#ff0000:"servfail answers/s"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/tcp-questions-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "TCP questions and answers per second, unauthorized packets/s" \
-	-v "packets" \
-	DEF:tcpquestions=pdns_recursor.rrd:tcp-questions:AVERAGE  \
-	DEF:unauthudp=pdns_recursor.rrd:unauthorized-udp:AVERAGE  \
-	DEF:unauthtcp=pdns_recursor.rrd:unauthorized-tcp:AVERAGE  \
+        -t "TCP questions and answers per second, unauthorized packets/s" \
+        -v "packets" \
+        DEF:tcpquestions=pdns_recursor.rrd:tcp-questions:AVERAGE  \
+        DEF:unauthudp=pdns_recursor.rrd:unauthorized-udp:AVERAGE  \
+        DEF:unauthtcp=pdns_recursor.rrd:unauthorized-tcp:AVERAGE  \
         LINE1:tcpquestions#0000ff:"tcp questions/s" \
-	LINE1:unauthudp#ff0000:"udp unauth/s"  \
-        LINE1:unauthtcp#00ff00:"tcp unauth/s" 
+        LINE1:unauthudp#ff0000:"udp unauth/s"  \
+        LINE1:unauthtcp#00ff00:"tcp unauth/s"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/packet-errors-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Packet errors per second" \
-	-v "packets" \
-	DEF:clientparseerrors=pdns_recursor.rrd:client-parse-errors:AVERAGE  \
-	DEF:serverparseerrors=pdns_recursor.rrd:server-parse-errors:AVERAGE  \
-	DEF:unexpected=pdns_recursor.rrd:unexpected-packets:AVERAGE  \
-	DEF:udpoverruns=pdns_recursor.rrd:udp-overruns:AVERAGE  \
+        -t "Packet errors per second" \
+        -v "packets" \
+        DEF:clientparseerrors=pdns_recursor.rrd:client-parse-errors:AVERAGE  \
+        DEF:serverparseerrors=pdns_recursor.rrd:server-parse-errors:AVERAGE  \
+        DEF:unexpected=pdns_recursor.rrd:unexpected-packets:AVERAGE  \
+        DEF:udpoverruns=pdns_recursor.rrd:udp-overruns:AVERAGE  \
         LINE1:clientparseerrors#0000ff:"bad packets from clients" \
         LINE1:serverparseerrors#00ff00:"bad packets from servers" \
         LINE1:unexpected#ff0000:"unexpected packets from servers" \
-        LINE1:udpoverruns#ff00ff:"udp overruns from remotes"       
+        LINE1:udpoverruns#ff00ff:"udp overruns from remotes"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/limits-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Limitations per second" \
-	-v "events" \
-	DEF:resourcelimits=pdns_recursor.rrd:resource-limits:AVERAGE  \
-	DEF:overcapacities=pdns_recursor.rrd:over-capacity-drops:AVERAGE  \
+        -t "Limitations per second" \
+        -v "events" \
+        DEF:resourcelimits=pdns_recursor.rrd:resource-limits:AVERAGE  \
+        DEF:overcapacities=pdns_recursor.rrd:over-capacity-drops:AVERAGE  \
         LINE1:resourcelimits#ff0000:"outqueries dropped because of resource limits" \
-        LINE1:overcapacities#0000ff:"questions dropped because of mthread limit"      
+        LINE1:overcapacities#0000ff:"questions dropped because of mthread limit"
 
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/latencies-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Questions answered within latency" \
-	-v "questions" \
-	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
+        -t "Questions answered within latency" \
+        -v "questions" \
+        DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
         DEF:answers00=pdns_recursor.rrd:packetcache-hits:AVERAGE \
         DEF:answers01=pdns_recursor.rrd:answers0-1:AVERAGE \
         DEF:answers110=pdns_recursor.rrd:answers1-10:AVERAGE \
@@ -67,75 +67,75 @@ function makeGraphs()
         STACK:answers110#0000ff:"<10 ms" \
         STACK:answers10100#ff9900:"<100 ms" \
         STACK:answers1001000#ffff00:"<1000 ms" \
-        STACK:answersslow#ff0000:">1000 ms"       
+        STACK:answersslow#ff0000:">1000 ms"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/qoutq-$2.png -w $WSIZE -h $HSIZE -l 0 \
-	-t "Questions/outqueries per second" \
-	-v "packets" \
-	DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
+        -t "Questions/outqueries per second" \
+        -v "packets" \
+        DEF:questions=pdns_recursor.rrd:questions:AVERAGE  \
         DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE \
         LINE1:questions#ff0000:"questions/s"\
         LINE1:alloutqueries#00ff00:"outqueries/s"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/qa-latency-$2.png -w $WSIZE -h $HSIZE -l 0 \
-	-t "Questions/answer latency in milliseconds" \
-	-v "msec" \
-	DEF:qalatency=pdns_recursor.rrd:qa-latency:AVERAGE  \
-	CDEF:mqalatency=qalatency,1000,/ \
+        -t "Questions/answer latency in milliseconds" \
+        -v "msec" \
+        DEF:qalatency=pdns_recursor.rrd:qa-latency:AVERAGE  \
+        CDEF:mqalatency=qalatency,1000,/ \
         LINE1:mqalatency#ff0000:"questions/s"
 
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/timeouts-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Outqueries/timeouts per second" \
-	-v "events" \
-	DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE  \
+        -t "Outqueries/timeouts per second" \
+        -v "events" \
+        DEF:alloutqueries=pdns_recursor.rrd:all-outqueries:AVERAGE  \
         DEF:outgoingtimeouts=pdns_recursor.rrd:outgoing-timeouts:AVERAGE \
         DEF:throttledout=pdns_recursor.rrd:throttled-out:AVERAGE \
         LINE1:alloutqueries#ff0000:"outqueries/s"\
         LINE1:outgoingtimeouts#00ff00:"outgoing timeouts/s"\
         LINE1:throttledout#0000ff:"throttled outqueries/s"
-	
+
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/caches-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Cache sizes" \
-	-v "entries" \
-	DEF:cacheentries=pdns_recursor.rrd:cache-entries:AVERAGE  \
-	DEF:packetcacheentries=pdns_recursor.rrd:packetcache-entries:AVERAGE  \
-	DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
-	DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
-	DEF:throttleentries=pdns_recursor.rrd:throttle-entries:AVERAGE  \
+        -t "Cache sizes" \
+        -v "entries" \
+        DEF:cacheentries=pdns_recursor.rrd:cache-entries:AVERAGE  \
+        DEF:packetcacheentries=pdns_recursor.rrd:packetcache-entries:AVERAGE  \
+        DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
+        DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
+        DEF:throttleentries=pdns_recursor.rrd:throttle-entries:AVERAGE  \
         LINE1:cacheentries#ff0000:"cache entries" \
         LINE1:packetcacheentries#ffff00:"packet cache entries" \
         LINE1:negcacheentries#0000ff:"negative cache entries" \
         LINE1:nsspeedsentries#00ff00:"NS speeds entries" \
-        LINE1:throttleentries#00fff0:"throttle map entries" 
-        
+        LINE1:throttleentries#00fff0:"throttle map entries"
+
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/caches2-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-t "Cache sizes" \
-	-v "entries" \
-	DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
-	DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
-	DEF:throttleentries=pdns_recursor.rrd:throttle-entries:AVERAGE  \
+        -t "Cache sizes" \
+        -v "entries" \
+        DEF:negcacheentries=pdns_recursor.rrd:negcache-entries:AVERAGE  \
+        DEF:nsspeedsentries=pdns_recursor.rrd:nsspeeds-entries:AVERAGE  \
+        DEF:throttleentries=pdns_recursor.rrd:throttle-entries:AVERAGE  \
         LINE1:negcacheentries#0000ff:"negative cache entries" \
         LINE1:nsspeedsentries#00ff00:"NS speeds entries" \
-        LINE1:throttleentries#ffa000:"throttle map entries" 
+        LINE1:throttleentries#ffa000:"throttle map entries"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/load-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-v "MThreads" \
-	-t "Concurrent queries" \
-	DEF:concurrentqueries=pdns_recursor.rrd:concurrent-queries:AVERAGE  \
+        -v "MThreads" \
+        -t "Concurrent queries" \
+        DEF:concurrentqueries=pdns_recursor.rrd:concurrent-queries:AVERAGE  \
         LINE1:concurrentqueries#0000ff:"concurrent queries"
-        
+
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/hitrate-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-v "percentage" \
-	-t "cache hits" \
-	DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
-	DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
-	DEF:packetcachehits=pdns_recursor.rrd:packetcache-hits:AVERAGE  \
-	DEF:packetcachemisses=pdns_recursor.rrd:packetcache-misses:AVERAGE  \
-	CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/ \
-	CDEF:packetperc=packetcachehits,100,*,packetcachehits,packetcachemisses,+,/ \
+        -v "percentage" \
+        -t "cache hits" \
+        DEF:cachehits=pdns_recursor.rrd:cache-hits:AVERAGE  \
+        DEF:cachemisses=pdns_recursor.rrd:cache-misses:AVERAGE  \
+        DEF:packetcachehits=pdns_recursor.rrd:packetcache-hits:AVERAGE  \
+        DEF:packetcachemisses=pdns_recursor.rrd:packetcache-misses:AVERAGE  \
+        CDEF:perc=cachehits,100,*,cachehits,cachemisses,+,/ \
+        CDEF:packetperc=packetcachehits,100,*,packetcachehits,packetcachemisses,+,/ \
         LINE1:perc#0000ff:"percentage cache hits"  \
         LINE1:packetperc#ff00ff:"percentage packetcache hits"  \
         COMMENT:"\l" \
@@ -148,18 +148,18 @@ function makeGraphs()
         GPRINT:packetperc:AVERAGE:"avg %-3.1lf%%\t" \
         GPRINT:packetperc:LAST:"last %-3.1lf%%\t" \
         GPRINT:packetperc:MAX:"max %-3.1lf%%" \
-        COMMENT:"\l" 
+        COMMENT:"\l"
 
   rrdtool graph $GRAPHOPTS --start -$1 $WWWPREFIX/cpuload-$2.png -w $WSIZE -h $HSIZE -l 0\
-	-v "percentage" \
-	-t "cpu load" \
-	DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
-	DEF:sysmsec=pdns_recursor.rrd:sys-msec:AVERAGE \
-	DEF:musermsec=pdns_recursor.rrd:user-msec:MAX \
-	DEF:msysmsec=pdns_recursor.rrd:sys-msec:MAX \
-	CDEF:userperc=usermsec,10,/ \
-	CDEF:sysperc=sysmsec,10,/ \
-	CDEF:totmperc=usermsec,sysmsec,+,10,/ \
+        -v "percentage" \
+        -t "cpu load" \
+        DEF:usermsec=pdns_recursor.rrd:user-msec:AVERAGE \
+        DEF:sysmsec=pdns_recursor.rrd:sys-msec:AVERAGE \
+        DEF:musermsec=pdns_recursor.rrd:user-msec:MAX \
+        DEF:msysmsec=pdns_recursor.rrd:sys-msec:MAX \
+        CDEF:userperc=usermsec,10,/ \
+        CDEF:sysperc=sysmsec,10,/ \
+        CDEF:totmperc=usermsec,sysmsec,+,10,/ \
         LINE1:totmperc#ffff00:"max cpu use" \
         AREA:userperc#ff0000:"user cpu percentage" \
         STACK:sysperc#00ff00:"system cpu percentage" \
@@ -173,11 +173,11 @@ function makeGraphs()
         GPRINT:userperc:AVERAGE:"avg %-3.1lf%%\t" \
         GPRINT:userperc:LAST:"last %-3.1lf%%\t" \
         GPRINT:userperc:MAX:"max %-3.1lf%%" \
-        COMMENT:"\l"        
+        COMMENT:"\l"
 
 
 }
-	
+
 makeGraphs 6h 6h
 makeGraphs 24h day
 #makeGraphs 7d week

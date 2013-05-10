@@ -48,4 +48,4 @@ public:
 
 std::map<std::string, std::string> getAllStatsMap();
 
-#endif 
+#endif

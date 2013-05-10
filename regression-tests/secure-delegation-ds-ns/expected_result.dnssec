@@ -1,6 +1,6 @@
 1	dsdelegation.example.com.	IN	DS	120	28129 8 1 caf1eaaecdabe7616670788f9022454bf5fd9fda
 1	dsdelegation.example.com.	IN	NS	120	ns.example.com.
 1	dsdelegation.example.com.	IN	RRSIG	120	DS 8 3 120 [expiry] [inception] [keytag] example.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='www.dsdelegation.example.com.', qtype=A

@@ -2,7 +2,7 @@
     Copyright (C) 2002 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
@@ -37,7 +37,7 @@
 
 extern StatBag S;
 
-/** \mainpage 
+/** \mainpage
     PowerDNS is a very versatile nameserver that can answer questions from different backends. To implement your
     own backend, see the documentation for the DNSBackend class.
 
@@ -46,7 +46,7 @@ extern StatBag S;
 
     \section overview High level overview
 
-    The Distributor contains a configurable number of PacketHandler instances, each in its own thread, for connection pooling. 
+    The Distributor contains a configurable number of PacketHandler instances, each in its own thread, for connection pooling.
     PacketHandler instances are recycled of they let escape an AhuException.
 
     The PacketHandler implements the RFC1034 algorithm and converts question packets into DNSBackend queries.
@@ -60,19 +60,19 @@ extern StatBag S;
 
     \section TCP TCP Operations
 
-    The TCP operation runs within a single thread called tcpreceiver(), that also queries the PacketHandler. 
+    The TCP operation runs within a single thread called tcpreceiver(), that also queries the PacketHandler.
 
     \section Cache Caching
- 
+
     On its own, this setup is not suitable for high performance operations. A single DNS query can turn into many DNSBackend questions,
     each taking many milliseconds to complete. This is why the qthread() first checks the PacketCache to see if an answer is known to a packet
     asking this question. If so, the entire Distributor is shunted, and the answer is sent back *directly*, within a few microseconds.
 
     \section misc Miscellaneous
-    Configuration details are available via the ArgvMap instance arg. Statistics are created by making calls to the StatBag object called S. 
+    Configuration details are available via the ArgvMap instance arg. Statistics are created by making calls to the StatBag object called S.
     These statistics are made available via the UeberBackend on the same socket that is used for dynamic module commands.
 
-    \section Main Main 
+    \section Main Main
     The main() of PowerDNS can be found in receiver.cc - start reading there for further insights into the operation of the nameserver
 */
 
@@ -80,7 +80,7 @@ extern StatBag S;
   #define GEN_IP_PKTINFO IP_PKTINFO
 #endif
 #ifdef IP_RECVDSTADDR
-  #define GEN_IP_PKTINFO IP_RECVDSTADDR 
+  #define GEN_IP_PKTINFO IP_RECVDSTADDR
 #endif
 
 vector<ComboAddress> g_localaddresses; // not static, our unit tests need to poke this
@@ -102,12 +102,12 @@ void UDPNameserver::bindIPv4()
 
     if(s<0)
       throw AhuException("Unable to acquire a UDP socket: "+string(strerror(errno)));
-  
+
     Utility::setCloseOnExec(s);
-  
+
     if(locals.size() > 1 && !Utility::setNonBlocking(s))
       throw AhuException("Unable to set UDP socket to non-blocking: "+stringerror());
-  
+
     memset(&locala,0,sizeof(locala));
     locala.sin4.sin_family=AF_INET;
 
@@ -121,7 +121,7 @@ void UDPNameserver::bindIPv4()
       struct hostent *h=0;
       h=gethostbyname(localname.c_str());
       if(!h)
-        throw AhuException("Unable to resolve local address"); 
+        throw AhuException("Unable to resolve local address");
 
       locala.sin4.sin_addr.s_addr=*(int*)h->h_addr;
     }
@@ -148,7 +148,7 @@ static bool IsAnyAddress(const ComboAddress& addr)
     return addr.sin4.sin_addr.s_addr == 0;
   else if(addr.sin4.sin_family == AF_INET6)
     return !memcmp(&addr.sin6.sin6_addr, &in6addr_any, sizeof(addr.sin6.sin6_addr));
-  
+
   return false;
 }
 
@@ -160,26 +160,26 @@ bool AddressIsUs(const ComboAddress& remote)
       return true;
     if(IsAnyAddress(us)) {
       int s = socket(remote.sin4.sin_family, SOCK_DGRAM, 0);
-      if(s < 0) 
-	continue;
+      if(s < 0)
+        continue;
 
       if(connect(s, (struct sockaddr*)&remote, remote.getSocklen()) < 0) {
-	close(s);
-	continue;
+        close(s);
+        continue;
       }
-    
+
       ComboAddress actualLocal;
       actualLocal.sin4.sin_family = remote.sin4.sin_family;
       socklen_t socklen = actualLocal.getSocklen();
 
       if(getsockname(s, (struct sockaddr*) &actualLocal, &socklen) < 0) {
-	close(s);
-	continue;
+        close(s);
+        continue;
       }
       close(s);
       actualLocal.sin4.sin_port = us.sin4.sin_port;
       if(actualLocal == remote)
-	return true;
+        return true;
     }
   }
   return false;
@@ -206,11 +206,11 @@ void UDPNameserver::bindIPv6()
     Utility::setCloseOnExec(s);
 
     ComboAddress locala(localname, ::arg().asNum("local-port"));
-    
+
     if(IsAnyAddress(locala)) {
       int val=1;
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &val, sizeof(val));     // linux supports this, so why not - might fail on other systems
-      setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &val, sizeof(val)); 
+      setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &val, sizeof(val));
       setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &val, sizeof(val));      // if this fails, we report an error in tcpreceiver too
     }
     g_localaddresses.push_back(locala);
@@ -225,7 +225,7 @@ void UDPNameserver::bindIPv6()
     pfd.revents = 0;
     d_rfds.push_back(pfd);
     L<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
-    
+
   }
 #endif // WIN32
 }
@@ -237,18 +237,18 @@ UDPNameserver::UDPNameserver()
   if(!::arg()["local-ipv6"].empty())
     bindIPv6();
 
-  if(::arg()["local-address"].empty() && ::arg()["local-ipv6"].empty()) 
-    L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
+  if(::arg()["local-address"].empty() && ::arg()["local-ipv6"].empty())
+    L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;
 }
 void UDPNameserver::send(DNSPacket *p)
 {
   const string& buffer=p->getString();
-  
+
   struct msghdr msgh;
   struct cmsghdr *cmsg;
   struct iovec iov;
   char cbuf[256];
-  
+
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
   iov.iov_base = (void*)buffer.c_str();
@@ -261,15 +261,15 @@ void UDPNameserver::send(DNSPacket *p)
   if(p->d_anyLocal) {
     if(p->d_anyLocal->sin4.sin_family == AF_INET6) {
       struct in6_pktinfo *pkt;
-          
+
       msgh.msg_control = cbuf;
       msgh.msg_controllen = CMSG_SPACE(sizeof(*pkt));
-                  
+
       cmsg = CMSG_FIRSTHDR(&msgh);
       cmsg->cmsg_level = IPPROTO_IPV6;
       cmsg->cmsg_type = IPV6_PKTINFO;
       cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
-                                  
+
       pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
       memset(pkt, 0, sizeof(*pkt));
       pkt->ipi6_addr = p->d_anyLocal->sin6.sin6_addr;
@@ -292,15 +292,15 @@ void UDPNameserver::send(DNSPacket *p)
 #endif
 #ifdef IP_SENDSRCADDR
       struct in_addr *in;
-    
+
       msgh.msg_control = cbuf;
       msgh.msg_controllen = CMSG_SPACE(sizeof(*in));
-            
+
       cmsg = CMSG_FIRSTHDR(&msgh);
       cmsg->cmsg_level = IPPROTO_IP;
       cmsg->cmsg_type = IP_SENDSRCADDR;
       cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
-                            
+
       in = (struct in_addr *) CMSG_DATA(cmsg);
       *in = p->d_anyLocal->sin4.sin_addr;
 #endif
@@ -332,7 +332,7 @@ static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destina
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
       struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
       destination->sin4.sin_addr = *i;
-      destination->sin4.sin_family = AF_INET;      
+      destination->sin4.sin_family = AF_INET;
       return true;
     }
 #endif
@@ -354,7 +354,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   int len=-1;
   char mesg[512];
   Utility::sock_t sock=-1;
-    
+
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
@@ -363,7 +363,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   iov.iov_len  = sizeof(mesg);
 
   memset(&msgh, 0, sizeof(struct msghdr));
-  
+
   msgh.msg_control = cbuf;
   msgh.msg_controllen = sizeof(cbuf);
   msgh.msg_name = &remote;
@@ -371,7 +371,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   msgh.msg_iov  = &iov;
   msgh.msg_iovlen = 1;
   msgh.msg_flags = 0;
-  
+
   int err;
   vector<struct pollfd> rfds= d_rfds;
   if(d_sockets.size()>1) {
@@ -379,16 +379,16 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
       pfd.events = POLLIN;
       pfd.revents = 0;
     }
-    
+
     err = poll(&rfds[0], rfds.size(), -1);
     if(err < 0)
       unixDie("Unable to poll for new UDP events");
-    
+
     BOOST_FOREACH(struct pollfd &pfd, rfds) {
       if(pfd.revents & POLLIN) {
-        sock=pfd.fd;        
+        sock=pfd.fd;
         len=0;
-        
+
         if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
            if(errno != EAGAIN)
             L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
@@ -409,10 +409,10 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
       return 0;
     }
   }
-  
-  
+
+
   DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
-  
+
   DNSPacket *packet;
   if(prefilled)  // they gave us a preallocated packet
     packet=prefilled;
@@ -426,7 +426,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   if(HarvestDestinationAddress(&msgh, &dest)) {
 //    cerr<<"Setting d_anyLocal to '"<<dest.toString()<<"'"<<endl;
     packet->d_anyLocal = dest;
-  }  	  
+  }
 
 
   if(packet->parse(mesg, len)<0) {
@@ -437,6 +437,6 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
       delete packet;
     return 0; // unable to parse
   }
-  
+
   return packet;
 }

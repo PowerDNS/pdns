@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_SUITE(misc_hh)
 typedef pair<std::string, uint16_t> typedns_t;
 
 BOOST_AUTO_TEST_CASE(test_CIStringCompare) {
-	set<std::string, CIStringCompare> nsset;  
+	set<std::string, CIStringCompare> nsset;
 	nsset.insert("abc");
 	nsset.insert("ns.example.com");
 	nsset.insert("");
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(test_CIStringCompare) {
 }
 
 BOOST_AUTO_TEST_CASE(test_CIStringPairCompare) {
-	set<typedns_t, CIStringPairCompare> nsset2;  
+	set<typedns_t, CIStringPairCompare> nsset2;
 	nsset2.insert(make_pair("ns.example.com", 1));
 	nsset2.insert(make_pair("abc", 1));
 	nsset2.insert(make_pair("", 1));
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test_CIStringPairCompare) {
 	nsset2.insert(make_pair("abc", 2));
 	nsset2.insert(make_pair("abc", 1));
 	nsset2.insert(make_pair("ns.example.com", 0));
-    nsset2.insert(make_pair("abc", 2));
+	nsset2.insert(make_pair("abc", 2));
 	nsset2.insert(make_pair("ABC", 2));
 
 	BOOST_CHECK_EQUAL(nsset2.size(), 6);
@@ -49,32 +49,32 @@ BOOST_AUTO_TEST_CASE(test_CIStringPairCompare) {
 }
 
 BOOST_AUTO_TEST_CASE(test_stripDot) {
-    BOOST_CHECK_EQUAL(stripDot("www.powerdns.com."), "www.powerdns.com");
+	BOOST_CHECK_EQUAL(stripDot("www.powerdns.com."), "www.powerdns.com");
 }
 
 BOOST_AUTO_TEST_CASE(test_labelReverse) {
-    BOOST_CHECK_EQUAL(labelReverse("www.powerdns.com"), "com powerdns www");
+	BOOST_CHECK_EQUAL(labelReverse("www.powerdns.com"), "com powerdns www");
 }
 
 BOOST_AUTO_TEST_CASE(test_makeRelative) {
-    BOOST_CHECK_EQUAL(makeRelative("www.powerdns.com", "powerdns.com"), "www");
+	BOOST_CHECK_EQUAL(makeRelative("www.powerdns.com", "powerdns.com"), "www");
 }
 
 BOOST_AUTO_TEST_CASE(test_AtomicCounter) {
-    AtomicCounter ac;
-    ++ac;
-    ++ac;
-    BOOST_CHECK_EQUAL(ac, 2);
+	AtomicCounter ac;
+	++ac;
+	++ac;
+	BOOST_CHECK_EQUAL(ac, 2);
 }
 
 
 BOOST_AUTO_TEST_CASE(test_parseService) {
-    ServiceTuple tp;
-    parseService("smtp.powerdns.com:25", tp);
-    BOOST_CHECK_EQUAL(tp.host, "smtp.powerdns.com");
-    BOOST_CHECK_EQUAL(tp.port, 25);
-    parseService("smtp.powerdns.com", tp);    
-    BOOST_CHECK_EQUAL(tp.port, 25);
+	ServiceTuple tp;
+	parseService("smtp.powerdns.com:25", tp);
+	BOOST_CHECK_EQUAL(tp.host, "smtp.powerdns.com");
+	BOOST_CHECK_EQUAL(tp.port, 25);
+	parseService("smtp.powerdns.com", tp);
+	BOOST_CHECK_EQUAL(tp.port, 25);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

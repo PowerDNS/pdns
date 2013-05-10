@@ -8,7 +8,7 @@
 Trilab BV</author>
 <date>v1.1 $Date$</date>
 <abstract>
-This document contains a technical description of PowerDNS. 
+This document contains a technical description of PowerDNS.
 </abstract>
 <toc>
 <sect>PowerDNS is a next generation authoritative nameserver
@@ -39,7 +39,7 @@ containing the requested data.
 <tag>The Internet Interface</tag>
 PowerDNS supports receiving queries over UDP and TCP. When a question is
 received, relevant parts of the packet containing the question are compared
-to queries received earlier. 
+to queries received earlier.
 
 <tag>The Logical Engine</tag>
 A DNS query cannot be translated directly into a backend query. A question
@@ -65,8 +65,8 @@ fields questions to any number of backends, in a prescribed order. This
 allows for maximum flexibility.
 </descrip>
 
-<sect>Simplicity brings reliability 
-<p> 
+<sect>Simplicity brings reliability
+<p>
 
 By building on top of existing databases, PowerDNS is as trustworthy as your
 favorite database. Data storage and retrieval is a well solved problem. A
@@ -86,9 +86,9 @@ are supplied.
 <p>
 Because of the many steps of the algorithm prescribed by RFC 1034, just
 hooking on a database to a nameserver is not a recipe for great performance.
-Steps need to be taken to streamline the process. 
+Steps need to be taken to streamline the process.
 
-PowerDNS does so in two ways: 
+PowerDNS does so in two ways:
 <descrip>
 <tag>Reordering the steps of the algorithm</tag>
 It is often possible to skip some of the steps in the algorithm initially,
@@ -149,7 +149,7 @@ module has been developed to meet the following goals:
 In short, this means that updates are broadcast from a central point. These
 updates can be broadcast as many times as desired because there is no harm
 in applying them more than once. Each of these updates is applied within
-seconds. 
+seconds.
 
 It does not use a relational database but instead relies on any of the
 well known table engines that are available, with a strong slant towards
@@ -177,7 +177,7 @@ applications and/or customer databases.
 <sect>Standards compliance
 <p>
 PowerDNS is committed to being fully standards compliant. Current supported
-standards include RFC 1034, RFC 1035 and RFC 2181. 
+standards include RFC 1034, RFC 1035 and RFC 2181.
 
 <sect>Availability
 <p>
@@ -185,7 +185,7 @@ PowerDNS is available immediately for use. It comes with completely
 documented source and a license that allows the end-user to improve and or
 change the source.
 
-Licensing is possible on a per-CPU or on a per-Domain basis. 
+Licensing is possible on a per-CPU or on a per-Domain basis.
 
 PowerDNS is a fully supported product with different levels of support
 available.

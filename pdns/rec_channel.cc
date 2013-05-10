@@ -19,7 +19,7 @@ RecursorControlChannel::RecursorControlChannel()
   *d_local.sun_path=0;
 }
 
-RecursorControlChannel::~RecursorControlChannel() 
+RecursorControlChannel::~RecursorControlChannel()
 {
   if(d_fd > 0)
     close(d_fd);
@@ -32,13 +32,13 @@ int RecursorControlChannel::listen(const string& fname)
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
   Utility::setCloseOnExec(d_fd);
 
-  if(d_fd < 0) 
+  if(d_fd < 0)
     throw AhuException("Creating UNIX domain socket: "+string(strerror(errno)));
-  
+
   int tmp=1;
   if(setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     throw AhuException(string("Setsockopt failed: ")+strerror(errno));
-  
+
   int err=unlink(fname.c_str());
   if(err < 0 && errno!=ENOENT)
     throw AhuException("Can't remove (previous) controlsocket '"+fname+"': "+string(strerror(errno)) + " (try --socket-dir)");
@@ -46,8 +46,8 @@ int RecursorControlChannel::listen(const string& fname)
   memset(&d_local,0,sizeof(d_local));
   d_local.sun_family=AF_UNIX;
   strcpy(d_local.sun_path, fname.c_str());
-    
-  if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0) 
+
+  if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0)
     throw AhuException("Unable to bind to controlsocket '"+fname+"': "+string(strerror(errno)));
 
   return d_fd;
@@ -60,16 +60,16 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
   Utility::setCloseOnExec(d_fd);
 
-  if(d_fd < 0) 
+  if(d_fd < 0)
     throw AhuException("Creating UNIX domain socket: "+string(strerror(errno)));
-  
+
   int tmp=1;
   if(setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
     close(d_fd);
     d_fd=-1;
     throw AhuException(string("Setsockopt failed: ")+strerror(errno));
   }
-  
+
   string localname=path+"/lsockXXXXXX";
   strcpy(d_local.sun_path, localname.c_str());
 
@@ -99,7 +99,7 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   }
 
   memset(&remote,0,sizeof(remote));
-  
+
   remote.sun_family=AF_UNIX;
   strcpy(remote.sun_path,(path+"/"+fname).c_str());
   if(::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0) {
@@ -113,7 +113,7 @@ void RecursorControlChannel::send(const std::string& msg, const std::string* rem
   if(remote) {
     struct sockaddr_un remoteaddr;
     memset(&remoteaddr, 0, sizeof(remoteaddr));
-  
+
     remoteaddr.sun_family=AF_UNIX;
     strcpy(remoteaddr.sun_path, remote->c_str());
 
@@ -130,7 +130,7 @@ string RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
   ssize_t len;
   struct sockaddr_un remoteaddr;
   socklen_t addrlen=sizeof(remoteaddr);
-    
+
   if((waitForData(d_fd, timeout, 0 ) != 1) || (len=::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0)
     throw AhuException("Unable to receive message over control channel: "+string(strerror(errno)));
 

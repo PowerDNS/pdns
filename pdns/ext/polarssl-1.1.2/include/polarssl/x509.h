@@ -31,17 +31,17 @@
 #include "rsa.h"
 #include "dhm.h"
 
-/** 
+/**
  * \addtogroup x509_module
- * \{ 
+ * \{
  */
- 
-/** 
+
+/**
  * \name X509 Error codes
  * \{
  */
 #define POLARSSL_ERR_X509_FEATURE_UNAVAILABLE              -0x2080  /**< Unavailable feature, e.g. RSA hashing/encryption combination. */
-#define POLARSSL_ERR_X509_CERT_INVALID_PEM                 -0x2100  /**< The PEM-encoded certificate contains invalid elements, e.g. invalid character. */ 
+#define POLARSSL_ERR_X509_CERT_INVALID_PEM                 -0x2100  /**< The PEM-encoded certificate contains invalid elements, e.g. invalid character. */
 #define POLARSSL_ERR_X509_CERT_INVALID_FORMAT              -0x2180  /**< The certificate format is invalid, e.g. different type expected. */
 #define POLARSSL_ERR_X509_CERT_INVALID_VERSION             -0x2200  /**< The certificate version element is invalid. */
 #define POLARSSL_ERR_X509_CERT_INVALID_SERIAL              -0x2280  /**< The serial tag or value is invalid. */
@@ -229,7 +229,7 @@
 #define X509_FORMAT_DER                 1
 #define X509_FORMAT_PEM                 2
 
-/** 
+/**
  * \addtogroup x509_module
  * \{ */
 
@@ -237,8 +237,8 @@
  * \name Structures for parsing X.509 certificates and CRLs
  * \{
  */
- 
-/** 
+
+/**
  * Type-length-value structure that allows for ASN1 using DER.
  */
 typedef asn1_buf x509_buf;
@@ -249,7 +249,7 @@ typedef asn1_buf x509_buf;
 typedef asn1_bitstring x509_bitstring;
 
 /**
- * Container for ASN1 named information objects. 
+ * Container for ASN1 named information objects.
  * It allows for Relative Distinguished Names (e.g. cn=polarssl,ou=code,etc.).
  */
 typedef struct _x509_name
@@ -273,7 +273,7 @@ typedef struct _x509_time
 }
 x509_time;
 
-/** 
+/**
  * Container for an X.509 certificate. The certificate may be chained.
  */
 typedef struct _x509_cert
@@ -315,12 +315,12 @@ typedef struct _x509_cert
     x509_buf sig;               /**< Signature: hash of the tbs part signed with the private key. */
     int sig_alg;                /**< Internal representation of the signature algorithm, e.g. SIG_RSA_MD2 */
 
-    struct _x509_cert *next;    /**< Next certificate in the CA-chain. */ 
+    struct _x509_cert *next;    /**< Next certificate in the CA-chain. */
 }
 x509_cert;
 
-/** 
- * Certificate revocation list entry. 
+/**
+ * Certificate revocation list entry.
  * Contains the CA-specific serial numbers and revocation dates.
  */
 typedef struct _x509_crl_entry
@@ -337,8 +337,8 @@ typedef struct _x509_crl_entry
 }
 x509_crl_entry;
 
-/** 
- * Certificate revocation list structure. 
+/**
+ * Certificate revocation list structure.
  * Every CRL may have multiple entries.
  */
 typedef struct _x509_crl
@@ -353,7 +353,7 @@ typedef struct _x509_crl
 
     x509_name issuer;       /**< The parsed issuer data (named information object). */
 
-    x509_time this_update;  
+    x509_time this_update;
     x509_time next_update;
 
     x509_crl_entry entry;   /**< The CRL entries containing the certificate revocation times for this CA. */
@@ -364,7 +364,7 @@ typedef struct _x509_crl
     x509_buf sig;
     int sig_alg;
 
-    struct _x509_crl *next; 
+    struct _x509_crl *next;
 }
 x509_crl;
 /** \} name Structures for parsing X.509 certificates and CRLs */
@@ -690,7 +690,7 @@ int x509parse_revoked( const x509_cert *crt, const x509_crl *crl );
 
 
 /**
- * \name Functions to clear a certificate, CRL or private RSA key 
+ * \name Functions to clear a certificate, CRL or private RSA key
  * \{
  */
 /** \ingroup x509_module */

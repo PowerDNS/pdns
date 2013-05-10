@@ -24,7 +24,7 @@
 SSQLite3::SSQLite3( const std::string & database, bool creat )
 {
   // Open the database connection.
-  if(!creat) 
+  if(!creat)
     if ( access( database.c_str(), F_OK ) == -1 )
       throw sPerrorException( "SQLite database '"+database+"' does not exist yet" );
 
@@ -89,13 +89,13 @@ int SSQLite3::doQuery( const std::string & query )
 
   if(m_dolog)
     L<<Logger::Warning<<"Query: "<<query<<endl;
-  
+
   // Execute the query.
 
 #if SQLITE_VERSION_NUMBER >=  3003009
   if ( sqlite3_prepare_v2( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )
 #else
-  if ( sqlite3_prepare( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )   
+  if ( sqlite3_prepare( m_pDB, query.c_str(), -1, &m_pStmt, &pTail ) != SQLITE_OK )
 #endif
     throw sPerrorException( string("Unable to compile SQLite statement : ")+ sqlite3_errmsg( m_pDB ) );
 
@@ -139,14 +139,14 @@ bool SSQLite3::getRow( row_t & row )
     m_pStmt = NULL;
     return false;
   }
-  
+
   if(rc == SQLITE_CANTOPEN) {
     string error ="CANTOPEN error in sqlite3, often caused by unwritable sqlite3 db *directory*: "+string(sqlite3_errmsg(m_pDB));
     sqlite3_finalize(m_pStmt);
     m_pStmt = 0;
     throw sPerrorException(error);
   }
-  
+
   // Something went wrong, complain.
   throw sPerrorException( "Error while retrieving SQLite query results: "+string(sqlite3_errmsg(m_pDB) ));
 
@@ -160,7 +160,7 @@ std::string SSQLite3::escape( const std::string & name)
 {
   std::string a;
 
-  for( std::string::const_iterator i = name.begin(); i != name.end(); ++i ) 
+  for( std::string::const_iterator i = name.begin(); i != name.end(); ++i )
   {
     if( *i == '\'' || *i == '\\' )
       a += '\\';

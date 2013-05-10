@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
 BOOST_AUTO_TEST_CASE(test_Netmask) {
   ComboAddress local("127.0.0.1", 53);
   ComboAddress remote("130.161.252.29", 53);
-  
+
   Netmask nm("127.0.0.1/24");
   BOOST_CHECK(nm.match(local));
   BOOST_CHECK(!nm.match(remote));

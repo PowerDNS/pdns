@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -34,17 +34,17 @@ using namespace ::boost::multi_index;
 #include "statbag.hh"
 
 /** This class performs 'whole packet caching'. Feed it a question packet and it will
-    try to find an answer. If you have an answer, insert it to have it cached for later use. 
+    try to find an answer. If you have an answer, insert it to have it cached for later use.
     Take care not to replace existing cache entries. While this works, it is wasteful. Only
     insert packets that where not found by get()
 
-    Locking! 
+    Locking!
 
-    The cache itself is protected by a read/write lock. Because deleting is a two step process, which 
+    The cache itself is protected by a read/write lock. Because deleting is a two step process, which
     first marks and then sweeps, a second lock is present to prevent simultaneous inserts and deletes.
 */
 
-struct CIBackwardsStringCompare: public std::binary_function<string, string, bool>  
+struct CIBackwardsStringCompare: public std::binary_function<string, string, bool>
 {
   bool operator()(const string& str_a, const string& str_b) const
   {
@@ -53,7 +53,7 @@ struct CIBackwardsStringCompare: public std::binary_function<string, string, boo
     for(ra = str_a.rbegin(), rb = str_b.rbegin();
         ra < str_a.rend() && rb < str_b.rend() && (a=dns_tolower(*ra)) == (b=dns_tolower(*rb));
         ra++, rb++);
-    
+
     if (ra < str_a.rend() && rb==str_b.rend()) { a=*(ra++); b=0; return false; } // we are at the beginning of b -> b smaller
     if (rb < str_b.rend() && ra==str_a.rend()) { b=*(rb++); a=0; return true; } // we are at the beginning of a -> a smaller
     // if BOTH are at their ends, a and b will be equal, and we should return false, which we will
@@ -75,7 +75,7 @@ public:
     unsigned int maxReplyLen=512, bool dnssecOk=false, bool EDNS=false);
 
   int get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
-  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
+  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
 
   int size(); //!< number of entries in the cache
@@ -85,7 +85,7 @@ public:
 
   map<char,int> getCounts();
 private:
-  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
+  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
   struct CacheEntry
   {
@@ -109,7 +109,7 @@ private:
     CacheEntry,
     indexed_by <
                 ordered_unique<
-                      composite_key< 
+                      composite_key<
                         CacheEntry,
                         member<CacheEntry,string,&CacheEntry::qname>,
                         member<CacheEntry,uint16_t,&CacheEntry::qtype>,
@@ -120,7 +120,7 @@ private:
                         member<CacheEntry,bool, &CacheEntry::dnssecOk>,
                         member<CacheEntry,bool, &CacheEntry::hasEDNS>
                         >,
-                        composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
+                        composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>,
                           std::less<unsigned int>, std::less<bool>, std::less<bool> >
                             >,
                            sequenced<>

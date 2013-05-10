@@ -23,7 +23,7 @@ public:
   void insertResponsePacket(const std::string& responsePacket, time_t now, uint32_t ttd);
   void doPruneTo(unsigned int maxSize=250000);
   int doWipePacketCache(const string& name, uint16_t qtype=0xffff);
-  
+
   void prune();
   uint64_t d_hits, d_misses;
   uint64_t size();
@@ -31,38 +31,38 @@ public:
 
 private:
 
-  struct Entry 
+  struct Entry
   {
     mutable uint32_t d_ttd;
     mutable uint32_t d_creation;
     mutable std::string d_packet; // "I know what I am doing"
 
     inline bool operator<(const struct Entry& rhs) const;
-    
+
     uint32_t getTTD() const
     {
       return d_ttd;
     }
   };
- 
+
   typedef multi_index_container<
     Entry,
     indexed_by  <
-                  ordered_unique<identity<Entry> >, 
-                  sequenced<> 
+                  ordered_unique<identity<Entry> >,
+                  sequenced<>
                >
   > packetCache_t;
-  
+
    packetCache_t d_packetCache;
 };
 
 // needs to take into account: qname, qtype, opcode, rd, qdcount, EDNS size
 inline bool RecursorPacketCache::Entry::operator<(const struct RecursorPacketCache::Entry &rhs) const
 {
-  const struct dnsheader* 
-    dh=(const struct dnsheader*) d_packet.c_str(), 
+  const struct dnsheader*
+    dh=(const struct dnsheader*) d_packet.c_str(),
     *rhsdh=(const struct dnsheader*)rhs.d_packet.c_str();
-  if(make_tuple(dh->opcode, dh->rd, dh->qdcount) < 
+  if(make_tuple(dh->opcode, dh->rd, dh->qdcount) <
      make_tuple(rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
     return true;
 

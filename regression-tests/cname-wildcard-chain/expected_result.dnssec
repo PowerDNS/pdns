@@ -20,6 +20,6 @@
 1	*.w4.example.com.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] example.com. ...
 1	*.w5.example.com.	IN	NSEC	86400	www.example.com. A RRSIG NSEC
 1	*.w5.example.com.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] example.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='start.example.com.', qtype=A

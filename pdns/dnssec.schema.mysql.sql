@@ -6,7 +6,7 @@ create table domainmetadata (
  primary key(id)
 );
 
-create index domainmetaidindex on domainmetadata(domain_id);               
+create index domainmetaidindex on domainmetadata(domain_id);
 
 
 create table cryptokeys (
@@ -16,9 +16,9 @@ create table cryptokeys (
  active     BOOL,
  content    TEXT,
  primary key(id)
-);       
+);
 
-create index domainidindex on cryptokeys(domain_id);           
+create index domainidindex on cryptokeys(domain_id);
 
 alter table records add ordername      VARCHAR(255) BINARY;
 alter table records add auth bool;
@@ -26,7 +26,7 @@ create index recordorder on records (domain_id, ordername);
 
 create table tsigkeys (
  id         INT auto_increment,
- name       VARCHAR(255), 
+ name       VARCHAR(255),
  algorithm  VARCHAR(50),
  secret     VARCHAR(255),
  primary key(id)

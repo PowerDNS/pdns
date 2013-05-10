@@ -18,18 +18,18 @@ There is one central object, which has (when complete)
    Original answer
    Socket answer
 
-What to do with timeouts. We keep around at most 65536 outstanding answers. 
+What to do with timeouts. We keep around at most 65536 outstanding answers.
 */
 
 
-/* 
+/*
    mental_clock=0;
    for(;;) {
 
    do {
       read a packet
       send a packet
-    } while(time_of_last_packet_sent < mental_clock) 
+    } while(time_of_last_packet_sent < mental_clock)
     mental_clock=time_of_last_packet_sent;
 
     wait for a response packet for 0.1 seconds
@@ -65,7 +65,7 @@ using namespace ::boost::multi_index;
 
 StatBag S;
 bool g_quiet=true;
-int g_timeoutMsec=0; 
+int g_timeoutMsec=0;
 
 namespace po = boost::program_options;
 
@@ -84,9 +84,9 @@ const struct timeval operator*(float fact, const struct timeval& rhs)
 
     ret.tv_usec=(unsigned int)(1000000*d);
     normalizeTV(ret);
-    
+
     cout<<"out complex: "<<ret.tv_sec<<" + "<<ret.tv_usec<<"\n";
-    
+
     return ret;
   }
 
@@ -136,7 +136,7 @@ public:
 
 private:
   deque<uint16_t> d_available;
-  
+
 } s_idmanager;
 
 
@@ -158,13 +158,13 @@ struct QuestionData
 };
 
 typedef multi_index_container<
-  QuestionData, 
+  QuestionData,
   indexed_by<
              ordered_unique<tag<QuestionTag>, BOOST_MULTI_INDEX_MEMBER(QuestionData, QuestionIdentifier, d_qi) > ,
              ordered_unique<tag<AssignedIDTag>,  BOOST_MULTI_INDEX_MEMBER(QuestionData, int, d_assignedID) >
             >
 > qids_t;
-        				 
+
 qids_t qids;
 
 
@@ -181,7 +181,7 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
 {
   int seconds=second.tv_sec - first.tv_sec;
   int useconds=second.tv_usec - first.tv_usec;
-  
+
   if(useconds < 0) {
     seconds-=1;
     useconds+=1000000;
@@ -200,7 +200,7 @@ void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlo
   for(qids_t::iterator i=qids.begin(); i!=qids.end(); ++i) {
     double dt=DiffTime(i->d_resentTime, now);
     if(dt < 2.0) {
-      if(i->d_newRcode == -1) 
+      if(i->d_newRcode == -1)
         weOutstanding++;
       if(i->d_origRcode == -1)
         origOutstanding++;
@@ -267,9 +267,9 @@ void measureResultAndClean(const QuestionIdentifier& qi)
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
   compactAnswerSet(qd.d_newAnswers, canonicNew);
-        
+
   if(!g_quiet) {
-    cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
+    cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;
     cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
   }
 
@@ -281,7 +281,7 @@ void measureResultAndClean(const QuestionIdentifier& qi)
   else {
     if(!g_quiet)
       cout<<"no\n";
-    
+
     if(qd.d_norecursionavailable)
       if(!g_quiet)
         cout<<"\t* original nameserver did not provide recursion for this question *"<<endl;
@@ -300,7 +300,7 @@ void measureResultAndClean(const QuestionIdentifier& qi)
       if(!g_quiet)
         cout<<"\t* orig better *"<<endl;
       s_origbetter++;
-      if(!g_quiet) 
+      if(!g_quiet)
         if(s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype)).second) {
           cout<<"orig better: " << qi.d_qname<<" "<< qi.d_qtype<<endl;
         }
@@ -318,7 +318,7 @@ void measureResultAndClean(const QuestionIdentifier& qi)
 
     }
   }
-  
+
 
   qids.erase(qi);
   s_idmanager.releaseID(qd.d_assignedID);
@@ -333,7 +333,7 @@ try
   string packet;
   ComboAddress remote;
   int res=waitForData(s_socket->getHandle(), g_timeoutMsec/1000, 1000*(g_timeoutMsec%1000));
-  
+
   if(res < 0 || res==0)
     return;
 
@@ -356,7 +356,7 @@ try
       }
       QuestionIdentifier qi=found->d_qi;
       QuestionData qd=*found;
-      
+
       qd.d_newAnswers=mdp.d_answers;
       qd.d_newRcode=mdp.d_header.rcode;
       idindex.replace(found, qd);
@@ -416,13 +416,13 @@ void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
   format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
   format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
 
-  
+
   cerr<<headerfmt;
   cerr<<(datafmt % "Orig"   % s_questions % origWaitingFor  % s_orignever  % s_origanswers % 0 % s_origtimedout  % 0 % 0);
   cerr<<(datafmt % "Refer." % s_questions % weWaitingFor    % s_wenever    % s_weanswers   % 0 % s_wetimedout    % 0 % 0);
 
   cerr<<weWaitingFor<<" queries that could still come in on time, "<<qids.size()<<" outstanding"<<endl;
-  
+
   cerr<<"we late: "<<s_wetimedout<<", orig late: "<< s_origtimedout<<", "<<s_questions<<" questions sent, "<<s_origanswers
       <<" original answers, "<<s_perfect<<" perfect, "<<s_mostly<<" mostly correct"<<", "<<s_webetter<<" we better, "<<s_origbetter<<" orig better ("<<s_origbetterset.size()<<" diff)"<<endl;
   cerr<<"we never: "<<s_wenever<<", orig never: "<<s_orignever<<endl;
@@ -444,7 +444,7 @@ void houseKeeping()
 
   int weWaitingFor, origWaitingFor, weSlow, origSlow;
   WeOrigSlowQueriesDelta(weWaitingFor, origWaitingFor, weSlow, origSlow);
-    
+
   if(!g_throttled) {
     if( weWaitingFor > 1000) {
       cerr<<"Too many questions ("<<weWaitingFor<<") outstanding, throttling"<<endl;
@@ -496,7 +496,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
     }
     MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
     QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
-    
+
     if(!mdp.d_header.qr) {
       s_questions++;
       if(qids.count(qi)) {
@@ -513,7 +513,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
     }
     else {
       s_origanswers++;
-      
+
       if(qids.count(qi)) {
         qids_t::const_iterator i=qids.find(qi);
         QuestionData qd=*i;
@@ -521,7 +521,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
         //	  cout<<"Matched answer "<<qi<<endl;
         qd.d_origAnswers=mdp.d_answers;
         qd.d_origRcode=mdp.d_header.rcode;
-        
+
         if(!dh->ra) {
           s_norecursionavailable++;
           qd.d_norecursionavailable=true;
@@ -533,7 +533,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
 
           measureResultAndClean(qi);
         }
-        
+
         return sent;
       }
       else {
@@ -589,7 +589,7 @@ try
     cerr << desc << "\n";
     return EXIT_SUCCESS;
   }
-  
+
   if(!g_vm.count("pcap-source")) {
     cerr<<"Fatal, need to specify at least a PCAP source file"<<endl;
     cerr << "Usage: dnsreplay [--options] filename [ip-address] [port]"<<endl;
@@ -610,8 +610,8 @@ try
   s_socket= new Socket(InterNetwork, Datagram);
 
   s_socket->setNonBlocking();
-  
-  ComboAddress remote(g_vm["target-ip"].as<string>(), 
+
+  ComboAddress remote(g_vm["target-ip"].as<string>(),
         	    g_vm["target-port"].as<uint16_t>());
 
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
@@ -625,12 +625,12 @@ try
   unsigned int count=0;
 
   for(;;) {
-    if(!((once++)%100)) 
+    if(!((once++)%100))
       houseKeeping();
-    
+
     struct timeval packet_ts;
-    packet_ts.tv_sec = 0; 
-    packet_ts.tv_usec = 0; 
+    packet_ts.tv_sec = 0;
+    packet_ts.tv_usec = 0;
     bool first = true;
     while(packet_ts < mental_time) {
       if(!first && !pr.getUDPPacket()) // otherwise we miss the first packet
@@ -641,8 +641,8 @@ try
 
       if(sendPacketFromPR(pr, remote))
         count++;
-    } 
-    if(packetLimit && count > packetLimit) 
+    }
+    if(packetLimit && count > packetLimit)
       break;
 
     mental_time=packet_ts;

@@ -12,11 +12,11 @@ bool Connector::send(rapidjson::Document &value) {
     return send_message(value);
 }
 
-/** 
+/**
  * Helper for handling receiving of data.
- * Basically what happens here is that we check 
+ * Basically what happens here is that we check
  * that the receiving happened ok, and extract
- * result. Logging is performed here, too. 
+ * result. Logging is performed here, too.
  */
 bool Connector::recv(rapidjson::Document &value) {
     if (recv_message(value)>0) {
@@ -57,7 +57,7 @@ RemoteBackend::~RemoteBackend() {
      }
 }
 
-/** 
+/**
  * Builds connector based on options
  * Currently supports unix,pipe and http
  */
@@ -116,15 +116,15 @@ int RemoteBackend::build(const std::string &connstr) {
       return -1;
 }
 
-/** 
+/**
  * The functions here are just remote json stubs that send and receive the method call
- * data is mainly left alone, some defaults are assumed. 
+ * data is mainly left alone, some defaults are assumed.
  */
 void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPacket *pkt_p, int zoneId) {
    rapidjson::Document query;
    rapidjson::Value parameters;
 
-   if (d_index != -1) 
+   if (d_index != -1)
       throw AhuException("Attempt to lookup while one running");
 
    query.SetObject();
@@ -150,7 +150,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
 
    d_result = new rapidjson::Document();
 
-   if (connector->send(query) == false || connector->recv(*d_result) == false) { 
+   if (connector->send(query) == false || connector->recv(*d_result) == false) {
       delete d_result;
       return;
    }
@@ -208,7 +208,7 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    rr.domain_id = JSON_GET((*d_result)["result"][d_index],"domain_id",value).GetInt();
    rr.priority = JSON_GET((*d_result)["result"][d_index],"priority",value).GetInt();
    value = 1;
-   if (d_dnssec) 
+   if (d_dnssec)
      rr.auth = JSON_GET((*d_result)["result"][d_index],"auth", value).GetInt();
    else
      rr.auth = 1;
@@ -216,8 +216,8 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    rr.scopeMask = JSON_GET((*d_result)["result"][d_index],"scopeMask", value).GetInt();
 
    d_index++;
-   
-   // id index is out of bounds, we know the results end here. 
+
+   // id index is out of bounds, we know the results end here.
    if (d_index == static_cast<int>((*d_result)["result"].Size())) {
      delete d_result;
      d_result = NULL;
@@ -234,7 +234,7 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getBeforeAndAfterNamesAbsolute", query.GetAllocator());
-   
+
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "qname", qname.c_str(), query.GetAllocator());
@@ -246,7 +246,7 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    unhashed = answer["result"]["unhashed"].GetString();
    before = answer["result"]["before"].GetString();
    after = answer["result"]["after"].GetString();
-  
+
    return true;
 }
 
@@ -335,7 +335,7 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
    return true;
 }
 
-bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) { 
+bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    // no point doing dnssec if it's not supported
@@ -440,7 +440,7 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
      algorithm->assign(answer["result"]["algorithm"].GetString());
    if (content != NULL)
      content->assign(answer["result"]["content"].GetString());
-   
+
    return true;
 }
 
@@ -494,7 +494,7 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
 void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
-  
+
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "setNotified", query.GetAllocator());
    parameters.SetObject();

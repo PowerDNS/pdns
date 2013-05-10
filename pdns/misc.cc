@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -51,7 +51,7 @@ int writen2(int fd, const void *buf, size_t count)
 {
   const char *ptr = (char*)buf;
   const char *eptr = ptr + count;
-  
+
   int res;
   while(ptr != eptr) {
     res = ::write(fd, ptr, eptr - ptr);
@@ -63,10 +63,10 @@ int writen2(int fd, const void *buf, size_t count)
     }
     else if (res == 0)
       throw std::runtime_error("could not write all bytes, got eof in writen2");
-    
+
     ptr += res;
   }
-  
+
   return count;
 }
 
@@ -120,14 +120,14 @@ bool stripDomainSuffix(string *qname, const string &domain)
 }
 
 /** Chops off the start of a domain, so goes from 'www.ds9a.nl' to 'ds9a.nl' to 'nl' to ''. Return zero on the empty string */
-bool chopOff(string &domain) 
+bool chopOff(string &domain)
 {
   if(domain.empty())
     return false;
 
   string::size_type fdot=domain.find('.');
 
-  if(fdot==string::npos) 
+  if(fdot==string::npos)
     domain="";
   else {
     string::size_type remain = domain.length() - (fdot + 1);
@@ -148,7 +148,7 @@ bool chopOffDotted(string &domain)
   if(fdot == string::npos)
     return false;
 
-  if(fdot==domain.size()-1) 
+  if(fdot==domain.size()-1)
     domain=".";
   else  {
     string::size_type remain = domain.length() - (fdot + 1);
@@ -173,14 +173,14 @@ bool ciEqual(const string& a, const string& b)
 }
 
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-bool endsOn(const string &domain, const string &suffix) 
+bool endsOn(const string &domain, const string &suffix)
 {
   if( suffix.empty() || ciEqual(domain, suffix) )
     return true;
 
   if(domain.size()<=suffix.size())
     return false;
-  
+
   string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
 
   if(domain[dpos++]!='.')
@@ -194,14 +194,14 @@ bool endsOn(const string &domain, const string &suffix)
 }
 
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-bool dottedEndsOn(const string &domain, const string &suffix) 
+bool dottedEndsOn(const string &domain, const string &suffix)
 {
   if( suffix=="." || ciEqual(domain, suffix) )
     return true;
 
   if(domain.size()<=suffix.size())
     return false;
-  
+
   string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
 
   if(domain[dpos++]!='.')
@@ -229,7 +229,7 @@ int sendData(const char *buffer, int replen, int outsock)
 
   if(ret!=replen+2) {
     // we can safely assume ret > 2, as 2 is < PIPE_BUF
-    
+
     buffer += (ret - 2);
     replen -= (ret - 2);
 
@@ -310,7 +310,7 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds)
   struct pollfd pfd;
   memset(&pfd, 0, sizeof(pfd));
   pfd.fd = fd;
-  
+
   if(waitForRead)
     pfd.events=POLLIN;
   else
@@ -332,7 +332,7 @@ int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int*fd)
   memset(&pfds[0], 0, 2*sizeof(struct pollfd));
   pfds[0].fd = fd1;
   pfds[1].fd = fd2;
-  
+
   pfds[0].events= pfds[1].events = POLLIN;
 
   int nsocks = 1 + (fd2 >= 0); // fd2 can optionally be -1
@@ -343,7 +343,7 @@ int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int*fd)
     ret = poll(pfds, nsocks, -1);
   if(!ret || ret < 0)
     return ret;
-    
+
   if((pfds[0].revents & POLLIN) && !(pfds[1].revents & POLLIN))
     *fd = pfds[0].fd;
   else if((pfds[1].revents & POLLIN) && !(pfds[0].revents & POLLIN))
@@ -353,7 +353,7 @@ int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int*fd)
   }
   else
     *fd = -1; // should never happen
-  
+
   return 1;
 }
 
@@ -397,7 +397,7 @@ const string unquotify(const string &item)
 
   string::size_type bpos=0, epos=item.size();
 
-  if(item[0]=='"') 
+  if(item[0]=='"')
     bpos=1;
 
   if(item[epos-1]=='"')
@@ -498,7 +498,7 @@ bool IpToU32(const string &str, uint32_t *ip)
     *ip=0;
     return true;
   }
-  
+
   struct in_addr inp;
   if(Utility::inet_aton(str.c_str(), &inp)) {
     *ip=inp.s_addr;
@@ -510,7 +510,7 @@ bool IpToU32(const string &str, uint32_t *ip)
 string U32ToIP(uint32_t val)
 {
   char tmp[17];
-  snprintf(tmp, sizeof(tmp)-1, "%u.%u.%u.%u", 
+  snprintf(tmp, sizeof(tmp)-1, "%u.%u.%u.%u",
            (val >> 24)&0xff,
            (val >> 16)&0xff,
            (val >>  8)&0xff,
@@ -536,24 +536,24 @@ string makeHexDump(const string& str)
 void shuffle(vector<DNSResourceRecord>& rrs)
 {
   vector<DNSResourceRecord>::iterator first, second;
-  for(first=rrs.begin();first!=rrs.end();++first) 
+  for(first=rrs.begin();first!=rrs.end();++first)
     if(first->d_place==DNSResourceRecord::ANSWER && first->qtype.getCode() != QType::CNAME) // CNAME must come first
       break;
   for(second=first;second!=rrs.end();++second)
     if(second->d_place!=DNSResourceRecord::ANSWER)
       break;
-  
+
   if(second-first>1)
     random_shuffle(first,second);
-  
+
   // now shuffle the additional records
-  for(first=second;first!=rrs.end();++first) 
+  for(first=second;first!=rrs.end();++first)
     if(first->d_place==DNSResourceRecord::ADDITIONAL && first->qtype.getCode() != QType::CNAME) // CNAME must come first
       break;
   for(second=first;second!=rrs.end();++second)
     if(second->d_place!=DNSResourceRecord::ADDITIONAL)
       break;
-  
+
   if(second-first>1)
     random_shuffle(first,second);
 
@@ -678,7 +678,7 @@ string labelReverse(const std::string& qname)
 string makeRelative(const std::string& fqdn, const std::string& zone)
 {
   if(zone.empty())
-    return fqdn;  
+    return fqdn;
   if(fqdn != zone)
     return fqdn.substr(0, fqdn.size() - zone.length() - 1); // strip domain name
   return "";
@@ -688,7 +688,7 @@ string dotConcat(const std::string& a, const std::string &b)
 {
   if(a.empty() || b.empty())
     return a+b;
-  else 
+  else
     return a+"."+b;
 }
 
@@ -703,16 +703,16 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
       return -1;
     ourAddr.assign(addr.c_str() + 1, pos-1);
-    port = atoi(addr.c_str()+pos+2);  
+    port = atoi(addr.c_str()+pos+2);
   }
-  
+
   struct addrinfo* res;
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
-  
+
   hints.ai_family = AF_INET6;
   hints.ai_flags = AI_NUMERICHOST;
-  
+
   int error;
   if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) { // this is correct
     /*
@@ -724,7 +724,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     */
     return -1;
   }
-  
+
   memcpy(ret, res->ai_addr, res->ai_addrlen);
   if(port >= 0)
     ret->sin6_port = htons(port);
@@ -738,7 +738,7 @@ int makeIPv4sockaddr(const string &str, struct sockaddr_in* ret)
     return -1;
   }
   struct in_addr inp;
-  
+
   string::size_type pos = str.find(':');
   if(pos == string::npos) { // no port specified, not touching the port
     if(Utility::inet_aton(str.c_str(), &inp)) {
@@ -748,13 +748,13 @@ int makeIPv4sockaddr(const string &str, struct sockaddr_in* ret)
     return -1;
   }
   if(!*(str.c_str() + pos + 1)) // trailing :
-    return -1; 
-    
+    return -1;
+
   char *eptr = (char*)str.c_str() + str.size();
   int port = strtol(str.c_str() + pos + 1, &eptr, 10);
   if(*eptr)
     return -1;
-  
+
   ret->sin_port = htons(port);
   if(Utility::inet_aton(str.substr(0, pos).c_str(), &inp)) {
     ret->sin_addr.s_addr=inp.s_addr;
@@ -769,12 +769,12 @@ bool stringfgets(FILE* fp, std::string& line)
 {
   char buffer[1024];
   line.clear();
-  
+
   do {
     if(!fgets(buffer, sizeof(buffer), fp))
       return !line.empty();
-    
-    line.append(buffer); 
+
+    line.append(buffer);
   } while(!strchr(buffer, '\n'));
   return true;
 }

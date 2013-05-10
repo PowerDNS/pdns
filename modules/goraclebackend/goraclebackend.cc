@@ -24,13 +24,13 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
     setenv("ORACLE_HOME", getArg("home").c_str(), 1);
     setenv("ORACLE_SID", getArg("sid").c_str(), 1);
     setenv("NLS_LANG", getArg("nls-lang").c_str(), 1);
- 
+
     setDB(new SOracle(getArg("tnsname"),
         	     getArg("user"),
         	     getArg("password")));
-    
+
   }
-  
+
   catch(SSqlException &e) {
     L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw AhuException("Unable to launch "+mode+" connection: "+e.txtReason());
@@ -42,7 +42,7 @@ class gOracleFactory : public BackendFactory
 {
 public:
   gOracleFactory(const string &mode) : BackendFactory(mode),d_mode(mode) {}
-  
+
   void declareArguments(const string &suffix="")
   {
     declare(suffix,"home", "Oracle home path", "");
@@ -79,7 +79,7 @@ public:
     declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
     declare(suffix,"delete-zone-query","", "delete from records where domain_id=%d");
   }
-  
+
   DNSBackend *make(const string &suffix="")
   {
     return new gOracleBackend(d_mode,suffix);

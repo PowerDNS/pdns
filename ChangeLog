@@ -65,17 +65,17 @@ changes since 2.9.13:
 	- pdns_recursor was too chatty with TCP (noticed by Mathew Walker)
 	- Generic SQL backend used doQuery where it meant doCommand on set notified (Georg Bauer)
 	- experimental feature 'recursion-check-nxdomain'
-	- 2^30 
+	- 2^30
 	- postgresql de-c++fiscation
 	- efficiency increases (chomp), reworking argumentparsing (spaces)
-	- loglevel fixes	
+	- loglevel fixes
 
 changes since 2.9.12:
 	- pdns_recursor can now survive being disconnected from the net for long
 	  enough to expire the entire root
 	- pdns_recursor now also jumbles answers (it did that already, I
 	  just didn't know it)
-	- big LDAP cleanup	
+	- big LDAP cleanup
 	- LDAP now has TLS support
 	- Opteron support (opteron login by jeffdavey@submersion.com)
 	- fixed errors with disable-axfr (Norbert)
@@ -87,12 +87,12 @@ changes since 2.9.12:
 - (Windows) Added the Generic SQLite backend.
 - (Windows) Made the Generic ODBC backend conform to the SSql standard
 again.
-- (Windows) Removed the old ODBC backend.  
+- (Windows) Removed the old ODBC backend.
 - (Windows) The recursor was ported from scratch and now works as an NT
 service.
 - (Windows) Renamed the service to "PowerDNS" (recursor is called "PowerDNS
 Recursor").
-- (Windows) Rewrote the installer from scratch and upgraded to NSIS 2 
+- (Windows) Rewrote the installer from scratch and upgraded to NSIS 2
 (nsis.sf.net)
 - (Windows) Some other fixes and improvements.
 
@@ -115,13 +115,13 @@ changes since 2.9.11:
 	- some Debian fixes
 	- pdns_recursor does not try to resolve its own IP addresses anymore
 	- pdns_recursor has gained an init.d script
-	- sqlite support from 
+	- sqlite support from
 	- bindbackend2 gains supermaster support (Mark Bergsma), untested
 	- slave communicator more robust against misconfiguration (empty
-	  master field)	
+	  master field)
 	- postgresql backend gains error checking support
 //	- soa serial autocalculation now also honours soa-serial-offset (Steve Sobol)
-	- we now shuffle answers 
+	- we now shuffle answers
 
 changes since 2.9.10:
 	- pdns_recursor now cleans its cache
@@ -130,7 +130,7 @@ changes since 2.9.10:
 	- LDAP now supports AXFR and a default TTL
 	- some debugging output messed up the working of pdns_control (Mark Bergsma)
 	- updates to axfr --help output (Norbert Sendetzky)
-	
+
 Changes since 2.9.8:
 	- fixed a crash when adding additional records
 	- make Notifications jump in front of the queue, allowing for
@@ -141,7 +141,7 @@ Changes since 2.9.8:
 	- OpenLDAP 2.1 fix
 	- Error handling for invalid MX records
 	- Better exception handling
-	- Rewritten lookup() code                                                     
+	- Rewritten lookup() code
 
 Changes since 2.9.7:
 	- NS queries for zones we are not authoritative about now get their NS
@@ -149,7 +149,7 @@ Changes since 2.9.7:
 imp	- powerldap.hh doesn't need crypt.h (Richard Arends)
 	- can't handle binary labels, print a warning about that
 bug	- recursor sometimes did very extended negative caching, sometimes for *days*
-	- allow-axfr-ips setting now leads to disabling 
+	- allow-axfr-ips setting now leads to disabling
 	  AXFR for non-listed addresses.
 imp	- added Solaris init.d script
 bug	- g* backends now lowercase their records field
@@ -167,8 +167,8 @@ imp	- improved error reporting if unable to figure out IP addresses for
 imp	- removed vestigal receiver-threads setting
 bug	- ldapbackend needs to include utility.hh (Remco Post)
 bug	- pdns_control could sometimes leave files behind in /tmp (dG)
-impr	- ldapbackend updates 
-bug	- TCP incoming AXFR fixes for Solaris and other big endian systems 
+impr	- ldapbackend updates
+bug	- TCP incoming AXFR fixes for Solaris and other big endian systems
 	  (Willem de Groot helped debug)
 imp	- bogus error message about unparseable packets (Mark Bergsma)
 bug	- solved potential crash in recursor (Dan Faerch delivered coredump)
@@ -182,7 +182,7 @@ bug	- fixed incorrect AA bit on serving NS from non-top records (noticed by Step
 bug	- added robustness fixed to dnspacket.cc getAnswers for incoming queries
 
 bug	- freebsd webserver
-	
+
 Changes since 2.9.5:
 	- implemented isMaster in bindbackend (we now react to notifies)
 	- added zoneId to mboxfw stuff - massive speedup
@@ -198,7 +198,7 @@ Changes since 2.9.5:
 Changes since 2.9.4:
 	- heap of work in shortening dnspacket.cc (factor out common operations)
 	- work on recursor
-	- recursor renamed 
+	- recursor renamed
 	- added unknown record type support (+1024)
 	- added names for SIG and KEY records
 	- HINFO incoming
@@ -213,7 +213,7 @@ Changes since 2.9.4:
 	- added -lz (James H. Cloos Jr) to MySQL
 	- added name to webserver (Daniel Meyer)
 	- fixed zone2sql root-zone issues (Brad Knowles)
-	
+
 Changes since 2.9.3a:
 feat	- make *all* sql in gsqlbackends available for configuration (Martin Klebermass/bert hubert)
 feat	- recursor
@@ -224,7 +224,7 @@ impr	- huge improvement in performance of bind-domain-status
 		(spotted by Erik Bos)
 impr	- AXFR terminated with an EOF is now an error, unless a second SOA
 		was seen
-impr	- 'migration' chapter was outdated	
+impr	- 'migration' chapter was outdated
 bug	- zone parser now allows both $include and $INCLUDE
 bug	- wildcard ANY queries work again (colemarcus)
 bug	- resolved crashes after failed gmysql/gpgsql connections
@@ -270,21 +270,21 @@ Changes since 2.9.2:
 	  logging won't add much to that
 	- suppressed a lot of master/slave chatter about 'all slaves/masters
 	  fresh'
-	
+
 Changes since 2.9.1:
 	- removed debugging output from the webserver (found by Paul Wouters)
-	- due to Solaris portability fixes, qtypes>127 were broken. 
+	- due to Solaris portability fixes, qtypes>127 were broken.
 	  These include NAPTR, ANY and AXFR. The upshot is that powerdns
 	  wasn't performing outgoing AXFRs nor ANY queries. These were the
-          'question for type -1' warnings in the log
-	
+	  'question for type -1' warnings in the log
+
 	- pdns/pdns now has a +x by default (suggested by Paul Wouters)
-        - bug in documentation (pgmysqlbackend != pgmysql backend) (Paul Wouters)
+	- bug in documentation (pgmysqlbackend != pgmysql backend) (Paul Wouters)
 
 	- Red Hat has weird location for pgsql includes (Paul Wouters)
 
 	- incoming AXFR could theoretically miss some trailing records
-          (not observed, but could happen)
+	  (not observed, but could happen)
 
 	- with some remotes, an incoming AXFR would not terminate until a
 	  timeout occured.
@@ -296,7 +296,7 @@ Changes since 2.9.1:
 	- dynamic modules work again!
 
 	- openbsd compiles but crashes at startup
-	
+
 Changes since 2.9:
 	- 'set' no longer allows setting non-existent variables
 	- added db2 backend to distribution
@@ -312,7 +312,7 @@ Changes since 2.8:
 	- license
 	- cleanups from Erik Bos @ xs4all
 	- build improvements from Wichert Akkerman
-	- open sourcing 
+	- open sourcing
 
 changes since 2.7.1:
 	- pipe backend now has 'pipe-regex'
@@ -323,7 +323,7 @@ changes since 2.7.1:
 
 changes since 2.6.1:
 	- controlsocket now owned by the setgid gid
-	- SOA could have the wrong TTL leading to double 
+	- SOA could have the wrong TTL leading to double
 	  records on ANY queries ("Jonas Daugaard" <jonas@cube.dk>)
 	- compression could suddenly be off Jonas Daugaard" <jonas@cube.dk>
 	- added --mysql-table (Ian Newlands)
@@ -332,7 +332,7 @@ changes since 2.6.1:
 	- killed backends should respawn again (Steve Bromwich)
 	- backtrace feature under Linux
 	- corrupt packet error during axfr with secondary should not take
-          down pdns (Mike+Simon)
+	  down pdns (Mike+Simon)
 	- >256 bytes compressed packet offsets did not function (Mike+Simon)
 
 
@@ -342,7 +342,7 @@ changes since 2.6:
 Changes since 2.5.1:
 	- removed 'unknown' packets from PacketCache
 	- improved packet accounting so counters match up better
-	- created ability to run with cache-ttl=0 and query-cache-ttl=0 
+	- created ability to run with cache-ttl=0 and query-cache-ttl=0
 	  and negquery-cache-ttl=0
 	- fixed silly bug with SOA cache with escaped dots
 	- performance increases
@@ -355,7 +355,7 @@ Changes since 2.5.1:
 	- zone2sql now again can read Verisign generated COM/NET/ORG zones
 	  $TTL in the middle of a record
 	- fixed bug with \ escaping in records that were cached
-	
+
 Changes since 2.5:
 	- added RFC optional negative caching
 	- small speedup in non-packet-cached queries
@@ -378,11 +378,11 @@ enhance	- further improved some AXFR error wording
 feature	- flags can now also be specified as 'off' to turn them off, instead
 	  of only as 'no'
 enhance	- packetcache is now less lock-happy and a lot more complicated
-feature	- database queries with no or one response are now also cached 
+feature	- database queries with no or one response are now also cached
 	  in the packet cache
 enhance	- log-dns-details
 	  turn off for more performance
-	
+
 Changes since 2.3:
 	- improved logging in DNS recursing proxy
 	- fixed crasher bug in compressed label parser
@@ -402,14 +402,14 @@ Changes since 2.2:
 	- added additional check for SOA in ANY query (DENIC)
 	- pdns_control purge was broken badly
 	- master/slave communicator could get confused by delayed answers
-          from slow masters when operating as a slave.
+	  from slow masters when operating as a slave.
 
 Changes since 2.1:
 	- wildcard CNAMEs!
 	- tcpreceiver sometimes would fall over a recursing packet that was
-          too short or malformed :-( (signal6)
+	  too short or malformed :-( (signal6)
 	- tcpreceived could wait far too long for response from remote
-          recursor
+	  recursor
 	- cache-purge purged too much (Simon Kirby)
 	- cache-purge can now purge suffixes (Mike Benoit)
 	- some exceptions may not have been caught (tcp receiver connection
@@ -436,18 +436,18 @@ Changes since 2.0:
 Changes since 2.0rc2:
 	- fixed zone2sql hang
 	- fixed pointer arithmetic problem in packetparser
-	
+
 Changes since 2.0rc1:
-  - (WIN32) added a NTLog urgency to the logging class to avoid spamming the NT log.
-  - (WIN32) ported zone2sql and added it to the installation.
-  - (WIN32) ditched the Utility::Signal class.
-  - fixed chroot 
-  - fixed setuid/setgid
-  - fixed >256 MX prios Jeff Crowe
-  - fixed ipv6 recursor forwarding (handy ipv6 enabler too!)
-  - fixed bogus notification reception code
-  - fixed AXFR code bug for 'many packets' format with no question in later
-    packets
+	- (WIN32) added a NTLog urgency to the logging class to avoid spamming the NT log.
+	- (WIN32) ported zone2sql and added it to the installation.
+	- (WIN32) ditched the Utility::Signal class.
+	- fixed chroot
+	- fixed setuid/setgid
+	- fixed >256 MX prios Jeff Crowe
+	- fixed ipv6 recursor forwarding (handy ipv6 enabler too!)
+	- fixed bogus notification reception code
+	- fixed AXFR code bug for 'many packets' format with no question in later
+	  packets
 
 Changes since 1.99.12:
 	- now lowercase $ORIGIN too for postgresql
@@ -455,18 +455,18 @@ Changes since 1.99.12:
 	- relative paths in named.conf include statements now work as in bind (Jeff Miller)
 	- relative paths in zone $include statements now work as in bind (Jeff Miller)
 	- fixed nasty crasher bug in mysqlbackend with . zone serving
-	
-  - (WIN32) now reads the pdns.conf file if available.
-  - (WIN32) when running as a regular console app you can now shut it down using ctrl+c etc.
-  - (WIN32) installer now creates a default pdns.conf if none available.
-  - (WIN32) bug fixed where uninstaller wouldn't remove all files that had to be removed.
-  - (WIN32) dll's are now installed locally (in the same dir as the pdns executable).
-  - (WIN32) pdns_control is now added to the distribution.
-  - (WIN32) pdns responds to pdns_control commands correctly.
-  - (WIN32) added experimental master/slave support to the ODBC backend.
-  - (WIN32) fixed a bug in the database structure of the example zone.
-  - (WIN32) inserted a new (smaller) example zone.
-  - (WIN32) lots of small cleanups and fixes.
+
+	- (WIN32) now reads the pdns.conf file if available.
+	- (WIN32) when running as a regular console app you can now shut it down using ctrl+c etc.
+	- (WIN32) installer now creates a default pdns.conf if none available.
+	- (WIN32) bug fixed where uninstaller wouldn't remove all files that had to be removed.
+	- (WIN32) dll's are now installed locally (in the same dir as the pdns executable).
+	- (WIN32) pdns_control is now added to the distribution.
+	- (WIN32) pdns responds to pdns_control commands correctly.
+	- (WIN32) added experimental master/slave support to the ODBC backend.
+	- (WIN32) fixed a bug in the database structure of the example zone.
+	- (WIN32) inserted a new (smaller) example zone.
+	- (WIN32) lots of small cleanups and fixes.
 
 Changes since 1.99.11:
 	- start of w2k merge
@@ -478,8 +478,8 @@ Changes since 1.99.11:
 	- case sensitivity issues fixed
 	- zone2sql now lowercases postgresql
 	- pdns_control now puts local socket in /tmp
-	
-	
+
+
 Changes since 1.99.10:
 	- now understand postfix ttl multipliers in zones outside of SOA
 	- no longer get confused by whitespace only lines after regular lines
@@ -487,33 +487,33 @@ Changes since 1.99.10:
 
 Changes since 1.99.9:
 features:
-        - log-failed-updates
+	- log-failed-updates
 	- facility logging
 	- work on master
 		now drills a hole for AXFR
-	- can now launch without ipv4 
+	- can now launch without ipv4
 	- also-notify support in backend
 	- added TCPv6, which works too
 	- more bsd-like default directories for freebsd
 	- zone2sql now groks 'domains' table
-	
+
 bugs:
 	- fixed wildcard 'no data' error bug
 	- only not cache rd packets if doing recursion
 	- if a backend falls over, properly launch a new one
 	- ipv6 now actually works :-)
-	
+
 
 
 Changes since 1.99.8:
 features:
 	- added IPv6 parsing for slave AXFR
 	- added IPv6 listener
-	- made AXFR pull reject out of zone data 
+	- made AXFR pull reject out of zone data
 	- supermaster
 	- recursor can also live on another port now
 	- improved slave transferring semantics (scales better)
-	
+
 bugs:
 	- pdns sometimes sent a duplicate answer when operating with a
 	  recursing backend
@@ -522,13 +522,13 @@ bugs:
 	- pgsqlbackend no longer prints out connect string
 	- pgsqlbackend depended on wrong .so in debian unstable link (thanks Wojas)
 	- fix respawn of database connection in case of fatal error
-	
+
 internal:
 	- changed SOA generation infrastructure
 	- improved internal backend API
 	- bindbackend passes regression test
 
-	
+
 Changes since 1.99.7:
 	- simplified bindbackend, potentially resolving crashes observed
 	- fixed SOA data
@@ -544,10 +544,10 @@ Changes since 1.99.7:
 	- added slave support
 	- added recursion
 	  + acl
-          no longer caching recursive queries
+	  no longer caching recursive queries
 
 	- fixed potential tcp and AXFR segmentation fault
-	
+
 Changes since 1.99.6:
 features:
 	- improved error reporting when parsing named.confs
@@ -559,7 +559,7 @@ features:
 
 bugs:
 	- many more named.confs can now be parsed - we now allow _ in
-          filenames
+	  filenames
 	- freebsd version now stops/starts as it should
 	- wildcards were off by default
 	- --oracle did not function in zone2sql
@@ -576,7 +576,7 @@ bugs:
 	- fixed packetcache to detect clock skew
 	- improved flex error message
 	- accept : as part of filenames
-	
+
 Changes since 1.99.4:
 bugs:
 	- zone2sql no longer crashes on named.confs with less than 100 domains
@@ -585,16 +585,16 @@ bugs:
 	- removed yet more fd leaks in guardian
 	- made pipebackend less chatty
 	- daemon now closes filedescriptors 0, 1 & 2
-	
+
 performance:
-	- improved TCP dns code 
+	- improved TCP dns code
 		now only creates backend connection for AXFR
 		has timeouts
 
 features:
 	- made it possible to disable checks on ctime in bindbackend
 	- added --list-modules
-	
+
 Changes since 1.99.3:
 bugs:
 	- make sure zone compression is ON by default (heisenbug)
@@ -609,7 +609,7 @@ features:
 	- grok '@' in RHS of zonestatements
 	- catch dns updates & dns notifies, send out NOTIMP
 	- give zone2sql a default ttl
- 	
+
 performance:
 	- don't search for fancy records on ANY if not wanted
 
@@ -617,7 +617,7 @@ Changes since 1.99.2:
 	- made bindparser case insensitive
 	- fixed AXFR rcodes for disallowed or unauth zones
 	- fixed fd leak when relaunching a child
-	- fixed zone2sql lack of fclose() 
+	- fixed zone2sql lack of fclose()
 	- make --help accept a prefix parameter
 	- added --zone-name to zone2sql
 	- added --disable-axfr (untested!)
@@ -632,13 +632,13 @@ Changes since 1.99.2:
 Changes since 1.99.1:
 
 	- fixed uid/gid confusal
-	- fixed module backend restarting code 
-	- bummed off 3 syscalls 
+	- fixed module backend restarting code
+	- bummed off 3 syscalls
 	- removed lot of unnecessary gettimeofday calls
 	- fixed buffer overrun in local socket binding
-	- do not parse configuration when outputting configuration 
+	- do not parse configuration when outputting configuration
 		(when reinstalling)
-	
+
 
 
 1.4.1

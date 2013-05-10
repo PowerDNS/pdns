@@ -26,7 +26,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      when "getbeforeandafternamesabsolute", "getbeforeandafternames"
         {
            "id" => url.shift.to_i,
-           "qname" => url.shift 
+           "qname" => url.shift
         }
      when "getdomainmetadata", "setdomainmetadata", "getdomainkeys"
         {
@@ -37,7 +37,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
         {
              "id" => url.shift,
              "name" => url.shift
-        } 
+        }
      when "adddomainkey", "gettsigkey", "getdomaininfo"
         {
              "name" => url.shift
@@ -56,11 +56,11 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      method, args = parse_url(tmp)
 
      method = "do_#{method}"
-    
+
      # get more arguments
      req.each do |k,v|
         attr = k[/X-RemoteBackend-(.*)/,1]
-        if attr 
+        if attr
           args[attr] = v
         end
      end
@@ -103,8 +103,8 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def do_DELETE(req,res)
      do_GET(req,res)
    end
-   
+
    def do_POST(req,res)
      do_GET(req,res)
-   end 
+   end
 end

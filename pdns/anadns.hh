@@ -12,13 +12,13 @@
 
 struct QuestionIdentifier
 {
-  QuestionIdentifier() 
+  QuestionIdentifier()
   {}
 
   bool operator<(const QuestionIdentifier& rhs) const
   {
-    return 
-      tie(d_sourceip, d_destip, d_sourceport, d_destport, d_qname, d_qtype, d_id) < 
+    return
+      tie(d_sourceip, d_destip, d_sourceport, d_destport, d_qname, d_qtype, d_id) <
       tie(rhs.d_sourceip, rhs.d_destip, rhs.d_sourceport, rhs.d_destport, rhs.d_qname, rhs.d_qtype, rhs.d_id);
   }
 
@@ -62,7 +62,7 @@ struct QuestionIdentifier
   uint16_t d_id;
 };
 
-inline ostream& operator<<(ostream &s, const QuestionIdentifier& qi) 
+inline ostream& operator<<(ostream &s, const QuestionIdentifier& qi)
 {
   s<< "'"<<qi.d_qname<<"|"<<DNSRecordContent::NumberToType(qi.d_qtype)<<"', with id " << qi.d_id <<" from ";
   uint32_t rint=qi.d_sourceip;
@@ -72,7 +72,7 @@ inline ostream& operator<<(ostream &s, const QuestionIdentifier& qi)
   s<< (rint>>8  & 0xff)<<".";
   s<< (rint     & 0xff);
   s<<":"<<qi.d_sourceport;
-  
+
   s<<" to ";
   rint=qi.d_destip;
   s<< (rint>>24 & 0xff)<<".";

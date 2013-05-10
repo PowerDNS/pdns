@@ -16,10 +16,10 @@ BOOST_AUTO_TEST_CASE(test_Base64_Roundtrip) {
   BOOST_CHECK_EQUAL(before, after);
 }
 
-/* for a in $(seq 1 32); 
-   do 
-    plain=$(pwgen -1  -s $a) 
-    echo  \(\"$plain\",\"$(echo -n $plain | openssl enc -base64)\"\) ; 
+/* for a in $(seq 1 32);
+   do
+    plain=$(pwgen -1  -s $a)
+    echo  \(\"$plain\",\"$(echo -n $plain | openssl enc -base64)\"\) ;
    done
 */
 

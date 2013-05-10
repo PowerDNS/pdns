@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -41,7 +41,7 @@ This is a thread that just throws packets around. Should handle ~1000 packets/se
 
 Consists of a thread receiving packets back from the backend and retransmitting them to the original client.
 
-Furthermore, it provides a member function that reports the packet to the connection tracker and actually sends it out. 
+Furthermore, it provides a member function that reports the packet to the connection tracker and actually sends it out.
 
 The sending happens from a source port that is determined by the constructor, but IS random. Furthermore, the ID is XOR-ed with a random value
 to make sure outside parties can't spoof us.

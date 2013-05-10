@@ -1,5 +1,5 @@
 0	secure-delegated.dnssec-parent.com.	IN	A	3600	9.9.9.9
 0	secure-delegated.dnssec-parent.com.	IN	RRSIG	3600	A 8 3 3600 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='secure-delegated.dnssec-parent.com.', qtype=A

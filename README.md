@@ -20,7 +20,7 @@ SOURCE CODE / GIT
 Source code is available on GitHub:
 
     $ git clone https://github.com/PowerDNS/pdns.git
-    
+
 This repository contains the sources both for the PowerDNS Recursor and for PowerDNS Authoritative Server,
 and both can be built from this repository. Both are released separately as .tar.gz, .deb and .rpm however!
 
@@ -31,7 +31,7 @@ PowerDNS Authoritative Server 3.0 and beyond depend on Boost.
 On Debian 7.0, the following is useful:
 
     apt-get install autoconf automake bison flex g++ git libboost-all-dev libtool make pkg-config ragel
-    
+
 To compile a very clean version, use:
 
     $ ./configure --with-modules="" --without-lua

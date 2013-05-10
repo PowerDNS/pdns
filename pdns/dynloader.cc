@@ -3,7 +3,7 @@
     Copyright (C) 2002 - 2008  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     return 0;
   }
 
-  if(::arg()["config-name"]!="") 
+  if(::arg()["config-name"]!="")
     s_programname+="-"+::arg()["config-name"];
 
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
@@ -88,10 +88,10 @@ int main(int argc, char **argv)
     ::arg().laxFile(configname.c_str());
     ::arg().laxParse(argc,argv); // reparse so the commandline still wins
   }
-  
+
   string socketname=::arg()["socket-dir"]+"/"+s_programname+".controlsocket";
   cleanSlashes(socketname);
-  
+
   if(::arg()["chroot"].empty())
     localdir="/tmp";
   else
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
         cerr<<"Unable to convert '"<<::arg()["remote-port"]<<"' to a port number for connecting to remote PowerDNS\n";
         exit(99);
       }
-      
+
       D=shared_ptr<DynMessenger>(new DynMessenger(ComboAddress(::arg()["remote-address"], port), ::arg()["secret"]));
     }
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
         message+=" ";
       message+=*i;
     }
-    
+
     if(command=="show") {
       message="SHOW ";
       for(unsigned int n=1;n<commands.size();n++) {
@@ -142,15 +142,15 @@ int main(int argc, char **argv)
     else if(command=="version" || command=="VERSION") {
       message="VERSION";
     }
-    
-    
+
+
     if(D->send(message)<0) {
       cerr<<"Error sending command"<<endl;
       return 1;
     }
-    
+
     string resp=D->receive();
-    
+
     cout<<resp<<endl;
   }
   catch(AhuException &ae) {

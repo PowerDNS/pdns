@@ -30,23 +30,23 @@ public:
     d_iter = d_container.begin();
     d_init=true;
   }
-  
-  bool run(); //!< keep calling this as long as it returns 1, or if it throws an exception 
-  
+
+  bool run(); //!< keep calling this as long as it returns 1, or if it throws an exception
+
   unsigned int d_maxInFlight;
   unsigned int d_timeoutSeconds;
   int d_burst;
-  
+
   uint64_t getTimeouts()
   {
     return d_timeouts;
   }
-  
+
   uint64_t getUnexpecteds()
   {
     return d_unexpectedResponse;
   }
-  
+
 private:
   struct TTDItem
   {
@@ -66,15 +66,15 @@ private:
         member<TTDItem, struct timeval, &TTDItem::ttd>
       >
     >
-  >ttdwatch_t; 
-  
+  >ttdwatch_t;
+
   Container& d_container;
   SenderReceiver& d_sr;
-  
+
   ttdwatch_t d_ttdWatch;
   typename Container::iterator d_iter;
   bool d_init;
-  
+
   uint64_t d_unexpectedResponse, d_timeouts;
 };
 
@@ -82,12 +82,12 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
 {
   if(!d_init)
     init();
-    
+
   for(;;) {
     int burst = 0;
 
     // 'send' as many items as allowed, limited by 'max in flight' and our burst parameter (which limits query rate growth)
-    while(d_iter != d_container.end() && d_ttdWatch.size() < d_maxInFlight) { 
+    while(d_iter != d_container.end() && d_ttdWatch.size() < d_maxInFlight) {
       TTDItem ttdi;
       ttdi.iter = d_iter++;
       ttdi.id = d_sr.send(*ttdi.iter);
@@ -98,28 +98,28 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
 //        cerr<<"DUPLICATE INSERT!"<<endl;
       }
       d_ttdWatch.insert(ttdi);
-      
+
       if(++burst == d_burst)
         break;
     }
     int processed=0;
-    
-    
+
+
     // if there are queries in flight, handle responses
     if(!d_ttdWatch.empty()) {
-      // cerr<<"Have "<< d_ttdWatch.size() <<" queries in flight"<<endl;            
+      // cerr<<"Have "<< d_ttdWatch.size() <<" queries in flight"<<endl;
       typename SendReceive::Answer answer;
       typename SendReceive::Identifier id;
-      
+
       // get as many answers as available - 'receive' should block for a short while to wait for an answer
       while(d_sr.receive(id, answer)) {
         typename ttdwatch_t::iterator ival = d_ttdWatch.find(id); // match up what we received to what we were waiting for
 
         if(ival != d_ttdWatch.end()) { // found something!
           ++processed;
-	  struct timeval now;
-	  gettimeofday(&now, 0);
-	  unsigned int usec = 1000000*(now.tv_sec - ival->sentTime.tv_sec) + (now.tv_usec - ival->sentTime.tv_usec);
+          struct timeval now;
+          gettimeofday(&now, 0);
+          unsigned int usec = 1000000*(now.tv_sec - ival->sentTime.tv_sec) + (now.tv_usec - ival->sentTime.tv_usec);
           d_sr.deliverAnswer(*ival->iter, answer, usec);    // deliver to sender/receiver
           d_ttdWatch.erase(ival);
           break; // we can send new questions!
@@ -129,12 +129,12 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
           d_unexpectedResponse++;
         }
       }
-    
-      
+
+
       if(!processed /* || d_ttdWatch.size() > 10000 */ ) { // no new responses, time for some cleanup of the ttdWatch
         struct timeval now;
         gettimeofday(&now, 0);
-        
+
         typedef typename ttdwatch_t::template index<TimeTag>::type waiters_by_ttd_index_t;
         waiters_by_ttd_index_t& waiters_index = boost::multi_index::get<TimeTag>(d_ttdWatch);
 
@@ -146,7 +146,7 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
             // cerr<<"Have timeout for id="<< valiter->id <<endl;
             d_timeouts++;
           }
-          else 
+          else
             break; // if this one was too new, rest will be too
         }
       }
@@ -167,19 +167,19 @@ struct SendReceive
   ComboAddress d_remote;
   int d_socket;
   int d_id;
-  
+
   SendReceive()
   {
     d_id = 0;
     d_socket = socket(AF_INET, SOCK_DGRAM, 0);
     int val=1;
     setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
-    
+
     ComboAddress local("0.0.0.0", 1024);
     bind(d_socket, (struct sockaddr*)&local, local.getSocklen());
-    
+
     char buf[512];
-    
+
     socklen_t remotelen=sizeof(d_remote);
     cerr<<"Waiting for 'hi' on "<<local.toStringWithPort()<<endl;
     int len = recvfrom(d_socket, buf, sizeof(buf), 0, (struct sockaddr*)&d_remote, &remotelen);
@@ -187,12 +187,12 @@ struct SendReceive
     Utility::setNonBlocking(d_socket);
     connect(d_socket, (struct sockaddr*) &d_remote, d_remote.getSocklen());
   }
-  
+
   ~SendReceive()
   {
     ::send(d_socket, "done\r\n", 6, 0);
   }
-  
+
   Identifier send(int& i)
   {
     cerr<<"Sending a '"<<i<<"'"<<endl;
@@ -200,12 +200,12 @@ struct SendReceive
     ::send(d_socket, msg.c_str(), msg.length(), 0);
     return d_id++;
   }
-  
+
   bool receive(Identifier& id, int& i)
   {
     if(waitForData(d_socket, 0, 500000) > 0) {
       char buf[512];
-    
+
       int len = recv(d_socket, buf, sizeof(buf), 0);
       string msg(buf, len);
       if(sscanf(msg.c_str(), "%d %d", &id, &i) != 2) {
@@ -215,7 +215,7 @@ struct SendReceive
     }
     return 0;
   }
-  
+
   void deliverAnswer(int& i, int j)
   {
     cerr<<"We sent "<<i<<", got back: "<<j<<endl;
@@ -229,7 +229,7 @@ int main()
   SendReceive sr;
   Inflighter<vector<int>, SendReceive> inflighter(numbers, sr);
 
-  for(int n=0; n < 100; ++n) 
+  for(int n=0; n < 100; ++n)
     numbers.push_back(n*n);
 
 
@@ -242,6 +242,6 @@ int main()
       cerr<<"Caught exception: "<<e.what()<<endl;
     }
   }
-  
+
 }
 #endif

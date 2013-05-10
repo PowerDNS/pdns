@@ -9,7 +9,7 @@
 #include <curl/curl.h>
 #endif
 
-#ifndef UNIX_PATH_MAX 
+#ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
 #endif
 
@@ -22,7 +22,7 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
       this->d_url_suffix = "";
     }
     this->timeout = 2;
-    if (options.find("timeout") != options.end()) { 
+    if (options.find("timeout") != options.end()) {
       this->timeout = boost::lexical_cast<int>(options.find("timeout")->second)/1000;
     }
 }
@@ -86,10 +86,10 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     // finally add suffix
     ss << d_url_suffix;
     curl_easy_setopt(d_c, CURLOPT_URL, ss.str().c_str());
-    
+
     (*slist) = NULL;
     // set the correct type of request based on method
-    if (method == "activateDomainKey" || method == "deactivateDomainKey") { 
+    if (method == "activateDomainKey" || method == "deactivateDomainKey") {
         // create an empty post
         curl_easy_setopt(d_c, CURLOPT_POST, 1);
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
@@ -144,7 +144,7 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     };
 
     // store headers into request
-    curl_easy_setopt(d_c, CURLOPT_HTTPHEADER, *slist); 
+    curl_easy_setopt(d_c, CURLOPT_HTTPHEADER, *slist);
 }
 
 int HTTPConnector::send_message(const rapidjson::Document &input) {
@@ -180,7 +180,7 @@ int HTTPConnector::send_message(const rapidjson::Document &input) {
          rv = -1;
       } else {
          // ok. if d_data == 0 but rcode is 2xx then result:true
-         if (this->d_data.size() == 0) 
+         if (this->d_data.size() == 0)
             this->d_data = "{\"result\": true}";
          rv = this->d_data.size();
       }

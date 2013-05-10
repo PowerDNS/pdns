@@ -96,7 +96,7 @@ bool MyDNSBackend::list(const string &target, int zoneId) {
 
         if(!d_db->getRow(rrow))
         	return false; // No such zone
-        
+
         d_origin = rrow[0];
         if (d_origin[d_origin.length()-1] == '.')
         	d_origin.erase(d_origin.length()-1);
@@ -110,7 +110,7 @@ bool MyDNSBackend::list(const string &target, int zoneId) {
         query+=itoa(zoneId);
         if (!d_rrwhere.empty())
                 query += " and "+d_rrwhere;
-        
+
 
         this->Query(query);
 
@@ -190,7 +190,7 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         if (zoneId < 0) {
         	// First off we need to work out what zone we're working with
         	// MyDNS records aren't always fully qualified, so we need to work out the zone ID.
-        	
+
         	size_t pos;
         	string sdom;
 
@@ -198,7 +198,7 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         	sdom = sname;
         	while (!sdom.empty() && pos != string::npos) {
         		query = "select id, origin, minimum from "+d_soatable+" where origin = '"+sdom+"'";
-                        if (!d_soawhere.empty()) 
+                        if (!d_soawhere.empty())
                                 query += " and "+d_soawhere;
 
         		this->Query(query);
@@ -220,7 +220,7 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         } else {
         	query = "select origin, minimum from "+d_soatable+" where id = ";
         	query+=zoneIdStr;
-                if (!d_soawhere.empty()) 
+                if (!d_soawhere.empty())
         	       query+= " and "+d_soawhere;
 
         	this->Query(query);
@@ -228,7 +228,7 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         	if(!d_db->getRow(rrow)) {
         		throw AhuException("lookup() passed zoneId = "+zoneIdStr+" but no such zone!");
         	}
-        	
+
         	found = true;
         	d_origin = rrow[0];
         	if (d_origin[d_origin.length()-1] == '.')
@@ -270,7 +270,7 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
 
                 if (qtype.getCode() == 255) {
                         query += " union select 'SOA' as type, origin as data, '0' as aux, ttl, id as zone from "+d_soatable+" where id= " + zoneIdStr + " and origin = '"+qname+".'";
-                        if (!d_soawhere.empty()) 
+                        if (!d_soawhere.empty())
                                 query += " and " + d_soawhere;
                 }
         	query += " order by type,aux,data";
@@ -312,7 +312,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
 
         }
 
-        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
+        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX ||
                 rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
         	if (rr.content[rr.content.length()-1] == '.') {
         		rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
@@ -329,7 +329,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
         	rr.ttl = d_minimum;
         rr.domain_id=atol(rrow[4].c_str());
 
-  
+
         rr.last_modified=0;
 
         return true;

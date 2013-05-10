@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,7 +25,7 @@
 #include "misc.hh"
 #include "iputils.hh"
 #ifndef WIN32
-# include <netdb.h> 
+# include <netdb.h>
 # include <unistd.h>
 # include <sys/time.h>
 # include <sys/uio.h>
@@ -40,9 +40,9 @@
 #include "dns.hh"
 #include "namespaces.hh"
 
-int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id, 
+int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id,
             const string& domain, uint16_t qtype,  int* fd);
-int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id, 
+int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id,
               const string& domain, uint16_t, int fd, struct timeval* now);
 
 class LWResException : public AhuException
@@ -51,7 +51,7 @@ public:
   LWResException(const string &reason) : AhuException(reason){}
 };
 
-//! LWRes class 
+//! LWRes class
 class LWResult
 {
 public:

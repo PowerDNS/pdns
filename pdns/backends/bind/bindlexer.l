@@ -36,7 +36,7 @@ extern const char *bind_directory;
 
 %}
 
-%x comment 
+%x comment
 %x incl
 %x quoted
 %option stack
@@ -56,7 +56,7 @@ extern const char *bind_directory;
 include                 BEGIN(incl);
 <incl>[ \t;]*            /* eat the whitespace */
 <incl>\"[^ \t\n";]+\";        { /* got the include file name */
-	char filename[1024];
+        char filename[1024];
         if ( include_stack_ptr >= MAX_INCLUDE_DEPTH )
             {
             fprintf( stderr, "Includes nested too deeply" );
@@ -69,18 +69,18 @@ include                 BEGIN(incl);
         include_stack_name[include_stack_ptr]=current_filename=strdup(yytext+1);
         include_stack_ln[include_stack_ptr++]=linenumber;
         linenumber=1;
-	if(*(yytext+1)=='/')
-		strcpy(filename,yytext+1);
-	else {
-		strcpy(filename,bind_directory);
-		strcat(filename,"/");
-		strcat(filename,yytext+1);
-	}
+        if(*(yytext+1)=='/')
+                strcpy(filename,yytext+1);
+        else {
+                strcpy(filename,bind_directory);
+                strcat(filename,"/");
+                strcat(filename,yytext+1);
+        }
 
         if (*yytext &&!(yyin=fopen(filename,"r"))) {
-	  fprintf( stderr, "Unable to open '%s': %s\n",filename,strerror(errno));
-	  exit( 1 );
-	}
+          fprintf( stderr, "Unable to open '%s': %s\n",filename,strerror(errno));
+          exit( 1 );
+        }
 
         BEGIN(INITIAL);
         yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
@@ -111,11 +111,11 @@ include                 BEGIN(incl);
 
 
 
-zone			return ZONETOK; 
+zone                    return ZONETOK;
 
-file			return FILETOK;
+file                    return FILETOK;
 options                 return OPTIONSTOK;
-also-notify		return ALSONOTIFYTOK;
+also-notify             return ALSONOTIFYTOK;
 acl                     return ACLTOK;
 logging                 return LOGGINGTOK;
 directory               return DIRECTORYTOK;
@@ -130,9 +130,9 @@ type                    return TYPETOK;
 ;                       return SEMICOLON;
 \n                      linenumber++;
 [ \t]*                  ;
-\/\/.*$			;
-\#.*$			;
-.                       { 
+\/\/.*$                 ;
+\#.*$                   ;
+.                       {
                         fprintf(stderr,"Parsing '%s': unable to parse line %d at character '%s'\n",current_filename, linenumber, yytext);
                         exit(1); }
 %%

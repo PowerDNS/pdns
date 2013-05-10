@@ -8,10 +8,10 @@
 #include <string.h>
 
 // Constructor.
-SODBC::SODBC( 
+SODBC::SODBC(
              const std::string & dsn,
              const std::string & username,
-             const std::string & password 
+             const std::string & password
             )
 {
   SQLRETURN     result;
@@ -78,7 +78,7 @@ int SODBC::doQuery( const std::string & query )
 {
   SQLRETURN   result;
   char        *tmp;
-  
+
   if ( m_busy )
     throw SSqlException( "Tried to execute another query while being busy." );
 
@@ -173,7 +173,7 @@ int SODBC::doCommand( const std::string & command )
 {
   SQLRETURN   result;
   char        *tmp;
-  
+
   if ( m_busy )
     throw SSqlException( "Tried to execute another query while being busy." );
 
@@ -195,7 +195,7 @@ std::string SODBC::escape( const std::string & name )
 {
   std::string a;
 
-  for( std::string::const_iterator i = name.begin(); i != name.end(); ++i ) 
+  for( std::string::const_iterator i = name.begin(); i != name.end(); ++i )
   {
     if( *i == '\'' || *i == '\\' )
       a += '\\';

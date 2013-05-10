@@ -7,7 +7,7 @@
 
 CDB::CDB(const string &cdbfile)
 {
-	
+
 	d_fd = open(cdbfile.c_str(), O_RDONLY);
 	if (d_fd < 0)
 	{
@@ -16,7 +16,7 @@ CDB::CDB(const string &cdbfile)
 	}
 
 	int cdbinit = cdb_init(&d_cdb, d_fd);
-	if (cdbinit < 0) 
+	if (cdbinit < 0)
 	{
 		L<<Logger::Error<<"Failed to initialize cdb structure. ErrorNr: '"<<cdbinit<<endl;
 		throw new AhuException("Failed to initialize cdb structure.");
@@ -29,7 +29,7 @@ CDB::~CDB() {
 }
 
 int CDB::searchKey(const string &key) {
-	d_searchType = SearchKey; 
+	d_searchType = SearchKey;
 
 	// A 'bug' in tinycdb (the lib used for reading the CDB files) means we have to copy the key because the cdb_find struct
 	// keeps a pointer to it.
@@ -40,7 +40,7 @@ int CDB::searchKey(const string &key) {
 bool CDB::searchSuffix(const string &key) {
 	d_searchType = SearchSuffix;
 
-	//See CDB::searchKey() 
+	//See CDB::searchKey()
 	d_key = strdup(key.c_str());
 
 	// We are ok wiht a search on things, but we do want to know if a record with that key exists.........
@@ -71,19 +71,19 @@ bool CDB::readNext(pair<string, string> &value) {
 	while (moveToNext()) {
 		unsigned int pos;
 		unsigned int len;
-		
+
 		pos = cdb_keypos(&d_cdb);
 		len = cdb_keylen(&d_cdb);
-		
+
 		char *key = (char *)malloc(len);
 		cdb_read(&d_cdb, key, len, pos);
-		
+
 		if (d_searchType == SearchSuffix) {
 			char *p = strstr(key, d_key);
-        	        if (p == NULL) {
-                        	free(key);
-	                        continue;
-        	        }
+			if (p == NULL) {
+				free(key);
+				continue;
+			}
 		}
 		string skey(key, len);
 		free(key);
@@ -110,7 +110,7 @@ vector<string> CDB::findall(string &key)
 {
 	vector<string> ret;
 	struct cdb_find cdbf;
-	
+
 	cdb_findinit(&cdbf, &d_cdb, key.c_str(), key.size());
 	int x=0;
 	while(cdb_findnext(&cdbf) > 0) {

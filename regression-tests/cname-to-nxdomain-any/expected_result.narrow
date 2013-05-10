@@ -1,5 +1,5 @@
 0	nxd.example.com.	IN	CNAME	120	nxdomain.example.com.
 0	nxd.example.com.	IN	RRSIG	120	CNAME 8 3 120 [expiry] [inception] [keytag] example.com. ...
-2	.	IN	OPT	32768	
+2	.	IN	OPT	32768
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='nxd.example.com.', qtype=ANY

@@ -3,7 +3,7 @@
     Copyright (C) 2006 - 2011 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -43,7 +43,7 @@ static void initArguments(int argc, char** argv)
   arg().set("timeout", "Number of seconds to wait for the recursor to respond")="5";
   arg().setCmd("help","Provide this helpful message");
 
-  arg().laxParse(argc,argv);  
+  arg().laxParse(argc,argv);
   if(arg().getCommands().empty() || arg().mustDo("help")) {
     cerr<<"syntax: rec_control [options] command, options as below: "<<endl<<endl;
     cerr<<arg().helpstring(arg()["help"])<<endl;
@@ -52,7 +52,7 @@ static void initArguments(int argc, char** argv)
   string configname=::arg()["config-dir"]+"/recursor.conf";
   cleanSlashes(configname);
 
-  if(!::arg().preParseFile(configname.c_str(), "socket-dir", LOCALSTATEDIR)) 
+  if(!::arg().preParseFile(configname.c_str(), "socket-dir", LOCALSTATEDIR))
     cerr<<"Warning: unable to parse configuration file '"<<configname<<"'"<<endl;
   arg().laxParse(argc,argv);   // make sure the commandline wins
 }

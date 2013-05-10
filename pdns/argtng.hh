@@ -189,7 +189,7 @@ struct Argument
   Argument()
   {}
 
-  Argument(const cond& c, const string& val="") 
+  Argument(const cond& c, const string& val="")
     : d_c(c.copy()), d_value(val)
   {}
 
@@ -206,13 +206,13 @@ public:
   {
     d_content[name]=Argument(c,def);
   }
-  
-  void constraints() 
+
+  void constraints()
   {
     for(decl(i,d_content.begin());i!=d_content.end();++i)
       if(!correct(i->first))
         throw runtime_error("variable '"+i->first+"' violates constraints with value '"+i->second.d_value+"'");
-    
+
   }
 
   void parse(int argc, char **argv)

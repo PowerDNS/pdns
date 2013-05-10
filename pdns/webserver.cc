@@ -5,7 +5,7 @@
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
-    
+
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -61,7 +61,7 @@ void *WebServer::serveConnection(void *p)
 
     vector<string> parts;
     stringtok(parts,line);
-    
+
     string method, uri;
     if(parts.size()>1) {
       method=parts[0];
@@ -74,7 +74,7 @@ void *WebServer::serveConnection(void *p)
     stringtok(parts,uri,"?");
 
     //    L<<"baseUrl: '"<<parts[0]<<"'"<<endl;
-    
+
     vector<string>urlParts;
     stringtok(urlParts,parts[0],"/");
     string baseUrl;
@@ -118,30 +118,30 @@ void *WebServer::serveConnection(void *p)
         B64Decode(cookie,plain);
         vector<string>cparts;
         stringtok(cparts,plain,":");
-        //	L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
+        // L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
         if(cparts.size()==2 && !strcmp(cparts[1].c_str(),d_password.c_str())) { // this gets rid of terminating zeros
           authOK=1;
         }
       }
       else if(boost::starts_with(line, "Content-Length: ") && method=="POST") {
-	postlen = atoi(line.c_str() + strlen("Content-Length: "));
-//	cout<<"Got a post: "<<postlen<<" bytes"<<endl;
+        postlen = atoi(line.c_str() + strlen("Content-Length: "));
+//        cout<<"Got a post: "<<postlen<<" bytes"<<endl;
       }
       else
-	; // cerr<<"Ignoring line: "<<line<<endl;
-      
+        ; // cerr<<"Ignoring line: "<<line<<endl;
+
     }while(!line.empty());
 
     string post;
-    if(postlen) 
+    if(postlen)
       post = client->get(postlen);
-  
+
  //   cout<<"Post: '"<<post<<"'"<<endl;
 
     if(!d_password.empty() && !authOK) {
       client->putLine("HTTP/1.1 401 OK\n");
       client->putLine("WWW-Authenticate: Basic realm=\"PowerDNS\"\n");
-      
+
       client->putLine("Connection: close\n");
       client->putLine("Content-type: text/html; charset=UTF-8\n\n");
       client->putLine("Please enter a valid password!\n");
@@ -169,7 +169,7 @@ void *WebServer::serveConnection(void *p)
       // FIXME: CSS problem?
       client->putLine("<html><body><h1>Did not find file '"+baseUrl+"'</body></html>\n");
     }
-        
+
     client->close();
     delete client;
     client=0;
@@ -220,7 +220,7 @@ void WebServer::go()
   try {
     Session *client;
     pthread_t tid;
-    
+
     L<<Logger::Error<<"Launched webserver on "<<d_listenaddress<<":"<<d_port<<endl;
 
     while((client=d_server->accept())) {

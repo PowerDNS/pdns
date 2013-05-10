@@ -88,7 +88,7 @@ int entropy_update( entropy_context *ctx, unsigned char source_id,
     unsigned char tmp[ENTROPY_BLOCK_SIZE];
     size_t use_len = len;
     const unsigned char *p = data;
-   
+
     if( use_len > ENTROPY_BLOCK_SIZE )
     {
         sha4( data, len, tmp, 0 );
@@ -102,7 +102,7 @@ int entropy_update( entropy_context *ctx, unsigned char source_id,
 
     sha4_update( &ctx->accumulator, header, 2 );
     sha4_update( &ctx->accumulator, p, use_len );
-    
+
     return( 0 );
 }
 
@@ -120,7 +120,7 @@ int entropy_gather( entropy_context *ctx )
     int ret, i;
     unsigned char buf[ENTROPY_MAX_GATHER];
     size_t olen;
-    
+
     if( ctx->source_count == 0 )
         return( POLARSSL_ERR_ENTROPY_NO_SOURCES_DEFINED );
 
@@ -180,7 +180,7 @@ int entropy_func( void *data, unsigned char *output, size_t len )
     memset( buf, 0, ENTROPY_BLOCK_SIZE );
 
     sha4_finish( &ctx->accumulator, buf );
-                
+
     /*
      * Perform second SHA-512 on entropy
      */
