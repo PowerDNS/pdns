@@ -29,7 +29,7 @@ then
 	diff ${testsdir}/${testname}/$diffto ${testsdir}/${testname}/$step | sed '/^[0-9a-z,/-]*$/d' | sort -V
 	if [ ${PIPESTATUS[0]} -eq 0 ]
 	then
-		echo "no differnce"
+		echo "no difference"
 	fi
 	echo -e "--- End: diff $diffto $step ---\n"
 fi
