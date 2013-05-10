@@ -32,6 +32,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "version.hh"
 
 using namespace rapidjson;
 
@@ -235,7 +236,7 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     printtable(ret,rvarmap["ring"],S.getRingTitle(rvarmap["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">PowerDNS Authoritative Server "VERSION". &copy; 2013 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   return ret.str();
