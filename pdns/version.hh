@@ -18,12 +18,11 @@
 #ifndef VERSION_HH
 #define VERSION_HH
 
-#include <string>
-#include <sstream>
+#include "namespaces.hh"
 
-std::string compilerVersion();
+string compilerVersion();
 void showProductVersion();
-std::string fullVersionString();
-void versionSetProduct(std::string product);
+string fullVersionString();
+void versionSetProduct(string product);
 
 #endif //!VERSION_HH

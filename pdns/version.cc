@@ -20,8 +20,6 @@
 #include "version.hh"
 #include "version_generated.h"
 
-using namespace std;
-
 static string productName("");
 
 string compilerVersion()
@@ -50,7 +48,7 @@ void showProductVersion()
 
 string fullVersionString()
 {
-  stringstream s;
+  ostringstream s;
   s << "PowerDNS "<<productName<<" "PDNS_VERSION" ("DIST_HOST" built "BUILD_DATE" "BUILD_HOST")";
   return s.str();
 }
