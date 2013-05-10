@@ -15,7 +15,9 @@ Cexternal.example.com:somewhere.else.net.:120
 +hightype.example.com:192.168.1.5:120
 :hightype.example.com:65534:\007\355\046\000\001:120
 +host-0.example.com:192.168.1.0:120
+:host-0.example.com:108:\000PV\233\000\347:120
 +host-1.example.com:192.168.1.1:120
+:host-1.example.com:109:\000PV\233\000\347\176W:120
 +host-10.example.com:192.168.1.10:120
 +host-100.example.com:192.168.1.100:120
 +host-1000.example.com:192.168.1.232:120
