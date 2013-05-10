@@ -271,6 +271,8 @@ misc.cc unix_utility.cc qtype.cc
 
 pdns_control_LDFLAGS=@THREADFLAGS@
 
+TESTS=testrunner
+
 dnslabeltext.cc: dnslabeltext.rl
 	ragel dnslabeltext.rl -o dnslabeltext.cc
 
