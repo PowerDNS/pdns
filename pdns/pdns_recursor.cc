@@ -491,8 +491,11 @@ void updateRcodeStats(int res)
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
+  string loginfo="";
 
   try {
+    loginfo=" (while setting loginfo)";
+    loginfo=" ("+dc->d_mdp.d_qname+"/"+lexical_cast<string>(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
     uint32_t maxanswersize= dc->d_tcp ? 65535 : 512;
     EDNSOpts edo;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
@@ -672,19 +675,19 @@ void startDoResolve(void *p)
     dc=0;
   }
   catch(AhuException &ae) {
-    L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
+    L<<Logger::Error<<"startDoResolve problem"<<loginfo<<": "<<ae.reason<<endl;
     delete dc;
   }
   catch(MOADNSException& e) {
-    L<<Logger::Error<<"DNS parser error: "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
+    L<<Logger::Error<<"DNS parser error"<<loginfo<<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
     delete dc;
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"STL error: "<<e.what()<<endl;
+    L<<Logger::Error<<"STL error"<<loginfo<<": "<<e.what()<<endl;
     delete dc;
   }
   catch(...) {
-    L<<Logger::Error<<"Any other exception in a resolver context"<<endl;
+    L<<Logger::Error<<"Any other exception in a resolver context"<<loginfo<<endl;
   }
   
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
