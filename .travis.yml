@@ -34,5 +34,7 @@ notifications:
   irc:
     channels:
       - "irc.oftc.net#powerdns-dev"
+    template:
+      - "%{author} @ %{repository} / %{branch} - Build:#%{build_number} : %{message} - Changes: %{compare_url} - Build details: %{build_url}"
     use_notice: true
     skip_join: true
