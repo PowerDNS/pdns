@@ -10,40 +10,27 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(dnsrecords_cc)
 
-BOOST_AUTO_TEST_CASE(test_EUI48) {
-   EUI48RecordContent::report();
-   std::string lineformat="\x00\x11\x22\x33\x44\x55";
-   std::string zoneformat="00-11-22-33-44-55";
+BOOST_AUTO_TEST_CASE(test_record_types) {
+  typedef std::map<QType::typeenum, std::string> cases_t;
+   reportAllTypes();
 
-   DNSRecordContent *rec = DNSRecordContent::mastermake(QType::EUI48, 1, zoneformat);
-   
+   cases_t cases;
+   assign::insert(cases)
+     (QType::A, "127.0.0.1")
+     (QType::AAAA, "fe80::250:56ff:fe9b:114")
+     (QType::EUI48, "00-11-22-33-44-55")
+     (QType::EUI64, "00-11-22-33-44-55-66-77");
+
+  BOOST_FOREACH(const cases_t::value_type& val, cases) {
+   QType q(val.first);
+   DNSRecordContent *rec = DNSRecordContent::mastermake(q.getCode(), 1, val.second);
    BOOST_CHECK(rec);
-
    // now verify the record
-   BOOST_CHECK_EQUAL(rec->getZoneRepresentation(), zoneformat);
-   shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize("eui48.test",ns_t_eui48,rec->serialize("eui48.test"));
-   
-   BOOST_CHECK(rec2);
-   BOOST_CHECK_EQUAL(rec2->getZoneRepresentation(), zoneformat);
+   BOOST_CHECK_EQUAL(rec->getZoneRepresentation(), val.second);
+   shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize("rec.test",q.getCode(),rec->serialize("rec.test"));
+   BOOST_CHECK_EQUAL(rec2->getZoneRepresentation(), val.second);
+ }
 }
-
-BOOST_AUTO_TEST_CASE(test_EUI64) {
-   EUI64RecordContent::report();
-   std::string lineformat="\x00\x11\x22\x33\x44\x55\x66\x77";
-   std::string zoneformat="00-11-22-33-44-55-66-77";
-
-   DNSRecordContent *rec = DNSRecordContent::mastermake(QType::EUI64, 1, zoneformat);
-
-   BOOST_CHECK(rec);
-
-   // now verify the record
-   BOOST_CHECK_EQUAL(rec->getZoneRepresentation(), zoneformat);
-   shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize("eui64.test",ns_t_eui64,rec->serialize("eui64.test"));
-
-   BOOST_CHECK(rec2);
-   BOOST_CHECK_EQUAL(rec2->getZoneRepresentation(), zoneformat);
-}
-
 
 BOOST_AUTO_TEST_SUITE_END()
 
