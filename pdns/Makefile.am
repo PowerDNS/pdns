@@ -295,6 +295,8 @@ pdns_version=$(shell test -z "$(git_version)" && echo UNKNOWN || echo "git-$(git
 dist_host=$(build_host)
 endif
 
+version.o: version_generated.h
+
 .PHONY: version_generated.h
 version_generated.h:
 	echo '#ifndef VERSION_GENERATED_H' > $@
