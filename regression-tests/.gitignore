@@ -18,3 +18,5 @@ real_result
 /*.sqlite3*
 /*.com-slave
 /named-slave.conf
+*/start
+*/step.*
