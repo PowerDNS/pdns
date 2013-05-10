@@ -20182,5 +20182,5 @@ host-19999	IN	A	192.168.1.31
 ;
 double			IN	A	192.168.5.1
 
-host-0          IN   EUI48      00:50:56:9b:00:e7
-host-1          IN   EUI64      00:50:56:9b:00:e7:7e:57
+host-0          IN   EUI48      00-50-56-9b-00-e7
+host-1          IN   EUI64      00-50-56-9b-00-e7-7e-57
