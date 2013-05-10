@@ -26,7 +26,7 @@ REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
 	unix_utility.o logger.o qtype.o
 
 # what we need 
-all: message version_generated.h pdns_recursor rec_control
+all: message version_generated.h build
 
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
@@ -84,7 +84,7 @@ basic_checks:
 		rm -f dep ; \
 	 fi
 
-install: all
+install: build-stamp
 	-mkdir -p $(DESTDIR)/$(SBINDIR)
 	mv pdns_recursor $(DESTDIR)/$(SBINDIR)
 	strip $(DESTDIR)/$(SBINDIR)/pdns_recursor
@@ -101,7 +101,7 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o  pdns_recursor rec_control optional/*.o
+	-rm -f *.o  pdns_recursor rec_control optional/*.o build-stamp
 
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.c *.hh > $@
@@ -116,4 +116,10 @@ pdns_recursor: optional $(OPTIONALS) $(PDNS_RECURSOR_OBJECTS)
 
 rec_control: $(REC_CONTROL_OBJECTS)
 	$(LINKCC) $(REC_CONTROL_OBJECTS) $(LDFLAGS) -o $@
+
+build-stamp:
+	$(MAKE) build
+
+build: pdns_recursor rec_control
+	touch build-stamp
 
