@@ -11,24 +11,6 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(dnsrecords_cc)
 
-#include <string>
-
-std::string string_to_hex(const std::string& input)
-{
-    static const char* const lut = "0123456789ABCDEF";
-    size_t len = input.length();
-
-    std::string output;
-    output.reserve(2 * len);
-    for (size_t i = 0; i < len; ++i)
-    {
-        const unsigned char c = input[i];
-        output.push_back(lut[c >> 4]);
-        output.push_back(lut[c & 15]);
-    }
-    return output;
-}
-
 BOOST_AUTO_TEST_CASE(test_record_types) {
   typedef boost::tuple<const QType::typeenum, const std::string, const char*, size_t> case_t;
   typedef std::list<case_t> cases_t;
@@ -55,5 +37,3 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
-
