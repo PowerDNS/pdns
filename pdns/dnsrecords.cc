@@ -299,7 +299,7 @@ DNSRecordContent* EUI48RecordContent::make(const string& zone)
     if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
            ret->d_eui48, ret->d_eui48+1, ret->d_eui48+2, 
            ret->d_eui48+3, ret->d_eui48+4, ret->d_eui48+5) != 6) {
-       throw MOADNSException("Asked to encode '"+zone+"' as an EUI47 address, but does not parse");
+       throw MOADNSException("Asked to encode '"+zone+"' as an EUI48 address, but does not parse");
     }
     return ret;
 }
