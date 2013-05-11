@@ -411,7 +411,7 @@ static string canonic(string ret)
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedence matching
     This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed)
+void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed, const bool ignore_non_zone)
 {
   BB2DomainInfo bb2 = stage->id_zone_map[id];
   Bind2DNSRecord bdr;
@@ -425,8 +425,16 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
     bdr.qname.clear();
   else if(bdr.qname.length() > bb2.d_name.length())
     bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
-  else
-    throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'");
+  else {
+    string msg = "Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'";
+    if(ignore_non_zone) {
+        L<<Logger::Warning<<msg<< " ignored" << endl;
+        return;
+    }
+    else
+      throw AhuException(msg);
+  }
+
 
   bdr.qname.swap(bdr.qname);
 
@@ -639,7 +647,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
     rr.qname=qname+"."+bb2.d_name+".";
     if(nsec3zone)
       hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
-    insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
+    insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed, false);
   }
 }
 
