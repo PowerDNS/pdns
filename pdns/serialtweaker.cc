@@ -3,7 +3,7 @@
     Copyright (C) 2002-2011  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
+    it under the terms of the GNU General Public License version 2 as
     published by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -21,6 +21,17 @@
 #include "namespaces.hh"
 #include <boost/foreach.hpp>
 
+static uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
+{
+  struct tm tm;
+  localtime_r(&t, &tm);
+  return
+      (uint32_t)(tm.tm_year+1900) * 1000000u
+    + (uint32_t)(tm.tm_mon + 1) * 10000u
+    + (uint32_t)tm.tm_mday * 100u
+    + seq;
+}
+
 bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
 {
   vector<DNSResourceRecord>& rrs = dp->getRRS();
@@ -29,36 +40,45 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
       string kind;
       dk.getFromMeta(qname, "SOA-EDIT", kind);
       if(kind.empty())
-	return false;
+        return false;
       SOAData sd;
       fillSOAData(rr.content, sd);
-      if(pdns_iequals(kind,"INCEPTION")) {        
+      if(pdns_iequals(kind,"INCEPTION")) {
         time_t inception = getStartOfWeek();
-        struct tm tm;
-        localtime_r(&inception, &tm);
-        boost::format fmt("%04d%02d%02d%02d");
-
-        string newserdate=(fmt % (tm.tm_year+1900) % (tm.tm_mon +1 )% tm.tm_mday % 1).str();
-        sd.serial = lexical_cast<uint32_t>(newserdate);
+        sd.serial = localtime_format_YYYYMMDDSS(inception, 1);
       }
-      else if(pdns_iequals(kind,"INCEPTION-WEEK")) {        
+      else if(pdns_iequals(kind,"INCEPTION-INCREMENT")) {
+        time_t inception = getStartOfWeek();
+
+        uint32_t inception_serial = localtime_format_YYYYMMDDSS(inception, 1);
+        uint32_t dont_increment_after = localtime_format_YYYYMMDDSS(inception + 2*86400, 99);
+
+        if(sd.serial <= dont_increment_after) {
+          /* "day00" and "day01" are reserved for inception increasing, so increment sd.serial by two */
+          sd.serial += 2;
+        }
+        else if(sd.serial < inception_serial) {
+          sd.serial = inception_serial;
+        }
+      }
+      else if(pdns_iequals(kind,"INCEPTION-WEEK")) {
         time_t inception = getStartOfWeek();
         sd.serial = inception / (7*86400);
       }
-      else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {        
+      else if(pdns_iequals(kind,"INCREMENT-WEEKS")) {
         time_t inception = getStartOfWeek();
         sd.serial += inception / (7*86400);
       }
-      else if(pdns_iequals(kind,"EPOCH")) {        
+      else if(pdns_iequals(kind,"EPOCH")) {
         sd.serial = time(0);
       }
-      else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {        
-       time_t inception = getStartOfWeek();
-       if (sd.serial < inception) {
+      else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {
+        time_t inception = getStartOfWeek();
+        if (sd.serial < inception) {
           sd.serial = inception;
         }
       }
-      rr.content = serializeSOAData(sd);      
+      rr.content = serializeSOAData(sd);
       return true;
     }
   }
