@@ -12636,17 +12636,65 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    When serving this zone, modify the SOA serial number in one of several ways. Mostly useful to get slaves
 	    to re-transfer a zone regularly to get fresh RRSIGs.
 	  </para>
-	  <para>
- 	  	Available modes are: INCEPTION (which sets the SOA Serial to
- 	  	the current two-week signing period start in YYYYMMDD01 format),
-      INCEPTION-WEEK (number of weeks since the
- 	  	epoch), INCREMENT-WEEKS (which increments the serial with
- 	  	the number of weeks since the epoch), EPOCH (number of
- 	  	seconds since the epoch).  Finally, INCEPTION-EPOCH
- 	  	(available since 3.1) is special and sets the new SOA serial
- 	  	number to the maximum of the old SOA serial number, and age
- 	  	in seconds of the start of the current signing period.
-	  </para>
+    <para>
+      Inception refers to the time the RRSIGs got updated in live mode. This happens every week (see <xref linkend="rrsig" />). The inception time does not depend on local timezone, but some modes below will use localtime for representation.
+    </para>
+    <para>
+      Available modes are:
+      <variablelist>
+        <varlistentry>
+          <term>INCREMENT-WEEKS</term>
+          <listitem>
+            <para>
+              Increments the serial with the number of weeks since the epoch.
+            </para>
+            <para>
+              This should work in every setup; but the result won't look like YYYYMMDDSS anymore.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>INCEPTION-EPOCH (available since 3.1)</term>
+          <listitem>
+            <para>
+              Sets the new SOA serial number to the maximum of the old SOA serial number, and age in seconds of the last inception.
+            </para>
+            <para>
+              This requires your backend zone to use age in seconds as SOA serial. The result is still the age in seconds of the last change.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>INCEPTION (not recommended)</term>
+          <listitem>
+            <para>
+              Sets the SOA serial to the last inception time in YYYYMMDD01 format. Uses localtime to find the day for inception time.
+            </para>
+            <para><warning>
+              <para>The SOA serial will only change on inception day, so changes to the zone will get visible on slaves only on the following inception day.</para>
+            </warning></para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>INCEPTION-WEEK (not recommended)</term>
+          <listitem>
+            <para>
+              Sets the SOA serial to the number of weeks since the epoch, which is the last inception time in weeks.
+            </para>
+            <para><warning><para>Same problem as INCEPTION</para></warning></para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>EPOCH</term>
+          <listitem>
+            <para>
+              Sets the SOA serial to the number of seconds since the epoch.
+            </para>
+            <para><warning><para>Don't combine this with AXFR - the slaves would keep refreshing all the time. If you need fast updates, sync the backend databases directly with incremental updates (or use the same database server on the slaves)</para></warning></para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
