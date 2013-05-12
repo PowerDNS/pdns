@@ -28,7 +28,11 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (case_t(QType::CNAME, "name.rec.test.", LF("\x04name\xc0\x11")))
 // non-local alias
      (case_t(QType::CNAME, "name.example.com.", LF("\x04name\x07""example\x03""com\x00")))
-//     (case_t(QType::SOA, "zone format", LF("line format")))
+// local names
+     (case_t(QType::SOA, "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", LF("\x02ns\xc0\x11\x0ahostmaster\x04test\x03rec\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78")))
+// non-local names
+     (case_t(QType::SOA, "ns.example.com. hostmaster.example.com. 2013051201 3600 3600 604800 120", LF("\x02ns\x07""example\x03""com\x00\x0ahostmaster\x07""example\x03""com\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78")))
+
 //     (case_t(QType::MR, "zone format", LF("line format")))
 //     (case_t(QType::PTR, "zone format", LF("line format")))
 //     (case_t(QType::HINFO, "zone format", LF("line format")))
