@@ -418,12 +418,14 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
 
   recordstorage_t& records=*bb2.d_records; 
 
-  bdr.qname=toLower(canonic(qnameu));
+  bdr.qname=canonic(qnameu);
+  //cerr << "qname = " << bdr.qname << ", d_name = " << bb2.d_name << endl;
   if(bb2.d_name.empty())
     ;
   else if(bdr.qname==toLower(bb2.d_name))
     bdr.qname.clear();
-  else if(bdr.qname.length() > bb2.d_name.length())
+  else if(//bdr.qname.length() > bb2.d_name.length() &&
+          bdr.qname.rfind(bb2.d_name) != string::npos)
     bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
   else {
     string msg = "Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'";
