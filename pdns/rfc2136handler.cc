@@ -117,22 +117,25 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     DLOG(L<<msgPrefix<<"Add/Update record (QClass == IN) "<<rrLabel<<"|"<<rrType.getName()<<endl);
 
     if (rrType == QType::NSEC3PARAM) {
-      L<<Logger::Notice<<msgPrefix<<"Setting NSEC3PARAM for zone, resetting ordernames and auth flags."<<endl;  
+      L<<Logger::Notice<<msgPrefix<<"Adding NSEC3PARAM for zone, resetting ordernames."<<endl;  
       NSEC3PARAMRecordContent nsec3param(rr->d_content->getZoneRepresentation(), di->zone);
       d_dk.setNSEC3PARAM(di->zone, nsec3param, (*narrow));
       *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
       di->backend->list(di->zone, di->id);
       vector<DNSResourceRecord> rrs;
       while (di->backend->get(rec)) {
-        rrs.push_back(rec);
+        if (rec.qtype.getCode())
+          rrs.push_back(rec);
       }
       for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
-        if (*narrow) {
+        string hashed;
+
+        if (*haveNSEC3)        
+          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, i->qname)));
+        di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, i->qname, hashed, i->auth);
+       
+        if (*narrow)
           di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
-        } else {
-          string hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, i->qname)));
-          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, i->qname, hashed, i->auth);
-        }
       }
       return 1;
     }
@@ -321,14 +324,20 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       } else 
         return 0;
 
-      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow); // still update, as other records in this update packet need to use it as well.
+      // We retrieve new values, other RR's in this update package might need it as well.
+      *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
+
+      // Remove the Order and Aath field
       di->backend->list(di->zone, di->id);
       vector<DNSResourceRecord> rrs;
-      while (di->backend->get(rec)) {
+      while (di->backend->get(rec))
         rrs.push_back(rec);
-      }
       for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
-        di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, i->qname, i->auth);
+        if (!i->qtype.getCode()) {// for ENT records, we want to reset things as they have ordername=NULL and auth=NULL
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, i->qname, i->qtype.getName());
+          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
+        } else // all other records are simply updated.
+          di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, i->qname, i->auth);
       }
       return 1;
     }

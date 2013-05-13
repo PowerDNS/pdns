@@ -104,6 +104,7 @@ public:
 
     declare(suffix,"nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=(%d = 1) where domain_id='%d' and name='%s'");
     declare(suffix,"nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=false where name=E'%s' and type=E'%s' and domain_id='%d'");
+    declare(suffix,"nullify-ordername-and-auth-ent-query", "DNSSEC nullify ordername and auth for ENT records with name.", "update records set ordername=NULL, auth=NULL where name=E'%s' AND type IS NULL and domain_id='%d'");
     
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");

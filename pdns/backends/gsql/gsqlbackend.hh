@@ -106,6 +106,7 @@ private:
   string d_setOrderAuthQuery;
   string d_nullifyOrderNameAndUpdateAuthQuery;
   string d_nullifyOrderNameAndAuthQuery;
+  string d_nullifyOrderNameAndAuthENTQuery;
   string d_setAuthOnDsRecordQuery;
   string d_removeEmptyNonTerminalsFromZoneQuery;
   string d_insertEmptyNonTerminalQuery;
