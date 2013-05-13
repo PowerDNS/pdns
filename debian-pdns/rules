@@ -19,8 +19,6 @@ binary-doc:
 
 	install -d -m 755 -o root -g root \
 		"$(tmpdir)"/usr/share/doc/pdns-doc
-	install -p -m 644 -o root -g root ChangeLog \
-			"$(tmpdir)"/usr/share/doc/pdns-doc/changelog
 	install -p -m 644 -o root -g root debian-pdns/changelog \
 			"$(tmpdir)"/usr/share/doc/pdns-doc/changelog.Debian
 	gzip -9 "$(tmpdir)"/usr/share/doc/pdns-doc/*
@@ -97,8 +95,6 @@ binary-main-prepare:
 
 	install -d -m 755 -o root -g root \
 		"$(tmpdir)"/usr/share/doc/pdns
-	install -p -m 644 -o root -g root ChangeLog \
-			"$(tmpdir)"/usr/share/doc/pdns/changelog
 	install -p -m 644 -o root -g root debian-pdns/changelog \
 			"$(tmpdir)"/usr/share/doc/pdns/changelog.Debian
 	gzip -9 "$(tmpdir)"/usr/share/doc/pdns/c*
