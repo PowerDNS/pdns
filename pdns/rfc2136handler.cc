@@ -86,10 +86,10 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
 // Implements section 3.4.2 of RFC2136
 uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
+
   string rrLabel = stripDot(rr->d_label);
   rrLabel = toLower(rrLabel);
   QType rrType = QType(rr->d_type);
-
 
   if (rrType == QType::NSEC || rrType == QType::NSEC3) {
     L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<". These are generated records, ignoring!"<<endl;
@@ -101,12 +101,12 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     return 0;
   }
 
-  if (rrType == QType::NSEC3PARAM && rrLabel != di->zone) {
-    L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|NSEC3PARAM, NSEC3PARAM must be at zone apex, ignoring!"<<endl;
+  if ((rrType == QType::NSEC3PARAM || rrType == QType::DNSKEY) && rrLabel != di->zone) {
+    L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<", "<<rrType.getName()<<" must be at zone apex, ignoring!"<<endl;
     return 0;
   }
 
-  
+
   uint16_t changedRecords = 0;
   DNSResourceRecord rec;
   vector<DNSResourceRecord> rrset, recordsToDelete;
