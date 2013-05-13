@@ -606,7 +606,7 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
     prefix.append(depth, ' ');
   }
 
-  if(depth>9) {
+  if((depth>9 && d_outqueries>10 && d_throttledqueries>5) || depth > 15) {
     LOG(prefix<<qname<<": recursing (CNAME or other indirection) too deep, depth="<<depth<<endl);
     res=RCode::ServFail;
     return true;
