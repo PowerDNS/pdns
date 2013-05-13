@@ -98,6 +98,8 @@ public:
 private:
   uint8_t d_preference, d_gatewaytype, d_algorithm;
   string d_gateway, d_publickey;
+  uint32_t d_ip4;
+  string d_ip6;
 };
 
 class DHCIDRecordContent : public DNSRecordContent
