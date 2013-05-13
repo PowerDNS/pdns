@@ -156,79 +156,7 @@ boilerplate_conv(KX, ns_t_kx,
         	 conv.xfrLabel(d_exchanger, false);
         	 )
 
-//boilerplate_conv(IPSECKEY, 45,  /* ns_t_ipsec */
-/*        	 conv.xfr8BitInt(d_preference);
-        	 conv.xfr8BitInt(d_gatewaytype);
-        	 conv.xfr8BitInt(d_algorithm);
-        	 conv.xfrLabel(d_gateway, false);
-        	 conv.xfrBlob(d_publickey);
-        	 )
-*/
-
-IPSECKEYRecordContent::DNSRecordContent* IPSECKEYRecordContent::make(const DNSRecord& dr, PacketReader& pr) 
-{ 
-    return new IPSECKEYRecordContent(dr, pr); 
-} 
-IPSECKEYRecordContent::IPSECKEYRecordContent(const DNSRecord& dr, PacketReader& pr) : DNSRecordContent(ns_t_ipseckey) 
-{ 
-    doRecordCheck(dr); xfrPacket(pr); 
-} 
-IPSECKEYRecordContent::DNSRecordContent* IPSECKEYRecordContent::make(const string& zonedata) 
-{ 
-    return new IPSECKEYRecordContent(zonedata); 
-} 
-void IPSECKEYRecordContent::toPacket(DNSPacketWriter& pw) 
-{ 
-    this->xfrPacket(pw); 
-} 
-void IPSECKEYRecordContent::report(void) {
-    regist(1, ns_t_ipseckey, &IPSECKEYRecordContent::make, &IPSECKEYRecordContent::make, "IPSECKEY"); 
-} 
-void IPSECKEYRecordContent::unreport(void) { 
-    unregist(1, ns_t_ipseckey); 
-} 
-IPSECKEYRecordContent::IPSECKEYRecordContent(const std::string& zoneData) : DNSRecordContent(ns_t_ipseckey) { 
-    try { 
-       RecordTextReader rtr(zoneData); 
-       xfrPacket(rtr); 
-    } catch(RecordTextException& rtr) { 
-       throw MOADNSException("Parsing record content: "+std::string(rtr.what())); 
-    } 
-} 
-
-std::string IPSECKEYRecordContent::getZoneRepresentation() const { 
-   std::string ret; 
-   RecordTextWriter conv(ret); 
-   conv.xfr8BitInt(d_preference);
-   conv.xfr8BitInt(d_gatewaytype);
-   conv.xfr8BitInt(d_algorithm);
-
-   // now we need to determine values
-   switch(d_gatewaytype) {
-   case 0: // no gateway
-     break;
-   case 1: // IPv4 GW
-     conv.xfrIP(d_ip4);
-     break;
-   case 2: // IPv6 GW
-     conv.xfrIP6(d_ip6);
-     break; 
-   case 3: // DNS label
-     conv.xfrLabel(d_gateway, false);
-   };
-
-   switch(d_algorithm) {
-   case 0:
-     break;
-   default:
-     conv.xfrBlob(d_publickey);
-   }
-   return ret;
-};
-
-template<class Convertor>
-void IPSECKEYRecordContent::xfrPacket(Convertor& conv)
-{
+boilerplate_conv(IPSECKEY, ns_t_ipseckey,
    conv.xfr8BitInt(d_preference);
    conv.xfr8BitInt(d_gatewaytype);
    conv.xfr8BitInt(d_algorithm);
@@ -259,8 +187,8 @@ void IPSECKEYRecordContent::xfrPacket(Convertor& conv)
      break;
    default:
      throw MOADNSException("Parsing record content: invalid algorithm type");
-   }  
-}
+   }
+) 
 
 boilerplate_conv(DHCID, 49, 
         	 conv.xfrBlob(d_content);
