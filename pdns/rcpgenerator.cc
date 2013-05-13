@@ -124,6 +124,31 @@ void RecordTextReader::xfrIP(uint32_t &val)
 }
 
 
+void RecordTextReader::xfrIP6(std::string &val)
+{
+  char addrbuf[40];
+  struct in6_addr tmpbuf;
+
+  skipSpaces();
+  if(!isxdigit(d_string.at(d_pos)))
+    throw RecordTextException("while parsing IPv6 address, expected xdigits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+  
+  size_t len;
+  // lookup end of value
+  for(len=0; len < sizeof(addrbuf) && d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':');len++);
+
+  // end of value is here, try parse as IPv6
+  d_string.copy(addrbuf, len, d_pos);
+
+  if (inet_pton(AF_INET6, addrbuf, &tmpbuf) != 1) {
+    throw RecordTextException("while parsing IPv6 address: '" + std::string(addrbuf) + "' is invalid");
+  }
+
+  val = std::string((char*)tmpbuf.s6_addr, 16);
+
+  d_pos += len;
+}
+
 bool RecordTextReader::eof()
 {
   return d_pos==d_end;
@@ -400,6 +425,21 @@ void RecordTextWriter::xfrIP(const uint32_t& val)
   d_string.append(tmp, pos);
 }
 
+void RecordTextWriter::xfrIP6(const std::string& val)
+{
+  char tmpbuf[16];
+  char addrbuf[40];
+
+  if(!d_string.empty())
+   d_string.append(1,' ');
+  
+  val.copy(tmpbuf,16);
+
+  if (inet_ntop(AF_INET6, tmpbuf, addrbuf, sizeof addrbuf) == NULL)
+    throw RecordTextException("Unable to convert to ipv6 address");
+  
+  d_string += std::string(addrbuf);
+}
 
 void RecordTextWriter::xfrTime(const uint32_t& val)
 {

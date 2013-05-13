@@ -49,6 +49,7 @@ public:
 
   void xfrType(uint16_t& val);
   void xfrIP(uint32_t& val);
+  void xfrIP6(std::string& val);
   void xfrTime(uint32_t& val);
 
   void xfrLabel(string& val, bool compress=false);
@@ -76,6 +77,7 @@ public:
   void xfr16BitInt(const uint16_t& val);
   void xfr8BitInt(const uint8_t& val);
   void xfrIP(const uint32_t& val);
+  void xfrIP6(const std::string& val);
   void xfrTime(const uint32_t& val);
   void xfrBase32HexBlob(const string& val);
 
