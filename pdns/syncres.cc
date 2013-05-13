@@ -539,7 +539,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
         GetBestNSAnswer answer;
         answer.qname=qname; answer.bestns=bestns;
         if(beenthere.count(answer)) {
-          LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP! Trying less specific NS"<<endl);
+          LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP (already seen "<<answer.qname<<")! Trying less specific NS"<<endl);
           if(doLog())
             for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j) {
               LOG(prefix<<qname<<": beenthere: "<<j->qname<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
