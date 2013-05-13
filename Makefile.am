@@ -1,6 +1,6 @@
 SUBDIRS=modules codedocs @programdescend@
 DIST_SUBDIRS=modules codedocs pdns pdns/ext/rapidjson
-EXTRA_DIST=TODO README HACKING INSTALL ChangeLog debian-pdns/* pdns.spec  \
+EXTRA_DIST=TODO README HACKING INSTALL debian-pdns/* pdns.spec  \
 codedocs/Makefile codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
 bootstrap build-scripts/semistaticg++
