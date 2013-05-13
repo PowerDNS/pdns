@@ -95,7 +95,7 @@ private:
 boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
 boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
 boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
-boilerplate_conv(MR, ns_t_mr, conv.xfrLabel(d_alias, false));
+boilerplate_conv(MR, ns_t_mr, conv.xfrLabel(d_alias, true));
 boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text, true));
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
