@@ -97,7 +97,6 @@ public:
 
     declare(suffix,"nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=%d where domain_id='%d' and name='%s'");
     declare(suffix,"nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=0 where name='%s' and type='%s' and domain_id='%d'");
-    declare(suffix,"nullify-ordername-and-auth-ent-query", "DNSSEC nullify ordername and auth for ENT records with name.", "update records set ordername=NULL, auth=NULL where name='%s' AND type IS NULL and domain_id='%d'");
     declare(suffix,"set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "update records set auth=1 where domain_id='%d' and name='%s' and type='DS'");
     
     declare( suffix, "master-zone-query", "Data", "select master from domains where name='%s' and type='SLAVE'");

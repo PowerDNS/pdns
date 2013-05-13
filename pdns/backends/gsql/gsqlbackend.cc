@@ -300,7 +300,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_setOrderAuthQuery = getArg("set-order-and-auth-query");
     d_nullifyOrderNameAndUpdateAuthQuery = getArg("nullify-ordername-and-update-auth-query");
     d_nullifyOrderNameAndAuthQuery = getArg("nullify-ordername-and-auth-query");
-    d_nullifyOrderNameAndAuthENTQuery = getArg("nullify-ordername-and-auth-ent-query");
     d_setAuthOnDsRecordQuery = getArg("set-auth-on-ds-record-query");
     
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
@@ -362,10 +361,7 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
   if(!d_dnssecQueries)
     return false;
   char output[1024];
-  if (type == "TYPE0")
-    snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthENTQuery.c_str(), sqlEscape(qname).c_str(), domain_id);
-  else
-    snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(qname).c_str(), sqlEscape(type).c_str(), domain_id);
+  snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(qname).c_str(), sqlEscape(type).c_str(), domain_id);
   try {
     d_db->doCommand(output);
   }

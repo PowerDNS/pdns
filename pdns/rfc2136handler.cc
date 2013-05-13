@@ -124,8 +124,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       di->backend->list(di->zone, di->id);
       vector<DNSResourceRecord> rrs;
       while (di->backend->get(rec)) {
-        if (rec.qtype.getCode())
-          rrs.push_back(rec);
+        rrs.push_back(rec);
       }
       for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
         string hashed;
@@ -334,7 +333,6 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         rrs.push_back(rec);
       for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
         if (!i->qtype.getCode()) {// for ENT records, we want to reset things as they have ordername=NULL and auth=NULL
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, i->qname, i->qtype.getName());
           di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
         } else // all other records are simply updated.
           di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, i->qname, i->auth);
