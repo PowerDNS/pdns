@@ -62,6 +62,7 @@ example.net.             3600 IN NS  ns2.example.net.
 ns.example.net.          3600 IN A   $PREFIX.10
 ns2.example.net.         3600 IN A   $PREFIX.11
 www.example.net.         3600 IN A   192.0.2.1
+weirdtxt.example.net.    3600 IN IN  TXT "x\014x"
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
 ns.arthur.example.net.   3600 IN A   $PREFIX.12
