@@ -76,7 +76,7 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
   }
 }
 
-boilerplate_conv(TSIG, ns_t_tsig, 
+boilerplate_conv(TSIG, ns_t_tsig,
         	 conv.xfrLabel(d_algoName);
         	 conv.xfr48BitInt(d_time);
         	 conv.xfr16BitInt(d_fudge);
@@ -85,9 +85,9 @@ boilerplate_conv(TSIG, ns_t_tsig,
         	 conv.xfrBlob(d_mac, size);
         	 conv.xfr16BitInt(d_origID);
         	 conv.xfr16BitInt(d_eRcode);
-        	 size=d_otherData.size();
-        	 conv.xfr16BitInt(size);
-        	 conv.xfrBlob(d_otherData, size);
+            	 size=d_otherData.size();
+        	 conv.xfr16BitInt(size); 
+        	 if (size>0) conv.xfrBlob(d_otherData, size);
         	 );
 
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(ns_t_mx), d_preference(preference), d_mxname(mxname)
@@ -402,7 +402,8 @@ void reportBasicTypes()
   SOARecordContent::report();
   SRVRecordContent::report();
   PTRRecordContent::report();
-  DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  //DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  TXTRecordContent::report();
   TXTRecordContent::report();
   DNSRecordContent::regist(1, QType::ANY, 0, 0, "ANY");
 }
@@ -426,7 +427,8 @@ void reportOtherTypes()
    NSEC3PARAMRecordContent::report();
    TLSARecordContent::report();
    DLVRecordContent::report();
-   DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   //DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   TSIGRecordContent::report();
    OPTRecordContent::report();
    EUI48RecordContent::report();
    EUI64RecordContent::report();
