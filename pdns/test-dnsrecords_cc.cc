@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   URLRecordContent::report();
   MBOXFWRecordContent::report();
   DHCIDRecordContent::report();
-
+  TSIGRecordContent::report();
   cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01",false))
 // local nameserver
@@ -133,7 +133,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SPF, "\"v=spf1 a:mail.rec.test ~all\"", "\x1bv=spf1 a:mail.rec.test ~all",false))
      (CASE_S(QType::EUI48, "00-11-22-33-44-55", "\x00\x11\x22\x33\x44\x55",false))
      (CASE_S(QType::EUI64, "00-11-22-33-44-55-66-77", "\x00\x11\x22\x33\x44\x55\x66\x77",false))
-     (CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT 1368386956 60 16 4e46e90faebf32d828f0650415923086 12345 0 0", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x0a\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x00\x00\x00",true))
+     (CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 0 0", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x00\x00\x00",false))
+(CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 18 16 TkbpD66/Mtgo8GUEFZIwhg==", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x12\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86",true))
 /*     (CASE_S(QType::URL, "http://server.rec.test/", "\x17http://server.rec.test/",false))
        (CASE_S(QType::MBOXFW, "you@yourcompany.com", "line format",false))
        (CASE_S(QType::CURL, "http://server.rec.test/", "\x17http://server.rec.test/",false))
@@ -151,20 +152,28 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
    BOOST_TEST_MESSAGE("Checking record type " << q.getName() << " test #" << n);
    try {
-      DNSRecordContent *rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
-      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
-      if (rec == NULL) continue;
-      // now verify the record (note that this will be same as *input* value (except for certain QTypes)
-      switch(q.getCode()) {
-         case QType::LOC:
-         case QType::DS:
-         case QType::DLV:
-            REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
-         break;
-         default:
-            REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
+      DNSRecordContent *rec;
+      std::string recData;
+      if (q.getCode() != QType::TSIG) {
+        rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
+        BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
+        if (rec == NULL) continue;
+        // now verify the record (note that this will be same as *input* value (except for certain QTypes)
+        switch(q.getCode()) {
+           case QType::LOC:
+           case QType::DS:
+           case QType::DLV:
+              REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
+           break;
+           default:
+              REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
+        }
+        recData = rec->serialize("rec.test");
+      } else {
+        boost::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize("rec.test",q.getCode(),(val.get<3>()));
+        // TSIG special, only works the other way
+        recData = rec3->serialize("rec.test");
       }
-      std::string recData = rec->serialize("rec.test");
       boost::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize("rec.test",q.getCode(),recData);
       BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
       if (rec2 == NULL) continue;
