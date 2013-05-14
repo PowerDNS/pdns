@@ -28,6 +28,7 @@ ifdef STATIC
                 --with-boost=/usr \
                 --enable-cryptopp \
                 --disable-recursor \
+                --enable-unit-tests \
                 --enable-static-binaries \
 		--enable-static
 else
@@ -46,6 +47,7 @@ else
 		--with-mysql-lib=/usr/lib/$(DEB_HOST_MULTIARCH) \
 		--with-boost=/usr \
 		--enable-cryptopp \
+                --enable-unit-tests \
 		--disable-recursor
 endif
 
@@ -53,6 +55,6 @@ endif
 override_dh_strip:
 	dh_strip --dbg-package=pdns-server-dbg
 
-override_dh_installdocs:
+override_dh_install:
 	make -C pdns/docs
-	dh_installdocs 
+	dh_install -O--with-autotools_dev -O--parallel
