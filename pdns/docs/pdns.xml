@@ -11619,6 +11619,11 @@ local0.err                        /var/log/pdns.err
 mysql> ALTER TABLE records MODIFY content VARCHAR(64000);
 mysql> ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
     	</screen>
+	For PostgreSQL:
+	<screen>
+postgres=# ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
+postgres=# ALTER TABLE tsigkeys alter column algorithm type VARCHAR(50);
+        </screen>
     </para>
     <para>
     	The definition of 'auth' and 'ordername' in backends has changed slightly, see <xref linkend="dnssec-direct-database" />.
