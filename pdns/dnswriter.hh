@@ -77,6 +77,10 @@ public:
   {
     xfr32BitInt(htonl(val));
   }
+  void xfrIP6(const std::string& val) 
+  {
+    xfrBlob(val,16);
+  }
   void xfrTime(const uint32_t& val)
   {
     xfr32BitInt(val);

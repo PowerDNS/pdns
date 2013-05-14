@@ -377,7 +377,6 @@ uint8_t PacketReader::get8BitInt()
   return d_content.at(d_pos++);
 }
 
-
 string PacketReader::getLabel(unsigned int recurs)
 {
   string ret;

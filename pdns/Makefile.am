@@ -274,6 +274,7 @@ misc.cc unix_utility.cc qtype.cc
 
 pdns_control_LDFLAGS=@THREADFLAGS@
 
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message
 TESTS=testrunner
 
 dnslabeltext.cc: dnslabeltext.rl

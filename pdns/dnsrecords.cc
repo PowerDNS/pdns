@@ -38,64 +38,12 @@ void ARecordContent::doRecordCheck(const DNSRecord& dr)
     throw MOADNSException("Wrong size for A record ("+lexical_cast<string>(dr.d_clen)+")");
 }
 
-class AAAARecordContent : public DNSRecordContent
-{
-public:
-  AAAARecordContent() : DNSRecordContent(ns_t_aaaa)
-  {}
-
-  static void report(void)
-  {
-    regist(1, ns_t_aaaa, &make, &make, "AAAA");
-  }
-
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr) 
-  {
-    if(dr.d_clen!=16)
-      throw MOADNSException("Wrong size for AAAA record");
-
-    AAAARecordContent* ret=new AAAARecordContent();
-    pr.copyRecord((unsigned char*) &ret->d_ip6, 16);
-    return ret;
-  }
-
-  static DNSRecordContent* make(const string& zone) 
-  {
-    AAAARecordContent *ar=new AAAARecordContent();
-    if(Utility::inet_pton( AF_INET6, zone.c_str(), static_cast< void * >( ar->d_ip6 )) <= 0)
-      throw MOADNSException("Asked to encode '"+zone+"' as an IPv6 address, but does not parse");
-    return ar;
-  }
-
-  void toPacket(DNSPacketWriter& pw)
-  {
-    string blob(d_ip6, d_ip6+16);
-    pw.xfrBlob(blob);
-  }
-  
-  string getZoneRepresentation() const
-  {
-    struct sockaddr_in6 addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family=AF_INET6;
-    memcpy(&addr.sin6_addr, d_ip6, 16);
-
-    char tmp[128];
-    tmp[0]=0;
-    Utility::inet_ntop(AF_INET6, (const char*)& addr.sin6_addr, tmp, sizeof(tmp));
-    return tmp;
-  }
-
-private:
-  unsigned char d_ip6[16];
-};
-
-
+boilerplate_conv(AAAA, ns_t_aaaa, conv.xfrIP6(d_ip6); );
 
 boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
 boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
 boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
-boilerplate_conv(MR, ns_t_mr, conv.xfrLabel(d_alias, false));
+boilerplate_conv(MR, ns_t_mr, conv.xfrLabel(d_alias, true));
 boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text, true));
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
@@ -128,7 +76,7 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
   }
 }
 
-boilerplate_conv(TSIG, ns_t_tsig, 
+boilerplate_conv(TSIG, ns_t_tsig,
         	 conv.xfrLabel(d_algoName);
         	 conv.xfr48BitInt(d_time);
         	 conv.xfr16BitInt(d_fudge);
@@ -137,9 +85,9 @@ boilerplate_conv(TSIG, ns_t_tsig,
         	 conv.xfrBlob(d_mac, size);
         	 conv.xfr16BitInt(d_origID);
         	 conv.xfr16BitInt(d_eRcode);
-        	 size=d_otherData.size();
-        	 conv.xfr16BitInt(size);
-        	 conv.xfrBlob(d_otherData, size);
+            	 size=d_otherData.size();
+        	 conv.xfr16BitInt(size); 
+        	 if (size>0) conv.xfrBlob(d_otherData, size);
         	 );
 
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(ns_t_mx), d_preference(preference), d_mxname(mxname)
@@ -156,13 +104,39 @@ boilerplate_conv(KX, ns_t_kx,
         	 conv.xfrLabel(d_exchanger, false);
         	 )
 
-boilerplate_conv(IPSECKEY, 45,  /* ns_t_ipsec */
-        	 conv.xfr8BitInt(d_preference);
-        	 conv.xfr8BitInt(d_gatewaytype);
-        	 conv.xfr8BitInt(d_algorithm);
-        	 conv.xfrLabel(d_gateway, false);
-        	 conv.xfrBlob(d_publickey);
-        	 )
+boilerplate_conv(IPSECKEY, ns_t_ipseckey,
+   conv.xfr8BitInt(d_preference);
+   conv.xfr8BitInt(d_gatewaytype);
+   conv.xfr8BitInt(d_algorithm);
+ 
+   // now we need to determine values
+   switch(d_gatewaytype) {
+   case 0: // NO KEY
+     break;
+   case 1: // IPv4 GW
+     conv.xfrIP(d_ip4);
+     break;
+   case 2: // IPv6 GW
+     conv.xfrIP6(d_ip6);
+     break;
+   case 3: // DNS label
+     conv.xfrLabel(d_gateway, false); 
+     break;
+   default:
+     throw MOADNSException("Parsing record content: invalid gateway type");
+   };
+
+   switch(d_algorithm) {
+   case 0:
+     break;
+   case 1:
+   case 2:
+     conv.xfrBlob(d_publickey);
+     break;
+   default:
+     throw MOADNSException("Parsing record content: invalid algorithm type");
+   }
+) 
 
 boilerplate_conv(DHCID, 49, 
         	 conv.xfrBlob(d_content);
@@ -428,7 +402,8 @@ void reportBasicTypes()
   SOARecordContent::report();
   SRVRecordContent::report();
   PTRRecordContent::report();
-  DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  //DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  TXTRecordContent::report();
   TXTRecordContent::report();
   DNSRecordContent::regist(1, QType::ANY, 0, 0, "ANY");
 }
@@ -452,7 +427,8 @@ void reportOtherTypes()
    NSEC3PARAMRecordContent::report();
    TLSARecordContent::report();
    DLVRecordContent::report();
-   DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   //DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   TSIGRecordContent::report();
    OPTRecordContent::report();
    EUI48RecordContent::report();
    EUI64RecordContent::report();
