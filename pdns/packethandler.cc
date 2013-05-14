@@ -1039,8 +1039,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
 void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target)
 {
   if(!p->d_dnssecOk)
-    ; // cerr<<"Need to add all the RRSIGs too for '"<<target<<"', should do this manually since DNSSEC was not requested"<<endl;
-  //  cerr<<"Need to add all the NSEC too.."<<endl; /// XXX FIXME THE ABOVE IF IS WEIRD
+    return; // Don't send dnssec info to non validating resolvers.
   
   if(!d_dk.isSecuredZone(sd.qname))
     return;
@@ -1266,8 +1265,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     weDone = weRedirected = weHaveUnauth = 0;
     
     while(B.get(rr)) {
-      if (p->qtype.getCode() == QType::ANY && rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
-        continue; //TODO: this actually means addRRSig should check if the RRSig is already there.
+      if (p->qtype.getCode() == QType::ANY) {
+        if (rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
+          continue; // TODO: this actually means addRRSig should check if the RRSig is already there.
+        if (!p->d_dnssecOk && (rr.qtype.getCode() == QType:: DNSKEY || rr.qtype.getCode() == QType::NSEC3PARAM))
+          continue; // Don't send dnssec info to non validating resolvers.
+      }
 
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.qtype == p->qtype)<<", "<<rr.qtype.getName()<<endl;
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
