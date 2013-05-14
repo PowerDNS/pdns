@@ -12665,6 +12665,17 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
           </listitem>
         </varlistentry>
         <varlistentry>
+          <term>INCEPTION-INCREMENT (available since 3.3)</term>
+          <listitem>
+            <para>
+              Uses YYYYMMDDSS format for SOA serial numbers. If the SOA serial from the backend is within two days after inception, it gets incremented by two (the backend should keep SS below 98). Otherwise it uses the maximum of the backend SOA serial number and inception time in YYYYMMDD01 format.
+            </para>
+            <para>
+              This requires your backend zone to use YYYYMMDDSS as SOA serial format. Uses localtime to find the day for inception time.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
           <term>INCEPTION (not recommended)</term>
           <listitem>
             <para>
