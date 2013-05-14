@@ -3,11 +3,12 @@ Section: net
 Priority: extra
 Standards-Version: 3.9.2
 Maintainer: bert hubert <bert.hubert@netherlabs.nl>
-Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev | libpq-dev, libgdbm-dev, libsqlite3-dev, dpkg-dev (>= 1.10.17), libboost-dev (>=1.34), libboost-program-options-dev, libboost-serialization-dev, pkg-config, ragel, libbotan1.10-dev, liblua5.1-dev, dh-autoreconf, debhelper (>= 8), libcrypto++-dev, xmlto, libboost-test-dev, dblatex, xmltex, automake, docbook-xml, libltdl-dev
+Build-Depends: autoconf, libtool, flex, bison, docbook-utils, libmysqlclient-dev, postgresql-dev | libpq-dev, libgdbm-dev, libsqlite3-dev, dpkg-dev (>= 1.10.17), libboost-dev (>=1.34), libboost-program-options-dev, libboost-serialization-dev, pkg-config, ragel, libbotan1.10-dev, liblua5.1-dev, dh-autoreconf, debhelper (>= 8), libcrypto++-dev, xmlto, libboost-test-dev, dblatex, xmltex, automake, docbook-xml, libltdl-dev, po-debconf
 
 Package: pdns-server
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Replaces: pdns-static
 Recommends: pdns-doc
 Suggests: pdns-backend
 Description: extremely powerful and versatile nameserver
