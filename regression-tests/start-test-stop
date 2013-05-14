@@ -1,5 +1,8 @@
 #!/bin/bash -ex
 
+PDNS=${PDNS:-../pdns/pdns_server}
+PDNS2=${PDNS2:-../pdns/pdns_server}
+
 tosql ()
 {
 	make -C ../pdns/backends/bind zone2sql > /dev/null
@@ -102,7 +105,7 @@ fi
 
 case $context in
 		bind)
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
 				--fancy-records --send-root-referral    \
 				--cache-ttl=0 --no-config &
@@ -141,7 +144,7 @@ case $context in
 				extracontexts="bind dnssec"
 			fi
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./ \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--send-root-referral \
@@ -177,7 +180,7 @@ __EOF__
 				../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
 			done
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--master --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -209,7 +212,7 @@ mydns-user=$MYDNSUSER
 mydns-host=$MYDNSHOST
 mydns-password=$MYDNSPASSWD
 __EOF__
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=mydns \
 				--master --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -262,7 +265,7 @@ __EOF__
 
 			done
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=random,gmysql --gmysql-dnssec \
 				--fancy-records --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -314,7 +317,7 @@ __EOF__
 				fi
 			done
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
 				--fancy-records --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -355,7 +358,7 @@ __EOF__
 				../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
 			done
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql \
 				--fancy-records --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -380,7 +383,7 @@ __EOF__
 				../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
 			done
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 \
 				--fancy-records --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -396,7 +399,7 @@ __EOF__
 				ALTER TABLE domains ADD auto_serial INTEGER DEFAULT 0;"
 			echo ANALYZE\; | sqlite3 pdns-opendbx.sqlite3
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=opendbx \
 				--fancy-records --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -427,7 +430,7 @@ __EOF__
 				fi
 			done
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 				--fancy-records --send-root-referral \
 				--cache-ttl=0 --no-config \
@@ -443,7 +446,7 @@ __EOF__
 			fi
 			;;
 		tinydns)
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./ \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=tinydns \
 			 --cache-ttl=0 --no-config \
 				--send-root-referral \
@@ -510,7 +513,7 @@ launch=remote
 remote-connection-string=$connstr
 EOF
 
-			$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./ \
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=remote \
 				--query-logging --loglevel=9 --cache-ttl=0 --no-config \
 				--send-root-referral \
@@ -586,7 +589,7 @@ then
 
 		port=$((port+100))
 
-		$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=gmysql --gmysql-dnssec \
 			--fancy-records --send-root-referral \
 			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
@@ -619,7 +622,7 @@ then
 
 		port=$((port+100))
 
-		$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 			--fancy-records --send-root-referral \
 			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
@@ -653,7 +656,7 @@ then
 		../pdns/pdnssec --config-dir=. create-bind-db dnssec-slave.sqlite3
 		port=$((port+100))
 
-		$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
+		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave         \
 			--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
 			--cache-ttl=0 --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
