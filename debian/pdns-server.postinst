@@ -15,11 +15,9 @@ fi
 if [ -z "$PDNSDIR" ]; then
   PDNSDIR=/etc/powerdns/pdns.d
 fi
-PDNSLOCAL=$PDNSDIR/pdns.local
 
 # Temporary files
 PDNSCONFTEMP=`mktemp`
-PDNSLOCALTEMP=`mktemp`
 PDNSDEFAULTTEMP=`mktemp`
 
 case "$1" in
@@ -35,7 +33,6 @@ case "$1" in
 
     # Fill the temporary files with config items.
     cat /usr/share/pdns-server/pdns.conf > $PDNSCONFTEMP
-    cat /usr/share/pdns-server/pdns.local > $PDNSLOCALTEMP
     cat /usr/share/pdns-server/pdns > $PDNSDEFAULTTEMP
 
     # Do we listen on a specified address
@@ -60,19 +57,17 @@ case "$1" in
     # Install the new configuration files if the user wants it.
     ucf --debconf-ok $PDNSCONFTEMP $PDNSCONF
     ucf --debconf-ok $PDNSDEFAULTTEMP $PDNSDEFAULT
-    ucf --debconf-ok $PDNSLOCALTEMP $PDNSLOCAL
 
     # Stop the debconf stuff
     db_stop || true
 
     # Clean up temporary files.
-    rm -f $PDNSCONFTEMP $PDNSDEFAULTTEMP $PDNSLOCALTEMP
+    rm -f $PDNSCONFTEMP $PDNSDEFAULTTEMP 
 
     # There could be passwords in these files. PowerDNS first reads the
     # configuration files and then drop root privileges.
     if [ -z "$2" ]; then
-      chmod 0600 $PDNSCONF $PDNSLOCAL
-      chmod 0700 $PDNSDIR
+      chmod 0600 $PDNSCONF 
     fi
   ;;
 

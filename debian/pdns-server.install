@@ -1,7 +1,9 @@
 debian/tmp/usr/bin/pdns_control usr/bin/
 debian/tmp/usr/bin/zone2sql usr/bin/
 debian/tmp/usr/bin/zone2json usr/bin/
+debian/tmp/usr/bin/zone2ldap usr/bin/
 debian/tmp/usr/bin/pdnssec usr/bin/
+debian/tmp/usr/bin/dnsreplay usr/bin/
 debian/tmp/usr/sbin/pdns_server usr/sbin/
 debian/config/pdns.conf usr/share/pdns-server/
 debian/default/pdns usr/share/pdns-server/
