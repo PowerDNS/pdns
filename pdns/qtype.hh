@@ -77,8 +77,8 @@ public:
   static int chartocode(const char *p); //!< convert a character string to a code
 // more solaris fun
 #undef DS   
-  enum typeenum {A=1,NS=2,CNAME=5,SOA=6, MR=9, PTR=12,HINFO=13,MX=15,TXT=16,RP=17,AFSDB=18,KEY=25,AAAA=28,LOC=29,SRV=33,NAPTR=35, KX=36, 
-		 CERT=37,OPT=41, DS=43, SSHFP=44, IPSECKEY=45, RRSIG=46, NSEC=47, DNSKEY=48, DHCID=49, NSEC3=50, NSEC3PARAM=51,
+  enum typeenum {A=1,NS=2,CNAME=5,SOA=6, MR=9, PTR=12,HINFO=13,MX=15,TXT=16,RP=17,AFSDB=18, SIG=24, KEY=25,AAAA=28,LOC=29,SRV=33,NAPTR=35, KX=36, 
+		 CERT=37, A6=38, OPT=41, DS=43, SSHFP=44, IPSECKEY=45, RRSIG=46, NSEC=47, DNSKEY=48, DHCID=49, NSEC3=50, NSEC3PARAM=51,
 		 TLSA=52, SPF=99, EUI48=108, EUI64=109, TSIG=250, AXFR=252, IXFR=251, ANY=255, URL=256, MBOXFW=257, CURL=258, ADDR=259, DLV=32769} types;
   typedef pair<string,uint16_t> namenum; 
   static vector<namenum> names;
@@ -109,20 +109,25 @@ private:
       qtype_insert("AAAA",28);
       qtype_insert("LOC",29);
       qtype_insert("SRV",33);
+      qtype_insert("NAPTR",35);
+      qtype_insert("KX",36);
       qtype_insert("CERT", 37);
       qtype_insert("A6",38);
-      qtype_insert("NAPTR",35);
+      qtype_insert("OPT",41);
       qtype_insert("DS", 43);
       qtype_insert("SSHFP", 44);
+      qtype_insert("IPSECKEY", 45);
       qtype_insert("RRSIG", 46);
       qtype_insert("NSEC", 47);
       qtype_insert("DNSKEY", 48);
+      qtype_insert("DHCID", 49);
       qtype_insert("NSEC3", 50);
       qtype_insert("NSEC3PARAM", 51);
       qtype_insert("TLSA",52);
       qtype_insert("SPF",99);
       qtype_insert("EUI48",108);
       qtype_insert("EUI64",109);
+      qtype_insert("TSIG", 250);
       qtype_insert("IXFR",251);
       qtype_insert("AXFR",252);
       qtype_insert("ANY",255);

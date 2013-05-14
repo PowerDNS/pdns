@@ -185,6 +185,7 @@ enum  {
         ns_t_sink = 40,         /* Kitchen sink (experimental) */
         ns_t_opt = 41,          /* EDNS0 option (meta-RR) */
         ns_t_ds = 43,           /* Delegation signer */
+        ns_t_ipseckey = 45,     /* IPSEC Key */
         ns_t_rrsig = 46,        /* Resoure Record signature */
         ns_t_nsec = 47,         /* Next Record */
         ns_t_dnskey = 48,       /* DNSKEY record */

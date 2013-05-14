@@ -64,6 +64,15 @@ private:
   uint32_t d_ip;
 };
 
+class AAAARecordContent : public DNSRecordContent
+{
+public:
+  AAAARecordContent(std::string &val);
+  includeboilerplate(AAAA);
+private:
+  std::string d_ip6;
+};
+
 class MXRecordContent : public DNSRecordContent
 {
 public:
@@ -98,6 +107,8 @@ public:
 private:
   uint8_t d_preference, d_gatewaytype, d_algorithm;
   string d_gateway, d_publickey;
+  uint32_t d_ip4;
+  string d_ip6;
 };
 
 class DHCIDRecordContent : public DNSRecordContent
