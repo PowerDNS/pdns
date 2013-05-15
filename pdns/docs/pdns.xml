@@ -307,7 +307,7 @@
         <itemizedlist>
           <listitem>
             <para>
-              We now throttle queries that don't work less agressively, code in c1766.
+              We now throttle queries that don't work less aggressively, code in c1766.
             </para>
           </listitem>
           <listitem>
@@ -656,7 +656,7 @@
 		</listitem>
 		<listitem>
 			<para>
-				PowerDNS always derives NSEC/NSEC3 from the actual zone content. To accomodate this, zone2sql now drops NSEC/NSEC3 records, as those should never be in a PowerDNS backend directly (c2915), bindbackend ignores NSEC/NSEC3 while reading zonefiles (c2917) and pdnssec reports NSEC/NSEC3 in the database as an error condition (c2918).
+				PowerDNS always derives NSEC/NSEC3 from the actual zone content. To accommodate this, zone2sql now drops NSEC/NSEC3 records, as those should never be in a PowerDNS backend directly (c2915), bindbackend ignores NSEC/NSEC3 while reading zonefiles (c2917) and pdnssec reports NSEC/NSEC3 in the database as an error condition (c2918).
 			</para>
 		</listitem>
 		<listitem>
@@ -15075,7 +15075,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <term>DNSKEY (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The DNSKEY DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS
+	      The DNSKEY DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS
 		  is able to fully process DNSSEC. This can be done with <link linkend="pdnssec">pdnssec</link>.
 	    </para>
 	  </listitem>      
@@ -15084,7 +15084,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <term>DS (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The DS DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS
+	      The DS DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS
 		  is able to fully process DNSSEC. This can be done with <link linkend="pdnssec">pdnssec</link>.
 	    </para>
 	  </listitem>      
@@ -15150,7 +15150,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <term>NSEC (since 2.9.21)</term>
 	  <listitem>
 	    <para>
-	      The NSEC DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS
+	      The NSEC DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS
 		  is able to fully process DNSSEC. This can be done with <link linkend="pdnssec">pdnssec</link>.
 	    </para>
 	  </listitem>      
