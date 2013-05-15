@@ -42,21 +42,21 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 ../../aes/aescpp.h ../../aes/aescrypt.c ../../aes/aes.h ../../aes/aeskey.c ../../aes/aes_modes.c ../../aes/aesopt.h \
 ../../aes/aestab.c ../../aes/aestab.h ../../aes/brg_endian.h ../../aes/brg_types.h # ../../dbdnsseckeeper.cc
 
-zone2ldap_LDFLAGS=@THREADFLAGS@  
+zone2ldap_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_SYSTEM_LIBS)
 if HAVE_LIBPOLARSSL
 zone2ldap_LDADD=
 else
 zone2ldap_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a
 endif
 
-zone2sql_LDFLAGS=@THREADFLAGS@  
+zone2sql_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_SYSTEM_LIBS)
 if HAVE_LIBPOLARSSL
 zone2sql_LDADD=
 else
 zone2sql_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a 
 endif
 
-zone2json_LDFLAGS=@THREADFLAGS@
+zone2json_LDFLAGS=@THREADFLAGS@ $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_SYSTEM_LIBS)
 if HAVE_LIBPOLARSSL
 zone2json_LDADD=
 else
