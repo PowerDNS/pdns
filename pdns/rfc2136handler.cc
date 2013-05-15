@@ -329,13 +329,28 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // Remove the Order and Aath field
       di->backend->list(di->zone, di->id);
       vector<DNSResourceRecord> rrs;
-      while (di->backend->get(rec))
+      vector<string> delegates;
+      while (di->backend->get(rec)) {
         rrs.push_back(rec);
+        if (rec.qtype == QType::NS && rec.qname != di->zone)
+          delegates.push_back(rec.qname);
+      }
       for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
+        bool isBelowDelegate = false;
         if (!i->qtype.getCode()) {// for ENT records, we want to reset things as they have ordername=NULL and auth=NULL
           di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
-        } else // all other records are simply updated.
-          di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, i->qname, i->auth);
+        } else { // all other records are simply updated.
+          for (vector<string>::const_iterator x = delegates.begin(); x != delegates.end(); x++) {
+            if (*x != i->qname && endsOn(i->qname, *x)) {
+              isBelowDelegate = true;
+              break;
+            }
+          }
+          if (isBelowDelegate)
+            di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
+          else
+            di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, i->qname, i->auth);
+        }
       }
       return 1;
     }
