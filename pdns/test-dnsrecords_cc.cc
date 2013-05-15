@@ -81,6 +81,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::LOC, "42 21 54 N 71 06 18 W -24m 30m", "42 21 54.000 N 71 6 18.000 W -24.00m 30.00m 10000.00m 10.00m", "\x00\x33\x16\x13\x89\x17\x2d\xd0\x70\xbe\x15\xf0\x00\x98\x8d\x20",false))
      (CASE_L(QType::LOC, "42 21 43.952 N 71 5 6.344 W -24m 1m 200m", "42 21 43.952 N 71 5 6.344 W -24.00m 1.00m 200.00m 10.00m", "\x00\x12\x24\x13\x89\x17\x06\x90\x70\xbf\x2d\xd8\x00\x98\x8d\x20",false))
      (CASE_S(QType::AAAA, "fe80::250:56ff:fe9b:114", "\xFE\x80\x00\x00\x00\x00\x00\x00\x02\x50\x56\xFF\xFE\x9B\x01\x14",false))
+     (CASE_S(QType::AAAA, "2a02:1b8:10:2::151", "\x2a\x02\x01\xb8\x00\x10\x00\x02\x00\x00\x00\x00\x00\x00\x01\x51",false))
+     (CASE_S(QType::AAAA, "::1", "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",false))
 // local name
      (CASE_S(QType::SRV, "10 10 5060 sip.rec.test.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x03rec\x04test\x00",false))
 // non-local name
