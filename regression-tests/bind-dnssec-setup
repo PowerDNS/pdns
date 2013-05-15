@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/bash -ex
 rm -f dnssec.sqlite3
 ../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
 for zone in $(grep zone named.conf  | cut -f2 -d\")
@@ -10,6 +10,18 @@ do
         keyid=`../pdns/pdnssec --config-dir=. show-zone delegated.dnssec-parent.com | grep ZSK | cut -d' ' -f3`
         ../pdns/pdnssec --config-dir=. activate-zone-key $zone $keyid 2>&1
         ../pdns/pdnssec --config-dir=. add-zone-key $zone 1024 zsk 2>&1
+    elif [ "${zone}" = "bigkey.com" ]
+    then
+        ../pdns/pdnssec --config-dir=. import-zone-key $zone $zone.ksk.1 ksk 2>&1
+        keyid=`../pdns/pdnssec --config-dir=. show-zone $zone | grep KSK | cut -d' ' -f3`
+        ../pdns/pdnssec --config-dir=. activate-zone-key $zone $keyid 2>&1
+        ../pdns/pdnssec --config-dir=. import-zone-key $zone $zone.zsk.1 zsk 2>&1
+        keyid=`../pdns/pdnssec --config-dir=. show-zone $zone | grep ZSK | cut -d' ' -f3`
+        ../pdns/pdnssec --config-dir=. activate-zone-key $zone $keyid 2>&1
+        ../pdns/pdnssec --config-dir=. import-zone-key $zone $zone.zsk.2 zsk 2>&1
+        keyid=`../pdns/pdnssec --config-dir=. show-zone $zone | grep 2598 | cut -d' ' -f3`
+        ../pdns/pdnssec --config-dir=. deactivate-zone-key $zone $keyid 2>&1
+        ../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 0 1 f1b4' narrow
     else
         ../pdns/pdnssec --config-dir=. secure-zone $zone 2>&1
     fi
