@@ -18,10 +18,13 @@
 #include "arguments.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem.hpp> 
 #include <boost/foreach.hpp>
 #include "namespaces.hh"
 #include "logger.hh"
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 const ArgvMap::param_t::const_iterator ArgvMap::begin()
 {
@@ -400,7 +403,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
     return false;
   }
 
-  if (!included)  // inject include-dir
+  if (!parmIsset("include-dir"))  // inject include-dir
     set("include-dir","Directory to include configuration files from");
 
   string line;
@@ -432,16 +435,42 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
   }
 
   // handle include here (avoid re-include)
-  if (!included && parmIsset("include-dir")) {
+  if (!included && !params["include-dir"].empty()) {
       // rerun parser for all files
-      boost::filesystem::path targetDir(params["include-dir"]);
-      if (!boost::filesystem::exists(targetDir)) {
+      struct stat st;
+      DIR *dir;
+      struct dirent *ent;
+      char namebuf[PATH_MAX] = {0};
+
+      // stat
+      if (stat(params["include-dir"].c_str(), &st)) {
          L << Logger::Error << params["include-dir"] << " does not exist!" << std::endl;
          throw ArgException(params["include-dir"] + " does not exist!");
       }
-      boost::filesystem::directory_iterator bfd_it(targetDir), eod;
-      BOOST_FOREACH(boost::filesystem::path const &p, std::make_pair(bfd_it, eod)) {
-          if (boost::ends_with(p.native(),".conf") && is_regular_file(p)) file(p.c_str(), lax, true);
+
+      // wonder if it's accessible directory
+      if (!S_ISDIR(st.st_mode)) {
+         L << Logger::Error << params["include-dir"] << " is not a directory" << std::endl;
+         throw ArgException(params["include-dir"] + " is not a directory");
+      }
+
+      if (!(dir = opendir(params["include-dir"].c_str()))) {
+         L << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
+         throw ArgException(params["include-dir"] + " is not accessible");
+      }
+
+      while((ent = readdir(dir)) != NULL) {
+         if (ent->d_name[0] == '.') continue; // skip any dots
+         if (boost::ends_with(ent->d_name, ".conf")) {
+            // ensure it's readable file
+            snprintf(namebuf, sizeof namebuf, "%s/%s", params["include-dir"].c_str(), ent->d_name);
+            if (stat(namebuf, &st) || !S_ISREG(st.st_mode)) {
+                L << Logger::Error << namebuf << " is not a file" << std::endl;
+                throw ArgException(std::string(namebuf) + " does not exist!");
+            }
+            if (!file(namebuf, lax, true)) 
+                L << Logger::Warning << namebuf << " could not be read - skipping" << std::endl;
+         }
       }
   }
 
