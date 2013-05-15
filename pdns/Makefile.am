@@ -266,6 +266,7 @@ recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner
 json.cc json.hh version.hh version.cc
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)
+pdns_recursor_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
 misc.cc unix_utility.cc qtype.cc
