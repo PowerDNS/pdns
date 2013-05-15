@@ -126,22 +126,24 @@ void RecordTextReader::xfrIP(uint32_t &val)
 
 void RecordTextReader::xfrIP6(std::string &val)
 {
-  char addrbuf[40];
   struct in6_addr tmpbuf;
 
   skipSpaces();
-  if(!isxdigit(d_string.at(d_pos)))
-    throw RecordTextException("while parsing IPv6 address, expected xdigits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
   
   size_t len;
   // lookup end of value
-  for(len=0; len < sizeof(addrbuf) && d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':');len++);
+  for(len=0; 
+    d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':');
+    len++);
+
+  if(!len)
+    throw RecordTextException("while parsing IPv6 address, expected xdigits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
 
   // end of value is here, try parse as IPv6
-  d_string.copy(addrbuf, len, d_pos);
-
-  if (inet_pton(AF_INET6, addrbuf, &tmpbuf) != 1) {
-    throw RecordTextException("while parsing IPv6 address: '" + std::string(addrbuf) + "' is invalid");
+  string address=d_string.substr(d_pos, len);
+  
+  if (inet_pton(AF_INET6, address.c_str(), &tmpbuf) != 1) {
+    throw RecordTextException("while parsing IPv6 address: '" + address + "' is invalid");
   }
 
   val = std::string((char*)tmpbuf.s6_addr, 16);
