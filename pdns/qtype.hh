@@ -69,8 +69,6 @@ public:
     ar & code;
   }
 
-  bool operator==(const QType &) const; //!< equality operator
-
   const string getName() const; //!< Get a string representation of this type
   uint16_t getCode() const; //!< Get the integer representation of this type
 
@@ -82,6 +80,22 @@ public:
 		 TLSA=52, SPF=99, EUI48=108, EUI64=109, TSIG=250, AXFR=252, IXFR=251, ANY=255, URL=256, MBOXFW=257, CURL=258, ADDR=259, DLV=32769} types;
   typedef pair<string,uint16_t> namenum; 
   static vector<namenum> names;
+
+  inline bool operator==(const QType &comp) const {
+      return(comp.code==code);
+  }
+
+  inline bool operator!=(const QType &comp) const {
+      return(comp.code!=code);
+  }
+
+  inline bool operator==(QType::typeenum comp) const {
+      return(comp==code);
+  }
+
+  inline bool operator!=(QType::typeenum comp) const {
+      return(comp!=code);
+  }
 
 private:
   static class init {

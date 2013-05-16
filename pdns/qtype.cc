@@ -80,11 +80,6 @@ QType &QType::operator=(const char *p)
   return *this;
 }
 
-bool QType::operator==(const QType &comp) const
-{
-  return(comp.code==code);
-}
-
 QType &QType::operator=(const string &s)
 {
   code=chartocode(s.c_str());
