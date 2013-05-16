@@ -340,10 +340,12 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         if (!i->qtype.getCode()) {// for ENT records, we want to reset things as they have ordername=NULL and auth=NULL
           di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
         } else { // all other records are simply updated.
-          for (vector<string>::const_iterator x = delegates.begin(); x != delegates.end(); x++) {
-            if (*x != i->qname && endsOn(i->qname, *x)) {
-              isBelowDelegate = true;
-              break;
+          if (i->qtype != QType::NS) { // skip NS records, as they always have a ordername
+            for (vector<string>::const_iterator x = delegates.begin(); x != delegates.end(); x++) {
+              if (endsOn(i->qname, *x)) {
+                isBelowDelegate = true;
+                break;
+              }
             }
           }
           if (isBelowDelegate)
