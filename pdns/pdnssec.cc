@@ -42,6 +42,49 @@ string humanTime(time_t t)
   return ret;
 }
 
+static void algorithm2name(uint8_t algo, string &name) {
+        switch(algo) {
+        case 0:
+           name = "Reserved"; return;
+        case 1:
+           name = "RSAMD5"; return;
+        case 2:
+           name = "DH"; return;
+        case 3:
+           name = "DSA"; return;
+        case 4:
+           name = "ECC"; return;
+        case 5:
+           name = "RSASHA1"; return;
+        case 6:
+           name = "DSA-NSEC3-SHA1"; return;
+        case 7:
+           name = "RSASHA1-NSEC3-SHA1"; return;
+        case 8:
+           name = "RSASHA256"; return;
+        case 9:
+           name = "Reserved"; return;
+        case 10:
+           name = "RSASHA512"; return;
+        case 11:
+           name = "Reserved"; return;
+        case 12:
+           name = "ECC-GOST"; return;
+        case 13:
+           name = "ECDSAP256SHA256"; return;
+        case 14:
+           name = "ECDSAP384SHA384"; return;
+        case 252:
+           name = "INDIRECT"; return;
+        case 253:
+           name = "PRIVATEDNS"; return;
+        case 254:
+           name = "PRIVATEOID"; return;
+        default:
+           name = "Unallocated/Reserved"; return;
+	}
+};
+
 static int shorthand2algorithm(const string &algorithm)
 {
   if (!algorithm.compare("rsamd5")) return 1;
@@ -559,15 +602,24 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
   
     cout << "keys: "<<endl;
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+      string algname;
+      algorithm2name(value.first.d_algorithm, algname);
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
-      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< endl; 
+      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< " ( " + algname + " ) "<<endl; 
       if(value.second.keyOrZone) {
-        cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << endl;
-        cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << endl;
-        cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << endl;
+        cout<<"KSK DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
+        cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+        cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         try {
           string output=makeDSFromDNSKey(zone, value.first.getDNSKEY(), 3).getZoneRepresentation();
-          cout<<"DS = "<<zone<<" IN DS "<< output << endl;
+          cout<<"DS = "<<zone<<" IN DS "<< output << " ; ( GOST R 34.11-94 digest )" << endl;
+        }
+        catch(...)
+        {
+        }
+        try {
+          string output=makeDSFromDNSKey(zone, value.first.getDNSKEY(), 4).getZoneRepresentation();
+          cout<<"DS = "<<zone<<" IN DS "<< output << " ; ( SHA-384 digest )" << endl;
         }
         catch(...)
         {
