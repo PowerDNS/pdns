@@ -8,11 +8,11 @@
 
 #define CASE_L(type, inval, zoneval, lineval, broken) case_t(type, std::string(inval), std::string(zoneval), std::string(lineval, sizeof(lineval)-1), broken)
 #define CASE_S(type, zoneval, lineval, broken) CASE_L(type, zoneval, zoneval, lineval, broken)
-
 BOOST_AUTO_TEST_SUITE(dnsrecords_cc)
 
 #define REC_CHECK_EQUAL(a,b) { if (val.get<4>()) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
 #define REC_CHECK_MESSAGE(cond,msg) { if (val.get<4>()) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+typedef enum { zone, wire } case_type_enum_t;
 
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
@@ -27,6 +27,13 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   MBOXFWRecordContent::report();
   DHCIDRecordContent::report();
   TSIGRecordContent::report();
+
+
+// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO IT'S KIND
+// TO MAKE SURE TEST NUMBERING DOES NOT BREAK
+
+// why yes, they are unordered by name, how nice of you to notice
+
   cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01",false))
 // local nameserver
@@ -192,6 +199,44 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       REC_CHECK_MESSAGE(false, "Failed to verify " << q.getName() << ": " << err.what());
    }
  }
+}
+
+bool test_dnsrecords_cc_predicate( std::runtime_error const &ex ) { return true; }
+
+// these *MUST NOT* parse properly!
+BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
+  // qtype, value, zone/wire format, broken
+  typedef boost::tuple<const QType::typeenum, const std::string, case_type_enum_t, bool> case_t;
+  typedef std::list<case_t> cases_t;
+
+  cases_t cases = boost::assign::list_of
+     (case_t(QType::A, "932.521.256.42", zone, false)) // hollywood IP
+     (case_t(QType::A, "932.521", zone, false)) // truncated IP
+     (case_t(QType::A, "\xca\xec\x00", wire, false)) // truncated wire value
+     (case_t(QType::AAAA, "23:00", zone, false)) // time when this test was written 
+     (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
+     (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
+     (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
+     (case_t(QType::HINFO, "i686 Linux", zone, false)) // missing quotes
+;
+
+  int n=0;
+  int lq=-1;
+
+  BOOST_FOREACH(const cases_t::value_type& val, cases) {
+    QType q(val.get<0>());
+    if (lq != q.getCode()) n = 0;
+    lq = q.getCode();
+    n++;
+    BOOST_TEST_CHECKPOINT("Checking bad value for record type " << q.getName() << " test #" << n);
+    BOOST_TEST_MESSAGE("Checking bad value for record type " << q.getName() << " test #" << n);
+ 
+    if (val.get<2>()) {
+      BOOST_WARN_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+    } else {
+      BOOST_CHECK_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+    }
+  };
 }
 
 BOOST_AUTO_TEST_SUITE_END()
