@@ -34,6 +34,8 @@
 #include "pdns/ahuexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
+#include "pdns/base32.hh"
+#include "pdns/dnssecinfra.hh"
 #include <boost/algorithm/string.hpp>
 #include <sstream>
 #include <boost/foreach.hpp>
@@ -273,6 +275,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SuperMasterInfoQuery=getArg("supermaster-query");
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
   d_InsertRecordQuery=getArg("insert-record-query"+authswitch);
+  d_InsertEntQuery=getArg("insert-ent-query"+authswitch);
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
@@ -287,6 +290,9 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   
   if (d_dnssecQueries)
   {
+    d_InsertRecordOrderQuery=getArg("insert-record-order-query-auth");
+    d_InsertEntOrderQuery=getArg("insert-ent-order-query-auth");
+
     d_firstOrderQuery = getArg("get-order-first-query");
     d_beforeOrderQuery = getArg("get-order-before-query");
     d_afterOrderQuery = getArg("get-order-after-query");
@@ -884,15 +890,18 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
   return true;
 }
 
-bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
+bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
   string output;
   if(d_dnssecQueries) {
-    output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % (int)r.auth).str();
+    if(ordername)
+      output = (boost::format(d_InsertRecordOrderQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % sqlEscape(*ordername) % (int)r.auth).str();
+    else
+      output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % (int)r.auth).str();
   } else {
     output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname))).str();
   }
-     
+
   try {
     d_db->doCommand(output.c_str());
   }
@@ -900,6 +909,46 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r)
     throw AhuException("GSQLBackend unable to feed record: "+e.txtReason());
   }
   return true; // XXX FIXME this API should not return 'true' I think -ahu 
+}
+
+bool GSQLBackend::feedEnts(int domain_id, set<string>& nonterm)
+{
+  string output;
+  BOOST_FOREACH(const string qname, nonterm) {
+    output = (boost::format(d_InsertEntQuery) % domain_id % toLower(sqlEscape(qname))).str();
+
+    try {
+      d_db->doCommand(output.c_str());
+    }
+    catch (SSqlException &e) {
+      throw AhuException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());
+    }
+  }
+  return true;
+}
+
+bool GSQLBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow)
+{
+  if(!d_dnssecQueries)
+      return false;
+
+  string ordername, output;
+  BOOST_FOREACH(const string qname, nonterm) {
+    if(narrow) {
+      output = (boost::format(d_InsertEntQuery) % domain_id % toLower(sqlEscape(qname))).str();
+    } else {
+      ordername=toBase32Hex(hashQNameWithSalt(times, salt, qname));
+      output = (boost::format(d_InsertEntOrderQuery) % domain_id % toLower(sqlEscape(qname)) % toLower(sqlEscape(ordername))).str();
+    }
+
+    try {
+      d_db->doCommand(output.c_str());
+    }
+    catch (SSqlException &e) {
+      throw AhuException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());
+    }
+  }
+  return true;
 }
 
 bool GSQLBackend::startTransaction(const string &domain, int domain_id)
