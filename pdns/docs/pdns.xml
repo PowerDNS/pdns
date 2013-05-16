@@ -13968,7 +13968,7 @@ end
       </para>
       <para>
 	In addition, since PowerDNS Recursor 3.6, it is also possible to also generate the associated PTR records.
-	This makes sure that reverse lookup if IPv6 addresses generate the right name. The procedure is similar,
+	This makes sure that reverse lookup of DNS64-generated IPv6 addresses generate the right name. The procedure is similar,
 	a request for an IPv6 PTR is converted into one for the corresponding IPv4 address.
       </para>
       <para>
@@ -13981,7 +13981,6 @@ end
 	  function preresolve ( remoteip, domain, qtype )
 	     if qtype ==pdns.PTR and endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
              then
-                print("This is our faked AAAA record in reverse")
                 return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
              end
 	     return -1, {}
