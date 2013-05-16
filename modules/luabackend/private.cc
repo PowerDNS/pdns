@@ -60,12 +60,10 @@ bool LUABackend::domaininfo_from_table(DomainInfo *di) {
 
     if(!lua_isnil(lua, -1)) {
 	lua_pushnil(lua);  
-	const char *key, *value;
+	const char *value;
 	while (lua_next(lua, -2)) {
     	    value = lua_tostring(lua, -1);
     	    lua_pop(lua,1);
-    	    key = lua_tostring(lua, -1); 
-
     	    di->masters.push_back(value);
 	}    
     }
@@ -80,7 +78,6 @@ bool LUABackend::domaininfo_from_table(DomainInfo *di) {
 void LUABackend::domains_from_table(vector<DomainInfo>* domains, const char *f_name) {
     lua_pushnil(lua);  
 
-    int k;
     size_t returnedwhat;
     
     while (lua_next(lua, -2)) {
@@ -93,7 +90,6 @@ void LUABackend::domains_from_table(vector<DomainInfo>* domains, const char *f_n
         }
 
         lua_pop(lua,1);
-        k = lua_tonumber(lua, -1);
     }
 }
 
