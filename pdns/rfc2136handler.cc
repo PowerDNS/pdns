@@ -379,7 +379,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
 
 
     if (recordsToDelete.size()) {
-      // If we remove an NS which is not at apex of the zone, we need to make everthing below it auth=true as those now are not delegated anymore.
+      // We're removing a delegate, so we need to reset ordername/auth for some records.
       if (rrType == QType::NS && rrLabel != di->zone) {
         vector<string> belowOldDelegate, nsRecs, updateAuthFlag;
         di->backend->listSubZone(rrLabel, di->id);
@@ -476,7 +476,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         string hashed;
         if(! *narrow) 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *i)));
-        di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *i, hashed, false);
+        di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *i, hashed, true);
       }
     }
   }
