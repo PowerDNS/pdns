@@ -77,16 +77,13 @@ class ArgvMap
 public:
   ArgvMap();
   void parse(int &argc, char **argv, bool lax=false); //!< use this to parse from argc and argv
-  void laxParse(int &argc, char **argv) //!< use this to parse from argc and argv
-  {
+  void laxParse(int &argc, char **argv) {//!< use this to parse from argc and argv
     parse(argc,argv,true);
   }
-  void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
   bool preParseFile(const char *fname, const string &arg, const string& theDefault=""); //!< use this to preparse a single var in configuration
 
   bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
-  bool laxFile(const char *fname) 
-  {
+  bool laxFile(const char *fname) { 
     return file(fname,true);
   }
   typedef map<string,string> param_t; //!< use this if you need to know the content of the map
@@ -116,6 +113,7 @@ public:
   const string &operator[](const string &); //!< iterator semantics
   const vector<string>&getCommands();
 private:
+  void preParse(int &argc, char **argv, const string &arg); //!< use this to preparse a single var
   void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
   typedef map<string,string> params_t;
   params_t params;

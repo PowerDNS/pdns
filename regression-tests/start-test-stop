@@ -16,7 +16,7 @@ bindwait ()
 	domcount=$(grep -c zone named.conf)
 	while sleep 10
 	do
-		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config= bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]
 		then
 			return
