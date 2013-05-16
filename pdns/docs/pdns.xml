@@ -9,7 +9,7 @@
       <affiliation>
         <orgname>PowerDNS BV</orgname>
         <address>
-          <email>powerdns.support@netherlabs.nl</email>
+          <email>powerdns.support@powerdns.com</email>
         </address>
       </affiliation>
     </author>
@@ -13933,6 +13933,62 @@ end
 	  To get fake AAAA records for DNS64 usage, use <function>return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"</function>. Available since version 3.4.
 	</para>
       </sect2>
+    </sect1>
+    <sect1 id="dns64"><title>DNS64 support in the PowerDNS Recursor</title>
+      <para>
+	DNS64 is a technology to allow IPv6-only clients to receive special IPv6 addresses that are proxied to 
+	IPv4 addresses. This proxy service is then called NAT64. 
+      </para>
+      <para>
+	So, as an example, let's say an IPv6 only client would want to connect to www.example.com, it would request the AAAA records
+	for that name. However, if example.com does not actually have an IPv6 address, what we do is 'fake up' an IPv6 address. We do this
+	by retrieving the A records for www.example.com, and translating them to AAAA records.
+      </para>
+      <para>
+	Elsewhere, a NAT64 device listens on these IPv6 addresses, and extracts the IPv4 address from each packet, and proxies it on
+      </para>
+      <para>
+	DNS64 is described in RFC 6147, and is supported by the PowerDNS Recursor since version 3.4.
+      </para>
+      <para>
+	For maximum flexibility, DNS64 support is included in the Lua scripting engine. This allows for example to hand out
+	custom IPv6 gateway ranges depending on the location of the requestor, enabling the use of NAT64 services close to the user.
+      </para>
+      <para>
+	To setup DNS64, create the following Lua script and save it to a file called dns64.lua:
+	<programlisting>
+	function nodata ( remoteip, domain, qtype, records )
+             if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
+             setvariable()
+             return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"
+        end     
+	</programlisting>
+	Where fe80::21b::77ff:0:0 is your "Pref64" translation prefix. Next, make sure your script gets loaded
+	by specifying it with "lua-pdns-script=dns64.lua".
+      </para>
+      <para>
+	In addition, since PowerDNS Recursor 3.6, it is also possible to also generate the associated PTR records.
+	This makes sure that reverse lookup if IPv6 addresses generate the right name. The procedure is similar,
+	a request for an IPv6 PTR is converted into one for the corresponding IPv4 address.
+      </para>
+      <para>
+	To hook up the generation of PTR records, include:
+	<programlisting>
+	  function endswith(s, send)
+             return #s >= #send and s:find(send, #s-#send+1, true) and true or false
+	  end
+
+	  function preresolve ( remoteip, domain, qtype )
+	     if qtype ==pdns.PTR and endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
+             then
+                print("This is our faked AAAA record in reverse")
+                return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
+             end
+	     return -1, {}
+	  end
+	</programlisting>
+	Where the "ip6.arpa" string is the reversed form of your Pref64 address.
+      </para>
     </sect1>
     <sect1 id="recursor-design-and-engineering">
       <title>Design and Engineering of the PowerDNS Recursor</title>
