@@ -141,7 +141,7 @@ public:
   void setNotified(uint32_t id, uint32_t serial);
   bool startTransaction(const string &qname, int id);
   //  bool Bind2Backend::stopTransaction(const string &qname, int id);
-  bool feedRecord(const DNSResourceRecord &r);
+  bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
   bool commitTransaction();
   bool abortTransaction();
   bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);

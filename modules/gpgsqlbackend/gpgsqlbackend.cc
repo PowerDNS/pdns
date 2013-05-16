@@ -87,8 +87,13 @@ public:
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver=E'%s'");
     declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE',E'%s',E'%s',E'%s')");
+
     declare(suffix,"insert-record-query","", "insert into records (content,ttl,prio,type,domain_id,name) values (E'%s',%d,%d,'%s',%d,E'%s')");
-    declare(suffix,"insert-record-query-auth","", "insert into records (content,ttl,prio,type,domain_id,name,auth) values (E'%s',%d,%d,'%s',%d,E'%s', '%d')");
+    declare(suffix,"insert-record-query-auth","", "insert into records (content,ttl,prio,type,domain_id,name,auth) values (E'%s',%d,%d,'%s',%d,E'%s','%d')");
+    declare(suffix,"insert-record-order-query-auth","", "insert into records (content,ttl,prio,type,domain_id,name,ordername,auth) values (E'%s',%d,%d,'%s',%d,E'%s',E'%s','%d')");
+    declare(suffix,"insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,name) values (null,'%d',E'%s')");
+    declare(suffix,"insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,auth) values (null,'%d',E'%s',true)");
+    declare(suffix,"insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,ordername,auth) values (null,'%d',E'%s',E'%s',true)");
     
     declare(suffix,"get-order-first-query","DNSSEC Ordering Query, last", "select ordername, name from records where domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
     declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername ~<=~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");

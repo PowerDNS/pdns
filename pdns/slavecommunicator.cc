@@ -92,15 +92,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     const bool hadPresigned = dk.isPresigned(domain);
     const bool hadDnssecZone = dnssecZone;
 
-    if(dnssecZone) {
-      if(!haveNSEC3) 
-        L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
-      else if(!narrow)
-        L<<Logger::Info<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
-      else 
-        L<<Logger::Info<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
-    }    
-
     if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
@@ -108,7 +99,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     domain_id=di.id;
 
     Resolver::res_t recs;
-    set<string> nsset, qnames, dsnames, nonterm, delnonterm;
+    set<string> nsset, qnames;
     
     ComboAddress raddr(remote, 53);
     
@@ -163,26 +154,22 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     bool gotNSEC3 = false;
     bool gotOptOutFlag = false;
     unsigned int soa_serial = 0;
+    vector<DNSResourceRecord> rrs;
     while(retriever.getChunk(recs)) {
       if(first) {
-        L<<Logger::Error<<"AXFR started for '"<<domain<<"', transaction started"<<endl;
-        di.backend->startTransaction(domain, domain_id);
+        L<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
         first=false;
       }
-      
+
       for(Resolver::res_t::iterator i=recs.begin();i!=recs.end();++i) {
         if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
           continue;
-          
-        if(i->qtype.getCode() == QType::SOA) {
-          if(soa_serial != 0)
-            continue; //skip the last SOA
-          SOAData sd;
-          fillSOAData(i->content,sd);
-          soa_serial = sd.serial;
+
+        if(!endsOn(i->qname, domain)) { 
+          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+          continue;
         }
-          
-        // we generate NSEC, NSEC3, NSEC3PARAM (sorry Olafur) on the fly, this could only confuse things
+
         if (i->qtype.getCode() == QType::NSEC3PARAM) {
           ns3pr = NSEC3PARAMRecordContent(i->content);
           narrow = false;
@@ -197,126 +184,123 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           continue;
         }
 
-        if(!endsOn(i->qname, domain)) { 
-          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
-          continue;
+        if(i->qtype.getCode() == QType::SOA) {
+          if(soa_serial != 0)
+            continue; //skip the last SOA
+          SOAData sd;
+          fillSOAData(i->content,sd);
+          soa_serial = sd.serial;
         }
-        
+
         i->domain_id=domain_id;
         if (i->qtype.getCode() == QType::SRV)
           i->content = stripDot(i->content);
+
 #if 0
         if(i->qtype.getCode()>=60000)
           throw DBException("Database can't store unknown record type "+lexical_cast<string>(i->qtype.getCode()-1024));
 #endif
+
         vector<DNSResourceRecord> out;
         if(pdl && pdl->axfrfilter(raddr, domain, *i, out)) {
           BOOST_FOREACH(const DNSResourceRecord& rr, out) {
-            di.backend->feedRecord(rr);
-            if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, domain)) 
-              nsset.insert(rr.qname);
-            if(rr.qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
-              qnames.insert(rr.qname);
-            if(i->qtype.getCode() == QType::DS)
-              dsnames.insert(i->qname);
+            rrs.push_back(rr);
           }
-        }
-        else {
-          di.backend->feedRecord(*i);
-          if(i->qtype.getCode() == QType::NS && !pdns_iequals(i->qname, domain)) 
-            nsset.insert(i->qname);
-          if(i->qtype.getCode() != QType::RRSIG) // this excludes us hashing RRSIGs for NSEC(3)
-            qnames.insert(i->qname);
-          if(i->qtype.getCode() == QType::DS)
-           dsnames.insert(i->qname);
+        } else {
+          rrs.push_back(*i);
         }
       }
     }
 
-    if (hadPresigned && !gotNSEC3)
-    {
+    BOOST_FOREACH(const DNSResourceRecord& rr, rrs) {
+      if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, domain))
+        nsset.insert(rr.qname);
+      qnames.insert(rr.qname);
+    }
+
+    if(dnssecZone) {
+      if(!haveNSEC3) 
+        L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
+      else if(!narrow)
+        L<<Logger::Info<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
+      else
+        L<<Logger::Info<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
+    }
+
+    if (hadPresigned && !gotNSEC3) { // not sure why this is here
       // we only had NSEC3 because we were a presigned zone...
       haveNSEC3 = false;
     }
 
+
+    L<<Logger::Error<<"Transaction started for '"<<domain<<"'"<<endl;
+    di.backend->startTransaction(domain, domain_id);
+
     bool doent=true;
-    bool realrr=true;
-    string hashed;
-
     uint32_t maxent = ::arg().asNum("max-ent-entries");
+    string ordername, shorter;
+    set<string> nonterm, rrterm;
 
-    dononterm:;
-    BOOST_FOREACH(const string& qname, qnames)
-    {
-      bool auth=true;
-      string shorter(qname);
+    BOOST_FOREACH(DNSResourceRecord& rr, rrs) {
 
-      if(realrr) {
-        do {
-          if(nsset.count(shorter)) {
-            auth=false;
-            break;
-          }
-        }while(chopOff(shorter));
-      }
-
-      if(haveNSEC3)
-      {
-        if(!narrow) { 
-          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
-          di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth);
+      // Figure out auth and ents
+      rr.auth=true;
+      shorter=rr.qname;
+      rrterm.clear();
+      do {
+        if(doent) {
+          if (!qnames.count(shorter) && !nonterm.count(shorter) && !rrterm.count(shorter))
+            rrterm.insert(shorter);
         }
-        else
-          di.backend->nullifyDNSSECOrderNameAndUpdateAuth(domain_id, qname, auth);
-      }
-      else // NSEC
-      {
-        di.backend->updateDNSSECOrderAndAuth(domain_id, domain, qname, auth);
-        if (!realrr)
-          di.backend->nullifyDNSSECOrderNameAndUpdateAuth(domain_id, qname, auth);
-      }
-
-      if(realrr)
-      {
-        if (dsnames.count(qname))
-          di.backend->setDNSSECAuthOnDsRecord(domain_id, qname);
-        if (!auth || nsset.count(qname)) {
-          if(haveNSEC3 && gotOptOutFlag)
-            di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "NS");
-          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "A");
-          di.backend->nullifyDNSSECOrderNameAndAuth(domain_id, qname, "AAAA");
+        if(nsset.count(shorter) && rr.qtype.getCode() != QType::DS) {
+          rr.auth=false;
+          break;
         }
+        if (pdns_iequals(shorter, domain)) // stop at apex
+          break;
+      }while(chopOff(shorter));
 
-        if(auth && doent)
-        {
-          shorter=qname;
-          while(!pdns_iequals(shorter, domain) && chopOff(shorter))
-          {
-            if(!qnames.count(shorter) && !nonterm.count(shorter))
-            {
-              if(!(maxent))
-              {
-                L<<Logger::Error<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
-                nonterm.empty();
-                doent=false;
-                break;
-              }
-              nonterm.insert(shorter);
-              --maxent;
-            }
-          }
+      // Insert ents for auth rrs
+      if(doent && rr.auth) {
+        nonterm.insert(rrterm.begin(), rrterm.end());
+        if(nonterm.size() > maxent) {
+          L<<Logger::Error<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
+          nonterm.clear();
+          doent=false;
         }
       }
+
+      // RRSIG is always auth, even inside a delegation
+      if (rr.qtype.getCode() == QType::RRSIG)
+        rr.auth=true;
+
+      // Add ordername and insert record
+      if (dnssecZone && rr.qtype.getCode() != QType::RRSIG) {
+        if (haveNSEC3) {
+          // NSEC3
+          if(!narrow && (rr.auth || (rr.qtype.getCode() == QType::NS && !gotOptOutFlag))) {
+            ordername=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+            di.backend->feedRecord(rr, &ordername);
+          } else
+            di.backend->feedRecord(rr);
+        } else {
+          // NSEC
+          if (rr.auth || rr.qtype.getCode() == QType::NS) {
+            ordername=toLower(labelReverse(makeRelative(rr.qname, domain)));
+            di.backend->feedRecord(rr, &ordername);
+          } else
+            di.backend->feedRecord(rr);
+        }
+      } else
+        di.backend->feedRecord(rr);
     }
 
-    if(!nonterm.empty() && realrr && doent)
-    {
-      if(di.backend->updateEmptyNonTerminals(domain_id, domain, nonterm, delnonterm, false))
-      {
-        realrr=false;
-        qnames=nonterm;
-        goto dononterm;
-      }
+    // Insert empty non-terminals
+    if(doent && !nonterm.empty()) {
+      if (haveNSEC3) {
+        di.backend->feedEnts3(domain_id, domain, nonterm, ns3pr.d_iterations, ns3pr.d_salt, narrow);
+      } else
+        di.backend->feedEnts(domain_id, nonterm);
     }
 
     // now we also need to update the presigned flag and NSEC3PARAM
