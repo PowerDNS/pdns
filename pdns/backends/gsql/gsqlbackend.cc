@@ -441,29 +441,26 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
   if(!d_dnssecQueries)
     return false;
   // cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
-  unhashed.clear(); before.clear(); after.clear();
+  after.clear();
   string lcqname=toLower(qname);
-  
+
   SSql::row_t row;
 
   char output[1024];
 
   snprintf(output, sizeof(output)-1, d_afterOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
-  
   try {
     d_db->doQuery(output);
   }
   catch(SSqlException &e) {
     throw AhuException("GSQLBackend unable to find before/after (after) for domain_id "+itoa(id)+": "+e.txtReason());
   }
-
   while(d_db->getRow(row)) {
     after=row[0];
   }
 
   if(after.empty() && !lcqname.empty()) {
     snprintf(output, sizeof(output)-1, d_firstOrderQuery.c_str(), id);
-  
     try {
       d_db->doQuery(output);
     }
@@ -475,34 +472,40 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
     }
   }
 
-  snprintf(output, sizeof(output)-1, d_beforeOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
-  try {
-    d_db->doQuery(output);
-  }
-  catch(SSqlException &e) {
-    throw AhuException("GSQLBackend unable to find before/after (before) for domain_id "+itoa(id)+": "+e.txtReason());
-  }
-  while(d_db->getRow(row)) {
-    before=row[0];
-    unhashed=row[1];
-  }
-  
-  if(! unhashed.empty())
-  {
-    // cerr<<"unhashed="<<unhashed<<",before="<<before<<", after="<<after<<endl;
-    return true;
-  }
+  if (before.empty()) {
+    unhashed.clear();
 
-  snprintf(output, sizeof(output)-1, d_lastOrderQuery.c_str(), id);
-  try {
-    d_db->doQuery(output);
-  }
-  catch(SSqlException &e) {
-    throw AhuException("GSQLBackend unable to find before/after (last) for domain_id "+itoa(id)+": "+e.txtReason());
-  }
-  while(d_db->getRow(row)) {
-    before=row[0];
-    unhashed=row[1];
+    snprintf(output, sizeof(output)-1, d_beforeOrderQuery.c_str(), sqlEscape(lcqname).c_str(), id);
+    try {
+      d_db->doQuery(output);
+    }
+    catch(SSqlException &e) {
+      throw AhuException("GSQLBackend unable to find before/after (before) for domain_id "+itoa(id)+": "+e.txtReason());
+    }
+    while(d_db->getRow(row)) {
+      before=row[0];
+      unhashed=row[1];
+    }
+
+    if(! unhashed.empty())
+    {
+      // cerr<<"unhashed="<<unhashed<<",before="<<before<<", after="<<after<<endl;
+      return true;
+    }
+
+    snprintf(output, sizeof(output)-1, d_lastOrderQuery.c_str(), id);
+    try {
+      d_db->doQuery(output);
+    }
+    catch(SSqlException &e) {
+      throw AhuException("GSQLBackend unable to find before/after (last) for domain_id "+itoa(id)+": "+e.txtReason());
+    }
+    while(d_db->getRow(row)) {
+      before=row[0];
+      unhashed=row[1];
+    }
+  } else {
+    before=lcqname;
   }
 
   return true;
