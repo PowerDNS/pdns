@@ -927,7 +927,7 @@ try
     cerr<<"generate-zone-key zsk|ksk [bits] [algorithm]\n";
     cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits\n";
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE\n";
-    cerr<<"increase-serial ZONE	              Increases the SOA-serial by 1. Uses SOA-EDIT\n";
+    cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT\n";
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK\n";            
     cerr<<"                [ksk|zsk]          Defaults to KSK\n";
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)\n";
