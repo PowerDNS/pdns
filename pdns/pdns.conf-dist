@@ -50,6 +50,11 @@
 # default-ksk-size=0
 
 #################################
+# default-soa-mail	mail address to insert in the SOA record if none set in the backend
+#
+# default-soa-mail=
+
+#################################
 # default-soa-name	name to insert in the SOA record if none set in the backend
 #
 # default-soa-name=a.misconfigured.powerdns.server
