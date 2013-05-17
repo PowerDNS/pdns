@@ -7,7 +7,8 @@ aland.test.com.	86400	IN	NSEC	blah.test.com. TXT RRSIG NSEC
 b.c.test.com.	86400	IN	NSEC	*.a.b.c.test.com. A RRSIG NSEC 
 blah.test.com.	86400	IN	NSEC	b.c.test.com. NS RRSIG NSEC 
 counter.test.com.	86400	IN	NSEC	_double._tcp.dc.test.com. A RRSIG NSEC 
-enum.test.com.	86400	IN	NSEC	ns1.test.com. NAPTR RRSIG NSEC 
+enum.test.com.	86400	IN	NSEC	hightxt.test.com. NAPTR RRSIG NSEC 
+hightxt.test.com.	86400	IN	NSEC	ns1.test.com. TXT RRSIG NSEC 
 ns1.test.com.	86400	IN	NSEC	ns2.test.com. A RRSIG NSEC 
 ns2.test.com.	86400	IN	NSEC	server1.test.com. A RRSIG NSEC 
 server1.test.com.	86400	IN	NSEC	*.test.test.com. A RP RRSIG NSEC 

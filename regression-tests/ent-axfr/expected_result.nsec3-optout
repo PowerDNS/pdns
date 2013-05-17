@@ -1,3 +1,4 @@
+0bh8di769i8vvtkdds8efjda19abigo5.test.com.	86400	IN	NSEC3	1 1 1 abcd  2eu2gulbu53h9uvhfalshpbo2a83t6l2 TXT RRSIG 
 2eu2gulbu53h9uvhfalshpbo2a83t6l2.test.com.	86400	IN	NSEC3	1 1 1 abcd  2gks2n3jpqf62qohavfq1pholm3hr7ra NS SOA MX RRSIG DNSKEY NSEC3PARAM 
 2gks2n3jpqf62qohavfq1pholm3hr7ra.test.com.	86400	IN	NSEC3	1 1 1 abcd  79ra8k3g5kai1hg9jlhbr6p0tp933m7v TXT RRSIG 
 79ra8k3g5kai1hg9jlhbr6p0tp933m7v.test.com.	86400	IN	NSEC3	1 1 1 abcd  79u3das6ucctns1br3tvd8qkanni351l A RRSIG 
@@ -20,4 +21,4 @@ sa5vvpqn1coejgj3hbkfekdnii8kksqa.test.com.	86400	IN	NSEC3	1 1 1 abcd  sra2sm4pl1
 sra2sm4pl136bultass7qqnlblipe8am.test.com.	86400	IN	NSEC3	1 1 1 abcd  u02utt5q2bhjcq986f05mbap0pgamt5o CNAME RRSIG 
 test.com.	86400	IN	NSEC3PARAM	1 0 1 abcd 
 u02utt5q2bhjcq986f05mbap0pgamt5o.test.com.	86400	IN	NSEC3	1 1 1 abcd  vlvujatanof6feajoesti9kq4s0crst3 A RRSIG 
-vlvujatanof6feajoesti9kq4s0crst3.test.com.	86400	IN	NSEC3	1 1 1 abcd  2eu2gulbu53h9uvhfalshpbo2a83t6l2
+vlvujatanof6feajoesti9kq4s0crst3.test.com.	86400	IN	NSEC3	1 1 1 abcd  0bh8di769i8vvtkdds8efjda19abigo5
