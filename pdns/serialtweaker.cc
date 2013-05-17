@@ -21,7 +21,7 @@
 #include "namespaces.hh"
 #include <boost/foreach.hpp>
 
-static uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
+uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
 {
   struct tm tm;
   localtime_r(&t, &tm);
@@ -83,6 +83,5 @@ uint32_t calculateEditSoa(SOAData sd, const string& kind) {
     if (sd.serial < inception)
       return inception;
   }
-  else
-    return sd.serial;
+  return sd.serial;
 }

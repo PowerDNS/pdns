@@ -485,10 +485,25 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
      cerr<<zone<<" not found!"<<endl;
   }
   
-  if (soaEditKind.empty())
+  if (soaEditKind.empty()) {
     sd.serial++;
-  else
+  }
+  else if(pdns_iequals(soaEditKind,"INCREMENT-WEEKS")) {
+    sd.serial++;
+  }
+  else if(pdns_iequals(soaEditKind,"INCEPTION-INCREMENT")) {
+    uint32_t today_serial = localtime_format_YYYYMMDDSS(time(NULL), 1);
+
+    if (sd.serial < today_serial) {
+      sd.serial = today_serial;
+    }
+    else {
+      sd.serial++;
+    }
+  }
+  else {
     sd.serial = calculateEditSoa(sd, soaEditKind) + 1;
+  }
   rrs[0].content = serializeSOAData(sd);
 
   if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
