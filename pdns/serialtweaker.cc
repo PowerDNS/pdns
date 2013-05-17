@@ -83,6 +83,5 @@ uint32_t calculateEditSoa(SOAData sd, const string& kind) {
     if (sd.serial < inception)
       return inception;
   }
-  else
-    return sd.serial;
+  return sd.serial;
 }
