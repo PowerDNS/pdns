@@ -36,6 +36,7 @@ script:
  - ./start-test-stop 5300 tinydns 
  - cd ../regression-tests.nobackend/
  - ./runtests
+ - test ! -s ./failed_tests
 notifications:
   irc:
     channels:
