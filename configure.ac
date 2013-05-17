@@ -278,7 +278,7 @@ fi
 
 
 
-modules="gmysql geo"
+modules="gmysql geo random"
 AC_ARG_WITH(modules, AC_HELP_STRING([--with-modules],[which backends to compile with]),
 [
         modules="$withval"
@@ -745,4 +745,5 @@ modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
 modules/luabackend/Makefile modules/tinydnsbackend/Makefile \
-modules/remotebackend/Makefile)
+modules/remotebackend/Makefile \
+modules/randombackend/Makefile)

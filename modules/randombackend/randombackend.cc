@@ -16,13 +16,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "utility.hh"
-#include "dnsbackend.hh"
-#include "dns.hh"
-#include "dnsbackend.hh"
-#include "dnspacket.hh"
-#include "ahuexception.hh"
-#include "logger.hh"
+#include "pdns/utility.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/ahuexception.hh"
+#include "pdns/logger.hh"
 #include <boost/algorithm/string.hpp>
 
 /* FIRST PART */

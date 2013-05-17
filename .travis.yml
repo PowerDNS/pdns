@@ -6,7 +6,7 @@ before_script:
  - sudo apt-get install -qq libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev xmlto dblatex links
 script:
  - ./bootstrap
- - ./configure --with-modules='gmysql tinydns' --with-sqlite3 --enable-unit-tests
+ - ./configure --with-modules='gmysql tinydns random' --with-sqlite3 --enable-unit-tests
  - make dist
  - make -j 4
  - cd pdns
