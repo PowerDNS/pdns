@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig hightxt.test.com TXT
+

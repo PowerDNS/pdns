@@ -34,3 +34,4 @@ _underscore		IN	TXT	"underscores are terrible"
 b.c			IN	A	5.6.7.8
 *.a.b.c			IN	A	8.7.6.5
 aland		IN TXT "\195\133LAND ISLANDS"
+hightxt		IN	TXT	"v=spf1 mx ip4:78.46.192.210 –all"
