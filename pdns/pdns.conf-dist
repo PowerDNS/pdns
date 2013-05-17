@@ -130,6 +130,11 @@
 # guardian=no
 
 #################################
+# include-dir	Include *.conf files from this directory
+#
+# include-dir=
+
+#################################
 # launch	Which backends to launch and order to query them in
 #
 # launch=
