@@ -2,8 +2,8 @@ language: cpp
 compiler:
   - gcc
 before_script:
- - sudo apt-get update -qq
- - sudo apt-get install -qq libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev xmlto dblatex links
+ - sudo apt-get update
+ - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev xmlto dblatex links
 script:
  - ./bootstrap
  - ./configure --with-modules='gmysql tinydns random' --with-sqlite3 --enable-unit-tests
