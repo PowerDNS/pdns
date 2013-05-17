@@ -67,6 +67,7 @@ void declareArguments()
   ::arg().set("wildcard-url","Process URL and MBOXFW records")="no";
   ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
   ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";
+  ::arg().set("default-soa-mail","mailadres to insert in the SOA record if none set in the backend")="";
   ::arg().set("distributor-threads","Default number of Distributor (backend) threads to start")="3";
   ::arg().set("signing-threads","Default number of signer threads to start")="3";
   ::arg().set("receiver-threads","Default number of Distributor (backend) threads to start")="1";
