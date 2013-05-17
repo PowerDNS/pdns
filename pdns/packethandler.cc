@@ -562,6 +562,10 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
     incrementHash(after);
   }
   else {
+    if (decrement)
+      before.clear();
+    else
+      before=' ';
     ret=db->getBeforeAndAfterNamesAbsolute(id, toLower(toBase32Hex(hashed)), unhashed, before, after);
     before=fromBase32Hex(before);
     after=fromBase32Hex(after);
@@ -659,22 +663,21 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   }
 
   string before,after;
-  //cerr<<"Calling getBeforeandAfter! "<<(void*)sd.db<<endl;
+  sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
+  emitNSEC(before, after, target, sd, r, mode);
 
   if (mode == 2) {
     // wildcard NO-DATA
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
-    emitNSEC(before, after, target, sd, r, mode);
+    before='.';
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, wildcard, before, after);
+    emitNSEC(before, after, target, sd, r, mode);
   }
-  else
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
-  emitNSEC(before, after, target, sd, r, mode);
 
   if (mode == 4) {
-      // this one does wildcard denial, if applicable
-      sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after);
-      emitNSEC(auth, after, auth, sd, r, mode);
+    // this one does wildcard denial, if applicable
+    before='.';
+    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after);
+    emitNSEC(auth, after, auth, sd, r, mode);
   }
 
   return;

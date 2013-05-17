@@ -911,18 +911,23 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
 {
   string domain=toLower(qname);
 
-  //cout<<"starting lower bound for: '"<<domain<<"'"<<endl;
-
   recordstorage_t::const_iterator iter = bbd.d_records->upper_bound(domain);
 
-  while(iter == bbd.d_records->end() || (iter->qname) > domain || (!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
-    iter--;
+  if (before.empty()){
+    //cout<<"starting before for: '"<<domain<<"'"<<endl;
+    iter = bbd.d_records->upper_bound(domain);
 
-  before=iter->qname;
+    while(iter == bbd.d_records->end() || (iter->qname) > domain || (!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
+      iter--;
 
-  //cerr<<"Now upper bound"<<endl;
+    before=iter->qname;
+  }
+  else {
+    before=domain;
+  }
+
+  //cerr<<"Now after"<<endl;
   iter = bbd.d_records->upper_bound(domain);
-
 
   if(iter == bbd.d_records->end()) {
     //cerr<<"\tFound the end, begin storage: '"<<bbd.d_records->begin()->qname<<"', '"<<bbd.d_name<<"'"<<endl;
@@ -968,39 +973,47 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
 //    BOOST_FOREACH(const Bind2DNSRecord& bdr, hashindex) {
 //      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
 //    }
-    
-    records_by_hashindex_t::const_iterator iter = hashindex.upper_bound(lqname);
 
-    if(iter != hashindex.begin() && (iter == hashindex.end() || iter->nsec3hash > lqname))
-    {
-      iter--;
-    }
+    records_by_hashindex_t::const_iterator iter;
+    bool wraponce;
 
-    if(iter == hashindex.begin() && (iter->nsec3hash > lqname))
-    {
-      iter = hashindex.end();
-    }
+    if (before.empty()) {
+      iter = hashindex.upper_bound(lqname);
 
-    bool wraponce = false;
-    while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
-    {
-      iter--;
-      if(iter == hashindex.begin()) {
-        if (!wraponce) {
-          iter = hashindex.end();
-          wraponce = true;
-        }
-        else {
-          before.clear();
-          after.clear();
-          return false;
+      if(iter != hashindex.begin() && (iter == hashindex.end() || iter->nsec3hash > lqname))
+      {
+        iter--;
+      }
+
+      if(iter == hashindex.begin() && (iter->nsec3hash > lqname))
+      {
+        iter = hashindex.end();
+      }
+
+      wraponce = false;
+      while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
+      {
+        iter--;
+        if(iter == hashindex.begin()) {
+          if (!wraponce) {
+            iter = hashindex.end();
+            wraponce = true;
+          }
+          else {
+            before.clear();
+            after.clear();
+            return false;
+          }
         }
       }
-    }
 
-    before = iter->nsec3hash;
-    unhashed = dotConcat(labelReverse(iter->qname), auth);
-    // cerr<<"before: "<<(iter->nsec3hash)<<"/"<<(iter->qname)<<endl;
+      before = iter->nsec3hash;
+      unhashed = dotConcat(labelReverse(iter->qname), auth);
+      // cerr<<"before: "<<(iter->nsec3hash)<<"/"<<(iter->qname)<<endl;
+    }
+    else {
+      before = lqname;
+    }
 
 
     iter = hashindex.upper_bound(lqname);
@@ -1009,12 +1022,20 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       iter = hashindex.begin();
     }
 
+    wraponce = false;
     while((!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
     {
       iter++;
-      if(iter == hashindex.end())
-      {
-        iter = hashindex.begin();
+      if(iter == hashindex.end()) {
+        if (!wraponce) {
+          iter = hashindex.begin();
+          wraponce = true;
+        }
+        else {
+          before.clear();
+          after.clear();
+          return false;
+        }
       }
     }
 

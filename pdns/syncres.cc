@@ -1209,7 +1209,7 @@ void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>
   }
 }
 
-// used by PowerDNSLua
+// used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)
 {
   struct timeval now;

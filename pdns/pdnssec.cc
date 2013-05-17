@@ -456,6 +456,64 @@ int checkAllZones(DNSSECKeeper &dk)
   return 0;
 }
 
+int increaseSerial(const string& zone, DNSSECKeeper &dk)
+{
+  UeberBackend B("default");
+  SOAData sd;
+  sd.db=(DNSBackend*)-1;
+  if(!B.getSOA(zone, sd)) {
+    cout<<"No SOA for zone '"<<zone<<"'"<<endl;
+    return -1;
+  }
+  
+  string soaEditKind;
+  dk.getFromMeta(zone, "SOA-EDIT", soaEditKind);
+
+  sd.db->lookup(QType(QType::SOA), zone);
+  vector<DNSResourceRecord> rrs;
+  DNSResourceRecord rr;
+  while (sd.db->get(rr)) {
+    if (rr.qtype.getCode() == QType::SOA)
+      rrs.push_back(rr);
+  } 
+
+  if (rrs.size() > 1) {
+    cerr<<rrs.size()<<" SOA records found for "<<zone<<"!"<<endl;
+    return -1;
+  }
+  if (rrs.size() < 1) {
+     cerr<<zone<<" not found!"<<endl;
+  }
+  
+  if (soaEditKind.empty()) {
+    sd.serial++;
+  }
+  else if(pdns_iequals(soaEditKind,"INCREMENT-WEEKS")) {
+    sd.serial++;
+  }
+  else if(pdns_iequals(soaEditKind,"INCEPTION-INCREMENT")) {
+    uint32_t today_serial = localtime_format_YYYYMMDDSS(time(NULL), 1);
+
+    if (sd.serial < today_serial) {
+      sd.serial = today_serial;
+    }
+    else {
+      sd.serial++;
+    }
+  }
+  else {
+    sd.serial = calculateEditSoa(sd, soaEditKind) + 1;
+  }
+  rrs[0].content = serializeSOAData(sd);
+
+  if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
+   cerr<<"Backend did not replace SOA record. Backend might not support this operation."<<endl;
+   return -1;
+  }
+  cout<<"SOA serial for zone "<<zone<<" set to "<<sd.serial<<endl;
+  return 0;
+}
+
 void testAlgorithm(int algo) 
 {
   DNSCryptoKeyEngine::testOne(algo);
@@ -884,6 +942,7 @@ try
     cerr<<"generate-zone-key zsk|ksk [bits] [algorithm]\n";
     cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits\n";
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE\n";
+    cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT\n";
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK\n";            
     cerr<<"                [ksk|zsk]          Defaults to KSK\n";
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)\n";
@@ -1205,6 +1264,13 @@ try
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << dpk.getKey()->convertToISC() <<endl;
   }  
+  else if(cmds[0]=="increase-serial") {
+    if (cmds.size() < 2) {
+      cerr<<"Syntax: pdnssec increase-serial ZONE"<<endl;
+      return 0;
+    }
+    return increaseSerial(cmds[1], dk);
+  }
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
       cerr<<"Syntax: pdnssec import-zone-key ZONE FILE algorithm [ksk|zsk]"<<endl;
