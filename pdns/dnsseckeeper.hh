@@ -163,6 +163,7 @@ private:
 };
 
 class DNSPacket;
+uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp);
 uint32_t calculateEditSoa(SOAData sd, const string& kind);
 #endif

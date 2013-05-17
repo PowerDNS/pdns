@@ -21,7 +21,7 @@
 #include "namespaces.hh"
 #include <boost/foreach.hpp>
 
-static uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
+uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
 {
   struct tm tm;
   localtime_r(&t, &tm);
