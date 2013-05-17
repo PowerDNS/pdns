@@ -24,27 +24,43 @@
 #include <oci.h>
 
 static const char *basicQueryKey = "PDNS_Basic_Query";
-static const char *basicQueryDefaultSQL =
+static const char *basicQueryDefaultAuthSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name)";
 
+static const char *basicQueryDefaultSQL = "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "FROM Records "
+  "WHERE type = :type AND fqdn = lower(:name)";
+
 static const char *basicIdQueryKey = "PDNS_Basic_Id_Query";
-static const char *basicIdQueryDefaultSQL =
+static const char *basicIdQueryDefaultAuthSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name) AND zone_id = :zoneid";
 
+static const char *basicIdQueryDefaultSQL = 
+  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "FROM Records "
+  "WHERE type = :type AND fqdn = lower(:name) AND zone_id = :zoneid";
+
 static const char *anyQueryKey = "PDNS_ANY_Query";
-static const char *anyQueryDefaultSQL =
+static const char *anyQueryDefaultAuthSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND type IS NOT NULL "
   "ORDER BY type";
 
+static const char *anyQueryDefaultSQL =
+  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "FROM Records "
+  "WHERE fqdn = lower(:name)"
+  "  AND type IS NOT NULL "
+  "ORDER BY type";
+
 static const char *anyIdQueryKey = "PDNS_ANY_Id_Query";
-static const char *anyIdQueryDefaultSQL =
+static const char *anyIdQueryDefaultAuthSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
@@ -52,13 +68,30 @@ static const char *anyIdQueryDefaultSQL =
   "  AND type IS NOT NULL "
   "ORDER BY type";
 
+static const char *anyIdQueryDefaultSQL =
+  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "FROM Records "
+  "WHERE fqdn = lower(:name)"
+  "  AND zone_id = :zoneid"
+  "  AND type IS NOT NULL "
+  "ORDER BY type";
+
+
 static const char *listQueryKey = "PDNS_List_Query";
-static const char *listQueryDefaultSQL =
+static const char *listQueryDefaultAuthSQL =
   "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
   "FROM Records "
   "WHERE zone_id = :zoneid"
   "  AND type IS NOT NULL "
   "ORDER BY fqdn, type";
+
+static const char *listQueryDefaultSQL =
+  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "FROM Records "
+  "WHERE zone_id = :zoneid"
+  "  AND type IS NOT NULL "
+  "ORDER BY fqdn, type";
+
 
 static const char *zoneInfoQueryKey = "PDNS_Zone_Info_Query";
 static const char *zoneInfoQueryDefaultSQL =
@@ -230,13 +263,32 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   curStmtHandle = NULL;
   openTransactionZoneID = -1;
 
+  try
+  {
+    d_dnssecQueries = mustDo("dnssec");
+  }
+  catch (ArgException e)
+  {
+    d_dnssecQueries = false;
+  }
+
   // Process configuration options
   string_to_cbuf(myServerName, getArg("nameserver-name"), sizeof(myServerName));
-  basicQuerySQL = getArg("basic-query");
-  basicIdQuerySQL = getArg("basic-id-query");
-  anyQuerySQL = getArg("any-query");
-  anyIdQuerySQL = getArg("any-id-query");
-  listQuerySQL = getArg("list-query");
+
+  if (d_dnssecQueries) {
+    basicQuerySQL = getArg("basic-query-auth");
+    basicIdQuerySQL = getArg("basic-id-query-auth");
+    anyQuerySQL = getArg("any-query-auth");
+    anyIdQuerySQL = getArg("any-id-query-auth");
+    listQuerySQL = getArg("list-query-auth");
+  } else {
+    basicQuerySQL = getArg("basic-query");
+    basicIdQuerySQL = getArg("basic-id-query");
+    anyQuerySQL = getArg("any-query");
+    anyIdQuerySQL = getArg("any-id-query");
+    listQuerySQL = getArg("list-query");
+  }
+
   zoneInfoQuerySQL = getArg("zone-info-query");
   alsoNotifyQuerySQL = getArg("also-notify-query");
   zoneMastersQuerySQL = getArg("zone-masters-query");
@@ -381,6 +433,9 @@ OracleBackend::getBeforeAndAfterNames (
   uint32_t zoneId, const string& zone,
   const string& name, string& before, string& after)
 {
+  if(!d_dnssecQueries)
+    return -1;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -418,6 +473,9 @@ bool
 OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   const string& name, string& unhashed, string& before, string& after)
 {
+  if(!d_dnssecQueries)
+    return -1; 
+
   sword rc;
   OCIStmt *stmt;
 
@@ -904,14 +962,18 @@ bool OracleBackend::get (DNSResourceRecord &rr)
   check_indicator(mResultContentInd, false);
   check_indicator(mResultZoneIdInd, false);
   check_indicator(mResultLastChangeInd, false);
-  check_indicator(mResultIsAuthInd, false);
+  if (d_dnssecQueries)
+    check_indicator(mResultIsAuthInd, false);
 
   rr.qname = mResultName;
   rr.ttl = mResultTTL;
   rr.qtype = mResultType;
   rr.domain_id = mResultZoneId;
   rr.last_modified = mResultLastChange;
-  rr.auth = mResultIsAuth > 0;
+  if (d_dnssecQueries)
+    rr.auth = mResultIsAuth > 0;
+  else
+    rr.auth = 1;
 
   if ((rr.qtype.getCode() == QType::MX) || (rr.qtype.getCode() == QType::SRV)) {
     unsigned priority = 0;
@@ -1163,6 +1225,11 @@ bool
 OracleBackend::getDomainMetadata (const string& name, const string& kind,
                                   vector<string>& meta)
 {
+  if(!d_dnssecQueries)
+    return -1;
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -1198,6 +1265,11 @@ bool
 OracleBackend::setDomainMetadata(const string& name, const string& kind,
                                  const vector<string>& meta)
 {
+  if(!d_dnssecQueries)
+    return -1;
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -1256,6 +1328,11 @@ OracleBackend::setDomainMetadata(const string& name, const string& kind,
 bool
 OracleBackend::getTSIGKey (const string& name, string* algorithm, string* content)
 {
+  if(!d_dnssecQueries)
+    return -1;
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -1287,6 +1364,11 @@ OracleBackend::getTSIGKey (const string& name, string* algorithm, string* conten
 bool
 OracleBackend::getDomainKeys (const string& name, unsigned int kind, vector<KeyData>& keys)
 {
+  if(!d_dnssecQueries)
+    return -1;
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -1336,6 +1418,11 @@ OracleBackend::getDomainKeys (const string& name, unsigned int kind, vector<KeyD
 bool
 OracleBackend::removeDomainKey (const string& name, unsigned int id)
 {
+  if(!d_dnssecQueries)
+    return -1;
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -1370,6 +1457,11 @@ OracleBackend::removeDomainKey (const string& name, unsigned int id)
 int
 OracleBackend::addDomainKey (const string& name, const KeyData& key)
 {
+  if(!d_dnssecQueries)
+    return -1;
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -1416,6 +1508,11 @@ OracleBackend::addDomainKey (const string& name, const KeyData& key)
 bool
 OracleBackend::setDomainKeyState (const string& name, unsigned int id, int active)
 {
+  if(!d_dnssecQueries)
+    return -1;
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
   sword rc;
   OCIStmt *stmt;
 
@@ -1625,7 +1722,8 @@ OracleBackend::define_fwd_query (OCIStmt *s)
                     mResultContent, sizeof(mResultContent));
   define_output_int(s, 5, &mResultZoneIdInd, &mResultZoneId);
   define_output_int(s, 6, &mResultLastChangeInd, &mResultLastChange);
-  define_output_int(s, 7, &mResultIsAuthInd, &mResultIsAuth);
+  if (d_dnssecQueries)
+    define_output_int(s, 7, &mResultIsAuthInd, &mResultIsAuth);
 }
 
 void
@@ -1928,14 +2026,19 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "master-database", "Database to connect to for write access", "powerdns");
     declare(suffix, "master-username", "Username to connect as for write access", "powerdns");
     declare(suffix, "master-password", "Password to connect with for write access", "");
-
+    declare(suffix, "dnssec", "Assume DNSSEC Schema is in place", "no");
     declare(suffix, "nameserver-name", "", "");
 
     declare(suffix, "basic-query", "", basicQueryDefaultSQL);
+    declare(suffix, "basic-query-auth", "", basicQueryDefaultAuthSQL);
     declare(suffix, "basic-id-query", "", basicIdQueryDefaultSQL);
+    declare(suffix, "basic-id-query-auth", "", basicIdQueryDefaultAuthSQL);
     declare(suffix, "any-query", "", anyQueryDefaultSQL);
+    declare(suffix, "any-query-auth", "", anyQueryDefaultAuthSQL);
     declare(suffix, "any-id-query", "", anyIdQueryDefaultSQL);
+    declare(suffix, "any-id-query-auth", "", anyIdQueryDefaultAuthSQL);
     declare(suffix, "list-query", "", listQueryDefaultSQL);
+    declare(suffix, "list-query-auth", "", listQueryDefaultAuthSQL);
     declare(suffix, "zone-info-query", "", zoneInfoQueryDefaultSQL);
     declare(suffix, "also-notify-query", "", alsoNotifyQueryDefaultSQL);
     declare(suffix, "zone-masters-query", "", zoneMastersQueryDefaultSQL);

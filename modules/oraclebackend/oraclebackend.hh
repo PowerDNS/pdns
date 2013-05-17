@@ -164,6 +164,7 @@ private:
   sb2       mResultPrevNameInd;
   char      mResultNextName[512];
   sb2       mResultNextNameInd;
+  bool      d_dnssecQueries;
 
   void Cleanup();
 
