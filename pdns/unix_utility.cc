@@ -99,11 +99,19 @@ void Utility::dropPrivs( int uid, int gid )
     else
       theL()<<Logger::Info<<"Set effective group id to "<<gid<<endl;
 
-    if(setgroups(0, NULL)<0) {
-      theL()<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
-      exit(1);
+    struct passwd *pw=getpwuid(uid);
+    if(!pw) {
+      theL()<<Logger::Warning<<"Unable to determine user name for uid "<<uid<<endl;
+      if (setgroups(0, NULL)<0) {
+        theL()<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
+        exit(1);
+      }
+    } else {
+      if (initgroups(pw->pw_name, gid)<0) {
+        theL()<<Logger::Critical<<"Unable to set supplementary groups: "<<stringerror()<<endl;
+        exit(1);
+      }
     }
-
   }
 
   if(uid) {
