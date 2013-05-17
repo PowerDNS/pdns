@@ -62,7 +62,7 @@ vector<string> segmentDNSText(const string& input )
                 }
 
                 escaped = '\\' (([^0-9]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
-                plain = ((extend-'\\'-'"')|'\n'|'\t') $ reportPlain;
+                plain = ((extend-cntrl-'\\'-'"')|'\n'|'\t') $ reportPlain;
                 txtElement = escaped | plain;
             
                 main := (('"' txtElement* '"' space?) >segmentBegin %segmentEnd)+;
