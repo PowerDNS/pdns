@@ -1,5 +1,5 @@
 #include "lua-recursor.hh"
-
+#include "config.h"
 // to avoid including all of syncres.hh
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
 
@@ -79,6 +79,36 @@ int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vect
   return rcode;
 }
 
+int getFakePTRRecords(const std::string& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)
+{
+  /* qname has a reverse ordered IPv6 address, need to extract the underlying IPv4 address from it
+     and turn it into an IPv4 in-addr.arpa query */
+  ret.clear();
+  vector<string> parts;
+  stringtok(parts, qname, ".");
+  if(parts.size() < 8)
+    return -1;
+  
+  string newquery;
+  for(int n = 0; n < 4; ++n) {
+    newquery += 
+      lexical_cast<string>(strtol(parts[n*2].c_str(), 0, 16) + 16*strtol(parts[n*2+1].c_str(), 0, 16));
+    newquery.append(1,'.');
+  }
+  newquery += "in-addr.arpa.";
+
+  
+  int rcode = directResolve(newquery, QType(QType::PTR), 1, ret);
+  BOOST_FOREACH(DNSResourceRecord& rr, ret)
+  {    
+    if(rr.qtype.getCode() == QType::PTR && rr.d_place==DNSResourceRecord::ANSWER) {
+      rr.qname = qname;
+    }
+  }
+  return rcode;
+
+}
+
 bool RecursorLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return passthrough("nxdomain", remote, local, query, qtype, ret, res, variable);
@@ -136,8 +166,7 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
   }
   
   *variable |= d_variable;
-  
-  
+    
   if(!lua_isnumber(d_lua, 1)) {
     string tocall = lua_tostring(d_lua,1);
     string luaqname = lua_tostring(d_lua,2);
@@ -145,7 +174,10 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     lua_pop(d_lua, 3);
     // cerr<<"should call '"<<tocall<<"' to finish off"<<endl;
     ret.clear();
-    res=getFakeAAAARecords(luaqname, luaprefix, ret);
+    if(tocall == "getFakeAAAARecords")
+      res = getFakeAAAARecords(luaqname, luaprefix, ret);
+    else if(tocall == "getFakePTRRecords")
+      res = getFakePTRRecords(luaqname, luaprefix, ret);
     return true;
     // returned a followup 
   }

@@ -1,6 +1,16 @@
+function endswith(s, send)
+	 return #s >= #send and s:find(send, #s-#send+1, true) and true or false
+end
+
 function preresolve ( remoteip, domain, qtype )
 	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
 	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress());
+
+	if endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
+	then
+		print("This is our faked AAAA record in reverse")
+		return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
+	end
 
 	if domain == "www.donotcache.org."
 	then
@@ -73,7 +83,7 @@ function nodata ( remoteip, domain, qtype, records )
 	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
 
 	setvariable()
-    return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"
+    	return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"
 end	
 
 -- records contains the entire packet, ready for your modifying pleasure
