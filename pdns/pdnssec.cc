@@ -163,7 +163,7 @@ void loadMainConfig(const std::string& configdir)
 
 // irritatingly enough, rectifyZone needs its own ueberbackend and can't therefore benefit from transactions outside its scope
 // I think this has to do with interlocking transactions between B and DK, but unsure.
-void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
+bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 {
   UeberBackend B("default");
   bool doTransaction=true; // but see above
@@ -172,7 +172,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   
   if(!B.getSOA(zone, sd)) {
     cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
-    return;
+    return false;
   } 
   sd.db->list(zone, sd.domain_id);
 
@@ -305,6 +305,8 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 
   if(doTransaction)
     sd.db->commitTransaction();
+
+  return true;
 }
 
 void rectifyAllZones(DNSSECKeeper &dk) 
@@ -557,11 +559,19 @@ void verifyCrypto(const string& zone)
 #endif
 
 }
-void disableDNSSECOnZone(DNSSECKeeper& dk, const string& zone)
+bool disableDNSSECOnZone(DNSSECKeeper& dk, const string& zone)
 {
+  UeberBackend B("default");
+  DomainInfo di;
+
+  if (!B.getDomainInfo(zone, di)){
+    cerr << "No such zone in the database" << endl;
+    return false;
+  }
+
   if(!dk.isSecuredZone(zone)) {
     cerr<<"Zone is not secured\n";
-    return;
+    return false;
   }
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
 
@@ -576,9 +586,18 @@ void disableDNSSECOnZone(DNSSECKeeper& dk, const string& zone)
   }
   dk.unsetNSEC3PARAM(zone);
   dk.unsetPresigned(zone);
+  return true;
 }
-void showZone(DNSSECKeeper& dk, const std::string& zone)
+bool showZone(DNSSECKeeper& dk, const std::string& zone)
 {
+  UeberBackend B("default");
+  DomainInfo di;
+
+  if (!B.getDomainInfo(zone, di)){
+    cerr << "No such zone in the database" << endl;
+    return false;
+  }
+
   if(!dk.isSecuredZone(zone)) {
     cerr<<"Zone is not actively secured\n";
   }
@@ -628,6 +647,7 @@ void showZone(DNSSECKeeper& dk, const std::string& zone)
       }
     }
   }
+  return true;
 }
 
 bool secureZone(DNSSECKeeper& dk, const std::string& zone)
@@ -928,8 +948,10 @@ try
       cerr << "Syntax: pdnssec rectify-zone ZONE [ZONE..]"<<endl;
       return 0;
     }
+    unsigned int exitCode = 0;
     for(unsigned int n = 1; n < cmds.size(); ++n) 
-      rectifyZone(dk, cmds[n]);
+      if (!rectifyZone(dk, cmds[n])) exitCode = 1;
+    return exitCode;
   }
   else if (cmds[0] == "rectify-all-zones") {
     rectifyAllZones(dk);
@@ -984,7 +1006,7 @@ try
       return 0;
     }
     const string& zone=cmds[1];
-    showZone(dk, zone);
+    if (!showZone(dk, zone)) return 1;
   }
   else if(cmds[0] == "disable-dnssec") {
     if(cmds.size() != 2) {
@@ -992,7 +1014,8 @@ try
       return 0;
     }
     const string& zone=cmds[1];
-    disableDNSSECOnZone(dk, zone);
+    if(!disableDNSSECOnZone(dk, zone))
+      return 1;
   }
   else if(cmds[0] == "activate-zone-key") {
     if(cmds.size() != 3) {
@@ -1036,6 +1059,15 @@ try
       return 0;
     }
     const string& zone=cmds[1];
+
+    UeberBackend B("default");
+    DomainInfo di;
+
+    if (!B.getDomainInfo(zone, di)){
+      cerr << "No such zone in the database" << endl;
+      return 0;
+    }
+
     // need to get algorithm, bits & ksk or zsk from commandline
     bool keyOrZone=false;
     int tmp_algo=0;
