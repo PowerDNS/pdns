@@ -28,7 +28,6 @@ AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
 BOOST_REQUIRE([1.34])
 BOOST_FOREACH
-#BOOST_FILESYSTEM([mt])
 BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
 AC_ARG_ENABLE(unit-tests, AC_HELP_STRING([--enable-unit-tests],[enable unit test building]), [enable_unit_tests=yes],[enable_unit_tests=no])

@@ -85,6 +85,7 @@ public:
   bool preParseFile(const char *fname, const string &arg, const string& theDefault=""); //!< use this to preparse a single var in configuration
 
   bool file(const char *fname, bool lax=false); //!< Parses a file with parameters
+  bool file(const char *fname, bool lax, bool included); 
   bool laxFile(const char *fname) 
   {
     return file(fname,true);
