@@ -99,6 +99,12 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
+Check if delegate and glue are added correctly.
+--- Start: diff start step.1 ---
+> c.host.test.dyndns	NS	0	ns1.c.host.test.dyndns	3600	'host c'	0
+> ns1.c.host.test.dyndns	A	0	192.168.0.1	3600	NULL	0
+--- End: diff start step.1 ---
+
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	NSEC	86400	c.host.test.dyndns. A RRSIG NSEC
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
@@ -195,6 +201,12 @@ Answer:
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
+
+Check if delegate is deleted and glue auth=1
+--- Start: diff start step.2 ---
+> c.host.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> ns1.c.host.test.dyndns	A	0	192.168.0.1	3600	'host c ns1'	1
+--- End: diff start step.2 ---
 
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	NSEC	86400	ns1.c.host.test.dyndns. A RRSIG NSEC
@@ -294,6 +306,11 @@ Answer:
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
+
+Check if we are back to normal
+--- Start: diff start step.3 ---
+no difference
+--- End: diff start step.3 ---
 
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	NSEC	86400	e.host.test.dyndns. A RRSIG NSEC

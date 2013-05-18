@@ -11,6 +11,8 @@ cleandig c.c.host.test.dyndns ANY dnssec hidesoadetails
 cleandig d.d.host.test.dyndns ANY dnssec hidesoadetails
 cleandig e.e.host.test.dyndns ANY dnssec hidesoadetails
 
+mysqldiff
+
 cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
@@ -19,6 +21,8 @@ update add ns1.c.host.test.dyndns 3600 A 192.168.0.1
 send
 answer
 !
+
+mysqldiff 1 "Check if delegate and glue are added correctly."
 
 cleandig a.host.test.dyndns ANY dnssec hidesoadetails
 cleandig b.host.test.dyndns ANY dnssec hidesoadetails
@@ -40,6 +44,8 @@ send
 answer
 !
 
+mysqldiff 2 "Check if delegate is deleted and glue auth=1"
+
 cleandig a.host.test.dyndns ANY dnssec hidesoadetails
 cleandig b.host.test.dyndns ANY dnssec hidesoadetails
 cleandig c.host.test.dyndns ANY dnssec hidesoadetails
@@ -59,6 +65,8 @@ update delete ns1.c.host.test.dyndns A
 send
 answer
 !
+
+mysqldiff 3 "Check if we are back to normal" 
 
 cleandig a.host.test.dyndns ANY dnssec hidesoadetails
 cleandig b.host.test.dyndns ANY dnssec hidesoadetails
