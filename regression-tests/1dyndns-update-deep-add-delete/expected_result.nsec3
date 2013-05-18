@@ -60,12 +60,12 @@ Check if records are added
 --- Start: diff start step.1 ---
 > a.b.c.d.e.f.test.dyndns	A	0	127.0.0.1	3600	'2u8m12oibofk0fqhk11s40k8vfnhhkug'	1
 > a.b.d.e.f.test.dyndns	A	0	127.0.0.1	3600	'fqhg4b60on9mnerf7blipai4ej9gkpdk'	1
-> b.c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'khlra7b5bua2jlf7ufqok3ebrjvn3l3c'	0
-> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'9fltsdh9oa4l6nhe7hpka9o09ps71rvo'	0
-> c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'6dll36pp2pvi784nttvqc1oevi57p2k3'	0
-> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'ib3ld1s8c6dfqb62bfcodug02vbaoub2'	0
-> e.f.test.dyndns	NULL	NULL	NULL	NULL	'bt3ee6noitk5quchue5l6fqqmcku39gf'	0
-> f.test.dyndns	NULL	NULL	NULL	NULL	'otdrjsdlb78jmsu0ic15a7u25quqphhs'	0
+> b.c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'khlra7b5bua2jlf7ufqok3ebrjvn3l3c'	1
+> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'9fltsdh9oa4l6nhe7hpka9o09ps71rvo'	1
+> c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'6dll36pp2pvi784nttvqc1oevi57p2k3'	1
+> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'ib3ld1s8c6dfqb62bfcodug02vbaoub2'	1
+> e.f.test.dyndns	NULL	NULL	NULL	NULL	'bt3ee6noitk5quchue5l6fqqmcku39gf'	1
+> f.test.dyndns	NULL	NULL	NULL	NULL	'otdrjsdlb78jmsu0ic15a7u25quqphhs'	1
 --- End: diff start step.1 ---
 
 Answer:
@@ -102,10 +102,10 @@ Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
 Check if a.b.c.d.e.f is removed correctly
 --- Start: diff start step.2 ---
 > a.b.d.e.f.test.dyndns	A	0	127.0.0.1	3600	'fqhg4b60on9mnerf7blipai4ej9gkpdk'	1
-> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'9fltsdh9oa4l6nhe7hpka9o09ps71rvo'	0
-> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'ib3ld1s8c6dfqb62bfcodug02vbaoub2'	0
-> e.f.test.dyndns	NULL	NULL	NULL	NULL	'bt3ee6noitk5quchue5l6fqqmcku39gf'	0
-> f.test.dyndns	NULL	NULL	NULL	NULL	'otdrjsdlb78jmsu0ic15a7u25quqphhs'	0
+> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'9fltsdh9oa4l6nhe7hpka9o09ps71rvo'	1
+> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	'ib3ld1s8c6dfqb62bfcodug02vbaoub2'	1
+> e.f.test.dyndns	NULL	NULL	NULL	NULL	'bt3ee6noitk5quchue5l6fqqmcku39gf'	1
+> f.test.dyndns	NULL	NULL	NULL	NULL	'otdrjsdlb78jmsu0ic15a7u25quqphhs'	1
 --- End: diff start step.2 ---
 
 Answer:
