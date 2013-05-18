@@ -37,11 +37,11 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01",false))
 // local nameserver
-     (CASE_L(QType::NS, "ns.rec.test", "ns.rec.test.", "\x02ns\xc0\x11",false))
+     (CASE_L(QType::NS, "ns.rec.test", "ns.rec.test.", "\x02ns\xc0\x11",true))
 // non-local nameserver
      (CASE_S(QType::NS, "ns.example.com.", "\x02ns\x07""example\x03""com\x00",false))
 // local alias
-     (CASE_L(QType::CNAME, "name.rec.test", "name.rec.test.", "\x04name\xc0\x11",false))
+     (CASE_L(QType::CNAME, "name.rec.test", "name.rec.test.", "\x04name\xc0\x11",true))
 // non-local alias
      (CASE_S(QType::CNAME, "name.example.com.", "\x04name\x07""example\x03""com\x00",false))
 // local names
@@ -62,6 +62,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 // non-local name
      (CASE_L(QType::PTR, "ptr.example.com", "ptr.example.com.", "\x03ptr\x07""example\x03""com\x00",false))
      (CASE_S(QType::HINFO, "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
+     (CASE_L(QType::HINFO, "i686 \"Linux\"", "\"i686\" \"Linux\"", "\x04i686\x05Linux",true))
+     (CASE_L(QType::HINFO, "\"i686\" Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
+     (CASE_L(QType::HINFO, "i686 Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",true))
 // local name
      (CASE_S(QType::MX, "10 mx.rec.test.", "\x00\x0a\02mx\xc0\x11",false))
 // non-local name
@@ -72,7 +75,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::TXT, "\"long record test 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222\"", "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222",false))
      (CASE_L(QType::TXT, "\"\\195\\133LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS", false))
      (CASE_L(QType::TXT, "\"\xc3\x85LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS", false))
-
+     (CASE_L(QType::TXT, "\"long record test 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222\"", "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222",true))
+     (CASE_L(QType::TXT, "nonbreakingtxt", "\"nonbreakingtxt\"","\x0enonbreakingtxt",false))
 // local name
      (CASE_S(QType::RP, "admin.rec.test. admin-info.rec.test.", "\x05""admin\x03rec\x04test\x00\x0a""admin-info\x03rec\x04test\x00",false))
 // non-local name
@@ -171,15 +175,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
         BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
         if (rec == NULL) continue;
         // now verify the record (note that this will be same as *input* value (except for certain QTypes)
-        switch(q.getCode()) {
-           case QType::LOC:
-           case QType::DS:
-           case QType::DLV:
-              REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
-           break;
-           default:
-              REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
-        }
+        REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
         recData = rec->serialize("rec.test");
       } else {
         boost::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize("rec.test",q.getCode(),(val.get<3>()));
@@ -217,7 +213,6 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
      (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
      (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
-     (case_t(QType::HINFO, "i686 Linux", zone, false)) // missing quotes
 ;
 
   int n=0;
