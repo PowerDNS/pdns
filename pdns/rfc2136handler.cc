@@ -472,10 +472,10 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             else
               foundEnt = true;
           }
-          if (!foundRealRR)
+          if (!foundRealRR) {
             if (foundEnt) // only delete the ENT if we actually found one.
               delnonterm.insert(shorter);
-          else
+          } else
             break;
         }
       }
