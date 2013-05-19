@@ -411,7 +411,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         for(vector<string>::const_iterator belowOldDel=belowOldDelegate.begin(); belowOldDel!= belowOldDelegate.end(); belowOldDel++)
         {
           bool isBelowDelegate = false;
-          for(vector<string>::const_iterator ns=nsRecs.begin(); ns!= nsRecs.end(); belowOldDel++) {
+          for(vector<string>::const_iterator ns=nsRecs.begin(); ns!= nsRecs.end(); ns++) {
             if (endsOn(*ns, *belowOldDel)) {
               isBelowDelegate=true;
               break;

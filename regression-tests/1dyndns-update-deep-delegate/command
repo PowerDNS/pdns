@@ -1,0 +1,34 @@
+#!/bin/sh
+
+cleandig delegate1.test.dyndns ANY hidesoadetails
+mysqldiff
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add delegate.test.dyndns 3600 NS ns1.delegate.test.dyndns
+update add ns1.delegate.test.dyndns 3600 A 127.0.0.1
+update add other.very.deep.delegate.test.dyndns 3600 NS ns1.other.very.deep.delegate.test.dyndns
+update add ns1.other.very.deep.delegate.test.dyndns 3600 A 127.0.0.1
+send
+answer
+!
+
+cleandig delegate.test.dyndns ANY
+cleandig other.very.deep.delegate.test.dyndns
+mysqldiff 1 "Check delegates added"
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete delegate.test.dyndns NS
+update delete ns1.delegate.test.dyndns A
+update delete other.very.deep.delegate.test.dyndns NS
+update delete ns1.other.very.deep.delegate.test.dyndns A
+send
+answer
+!
+
+cleandig delegate.test.dyndns ANY
+cleandig other.very.deep.delegate.test.dyndns
+mysqldiff 2 "Check delegates deleted"
