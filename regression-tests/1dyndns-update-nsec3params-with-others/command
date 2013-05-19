@@ -9,7 +9,7 @@ cleandig c.host.test.dyndns A hidesoadetails dnssec
 cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
-update add test.dyndns. 3600 NSEC3PARAM 1 1 10 DCBE
+update add test.dyndns. 3600 NSEC3PARAM 1 $optout 10 DCBE
 update add b.host.test.dyndns. 3600 A 127.0.0.1
 send
 answer
@@ -35,7 +35,7 @@ then
 	cleannsupdate <<!
 	server $nameserver $port
 	zone test.dyndns
-	update add test.dyndns. 3600 NSEC3PARAM 1 1 1 abcd
+	update add test.dyndns. 3600 NSEC3PARAM 1 $optout 1 abcd
 	send
 	answer
 !
