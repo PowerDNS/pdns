@@ -53,11 +53,11 @@ bool QType::isMetadataType() {
   return false;
 }
 
+
 uint16_t QType::getCode() const
 {
   return code;
 }
-
 
 const string QType::getName() const
 {
@@ -97,26 +97,6 @@ QType &QType::operator=(const char *p)
 {
   code=chartocode(p);
   return *this;
-}
-
-bool QType::operator==(const QType &comp) const
-{
-  return(comp.code==code);
-}
-
-bool QType::operator!=(const QType &comp) const
-{
-  return(comp.code!=code);
-}
-
-bool QType::operator==(const uint16_t comp) const
-{
-  return(comp==code);
-}
-
-bool QType::operator!=(const uint16_t comp) const
-{
-  return(comp!=code);
 }
 
 QType &QType::operator=(const string &s)

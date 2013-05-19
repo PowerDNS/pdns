@@ -69,11 +69,6 @@ public:
     ar & code;
   }
 
-  bool operator!=(const QType &) const; //!< not equal operator
-  bool operator==(const QType &) const; //!< equality operator
-  bool operator==(const uint16_t) const; //!< equality operator
-  bool operator!=(const uint16_t) const; //!< equality operator
-
   const string getName() const; //!< Get a string representation of this type
   uint16_t getCode() const; //!< Get the integer representation of this type
   bool isSupportedType();
@@ -82,27 +77,34 @@ public:
   static int chartocode(const char *p); //!< convert a character string to a code
 // more solaris fun
 #undef DS   
-  enum typeenum {A=1,NS=2,CNAME=5,SOA=6, MR=9, PTR=12,HINFO=13,MX=15,TXT=16,RP=17,AFSDB=18, SIG=24, KEY=25,AAAA=28,LOC=29,SRV=33,NAPTR=35, KX=36,
-    CERT=37, A6=38, OPT=41, DS=43, SSHFP=44, IPSECKEY=45, RRSIG=46, NSEC=47, DNSKEY=48, DHCID=49, NSEC3=50, NSEC3PARAM=51,
-    TLSA=52, SPF=99, EUI48=108, EUI64=109, TSIG=250, AXFR=252, IXFR=251, ANY=255, URL=256, MBOXFW=257, CURL=258, ADDR=259, DLV=32769} types;
-    
+  enum typeenum {A=1,NS=2, CNAME=5, SOA=6, MR=9, PTR=12, HINFO=13, MX=15, TXT=16, RP=17, AFSDB=18, SIG=24, KEY=25, AAAA=28, LOC=29, SRV=33, NAPTR=35, KX=36, 
+     CERT=37, A6=38, OPT=41, DS=43, SSHFP=44, IPSECKEY=45, RRSIG=46, NSEC=47, DNSKEY=48, DHCID=49, NSEC3=50, NSEC3PARAM=51,
+     TLSA=52, SPF=99, EUI48=108, EUI64=109, TSIG=250, IXFR=251, AXFR=252, MAILB=253, MAILA=254, ANY=255, URL=256, MBOXFW=257, CURL=258, ADDR=259, DLV=32769} types;
   typedef pair<string,uint16_t> namenum; 
   static vector<namenum> names;
 
   inline bool operator==(const QType &comp) const {
-      return(comp.code==code);
+    return(comp.code==code);
   }
 
   inline bool operator!=(const QType &comp) const {
-      return(comp.code!=code);
+    return(comp.code!=code);
   }
 
   inline bool operator==(QType::typeenum comp) const {
-      return(comp==code);
+    return(comp==code);
   }
 
   inline bool operator!=(QType::typeenum comp) const {
-      return(comp!=code);
+    return(comp!=code);
+  }
+
+  inline bool operator==(uint16_t comp) const {
+    return(comp==code);
+  }
+
+  inline bool operator!=(uint16_t comp) const {
+    return(comp!=code);
   }
 
 private:
@@ -110,7 +112,7 @@ private:
     public:
     void qtype_insert(const char* a, uint16_t num) 
     {
-	names.push_back(make_pair(string(a), num));
+      names.push_back(make_pair(string(a), num));
     }
 
     init()
@@ -127,16 +129,16 @@ private:
       qtype_insert("TXT",16);
       qtype_insert("RP",17);
       qtype_insert("AFSDB", 18);
-      qtype_insert("SIG",24);
-      qtype_insert("KEY",25);
-      qtype_insert("AAAA",28);
-      qtype_insert("LOC",29);
-      qtype_insert("SRV",33);
-      qtype_insert("NAPTR",35);
-      qtype_insert("KX",36);
+      qtype_insert("SIG", 24);
+      qtype_insert("KEY", 25);
+      qtype_insert("AAAA", 28);
+      qtype_insert("LOC", 29);
+      qtype_insert("SRV", 33);
+      qtype_insert("NAPTR", 35);
+      qtype_insert("KX", 36);
       qtype_insert("CERT", 37);
-      qtype_insert("A6",38);
-      qtype_insert("OPT",41);
+      qtype_insert("A6", 38);
+      qtype_insert("OPT", 41);
       qtype_insert("DS", 43);
       qtype_insert("SSHFP", 44);
       qtype_insert("IPSECKEY", 45);
@@ -146,19 +148,21 @@ private:
       qtype_insert("DHCID", 49);
       qtype_insert("NSEC3", 50);
       qtype_insert("NSEC3PARAM", 51);
-      qtype_insert("TLSA",52);
-      qtype_insert("SPF",99);
-      qtype_insert("EUI48",108);
-      qtype_insert("EUI64",109);
-//      qtype_insert("TSIG", 250);
-      qtype_insert("IXFR",251);
-      qtype_insert("AXFR",252);
-      qtype_insert("ANY",255);
-      qtype_insert("URL",256);
-      qtype_insert("MBOXFW",257);
-      qtype_insert("CURL",258);
-      qtype_insert("ADDR",259);
-      qtype_insert("DLV",32769);
+      qtype_insert("TLSA", 52);
+      qtype_insert("SPF", 99);
+      qtype_insert("EUI48", 108);
+      qtype_insert("EUI64", 109);
+      qtype_insert("TSIG", 250);
+      qtype_insert("IXFR", 251);
+      qtype_insert("AXFR", 252);
+      qtype_insert("MAILB", 253);
+      qtype_insert("MAILA", 254);
+      qtype_insert("ANY", 255);
+      qtype_insert("URL", 256);
+      qtype_insert("MBOXFW", 257);
+      qtype_insert("CURL", 258);
+      qtype_insert("ADDR", 259);
+      qtype_insert("DLV", 32769);
     }
   } initializer;
 
@@ -167,6 +171,6 @@ private:
 
 struct QClass
 {
-	enum QClassEnum {IN=1, CHAOS=3, NONE=254, ANY=255};
+  enum QClassEnum {IN=1, CHAOS=3, NONE=254, ANY=255};
 };
 #endif

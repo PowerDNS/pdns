@@ -507,7 +507,7 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
     }
   }
   else {
-    sd.serial = calculateEditSoa(sd, soaEditKind) + 1;
+    sd.serial = calculateEditSOA(sd, soaEditKind) + 1;
   }
   rrs[0].content = serializeSOAData(sd);
 
