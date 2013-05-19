@@ -593,6 +593,7 @@ export context
 export extracontexts
 export skipreasons
 export testsdir
+export optout
 
 if [ $presigned = yes ]
 then
