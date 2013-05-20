@@ -5,6 +5,7 @@
 #include "dnsseckeeper.hh"
 #include "base64.hh"
 #include "base32.hh"
+#include <boost/foreach.hpp>
 #include "misc.hh"
 #include "arguments.hh"
 #include "resolver.hh"
@@ -117,40 +118,51 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     DLOG(L<<msgPrefix<<"Add/Update record (QClass == IN) "<<rrLabel<<"|"<<rrType.getName()<<endl);
 
     if (rrType == QType::NSEC3PARAM) {
-      L<<Logger::Notice<<msgPrefix<<"Adding/updating NSEC3PARAM for zone, resetting ordernames."<<endl;  
+      L<<Logger::Notice<<msgPrefix<<"Adding/updating NSEC3PARAM for zone, resetting ordernames."<<endl;
 
       NSEC3PARAMRecordContent nsec3param(rr->d_content->getZoneRepresentation(), di->zone);
       *narrow = false; // adding a NSEC3 will cause narrow mode to be dropped, as you cannot specify that in a NSEC3PARAM record
       d_dk.setNSEC3PARAM(di->zone, nsec3param, (*narrow));
-      
-
-      vector<DNSResourceRecord> rrs;
-      vector<string> delegates;
-      di->backend->list(di->zone, di->id);
-      while (di->backend->get(rec)) {
-        rrs.push_back(rec);
-        if (rec.qtype == QType::NS && rec.qname != di->zone)
-          delegates.push_back(rec.qname);
-      }
 
       *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
 
-      for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
-        bool resetOrdernameAndAuth = false;
-        for (vector<string>::const_iterator delegate = delegates.begin(); delegate != delegates.end(); delegate++) {
-          if ((i->qtype.getCode() != QType::NS && endsOn(i->qname, *delegate)) || (i->qtype.getCode() == QType::NS && *delegate == i->qname && ns3pr->d_flags)) {
-            resetOrdernameAndAuth = true;
-            break;
-          }
-        }
+      vector<DNSResourceRecord> rrs;
+      set<string> qnames, nssets, dssets;
+      di->backend->list(di->zone, di->id);
+      while (di->backend->get(rec)) {
+        qnames.insert(rec.qname);
+        if(rec.qtype.getCode() == QType::NS && !pdns_iequals(rec.qname, di->zone))
+          nssets.insert(rec.qname);
+        if(rec.qtype.getCode() == QType::DS)
+          dssets.insert(rec.qname);
+      }
 
-        // always use hashed, as we do nsec3
-        string hashed = toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, i->qname)));
-        if (resetOrdernameAndAuth) {
-          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, false);
+      string shorter, hashed;
+      BOOST_FOREACH(const string& qname, qnames) {
+        shorter = qname;
+        int ddepth = 0;
+        do {
+          if(pdns_iequals(qname, di->zone))
+            break;
+          if(nssets.count(shorter))
+            ++ddepth;
+        } while(chopOff(shorter));
+
+        if (! *narrow && (ddepth == 0 || (ddepth == 1 && nssets.count(qname)))) {
+          hashed = toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, qname)));
+          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, qname, hashed, (ddepth == 0));
+
+          if (nssets.count(qname)) {
+            if (ns3pr->d_flags)
+              di->backend->nullifyDNSSECOrderNameAndAuth(di->id, qname, "NS");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, qname, "A");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, qname, "AAAA");
+          }
         } else {
-          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, i->qname, hashed, i->auth);  
+          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, qname, (ddepth == 0));
         }
+        if (ddepth == 1 || dssets.count(qname))
+          di->backend->setDNSSECAuthOnDsRecord(di->id, qname);
       }
       return 1;
     }
