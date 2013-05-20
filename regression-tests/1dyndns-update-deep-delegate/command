@@ -14,8 +14,8 @@ send
 answer
 !
 
-cleandig delegate.test.dyndns ANY
-cleandig other.very.deep.delegate.test.dyndns
+cleandig delegate.test.dyndns ANY hidesoadetails
+cleandig other.very.deep.delegate.test.dyndns hidesoadetails
 mysqldiff 1 "Check delegates added"
 
 cleannsupdate <<!
@@ -29,6 +29,6 @@ send
 answer
 !
 
-cleandig delegate.test.dyndns ANY
-cleandig other.very.deep.delegate.test.dyndns
+cleandig delegate.test.dyndns ANY hidesoadetails
+cleandig other.very.deep.delegate.test.dyndns hidesoadetails
 mysqldiff 2 "Check delegates deleted"
