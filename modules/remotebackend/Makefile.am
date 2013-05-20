@@ -13,7 +13,7 @@ lib_LTLIBRARIES = libremotebackend.la
 libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc 
 
 libremotebackend_la_LDFLAGS=-module -avoid-version
-libremotebackend_la_LIBS=$(LIBCURL_LIBS)
+libremotebackend_la_LIBADD=$(LIBCURL_LIBS)
 
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_HTTP=$(REMOTEBACKEND_HTTP) ./testrunner.sh 
 TESTS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json
