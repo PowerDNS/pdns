@@ -15,10 +15,10 @@ Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='delegate1.test.dyndns.', qtype=ANY
 Check delegate1 added correctly
 --- Start: diff start step.1 ---
-> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600
-> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600
-> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
-> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600	NULL	0
+> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600	NULL	0
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600	NULL	0
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600	NULL	0
 --- End: diff start step.1 ---
 
 Answer:
@@ -35,14 +35,14 @@ Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='delegate2.test.dyndns.', qtype=ANY
 Check delegate2 added correctly
 --- Start: diff start step.2 ---
-> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600
-> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600
-> delegate2.test.dyndns	NS	0	ns1.delegate2.test.dyndns	3600
-> delegate2.test.dyndns	NS	0	ns2.example.com	3600
-> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
-> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600
-> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
-> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600
+> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600	NULL	0
+> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600	NULL	0
+> delegate2.test.dyndns	NS	0	ns1.delegate2.test.dyndns	3600	NULL	0
+> delegate2.test.dyndns	NS	0	ns2.example.com	3600	NULL	0
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600	NULL	0
+> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600	NULL	0
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600	NULL	0
+> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600	NULL	0
 --- End: diff start step.2 ---
 
 Answer:
@@ -71,12 +71,12 @@ Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns2.delegate2.test.dyndns.', qtype=ANY
 check delegate delete
 --- Start: diff start step.3 ---
-> delegate1.test.dyndns	NULL	NULL	NULL	NULL
-> delegate2.test.dyndns	NULL	NULL	NULL	NULL
-> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
-> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600
-> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
-> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600
+> delegate1.test.dyndns	NULL	NULL	NULL	NULL	'h4tlip64juuiun7hbl0bsvqkkshh3pkj'	1
+> delegate2.test.dyndns	NULL	NULL	NULL	NULL	'hpnrghdi20c5ikiegdmlcknaqu9a3bg0'	1
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600	'rcogol03mg1pg3u4338eo0nvvh6bs567'	1
+> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600	'asm440u7p2im2slo6iqo92vfp6jtopa0'	1
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600	'oshpf39sqa4j1ciudbbvtb5dkrijnpss'	1
+> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600	'rcd0fo052s6a41ao8ue0b43e1mhv50ds'	1
 --- End: diff start step.3 ---
 
 Answer:
