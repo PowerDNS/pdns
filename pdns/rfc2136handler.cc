@@ -259,9 +259,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       string shorter(rrLabel);
       bool auth=newRec.auth;
 
-      if (shorter != di->zone) {
-        do{
-          if (shorter == di->zone)
+      if ( ! pdns_iequals(di->zone, shorter)) {
+        while(chopOff(shorter)) {
+          if (pdns_iequals(shorter, di->zone))
             break;
           bool foundShorter = false;
           di->backend->lookup(QType(QType::ANY), shorter);
@@ -274,7 +274,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             insnonterm.insert(shorter);
           else
             break; // if we find a shorter record, we can stop searching
-        } while(chopOff(shorter));
+        }
       }
 
       if(*haveNSEC3)
