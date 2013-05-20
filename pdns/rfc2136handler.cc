@@ -247,8 +247,8 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       string shorter(rrLabel);
       bool auth=newRec.auth;
 
-      if (shorter != di->zone && rrType != QType::DS) {
-        while(chopOff(shorter)) {
+      if (shorter != di->zone) {
+        do{
           if (shorter == di->zone)
             break;
           bool foundShorter = false;
@@ -262,7 +262,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             insnonterm.insert(shorter);
           else
             break; // if we find a shorter record, we can stop searching
-        }
+        } while(chopOff(shorter));
       }
 
       if(*haveNSEC3)
@@ -272,7 +272,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
         
         di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
-        if(!auth || rrType == QType::DS)
+        if (rrType == QType::DS)
+          di->backend->setDNSSECAuthOnDsRecord(di->id, rrLabel);        
+        if(!auth)
         {
           if (ns3pr->d_flags) 
             di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
@@ -283,10 +285,14 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       else // NSEC
       {
         di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, rrLabel, auth);
-        if(!auth || rrType == QType::DS)
-        {
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+        if (rrType == QType::DS)
+          di->backend->setDNSSECAuthOnDsRecord(di->id, rrLabel);
+        else {
+          if(!auth)
+          {
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+          }
         }
       }
 
