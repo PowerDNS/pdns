@@ -193,7 +193,7 @@ AC_ARG_WITH([system-polarssl],
  [system_polarssl=$withval],
  [system_polarssl=yes])
 AC_MSG_RESULT($system_polarssl)
-AM_CONDITIONAL(HAVE_LIBPOLARSSL, false)
+AM_CONDITIONAL(HAVE_LIBPOLARSSL, test x$system_polarssl = xyes)
 if test x$system_polarssl = xyes; then
  AC_MSG_CHECKING([PolarSSL version >= 1.1])
  AC_COMPILE_IFELSE(
