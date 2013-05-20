@@ -216,15 +216,25 @@ AS_IF([test "x$with_system_polarssl" != "xno"],
       [have_system_polarssl=no]
 )
 
+POLARSSL_SUBDIR=ext/polarssl-1.1.2
+POLARSSL_CFLAGS=-I\$\(top_srcdir\)/pdns/$POLARSSL_SUBDIR/include/
+POLARSSL_LIBS=\$\(top_builddir\)/pdns/$POLARSSL_SUBDIR/library/libpolarssl.a
+
 AS_IF([test "x$have_system_polarssl" = "xyes"],
-      [AC_DEFINE(HAVE_LIBPOLARSSL, 1, [If linking against system polarssl])],
+      [
+       POLARSSL_CFLAGS=
+       POLARSSL_LIBS=-lpolarssl
+       POLARSSL_SUBDIR=
+       ],
       [AS_IF([test "x$with_system_polarssl" = "xyes"],
              [AC_MSG_ERROR([use of system polarssl requested but not found])]
             )] )
 
 AC_MSG_CHECKING(whether we will try to link in system PolarSSL)
 AC_MSG_RESULT($have_system_polarssl)
-AM_CONDITIONAL(HAVE_LIBPOLARSSL, test "x$have_system_polarssl" = "xyes")
+AC_SUBST(POLARSSL_CFLAGS)
+AC_SUBST(POLARSSL_LIBS)
+AC_SUBST(POLARSSL_SUBDIR)
 
 AC_MSG_CHECKING(whether we will be linking in Botan 1.10)
 AC_ARG_ENABLE(botan1.10,
