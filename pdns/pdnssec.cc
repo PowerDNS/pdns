@@ -791,7 +791,6 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
   {
     int algo = shorthand2algorithm(z_algo);
     dk.addKey(zone, false, algo, z_size);
-    dk.addKey(zone, false, algo, z_size, false); // not active
   }
 
   // rectifyZone(dk, zone);
