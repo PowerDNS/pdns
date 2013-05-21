@@ -226,8 +226,11 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         string hashed;
         if(! *narrow) 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
-        
-        di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
+
+        if (*narrow)
+          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
+        else
+          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
         if(!auth || rrType == QType::DS) {
           di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
           di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
@@ -260,21 +263,22 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       bool auth=newRec.auth;
 
       if ( ! pdns_iequals(di->zone, shorter)) {
-        while(chopOff(shorter)) {
-          if (pdns_iequals(shorter, di->zone))
+        do {
+          if (pdns_iequals(di->zone, shorter))
             break;
           bool foundShorter = false;
           di->backend->lookup(QType(QType::ANY), shorter);
           while (di->backend->get(rec)) {
-            foundShorter = true;
+            if ( ! pdns_iequals(shorter, rrLabel) )
+              foundShorter = true;
             if (rec.qtype == QType::NS) // are we inserting below a delegate?
               auth=false;
           }
-          if (!foundShorter) 
+          if (!foundShorter && auth && !pdns_iequals(shorter, rrLabel)) // haven't found any record at current level, insert ENT.
             insnonterm.insert(shorter);
-          else
+          if (foundShorter)
             break; // if we find a shorter record, we can stop searching
-        }
+        } while(chopOff(shorter));
       }
 
       if(*haveNSEC3)
@@ -283,7 +287,11 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         if(! *narrow) 
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
         
-        di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
+        if (*narrow)
+          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
+        else
+          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
+
         if (rrType == QType::DS)
           di->backend->setDNSSECAuthOnDsRecord(di->id, rrLabel);        
         if(!auth)
