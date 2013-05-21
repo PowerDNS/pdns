@@ -274,7 +274,8 @@ void DNSPacket::wrapup()
   pw.getHeader()->qr=d.qr;
   pw.getHeader()->id=d.id;
   pw.getHeader()->rd=d.rd;
-
+  pw.getHeader()->tc=d.tc;
+  
   DNSPacketWriter::optvect_t opts;
   if(d_wantsnsid) {
     opts.push_back(make_pair(3, ::arg()["server-id"]));

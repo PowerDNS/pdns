@@ -410,7 +410,6 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     }
   }
   
-  
   DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
   
   DNSPacket *packet;
@@ -427,7 +426,6 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 //    cerr<<"Setting d_anyLocal to '"<<dest.toString()<<"'"<<endl;
     packet->d_anyLocal = dest;
   }  	  
-
 
   if(packet->parse(mesg, len)<0) {
     S.inc("corrupt-packets");

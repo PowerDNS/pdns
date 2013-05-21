@@ -1165,7 +1165,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r; 
     }
 
-    // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
+    L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
     
     r->d.ra = (p->d.rd && d_doRecursion && DP->recurseFor(p));  // make sure we set ra if rd was set, and we'll do it
 
@@ -1184,6 +1184,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
+
+    if(p->qtype.getCode() == QType::ANY) {
+      cerr<<"Shunted it to TCP.."<<endl;
+      r->d.tc = 1;
+      r->commitD();
+      return r;
+    }
 
     if(p->qclass==255) // any class query 
       r->setA(false);
