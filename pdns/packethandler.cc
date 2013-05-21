@@ -38,17 +38,13 @@
 #include "communicator.hh"
 #include "dnsproxy.hh"
 #include "version.hh"
+#include "common_startup.hh"
 
 #if 0
 #undef DLOG
 #define DLOG(x) x
 #endif 
-
-extern StatBag S;
-extern PacketCache PC;  
-extern CommunicatorClass Communicator;
-extern DNSProxy *DP;
-
+ 
 AtomicCounter PacketHandler::s_count;
 extern string s_programname;
 
@@ -1165,7 +1161,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r; 
     }
 
-    L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<<endl;
+    // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<< " (tcp="<<p->d_tcp<<")"<<endl;
     
     r->d.ra = (p->d.rd && d_doRecursion && DP->recurseFor(p));  // make sure we set ra if rd was set, and we'll do it
 
@@ -1185,8 +1181,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
 
-    if(p->qtype.getCode() == QType::ANY) {
-      cerr<<"Shunted it to TCP.."<<endl;
+    if(p->qtype.getCode() == QType::ANY && !p->d_tcp && g_anyToTcp) {
       r->d.tc = 1;
       r->commitD();
       return r;

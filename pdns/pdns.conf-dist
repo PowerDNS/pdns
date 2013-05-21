@@ -10,6 +10,11 @@
 # allow-recursion=0.0.0.0/0
 
 #################################
+# any-to-tcp	Answer ANY queries with tc=1, shunting to TCP
+#
+# any-to-tcp=no
+
+#################################
 # cache-ttl	Seconds to store packets in the PacketCache
 #
 # cache-ttl=20

@@ -14547,6 +14547,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 1.2.3.4</command>.
 	    </para>
 	  </listitem></varlistentry>
+	  <varlistentry><term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
+	    <listitem><para>
+		Answer questions for the ANY type on UDP with a truncated packet that refers the 
+		remote server to TCP. Useful for mitigating ANY reflection attacks. Defaults to off. Available since 3.3.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>cache-ttl=...</term>
 	    <listitem><para>
 		Seconds to store packets in the PacketCache. See <xref linkend="packetcache"/>.

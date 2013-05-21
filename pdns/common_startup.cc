@@ -16,7 +16,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "common_startup.hh"
-
+bool g_anyToTcp;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 
@@ -30,7 +30,7 @@ UDPNameserver *N;
 int avg_latency;
 TCPNameserver *TN;
 
-bool g_anyToTCP;
+
 
 ArgvMap &arg()
 {
@@ -102,6 +102,7 @@ void declareArguments()
   ::arg().setSwitch("webserver","Start a webserver for monitoring")="no"; 
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
   ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no"; 
+  ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="no"; 
   ::arg().set("edns-subnet-option-number","EDNS option number to use")="20730"; 
   ::arg().set("webserver-address","IP Address of webserver to listen on")="127.0.0.1";
   ::arg().set("webserver-port","Port of webserver to listen on")="8081";
@@ -331,12 +332,11 @@ void mainthread()
    int newuid=0;      
    if(!::arg()["setuid"].empty())        
      newuid=Utility::makeUidNumeric(::arg()["setuid"]); 
-     
    
+   g_anyToTcp = ::arg().mustDo("any-to-tcp");
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
-     
+   
 #ifndef WIN32
-
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
@@ -348,6 +348,7 @@ void mainthread()
        L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
    }  
 #endif
+
   StatWebServer sws;
   Utility::dropPrivs(newuid, newgid);
 

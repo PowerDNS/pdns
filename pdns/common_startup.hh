@@ -43,12 +43,12 @@ extern CommunicatorClass Communicator;
 extern UDPNameserver *N;
 extern int avg_latency;
 extern TCPNameserver *TN;
-
-
 extern ArgvMap & arg( void );
 extern void declareArguments();
 extern void declareStats();
 extern void mainthread();
 extern int isGuarded( char ** );
+
+extern bool g_anyToTcp;
 
 #endif // COMMON_STARTUP_HH
