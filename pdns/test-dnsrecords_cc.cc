@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SRV, "10 10 5060 sip.rec.test.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x03rec\x04test\x00",false))
 // non-local name
      (CASE_S(QType::SRV, "10 10 5060 sip.example.com.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x07""example\x03""com\x00",false))
-     (CASE_S(QType::NAPTR, "100 10 \"\" \"\" \"/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i\" \".\"", "\x00\x64\x00\x0a\x00\x00\x20/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i\x01.",true))
+     (CASE_S(QType::NAPTR, "100 10 \"\" \"\" \"/urn:cid:.+@([^\\\\.]+\\\\.)(.*)$/\\\\2/i\" .", "\x00\x64\x00\x0a\x00\x00\x20/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i\x00",false))
      (CASE_S(QType::NAPTR, "100 50 \"s\" \"http+I2L+I2C+I2R\" \"\" _http._tcp.rec.test.", "\x00\x64\x00\x32\x01s\x10http+I2L+I2C+I2R\x00\x05_http\x04_tcp\x03rec\x04test\x00",false))
      (CASE_S(QType::KX, "10 mail.rec.test.", "\x00\x0a\x04mail\x03rec\x04test\x00",false))
 
