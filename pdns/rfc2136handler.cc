@@ -362,33 +362,42 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // We retrieve new values, other RR's in this update package might need it as well.
       *haveNSEC3 = d_dk.getNSEC3PARAM(di->zone, ns3pr, narrow);
 
-      // Remove the Order and Aath field
-      di->backend->list(di->zone, di->id);
       vector<DNSResourceRecord> rrs;
-      vector<string> delegates;
+      set<string> qnames, nssets, dssets, ents;
+      di->backend->list(di->zone, di->id);
       while (di->backend->get(rec)) {
-        rrs.push_back(rec);
-        if (rec.qtype == QType::NS && rec.qname != di->zone)
-          delegates.push_back(rec.qname);
+        qnames.insert(rec.qname);
+        if(rec.qtype.getCode() == QType::NS && !pdns_iequals(rec.qname, di->zone))
+          nssets.insert(rec.qname);
+        if(rec.qtype.getCode() == QType::DS)
+          dssets.insert(rec.qname);
+        if(!rec.qtype.getCode())
+          ents.insert(rec.qname);
       }
-      for (vector<DNSResourceRecord>::const_iterator i = rrs.begin(); i != rrs.end(); i++) {
-        bool isBelowDelegate = false;
-        if (!i->qtype.getCode()) {// for ENT records, we want to reset things as they have ordername=NULL and auth=NULL
-          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
-        } else { // all other records are simply updated.
-          if (i->qtype != QType::NS) { // skip NS records, as they always have a ordername
-            for (vector<string>::const_iterator x = delegates.begin(); x != delegates.end(); x++) {
-              if (endsOn(i->qname, *x)) {
-                isBelowDelegate = true;
-                break;
-              }
-            }
+
+      string shorter, hashed;
+      BOOST_FOREACH(const string& qname, qnames) {
+        shorter = qname;
+        int ddepth = 0;
+        do {
+          if(pdns_iequals(qname, di->zone))
+            break;
+          if(nssets.count(shorter))
+            ++ddepth;
+        } while(chopOff(shorter));
+
+        if (!ents.count(qname) && (ddepth == 0 || (ddepth == 1 && nssets.count(qname)))) {
+          di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, qname, (ddepth == 0));
+
+          if (nssets.count(qname)) {
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, qname, "A");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, qname, "AAAA");
           }
-          if (isBelowDelegate)
-            di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, i->qname, i->auth);
-          else
-            di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, i->qname, i->auth);
+        } else {
+          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, qname, (ddepth == 0));
         }
+        if (ddepth == 1 || dssets.count(qname))
+          di->backend->setDNSSECAuthOnDsRecord(di->id, qname);
       }
       return 1;
     }
