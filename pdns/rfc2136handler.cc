@@ -261,19 +261,25 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // because we added a record, we need to fix DNSSEC data.
       string shorter(rrLabel);
       bool auth=newRec.auth;
+      bool fixDS = (rrType == QType::DS);
 
-      if ( ! pdns_iequals(di->zone, shorter)) {
+      if ( ! pdns_iequals(di->zone, shorter)) { // Everything at APEX is auth=1 && no ENT's
         do {
+
           if (pdns_iequals(di->zone, shorter))
             break;
+          
           bool foundShorter = false;
           di->backend->lookup(QType(QType::ANY), shorter);
           while (di->backend->get(rec)) {
+            if (pdns_iequals(rec.qname, rrLabel) && rec.qtype == QType::DS)
+              fixDS = true;
             if ( ! pdns_iequals(shorter, rrLabel) )
               foundShorter = true;
             if (rec.qtype == QType::NS) // are we inserting below a delegate?
               auth=false;
           }
+
           if (!foundShorter && auth && !pdns_iequals(shorter, rrLabel)) // haven't found any record at current level, insert ENT.
             insnonterm.insert(shorter);
           if (foundShorter)
@@ -292,8 +298,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         else
           di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
 
-        if (rrType == QType::DS)
-          di->backend->setDNSSECAuthOnDsRecord(di->id, rrLabel);        
+        if (fixDS)
+          di->backend->setDNSSECAuthOnDsRecord(di->id, rrLabel);
+
         if(!auth)
         {
           if (ns3pr->d_flags) 
@@ -305,14 +312,12 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       else // NSEC
       {
         di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, rrLabel, auth);
-        if (rrType == QType::DS)
+        if (fixDS) {
           di->backend->setDNSSECAuthOnDsRecord(di->id, rrLabel);
-        else {
-          if(!auth)
-          {
-            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
-            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
-          }
+        }
+        if(!auth) {
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
         }
       }
 
@@ -321,11 +326,11 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       // Auth can only be false when the rrLabel is not the zone 
       if (auth == false && rrType == QType::NS) {
         DLOG(L<<msgPrefix<<"Going to fix auth flags below "<<rrLabel<<endl);
-        insnonterm.clear(); // clean ENT's again, as it's a delegate
+        insnonterm.clear(); // No ENT's are needed below delegates (auth=0)
         vector<string> qnames;
         di->backend->listSubZone(rrLabel, di->id);
         while(di->backend->get(rec)) {
-          if (rec.qtype.getCode() && rec.qtype.getCode() != QType::DS) // Skip ENT and DS records.
+          if (rec.qtype.getCode() && rec.qtype.getCode() != QType::DS && !pdns_iequals(rrLabel, rec.qname)) // Skip ENT, DS and our already corrected record.
             qnames.push_back(rec.qname);
         }
         for(vector<string>::const_iterator qname=qnames.begin(); qname != qnames.end(); ++qname) {
@@ -334,7 +339,11 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             if(! *narrow) 
               hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname)));
         
-            di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *qname, hashed, auth);
+            if (*narrow)
+              di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
+            else
+              di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *qname, hashed, auth);
+
             if (ns3pr->d_flags)
               di->backend->nullifyDNSSECOrderNameAndAuth(di->id, *qname, "NS");
           }
