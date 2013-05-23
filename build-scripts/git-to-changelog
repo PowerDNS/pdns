@@ -1,0 +1,6 @@
+#!/bin/sh
+git log --pretty=format:'<listitem>
+  <para>
+    g%h: %s
+  </para>
+</listitem>' "$@" | perl -pe 's/\#(\d+)/t$1/g'
