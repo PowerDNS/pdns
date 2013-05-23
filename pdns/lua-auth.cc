@@ -86,12 +86,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
   /*           1       2   3   4   */
   /* stack:  boolean table key row */
 
-#ifndef LUA_VERSION_NUM
-  int tableLen = luaL_getn(d_lua, 2);
-#else
-  int tableLen = lua_objlen(d_lua, 2);
-#endif
-
+  int tableLen = getLuaTableLength(d_lua, 2);
   for(int n=1; n < tableLen + 1; ++n) {
     lua_pushnumber(d_lua, n);
     lua_gettable(d_lua, 2);

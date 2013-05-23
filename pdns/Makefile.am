@@ -1,7 +1,7 @@
 if HAVE_LIBPOLARSSL
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) -I ext/rapidjson/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_INCLUDE) $(SQLITE3_CFLAGS) -I ext/rapidjson/include
 else
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) -Iext/polarssl-1.1.2/include -Iext/rapidjson/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_INCLUDE) $(SQLITE3_CFLAGS) -Iext/polarssl-1.1.2/include -Iext/rapidjson/include
 
 endif
 AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS)
@@ -71,7 +71,7 @@ version.hh version.cc
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic 
-pdns_server_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS) $(MYSQL_lib)
+pdns_server_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_SERIALIZATION_LIBS) $(LUA_LIB) $(SQLITE3_LIBS) $(LIBCURL_LIBS) $(MYSQL_lib)
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
@@ -266,7 +266,7 @@ lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh json_ws.cc json_ws.hh \
 json.cc json.hh version.hh version.cc
 
-pdns_recursor_LDFLAGS= $(LUA_LIBS)
+pdns_recursor_LDFLAGS= $(LUA_LIB)
 pdns_recursor_LDADD=
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \

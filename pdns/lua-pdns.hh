@@ -33,5 +33,5 @@ protected: // FIXME?
 
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& records);
 void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSResourceRecord>& ret);
-
+int getLuaTableLength(lua_State* lua, int depth);
 #endif

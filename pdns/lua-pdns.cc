@@ -111,6 +111,17 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
   }
 }
 
+int getLuaTableLength(lua_State* lua, int depth)
+{
+#ifndef LUA_VERSION_NUM
+  return luaL_getn(lua, 2);
+#elif LUA_VERSION_NUM < 502
+  return lua_objlen(lua, 2);
+#else
+  return lua_rawlen(lua, 2); 
+#endif
+}
+
 void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSResourceRecord>& ret)
 {
   /* get the result */
@@ -120,11 +131,8 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
   rr.ttl = 3600;
 
 //  cerr<<"Lua stacksize "<<lua_gettop(lua)<<endl;
-#ifndef LUA_VERSION_NUM
-  int tableLen = luaL_getn(lua, 2);
-#else
-  int tableLen = lua_objlen(lua, 2);
-#endif
+
+  int tableLen = getLuaTableLength(lua, 2);
 //  cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
 
   for(int n=1; n < tableLen + 1; ++n) {
@@ -217,7 +225,7 @@ int logLua(lua_State *lua)
 
 PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
-  d_lua = lua_open();
+  d_lua = luaL_newstate();
 
 #ifndef LUA_VERSION_NUM
   luaopen_base(d_lua);
