@@ -105,7 +105,7 @@ void UDPNameserver::bindIPv4()
   
     Utility::setCloseOnExec(s);
   
-    if(locals.size() > 1 && !Utility::setNonBlocking(s))
+    if(!Utility::setNonBlocking(s))
       throw AhuException("Unable to set UDP socket to non-blocking: "+stringerror());
   
     memset(&locala,0,sizeof(locala));
@@ -204,6 +204,9 @@ void UDPNameserver::bindIPv6()
       throw AhuException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
 
     Utility::setCloseOnExec(s);
+    if(!Utility::setNonBlocking(s))
+      throw AhuException("Unable to set UDPv6 socket to non-blocking: "+stringerror());
+
 
     ComboAddress locala(localname, ::arg().asNum("local-port"));
     
@@ -374,42 +377,33 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   
   int err;
   vector<struct pollfd> rfds= d_rfds;
-  if(d_sockets.size()>1) {
-    BOOST_FOREACH(struct pollfd &pfd, rfds) {
-      pfd.events = POLLIN;
-      pfd.revents = 0;
-    }
-    
-    err = poll(&rfds[0], rfds.size(), -1);
-    if(err < 0)
-      unixDie("Unable to poll for new UDP events");
-    
-    BOOST_FOREACH(struct pollfd &pfd, rfds) {
-      if(pfd.revents & POLLIN) {
-        sock=pfd.fd;        
-        len=0;
-        
-        if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
-           if(errno != EAGAIN)
-            L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
-          return 0;
-        }
-        break;
-      }
-    }
-    if(sock==-1)
-      throw AhuException("poll betrayed us! (should not happen)");
-  }
-  else {
-    sock=d_sockets[0];
 
-    if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
-      if(errno != EAGAIN)
-        L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
-      return 0;
+  BOOST_FOREACH(struct pollfd &pfd, rfds) {
+    pfd.events = POLLIN;
+    pfd.revents = 0;
+  }
+    
+  err = poll(&rfds[0], rfds.size(), -1);
+  if(err < 0)
+    unixDie("Unable to poll for new UDP events");
+    
+  BOOST_FOREACH(struct pollfd &pfd, rfds) {
+    if(pfd.revents & POLLIN) {
+      sock=pfd.fd;        
+      len=0;
+        
+      if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
+	if(errno != EAGAIN)
+	  L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+	return 0;
+      }
+      break;
     }
   }
+  if(sock==-1)
+    throw AhuException("poll betrayed us! (should not happen)");
   
+
   DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
   
   DNSPacket *packet;
