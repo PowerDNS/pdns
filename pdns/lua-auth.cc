@@ -48,7 +48,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
 {
   lua_getglobal(d_lua,  "axfrfilter");
   if(!lua_isfunction(d_lua, -1)) {
-    cerr<<"No such function 'axfrfilter'\n";
+    // cerr<<"No such function 'axfrfilter'\n";
     lua_pop(d_lua, 1);
     return false;
   }
@@ -91,7 +91,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
 #else
   int tableLen = lua_objlen(d_lua, 2);
 #endif
-  cerr<<"Returned "<<tableLen<<" rows"<<endl;
+
   for(int n=1; n < tableLen + 1; ++n) {
     lua_pushnumber(d_lua, n);
     lua_gettable(d_lua, 2);
@@ -190,7 +190,7 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
 {
   lua_getglobal(d_lua,"prequery");
   if(!lua_isfunction(d_lua, -1)) {
-    cerr<<"No such function 'prequery'\n";
+    // cerr<<"No such function 'prequery'\n";
     lua_pop(d_lua, 1);
     return 0;
   }
