@@ -8,7 +8,7 @@
 
 #define CASE_L(type, inval, zoneval, lineval, broken) case_t(type, std::string(inval), std::string(zoneval), std::string(lineval, sizeof(lineval)-1), broken)
 #define CASE_S(type, zoneval, lineval, broken) CASE_L(type, zoneval, zoneval, lineval, broken)
-BOOST_AUTO_TEST_SUITE(dnsrecords_cc)
+BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 #define REC_CHECK_EQUAL(a,b) { if (val.get<4>()) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
 #define REC_CHECK_MESSAGE(cond,msg) { if (val.get<4>()) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
@@ -236,6 +236,45 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
       BOOST_CHECK_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
     }
   };
+}
+
+// special opt record test, because opt is odd
+BOOST_AUTO_TEST_CASE(test_opt_record_in) {
+  EDNSOpts eo;
+
+  // test that nsid gets parsed into system
+  std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",89);
+  OPTRecordContent::report();
+
+  MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
+
+  getEDNSOpts(mdp, &eo);
+
+  // this should contain NSID now
+  BOOST_CHECK_EQUAL(eo.d_packetsize, 1280);
+   
+  // it should contain NSID option with value 'powerdns', and nothing else
+  BOOST_CHECK_EQUAL(eo.d_options[0].first, 3); // nsid
+  BOOST_CHECK_EQUAL(eo.d_options[0].second, "powerdns");
+}
+
+BOOST_AUTO_TEST_CASE(test_opt_record_out) {
+  vector<uint8_t> pak;
+  vector<pair<uint16_t,string > > opts;
+
+  DNSPacketWriter pw(pak, "www.powerdns.com", ns_t_a);
+  pw.startRecord("www.powerdns.com", ns_t_a, 16, 1, DNSPacketWriter::ANSWER);
+  pw.xfrIP(0x0100007f);
+  opts.push_back(pair<uint16_t,string>(3, "powerdns"));
+  pw.addOpt(1280, 0, 0, opts);
+  pw.getHeader()->id = 0x01f0;
+  pw.getHeader()->rd = 1;
+  pw.commit();
+
+   // see if we can build a DNS packet that looks like this...
+  std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",73);
+
+  BOOST_CHECK_EQUAL(makeHexDump(std::string(pak.begin(),pak.end())), makeHexDump(packet));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
