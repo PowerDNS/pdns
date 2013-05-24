@@ -601,7 +601,9 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   }
   
   // add matching NSEC3 RR
-  if (mode != 3) {
+  // we used to skip this one for mode 3, but old BIND needs it
+  // see https://github.com/PowerDNS/pdns/issues/814
+  // if (mode != 3) {
     unhashed=(mode == 0 || mode == 5) ? target : closest;
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
@@ -610,7 +612,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
     DLOG(L<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
     emitNSEC3(ns3rc, sd, unhashed, before, after, target, r, mode);
-  }
+  // }
 
   // add covering NSEC3 RR
   if (mode != 0 && mode != 5) {
