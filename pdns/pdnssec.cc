@@ -785,7 +785,7 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
   }
   
   for(vector<string>::iterator i = k_algos.begin()+1; i != k_algos.end(); i++)
-     dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true);
+    dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true); // obvious errors will have been caught above
 
   BOOST_FOREACH(string z_algo, z_algos)
   {
@@ -1147,13 +1147,18 @@ try
         bits = atoi(cmds[n].c_str());
       } else { 
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
-        return 0;
+        exit(EXIT_FAILURE);;
       }
     }
-    cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
-    if(bits)
-      cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
-    dk.addKey(zone, keyOrZone, algorithm, bits, active); 
+    if(!dk.addKey(zone, keyOrZone, algorithm, bits, active)) {
+      cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
+      exit(1);
+    }
+    else {
+      cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
+      if(bits)
+	cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
+    }
   }
   else if(cmds[0] == "remove-zone-key") {
     if(cmds.size() < 3) {
@@ -1317,7 +1322,10 @@ try
     else
       dpk.d_flags = 257; // ksk
       
-    dk.addKey(zone, dpk); 
+    if(!dk.addKey(zone, dpk)) {
+      cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
+      exit(1);
+    }
     
   }
   else if(cmds[0]=="import-zone-key") {
@@ -1353,7 +1361,10 @@ try
 	exit(1);
       }	  
     }
-    dk.addKey(zone, dpk, active); 
+    if(!dk.addKey(zone, dpk, active)) {
+      cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
+      exit(1);
+    }
   }
   else if(cmds[0]=="export-zone-dnskey") {
     if(cmds.size() < 3) {
