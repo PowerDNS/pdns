@@ -192,11 +192,13 @@ boilerplate_conv(KEY, ns_t_key,
 
 boilerplate_conv(CERT, 37, 
         	 conv.xfr16BitInt(d_type); 
+                 if (d_type == 0) throw MOADNSException("CERT type 0 is reserved");
+
         	 conv.xfr16BitInt(d_tag); 
         	 conv.xfr8BitInt(d_algorithm); 
-        	 conv.xfrBlob(d_certificate);
-        	 )
-		 
+                 conv.xfrBlob(d_certificate);
+                 )
+
 boilerplate_conv(TLSA, 52, 
         	 conv.xfr8BitInt(d_certusage); 
         	 conv.xfr8BitInt(d_selector); 

@@ -8,11 +8,11 @@
 
 #define CASE_L(type, inval, zoneval, lineval, broken) case_t(type, std::string(inval), std::string(zoneval), std::string(lineval, sizeof(lineval)-1), broken)
 #define CASE_S(type, zoneval, lineval, broken) CASE_L(type, zoneval, zoneval, lineval, broken)
-
-BOOST_AUTO_TEST_SUITE(dnsrecords_cc)
+BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 #define REC_CHECK_EQUAL(a,b) { if (val.get<4>()) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
 #define REC_CHECK_MESSAGE(cond,msg) { if (val.get<4>()) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+typedef enum { zone, wire } case_type_enum_t;
 
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
@@ -27,6 +27,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   MBOXFWRecordContent::report();
   DHCIDRecordContent::report();
   TSIGRecordContent::report();
+
+// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO IT'S KIND
+// TO MAKE SURE TEST NUMBERING DOES NOT BREAK
+
+// why yes, they are unordered by name, how nice of you to notice
+
   cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01",false))
 // local nameserver
@@ -55,6 +61,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 // non-local name
      (CASE_L(QType::PTR, "ptr.example.com", "ptr.example.com.", "\x03ptr\x07""example\x03""com\x00",false))
      (CASE_S(QType::HINFO, "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
+     (CASE_L(QType::HINFO, "i686 \"Linux\"", "\"i686\" \"Linux\"", "\x04i686\x05Linux",true))
+     (CASE_L(QType::HINFO, "\"i686\" Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
+     (CASE_L(QType::HINFO, "i686 Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",true))
 // local name
      (CASE_S(QType::MX, "10 mx.rec.test.", "\x00\x0a\02mx\xc0\x11",false))
 // non-local name
@@ -65,7 +74,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::TXT, "\"long record test 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222\"", "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222",false))
      (CASE_L(QType::TXT, "\"\\195\\133LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS", false))
      (CASE_L(QType::TXT, "\"\xc3\x85LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS", false))
-
+     (CASE_L(QType::TXT, "\"nonbreakingtxt\"", "\"nonbreakingtxt\"", "\x0enonbreakingtxt",false))
 // local name
      (CASE_S(QType::RP, "admin.rec.test. admin-info.rec.test.", "\x05""admin\x03rec\x04test\x00\x0a""admin-info\x03rec\x04test\x00",false))
 // non-local name
@@ -81,23 +90,18 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::LOC, "42 21 54 N 71 06 18 W -24m 30m", "42 21 54.000 N 71 6 18.000 W -24.00m 30.00m 10000.00m 10.00m", "\x00\x33\x16\x13\x89\x17\x2d\xd0\x70\xbe\x15\xf0\x00\x98\x8d\x20",false))
      (CASE_L(QType::LOC, "42 21 43.952 N 71 5 6.344 W -24m 1m 200m", "42 21 43.952 N 71 5 6.344 W -24.00m 1.00m 200.00m 10.00m", "\x00\x12\x24\x13\x89\x17\x06\x90\x70\xbf\x2d\xd8\x00\x98\x8d\x20",false))
      (CASE_S(QType::AAAA, "fe80::250:56ff:fe9b:114", "\xFE\x80\x00\x00\x00\x00\x00\x00\x02\x50\x56\xFF\xFE\x9B\x01\x14",false))
+     (CASE_S(QType::AAAA, "2a02:1b8:10:2::151", "\x2a\x02\x01\xb8\x00\x10\x00\x02\x00\x00\x00\x00\x00\x00\x01\x51",false))
+     (CASE_S(QType::AAAA, "::1", "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",false))
 // local name
      (CASE_S(QType::SRV, "10 10 5060 sip.rec.test.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x03rec\x04test\x00",false))
 // non-local name
      (CASE_S(QType::SRV, "10 10 5060 sip.example.com.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x07""example\x03""com\x00",false))
-     (CASE_S(QType::NAPTR, "100 10 \"\" \"\" \"/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i\" \".\"", "\x00\x64\x00\x0a\x00\x00\x20/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i\x01.",true))
+     (CASE_S(QType::NAPTR, "100 10 \"\" \"\" \"/urn:cid:.+@([^\\\\.]+\\\\.)(.*)$/\\\\2/i\" .", "\x00\x64\x00\x0a\x00\x00\x20/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i\x00",false))
      (CASE_S(QType::NAPTR, "100 50 \"s\" \"http+I2L+I2C+I2R\" \"\" _http._tcp.rec.test.", "\x00\x64\x00\x32\x01s\x10http+I2L+I2C+I2R\x00\x05_http\x04_tcp\x03rec\x04test\x00",false))
      (CASE_S(QType::KX, "10 mail.rec.test.", "\x00\x0a\x04mail\x03rec\x04test\x00",false))
 
 // X.509 as per PKIX
      (CASE_S(QType::CERT, "1 0 0 MIIB9DCCAV2gAwIBAgIJAKxUfFVXhw7HMA0GCSqGSIb3DQEBBQUAMBMxETAPBgNVBAMMCHJlYy50ZXN0MB4XDTEzMDUxMjE5NDgwOVoXDTEzMDYxMTE5NDgwOVowEzERMA8GA1UEAwwIcmVjLnRlc3QwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBANKCu5aN/ewOXRPfzAo27XMXhYFCThCjfInTAUIEkzs6jBFZ/eyyIa/kFoiD0tAKwfFfykYU+9XgXeLjetD7rYt3SN3bzzCznoBGbGHHM0Fecrn0LV+tC/NfBB61Yx7e0AMUxmxIeLNRQW5ca5CW8qcIiiQ4fl0BScUjc5+E9QLHAgMBAAGjUDBOMB0GA1UdDgQWBBRzcVu/2bwrgkES+FhYbxZqr7mUgjAfBgNVHSMEGDAWgBRzcVu/2bwrgkES+FhYbxZqr7mUgjAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4GBAFVQ8dZBOasOhsWzA/xpAV0WdsqVkxBxrkGIRlbHHBFqOBOOz2MFSzUNx4mDy0qDKI28gcWmWaVsxoQ9VFLD6YRJuUoM8MDNcZDJbKpfDumjvvfnUAK+SiM2c4Ur3xpf0wanCA60/q2bOtFiB0tfAH6RVuIgMC3qjHAIaKEld+fE", "\x00\x01\x00\x00\x00\x30\x82\x01\xf4\x30\x82\x01\x5d\xa0\x03\x02\x01\x02\x02\x09\x00\xac\x54\x7c\x55\x57\x87\x0e\xc7\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x05\x05\x00\x30\x13\x31\x11\x30\x0f\x06\x03\x55\x04\x03\x0c\x08\x72\x65\x63\x2e\x74\x65\x73\x74\x30\x1e\x17\x0d\x31\x33\x30\x35\x31\x32\x31\x39\x34\x38\x30\x39\x5a\x17\x0d\x31\x33\x30\x36\x31\x31\x31\x39\x34\x38\x30\x39\x5a\x30\x13\x31\x11\x30\x0f\x06\x03\x55\x04\x03\x0c\x08\x72\x65\x63\x2e\x74\x65\x73\x74\x30\x81\x9f\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05\x00\x03\x81\x8d\x00\x30\x81\x89\x02\x81\x81\x00\xd2\x82\xbb\x96\x8d\xfd\xec\x0e\x5d\x13\xdf\xcc\x0a\x36\xed\x73\x17\x85\x81\x42\x4e\x10\xa3\x7c\x89\xd3\x01\x42\x04\x93\x3b\x3a\x8c\x11\x59\xfd\xec\xb2\x21\xaf\xe4\x16\x88\x83\xd2\xd0\x0a\xc1\xf1\x5f\xca\x46\x14\xfb\xd5\xe0\x5d\xe2\xe3\x7a\xd0\xfb\xad\x8b\x77\x48\xdd\xdb\xcf\x30\xb3\x9e\x80\x46\x6c\x61\xc7\x33\x41\x5e\x72\xb9\xf4\x2d\x5f\xad\x0b\xf3\x5f\x04\x1e\xb5\x63\x1e\xde\xd0\x03\x14\xc6\x6c\x48\x78\xb3\x51\x41\x6e\x5c\x6b\x90\x96\xf2\xa7\x08\x8a\x24\x38\x7e\x5d\x01\x49\xc5\x23\x73\x9f\x84\xf5\x02\xc7\x02\x03\x01\x00\x01\xa3\x50\x30\x4e\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16\x04\x14\x73\x71\x5b\xbf\xd9\xbc\x2b\x82\x41\x12\xf8\x58\x58\x6f\x16\x6a\xaf\xb9\x94\x82\x30\x1f\x06\x03\x55\x1d\x23\x04\x18\x30\x16\x80\x14\x73\x71\x5b\xbf\xd9\xbc\x2b\x82\x41\x12\xf8\x58\x58\x6f\x16\x6a\xaf\xb9\x94\x82\x30\x0c\x06\x03\x55\x1d\x13\x04\x05\x30\x03\x01\x01\xff\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x05\x05\x00\x03\x81\x81\x00\x55\x50\xf1\xd6\x41\x39\xab\x0e\x86\xc5\xb3\x03\xfc\x69\x01\x5d\x16\x76\xca\x95\x93\x10\x71\xae\x41\x88\x46\x56\xc7\x1c\x11\x6a\x38\x13\x8e\xcf\x63\x05\x4b\x35\x0d\xc7\x89\x83\xcb\x4a\x83\x28\x8d\xbc\x81\xc5\xa6\x59\xa5\x6c\xc6\x84\x3d\x54\x52\xc3\xe9\x84\x49\xb9\x4a\x0c\xf0\xc0\xcd\x71\x90\xc9\x6c\xaa\x5f\x0e\xe9\xa3\xbe\xf7\xe7\x50\x02\xbe\x4a\x23\x36\x73\x85\x2b\xdf\x1a\x5f\xd3\x06\xa7\x08\x0e\xb4\xfe\xad\x9b\x3a\xd1\x62\x07\x4b\x5f\x00\x7e\x91\x56\xe2\x20\x30\x2d\xea\x8c\x70\x08\x68\xa1\x25\x77\xe7\xc4",false))
-// OpenPGP packet
-     (CASE_S(QType::CERT, "3 0 0 mI0EUY/1hwEEAMu5F3DnbcWiQ1vM7/FcIhsa9X4XBoTCGtvaZqXDmKTlloHE/8S+aZ31Ahv6GKcL8BCPCfqeN7qsTD70V5xsl8urojzcVeRyasZlsD6Tb9EgItmedCUdlSgG2qlsVnt9ptS2fap7GxXCS388XbroGlU3Qx99sIJtzXg3/yFgUuwzABEBAAG0GFRlc3QgS2V5IDx0ZXN0QHJlYy50ZXN0Poi4BBMBAgAiBQJRj/WHAhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRCkHxA5/czuNWg1BACwO34jmLdNfisIHZg6DTakn/0M/hKcNWhp2xnGXhgR7oA0yIyWyogvvd0vCK3K1Kh5WWeMSx1UdmlAQMOEx73O662UBk6KVxQDQcklQlvtSDiXQETtcdxMQ3OFGkGUKbVlIY+TUTuVgulcmCeQSB8AJXFNcKLjLl+X2ZYMpFx6ZQ==", "\x00\x03\x00\x00\x00\x98\x8d\x04\x51\x8f\xf5\x87\x01\x04\x00\xcb\xb9\x17\x70\xe7\x6d\xc5\xa2\x43\x5b\xcc\xef\xf1\x5c\x22\x1b\x1a\xf5\x7e\x17\x06\x84\xc2\x1a\xdb\xda\x66\xa5\xc3\x98\xa4\xe5\x96\x81\xc4\xff\xc4\xbe\x69\x9d\xf5\x02\x1b\xfa\x18\xa7\x0b\xf0\x10\x8f\x09\xfa\x9e\x37\xba\xac\x4c\x3e\xf4\x57\x9c\x6c\x97\xcb\xab\xa2\x3c\xdc\x55\xe4\x72\x6a\xc6\x65\xb0\x3e\x93\x6f\xd1\x20\x22\xd9\x9e\x74\x25\x1d\x95\x28\x06\xda\xa9\x6c\x56\x7b\x7d\xa6\xd4\xb6\x7d\xaa\x7b\x1b\x15\xc2\x4b\x7f\x3c\x5d\xba\xe8\x1a\x55\x37\x43\x1f\x7d\xb0\x82\x6d\xcd\x78\x37\xff\x21\x60\x52\xec\x33\x00\x11\x01\x00\x01\xb4\x18\x54\x65\x73\x74\x20\x4b\x65\x79\x20\x3c\x74\x65\x73\x74\x40\x72\x65\x63\x2e\x74\x65\x73\x74\x3e\x88\xb8\x04\x13\x01\x02\x00\x22\x05\x02\x51\x8f\xf5\x87\x02\x1b\x03\x06\x0b\x09\x08\x07\x03\x02\x06\x15\x08\x02\x09\x0a\x0b\x04\x16\x02\x03\x01\x02\x1e\x01\x02\x17\x80\x00\x0a\x09\x10\xa4\x1f\x10\x39\xfd\xcc\xee\x35\x68\x35\x04\x00\xb0\x3b\x7e\x23\x98\xb7\x4d\x7e\x2b\x08\x1d\x98\x3a\x0d\x36\xa4\x9f\xfd\x0c\xfe\x12\x9c\x35\x68\x69\xdb\x19\xc6\x5e\x18\x11\xee\x80\x34\xc8\x8c\x96\xca\x88\x2f\xbd\xdd\x2f\x08\xad\xca\xd4\xa8\x79\x59\x67\x8c\x4b\x1d\x54\x76\x69\x40\x40\xc3\x84\xc7\xbd\xce\xeb\xad\x94\x06\x4e\x8a\x57\x14\x03\x41\xc9\x25\x42\x5b\xed\x48\x38\x97\x40\x44\xed\x71\xdc\x4c\x43\x73\x85\x1a\x41\x94\x29\xb5\x65\x21\x8f\x93\x51\x3b\x95\x82\xe9\x5c\x98\x27\x90\x48\x1f\x00\x25\x71\x4d\x70\xa2\xe3\x2e\x5f\x97\xd9\x96\x0c\xa4\x5c\x7a\x65",false))
-// IPKIX     The URL of an X.509 data object
-     (CASE_S(QType::CERT, "4 0 0 http://rec.test/server.pem", "\x00\x04\x00\x00\x00http://rec.test/server.pem",true))
-// IPGP      The fingerprint and URL of an OpenPGP packet
-     (CASE_S(QType::CERT, "6 0 0 939df56523d834de55eaab44a41f1039fdccee35 http://rec.test/server.pgp", "\x00\x06\x00\x00\x00\x93\x9d\xf5\x65\x23\xd8\x34\xde\x55\xea\xab\x44\xa4\x1f\x10\x39\xfd\xcc\xee\x35http://rec.test/server.pgp",true))
-
      (CASE_L(QType::DS, "20642 8 2 04443ABE7E94C3985196BEAE5D548C727B044DDA5151E60D7CD76A9F D931D00E", "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e",false))
      (CASE_L(QType::DS, "20642 8 2 04443ABE7E94C3985196BEAE5D548C727B044DDA5151E60D7CD76A9F D931D00E", "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e",false))
      (CASE_S(QType::SSHFP, "1 1 aa65e3415a50d9b3519c2b17aceb815fc2538d88", "\x01\x01\xaa\x65\xe3\x41\x5a\x50\xd9\xb3\x51\x9c\x2b\x17\xac\xeb\x81\x5f\xc2\x53\x8d\x88",false))
@@ -161,15 +165,20 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
         rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
         BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
         if (rec == NULL) continue;
-        // now verify the record (note that this will be same as *input* value (except for certain QTypes)
+        // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
+
         switch(q.getCode()) {
-           case QType::LOC:
-           case QType::DS:
-           case QType::DLV:
-              REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
+        case QType::NS:
+        case QType::PTR:
+        case QType::MX:
+        case QType::CNAME:
+        case QType::SOA:
+        case QType::TXT:
+           // check *input* value instead 
+           REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
            break;
-           default:
-              REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<1>());
+        default:
+           REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
         }
         recData = rec->serialize("rec.test");
       } else {
@@ -190,6 +199,82 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       REC_CHECK_MESSAGE(false, "Failed to verify " << q.getName() << ": " << err.what());
    }
  }
+}
+
+bool test_dnsrecords_cc_predicate( std::runtime_error const &ex ) { return true; }
+
+// these *MUST NOT* parse properly!
+BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
+  // qtype, value, zone/wire format, broken
+  typedef boost::tuple<const QType::typeenum, const std::string, case_type_enum_t, bool> case_t;
+  typedef std::list<case_t> cases_t;
+
+  cases_t cases = boost::assign::list_of
+     (case_t(QType::A, "932.521.256.42", zone, false)) // hollywood IP
+     (case_t(QType::A, "932.521", zone, false)) // truncated IP
+     (case_t(QType::A, "\xca\xec\x00", wire, false)) // truncated wire value
+     (case_t(QType::AAAA, "23:00", zone, false)) // time when this test was written 
+     (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
+     (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
+     (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
+;
+
+  int n=0;
+  int lq=-1;
+
+  BOOST_FOREACH(const cases_t::value_type& val, cases) {
+    QType q(val.get<0>());
+    if (lq != q.getCode()) n = 0;
+    lq = q.getCode();
+    n++;
+    BOOST_TEST_CHECKPOINT("Checking bad value for record type " << q.getName() << " test #" << n);
+    BOOST_TEST_MESSAGE("Checking bad value for record type " << q.getName() << " test #" << n);
+ 
+    if (val.get<2>()) {
+      BOOST_WARN_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+    } else {
+      BOOST_CHECK_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+    }
+  };
+}
+
+// special opt record test, because opt is odd
+BOOST_AUTO_TEST_CASE(test_opt_record_in) {
+  EDNSOpts eo;
+
+  // test that nsid gets parsed into system
+  std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",89);
+  OPTRecordContent::report();
+
+  MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
+
+  getEDNSOpts(mdp, &eo);
+
+  // this should contain NSID now
+  BOOST_CHECK_EQUAL(eo.d_packetsize, 1280);
+   
+  // it should contain NSID option with value 'powerdns', and nothing else
+  BOOST_CHECK_EQUAL(eo.d_options[0].first, 3); // nsid
+  BOOST_CHECK_EQUAL(eo.d_options[0].second, "powerdns");
+}
+
+BOOST_AUTO_TEST_CASE(test_opt_record_out) {
+  vector<uint8_t> pak;
+  vector<pair<uint16_t,string > > opts;
+
+  DNSPacketWriter pw(pak, "www.powerdns.com", ns_t_a);
+  pw.startRecord("www.powerdns.com", ns_t_a, 16, 1, DNSPacketWriter::ANSWER);
+  pw.xfrIP(0x0100007f);
+  opts.push_back(pair<uint16_t,string>(3, "powerdns"));
+  pw.addOpt(1280, 0, 0, opts);
+  pw.getHeader()->id = 0x01f0;
+  pw.getHeader()->rd = 1;
+  pw.commit();
+
+   // see if we can build a DNS packet that looks like this...
+  std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",73);
+
+  BOOST_CHECK_EQUAL(makeHexDump(std::string(pak.begin(),pak.end())), makeHexDump(packet));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
