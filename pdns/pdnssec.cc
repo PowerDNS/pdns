@@ -773,7 +773,8 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
     cerr<<"Failed to secure zone. Is your backend dnssec enabled? (set \n";
     cerr<<"gsqlite3-dnssec, or gmysql-dnssec etc). Check this first.\n";
     cerr<<"If you run with the BIND backend, make sure you have configured\n";
-    cerr<<"it to use DNSSEC with 'bind-dnssec-db' and 'pdnssec create-bind-db'!\n";
+    cerr<<"it to use DNSSEC with 'bind-dnssec-db=/path/fname' and\n";
+    cerr<<"'pdnssec create-bind-db /path/fname'!\n";
     return false;
   }
 
@@ -974,8 +975,7 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
-  
-  
+
   if(cmds[0] == "create-bind-db") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
