@@ -1207,7 +1207,14 @@ try
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
     bool narrow = cmds.size() > 3 && cmds[3]=="narrow";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
-    dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
+    
+    string zone=cmds[1];
+    if(!dk.isSecuredZone(zone)) {
+      cerr<<"Zone '"<<zone<<"' is not secured, can't set NSEC3 parameters"<<endl;
+      exit(EXIT_FAILURE);
+    }
+    dk.setNSEC3PARAM(zone, ns3pr, narrow);
+    
     if (!ns3pr.d_flags)
       cerr<<"NSEC3 set, please rectify-zone if your backend needs it"<<endl;
     else
