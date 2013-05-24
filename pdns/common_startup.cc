@@ -71,7 +71,7 @@ void declareArguments()
   ::arg().set("default-soa-mail","mail address to insert in the SOA record if none set in the backend")="";
   ::arg().set("distributor-threads","Default number of Distributor (backend) threads to start")="3";
   ::arg().set("signing-threads","Default number of signer threads to start")="3";
-  ::arg().set("receiver-threads","Default number of Distributor (backend) threads to start")="1";
+  ::arg().set("receiver-threads","Default number of receiver threads to start")="1";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   ::arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";

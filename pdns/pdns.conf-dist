@@ -285,7 +285,7 @@
 # queue-limit=1500
 
 #################################
-# receiver-threads	Default number of Distributor (backend) threads to start
+# receiver-threads	Default number of receiver threads to start
 #
 # receiver-threads=1
 
