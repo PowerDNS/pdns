@@ -928,7 +928,7 @@ try
     cerr<<"Usage: \npdnssec [options] <command> [params ..]\n\n";
     cerr<<"Commands:\n";
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE\n";
-    cerr<<"add-zone-key ZONE zsk|ksk [bits]\n";
+    cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]\n";
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits\n";
     cerr<<"check-zone ZONE                    Check a zone for correctness\n";
@@ -943,7 +943,7 @@ try
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE\n";
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT\n";
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK\n";            
-    cerr<<"                [ksk|zsk]          Defaults to KSK\n";
+    cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active\n";
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)\n";
     cerr<<"rectify-all-zones                  Rectify all zones.\n";
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE\n";
@@ -1131,6 +1131,7 @@ try
     int tmp_algo=0;
     int bits=0;
     int algorithm=8;
+    bool active=false;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
@@ -1138,17 +1139,21 @@ try
         keyOrZone = true;
       else if((tmp_algo = shorthand2algorithm(cmds[n]))>0) {
         algorithm = tmp_algo;
-      } else if(atoi(cmds[n].c_str()))
+      } else if(pdns_iequals(cmds[n], "active")) {
+        active=true;
+      } else if(pdns_iequals(cmds[n], "inactive") || pdns_iequals(cmds[n], "passive")) {
+        active=false;
+      } else if(atoi(cmds[n].c_str())) {
         bits = atoi(cmds[n].c_str());
-      else { 
+      } else { 
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
         return 0;
       }
     }
-    cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<endl;
+    cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
     if(bits)
       cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
-    dk.addKey(zone, keyOrZone, algorithm, bits, false); 
+    dk.addKey(zone, keyOrZone, algorithm, bits, active); 
   }
   else if(cmds[0] == "remove-zone-key") {
     if(cmds.size() < 3) {
@@ -1272,7 +1277,7 @@ try
   }
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
-      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE algorithm [ksk|zsk]"<<endl;
+      cerr<<"Syntax: pdnssec import-zone-key-pem ZONE FILE algorithm [ksk|zsk]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -1317,7 +1322,7 @@ try
   }
   else if(cmds[0]=="import-zone-key") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE [ksk|zsk]"<<endl;
+      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE [ksk|zsk] [active|passive]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -1330,23 +1335,25 @@ try
     
     if(dpk.d_algorithm == 7)
       dpk.d_algorithm = 5;
-      
-    cerr<<(int)dpk.d_algorithm<<endl;
     
-    if(cmds.size() > 3) {
-      if(pdns_iequals(cmds[3], "ZSK"))
-        dpk.d_flags = 256;
-      else if(pdns_iequals(cmds[3], "KSK"))
-        dpk.d_flags = 257;
-      else {
-        cerr<<"Unknown key flag '"<<cmds[3]<<"'\n";
-        exit(1);
-      }
+    dpk.d_flags = 257; 
+    bool active=false;
+
+    for(unsigned int n = 3; n < cmds.size(); ++n) {
+      if(pdns_iequals(cmds[n], "ZSK"))
+	dpk.d_flags = 256;
+      else if(pdns_iequals(cmds[n], "KSK"))
+	dpk.d_flags = 257;
+      else if(pdns_iequals(cmds[n], "active"))
+	active = 1;
+      else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive"))
+	active = 0;
+      else { 
+	cerr<<"Unknown key flag '"<<cmds[n]<<"'\n";
+	exit(1);
+      }	  
     }
-    else
-      dpk.d_flags = 257; 
-      
-    dk.addKey(zone, dpk); 
+    dk.addKey(zone, dpk, active); 
   }
   else if(cmds[0]=="export-zone-dnskey") {
     if(cmds.size() < 3) {
