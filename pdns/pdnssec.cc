@@ -1337,7 +1337,7 @@ try
       dpk.d_algorithm = 5;
     
     dpk.d_flags = 257; 
-    bool active=false;
+    bool active=true;
 
     for(unsigned int n = 3; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "ZSK"))
