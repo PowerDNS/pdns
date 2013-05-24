@@ -1,0 +1,7 @@
+1	bigkey.com.	IN	RRSIG	100000	SOA 10 2 100000 [expiry] [inception] [keytag] bigkey.com. ...
+1	bigkey.com.	IN	SOA	100000	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+1	www.bigkey.com.	IN	NSEC	120	zomega.bigkey.com. A AAAA RRSIG NSEC
+1	www.bigkey.com.	IN	RRSIG	120	NSEC 10 3 120 [expiry] [inception] [keytag] bigkey.com. ...
+2	.	IN	OPT	32768	
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='www.bigkey.com.', qtype=MX

@@ -40,6 +40,17 @@ securezone ()
 		../pdns/pdnssec --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
 		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
 		../pdns/pdnssec --config-dir=. $configname rectify-zone $zone 2>&1
+        elif [ "${zone}" = "bigkey.com" ]
+        then
+                 ../pdns/pdnssec --config-dir=. --config-name=bigkey secure-zone bigkey.com
+
+                 if [ "${context: 12:12}" = "nsec3-narrow" ]; then
+                    ../pdns/pdnssec --config-dir=. --config-name=bigkey set-nsec3 "1 0 1 f1b4" narrow
+                 elif [ "${context: 12:12}" = "nsec3-optout"]; then
+                    ../pdns/pdnssec --config-dir=. --config-name=bigkey set-nsec3 "1 1 1 f1b4" 
+                 elif [ "${context: 12:5}" = "nsec3" ]; then
+                    ../pdns/pdnssec --config-dir=. --config-name=bigkey set-nsec3 "1 0 1 f1b4" 
+                 fi
 	else
 		../pdns/pdnssec --config-dir=. $configname secure-zone $zone 2>&1
 	fi

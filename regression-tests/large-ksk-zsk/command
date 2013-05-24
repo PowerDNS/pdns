@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig www.bigkey.com MX dnssec-tcp
