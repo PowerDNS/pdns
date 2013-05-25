@@ -1,6 +1,6 @@
 $TTL 3600
-$ORIGIN nonzone.com.
-@		IN	SOA	ns1.nonzone.com.	ahu.example.com. (  2005092501
+$ORIGIN nztest.com.
+@		IN	SOA	ns1.nztest.com.	ahu.example.com. (  2005092501
 			8H ; refresh
 			2H ; retry
 			1W ; expire

@@ -1,2 +1,2 @@
-This test tries to resolve a straight A record that is directly available in
-the database.
+This test tries to resolve a straight A record from zone that contains
+non-zone data.

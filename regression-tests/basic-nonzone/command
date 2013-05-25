@@ -1,4 +1,4 @@
 #!/bin/sh
-cleandig nonzone.com A
-cleandig testnonzone.com A
+cleandig nztest.com A
+cleandig testnz.com A | tail -n2
 
