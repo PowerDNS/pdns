@@ -13,3 +13,4 @@ $ORIGIN nztest.com.
 @			IN	MX	15	smtp-servers
 @			IN	A	127.0.0.1
 testnonzone.com.         IN      A       127.100.100.100
+NZTEST.COM.NET.         IN      A       127.100.100.100
