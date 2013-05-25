@@ -76,6 +76,7 @@ shared_ptr<Bind2Backend::State> Bind2Backend::s_state;
 */
 
 int Bind2Backend::s_first=1;
+bool Bind2Backend::s_ignore_broken_records=false;
 
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Bind2Backend::s_state_lock=PTHREAD_MUTEX_INITIALIZER;
@@ -411,7 +412,7 @@ static string canonic(string ret)
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedence matching
     This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed, const bool ignore_non_zone)
+void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed)
 {
   BB2DomainInfo bb2 = stage->id_zone_map[id];
   Bind2DNSRecord bdr;
@@ -533,8 +534,10 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
 
 Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
-  d_logprefix="[bind"+suffix+"backend]";
   setArgPrefix("bind"+suffix);
+  d_logprefix="[bind"+suffix+"backend]";
+  s_ignore_broken_records=mustDo("ignore-broken-records");
+
   Lock l(&s_startup_lock);
   
   d_transaction_id=0;
@@ -645,8 +648,8 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
   {
     rr.qname=qname+"."+bb2.d_name+".";
     if(nsec3zone)
-      hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-    insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed, false);
+      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+    insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
   }
 }
 
@@ -1353,13 +1356,13 @@ class Bind2Factory : public BackendFactory
 
       void declareArguments(const string &suffix="")
       {
-         declare(suffix,"config","Location of named.conf","");
-         //         declare(suffix,"example-zones","Install example zones","no");
-         declare(suffix,"check-interval","Interval for zonefile changes","0");
-         declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
-         declare(suffix,"supermasters","List of IP-addresses of supermasters","");
-         declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
-         declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");
+        declare(suffix,"ignore-broken-records","Ignore records that are out-of-bound or the zone.", "yes");
+        declare(suffix,"config","Location of named.conf","");
+        declare(suffix,"check-interval","Interval for zonefile changes","0");
+        declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
+        declare(suffix,"supermasters","List of IP-addresses of supermasters","");
+        declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
+        declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");         
       }
 
       DNSBackend *make(const string &suffix="")
