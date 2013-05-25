@@ -415,6 +415,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
 {
   BB2DomainInfo bb2 = stage->id_zone_map[id];
   Bind2DNSRecord bdr;
+  size_t p;
 
   recordstorage_t& records=*bb2.d_records; 
 

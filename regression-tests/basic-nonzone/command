@@ -1,0 +1,4 @@
+#!/bin/sh
+cleandig nonzone.com A
+cleandig testnonzone.com A
+
