@@ -243,7 +243,8 @@ dnsdemog_SOURCES=dnsdemog.cc misc.cc unix_utility.cc qtype.cc \
 rec_control_SOURCES=rec_channel.cc rec_channel.hh rec_control.cc arguments.cc arguments.hh misc.cc qtype.cc \
 	unix_utility.cc logger.cc statbag.cc
 
-testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsrecords_cc.cc nameserver.cc misc.cc \
+testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsrecords_cc.cc test-base32_cc.cc \
+        nameserver.cc misc.cc \
 	unix_utility.cc logger.cc statbag.cc arguments.cc qtype.cc dnspacket.cc \
 	dnswriter.cc base64.cc base32.cc dnsrecords.cc dnslabeltext.cc dnsparser.cc \
 	rcpgenerator.cc ednssubnet.cc nsecrecords.cc sillyrecords.cc dnssecinfra.cc \
