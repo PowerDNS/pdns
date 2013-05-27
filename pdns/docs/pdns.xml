@@ -114,21 +114,26 @@
         either through bugfixes or by catering to their needs beyond the specifications.
       </para>
       <para>
-        Changes since 3.2:
+        New features and important changes since 3.2:
         <itemizedlist>
           <listitem>
             <para>
+              g04576ee, gb0e15c8: Implement pdnssec increase-serial, thanks Ruben.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gcee857b: PowerDNS now sets additional groups while dropping privileges.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7796a3b: Merge support for include-dir directive, thanks Aki Tuomi!
+            </para>
+          </listitem>
+          <listitem>
+            <para>
               gd725755: make pdns-static Conflict with pdns-server, closes t640
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g49977c6: fix bug in boost.m4 where it insists on setting -L, causing useless RPATH in our binaries. Closes t728
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g62ac758: use PolarSSL for MD5 hashing instead of shipping our own copy of md5 hashing code.
             </para>
           </listitem>
           <listitem>
@@ -138,12 +143,7 @@
           </listitem>
           <listitem>
             <para>
-              ga1d6b0c: send extra NSEC3 because old BIND9 needs it, closes t814.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g775acd9: give a better error on trying to add nsec3 parameters to a weird zone like "1 0 1 ab" (which indicates that you forgot to specify a zone name on the command line). Fixes t800.
+              ga1d6b0c: Older versions of the BIND 9 validating recursor need a superfluous NSEC3 record on positive wildcard responses. We now send this extra NSEC3. Closes t814.
             </para>
           </listitem>
           <listitem>
@@ -153,18 +153,19 @@
           </listitem>
           <listitem>
             <para>
+              g032e390: make pdnssec exit with 1 on some error conditions, closes t677
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
               g4af49b8, g4cec6ac: add ability to create an 'active' or inactive key using add-zone-key and import-zone-key, plus silenced some debugging. Fixes t707.
             </para>
           </listitem>
           <listitem>
             <para>
               gfae4167: Compiling against Lua 5.2 (--with-lua=lua5.2) now disables some code used for regression
-              testing. This means that Lua 5.2 can be used in production.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g315dd2e: Simplify socket listening code, and make sure we always set the nonblocking flag correctly. Patch by Mark Zealey, closes t664.
+              testing, instead of breaking during compile. This means that Lua 5.2 can be used in production.
             </para>
           </listitem>
           <listitem>
@@ -182,7 +183,87 @@
           </listitem>
           <listitem>
             <para>
+              gdf55450: Non-DNSSEC ANY queries no longer get sent DNSSEC records. This improves
+              interoperability with some old resolvers. Patch by Kees Monshouwer.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g04b4bf6: Merge support for not using opt-out with NSEC3. Many thanks to Kees Monshouwer.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g8db49a6: We now try not to NOTIFY ourselves. In convoluted cases involving REUSE_PORT and binding to 
+              0.0.0.0 and ::, it might be possible that we guess wrong, in which case you can set
+              prevent-self-notification to off.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        Important bug fixes:
+        <itemizedlist>
+          <listitem>
+            <para>
+              g63e365d: don't mess up encoding when copying qname from question to answer in packetcache. Based on 
+              reports&amp;debugging by Jimmy Bergman (sigint), Daniel Norman (Loopia) and the fine people at ISC.
+              This avoids most issues related to BIND 9 erroneously blacklisting PowerDNS for lack of EDNS support.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3526186: fix backslash handling in TXT parser, includes test. Thanks jpmens
+            </para>
+          </listitem>
+          <listitem>
+            <para>
               g830281f, Gaef7330: Accept chars >127 ('high ASCII') in TXT records, closing t541 and T723.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gfeef1ec: fix missing NSEC3 for secure delegation, thanks Kees Monshouwer, closes t682
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gb61e407: around Thursday midnight, during signature rollovers, we would update the SOA serial too early. Fixed by reverting gd90efbf, adding 7 days margin to inception. Fix by Kees Monshouwer.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gff64750: make sure mixed-case queries get a correct apex NSEC3 type bitmap
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g4b153d8: always lowercase next name in NSEC to avoid interop troubles with validators, thanks Marco Davids&amp;Matthijs Mekking.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        Other changes:
+        <itemizedlist>
+          <listitem>
+            <para>
+              g49977c6: fix bug in boost.m4 where it insists on setting -L, causing useless RPATH in our binaries. Closes t728
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g62ac758: use PolarSSL for MD5 hashing instead of shipping our own copy of md5 hashing code.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g775acd9: give a better error on trying to add nsec3 parameters to a weird zone like "1 0 1 ab" (which indicates that you forgot to specify a zone name on the command line). Fixes t800.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g315dd2e: Simplify socket listening code, and make sure we always set the nonblocking flag correctly. Patch by Mark Zealey, closes t664.
             </para>
           </listitem>
           <listitem>
@@ -192,17 +273,7 @@
           </listitem>
           <listitem>
             <para>
-              g63347c6: Don't store edited soa serial for INCREMENT soa-edit kinds
-            </para>
-          </listitem>
-          <listitem>
-            <para>
               g71301b6: Replicate gsql backend feature of having separate -auth queries for DNSSEC into oraclebackend. Also lets you disable dnssec if you are not ready for it. Closes t527.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g032e390: make pdnssec exit with 1 on some error conditions, closes t677
             </para>
           </listitem>
           <listitem>
@@ -248,21 +319,6 @@
           </listitem>
           <listitem>
             <para>
-              g7796a3b: Merge support for include-dir directive, thanks Aki Tuomi!
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g04576ee, gb0e15c8: Implement pdnssec increase-serial, thanks Ruben.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              gcee857b: add supplementary groups support
-            </para>
-          </listitem>
-          <listitem>
-            <para>
               gcc6bf4c: Merge branch 'nodnssecany' of github.com:mind04/pdns into mind04-nodnssecany
             </para>
           </listitem>
@@ -293,21 +349,6 @@
           </listitem>
           <listitem>
             <para>
-              g04b4bf6: Merge support for not using opt-out with NSEC3. Many thanks to Kees Monshouwer.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              gfeef1ec: fix missing NSEC3 for secure delegation, thanks Kees Monshouwer, closes t682
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g8db49a6: after a decade+.. finally try to stop notifying ourselves. In convoluted cases involving REUSE_PORT and binding to 0.0.0.0 and ::, it might be possible that we guess wrong, in which case we now provide &amp; document the setting prevent-self-notification which you could then set to off.
-            </para>
-          </listitem>
-          <listitem>
-            <para>
               gc87f987: add default for SOA contact e-mail
             </para>
           </listitem>
@@ -319,11 +360,6 @@
           <listitem>
             <para>
               g1071abd: restyle builtin webserver page
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              gb61e407: revert gd90efbf and add 7 days margin to inception
             </para>
           </listitem>
           <listitem>
@@ -341,11 +377,7 @@
               g116e28a: reduce log level of successful gpgsql/gsqlite3 connection to Info
             </para>
           </listitem>
-          <listitem>
-            <para>
-              gdf55450: Don't add dnssec info, to any query results, for non validating resolvers.
-            </para>
-          </listitem>
+
           <listitem>
             <para>
               gb23b90a: Metadata update is now in the same transaction as the AXFR. This improves slaving speed 
@@ -355,16 +387,6 @@
           <listitem>
             <para>
               g4620e8a: Added zone2json
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              gff64750: make sure mixed-case queries get a correct apex NSEC3 type bitmap
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g4b153d8: always lowercase next name in NSEC to avoid interop troubles with validators, thanks Marco Davids&amp;Matthijs Mekking
             </para>
           </listitem>
           <listitem>
@@ -390,11 +412,6 @@
           <listitem>
             <para>
               g6c4e531: disarm dead code that causes gcc crashes on ARM, thanks Morten Stevens
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g63e365d: don't mess up encoding when copying qname from question to answer in packetcache. Based on reports&amp;debugging by Jimmy Bergman (sigint), Daniel Norman (Loopia) and the fine people at ISC
             </para>
           </listitem>
           <listitem>
@@ -439,7 +456,7 @@
           </listitem>
           <listitem>
             <para>
-              g36758d2: merge t476 by Aki Tuomi, providing default-ksk/zsk-algorithms/size configuration parameters for pdnssec. Also cleans up some duplicate code
+              g36758d2: merge t476 by Aki Tuomi, providing default-ksk/zsk-algorithms/size configuration parameters for pdnssec.
             </para>
           </listitem>
           <listitem>
@@ -450,11 +467,6 @@
           <listitem>
             <para>
               g9566683: merge patch from ticket 712 addressing memory leak in remotebackend (thanks Aki for the fix!)
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              g3526186: fix backslash handling in TXT parser, includes test. Thanks jpmens
             </para>
           </listitem>
           <listitem>
