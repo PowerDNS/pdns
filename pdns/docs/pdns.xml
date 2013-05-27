@@ -118,7 +118,7 @@
         <itemizedlist>
           <listitem>
             <para>
-              g04576ee, gb0e15c8: Implement pdnssec increase-serial, thanks Ruben.
+              g04576ee, gb0e15c8: Implement pdnssec increase-serial, thanks Ruben d'Arco.
             </para>
           </listitem>
           <listitem>
@@ -213,7 +213,7 @@
           </listitem>
           <listitem>
             <para>
-              g3526186: fix backslash handling in TXT parser, includes test. Thanks jpmens
+              g3526186: fix backslash handling in TXT parser, includes test. Thanks Jan-Piet Mens.
             </para>
           </listitem>
           <listitem>
@@ -491,7 +491,7 @@
           </listitem>
           <listitem>
             <para>
-              gef1c4bf: also spot trailing dots on CNAME content, thanks jpmens and Ruben d'Arco
+              gef1c4bf: also spot trailing dots on CNAME content, thanks Jan-Piet Mens and Ruben d'Arco
             </para>
           </listitem>
           <listitem>
