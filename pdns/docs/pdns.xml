@@ -118,6 +118,52 @@
         <itemizedlist>
           <listitem>
             <para>
+              gd725755: make pdns-static Conflict with pdns-server, closes t640
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g49977c6: fix bug in boost.m4 where it insists on setting -L, causing useless RPATH in our binaries. Closes t728
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g62ac758: use PolarSSL for MD5 hashing instead of shipping our own copy of md5 hashing code.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc0d5504: pdnssec now emits 'INSERT INTO domain ..' queries when running without named.conf
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ga1d6b0c: send extra NSEC3 because old BIND9 needs it, closes t814.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g775acd9: give a better error on trying to add nsec3 parameters to a weird zone like "1 0 1 ab" (which indicates that you forgot to specify a zone name on the command line). Fixes t800.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g07bf35d: catch a lot more errors in pdnssec and report them. Fixes t588.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g4af49b8, g4cec6ac: add ability to create an 'active' or inactive key using add-zone-key and import-zone-key, plus silenced some debugging. Fixes t707.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gfae4167: Compiling against Lua 5.2 (--with-lua=lua5.2) now disables some code used for regression
+              testing. This means that Lua 5.2 can be used in production.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
               g315dd2e: Simplify socket listening code, and make sure we always set the nonblocking flag correctly. Patch by Mark Zealey, closes t664.
             </para>
           </listitem>
