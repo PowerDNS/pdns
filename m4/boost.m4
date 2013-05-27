@@ -382,7 +382,7 @@ for boost_rtopt_ in $boost_rtopt '' -d; do
              /opt/local/lib* /usr/local/lib* /opt/lib* /usr/lib* \
              "$with_boost" C:/Boost/lib /lib*
     do
-      test -e "$boost_ldpath" || continue
+      test -n "$boost_ldpath" -a ! -e "$boost_ldpath" && continue
       boost_save_LDFLAGS=$LDFLAGS
       # Are we looking for a static library?
       case $boost_ldpath:$boost_rtopt_ in #(
@@ -409,7 +409,7 @@ dnl generated only once above (before we start the for loops).
         # https://github.com/tsuna/boost.m4/issues/19
         AC_CACHE_VAL([boost_cv_rpath_link_ldflag],
           [for boost_cv_rpath_link_ldflag in -Wl,-R, -Wl,-rpath,; do
-            LDFLAGS="$boost_save_LDFLAGS -L$boost_ldpath $boost_cv_rpath_link_ldflag$boost_ldpath"
+            test x"$boost_ldpath" != x && LDFLAGS="$boost_save_LDFLAGS -L$boost_ldpath $boost_cv_rpath_link_ldflag$boost_ldpath"
             LIBS="$boost_save_LIBS $Boost_lib_LIBS"
             _BOOST_AC_LINK_IFELSE([],
               [boost_rpath_link_ldflag_found=yes
@@ -421,7 +421,7 @@ dnl generated only once above (before we start the for loops).
           LDFLAGS=$boost_save_LDFLAGS
           LIBS=$boost_save_LIBS
           ])
-        Boost_lib_LDFLAGS="-L$boost_ldpath $boost_cv_rpath_link_ldflag$boost_ldpath"
+        test x"$boost_ldpath" != x && Boost_lib_LDFLAGS="-L$boost_ldpath $boost_cv_rpath_link_ldflag$boost_ldpath"
         Boost_lib_LDPATH="$boost_ldpath"
         break 6
       else
