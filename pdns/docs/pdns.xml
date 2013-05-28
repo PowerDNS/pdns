@@ -148,7 +148,7 @@
           </listitem>
           <listitem>
             <para>
-              gc0d5504: pdnssec now emits 'INSERT INTO domain ..' queries when running without named.conf
+              gc0d5504: pdnssec now emits 'INSERT INTO domain ..' queries when running without named.conf, thanks Ruben d'Arco.
             </para>
           </listitem>
           <listitem>
@@ -263,7 +263,7 @@
           </listitem>
           <listitem>
             <para>
-              g62ac758: use PolarSSL for MD5 hashing instead of shipping our own copy of md5 hashing code.
+              g62ac758: use PolarSSL for MD5 hashing instead of shipping our own copy of md5 hashing code, thanks Aki Tuomi.
             </para>
           </listitem>
           <listitem>
@@ -283,7 +283,7 @@
           </listitem>
           <listitem>
             <para>
-              g71301b6: Replicate gsql backend feature of having separate -auth queries for DNSSEC into oraclebackend. Also lets you disable dnssec if you are not ready for it. Closes t527.
+              g71301b6: Replicate gsql backend feature of having separate -auth queries for DNSSEC into oraclebackend. Also lets you disable dnssec if you are not ready for it. Closes t527, patch by Aki Tuomi.
             </para>
           </listitem>
           <listitem>
@@ -308,12 +308,12 @@
           </listitem>
           <listitem>
             <para>
-              g6477102: add goracle schema
+              g6477102: add goracle schema, thanks Aki Tuomi.
             </para>
           </listitem>
           <listitem>
             <para>
-              g9118638: make goraclebackend "at least work", closes t729
+              g9118638: make goraclebackend "at least work", closes t729, thanks Aki Tuomi.
             </para>
           </listitem>
           <listitem>
@@ -354,7 +354,7 @@
           </listitem>
           <listitem>
             <para>
-              gf9cf6d9: cut the number of database queries in half for AXFR-in
+              gf9cf6d9: cut the number of database queries in half for AXFR-in, thanks Kees Monshouwer.
             </para>
           </listitem>
           <listitem>
@@ -364,17 +364,17 @@
           </listitem>
           <listitem>
             <para>
-              gbb4a573: move random backend to modules
+              gbb4a573: move random backend to modules, thanks Kees Monshouwer.
             </para>
           </listitem>
           <listitem>
             <para>
-              g1071abd: restyle builtin webserver page
+              g1071abd: restyle builtin webserver page, thanks Christian Hofstaedtler.
             </para>
           </listitem>
           <listitem>
             <para>
-              gcd5e158: correct bogus use of poll(2) related constants, improving non-Linux portability. Thanks Wouter de Jong
+              gcd5e158: correct bogus use of poll(2) related constants, improving non-Linux portability. Thanks Wouter de Jong.
             </para>
           </listitem>
           <listitem>
@@ -391,22 +391,22 @@
           <listitem>
             <para>
               gb23b90a: Metadata update is now in the same transaction as the AXFR. This improves slaving speed 
-              tremendously, especially for SQLite users.
+              tremendously, especially for SQLite users. Patch by Kees Monshouwer.
             </para>
           </listitem>
           <listitem>
             <para>
-              g4620e8a: Added zone2json
+              g4620e8a: Added zone2json, thanks Aki Tuomi.
             </para>
           </listitem>
           <listitem>
             <para>
-              gf0fa8b6: Fix remotebackend setdomainmetadata return value handling. Fix by Aki Tuomi, closes t740
+              gf0fa8b6: Fix remotebackend setdomainmetadata return value handling. Fix by Aki Tuomi, closes t740.
             </para>
           </listitem>
           <listitem>
             <para>
-              g80e82d6: log control listener abort even more explicitly
+              g80e82d6: log control listener abort even more explicitly.
             </para>
           </listitem>
           <listitem>
@@ -421,47 +421,47 @@
           </listitem>
           <listitem>
             <para>
-              g6c4e531: disarm dead code that causes gcc crashes on ARM, thanks Morten Stevens
+              g6c4e531: disarm dead code that causes gcc crashes on ARM, thanks Morten Stevens.
             </para>
           </listitem>
           <listitem>
             <para>
-              g36855b5: if we failed to make a new UDP socket, we'd report a confusing error about it
+              g36855b5: if we failed to make a new UDP socket, we'd report a confusing error about it.
             </para>
           </listitem>
           <listitem>
             <para>
-              g1b8e5e6: autoconf support for oracle, thanks Aki Tuomi. Closes t726
+              g1b8e5e6: autoconf support for oracle, thanks Aki Tuomi. Closes t726.
             </para>
           </listitem>
           <listitem>
             <para>
-              g8ac0c06: allow setting of some oracle env vars. Patch by Aki Tuomi, closes t725
+              g8ac0c06: allow setting of some oracle env vars. Patch by Aki Tuomi, closes t725.
             </para>
           </listitem>
           <listitem>
             <para>
-              g45e845b: add example.rb sample script for remotebackend, thanks Aki
+              g45e845b: add example.rb sample script for remotebackend, thanks Aki Tuomi.
             </para>
           </listitem>
           <listitem>
             <para>
-              g950bddd: add pdnssec generate-zone-key command, thanks Aki. Closes t711
+              g950bddd: add pdnssec generate-zone-key command, thanks Aki. Closes t711.
             </para>
           </listitem>
           <listitem>
             <para>
-              g2c03cde: Replace select with waitForData in remotebackend. Patch by Aki Tuomi, closes t715
+              g2c03cde: Replace select with waitForData in remotebackend. Patch by Aki Tuomi, closes t715.
             </para>
           </listitem>
           <listitem>
             <para>
-              g450292c: accept ANY responses during recursive forwarding, thanks Jan-Piet Mens
+              g450292c: accept ANY responses during recursive forwarding, thanks Jan-Piet Mens.
             </para>
           </listitem>
           <listitem>
             <para>
-              gd9dd76b: actually clean up unix domain sockets too after use
+              gd9dd76b: actually clean up unix domain sockets too after use.
             </para>
           </listitem>
           <listitem>
@@ -476,32 +476,32 @@
           </listitem>
           <listitem>
             <para>
-              g9566683: merge patch from ticket 712 addressing memory leak in remotebackend (thanks Aki for the fix!)
+              g9566683: merge patch from ticket 712 addressing memory leak in remotebackend, thanks Aki.
             </para>
           </listitem>
           <listitem>
             <para>
-              gfb6ed6f: explicitly set domain id during bindbackend superslave domain create, thanks Kees Monshouwer&amp;Aki Tuomi
+              gfb6ed6f: explicitly set domain id during bindbackend superslave domain create, thanks Kees Monshouwer&amp;Aki Tuomi.
             </para>
           </listitem>
           <listitem>
             <para>
-              g69bae20: use private temp dir when running under systemd, thanks Morten Stevens&amp;Ruben Kerkhof
+              g69bae20: use private temp dir when running under systemd, thanks Morten Stevens&amp;Ruben Kerkhof.
             </para>
           </listitem>
           <listitem>
             <para>
-              gb26a48a: fix rapidjson usage in remotebackend, patch by Aki Tuomi. Closes t697
+              gb26a48a: fix rapidjson usage in remotebackend, patch by Aki Tuomi. Closes t697.
             </para>
           </listitem>
           <listitem>
             <para>
-              gda8e6ae: also answer questions with : in them
+              gda8e6ae: also answer questions with : in them.
             </para>
           </listitem>
           <listitem>
             <para>
-              gef1c4bf: also spot trailing dots on CNAME content, thanks Jan-Piet Mens and Ruben d'Arco
+              gef1c4bf: also spot trailing dots on CNAME content, thanks Jan-Piet Mens and Ruben d'Arco.
             </para>
           </listitem>
           <listitem>
