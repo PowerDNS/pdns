@@ -15095,7 +15095,9 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of loggin
 	    <term>lua-prequery-script=...</term>
 	    <listitem>
 	      <para>
-		Lua script to run before answering a query. Not for production use!
+		Lua script to run before answering a query. Has hooks for
+		capturing requests, modifying answers and intercepting
+		errors.
 	      </para>
 	    </listitem>
 	  </varlistentry>
