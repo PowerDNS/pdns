@@ -77,6 +77,7 @@ __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
+bool g_anyToTcp;
 __thread shared_ptr<RecursorLua>* t_pdl;
 __thread RemoteKeeper* t_remotes;
 __thread shared_ptr<Regex>* t_traceRegex;
@@ -571,6 +572,8 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
+    } else if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
+      pw.getHeader()->tc=1;
     }
     else {
       pw.getHeader()->rcode=res;
@@ -1768,6 +1771,8 @@ int serviceMain(int argc, char*argv[])
  
     
   g_logCommonErrors=::arg().mustDo("log-common-errors");
+
+  g_anyToTcp = ::arg().mustDo("any-to-tcp");
   
   makeUDPServerSockets();
   makeTCPServerSockets();
@@ -2075,6 +2080,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "disable-edns", "Disable EDNS" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads (EXPERIMENTAL)")="no";
+    ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     
 
     ::arg().setCmd("help","Provide a helpful message");
