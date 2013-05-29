@@ -86,12 +86,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
   /*           1       2   3   4   */
   /* stack:  boolean table key row */
 
-#ifndef LUA_VERSION_NUM
-  int tableLen = luaL_getn(d_lua, 2);
-#else
-  int tableLen = lua_objlen(d_lua, 2);
-#endif
-
+  int tableLen = getLuaTableLength(d_lua, 2);
   for(int n=1; n < tableLen + 1; ++n) {
     lua_pushnumber(d_lua, n);
     lua_gettable(d_lua, 2);
@@ -165,6 +160,8 @@ static int ldp_getRemote(lua_State *L) {
   return 1;
 }
 
+// these functions are used for PowerDNS recursor regresseion testing against auth. The Lua 5.2 implementation is most likely broken.
+#if LUA_VERSION_NUM < 502
 static const struct luaL_reg ldp_methods [] = {
       {"setRcode", ldp_setRcode},
       {"getQuestion", ldp_getQuestion},
@@ -185,6 +182,28 @@ void AuthLua::registerLuaDNSPacket(void) {
 
   lua_pop(d_lua, 1);
 }
+#else
+static const struct luaL_Reg ldp_methods [] = {
+      {"setRcode", ldp_setRcode},
+      {"getQuestion", ldp_getQuestion},
+      {"addRecords", ldp_addRecords},
+      {"getRemote", ldp_getRemote},
+      {NULL, NULL}
+    };
+
+void AuthLua::registerLuaDNSPacket(void) {
+
+  luaL_newmetatable(d_lua, "LuaDNSPacket");
+
+  lua_pushstring(d_lua, "__index");
+  lua_pushvalue(d_lua, -2);  /* pushes the metatable */
+  lua_settable(d_lua, -3);  /* metatable.__index = metatable */
+
+  luaL_newlib(d_lua, ldp_methods);
+
+  lua_pop(d_lua, 1);
+}
+#endif
 
 DNSPacket* AuthLua::prequery(DNSPacket *p)
 {

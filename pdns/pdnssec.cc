@@ -773,7 +773,8 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
     cerr<<"Failed to secure zone. Is your backend dnssec enabled? (set \n";
     cerr<<"gsqlite3-dnssec, or gmysql-dnssec etc). Check this first.\n";
     cerr<<"If you run with the BIND backend, make sure you have configured\n";
-    cerr<<"it to use DNSSEC with 'bind-dnssec-db' and 'pdnssec create-bind-db'!\n";
+    cerr<<"it to use DNSSEC with 'bind-dnssec-db=/path/fname' and\n";
+    cerr<<"'pdnssec create-bind-db /path/fname'!\n";
     return false;
   }
 
@@ -785,7 +786,7 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
   }
   
   for(vector<string>::iterator i = k_algos.begin()+1; i != k_algos.end(); i++)
-     dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true);
+    dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true); // obvious errors will have been caught above
 
   BOOST_FOREACH(string z_algo, z_algos)
   {
@@ -928,7 +929,7 @@ try
     cerr<<"Usage: \npdnssec [options] <command> [params ..]\n\n";
     cerr<<"Commands:\n";
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE\n";
-    cerr<<"add-zone-key ZONE zsk|ksk [bits]\n";
+    cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]\n";
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits\n";
     cerr<<"check-zone ZONE                    Check a zone for correctness\n";
@@ -943,7 +944,7 @@ try
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE\n";
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT\n";
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK\n";            
-    cerr<<"                [ksk|zsk]          Defaults to KSK\n";
+    cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active\n";
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)\n";
     cerr<<"rectify-all-zones                  Rectify all zones.\n";
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE\n";
@@ -974,8 +975,7 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
-  
-  
+
   if(cmds[0] == "create-bind-db") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
@@ -1131,6 +1131,7 @@ try
     int tmp_algo=0;
     int bits=0;
     int algorithm=8;
+    bool active=false;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
@@ -1138,17 +1139,26 @@ try
         keyOrZone = true;
       else if((tmp_algo = shorthand2algorithm(cmds[n]))>0) {
         algorithm = tmp_algo;
-      } else if(atoi(cmds[n].c_str()))
+      } else if(pdns_iequals(cmds[n], "active")) {
+        active=true;
+      } else if(pdns_iequals(cmds[n], "inactive") || pdns_iequals(cmds[n], "passive")) {
+        active=false;
+      } else if(atoi(cmds[n].c_str())) {
         bits = atoi(cmds[n].c_str());
-      else { 
+      } else { 
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
-        return 0;
+        exit(EXIT_FAILURE);;
       }
     }
-    cerr<<"Adding a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<endl;
-    if(bits)
-      cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
-    dk.addKey(zone, keyOrZone, algorithm, bits, false); 
+    if(!dk.addKey(zone, keyOrZone, algorithm, bits, active)) {
+      cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
+      exit(1);
+    }
+    else {
+      cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
+      if(bits)
+	cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
+    }
   }
   else if(cmds[0] == "remove-zone-key") {
     if(cmds.size() < 3) {
@@ -1197,7 +1207,14 @@ try
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
     bool narrow = cmds.size() > 3 && cmds[3]=="narrow";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
-    dk.setNSEC3PARAM(cmds[1], ns3pr, narrow);
+    
+    string zone=cmds[1];
+    if(!dk.isSecuredZone(zone)) {
+      cerr<<"Zone '"<<zone<<"' is not secured, can't set NSEC3 parameters"<<endl;
+      exit(EXIT_FAILURE);
+    }
+    dk.setNSEC3PARAM(zone, ns3pr, narrow);
+    
     if (!ns3pr.d_flags)
       cerr<<"NSEC3 set, please rectify-zone if your backend needs it"<<endl;
     else
@@ -1272,7 +1289,7 @@ try
   }
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
-      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE algorithm [ksk|zsk]"<<endl;
+      cerr<<"Syntax: pdnssec import-zone-key-pem ZONE FILE algorithm [ksk|zsk]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -1312,12 +1329,15 @@ try
     else
       dpk.d_flags = 257; // ksk
       
-    dk.addKey(zone, dpk); 
+    if(!dk.addKey(zone, dpk)) {
+      cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
+      exit(1);
+    }
     
   }
   else if(cmds[0]=="import-zone-key") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE [ksk|zsk]"<<endl;
+      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE [ksk|zsk] [active|passive]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -1330,23 +1350,28 @@ try
     
     if(dpk.d_algorithm == 7)
       dpk.d_algorithm = 5;
-      
-    cerr<<(int)dpk.d_algorithm<<endl;
     
-    if(cmds.size() > 3) {
-      if(pdns_iequals(cmds[3], "ZSK"))
-        dpk.d_flags = 256;
-      else if(pdns_iequals(cmds[3], "KSK"))
-        dpk.d_flags = 257;
-      else {
-        cerr<<"Unknown key flag '"<<cmds[3]<<"'\n";
-        exit(1);
-      }
+    dpk.d_flags = 257; 
+    bool active=true;
+
+    for(unsigned int n = 3; n < cmds.size(); ++n) {
+      if(pdns_iequals(cmds[n], "ZSK"))
+	dpk.d_flags = 256;
+      else if(pdns_iequals(cmds[n], "KSK"))
+	dpk.d_flags = 257;
+      else if(pdns_iequals(cmds[n], "active"))
+	active = 1;
+      else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive"))
+	active = 0;
+      else { 
+	cerr<<"Unknown key flag '"<<cmds[n]<<"'\n";
+	exit(1);
+      }	  
     }
-    else
-      dpk.d_flags = 257; 
-      
-    dk.addKey(zone, dpk); 
+    if(!dk.addKey(zone, dpk, active)) {
+      cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
+      exit(1);
+    }
   }
   else if(cmds[0]=="export-zone-dnskey") {
     if(cmds.size() < 3) {

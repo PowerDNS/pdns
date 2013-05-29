@@ -24,7 +24,7 @@ zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 ../../unix_utility.cc ../../qtype.cc ../../dns.cc \
 ../../zoneparser-tng.cc ../../dnsrecords.cc ../../sillyrecords.cc \
 ../../dnswriter.cc dnslabeltext.cc ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc \
-../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc ../../md5.cc ../../aes/dns_random.cc \
+../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc ../../aes/dns_random.cc \
 ../../aes/aescpp.h ../../aes/aescrypt.c ../../aes/aes.h ../../aes/aeskey.c ../../aes/aes_modes.c ../../aes/aesopt.h \
 ../../aes/aestab.c ../../aes/aestab.h ../../aes/brg_endian.h ../../aes/brg_types.h  # ../../dbdnsseckeeper.cc
 
@@ -32,13 +32,13 @@ zone2json_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 ../../arguments.cc ../../logger.cc zone2json.cc ../../statbag.cc ../../misc.cc \
 ../../unix_utility.cc ../../qtype.cc  ../../zoneparser-tng.cc ../../dnsrecords.cc \
 ../../dnswriter.cc dnslabeltext.cc  ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc ../../sillyrecords.cc \
-../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc ../../md5.cc
+../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc 
 
 zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 ../../arguments.cc ../../logger.cc zone2ldap.cc ../../statbag.cc ../../misc.cc \
 ../../unix_utility.cc ../../qtype.cc  ../../zoneparser-tng.cc ../../dnsrecords.cc \
 ../../dnswriter.cc dnslabeltext.cc  ../../rcpgenerator.cc ../../dnsparser.cc ../../base64.cc ../../sillyrecords.cc \
-../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc ../../md5.cc ../../aes/dns_random.cc \
+../../nsecrecords.cc ../../dnssecinfra.cc  ../../base32.cc ../../aes/dns_random.cc \
 ../../aes/aescpp.h ../../aes/aescrypt.c ../../aes/aes.h ../../aes/aeskey.c ../../aes/aes_modes.c ../../aes/aesopt.h \
 ../../aes/aestab.c ../../aes/aestab.h ../../aes/brg_endian.h ../../aes/brg_types.h # ../../dbdnsseckeeper.cc
 

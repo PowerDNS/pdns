@@ -18,6 +18,7 @@ Description: extremely powerful and versatile nameserver
 Package: pdns-static
 Architecture: any
 Recommends: pdns-doc
+Conflicts: pdns-server
 Description: static version of pDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational

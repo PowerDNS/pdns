@@ -601,7 +601,9 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   }
   
   // add matching NSEC3 RR
-  if (mode != 3) {
+  // we used to skip this one for mode 3, but old BIND needs it
+  // see https://github.com/PowerDNS/pdns/issues/814
+  if (mode != 3 || g_addSuperfluousNSEC3) {
     unhashed=(mode == 0 || mode == 5) ? target : closest;
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
@@ -1370,7 +1372,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       DLOG(L<<"Have unauth data, so need to hunt for best NS records"<<endl);
       if(tryReferral(p, r, sd, target))
         goto sendit;
-      L<<Logger::Error<<"Should not get here ("<<p->qdomain<<"|"<<p->qtype.getCode()<<"): please run pdnssec rectify-zone "<<sd.qname<<endl;
+      // check whether this could be fixed easily
+      if (*(rr.qname.rbegin()) == '.') {
+           L<<Logger::Error<<"Should not get here ("<<p->qdomain<<"|"<<p->qtype.getCode()<<"): you have a trailing dot, this could be the problem (or run pdnssec rectify-zone " <<sd.qname<<")"<<endl;
+      } else {
+           L<<Logger::Error<<"Should not get here ("<<p->qdomain<<"|"<<p->qtype.getCode()<<"): please run pdnssec rectify-zone "<<sd.qname<<endl;
+      }
     }
     else {
       DLOG(L<<"Have some data, but not the right data"<<endl);
@@ -1385,6 +1392,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     editSOA(d_dk, sd.qname, r);
     
+    BOOST_FOREACH(const DNSResourceRecord& rr, r->getRRS()) {
+      if(rr.scopeMask) {
+	noCache=1;
+	break;
+      }
+    }
     if(p->d_dnssecOk)
       addRRSigs(d_dk, B, authSet, r->getRRS());
       
