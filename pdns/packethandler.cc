@@ -1391,7 +1391,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     editSOA(d_dk, sd.qname, r);
-    BOOST_FOREACH(const DNSResourceRecord& rr, p->getRRS()) {
+    
+    BOOST_FOREACH(const DNSResourceRecord& rr, r->getRRS()) {
       if(rr.scopeMask) {
 	noCache=1;
 	break;
