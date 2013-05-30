@@ -347,6 +347,7 @@ void UeberBackend::addNegCache(const Question &q)
   static int negqueryttl=::arg().asNum("negquery-cache-ttl");
   if(!negqueryttl)
     return;
+  // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
   PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, q.zoneId);
 }
 
@@ -367,6 +368,8 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
   BOOST_FOREACH(DNSResourceRecord rr, rrs) {
     if (rr.ttl < queryttl)
       cachettl = rr.ttl;
+    if (rr.scopeMask)
+      return;
   }
 
   boa << rrs;
