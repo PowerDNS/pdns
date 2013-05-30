@@ -512,8 +512,8 @@ string simpleCompress(const string& elabel, const string& root)
   ret.reserve(label.size()+4);
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
     if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + i->first, 1 + label.length() - i->first)) { // also match trailing 0, hence '1 +'
-      const char rootptr[2]={0xc0,0x11};
-      ret.append(rootptr, 2);
+      const unsigned char rootptr[2]={0xc0,0x11};
+      ret.append((const char *) rootptr, 2);
       return ret;
     }
     ret.append(1, (char)(i->second - i->first));
