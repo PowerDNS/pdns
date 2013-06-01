@@ -559,7 +559,35 @@ bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, co
    return true;
 }
 
-bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) { return false; }
+bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qtype, const vector<DNSResourceRecord>& rrset) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+   rapidjson::Value rj_rrset;
+   JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "qname", qname.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "qtype", qtype.getName().c_str(), query.GetAllocator());
+   rj_rrset.SetArray();
+   rj_rrset.Reserve(rrset.size(), query.GetAllocator());
+
+   for(size_t i = 0; i < rrset.size(); i++) {
+      rapidjson::Value &rr = rj_rrset[i];
+      rr.SetObject();
+      JSON_ADD_MEMBER(rr, "qtype", rrset[i].qtype.getName().c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "qname", rrset[i].qname.c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "qclass", QClass::IN, query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "content", rrset[i].content.c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "ttl", rrset[i].ttl, query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "priority", rrset[i].priority, query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "auth", rrset[i].auth, query.GetAllocator());
+   }
+   parameters.AddMember("rrset", rj_rrset, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+   return true;
+}
+
 bool RemoteBackend::feedRecord(const DNSResourceRecord &r, string *ordername) { return false; }
 bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) { return false; }
 bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow) { return false; }
