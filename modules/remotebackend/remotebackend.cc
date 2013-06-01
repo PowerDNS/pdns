@@ -43,6 +43,9 @@ bool Connector::recv(rapidjson::Document &value) {
     return false;
 }
 
+/** 
+ * Standard ctor and dtor
+ */
 RemoteBackend::RemoteBackend(const std::string &suffix)
 {
       setArgPrefix("remote"+suffix);
@@ -351,7 +354,7 @@ bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer["result"].GetBool();
+   return true;
 }
 
 int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
@@ -394,7 +397,7 @@ bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer["result"].GetBool();
+   return true;
 }
 
 bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
@@ -414,7 +417,7 @@ bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer["result"].GetBool();
+   return true;
 }
 
 bool RemoteBackend::doesDNSSEC() {
@@ -537,8 +540,10 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
+   // we are the backend
    *ddb = this;
    
+   // we allow simple true as well...
    if (answer["result"].IsObject() && answer["result"].HasMember("account")) 
      *account = answer["result"]["account"].GetString();
 
@@ -590,6 +595,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
 
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
+
    return true;
 }
 
