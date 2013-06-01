@@ -66,6 +66,8 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     std::stringstream ss;
     std::string sparam;
     char *tmpstr;
+    size_t k=0;
+    k=k;
 
     // special names are qname, name, zonename, kind, others go to headers
 
@@ -106,6 +108,76 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, postfields);
         curl_free(tmpstr);
         delete postfields;
+    } else if (method == "superMasterBackend") {
+        std::stringstream ss2;
+        addUrlComponent(parameters, "ip", ss);
+        addUrlComponent(parameters, "domain", ss);
+        // then we need to serialize rrset payload into POST
+        for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(), k=0; itr != parameters["nsset"].End(); itr++, k++) {
+           for (rapidjson::Value::ConstMemberIterator itr2 = itr->MemberBegin(); itr2 != itr->MemberEnd(); itr2++) {
+              ss2 << "nsset[" << k << "][" << itr2->name.GetString() << "]=";
+              if (itr2->value.IsUint()) {
+                 ss2 << itr2->value.GetUint();
+              } else if (itr2->value.IsInt()) {
+                 ss2 << itr2->value.GetInt();
+              } else if (itr2->value.IsBool()) {
+                 ss2 << (itr2->value.GetBool() ? 1 : 0);
+              } else if (itr2->value.IsString()) {
+                 tmpstr = curl_easy_escape(d_c, itr2->value.GetString(), 0);
+                 ss2 << tmpstr;
+                 curl_free(tmpstr);
+              }
+           }
+        }
+        // then give it to curl
+        std::string out = ss2.str();
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+    } else if (method == "createSlaveDomain") {
+        addUrlComponent(parameters, "ip", ss);
+        addUrlComponent(parameters, "domain", ss);
+        addUrlComponent(parameters, "account", ss);
+    } else if (method == "replaceRRSet") {
+        std::stringstream ss2;
+        for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(), k=0; itr != parameters["nsset"].End(); itr++, k++) {
+           for (rapidjson::Value::ConstMemberIterator itr2 = itr->MemberBegin(); itr2 != itr->MemberEnd(); itr2++) {
+              ss2 << "rrset[" << k << "][" << itr2->name.GetString() << "]=";
+              if (itr2->value.IsUint()) {
+                 ss2 << itr2->value.GetUint();
+              } else if (itr2->value.IsInt()) {
+                 ss2 << itr2->value.GetInt();
+              } else if (itr2->value.IsBool()) {
+                 ss2 << (itr2->value.GetBool() ? 1 : 0);
+              } else if (itr2->value.IsString()) {
+                 tmpstr = curl_easy_escape(d_c, itr2->value.GetString(), 0);
+                 ss2 << tmpstr;
+                 curl_free(tmpstr);
+              }
+           }
+        }
+        // then give it to curl
+        std::string out = ss2.str();
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+    } else if (method == "feedRecord") {
+        std::stringstream ss2;
+        for (rapidjson::Value::ConstMemberIterator itr2 = parameters["rr"].MemberBegin(); itr2 != parameters["rr"].MemberEnd(); itr2++) {
+           ss2 << "rr[" << itr2->name.GetString() << "]=";
+           if (itr2->value.IsUint()) {
+              ss2 << itr2->value.GetUint();
+           } else if (itr2->value.IsInt()) {
+              ss2 << itr2->value.GetInt();
+           } else if (itr2->value.IsBool()) {
+              ss2 << (itr2->value.GetBool() ? 1 : 0);
+           } else if (itr2->value.IsString()) {
+              tmpstr = curl_easy_escape(d_c, itr2->value.GetString(), 0);
+              ss2 << tmpstr;
+              curl_free(tmpstr);
+           }
+        }
+        std::string out = ss2.str();
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
     } else if (method == "setDomainMetadata") {
         int n=0;
         // copy all metadata values into post
