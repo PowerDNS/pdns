@@ -500,6 +500,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "serial", id, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
 
    if (connector->send(query) == false || connector->recv(answer) == false) {
       L<<Logger::Error<<kBackendId<<"Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
