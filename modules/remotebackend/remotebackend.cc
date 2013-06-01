@@ -501,11 +501,59 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "serial", id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
-
+ 
    if (connector->send(query) == false || connector->recv(answer) == false) {
       L<<Logger::Error<<kBackendId<<"Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
    }
 }
+
+bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb) 
+{
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+   rapidjson::Value rrset;
+
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "superMasterBackend", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   rrset.SetArray();
+   rrset.Reserve(nsset.size(), query.GetAllocator());
+   for(size_t i = 0; i < nsset.size(); i++) {
+      rapidjson::Value &rr = rrset[i]; 
+      rr.SetObject();
+      JSON_ADD_MEMBER(rr, "qtype", nsset[i].qtype.getName().c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "qname", nsset[i].qname.c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "qclass", QClass::IN, query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "content", nsset[i].content.c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "ttl", nsset[i].ttl, query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "priority", nsset[i].priority, query.GetAllocator());
+      JSON_ADD_MEMBER(rr, "auth", nsset[i].auth, query.GetAllocator());
+   }
+   parameters.AddMember("nsset", rrset, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+
+   *ddb = this;
+   
+   if (answer["result"].IsObject() && answer["result"].HasMember("account")) 
+     *account = answer["result"]["account"].GetString();
+
+   return true;
+}
+
+bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, const string &account) { return false; }
+bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) { return false; }
+bool RemoteBackend::feedRecord(const DNSResourceRecord &r, string *ordername) { return false; }
+bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) { return false; }
+bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow) { return false; }
+bool RemoteBackend::startTransaction(const string &domain, int domain_id) { return false; }
+bool RemoteBackend::commitTransaction() { return false; }
+bool RemoteBackend::abortTransaction() { return false; }
+bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial) { return false; }
 
 DNSBackend *RemoteBackend::maker()
 {
