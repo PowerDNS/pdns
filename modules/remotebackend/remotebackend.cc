@@ -554,6 +554,8 @@ bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, co
    JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "account", account.c_str(), query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
    return true;
@@ -588,9 +590,64 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
    return true;
 }
 
-bool RemoteBackend::feedRecord(const DNSResourceRecord &r, string *ordername) { return false; }
-bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) { return false; }
-bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow) { return false; }
+bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+   JSON_ADD_MEMBER(parameters, "qtype", rr.qtype.getName().c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "qname", rr.qname.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "qclass", QClass::IN, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "content", rr.content.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "ttl", rr.ttl, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "priority", rr.priority, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "auth", rr.auth, query.GetAllocator());
+   if (ordername) {
+     JSON_ADD_MEMBER(parameters, "ordername", ordername->c_str(), query.GetAllocator());
+   }
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+   return true; // XXX FIXME this API should not return 'true' I think -ahu
+}
+
+bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+   rapidjson::Value nts;
+   JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
+   nts.SetArray();
+   BOOST_FOREACH(const string &t, nonterm) {
+      nts.PushBack(t.c_str(), query.GetAllocator());
+   }
+   parameters.AddMember("nonterm", nts, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+   return true; 
+}
+
+bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+   rapidjson::Value nts;
+   JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "times", times, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "salt", salt.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "narrow", narrow, query.GetAllocator());
+
+   nts.SetArray();
+   BOOST_FOREACH(const string &t, nonterm) {
+      nts.PushBack(t.c_str(), query.GetAllocator());
+   }
+   parameters.AddMember("nonterm", nts, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+   return true;
+}
+
 bool RemoteBackend::startTransaction(const string &domain, int domain_id) { return false; }
 bool RemoteBackend::commitTransaction() { return false; }
 bool RemoteBackend::abortTransaction() { return false; }
