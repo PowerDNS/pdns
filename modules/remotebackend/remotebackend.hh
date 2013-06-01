@@ -111,6 +111,16 @@ class RemoteBackend : public DNSBackend
   virtual bool getDomainInfo(const string&, DomainInfo&);
   virtual void setNotified(uint32_t id, uint32_t serial);
   virtual bool doesDNSSEC();
+  virtual bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb);
+  virtual bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account);
+  virtual bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
+  virtual bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername);
+  virtual bool GSQLBackend::feedEnts(int domain_id, set<string>& nonterm);
+  virtual bool GSQLBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow);
+  virtual bool GSQLBackend::startTransaction(const string &domain, int domain_id);
+  virtual bool GSQLBackend::commitTransaction();
+  virtual bool GSQLBackend::abortTransaction();
+  virtual bool GSQLBackend::calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 
   static DNSBackend *maker();
 
