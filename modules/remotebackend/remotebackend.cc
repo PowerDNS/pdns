@@ -545,7 +545,20 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    return true;
 }
 
-bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, const string &account) { return false; }
+bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, const string &account) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "superMasterBackend", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "account", account.c_str(), query.GetAllocator());
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+   return true;
+}
+
 bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) { return false; }
 bool RemoteBackend::feedRecord(const DNSResourceRecord &r, string *ordername) { return false; }
 bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) { return false; }
