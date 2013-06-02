@@ -40,12 +40,13 @@ size_t httpconnector_write_data(void *buffer, size_t size, size_t nmemb, void *u
 }
 
 // converts json value into string
-void HTTPConnector::json2string(const rapidjson::Value &input, std::string &output) {
+bool HTTPConnector::json2string(const rapidjson::Value &input, std::string &output) {
    if (input.IsString()) output = input.GetString();
    else if (input.IsNull()) output = "";
    else if (input.IsUint()) output = lexical_cast<std::string>(input.GetUint());
    else if (input.IsInt()) output = lexical_cast<std::string>(input.GetInt());
-   else output = "inconvertible value";
+   else return false;
+   return true;
 }
 
 void HTTPConnector::addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss) {
@@ -104,16 +105,13 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     // id must be first due to the fact that the qname/name can be empty
 
     addUrlComponent(parameters, "id", ss);
+    addUrlComponent(parameters, "domain_id", ss);
     addUrlComponent(parameters, "zonename", ss);
     addUrlComponent(parameters, "qname", ss);
     addUrlComponent(parameters, "name", ss);
     addUrlComponent(parameters, "kind", ss);
     addUrlComponent(parameters, "qtype", ss);
 
-    // finally add suffix
-    ss << d_url_suffix;
-    curl_easy_setopt(d_c, CURLOPT_URL, ss.str().c_str());
-    
     (*slist) = NULL;
     // set the correct type of request based on method
     if (method == "activateDomainKey" || method == "deactivateDomainKey") { 
@@ -150,11 +148,18 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     } else if (method == "createSlaveDomain") {
         addUrlComponent(parameters, "ip", ss);
         addUrlComponent(parameters, "domain", ss);
-        addUrlComponent(parameters, "account", ss);
+        if (parameters.HasMember("account")) {
+           std::string out = parameters["account"].GetString();
+           curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
+           curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str()); 
+        } else {
+           curl_easy_setopt(d_c, CURLOPT_POST, 1);
+           curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0); 
+        }
     } else if (method == "replaceRRSet") {
         std::stringstream ss2;
         size_t index = 0;
-        for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++) {
+        for(rapidjson::Value::ConstValueIterator itr = parameters["rrset"].Begin(); itr != parameters["rrset"].End(); itr++) {
             index++;
             ss2 << buildMemberListArgs("rrset[" + boost::lexical_cast<std::string>(index) + "]", itr, d_c);
         }
@@ -191,13 +196,18 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     } else if (method == "startTransaction") {
         addUrlComponent(parameters, "domain", ss);
         addUrlComponent(parameters, "trxid", ss);
+        curl_easy_setopt(d_c, CURLOPT_POST, 1);
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
     } else if (method == "commitTransaction" || method == "abortTransaction") {
         addUrlComponent(parameters, "trxid", ss);
+        curl_easy_setopt(d_c, CURLOPT_POST, 1);
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
     } else if (method == "calculateSOASerial") {
         addUrlComponent(parameters, "domain", ss);
         std::string out = buildMemberListArgs("sd", &parameters["sd"], d_c);
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
     } else if (method == "setDomainMetadata") {
-        int n=0;
         // copy all metadata values into post
         std::stringstream ss2;
         const rapidjson::Value& param = parameters["value"];
@@ -205,7 +215,7 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
         // this one has values too
         if (param.IsArray()) {
            for(rapidjson::Value::ConstValueIterator i = param.Begin(); i != param.End(); i++) {
-              ss2 << "value" << (++n) << "=" << i->GetString() << "&";
+              ss2 << "value[]=" << i->GetString() << "&";
            }
         }
         sparam = ss2.str();
@@ -214,6 +224,12 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     } else if (method == "removeDomainKey") {
         // this one is delete
         curl_easy_setopt(d_c, CURLOPT_CUSTOMREQUEST, "DELETE");
+    } else if (method == "setNotified") {
+        tmpstr = (char*)malloc(128);
+        snprintf(tmpstr, 128, "serial=%u", parameters["serial"].GetInt());
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, strlen(tmpstr));
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, tmpstr);
+        free(tmpstr);
     } else {
         // perform normal get
         curl_easy_setopt(d_c, CURLOPT_HTTPGET, 1);
@@ -228,10 +244,15 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
           !strncmp(member,"name",4) || !strncmp(member,"kind",4) ||
           !strncmp(member,"qtype",5) || !strncmp(member,"id",2) ||
           !strncmp(member,"key",3)) continue;
-      json2string(parameters[member], sparam);
-      snprintf(header, sizeof header, "X-RemoteBackend-%s: %s", iter->name.GetString(), sparam.c_str());
-      (*slist) = curl_slist_append((*slist), header);
+      if (json2string(parameters[member], sparam)) {
+         snprintf(header, sizeof header, "X-RemoteBackend-%s: %s", iter->name.GetString(), sparam.c_str());
+         (*slist) = curl_slist_append((*slist), header);
+      }
     };
+
+    // finally add suffix and store url
+    ss << d_url_suffix;
+    curl_easy_setopt(d_c, CURLOPT_URL, ss.str().c_str());
 
     // store headers into request
     curl_easy_setopt(d_c, CURLOPT_HTTPHEADER, *slist); 
