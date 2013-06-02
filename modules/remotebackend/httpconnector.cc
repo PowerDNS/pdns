@@ -59,6 +59,33 @@ void HTTPConnector::addUrlComponent(const rapidjson::Value &parameters, const ch
     }
 }
 
+template <class T> std::string buildMemberListArgs(std::string prefix, const T* value, CURL* curlContext) {
+    std::stringstream stream;
+
+    for (rapidjson::Value::ConstMemberIterator itr = value->MemberBegin(); itr != value->MemberEnd(); itr++) {
+        stream << prefix << "[" << itr->name.GetString() << "]=";
+
+        if (itr->value.IsUint64()) {
+            stream << itr->value.GetUint64();
+        } else if (itr->value.IsInt64()) {
+            stream << itr->value.GetInt64();
+        } else if (itr->value.IsUint()) {
+            stream << itr->value.GetUint();
+        } else if (itr->value.IsInt()) {
+            stream << itr->value.GetInt();
+        } else if (itr->value.IsBool()) {
+            stream << (itr->value.GetBool() ? 1 : 0);
+        } else if (itr->value.IsString()) {
+            char *tmpstr = curl_easy_escape(curlContext, itr->value.GetString(), 0);
+            stream << tmpstr;
+            curl_free(tmpstr);
+        }
+
+        stream << "&";
+    }
+
+    return stream.str();
+}
 
 // builds our request
 void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist)
@@ -66,7 +93,6 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     std::stringstream ss;
     std::string sparam;
     char *tmpstr;
-    size_t k;
 
     // special names are qname, name, zonename, kind, others go to headers
 
@@ -112,24 +138,10 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
         addUrlComponent(parameters, "ip", ss);
         addUrlComponent(parameters, "domain", ss);
         // then we need to serialize rrset payload into POST
-        k=0;
+        size_t index = 0;
         for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++) {
-           k++;
-           for (rapidjson::Value::ConstMemberIterator itr2 = itr->MemberBegin(); itr2 != itr->MemberEnd(); itr2++) {
-              ss2 << "nsset[" << k << "][" << itr2->name.GetString() << "]=";
-              if (itr2->value.IsUint()) {
-                 ss2 << itr2->value.GetUint();
-              } else if (itr2->value.IsInt()) {
-                 ss2 << itr2->value.GetInt();
-              } else if (itr2->value.IsBool()) {
-                 ss2 << (itr2->value.GetBool() ? 1 : 0);
-              } else if (itr2->value.IsString()) {
-                 tmpstr = curl_easy_escape(d_c, itr2->value.GetString(), 0);
-                 ss2 << tmpstr;
-                 curl_free(tmpstr);
-              }
-              ss2 << "&";
-           }
+            index++;
+            ss2 << buildMemberListArgs("nsset[" + boost::lexical_cast<std::string>(index) + "]", itr, d_c);
         }
         // then give it to curl
         std::string out = ss2.str();
@@ -141,46 +153,17 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
         addUrlComponent(parameters, "account", ss);
     } else if (method == "replaceRRSet") {
         std::stringstream ss2;
-        k=0;
-        for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++, k++) {
-           for (rapidjson::Value::ConstMemberIterator itr2 = itr->MemberBegin(); itr2 != itr->MemberEnd(); itr2++) {
-              ss2 << "rrset[" << k << "][" << itr2->name.GetString() << "]=";
-              if (itr2->value.IsUint()) {
-                 ss2 << itr2->value.GetUint();
-              } else if (itr2->value.IsInt()) {
-                 ss2 << itr2->value.GetInt();
-              } else if (itr2->value.IsBool()) {
-                 ss2 << (itr2->value.GetBool() ? 1 : 0);
-              } else if (itr2->value.IsString()) {
-                 tmpstr = curl_easy_escape(d_c, itr2->value.GetString(), 0);
-                 ss2 << tmpstr;
-                 curl_free(tmpstr);
-              }
-              ss2 << "&";
-           }
+        size_t index = 0;
+        for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++) {
+            index++;
+            ss2 << buildMemberListArgs("rrset[" + boost::lexical_cast<std::string>(index) + "]", itr, d_c);
         }
         // then give it to curl
         std::string out = ss2.str();
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
     } else if (method == "feedRecord") {
-        std::stringstream ss2;
-        for (rapidjson::Value::ConstMemberIterator itr2 = parameters["rr"].MemberBegin(); itr2 != parameters["rr"].MemberEnd(); itr2++) {
-           ss2 << "rr[" << itr2->name.GetString() << "]=";
-           if (itr2->value.IsUint()) {
-              ss2 << itr2->value.GetUint();
-           } else if (itr2->value.IsInt()) {
-              ss2 << itr2->value.GetInt();
-           } else if (itr2->value.IsBool()) {
-              ss2 << (itr2->value.GetBool() ? 1 : 0);
-           } else if (itr2->value.IsString()) {
-              tmpstr = curl_easy_escape(d_c, itr2->value.GetString(), 0);
-              ss2 << tmpstr;
-              curl_free(tmpstr);
-           }
-           ss2 << "&";
-        }
-        std::string out = ss2.str();
+        std::string out = buildMemberListArgs("rr", &parameters["rr"], d_c);
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
     } else if (method == "feedEnts") {
@@ -211,27 +194,8 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     } else if (method == "commitTransaction" || method == "abortTransaction") {
         addUrlComponent(parameters, "trxid", ss);
     } else if (method == "calculateSOASerial") {
-        std::stringstream ss2;
         addUrlComponent(parameters, "domain", ss);
-        for (rapidjson::Value::ConstMemberIterator itr2 = parameters["sd"].MemberBegin(); itr2 != parameters["sd"].MemberEnd(); itr2++) {
-           ss2 << "sd[" << itr2->name.GetString() << "]=";
-           if (itr2->value.IsUint64()) {
-              ss2 << itr2->value.GetUint64();
-           } else if (itr2->value.IsInt64()) {
-              ss2 << itr2->value.GetInt64();
-           } else if (itr2->value.IsUint()) {
-              ss2 << itr2->value.GetUint();
-           } else if (itr2->value.IsInt()) {
-              ss2 << itr2->value.GetInt();
-           } else if (itr2->value.IsBool()) {
-              ss2 << (itr2->value.GetBool() ? 1 : 0);
-           } else if (itr2->value.IsString()) {
-              tmpstr = curl_easy_escape(d_c, itr2->value.GetString(), 0);
-              ss2 << tmpstr;
-              curl_free(tmpstr);
-           }
-           ss2 << "&";
-        }
+        std::string out = buildMemberListArgs("sd", &parameters["sd"], d_c);
     } else if (method == "setDomainMetadata") {
         int n=0;
         // copy all metadata values into post
