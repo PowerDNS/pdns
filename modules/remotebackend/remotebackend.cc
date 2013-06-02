@@ -331,7 +331,10 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
       DNSBackend::KeyData key;
       key.id = (*iter)["id"].GetUint();
       key.flags = (*iter)["flags"].GetUint();
-      key.active = (*iter)["active"].GetBool();
+      if ((*iter)["active"].IsBool())
+         key.active = (*iter)["active"].GetBool();
+      else 
+         key.active = ((*iter)["active"].GetInt() != 0 ? true : false ); // case where it's returned as non-boolean
       key.content = (*iter)["content"].GetString();
       keys.push_back(key);
    }
@@ -346,7 +349,7 @@ bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) {
    if (d_dnssec == false) return false;
 
    query.SetObject();
-   JSON_ADD_MEMBER(query, "method", "getDomainKeys", query.GetAllocator());
+   JSON_ADD_MEMBER(query, "method", "removeDomainKey", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
@@ -503,7 +506,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    JSON_ADD_MEMBER(query, "method", "setNotified", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "serial", id, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "serial", serial, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
  
    if (connector->send(query) == false || connector->recv(answer) == false) {
@@ -525,7 +528,7 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    rrset.SetArray();
    rrset.Reserve(nsset.size(), query.GetAllocator());
    for(rapidjson::SizeType i = 0; i < nsset.size(); i++) {
-      rapidjson::Value &rr = rrset[i]; 
+      rapidjson::Value rr;
       rr.SetObject();
       JSON_ADD_MEMBER(rr, "qtype", nsset[i].qtype.getName().c_str(), query.GetAllocator());
       JSON_ADD_MEMBER(rr, "qname", nsset[i].qname.c_str(), query.GetAllocator());
@@ -534,9 +537,12 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
       JSON_ADD_MEMBER(rr, "ttl", nsset[i].ttl, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "priority", nsset[i].priority, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "auth", nsset[i].auth, query.GetAllocator());
+      rrset.PushBack(rr, query.GetAllocator());
    }
    parameters.AddMember("nsset", rrset, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
+
+   *ddb = 0;
 
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
@@ -577,11 +583,13 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "qname", qname.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "qtype", qtype.getName().c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
+
    rj_rrset.SetArray();
    rj_rrset.Reserve(rrset.size(), query.GetAllocator());
 
    for(rapidjson::SizeType i = 0; i < rrset.size(); i++) {
-      rapidjson::Value &rr = rj_rrset[i];
+      rapidjson::Value rr;
       rr.SetObject();
       JSON_ADD_MEMBER(rr, "qtype", rrset[i].qtype.getName().c_str(), query.GetAllocator());
       JSON_ADD_MEMBER(rr, "qname", rrset[i].qname.c_str(), query.GetAllocator());
@@ -590,6 +598,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
       JSON_ADD_MEMBER(rr, "ttl", rrset[i].ttl, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "priority", rrset[i].priority, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "auth", rrset[i].auth, query.GetAllocator());
+      rj_rrset.PushBack(rr, query.GetAllocator());
    }
    parameters.AddMember("rrset", rj_rrset, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
@@ -602,20 +611,26 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
 
 bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
    rapidjson::Document query,answer;
-   rapidjson::Value parameters;
+   rapidjson::Value parameters,rj_rr;
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "feedRecord", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "qtype", rr.qtype.getName().c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "qname", rr.qname.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "qclass", QClass::IN, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "content", rr.content.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "ttl", rr.ttl, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "priority", rr.priority, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "auth", rr.auth, query.GetAllocator());
+   rj_rr.SetObject();
+   JSON_ADD_MEMBER(rj_rr, "qtype", rr.qtype.getName().c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(rj_rr, "qname", rr.qname.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(rj_rr, "qclass", QClass::IN, query.GetAllocator());
+   JSON_ADD_MEMBER(rj_rr, "content", rr.content.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(rj_rr, "ttl", rr.ttl, query.GetAllocator());
+   JSON_ADD_MEMBER(rj_rr, "priority", rr.priority, query.GetAllocator());
+   JSON_ADD_MEMBER(rj_rr, "auth", rr.auth, query.GetAllocator());
+   parameters.AddMember("rr", rj_rr, query.GetAllocator());
+
+   JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
+
    if (ordername) {
      JSON_ADD_MEMBER(parameters, "ordername", ordername->c_str(), query.GetAllocator());
    }
+
    query.AddMember("parameters", parameters, query.GetAllocator());
 
    if (connector->send(query) == false || connector->recv(answer) == false)
@@ -631,6 +646,7 @@ bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) {
    JSON_ADD_MEMBER(query, "method", "feedEnts", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
    nts.SetArray();
    BOOST_FOREACH(const string &t, nonterm) {
       nts.PushBack(t.c_str(), query.GetAllocator());
@@ -655,6 +671,7 @@ bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &
    JSON_ADD_MEMBER(parameters, "times", times, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "salt", salt.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "narrow", narrow, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
 
    nts.SetArray();
    BOOST_FOREACH(const string &t, nonterm) {

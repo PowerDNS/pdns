@@ -1,5 +1,10 @@
+#!/usr/bin/ruby
+
 require 'json'
 require 'thread'
+require "rubygems"
+require "webrick"
+require "./unittest"
 
 class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def initialize(server, dnsbackend)
@@ -16,11 +21,11 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
              newparams[$1][$2] = {} unless newparams[$1].has_key? $2
              newparams[$1][$2][$3] = val
              params.delete key
-         elsif key=~/^(.*)\[(.*)\]/
-           if $2 == ""
+         elsif key=~/^(.*)\[(.*)\]/ 
+           if $2 == "" 
              newparams[$1] = [] unless newparams.has_key? $1
              newparams[$1] << val
-           else
+           else 
              newparams[$1] = {} unless newparams.has_key? $1
              newparams[$1][$2] = val
            end
@@ -39,7 +44,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      when "lookup"
          {
           "qname" => url.shift,
-          "qtype" => url.shift,
+          "qtype" => url.shift
          }
      when "list"
         {
@@ -57,13 +62,45 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
         }
      when "removedomainkey", "activatedomainkey", "deactivatedomainkey"
         {
-             "id" => url.shift,
+             "id" => url.shift.to_i,
              "name" => url.shift
         } 
      when "adddomainkey", "gettsigkey", "getdomaininfo"
         {
              "name" => url.shift
         }
+     when "setnotified", "feedents"
+        {
+             "id" => url.shift.to_i
+        }
+     when "supermasterbackend", "createslavedomain"
+        {
+             "ip" => url.shift,
+             "domain" => url.shift
+        }
+     when "feedents3"
+        {
+             "id" => url.shift.to_i,
+             "domain" => url.shift
+        }
+     when "starttransaction"
+        {
+             "id" => url.shift.to_i,
+             "domain" => url.shift,
+	     "trxid" => url.shift.to_i
+	}
+     when "committransaction", "aborttransaction"
+        {
+             "trxid" => url.shift.to_i
+        }
+     when "replacerrset"
+        {
+          "id" => url.shift.to_i,
+          "qname" => url.shift,
+          "qtype" => url.shift
+        }
+     else
+        {}
      end
 
      [method, args]
@@ -98,7 +135,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      end
 
      args = parse_arrays args
- 
+
      @f.puts method
      @f.puts args
 
@@ -125,3 +162,18 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      do_GET(req,res)
    end 
 end
+
+server = WEBrick::HTTPServer.new(
+	:Port=>62434,
+	:BindAddress=>"localhost",
+#	Logger: WEBrick::Log.new("remotebackend-server.log"),
+	:AccessLog=>[ [ File.open("remotebackend-access.log", "w"), WEBrick::AccessLog::COMBINED_LOG_FORMAT ] ] 
+)
+
+be = Handler.new 
+server.mount "/dns", DNSBackendHandler, be
+
+trap('INT') { server.stop }
+trap('TERM') { server.stop }
+
+server.start

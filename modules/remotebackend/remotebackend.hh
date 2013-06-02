@@ -66,7 +66,7 @@ class HTTPConnector: public Connector {
     CURL *d_c;
     std::string d_data;
     int timeout;
-    void json2string(const rapidjson::Value &input, std::string &output);
+    bool json2string(const rapidjson::Value &input, std::string &output);
     void requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
 };
