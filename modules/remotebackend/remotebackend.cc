@@ -52,6 +52,7 @@ RemoteBackend::RemoteBackend(const std::string &suffix)
       build(getArg("connection-string"));
       this->d_dnssec = mustDo("dnssec");
       this->d_index = -1;
+      this->d_trxid = 0;
 }
 
 RemoteBackend::~RemoteBackend() {
@@ -670,22 +671,35 @@ bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &
 bool RemoteBackend::startTransaction(const string &domain, int domain_id) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
+   this->d_trxid = time((time_t*)NULL);
+
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "startTransaction", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
+
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (connector->send(query) == false || connector->recv(answer) == false) {
+     d_trxid = -1;
      return false;
+   }
    return true;
 
 }
 bool RemoteBackend::commitTransaction() { 
    rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "abortTransaction", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   d_trxid = -1;
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
    return true;
@@ -693,8 +707,15 @@ bool RemoteBackend::commitTransaction() {
 
 bool RemoteBackend::abortTransaction() { 
    rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "commitTransaction", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   d_trxid = -1;
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
    return true;
