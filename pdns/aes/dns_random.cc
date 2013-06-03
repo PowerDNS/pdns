@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <limits>
-#include "pdns/dns_random.hh"
+#include "dns_random.hh"
 
 using namespace std;
 
