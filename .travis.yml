@@ -8,7 +8,7 @@ before_script:
  - sudo restart mysql
 script:
  - ./bootstrap
- - ./configure --with-modules='gmysql tinydns random' --with-sqlite3 --enable-unit-tests
+ - ./configure --with-modules='pipe remote gmysql tinydns random' --with-sqlite3 --enable-unit-tests
  - make dist
  - make -j 4
  - make check
@@ -35,6 +35,8 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-optout-presigned 
  - ./start-test-stop 5300 gmysql-nsec3-narrow
  - ./start-test-stop 5300 tinydns 
+ - ./start-test-stop 5300 remotebackend-pipe
+ - ./start-test-stop 5300 remotebackend-pipe-dnssec
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
