@@ -11,9 +11,8 @@ script:
  - ./configure --with-modules='gmysql tinydns random' --with-sqlite3 --enable-unit-tests
  - make dist
  - make -j 4
+ - make check
  - cd pdns
- - make testrunner
- - ./testrunner
  - cd docs
  - make
  - cd ../../regression-tests
