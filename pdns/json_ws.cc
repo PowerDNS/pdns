@@ -43,22 +43,19 @@ JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
 void JWebserver::readRequest(int fd)
 {
   char buffer[16384];
-  int res = read(fd, buffer, sizeof(buffer));
+  int res = read(fd, buffer, sizeof(buffer)-1);
   if(res <= 0) {
     d_fdm->removeReadFD(fd);
     close(fd);
-    cerr<<"Lost connection"<<endl;
     return;
   }
   buffer[res]=0;
-  cerr<< buffer << endl;
   
   char * p = strchr(buffer, '\r');
   if(p) *p = 0;
   if(strstr(buffer, "GET ") != buffer) {
     d_fdm->removeReadFD(fd);
     close(fd);
-    cerr<<"Invalid request"<<endl;
     return;
   }
 
@@ -72,12 +69,10 @@ void JWebserver::readRequest(int fd)
     stringtok(variables, line, "&");
     BOOST_FOREACH(const string& var, variables) {
       varmap.insert(splitField(var, '='));
-      cout<<"Variable: '"<<var<<"'"<<endl;
     }
   }
   
   string callback=varmap["callback"];
-  cout <<"Callback: '"<<callback<<"'\n";
 
   char response[]="HTTP/1.1 200 OK\r\n"
   "Date: Wed, 30 Nov 2011 22:01:15 GMT\r\n"
@@ -115,7 +110,6 @@ void JWebserver::readRequest(int fd)
   } 
   else if(varmap["command"]=="flush-cache") {
     string canon=toCanonic("", varmap["domain"]);
-    cerr<<"Canon: '"<<canon<<"'\n";
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
     stats["number"]=lexical_cast<string>(count);
@@ -141,11 +135,9 @@ void JWebserver::readRequest(int fd)
 
   string tot = (boost::format(response) % content.length()).str();
   tot += content;
-  cout << "Starting write"<<endl;
   Utility::setBlocking(fd);
   writen2(fd, tot.c_str(), tot.length());
   Utility::setNonBlocking(fd);
-  cout <<"And done"<<endl;
 }
 
 void JWebserver::newConnection()
@@ -157,7 +149,6 @@ void JWebserver::newConnection()
   if(sock < 0)
     return;
     
-  cerr<<"Connection from "<< remote.toStringWithPort() <<endl;
   Utility::setNonBlocking(sock);
   d_fdm->addReadFD(sock, boost::bind(&JWebserver::readRequest, this, _1));
 }
