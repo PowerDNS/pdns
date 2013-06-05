@@ -19057,6 +19057,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       </para>
      <sect2 id="remotebackend-notices"><title>Important notices</title>
       <para>Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.</para>
+     </sect2>
      <sect2 id="remotebackend-compiling"><title>Compiling</title>
         <para>
         To compile this backend, you need to configure --with-modules="remote pipe", for
