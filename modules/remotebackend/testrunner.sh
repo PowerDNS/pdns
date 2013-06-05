@@ -2,20 +2,18 @@
 
 webrick_pid=""
 
-if [ x"$REMOTEBACKEND_HTTP" == "xyes" ]; then 
+function start_web() {
+  if [ x"$REMOTEBACKEND_HTTP" == "xyes" ]; then
+   ./unittest_$1.rb &
+   webrick_pid=$!
+   sleep 1
+  fi
+}
 
-if [ `basename "$1"` == "test_remotebackend_http" ]; then 
- ./unittest_http.rb &  
- webrick_pid=$!
- sleep 1
-fi
-
-$1
-rv=$?
-
-if [ ! -z "$webrick_pid" ]; then 
+function stop_web() {
+ if [ ! -z "$webrick_pid" ]; then
    kill -TERM $webrick_pid
-   # wait a moment for it to die 
+   # wait a moment for it to die
    i=0
    while [ $i -lt 5 ]; do
      sleep 1
@@ -23,13 +21,37 @@ if [ ! -z "$webrick_pid" ]; then
      if [ $? -ne 0 ]; then break; fi
      let i=i+1
    done
-fi
+ fi
+}
 
-else
+mode=`basename "$1"`
 
-$1
-rv=$?
-
-fi
+case "$mode" in
+  test_remotebackend_pipe)
+    ./test_remotebackend_pipe
+    rv=$?
+  ;;
+  test_remotebackend_http)
+    start_web "http"
+    ./test_remotebackend_http
+    rv=$?
+    stop_web
+  ;;
+  test_remotebackend_post)
+    start_web "post"
+    ./test_remotebackend_post
+    rv=$?
+    stop_web
+  ;;
+  test_remotebackend_json)
+    start_web "json"
+    ./test_remotebackend_json
+    rv=$?
+    stop_web
+  ;;
+  *)
+     echo "Usage: $0 test_remotebackend_(pipe|http|post)"
+  ;;
+esac
 
 exit $rv

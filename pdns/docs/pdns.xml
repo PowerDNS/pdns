@@ -19055,6 +19055,9 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       <para>
         This backend provides unix socket / pipe / http remoting for powerdns.
       </para>
+     <sect2 id="remotebackend-notices"><title>Important notices</title>
+      <para>Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.</para>
+     </sect2>
      <sect2 id="remotebackend-compiling"><title>Compiling</title>
         <para>
         To compile this backend, you need to configure --with-modules="remote pipe", for
@@ -19063,7 +19066,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       </sect2>
       <sect2 id="remotebackend-usage"><title>Usage</title>
         <para>
-          The only configuration option for this backend is remote-connection-string. It comprises of two elements: type of backend, and parameters.
+          The only configuration optionss for backend are remote-connection-string and remote-dnssec.
         </para>
         <para>
           <programlisting>
@@ -19099,18 +19102,26 @@ remote-connection-string=unix:command=/path/to/executable,timeout=2000
       </sect3>
 
 
-      <sect3 id="remotebackend-HTTP"><title>HTTP backend</title>
+      <sect3 id="remotebackend-http"><title>HTTP backend</title>
         <para>
-          parameters: url, url-suffix, timeout (default 2000)
+          parameters: url, url-suffix, post, post_json, cafile, capath, timeout (default 2000)
         </para>
         <para>
-          HTTP backend tries to do RESTful requests to your server. See examples.
+          HTTP backend tries to do RESTful requests to your server. See examples. You can also
+          use post to change behaviour so that it will send POST request to url/method + url_suffix
+          with parameters=json-formatted-parameters. If you use post and post_json, it will POST
+          url with text/javascript containing JSON formatted RPC request, just like for pipe and unix. 
+          You can use '1', 'yes', 'on' or 'true' to turn these features on. 
         </para>
         <para>
           URL should not end with /, and url-suffix is optional, but if you define it, it's
           up to you to write the ".php" or ".json". Lack of dot causes lack of dot in
           URL. Timeout is divided by 1000 because libcurl only supports seconds, but this is
           given in milliseconds for consistency with other backends. 
+        </para>
+        <para>
+          You can use HTTPS requests. If cafile and capath is left empty, remote SSL certificate is not checked. 
+          HTTP Authentication is not supported. SSL support requires that your cURL is compiled with it. 
         </para>
       </sect3>
       </sect2>
@@ -19308,7 +19319,7 @@ to appropriate value, otherwise things can go wrong.
    <para>
      Query:
 <programlisting>
-GET /dnsapi/list/example.com HTTP/1.1
+GET /dnsapi/list/-1/example.com HTTP/1.1
 X-RemoteBackend-domain-id: -1
 </programlisting>
    </para>
@@ -19344,7 +19355,7 @@ Content-Type: text/javascript; charset=utf-8
   <term>Description</term>
 <listitem><para>
 Asks the names before and after qname. qname is given without dots or domain part. The query
-can also be hashed. Care must be taken to handle wrap-around when qname is first or last in
+will be hashed when using NSEC3. Care must be taken to handle wrap-around when qname is first or last in
 the ordered list. Do not return nil for either one. 
 </para></listitem>
  </varlistentry>
@@ -19496,7 +19507,7 @@ POST /dnsapi/setdomainmetadata/example.com/PRESIGNED HTTP/1.1
 Content-Type: application/x-www-form-urlencoded 
 Content-Length: 12
 
-value1=YES&amp;
+value[]=YES&amp;
 </programlisting>
    </para>
    <para>
@@ -20041,6 +20052,656 @@ Content-Type: text/javascript; charset=utf-8
  </varlistentry>
 </variablelist>
 </sect4>
+
+<sect4 id="remotebackend-api-method-supermasterbackend"><title>Method: superMasterBackend</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>ip,domain,nsset,account</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure. can also return account=>name of account</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Creates new domain with given record(s) as master servers. IP address is the address where notify is received from. nsset is array of NS resource records.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"priority":0,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"priority":0,"auth":true}]}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   Alternative response:
+<programlisting>
+{"result":{"account":"my account"}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/supermasterbackend/10.0.0.1/example.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 317
+
+nsset[1][qtype]=NS&amp;nsset[1][qname]=example.com&amp;nsset[1][qclass]=1&amp;nsset[1][content]=ns1.example.com&amp;nsset[1][ttl]=300&amp;nsset[1][priority]=0&amp;nsset[1][auth]=true&amp;nsset[2][qtype]=NS&amp;nsset[2][qname]=example.com&amp;nsset[2][qclass]=1&amp;nsset[2][content]=ns2.example.com&amp;nsset[2][ttl]=300&amp;nsset[2][priority]=0&amp;nsset[2][auth]=true
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+    Alternative response
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":{"account":"my account}}
+</programlisting>
+
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-createslavedomain"><title>Method: createSlaveDomain</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>ip, domain</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Optional parameters:</term>
+   <listitem><para>account</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Creates new domain. This method is called when NOTIFY is received and you are superslaving. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"createSlaveDomain","parameters":{"ip":"10.0.0.1","domain":"pirate.unit.test"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/createslavedomain/10.0.0.1/pirate.unit.test
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 0
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-replacerrset"><title>Method: replaceRRSet</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>domain_id, qname, qtype, rrset</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+This method replaces a given resource record with new set. The new qtype can be different from the old. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"priority":0,"auth":true}]}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/replacerrset/2/replace.example.com/A
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 135
+
+trxid=1370416133&amp;rrset[qtype]=A&amp;rrset[qname]=replace.example.com&amp;rrset[qclass]=1&amp;rrset[content]=1.1.1.1&amp;rrset[priority]=0&amp;rrset[auth]=1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-feedrecord"><title>Method: feedRecord</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters: rr, trxid</term>
+   <listitem><para></para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Asks to feed new record into system. If startTransaction was called, trxId identifies a transaction. It is not always called by PowerDNS.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"priority":0,"auth":true},"trxid":1370416133}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/feedrecord/1370416133
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 117
+
+rr[qtype]=A&amp;rr[qname]=replace.example.com&amp;rr[qclass]=1&amp;rr[content]=127.0.0.1&amp;rr[ttl]=300&amp;rr[priority]=0&amp;rr[auth]=true
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-feedents"><title>Method: feedEnts</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:nonterm, trxid</term>
+   <listitem><para></para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+This method is used by pdnssec rectify-zone to populate missing non-terminals. This is used when you have, say, record like _sip._upd.example.com, but no _udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one. If startTransaction is called, trxid identifies a transaction. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"feedEnts","parameters":{"domain_id":2,"trxid":1370416133,"nonterm":["_sip._udp","_udp"]}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/feedents/2
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 50
+
+trxid=1370416133&amp;nonterm[]=_udp&amp;nonterm[]=_sip.udp
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-feedents3"><title>Method: feedEnts3</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:trxid, domain_id, domain, times, salt, narrow, nonterm</term>
+   <listitem><para></para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Same as <xref linked="remotebackend-api-method-feedents" />, but provides NSEC3 hashing parameters. Note that salt is BYTE value, and can be non-readable text.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"feedEnts3","parameters":{"domain_id":2,"domain":"example.com","times":1,"salt":"9642","narrow":false,"trxid":1370416356,"nonterm":["_sip._udp","_udp"]}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/2/example.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 78
+
+trxid=1370416356&amp;times=1&amp;salt=9642&amp;narrow=0&amp;nonterm[]=_sip._udp&amp;nonterm[]=_udp
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-starttransaction"><title>Method: startTransaction</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:domain_id, domain, trxid</term>
+   <listitem><para></para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Starts a new transaction. Transaction ID is chosen for you. Used to identify f.ex. AXFR transfer. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"startTransaction","parameters":{"trxid":1234,"domain_id":1,"domain":"example.com"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/starttransaction/1/example.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 10
+
+trxid=1234
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-committransaction"><title>Method: commitTransaction</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>trxid</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Signals successful transfer and asks to commit data into permanent storage.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"commitTransaction","parameters":{"trxid":1234}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/committransaction/1234
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 0
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-aborttransaction"><title>Method: abortTransaction</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>trxid</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Signals failed transaction, and that you should rollback any changes. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"abortTransaction","parameters":{"trxid":1234}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/aborttransaction/1234
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 0
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
+<sect4 id="remotebackend-api-method-calculatesoaserial"><title>Method: calculateSOASerial</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>domain,sd</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Asks you to calculate a new serial based on the given data <b>and</b> update the serial. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>{"method":"calculateSOASerial","parameters":{"domain":"unit.test","sd":{"qname":"unit.test","nameserver":"ns.unit.test","hostmaster":"hostmaster.unit.test","ttl":300,"serial":1,"refresh":2,"retry":3,"expire":4,"default_ttl":5,"domain_id":-1,"scopeMask":0}}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":2013060501}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+POST /dnsapi/calculatesoaserial/unit.test
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 198
+
+sd[qname]=unit.test&amp;sd[nameserver]=ns.unit.test&amp;sd[hostmaster]=hostmaster.unit.test&amp;sd[ttl]=300&amp;sd[serial]=1&amp;sd[refresh]=2&amp;sd[retry]=3&amp;sd[expire]=4&amp;sd[default_ttl]=5&amp;sd[domain_id]=-1&amp;sd[scopemask]=0
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":2013060501}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
 </sect3>
 </sect2>
 

@@ -66,8 +66,13 @@ class HTTPConnector: public Connector {
     CURL *d_c;
     std::string d_data;
     int timeout;
+    bool d_post; 
+    bool d_post_json;
+    std::string d_capath;
+    std::string d_cafile;
     bool json2string(const rapidjson::Value &input, std::string &output);
-    void requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
+    void restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
+    void post_requestbuilder(const rapidjson::Document &input, struct curl_slist **slist);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
 };
 #endif
@@ -130,6 +135,6 @@ class RemoteBackend : public DNSBackend
     bool d_dnssec;
     rapidjson::Document *d_result;
     int d_index;
-    time_t d_trxid;
+    int64_t d_trxid;
 };
 #endif

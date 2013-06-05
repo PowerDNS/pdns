@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <boost/foreach.hpp>
 #include <sstream>
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 #ifdef REMOTEBACKEND_HTTP
 #include <curl/curl.h>
@@ -22,9 +24,26 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
       this->d_url_suffix = "";
     }
     this->timeout = 2;
+    this->d_post = false;
+    this->d_post_json = false;
+
     if (options.find("timeout") != options.end()) { 
       this->timeout = boost::lexical_cast<int>(options.find("timeout")->second)/1000;
     }
+    if (options.find("post") != options.end()) {
+      std::string val = options.find("post")->second;
+      if (val == "yes" || val == "true" || val == "on" || val == "1") {
+        this->d_post = true;
+      }
+    }
+    if (options.find("post_json") != options.end()) {
+      std::string val = options.find("post_json")->second;
+      if (val == "yes" || val == "true" || val == "on" || val == "1") {
+        this->d_post_json = true;
+      }
+    }
+    if (options.find("capath") != options.end()) this->d_capath = options.find("capath")->second;
+    if (options.find("cafile") != options.end()) this->d_cafile = options.find("cafile")->second;
 }
 
 HTTPConnector::~HTTPConnector() {
@@ -43,6 +62,8 @@ size_t httpconnector_write_data(void *buffer, size_t size, size_t nmemb, void *u
 bool HTTPConnector::json2string(const rapidjson::Value &input, std::string &output) {
    if (input.IsString()) output = input.GetString();
    else if (input.IsNull()) output = "";
+   else if (input.IsUint64()) output = lexical_cast<std::string>(input.GetUint64());
+   else if (input.IsInt64()) output = lexical_cast<std::string>(input.GetInt64());
    else if (input.IsUint()) output = lexical_cast<std::string>(input.GetUint());
    else if (input.IsInt()) output = lexical_cast<std::string>(input.GetInt());
    else return false;
@@ -88,8 +109,8 @@ template <class T> std::string buildMemberListArgs(std::string prefix, const T* 
     return stream.str();
 }
 
-// builds our request
-void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist)
+// builds our request (near-restful)
+void HTTPConnector::restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist)
 {
     std::stringstream ss;
     std::string sparam;
@@ -169,10 +190,12 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
     } else if (method == "feedRecord") {
         std::string out = buildMemberListArgs("rr", &parameters["rr"], d_c);
+        addUrlComponent(parameters, "trxid", ss);
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
     } else if (method == "feedEnts") {
         std::stringstream ss2;
+        addUrlComponent(parameters, "trxid", ss);
         for(rapidjson::Value::ConstValueIterator itr = parameters["nonterm"].Begin(); itr != parameters["nonterm"].End(); itr++) {
           tmpstr = curl_easy_escape(d_c, itr->GetString(), 0);
           ss2 << "nonterm[]=" << tmpstr << "&";
@@ -184,6 +207,7 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     } else if (method == "feedEnts3") {
         std::stringstream ss2;
         addUrlComponent(parameters, "domain", ss);
+        addUrlComponent(parameters, "trxid", ss);
         ss2 << "times=" << parameters["times"].GetInt() << "&salt=" << parameters["salt"].GetString() << "&narrow=" << (parameters["narrow"].GetBool() ? 1 : 0) << "&";
         for(rapidjson::Value::ConstValueIterator itr = parameters["nonterm"].Begin(); itr != parameters["nonterm"].End(); itr++) {
           tmpstr = curl_easy_escape(d_c, itr->GetString(), 0);
@@ -258,6 +282,35 @@ void HTTPConnector::requestbuilder(const std::string &method, const rapidjson::V
     curl_easy_setopt(d_c, CURLOPT_HTTPHEADER, *slist); 
 }
 
+void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, struct curl_slist **slist) {
+    if (this->d_post_json) {
+        // simple case, POST JSON into url. nothing fancy. 
+        std::string out = makeStringFromDocument(input);
+        (*slist) = curl_slist_append((*slist), "Content-Type: text/javascript; charset=utf-8");
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        curl_easy_setopt(d_c, CURLOPT_URL, d_url.c_str());
+        curl_easy_setopt(d_c, CURLOPT_HTTPHEADER, *slist);
+    } else {
+        std::stringstream url,content;
+        char *tmpstr;
+        // call url/method.suffix
+        rapidjson::StringBuffer output;
+        rapidjson::Writer<rapidjson::StringBuffer> w(output);
+        input["parameters"].Accept(w);
+        url << d_url << "/" << input["method"].GetString() << d_url_suffix;
+        // then build content
+        tmpstr = curl_easy_escape(d_c, output.GetString(), 0);
+        content << "parameters=" << tmpstr;
+        // convert into parameters=urlencoded
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, content.str().size());
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, content.str().c_str());
+        free(tmpstr);
+        curl_easy_setopt(d_c, CURLOPT_URL, d_url.c_str());
+        curl_easy_setopt(d_c, CURLOPT_URL, url.str().c_str());
+    }
+}
+
 int HTTPConnector::send_message(const rapidjson::Document &input) {
     int rv;
     long rcode;
@@ -271,11 +324,26 @@ int HTTPConnector::send_message(const rapidjson::Document &input) {
     d_data = "";
     curl_easy_setopt(d_c, CURLOPT_NOSIGNAL, 1);
     curl_easy_setopt(d_c, CURLOPT_TIMEOUT, this->timeout);
+ 
+    // turn off peer verification or set verification roots
+    if (d_capath.empty()) {
+      if (d_cafile.empty()) {
+         curl_easy_setopt(d_c, CURLOPT_SSL_VERIFYPEER, 0);
+      } else {
+         curl_easy_setopt(d_c, CURLOPT_CAINFO, d_cafile.c_str());
+      }
+    } else {
+       curl_easy_setopt(d_c, CURLOPT_CAPATH, d_capath.c_str());
+    }
 
     slist = NULL;
 
-    // build request
-    requestbuilder(input["method"].GetString(), input["parameters"], &slist);
+    // build request based on mode
+    
+    if (d_post) 
+      post_requestbuilder(input, &slist);
+    else
+      restful_requestbuilder(input["method"].GetString(), input["parameters"], &slist);
 
     // setup write function helper
     curl_easy_setopt(d_c, CURLOPT_WRITEFUNCTION, &(httpconnector_write_data));
