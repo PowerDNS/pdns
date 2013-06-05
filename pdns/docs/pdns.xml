@@ -19041,8 +19041,8 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
           <tbody>
             <row><entry>Native</entry><entry>Yes</entry></row>
             <row><entry>Master</entry><entry>Yes*</entry></row>
-     	      <row><entry>Slave</entry><entry></entry></row>
-     	      <row><entry>Superslave</entry><entry></entry></row>
+     	      <row><entry>Slave</entry><entry>Yes*</entry></row>
+     	      <row><entry>Superslave</entry><entry>Yes*</entry></row>
      	      <row><entry>Autoserial</entry><entry>Yes*</entry></row>
      	      <row><entry>DNSSEC</entry><entry>Yes*</entry></row>
             <row><entry>Multiple instances</entry><entry>Yes</entry></row>
@@ -19105,6 +19105,11 @@ remote-connection-string=unix:command=/path/to/executable,timeout=2000
       <sect3 id="remotebackend-http"><title>HTTP backend</title>
         <para>
           parameters: url, url-suffix, post, post_json, cafile, capath, timeout (default 2000)
+        </para>
+        <para>
+          <programlisting>
+remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
+</programlisting>
         </para>
         <para>
           HTTP backend tries to do RESTful requests to your server. See examples. You can also
@@ -20266,8 +20271,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters: rr, trxid</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>rr, trxid</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20330,8 +20335,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters:nonterm, trxid</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>nonterm, trxid</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20394,8 +20399,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters:trxid, domain_id, domain, times, salt, narrow, nonterm</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>trxid, domain_id, domain, times, salt, narrow, nonterm</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20404,7 +20409,7 @@ Content-Type: text/javascript; charset=utf-8
  <varlistentry>
   <term>Description</term>
 <listitem><para>
-Same as <xref linked="remotebackend-api-method-feedents" />, but provides NSEC3 hashing parameters. Note that salt is BYTE value, and can be non-readable text.
+Same as <xref linkend="remotebackend-api-method-feedents" />, but provides NSEC3 hashing parameters. Note that salt is BYTE value, and can be non-readable text.
 </para></listitem>
  </varlistentry>
  <varlistentry>
@@ -20458,8 +20463,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters:domain_id, domain, trxid</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>domain_id, domain, trxid</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20656,7 +20661,7 @@ Content-Type: text/javascript; charset=utf-8
  <varlistentry>
   <term>Description</term>
 <listitem><para>
-Asks you to calculate a new serial based on the given data <b>and</b> update the serial. 
+Asks you to calculate a new serial based on the given data and update the serial. 
 </para></listitem>
  </varlistentry>
  <varlistentry>
