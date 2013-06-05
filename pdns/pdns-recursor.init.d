@@ -33,8 +33,13 @@ case "$1" in
 		if test "$NOTRUNNING" = "0" 
 		then 
 			echo "running"
+			exit 0
 		else
 			echo "not running"
+			# Note: 3 is a white lie. We currently don't *really*
+			# know that it's not running, or if the ping failed for
+			# other reasons (= 4).
+			exit 3
 		fi 
 	;;	
 
@@ -46,6 +51,7 @@ case "$1" in
 			echo $ret
 		else
 			echo "not running"
+			exit 1
 		fi 
 	;;		
 
@@ -61,6 +67,7 @@ case "$1" in
 		if test "$NOTRUNNING" = "0" 
 		then 
 			echo "already running"
+			exit 1
 		else
 			$pdns_server --daemon 
 			if test "$?" = "0"
