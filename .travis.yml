@@ -3,12 +3,12 @@ compiler:
   - gcc
 before_script:
  - sudo apt-get update
- - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev xmlto dblatex links ruby-json ruby-sqlite3 rubygems
+ - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev xmlto dblatex links ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev
  - sudo sed -i '0,/\[mysqld\]/s//[mysqld]\nskip-character-set-client-handshake/' /etc/mysql/my.cnf
  - sudo restart mysql
 script:
  - ./bootstrap
- - ./configure --with-modules='pipe remote gmysql tinydns random' --with-sqlite3 --enable-unit-tests
+ - ./configure --with-modules='pipe remote gmysql tinydns random' --with-sqlite3 --enable-unit-tests --enable-remotebackend-http
  - make dist
  - make -j 4
  - make check
