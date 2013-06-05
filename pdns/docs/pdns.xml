@@ -19041,8 +19041,8 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
           <tbody>
             <row><entry>Native</entry><entry>Yes</entry></row>
             <row><entry>Master</entry><entry>Yes*</entry></row>
-     	      <row><entry>Slave</entry><entry></entry></row>
-     	      <row><entry>Superslave</entry><entry></entry></row>
+     	      <row><entry>Slave</entry><entry>Yes*</entry></row>
+     	      <row><entry>Superslave</entry><entry>Yes*</entry></row>
      	      <row><entry>Autoserial</entry><entry>Yes*</entry></row>
      	      <row><entry>DNSSEC</entry><entry>Yes*</entry></row>
             <row><entry>Multiple instances</entry><entry>Yes</entry></row>
@@ -19105,6 +19105,11 @@ remote-connection-string=unix:command=/path/to/executable,timeout=2000
       <sect3 id="remotebackend-http"><title>HTTP backend</title>
         <para>
           parameters: url, url-suffix, post, post_json, cafile, capath, timeout (default 2000)
+        </para>
+        <para>
+          <programlisting>
+remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
+</programlisting>
         </para>
         <para>
           HTTP backend tries to do RESTful requests to your server. See examples. You can also
