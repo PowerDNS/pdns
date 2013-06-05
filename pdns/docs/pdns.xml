@@ -20266,8 +20266,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters: rr, trxid</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>rr, trxid</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20330,8 +20330,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters:nonterm, trxid</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>nonterm, trxid</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20394,8 +20394,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters:trxid, domain_id, domain, times, salt, narrow, nonterm</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>trxid, domain_id, domain, times, salt, narrow, nonterm</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20404,7 +20404,7 @@ Content-Type: text/javascript; charset=utf-8
  <varlistentry>
   <term>Description</term>
 <listitem><para>
-Same as <xref linked="remotebackend-api-method-feedents" />, but provides NSEC3 hashing parameters. Note that salt is BYTE value, and can be non-readable text.
+Same as <xref linkend="remotebackend-api-method-feedents" />, but provides NSEC3 hashing parameters. Note that salt is BYTE value, and can be non-readable text.
 </para></listitem>
  </varlistentry>
  <varlistentry>
@@ -20458,8 +20458,8 @@ Content-Type: text/javascript; charset=utf-8
    <listitem><para>No</para></listitem>
  </varlistentry>
  <varlistentry>
-   <term>Parameters:domain_id, domain, trxid</term>
-   <listitem><para></para></listitem>
+   <term>Parameters:</term>
+   <listitem><para>domain_id, domain, trxid</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
@@ -20656,7 +20656,7 @@ Content-Type: text/javascript; charset=utf-8
  <varlistentry>
   <term>Description</term>
 <listitem><para>
-Asks you to calculate a new serial based on the given data <b>and</b> update the serial. 
+Asks you to calculate a new serial based on the given data and update the serial. 
 </para></listitem>
  </varlistentry>
  <varlistentry>
