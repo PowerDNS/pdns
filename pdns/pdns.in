@@ -6,12 +6,12 @@
 # Provides:          pdns
 # Required-Start:    $remote_fs $network $syslog
 # Required-Stop:     $remote_fs $network $syslog
-# Should-Start:      $all
-# Should-Stop:       
+# Should-Start:
+# Should-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Start/stop PowerDNS authoritative server
-# Description:       Start/stop PowerDNS authoritative server
+# Short-Description: PowerDNS authoritative server
+# Description:       PowerDNS authoritative server
 ### END INIT INFO
 
 set -e
