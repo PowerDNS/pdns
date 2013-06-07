@@ -1,14 +1,14 @@
 #!/usr/bin/ruby1.9.1
 
+require 'rubygems'
 require 'json'
-require '../modules/remotebackend/regression-tests/backend'
+require './unittest'
 
-h = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3")
-
+h = Handler.new()
 f = File.open "/tmp/tmp.txt","a"
 
 STDOUT.sync = true
-begin 
+begin
   STDIN.each_line do |line|
     f.puts line
     # expect json
