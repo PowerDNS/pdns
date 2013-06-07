@@ -66,8 +66,13 @@ class HTTPConnector: public Connector {
     CURL *d_c;
     std::string d_data;
     int timeout;
-    void json2string(const rapidjson::Value &input, std::string &output);
-    void requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
+    bool d_post; 
+    bool d_post_json;
+    std::string d_capath;
+    std::string d_cafile;
+    bool json2string(const rapidjson::Value &input, std::string &output);
+    void restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
+    void post_requestbuilder(const rapidjson::Document &input, struct curl_slist **slist);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
 };
 #endif
@@ -111,6 +116,16 @@ class RemoteBackend : public DNSBackend
   virtual bool getDomainInfo(const string&, DomainInfo&);
   virtual void setNotified(uint32_t id, uint32_t serial);
   virtual bool doesDNSSEC();
+  virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb);
+  virtual bool createSlaveDomain(const string &ip, const string &domain, const string &account);
+  virtual bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
+  virtual bool feedRecord(const DNSResourceRecord &r, string *ordername);
+  virtual bool feedEnts(int domain_id, set<string>& nonterm);
+  virtual bool feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow);
+  virtual bool startTransaction(const string &domain, int domain_id);
+  virtual bool commitTransaction();
+  virtual bool abortTransaction();
+  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 
   static DNSBackend *maker();
 
@@ -119,6 +134,7 @@ class RemoteBackend : public DNSBackend
     Connector *connector;
     bool d_dnssec;
     rapidjson::Document *d_result;
-    int d_index; 
+    int d_index;
+    int64_t d_trxid;
 };
 #endif
