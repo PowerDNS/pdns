@@ -25,8 +25,12 @@ static string productName("");
 string compilerVersion()
 {
 #if defined(__clang__)
+#ifdef CLANG_VERSION_STRING
   // clang defines __GNUC__ as well, so put it first.
-  return string("clang "__clang__version);
+  return string("clang " CLANG_VERSION_STRING);
+#else
+  return string("clang "__clang_version__);
+#endif
 #elif defined(__GNUC__)
   return string("gcc "__VERSION__);
 #elif defined(_MSC_VER)
