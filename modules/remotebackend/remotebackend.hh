@@ -59,7 +59,7 @@ class HTTPConnector: public Connector {
 
   virtual int send_message(const rapidjson::Document &input);
   virtual int recv_message(rapidjson::Document &output);
-  friend size_t ::httpconnector_write_data(void*, size_t, size_t, void *value);
+  friend size_t httpconnector_write_data(void*, size_t, size_t, void *value);
   private:
     std::string d_url;
     std::string d_url_suffix;
