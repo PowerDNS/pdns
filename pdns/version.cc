@@ -20,19 +20,19 @@
 #include "version.hh"
 #include "version_generated.h"
 
-static string productName("");
+static std::string productName("");
 
 string compilerVersion()
 {
 #if defined(__clang__)
   // clang defines __GNUC__ as well, so put it first.
-  return string("clang "__clang__version);
+  return std::string("clang "__clang__version);
 #elif defined(__GNUC__)
-  return string("gcc "__VERSION__);
+  return std::string("gcc "__VERSION__);
 #elif defined(_MSC_VER)
-  return string("MSVC "<<_MSC_VER);
+  return std::string("MSVC "<<_MSC_VER);
 #endif // add other compilers here
-  return string("Unknown compiler");
+  return std::string("Unknown compiler");
 }
 
 void showProductVersion()
@@ -48,7 +48,7 @@ void showProductVersion()
 
 string fullVersionString()
 {
-  ostringstream s;
+  std::ostringstream s;
   s << "PowerDNS "<<productName<<" "PDNS_VERSION" ("DIST_HOST" built "BUILD_DATE" "BUILD_HOST")";
   return s.str();
 }
