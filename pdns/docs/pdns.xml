@@ -721,7 +721,7 @@
           <listitem>
             <para>
               While Recursor 3.3 was not vulnerable to the specific attack noted in
-              <ulink url="https://www.isc.org/files/imce/ghostdomain_camera.pdf">'Ghost Domain Names: Revoked Yet Still Resolvable'</ulink>,
+              'Ghost Domain Names: Revoked Yet Still Resolvable' (more information at <ulink url="http://resources.infosecinstitute.com/ghost-domain-names/">A New DNS Exploitation Technique: Ghost Domain Names</ulink>),
               further investigation showed that a variant of the attack could work. This was fixed in c3085. This should
               also close the slightly bogus
               <ulink url="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193">CVE-2012-1193</ulink>. Closes t668.
