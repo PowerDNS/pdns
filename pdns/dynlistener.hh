@@ -84,5 +84,6 @@ private:
   ComboAddress d_socketaddress;
   static g_funkdb_t s_funcdb;
   static g_funk_t* s_restfunc;
+  bool testLive(const string& fname);
 };
 #endif /* PDNS_DYNLISTENER */
