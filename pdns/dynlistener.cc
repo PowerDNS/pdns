@@ -83,8 +83,33 @@ void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t 
   }
 }
 
+/* this does a simplistic check, if we can connect, we consider it live. If we can't connect because
+   of access denied, we must consider it dead, nothing we can do about it.
+*/
+bool DynListener::testLive(const string& fname)
+{
+  struct sockaddr_un addr;
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if(fd < 0) { // we'll have bigger issues down the road
+    return false;
+  }
+
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, fname.c_str(), fname.length());
+
+  int status = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+  int err=errno;
+  close(fd);
+  return status==0;
+}
+
 void DynListener::listenOnUnixDomain(const string& fname)
 {
+  if(testLive(fname)) {
+    L<<Logger::Critical<<"Previous controlsocket '"<<fname<<"' is in use"<<endl;
+    exit(1);
+  }
   int err=unlink(fname.c_str());
   if(err < 0 && errno!=ENOENT) {
     L<<Logger::Critical<<"Unable to remove (previous) controlsocket at '"<<fname<<"': "<<strerror(errno)<<endl;
@@ -219,8 +244,10 @@ string DynListener::getLine()
           continue;
         }
       }
+      errno=0;
       if(!fgets(&mesg[0], mesg.size(), fp.get())) {
-        L<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
+        if(errno)
+	  L<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
         close(d_client);
         continue;
       }
