@@ -26,7 +26,7 @@ CREATE INDEX nametype_index ON records(name,type);
 CREATE INDEX domain_id ON records(domain_id);
 
 create table supermasters (
-  ip          VARCHAR(25) NOT NULL, 
+  ip          VARCHAR(64) NOT NULL, 
   nameserver  VARCHAR(255) NOT NULL COLLATE NOCASE, 
   account     VARCHAR(40) DEFAULT NULL
 );
