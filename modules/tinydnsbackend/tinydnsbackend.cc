@@ -71,8 +71,8 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
 	Lock l(&s_domainInfoLock); //TODO: We could actually lock less if we do it per suffix.
 	
 	if (! s_domainInfo.count(d_suffix)) {
-		TDI_t *tmp = new TDI_t();
-		s_domainInfo.insert( make_pair(d_suffix,*tmp) );
+		TDI_t tmp;
+		s_domainInfo.insert( make_pair(d_suffix,tmp) );
 	}
 	TDI_t *domains = &s_domainInfo[d_suffix];
 
