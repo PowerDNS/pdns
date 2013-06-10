@@ -50,6 +50,7 @@ RemoteBackend::RemoteBackend(const std::string &suffix)
 {
       setArgPrefix("remote"+suffix);
       build(getArg("connection-string"));
+      this->d_result = NULL;
       this->d_dnssec = mustDo("dnssec");
       this->d_index = -1;
       this->d_trxid = 0;
