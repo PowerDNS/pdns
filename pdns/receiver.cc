@@ -524,12 +524,6 @@ int main(int argc, char **argv)
         daemonize();
     }
 
-    if(::arg()["server-id"].empty()) {
-      char tmp[128];
-      gethostname(tmp, sizeof(tmp)-1);
-      ::arg().set("server-id")=tmp;
-    }
-
     if(isGuarded(argv)) {
       L<<Logger::Warning<<"This is a guarded instance of pdns"<<endl;
       dl=new DynListener; // listens on stdin 
@@ -567,6 +561,13 @@ int main(int argc, char **argv)
     if(!::arg().mustDo("no-config"))
       ::arg().file(configname.c_str());
     ::arg().parse(argc,argv);
+
+    if(::arg()["server-id"].empty()) {
+      char tmp[128];
+      gethostname(tmp, sizeof(tmp)-1);
+      ::arg().set("server-id")=tmp;
+    }
+
     UeberBackend::go();
     N=new UDPNameserver; // this fails when we are not root, throws exception
     
