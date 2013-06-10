@@ -423,7 +423,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
     ;
   else if(bdr.qname==toLower(bb2.d_name))
     bdr.qname.clear();
-  else if(bdr.qname.length() > bb2.d_name.length())
+  else if(bdr.qname.length() > bb2.d_name.length() && dottedEndsOn(bdr.qname, bb2.d_name))
     bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
   else
     throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'");
@@ -715,7 +715,7 @@ void Bind2Backend::loadConfig(string* status)
         staging->name_id_map[i->name]=bbd->d_id; // fill out name -> id map
 
         // overwrite what we knew about the domain
-        bbd->d_name=i->name;
+        bbd->d_name=toLower(canonic(i->name));
 
         bool filenameChanged = (bbd->d_filename!=i->filename);
         bbd->d_filename=i->filename;
