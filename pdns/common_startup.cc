@@ -31,8 +31,6 @@ UDPNameserver *N;
 int avg_latency;
 TCPNameserver *TN;
 
-
-
 ArgvMap &arg()
 {
   return theArg;
