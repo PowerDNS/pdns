@@ -12,6 +12,7 @@ tosql ()
 
 bindwait ()
 {
+	check_process
 	configname=$1
 	domcount=$(grep -c zone named.conf)
 	while sleep 10
@@ -44,6 +45,33 @@ securezone ()
 		../pdns/pdnssec --config-dir=. $configname secure-zone $zone 2>&1
 	fi
 }
+
+check_process ()
+{
+   sleep 1
+   set +e
+   pids=$(cat pdns*.pid 2>/dev/null)
+   if [ -z "$pids" ]; then
+     echo "PowerDNS did not start"
+     exit 1
+   fi
+   kill -0 $pids >/dev/null 2>&1  
+   if [ $? -ne 0 ]; then
+     echo "PowerDNS did not start"
+     exit 1
+   fi
+   set -e
+}
+
+if [ ! -x $PDNS ]; then
+   echo "$PDNS is not executable binary"
+   exit 1
+fi
+
+if [ ! -x $PDNS2 ]; then
+   echo "$PDNS2 is not executable binary"
+   exit 1
+fi
 
 port=$1
 [ -z "$port" ] && port=5300
@@ -555,7 +583,9 @@ EOF
 			./toxml $context
 			exit 1
 esac
-		
+
+check_process
+
 export port
 export context
 export extracontexts
