@@ -48,6 +48,7 @@ securezone ()
 
 check_process ()
 {
+   sleep 1
    set +e
    pids=$(cat pdns*.pid 2>/dev/null)
    if [ -z "$pids" ]; then
