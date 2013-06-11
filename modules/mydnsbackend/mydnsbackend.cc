@@ -103,7 +103,7 @@ bool MyDNSBackend::list(const string &target, int zoneId) {
         d_minimum = atol(rrow[1].c_str());
 
         while (d_db->getRow(rrow)) {
-        	L<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "+zoneId<<endl;
+        	L<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "<<zoneId<<endl;
         };
 
         query = "select type, data, aux, ttl, zone, name from "+d_rrtable+" where zone = ";
@@ -203,7 +203,6 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
 
         		this->Query(query);
         		if(d_db->getRow(rrow)) {
-        			zoneId = atol(rrow[0].c_str());
                                 zoneIdStr=rrow[0];
         			d_origin = rrow[1];
         			if (d_origin[d_origin.length()-1] == '.')

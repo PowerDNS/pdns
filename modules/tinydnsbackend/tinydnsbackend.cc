@@ -61,17 +61,20 @@ TinyDNSBackend::TinyDNSBackend(const string &suffix)
 	d_locations = mustDo("locations");
 	d_ignorebogus = mustDo("ignore-bogus-records");
 	d_taiepoch = 4611686018427387904ULL + getArgAsNum("tai-adjust");
+	d_dnspacket = NULL;
+	d_cdbReader = NULL;
+	d_isAxfr = false;
+	d_isWildcardQuery = false;
 }
 
 void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
 	Lock l(&s_domainInfoLock); //TODO: We could actually lock less if we do it per suffix.
 	
-	TDI_t *domains;
 	if (! s_domainInfo.count(d_suffix)) {
-		domains = new TDI_t;
-		s_domainInfo[d_suffix] = *domains;
-	} 
-	domains = &s_domainInfo[d_suffix];
+		TDI_t *tmp = new TDI_t();
+		s_domainInfo.insert( make_pair(d_suffix,*tmp) );
+	}
+	TDI_t *domains = &s_domainInfo[d_suffix];
 
 	vector<DomainInfo> allDomains;
 	getAllDomains(&allDomains);
