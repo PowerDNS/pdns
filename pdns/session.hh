@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002  PowerDNS.COM BV
+    Copyright (C) 2002 - 2013  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -34,7 +34,7 @@
 # include <strings.h>
 
 #endif // WIN32
-
+#include "iputils.hh"
 #include "ahuexception.hh"
 
 class SessionException: public AhuException
@@ -98,12 +98,12 @@ class Server
 public:
   Server(int p, const string &localaddress=""); //!< port on which to listen
   Session* accept(); //!< Call accept() in an endless loop to accept new connections
+  ComboAddress d_local;
 private:
   int s;
   int port;
   int backlog;
 
-  string d_localaddress;
 };
 
 class Exception
