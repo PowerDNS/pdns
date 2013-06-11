@@ -21,6 +21,12 @@ example:
 	www.powerdns.com ANY
 	powerdns.com MX
 
+When benchmarking extended runs, it may be necessary to enable TIME_WAIT
+recycling, as TCP/IP port tuples may otherwise run out.  On Linux this is
+performed by running:
+
+   # echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
+
 OPTIONS
 -------
 
