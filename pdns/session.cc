@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <sstream>
 #include "misc.hh"
+#include "iputils.hh"
 
 void Session::init()
 {
@@ -284,54 +285,24 @@ Session *Server::accept()
   return new Session(clisock, remote);
 }
 
-
-
-Server::Server(int p, const string &p_localaddress)
+Server::Server(int port, const string &localaddress)
 {
-  d_localaddress="0.0.0.0";
-  string localaddress=p_localaddress;
-  port=p;
+  d_local = ComboAddress(localaddress.empty() ? "0.0.0.0" : localaddress, port);
+  s = socket(d_local.sin4.sin_family ,SOCK_STREAM,0);
 
-  struct sockaddr_in local;
-  s=socket(AF_INET,SOCK_STREAM,0);
-  Utility::setCloseOnExec(s);
-
-  if(s<0)
+  if(s < 0)
     throw Exception(string("socket: ")+strerror(errno));
-  
-  memset(&local,0,sizeof(local));
-  
-  local.sin_family=AF_INET;
-  
-  struct hostent *h;
-  if(localaddress=="")
-    localaddress=d_localaddress;
 
-  if ( localaddress != "0.0.0.0" )
-  {
-    h=gethostbyname(localaddress.c_str());
-
-    if(!h)
-      throw Exception(); 
-  
-    local.sin_addr.s_addr=*(int*)h->h_addr;
-  }
-  else
-  {
-    local.sin_addr.s_addr = INADDR_ANY;
-  }
-
-  local.sin_port=htons(port);
+  Utility::setCloseOnExec(s);
   
   int tmp=1;
-  if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
+  if(setsockopt(s, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     throw SessionException(string("Setsockopt failed: ")+strerror(errno));
 
-  if(bind(s, (sockaddr*)&local,sizeof(local))<0)
-      throw SessionException("binding to port "+itoa(port)+string(" on ")+localaddress+": "+strerror(errno));
+  if(bind(s, (sockaddr*)&d_local, d_local.getSocklen())<0)
+    throw SessionException("binding to "+d_local.toStringWithPort()+": "+strerror(errno));
   
   if(listen(s,128)<0)
-      throw SessionException("listen: "+stringerror());
-
+    throw SessionException("listen: "+stringerror());
 }
 

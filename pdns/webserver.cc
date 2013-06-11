@@ -177,7 +177,7 @@ void *WebServer::serveConnection(void *p)
 
   }
   catch(SessionTimeoutException &e) {
-    L<<Logger::Error<<"Timeout in webserver"<<endl;
+    // L<<Logger::Error<<"Timeout in webserver"<<endl;
   }
   catch(SessionException &e) {
     L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;
@@ -221,14 +221,14 @@ void WebServer::go()
     Session *client;
     pthread_t tid;
     
-    L<<Logger::Error<<"Launched webserver on "<<d_listenaddress<<":"<<d_port<<endl;
+    L<<Logger::Error<<"Launched webserver on " << d_server->d_local.toStringWithPort() <<endl;
 
     while((client=d_server->accept())) {
       pthread_create(&tid, 0 , &serveConnection, (void *)client);
     }
   }
   catch(SessionTimeoutException &e) {
-    L<<Logger::Error<<"Timeout in webserver"<<endl;
+    //    L<<Logger::Error<<"Timeout in webserver"<<endl;
   }
   catch(SessionException &e) {
     L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;
