@@ -27,6 +27,8 @@ performed by running:
 
    # echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
 
+The equivalent for IPv6 is not known.
+
 OPTIONS
 -------
 
@@ -46,13 +48,13 @@ OPTIONS
 --help::
 	Provide a helpful message
 
+Remote IP address can be IPv4 or IPv6. Remote port defaults to 53.
+
 BUGS
 ----
 Currently the timeout code does not actually perform non-blocking connects
 or writes.  So a slow connect or slow writes will still cause low
 performance and delays. 
-
-Does not yet support IPv6 testing.
 
 AUTHOR
 ------

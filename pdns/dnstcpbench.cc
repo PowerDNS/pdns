@@ -26,7 +26,7 @@ try
   string reply;
 
   if(!g_onlyTCP) {
-    Socket udpsock(InterNetwork, Datagram);
+    Socket udpsock((AddressFamily)dest.sin4.sin_family, Datagram);
     
     udpsock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
     ComboAddress origin;
@@ -45,7 +45,7 @@ try
     g_truncates++;
   }
 
-  Socket sock(InterNetwork, Stream);
+  Socket sock((AddressFamily)dest.sin4.sin_family, Stream);
   int tmp=1;
   if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
     throw runtime_error("Unable to set socket reuse: "+string(strerror(errno)));
@@ -103,6 +103,7 @@ catch(...)
    If a worker reaches the end of its queue, it stops */
 
 AtomicCounter g_pos;
+
 struct Query
 {
   Query(const std::string& qname_, uint16_t qtype_) : qname(qname_), qtype(qtype_) {}
@@ -114,7 +115,7 @@ struct Query
 vector<Query> g_queries;
 ComboAddress g_dest;
 
-void* worker(void*)
+static void* worker(void*)
 {
   Query q;
   for(;;) {
