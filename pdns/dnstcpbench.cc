@@ -5,20 +5,24 @@
 #include "dnsrecords.hh"
 #include "statbag.hh"
 #include <boost/array.hpp>
-StatBag S;
+#include <boost/program_options.hpp>
 
+StatBag S;
+namespace po = boost::program_options;
+po::variables_map g_vm;
+bool g_verbose;
 bool g_onlyTCP;
-AtomicCounter g_networkErrors, g_otherErrors, g_OK, g_truncates;
+unsigned int g_timeoutMsec;
+AtomicCounter g_networkErrors, g_otherErrors, g_OK, g_truncates, g_authAnswers, g_timeOuts;
 
 // echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
-
 
 void doQuery(const std::string& qname, uint16_t qtype, const ComboAddress& dest)
 try
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, qname, qtype);
-
+  int res;
   string reply;
 
   if(!g_onlyTCP) {
@@ -26,6 +30,14 @@ try
     
     udpsock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
     ComboAddress origin;
+    res = waitForData(udpsock.getHandle(), 0, 1000 * g_timeoutMsec);
+    if(res < 0)
+      throw NetworkError("Error waiting for response");
+    if(!res) {
+      g_timeOuts++;
+      return;
+    }
+
     udpsock.recvFrom(reply, origin);
     MOADNSParser mdp(reply);
     if(!mdp.d_header.tc)
@@ -33,19 +45,25 @@ try
     g_truncates++;
   }
 
-
   Socket sock(InterNetwork, Stream);
   int tmp=1;
   if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
     throw runtime_error("Unable to set socket reuse: "+string(strerror(errno)));
 
   sock.connect(dest);
-  uint16_t len;
-  len = htons(packet.size());
-  if(sock.write((char *) &len, 2) != 2)
-    throw AhuException("tcp write failed");
-  
-  sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+  uint16_t len = htons(packet.size());
+  string tcppacket((char*)& len, 2);
+  tcppacket.append((char*)&*packet.begin(), (char*)&*packet.end());
+
+  sock.writen(tcppacket);
+
+  res = waitForData(sock.getHandle(), 0, 1000 * g_timeoutMsec);
+  if(res < 0)
+    throw NetworkError("Error waiting for response");
+  if(!res) {
+    g_timeOuts++;
+    return;
+  }
   
   if(sock.read((char *) &len, 2) != 2)
     throw AhuException("tcp read failed");
@@ -66,6 +84,8 @@ try
   
   MOADNSParser mdp(reply);
   //  cout<<"Had correct TCP/IP response, "<<mdp.d_answers.size()<<" answers, aabit="<<mdp.d_header.aa<<endl;
+  if(mdp.d_header.aa)
+    g_authAnswers++;
   g_OK++;
 }
 catch(NetworkError& ne)
@@ -77,7 +97,6 @@ catch(...)
 {
   g_otherErrors++;
 }
- 
 
 /* read queries from stdin, put in vector
    launch n worker threads, each picks a query using AtomicCounter
@@ -108,24 +127,57 @@ void* worker(void*)
   return 0;
 }
 
-
 int main(int argc, char** argv)
 try
 {
-  reportAllTypes();
-  g_onlyTCP=false;
+  po::options_description desc("Allowed options"), hidden, alloptions;
+  desc.add_options()
+    ("help,h", "produce help message")
+    ("verbose,v", "be verbose")
+    ("udp-first,u", "try UDP first")
+    ("timeout-msec", po::value<int>()->default_value(10), "wait for this amount of milliseconds for an answer")
+    ("workers", po::value<int>()->default_value(100), "number of parallel workers");
 
-  uint16_t port=53;
-  if(argc < 2) {
+  hidden.add_options()
+    ("remote-host", po::value<string>(), "remote-host")
+    ("remote-port", po::value<int>()->default_value(53), "remote-port");
+  alloptions.add(desc).add(hidden); 
+
+  po::positional_options_description p;
+  p.add("remote-host", 1);
+  p.add("remote-port", 1);
+
+  po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
+  po::notify(g_vm);
+  
+  if(g_vm.count("help")) {
+    cout << desc<<endl;
+    exit(EXIT_SUCCESS);
+  }
+  g_onlyTCP = !g_vm.count("udp-first");
+  g_verbose = g_vm.count("verbose");
+  g_timeoutMsec = g_vm["timeout-msec"].as<int>();
+
+  reportAllTypes();
+
+  if(g_vm["remote-host"].empty()) {
     cerr<<"Syntax: tcpbench remote [port] < queries"<<endl;
     cerr<<"Where queries is one query per line, format: qname qtype, just 1 space"<<endl;
+    cerr<<desc<<endl;
     exit(EXIT_FAILURE);
   }
-  if(argc > 2)
-    port = atoi(argv[2]);
 
-  g_dest = ComboAddress(argv[1], port);
-  unsigned int numworkers=100;
+  g_dest = ComboAddress(g_vm["remote-host"].as<string>().c_str(), g_vm["remote-port"].as<int>());
+
+  unsigned int numworkers=g_vm["workers"].as<int>();
+  
+  if(g_verbose) {
+    cout<<"Sending queries to: "<<g_dest.toStringWithPort()<<endl;
+    cout<<"Attempting UDP first: " << (g_onlyTCP ? "no" : "yes") <<endl;
+    cout<<"Timeout: "<< g_timeoutMsec<<"msec"<<endl;
+  }
+
+
   pthread_t workers[numworkers];
 
   FILE* fp=fdopen(0, "r");
@@ -146,7 +198,8 @@ try
     pthread_join(workers[n], &status);
   }
   cout<<"OK: "<<g_OK<<", network errors: "<<g_networkErrors<<", other errors: "<<g_otherErrors<<endl;
-  cout<<"Truncateds: "<<g_truncates<<endl;
+  cout<<"Timeouts: "<<g_timeOuts<<endl;
+  cout<<"Truncateds: "<<g_truncates<<", auth answers: "<<g_authAnswers<<endl;
 }
 catch(std::exception &e)
 {

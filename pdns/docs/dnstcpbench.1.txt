@@ -1,0 +1,64 @@
+DNSTCPBENCH(1)
+==============
+bert hubert <bert.hubert@netherlabs.nl>
+
+NAME
+----
+dnstcpbench - tool to perform TCP benchmarking of nameservers
+
+SYNOPSIS
+--------
+'dnstcpbench' [--help] [--verbose] [--udp-first, -u] [--workers] [--timeout-msec] remote-ip-address [remote-port]
+
+DESCRIPTION
+-----------
+dnstcpbench reads DNS queries from standard input and sends them out in
+parallel to a remote nameserver. By default TCP/IP is used, but optionally,
+UDP is tried first, which allows for the benchmarking of TCP/IP fallback.
+
+The input format is one query per line: qname single-space qtype. An
+example:
+	www.powerdns.com ANY
+	powerdns.com MX
+
+OPTIONS
+-------
+
+--verbose::
+	Be wordy on what the program is doing
+
+--udp-first, -u::
+	Attempt resolution via UDP first, only do TCP if truncated answer is
+	received
+
+--workers::
+	Number of parallel worker threads to use. 
+
+--timeout-msec::
+	Number of milliseconds to wait for an answer	
+
+--help::
+	Provide a helpful message
+
+BUGS
+----
+Currently the timeout code does not actually perform non-blocking connects
+or writes.  So a slow connect or slow writes will still cause low
+performance and delays. 
+
+Does not yet support IPv6 testing.
+
+AUTHOR
+------
+Written by PowerDNS.COM BV, bert hubert, <bert.hubert@netherlabs.nl>
+
+RESOURCES
+---------
+Website: http://www.powerdns.com
+
+COPYING
+-------
+Copyright (C) 2013 PowerDNS.COM BV. Free use of this software
+is granted under the terms of the GNU General Public License (GPL) version
+2.
+
