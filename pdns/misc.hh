@@ -349,6 +349,12 @@ public:
       return atomic_exchange_and_add( &value_, +1 ) + 1;
     }
 
+    unsigned int operator++(int)
+    {
+      return atomic_exchange_and_add( &value_, +1 );
+    }
+
+
     unsigned int operator--()
     {
       return atomic_exchange_and_add( &value_, -1 ) - 1;
