@@ -4,6 +4,7 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "statbag.hh"
+#include <netinet/tcp.h>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
 
@@ -12,6 +13,7 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 bool g_verbose;
 bool g_onlyTCP;
+bool g_tcpNoDelay;
 unsigned int g_timeoutMsec;
 AtomicCounter g_networkErrors, g_otherErrors, g_OK, g_truncates, g_authAnswers, g_timeOuts;
 
@@ -49,6 +51,9 @@ try
   int tmp=1;
   if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
     throw runtime_error("Unable to set socket reuse: "+string(strerror(errno)));
+    
+  if(g_tcpNoDelay && setsockopt(sock.getHandle(), IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof tmp)<0) 
+    throw runtime_error("Unable to set socket no delay: "+string(strerror(errno)));
 
   sock.connect(dest);
   uint16_t len = htons(packet.size());
@@ -136,6 +141,7 @@ try
     ("help,h", "produce help message")
     ("verbose,v", "be verbose")
     ("udp-first,u", "try UDP first")
+    ("tcp-no-delay", po::value<bool>()->default_value(true), "use TCP_NODELAY socket option")
     ("timeout-msec", po::value<int>()->default_value(10), "wait for this amount of milliseconds for an answer")
     ("workers", po::value<int>()->default_value(100), "number of parallel workers");
 
@@ -155,6 +161,8 @@ try
     cout << desc<<endl;
     exit(EXIT_SUCCESS);
   }
+  g_tcpNoDelay = g_vm["tcp-no-delay"].as<bool>();
+
   g_onlyTCP = !g_vm.count("udp-first");
   g_verbose = g_vm.count("verbose");
   g_timeoutMsec = g_vm["timeout-msec"].as<int>();
@@ -176,6 +184,7 @@ try
     cout<<"Sending queries to: "<<g_dest.toStringWithPort()<<endl;
     cout<<"Attempting UDP first: " << (g_onlyTCP ? "no" : "yes") <<endl;
     cout<<"Timeout: "<< g_timeoutMsec<<"msec"<<endl;
+    cout << "Using TCP_NODELAY: "<<g_tcpNoDelay<<endl;
   }
 
 
