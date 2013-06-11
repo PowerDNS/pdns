@@ -91,11 +91,6 @@ private:
 #else
   typedef int sem_value_t;
 
-  uint32_t       m_magic;
-  pthread_mutex_t m_lock;
-  pthread_cond_t  m_gtzero;
-  sem_value_t     m_count;
-  uint32_t       m_nwaiters;
 #endif
 
 protected:

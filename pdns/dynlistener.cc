@@ -99,7 +99,6 @@ bool DynListener::testLive(const string& fname)
   strncpy(addr.sun_path, fname.c_str(), fname.length());
 
   int status = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
-  int err=errno;
   close(fd);
   return status==0;
 }
