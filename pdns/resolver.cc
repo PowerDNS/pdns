@@ -182,8 +182,11 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
       rr.priority = atoi(rr.content.c_str());
       vector<pair<string::size_type, string::size_type> > fields;
       vstringtok(fields, rr.content, " ");
-      if(fields.size()==4)
+      if(fields.size()==4) {
+	if(fields[3].second - fields[3].first > 1) // strip dot, unless root
+	  fields[3].second--;
         rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
+      }
     }
     result->push_back(rr);
   }
