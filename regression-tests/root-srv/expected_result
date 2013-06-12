@@ -1,0 +1,3 @@
+0	_root._tcp.dc.test.com.	IN	SRV	3600	0 0 0 .
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='_root._tcp.dc.test.com.', qtype=SRV
