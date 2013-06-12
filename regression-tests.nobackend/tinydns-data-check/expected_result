@@ -5,4 +5,4 @@ a2dd754820cb88fdd3d80b54a212a270  ../regression-tests/test.com
 42dd3a56c7d268e75836371878819ec4  ../regression-tests/delegated.dnssec-parent.com
 a63dc120391d9df0003f2ec4f461a6af  ../regression-tests/secure-delegated.dnssec-parent.com
 24514dc104b22206daeb973ff9303545  ../regression-tests/minimal.com
-02f5de57d3a8fee5094e2514cd956ac7  ../modules/tinydnsbackend/data.cdb
+b62dc3974faf53b7f5ffbaa70788fcfe  ../modules/tinydnsbackend/data.cdb

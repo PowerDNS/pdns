@@ -20017,7 +20017,7 @@ Cexternal.example.com:somewhere.else.net.:120
 +host-9998.example.com:192.168.1.14:120
 +host-9999.example.com:192.168.1.15:120
 :hwinfo.example.com:13:\003abc\003def:120
-3ipv6.example.com:200106a80000000102104bfffe4b4c61:120
+:ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
 &italy.example.com::italy-ns1.example.com.:120
 &italy.example.com::italy-ns2.example.com.:120
 +italy-ns1.example.com:192.168.5.1:120
@@ -20156,6 +20156,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 :_double._tcp.dc.test.com:33:\000\000\000d\001\205\007server1\004test\003com\000:3600
 :_double._tcp.dc.test.com:33:\000\001\000d\001\205\007server1\004test\003com\000:3600
 :_ldap._tcp.dc.test.com:33:\000\000\000d\001\205\007server2\007example\003net\000:3600
+:_root._tcp.dc.test.com:33:\000\000\000\000\000\000\000:3600
 :enum.test.com:35:\000d\0002\001u\007e2u\053sip\000\010testuser\006domain\003com\000:3600
 :hightxt.test.com:16:\042v\075spf1\040mx\040ip4\07278.46.192.210\040\342\200\223all:3600
 +ns1.test.com:1.1.1.1:3600
