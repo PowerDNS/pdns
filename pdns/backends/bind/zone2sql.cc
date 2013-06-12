@@ -49,6 +49,20 @@ static dbmode_t g_mode;
 static bool g_intransaction;
 static int g_numRecords;
 
+
+/* this is an official wart. We don't terminate domains on a . in PowerDNS,
+   which is fine as it goes, except for encoding the root, it would end up as '', 
+   which leads to ambiguities in the content field. Therefore, if we encounter
+   the root as a . in a BIND zone, we leave it as a ., and don't replace it by 
+   an empty string. Back in 1999 we made the wrong choice. */
+   
+static string stripDotContent(const string& content)
+{
+  if(boost::ends_with(content, " .") || content==".")
+    return content;
+  return stripDot(content);
+}
+
 static string sqlstr(const string &name)
 {
   if(g_mode == SQLITE)
@@ -149,7 +163,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       cout<<"insert into records (domain_id, name,type,content,ttl,prio) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     } else
     {
@@ -157,7 +171,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", "<<auth<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
@@ -166,7 +180,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       cout<<"insert into records (domain_id, name,type,content,ttl,prio) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     } else
     {
@@ -174,7 +188,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
@@ -182,7 +196,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
     cout<<"insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
       sqlstr(toLower(stripDot(qname)))<<", "<<
       sqlstr(qtype)<<", "<<
-      sqlstr(stripDot(content))<<", "<<ttl<<", "<<prio<< 
+      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
       " from Domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
   else if (g_mode == MYDNS) {
