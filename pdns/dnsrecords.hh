@@ -361,6 +361,15 @@ public:
   };
 //}
 
+class RKEYRecordContent : public DNSRecordContent
+{
+public:
+  RKEYRecordContent();
+  includeboilerplate(RKEY)
+  uint16_t d_flags;
+  uint8_t d_protocol, d_algorithm;
+  string d_key;
+};
 
 class SOARecordContent : public DNSRecordContent
 {
