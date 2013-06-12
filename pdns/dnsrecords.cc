@@ -252,8 +252,14 @@ boilerplate_conv(DNSKEY, 48,
         	 )
 DNSKEYRecordContent::DNSKEYRecordContent() : DNSRecordContent(48) {}
 
-/* EUI48 start */
+boilerplate_conv(RKEY, 57, 
+        	 conv.xfr16BitInt(d_flags); 
+        	 conv.xfr8BitInt(d_protocol); 
+        	 conv.xfrBlob(d_key);
+        	 )
+RKEYRecordContent::RKEYRecordContent() : DNSRecordContent(57) {}
 
+/* EUI48 start */
 void EUI48RecordContent::report(void) 
 {
     regist(1, ns_t_eui48, &make, &make, "EUI48");
@@ -420,6 +426,7 @@ void reportOtherTypes()
    RPRecordContent::report();
    KEYRecordContent::report();
    DNSKEYRecordContent::report();
+   RKEYRecordContent::report();
    RRSIGRecordContent::report();
    DSRecordContent::report();
    SSHFPRecordContent::report();
