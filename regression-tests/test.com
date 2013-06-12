@@ -24,6 +24,7 @@ counter			IN	A	1.1.1.5
 _ldap._tcp.dc		IN	SRV 	0 100 389 server2.example.net.
 _double._tcp.dc		IN	SRV 	0 100 389 server1
 _double._tcp.dc		IN	SRV 	1 100 389 server1
+_root._tcp.dc		IN	SRV	0 0 0 .
 blah			IN	NS	blah
 blah			IN	A	192.168.6.1
 ;images			IN	URL	"http://www.ds9a.nl"
