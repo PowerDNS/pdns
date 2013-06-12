@@ -162,10 +162,8 @@ SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_
 
 boilerplate_conv(SRV, ns_t_srv, 
         	 conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
-        	 conv.xfrLabel(d_target);
+        	 conv.xfrLabel(d_target); 
         	 )
-
-
 
 SOARecordContent::SOARecordContent(const string& mname, const string& rname, const struct soatimes& st) 
   : DNSRecordContent(ns_t_soa), d_mname(mname), d_rname(rname)

@@ -193,8 +193,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
 
         i->domain_id=domain_id;
-        if (i->qtype.getCode() == QType::SRV)
-          i->content = stripDot(i->content);
 
 #if 0
         if(i->qtype.getCode()>=60000)

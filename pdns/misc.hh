@@ -126,6 +126,7 @@ stringtok (Container &container, string const &in,
   }
 }
 
+// fills container with ranges, so {posbegin,posend}
 template <typename Container>
 void
 vstringtok (Container &container, string const &in,
