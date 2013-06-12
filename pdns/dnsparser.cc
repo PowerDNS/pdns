@@ -60,7 +60,7 @@ public:
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)
-      throw runtime_error("invalid unknown record");
+      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.c_str() % relevant.size() % (2*total)).str());
     string out;
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
