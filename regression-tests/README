@@ -1,6 +1,44 @@
 These tests can be used to verify standards compliance of PowerDNS and to
 spot regressions.
 
+Dependencies
+------------
+We need very recent versions of:
+
+	validns (http://www.validns.net/)
+	ldns-verify-zone (part of ldns)
+	jdnssec-verifyzone (http://www.verisignlabs.com/dnssec-tools/)
+	named-checkzone (part of BIND9)
+	unbound-host (part of unbound)
+	drill (part of ldns)
+
+Nice to have:
+	godns q
+
+If you omit the tools above, some tests fail, but you can still run the
+tests. 
+
+Automated tests
+---------------
+
+For a more hands-off approach, make sure PowerDNS is built with suitable
+modules, and use:
+
+$ ./start-test-stop 5300 gmysql
+
+To start PowerDNS in gmysql mode (including DNSSEC), run all tests, and
+write reports, using udp port 5300 in the process. Use:
+
+$ ./start-test-stop help
+
+to see all available suites.
+
+In addition to diff-files in all test dirs, start-test-stop generates a jUnit-
+compatible XML report.
+
+Manual testing
+--------------
+
 Start PowerDNS with --no-shuffle for best results - the 'too-big-udp' test
 fails otherwise, for cosmetical reasons.
 
@@ -80,23 +118,6 @@ $ nameserver=127.0.0.1 port=5300 ./runtests
 The BIND backend can't do MBOXFW. The 'any-query' test is known to fail
 with bind,gsqlite3.
 
-Automated tests
----------------
-
-For a more hands-off approach, make sure PowerDNS is built with suitable
-modules, and use:
-
-$ ./start-test-stop 5300 gmysql
-
-To start PowerDNS in gmysql mode (including DNSSEC), run all tests, and
-write reports, using udp port 5300 in the process. Use:
-
-$ ./start-test-stop help
-
-to see all available suites.
-
-In addition to diff-files in all test dirs, start-test-stop generates a jUnit-
-compatible XML report.
 
 Analysing results
 -----------------
