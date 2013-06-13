@@ -20156,6 +20156,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 :_double._tcp.dc.test.com:33:\000\000\000d\001\205\007server1\004test\003com\000:3600
 :_double._tcp.dc.test.com:33:\000\001\000d\001\205\007server1\004test\003com\000:3600
 :_ldap._tcp.dc.test.com:33:\000\000\000d\001\205\007server2\007example\003net\000:3600
+:_root._tcp.dc.test.com:33:\000\000\000\000\000\000\000:3600
 :enum.test.com:35:\000d\0002\001u\007e2u\053sip\000\010testuser\006domain\003com\000:3600
 :hightxt.test.com:16:\042v\075spf1\040mx\040ip4\07278.46.192.210\040\342\200\223all:3600
 +ns1.test.com:1.1.1.1:3600
