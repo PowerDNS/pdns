@@ -433,6 +433,7 @@ void reportOtherTypes()
    OPTRecordContent::report();
    EUI48RecordContent::report();
    EUI64RecordContent::report();
+   MINFORecordContent::report();
 }
 
 void reportFancyTypes()
