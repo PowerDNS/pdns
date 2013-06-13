@@ -206,6 +206,15 @@ private:
   string d_alias;
 };
 
+class MINFORecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(MINFO)
+
+private:
+  string d_rmailbx;
+  string d_emailbx;
+};
 
 class OPTRecordContent : public DNSRecordContent
 {
