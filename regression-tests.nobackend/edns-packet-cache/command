@@ -13,10 +13,10 @@ bindwait ()
 			return
 		fi
 		let loopcount=loopcount+1
+        done 
         if [ $done != $domcount ]; then
            echo "Domain parsing failed" >> failed_tests
         fi
-	done
 }
 
 port=5501
