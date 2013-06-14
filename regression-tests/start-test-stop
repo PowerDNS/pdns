@@ -15,13 +15,19 @@ bindwait ()
 	check_process
 	configname=$1
 	domcount=$(grep -c zone named.conf)
-	while sleep 10
-	do
+        if [ ! -x ../pdns/pdns_control ]; then
+            echo "No pdns_control found"
+            exit 1
+        fi
+        loopcount=0
+
+	while [ $loopcount -lt 20 ]; do
+		sleep 10
 		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
-		if [ $done = $domcount ]
-		then
+		if [ $done = $domcount ]; then
 			return
 		fi
+                let loopcount=loopcount+1
 	done
 }
 
@@ -629,14 +635,17 @@ then
 			--gmysql-password="$GMYSQL2PASSWD" \
 			--config-name=gmysql2 |& egrep -v "update records set ordername|insert into records" &
 		echo 'waiting for zones to be slaved'
-		while sleep 10
+                loopcount=0
+		while [ $loopcount -lt 20 ]
 		do
+			sleep 10
 			todo=$(mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQl2HOST" \
 				   "$GMYSQL2DB" -ss -e 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
 			if [ $todo = 0 ]
 			then
 				break
 			fi
+                        let loopcount=loopcount+1
 		done
 	elif [ ${context:0:8} = gsqlite3 ]
 	then
@@ -659,8 +668,10 @@ then
 			--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 |& egrep -v "update records set ordername|insert into records" &
 		echo 'waiting for zones to be slaved'
 		set +e
-		while sleep 10
+                loopcount=0
+		while [ $loopcount -lt 20 ]
 		do
+			sleep 10
 			todo=$(sqlite3 pdns.sqlite31 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
 			if [ $? -eq 0 ]
 			then
@@ -669,6 +680,7 @@ then
 					break
 				fi
 			fi
+                        let loopcount=loopcount+1
 		done
 		set -e
 		sqlite3 pdns.sqlite31 ANALYZE;
