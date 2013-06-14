@@ -434,8 +434,8 @@ void reportOtherTypes()
    NSEC3PARAMRecordContent::report();
    TLSARecordContent::report();
    DLVRecordContent::report();
-   //DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
-   TSIGRecordContent::report();
+   DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   //TSIGRecordContent::report();
    OPTRecordContent::report();
    EUI48RecordContent::report();
    EUI64RecordContent::report();

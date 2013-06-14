@@ -142,7 +142,7 @@ private:
       qtype_insert("SPF",99);
       qtype_insert("EUI48",108);
       qtype_insert("EUI64",109);
-      qtype_insert("TSIG", 250);
+//      qtype_insert("TSIG", 250);
       qtype_insert("IXFR",251);
       qtype_insert("AXFR",252);
       qtype_insert("ANY",255);
