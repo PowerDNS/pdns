@@ -21,7 +21,7 @@ bindwait ()
         fi
         loopcount=0
 
-	while [ $loopcount < 20 ]; do
+	while [ $loopcount -lt 20 ]; do
 		sleep 10
 		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]; then
@@ -639,7 +639,7 @@ then
 			--config-name=gmysql2 |& egrep -v "update records set ordername|insert into records" &
 		echo 'waiting for zones to be slaved'
                 loopcount=0
-		while [ $loopcount < 20 ]
+		while [ $loopcount -lt 20 ]
 		do
 			sleep 10
 			todo=$(mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQl2HOST" \
@@ -650,7 +650,7 @@ then
 			fi
                         let loopcount=loopcount+1
 		done
-		if [ $todo != 0 ]; then 
+		if [ $todo -ne 0 ]; then 
                         echo "AXFR FAILED" >> failed_tests
                 fi
 	elif [ ${context:0:8} = gsqlite3 ]
@@ -675,7 +675,7 @@ then
 		echo 'waiting for zones to be slaved'
 		set +e
                 loopcount=0
-		while [ $loopcount < 20 ]
+		while [ $loopcount -lt 20 ]
 		do
 			sleep 10
 			todo=$(sqlite3 pdns.sqlite31 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
@@ -688,7 +688,7 @@ then
 			fi
                         let loopcount=loopcount+1
 		done
-                if [ $todo != 0 ]; then
+                if [ $todo -ne 0 ]; then
                         echo "AXFR FAILED" >> failed_tests
                 fi
 		set -e

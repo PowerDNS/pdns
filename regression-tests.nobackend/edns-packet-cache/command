@@ -5,7 +5,7 @@ bindwait ()
 	configname=$1
 	domcount=1
         loopcount=0
-	while [ $loopcount < 20 ]; do
+	while [ $loopcount -lt 20 ]; do
                 sleep 1
 		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]
