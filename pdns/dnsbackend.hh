@@ -65,6 +65,12 @@ struct DomainInfo
   }
 };
 
+struct TSIGKey {
+   std::string name;
+   std::string algorithm;
+   std::string key;
+};
+
 class DNSPacket;
 
 
@@ -132,6 +138,9 @@ public:
   virtual bool deactivateDomainKey(const string& name, unsigned int id) { return false; }
 
   virtual bool getTSIGKey(const string& name, string* algorithm, string* content) { return false; }
+  virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content) { return false; }
+  virtual bool deleteTSIGKey(const string& name) { return false; }
+  virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys) { return false; }
 
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
   {

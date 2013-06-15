@@ -960,7 +960,8 @@ try
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone\n";
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC\n";
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs\n";
-    cerr<<"test-schema ZONE                   Test DB schema - will create ZONE\n\n";
+    cerr<<"test-schema ZONE                   Test DB schema - will create ZONE\n";
+    cerr<<"import-tsig-key ZONE ALGORITHM KEY Import TSIG key for zone\n\n";
     cerr<<desc<<endl;
     return 0;
   }
@@ -1445,9 +1446,139 @@ try
     // print key to stdout 
     cout << "Flags: " << dspk.d_flags << endl << 
              dspk.getKey()->convertToISC() << endl; 
+  } else if (cmds[0]=="generate-tsig-key") {
+     if (cmds.size() < 3) {
+        cerr << "Syntax: " << cmds[0] << " name (hmac-md5|hmac-sha1|hmac-sha224|hmac-sha256|hmac-sha384|hmac-sha512)" << endl;
+        return 0;
+     }
+     string name = cmds[1];
+     string algo = cmds[2];
+     string key;
+     char tmpkey[64];
+
+     size_t klen;
+     if (algo == "hmac-md5") {
+       klen = 32;
+     } else if (algo == "hmac-sha1") {
+       klen = 32;
+     } else if (algo == "hmac-sha224") {
+       klen = 32;
+     } else if (algo == "hmac-sha256") {
+       klen = 64;
+     } else if (algo == "hmac-sha384") {
+       klen = 64;
+     } else if (algo == "hmac-sha512") {
+       klen = 64;
+     }
+
+     ifstream keyin("/dev/random", ifstream::in|ifstream::binary);
+     // read and hash data
+     keyin.read(tmpkey, klen);
+     key = Base64Encode(std::string(tmpkey, klen));
+
+     UeberBackend B("default");
+     if (B.setTSIGKey(name, algo, key)) {
+       cout << "Create new TSIG key " << name << " " << algo << " " << key << endl;
+     } else {
+       cout << "Failure storing new TSIG key " << name << " " << algo << " " << key << endl;
+       return 1;
+     }
+     return 0;
+  } else if (cmds[0]=="import-tsig-key") {
+     if (cmds.size() < 4) {
+        cerr << "Syntax: " << cmds[0] << " name algorithm key" << endl;
+        return 0;
+     }
+     string name = cmds[1];
+     string algo = cmds[2];
+     string key = cmds[3];
+
+     UeberBackend B("default");
+     if (B.setTSIGKey(name, algo, key)) {
+       cout << "Imported TSIG key " << name << " " << algo << endl;
+     } else {
+       cout << "Failure importing TSIG key " << name << " " << algo << endl;
+       return 1;
+     }
+     return 0;
+  } else if (cmds[0]=="delete-tsig-key") {
+     if (cmds.size() < 2) {
+        cerr << "Syntax: " << cmds[0] << " name" << endl;
+        return 0;
+     }
+     string name = cmds[1];
+     string algo = cmds[2];
+
+     UeberBackend B("default");
+     if (B.deleteTSIGKey(name)) {
+       cout << "Deleted TSIG key " << name << endl;
+     } else {
+       cout << "Failure deleting TSIG key " << name << endl;
+       return 1;
+     }
+     return 0;
+  } else if (cmds[0]=="list-tsig-keys") {
+     std::vector<struct TSIGKey> keys;
+     UeberBackend B("default");
+     if (B.getTSIGKeys(keys)) {
+        BOOST_FOREACH(const struct TSIGKey &key, keys) {
+           cout << key.name << " " << key.algorithm << " " << key.key << endl;
+        }
+     }
+     return 0;
+  } else if (cmds[0]=="enable-tsig-key") {
+     if (cmds.size() < 3) {
+        cerr << "Syntax: " << cmds[0] << " zone name" << endl;
+        return 0;
+     }
+     string zname = cmds[1];
+     string name = cmds[2];
+
+     UeberBackend B("default");
+     std::vector<std::string> meta; 
+     if (!B.getDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+       cout << "Failure enabling TSIG key " << name << " for " << zname << endl;
+       return 1;
+     }
+     bool found = false;
+     BOOST_FOREACH(std::string tmpname, meta) {
+          if (tmpname == name) { found = true; break; }
+     }
+     if (!found) meta.push_back(name);
+     if (B.setDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+       cout << "Enabled TSIG key " << name << " for " << zname << endl;
+     } else {
+       cout << "Failure enabling TSIG key " << name << " for " << zname << endl;
+       return 1;
+     }
+     return 0;
+  } else if (cmds[0]=="disable-tsig-key") {
+     if (cmds.size() < 3) {
+        cerr << "Syntax: " << cmds[0] << " zone name" << endl;
+        return 0;
+     }
+     string zname = cmds[1];
+     string name = cmds[2];
+
+     UeberBackend B("default");
+     std::vector<std::string> meta;
+     if (!B.getDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+       cout << "Failure disabling TSIG key " << name << " for " << zname << endl;
+       return 1;
+     }
+     std::vector<std::string>::iterator iter = meta.begin();
+     for(;iter != meta.end(); iter++) if (*iter == name) break;
+     if (iter != meta.end()) meta.erase(iter);
+     if (B.setDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+       cout << "Disabled TSIG key " << name << " for " << zname << endl;
+     } else {
+       cout << "Failure disabling TSIG key " << name << " for " << zname << endl;
+       return 1;
+     }
+     return 0;
   }
   else {
-    cerr<<"Unknown command '"<<cmds[0]<<"'\n";
+    cerr<<"Unknown command '"<<cmds[0] << endl;
     return 1;
   }
   return 0;
