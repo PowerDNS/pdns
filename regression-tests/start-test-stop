@@ -176,6 +176,8 @@ case $context in
 		bind-dnssec | bind-dnssec-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
 			rm -f dnssec.sqlite3
 			../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
+			../pdns/pdnssec --config-dir=. import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
 				securezone $zone

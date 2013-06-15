@@ -131,7 +131,7 @@ public:
     declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=0 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d");
     declare(suffix,"get-tsig-key-query","", "select algorithm, secret from tsigkeys where name='%s'");
-    declare(suffix,"set-tsig-key-query","", "insert or replace into tsigkeys (name,algorithm,secret) values('%s','%s','%s')");
+    declare(suffix,"set-tsig-key-query","", "replace into tsigkeys (name,algorithm,secret) values('%s','%s','%s')");
     declare(suffix,"delete-tsig-key-query","", "delete from tsigkeys where name='%s'");
     declare(suffix,"get-tsig-keys-query","", "select name,algorithm, secret from tsigkeys");
 
