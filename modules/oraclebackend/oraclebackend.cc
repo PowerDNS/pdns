@@ -239,11 +239,21 @@ static const char *setZoneKeyStateQueryDefaultSQL =
   "UPDATE ZoneDNSKeys SET active = :active WHERE id = :keyid";
 
 static const char *setTSIGKeyQueryKey = "PDNS_Set_TSIG_Key";
-static const char *setTSIGKeyQueryDefaultSQL = "insert into tsigkeys (name,algorithm,secret) values(:name,:algorithm,:secret)";
+static const char *setTSIGKeyQueryDefaultSQL = 
+  "INSERT INTO TSIGKeys (name,algorithm,secret)"
+  "VALUES("
+  ":name,"
+  ":algorithm,"
+  ":secret"
+  ")";
 static const char *deleteTSIGKeyQueryKey = "PDNS_Delete_TSIG_Key";
-static const char *deleteTSIGKeyQueryDefaultSQL = "delete from tsigkeys where name=:name";
+static const char *deleteTSIGKeyQueryDefaultSQL = 
+  "DELETE FROM TSIGKeys "
+  "WHERE name = :name";
 static const char *getTSIGKeysQueryKey = "PDNS_Get_TSIG_Keys";
-static const char *getTSIGKeysQueryDefaultSQL = "select name,algorithm,secret from tsigkeys";
+static const char *getTSIGKeysQueryDefaultSQL =   
+  "SELECT name, algorithm, secret "
+  "FROM TSIGKeys";
 
 static void
 string_to_cbuf (char *buf, const string& s, size_t bufsize)
@@ -1376,7 +1386,25 @@ OracleBackend::setTSIGKey(const string& name, const string& algorithm, const str
   if(!d_dnssecQueries)
     return -1;
 
-  stmt = prepare_query(pooledSvcCtx, setTSIGKeyQuerySQL, setTSIGKeyQueryKey);
+  sword rc;
+  OCIStmt *stmt;
+
+  openMasterConnection();
+
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  stmt = prepare_query(masterSvcCtx, deleteTSIGKeyQuerySQL, deleteTSIGKeyQueryKey);
+  string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setTSIGKey", oraerr);
+  }
+
+  release_query(stmt, setTSIGKeyQueryKey);
+
+  stmt = prepare_query(masterSvcCtx, setTSIGKeyQuerySQL, setTSIGKeyQueryKey);
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
   string_to_cbuf(mQueryType, type, sizeof(mQueryType));
   string_to_cbuf(mQueryContent, content, sizeof(mQueryContent));
@@ -1385,12 +1413,18 @@ OracleBackend::setTSIGKey(const string& name, const string& algorithm, const str
   bind_str(stmt, ":algorithm", mQueryType, sizeof(mQueryType));
   bind_str(stmt, ":secret", mQueryContent, sizeof(mQueryContent));
 
-  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
   if (rc == OCI_ERROR) {
-    throw OracleException("Oracle getTSIGKey", oraerr);
+    throw OracleException("Oracle setTSIGKey", oraerr);
   }
 
   release_query(stmt, setTSIGKeyQueryKey);
+
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setTSIGKey COMMIT", oraerr);
+  }
+
   return true;
 }
 
@@ -1400,16 +1434,27 @@ OracleBackend::deleteTSIGKey(const string& name)
   if(!d_dnssecQueries)
     return -1;
 
-  stmt = prepare_query(pooledSvcCtx, deleteTSIGKeyQuerySQL, deleteTSIGKeyQueryKey);
+  sword rc;
+  OCIStmt *stmt;
+
+  openMasterConnection();
+  rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
+
+  stmt = prepare_query(masterSvcCtx, deleteTSIGKeyQuerySQL, deleteTSIGKeyQueryKey);
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
-  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
   if (rc == OCI_ERROR) {
-    throw OracleException("Oracle getTSIGKey", oraerr);
+    throw OracleException("Oracle deleteTSIGKey", oraerr);
   }
 
   release_query(stmt, setTSIGKeyQueryKey);
+
+  rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle deleteTSIGKey COMMIT", oraerr);
+  }
   return true;
 }
 
