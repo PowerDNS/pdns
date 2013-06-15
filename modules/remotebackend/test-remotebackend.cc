@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(test_method_getTSIGKeys) {
    std::vector<struct TSIGKey> keys;
    BOOST_TEST_MESSAGE("Testing getTSIGKeys method");
    be->getTSIGKeys(keys);
-   BOOST_CHECK(keys.size() > 0)
+   BOOST_CHECK(keys.size() > 0);
    if (keys.size() > 0) {
      BOOST_CHECK_EQUAL(keys[0].name, "test");
      BOOST_CHECK_EQUAL(keys[0].algorithm, "NULL");
