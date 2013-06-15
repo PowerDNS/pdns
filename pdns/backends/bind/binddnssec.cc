@@ -62,6 +62,15 @@ bool Bind2Backend::deactivateDomainKey(const string& name, unsigned int id)
 
 bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* content)
 { return false; }
+
+bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const string& content)
+{ return false; }
+
+bool Bind2Backend::deleteTSIGKey(const string& name)
+{ return false; }
+
+bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
+{ return false; }
 #else
 
 #include "pdns/ssqlite3.hh"
@@ -280,4 +289,61 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
   return !content->empty();
 
 }
+
+bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const string& content)
+{
+  if(!d_dnssecdb)
+    return false;
+  boost::format fmt("insert or update into tsigkeys (name,algorithm,secret) values('%s', '%s', '%s')");
+  try {
+    d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name) % d_dnssecdb->escape(algorithm) % d_dnssecdb->escape(content)).str() );
+  }
+  catch (SSqlException &e) {
+    throw AhuException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
+  }
+
+  return true;
+}
+
+bool Bind2Backend::deleteTSIGKey(const string& name) 
+{
+  if(!d_dnssecdb)
+    return false;
+  boost::format fmt("delete from tsigkeys where name='%s'");
+
+  try {
+    d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name)).str());
+  }
+  catch (SSqlException &e) {
+    throw AhuException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
+  }
+
+  return true;
+}
+
+bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
+{
+  if(!d_dnssecdb)
+    return false;
+
+  try {
+    d_dnssecdb->doQuery( "select name,algorithm,secret from tsigkeys" );
+  }
+  catch (SSqlException &e) {
+    throw AhuException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
+  }
+
+  SSql::row_t row;
+
+  while(d_dnssecdb->getRow(row)) {
+     struct TSIGKey key;
+     key.name = row[0];
+     key.algorithm = row[1];
+     key.key = row[2];
+  }
+
+  return keys.empty();
+}
+
+
 #endif

@@ -945,7 +945,7 @@ try
     cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE\n";
     cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described\n";
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described\n";
-    cerr<<"generate-zone-key zsk|ksk [bits] [algorithm]\n";
+    cerr<<"generate-zone-key zsk|ksk [algorithm] [bits]\n";
     cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits\n";
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE\n";
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT\n";
@@ -961,7 +961,12 @@ try
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC\n";
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs\n";
     cerr<<"test-schema ZONE                   Test DB schema - will create ZONE\n";
-    cerr<<"import-tsig-key ZONE ALGORITHM KEY Import TSIG key for zone\n\n";
+    cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key\n";
+    cerr<<"generate-tsig-key NAME ALGORITHM   Generate new TSIG key\n";
+    cerr<<"list-tsig-keys                     List all TSIG keys\n";
+    cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)\n";
+    cerr<<"enable-tsig-key NAME ZONE          Enable TSIG key for a zone\n";
+    cerr<<"disable-tsig-key NAME ZONE         Remove TSIG key from a zone\n";
     cerr<<desc<<endl;
     return 0;
   }
@@ -1397,7 +1402,7 @@ try
   }
   else if(cmds[0] == "generate-zone-key") {
     if(cmds.size() < 2 ) {
-      cerr << "Syntax: pdnssec generate-zone-key zsk|ksk [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+      cerr << "Syntax: pdnssec generate-zone-key zsk|ksk [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384] [bits]"<<endl;
       return 0;
     }
     // need to get algorithm, bits & ksk or zsk from commandline
@@ -1470,6 +1475,8 @@ try
      } else if (algo == "hmac-sha512") {
        klen = 64;
      }
+
+     cerr << "Generating new key with " << klen << " bytes (this can take a while)" << endl;
 
      ifstream keyin("/dev/random", ifstream::in|ifstream::binary);
      // read and hash data
