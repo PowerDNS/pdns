@@ -140,6 +140,18 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         // create an empty post
         curl_easy_setopt(d_c, CURLOPT_POST, 1);
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
+    } else if (method == "setTSIGKey") {
+        std::stringstream ss2;
+        tmpstr = curl_easy_escape(d_c, parameters["algorithm"].GetString(), 0);
+        ss2 << "algorithm=" << tmpstr << "&content=";
+        tmpstr = curl_easy_escape(d_c, parameters["content"].GetString(), 0);
+        ss2 << tmpstr;
+        std::string out = ss2.str();
+        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
+        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        curl_free(tmpstr);
+    } else if (method == "deleteTSIGKey") {
+        curl_easy_setopt(d_c, CURLOPT_CUSTOMREQUEST, "DELETE");
     } else if (method == "addDomainKey") {
         // create post with keydata
         char *postfields;
