@@ -238,6 +238,12 @@ static const char *setZoneKeyStateQueryKey = "PDNS_Set_Zone_Key_State";
 static const char *setZoneKeyStateQueryDefaultSQL =
   "UPDATE ZoneDNSKeys SET active = :active WHERE id = :keyid";
 
+static const char *setTSIGKeyQueryKey = "PDNS_Set_TSIG_Key";
+static const char *setTSIGKeyQueryDefaultSQL = "insert into tsigkeys (name,algorithm,secret) values(:name,:algorithm,:secret)";
+static const char *deleteTSIGKeyQueryKey = "PDNS_Delete_TSIG_Key";
+static const char *deleteTSIGKeyQueryDefaultSQL = "delete from tsigkeys where name=:name";
+static const char *getTSIGKeysQueryKey = "PDNS_Get_TSIG_Keys";
+static const char *getTSIGKeysQueryDefaultSQL = "select name,algorithm,secret from tsigkeys";
 
 static void
 string_to_cbuf (char *buf, const string& s, size_t bufsize)
@@ -309,6 +315,9 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   delZoneMetadataQuerySQL = getArg("del-zone-metadata-query");
   setZoneMetadataQuerySQL = getArg("set-zone-metadata-query");
   getTSIGKeyQuerySQL = getArg("get-tsig-key-query");
+  setTSIGKeyQuerySQL = getArg("set-tsig-key-query");
+  deleteTSIGKeyQuerySQL = getArg("delete-tsig-key-query");
+  getTSIGKeysQuerySQL = getArg("get-tsig-keys-query");
   getZoneKeysQuerySQL = getArg("get-zone-keys-query");
   delZoneKeyQuerySQL = getArg("del-zone-key-query");
   addZoneKeyQuerySQL = getArg("add-zone-key-query");
@@ -1362,6 +1371,87 @@ OracleBackend::getTSIGKey (const string& name, string* algorithm, string* conten
 }
 
 bool
+OracleBackend::setTSIGKey(const string& name, const string& algorithm, const string& content)
+{
+  if(!d_dnssecQueries)
+    return -1;
+
+  stmt = prepare_query(pooledSvcCtx, setTSIGKeyQuerySQL, setTSIGKeyQueryKey);
+  string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+  string_to_cbuf(mQueryType, type, sizeof(mQueryType));
+  string_to_cbuf(mQueryContent, content, sizeof(mQueryContent));
+
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  bind_str(stmt, ":algorithm", mQueryType, sizeof(mQueryType));
+  bind_str(stmt, ":secret", mQueryContent, sizeof(mQueryContent));
+
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle getTSIGKey", oraerr);
+  }
+
+  release_query(stmt, setTSIGKeyQueryKey);
+  return true;
+}
+
+bool
+OracleBackend::deleteTSIGKey(const string& name)
+{
+  if(!d_dnssecQueries)
+    return -1;
+
+  stmt = prepare_query(pooledSvcCtx, deleteTSIGKeyQuerySQL, deleteTSIGKeyQueryKey);
+  string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle getTSIGKey", oraerr);
+  }
+
+  release_query(stmt, setTSIGKeyQueryKey);
+  return true;
+}
+
+bool
+OracleBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
+{
+  if(!d_dnssecQueries)
+    return -1;
+
+  sword rc;
+  OCIStmt *stmt;
+
+  stmt = prepare_query(pooledSvcCtx, getTSIGKeysQuerySQL, getTSIGKeysQueryKey);
+  define_output_str(stmt, 1, &mResultTypeInd, mResultType, sizeof(mResultType));
+  define_output_str(stmt, 2, &mResultContentInd, mResultContent, sizeof(mResultContent));
+
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+  while (rc != OCI_NO_DATA) {
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle getDomainMetadata", oraerr);
+    }
+
+    check_indicator(mResultNameInd, true);
+    check_indicator(mResultTypeInd, true);
+    check_indicator(mResultContentInd, true);
+
+    struct TSIGKey key;
+
+    key.name = name;
+    key.algorithm = type;
+    key.key = content;
+    keys.push_back(key);
+
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
+  }
+
+  release_query(stmt, getTSIGKeyQueryKey);
+  return true;
+}
+
+bool
 OracleBackend::getDomainKeys (const string& name, unsigned int kind, vector<KeyData>& keys)
 {
   if(!d_dnssecQueries)
@@ -2061,6 +2151,9 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "set-zone-metadata-query", "", setZoneMetadataQueryDefaultSQL);
 
     declare(suffix, "get-tsig-key-query", "", getTSIGKeyQueryDefaultSQL);
+    declare(suffix, "set-tsig-key-query", "", setTSIGKeyQueryDefaultSQL);
+    declare(suffix, "delete-tsig-key-query", "", deleteTSIGKeyQueryDefaultSQL);
+    declare(suffix, "get-tsig-keys-query", "", getTSIGKeysQueryDefaultSQL);
     declare(suffix, "get-zone-keys-query", "", getZoneKeysQueryDefaultSQL);
     declare(suffix, "del-zone-key-query", "", delZoneKeyQueryDefaultSQL);
     declare(suffix, "add-zone-key-query", "", addZoneKeyQueryDefaultSQL);
