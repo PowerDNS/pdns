@@ -207,6 +207,8 @@ case $context in
 				skipreasons="nodyndns"
 			fi
 
+                        ../pdns/pdnssec --config-dir=. enable-tsig-key tsig.com test master
+
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
@@ -330,6 +332,9 @@ __EOF__
 
 			done
 
+                        ../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
+
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch --launch+=random --launch+=gmysql --launch+=random --gmysql-dnssec \
 				--send-root-referral \
@@ -382,6 +387,9 @@ __EOF__
 					../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
 				fi
 			done
+
+                        ../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+                        ../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
@@ -499,6 +507,9 @@ __EOF__
 					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
 				fi
 			done
+
+                        ../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+                        ../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
@@ -649,8 +660,7 @@ export optout
 
 if [ $presigned = yes ]
 then
-	skipreasons="$skipreasons nodyndns"
-
+        skipreasons="$skipreasons presigned nodyndns"
 	if [ ${context:0:6} = gmysql ]
 	then
 		context=${context}-presigned
@@ -673,6 +683,18 @@ then
 			"$GMYSQL2DB" \
 			-e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
 		done
+
+                set +e
+                echo $skipreasons | grep -q nodnssec
+                if [ $? -ne 0 ]; then
+			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
+	                "$GMYSQL2DB" \
+	                -e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+        	        mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
+	                "$GMYSQL2DB" \
+	                -e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+		fi
+		set -e
 
 		port=$((port+100))
 
@@ -713,15 +735,22 @@ then
 		do
 			sqlite3 pdns.sqlite31 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
 		done
+                
+                set +e
+                echo $skipreasons | grep -q nodnssec
+                if [ $? -ne 0 ]; then
+	                sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name.algorithm,secret) VALUES('tsig.com','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+        	        sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+		fi
+		set -e
 
 		port=$((port+100))
 
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
-			--fancy-records --send-root-referral \
-			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=4 \
-			--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 \
-			--config-name=gsqlite32 |& egrep -v "update records set ordername|insert into records" &
+			--fancy-records --send-root-referral --config-name=gsqlite2 \
+			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
+			--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 |& egrep -v "update records set ordername|insert into records" &
 		echo 'waiting for zones to be slaved'
 		set +e
 		loopcount=0
@@ -754,7 +783,17 @@ then
 		done
 		
 		rm -f dnssec-slave.sqlite3
+
 		../pdns/pdnssec --config-dir=. create-bind-db dnssec-slave.sqlite3
+
+		set +e
+                echo $skipreasons | grep -q nodnssec
+                if [ $? -ne 0 ]; then
+                   sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+                   sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
+                fi
+		set -e
+
 		port=$((port+100))
 
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \

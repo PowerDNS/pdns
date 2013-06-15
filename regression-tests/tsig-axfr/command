@@ -1,5 +1,3 @@
 #!/bin/sh 
 
-../pdns/pdnssec --config-dir=. enable-tsig-key minimal.com test master
-dig -t axfr minimal.com @$nameserver -p $port -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=' | grep 'IN\s*SOA'
-../pdns/pdnssec --config-dir=. disable-tsig-key minimal.com test master
+dig -t axfr tsig.com @$nameserver -p $port -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=' | grep 'IN\s*SOA'

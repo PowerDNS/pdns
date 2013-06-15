@@ -1470,7 +1470,7 @@ try
      string key;
      char tmpkey[64];
 
-     size_t klen;
+     size_t klen = 0;
      if (algo == "hmac-md5") {
        klen = 32;
      } else if (algo == "hmac-sha1") {
@@ -1483,6 +1483,9 @@ try
        klen = 64;
      } else if (algo == "hmac-sha512") {
        klen = 64;
+     } else {
+       cerr << "Cannot generate key for " << algo << endl;
+       return 1;
      }
 
      cerr << "Generating new key with " << klen << " bytes (this can take a while)" << endl;
