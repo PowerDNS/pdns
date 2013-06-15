@@ -655,6 +655,7 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
 {
   UeberBackend B("default");
   DomainInfo di;
+  std::vector<std::string> meta;
 
   if (!B.getDomainInfo(zone, di)){
     cerr << "No such zone in the database" << endl;
@@ -669,7 +670,13 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
-  
+  if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+     cerr << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
+  }
+
+  if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && meta.size() > 0) {
+     cerr << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
+  }
   
   cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned\n";
 
@@ -962,11 +969,13 @@ try
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs\n";
     cerr<<"test-schema ZONE                   Test DB schema - will create ZONE\n";
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key\n";
-    cerr<<"generate-tsig-key NAME ALGORITHM   Generate new TSIG key\n";
+    cerr<<"create-tsig-key NAME ALGORITHM     Generate new TSIG key\n";
     cerr<<"list-tsig-keys                     List all TSIG keys\n";
     cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)\n";
-    cerr<<"enable-tsig-key NAME ZONE          Enable TSIG key for a zone\n";
-    cerr<<"disable-tsig-key NAME ZONE         Remove TSIG key from a zone\n";
+    cerr<<"enable-tsig-key ZONE NAME [master|slave]\n";
+    cerr<<"                                   Enable TSIG key for a zone\n";
+    cerr<<"disable-tsig-key ZONE NAME [master|slave]\n";
+    cerr<<"                                   Disable TSIG key for a zone\n";
     cerr<<desc<<endl;
     return 0;
   }
@@ -1451,7 +1460,7 @@ try
     // print key to stdout 
     cout << "Flags: " << dspk.d_flags << endl << 
              dspk.getKey()->convertToISC() << endl; 
-  } else if (cmds[0]=="generate-tsig-key") {
+  } else if (cmds[0]=="create-tsig-key") {
      if (cmds.size() < 3) {
         cerr << "Syntax: " << cmds[0] << " name (hmac-md5|hmac-sha1|hmac-sha224|hmac-sha256|hmac-sha384|hmac-sha512)" << endl;
         return 0;
@@ -1534,16 +1543,24 @@ try
      }
      return 0;
   } else if (cmds[0]=="enable-tsig-key") {
-     if (cmds.size() < 3) {
-        cerr << "Syntax: " << cmds[0] << " zone name" << endl;
+     string metaKey;
+     if (cmds.size() < 4) {
+        cerr << "Syntax: " << cmds[0] << " zone name [master|slave]" << endl;
         return 0;
      }
      string zname = cmds[1];
      string name = cmds[2];
-
+     if (cmds[3] == "master")
+        metaKey = "TSIG-ALLOW-AXFR";
+     else if (cmds[3] == "slave")
+        metaKey = "AXFR-MASTER-TSIG";
+     else {
+        cerr << "Invalid parameter '" << cmds[3] << "', expected master or slave" << endl;
+        return 1;
+     }
      UeberBackend B("default");
      std::vector<std::string> meta; 
-     if (!B.getDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+     if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cout << "Failure enabling TSIG key " << name << " for " << zname << endl;
        return 1;
      }
@@ -1552,7 +1569,7 @@ try
           if (tmpname == name) { found = true; break; }
      }
      if (!found) meta.push_back(name);
-     if (B.setDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+     if (B.setDomainMetadata(zname, metaKey, meta)) {
        cout << "Enabled TSIG key " << name << " for " << zname << endl;
      } else {
        cout << "Failure enabling TSIG key " << name << " for " << zname << endl;
@@ -1560,23 +1577,32 @@ try
      }
      return 0;
   } else if (cmds[0]=="disable-tsig-key") {
-     if (cmds.size() < 3) {
-        cerr << "Syntax: " << cmds[0] << " zone name" << endl;
+     string metaKey;
+     if (cmds.size() < 4) {
+        cerr << "Syntax: " << cmds[0] << " zone name [master|slave]" << endl;
         return 0;
      }
      string zname = cmds[1];
      string name = cmds[2];
+     if (cmds[3] == "master")
+        metaKey = "TSIG-ALLOW-AXFR";
+     else if (cmds[3] == "slave")
+        metaKey = "AXFR-MASTER-TSIG";
+     else {
+        cerr << "Invalid parameter '" << cmds[3] << "', expected master or slave" << endl;
+        return 1;
+     }
 
      UeberBackend B("default");
      std::vector<std::string> meta;
-     if (!B.getDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+     if (!B.getDomainMetadata(zname, metaKey, meta)) {
        cout << "Failure disabling TSIG key " << name << " for " << zname << endl;
        return 1;
      }
      std::vector<std::string>::iterator iter = meta.begin();
      for(;iter != meta.end(); iter++) if (*iter == name) break;
      if (iter != meta.end()) meta.erase(iter);
-     if (B.setDomainMetadata(zname, "TSIG-ALLOW-AXFR", meta)) {
+     if (B.setDomainMetadata(zname, metaKey, meta)) {
        cout << "Disabled TSIG key " << name << " for " << zname << endl;
      } else {
        cout << "Failure disabling TSIG key " << name << " for " << zname << endl;
