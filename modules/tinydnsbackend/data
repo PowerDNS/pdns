@@ -20251,3 +20251,7 @@ Cwww.secure-delegated.dnssec-parent.com:secure-delegated.dnssec-parent.com.:3600
 Zminimal.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
 &minimal.com::ns1.example.com.:120
 &minimal.com::ns2.example.com.:120
+#2000081501 auto axfr-get
+Ztsig.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
+&tsig.com::ns1.example.com.:120
+&tsig.com::ns2.example.com.:120
