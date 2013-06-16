@@ -14792,6 +14792,12 @@ end
 	    </para></listitem>
 	  </itemizedlist>
 	</para>
+	<warning>
+	  <para>
+	    If you use another PowerDNS server as master and have DNSSEC enabled on that server please don't forget to rectify the domains after every change.
+		If you don't do this there is no SOA record available and one requirement will fail.
+	  </para>
+	</warning>	
 	<para>
 	  So, to benefit from this feature, a backend needs to know about the IP address of the supermaster, and how PDNS will be listed in the set of
 	  NS records remotely, and the 'account' name of your supermaster. There is no need to fill the account name out but it does help keep track of
