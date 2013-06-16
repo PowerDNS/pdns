@@ -13,6 +13,7 @@
 #include "signingpipe.hh"
 #include <boost/scoped_ptr.hpp>
 #include "bindbackend2.hh"
+#include "dns_random.hh"
 
 StatBag S;
 PacketCache PC;
@@ -128,9 +129,10 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
   ::arg().set("default-zsk-size","Default KSK size (0 means default)")="0";
-  
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
+  ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
+
   ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().laxFile(configname.c_str());
 
@@ -674,6 +676,7 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
      cerr << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
   }
 
+  meta.clear();
   if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && meta.size() > 0) {
      cerr << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
   }
@@ -1489,10 +1492,10 @@ try
      }
 
      cerr << "Generating new key with " << klen << " bytes (this can take a while)" << endl;
-
-     ifstream keyin("/dev/random", ifstream::in|ifstream::binary);
-     // read and hash data
-     keyin.read(tmpkey, klen);
+     seedRandom(::arg()["entropy-source"]);
+     for(size_t i = 0; i < klen; i+=4) {
+        *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
+     }
      key = Base64Encode(std::string(tmpkey, klen));
 
      UeberBackend B("default");

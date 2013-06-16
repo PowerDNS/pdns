@@ -616,7 +616,7 @@ bool GSQLBackend::setTSIGKey(const string& name, const string& algorithm, const 
     d_db->doCommand(output);
   }
   catch (SSqlException &e) {
-    throw AhuException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
   }
   return true;
 }
@@ -632,7 +632,7 @@ bool GSQLBackend::deleteTSIGKey(const string& name)
     d_db->doCommand(output);
   }
   catch (SSqlException &e) {
-    throw AhuException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
   }
   return true;
 }
@@ -649,7 +649,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
     d_db->doQuery(output);
   }
   catch (SSqlException &e) {
-    throw AhuException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to retrieve TSIG keys: "+e.txtReason());
   }
 
   SSql::row_t row;
@@ -659,6 +659,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
      key.name = row[0];
      key.algorithm = row[1];
      key.key = row[2];
+     keys.push_back(key);
   }
 
   return keys.empty();

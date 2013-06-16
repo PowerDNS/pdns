@@ -423,7 +423,8 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
 
 string calculateMD5HMAC(const std::string& key_, const std::string& text)
 {
-  const unsigned char* key=(const unsigned char*)key_.c_str();
+  unsigned char key[64] = {0};
+  key_.copy((char*)key,64); 
   unsigned char keyIpad[64];
   unsigned char keyOpad[64];
 
@@ -453,7 +454,8 @@ string calculateMD5HMAC(const std::string& key_, const std::string& text)
 
 string calculateSHAHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hasher)
 {
-  const unsigned char* key=(const unsigned char*)key_.c_str();
+  unsigned char key[64] = {0};
+  key_.copy((char*)key,64); 
   unsigned char keyIpad[64];
   unsigned char keyOpad[64];
 
@@ -518,7 +520,7 @@ string calculateSHAHMAC(const std::string& key_, const std::string& text, TSIGHa
       return s2.get();
   };
   default:
-    throw new AhuException("Unknown hash algorithm requested for SHA");
+    throw new PDNSException("Unknown hash algorithm requested for SHA");
   };
 
   return std::string("");
@@ -573,9 +575,25 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
-  if (trc->d_algoName != "hmac-md5.sig-alg.reg.int.") {
-    L<<Logger::Error<<"Unsupported HMAC TSIG algorithm " << trc->d_algoName << endl;
-    return;
+  TSIGHashEnum algo;
+
+  if (*(trc->d_algoName.rbegin()) != '.') trc->d_algoName.append(".");
+
+  if (trc->d_algoName == "hmac-md5.sig-alg.reg.int.")
+  algo = TSIG_MD5;
+  else if (trc->d_algoName == "hmac-sha1.")
+  algo = TSIG_SHA1;
+  else if (trc->d_algoName == "hmac-sha224.")
+  algo = TSIG_SHA224;
+  else if (trc->d_algoName == "hmac-sha256.")
+  algo = TSIG_SHA256;
+  else if (trc->d_algoName == "hmac-sha384.")
+  algo = TSIG_SHA384;
+  else if (trc->d_algoName == "hmac-sha512.")
+  algo = TSIG_SHA512;
+  else {
+     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+     return;
   }
 
   string toSign;
@@ -609,7 +627,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
   const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
   toSign.append(&*signRecord.begin(), &*signRecord.end());
 
-  trc->d_mac = calculateMD5HMAC(tsigsecret, toSign);
+  trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
   //  d_trc->d_mac[0]++; // sabotage
   pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
   trc->toPacket(pw);

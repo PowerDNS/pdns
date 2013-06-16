@@ -299,7 +299,7 @@ bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const
     d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name) % d_dnssecdb->escape(algorithm) % d_dnssecdb->escape(content)).str() );
   }
   catch (SSqlException &e) {
-    throw AhuException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
+    throw PDNSException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
   }
 
   return true;
@@ -315,7 +315,7 @@ bool Bind2Backend::deleteTSIGKey(const string& name)
     d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name)).str() );
   }
   catch (SSqlException &e) {
-    throw AhuException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
+    throw PDNSException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
   }
 
   return true;
@@ -330,7 +330,7 @@ bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
     d_dnssecdb->doQuery( "select name,algorithm,secret from tsigkeys" );
   }
   catch (SSqlException &e) {
-    throw AhuException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
   }
 
   SSql::row_t row;

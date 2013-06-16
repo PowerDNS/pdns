@@ -614,16 +614,28 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
     trc->d_algoName += ".sig-alg.reg.int.";
 
   bool result;
+  TSIGHashEnum algo;
+  if (*(trc->d_algoName.rbegin()) != '.') trc->d_algoName.append(".");
+
   if (trc->d_algoName == "hmac-md5.sig-alg.reg.int.")
-  {
-     B64Decode(secret64, *secret);
-     result=calculateMD5HMAC(*secret, message) == trc->d_mac;
+  algo = TSIG_MD5;
+  else if (trc->d_algoName == "hmac-sha1.") 
+  algo = TSIG_SHA1;
+  else if (trc->d_algoName == "hmac-sha224.") 
+  algo = TSIG_SHA224;
+  else if (trc->d_algoName == "hmac-sha256.") 
+  algo = TSIG_SHA256;
+  else if (trc->d_algoName == "hmac-sha384.") 
+  algo = TSIG_SHA384;
+  else if (trc->d_algoName == "hmac-sha512.") 
+  algo = TSIG_SHA512;
+  else {
+     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+     return false;
   }
-  else 
-  {
-    L<<Logger::Error<<"Do not know how to handle TSIG algorithm " << trc->d_algoName << endl;
-    return false;
-  }
+
+  B64Decode(secret64, *secret);
+  result=calculateHMAC(*secret, message, algo) == trc->d_mac;
 
   if(!result) {
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
