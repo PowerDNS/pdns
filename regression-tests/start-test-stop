@@ -508,8 +508,8 @@ __EOF__
 				fi
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-                        ../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
+                        ../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+                        ../pdns/pdnssec --config-dir=. --config-name=gsqlite3 enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
@@ -739,7 +739,7 @@ then
                 set +e
                 echo $skipreasons | grep -q nodnssec
                 if [ $? -ne 0 ]; then
-	                sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name.algorithm,secret) VALUES('tsig.com','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+	                sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
         	        sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 		fi
 		set -e
