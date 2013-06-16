@@ -14,6 +14,7 @@
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
 #include "md5.hh"
+#include "sha.hh"
 #include "namespaces.hh"
 using namespace boost::assign;
 
@@ -448,6 +449,87 @@ string calculateMD5HMAC(const std::string& key_, const std::string& text)
   md5_2.feed(md5_1.get());
 
   return md5_2.get();
+}
+
+string calculateSHAHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hasher)
+{
+  const unsigned char* key=(const unsigned char*)key_.c_str();
+  unsigned char keyIpad[64];
+  unsigned char keyOpad[64];
+
+  //~ cerr<<"Key: "<<makeHexDump(key_)<<endl;
+  //~ cerr<<"txt: "<<makeHexDump(text)<<endl;
+
+  for(unsigned int n=0; n < 64; ++n) {
+    if(n < key_.length()) {
+      keyIpad[n] = (unsigned char)(key[n] ^ 0x36);
+      keyOpad[n] = (unsigned char)(key[n] ^ 0x5c);
+    }
+    else  {
+      keyIpad[n]=0x36;
+      keyOpad[n]=0x5c;
+    }
+  }
+  
+  switch(hasher) {
+  case TSIG_SHA1:
+  {
+      SHA1Summer s1,s2;
+      s1.feed((const char*)keyIpad, 64);
+      s1.feed(text);
+      s2.feed((const char*)keyOpad, 64);
+      s2.feed(s1.get());
+      return s2.get();
+  };
+  case TSIG_SHA224:
+  {
+      SHA224Summer s1,s2;
+      s1.feed((const char*)keyIpad, 64);
+      s1.feed(text);
+      s2.feed((const char*)keyOpad, 64);
+      s2.feed(s1.get());
+      return s2.get();
+  };
+  case TSIG_SHA256:
+  {
+      SHA256Summer s1,s2;
+      s1.feed((const char*)keyIpad, 64);
+      s1.feed(text);
+      s2.feed((const char*)keyOpad, 64);
+      s2.feed(s1.get());
+      return s2.get();
+  };
+  case TSIG_SHA384:
+  {
+      SHA384Summer s1,s2;
+      s1.feed((const char*)keyIpad, 64);
+      s1.feed(text);
+      s2.feed((const char*)keyOpad, 64);
+      s2.feed(s1.get());
+      return s2.get();
+  };
+  case TSIG_SHA512:
+  {
+      SHA512Summer s1,s2;
+      s1.feed((const char*)keyIpad, 64);
+      s1.feed(text);
+      s2.feed((const char*)keyOpad, 64);
+      s2.feed(s1.get());
+      return s2.get();
+  };
+  default:
+    throw new AhuException("Unknown hash algorithm requested for SHA");
+  };
+
+  return std::string("");
+}
+
+string calculateHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hash) {
+  if (hash == TSIG_MD5) return calculateMD5HMAC(key_, text);
+  
+  // add other algorithms here
+
+  return calculateSHAHMAC(key_, text, hash);
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)

@@ -610,17 +610,21 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
     return false;
   }
+  if (trc->d_algoName == "hmac-md5")
+    trc->d_algoName += ".sig-alg.reg.int.";
 
-  if (trc->d_algoName == "hmac-md5") 
-    trc->d_algoName += ".sig-alg.reg.int."; 
-
-  if (trc->d_algoName != "hmac-md5.sig-alg.reg.int.") {
-    L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+  bool result;
+  if (trc->d_algoName == "hmac-md5.sig-alg.reg.int.")
+  {
+     B64Decode(secret64, *secret);
+     result=calculateMD5HMAC(*secret, message) == trc->d_mac;
+  }
+  else 
+  {
+    L<<Logger::Error<<"Do not know how to handle TSIG algorithm " << trc->d_algoName << endl;
     return false;
   }
 
-  B64Decode(secret64, *secret);
-  bool result=calculateMD5HMAC(*secret, message) == trc->d_mac;
   if(!result) {
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
   }
