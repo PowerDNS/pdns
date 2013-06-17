@@ -495,6 +495,11 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
+  if (trc->d_algoName != "hmac-md5.sig-alg.reg.int.") {
+    L<<Logger::Error<<"Unsupported HMAC TSIG algorithm " << trc->d_algoName << endl;
+    return;
+  }
+
   string toSign;
   if(!tsigprevious.empty()) {
     uint16_t len = htons(tsigprevious.length());
