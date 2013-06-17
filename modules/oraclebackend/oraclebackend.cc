@@ -1335,8 +1335,8 @@ OracleBackend::getTSIGKey (const string& name, string* algorithm, string* conten
   OCIStmt *stmt;
 
   stmt = prepare_query(pooledSvcCtx, getTSIGKeyQuerySQL, getTSIGKeyQueryKey);
-  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
 
   define_output_str(stmt, 1, &mResultTypeInd, mResultType, sizeof(mResultType));
   define_output_str(stmt, 2, &mResultContentInd, mResultContent, sizeof(mResultContent));
