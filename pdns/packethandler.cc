@@ -1124,7 +1124,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::RRSIG && d_dk.isSecuredZone(sd.qname)) {
-      L<<Logger::Warning<<"Direct RRSIG query for "<<target<<" from "<<p->getRemote()<<endl;
       r->setRcode(RCode::NotImp);
       goto sendit;
     }
