@@ -6373,7 +6373,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	    <listitem>
 	      <para>
 		zone2sql can now accept <filename>-</filename> as a file name which causes it to read stdin. This allows the following 
-		to work: <command>dig axfr ds9a.nl | zone2sql --gmysql --zone=- | mysql pdns</command>, which is a nice way to 
+		to work: <command>dig axfr example.org | zone2sql --gmysql --zone=- | mysql pdns</command>, which is a nice way to 
 		import a zone.
 	      </para>
 	    </listitem>
@@ -7391,29 +7391,29 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	  Bind configuration. Observe.
 	</para>
 	<para>
-	  After the SOA of ds9a.nl was raised:
+	  After the SOA of example.org was raised:
 	  <screen>
 pdns[17495]: All slave domains are fresh
 pdns[17495]: 1 domain for which we are master needs notifications
-pdns[17495]: Queued notification of domain 'ds9a.nl' to 195.193.163.3
-pdns[17495]: Queued notification of domain 'ds9a.nl' to 213.156.2.1
-pdns[17520]: AXFR of domain 'ds9a.nl' initiated by 195.193.163.3
-pdns[17520]: AXFR of domain 'ds9a.nl' to 195.193.163.3 finished
-pdns[17521]: AXFR of domain 'ds9a.nl' initiated by 213.156.2.1
-pdns[17521]: AXFR of domain 'ds9a.nl' to 213.156.2.1 finished
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 195.193.163.3 (was acknowledged)
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 213.156.2.1 (was acknowledged)
+pdns[17495]: Queued notification of domain 'example.org' to 195.193.163.3
+pdns[17495]: Queued notification of domain 'example.org' to 213.156.2.1
+pdns[17520]: AXFR of domain 'example.org' initiated by 195.193.163.3
+pdns[17520]: AXFR of domain 'example.org' to 195.193.163.3 finished
+pdns[17521]: AXFR of domain 'example.org' initiated by 213.156.2.1
+pdns[17521]: AXFR of domain 'example.org' to 213.156.2.1 finished
+pdns[17495]: Removed from notification list: 'example.org' to 195.193.163.3 (was acknowledged)
+pdns[17495]: Removed from notification list: 'example.org' to 213.156.2.1 (was acknowledged)
 pdns[17495]: No master domains need notifications
 	  </screen>
 	  If however our slaves would ignore us, as some are prone to do, we can send some additional notifications:
 	  <screen>
-$ sudo pdns_control notify ds9a.nl         
+$ sudo pdns_control notify example.org         
 Added to queue
-pdns[17492]: Notification request for domain 'ds9a.nl' received
-pdns[17492]: Queued notification of domain 'ds9a.nl' to 195.193.163.3
-pdns[17492]: Queued notification of domain 'ds9a.nl' to 213.156.2.1
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 195.193.163.3 (was acknowledged)
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 213.156.2.1 (was acknowledged)
+pdns[17492]: Notification request for domain 'example.org' received
+pdns[17492]: Queued notification of domain 'example.org' to 195.193.163.3
+pdns[17492]: Queued notification of domain 'example.org' to 213.156.2.1
+pdns[17495]: Removed from notification list: 'example.org' to 195.193.163.3 (was acknowledged)
+pdns[17495]: Removed from notification list: 'example.org' to 213.156.2.1 (was acknowledged)
 	    </screen>
 	  Conversely, if PowerDNS needs to be reminded to retrieve a zone from a master, a command is provided:
            <screen>
@@ -7915,7 +7915,7 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	    </listitem>
 	    <listitem>
 	      <para>
-		The <command>allow-axfr-ips</command> setting did not accept IP ranges (1.2.3.0/24) which the 
+		The <command>allow-axfr-ips</command> setting did not accept IP ranges (192.0.2.0/24) which the 
 		documentation claimed it did (thanks to Florus Both of Ascio technologies for being sufficiently persistent in reporting this).
 	      </para>
 	    </listitem>
@@ -9746,8 +9746,8 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	    has problems with a zone in the following format:
 	    
 	    <programlisting>
-name         IN            A        1.2.3.4
-             IN            A        1.2.3.5
+name         IN            A        192.0.2.4
+             IN            A        192.0.2.5
 	    </programlisting>
 
 	    To fix, add 'name' to the second line.
@@ -10810,7 +10810,7 @@ name         IN            A        1.2.3.4
 	<screen>
 	  <command>host www.example.com 127.0.0.1</command>
 	</screen>
-	www.example.com should now have IP address 1.2.3.4. The <command>host</command> command can usually be found in the dnsutils 
+	www.example.com should now have IP address 192.0.2.4. The <command>host</command> command can usually be found in the dnsutils 
 	package of your operating system. Alternate command is: <command>dig www.example.com A @127.0.0.1</command> or even 
 	<command>nslookup www.example.com 127.0.0.1</command>, although nslookup is not advised for DNS diagnostics.
 
@@ -11161,6 +11161,7 @@ name         IN            A        1.2.3.4
 	gmysql-host=127.0.0.1
 	gmysql-user=root
 	gmysql-dbname=pdns
+	gmysql-password=mysecretpassword
       </screen>
       
       Remove any earlier <command>launch</command> statements. Also remove the <command>bind-example-zones</command>
@@ -11224,51 +11225,51 @@ GRANT ALL ON records TO pdns;
 	
 	A sample query sent to the database should now return quickly without data:
 	<screen>
-	  $ host www.test.com 127.0.0.1
-	  www.test.com A record currently not present at localhost
+	  $ host www.example.com 127.0.0.1
+	  www.example.com A record currently not present at localhost
 	</screen>
 
 	And indeed, the control console now shows:
 	<screen>
-	  Mar 12 15:41:12 We're not authoritative for 'www.test.com', sending unauth normal response
+	  Mar 12 15:41:12 We're not authoritative for 'www.example.com', sending unauth normal response
 	</screen>
 
 	Now we need to add some records to our database:
 	<screen>
 	  # mysql pdnstest
-	  mysql> INSERT INTO domains (name, type) values ('test.com', 'NATIVE');
+	  mysql> INSERT INTO domains (name, type) values ('example.com', 'NATIVE');
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio) 
-	  VALUES (1,'test.com','localhost ahu@ds9a.nl 1','SOA',86400,NULL);
+	  VALUES (1,'example.com','localhost ahu@ds9a.nl 1','SOA',86400,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'test.com','dns-us1.powerdns.net','NS',86400,NULL);
+	  VALUES (1,'example.com','dns-us1.powerdns.net','NS',86400,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'test.com','dns-eu1.powerdns.net','NS',86400,NULL);
+	  VALUES (1,'example.com','dns-eu1.powerdns.net','NS',86400,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'www.test.com','199.198.197.196','A',120,NULL);
+	  VALUES (1,'www.example.com','192.0.2.10','A',120,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'mail.test.com','195.194.193.192','A',120,NULL);
+	  VALUES (1,'mail.example.com','192.0.2.12','A',120,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'localhost.test.com','127.0.0.1','A',120,NULL);
+	  VALUES (1,'localhost.example.com','127.0.0.1','A',120,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'test.com','mail.test.com','MX',120,25);
+	  VALUES (1,'example.com','mail.example.com','MX',120,25);
 	</screen>
 	<warning><para>Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present
     it will inevitably cause problems, problems that may be hard to debug.</para></warning>
-	If we now requery our database, <command>www.test.com</command> should be present:
+	If we now requery our database, <command>www.example.com</command> should be present:
 	<screen>
-	  $ host www.test.com 127.0.0.1
-	  www.test.com        	A	199.198.197.196
+	  $ host www.example.com 127.0.0.1
+	  www.example.com        	A	192.0.2.10
 	  
-	  $ host -v -t mx test.com 127.0.0.1
+	  $ host -v -t mx example.com 127.0.0.1
 	  Address: 127.0.0.1
 	  Aliases: localhost
 
-	  Query about test.com for record types MX
-	  Trying test.com ...
+	  Query about example.com for record types MX
+	  Trying example.com ...
 	  Query done, 1 answer, authoritative status: no error
-	  test.com            	120	IN	MX	25 mail.test.com
+	  example.com            	120	IN	MX	25 mail.example.com
 	  Additional information:
-	  mail.test.com       	120	IN	A	195.194.193.192
+	  mail.example.com       	120	IN	A	192.0.2.12
 	</screen>
 	
 	To confirm what happened, issue the command <command>SHOW *</command> to the control console:
@@ -11371,7 +11372,7 @@ GRANT ALL ON records TO pdns;
 	<itemizedlist>
 	  <listitem>
 	    <para>
-	      webserver.example.com A records pointing to 1.2.3.4, 1.2.3.5, 1.2.3.6
+	      webserver.example.com A records pointing to 192.0.2.4, 192.0.2.5, 192.0.2.6
 	    </para>
           </listitem>
 	  <listitem>
@@ -13214,7 +13215,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
     </para>
     <para>
       By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
-      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 1.2.3.4</command>.
+      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4</command>.
     </para>
     <sect1 id="recursion-details"><title>Details</title>
       <para>
@@ -13227,7 +13228,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
       </para>
       <para>
 	It is also possible to use a resolver living on a different port. To do so, specify a recursor like this: 
-	<command>recursor=130.161.180.1:5300</command>.
+	<command>recursor=192.0.2.1:5300</command>.
       </para>
       <para>
 	If the backend does not answer a question within a large amount of time, this is logged as 'Recursive query for remote 10.96.0.2 with internal id 0 
@@ -13370,7 +13371,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Comma separated list of 'zonename=filename' pairs. Zones read from these files (in BIND format) are served authoritatively. Example:
-		<command>auth-zones= ds9a.nl=/var/zones/ds9a.nl, powerdns.com=/var/zones/powerdns.com</command>. Available since version 3.1.
+		<command>auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com</command>. Available since version 3.1.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -13483,12 +13484,12 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Comma separated list of 'zonename=IP' pairs. Queries for zones listed here will be forwarded to the IP address listed.
-		<command>forward-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1</command>. Available since version 3.1.
+		<command>forward-zones=example.org=203.0.113.210, powerdns.com=127.0.0.1</command>. Available since version 3.1.
 	      </para>
 	      <para>
 		Since version 3.1.5, multiple IP addresses can be specified. Additionally, port numbers other than 53 can be configured.
-		Sample syntax: <command>forward-zones=ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530</command>,
-		or on the command line: <command>--forward-zones="ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530"</command>,
+		Sample syntax: <command>forward-zones=example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;198.51.100.10:530</command>,
+		or on the command line: <command>--forward-zones="example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530"</command>,
 	      </para>
 	      <para>
 		Forwarded queries have the 'recursion desired' bit set to 0, meaning that this setting is intended to forward queries to authoritative servers.
@@ -13500,7 +13501,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Same as <command>forward-zones</command>, parsed from a file. Only 1 zone is allowed per line, specified as follows:
-		<command>ds9a.nl=213.244.168.210, 1.2.3.4:5300</command>. No comments are allowed. Available since version 3.1.5.
+		<command>example.org=203.0.113.210, 192.0.2.4:5300</command>. No comments are allowed. Available since version 3.1.5.
 	      </para>
 	      <para>
 		Since version 3.2, zones prefixed with a '+' are forwarded with the recursion-desired bit set to one, for which see 'forward-zones-recurse'. Default behaviour without '+'
@@ -13531,7 +13532,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Local IPv4 or IPv6 addresses to bind to, comma separated. Defaults to only loopback. Addresses can also contain port numbers,
-		for IPv4 specify like this: <command>1.2.3.4:5300</command>, for IPv6: <command>[::1]:5300</command>. Port specifications are available since
+		for IPv4 specify like this: <command>192.0.2.4:5300</command>, for IPv6: <command>[::1]:5300</command>. Port specifications are available since
 		version 3.1.2.
 	      </para>
 	      <para><warning><para>When binding to wildcard addresses, UNIX semantics mean that answers may not be sent
@@ -14295,8 +14296,8 @@ function nxdomain ( ip, domain, qtype )
   if qtype ~= pdns.A then return -1, ret end  --  only A records
   if not string.find(domain, "^www%.") then return -1, ret end  -- only things that start with www.
   if not matchnetmask(ip, "10.0.0.0/8", "192.168.0.0/16")  then return -1, ret end -- only interfere with local queries
-  ret[1]={qtype=pdns.A, content="127.1.2.3"}    -- add IN A 127.1.2.3
-  ret[2]={qtype=pdns.A, content="127.3.2.1"}    -- add IN A 127.3.2.1
+  ret[1]={qtype=pdns.A, content="192.0.2.13"}    -- add IN A 192.0.2.13
+  ret[2]={qtype=pdns.A, content="192.0.2.21"}    -- add IN A 192.0.2.21
   setvariable()
   return 0, ret                 -- return no error, plus records
 end
@@ -14315,8 +14316,8 @@ end
 	</para>
 	<para>
 	  The answer content format is (nearly) identical to the storage in the PowerDNS Authoritative Server database, or as in zone files. 
-	  The exception is that, unlike in the database, there is no 'prio' field, which means that an MX record with priority 25 pointing to 'smtp.mailserver.com' would be encoded as
-	  '25 smtp.mailserver.com.'.
+	  The exception is that, unlike in the database, there is no 'prio' field, which means that an MX record with priority 25 pointing to 'smtp.example.net' would be encoded as
+	  '25 smtp.example.net.'.
 	</para>
 	<para>
 	  Useful return 'rcodes' include 0 for "no error" and <function>pdns.NXDOMAIN</function> for "NXDOMAIN".
@@ -14376,7 +14377,7 @@ end
 	    <para>
 	      The result table must have indexes that start at 1! Otherwise the first or confusingly the last entry of the table will
 	      be ignored. A useful technique is to return data using: 
-	      <literal>return 0, {{qtype=1, content="1.2.3.4"}, {qtype=1, content="4.3.2.1"}}</literal> as this will get the numbering
+	      <literal>return 0, {{qtype=1, content="192.0.2.4"}, {qtype=1, content="4.3.2.1"}}</literal> as this will get the numbering
 	      right automatically.
 	    </para>
 	  </warning>
@@ -14553,12 +14554,12 @@ end
 	
 	<para>For example, storing the following:</para>
 	
-	<literallayout class="monospaced">www.ds9a.nl  3600 IN   CNAME  outpost.ds9a.nl.</literallayout>
-	<para>Would duplicate a lot of data. So, what is actually stored is a partial DNS packet. To store the CNAMEDNSRecordContent that corresponds to the above, we generate a DNS packet that has <command>www.ds9a.nl IN CNAME</command> as its question. Then we add <command>3600 IN CNAME outpost.ds9a.nl</command>. as its answer. Then we chop off the question part, and store the rest in the <command>www.ds9a.nl IN CNAME</command> key in our cache.</para>
+	<literallayout class="monospaced">www.example.org  3600 IN   CNAME  outpost.example.org.</literallayout>
+	<para>Would duplicate a lot of data. So, what is actually stored is a partial DNS packet. To store the CNAMEDNSRecordContent that corresponds to the above, we generate a DNS packet that has <command>www.example.org IN CNAME</command> as its question. Then we add <command>3600 IN CNAME outpost.example.org</command>. as its answer. Then we chop off the question part, and store the rest in the <command>www.example.org IN CNAME</command> key in our cache.</para>
 	
-	<para>When we need to retrieve <command>www.ds9a.nl IN CNAME</command>, the inverse happens. We find the proper partial packet, prefix it with a question for <command>www.ds9a.nl IN CNAME</command>, and expand the resulting packet into the answer <command>3600 IN CNAME outpost.ds9a.nl.</command>.</para>
+	<para>When we need to retrieve <command>www.example.org IN CNAME</command>, the inverse happens. We find the proper partial packet, prefix it with a question for <command>www.example.org IN CNAME</command>, and expand the resulting packet into the answer <command>3600 IN CNAME outpost.example.org.</command>.</para>
 	
-	<para>Why do we go through all these motions? Because of DNS compression, which allows us to omit the whole <command>.ds9a.nl.</command> part, saving us 9 bytes. This is amplified when storing multiple MX records which all look more or less alike. This optimization is not performed yet though.</para>
+	<para>Why do we go through all these motions? Because of DNS compression, which allows us to omit the whole <command>.example.org.</command> part, saving us 9 bytes. This is amplified when storing multiple MX records which all look more or less alike. This optimization is not performed yet though.</para>
 	
 	<para>Even without compression, it makes sense as all records are automatically stored very compactly.</para>
 	
@@ -15015,7 +15016,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <listitem>
 	    <para>
 	      By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
-	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 1.2.3.4</command>.
+	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4</command>.
 	    </para>
 	  </listitem></varlistentry>
 	  <varlistentry><term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
@@ -15568,7 +15569,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem>
 	    <para>
 	      The A record contains an IP address. It is stored as a decimal dotted quad string,
-	      for example: '213.244.168.210'.
+	      for example: '203.0.113.210'.
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -15576,7 +15577,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <term>AAAA</term>
 	  <listitem>
 	    <para>
-	      The AAAA record contains an IPv6 address. An example: '3ffe:8114:2000:bf0::1'. 
+	      The AAAA record contains an IPv6 address. An example: '2001:DB8:2000:bf0::1'. 
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -15891,7 +15892,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
       <para>
 	<variablelist>
 	  <varlistentry>
-	    <term>Q: I get this entry a lot of times in my log file: Authoritative empty NO ERROR to 1.2.3.4 for 'powerdns.nl' (AAAA)..</term>
+	    <term>Q: I get this entry a lot of times in my log file: Authoritative empty NO ERROR to 192.0.2.4 for 'powerdns.nl' (AAAA)..</term>
 	    <listitem>
 	      <para>
 		As the name implies, this is not an error. It tells you there are questions for a domain which exists in your database, but for
@@ -16601,33 +16602,33 @@ DATA	qname		qclass	qtype	ttl	id	content
 A sample dialogue may look like this (note that in reality,
 almost all queries will actually be for the ANY qtype):
 <screen>
-Q	www.ds9a.nl	IN	CNAME	-1	213.244.168.210
-DATA	www.ds9a.nl	IN	CNAME	3600	1 ws1.ds9a.nl
+Q	www.example.org	IN	CNAME	-1	203.0.113.210
+DATA	www.example.org	IN	CNAME	3600	1 ws1.example.org
 END
-Q	ws1.ds9a.nl	IN	CNAME	-1	213.244.168.210
+Q	ws1.example.org	IN	CNAME	-1	203.0.113.210
 END
-Q	wd1.ds9a.nl	IN	A	-1	213.244.168.210
-DATA	ws1.ds9a.nl	IN	A	3600	1	1.2.3.4
-DATA	ws1.ds9a.nl	IN	A	3600	1	1.2.3.5
-DATA	ws1.ds9a.nl	IN	A	3600	1	1.2.3.6
+Q	wd1.example.org	IN	A	-1	203.0.113.210
+DATA	ws1.example.org	IN	A	3600	1	192.0.2.4
+DATA	ws1.example.org	IN	A	3600	1	192.0.2.5
+DATA	ws1.example.org	IN	A	3600	1	192.0.2.6
 END
 </screen>
 
-This would correspond to a remote webserver 213.244.168.210 wanting to
-resolve the IP address of www.ds9a.nl, and PowerDNS traversing the CNAMEs to
-find the IP addresses of ws1.ds9a.nl
+This would correspond to a remote webserver 203.0.113.210 wanting to
+resolve the IP address of www.example.org, and PowerDNS traversing the CNAMEs to
+find the IP addresses of ws1.example.org
 
 Another dialogue might be:
 <screen>
-Q	ds9a.nl		IN	SOA	-1	213.244.168.210
-DATA	ds9a.nl		IN	SOA	86400	1 ahu.ds9a.nl ...
+Q	example.org		IN	SOA	-1	203.0.113.210
+DATA	example.org		IN	SOA	86400	1 ahu.example.org ...
 END
 AXFR	1
-DATA	ds9a.nl		IN	SOA	86400	1 ahu.ds9a.nl ...
-DATA	ds9a.nl		IN	NS	86400	1 ns1.ds9a.nl
-DATA	ds9a.nl		IN	NS	86400	1 ns2.ds9a.nl
-DATA	ns1.ds9a.nl	IN	A	86400	1 213.244.168.210
-DATA	ns2.ds9a.nl	IN	A	86400	1 63.123.33.135
+DATA	example.org		IN	SOA	86400	1 ahu.example.org ...
+DATA	example.org		IN	NS	86400	1 ns1.example.org
+DATA	example.org		IN	NS	86400	1 ns2.example.org
+DATA	ns1.example.org	IN	A	86400	1 203.0.113.210
+DATA	ns2.example.org	IN	A	86400	1 63.123.33.135
 .
 .
 END
@@ -16686,9 +16687,9 @@ while(&lt;&gt;)
 
 	if(($qtype eq "A" || $qtype eq "ANY") &amp;&amp; $qname eq "webserver.example.com") {
 		print STDERR "$$ Sent A records\n";
-		print "DATA	$qname	$qclass	A	3600	-1	1.2.3.4\n";
-		print "DATA	$qname	$qclass	A	3600	-1	1.2.3.5\n";
-		print "DATA	$qname	$qclass	A	3600	-1	1.2.3.6\n";
+		print "DATA	$qname	$qclass	A	3600	-1	192.0.2.4\n";
+		print "DATA	$qname	$qclass	A	3600	-1	192.0.2.5\n";
+		print "DATA	$qname	$qclass	A	3600	-1	192.0.2.6\n";
 	}
 	elsif(($qtype eq "CNAME" || $qtype eq "ANY") &amp;&amp; $qname eq "www.example.com") {
 		print STDERR "$$ Sent CNAME records\n";
@@ -16933,7 +16934,7 @@ create table supermasters (
 	<para>
 	  Inserting records is a bit different compared to MySQL and PostgreSQL, you should use:
 <screen>
-insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherlabs.nl','NATIVE');
+insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.net','NATIVE');
 	    </screen>
 	  </para>
 	  <para>
@@ -17615,8 +17616,8 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
           </para>
           <para>
             Host entries can be IPv4 or IPv6 addresses, in string representation. If you need to specify
-            a port, use <userinput>1.2.3.4:5300</userinput> notation for IPv4 and brackets for IPv6:
-            <userinput>[abcd::1234]:5300</userinput>.
+            a port, use <userinput>192.0.2.4:5300</userinput> notation for IPv4 and brackets for IPv6:
+            <userinput>[2001:db8::1234]:5300</userinput>.
           </para>
         </sect3>
 
@@ -21633,7 +21634,7 @@ static RandomLoader randomloader;
 	  parameters.
 	  <programlisting>
   if(mustDo("example-zones")) {
-    insert(0,"www.example.com","A","1.2.3.4");
+    insert(0,"www.example.com","A","192.0.2.4");
     /* ... */
   }
   
