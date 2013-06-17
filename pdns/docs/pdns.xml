@@ -16851,6 +16851,11 @@ while(&lt;&gt;)
 CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains`
 (`id`) ON DELETE CASCADE
 </programlisting>
+    Or, if you have already created the tables, execute:
+<programlisting>
+ALTER TABLE `records` ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`)
+REFERENCES `domains` (`id`) ON DELETE CASCADE;
+</programlisting>
 	</para>
 	<para>
 	  This automates deletion of records on deletion of a domain from the domains table.
