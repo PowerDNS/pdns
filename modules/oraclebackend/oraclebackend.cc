@@ -1330,14 +1330,14 @@ OracleBackend::getTSIGKey (const string& name, string* algorithm, string* conten
 {
   if(!d_dnssecQueries)
     return -1;
-  DomainInfo di;
-  if (getDomainInfo(name, di) == false) return false;
 
   sword rc;
   OCIStmt *stmt;
 
   stmt = prepare_query(pooledSvcCtx, getTSIGKeyQuerySQL, getTSIGKeyQueryKey);
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+
   define_output_str(stmt, 1, &mResultTypeInd, mResultType, sizeof(mResultType));
   define_output_str(stmt, 2, &mResultContentInd, mResultContent, sizeof(mResultContent));
 
