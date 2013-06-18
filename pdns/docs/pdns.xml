@@ -15021,8 +15021,8 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  </listitem></varlistentry>
 	  <varlistentry><term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
 	    <listitem><para>
-		Answer questions for the ANY type on UDP with a truncated packet that refers the 
-		remote server to TCP. Useful for mitigating ANY reflection attacks. Defaults to off. Available since 3.3.
+		Answer questions for the ANY and RRSIG types on UDP with a truncated packet that refers the
+		remote server to TCP. Useful for mitigating reflection attacks. Defaults to off. Available since 3.3.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>cache-ttl=...</term>
 	    <listitem><para>
