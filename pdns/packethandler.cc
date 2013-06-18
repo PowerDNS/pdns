@@ -1183,7 +1183,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
 
-    if(p->qtype.getCode() == QType::ANY && !p->d_tcp && g_anyToTcp) {
+    if((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG) && !p->d_tcp && g_anyToTcp) {
       r->d.tc = 1;
       r->commitD();
       return r;
