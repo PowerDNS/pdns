@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig example.com RRSIG
+cleandig example.com RRSIG dnssec

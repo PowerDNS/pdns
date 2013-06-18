@@ -310,7 +310,7 @@ void DNSPacket::wrapup()
           if(pos->d_place == DNSResourceRecord::ANSWER || pos->d_place == DNSResourceRecord::AUTHORITY) {
             pw.getHeader()->tc=1;
           }
-          goto noCommit;
+          goto truncated;
         }
       }
       
@@ -323,12 +323,15 @@ void DNSPacket::wrapup()
         opts.push_back(make_pair(::arg().asNum("edns-subnet-option-number"), opt));
       }
 
-      if(!opts.empty() || d_haveednssection || d_dnssecOk)
-        pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
+      pw.commit();
 
-      if(!pw.getHeader()->tc) // protect against double commit from addSignature
+      truncated:;
+
+      if(!opts.empty() || d_haveednssection || d_dnssecOk)
+      {
+        pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
         pw.commit();
-      noCommit:;
+      }
     }
     catch(std::exception& e) {
       L<<Logger::Warning<<"Exception: "<<e.what()<<endl;
