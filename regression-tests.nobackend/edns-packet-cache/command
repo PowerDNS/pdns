@@ -4,19 +4,19 @@ bindwait ()
 {
 	configname=$1
 	domcount=1
-        loopcount=0
+	loopcount=0
 	while [ $loopcount -lt 20 ]; do
-                sleep 1
+		sleep 1
 		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]
-		then
+			then
 			return
 		fi
 		let loopcount=loopcount+1
-        done 
-        if [ $done != $domcount ]; then
-           echo "Domain parsing failed" >> failed_tests
-        fi
+	done 
+	if [ $done != $domcount ]; then
+		echo "Domain parsing failed" >> failed_tests
+	fi
 }
 
 port=5501
