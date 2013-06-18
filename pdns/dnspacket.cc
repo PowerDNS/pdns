@@ -601,7 +601,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
   }
 
   if (trc->d_algoName == "hmac-md5") 
-    rc->d_algoName += ".sig-alg.reg.int."; 
+    trc->d_algoName += ".sig-alg.reg.int."; 
 
   if (trc->d_algoName != "hmac-md5.sig-alg.reg.int.") {
     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
