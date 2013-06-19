@@ -1,3 +1,20 @@
+/*
+    PowerDNS Versatile Database Driven Nameserver
+    Copyright (C) 2002-2013  PowerDNS.COM BV
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2
+    as published by the Free Software Foundation
+    
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -17,13 +34,24 @@ bool g_tcpNoDelay;
 unsigned int g_timeoutMsec;
 AtomicCounter g_networkErrors, g_otherErrors, g_OK, g_truncates, g_authAnswers, g_timeOuts;
 
-// echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
+/* On Linux, run echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
+   to prevent running out of free TCP ports */
 
-void doQuery(const std::string& qname, uint16_t qtype, const ComboAddress& dest)
+struct BenchQuery
+{
+  BenchQuery(const std::string& qname_, uint16_t qtype_) : qname(qname_), qtype(qtype_), udpMsec(0), tcpMsec(0) {}
+  BenchQuery(){}
+  std::string qname;
+  uint16_t qtype;
+  uint16_t udpMsec, tcpMsec;
+};
+
+
+void doQuery(BenchQuery* q)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, qname, qtype);
+  DNSPacketWriter pw(q.packet, q.qname, q.qtype);
   int res;
   string reply;
 
@@ -109,20 +137,12 @@ catch(...)
 
 AtomicCounter g_pos;
 
-struct Query
-{
-  Query(const std::string& qname_, uint16_t qtype_) : qname(qname_), qtype(qtype_) {}
-  Query(){}
-  std::string qname;
-  uint16_t qtype;
-};
-
-vector<Query> g_queries;
+vector<BenchQuery> g_queries;
 ComboAddress g_dest;
 
 static void* worker(void*)
 {
-  Query q;
+  BenchQuery q;
   for(;;) {
     unsigned int pos = g_pos++; 
     if(pos >= g_queries.size())
@@ -196,7 +216,7 @@ try
   while(stringfgets(fp, line)) {
     trim_right(line);
     q=splitField(line, ' ');
-    g_queries.push_back(Query(q.first, DNSRecordContent::TypeToNumber(q.second)));
+    g_queries.push_back(BenchQuery(q.first, DNSRecordContent::TypeToNumber(q.second)));
   }
   fclose(fp);
     
