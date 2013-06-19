@@ -44,6 +44,7 @@ boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
 boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
 boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
 boilerplate_conv(MR, ns_t_mr, conv.xfrLabel(d_alias, true));
+boilerplate_conv(MINFO, ns_t_minfo, conv.xfrLabel(d_rmailbx, true); conv.xfrLabel(d_emailbx, true));
 boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text, true));
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
@@ -162,10 +163,8 @@ SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_
 
 boilerplate_conv(SRV, ns_t_srv, 
         	 conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
-        	 conv.xfrLabel(d_target);
+        	 conv.xfrLabel(d_target); 
         	 )
-
-
 
 SOARecordContent::SOARecordContent(const string& mname, const string& rname, const struct soatimes& st) 
   : DNSRecordContent(ns_t_soa), d_mname(mname), d_rname(rname)
@@ -252,8 +251,14 @@ boilerplate_conv(DNSKEY, 48,
         	 )
 DNSKEYRecordContent::DNSKEYRecordContent() : DNSRecordContent(48) {}
 
-/* EUI48 start */
+boilerplate_conv(RKEY, 57, 
+        	 conv.xfr16BitInt(d_flags); 
+        	 conv.xfr8BitInt(d_protocol); 
+        	 conv.xfrBlob(d_key);
+        	 )
+RKEYRecordContent::RKEYRecordContent() : DNSRecordContent(57) {}
 
+/* EUI48 start */
 void EUI48RecordContent::report(void) 
 {
     regist(1, ns_t_eui48, &make, &make, "EUI48");
@@ -406,7 +411,6 @@ void reportBasicTypes()
   PTRRecordContent::report();
   //DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
-  TXTRecordContent::report();
   DNSRecordContent::regist(1, QType::ANY, 0, 0, "ANY");
 }
 
@@ -420,6 +424,7 @@ void reportOtherTypes()
    RPRecordContent::report();
    KEYRecordContent::report();
    DNSKEYRecordContent::report();
+   RKEYRecordContent::report();
    RRSIGRecordContent::report();
    DSRecordContent::report();
    SSHFPRecordContent::report();
@@ -429,11 +434,12 @@ void reportOtherTypes()
    NSEC3PARAMRecordContent::report();
    TLSARecordContent::report();
    DLVRecordContent::report();
-   //DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
-   TSIGRecordContent::report();
+   DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   //TSIGRecordContent::report();
    OPTRecordContent::report();
    EUI48RecordContent::report();
    EUI64RecordContent::report();
+   MINFORecordContent::report();
 }
 
 void reportFancyTypes()

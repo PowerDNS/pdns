@@ -57,7 +57,7 @@ fi
 
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
-BOOST_REQUIRE([1.34])
+BOOST_REQUIRE([1.35])
 BOOST_FOREACH
 BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
@@ -255,10 +255,12 @@ AM_CONDITIONAL(REMOTEBACKEND_HTTP,test x"$enable_remotebackend_http" = "xyes")
 if test "x$enable_remotebackend_http" = "xyes"
 then
         PKG_CHECK_MODULES(LIBCURL, libcurl, HAVE_LIBCURL=yes, AC_MSG_ERROR([Could not find libcurl]))
+        REMOTEBACKEND_HTTP=yes
         AC_SUBST(LIBCURL_LIBS)
         AC_SUBST(LIBCURL_CFLAGS)
         AC_DEFINE(HAVE_LIBCURL,1,[If we have libcurl])
 	AC_DEFINE(REMOTEBACKEND_HTTP,1,[If we want HTTP connector])
+        AC_SUBST(REMOTEBACKEND_HTTP)
 fi
 
 AC_MSG_CHECKING(whether we should build static binaries)

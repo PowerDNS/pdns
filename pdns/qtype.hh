@@ -114,6 +114,7 @@ private:
       qtype_insert("MR",9);
       qtype_insert("PTR",12);
       qtype_insert("HINFO",13);
+      qtype_insert("MINFO",14);
       qtype_insert("MX",15);
       qtype_insert("TXT",16);
       qtype_insert("RP",17);
@@ -141,7 +142,7 @@ private:
       qtype_insert("SPF",99);
       qtype_insert("EUI48",108);
       qtype_insert("EUI64",109);
-      qtype_insert("TSIG", 250);
+//      qtype_insert("TSIG", 250);
       qtype_insert("IXFR",251);
       qtype_insert("AXFR",252);
       qtype_insert("ANY",255);

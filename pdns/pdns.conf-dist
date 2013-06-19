@@ -385,11 +385,6 @@
 # socket-dir=/var/run
 
 #################################
-# strict-rfc-axfrs	Perform strictly rfc compliant axfrs (very slow)
-#
-# strict-rfc-axfrs=no
-
-#################################
 # tcp-control-address	If set, PowerDNS can be controlled over TCP on this address
 #
 # tcp-control-address=

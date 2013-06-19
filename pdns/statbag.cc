@@ -200,7 +200,7 @@ void StatRing::resize(unsigned int newsize)
   int rpos;
   vector<string>newring;
   for(unsigned int i=startpos;i<d_pos;++i) {
-    rpos=i>=0 ? i : i+d_size;
+    rpos= i;
 
     newring.push_back(d_items[rpos%d_size]);
   }

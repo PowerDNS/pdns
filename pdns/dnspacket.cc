@@ -310,7 +310,7 @@ void DNSPacket::wrapup()
           if(pos->d_place == DNSResourceRecord::ANSWER || pos->d_place == DNSResourceRecord::AUTHORITY) {
             pw.getHeader()->tc=1;
           }
-          goto noCommit;
+          goto truncated;
         }
       }
       
@@ -323,12 +323,15 @@ void DNSPacket::wrapup()
         opts.push_back(make_pair(::arg().asNum("edns-subnet-option-number"), opt));
       }
 
-      if(!opts.empty() || d_haveednssection || d_dnssecOk)
-        pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
+      pw.commit();
 
-      if(!pw.getHeader()->tc) // protect against double commit from addSignature
+      truncated:;
+
+      if(!opts.empty() || d_haveednssection || d_dnssecOk)
+      {
+        pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
         pw.commit();
-      noCommit:;
+      }
     }
     catch(std::exception& e) {
       L<<Logger::Warning<<"Exception: "<<e.what()<<endl;
@@ -599,7 +602,15 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
     return false;
   }
-  trc->d_algoName += ".sig-alg.reg.int.";
+
+  if (trc->d_algoName == "hmac-md5") 
+    trc->d_algoName += ".sig-alg.reg.int."; 
+
+  if (trc->d_algoName != "hmac-md5.sig-alg.reg.int.") {
+    L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+    return false;
+  }
+
   B64Decode(secret64, *secret);
   bool result=calculateMD5HMAC(*secret, message) == trc->d_mac;
   if(!result) {

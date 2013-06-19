@@ -122,7 +122,8 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
   if(!tsigkeyname.empty()) {
     // cerr<<"Adding TSIG to notification, key name: '"<<tsigkeyname<<"', algo: '"<<tsigalgorithm<<"', secret: "<<Base64Encode(tsigsecret)<<endl;
     TSIGRecordContent trc;
-    trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+    if (tsigalgorithm == "hmac-md5")  
+      trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
     trc.d_time = time(0);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(d_randomid);
@@ -182,8 +183,11 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
       rr.priority = atoi(rr.content.c_str());
       vector<pair<string::size_type, string::size_type> > fields;
       vstringtok(fields, rr.content, " ");
-      if(fields.size()==4)
+      if(fields.size()==4) {
+	if(fields[3].second - fields[3].first > 1) // strip dot, unless root
+	  fields[3].second--;
         rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
+      }
     }
     result->push_back(rr);
   }

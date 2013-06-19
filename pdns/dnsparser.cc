@@ -60,7 +60,7 @@ public:
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)
-      throw runtime_error("invalid unknown record");
+      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.c_str() % relevant.size() % (2*total)).str());
     string out;
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
@@ -512,8 +512,8 @@ string simpleCompress(const string& elabel, const string& root)
   ret.reserve(label.size()+4);
   for(parts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
     if(!root.empty() && !strncasecmp(root.c_str(), label.c_str() + i->first, 1 + label.length() - i->first)) { // also match trailing 0, hence '1 +'
-      const char rootptr[2]={0xc0,0x11};
-      ret.append(rootptr, 2);
+      const unsigned char rootptr[2]={0xc0,0x11};
+      ret.append((const char *) rootptr, 2);
       return ret;
     }
     ret.append(1, (char)(i->second - i->first));

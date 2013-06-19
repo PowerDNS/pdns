@@ -126,6 +126,7 @@ stringtok (Container &container, string const &in,
   }
 }
 
+// fills container with ranges, so {posbegin,posend}
 template <typename Container>
 void
 vstringtok (Container &container, string const &in,
@@ -348,6 +349,12 @@ public:
     {
       return atomic_exchange_and_add( &value_, +1 ) + 1;
     }
+
+    unsigned int operator++(int)
+    {
+      return atomic_exchange_and_add( &value_, +1 );
+    }
+
 
     unsigned int operator--()
     {

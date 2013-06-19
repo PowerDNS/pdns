@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig _root._tcp.dc.test.com SRV
+

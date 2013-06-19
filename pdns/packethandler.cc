@@ -740,7 +740,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   DNSBackend *db;
   if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &account, &db)) {
     L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". "<<nsset.size()<<" remote nameservers: "<<endl;
-    BOOST_FOREACH(struct DNSResourceRecord& rr, nsset) {
+    BOOST_FOREACH(class DNSResourceRecord& rr, nsset) {
       L<<Logger::Error<<rr.content<<endl;
     }
     return RCode::Refused;
@@ -1183,7 +1183,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(doVersionRequest(p,r,target)) // catch version.bind requests
       goto sendit;
 
-    if(p->qtype.getCode() == QType::ANY && !p->d_tcp && g_anyToTcp) {
+    if((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG) && !p->d_tcp && g_anyToTcp) {
       r->d.tc = 1;
       r->commitD();
       return r;
@@ -1392,6 +1392,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     editSOA(d_dk, sd.qname, r);
     
+    BOOST_FOREACH(const DNSResourceRecord& rr, r->getRRS()) {
+      if(rr.scopeMask) {
+	noCache=1;
+	break;
+      }
+    }
     if(p->d_dnssecOk)
       addRRSigs(d_dk, B, authSet, r->getRRS());
       

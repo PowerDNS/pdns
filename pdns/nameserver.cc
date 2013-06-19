@@ -114,26 +114,18 @@ void UDPNameserver::bindIPv4()
     if(localname=="0.0.0.0") {
       int val=1;
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &val, sizeof(val));
-      locala.sin4.sin_addr.s_addr = INADDR_ANY;
     }
-    else
-    {
-      struct hostent *h=0;
-      h=gethostbyname(localname.c_str());
-      if(!h)
-        throw AhuException("Unable to resolve local address"); 
+    locala=ComboAddress(localname, ::arg().asNum("local-port"));
+    if(locala.sin4.sin_family != AF_INET) 
+      throw AhuException("Attempting to bind IPv4 socket to IPv6 address");
 
-      locala.sin4.sin_addr.s_addr=*(int*)h->h_addr;
-    }
-
-    locala.sin4.sin_port=htons(::arg().asNum("local-port"));
     g_localaddresses.push_back(locala);
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
-      L<<Logger::Error<<"binding UDP socket to '"+localname+"' port "+lexical_cast<string>(ntohs(locala.sin4.sin_port))+": "<<strerror(errno)<<endl;
+      L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+": "<<strerror(errno)<<endl;
       throw AhuException("Unable to bind to UDP socket");
     }
     d_sockets.push_back(s);
-    L<<Logger::Error<<"UDP server bound to "<<inet_ntoa(locala.sin4.sin_addr)<<":"<<::arg().asNum("local-port")<<endl;
+    L<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
     struct pollfd pfd;
     pfd.fd = s;
     pfd.events = POLLIN;

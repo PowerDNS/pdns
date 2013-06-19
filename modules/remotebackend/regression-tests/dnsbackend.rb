@@ -8,6 +8,28 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      @f = File.open("/tmp/tmp.txt","a")
    end
 
+   def parse_arrays(params)
+     newparams = {}
+     params.each do |key,val|
+         if key=~/^(.*)\[(.*)\]\[(.*)\]/
+             newparams[$1] = {} unless newparams.has_key? $1
+             newparams[$1][$2] = {} unless newparams[$1].has_key? $2
+             newparams[$1][$2][$3] = val
+             params.delete key
+         elsif key=~/^(.*)\[(.*)\]/
+           if $2 == ""
+             newparams[$1] = [] unless newparams.has_key? $1
+             newparams[$1] << val
+           else
+             newparams[$1] = {} unless newparams.has_key? $1
+             newparams[$1][$2] = val
+           end
+           params.delete key
+         end
+     end
+     params.merge newparams
+   end
+
    def parse_url(url)
      url = url.split('/')
      method = url.shift.downcase
@@ -75,13 +97,8 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
         }
      end
 
-     if method == "do_setdomainmetadata"
-        args["value"] = []
-        args.each do |k,a|
-            args["value"] << a if k[/^value/]
-        end
-     end
-
+     args = parse_arrays args
+ 
      @f.puts method
      @f.puts args
 
