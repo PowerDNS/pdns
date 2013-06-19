@@ -20,6 +20,12 @@ of the inner \fBpdns_server\fR instance. It is also this guardian that
 Run the server in a special monitor mode. This enables detailed logging
 and exposes the raw control socket.
 .TP
+.B \-\-launch=\fI<backend>\fR
+Set the backend to use, you can set multiple backends like this: \-\-launch=bind,gmysql
+.TP
+.B \-\-config
+Export the default configuration, if no backend is specified a config without a backend configured is provided
+.TP
 .B \-\-loglevel=\fI<level>\fR
 Set the logging level.
 .SH FILES
