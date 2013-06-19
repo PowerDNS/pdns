@@ -13423,6 +13423,15 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	      </para>
 	    </listitem>
 	  </varlistentry>
+          <varlistentry>
+            <term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
+            <listitem>
+              <para>
+                Answer questions for the ANY type on UDP with a truncated packet that refers the
+                remote server to TCP. Useful for mitigating ANY reflection attacks. Defaults to off.
+              </para>
+            </listitem>
+          </varlistentry>
 	  <varlistentry>
 	    <term>dont-query</term>
 	    <listitem>
