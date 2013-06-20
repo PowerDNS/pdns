@@ -1,0 +1,16 @@
+policy_module(pdns,0.9.0)
+
+require{
+	type named_t;
+}
+
+#only needed if using the guardian
+allow named_t self:capability { kill };
+
+#gmysql backend:
+mysql_read_config(named_t)
+files_read_usr_files(named_t)
+mysql_stream_connect(named_t)
+
+#postgres backend:
+postgresql_stream_connect(named_t)
