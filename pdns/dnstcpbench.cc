@@ -33,6 +33,7 @@ bool g_onlyTCP;
 bool g_tcpNoDelay;
 unsigned int g_timeoutMsec;
 AtomicCounter g_networkErrors, g_otherErrors, g_OK, g_truncates, g_authAnswers, g_timeOuts;
+ComboAddress g_dest;
 
 /* On Linux, run echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
    to prevent running out of free TCP ports */
@@ -51,14 +52,14 @@ void doQuery(BenchQuery* q)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(q.packet, q.qname, q.qtype);
+  DNSPacketWriter pw(packet, q->qname, q->qtype);
   int res;
   string reply;
 
   if(!g_onlyTCP) {
-    Socket udpsock((AddressFamily)dest.sin4.sin_family, Datagram);
+    Socket udpsock((AddressFamily)g_dest.sin4.sin_family, Datagram);
     
-    udpsock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
+    udpsock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), g_dest);
     ComboAddress origin;
     res = waitForData(udpsock.getHandle(), 0, 1000 * g_timeoutMsec);
     if(res < 0)
@@ -75,7 +76,7 @@ try
     g_truncates++;
   }
 
-  Socket sock((AddressFamily)dest.sin4.sin_family, Stream);
+  Socket sock((AddressFamily)g_dest.sin4.sin_family, Stream);
   int tmp=1;
   if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
     throw runtime_error("Unable to set socket reuse: "+string(strerror(errno)));
@@ -83,7 +84,7 @@ try
   if(g_tcpNoDelay && setsockopt(sock.getHandle(), IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof tmp)<0) 
     throw runtime_error("Unable to set socket no delay: "+string(strerror(errno)));
 
-  sock.connect(dest);
+  sock.connect(g_dest);
   uint16_t len = htons(packet.size());
   string tcppacket((char*)& len, 2);
   tcppacket.append((char*)&*packet.begin(), (char*)&*packet.end());
@@ -138,17 +139,16 @@ catch(...)
 AtomicCounter g_pos;
 
 vector<BenchQuery> g_queries;
-ComboAddress g_dest;
+
 
 static void* worker(void*)
 {
-  BenchQuery q;
   for(;;) {
     unsigned int pos = g_pos++; 
     if(pos >= g_queries.size())
       break;
-    q=g_queries[pos];
-    doQuery(q.qname, q.qtype, g_dest);
+
+    doQuery(&g_queries[pos]); // this is safe as long as nobody *inserts* to g_queries
   }
   return 0;
 }
