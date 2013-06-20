@@ -310,13 +310,14 @@ void DNSPacket::wrapup()
           if(pos->d_place == DNSResourceRecord::ANSWER || pos->d_place == DNSResourceRecord::AUTHORITY) {
             pw.getHeader()->tc=1;
           }
-          goto truncated;
+          goto noCommit;
         }
       }
 
       // if(!pw.getHeader()->tc) // protect against double commit from addSignature
 
       if(!d_rrs.empty()) pw.commit();
+
       noCommit:;
       
       if(d_haveednssubnet) {
@@ -327,10 +328,6 @@ void DNSPacket::wrapup()
         string opt = makeEDNSSubnetOptsString(eso);
         opts.push_back(make_pair(::arg().asNum("edns-subnet-option-number"), opt));
       }
-
-      pw.commit();
-
-      truncated:;
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
       {
