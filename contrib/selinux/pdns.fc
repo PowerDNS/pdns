@@ -1,0 +1,6 @@
+/usr/sbin/pdns_server           --      gen_context(system_u:object_r:named_exec_t,s0)
+/etc/pdns/pdns\.conf            --      gen_context(system_u:object_r:named_conf_t,s0)
+/var/run/pdns\.controlsocket    -s      gen_context(system_u:object_r:named_var_run_t,s0)
+/var/run/pdns\.pid              --      gen_context(system_u:object_r:named_var_run_t,s0)
+/usr/bin/pdns_control		--	gen_context(system_u:object_r:ndc_exec_t,s0)
+/usr/bin/pdnssec		--      gen_context(system_u:object_r:ndc_exec_t,s0)
