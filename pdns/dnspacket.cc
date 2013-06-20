@@ -313,6 +313,11 @@ void DNSPacket::wrapup()
           goto truncated;
         }
       }
+
+      // if(!pw.getHeader()->tc) // protect against double commit from addSignature
+
+      if(!d_rrs.empty()) pw.commit();
+      noCommit:;
       
       if(d_haveednssubnet) {
         string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
