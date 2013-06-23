@@ -12917,6 +12917,7 @@ $ pdnssec rectify-zone powerdnssec.org
     <listitem><para>Evan Hunt (ISC)</para></listitem>
     <listitem><para>Ralf van der Enden</para></listitem>
     <listitem><para>Jan-Piet Mens</para></listitem>
+    <listitem><para>Justin Clift</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
   </para>
