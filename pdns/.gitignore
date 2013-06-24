@@ -24,6 +24,7 @@
 /dnsgram
 /dnsscan
 /dnsscope
+/dnstcpbench
 /dnswasher
 /notify
 /nproxy
