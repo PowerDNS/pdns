@@ -135,6 +135,8 @@ binary-main-prepare:
 		mv "$(tmpdir)"/usr/bin/$$prog "$(tools_tmpdir)"/usr/bin ; \
 		[ -e "$(tmpdir)"/usr/share/man/man8/"$$prog".8 ] && \
 			mv "$(tmpdir)"/usr/share/man/man8/"$$prog".8 "$(tools_tmpdir)"/usr/share/man/man8/ ; \
+		[ -e "$(tmpdir)"/usr/share/man/man8/"$$prog".1 ] && \
+			mv "$(tmpdir)"/usr/share/man/man8/"$$prog".1 "$(tools_tmpdir)"/usr/share/man/man1/ ; \
 		strip --remove-section=.comment --remove-section=.note \
 			--strip-unneeded \
 			"$(tools_tmpdir)"/usr/bin/"$$prog" ; \

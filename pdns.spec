@@ -66,3 +66,4 @@ These are the tools
 "/usr/man/man8/dnsreplay.8"
 "/usr/man/man8/dnsscope.8"
 "/usr/man/man8/dnswasher.8"
+"/usr/man/man1/dnstcpbench.1"
