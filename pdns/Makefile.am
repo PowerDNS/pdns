@@ -31,16 +31,15 @@ BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
-if RECURSOR
-sbin_PROGRAMS = pdns_server pdns_recursor
-bin_PROGRAMS = pdns_control rec_control pdnssec dnsreplay
-else
 sbin_PROGRAMS = pdns_server 
-bin_PROGRAMS = pdns_control pdnssec dnsreplay
+bin_PROGRAMS = pdns_control pdnssec
+
+if TOOLS
+  bin_PROGRAMS += dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy nsec3dig
 endif
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnstcpbench tsig-tests speedtest pdns_control dnsscope dnsgram \
-testrunner \
+EXTRA_PROGRAMS=pdns_recursor sdig dnstcpbench tsig-tests speedtest rec_control dnsscope dnsgram \
+testrunner dnsreplay \
 toysdig dnsdemog dnswasher dnsscan nproxy notify pdnssec dnsbulktest nsec3dig # dnslabel # tcptorture
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
