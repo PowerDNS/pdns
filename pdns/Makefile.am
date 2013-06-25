@@ -39,7 +39,7 @@ sbin_PROGRAMS = pdns_server
 bin_PROGRAMS = pdns_control pdnssec dnsreplay
 endif
 
-EXTRA_PROGRAMS=pdns_recursor sdig dnstcpbench tsig-tests speedtest pdns_control dnsscope dnsgram \
+EXTRA_PROGRAMS=pdns_recursor sdig dnstcpbench dnsdist tsig-tests speedtest pdns_control dnsscope dnsgram \
 testrunner \
 toysdig dnsdemog dnswasher dnsscan nproxy notify pdnssec dnsbulktest nsec3dig # dnslabel # tcptorture
 
@@ -147,6 +147,14 @@ dnstcpbench_SOURCES=dnstcpbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecord
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc
 dnstcpbench_LDFLAGS=$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 dnstcpbench_LDADD=$(BOOST_PROGRAM_OPTIONS_LIBS)
+
+
+dnsdist_SOURCES=dnsdist.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
+	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
+	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc
+dnsdist_LDFLAGS=$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnsdist_LDADD=$(BOOST_PROGRAM_OPTIONS_LIBS)
+
 
 nsec3dig_SOURCES=nsec3dig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc \
     dnswriter.hh dnssecinfra.cc \
