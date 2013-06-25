@@ -31,7 +31,7 @@ bindwait ()
 	done
 
 	if [ $done != $domcount ]; then
-	   echo "Domain parsing failed" >> failed_tests
+		echo "Domain parsing failed" >> failed_tests
 	fi
 }
 
@@ -58,29 +58,32 @@ securezone ()
 
 check_process ()
 {
-   sleep 1
-   set +e
-   pids=$(cat pdns*.pid 2>/dev/null)
-   if [ -z "$pids" ]; then
-	 echo "PowerDNS did not start"
-	 exit 1
-   fi
-   kill -0 $pids >/dev/null 2>&1  
-   if [ $? -ne 0 ]; then
-	 echo "PowerDNS did not start"
-	 exit 1
-   fi
-   set -e
+	set +e
+	loopcount=0
+	while [ $loopcount -lt 5 ]; do
+		sleep 1
+		pids=$(cat pdns*.pid 2>/dev/null)
+		if [ ! -z "$pids" ]; then
+			kill -0 $pids >/dev/null 2>&1
+			if [ $? -eq 0 ]; then
+				set -e
+				return
+			fi
+		fi
+	let loopcount=loopcount+1
+	done
+	echo "PowerDNS did not start"
+	exit 1
 }
 
 if [ ! -x $PDNS ]; then
-   echo "$PDNS is not executable binary"
-   exit 1
+	echo "$PDNS is not executable binary"
+	exit 1
 fi
 
 if [ ! -x $PDNS2 ]; then
-   echo "$PDNS2 is not executable binary"
-   exit 1
+	echo "$PDNS2 is not executable binary"
+	exit 1
 fi
 
 port=$1
