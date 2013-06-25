@@ -290,10 +290,10 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
 
 backends/bind/bindlexer.c:
-	make -C backends/bind bindlexer.c
+	cd backends/bind && $(MAKE) bindlexer.c
 
 backends/bind/bindparser.cc:
-	make -C backends/bind bindparser.cc
+	cd backends/bind && $(MAKE) bindparser.cc
 
 
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')

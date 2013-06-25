@@ -16,7 +16,7 @@ if TOOLS
 endif
 
 pdns/docs/dnstcpbench.1:
-	make -C pdns/docs dnstcpbench.1
+	cd pdns/docs && $(MAKE) dnstcpbench.1
 
 install-exec-local: 
 	-@chmod +x pdns/pdns
