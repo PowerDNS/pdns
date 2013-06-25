@@ -355,7 +355,6 @@ public:
       return atomic_exchange_and_add( &value_, +1 );
     }
 
-
     unsigned int operator--()
     {
       return atomic_exchange_and_add( &value_, -1 ) - 1;
@@ -366,10 +365,11 @@ public:
       return atomic_exchange_and_add( &value_, 0);
     }
 
-private:
-    AtomicCounter(AtomicCounter const &);
-    AtomicCounter &operator=(AtomicCounter const &);
+    AtomicCounter(AtomicCounter const &rhs) : value_(rhs)
+    {
+    }
 
+private:
     mutable unsigned int value_;
     
     // the below is necessary because __sync_fetch_and_add is not universally available on i386.. I 3> RHEL5. 
