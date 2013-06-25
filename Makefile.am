@@ -15,6 +15,9 @@ if TOOLS
   man1_MANS = pdns/docs/dnstcpbench.1
 endif
 
+pdns/docs/dnstcpbench.1:
+	make -C pdns/docs dnstcpbench.1
+
 install-exec-local: 
 	-@chmod +x pdns/pdns
 	-@chmod +x pdns/precursor
