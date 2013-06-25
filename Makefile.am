@@ -12,6 +12,7 @@ man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdnssec.8 pdns/docs/pdns_server.8
 if TOOLS
   man8_MANS += pdns/docs/dnsreplay.8 pdns/docs/dnsscope.8 pdns/docs/dnswasher.8 \
     pdns/docs/zone2ldap.8 pdns/docs/zone2sql.8
+  man1_MANS = pdns/docs/dnstcpbench.1
 endif
 
 install-exec-local: 
