@@ -42,6 +42,7 @@ po::variables_map g_vm;
 
 bool g_verbose;
 AtomicCounter g_pos;
+uint16_t g_maxOutstanding;
 
 void RuntimeError(const boost::format& fmt)
 {
@@ -122,6 +123,10 @@ void* responderThread(void *p)
     len = recv(state->fd, packet, sizeof(packet), 0);
     if(len < 0)
       continue;
+
+    if(dh->id >= g_maxOutstanding)
+      continue;
+
     IDState* ids = &state->idStates[dh->id];
     if(ids->origFD < 0)
       continue;
@@ -163,7 +168,7 @@ void* clientThread(void* p)
     
     /* right now, this is our simple round robin downstream selector */
     DownstreamState& ss = g_dstates[(g_pos++) % g_numremotes]; 
-    unsigned int idOffset = ss.idOffset++;
+    unsigned int idOffset = (ss.idOffset++) % g_maxOutstanding;
     IDState* ids = &ss.idStates[idOffset];
     ids->origFD = cs->fd;
     ids->origID = dh->id;
@@ -192,7 +197,7 @@ void* statThread(void*)
     unsigned int outstanding=0;
     for(unsigned int n=0; n < g_numremotes; ++n) {
       const DownstreamState& dss = g_dstates[n];
-      for(unsigned int i=0 ; i < 65536; ++i) {
+      for(unsigned int i=0 ; i < g_maxOutstanding; ++i) {
 	const IDState& ids = dss.idStates[i];
 	if(ids.used && ids.origFD >=0)
 	  outstanding++;
@@ -211,6 +216,7 @@ try
     ("help,h", "produce help message")
     ("stats-interval,s", po::value<int>()->default_value(5), "produce statistics output every n seconds")
     ("local", po::value<vector<string> >(), "Listen on which address")
+    ("max-outstanding", po::value<uint16_t>()->default_value(65535), "maximum outstanding queries per downstream")
     ("verbose,v", "be verbose");
     
   hidden.add_options()
@@ -230,6 +236,7 @@ try
   }
 
   g_verbose=g_vm.count("verbose");
+  g_maxOutstanding = g_vm["max-outstanding"].as<uint16_t>();
   
   if(!g_vm.count("remotes")) {
     cerr<<"Need to specify at least one remote address"<<endl;
@@ -249,7 +256,7 @@ try
     dss.fd = Socket(dss.remote.sin4.sin_family, SOCK_DGRAM, 0);
     Connect(dss.fd, dss.remote);
 
-    dss.idStates.resize(65536);
+    dss.idStates.resize(g_maxOutstanding);
     BOOST_FOREACH(IDState& ids, dss.idStates) {
       ids.origFD = -1;
       ids.used = false;
