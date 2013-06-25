@@ -41,7 +41,7 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 bool g_verbose;
-AtomicCounter g_pos;
+AtomicCounter g_pos, g_numQueries;
 uint16_t g_maxOutstanding;
 
 void RuntimeError(const boost::format& fmt)
@@ -165,7 +165,7 @@ void* clientThread(void* p)
     len = recvfrom(cs->fd, packet, sizeof(packet), 0, (struct sockaddr*) &remote, &socklen);
     if(len < 0) 
       continue;
-    
+    g_numQueries++;
     /* right now, this is our simple round robin downstream selector */
     DownstreamState& ss = g_dstates[(g_pos++) % g_numremotes]; 
     unsigned int idOffset = (ss.idOffset++) % g_maxOutstanding;
@@ -191,9 +191,10 @@ void* statThread(void*)
   int interval =g_vm["stats-interval"].as<int>();
   if(!interval)
     return 0;
-
+  uint32_t lastQueries=0;
   for(;;) {
     sleep(interval);
+    
     unsigned int outstanding=0;
     for(unsigned int n=0; n < g_numremotes; ++n) {
       const DownstreamState& dss = g_dstates[n];
@@ -203,7 +204,8 @@ void* statThread(void*)
 	  outstanding++;
       }
     }
-    cout<<outstanding<<" outstanding queries"<<endl;
+    cout<<outstanding<<" outstanding queries, " << (g_numQueries - lastQueries)/interval <<" qps"<<endl;
+    lastQueries=g_numQueries;
   }
   return 0;
 }

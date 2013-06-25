@@ -238,8 +238,9 @@ int main(int argc, char** argv)
   vector<TypedQuery> domains;
     
   Inflighter<vector<TypedQuery>, SendReceive> inflighter(domains, sr);
-  inflighter.d_maxInFlight = 100;
+  inflighter.d_maxInFlight = 1000;
   inflighter.d_timeoutSeconds = 3;
+  inflighter.d_burst = 100;
   string line;
   
   pair<string, string> split;
