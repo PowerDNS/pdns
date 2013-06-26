@@ -7,7 +7,8 @@ bootstrap build-scripts/semistaticg++ pdns/docs/dnstcpbench.1
 
 ACLOCAL_AMFLAGS = -I m4
 
-man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdnssec.8 pdns/docs/pdns_server.8
+man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdnssec.8 pdns/docs/pdns_server.8 \
+  pdns/docs/zone2ldap.8 pdns/docs/zone2sql.8
 
 if TOOLS
   man8_MANS += pdns/docs/dnsreplay.8 pdns/docs/dnsscope.8 pdns/docs/dnswasher.8 \
