@@ -293,8 +293,14 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
 {
   string var, val;
   string::size_type pos;
-
-  if(!arg.find("--") &&(pos=arg.find("="))!=string::npos)  // this is a --port=25 case
+  bool incremental = false;
+  if(!arg.find("--") &&(pos=arg.find("+"))!=string::npos) // this is a --port+=25 case
+    {
+      var=arg.substr(2,pos-2);
+      val=arg.substr(pos+2);
+      incremental = true;
+    }
+  else if(!arg.find("--") &&(pos=arg.find("="))!=string::npos)  // this is a --port=25 case
     {
       var=arg.substr(2,pos-2);
       val=arg.substr(pos+1);
@@ -319,8 +325,15 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
     if(pos && pos!=string::npos) 
       val=val.substr(pos);
 
-    if(parmIsset(var))
-      params[var]=val;
+    if(parmIsset(var)) {
+      if (incremental) {
+         if (!params[var].empty()) {
+           params[var]+=",";
+         }
+         params[var]+=val; 
+      } else 
+         params[var]=val;
+      }
     else
       if(!lax)
         throw ArgException("Trying to set unexisting parameter '"+var+"'");
