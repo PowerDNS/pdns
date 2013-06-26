@@ -327,11 +327,11 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
 
     if(parmIsset(var)) {
       if (incremental) {
-         if (params[var].empty()) {
-           throw ArgException("Incremental parameter '"+var+"' without a parent");
+         if (!params[var].empty()) {
+           params[var]+=",";
          }
-         params[var]+=","+val;
-      } else
+         params[var]+=val; 
+      } else 
          params[var]=val;
       }
     else
