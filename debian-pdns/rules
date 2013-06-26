@@ -131,7 +131,8 @@ binary-main-prepare:
 
 	install -d -m 755 -o root -g root "$(tools_tmpdir)"/DEBIAN
 
-	for prog in dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy nsec3dig ; do \
+	for prog in dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher \
+		nproxy dnsdist nsec3dig ; do \
 		mv "$(tmpdir)"/usr/bin/$$prog "$(tools_tmpdir)"/usr/bin ; \
 		[ -e "$(tmpdir)"/usr/share/man/man8/"$$prog".8 ] && \
 			mv "$(tmpdir)"/usr/share/man/man8/"$$prog".8 "$(tools_tmpdir)"/usr/share/man/man8/ ; \
