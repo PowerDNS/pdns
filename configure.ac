@@ -327,14 +327,14 @@ AC_ARG_ENABLE(gcc-skip-locking,
 	AC_DEFINE(GCC_SKIP_LOCKING,,[Skip gcc locking]),
  )
 
-AC_MSG_CHECKING(whether we will be building the recursor)
-AC_ARG_ENABLE(recursor,
- AC_HELP_STRING([--enable-recursor],[if we should build the recursor]),
-	enable_recursor=$enableval,
-	enable_recursor=no )
+AC_MSG_CHECKING(whether we will be building and installing the extra tools)
+AC_ARG_ENABLE(tools,
+ AC_HELP_STRING([--enable-tools],[if we should build+install the tools]),
+	enable_tools=$enableval,
+	enable_tools=no )
 
-AC_MSG_RESULT($enable_recursor)
-AM_CONDITIONAL(RECURSOR,test x"$enable_recursor" = "xyes")
+AC_MSG_RESULT($enable_tools)
+AM_CONDITIONAL(TOOLS,test x"$enable_tools" = "xyes")
 
 for a in $modules $dynmodules
 do
