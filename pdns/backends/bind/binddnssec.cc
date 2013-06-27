@@ -21,7 +21,7 @@
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>
 #include "config.h"
-#include "pdns/arguments.hh"
+#include "arguments.hh"
 
 #ifndef HAVE_SQLITE3
 void Bind2Backend::setupDNSSEC()
