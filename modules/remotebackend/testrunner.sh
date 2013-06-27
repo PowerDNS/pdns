@@ -6,7 +6,13 @@ function start_web() {
   if [ x"$REMOTEBACKEND_HTTP" == "xyes" ]; then
    ./unittest_$1.rb &
    webrick_pid=$!
-   sleep 1
+   loopcount=0
+   while [ $loopcount -lt 20 ]; do
+     res=$(curl http://localhost:62434/ping 2>/dev/null)
+     if [ "x$res" == "xpong" ]; then break; fi
+     sleep 1
+     let loopcount=loopcount+1
+   done
   fi
 }
 
@@ -50,7 +56,7 @@ case "$mode" in
     stop_web
   ;;
   *)
-     echo "Usage: $0 test_remotebackend_(pipe|http|post)"
+     echo "Usage: $0 test_remotebackend_(pipe|http|post|json)"
   ;;
 esac
 
