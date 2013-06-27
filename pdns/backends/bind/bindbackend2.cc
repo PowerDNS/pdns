@@ -424,10 +424,10 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   if(bb2.d_name.empty())
     ;
   else if(dottedEndsOn(bdr.qname, bb2.d_name))
-    bdr.qname.resize(max(0, bdr.qname.length() - (bb2.d_name.length() + 1)));
+    bdr.qname.resize(max(0, static_cast<int>(bdr.qname.length() - (bb2.d_name.length() + 1))));
   else {
     string msg = "Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'";
-    if(ignore_non_zone) {
+    if(s_ignore_broken_records) {
         L<<Logger::Warning<<msg<< " ignored" << endl;
         return;
     }
