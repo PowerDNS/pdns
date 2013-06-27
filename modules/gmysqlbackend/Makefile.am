@@ -5,7 +5,7 @@ EXTRA_DIST=OBJECTFILES OBJECTLIBS
 
 libgmysqlbackend_la_SOURCES=gmysqlbackend.cc gmysqlbackend.hh \
 		smysql.hh smysql.cc
-
+libgmysqlbackend_la_CXXFLAGS=-I$(abs_top_srcdir)
 
 libgmysqlbackend_la_LDFLAGS=-module -avoid-version $(MYSQL_lib)
 
