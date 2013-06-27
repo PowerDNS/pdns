@@ -294,7 +294,7 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   string var, val;
   string::size_type pos;
   bool incremental = false;
-  if(!arg.find("--") &&(pos=arg.find("+"))!=string::npos) // this is a --port+=25 case
+  if(!arg.find("--") &&(pos=arg.find("+="))!=string::npos) // this is a --port+=25 case
     {
       var=arg.substr(2,pos-2);
       val=arg.substr(pos+2);
@@ -322,16 +322,16 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
 
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
-    if(pos && pos!=string::npos) 
+    if(pos && pos!=string::npos)
       val=val.substr(pos);
 
     if(parmIsset(var)) {
       if (incremental) {
-         if (!params[var].empty()) {
-           params[var]+=",";
+         if (params[var].empty()) {
+           throw ArgException("Incremental parameter '"+var+"' without a parent");
          }
-         params[var]+=val; 
-      } else 
+         params[var]+=","+val;
+      } else
          params[var]=val;
       }
     else
