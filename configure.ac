@@ -24,6 +24,9 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LANG_CPLUSPLUS
 
+dnl Including srcdir as includedir for out-of-tree-builds depending for code depending on this path.
+CFLAGS="$CFLAGS -I $srcdir"
+
 dnl Check for lua
 AC_MSG_CHECKING(if with lua)
 AC_ARG_WITH(lua, AC_HELP_STRING([--with-lua],[use Lua]), [WITH_LUA=$withval],[WITH_LUA=yes])
@@ -214,6 +217,7 @@ fi
 if test x$use_system_polarssl = xyes; then
  AC_CHECK_LIB([polarssl], [sha1_hmac])
 fi
+AM_CONDITIONAL(SYSTEM_POLARSSL,test x"$use_system_polarssl" = "xyes")
 
 AC_MSG_CHECKING(whether we will be linking in Botan 1.10)
 AC_ARG_ENABLE(botan1.10,
