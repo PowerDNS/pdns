@@ -158,7 +158,7 @@ vstringtok (Container &container, string const &in,
 
 int writen2(int fd, const void *buf, size_t count);
 inline int writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
-
+int readn2(int fd, void* buffer, unsigned int len);
 
 const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);

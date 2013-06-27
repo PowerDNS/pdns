@@ -204,7 +204,8 @@ void* statThread(void*)
     uint64_t numQueries=0;
     for(unsigned int n=0; n < g_numdownstreams; ++n) {
       DownstreamState& dss = g_dstates[n];
-      cout<<'\t'<<dss.remote.toStringWithPort()<<": "<<dss.outstanding<<" outstanding, "<<(dss.queries - prev[n].queries)/interval <<" qps"<<endl;
+      if(g_verbose)
+	cout<<'\t'<<dss.remote.toStringWithPort()<<": "<<dss.outstanding<<" outstanding, "<<(dss.queries - prev[n].queries)/interval <<" qps"<<endl;
       outstanding += dss.outstanding;
       prev[n].queries = dss.queries;
       numQueries += dss.queries;
@@ -218,7 +219,8 @@ void* statThread(void*)
 	}	  
       }
     }
-    cout<<outstanding<<" outstanding queries, " <<(numQueries - lastQueries)/interval <<" qps"<<endl;
+    if(g_verbose)
+      cout<<outstanding<<" outstanding queries, " <<(numQueries - lastQueries)/interval <<" qps"<<endl;
     lastQueries=numQueries;
   }
   return 0;
@@ -249,31 +251,34 @@ int getTCPDownstream(DownstreamState** ds)
 }
 
 bool getMsgLen(int fd, uint16_t* len)
+try
 {
   uint16_t raw;
-  int ret = read(fd, &raw, 2);
+  int ret = readn2(fd, &raw, 2);
   if(ret != 2)
     return false;
   *len = ntohs(raw);
   return true;
 }
+catch(...) {
+   return false;
+}
 
 bool putMsgLen(int fd, uint16_t len)
+try
 {
   uint16_t raw = htons(len);
-  int ret = write(fd, &raw, 2);
+  int ret = writen2(fd, &raw, 2);
   return ret==2;
+}
+catch(...) {
+  return false;
 }
 
 
 /* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and 
    they will initiate downstream connections to service them. An attempt is made to reuse existing
    connections.
-
-   As it stands, this code is both dangerous (doesn't check for partial reads/writes) and inefficient  
-   (does split writes). 
-
-   In addition, we leak filedescriptors. 
 */
 void* tcpClientThread(void* p)
 {
@@ -293,8 +298,10 @@ void* tcpClientThread(void* p)
 
       if(dsock == -1)
 	dsock = getTCPDownstream(&ds);
-      else if(g_verbose)
-	cout <<"Reusing existing TCP connection"<<endl;
+      else {
+	if(g_verbose)
+	  cout <<"Reusing existing TCP connection"<<endl;
+      }
 
       uint16_t qlen, rlen;
       for(;;) {
@@ -303,7 +310,7 @@ void* tcpClientThread(void* p)
 
 	ds->queries++;
 	char query[qlen];
-	int ret = read(client, query, qlen);
+	readn2(client, query, qlen);
       
       retry:; 
 	if(!putMsgLen(dsock, qlen)) {
@@ -314,7 +321,7 @@ void* tcpClientThread(void* p)
 	  goto retry;
 	}
       
-	ret = write(dsock, query, qlen);
+	writen2(dsock, query, qlen);
       
 	if(!getMsgLen(dsock, &rlen)) {
 	  if(g_verbose)
@@ -325,10 +332,10 @@ void* tcpClientThread(void* p)
 	}
 
 	char answerbuffer[rlen];
-	ret = read(dsock, answerbuffer, rlen);
+	readn2(dsock, answerbuffer, rlen);
       
 	putMsgLen(client, rlen);
-	ret = write(client, answerbuffer, rlen);
+	writen2(client, answerbuffer, rlen);
       }
       if(g_verbose)
 	cout<<"Closing client connection"<<endl;
