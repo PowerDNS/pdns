@@ -149,7 +149,7 @@
           <itemizedlist>
             <listitem>
               <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-3.3-rc1.tar.gz">source</ulink>
+                <ulink url="http://powerdnssec.org/downloads/pdns-3.3-rc2.tar.gz">source</ulink>
               </para>
             </listitem>
             <listitem>
@@ -159,7 +159,7 @@
             </listitem>
             <listitem>
               <para>
-                <ulink url="https://www.monshouwer.eu/download/3rd_party/pdns-server/rc1/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+                <ulink url="https://www.monshouwer.eu/download/3rd_party/pdns-server/rc2/">native RHEL5/6 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
