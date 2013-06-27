@@ -1,10 +1,10 @@
 noinst_LTLIBRARIES = libbind2backend.la
-AM_CPPFLAGS=-I../.. $(BOOST_CPPFLAGS) @THREADFLAGS@
+AM_CPPFLAGS=-I$(top_srcdir)/pdns $(BOOST_CPPFLAGS) @THREADFLAGS@
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h bindparser.h
 
-bind-dnssec.schema.sqlite3.sql.h: ../../bind-dnssec.schema.sqlite3.sql
-	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' ../../bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
+bind-dnssec.schema.sqlite3.sql.h: $(top_srcdir)/pdns/bind-dnssec.schema.sqlite3.sql
+	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $(top_srcdir)/pdns/bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
 
 
 libbind2backend_la_SOURCES=bindbackend2.cc bindbackend2.hh bindparser.yy \
@@ -43,22 +43,22 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 ../../aes/aestab.c ../../aes/aestab.h ../../aes/brg_endian.h ../../aes/brg_types.h # ../../dbdnsseckeeper.cc
 
 zone2ldap_LDFLAGS=@THREADFLAGS@
-if HAVE_LIBPOLARSSL
-zone2ldap_LDADD=
+if SYSTEM_POLARSSL
+zone2ldap_LDADD= $(LIBS)
 else
 zone2ldap_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a
 endif
 
 zone2sql_LDFLAGS=@THREADFLAGS@
-if HAVE_LIBPOLARSSL
-zone2sql_LDADD=
+if SYSTEM_POLARSSL
+zone2sql_LDADD= $(LIBS)
 else
 zone2sql_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a 
 endif
 
 zone2json_LDFLAGS=@THREADFLAGS@
-if HAVE_LIBPOLARSSL
-zone2json_LDADD=
+if SYSTEM_POLARSSL
+zone2json_LDADD= $(LIBS)
 else
 zone2json_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a
 endif
@@ -66,8 +66,8 @@ endif
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
 
-dnslabeltext.cc: ../../dnslabeltext.rl
-	ragel ../../dnslabeltext.rl -o dnslabeltext.cc
+dnslabeltext.cc: $(srcdir)/../../dnslabeltext.rl
+	ragel $(srcdir)/../../dnslabeltext.rl -o dnslabeltext.cc
 
 .hh.h:
 	cp $< $@
