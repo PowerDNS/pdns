@@ -122,6 +122,8 @@ binary-main-prepare:
 	install -d -m 755 -o root -g root \
 		"$(tools_tmpdir)"/usr/share/man/man8
 	install -d -m 755 -o root -g root \
+		"$(tools_tmpdir)"/usr/share/man/man1
+	install -d -m 755 -o root -g root \
 		"$(tools_tmpdir)"/usr/share/doc/pdns-tools
 	install -p -m 644 -o root -g root debian-pdns/changelog \
 			"$(tools_tmpdir)"/usr/share/doc/pdns-tools/changelog.Debian
@@ -131,12 +133,13 @@ binary-main-prepare:
 
 	install -d -m 755 -o root -g root "$(tools_tmpdir)"/DEBIAN
 
+	#FIXME: shell loops hide errors
 	for prog in dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy nsec3dig ; do \
 		mv "$(tmpdir)"/usr/bin/$$prog "$(tools_tmpdir)"/usr/bin ; \
 		[ -e "$(tmpdir)"/usr/share/man/man8/"$$prog".8 ] && \
 			mv "$(tmpdir)"/usr/share/man/man8/"$$prog".8 "$(tools_tmpdir)"/usr/share/man/man8/ ; \
-		[ -e "$(tmpdir)"/usr/share/man/man8/"$$prog".1 ] && \
-			mv "$(tmpdir)"/usr/share/man/man8/"$$prog".1 "$(tools_tmpdir)"/usr/share/man/man1/ ; \
+		[ -e "$(tmpdir)"/usr/share/man/man1/"$$prog".1 ] && \
+			mv "$(tmpdir)"/usr/share/man/man1/"$$prog".1 "$(tools_tmpdir)"/usr/share/man/man1/ ; \
 		strip --remove-section=.comment --remove-section=.note \
 			--strip-unneeded \
 			"$(tools_tmpdir)"/usr/bin/"$$prog" ; \
