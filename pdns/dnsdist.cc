@@ -38,7 +38,7 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 bool g_verbose;
-AtomicCounter g_pos, g_numQueries;
+AtomicCounter g_pos;
 uint16_t g_maxOutstanding;
 
 
@@ -82,7 +82,7 @@ struct DownstreamState
 };
 
 DownstreamState* g_dstates;
-unsigned int g_numremotes;
+unsigned int g_numdownstreams;
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(void *p)
@@ -129,7 +129,7 @@ DownstreamState& getBestDownstream()
 {
   unsigned int lowest = std::numeric_limits<unsigned int>::max();
   unsigned int chosen = 0;
-  for(unsigned int n = 0; n < g_numremotes; ++n) {
+  for(unsigned int n = 0; n < g_numdownstreams; ++n) {
     if(g_dstates[n].outstanding < lowest) {
       chosen = n;
       lowest=g_dstates[n].outstanding;
@@ -158,7 +158,7 @@ void* udpClientThread(void* p)
     len = recvfrom(cs->udpFD, packet, sizeof(packet), 0, (struct sockaddr*) &remote, &socklen);
     if(len < 0) 
       continue;
-    g_numQueries++;
+
     /* right now, this is our simple round robin downstream selector */
     DownstreamState& ss = getBestDownstream();
     ss.queries++;
@@ -195,18 +195,19 @@ void* statThread(void*)
     return 0;
   uint32_t lastQueries=0;
   vector<DownstreamState> prev;
-  prev.resize(g_numremotes);
+  prev.resize(g_numdownstreams);
 
   for(;;) {
     sleep(interval);
     
     unsigned int outstanding=0;
-    for(unsigned int n=0; n < g_numremotes; ++n) {
+    uint64_t numQueries=0;
+    for(unsigned int n=0; n < g_numdownstreams; ++n) {
       DownstreamState& dss = g_dstates[n];
       cout<<'\t'<<dss.remote.toStringWithPort()<<": "<<dss.outstanding<<" outstanding, "<<(dss.queries - prev[n].queries)/interval <<" qps"<<endl;
       outstanding += dss.outstanding;
       prev[n].queries = dss.queries;
-
+      numQueries += dss.queries;
       for(unsigned int i=0 ; i < g_maxOutstanding; ++i) {
 	IDState& ids = dss.idStates[i];
 	if(ids.origFD >=0 && ids.age++ > 2) {
@@ -217,8 +218,8 @@ void* statThread(void*)
 	}	  
       }
     }
-    cout<<outstanding<<" outstanding queries, " <<(g_numQueries - lastQueries)/interval <<" qps"<<endl;
-    lastQueries=g_numQueries;
+    cout<<outstanding<<" outstanding queries, " <<(numQueries - lastQueries)/interval <<" qps"<<endl;
+    lastQueries=numQueries;
   }
   return 0;
 }
@@ -299,7 +300,7 @@ void* tcpClientThread(void* p)
       for(;;) {
 	if(!getMsgLen(client, &qlen))
 	  break;
-	g_numQueries++;
+
 	ds->queries++;
 	char query[qlen];
 	int ret = read(client, query, qlen);
@@ -384,8 +385,8 @@ try
   }
   vector<string> remotes = g_vm["remotes"].as<vector<string> >();
 
-  g_numremotes = remotes.size();
-  g_dstates = new DownstreamState[g_numremotes];
+  g_numdownstreams = remotes.size();
+  g_dstates = new DownstreamState[g_numdownstreams];
   int pos=0;
   BOOST_FOREACH(const string& remote, remotes) {
     DownstreamState& dss = g_dstates[pos++];
