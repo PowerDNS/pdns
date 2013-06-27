@@ -170,7 +170,125 @@
         either through bugfixes or by catering to their needs beyond the specifications.
       </para>
       <para>
-        New features and important changes since 3.2:
+        Changes between RC1 and RC2:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Added dnstcpbench tool, by popular demand.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              We always shipped a static tools RPM; we now have a similar Debian package. All packages have been cleaned up a bit, and the binary collections are now consistent between RPM and Deb. New: pass
+              --enable-tools to configure to have the tools included in 'make all' and 'make install'.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g4d2e3f5: add selinux policy files
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              We would sometimes send a single NULL byte, or nothing at all, instead of an OPT record. 
+              Fixed in gbf7f822, g063076b, g90d361d.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2ee9ba2: expand any-to-tcp to direct RRSIG queries
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g5fff084, ge38ef51: drop no-op flag strict-rfc-axfrs, thanks Jelte Jansen.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf3d8902, g7c0b859, g5eea730: Implement MINFO qtype for better interaction when slaving zones
+              from NSD (that contain MINFO). Thanks to Jelte Jansen.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g8655a42, gbf79c6a, g38c941b: SRV record can have a '.' as final field, from which we would dutifully strip the trailing ., leaving void, confusing everything. We now remove the trailing . in the right place, and not if we are trying to server '.'. Again thanks to Jelte &amp; SIDN for catching this.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g70d5a66: improve error message in ill formed unknown record type, thanks Jelte Jansen for reporting.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3640473: Built in webserver can now listen on IPv6, fixes t843. Also silences some useless messages about timeouts.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7db735c, gd72166c: CHANGES BEHAVIOUR: before we launch, check if we can connect to the controlsocket we are about to obliterate. If it works, abort. Fixes t841 and changes standing behaviour. There might be circumstances where PowerDNS now refuses to start, where it previously would. However, starting and making our previous instance mute wasn't good.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g9130f9e: correctly refuse out-of-zone data in bindbackend, closes t845
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3363ef7: initialise server-id after all parsing is done, instead of half way through. Fixes situations where server-id was emptied explicitly. Reported by Wouter de Jong
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gcd4f253: bump boost requirement, thanks Wouter de Jong
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g58cad74: Update pdns auth init script so it works on wheezy
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g8714c9c: clang fixes by Aki Tuomi, thanks!
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g146601d: stretch supermasters.ip for IPv6, thanks Dennis Krul
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g1a5c5f9: various remotebackend improvements by Aki Tuomi
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g6ab1a11: make sure systemd starts PowerDNS after relevant databases have been started, thanks Morten Stevens.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g606018f, gee5e175, gc76f6f4: check scopeMask of answer packet, not of query packet!
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2b18bcf: Added warning if trailing dot is used, thanks Aki Tuomi.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g16cf913: make superfluous 'bind' NSEC3 record optional
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        New features and important changes since 3.2 (these changes are in RC1 and up):
         <itemizedlist>
           <listitem>
             <para>
