@@ -14,6 +14,7 @@ server = WEBrick::HTTPServer.new(
 
 be = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3") 
 server.mount "/dns", DNSBackendHandler, be
+server.mount_proc("/ping"){ |req,resp| resp.body = "pong" }
 
 trap('INT') { server.stop }
 trap('TERM') { server.stop }

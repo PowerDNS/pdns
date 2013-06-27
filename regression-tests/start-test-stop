@@ -470,7 +470,13 @@ __EOF__
 				$testsdir/http-backend.rb &
 				echo $! > pdns-remotebackend.pid
 				# make sure it runs before continuing
-				sleep 2
+				loopcount=0
+				while [ $loopcount -lt 20 ]; do
+				     res=$(curl http://localhost:62434/ping 2>/dev/null)
+				     if [ "x$res" == "xpong" ]; then break; fi
+				     sleep 1
+				     let loopcount=loopcount+1
+				done
 				;;
 			unix)
 				connstr="unix:path=/tmp/remote.socket"
