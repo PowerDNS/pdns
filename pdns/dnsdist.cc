@@ -40,7 +40,14 @@ po::variables_map g_vm;
 bool g_verbose;
 AtomicCounter g_pos;
 uint16_t g_maxOutstanding;
+bool g_console;
 
+#define infolog(X,Y) if(g_verbose) { syslog(LOG_INFO, "%s", (boost::format((X)) % Y).str().c_str()); \
+    if(g_console) cout << boost::format((X)) %Y << endl; } do{}while(0)
+#define warnlog(X,Y) { syslog(LOG_WARNING, "%s", (boost::format((X)) % Y).str().c_str()); \
+    if(g_console) cout << boost::format((X)) %Y << endl; } do{}while(0)
+#define errlog(X,Y) {syslog(LOG_ERR, "%s", (boost::format((X)) % Y).str().c_str()); \
+    if(g_console) cout << boost::format((X)) %Y << endl; }do{}while(0)
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -108,8 +115,7 @@ void* responderThread(void *p)
 
     dh->id = ids->origID;
     sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
-    if(g_verbose)
-      cout << "Got answer from "<<state->remote.toStringWithPort()<<", relayed to "<<ids->origRemote.toStringWithPort()<<endl;
+    infolog("Got answer from %s, relayed to %s", state->remote.toStringWithPort() % ids->origRemote.toStringWithPort());
 
     ids->origFD = -1;
   }
@@ -135,6 +141,25 @@ DownstreamState& getBestDownstream()
   }      
   return g_dstates[chosen];
 }
+
+static void daemonize(void)
+{
+  if(fork())
+    _exit(0); // bye bye
+  
+  setsid(); 
+
+  int i=open("/dev/null",O_RDWR); /* open stdin */
+  if(i < 0) 
+    ; // L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
+  else {
+    dup2(i,0); /* stdin */
+    dup2(i,1); /* stderr */
+    dup2(i,2); /* stderr */
+    close(i);
+  }
+}
+
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
 void* udpClientThread(void* p)
@@ -177,8 +202,7 @@ void* udpClientThread(void* p)
     if(len < 0) 
       ss.sendErrors++;
 
-    if(g_verbose)
-      cout<<"Got query from "<<remote.toStringWithPort()<<",relayed to "<<ss.remote.toStringWithPort()<<endl;
+    infolog("Got query from %s, relayed to %s", remote.toStringWithPort() % ss.remote.toStringWithPort());
   }
   return 0;
 }
@@ -201,8 +225,7 @@ void* udpClientThread(void* p)
 int getTCPDownstream(DownstreamState** ds)
 {
   *ds = &getBestDownstream();
-  if(g_verbose)
-    cout<<"TCP connecting to downstream "<<(*ds)->remote.toStringWithPort()<<endl;
+  infolog("TCP connecting to downstream %s", (*ds)->remote.toStringWithPort());
   int sock = SSocket((*ds)->remote.sin4.sin_family, SOCK_STREAM, 0);
   SConnect(sock, (*ds)->remote);
   return sock;
@@ -261,8 +284,7 @@ public:
   // Should not be called simultaneously!
   void addTCPClientThread()
   {  
-    if(g_verbose)
-      cout<<"Adding TCP Client thread"<<endl;
+    infolog("Adding TCP Client threa%c", 'd');
     int pipefds[2];
     if(pipe(pipefds) < 0)
       unixDie("Creating pipe");
@@ -296,8 +318,7 @@ void* tcpClientThread(void* p)
     if(dsock == -1)
       dsock = getTCPDownstream(&ds);
     else {
-      if(g_verbose)
-	cout <<"Reusing existing TCP connection"<<endl;
+      infolog("Reusing existing TCP connection to %s", ds->remote.toStringWithPort());
     }
 
     uint16_t qlen, rlen;
@@ -313,8 +334,7 @@ void* tcpClientThread(void* p)
 	
       retry:; 
 	if(!putMsgLen(dsock, qlen)) {
-	  if(g_verbose)
-	    cout<<"Downstream connection died on us, getting a new one!"<<endl;
+	  infolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
 	  close(dsock);
 	  dsock=getTCPDownstream(&ds);
 	  goto retry;
@@ -323,8 +343,7 @@ void* tcpClientThread(void* p)
 	writen2(dsock, query, qlen);
       
 	if(!getMsgLen(dsock, &rlen)) {
-	  if(g_verbose)
-	    cout<<"Downstream connection died on us phase 2, getting a new one!"<<endl;
+	  infolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
 	  close(dsock);
 	  dsock=getTCPDownstream(&ds);
 	  goto retry;
@@ -338,8 +357,7 @@ void* tcpClientThread(void* p)
       }
     }
     catch(...){}
-    if(g_verbose)
-      cout<<"Closing client connection"<<endl;
+    infolog("Closing client connection with %s", ci.remote.toStringWithPort());
     close(ci.fd); 
     ci.fd=-1;
     --ds->outstanding;
@@ -364,8 +382,7 @@ void* tcpAcceptorThread(void* p)
     try {
       ConnectionInfo* ci = new ConnectionInfo;      
       ci->fd = SAccept(cs->tcpFD, remote);
-      if(g_verbose)
-	cout << "Got connection from "<<remote.toStringWithPort()<<endl;
+      infolog("Got connection from %s", remote.toStringWithPort());
       
       ci->remote = remote;
       writen2(g_tcpclientthreads.getThread(), &ci, sizeof(ci));
@@ -396,8 +413,8 @@ void* statThread(void*)
     uint64_t numQueries=0;
     for(unsigned int n=0; n < g_numdownstreams; ++n) {
       DownstreamState& dss = g_dstates[n];
-      if(g_verbose)
-	cout<<'\t'<<dss.remote.toStringWithPort()<<": "<<dss.outstanding<<" outstanding, "<<(dss.queries - prev[n].queries)/interval <<" qps"<<endl;
+      infolog(" %s: %d outstanding, %f qps", dss.remote.toStringWithPort() % dss.outstanding % ((dss.queries - prev[n].queries)/interval));
+
       outstanding += dss.outstanding;
       prev[n].queries = dss.queries;
       numQueries += dss.queries;
@@ -411,21 +428,24 @@ void* statThread(void*)
 	}	  
       }
     }
-    if(g_verbose)
-      cout<<outstanding<<" outstanding queries, " <<(numQueries - lastQueries)/interval <<" qps"<<endl;
+
+    infolog("%d outstanding queries, %d qps", outstanding  % ((numQueries - lastQueries)/interval));
     lastQueries=numQueries;
   }
   return 0;
 }
 
 
+
 int main(int argc, char** argv)
 try
 {
   signal(SIGPIPE, SIG_IGN);
+  openlog("dnsdist", LOG_PID, LOG_DAEMON);
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
+    ("daemon", po::value<bool>()->default_value(true), "run in background")
     ("local", po::value<vector<string> >(), "Listen on which address")
     ("max-outstanding", po::value<uint16_t>()->default_value(65535), "maximum outstanding queries per downstream")
     ("verbose,v", "be verbose");
@@ -454,6 +474,14 @@ try
     cout<<desc<<endl;
     exit(EXIT_FAILURE);
   }
+
+  if(g_vm["daemon"].as<bool>()) 
+    daemonize();
+  else {
+    infolog("Running in the %s", "foreground");
+    g_console=true;
+  }
+
   vector<string> remotes = g_vm["remotes"].as<vector<string> >();
 
   g_numdownstreams = remotes.size();
@@ -469,8 +497,8 @@ try
 
     dss.idStates.resize(g_maxOutstanding);
 
-    if(g_verbose)
-      cout << "Added downstream server "<<dss.remote.toStringWithPort()<<endl;
+
+    infolog("Added downstream server %s", dss.remote.toStringWithPort());
 
     pthread_create(&dss.tid, 0, responderThread, (void*)&dss);
   }
@@ -490,8 +518,6 @@ try
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
     SBind(cs->udpFD, cs->local);    
-    if(g_verbose)
-      cout<<"Listening on "<<cs->local.toStringWithPort()<<endl;
 
     pthread_create(&tid, 0, udpClientThread, (void*) cs);
   }
@@ -510,20 +536,22 @@ try
 
     SBind(cs->tcpFD, cs->local);
     SListen(cs->tcpFD, 64);
+    warnlog("Listening on %s",cs->local.toStringWithPort());
+
     pthread_create(&tid, 0, tcpAcceptorThread, (void*) cs);
   }
 
   pthread_t stattid;
   pthread_create(&stattid, 0, statThread, 0);
   void* status;
-  pthread_join(tid, &status);
 
+  pthread_join(tid, &status);
 }
 catch(std::exception &e)
 {
-  cerr<<"Fatal: "<<e.what()<<endl;
+  errlog("Fatal: %s", e.what());
 }
 catch(AhuException &ae)
 {
-  cerr<<"Fatal: "<<ae.reason<<endl;
+  errlog("Fatal: %s", ae.reason);
 }
