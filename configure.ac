@@ -24,6 +24,9 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LANG_CPLUSPLUS
 
+AC_CHECK_PROG([RAGEL], [ragel], [ragel])
+AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
+
 dnl Check for lua
 AC_MSG_CHECKING(if with lua)
 AC_ARG_WITH(lua, AC_HELP_STRING([--with-lua],[use Lua]), [WITH_LUA=$withval],[WITH_LUA=yes])
