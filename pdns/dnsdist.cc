@@ -88,8 +88,6 @@ unsigned int g_numdownstreams;
 void* responderThread(void *p)
 {
   DownstreamState* state = (DownstreamState*)p;
-  if(g_verbose)
-    cout << "Added downstream server "<<state->remote.toStringWithPort()<<endl;
   char packet[65536];
 
   struct dnsheader* dh = (struct dnsheader*)packet;
@@ -134,8 +132,7 @@ DownstreamState& getBestDownstream()
       chosen = n;
       lowest=g_dstates[n].outstanding;
     }
-  }
-      
+  }      
   return g_dstates[chosen];
 }
 
@@ -143,8 +140,6 @@ DownstreamState& getBestDownstream()
 void* udpClientThread(void* p)
 {
   ClientState* cs = (ClientState*) p;
-  if(g_verbose)
-    cout<<"Listening on "<<cs->local.toStringWithPort()<<endl;
 
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
@@ -206,7 +201,8 @@ void* udpClientThread(void* p)
 int getTCPDownstream(DownstreamState** ds)
 {
   *ds = &getBestDownstream();
-  cout<<"TCP connecting to downstream "<<(*ds)->remote.toStringWithPort()<<endl;
+  if(g_verbose)
+    cout<<"TCP connecting to downstream "<<(*ds)->remote.toStringWithPort()<<endl;
   int sock = SSocket((*ds)->remote.sin4.sin_family, SOCK_STREAM, 0);
   SConnect(sock, (*ds)->remote);
   return sock;
@@ -473,6 +469,9 @@ try
 
     dss.idStates.resize(g_maxOutstanding);
 
+    if(g_verbose)
+      cout << "Added downstream server "<<dss.remote.toStringWithPort()<<endl;
+
     pthread_create(&dss.tid, 0, responderThread, (void*)&dss);
   }
 
@@ -491,6 +490,9 @@ try
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
     SBind(cs->udpFD, cs->local);    
+    if(g_verbose)
+      cout<<"Listening on "<<cs->local.toStringWithPort()<<endl;
+
     pthread_create(&tid, 0, udpClientThread, (void*) cs);
   }
 
