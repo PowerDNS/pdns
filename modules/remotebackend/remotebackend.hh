@@ -30,6 +30,7 @@ class Connector {
     bool recv(rapidjson::Document &value);
     virtual int send_message(const rapidjson::Document &input) = 0;
     virtual int recv_message(rapidjson::Document &output) = 0;
+    bool getBool(rapidjson::Value &value);
 };
 
 // fwd declarations
@@ -136,5 +137,12 @@ class RemoteBackend : public DNSBackend
     rapidjson::Document *d_result;
     int d_index;
     int64_t d_trxid;
+
+    bool getBool(rapidjson::Value &value);
+    int getInt(rapidjson::Value &value);
+    unsigned int getUInt(rapidjson::Value &value);
+    int64_t getInt64(rapidjson::Value &value);
+    std::string getString(rapidjson::Value &value);
+    double getDouble(rapidjson::Value &value);
 };
 #endif
