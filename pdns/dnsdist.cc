@@ -331,7 +331,7 @@ void* tcpClientThread(void* p)
 	ds->outstanding++;
 	char query[qlen];
 	readn2(ci.fd, query, qlen);
-	
+	// FIXME: drop AXFR queries here, they confuse us
       retry:; 
 	if(!putMsgLen(dsock, qlen)) {
 	  infolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
