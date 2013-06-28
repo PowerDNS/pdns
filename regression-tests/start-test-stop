@@ -510,6 +510,7 @@ __EOF__
 				rm -f remotebackend-access.log
 				$testsdir/http-backend.rb &
 				echo $! > pdns-remotebackend.pid
+				set +e
 				# make sure it runs before continuing
 				loopcount=0
 				while [ $loopcount -lt 20 ]; do
@@ -518,6 +519,7 @@ __EOF__
 				     sleep 1
 				     let loopcount=loopcount+1
 				done
+				set -e
 				;;
 			unix)
 				connstr="unix:path=/tmp/remote.socket"
