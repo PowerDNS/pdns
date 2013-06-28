@@ -25,7 +25,7 @@ bool Connector::recv(rapidjson::Document &value) {
        if (!value.HasMember("result")) {
           return false;
        }
-       if (!value["result"].IsObject() && (value["result"].IsBool() && value["result"].GetBool() == false)) {
+       if (!value["result"].IsObject() && getBool(value["result"]) == false) {
            rv = false;
         }
         if (value.HasMember("log")) {
@@ -204,21 +204,21 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    rapidjson::Value value;
 
    value = "";
-   rr.qtype = JSON_GET((*d_result)["result"][d_index], "qtype", value).GetString();
-   rr.qname = JSON_GET((*d_result)["result"][d_index], "qname", value).GetString();
+   rr.qtype = getString(JSON_GET((*d_result)["result"][d_index], "qtype", value));
+   rr.qname = getString(JSON_GET((*d_result)["result"][d_index], "qname", value));
    rr.qclass = QClass::IN;
-   rr.content = JSON_GET((*d_result)["result"][d_index], "content",value).GetString();
+   rr.content = getString(JSON_GET((*d_result)["result"][d_index], "content",value));
    value = -1;
-   rr.ttl = JSON_GET((*d_result)["result"][d_index], "ttl",value).GetInt();
-   rr.domain_id = JSON_GET((*d_result)["result"][d_index],"domain_id",value).GetInt();
-   rr.priority = JSON_GET((*d_result)["result"][d_index],"priority",value).GetInt();
+   rr.ttl = getInt(JSON_GET((*d_result)["result"][d_index], "ttl",value));
+   rr.domain_id = getInt(JSON_GET((*d_result)["result"][d_index],"domain_id",value));
+   rr.priority = getInt(JSON_GET((*d_result)["result"][d_index],"priority",value));
    value = 1;
    if (d_dnssec) 
-     rr.auth = JSON_GET((*d_result)["result"][d_index],"auth", value).GetInt();
+     rr.auth = getInt(JSON_GET((*d_result)["result"][d_index],"auth", value));
    else
      rr.auth = 1;
    value = 0;
-   rr.scopeMask = JSON_GET((*d_result)["result"][d_index],"scopeMask", value).GetInt();
+   rr.scopeMask = getInt(JSON_GET((*d_result)["result"][d_index],"scopeMask", value));
 
    d_index++;
    
@@ -248,9 +248,9 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   unhashed = answer["result"]["unhashed"].GetString();
-   before = answer["result"]["before"].GetString();
-   after = answer["result"]["after"].GetString();
+   unhashed = getString(answer["result"]["unhashed"]);
+   before = getString(answer["result"]["before"]);
+   after = getString(answer["result"]["after"]);
   
    return true;
 }
@@ -277,7 +277,7 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
 
    if (answer["result"].IsArray()) {
       for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
-         meta.push_back(iter->GetString());
+         meta.push_back(getString(*iter));
       }
    } else if (answer["result"].IsString()) {
       meta.push_back(answer["result"].GetString());
@@ -304,9 +304,7 @@ bool RemoteBackend::setDomainMetadata(const string& name, const std::string& kin
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   if (answer["result"].IsBool())
-      return answer["result"].GetBool();
-   return false;
+   return getBool(answer["result"]);
 }
 
 
@@ -330,13 +328,10 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
 
    for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
       DNSBackend::KeyData key;
-      key.id = (*iter)["id"].GetUint();
-      key.flags = (*iter)["flags"].GetUint();
-      if ((*iter)["active"].IsBool())
-         key.active = (*iter)["active"].GetBool();
-      else 
-         key.active = ((*iter)["active"].GetInt() != 0 ? true : false ); // case where it's returned as non-boolean
-      key.content = (*iter)["content"].GetString();
+      key.id = getUInt((*iter)["id"]);
+      key.flags = getUInt((*iter)["flags"]);
+      key.active = getBool((*iter)["active"]);
+      key.content = getString((*iter)["content"]);
       keys.push_back(key);
    }
 
@@ -382,7 +377,7 @@ int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   return answer["result"].GetInt();
+   return getInt(answer["result"]);
 }
 
 bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
@@ -445,9 +440,9 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
      return false;
 
    if (algorithm != NULL)
-     algorithm->assign(answer["result"]["algorithm"].GetString());
+     algorithm->assign(getString(answer["result"]["algorithm"]));
    if (content != NULL)
-     content->assign(answer["result"]["content"].GetString());
+     content->assign(getString(answer["result"]["content"]));
    
    return true;
 }
@@ -474,20 +469,21 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
    }
    value = -1;
    // parse return value. we need at least zone,serial,kind
-   di.id = JSON_GET(answer["result"],"id",value).GetInt();
-   di.zone = answer["result"]["zone"].GetString();
+   di.id = getInt(JSON_GET(answer["result"],"id",value));
+   di.zone = getString(answer["result"]["zone"]);
+
    if (answer["result"].HasMember("masters") && answer["result"]["masters"].IsArray()) {
      rapidjson::Value& value = answer["result"]["masters"];
      for(rapidjson::Value::ValueIterator i = value.Begin(); i != value.End(); i++) {
-        di.masters.push_back(i->GetString());
+        di.masters.push_back(getString(*i));
      }
    }
-   di.notified_serial = JSON_GET(answer["result"], "notified_serial", value).GetInt();
+   di.notified_serial = getInt(JSON_GET(answer["result"], "notified_serial", value));
    value = 0;
-   di.serial = JSON_GET(answer["result"],"serial", value).GetInt();
-   di.last_check = JSON_GET(answer["result"],"last_check", value).GetInt();
+   di.serial = getInt(JSON_GET(answer["result"],"serial", value));
+   di.last_check = getInt(JSON_GET(answer["result"],"last_check", value));
    value = "native";
-   kind = JSON_GET(answer["result"], "kind", value).GetString();
+   kind = getString(JSON_GET(answer["result"], "kind", value));
    if (kind == "master") {
       di.kind = DomainInfo::Master;
    } else if (kind == "slave") {
@@ -553,7 +549,7 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    
    // we allow simple true as well...
    if (answer["result"].IsObject() && answer["result"].HasMember("account")) 
-     *account = answer["result"]["account"].GetString();
+     *account = getString(answer["result"]["account"]);
 
    return true;
 }
@@ -766,11 +762,91 @@ bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, 
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
 
-   if (answer["result"].IsInt64() == false)
-     return false;
-
-   serial = answer["result"].GetInt64();
+   serial = getInt64(answer["result"]);
    return true;
+}
+
+// some rapidjson helpers 
+bool RemoteBackend::getBool(rapidjson::Value &value) {
+   if (value.IsNull()) return false;
+   if (value.IsBool()) return value.GetBool();
+   if (value.IsInt()) return value.GetInt() != 0; // 0 = false, non-zero true
+   if (value.IsDouble()) return value.GetDouble() != 0; // 0 = false, non-zero true
+   if (value.IsString()) {  // accepts 0, 1, false, true
+     std::string tmp = value.GetString();
+     if (boost::iequals(tmp, "1") || boost::iequals(tmp, "true")) return true;
+     if (boost::iequals(tmp, "0") || boost::iequals(tmp, "false")) return false;
+   }
+   std::cerr << value.GetType() << endl;
+   throw new AhuException("Cannot convert rapidjson value into boolean");
+}
+
+bool Connector::getBool(rapidjson::Value &value) {
+   if (value.IsNull()) return false;
+   if (value.IsBool()) return value.GetBool();
+   if (value.IsInt()) return value.GetInt() != 0; // 0 = false, non-zero true
+   if (value.IsDouble()) return value.GetDouble() != 0; // 0 = false, non-zero true
+   if (value.IsString()) {  // accepts 0, 1, false, true
+     std::string tmp = value.GetString();
+     if (boost::iequals(tmp, "1") || boost::iequals(tmp, "true")) return true;
+     if (boost::iequals(tmp, "0") || boost::iequals(tmp, "false")) return false;
+   }
+
+   // this is specific for Connector!
+   return true;
+}
+
+int RemoteBackend::getInt(rapidjson::Value &value) {
+   if (value.IsBool()) return (value.GetBool() ? 1 : 0);
+   if (value.IsInt()) return value.GetInt();
+   if (value.IsDouble()) return static_cast<int>(value.GetDouble());
+   if (value.IsString()) {  // accepts 0, 1, false, true
+     std::string tmp = value.GetString();
+     return boost::lexical_cast<int>(tmp);
+   }
+   throw new AhuException("Cannot convert rapidjson value into integer");
+}
+
+unsigned int RemoteBackend::getUInt(rapidjson::Value &value) {
+   if (value.IsBool()) return (value.GetBool() ? 1 : 0);
+   if (value.IsInt()) return value.GetUint();
+   if (value.IsDouble()) return static_cast<unsigned int>(value.GetDouble());
+   if (value.IsString()) {  // accepts 0, 1, false, true
+     std::string tmp = value.GetString();
+     return boost::lexical_cast<unsigned int>(tmp);
+   }
+   throw new AhuException("Cannot convert rapidjson value into integer");
+}
+
+int64_t RemoteBackend::getInt64(rapidjson::Value &value) {
+   if (value.IsBool()) return (value.GetBool() ? 1 : 0);
+   if (value.IsInt()) return value.GetInt();
+   if (value.IsInt64()) return value.GetInt64();
+   if (value.IsDouble()) return static_cast<int64_t>(value.GetDouble());
+   if (value.IsString()) {  // accepts 0, 1, false, true
+     std::string tmp = value.GetString();
+     return boost::lexical_cast<int64_t>(tmp);
+   }
+   throw new AhuException("Cannot convert rapidjson value into integer");
+}
+
+std::string RemoteBackend::getString(rapidjson::Value &value) {
+   if (value.IsBool()) return (value.GetBool() ? "true" : "false");
+   if (value.IsInt()) return boost::lexical_cast<std::string>(value.GetInt());
+   if (value.IsDouble()) return boost::lexical_cast<std::string>(value.GetDouble());
+   if (value.IsString()) return value.GetString();
+   throw new AhuException("Cannot convert rapidjson value into std::string");
+}
+
+double RemoteBackend::getDouble(rapidjson::Value &value) {
+   if (value.IsBool()) return (value.GetBool() ? 1.0L : 0.0L);
+   if (value.IsInt()) return static_cast<double>(value.GetInt());
+   if (value.IsDouble()) return value.GetDouble();
+   if (value.IsString()) {  // accepts 0, 1, false, true
+     std::string tmp = value.GetString();
+     return boost::lexical_cast<double>(tmp);
+   }
+   throw new AhuException("Cannot convert rapidjson value into double");
 }
 
 DNSBackend *RemoteBackend::maker()
