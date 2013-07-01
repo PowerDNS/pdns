@@ -1,7 +1,6 @@
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/array.hpp>
 #include <boost/accumulators/statistics.hpp>
-#include <boost/accumulators/statistics/p_square_cumulative_distribution.hpp>
 #include <boost/program_options.hpp>
 #include "inflighter.cc"
 #include <deque>
