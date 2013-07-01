@@ -175,6 +175,18 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 
 void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
+
+  /* Query statistics */
+  if(p->qtype.getCode()!=QType::AXFR && p->qtype.getCode()!=QType::IXFR) {
+    if(p->d.aa) {
+      if(p->d.rcode==RCode::NXDomain)
+        S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
+    } else if(p->isEmpty()) {
+      S.ringAccount("unauth-queries",p->qdomain);
+      S.ringAccount("remotes-unauth",p->getRemote());
+    }
+  }
+
   uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);
   buffer.append(p->getString());

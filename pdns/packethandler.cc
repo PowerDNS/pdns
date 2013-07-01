@@ -1000,6 +1000,8 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
 
   if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname))
     addNSECX(p, r, target, wildcard, sd.qname, mode);
+
+  S.ringAccount("noerror-queries",p->qdomain+"/"+p->qtype.getName());
 }
 
 
