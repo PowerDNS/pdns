@@ -51,7 +51,7 @@ try
         if(mdp.d_qtype < 256)
           counts[mdp.d_qtype]++;
 
-        for(int i=0; i < mdp.d_qname.length(); ++i)
+        for(unsigned int i=0; i < mdp.d_qname.length(); ++i)
           if(!isalnum(mdp.d_qname[i]) && mdp.d_qname[i]!='.' && mdp.d_qname[i]!='-' && mdp.d_qname[i]!='_') {
             //	  cout<<mdp.d_qname<<"|"<<mdp.d_qtype<<"|"<<mdp.d_qclass<<"\n";
             // sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
