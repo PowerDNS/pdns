@@ -286,20 +286,23 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 /** Determines if we are authoritative for a zone, and at what level */
 bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
 {
+  bool found=false;
   string subdomain(target);
   do {
     if( B.getSOA( subdomain, *sd, p ) ) {
-      if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) 
-        continue; // A DS question is never answered from the apex, go one zone upwards 
-      
       sd->qname = subdomain;
       if(zoneId)
         *zoneId = sd->domain_id;
-      return true;
+
+      if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) {
+        // Found authoritative zone but look for parent zone with 'DS' record.
+        found=true;
+      } else
+        return true;
     }
   }
   while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
-  return false;
+  return found;
 }
 
 vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target)
