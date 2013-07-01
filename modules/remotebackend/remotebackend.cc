@@ -29,13 +29,13 @@ bool Connector::recv(rapidjson::Document &value) {
            rv = false;
         }
         if (value.HasMember("log")) {
-           const rapidjson::Value& messages = value["log"];
+           rapidjson::Value& messages = value["log"];
            if (messages.IsArray()) {
               // log em all
-              for (rapidjson::Value::ConstValueIterator iter = messages.Begin(); iter != messages.End(); ++iter)
-                 L<<Logger::Info<<"[remotebackend]:"<< iter->GetString() <<std::endl;
-           } else if (messages.IsString()) { // could be just a string, too
-               L<<Logger::Info<<"[remotebackend]:"<< messages.GetString() <<std::endl;
+              for (rapidjson::Value::ValueIterator iter = messages.Begin(); iter != messages.End(); ++iter)
+                 L<<Logger::Info<<"[remotebackend]:"<< getString(*iter) <<std::endl;
+           } else if (messages.IsNull() == false) { // could be just a value
+               L<<Logger::Info<<"[remotebackend]:"<< getString(messages) <<std::endl;
            }
         }
         return rv;
@@ -796,9 +796,19 @@ bool Connector::getBool(rapidjson::Value &value) {
    return true;
 }
 
+std::string Connector::getString(rapidjson::Value &value) {
+   if (value.IsString()) return value.GetString();
+   if (value.IsBool()) return (value.GetBool() ? "true" : "false");
+   if (value.IsInt64()) return boost::lexical_cast<std::string>(value.GetInt64());
+   if (value.IsInt()) return boost::lexical_cast<std::string>(value.GetInt());
+   if (value.IsDouble()) return boost::lexical_cast<std::string>(value.GetDouble());
+   return "(unpresentable value)"; // cannot convert into presentation format
+}
+
 int RemoteBackend::getInt(rapidjson::Value &value) {
-   if (value.IsBool()) return (value.GetBool() ? 1 : 0);
    if (value.IsInt()) return value.GetInt();
+   if (value.IsBool()) return (value.GetBool() ? 1 : 0);
+   if (value.IsUint()) return static_cast<int>(value.GetUint());
    if (value.IsDouble()) return static_cast<int>(value.GetDouble());
    if (value.IsString()) {  // accepts 0, 1, false, true
      std::string tmp = value.GetString();
@@ -808,8 +818,9 @@ int RemoteBackend::getInt(rapidjson::Value &value) {
 }
 
 unsigned int RemoteBackend::getUInt(rapidjson::Value &value) {
+   if (value.IsUint()) return value.GetUint();
    if (value.IsBool()) return (value.GetBool() ? 1 : 0);
-   if (value.IsInt()) return value.GetUint();
+   if (value.IsInt()) return static_cast<unsigned int>(value.GetInt());
    if (value.IsDouble()) return static_cast<unsigned int>(value.GetDouble());
    if (value.IsString()) {  // accepts 0, 1, false, true
      std::string tmp = value.GetString();
@@ -819,9 +830,9 @@ unsigned int RemoteBackend::getUInt(rapidjson::Value &value) {
 }
 
 int64_t RemoteBackend::getInt64(rapidjson::Value &value) {
+   if (value.IsInt64()) return value.GetInt64();
    if (value.IsBool()) return (value.GetBool() ? 1 : 0);
    if (value.IsInt()) return value.GetInt();
-   if (value.IsInt64()) return value.GetInt64();
    if (value.IsDouble()) return static_cast<int64_t>(value.GetDouble());
    if (value.IsString()) {  // accepts 0, 1, false, true
      std::string tmp = value.GetString();
@@ -831,17 +842,19 @@ int64_t RemoteBackend::getInt64(rapidjson::Value &value) {
 }
 
 std::string RemoteBackend::getString(rapidjson::Value &value) {
+   if (value.IsString()) return value.GetString();
    if (value.IsBool()) return (value.GetBool() ? "true" : "false");
+   if (value.IsInt64()) return boost::lexical_cast<std::string>(value.GetInt64());
    if (value.IsInt()) return boost::lexical_cast<std::string>(value.GetInt());
    if (value.IsDouble()) return boost::lexical_cast<std::string>(value.GetDouble());
-   if (value.IsString()) return value.GetString();
    throw new AhuException("Cannot convert rapidjson value into std::string");
 }
 
 double RemoteBackend::getDouble(rapidjson::Value &value) {
-   if (value.IsBool()) return (value.GetBool() ? 1.0L : 0.0L);
-   if (value.IsInt()) return static_cast<double>(value.GetInt());
    if (value.IsDouble()) return value.GetDouble();
+   if (value.IsBool()) return (value.GetBool() ? 1.0L : 0.0L);
+   if (value.IsInt64()) return static_cast<double>(value.GetInt64());
+   if (value.IsInt()) return static_cast<double>(value.GetInt());
    if (value.IsString()) {  // accepts 0, 1, false, true
      std::string tmp = value.GetString();
      return boost::lexical_cast<double>(tmp);
