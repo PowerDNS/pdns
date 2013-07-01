@@ -87,7 +87,7 @@ public:
   const struct tcphdr *d_tcp;
   const struct udphdr *d_udp;
   const uint8_t* d_payload;
-  int d_len;
+  unsigned int d_len;
   struct pdns_pcap_pkthdr d_pheader;
 
   pdns_pcap_file_header d_pfh;

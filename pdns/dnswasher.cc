@@ -55,7 +55,7 @@ try
   IPObfuscator ipo;
 
   while(pr.getUDPPacket()) {
-    if(ntohs(pr.d_udp->uh_dport)==53 || ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(dnsheader)) {
+    if(ntohs(pr.d_udp->uh_dport)==53 || (ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(dnsheader))) {
       dnsheader* dh=(dnsheader*)pr.d_payload;
 
       uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
