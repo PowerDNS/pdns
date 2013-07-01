@@ -21,9 +21,11 @@
 /bind-dnssec.schema.sqlite3.sql.h
 /pdns-recursor-*
 /dnsdemog
+/dnsdist
 /dnsgram
 /dnsscan
 /dnsscope
+/dnstcpbench
 /dnswasher
 /notify
 /nproxy
