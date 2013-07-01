@@ -30,7 +30,9 @@ class Connector {
     bool recv(rapidjson::Document &value);
     virtual int send_message(const rapidjson::Document &input) = 0;
     virtual int recv_message(rapidjson::Document &output) = 0;
+   protected:
     bool getBool(rapidjson::Value &value);
+    std::string getString(rapidjson::Value &value);
 };
 
 // fwd declarations
