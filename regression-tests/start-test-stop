@@ -683,7 +683,8 @@ then
 			--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 			--fancy-records --send-root-referral \
 			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=1 \
-			--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 |& egrep -v "update records set ordername|insert into records" &
+			--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 \
+			--config-name=gsqlite32 |& egrep -v "update records set ordername|insert into records" &
 		echo 'waiting for zones to be slaved'
 		set +e
 		loopcount=0
