@@ -122,6 +122,8 @@ binary-main-prepare:
 	install -d -m 755 -o root -g root \
 		"$(tools_tmpdir)"/usr/share/man/man8
 	install -d -m 755 -o root -g root \
+		"$(tools_tmpdir)"/usr/share/man/man1
+	install -d -m 755 -o root -g root \
 		"$(tools_tmpdir)"/usr/share/doc/pdns-tools
 	install -p -m 644 -o root -g root debian-pdns/changelog \
 			"$(tools_tmpdir)"/usr/share/doc/pdns-tools/changelog.Debian
