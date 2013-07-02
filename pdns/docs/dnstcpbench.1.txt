@@ -8,13 +8,14 @@ dnstcpbench - tool to perform TCP benchmarking of nameservers
 
 SYNOPSIS
 --------
-'dnstcpbench' [--help] [--verbose] [--udp-first, -u] [--workers] [--timeout-msec] remote-ip-address [remote-port]
+'dnstcpbench' [--help] [--file=filename] [--verbose] [--udp-first, -u] [--workers] [--timeout-msec] remote-ip-address [remote-port]
 
 DESCRIPTION
 -----------
-dnstcpbench reads DNS queries from standard input and sends them out in
-parallel to a remote nameserver. By default TCP/IP is used, but optionally,
-UDP is tried first, which allows for the benchmarking of TCP/IP fallback.
+dnstcpbench reads DNS queries (by default from standard input) and sends
+them out in parallel to a remote nameserver.  By default TCP/IP is used, but
+optionally, UDP is tried first, which allows for the benchmarking of TCP/IP
+fallback.
 
 The input format is one query per line: qname single-space qtype. An
 example:
@@ -32,21 +33,26 @@ The equivalent for IPv6 is not known.
 OPTIONS
 -------
 
---verbose::
-	Be wordy on what the program is doing
+-f,--file::
+	Filename from which to read queries. Defaults to standard input if
+	unspecified.
+
+-h,--help::
+	Provide a helpful message
+
+--timeout-msec::
+	Number of milliseconds to wait for an answer	
 
 --udp-first, -u::
 	Attempt resolution via UDP first, only do TCP if truncated answer is
 	received
 
+-v,--verbose::
+	Be wordy on what the program is doing
+
 --workers::
 	Number of parallel worker threads to use. 
 
---timeout-msec::
-	Number of milliseconds to wait for an answer	
-
---help::
-	Provide a helpful message
 
 Remote IP address can be IPv4 or IPv6. Remote port defaults to 53.
 

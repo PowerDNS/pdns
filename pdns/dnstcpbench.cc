@@ -161,6 +161,7 @@ try
     ("help,h", "produce help message")
     ("verbose,v", "be verbose")
     ("udp-first,u", "try UDP first")
+    ("file,f", po::value<string>(), "source file - if not specified, defaults to stdin")
     ("tcp-no-delay", po::value<bool>()->default_value(true), "use TCP_NODELAY socket option")
     ("timeout-msec", po::value<int>()->default_value(10), "wait for this amount of milliseconds for an answer")
     ("workers", po::value<int>()->default_value(100), "number of parallel workers");
@@ -210,7 +211,14 @@ try
 
   pthread_t workers[numworkers];
 
-  FILE* fp=fdopen(0, "r");
+  FILE* fp;
+  if(!g_vm.count("file"))
+    fp=fdopen(0, "r");
+  else {
+    fp=fopen(g_vm["file"].as<string>().c_str(), "r");
+    if(!fp)
+      unixDie("Unable to open "+g_vm["file"].as<string>()+" for input");
+  }
   pair<string, string> q;
   string line;
   while(stringfgets(fp, line)) {
