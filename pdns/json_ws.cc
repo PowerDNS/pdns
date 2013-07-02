@@ -107,7 +107,28 @@ void JWebserver::readRequest(int fd)
       content += returnJSONObject(stats);
     }
     content += "]";
-  } 
+  }
+  else if(varmap["command"] =="get-zone") {
+    SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
+    
+    content += "[";
+    bool first=1;
+    
+    if(ret != t_sstorage->domainmap->end()) {
+      BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& val, ret->second.d_records) {
+	if(!first) content+= ", ";
+	first=false;
+	stats.clear();
+	stats["name"] = val.qname;
+	stats["type"] = val.qtype.getName();
+	stats["ttl"] = lexical_cast<string>(val.ttl);
+	stats["priority"] = lexical_cast<string>(val.priority);
+	stats["content"] = val.content;
+	content += returnJSONObject(stats);
+      }
+    }
+    content += "]";
+  }  
   else if(varmap["command"]=="flush-cache") {
     string canon=toCanonic("", varmap["domain"]);
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
