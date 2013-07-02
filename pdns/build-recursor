@@ -1,6 +1,7 @@
 #!/bin/sh
+set -e
 cd pdns-recursor-$1
-dh_make -e bert.hubert@netherlabs.nl -b  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
+dh_make -e bert.hubert@netherlabs.nl -s -f ../pdns-recursor-$1.tar.bz2 < /dev/null
 #[ -e debian/control ] || dh_make -e bert.hubert@netherlabs.nl -s -r cdbs  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
 perl -i -pe 's/Description: <.*>/Description: extremely powerful and versatile recursing nameserver/' debian/control
 export LUA=1
