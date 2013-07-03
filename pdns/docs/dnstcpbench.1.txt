@@ -30,6 +30,7 @@ performed by running:
 
 The equivalent for IPv6 is not known.
 
+
 OPTIONS
 -------
 
@@ -56,11 +57,20 @@ OPTIONS
 
 Remote IP address can be IPv4 or IPv6. Remote port defaults to 53.
 
+STATISTICAL OUTPUT
+------------------
+The program reports both mean and median numbers for queries per second and
+UDP and TCP latency. Each query only counts once, even if it is tried over
+UDP first. This effectively means that passing '-u' can lower query rates if
+many queries get shunted to TCP.
+
 BUGS
 ----
 Currently the timeout code does not actually perform non-blocking connects
 or writes.  So a slow connect or slow writes will still cause low
 performance and delays. 
+
+Median queries per second statistics are reported as 0 for sub-second runs.
 
 AUTHOR
 ------
