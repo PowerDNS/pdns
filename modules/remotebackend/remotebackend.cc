@@ -903,4 +903,4 @@ class RemoteLoader
       }
 };
 
-static RemoteLoader remoteloader;
+RemoteLoader remoteloader;
