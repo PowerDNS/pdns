@@ -15,6 +15,12 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include <boost/accumulators/statistics/median.hpp>
+#include <boost/accumulators/statistics/mean.hpp>
+#include <boost/accumulators/accumulators.hpp>
+
+#include <boost/accumulators/statistics.hpp>
+
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -24,9 +30,11 @@
 #include <netinet/tcp.h>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
+#include <boost/foreach.hpp>
 
 StatBag S;
 namespace po = boost::program_options;
+
 po::variables_map g_vm;
 bool g_verbose;
 bool g_onlyTCP;
@@ -35,18 +43,23 @@ unsigned int g_timeoutMsec;
 AtomicCounter g_networkErrors, g_otherErrors, g_OK, g_truncates, g_authAnswers, g_timeOuts;
 ComboAddress g_dest;
 
+unsigned int makeUsec(const struct timeval& tv)
+{
+  return 1000000*tv.tv_sec + tv.tv_usec;
+}
+
 /* On Linux, run echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
    to prevent running out of free TCP ports */
 
 struct BenchQuery
 {
-  BenchQuery(const std::string& qname_, uint16_t qtype_) : qname(qname_), qtype(qtype_), udpMsec(0), tcpMsec(0) {}
+  BenchQuery(const std::string& qname_, uint16_t qtype_) : qname(qname_), qtype(qtype_), udpUsec(0), tcpUsec(0), answerSecond(0) {}
   BenchQuery(){}
   std::string qname;
   uint16_t qtype;
-  uint16_t udpMsec, tcpMsec;
+  uint32_t udpUsec, tcpUsec;
+  time_t answerSecond;
 };
-
 
 void doQuery(BenchQuery* q)
 try
@@ -55,6 +68,9 @@ try
   DNSPacketWriter pw(packet, q->qname, q->qtype);
   int res;
   string reply;
+
+  struct timeval tv, now;
+  gettimeofday(&tv, 0);
 
   if(!g_onlyTCP) {
     Socket udpsock((AddressFamily)g_dest.sin4.sin_family, Datagram);
@@ -70,6 +86,11 @@ try
     }
 
     udpsock.recvFrom(reply, origin);
+
+    gettimeofday(&now, 0);
+    q->udpUsec = makeUsec(now - tv);
+    tv=now;
+
     MOADNSParser mdp(reply);
     if(!mdp.d_header.tc)
       return;
@@ -116,6 +137,10 @@ try
   reply=string(creply, len);
   delete[] creply;
   
+  gettimeofday(&now, 0);
+  q->tcpUsec = makeUsec(now - tv);
+  q->answerSecond = now.tv_sec;
+
   MOADNSParser mdp(reply);
   //  cout<<"Had correct TCP/IP response, "<<mdp.d_answers.size()<<" answers, aabit="<<mdp.d_header.aa<<endl;
   if(mdp.d_header.aa)
@@ -139,7 +164,6 @@ catch(...)
 AtomicCounter g_pos;
 
 vector<BenchQuery> g_queries;
-
 
 static void* worker(void*)
 {
@@ -235,6 +259,34 @@ try
     void* status;
     pthread_join(workers[n], &status);
   }
+  
+  using namespace boost::accumulators;
+  typedef accumulator_set<
+    unsigned int
+    , stats<boost::accumulators::tag::median(with_p_square_quantile),
+      boost::accumulators::tag::mean(immediate)
+    >
+  > acc_t;
+
+  acc_t udpspeeds, tcpspeeds, qps;
+  
+  typedef map<time_t, uint32_t> counts_t;
+  counts_t counts;
+
+  BOOST_FOREACH(const BenchQuery& bq, g_queries) {
+    counts[bq.answerSecond]++;
+    udpspeeds(bq.udpUsec);
+    tcpspeeds(bq.tcpUsec);
+  }
+
+  BOOST_FOREACH(const counts_t::value_type& val, counts) {
+    qps(val.second);
+  }
+
+  cout<<"Average qps: "<<mean(qps)<<", median qps: "<<median(qps)<<endl;
+  cout<<"Average UDP latency: "<<mean(udpspeeds)<<"usec, median: "<<median(udpspeeds)<<"usec"<<endl;
+  cout<<"Average TCP latency: "<<mean(tcpspeeds)<<"usec, median: "<<median(tcpspeeds)<<"usec"<<endl;
+
   cout<<"OK: "<<g_OK<<", network errors: "<<g_networkErrors<<", other errors: "<<g_otherErrors<<endl;
   cout<<"Timeouts: "<<g_timeOuts<<endl;
   cout<<"Truncateds: "<<g_truncates<<", auth answers: "<<g_authAnswers<<endl;
