@@ -155,6 +155,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     bool gotOptOutFlag = false;
     unsigned int soa_serial = 0;
     vector<DNSResourceRecord> rrs;
+    set<string> secured;
     while(retriever.getChunk(recs)) {
       if(first) {
         L<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
@@ -177,7 +178,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           continue;
         } else if (i->qtype.getCode() == QType::NSEC3) {
           dnssecZone = gotPresigned = true;
-          gotOptOutFlag = NSEC3RecordContent(i->content).d_flags & 1;
+          NSEC3RecordContent ns3rc(i->content);
+          gotOptOutFlag = ns3rc.d_flags & 1;
+          if (ns3rc.d_set.count(QType::NS) && !pdns_iequals(i->qname, domain))
+            secured.insert(toLower(makeRelative(i->qname, domain)));
           continue;
         } else if (i->qtype.getCode() == QType::NSEC) {
           dnssecZone = gotPresigned = true;
@@ -209,6 +213,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         }
       }
     }
+
 
     BOOST_FOREACH(const DNSResourceRecord& rr, rrs) {
       if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, domain))
@@ -276,8 +281,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       if (dnssecZone && rr.qtype.getCode() != QType::RRSIG) {
         if (haveNSEC3) {
           // NSEC3
-          if(!narrow && (rr.auth || (rr.qtype.getCode() == QType::NS && !gotOptOutFlag))) {
-            ordername=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+          ordername=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+          if(!narrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!gotOptOutFlag || secured.count(ordername))))) {
             di.backend->feedRecord(rr, &ordername);
           } else
             di.backend->feedRecord(rr);
