@@ -13,18 +13,14 @@
 #include "pdns/statbag.hh"
 #include "pdns/packetcache.hh"
 
+#include "remotebackend.hh"
+
 StatBag S;
 PacketCache PC;
 ArgvMap &arg()
 {
   static ArgvMap arg;
   return arg;
-};
-
-class RemoteLoader
-{
-   public:
-      RemoteLoader();
 };
 
 DNSBackend *be;
