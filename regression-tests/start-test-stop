@@ -3,11 +3,70 @@
 PDNS=${PDNS:-../pdns/pdns_server}
 PDNS2=${PDNS2:-../pdns/pdns_server}
 
+cleanlongtxt ()
+{
+	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.shorttxt
+}
+
+tonsd ()
+{
+	cat > nsd.conf << __EOF__
+server:
+	ip-address: 127.0.0.1@$port
+	database: ./nsd.db
+	zonesdir: .
+	username: ""
+__EOF__
+
+	cleanlongtxt
+	rm -f K*
+	for zone in $(grep zone named.conf  | cut -f2 -d\")
+	do
+		if [ ! "${zone: 0:16}" = "secure-delegated" ]
+		then
+			ksk=$(ldns-keygen -r /dev/urandom -a RSASHA256 -k $zone)
+		else
+			ksk="secure-delegated.dnssec-parent.com"
+		fi
+		zsk=$(ldns-keygen -r /dev/urandom -a RSASHA256 $zone)
+		if [ $zone = test.com ]
+		then
+			zonefile=test.com.shorttxt
+		else
+			zonefile=${zone}
+		fi
+
+		case $1 in
+			nsec)
+				ldns-signzone -f ${zone}.signed ${zonefile} $ksk $zsk
+				;;
+			nsec3)
+				ldns-signzone -n -a 1 -s abcd -t 1 -f ${zone}.signed ${zonefile} $ksk $zsk
+				;;
+			nsec3-optout)
+				ldns-signzone -n -p -a 1 -s abcd -t 1 -f ${zone}.signed ${zonefile} $ksk $zsk
+				;;
+			unsigned)
+				cp ${zonefile} ${zone}.signed
+				;;
+			*)
+				echo 'tonsd called with wrong param'
+				exit 1
+		esac
+		echo "" >> nsd.conf
+		echo "zone:" >> nsd.conf
+		echo "  name: \"${zone}\"" >> nsd.conf
+		echo "  zonefile: \"${zone}.signed\"" >> nsd.conf
+		echo "  provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
+		echo "  provide-xfr: ::0/0 NOKEY" >> nsd.conf
+	done
+	nsdc -c nsd.conf rebuild
+}
+
 tosql ()
 {
 	make -C ../pdns/backends/bind zone2sql > /dev/null
 	../pdns/backends/bind/zone2sql --transactions --$1 --named-conf=./named.conf
-
 }
 
 bindwait ()
@@ -45,7 +104,7 @@ securezone ()
 	fi
 	if [ "${zone: 0:16}" = "secure-delegated" ]
 	then
-		../pdns/pdnssec --config-dir=. $configname import-zone-key $zone $zone.key ksk 2>&1
+		../pdns/pdnssec --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
 		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
 		keyid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
 		../pdns/pdnssec --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
@@ -106,6 +165,7 @@ then
 Usage: ./start-test-stop <port> [<context>] [wait|nowait] [<cachettl>] [<specifictest>]
 
 context is one of:
+ext-nsd ext-nsd-nsec ext-nsd-nsec3
 bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
 gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-optout gmysql-nsec3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3
@@ -118,8 +178,8 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
-* Add -presigned to any gmysql test (except narrow) to
-  test presigned operation
+add -presigned to any ext-nsd bind, gmysql or gsqlite3 test (except narrow)
+to test presigned operation
 
 * Add 'wait' (literally) after the context to not kill
   pdns_server immediately after testing. 'nowait' will kill it.
@@ -163,6 +223,32 @@ fi
 
 
 case $context in
+		ext-nsd | ext-nsd-nsec | ext-nsd-nsec3 | ext-nsd-nsec3-optout)
+			case $context in
+				ext-nsd)
+					tonsd unsigned
+					extracontexts="extnsd"
+					skipreasons=nodnssec
+					;;
+				ext-nsd-nsec)
+					tonsd nsec
+					extracontexts="extnsd dnssec"
+					;;
+				ext-nsd-nsec3)
+					tonsd nsec3
+					extracontexts="extnsd dnssec nsec3"
+					skipreasons="nsec3"
+					;;
+				ext-nsd-nsec3-optout)
+					tonsd nsec3-optout
+					extracontexts="extnsd dnssec nsec3 nsec3-optout"
+					skipreasons="optout"
+					;;
+			esac
+			nsd -c nsd.conf -P pdns.pid -d &
+			sleep 5
+			;;
+
 		bind)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
@@ -661,7 +747,7 @@ export optout
 if [ $presigned = yes ]
 then
         skipreasons="$skipreasons presigned nodyndns"
-	if [ ${context:0:6} = gmysql ]
+	if [ ${context:0:6} = gmysql ] | [ ${context:0:7} = ext-nsd ]
 	then
 		context=${context}-presigned
 		[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
@@ -818,13 +904,14 @@ then
 	read l
 fi
 kill $(cat pdns*.pid)
-rm pdns*.pid
+rm pdns*.pid || true
 
 if [ -s "./failed_tests" ]
 then
+	set +x
 	for t in `cat failed_tests`
 	do
-		echo $t
+		echo -e "\n\n$t"
 		cat $t/diff
 	done
 	exit 1
