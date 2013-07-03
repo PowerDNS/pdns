@@ -249,7 +249,7 @@ void UDPNameserver::send(DNSPacket *p)
     if (p->d.rcode==RCode::NXDomain)
       S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
   } else if (p->isEmpty()) {
-    S.ringAccount("unauth-queries",p->qdomain);
+    S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
     S.ringAccount("remotes-unauth",p->getRemote());
   }
 
