@@ -147,4 +147,34 @@ class RemoteBackend : public DNSBackend
     std::string getString(rapidjson::Value &value);
     double getDouble(rapidjson::Value &value);
 };
+
+class RemoteBackendFactory : public BackendFactory
+{
+  public:
+      RemoteBackendFactory() : BackendFactory("remote") {}
+
+      void declareArguments(const std::string &suffix="")
+      {
+          declare(suffix,"dnssec","Enable dnssec support","no");
+          declare(suffix,"connection-string","Connection string","");
+      }
+
+      DNSBackend *make(const std::string &suffix="")
+      {
+         return new RemoteBackend(suffix);
+      }
+};
+
+class RemoteLoader
+{
+   public:
+      RemoteLoader()
+      {
+#ifdef REMOTEBACKEND_HTTP
+         curl_global_init(CURL_GLOBAL_ALL);
+#endif
+         BackendMakers().report(new RemoteBackendFactory);
+         L<<Logger::Notice<<"[remotebackend]"<<" This is the remotebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+      }
+};
 #endif

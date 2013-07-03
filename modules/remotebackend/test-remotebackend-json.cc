@@ -13,18 +13,14 @@
 #include "pdns/statbag.hh"
 #include "pdns/packetcache.hh"
 
+#include "remotebackend.hh"
+
 StatBag S;
 PacketCache PC;
 ArgvMap &arg()
 {
   static ArgvMap arg;
   return arg;
-};
-
-class RemoteLoader
-{
-   public:
-      RemoteLoader();
 };
 
 DNSBackend *be;
@@ -46,7 +42,7 @@ struct RemotebackendSetup {
 	try {
 		// setup minimum arguments
 		::arg().set("module-dir")="";
-                new RemoteLoader();
+		new RemoteLoader();
 		BackendMakers().launch("remote");
                 // then get us a instance of it 
                 ::arg().set("remote-connection-string")="http:url=http://localhost:62434/dns/endpoint.json,post=1,post_json=1";
