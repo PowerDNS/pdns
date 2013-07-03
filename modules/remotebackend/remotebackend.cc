@@ -892,15 +892,17 @@ class RemoteBackendFactory : public BackendFactory
 
 class RemoteLoader
 {
-   public:
-      RemoteLoader()
-      {
-#ifdef REMOTEBACKEND_HTTP
-         curl_global_init(CURL_GLOBAL_ALL);
-#endif
-         BackendMakers().report(new RemoteBackendFactory);
-         L<<Logger::Notice<<kBackendId<<" This is the remotebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
-      }
+public:
+    RemoteLoader();
 };
+
+
+RemoteLoader::RemoteLoader() {
+#ifdef REMOTEBACKEND_HTTP
+    curl_global_init(CURL_GLOBAL_ALL);
+#endif
+    BackendMakers().report(new RemoteBackendFactory);
+    L<<Logger::Notice<<kBackendId<<" This is the remotebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+}
 
 static RemoteLoader remoteloader;
