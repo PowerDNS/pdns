@@ -45,6 +45,10 @@ __EOF__
 				;;
 			nsec3-optout)
 				ldns-signzone -n -p -a 1 -s abcd -t 1 -f ${zone}.signed ${zonefile} $ksk $zsk
+				if [ "$zone" = "dnssec-parent.com" ]
+				then
+					echo "insecure.dnssec-parent.com.	IN	NS	ns.insecure.dnssec-parent.com." >> ${zone}.signed
+				fi
 				;;
 			unsigned)
 				cp ${zonefile} ${zone}.signed
