@@ -177,6 +177,12 @@
         <itemizedlist>
           <listitem>
             <para>
+              pdnssec rectify-zone now refuses to operate on presigned zones, as rectification already happens
+              during incoming transfer. Patch by Kees Monshouwer in g9bd211e.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
               We now handle zones with a mix of NSEC3 opt-out and non-opt-out ranges correctly during inbound and outbound AXFR. Many thanks to Kees Monshouwer. Code in g5aa7003 and gd3e7b17.
             </para>
           </listitem>
