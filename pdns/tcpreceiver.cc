@@ -492,6 +492,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   DNSSECKeeper dk;
   dk.clearCaches(target);
   bool securedZone = dk.isSecuredZone(target);
+  bool presignedZone = dk.isPresigned(target);
+
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
@@ -642,12 +644,17 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   /* now write all other records */
   
   string keyname;
+  set<string> ns3rrs;
   DTime dt;
   dt.set();
   int records=0;
   while(sd.db->get(rr)) {
-    if (rr.qtype.getCode() == QType::RRSIG)
+    if (rr.qtype.getCode() == QType::RRSIG) {
+      RRSIGRecordContent rrc(rr.content);
+      if(presignedZone && rrc.d_type == QType::NSEC3)
+        ns3rrs.insert(fromBase32Hex(makeRelative(rr.qname, target)));
       continue;
+    }
 
     // only skip the DNSKEY if direct-dnskey is enabled, to avoid changing behaviour
     // when it is not enabled.
@@ -660,7 +667,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
-        ne.d_auth = (ne.d_auth || rr.auth || (NSEC3Zone && !ns3pr.d_flags));
+        ne.d_auth = (ne.d_auth || rr.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
         if (rr.qtype.getCode()) {
           ne.d_set.insert(rr.qtype.getCode());
         }
@@ -697,7 +704,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(securedZone) {
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
-        if(iter->second.d_auth) {
+        if(iter->second.d_auth && (!presignedZone || !ns3pr.d_flags || ns3rrs.count(iter->first))) {
           NSEC3RecordContent n3rc;
           n3rc.d_set = iter->second.d_set;
           if (n3rc.d_set.size() && (n3rc.d_set.size() != 1 || !n3rc.d_set.count(QType::NS)))
@@ -710,7 +717,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
           inext++;
           if(inext == nsecxrepo.end())
             inext = nsecxrepo.begin();
-          while(!(inext->second.d_auth) && inext != iter)
+          while((!inext->second.d_auth || (presignedZone && ns3pr.d_flags && !ns3rrs.count(inext->first)))  && inext != iter)
           {
             inext++;
             if(inext == nsecxrepo.end())
