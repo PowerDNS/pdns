@@ -522,11 +522,6 @@
           </listitem>
           <listitem>
             <para>
-              gcc6bf4c: Merge branch 'nodnssecany' of github.com:mind04/pdns into mind04-nodnssecany
-            </para>
-          </listitem>
-          <listitem>
-            <para>
               g837f4b4: do a better job at escaping TXT, fixes t795
             </para>
           </listitem>
@@ -12290,6 +12285,21 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
   </para>
   </sect1>
 
+  <sect1 id="from3.2to3.3"><title>From PowerDNS Authoritative Server 3.2 to 3.3</title>
+    <note>
+      <para>
+        If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />, <xref linkend="from3.0to3.1" /> and <xref linkend="from3.1to3.2" />.
+      </para>
+    </note>
+    <para>
+      The `ip` field in the supermasters table (for the various gsql backends) has been stretched to 64 characters
+      to support IPv6.
+    </para>
+    <para>
+      pdnssec secure-zone now creates one KSK and one ZSK, instead of two ZSKs.
+    </para>
+  </sect1>
+
   </chapter>
   <chapter id="powerdnssec-auth">
   <title>Serving authoritative DNSSEC data</title>
@@ -12732,11 +12742,10 @@ $ pdnssec rectify-zone powerdnssec.org
 	    <term>set-nsec3 ZONE 'parameters' [narrow]</term>
 	    <listitem>
 	      <para>
-		Sets NSEC3 parameters for this zone. A sample command line is: "pdnssec set-nsec3 powerdnssec.org '1 1 1 ab' narrow".
+		Sets NSEC3 parameters for this zone. A sample command line is: "pdnssec set-nsec3 powerdnssec.org '1 0 1 ab' narrow".
 		The NSEC3 parameters must be quoted on the command line.
 		<warning><para>If running in RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update at the parent zone! </para></warning>
-		The NSEC3 fields are: 'algorithm flags iterations salt'. Both 'algorithm' and 'flags' should be 1 for PowerDNS
-		operation. The salt is hexadecimal.
+		The NSEC3 fields are: 'algorithm flags iterations salt'. For 'algorithm', currently '1' is the only supported value. Setting 'flags' to 1 enables opt-out operation. Only do this if you know you need it. The salt is hexadecimal.
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -13235,7 +13244,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	  <listitem>
 	  <para>
 	    NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the NSEC3PARAM record. If present, NSEC3 is used, if not
-	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />). Example content: "1 1 1 ab".
+	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />). Example content: "1 0 1 ab".
 	  </para>
 	</listitem>
       </varlistentry>
