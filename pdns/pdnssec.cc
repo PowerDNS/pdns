@@ -165,6 +165,11 @@ void loadMainConfig(const std::string& configdir)
 // I think this has to do with interlocking transactions between B and DK, but unsure.
 bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 {
+  if(dk.isPresigned(zone)){
+    cerr<<"Rectify presigned zone '"<<zone<<"' is not allowed/necessary."<<endl;
+    return false;
+  }
+
   UeberBackend B("default");
   bool doTransaction=true; // but see above
   SOAData sd;
