@@ -219,7 +219,7 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& zone) : 
     }
     break;
   default:                /* we didn't get one of each */
-    return;
+    throw MOADNSException("Error decoding LOC content");
   }
 
   /* altitude */
