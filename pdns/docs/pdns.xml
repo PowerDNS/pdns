@@ -12292,11 +12292,14 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
       </para>
     </note>
     <para>
-      The `ip` field in the supermasters table (for the various gsql backends) has been stretched to 64 characters
+      The `ip' field in the supermasters table (for the various gsql backends) has been stretched to 64 characters
       to support IPv6.
     </para>
     <para>
       pdnssec secure-zone now creates one KSK and one ZSK, instead of two ZSKs.
+    </para>
+    <para>
+      The `rec_name_index' index was dropped from the gmysql schema, as it was superfluous.
     </para>
   </sect1>
 
