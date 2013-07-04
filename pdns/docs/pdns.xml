@@ -177,6 +177,11 @@
         <itemizedlist>
           <listitem>
             <para>
+              We now handle zones with a mix of NSEC3 opt-out and non-opt-out ranges correctly during inbound and outbound AXFR. Many thanks to Kees Monshouwer. Code in g5aa7003 and gd3e7b17.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
               More remotebackend fixes (g32d4f44, g44c2ee8, g1fcc7b7, g0b1a3b2, g9a319b1), thanks Aki Tuomi.
             </para>
           </listitem>
@@ -13077,6 +13082,7 @@ $ pdnssec rectify-zone powerdnssec.org
     <listitem><para>Ralf van der Enden</para></listitem>
     <listitem><para>Jan-Piet Mens</para></listitem>
     <listitem><para>Justin Clift</para></listitem>
+    <listitem><para>Kees Monshouwer</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
   </para>
