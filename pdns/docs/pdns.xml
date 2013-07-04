@@ -173,6 +173,32 @@
         either through bugfixes or by catering to their needs beyond the specifications.
       </para>
       <para>
+        Changes between RC2 and final:
+        <itemizedlist>
+          <listitem>
+            <para>
+              More remotebackend fixes (g32d4f44, g44c2ee8, g1fcc7b7, g0b1a3b2, g9a319b1), thanks Aki Tuomi.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Some compiler warnings were squashed (ged554db), thanks Morten Stevens.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Fix broken memory access in LOC parser (g4eec51b, gbea513c), thanks Aki Tuomi.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              DNSSEC: DS queries at the apex of a zone for which we are not hosting the parent, would wrongly
+              get an 'unauth NOERROR'. Fixed by Kees Monshouwer in g34479a6.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
         Changes between RC1 and RC2:
         <itemizedlist>
           <listitem>
