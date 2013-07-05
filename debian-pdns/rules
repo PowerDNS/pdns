@@ -133,6 +133,7 @@ binary-main-prepare:
 
 	install -d -m 755 -o root -g root "$(tools_tmpdir)"/DEBIAN
 
+	#FIXME: shell loops hide errors
 	for prog in dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher \
 		nproxy dnsdist nsec3dig ; do \
 		mv "$(tmpdir)"/usr/bin/$$prog "$(tools_tmpdir)"/usr/bin ; \
