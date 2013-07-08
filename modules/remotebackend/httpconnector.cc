@@ -17,6 +17,7 @@
 
 #ifdef REMOTEBACKEND_HTTP
 HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
+    this->d_c = NULL;
     this->d_url = options.find("url")->second;
     if (options.find("url-suffix") != options.end()) {
       this->d_url_suffix = options.find("url-suffix")->second;
@@ -151,7 +152,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, nsize);
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, postfields);
         curl_free(tmpstr);
-        delete postfields;
+        delete [] postfields;
     } else if (method == "superMasterBackend") {
         std::stringstream ss2;
         addUrlComponent(parameters, "ip", ss);
