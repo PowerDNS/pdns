@@ -49,11 +49,14 @@ bool Connector::recv(rapidjson::Document &value) {
 RemoteBackend::RemoteBackend(const std::string &suffix)
 {
       setArgPrefix("remote"+suffix);
-      build(getArg("connection-string"));
+
+      this->d_connstr = getArg("connection-string");
       this->d_result = NULL;
       this->d_dnssec = mustDo("dnssec");
       this->d_index = -1;
       this->d_trxid = 0;
+    
+      build();
 }
 
 RemoteBackend::~RemoteBackend() {
@@ -62,11 +65,44 @@ RemoteBackend::~RemoteBackend() {
      }
 }
 
+bool RemoteBackend::send(rapidjson::Document &value) {
+   bool result = false;
+   try {
+     result = connector->send(value);
+   } catch (AhuException &ex) {
+     L<<Logger::Error<<"Exception caught when sending: " << ex.reason;
+     delete this->connector;
+     build();
+   } catch (...) {
+     L<<Logger::Error<<"Exception caught when sending";
+     delete this->connector;
+     build();
+   }
+   return result;
+}
+
+bool RemoteBackend::recv(rapidjson::Document &value) {
+   bool result = false;
+   try {
+     result = connector->recv(value);
+   } catch (AhuException &ex) {
+     L<<Logger::Error<<"Exception caught when receiving: " << ex.reason;
+     delete this->connector;
+     build();
+   } catch (...) {
+     L<<Logger::Error<<"Exception caught when receiving";
+     delete this->connector;
+     build();
+   }
+   return result;
+}
+
+
 /** 
  * Builds connector based on options
  * Currently supports unix,pipe and http
  */
-int RemoteBackend::build(const std::string &connstr) {
+int RemoteBackend::build() {
       std::vector<std::string> parts;
       std::string type;
       std::string opts;
@@ -74,12 +110,12 @@ int RemoteBackend::build(const std::string &connstr) {
 
       // connstr is of format "type:options"
       size_t pos;
-      pos = connstr.find_first_of(":");
+      pos = d_connstr.find_first_of(":");
       if (pos == std::string::npos)
          throw AhuException("Invalid connection string: malformed");
 
-      type = connstr.substr(0, pos);
-      opts = connstr.substr(pos+1);
+      type = d_connstr.substr(0, pos);
+      opts = d_connstr.substr(pos+1);
 
       // tokenize the string on comma
       stringtok(parts, opts, ",");
@@ -155,7 +191,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
 
    d_result = new rapidjson::Document();
 
-   if (connector->send(query) == false || connector->recv(*d_result) == false) { 
+   if (this->send(query) == false || this->recv(*d_result) == false) { 
       delete d_result;
       return;
    }
@@ -186,7 +222,7 @@ bool RemoteBackend::list(const std::string &target, int domain_id) {
 
    d_result = new rapidjson::Document();
 
-   if (connector->send(query) == false || connector->recv(*d_result) == false) {
+   if (this->send(query) == false || this->recv(*d_result) == false) {
      delete d_result;
      return false;
    }
@@ -245,7 +281,7 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    JSON_ADD_MEMBER(parameters, "qname", qname.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    unhashed = getString(answer["result"]["unhashed"]);
@@ -266,13 +302,13 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
    JSON_ADD_MEMBER(parameters, "kind", kind.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false)
+   if (this->send(query) == false)
      return false;
 
    meta.clear();
 
    // not mandatory to implement
-   if (connector->recv(answer) == false)
+   if (this->recv(answer) == false)
      return true;
 
    if (answer["result"].IsArray()) {
@@ -301,7 +337,7 @@ bool RemoteBackend::setDomainMetadata(const string& name, const std::string& kin
    parameters.AddMember("value", val, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    return getBool(answer["result"]);
@@ -321,7 +357,7 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
    JSON_ADD_MEMBER(parameters, "kind", kind, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    keys.clear();
@@ -351,7 +387,7 @@ bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) {
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    return true;
@@ -374,7 +410,7 @@ int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
    parameters.AddMember("key", jkey, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    return getInt(answer["result"]);
@@ -394,7 +430,7 @@ bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    return true;
@@ -414,7 +450,7 @@ bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    return true;
@@ -436,7 +472,7 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
    JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    if (algorithm != NULL)
@@ -459,7 +495,7 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
    JSON_ADD_MEMBER(parameters, "name", domain.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    // make sure we got zone & kind
@@ -506,7 +542,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    JSON_ADD_MEMBER(parameters, "serial", serial, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
  
-   if (connector->send(query) == false || connector->recv(answer) == false) {
+   if (this->send(query) == false || this->recv(answer) == false) {
       L<<Logger::Error<<kBackendId<<"Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
    }
 }
@@ -541,7 +577,7 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
 
    *ddb = 0;
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    // we are the backend
@@ -565,7 +601,7 @@ bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, co
    JSON_ADD_MEMBER(parameters, "account", account.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
    return true;
 }
@@ -600,7 +636,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
    parameters.AddMember("rrset", rj_rrset, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    return true;
@@ -630,7 +666,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
 
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
    return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
@@ -651,7 +687,7 @@ bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) {
    parameters.AddMember("nonterm", nts, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
    return true; 
 }
@@ -677,7 +713,7 @@ bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &
    parameters.AddMember("nonterm", nts, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
    return true;
 }
@@ -696,7 +732,7 @@ bool RemoteBackend::startTransaction(const string &domain, int domain_id) {
 
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false) {
+   if (this->send(query) == false || this->recv(answer) == false) {
      d_trxid = -1;
      return false;
    }
@@ -714,7 +750,7 @@ bool RemoteBackend::commitTransaction() {
    query.AddMember("parameters", parameters, query.GetAllocator());
 
    d_trxid = -1;
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
    return true;
 }
@@ -730,7 +766,7 @@ bool RemoteBackend::abortTransaction() {
    query.AddMember("parameters", parameters, query.GetAllocator());
 
    d_trxid = -1;
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
    return true;
 }
@@ -759,7 +795,7 @@ bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, 
    parameters.AddMember("sd", soadata, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
-   if (connector->send(query) == false || connector->recv(answer) == false)
+   if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
    serial = getInt64(answer["result"]);
