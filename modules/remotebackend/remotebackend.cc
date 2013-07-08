@@ -66,35 +66,31 @@ RemoteBackend::~RemoteBackend() {
 }
 
 bool RemoteBackend::send(rapidjson::Document &value) {
-   bool result = false;
    try {
-     result = connector->send(value);
+     return connector->send(value);
    } catch (AhuException &ex) {
-     L<<Logger::Error<<"Exception caught when sending: " << ex.reason;
-     delete this->connector;
-     build();
+     L<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
    } catch (...) {
-     L<<Logger::Error<<"Exception caught when sending";
-     delete this->connector;
-     build();
+     L<<Logger::Error<<"Exception caught when sending"<<std::endl;
    }
-   return result;
+
+   delete this->connector;
+   build();
+   return false;
 }
 
 bool RemoteBackend::recv(rapidjson::Document &value) {
-   bool result = false;
    try {
-     result = connector->recv(value);
+     return connector->recv(value);
    } catch (AhuException &ex) {
-     L<<Logger::Error<<"Exception caught when receiving: " << ex.reason;
-     delete this->connector;
-     build();
+     L<<Logger::Error<<"Exception caught when receiving: "<<ex.reason<<std::endl;
    } catch (...) {
-     L<<Logger::Error<<"Exception caught when receiving";
-     delete this->connector;
-     build();
+     L<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
    }
-   return result;
+
+   delete this->connector;
+   build();
+   return false;
 }
 
 
