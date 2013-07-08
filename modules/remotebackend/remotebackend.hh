@@ -92,9 +92,15 @@ class PipeConnector: public Connector {
   private:
 
   void launch();
-  CoProcess *coproc;
+  bool checkStatus();
+
   std::string command;
   std::map<std::string,std::string> options;
+ 
+  int d_fd1[2], d_fd2[2];
+  int d_pid;
+  int d_timeout;
+  FILE *d_fp;
 };
 
 class RemoteBackend : public DNSBackend
@@ -133,12 +139,13 @@ class RemoteBackend : public DNSBackend
   static DNSBackend *maker();
 
   private:
-    int build(const std::string &connstr);
+    int build();
     Connector *connector;
     bool d_dnssec;
     rapidjson::Document *d_result;
     int d_index;
     int64_t d_trxid;
+    std::string d_connstr;
 
     bool getBool(rapidjson::Value &value);
     int getInt(rapidjson::Value &value);
@@ -146,5 +153,8 @@ class RemoteBackend : public DNSBackend
     int64_t getInt64(rapidjson::Value &value);
     std::string getString(rapidjson::Value &value);
     double getDouble(rapidjson::Value &value);
+
+    bool send(rapidjson::Document &value);
+    bool recv(rapidjson::Document &value);
 };
 #endif
