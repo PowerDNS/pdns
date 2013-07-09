@@ -296,7 +296,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     }
   }
     
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
+  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i) {
     if((*i)->getSOA(domain, sd, p)) {
       if( d_cache_ttl ) {
         DNSResourceRecord rr;
@@ -311,6 +311,9 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       }
       return true;
     }
+    if(::arg().mustDo("experimental-consistent-backends") && !(*i)->lookupfailed())
+      break;
+  }
 
   addNegCache(d_question); 
   return false;
