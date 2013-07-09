@@ -243,7 +243,16 @@ void UDPNameserver::send(DNSPacket *p)
   struct cmsghdr *cmsg;
   struct iovec iov;
   char cbuf[256];
-  
+
+  /* Query statistics */
+  if(p->d.aa) {
+    if (p->d.rcode==RCode::NXDomain)
+      S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
+  } else if (p->isEmpty()) {
+    S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
+    S.ringAccount("remotes-unauth",p->getRemote());
+  }
+
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
   iov.iov_base = (void*)buffer.c_str();

@@ -241,6 +241,11 @@ unsigned int DNSPacket::getMinTTL()
   return minttl;
 }
 
+bool DNSPacket::isEmpty()
+{
+  return (d_rrs.empty());
+}
+
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
