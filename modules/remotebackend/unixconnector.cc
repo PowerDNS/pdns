@@ -19,6 +19,7 @@ UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optio
    this->path = options.find("path")->second;
    this->options = options;
    this->connected = false;
+   this->fd = -1;
 }
 
 UnixsocketConnector::~UnixsocketConnector() {
@@ -120,6 +121,7 @@ void UnixsocketConnector::reconnect() {
    struct sockaddr_un sock;
    rapidjson::Document init,res;
    rapidjson::Value val;
+   int rv;
 
    if (connected) return; // no point reconnecting if connected...
    connected = true;
@@ -134,13 +136,19 @@ void UnixsocketConnector::reconnect() {
    sock.sun_family = AF_UNIX;
    memset(sock.sun_path, 0, UNIX_PATH_MAX);
    path.copy(sock.sun_path, UNIX_PATH_MAX, 0);
-   fcntl(fd, F_SETFL, O_NONBLOCK, &fd);
-
-   while(connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock)==-1 && (errno == EINPROGRESS)) {
-     waitForData(fd, 0, 500);
+   if (fcntl(fd, F_SETFL, O_NONBLOCK, &fd)) {
+      connected = false;
+      L<<Logger::Error<<"Cannot manipulate socket: " << strerror(errno) << std::endl;;
+      close(fd);
+      return;
    }
 
-   if (errno != EISCONN && errno != 0) {
+   if((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
+     waitForData(fd, 0, -1);
+     rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
+   }
+
+   if (rv != 0 && errno != EISCONN && errno != 0) {
       L<<Logger::Error<<"Cannot connect to socket: " << strerror(errno) << std::endl;
       close(fd);
       connected = false;
