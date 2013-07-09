@@ -40,6 +40,7 @@ function start_unix() {
   
   $socat unix-listen:/tmp/remotebackend.sock exec:./unittest_pipe.rb &
   socat_pid=$!
+  sleep 1
 }
 
 function stop_unix() {
