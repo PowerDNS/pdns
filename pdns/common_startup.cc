@@ -100,8 +100,8 @@ void declareArguments()
   ::arg().setSwitch("webserver","Start a webserver for monitoring")="no"; 
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
   ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no"; 
+  ::arg().set("edns-subnet-option-numbers","Comma separated list of whitelisted non-standard EDNS subnet option codes (8 is always included)")="20730";
   ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="no"; 
-  ::arg().set("edns-subnet-option-number","EDNS option number to use")="20730"; 
   ::arg().set("webserver-address","IP Address of webserver to listen on")="127.0.0.1";
   ::arg().set("webserver-port","Port of webserver to listen on")="8081";
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
@@ -340,7 +340,13 @@ void mainthread()
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_addSuperfluousNSEC3 = ::arg().mustDo("add-superfluous-nsec3-for-old-bind");
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
-   
+   {
+      std::vector<std::string> codes;
+      stringtok(codes, ::arg()["edns-subnet-option-numbers"], "\t ,");
+      BOOST_FOREACH(std::string &code, codes) {
+         DNSPacket::s_ednssubnetcodes.push_back(boost::lexical_cast<int>(code));
+      }
+   }
 #ifndef WIN32
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))

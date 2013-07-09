@@ -105,9 +105,9 @@
 # do-ipv6-additional-processing=yes
 
 #################################
-# edns-subnet-option-number	EDNS option number to use
+# edns-subnet-option-numbers	Comma separated list of whitelisted non-standard EDNS subnet option codes (8 is always included)
 #
-# edns-subnet-option-number=20730
+# edns-subnet-option-numbers=20730
 
 #################################
 # edns-subnet-processing	If we should act on EDNS Subnet options
