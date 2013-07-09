@@ -19,6 +19,7 @@ UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optio
    this->path = options.find("path")->second;
    this->options = options;
    this->connected = false;
+   this->fd = -1;
 }
 
 UnixsocketConnector::~UnixsocketConnector() {
@@ -135,7 +136,12 @@ void UnixsocketConnector::reconnect() {
    sock.sun_family = AF_UNIX;
    memset(sock.sun_path, 0, UNIX_PATH_MAX);
    path.copy(sock.sun_path, UNIX_PATH_MAX, 0);
-   fcntl(fd, F_SETFL, O_NONBLOCK, &fd);
+   if (fcntl(fd, F_SETFL, O_NONBLOCK, &fd)) {
+      connected = false;
+      L<<Logger::Error<<"Cannot manipulate socket: " << strerror(errno) << std::endl;;
+      close(fd);
+      return;
+   }
 
    while((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
      waitForData(fd, 0, 500);
