@@ -120,6 +120,7 @@ void UnixsocketConnector::reconnect() {
    struct sockaddr_un sock;
    rapidjson::Document init,res;
    rapidjson::Value val;
+   int rv;
 
    if (connected) return; // no point reconnecting if connected...
    connected = true;
@@ -136,11 +137,11 @@ void UnixsocketConnector::reconnect() {
    path.copy(sock.sun_path, UNIX_PATH_MAX, 0);
    fcntl(fd, F_SETFL, O_NONBLOCK, &fd);
 
-   while(connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock)==-1 && (errno == EINPROGRESS)) {
+   while((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
      waitForData(fd, 0, 500);
    }
 
-   if (errno != EISCONN && errno != 0) {
+   if (rv != 0 && errno != EISCONN && errno != 0) {
       L<<Logger::Error<<"Cannot connect to socket: " << strerror(errno) << std::endl;
       close(fd);
       connected = false;
