@@ -977,12 +977,11 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.auth = 1;
   rr.scopeMask = sd.scopeMask;
   r->addRecord(rr);
-  
+
   if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname))
     addNSECX(p, r, target, wildcard, sd.qname, 4);
-  
-  r->setRcode(RCode::NXDomain);  
-  S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
+
+  r->setRcode(RCode::NXDomain);
 }
 
 void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd, int mode)

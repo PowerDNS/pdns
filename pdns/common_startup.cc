@@ -151,10 +151,11 @@ void declareArguments()
 void declareStats(void)
 {
   S.declare("udp-queries","Number of UDP queries received");
+  S.declare("udp-do-queries","Number of UDP queries received with DO bit");
   S.declare("udp-answers","Number of answers sent out over UDP");
 
   S.declare("udp4-answers","Number of IPv4 answers sent out over UDP");
-  S.declare("udp4-queries","Number of IPv4UDP queries received");
+  S.declare("udp4-queries","Number of IPv4 UDP queries received");
   S.declare("udp6-answers","Number of IPv6 answers sent out over UDP");
   S.declare("udp6-queries","Number of IPv6 UDP queries received");
 
@@ -231,6 +232,7 @@ void *qthread(void *number)
   DNSPacket cached;
 
   unsigned int &numreceived=*S.getPointer("udp-queries");
+  unsigned int &numreceiveddo=*S.getPointer("udp-do-queries");
   unsigned int &numanswered=*S.getPointer("udp-answers");
 
   unsigned int &numreceived4=*S.getPointer("udp4-queries");
@@ -266,6 +268,9 @@ void *qthread(void *number)
       numreceived4++;
     else
       numreceived6++;
+
+    if(P->d_dnssecOk)
+      numreceiveddo++;
 
      if(P->d.qr)
        continue;

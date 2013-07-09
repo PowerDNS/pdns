@@ -93,6 +93,8 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
       return 0;
     }
     cached->spoofQuestion(p); // for correct case
+    cached->qdomain=p->qdomain;
+    cached->qtype=p->qtype;
     return 1;
   }
 
