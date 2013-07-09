@@ -94,7 +94,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_eso = orig.d_eso;
   d_haveednssubnet = orig.d_haveednssubnet;
   d_haveednssection = orig.d_haveednssection;
-  
+  d_ednssubnetcode = orig.d_ednssubnetcode;
   d_dnssecOk = orig.d_dnssecOk;
   d_rrs=orig.d_rrs;
   
@@ -393,7 +393,8 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_eso = d_eso;
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
-  
+  r->d_ednssubnetcode = d_ednssubnetcode;
+ 
   if(!d_tsigkeyname.empty()) {
     r->d_tsigkeyname = d_tsigkeyname;
     r->d_tsigprevious = d_tsigprevious;
@@ -497,7 +498,7 @@ try
   d_havetsig = mdp.getTSIGPos();
   d_haveednssubnet = false;
   d_haveednssection = false;
-
+  
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
