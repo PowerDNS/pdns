@@ -143,8 +143,9 @@ void UnixsocketConnector::reconnect() {
       return;
    }
 
-   while((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
-     waitForData(fd, 0, 500);
+   if((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
+     waitForData(fd, 0, -1);
+     rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
    }
 
    if (rv != 0 && errno != EISCONN && errno != 0) {
