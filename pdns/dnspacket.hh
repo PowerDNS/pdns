@@ -159,6 +159,7 @@ public:
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
   TSIGRecordContent d_trc;
   static bool s_doEDNSSubnetProcessing;
+  static std::vector<int> s_ednssubnetcodes;
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
@@ -173,6 +174,7 @@ private:
   string d_ednsping;
   bool d_wantsnsid;
   bool d_haveednssubnet;
+  int d_ednssubnetcode;
   bool d_haveednssection;
   EDNSSubnetOpts d_eso;
   string d_tsigsecret;

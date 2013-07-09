@@ -45,7 +45,8 @@
 #include "ednssubnet.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
-
+std::vector<int> DNSPacket::s_ednssubnetcodes;
+ 
 DNSPacket::DNSPacket() 
 {
   d_wrapped=false;
@@ -93,7 +94,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_eso = orig.d_eso;
   d_haveednssubnet = orig.d_haveednssubnet;
   d_haveednssection = orig.d_haveednssection;
-  
+  d_ednssubnetcode = orig.d_ednssubnetcode;
   d_dnssecOk = orig.d_dnssecOk;
   d_rrs=orig.d_rrs;
   
@@ -331,7 +332,7 @@ void DNSPacket::wrapup()
         eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
     
         string opt = makeEDNSSubnetOptsString(eso);
-        opts.push_back(make_pair(::arg().asNum("edns-subnet-option-number"), opt));
+        opts.push_back(make_pair(d_ednssubnetcode, opt)); // 'EDNS SUBNET'
       }
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
@@ -392,7 +393,8 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_eso = d_eso;
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
-  
+  r->d_ednssubnetcode = d_ednssubnetcode;
+ 
   if(!d_tsigkeyname.empty()) {
     r->d_tsigkeyname = d_tsigkeyname;
     r->d_tsigprevious = d_tsigprevious;
@@ -496,7 +498,7 @@ try
   d_havetsig = mdp.getTSIGPos();
   d_haveednssubnet = false;
   d_haveednssection = false;
-
+  
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
@@ -514,10 +516,11 @@ try
       else if(iter->first == 5) {// 'EDNS PING'
         d_ednsping = iter->second;
       }
-      else if(s_doEDNSSubnetProcessing && iter->first == ::arg().asNum("edns-subnet-option-number")) { // 'EDNS SUBNET'
+      else if(s_doEDNSSubnetProcessing && (iter->first == 8 || std::find(s_ednssubnetcodes.begin(), s_ednssubnetcodes.end(), iter->first) != s_ednssubnetcodes.end())) { // 'EDNS SUBNET'
         if(getEDNSSubnetOptsFromString(iter->second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
+          d_ednssubnetcode=iter->first;
         } 
       }
       else {
