@@ -102,6 +102,9 @@ public:
     //! Index of the current backend within the backends vector
     unsigned int i;
 
+    //! All backends failed?
+    bool totalfailure;
+
     //! DNSPacket who asked this question
     DNSPacket *pkt_p;
     string qname;
