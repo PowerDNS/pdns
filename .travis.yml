@@ -4,7 +4,7 @@ compiler:
   - clang
 before_script:
  - sudo apt-get update
- - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev xmlto dblatex links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1
+ - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl ldnsutils dnsutils libtool libcdb-dev xmlto dblatex links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat
  - sudo sed -i '0,/\[mysqld\]/s//[mysqld]\nskip-character-set-client-handshake/' /etc/mysql/my.cnf
  - sudo restart mysql
 script:

@@ -5,7 +5,7 @@ AM_CPPFLAGS=@THREADFLAGS@ $(BOOST_CPPFLAGS) $(LIBCURL_CFLAGS) -I../../pdns/ext/r
 #endif
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
-EXTRA_PROGRAMS=test_remotebackend_pipe test_remotebackend_http test_remotebackend_post test_remotebackend_json
+EXTRA_PROGRAMS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json
 EXTRA_LTLIBRARIES=libtestremotebackend.la
 
 lib_LTLIBRARIES = libremotebackend.la 
@@ -16,7 +16,7 @@ libremotebackend_la_LDFLAGS=-module -avoid-version
 libremotebackend_la_LIBS=$(LIBCURL_LIBS)
 
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_HTTP=$(REMOTEBACKEND_HTTP) ./testrunner.sh 
-TESTS=test_remotebackend_pipe test_remotebackend_http test_remotebackend_post test_remotebackend_json
+TESTS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json
 
 BUILT_SOURCES=../../pdns/dnslabeltext.cc
 
@@ -38,6 +38,7 @@ libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS)
 libtestremotebackend_la_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 
 test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc 
+test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc
 test_remotebackend_http_SOURCES=test-remotebackend.cc test-remotebackend-http.cc ../../config.h
 test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc ../../config.h
 test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc ../../config.h
@@ -45,6 +46,10 @@ test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc
 test_remotebackend_pipe_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 test_remotebackend_pipe_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 test_remotebackend_pipe_LDADD=libtestremotebackend.la @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) ../../pdns/ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) @LIBDL@ $(LIBCURL_LIBS)
+
+test_remotebackend_unix_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
+test_remotebackend_unix_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
+test_remotebackend_unix_LDADD=libtestremotebackend.la @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) ../../pdns/ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) @LIBDL@ $(LIBCURL_LIBS)
 
 test_remotebackend_http_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 test_remotebackend_http_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
