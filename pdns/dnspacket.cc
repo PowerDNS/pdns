@@ -45,7 +45,8 @@
 #include "ednssubnet.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
-
+std::vector<int> DNSPacket::s_ednssubnetcodes;
+ 
 DNSPacket::DNSPacket() 
 {
   d_wrapped=false;
@@ -331,9 +332,7 @@ void DNSPacket::wrapup()
         eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
     
         string opt = makeEDNSSubnetOptsString(eso);
-        if (::arg().mustDo("edns-subnet-option-number") && ::arg().asNum("edns-subnet-option-number") != 8)  
-           opts.push_back(make_pair(::arg().asNum("edns-subnet-option-number"), opt)); 
-        opts.push_back(make_pair(8, opt)); // 'EDNS SUBNET'
+        opts.push_back(make_pair(d_ednssubnetcode, opt)); // 'EDNS SUBNET'
       }
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
@@ -516,10 +515,11 @@ try
       else if(iter->first == 5) {// 'EDNS PING'
         d_ednsping = iter->second;
       }
-      else if(s_doEDNSSubnetProcessing && (iter->first == 8 || iter->first == ::arg().asNum("edns-subnet-option-number"))) { // 'EDNS SUBNET'
+      else if(s_doEDNSSubnetProcessing && (iter->first == 8 || std::find(s_ednssubnetcodes.begin(), s_ednssubnetcodes.end(), iter->first) != s_ednssubnetcodes.end())) { // 'EDNS SUBNET'
         if(getEDNSSubnetOptsFromString(iter->second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
+          d_ednssubnetcode=iter->first;
         } 
       }
       else {
