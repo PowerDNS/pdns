@@ -48,7 +48,7 @@ try
   int dnserrors=0, bogus=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
-  unsigned int untracked=0, errorresult=0, reallylate=0;
+  unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
 
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
@@ -62,6 +62,11 @@ try
         pr.d_len > 12) {
       try {
         MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+	if(!mdp.d_header.qr) {
+	  if(!mdp.d_header.rd)
+	    nonRDQueries++;
+	  queries++;
+	}
 
         lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
         highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
@@ -135,6 +140,7 @@ try
     }
   }
 
+  cerr<< boost::format("%d (%.02f%% of all) queries did not request recursion") % nonRDQueries % ((nonRDQueries*100.0)/queries) << endl;
   cerr<<statmap.size()<<" packets went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
   cerr<<untracked<<" answers could not be matched to questions"<<endl;
   cerr<<dnserrors<<" answers were unsatisfactory (indefinite, or SERVFAIL)"<<endl;
