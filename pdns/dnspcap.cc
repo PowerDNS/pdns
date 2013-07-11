@@ -71,7 +71,7 @@ try
     d_lcc=reinterpret_cast<struct pdns_lcc_header*>(d_buffer);
 
     d_ip=reinterpret_cast<struct ip*>(d_buffer + d_skipMediaHeader);
-
+    d_ip6=reinterpret_cast<struct ip6_hdr*>(d_buffer + d_skipMediaHeader);
     uint16_t contentCode=0;
     if(d_pfh.linktype==1) 
       contentCode=ntohs(d_ether->ether_type);
@@ -85,6 +85,14 @@ try
       d_correctpackets++;
       return true;
     }
+    if(contentCode==0x86dd && d_ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt==17) { // udpv6, we ignore anything with extension hdr
+      d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + d_skipMediaHeader + sizeof(struct ip6_hdr));
+      d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
+      d_len = ntohs(d_udp->uh_ulen) - sizeof(struct udphdr);
+      d_correctpackets++;
+      return true;
+    }
+
     else {
       d_nonetheripudp++;
     }

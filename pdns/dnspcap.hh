@@ -9,6 +9,7 @@
 #define __FAVOR_BSD
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
+#include <netinet/ip6.h>
 #include <netinet/udp.h>
 #if defined(__NetBSD__)
 #include <net/if.h>
@@ -84,6 +85,7 @@ public:
   struct pdns_lcc_header* d_lcc;
   struct ether_header* d_ether;
   struct ip *d_ip;
+  struct ip6_hdr *d_ip6;
   const struct tcphdr *d_tcp;
   const struct udphdr *d_udp;
   const uint8_t* d_payload;
