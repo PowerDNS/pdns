@@ -49,12 +49,12 @@ try
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
+  unsigned int ipv4Packets=0, ipv6Packets=0;
 
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
 
   time_t lowestTime=2000000000, highestTime=0;
-
 
   while(pr.getUDPPacket()) {
     if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
@@ -62,6 +62,11 @@ try
         pr.d_len > 12) {
       try {
         MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+	if(pr.d_ip->ip_v == 4) 
+	  ++ipv4Packets;
+	else
+	  ++ipv6Packets;
+	
 	if(!mdp.d_header.qr) {
 	  if(!mdp.d_header.rd)
 	    nonRDQueries++;
@@ -73,7 +78,7 @@ try
 
         string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
         
-        QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
+        QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
         if(!mdp.d_header.qr) {
           //	  cout<<"Question for '"<< name <<"'\n";
@@ -127,11 +132,11 @@ try
       }
     }
   }
-  cerr<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
+  cout<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
 
-  cerr<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
+  cout<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
     pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
-
+  cout<<"IPv4: "<<ipv4Packets<<" packets, IPv6: "<<ipv6Packets<<" packets"<<endl;
   unsigned int unanswered=0;
   for(statmap_t::const_iterator i=statmap.begin(); i!=statmap.end(); ++i) {
     if(!i->second.d_answercount) {
@@ -140,11 +145,11 @@ try
     }
   }
 
-  cerr<< boost::format("%d (%.02f%% of all) queries did not request recursion") % nonRDQueries % ((nonRDQueries*100.0)/queries) << endl;
-  cerr<<statmap.size()<<" packets went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
-  cerr<<untracked<<" answers could not be matched to questions"<<endl;
-  cerr<<dnserrors<<" answers were unsatisfactory (indefinite, or SERVFAIL)"<<endl;
-  cerr<<reallylate<<" answers (would be) discarded because older than 2 seconds"<<endl;
+  cout<< boost::format("%d (%.02f%% of all) queries did not request recursion") % nonRDQueries % ((nonRDQueries*100.0)/queries) << endl;
+  cout<<statmap.size()<<" queries went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
+  cout<<untracked<<" responses could not be matched to questions"<<endl;
+  cout<<dnserrors<<" responses were unsatisfactory (indefinite, or SERVFAIL)"<<endl;
+  cout<<reallylate<<" responses (would be) discarded because older than 2 seconds"<<endl;
 #if 0
         ns_r_noerror = 0,       /* No error occurred. */
         ns_r_formerr = 1,       /* Format error. */
@@ -154,9 +159,9 @@ try
         ns_r_refused = 5,       /* Operation refused. */
 #endif
 
-  cerr<<"Rcode\tCount\n";
+  cout<<"Rcode\tCount\n";
   for(rcodes_t::const_iterator i=rcodes.begin(); i!=rcodes.end(); ++i)
-    cerr<<i->first<<"\t"<<i->second<<endl;
+    cout<<i->first<<"\t"<<i->second<<endl;
 
   uint32_t sum=0;
   ofstream stats("stats");
@@ -214,10 +219,9 @@ try
         lastperc=sum*100.0/totpackets;
       }
   }
-
   
   if(totpackets)
-    cerr<<"Average response time: "<<tottime/totpackets<<" usec"<<endl;
+    cout<<"Average response time: "<<tottime/totpackets<<" usec"<<endl;
 }
 catch(std::exception& e)
 {

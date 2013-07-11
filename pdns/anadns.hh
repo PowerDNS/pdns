@@ -23,34 +23,17 @@ struct QuestionIdentifier
   }
 
   // the canonical direction is that of the question
-  static QuestionIdentifier create(const struct ip* ip, const struct udphdr* udp, const MOADNSParser& mdp)
+  static QuestionIdentifier create(const ComboAddress& src, const ComboAddress& dst, const MOADNSParser& mdp)
   {
     QuestionIdentifier ret;
-    struct ip6_hdr* ip6 = (struct ip6_hdr*)ip;
+
     if(mdp.d_header.qr) {
-      if(ip->ip_v!=6) {
-	ret.d_source.sin4.sin_addr  = ip->ip_dst;
-	ret.d_dest.sin4.sin_addr = ip->ip_src;
-      }
-      else {
-	ret.d_source.sin6.sin6_addr = ip6->ip6_dst;
-	ret.d_dest.sin6.sin6_addr = ip6->ip6_src;
-      }
-      ret.d_dest.sin4.sin_port = udp->uh_sport;
-      ret.d_source.sin4.sin_port = udp->uh_dport;
+      ret.d_source = dst;
+      ret.d_dest = src;
     }
     else {
-      if(ip->ip_v != 6) {
-	ret.d_source.sin4.sin_addr  = ip->ip_src;
-	ret.d_dest.sin4.sin_addr = ip->ip_dst;
-      }
-      else {
-	ret.d_source.sin6.sin6_addr = ip6->ip6_src;
-	ret.d_dest.sin6.sin6_addr = ip6->ip6_dst;
-      }
-      ret.d_source.sin4.sin_port = udp->uh_sport;
-      ret.d_dest.sin4.sin_port = udp->uh_dport;
-
+      ret.d_source = src;
+      ret.d_dest = dst;
     }
     ret.d_qname=mdp.d_qname;
     ret.d_qtype=mdp.d_qtype;

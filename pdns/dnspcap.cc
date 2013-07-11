@@ -102,6 +102,36 @@ catch(EofException) {
   return false;
 }
 
+ComboAddress PcapPacketReader::getSource() const
+{
+  ComboAddress ret;
+  if(d_ip->ip_v == 4) {
+    ret.sin4.sin_family = AF_INET;
+    ret.sin4.sin_addr = d_ip->ip_src;
+    ret.sin4.sin_port = d_udp->uh_sport; // should deal with TCP too!
+  } else {
+    ret.sin6.sin6_family = AF_INET6;
+    ret.sin6.sin6_addr = d_ip6->ip6_src;
+    ret.sin6.sin6_port = d_udp->uh_sport; // should deal with TCP too!
+  }
+  return ret;
+}
+
+ComboAddress PcapPacketReader::getDest() const
+{
+  ComboAddress ret;
+  if(d_ip->ip_v == 4) {
+    ret.sin4.sin_family = AF_INET;
+    ret.sin4.sin_addr = d_ip->ip_dst;
+    ret.sin4.sin_port = d_udp->uh_dport; // should deal with TCP too!
+  } else {
+    ret.sin6.sin6_family = AF_INET6;
+    ret.sin6.sin6_addr = d_ip6->ip6_dst;
+    ret.sin6.sin6_port = d_udp->uh_dport; // should deal with TCP too!
+  }
+  return ret;
+}
+
 
 PcapPacketWriter::PcapPacketWriter(const string& fname, PcapPacketReader& ppr) : d_fname(fname), d_ppr(ppr)
 {

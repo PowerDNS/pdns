@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <stdexcept>
+#include "iputils.hh"
 #include <string>
 #include "misc.hh"
 #include <iostream>
@@ -81,6 +82,10 @@ public:
   void checkedFreadSize(void* ptr, size_t size) ;
 
   bool getUDPPacket();
+
+
+  ComboAddress getSource() const;
+  ComboAddress getDest() const;
 
   struct pdns_lcc_header* d_lcc;
   struct ether_header* d_ether;

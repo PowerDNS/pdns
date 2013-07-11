@@ -495,7 +495,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
       dh->id=tmp;
     }
     MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
-    QuestionIdentifier qi=QuestionIdentifier::create(pr.d_ip, pr.d_udp, mdp);
+    QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
     
     if(!mdp.d_header.qr) {
       s_questions++;
