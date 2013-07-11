@@ -111,7 +111,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	serialtweaker.cc 
 
 
-pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
 pdnssec_LDADD= ext/polarssl-1.1.2/library/libpolarssl.a $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS) $(MYSQL_lib)
 
 if BOTAN110
@@ -241,7 +241,8 @@ dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
 	utility.hh dnsparser.hh sillyrecords.cc nsecrecords.cc base32.cc
 
-dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
+dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
+dnsscope_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS) 
 
 dnsgram_SOURCES=dnsgram.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \

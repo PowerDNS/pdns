@@ -9,12 +9,15 @@
 #include <fstream>
 #include <algorithm>
 #include "anadns.hh"
+#include <boost/program_options.hpp>
+#include <boost/foreach.hpp>
+#include <boost/logic/tribool.hpp>
+#include "namespaces.hh"
 
-#include "namespaces.hh"
-#include "namespaces.hh"
+namespace po = boost::program_options;
+po::variables_map g_vm;
 
 StatBag S;
-
 
 struct QuestionData
 {
@@ -35,15 +38,47 @@ statmap_t statmap;
 int main(int argc, char** argv)
 try
 {
-  if(argc!=2) {
+  po::options_description desc("Allowed options"), hidden, alloptions;
+  desc.add_options()
+    ("help,h", "produce help message")
+    ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
+    ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
+    ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
+    ("verbose,v", "be verbose");
+    
+  hidden.add_options()
+    ("files", po::value<vector<string> >(), "files");
+
+  alloptions.add(desc).add(hidden); 
+
+  po::positional_options_description p;
+  p.add("files", -1);
+
+  po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
+  po::notify(g_vm);
+
+  vector<string> files = g_vm["files"].as<vector<string> >();
+  if(files.size() != 1 || g_vm.count("help")) {
     cerr<<"Syntax: dnsscope filename.pcap"<<endl;
+    cout << desc << endl;
     exit(1);
   }
-  PcapPacketReader pr(argv[1]);
-  PcapPacketWriter* pw=0;
 
+  bool haveRDFilter=0, rdFilter=0;
+  if(g_vm.count("rd")) {
+    rdFilter = g_vm["rd"].as<bool>();
+    haveRDFilter=1;
+  }
+
+  bool doIPv4 = g_vm["ipv4"].as<bool>();
+  bool doIPv6 = g_vm["ipv6"].as<bool>();
+
+  PcapPacketReader pr(files[0]);
+  PcapPacketWriter* pw=0;
+  /*
   if(argc==3)
     pw=new PcapPacketWriter(argv[2], pr);
+  */
 
   int dnserrors=0, bogus=0;
   typedef map<uint32_t,uint32_t> cumul_t;
@@ -61,7 +96,12 @@ try
         ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
         pr.d_len > 12) {
       try {
+	if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
+	  continue;
         MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+	if(haveRDFilter && mdp.d_header.rd != rdFilter)
+	  continue;
+
 	if(pr.d_ip->ip_v == 4) 
 	  ++ipv4Packets;
 	else
@@ -173,27 +213,21 @@ try
     tottime+=i->first*i->second;
   }
 
-
   typedef map<uint32_t, bool> done_t;
   done_t done;
   done[50];
   done[100];
   done[200];
-  done[250];
   done[300];
-  done[350];
   done[400];
   done[800];
   done[1000];
   done[2000];
   done[4000];
   done[8000];
-  done[16000];
   done[32000];
   done[64000];
-  done[128000];
   done[256000];
-  done[512000];
   done[1024000];
   done[2048000];
 
