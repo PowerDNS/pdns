@@ -39,7 +39,7 @@ extern int linenumber;
 static void yyerror(const char *str)
 {
   extern char *current_filename;	
-  throw AhuException("Error in bind configuration '"+string(current_filename)+"' on line "+itoa(linenumber)+": "+str);
+  throw PDNSException("Error in bind configuration '"+string(current_filename)+"' on line "+itoa(linenumber)+": "+str);
 }
 
 extern FILE *yyin;
@@ -52,7 +52,7 @@ void BindParser::parse(const string &fname)
 	yyin=fopen(fname.c_str(),"r");
 	yyrestart(yyin);
 	if(!yyin)
-		throw AhuException("Unable to open '"+fname+"': "+strerror(errno));
+		throw PDNSException("Unable to open '"+fname+"': "+strerror(errno));
 
 	linenumber=1;
 	parent=this;
