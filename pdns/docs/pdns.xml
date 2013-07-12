@@ -16306,14 +16306,6 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>Q: What is this 'AhuException' I keep reading about?</term>
-	  <listitem>
-	    <para>
-	      A: This name has historical reasons and has <ulink url="http://ds9a.nl">no significance</ulink>. 
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
 	  <term>Q: I need a backend but I can't write it, can you help?</term>
 	  <listitem>
 	    <para>
