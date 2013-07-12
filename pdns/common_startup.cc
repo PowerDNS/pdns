@@ -341,7 +341,7 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_addSuperfluousNSEC3 = ::arg().mustDo("add-superfluous-nsec3-for-old-bind");
-   DNSPacket::s_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
+   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
    
 #ifndef WIN32

@@ -355,9 +355,9 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   ComboAddress remote;
   extern StatBag S;
   int len=-1;
-  char mesg[512];
+  char mesg[DNSPacket::s_udpTruncationThreshold];
   Utility::sock_t sock=-1;
-    
+
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
