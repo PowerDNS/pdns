@@ -18,12 +18,9 @@
 
 #include "utility.hh"
 #include <cstdio>
-
 #include <cstdlib>
 #include <sys/types.h>
-
 #include <iostream>  
-
 #include <string>
 #include <errno.h>
 #include <boost/tokenizer.hpp>
@@ -45,7 +42,8 @@
 #include "ednssubnet.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
-
+uint16_t DNSPacket::s_udpTruncationThreshold;
+ 
 DNSPacket::DNSPacket() 
 {
   d_wrapped=false;
@@ -495,7 +493,7 @@ try
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
-    d_maxreplylen=std::min(edo.d_packetsize, (uint16_t)1680);
+    d_maxreplylen=std::min(edo.d_packetsize, s_udpTruncationThreshold);
 //    cerr<<edo.d_Z<<endl;
     if(edo.d_Z & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
