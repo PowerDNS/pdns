@@ -210,7 +210,7 @@ int main( int argc, char* argv[] )
         						callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
         				}
         			}
-        			catch( AhuException &ae )
+        			catch( PDNSException &ae )
         			{
         				cerr << "Fatal error: " << ae.reason << endl;
         				if( !args.mustDo( "resume" ) )
@@ -235,7 +235,7 @@ int main( int argc, char* argv[] )
         			callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
         	}
         }
-        catch( AhuException &ae )
+        catch( PDNSException &ae )
         {
         	cerr << "Fatal error: " << ae.reason << endl;
         	return 1;

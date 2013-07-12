@@ -89,7 +89,7 @@ bool OdbxBackend::getRecord( QueryType type )
         	if( err < 0 )
         	{
         		L.log( m_myname + " getRecord: Unable to get next result - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
-        		throw( AhuException( "Error: odbx_result() failed" ) );
+        		throw( PDNSException( "Error: odbx_result() failed" ) );
         	}
 
         	if( m_result != NULL )
@@ -99,7 +99,7 @@ bool OdbxBackend::getRecord( QueryType type )
         			if( ( err = odbx_row_fetch( m_result ) ) < 0 )
         			{
         				L.log( m_myname + " getRecord: Unable to get next row - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
-        				throw( AhuException( "Error: odbx_row_fetch() failed" ) );
+        				throw( PDNSException( "Error: odbx_row_fetch() failed" ) );
         			}
 
         			if( err > 0 )

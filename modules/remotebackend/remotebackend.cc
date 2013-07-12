@@ -68,7 +68,7 @@ RemoteBackend::~RemoteBackend() {
 bool RemoteBackend::send(rapidjson::Document &value) {
    try {
      return connector->send(value);
-   } catch (AhuException &ex) {
+   } catch (PDNSException &ex) {
      L<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
    } catch (...) {
      L<<Logger::Error<<"Exception caught when sending"<<std::endl;
@@ -82,7 +82,7 @@ bool RemoteBackend::send(rapidjson::Document &value) {
 bool RemoteBackend::recv(rapidjson::Document &value) {
    try {
      return connector->recv(value);
-   } catch (AhuException &ex) {
+   } catch (PDNSException &ex) {
      L<<Logger::Error<<"Exception caught when receiving: "<<ex.reason<<std::endl;
    } catch (...) {
      L<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
@@ -108,7 +108,7 @@ int RemoteBackend::build() {
       size_t pos;
       pos = d_connstr.find_first_of(":");
       if (pos == std::string::npos)
-         throw AhuException("Invalid connection string: malformed");
+         throw PDNSException("Invalid connection string: malformed");
 
       type = d_connstr.substr(0, pos);
       opts = d_connstr.substr(pos+1);
@@ -142,12 +142,12 @@ int RemoteBackend::build() {
 #ifdef REMOTEBACKEND_HTTP
         this->connector = new HTTPConnector(options);
 #else
-	throw AhuException("Invalid connection string: http connector support not enabled. Recompile with --enable-remotebackend-http");
+	throw PDNSException("Invalid connection string: http connector support not enabled. Recompile with --enable-remotebackend-http");
 #endif
       } else if (type == "pipe") {
         this->connector = new PipeConnector(options);
       } else {
-        throw AhuException("Invalid connection string: unknown connector");
+        throw PDNSException("Invalid connection string: unknown connector");
       }
 
       return -1;
@@ -162,7 +162,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
    rapidjson::Value parameters;
 
    if (d_index != -1) 
-      throw AhuException("Attempt to lookup while one running");
+      throw PDNSException("Attempt to lookup while one running");
 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "lookup", query.GetAllocator())
@@ -206,7 +206,7 @@ bool RemoteBackend::list(const std::string &target, int domain_id) {
    rapidjson::Value parameters;
 
    if (d_index != -1)
-      throw AhuException("Attempt to lookup while one running");
+      throw PDNSException("Attempt to lookup while one running");
 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "list", query.GetAllocator());
@@ -497,7 +497,7 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
    // make sure we got zone & kind
    if (!answer["result"].HasMember("zone")) {
       L<<Logger::Error<<kBackendId<<"Missing zone in getDomainInfo return value"<<endl;
-      throw AhuException();
+      throw PDNSException();
    }
    value = -1;
    // parse return value. we need at least zone,serial,kind
@@ -810,7 +810,7 @@ bool RemoteBackend::getBool(rapidjson::Value &value) {
      if (boost::iequals(tmp, "0") || boost::iequals(tmp, "false")) return false;
    }
    std::cerr << value.GetType() << endl;
-   throw new AhuException("Cannot convert rapidjson value into boolean");
+   throw new PDNSException("Cannot convert rapidjson value into boolean");
 }
 
 bool Connector::getBool(rapidjson::Value &value) {
@@ -846,7 +846,7 @@ int RemoteBackend::getInt(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<int>(tmp);
    }
-   throw new AhuException("Cannot convert rapidjson value into integer");
+   throw new PDNSException("Cannot convert rapidjson value into integer");
 }
 
 unsigned int RemoteBackend::getUInt(rapidjson::Value &value) {
@@ -858,7 +858,7 @@ unsigned int RemoteBackend::getUInt(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<unsigned int>(tmp);
    }
-   throw new AhuException("Cannot convert rapidjson value into integer");
+   throw new PDNSException("Cannot convert rapidjson value into integer");
 }
 
 int64_t RemoteBackend::getInt64(rapidjson::Value &value) {
@@ -870,7 +870,7 @@ int64_t RemoteBackend::getInt64(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<int64_t>(tmp);
    }
-   throw new AhuException("Cannot convert rapidjson value into integer");
+   throw new PDNSException("Cannot convert rapidjson value into integer");
 }
 
 std::string RemoteBackend::getString(rapidjson::Value &value) {
@@ -879,7 +879,7 @@ std::string RemoteBackend::getString(rapidjson::Value &value) {
    if (value.IsInt64()) return boost::lexical_cast<std::string>(value.GetInt64());
    if (value.IsInt()) return boost::lexical_cast<std::string>(value.GetInt());
    if (value.IsDouble()) return boost::lexical_cast<std::string>(value.GetDouble());
-   throw new AhuException("Cannot convert rapidjson value into std::string");
+   throw new PDNSException("Cannot convert rapidjson value into std::string");
 }
 
 double RemoteBackend::getDouble(rapidjson::Value &value) {
@@ -891,7 +891,7 @@ double RemoteBackend::getDouble(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<double>(tmp);
    }
-   throw new AhuException("Cannot convert rapidjson value into double");
+   throw new PDNSException("Cannot convert rapidjson value into double");
 }
 
 DNSBackend *RemoteBackend::maker()

@@ -121,7 +121,7 @@ try
   }
   
   if(sock.read((char *) &len, 2) != 2)
-    throw AhuException("tcp read failed");
+    throw PDNSException("tcp read failed");
   
   len=ntohs(len);
   char *creply = new char[len];
@@ -130,7 +130,7 @@ try
   while(n<len) {
     numread=sock.read(creply+n, len-n);
     if(numread<0)
-      throw AhuException("tcp read failed");
+      throw PDNSException("tcp read failed");
     n+=numread;
   }
   

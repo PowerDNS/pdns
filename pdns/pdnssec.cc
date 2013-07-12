@@ -989,7 +989,7 @@ try
     try {
       Bind2Backend::createDNSSECDB(cmds[1]);
     }
-    catch (AhuException& ae) {
+    catch (PDNSException& ae) {
       cerr<<"Error: "<<ae.reason<<endl;
       return 1;
     }
@@ -1451,7 +1451,7 @@ try
   }
   return 0;
 }
-catch(AhuException& ae) {
+catch(PDNSException& ae) {
   cerr<<"Error: "<<ae.reason<<endl;
 }
 catch(std::exception& e) {

@@ -33,7 +33,7 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
   
   catch(SSqlException &e) {
     L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
-    throw AhuException("Unable to launch "+mode+" connection: "+e.txtReason());
+    throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
   L<<Logger::Warning<<mode<<" Connection successful"<<endl;
 }

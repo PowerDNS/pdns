@@ -36,7 +36,7 @@ public:
     if(g_singleThreaded)
       return;
     if((errno=pthread_mutex_lock(d_lock)))
-      throw AhuException("error acquiring lock: "+stringerror());
+      throw PDNSException("error acquiring lock: "+stringerror());
   }
   ~Lock()
   {
@@ -58,7 +58,7 @@ public:
       return;
 
     if((errno=pthread_rwlock_wrlock(d_lock))) {
-      throw AhuException("error acquiring rwlock wrlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock wrlock: "+stringerror());
     }
   }
   ~WriteLock()
@@ -85,7 +85,7 @@ public:
 
     d_havelock=false;
     if((errno=pthread_rwlock_trywrlock(d_lock)) && errno!=EBUSY)
-      throw AhuException("error acquiring rwlock tryrwlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror());
     d_havelock=(errno==0);
   }
   ~TryWriteLock()
@@ -119,7 +119,7 @@ public:
     }
 
     if((errno=pthread_rwlock_tryrdlock(d_lock)) && errno!=EBUSY)
-      throw AhuException("error acquiring rwlock tryrdlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror());
     d_havelock=(errno==0);
   }
   ~TryReadLock()
@@ -151,7 +151,7 @@ public:
       return;
 
     if((errno=pthread_rwlock_rdlock(d_lock)))
-      throw AhuException("error acquiring rwlock tryrwlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror());
   }
   ~ReadLock()
   {

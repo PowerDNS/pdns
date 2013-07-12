@@ -38,10 +38,10 @@
 #include "namespaces.hh"
 #include "dnsbackend.hh"
 
-class ResolverException : public AhuException
+class ResolverException : public PDNSException
 {
 public:
-  ResolverException(const string &reason) : AhuException(reason){}
+  ResolverException(const string &reason) : PDNSException(reason){}
 };
 
 // make an IPv4 or IPv6 query socket 

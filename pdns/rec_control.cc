@@ -82,7 +82,7 @@ try
   cout<<receive;
   return 0;
 }
-catch(AhuException& ae)
+catch(PDNSException& ae)
 {
   cerr<<"Fatal: "<<ae.reason<<"\n";
   return 1;

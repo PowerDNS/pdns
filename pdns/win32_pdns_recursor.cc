@@ -249,7 +249,7 @@ void startDoResolve(void *p)
 
     delete R;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"startDoResolve problem: "<<ae.reason<<endl;
   }
   catch(...) {
@@ -263,7 +263,7 @@ void makeClientSocket()
   Utility::setCloseOnExec(d_clientsock);
 
   if(d_clientsock<0) 
-    throw AhuException("Making a socket for resolver: "+stringerror());
+    throw PDNSException("Making a socket for resolver: "+stringerror());
   
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
@@ -281,7 +281,7 @@ void makeClientSocket()
     
   }
   if(!tries)
-    throw AhuException("Resolver binding to local socket: "+stringerror());
+    throw PDNSException("Resolver binding to local socket: "+stringerror());
 }
 
 void makeTCPServerSocket()
@@ -290,7 +290,7 @@ void makeTCPServerSocket()
   Utility::setCloseOnExec(d_tcpserversock);
 
   if(d_tcpserversock<0) 
-    throw AhuException("Making a server socket for resolver: "+stringerror());
+    throw PDNSException("Making a server socket for resolver: "+stringerror());
   
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
@@ -302,13 +302,13 @@ void makeTCPServerSocket()
   }
   else {
     if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address"); 
+      throw PDNSException("Unable to resolve local address"); 
   }
 
   sin.sin_port = htons(arg().asNum("local-port")); 
     
   if (bind(d_tcpserversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
-    throw AhuException("TCP Resolver binding to server socket: "+stringerror());
+    throw PDNSException("TCP Resolver binding to server socket: "+stringerror());
   
   int tmp=1;
   if(setsockopt(d_tcpserversock,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -324,7 +324,7 @@ void makeServerSocket()
   d_serversock=socket(AF_INET, SOCK_DGRAM,0);
   Utility::setCloseOnExec(d_serversock);
   if(d_serversock<0) 
-    throw AhuException("Making a server socket for resolver: "+stringerror());
+    throw PDNSException("Making a server socket for resolver: "+stringerror());
   
   struct sockaddr_in sin;
   memset((char *)&sin,0, sizeof(sin));
@@ -338,14 +338,14 @@ void makeServerSocket()
   else {
     
     if(!IpToU32(arg()["local-address"], &sin.sin_addr.s_addr))
-      throw AhuException("Unable to resolve local address"); 
+      throw PDNSException("Unable to resolve local address"); 
 
   }
 
   sin.sin_port = htons(arg().asNum("local-port")); 
     
   if (bind(d_serversock, (struct sockaddr *)&sin, sizeof(sin))<0) 
-    throw AhuException("Resolver binding to server socket: "+stringerror());
+    throw PDNSException("Resolver binding to server socket: "+stringerror());
   L<<Logger::Error<<"Incoming query source port: "<<arg().asNum("local-port")<<endl;
 }
 
@@ -468,7 +468,7 @@ int serviceMain( int argc, char *argv[] )
       int selret = select(  fdmax + 1, &readfds, NULL, NULL, &tv );
       if(selret<=0) 
         if (selret == -1 && errno!=EINTR) 
-          throw AhuException("Select returned: "+stringerror());
+          throw PDNSException("Select returned: "+stringerror());
         else
           continue;
 
@@ -598,7 +598,7 @@ int serviceMain( int argc, char *argv[] )
       }
     }
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
   }
   catch(std::exception &e) {
@@ -719,7 +719,7 @@ int main(int argc, char **argv)
     RecursorService::instance()->start( argc, argv, arg().mustDo( "ntservice" )); 
 
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
   }
   catch(std::exception &e) {

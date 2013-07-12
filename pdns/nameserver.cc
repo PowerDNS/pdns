@@ -47,7 +47,7 @@ extern StatBag S;
     \section overview High level overview
 
     The Distributor contains a configurable number of PacketHandler instances, each in its own thread, for connection pooling. 
-    PacketHandler instances are recycled of they let escape an AhuException.
+    PacketHandler instances are recycled of they let escape an PDNSException.
 
     The PacketHandler implements the RFC1034 algorithm and converts question packets into DNSBackend queries.
 
@@ -91,7 +91,7 @@ void UDPNameserver::bindIPv4()
   stringtok(locals,::arg()["local-address"]," ,");
 
   if(locals.empty())
-    throw AhuException("No local address specified");
+    throw PDNSException("No local address specified");
 
   int s;
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
@@ -101,12 +101,12 @@ void UDPNameserver::bindIPv4()
     s=socket(AF_INET,SOCK_DGRAM,0);
 
     if(s<0)
-      throw AhuException("Unable to acquire a UDP socket: "+string(strerror(errno)));
+      throw PDNSException("Unable to acquire a UDP socket: "+string(strerror(errno)));
   
     Utility::setCloseOnExec(s);
   
     if(!Utility::setNonBlocking(s))
-      throw AhuException("Unable to set UDP socket to non-blocking: "+stringerror());
+      throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
   
     memset(&locala,0,sizeof(locala));
     locala.sin4.sin_family=AF_INET;
@@ -117,12 +117,12 @@ void UDPNameserver::bindIPv4()
     }
     locala=ComboAddress(localname, ::arg().asNum("local-port"));
     if(locala.sin4.sin_family != AF_INET) 
-      throw AhuException("Attempting to bind IPv4 socket to IPv6 address");
+      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
 
     g_localaddresses.push_back(locala);
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
       L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+": "<<strerror(errno)<<endl;
-      throw AhuException("Unable to bind to UDP socket");
+      throw PDNSException("Unable to bind to UDP socket");
     }
     d_sockets.push_back(s);
     L<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
@@ -193,11 +193,11 @@ void UDPNameserver::bindIPv6()
 
     s=socket(AF_INET6,SOCK_DGRAM,0);
     if(s<0)
-      throw AhuException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
+      throw PDNSException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
 
     Utility::setCloseOnExec(s);
     if(!Utility::setNonBlocking(s))
-      throw AhuException("Unable to set UDPv6 socket to non-blocking: "+stringerror());
+      throw PDNSException("Unable to set UDPv6 socket to non-blocking: "+stringerror());
 
 
     ComboAddress locala(localname, ::arg().asNum("local-port"));
@@ -211,7 +211,7 @@ void UDPNameserver::bindIPv6()
     g_localaddresses.push_back(locala);
     if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       L<<Logger::Error<<"binding to UDP ipv6 socket: "<<strerror(errno)<<endl;
-      throw AhuException("Unable to bind to UDP ipv6 socket");
+      throw PDNSException("Unable to bind to UDP ipv6 socket");
     }
     d_sockets.push_back(s);
     struct pollfd pfd;
@@ -402,7 +402,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     }
   }
   if(sock==-1)
-    throw AhuException("poll betrayed us! (should not happen)");
+    throw PDNSException("poll betrayed us! (should not happen)");
   
 
   DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);

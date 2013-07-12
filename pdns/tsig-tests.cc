@@ -101,7 +101,7 @@ catch(std::exception &e)
   cerr<<"Fatal: "<<e.what()<<endl;
   return 1;
 }
-catch(AhuException& ae)
+catch(PDNSException& ae)
 {
   cerr<<"Fatal 2: "<<ae.reason<<endl;
   return 1;

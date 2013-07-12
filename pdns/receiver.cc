@@ -152,7 +152,7 @@ static string DLRestHandler(const vector<string>&parts, pid_t ppid)
   try {
     writen2(g_fd1[1],line.c_str(),line.size()+1);
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     return "Error communicating with instance: "+ae.reason;
   }
   char mesg[512];
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
   try {
     mainthread();
   }
-  catch(AhuException &AE) {
+  catch(PDNSException &AE) {
     if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because: "<<AE.reason<<endl;
     L<<Logger::Error<<"Exiting because: "<<AE.reason<<endl;

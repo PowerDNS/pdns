@@ -426,7 +426,7 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   else if(bdr.qname.length() > bb2.d_name.length() && dottedEndsOn(bdr.qname, bb2.d_name))
     bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
   else
-    throw AhuException("Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'");
+    throw PDNSException("Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'");
 
   bdr.qname.swap(bdr.qname);
 
@@ -657,7 +657,7 @@ void Bind2Backend::loadConfig(string* status)
     try {
       BP.parse(getArg("config"));
     }
-    catch(AhuException &ae) {
+    catch(PDNSException &ae) {
       L<<Logger::Error<<"Error parsing bind configuration: "<<ae.reason<<endl;
       throw;
     }
@@ -759,7 +759,7 @@ void Bind2Backend::loadConfig(string* status)
             
             //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
           }
-          catch(AhuException &ae) {
+          catch(PDNSException &ae) {
             ostringstream msg;
             msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
 
@@ -895,7 +895,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     bbd->d_status="parsed into memory at "+nowTime();
     L<<Logger::Warning<<"Zone '"<<bbd->d_name<<"' ("<<bbd->d_filename<<") reloaded"<<endl;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     ostringstream msg;
     msg<<" error at "+nowTime()+" parsing '"<<bbd->d_name<<"' from file '"<<bbd->d_filename<<"': "<<ae.reason;
     bbd->d_status=msg.str();

@@ -91,7 +91,7 @@ void Bind2Backend::createDNSSECDB(const string& fname)
       db.doCommand(statement);
   }
   catch(SSqlException& se) {
-    throw AhuException("Error creating database in BIND backend: "+se.txtReason());
+    throw PDNSException("Error creating database in BIND backend: "+se.txtReason());
   }
 }
 
@@ -137,7 +137,7 @@ bool Bind2Backend::getDomainMetadata(const string& name, const std::string& kind
     }
   }
   catch(SSqlException& se) {
-    throw AhuException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
+    throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
   }
   return true;
 }
@@ -155,7 +155,7 @@ bool Bind2Backend::setDomainMetadata(const string& name, const std::string& kind
       d_dnssecdb->doCommand((fmt2 % d_dnssecdb->escape(name) % d_dnssecdb->escape(kind) % d_dnssecdb->escape(meta.begin()->c_str())).str());
   }
   catch(SSqlException& se) {
-    throw AhuException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
+    throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
   }
   return true;
 
@@ -180,7 +180,7 @@ bool Bind2Backend::getDomainKeys(const string& name, unsigned int kind, std::vec
     }
   }
   catch(SSqlException& se) {
-    throw AhuException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
+    throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
   }
   
   return true;
@@ -216,7 +216,7 @@ int Bind2Backend::addDomainKey(const string& name, const KeyData& key)
     d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % key.flags % key.active % d_dnssecdb->escape(key.content)).str());
   }
   catch(SSqlException& se) {
-    throw AhuException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());    
+    throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());    
   }
   
   return true;
@@ -233,7 +233,7 @@ bool Bind2Backend::activateDomainKey(const string& name, unsigned int id)
     d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % id).str());
   }
   catch(SSqlException& se) {
-    throw AhuException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());    
+    throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());    
   }
   
   return true;
@@ -250,7 +250,7 @@ bool Bind2Backend::deactivateDomainKey(const string& name, unsigned int id)
     d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % id).str());
   }
   catch(SSqlException& se) {
-    throw AhuException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
+    throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
   }
   
   return true;
@@ -266,7 +266,7 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
     d_dnssecdb->doQuery( (fmt % d_dnssecdb->escape(name)).str());
   }
   catch (SSqlException &e) {
-    throw AhuException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
+    throw PDNSException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
   }
   
   SSql::row_t row;

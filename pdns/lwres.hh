@@ -45,10 +45,10 @@ int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16
 int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id, 
               const string& domain, uint16_t, int fd, struct timeval* now);
 
-class LWResException : public AhuException
+class LWResException : public PDNSException
 {
 public:
-  LWResException(const string &reason) : AhuException(reason){}
+  LWResException(const string &reason) : PDNSException(reason){}
 };
 
 //! LWRes class 

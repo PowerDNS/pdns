@@ -354,7 +354,7 @@ int main(int argc, char **argv)
             else
               cerr<<endl<<ae.what()<<endl;
           }
-          catch(AhuException &ae) {
+          catch(PDNSException &ae) {
             if(!::arg().mustDo("on-error-resume-next"))
               throw;
             else
@@ -380,7 +380,7 @@ int main(int argc, char **argv)
     cerr<<num_domainsdone<<" domains were fully parsed, containing "<<g_numRecords<<" records\n";
     
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     cerr<<"\nFatal error: "<<ae.reason<<endl;
     return 0;
   }

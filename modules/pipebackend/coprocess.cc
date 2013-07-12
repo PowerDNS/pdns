@@ -38,20 +38,20 @@ void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
   signal(SIGPIPE, SIG_IGN);
 
   if(access(argv[0],X_OK)) // check before fork so we can throw
-    throw AhuException("Command '"+string(argv[0])+"' cannot be executed: "+stringerror());
+    throw PDNSException("Command '"+string(argv[0])+"' cannot be executed: "+stringerror());
 
   if(pipe(d_fd1)<0 || pipe(d_fd2)<0)
-    throw AhuException("Unable to open pipe for coprocess: "+string(strerror(errno)));
+    throw PDNSException("Unable to open pipe for coprocess: "+string(strerror(errno)));
 
   if((d_pid=fork())<0)
-    throw AhuException("Unable to fork for coprocess: "+stringerror());
+    throw PDNSException("Unable to fork for coprocess: "+stringerror());
   else if(d_pid>0) { // parent speaking
     close(d_fd1[0]);
     Utility::setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
     Utility::setCloseOnExec(d_fd2[0]);
     if(!(d_fp=fdopen(d_fd2[0],"r")))
-      throw AhuException("Unable to associate a file pointer with pipe: "+stringerror());
+      throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
     setbuf(d_fp,0); // no buffering please, confuses select
   }
   else if(!d_pid) { // child
@@ -96,11 +96,11 @@ void CoProcess::checkStatus()
   int status;
   int ret=waitpid(d_pid, &status, WNOHANG);
   if(ret<0) 
-    throw AhuException("Unable to ascertain status of coprocess "+itoa(d_pid)+" from "+itoa(getpid())+": "+string(strerror(errno)));
+    throw PDNSException("Unable to ascertain status of coprocess "+itoa(d_pid)+" from "+itoa(getpid())+": "+string(strerror(errno)));
   else if(ret) {
     if(WIFEXITED(status)) {
       int ret=WEXITSTATUS(status);
-      throw AhuException("Coprocess exited with code "+itoa(ret));
+      throw PDNSException("Coprocess exited with code "+itoa(ret));
     }
     if(WIFSIGNALED(status)) {
       int sig=WTERMSIG(status);
@@ -110,7 +110,7 @@ void CoProcess::checkStatus()
         reason+=". Dumped core";
 #endif
       
-      throw AhuException(reason);
+      throw PDNSException(reason);
     }
   }
 }
@@ -128,7 +128,7 @@ void CoProcess::send(const string &snd)
   while(sent<line.size()) {
     bytes=write(d_fd1[1],line.c_str()+sent,line.length()-sent);
     if(bytes<0)
-      throw AhuException("Writing to coprocess failed: "+string(strerror(errno)));
+      throw PDNSException("Writing to coprocess failed: "+string(strerror(errno)));
 
     sent+=bytes;
   }
@@ -145,13 +145,13 @@ void CoProcess::receive(string &receive)
     FD_SET(fileno(d_fp),&rds);
     int ret=select(fileno(d_fp)+1,&rds,0,0,&tv);
     if(ret<0)
-      throw AhuException("Error waiting on data from coprocess: "+stringerror());
+      throw PDNSException("Error waiting on data from coprocess: "+stringerror());
     if(!ret)
-      throw AhuException("Timeout waiting for data from coprocess");
+      throw PDNSException("Timeout waiting for data from coprocess");
   }
 
   if(!stringfgets(d_fp, receive))
-    throw AhuException("Child closed pipe");
+    throw PDNSException("Child closed pipe");
   
   trim_right(receive);
 }
@@ -168,7 +168,7 @@ UnixRemote::UnixRemote(const string& path, int timeout)
 {
   d_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
   if(d_fd < 0)
-    throw AhuException("Unable to create UNIX domain socket: "+string(strerror(errno)));
+    throw PDNSException("Unable to create UNIX domain socket: "+string(strerror(errno)));
 
   struct sockaddr_un remote;
   memset(&remote, 0, sizeof(remote));
@@ -229,7 +229,7 @@ main()
     cp.sendReceive("www.trilab.com", reply);
     cout<<"Answered: '"<<reply<<"'"<<endl;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     cerr<<ae.reason<<endl;
   }
   

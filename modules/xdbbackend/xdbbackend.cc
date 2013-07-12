@@ -20,7 +20,7 @@ public:
     }
     catch(XDBException &e) {
       L<<Logger::Error<<"[XDBBackend] Error: "<<e.what<<endl;
-      throw AhuException(e.what);
+      throw PDNSException(e.what);
     }
     L<<Logger::Error<<"[XDBBackend] Open"<<endl;
   }

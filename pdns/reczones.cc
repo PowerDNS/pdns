@@ -265,7 +265,7 @@ string reloadAuthAndForwards()
   catch(std::exception& e) {
     L<<Logger::Error<<"Had error reloading zones, keeping original data: "<<e.what()<<endl;
   }
-  catch(AhuException& ae) {
+  catch(PDNSException& ae) {
     L<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<ae.reason<<endl;
   }
   catch(...) {
@@ -304,11 +304,11 @@ SyncRes::domainmap_t* parseAuthAndForwards()
           }
           catch(std::exception &e) {
             delete newMap;
-            throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
+            throw PDNSException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
           }
           catch(...) {
             delete newMap;
-            throw AhuException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
+            throw PDNSException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
           }
 
           ad.d_records.insert(rr);
@@ -340,7 +340,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
 
     if(!rfp) {
       delete newMap;
-      throw AhuException("Error opening forward-zones-file '"+::arg()["forward-zones-file"]+"': "+stringerror());
+      throw PDNSException("Error opening forward-zones-file '"+::arg()["forward-zones-file"]+"': "+stringerror());
     }
 
     shared_ptr<FILE> fp=shared_ptr<FILE>(rfp, fclose);
@@ -364,7 +364,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         ad.d_rdForward = false;
       if(domain.empty()) {
         delete newMap;
-        throw AhuException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+        throw PDNSException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
       try {
@@ -372,7 +372,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       }
       catch(...) {
         delete newMap;
-        throw AhuException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+        throw PDNSException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
       (*newMap)[toCanonic("", domain)]=ad;

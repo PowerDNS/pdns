@@ -38,7 +38,7 @@ DNSProxy::DNSProxy(const string &remote)
   ComboAddress remaddr(remote, 53);
   
   if((d_sock=socket(remaddr.sin4.sin_family, SOCK_DGRAM,0))<0)
-    throw AhuException(string("socket: ")+strerror(errno));
+    throw PDNSException(string("socket: ")+strerror(errno));
  
   ComboAddress local;
   if(remaddr.sin4.sin_family==AF_INET)
@@ -56,11 +56,11 @@ DNSProxy::DNSProxy(const string &remote)
   if(n==10) {
     Utility::closesocket(d_sock);
     d_sock=-1;
-    throw AhuException(string("binding dnsproxy socket: ")+strerror(errno));
+    throw PDNSException(string("binding dnsproxy socket: ")+strerror(errno));
   }
 
   if(connect(d_sock, (sockaddr *)&remaddr, remaddr.getSocklen())<0) 
-    throw AhuException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
+    throw PDNSException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
 
   d_xor=Utility::random()&0xffff;
   L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
@@ -197,7 +197,7 @@ void DNSProxy::mainloop(void)
       }
     }
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"Fatal error in DNS proxy: "<<ae.reason<<endl;
   }
   catch(std::exception &e) {

@@ -39,18 +39,18 @@
 Semaphore::Semaphore(unsigned int value)
 {
   if (value > SEM_VALUE_MAX) {
-    throw AhuException("Cannot create semaphore: value too large");
+    throw PDNSException("Cannot create semaphore: value too large");
   }
 
   // Initialize
   
   if (pthread_mutex_init(&m_lock, NULL) != 0) {
-    throw AhuException("Cannot create semaphore: cannot allocate mutex");
+    throw PDNSException("Cannot create semaphore: cannot allocate mutex");
   }
 
   if (pthread_cond_init(&m_gtzero, NULL) != 0) {
     pthread_mutex_destroy(&m_lock);
-    throw AhuException("Cannot create semaphore: cannot allocate condition");
+    throw PDNSException("Cannot create semaphore: cannot allocate condition");
   }
 
   m_count = (uint32_t) value;

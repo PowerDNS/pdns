@@ -52,7 +52,7 @@ struct RemotebackendSetup {
                 ::arg().set("remote-connection-string")="http:url=http://localhost:62434/dns";
                 ::arg().set("remote-dnssec")="yes";
                 be = BackendMakers().all()[0];
-	} catch (AhuException &ex) {
+	} catch (PDNSException &ex) {
 		BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason );
 	};
     }

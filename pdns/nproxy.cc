@@ -304,7 +304,7 @@ catch(std::exception& e)
 {
   syslogFmt(boost::format("Fatal: %s") % e.what());
 }
-catch(AhuException& e)
+catch(PDNSException& e)
 {
   syslogFmt(boost::format("Fatal: %s") % e.reason);
 }

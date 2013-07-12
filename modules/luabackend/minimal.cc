@@ -47,7 +47,7 @@ LUABackend::LUABackend(const string &suffix) {
 
     catch(LUAException &e) {
         L<<Logger::Error<<backend_name<<"Error: "<<e.what<<endl;
-        throw AhuException(e.what);
+        throw PDNSException(e.what);
     }
 
 }

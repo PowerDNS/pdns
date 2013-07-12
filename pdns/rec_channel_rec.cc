@@ -660,9 +660,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
       L<<Logger::Error<<"reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
       return e.what() + string("\n");
     }
-    catch(AhuException& ae)
+    catch(PDNSException& ae)
     {
-      L<<Logger::Error<<"reloading ACLs failed (AhuException: "<<ae.reason<<")"<<endl;
+      L<<Logger::Error<<"reloading ACLs failed (PDNSException: "<<ae.reason<<")"<<endl;
       return ae.reason + string("\n");
     }
     return "ok\n";

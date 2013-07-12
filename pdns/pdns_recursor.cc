@@ -298,7 +298,7 @@ public:
   {
     socks_t::iterator i=d_socks.find(fd);
     if(i==d_socks.end()) {
-      throw AhuException("Trying to return a socket (fd="+lexical_cast<string>(fd)+") not in the pool");
+      throw PDNSException("Trying to return a socket (fd="+lexical_cast<string>(fd)+") not in the pool");
     }
     returnSocketLocked(i);
   }
@@ -307,7 +307,7 @@ public:
   void returnSocketLocked(socks_t::iterator& i)
   {
     if(i==d_socks.end()) {
-      throw AhuException("Trying to return a socket not in the pool");
+      throw PDNSException("Trying to return a socket not in the pool");
     }
     try {
       t_fdm->removeReadFD(*i);
@@ -330,7 +330,7 @@ public:
       return ret;
     
     if(ret<0) 
-      throw AhuException("Making a socket for resolver (family = "+lexical_cast<string>(family)+"): "+stringerror());
+      throw PDNSException("Making a socket for resolver (family = "+lexical_cast<string>(family)+"): "+stringerror());
 
     Utility::setCloseOnExec(ret);
 
@@ -349,7 +349,7 @@ public:
         break;
     }
     if(!tries)
-      throw AhuException("Resolver binding to local query client socket: "+stringerror());
+      throw PDNSException("Resolver binding to local query client socket: "+stringerror());
     
     Utility::setNonBlocking(ret);
     return ret;
@@ -674,7 +674,7 @@ void startDoResolve(void *p)
     delete dc;
     dc=0;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"startDoResolve problem"<<loginfo<<": "<<ae.reason<<endl;
     delete dc;
   }
@@ -938,7 +938,7 @@ void makeTCPServerSockets()
   stringtok(locals,::arg()["local-address"]," ,");
 
   if(locals.empty())
-    throw AhuException("No local address specified");
+    throw PDNSException("No local address specified");
   
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     ServiceTuple st;
@@ -952,14 +952,14 @@ void makeTCPServerSockets()
     if(!IpToU32(st.host, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
       if(makeIPv6sockaddr(st.host, &sin.sin6) < 0)
-        throw AhuException("Unable to resolve local address for TCP server on '"+ st.host +"'"); 
+        throw PDNSException("Unable to resolve local address for TCP server on '"+ st.host +"'"); 
     }
 
     fd=socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
     Utility::setCloseOnExec(fd);
 
     if(fd<0) 
-      throw AhuException("Making a TCP server socket for resolver: "+stringerror());
+      throw PDNSException("Making a TCP server socket for resolver: "+stringerror());
 
     int tmp=1;
     if(setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -977,7 +977,7 @@ void makeTCPServerSockets()
     sin.sin4.sin_port = htons(st.port);
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0) 
-      throw AhuException("Binding TCP server socket for "+ st.host +": "+stringerror());
+      throw PDNSException("Binding TCP server socket for "+ st.host +": "+stringerror());
     
     Utility::setNonBlocking(fd);
     setSocketSendBuffer(fd, 65000);
@@ -1000,7 +1000,7 @@ void makeUDPServerSockets()
   stringtok(locals,::arg()["local-address"]," ,");
 
   if(locals.empty())
-    throw AhuException("No local address specified");
+    throw PDNSException("No local address specified");
   
   if(::arg()["local-address"]=="0.0.0.0") {
     L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
@@ -1018,14 +1018,14 @@ void makeUDPServerSockets()
     if(!IpToU32(st.host.c_str() , (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
       if(makeIPv6sockaddr(st.host, &sin.sin6) < 0)
-        throw AhuException("Unable to resolve local address for UDP server on '"+ st.host +"'"); 
+        throw PDNSException("Unable to resolve local address for UDP server on '"+ st.host +"'"); 
     }
     
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
     Utility::setCloseOnExec(fd);
 
     if(fd < 0) {
-      throw AhuException("Making a UDP server socket for resolver: "+netstringerror());
+      throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
     }
 
     setSocketReceiveBuffer(fd, 200000);
@@ -1033,7 +1033,7 @@ void makeUDPServerSockets()
 
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0) 
-      throw AhuException("Resolver binding to server socket on port "+ lexical_cast<string>(st.port) +" for "+ st.host+": "+stringerror());
+      throw PDNSException("Resolver binding to server socket on port "+ lexical_cast<string>(st.port) +" for "+ st.host+": "+stringerror());
     
     Utility::setNonBlocking(fd);
 
@@ -1177,7 +1177,7 @@ try
       L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
   }
 }
-catch(AhuException& ae)
+catch(PDNSException& ae)
 {
   L<<Logger::Error<<"Fatal error: "<<ae.reason<<endl;
   throw;
@@ -1341,7 +1341,7 @@ void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   catch(std::exception& e) {
     L<<Logger::Error<<"Error dealing with control socket request: "<<e.what()<<endl;
   }
-  catch(AhuException& ae) {
+  catch(PDNSException& ae) {
     L<<Logger::Error<<"Error dealing with control socket request: "<<ae.reason<<endl;
   }
 }
@@ -1571,7 +1571,7 @@ try
     return new string("ok\n");
   }
 }
-catch(AhuException& ae)
+catch(PDNSException& ae)
 {
   return new string(ae.reason+"\n");
 }
@@ -1948,7 +1948,7 @@ try
     }
   }
 }
-catch(AhuException &ae) {
+catch(PDNSException &ae) {
   L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
   return 0;
 }
@@ -2118,7 +2118,7 @@ int main(int argc, char **argv)
 #endif
 
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
     ret=EXIT_FAILURE;
   }

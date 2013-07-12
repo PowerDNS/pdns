@@ -374,8 +374,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       di.backend->abortTransaction();
     }
   }
-  catch(AhuException &ae) {
-    L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (AhuException): "<<ae.reason<<endl;
+  catch(PDNSException &ae) {
+    L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (PDNSException): "<<ae.reason<<endl;
     if(di.backend && !first) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
@@ -430,7 +430,7 @@ struct SlaveSenderReceiver
           dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
       );
     }
-    catch(AhuException& e) {
+    catch(PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone+"': "+e.reason);
     }
   }
@@ -556,7 +556,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     catch(std::exception& e) {
       L<<Logger::Error<<"While checking domain freshness: " << e.what()<<endl;
     }
-    catch(AhuException &re) {  
+    catch(PDNSException &re) {  
       L<<Logger::Error<<"While checking domain freshness: " << re.reason<<endl;
     }
   }

@@ -97,7 +97,7 @@ void CommunicatorClass::mainloop(void)
       }
     }
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
     Utility::sleep(1);
     exit(0);

@@ -551,7 +551,7 @@ catch(std::exception &e)
 {
   errlog("Fatal: %s", e.what());
 }
-catch(AhuException &ae)
+catch(PDNSException &ae)
 {
   errlog("Fatal: %s", ae.reason);
 }

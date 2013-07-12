@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     
     cout<<resp<<endl;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     cerr<<"Fatal error: "<<ae.reason<<endl;
     return 1;
   }

@@ -37,10 +37,10 @@
 #include "iputils.hh"
 #include "ahuexception.hh"
 
-class SessionException: public AhuException
+class SessionException: public PDNSException
 {
 public:
-  SessionException(const string &reason) : AhuException(reason){}
+  SessionException(const string &reason) : PDNSException(reason){}
 };
 
 class SessionTimeoutException: public SessionException

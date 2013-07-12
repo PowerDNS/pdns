@@ -10,7 +10,7 @@
 UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> options) {
    if (options.count("path") == 0) {
      L<<Logger::Error<<"Cannot find 'path' option in connection string"<<endl;
-     throw new AhuException();
+     throw new PDNSException();
    } 
    this->timeout = 2000;
    if (options.find("timeout") != options.end()) { 

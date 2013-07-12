@@ -67,7 +67,7 @@ void TCPNameserver::go()
   try {
     s_P=new PacketHandler;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<Logger::NTLog<<"TCP server is unable to launch backends - will try again when questions come in"<<endl;
     L<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
   }
@@ -80,7 +80,7 @@ void *TCPNameserver::launcher(void *data)
   return 0;
 }
 
-// throws AhuException if things didn't go according to plan, returns 0 if really 0 bytes were read
+// throws PDNSException if things didn't go according to plan, returns 0 if really 0 bytes were read
 int readnWithTimeout(int fd, void* buffer, unsigned int n, bool throwOnEOF=true)
 {
   unsigned int bytes=n;
@@ -349,7 +349,7 @@ void *TCPNameserver::doConnection(void *data)
 
     L<<Logger::Error<<"TCP Connection Thread unable to answer a question because of a backend error, cycling"<<endl;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     Lock l(&s_plock);
     delete s_P;
     s_P = 0; // on next call, backend will be recycled
@@ -851,7 +851,7 @@ TCPNameserver::TCPNameserver()
   stringtok(locals6,::arg()["local-ipv6"]," ,");
 
   if(locals.empty() && locals6.empty())
-    throw AhuException("No local address specified");
+    throw PDNSException("No local address specified");
 
   vector<string> parts;
   stringtok( parts, ::arg()["allow-axfr-ips"], ", \t" ); // is this IP on the guestlist?
@@ -867,7 +867,7 @@ TCPNameserver::TCPNameserver()
     int s=socket(AF_INET,SOCK_STREAM,0); 
     
     if(s<0) 
-      throw AhuException("Unable to acquire TCP socket: "+stringerror());
+      throw PDNSException("Unable to acquire TCP socket: "+stringerror());
 
     Utility::setCloseOnExec(s);
 
@@ -881,7 +881,7 @@ TCPNameserver::TCPNameserver()
     
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
-      throw AhuException("Unable to bind to TCP socket");
+      throw PDNSException("Unable to bind to TCP socket");
     }
     
     listen(s,128);
@@ -900,7 +900,7 @@ TCPNameserver::TCPNameserver()
     int s=socket(AF_INET6,SOCK_STREAM,0); 
 
     if(s<0) 
-      throw AhuException("Unable to acquire TCPv6 socket: "+stringerror());
+      throw PDNSException("Unable to acquire TCPv6 socket: "+stringerror());
 
     Utility::setCloseOnExec(s);
 
@@ -916,7 +916,7 @@ TCPNameserver::TCPNameserver()
     }
     if(bind(s, (const sockaddr*)&local, local.getSocklen())<0) {
       L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
-      throw AhuException("Unable to bind to TCPv6 socket");
+      throw PDNSException("Unable to bind to TCPv6 socket");
     }
     
     listen(s,128);
@@ -979,7 +979,7 @@ void TCPNameserver::thread()
       }
     }
   }
-  catch(AhuException &AE) {
+  catch(PDNSException &AE) {
     L<<Logger::Error<<"TCP Nameserver thread dying because of fatal error: "<<AE.reason<<endl;
   }
   catch(...) {

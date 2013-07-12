@@ -751,7 +751,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   try {
     db->createSlaveDomain(p->getRemote(),p->qdomain,account);
   }
-  catch(AhuException& ae) {
+  catch(PDNSException& ae) {
     L<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<": "<<ae.reason<<endl;
     return RCode::ServFail;
   }
@@ -1413,7 +1413,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",p->qdomain);
   }
-  catch(AhuException &e) {
+  catch(PDNSException &e) {
     L<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+") sending out servfail"<<endl;
     throw; // we WANT to die at this point
   }

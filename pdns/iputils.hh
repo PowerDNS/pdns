@@ -120,7 +120,7 @@ union ComboAddress {
     if(makeIPv4sockaddr(str, &sin4)) {
       sin6.sin6_family = AF_INET6;
       if(makeIPv6sockaddr(str, &sin6) < 0)
-        throw AhuException("Unable to convert presentation address '"+ str +"'"); 
+        throw PDNSException("Unable to convert presentation address '"+ str +"'"); 
       
     }
     if(!sin4.sin_port) // 'str' overrides port!
@@ -148,7 +148,7 @@ union ComboAddress {
   ComboAddress mapToIPv4() const
   {
     if(!isMappedIPv4())
-      throw AhuException("ComboAddress can't map non-mapped IPv6 address back to IPv4");
+      throw PDNSException("ComboAddress can't map non-mapped IPv6 address back to IPv4");
     ComboAddress ret;
     ret.sin4.sin_family=AF_INET;
     ret.sin4.sin_port=sin4.sin_port;
@@ -177,10 +177,10 @@ union ComboAddress {
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
-class NetmaskException: public AhuException 
+class NetmaskException: public PDNSException 
 {
 public:
-  NetmaskException(const string &a) : AhuException(a) {}
+  NetmaskException(const string &a) : PDNSException(a) {}
 };
 
 inline ComboAddress makeComboAddress(const string& str)

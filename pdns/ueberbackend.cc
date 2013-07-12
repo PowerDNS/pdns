@@ -393,7 +393,7 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
 {
   if(stale) {
     L<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
-    throw AhuException("We are stale, please recycle");
+    throw PDNSException("We are stale, please recycle");
   }
 
   DLOG(L<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname<<endl);
@@ -418,7 +418,7 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   if(!backends.size()) {
     L<<Logger::Error<<Logger::NTLog<<"No database backends available - unable to answer questions."<<endl;
     stale=true; // please recycle us! 
-    throw AhuException("We are stale, please recycle");
+    throw PDNSException("We are stale, please recycle");
   }
   else {
     d_question.qtype=qtype;

@@ -65,7 +65,7 @@ int PDNSService::main( int argc, char *argv[] )
     L << Logger::Info << Logger::NTLog << "PowerDNS " << VERSION << " (C) 2001-2003 PowerDNS.COM BV (" << __DATE__ ", " __TIME__<< ") starting up" << endl;
     mainthread();
   }
-  catch(AhuException &AE) {
+  catch(PDNSException &AE) {
     if(!PDNSService::isRunningAsService())
       cerr<<"Exiting because: "<<AE.reason<<endl;
     L<<Logger::Error<<Logger::NTLog<<"Exiting because: "<<AE.reason<<endl;

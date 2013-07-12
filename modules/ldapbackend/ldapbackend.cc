@@ -73,7 +73,7 @@ LdapBackend::LdapBackend( const string &suffix )
         }
 
         if( m_pldap != NULL ) { delete( m_pldap ); }
-        throw( AhuException( "Unable to connect to ldap server" ) );
+        throw( PDNSException( "Unable to connect to ldap server" ) );
 }
 
 
@@ -104,7 +104,7 @@ bool LdapBackend::list( const string& target, int domain_id )
         catch( LDAPException &le )
         {
         	L << Logger::Error << m_myname << " Unable to get zone " + target + " from LDAP directory: " << le.what() << endl;
-        	throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
+        	throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
         catch( std::exception &e )
         {
@@ -184,7 +184,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
         catch( LDAPException &le )
         {
         	L << Logger::Error << m_myname << " Unable to search LDAP directory: " << le.what() << endl;
-        	throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
+        	throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
         catch( std::exception &e )
         {
@@ -474,7 +474,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
         catch( LDAPException &le )
         {
         	L << Logger::Error << m_myname << " Search failed: " << le.what() << endl;
-        	throw( AhuException( "LDAP server unreachable" ) );   // try to reconnect to another server
+        	throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
         catch( std::exception &e )
         {

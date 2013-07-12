@@ -57,13 +57,13 @@ OdbxBackend::OdbxBackend( const string& suffix )
         		stringtok( m_hosts[WRITE], getArg( "host-write" ), ", " );
         	}
 
-        	if( !connectTo( m_hosts[READ], READ ) ) { throw( AhuException( "Fatal: Connecting to server for reading failed" ) ); }
-        	if( !connectTo( m_hosts[WRITE], WRITE ) ) { throw( AhuException( "Fatal: Connecting to server for writing failed" ) ); }
+        	if( !connectTo( m_hosts[READ], READ ) ) { throw( PDNSException( "Fatal: Connecting to server for reading failed" ) ); }
+        	if( !connectTo( m_hosts[WRITE], WRITE ) ) { throw( PDNSException( "Fatal: Connecting to server for writing failed" ) ); }
         }
         catch( std::exception& e )
         {
         	L.log( m_myname + " OdbxBackend(): Caught STL exception - " + e.what(),  Logger::Error );
-        	throw( AhuException( "Fatal: STL exception" ) );
+        	throw( PDNSException( "Fatal: STL exception" ) );
         }
 }
 

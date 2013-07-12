@@ -101,10 +101,10 @@ string DynListener::getLine()
   DWORD bytesRead;
 
   if ( !ConnectNamedPipe( m_pipeHandle, NULL ))
-    throw AhuException( "Reading from named pipe failed." );
+    throw PDNSException( "Reading from named pipe failed." );
 
   if ( !ReadFile( m_pipeHandle, mesg, sizeof( mesg ), &bytesRead, NULL ))
-    throw AhuException( "Reading from named pipe failed." );  
+    throw PDNSException( "Reading from named pipe failed." );  
 
   return mesg;
 }
@@ -160,7 +160,7 @@ void DynListener::theListener()
       sendLine((*d_funcdb[parts[0]])(parts,d_ppid));
     }
   }
-  catch(AhuException &AE)
+  catch(PDNSException &AE)
     {
       L<<Logger::Error<<"Fatal: "<<AE.reason<<endl;
     }

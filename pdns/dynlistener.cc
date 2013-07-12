@@ -72,7 +72,7 @@ void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t 
   
   int tmp=1;
   if(setsockopt(d_s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
-    throw AhuException(string("Setsockopt failed on control socket: ")+strerror(errno));
+    throw PDNSException(string("Setsockopt failed on control socket: ")+strerror(errno));
     
   if(bind(d_s, local, len) < 0) {
     if (family == AF_UNIX)
@@ -262,14 +262,14 @@ string DynListener::getLine()
   else {
     if(isatty(0))
       if(write(1, "% ", 2) !=2)
-        throw AhuException("Writing to console: "+stringerror());
+        throw PDNSException("Writing to console: "+stringerror());
     if((len=read(0, &mesg[0], mesg.size())) < 0) 
-      throw AhuException("Reading from the control pipe: "+stringerror());
+      throw PDNSException("Reading from the control pipe: "+stringerror());
     else if(len==0)
-      throw AhuException("Guardian exited - going down as well");
+      throw PDNSException("Guardian exited - going down as well");
 
     if(len == (int)mesg.size()) {
-      throw AhuException("Line on control console was too long");
+      throw PDNSException("Line on control console was too long");
     }
     mesg[len]=0;
   }
@@ -346,7 +346,7 @@ void DynListener::theListener()
       sendLine((*(s_funcdb[parts[0]].func))(parts,d_ppid));
     }
   }
-  catch(AhuException &AE)
+  catch(PDNSException &AE)
     {
       L<<Logger::Error<<"Fatal error in control listener: "<<AE.reason<<endl;
     }

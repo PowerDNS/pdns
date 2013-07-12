@@ -112,7 +112,7 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
 void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial) {
 	Lock l(&s_domainInfoLock);
 	if (!s_domainInfo.count(d_suffix)) {
-		throw new AhuException("Can't get list of domains to set the serial.");
+		throw new PDNSException("Can't get list of domains to set the serial.");
 	}
 	TDI_t *domains = &s_domainInfo[d_suffix];
 	TDIById_t& domain_index = domains->get<tag_domainid>();

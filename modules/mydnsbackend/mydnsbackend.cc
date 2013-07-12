@@ -54,7 +54,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
         }
         catch(SSqlException &e) {
         	L<<Logger::Error<<backendName<<" Connection failed: "<<e.txtReason()<<endl;
-        	throw AhuException(backendName+"Unable to launch connection: "+e.txtReason());
+        	throw PDNSException(backendName+"Unable to launch connection: "+e.txtReason());
         }
 
         d_rrtable=getArg("rr-table");
@@ -76,7 +76,7 @@ void MyDNSBackend::Query(const string &query) {
         try {
         	d_db->doQuery(query);
         } catch (SSqlException &e) {
-        	throw AhuException("Query failed: "+e.txtReason());
+        	throw PDNSException("Query failed: "+e.txtReason());
         }
 }
 
@@ -225,7 +225,7 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         	this->Query(query);
 
         	if(!d_db->getRow(rrow)) {
-        		throw AhuException("lookup() passed zoneId = "+zoneIdStr+" but no such zone!");
+        		throw PDNSException("lookup() passed zoneId = "+zoneIdStr+" but no such zone!");
         	}
         	
         	found = true;

@@ -42,7 +42,7 @@ void StatBag::exists(const string &key)
   if(!d_stats.count(key))
     {
       unlock(); // it's the details that count
-      throw AhuException("Trying to deposit into unknown StatBag key '"+key+"'");
+      throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
     }
 }
 

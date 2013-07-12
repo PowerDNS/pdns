@@ -65,7 +65,7 @@ void CoWrapper::send(const string &line)
       d_cp->send(line);
       return;
    }
-   catch(AhuException &ae) {
+   catch(PDNSException &ae) {
       delete d_cp;
       d_cp=0;
       throw;
@@ -78,7 +78,7 @@ void CoWrapper::receive(string &line)
       d_cp->receive(line);
       return;
    }
-   catch(AhuException &ae) {
+   catch(PDNSException &ae) {
       L<<Logger::Warning<<kBackendId<<" unable to receive data from coprocess. "<<ae.reason<<endl;
       delete d_cp;
       d_cp=0;
@@ -138,7 +138,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
          d_coproc->send(query.str());
       }
    }
-   catch(AhuException &ae) {
+   catch(PDNSException &ae) {
       L<<Logger::Error<<kBackendId<<" Error from coprocess: "<<ae.reason<<endl;
       throw; // hop
    }
@@ -159,7 +159,7 @@ bool PipeBackend::list(const string &target, int inZoneId)
 
       d_coproc->send(query.str());
    }
-   catch(AhuException &ae) {
+   catch(PDNSException &ae) {
       L<<Logger::Error<<kBackendId<<" Error from coprocess: "<<ae.reason<<endl;
       throw;
    }
@@ -204,7 +204,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
       stringtok(parts,line,"\t");
       if(parts.empty()) {
          L<<Logger::Error<<kBackendId<<" coprocess returned emtpy line in query for "<<d_qname<<endl;
-         throw AhuException("Format error communicating with coprocess");
+         throw PDNSException("Format error communicating with coprocess");
       }
       else if(parts[0]=="FAIL") {
          throw DBException("coprocess returned a FAIL");
@@ -219,7 +219,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
       else if(parts[0]=="DATA") { // yay
          if(parts.size() < 7 + extraFields) {
             L<<Logger::Error<<kBackendId<<" coprocess returned incomplete or empty line in data section for query for "<<d_qname<<endl;
-            throw AhuException("Format error communicating with coprocess in data section");
+            throw PDNSException("Format error communicating with coprocess in data section");
             // now what?
          }
          
@@ -246,7 +246,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
          else {
            if(parts.size()< 8 + extraFields) {
             L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX/SRV line in data section for query for "<<d_qname<<endl;
-            throw AhuException("Format error communicating with coprocess in data section of MX/SRV record");
+            throw PDNSException("Format error communicating with coprocess in data section of MX/SRV record");
            }
            
            r.priority=atoi(parts[6+extraFields].c_str());
@@ -255,7 +255,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
          break;
       }
       else
-         throw AhuException("Coprocess backend sent incorrect response '"+line+"'");
+         throw PDNSException("Coprocess backend sent incorrect response '"+line+"'");
    }   
    return true;
 }

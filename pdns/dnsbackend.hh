@@ -70,7 +70,7 @@ class DNSPacket;
     issues should lead to DBExceptions.
 
     More serious errors, which may indicate that the database connection is hosed, or a configuration error occurred, should
-    lead to the throwing of an AhuException. This exception will fall straight through the UeberBackend and the PacketHandler
+    lead to the throwing of an PDNSException. This exception will fall straight through the UeberBackend and the PacketHandler
     and be caught by the Distributor, which will delete your DNSBackend instance and spawn a new one.
 */
 class DNSBackend
@@ -310,10 +310,10 @@ private:
 extern BackendMakerClass &BackendMakers();
 
 //! Exception that can be thrown by a DNSBackend to indicate a failure
-class DBException : public AhuException
+class DBException : public PDNSException
 {
 public:
-  DBException(const string &reason) : AhuException(reason){}
+  DBException(const string &reason) : PDNSException(reason){}
 };
 
 

@@ -36,7 +36,7 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
   catch( SSqlException & e ) 
   {
     L << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
-    throw AhuException( "Unable to launch " + mode + " connection: " + e.txtReason());
+    throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
   L << Logger::Info << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;

@@ -252,7 +252,7 @@ string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
     P.getBackend()->rediscover(&status);
     return status;
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     return ae.reason;
   }
 

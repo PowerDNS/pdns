@@ -25,16 +25,16 @@
 #include "namespaces.hh"
 
 //! Generic Exception thrown 
-class AhuException
+class PDNSException
 {
 public:
-  AhuException(){reason="Unspecified";};
-  AhuException(string r){reason=r;};
+  PDNSException(){reason="Unspecified";};
+  PDNSException(string r){reason=r;};
   
   string reason; //! Print this to tell the user what went wrong
 };
 
-class TimeoutException : public AhuException
+class TimeoutException : public PDNSException
 {};
 
 #endif

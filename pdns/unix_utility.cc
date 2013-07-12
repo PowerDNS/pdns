@@ -44,7 +44,7 @@ int Utility::closesocket( Utility::sock_t socket )
   if(ret < 0 && errno == ECONNRESET) // see ticket 192, odd BSD behaviour
     return 0;
   if(ret < 0) 
-    throw AhuException("Error closing socket: "+stringerror());
+    throw PDNSException("Error closing socket: "+stringerror());
   return ret;
 }
 

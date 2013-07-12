@@ -168,7 +168,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
 {
   vector<DNSBackend *>ret;
   if(d_instances.empty())
-    throw AhuException("No database backends configured for launch, unable to function");
+    throw PDNSException("No database backends configured for launch, unable to function");
 
   try {
     for(vector<pair<string,string> >::const_iterator i=d_instances.begin();i!=d_instances.end();++i) {
@@ -178,12 +178,12 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
       else 
         made = d_repository[i->first]->make(i->second);
       if(!made)
-        throw AhuException("Unable to launch backend '"+i->first+"'");
+        throw PDNSException("Unable to launch backend '"+i->first+"'");
 
       ret.push_back(made);
     }
   }
-  catch(AhuException &ae) {
+  catch(PDNSException &ae) {
     L<<Logger::Error<<"Caught an exception instantiating a backend: "<<ae.reason<<endl;
     L<<Logger::Error<<"Cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)

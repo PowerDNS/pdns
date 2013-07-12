@@ -249,7 +249,7 @@ DB2Backend::DB2Backend(const string &suffix)
       }
       
       this->Cleanup();
-      throw AhuException("DB2Backend Failed to Start");
+      throw PDNSException("DB2Backend Failed to Start");
    }
    
    L << Logger::Warning << kBackendName << " Connection succeeded" << endl;
@@ -387,7 +387,7 @@ void DB2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_
       // Rethrow for the nameserver
       //
       
-      throw AhuException("Execute failed");
+      throw PDNSException("Execute failed");
    }
 }
 
@@ -430,7 +430,7 @@ bool DB2Backend::list(int inZoneId)
 
    catch (DB2Exception& theException)
    {
-      throw AhuException("List failed");
+      throw PDNSException("List failed");
    }
 
    return theResult;
@@ -494,7 +494,7 @@ bool DB2Backend::get(DNSResourceRecord& outRecord)
       // Rethrow for the nameserver
       //
       
-      throw AhuException("Fetch failed");
+      throw PDNSException("Fetch failed");
    }
    
    return theResult;
@@ -568,7 +568,7 @@ bool DB2Backend::getSOA(const string& inZoneName, SOAData& outSoaData)
       // Rethrow for the nameserver
       //
       
-      throw AhuException("GetSOA failed");
+      throw PDNSException("GetSOA failed");
    }
    
    return theResult;

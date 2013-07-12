@@ -54,7 +54,7 @@ struct RemotebackendSetup {
 		SOARecordContent::report();
 		NSRecordContent::report();
                 ARecordContent::report();
-	} catch (AhuException &ex) {
+	} catch (PDNSException &ex) {
 		BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason );
 	};
     }

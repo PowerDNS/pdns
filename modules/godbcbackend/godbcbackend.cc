@@ -27,7 +27,7 @@ gODBCBackend::gODBCBackend (const std::string & mode, const std::string & suffix
   catch( SSqlException & e ) 
   {
     L<<Logger::Error<< mode << " Connection failed: " << e.txtReason() << std::endl;
-    throw AhuException( "Unable to launch " + mode + " connection: " + e.txtReason());
+    throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
   L << Logger::Warning << mode << " Connection successful" << std::endl;

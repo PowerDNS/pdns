@@ -282,7 +282,7 @@ static void parseService4(const string &descr, ServiceTuple &st)
   vector<string>parts;
   stringtok(parts,descr,":");
   if(parts.empty())
-    throw AhuException("Unable to parse '"+descr+"' as a service");
+    throw PDNSException("Unable to parse '"+descr+"' as a service");
   st.host=parts[0];
   if(parts.size()>1)
     st.port=atoi(parts[1].c_str());
@@ -292,7 +292,7 @@ static void parseService6(const string &descr, ServiceTuple &st)
 {
   string::size_type pos=descr.find(']');
   if(pos == string::npos)
-    throw AhuException("Unable to parse '"+descr+"' as an IPv6 service");
+    throw PDNSException("Unable to parse '"+descr+"' as an IPv6 service");
 
   st.host=descr.substr(1, pos-1);
   if(pos + 2 < descr.length())
@@ -303,7 +303,7 @@ static void parseService6(const string &descr, ServiceTuple &st)
 void parseService(const string &descr, ServiceTuple &st)
 {
   if(descr.empty())
-    throw AhuException("Unable to parse '"+descr+"' as a service");
+    throw PDNSException("Unable to parse '"+descr+"' as a service");
 
   vector<string> parts;
   stringtok(parts, descr, ":");
@@ -804,5 +804,5 @@ bool stringfgets(FILE* fp, std::string& line)
 Regex::Regex(const string &expr)
 {
   if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
-    throw AhuException("Regular expression did not compile");
+    throw PDNSException("Regular expression did not compile");
 }

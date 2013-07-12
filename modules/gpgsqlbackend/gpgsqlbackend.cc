@@ -28,7 +28,7 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
   
   catch(SSqlException &e) {
     L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
-    throw AhuException("Unable to launch "+mode+" connection: "+e.txtReason());
+    throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
   L<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
 }

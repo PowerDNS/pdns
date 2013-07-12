@@ -34,7 +34,7 @@
 
 #include "namespaces.hh"
 
-typedef AhuException ArgException;
+typedef PDNSException ArgException;
 
 /** This class helps parsing argc and argv into a map of parameters. We have 3 kinds of formats:
 

@@ -31,7 +31,7 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   Utility::setCloseOnExec(d_s);
   
   if(d_s<0) {
-    throw AhuException(string("socket")+strerror(errno));
+    throw PDNSException(string("socket")+strerror(errno));
   }
   
   memset(&d_local,0,sizeof(d_local));
@@ -43,13 +43,13 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   strcpy(d_local.sun_path,localname.c_str());
 
   if(mkstemp(d_local.sun_path)<0)
-    throw AhuException("Unable to generate local temporary file: "+string(strerror(errno)));
+    throw PDNSException("Unable to generate local temporary file: "+string(strerror(errno)));
   
   unlink(d_local.sun_path);
   
   if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0) {
     unlink(d_local.sun_path);
-    throw AhuException("Unable to bind to local temporary file: "+string(strerror(errno)));
+    throw PDNSException("Unable to bind to local temporary file: "+string(strerror(errno)));
   }
   
   if(chmod(d_local.sun_path,0666)<0) { // make sure that pdns can reply!
@@ -64,7 +64,7 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   strcpy(d_remote.sun_path,fname.c_str());
   if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0) {
     unlink(d_local.sun_path);
-    throw AhuException("Unable to connect to remote '"+fname+"': "+string(strerror(errno)));
+    throw PDNSException("Unable to connect to remote '"+fname+"': "+string(strerror(errno)));
   }
   
 }
@@ -76,12 +76,12 @@ DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
   Utility::setCloseOnExec(d_s);
  
   if(d_s<0) {
-    throw AhuException(string("socket")+strerror(errno));
+    throw PDNSException(string("socket")+strerror(errno));
   }
   
   if(connect(d_s, (sockaddr*)&remote, remote.getSocklen())<0) {
     close(d_s);
-    throw AhuException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
+    throw PDNSException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
   }
 
   string login=secret+"\n";
@@ -113,7 +113,7 @@ string DynMessenger::receive() const
   for(;;) {
     retlen=recv(d_s,buffer,sizeof(buffer),0);
     if(retlen<0)
-      throw AhuException("Error from remote: "+string(strerror(errno)));
+      throw PDNSException("Error from remote: "+string(strerror(errno)));
 
     answer.append(buffer,retlen);
     if(retlen!=sizeof(buffer))
