@@ -415,6 +415,11 @@
 # trusted-notification-proxy=
 
 #################################
+# udp-truncation-threshold	Maximum UDP response size before we truncate
+#
+# udp-truncation-threshold=1680
+
+#################################
 # urlredirector	Where we send hosts to that need to be url redirected
 #
 # urlredirector=127.0.0.1
