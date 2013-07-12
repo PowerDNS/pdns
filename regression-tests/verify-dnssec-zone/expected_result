@@ -26,7 +26,7 @@ zone verified.
 RETVAL: 0
 
 --- named-checkzone test.dyndns
-zone test.dyndns/IN: loaded serial 2050101001 (DNSSEC signed)
+zone test.dyndns/IN: loaded serial 2012060701 (DNSSEC signed)
 OK
 RETVAL: 0
 

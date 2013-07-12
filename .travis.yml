@@ -37,7 +37,6 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-optout-presigned 
  - ./start-test-stop 5300 gmysql-nsec3-narrow
  - ./start-test-stop 5300 tinydns
- - ./start-test-stop 5300 mydns
  - ./start-test-stop 5300 gmysql nowait 3600
  - ./start-test-stop 5300 gmysql-presigned nowait 3600
  - ./start-test-stop 5300 gmysql-nsec3 nowait 3600
@@ -47,6 +46,7 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-optout-presigned nowait 3600
  - cd ../regression-tests.nobackend/
  - ./runtests
+ - test ! -s ./failed_tests
 notifications:
   irc:
     channels:
