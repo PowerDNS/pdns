@@ -155,8 +155,40 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
       throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname+"!="+ origQname+".)");
   }
     
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {       
-    DNSResourceRecord rr(i->first);   
+  vector<DNSResourceRecord> ret; 
+  DNSResourceRecord rr;
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+    rr.qname = i->first.d_label;
+    if(!rr.qname.empty())
+      boost::erase_tail(rr.qname, 1); // strip .
+    rr.qtype = i->first.d_type;
+    rr.ttl = i->first.d_ttl;
+    rr.content = i->first.d_content->getZoneRepresentation();
+    rr.priority = 0;
+    
+    uint16_t qtype=rr.qtype.getCode();
+
+    if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
+      boost::erase_tail(rr.content, 1);
+
+    if(rr.qtype.getCode() == QType::MX) {
+      vector<string> parts;
+      stringtok(parts, rr.content);
+      rr.priority = atoi(parts[0].c_str());
+      if(parts.size() > 1)
+        rr.content=parts[1];
+      else
+        rr.content=".";
+    } else if(rr.qtype.getCode() == QType::SRV) {
+      rr.priority = atoi(rr.content.c_str());
+      vector<pair<string::size_type, string::size_type> > fields;
+      vstringtok(fields, rr.content, " ");
+      if(fields.size()==4) {
+	if(fields[3].second - fields[3].first > 1) // strip dot, unless root
+	  fields[3].second--;
+        rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
+      }
+    }
     result->push_back(rr);
   }
   
