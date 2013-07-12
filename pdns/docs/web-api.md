@@ -10,6 +10,17 @@ Finally, there is a program called 'pdnsmgrd' that also provides an API for stop
 
 The JSON API suports JSON and JSONp.
 
+To get you started, try on the Authoritative Server:
+
+    $ curl http://127.0.0.1:8081/jsonstat?command=domains
+    {"domains":[{"name":"unsigned.workbench.sidnlabs.nl","kind":"Slave","masters":"94.198.152.169","serial":2013061100,"notified_serial":3519254080,"last_check":1371046625}]}
+
+    $ curl 'http://127.0.0.1:8081/jsonstat?command=get-zone&zone=unsigned.workbench.sidnlabs.nl'
+    [{"content":"nsd.sidnlabs.nl. hostmaster.sidnlabs.nl. 2013061100 3600 600 1814400 3600",
+    "name":"unsigned.workbench.sidnlabs.nl","priority":"0","ttl":"86400","type":"SOA"}, 
+    {"content":"nsd.sidnlabs.nl","name":"unsigned.workbench.sidnlabs.nl","priority":"0","ttl":"3600","type":"NS"},...
+
+
 Common API calls
 ----------------
  * config  
