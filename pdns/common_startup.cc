@@ -75,7 +75,7 @@ void declareArguments()
   ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   ::arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
   ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
-  
+  ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   ::arg().set("disable-axfr","Do not allow zone transfers")="no";
   
@@ -339,6 +339,7 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_addSuperfluousNSEC3 = ::arg().mustDo("add-superfluous-nsec3-for-old-bind");
+   DNSPacket::s_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
    {
       std::vector<std::string> codes;

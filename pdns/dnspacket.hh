@@ -159,6 +159,7 @@ public:
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
   TSIGRecordContent d_trc;
   static bool s_doEDNSSubnetProcessing;
+  static uint16_t s_udpTruncationThreshold;
   static std::vector<int> s_ednssubnetcodes;
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies

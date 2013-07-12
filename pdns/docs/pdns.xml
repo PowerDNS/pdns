@@ -15530,6 +15530,13 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	    <listitem><para>
 			IP address of incoming notification proxy
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>udp-truncation-threshold=...</term>
+	    <listitem><para>
+		EDNS0 allows for large UDP response datagrams, which can potentially raise performance. Large responses however
+		also have downsides in terms of reflection attacks. Up till PowerDNS Authoritative Server 3.3, the truncation limit
+		was set at 1680 bytes, regardless of EDNS0 buffer size indications from the client. Beyond 3.3, this setting makes
+		our truncation limit configurable. Maximum value is 65535, but values above 4096 should probably not be attempted.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>urlredirector=...</term>
 	    <listitem><para>
 		Where we send hosts to that need to be url redirected. See <xref linkend="fancy-records"/>.
