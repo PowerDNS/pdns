@@ -77,6 +77,7 @@ void declareArguments()
   ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   ::arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
   ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
+
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   ::arg().set("disable-axfr","Do not allow zone transfers")="no";
@@ -179,7 +180,6 @@ void declareStats(void)
   S.declare("rfc2136-answers", "RFC2136 packets succesfully answered.");
   S.declare("rfc2136-refused", "RFC2136 packets that are refused.");
   S.declare("rfc2136-changes", "RFC2136 changes to records in total.");
-
 
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("latency","Average number of microseconds needed to answer a question");

@@ -37,7 +37,7 @@ QType::QType()
 
 bool QType::isSupportedType() {
   for(vector<namenum>::iterator pos=names.begin();pos<names.end();++pos)
-    if(pos->second==code) 
+    if(pos->second==code)
       return true;
   return false;
 }
@@ -47,12 +47,11 @@ bool QType::isMetadataType() {
       code == QType::MAILA ||
       code == QType::MAILB ||
       code == QType::TSIG ||
-      code == QType::IXFR)  
+      code == QType::IXFR)
     return true;
 
   return false;
 }
-
 
 uint16_t QType::getCode() const
 {

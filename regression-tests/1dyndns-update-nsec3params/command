@@ -1,12 +1,12 @@
 #!/bin/bash
-	
+
 NSEC3=`cleandig test.dyndns NSEC3PARAM hidesoadetails dnssec`
 echo $NSEC3
 HAVENSEC3=`echo $NSEC3 | egrep 'IN[[:space:]]NSEC3PARAM' | wc -l`
 
 cleandig b.host.test.dyndns A hidesoadetails dnssec
 
-mysqldiff 
+mysqldiff
 
 cleannsupdate <<!
 server $nameserver $port

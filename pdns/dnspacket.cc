@@ -43,8 +43,8 @@
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
- 
-DNSPacket::DNSPacket() 
+
+DNSPacket::DNSPacket()
 {
   d_wrapped=false;
   d_compress=true;

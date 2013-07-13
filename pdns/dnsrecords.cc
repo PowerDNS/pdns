@@ -67,11 +67,11 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
 {
   string lcontent=toLower(content);
   string rcontent=toLower(rhs.content);
-   
+
   string llabel=toLower(qname);
   string rlabel=toLower(rhs.qname);
-    
-  return 
+
+  return
     tie(llabel, qtype, lcontent, ttl, priority) ==
     tie(rlabel, rhs.qtype, rcontent, rhs.ttl, rhs.priority);
 }
@@ -83,7 +83,7 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   qname = p.d_label;
   if(!qname.empty())
     boost::erase_tail(qname, 1); // strip .
-  
+
   qtype = p.d_type;
   ttl = p.d_ttl;
   priority=0;

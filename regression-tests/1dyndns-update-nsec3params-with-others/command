@@ -1,5 +1,5 @@
 #!/bin/sh
-	
+
 NSEC3=`cleandig test.dyndns NSEC3PARAM hidesoadetails dnssec`
 echo $NSEC3
 HAVENSEC3=`echo $NSEC3 | egrep 'IN[[:space:]]NSEC3PARAM' | wc -l`

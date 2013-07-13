@@ -110,7 +110,7 @@ public:
     ar & d_place;
     ar & auth;
   }
-  
+
   bool operator==(const DNSResourceRecord& rhs);
 
   bool operator<(const DNSResourceRecord &b) const

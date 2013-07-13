@@ -76,11 +76,11 @@ public:
 
   static int chartocode(const char *p); //!< convert a character string to a code
 // more solaris fun
-#undef DS   
-  enum typeenum {A=1,NS=2, CNAME=5, SOA=6, MR=9, PTR=12, HINFO=13, MX=15, TXT=16, RP=17, AFSDB=18, SIG=24, KEY=25, AAAA=28, LOC=29, SRV=33, NAPTR=35, KX=36, 
+#undef DS
+  enum typeenum {A=1, NS=2, CNAME=5, SOA=6, MR=9, PTR=12, HINFO=13, MX=15, TXT=16, RP=17, AFSDB=18, SIG=24, KEY=25, AAAA=28, LOC=29, SRV=33, NAPTR=35, KX=36,
      CERT=37, A6=38, OPT=41, DS=43, SSHFP=44, IPSECKEY=45, RRSIG=46, NSEC=47, DNSKEY=48, DHCID=49, NSEC3=50, NSEC3PARAM=51,
      TLSA=52, SPF=99, EUI48=108, EUI64=109, TSIG=250, IXFR=251, AXFR=252, MAILB=253, MAILA=254, ANY=255, URL=256, MBOXFW=257, CURL=258, ADDR=259, DLV=32769} types;
-  typedef pair<string,uint16_t> namenum; 
+  typedef pair<string,uint16_t> namenum;
   static vector<namenum> names;
 
   inline bool operator==(const QType &comp) const {
@@ -117,17 +117,17 @@ private:
 
     init()
     {
-      qtype_insert("A",1);
-      qtype_insert("NS",2);
-      qtype_insert("CNAME",5);
-      qtype_insert("SOA",6);
-      qtype_insert("MR",9);
-      qtype_insert("PTR",12);
-      qtype_insert("HINFO",13);
-      qtype_insert("MINFO",14);
-      qtype_insert("MX",15);
-      qtype_insert("TXT",16);
-      qtype_insert("RP",17);
+      qtype_insert("A", 1);
+      qtype_insert("NS", 2);
+      qtype_insert("CNAME", 5);
+      qtype_insert("SOA", 6);
+      qtype_insert("MR", 9);
+      qtype_insert("PTR", 12);
+      qtype_insert("HINFO", 13);
+      qtype_insert("MINFO", 14);
+      qtype_insert("MX", 15);
+      qtype_insert("TXT", 16);
+      qtype_insert("RP", 17);
       qtype_insert("AFSDB", 18);
       qtype_insert("SIG", 24);
       qtype_insert("KEY", 25);
@@ -152,7 +152,7 @@ private:
       qtype_insert("SPF", 99);
       qtype_insert("EUI48", 108);
       qtype_insert("EUI64", 109);
-      qtype_insert("TSIG", 250);
+//      qtype_insert("TSIG", 250);
       qtype_insert("IXFR", 251);
       qtype_insert("AXFR", 252);
       qtype_insert("MAILB", 253);

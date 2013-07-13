@@ -155,9 +155,9 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
       throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname+"!="+ origQname+".)");
   }
     
-  vector<DNSResourceRecord> ret; 
+  vector<DNSResourceRecord> ret;
   DNSResourceRecord rr;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     rr.qname = i->first.d_label;
     if(!rr.qname.empty())
       boost::erase_tail(rr.qname, 1); // strip .
@@ -165,7 +165,7 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
     rr.ttl = i->first.d_ttl;
     rr.content = i->first.d_content->getZoneRepresentation();
     rr.priority = 0;
-    
+
     uint16_t qtype=rr.qtype.getCode();
 
     if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))

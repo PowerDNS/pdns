@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # check if add-delete.test.dyndns exists. It should not.
-cleandig abc.add-delete.test.dyndns ANY hidesoadetails 
+cleandig abc.add-delete.test.dyndns ANY hidesoadetails
 
 # add a record
 cleannsupdate <<!

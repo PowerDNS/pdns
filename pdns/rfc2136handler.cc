@@ -38,13 +38,13 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di)
       foundRecord=true;
   }
 
-  // Section 3.2.1        
-  if (rr->d_class == QClass::ANY && !foundRecord) { 
-    if (rr->d_type == QType::ANY) 
+  // Section 3.2.1
+  if (rr->d_class == QClass::ANY && !foundRecord) {
+    if (rr->d_type == QType::ANY)
       return RCode::NXDomain;
     if (rr->d_type != QType::ANY)
       return RCode::NXRRSet;
-  } 
+  }
 
   // Section 3.2.2
   if (rr->d_class == QClass::NONE && foundRecord) {
@@ -61,7 +61,7 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di)
 // Method implements section 3.4.1 of RFC2136
 int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
   // The RFC stats that d_class != ZCLASS, but we only support the IN class.
-  if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY) 
+  if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
     return RCode::FormErr;
 
   QType qtype = QType(rr->d_type);
@@ -74,7 +74,7 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
   if (rr->d_class == QClass::ANY && rr->d_clen != 0)
     return RCode::FormErr;
-  
+
   if (qtype.isMetadataType())
       return RCode::FormErr;
 
@@ -94,7 +94,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
 
   if (rrType == QType::NSEC || rrType == QType::NSEC3) {
     L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<". These are generated records, ignoring!"<<endl;
-    return 0;    
+    return 0;
   }
 
   if (!isPresigned && ((!::arg().mustDo("experimental-direct-dnskey") && rrType == QType::DNSKEY) || rrType == QType::RRSIG)) {
@@ -175,7 +175,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       rrset.push_back(rec);
       foundRecord = true;
     }
-    
+
     if (foundRecord) {
       if (rrType == QType::SOA) { // SOA updates require the serial to be higher than the current
         SOAData sdOld, sdUpdate;
@@ -224,7 +224,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       bool auth = rrset.front().auth;
       if(*haveNSEC3) {
         string hashed;
-        if(! *narrow) 
+        if(! *narrow)
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
 
         if (*narrow)
@@ -268,7 +268,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
 
           if (pdns_iequals(di->zone, shorter))
             break;
-          
+
           bool foundShorter = false;
           di->backend->lookup(QType(QType::ANY), shorter);
           while (di->backend->get(rec)) {
@@ -290,9 +290,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       if(*haveNSEC3)
       {
         string hashed;
-        if(! *narrow) 
+        if(! *narrow)
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
-        
+
         if (*narrow)
           di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
         else
@@ -303,7 +303,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
 
         if(!auth)
         {
-          if (ns3pr->d_flags) 
+          if (ns3pr->d_flags)
             di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
           di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
           di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
@@ -323,7 +323,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
 
 
       // If we insert an NS, all the records below it become non auth - so, we're inserting a delegate.
-      // Auth can only be false when the rrLabel is not the zone 
+      // Auth can only be false when the rrLabel is not the zone
       if (auth == false && rrType == QType::NS) {
         DLOG(L<<msgPrefix<<"Going to fix auth flags below "<<rrLabel<<endl);
         insnonterm.clear(); // No ENT's are needed below delegates (auth=0)
@@ -336,9 +336,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         for(vector<string>::const_iterator qname=qnames.begin(); qname != qnames.end(); ++qname) {
           if(*haveNSEC3)  {
             string hashed;
-            if(! *narrow) 
+            if(! *narrow)
               hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname)));
-        
+
             if (*narrow)
               di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
             else
@@ -357,14 +357,14 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     }
   } // rr->d_class == QClass::IN
 
-  
+
   // Delete records - section 3.4.2.3 and 3.4.2.4 with the exception of the 'always leave 1 NS rule' as that's handled by
   // the code that calls this performUpdate().
   if ((rr->d_class == QClass::ANY || rr->d_class == QClass::NONE) && rrType != QType::SOA) { // never delete a SOA.
     DLOG(L<<msgPrefix<<"Deleting records: "<<rrLabel<<"; QClasse:"<<rr->d_class<<"; rrType: "<<rrType.getName()<<endl);
 
     if (rrType == QType::NSEC3PARAM) {
-      L<<Logger::Notice<<msgPrefix<<"Deleting NSEC3PARAM from zone, resetting ordernames."<<endl;  
+      L<<Logger::Notice<<msgPrefix<<"Deleting NSEC3PARAM from zone, resetting ordernames."<<endl;
       if (rr->d_class == QClass::ANY)
         d_dk.unsetNSEC3PARAM(rrLabel);
       else if (rr->d_class == QClass::NONE) {
@@ -373,7 +373,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           d_dk.unsetNSEC3PARAM(rrLabel);
         else
           return 0;
-      } else 
+      } else
         return 0;
 
       // We retrieve new values, other RR's in this update package might need it as well.
@@ -468,9 +468,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         for (vector<string>::const_iterator changeRec=updateAuthFlag.begin(); changeRec!=updateAuthFlag.end(); ++changeRec) {
           if(*haveNSEC3)  {
             string hashed;
-            if(! *narrow) 
+            if(! *narrow)
               hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *changeRec)));
-        
+
             di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *changeRec, hashed, true);
           }
           else // NSEC
@@ -509,7 +509,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           // if we delete b.c.d.e.test.com, we go up to d.e.test.com and then find b.d.e.test.com because that's below d.e.test.com.
           // At that point we can stop deleting ENT's because the tree is in tact again.
           di->backend->listSubZone(shorter, di->id);
-          
+
           while (di->backend->get(rec)) {
             if (rec.qtype.getCode())
               foundRealRR = true;
@@ -536,7 +536,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
       if(*haveNSEC3)
       {
         string hashed;
-        if(! *narrow) 
+        if(! *narrow)
           hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *i)));
         di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *i, hashed, true);
       }
@@ -587,7 +587,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     uint16_t len=htons(forwardPacket.getString().length());
     string buffer((const char*)&len, 2);
     buffer.append(forwardPacket.getString());
-    if(write(sock, buffer.c_str(), buffer.length()) < 0) { 
+    if(write(sock, buffer.c_str(), buffer.length()) < 0) {
       L<<Logger::Error<<msgPrefix<<"Unable to forward update message to "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
       continue;
     }
@@ -642,20 +642,20 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 int PacketHandler::processUpdate(DNSPacket *p) {
   if (! ::arg().mustDo("experimental-rfc2136"))
     return RCode::Refused;
-  
+
   string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote() + " for " + p->qdomain + ": ";
   L<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // Check permissions - IP based
   vector<string> allowedRanges;
   B.getDomainMetadata(p->qdomain, "ALLOW-2136-FROM", allowedRanges);
-  if (! ::arg()["allow-2136-from"].empty()) 
+  if (! ::arg()["allow-2136-from"].empty())
     stringtok(allowedRanges, ::arg()["allow-2136-from"], ", \t" );
 
   NetmaskGroup ng;
   for(vector<string>::const_iterator i=allowedRanges.begin(); i != allowedRanges.end(); i++)
     ng.addMask(*i);
-    
+
   if ( ! ng.match(&p->d_remote)) {
     L<<Logger::Error<<msgPrefix<<"Remote not listed in allow-2136-from or domainmetadata. Sending REFUSED"<<endl;
     return RCode::Refused;
@@ -667,7 +667,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   B.getDomainMetadata(p->qdomain, "TSIG-ALLOW-2136", tsigKeys);
   if (tsigKeys.size() > 0) {
     bool validKey = false;
-    
+
     TSIGRecordContent trc;
     string inputkey, message;
     if (! p->getTSIGDetails(&trc,  &inputkey, &message)) {
@@ -690,13 +690,13 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     L<<Logger::Warning<<msgPrefix<<"TSIG is provided, but domain is not secured with TSIG. Processing continues"<<endl;
 
   // RFC2136 uses the same DNS Header and Message as defined in RFC1035.
-  // This means we can use the MOADNSParser to parse the incoming packet. The result is that we have some different 
+  // This means we can use the MOADNSParser to parse the incoming packet. The result is that we have some different
   // variable names during the use of our MOADNSParser.
   MOADNSParser mdp(p->getString());
   if (mdp.d_header.qdcount != 1) {
     L<<Logger::Warning<<msgPrefix<<"Zone Count is not 1, sending FormErr"<<endl;
     return RCode::FormErr;
-  }     
+  }
 
   if (p->qtype.getCode() != QType::SOA) { // RFC2136 2.3 - ZTYPE must be SOA
     L<<Logger::Warning<<msgPrefix<<"Query ZTYPE is not SOA, sending FormErr"<<endl;
@@ -718,12 +718,12 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   if (di.kind == DomainInfo::Slave)
     return forwardPacket(msgPrefix, p, &di);
 
-  // Check if all the records provided are within the zone 
+  // Check if all the records provided are within the zone
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
     const DNSRecord *rr = &i->first;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
     // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
-    if (! (rr->d_place == DNSRecord::Answer || rr->d_place == DNSRecord::Nameserver)) 
+    if (! (rr->d_place == DNSRecord::Answer || rr->d_place == DNSRecord::Nameserver))
       continue;
 
     string label = stripDot(rr->d_label);
@@ -742,7 +742,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     return RCode::NotImp;
   }
 
-  // 3.2.1 and 3.2.2 - Prerequisite check 
+  // 3.2.1 and 3.2.2 - Prerequisite check
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
     const DNSRecord *rr = &i->first;
     if (rr->d_place == DNSRecord::Answer) {
@@ -752,7 +752,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         di.backend->abortTransaction();
         return res;
       }
-    } 
+    }
   }
 
   // 3.2.3 - Prerequisite check - this is outside of updatePrequisitesCheck because we check an RRSet and not the RR.
@@ -764,7 +764,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     const DNSRecord *rr = &i->first;
     if (rr->d_place == DNSRecord::Answer) {
       // Last line of 3.2.3
-      if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY) 
+      if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
         return RCode::FormErr;
 
       if (rr->d_class == QClass::IN) {
@@ -789,7 +789,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
           foundRR++;
           for(rrVector_t::iterator rrItem=vec->begin(); rrItem != vec->end(); ++rrItem) {
             rrItem->ttl = rec.ttl; // The compare one line below also compares TTL, so we make them equal because TTL is not user within prerequisite checks.
-            if (*rrItem == rec) 
+            if (*rrItem == rec)
               matchRR++;
           }
         }
@@ -822,7 +822,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
     bool updatedSerial=false;
     NSEC3PARAMRecordContent ns3pr;
-    bool narrow=false; 
+    bool narrow=false;
     bool haveNSEC3 = d_dk.getNSEC3PARAM(di.zone, &ns3pr, &narrow);
     bool isPresigned = d_dk.isPresigned(di.zone);
 
@@ -866,7 +866,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
       return RCode::ServFail;
     }
-   
+
     S.deposit("rfc2136-changes", changedRecords);
 
     // Purge the records!
@@ -956,7 +956,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
     else
       soa2Update.serial = newser;
   }
-  
+
 
   newRec.content = serializeSOAData(soa2Update);
   vector<DNSResourceRecord> rrset;

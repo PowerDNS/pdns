@@ -10,9 +10,9 @@ $update->push(update => rr_add('host-invalid.test.dyndns.'));
 my $res = Net::DNS::Resolver->new;
 $res->nameservers($ARGV[0]);
 $res->port($ARGV[1]);
- 
+
 my $reply = $res->send($update);
- 
+
 if ($reply) {
 	print "RCODE: ", $reply->header->rcode, "\n";
 } else {

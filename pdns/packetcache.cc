@@ -253,7 +253,6 @@ int PacketCache::purge(const string &match)
   *d_statnumentries=d_map.size();
   return delcount;
 }
-
 // called from ueberbackend
 bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
   unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS)

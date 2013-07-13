@@ -11,7 +11,7 @@ answer
 !
 
 #check if it exists
-cleandig test.dyndns MX 
+cleandig test.dyndns MX
 
 # remove a MX record, with the wrong priority, so this should not match.
 cleannsupdate <<!

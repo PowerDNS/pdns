@@ -17,7 +17,7 @@ cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add c.host.test.dyndns 3600 NS ns1.c.host.test.dyndns
-update add ns1.c.host.test.dyndns 3600 A 192.168.0.1 
+update add ns1.c.host.test.dyndns 3600 A 192.168.0.1
 send
 answer
 !
@@ -66,7 +66,7 @@ send
 answer
 !
 
-mysqldiff 3 "Check if we are back to normal" 
+mysqldiff 3 "Check if we are back to normal"
 
 cleandig a.host.test.dyndns ANY dnssec hidesoadetails
 cleandig b.host.test.dyndns ANY dnssec hidesoadetails

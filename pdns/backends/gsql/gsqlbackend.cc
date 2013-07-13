@@ -346,6 +346,7 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const 
   if(!d_dnssecQueries)
     return false;
   char output[1024];
+
   snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndUpdateAuthQuery.c_str(), auth, domain_id, sqlEscape(qname).c_str());
   try {
     d_db->doCommand(output);
@@ -361,6 +362,7 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
   if(!d_dnssecQueries)
     return false;
   char output[1024];
+
   snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(qname).c_str(), sqlEscape(type).c_str(), domain_id);
   try {
     d_db->doCommand(output);
@@ -901,7 +903,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
-  string deleteQuery; 
+  string deleteQuery;
   string deleteRRSet;
   if (qt != QType::ANY) {
     deleteRRSet = "delete from records where domain_id = %d and name='%s' and type='%s'";

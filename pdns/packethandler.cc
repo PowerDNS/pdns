@@ -1124,8 +1124,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         L<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
       // RFC3007 describes that a non-secure message should be sending Refused for DNS Updates
       if (p->d.opcode == Opcode::Update)
-        r->setRcode(RCode::Refused); 
-      else 
+        r->setRcode(RCode::Refused);
+      else
         r->setRcode(RCode::NotAuth);
       return r;
     }

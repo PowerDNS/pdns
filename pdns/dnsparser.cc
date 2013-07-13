@@ -176,7 +176,7 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader
   // For section 3.2.3, we do need content so we need to get it properly. But only for the correct Qclasses.
   if (oc == Opcode::Update && dr.d_place == DNSRecord::Answer && dr.d_class != 1)
     return new UnknownRecordContent(dr, pr);
-  
+
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
   typemap_t::const_iterator i=getTypemap().find(make_pair(searchclass, dr.d_type));

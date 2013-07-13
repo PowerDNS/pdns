@@ -18,7 +18,7 @@ answer
 cleandig host-1.test.dyndns ANY
 
 # check if the record exists, should result in an NXRRSET (section 3.2.1)
-# if the check fails, it will delete a record. 
+# if the check fails, it will delete a record.
 cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
@@ -63,7 +63,7 @@ cleandig host-2.test.dyndns A
 cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
-prereq yxdomain host.test.dyndns 
+prereq yxdomain host.test.dyndns
 send
 answer
 !

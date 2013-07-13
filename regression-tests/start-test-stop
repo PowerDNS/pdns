@@ -717,18 +717,18 @@ rm pdns*.pid
 
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do
-       mv $zone.backup $zone
+	mv $zone.backup $zone
 done
 
 failed_tests=`wc -l failed_tests | cut -f 1 -d ' '`
 if [ $failed_tests = 0 ];
 then
-        exit 0;
+	exit 0;
 else
 	for t in `cat failed_tests`
 	do
 		echo $t
 		cat $t/diff
 	done
-        exit 1;
+	exit 1;
 fi

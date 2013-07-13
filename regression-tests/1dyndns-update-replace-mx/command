@@ -1,5 +1,5 @@
 #!/bin/sh
-cleandig test.dyndns MX 
+cleandig test.dyndns MX
 
 cleannsupdate <<!
 server $nameserver $port
