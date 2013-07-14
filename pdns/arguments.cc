@@ -310,7 +310,6 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
     { 
       var=arg.substr(2);
       val="";
-      d_cleared.insert(var);
     }
   else if(arg[0]=='-')
     {
@@ -326,16 +325,20 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
     if(pos && pos!=string::npos)
       val=val.substr(pos);
-
+    if (!incremental && val.empty()) d_cleared.insert(var);
     if(parmIsset(var)) {
-      if (incremental && !d_cleared.count(var)) {
-         if (params[var].empty()) {
+      if (incremental) {
+         if (params[var].empty() && !d_cleared.count(var)) {
            throw ArgException("Incremental parameter '"+var+"' without a parent");
          }
-         params[var]+=val; 
-      } else 
+         if (params[var].empty())
+            params[var]=val;
+         else
+            params[var]+=", " + val; 
+      } else {
          params[var]=val;
       }
+    }
     else
       if(!lax)
         throw ArgException("Trying to set unexisting parameter '"+var+"'");
