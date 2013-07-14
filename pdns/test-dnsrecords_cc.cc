@@ -264,10 +264,10 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
 
   DNSPacketWriter pw(pak, "www.powerdns.com", ns_t_a);
   pw.startRecord("www.powerdns.com", ns_t_a, 16, 1, DNSPacketWriter::ANSWER);
-  pw.xfrIP(0x0100007f);
+  pw.xfrIP(htonl(0x7f000001));
   opts.push_back(pair<uint16_t,string>(3, "powerdns"));
   pw.addOpt(1280, 0, 0, opts);
-  pw.getHeader()->id = 0x01f0;
+  pw.getHeader()->id = htons(0xf001); 
   pw.getHeader()->rd = 1;
   pw.commit();
 
