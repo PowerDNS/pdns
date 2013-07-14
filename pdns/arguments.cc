@@ -493,7 +493,6 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
       }
       std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX());
       BOOST_FOREACH(const std::string& fn, extraConfigs) {
-            std::cout << "parsing " << fn << std::endl;
             if (!file(fn.c_str(), lax, true)) {
                 L << Logger::Error << namebuf << " could not be parsed" << std::endl;
                 throw ArgException(fn + " could not be parsed");
