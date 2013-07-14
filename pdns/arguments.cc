@@ -475,7 +475,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
          throw ArgException(params["include-dir"] + " is not accessible");
       }
       
-      std::list<std::string> extraConfigs;
+      std::vector<std::string> extraConfigs;
       while((ent = readdir(dir)) != NULL) {
          if (ent->d_name[0] == '.') continue; // skip any dots
          if (boost::ends_with(ent->d_name, ".conf")) {
@@ -488,7 +488,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
             extraConfigs.push_back(std::string(namebuf));
          }
       }
-      extraConfigs.sort();
+      std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX());
       BOOST_FOREACH(const std::string& fn, extraConfigs) {
             std::cout << "parsing " << fn << std::endl;
             if (!file(fn.c_str(), lax, true)) {
