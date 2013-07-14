@@ -309,6 +309,7 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
     { 
       var=arg.substr(2);
       val="";
+      d_cleared.insert(var);
     }
   else if(arg[0]=='-')
     {
@@ -326,9 +327,9 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
       val=val.substr(pos);
 
     if(parmIsset(var)) {
-      if (incremental) {
-         if (!params[var].empty()) {
-           params[var]+=",";
+      if (incremental && !d_cleared.count(var)) {
+         if (params[var].empty()) {
+           throw ArgException("Incremental parameter '"+var+"' without a parent");
          }
          params[var]+=val; 
       } else 
@@ -348,6 +349,7 @@ const vector<string>&ArgvMap::getCommands()
 void ArgvMap::parse(int &argc, char **argv, bool lax)
 {
   d_cmds.clear();
+  d_cleared.clear();
   for(int n=1;n<argc;n++) {
     parseOne(argv[n],"",lax);
   }
