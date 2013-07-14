@@ -166,7 +166,7 @@ void CoProcess::sendReceive(const string &snd, string &rcv)
 
 UnixRemote::UnixRemote(const string& path, int timeout) 
 {
-  d_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
+  d_fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if(d_fd < 0)
     throw PDNSException("Unable to create UNIX domain socket: "+string(strerror(errno)));
 
