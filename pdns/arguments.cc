@@ -17,6 +17,7 @@
 */
 #include "arguments.hh"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/foreach.hpp>
 #include "namespaces.hh"
@@ -473,7 +474,8 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
          L << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
          throw ArgException(params["include-dir"] + " is not accessible");
       }
-
+      
+      std::list<std::string> extraConfigs;
       while((ent = readdir(dir)) != NULL) {
          if (ent->d_name[0] == '.') continue; // skip any dots
          if (boost::ends_with(ent->d_name, ".conf")) {
@@ -483,9 +485,16 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
                 L << Logger::Error << namebuf << " is not a file" << std::endl;
                 throw ArgException(std::string(namebuf) + " does not exist!");
             }
-            if (!file(namebuf, lax, true)) 
-                L << Logger::Warning << namebuf << " could not be read - skipping" << std::endl;
+            extraConfigs.push_back(std::string(namebuf));
          }
+      }
+      extraConfigs.sort();
+      BOOST_FOREACH(const std::string& fn, extraConfigs) {
+            std::cout << "parsing " << fn << std::endl;
+            if (!file(fn.c_str(), lax, true)) {
+                L << Logger::Error << namebuf << " could not be parsed" << std::endl;
+                throw ArgException(fn + " could not be parsed");
+            }
       }
   }
 
