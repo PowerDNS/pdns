@@ -1,6 +1,6 @@
 #include "base64.hh"
 #include <inttypes.h>
-
+#include "dns.hh"
 namespace anonpdns {
 char B64Decode1(char cInChar)
 {
@@ -164,9 +164,16 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
     // Interpret the resulting 3 bytes...note there
     // may have been padding, so those padded bytes
     // are actually ignored.
+#if BYTE_ORDER == BIG_ENDIAN
+    strOutput += pBuf[1];
+    strOutput += pBuf[2];
+    strOutput += pBuf[3];
+#else
     strOutput += pBuf[2];
     strOutput += pBuf[1];
     strOutput += pBuf[0];
+#endif
+                        
   } // while
   if(pad)
     strOutput.resize(strOutput.length()-pad);
