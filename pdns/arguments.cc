@@ -17,6 +17,7 @@
 */
 #include "arguments.hh"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/foreach.hpp>
 #include "namespaces.hh"
@@ -293,8 +294,14 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
 {
   string var, val;
   string::size_type pos;
-
-  if(!arg.find("--") &&(pos=arg.find("="))!=string::npos)  // this is a --port=25 case
+  bool incremental = false;
+  if(!arg.find("--") &&(pos=arg.find("+="))!=string::npos) // this is a --port+=25 case
+    {
+      var=arg.substr(2,pos-2);
+      val=arg.substr(pos+2);
+      incremental = true;
+    }
+  else if(!arg.find("--") &&(pos=arg.find("="))!=string::npos)  // this is a --port=25 case
     {
       var=arg.substr(2,pos-2);
       val=arg.substr(pos+1);
@@ -316,11 +323,22 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
 
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
-    if(pos && pos!=string::npos) 
+    if(pos && pos!=string::npos)
       val=val.substr(pos);
-
-    if(parmIsset(var))
-      params[var]=val;
+    if (!incremental && val.empty()) d_cleared.insert(var);
+    if(parmIsset(var)) {
+      if (incremental) {
+         if (params[var].empty() && !d_cleared.count(var)) {
+           throw ArgException("Incremental parameter '"+var+"' without a parent");
+         }
+         if (params[var].empty())
+            params[var]=val;
+         else
+            params[var]+=", " + val; 
+      } else {
+         params[var]=val;
+      }
+    }
     else
       if(!lax)
         throw ArgException("Trying to set unexisting parameter '"+var+"'");
@@ -335,6 +353,7 @@ const vector<string>&ArgvMap::getCommands()
 void ArgvMap::parse(int &argc, char **argv, bool lax)
 {
   d_cmds.clear();
+  d_cleared.clear();
   for(int n=1;n<argc;n++) {
     parseOne(argv[n],"",lax);
   }
@@ -458,7 +477,8 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
          L << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
          throw ArgException(params["include-dir"] + " is not accessible");
       }
-
+      
+      std::vector<std::string> extraConfigs;
       while((ent = readdir(dir)) != NULL) {
          if (ent->d_name[0] == '.') continue; // skip any dots
          if (boost::ends_with(ent->d_name, ".conf")) {
@@ -468,9 +488,15 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
                 L << Logger::Error << namebuf << " is not a file" << std::endl;
                 throw ArgException(std::string(namebuf) + " does not exist!");
             }
-            if (!file(namebuf, lax, true)) 
-                L << Logger::Warning << namebuf << " could not be read - skipping" << std::endl;
+            extraConfigs.push_back(std::string(namebuf));
          }
+      }
+      std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX());
+      BOOST_FOREACH(const std::string& fn, extraConfigs) {
+            if (!file(fn.c_str(), lax, true)) {
+                L << Logger::Error << namebuf << " could not be parsed" << std::endl;
+                throw ArgException(fn + " could not be parsed");
+            }
       }
   }
 
