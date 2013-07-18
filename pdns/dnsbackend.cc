@@ -26,6 +26,11 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
+string DNSBackend::getOriginalQuery(DNSPacket *p)
+{
+    return p->qdomain;
+}
+
 string DNSBackend::getRemote(DNSPacket *p)
 {
   return p->getRemote();
