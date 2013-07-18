@@ -397,6 +397,7 @@ __EOF__
 			else
 				extracontexts="dnssec"
 			fi
+			skipreasons="nodyndns"
 
 			;;
 		gpgsql-nodnssec)
@@ -427,7 +428,7 @@ __EOF__
 				--cache-ttl=$cachettl --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
-			skipreasons=nodnssec
+			skipreasons="nodnssec nodyndns"
 			;;	
 
 
@@ -452,7 +453,7 @@ __EOF__
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gsqlite3-database=pdns.sqlite3 &
-			skipreasons=nodnssec
+			skipreasons="nodnssec nodyndns"
 
 			;;
 		opendbx-sqlite3)
@@ -509,6 +510,7 @@ __EOF__
 			else
 				extracontexts="dnssec"
 			fi
+			skipreasons="nodyndns"
 			;;
 		tinydns)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
@@ -567,7 +569,7 @@ __EOF__
 				if [ "$narrow" = "narrow" ]; then
 					extracontexts="dnssec nsec3 narrow"
 					skipreasons="narrow nsec3 nodyndns"
-       			else 
+			else
 					extracontexts="dnssec nsec3"
 					skipreasons="nsec3 nodyndns"
 				fi
@@ -778,15 +780,12 @@ do
 	mv $zone.backup $zone
 done
 
-failed_tests=`wc -l failed_tests | cut -f 1 -d ' '`
-if [ $failed_tests = 0 ];
+if [ -s "./failed_tests" ]
 then
-	exit 0;
-else
 	for t in `cat failed_tests`
 	do
 		echo $t
 		cat $t/diff
 	done
-	exit 1;
+	exit 1
 fi
