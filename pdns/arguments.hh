@@ -20,6 +20,7 @@
 #define ARGUMENTS_HH
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -123,6 +124,7 @@ private:
   map<string,string> helpmap;
   map<string,string> d_typeMap;
   vector<string> d_cmds;
+  std::set<string> d_cleared;
 };
 
 extern ArgvMap &arg();

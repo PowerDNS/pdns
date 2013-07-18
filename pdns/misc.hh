@@ -410,6 +410,22 @@ struct CIStringCompare: public std::binary_function<string, string, bool>
   }
 };
 
+struct CIStringComparePOSIX
+{
+   bool operator() (const std::string& lhs, const std::string& rhs)
+   {
+      std::string::const_iterator a,b;
+      const std::locale &loc = std::locale("POSIX");
+      a=lhs.begin();b=rhs.begin();
+      while(a!=lhs.end()) {
+          if (b==rhs.end() || std::tolower(*b,loc)<std::tolower(*a,loc)) return false;
+          else if (std::tolower(*a,loc)<std::tolower(*b,loc)) return true;
+          a++;b++;
+      }
+      return (b!=rhs.end());
+   }
+};
+
 struct CIStringPairCompare: public std::binary_function<pair<string, uint16_t>, pair<string,uint16_t>, bool>  
 {
   bool operator()(const pair<string, uint16_t>& a, const pair<string, uint16_t>& b) const
