@@ -14,11 +14,13 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
                const string &password)
 {
   d_db=0;
+  d_connectstr="";
 
-  d_connectstr="dbname=";
-  d_connectstr+=database;
-  d_connectstr+=" user=";
-  d_connectstr+=user;
+  if (!database.empty())
+    d_connectstr+="dbname="+database;
+
+  if (!user.empty())
+    d_connectstr+=" user="+user;
 
   if(!host.empty())
     d_connectstr+=" host="+host;

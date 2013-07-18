@@ -41,8 +41,8 @@ public:
   // XXX FIXME this stuff is duplicate with gmysqlbackend
   void declareArguments(const string &suffix="")
   {
-    declare(suffix,"dbname","Pdns backend database name to connect to","powerdns");
-    declare(suffix,"user","Pdns backend user to connect as","powerdns");
+    declare(suffix,"dbname","Pdns backend database name to connect to","");
+    declare(suffix,"user","Pdns backend user to connect as","");
     declare(suffix,"host","Pdns backend host to connect to","");
     declare(suffix,"port","Database backend port to connect to","");
     declare(suffix,"socket","Pdns backend socket to connect to","");
