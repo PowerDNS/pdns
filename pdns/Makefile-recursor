@@ -1,7 +1,8 @@
 # user editable stuff:
 SBINDIR=/usr/sbin/
 BINDIR=/usr/bin/
-CONFIGDIR="/etc/powerdns/"
+SYSCONFDIR=/etc/powerdns/
+LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
@@ -52,6 +53,9 @@ endif
 
 
 LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
+
+CXXFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
+CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 
 # Version
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
