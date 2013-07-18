@@ -1,0 +1,2 @@
+This tests adds a delegate between two (existing) records. The test validates that we set our ordername correctly.
+It also validates that our cache is correctly purged (when we are selective about it).

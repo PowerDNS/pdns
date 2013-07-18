@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# check if add-delete.test.dyndns exists. It should not.
+cleandig dhcpd-host.test.dyndns ANY hidesoadetails
+
+# add a record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add dHCPD-host.test.dyndns. 60 A 127.0.0.1
+update add dHCPD-host.test.dyndns. 60 TXT "318188eb1a97d43928ccf8494d4a910c8a"
+send
+answer
+!
+
+# query if the record now exists
+cleandig dhcpd-host.test.dyndns ANY hidesoadetails
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete dHCPD-host.test.dyndns. 0 A 127.0.0.1
+send
+answer
+!
+
+# check if the record was deleted.
+cleandig dhcpd-host.test.dyndns ANY hidesoadetails
+
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete dHCPD-host.test.dyndns. 0 TXT "318188eb1a97d43928ccf8494d4a910c8a"
+send
+answer
+!
+
+# Check if the last one is gone.
+cleandig dhcpd-host.test.dyndns ANY hidesoadetails

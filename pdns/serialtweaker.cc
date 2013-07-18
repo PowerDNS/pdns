@@ -43,7 +43,7 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
         return false;
       SOAData sd;
       fillSOAData(rr.content, sd);
-      sd.serial = calculateEditSoa(sd, kind);
+      sd.serial = calculateEditSOA(sd, kind);
       rr.content = serializeSOAData(sd);      
       return true;
     }
@@ -52,7 +52,7 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
 }
 
 
-uint32_t calculateEditSoa(SOAData sd, const string& kind) {
+uint32_t calculateEditSOA(SOAData sd, const string& kind) {
   if(pdns_iequals(kind,"INCEPTION")) {
     time_t inception = getStartOfWeek();
     return localtime_format_YYYYMMDDSS(inception, 1);

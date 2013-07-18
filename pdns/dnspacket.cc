@@ -335,7 +335,7 @@ void DNSPacket::wrapup()
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
       {
-        pw.addOpt(2800, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
+        pw.addOpt(s_udpTruncationThreshold, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
         pw.commit();
       }
     }

@@ -1,0 +1,1 @@
+This test tries to add SOA records in different ways which should all fail. Soa's are only updated (see 2dyndns-update-replace-soa)

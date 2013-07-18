@@ -54,24 +54,6 @@ class NSEC3PARAMRecordContent;
 class PacketHandler
 {
 public:
-  template<class T> class Guard
-  {
-  public:
-    Guard(T **guard)
-    {
-      d_guard=guard;
-    }
-    
-    ~Guard()
-    {
-      if(*d_guard)
-        delete *d_guard;
-    }
-    
-  private:
-    T **d_guard;
-  };
-
   DNSPacket *questionOrRecurse(DNSPacket *, bool* shouldRecurse); //!< hand us a DNS packet with a question, we'll tell you answer, or that you should recurse
   DNSPacket *question(DNSPacket *); //!< hand us a DNS packet with a question, we give you an answer
   PacketHandler(); 
@@ -103,7 +85,12 @@ private:
   void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(const std::string& before, const std::string& after, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode);
   void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
-  
+  int processUpdate(DNSPacket *p);
+  int forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di);
+  uint16_t performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial);
+  int checkUpdatePrescan(const DNSRecord *rr);
+  int checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di);
+  void increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr);
 
   void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd);
@@ -117,6 +104,7 @@ private:
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
   
   static AtomicCounter s_count;
+  static pthread_mutex_t s_rfc2136lock;
   bool d_doFancyRecords;
   bool d_doRecursion;
   bool d_doCNAME;

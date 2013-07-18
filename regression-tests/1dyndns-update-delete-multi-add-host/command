@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# check if the records exist
+cleandig delete-add.test.dyndns ANY
+
+# delete all delete-add.test.dyndns records
+# add-records that we deleted.
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete delete-add.test.dyndns.
+send
+answer
+!
+
+# check if the records are gone.
+cleandig delete-add.test.dyndns ANY hidesoadetails
+
+# add-records that we deleted.
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add delete-add.test.dyndns. 3600 A 127.0.0.108
+update add delete-add.test.dyndns. 3600 TXT "Should be gone after a while"
+send
+answer
+!
+
+# check if everything is ok again.
+cleandig delete-add.test.dyndns ANY

@@ -553,10 +553,12 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                        
 void RNAME##RecordContent::report(void)                                                            \
 {                                                                                                  \
   regist(1, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
+  regist(254, RTYPE, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);            \
 }                                                                                                  \
 void RNAME##RecordContent::unreport(void)                                                          \
 {                                                                                                  \
   unregist(1, RTYPE);                                                                              \
+  unregist(254, RTYPE);                                                                            \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordContent(RTYPE)       \

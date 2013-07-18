@@ -1,0 +1,2 @@
+This test performs a delete without a record type (which removes all the items with that name).
+It then adds the records again. Also contains an 'add' to the TXT

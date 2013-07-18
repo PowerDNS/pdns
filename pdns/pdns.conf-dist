@@ -5,6 +5,11 @@
 # add-superfluous-nsec3-for-old-bind=yes
 
 #################################
+# allow-2136-from	A global setting to allow RFC2136 from these IP ranges.
+#
+# allow-2136-from=0.0.0.0/0
+
+#################################
 # allow-axfr-ips	Allow zonetransfers only to these subnets
 #
 # allow-axfr-ips=0.0.0.0/0,::/0
@@ -135,9 +140,19 @@
 # experimental-logfile=/var/log/pdns.log
 
 #################################
+# experimental-rfc2136	Enable/Disable RFC2136 (Dynamic DNS) support. Default is no.
+#
+# experimental-rfc2136=no
+
+#################################
 # fancy-records	Process URL and MBOXFW records
 #
 # fancy-records=no
+
+#################################
+# forward-2136	A global setting to allow RFC2136 packages that are for a Slave domain, to be forwarded to the master.
+#
+# forward-2136=yes
 
 #################################
 # guardian	Run within a guardian process
@@ -183,11 +198,6 @@
 # log-dns-queries	If PDNS should log all incoming DNS queries
 #
 # log-dns-queries=no
-
-#################################
-# log-failed-updates	If PDNS should log failed update requests
-#
-# log-failed-updates=
 
 #################################
 # logging-facility	Log under a specific facility

@@ -39,7 +39,9 @@ ArgvMap &arg()
 void declareArguments()
 {
   ::arg().set("local-port","The port on which we listen")="53";
-  ::arg().setSwitch("log-failed-updates","If PDNS should log failed update requests")="";
+  ::arg().setSwitch("experimental-rfc2136","Enable/Disable RFC2136 (Dynamic DNS) support. Default is no.")="no";
+  ::arg().set("allow-2136-from","A global setting to allow RFC2136 from these IP ranges.")="0.0.0.0/0";
+  ::arg().setSwitch("forward-2136","A global setting to allow RFC2136 packages that are for a Slave domain, to be forwarded to the master.")="yes";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
   ::arg().set("urlredirector","Where we send hosts to that need to be url redirected")="127.0.0.1";
@@ -174,6 +176,10 @@ void declareStats(void)
   S.declare("query-cache-hit","Number of hits on the query cache");
   S.declare("query-cache-miss","Number of misses on the query cache");
 
+  S.declare("rfc2136-queries", "RFC2136 packets received.");
+  S.declare("rfc2136-answers", "RFC2136 packets succesfully answered.");
+  S.declare("rfc2136-refused", "RFC2136 packets that are refused.");
+  S.declare("rfc2136-changes", "RFC2136 changes to records in total.");
 
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("latency","Average number of microseconds needed to answer a question");
@@ -288,7 +294,7 @@ void *qthread(void *number)
     }
 
 
-    if((P->d.opcode != Opcode::Notify) && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
+    if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
       if(logDNSQueries)
         L<<"packetcache HIT"<<endl;
       cached.setRemote(&P->d_remote);  // inlined
@@ -339,7 +345,7 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_addSuperfluousNSEC3 = ::arg().mustDo("add-superfluous-nsec3-for-old-bind");
-   DNSPacket::s_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
+   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
    {
       std::vector<std::string> codes;
