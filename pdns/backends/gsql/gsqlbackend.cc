@@ -780,7 +780,7 @@ bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
     d_db->doQuery(output.c_str());
   }
   catch(SSqlException &e) {
-    throw AhuException("GSQLBackend listSubZone query: "+e.txtReason());
+    throw PDNSException("GSQLBackend listSubZone query: "+e.txtReason());
   }
   d_qname="";
   d_count=0;

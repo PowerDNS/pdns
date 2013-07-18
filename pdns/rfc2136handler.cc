@@ -887,8 +887,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     di.backend->abortTransaction();
     return RCode::ServFail;
   }
-  catch (AhuException &e) {
-    L<<Logger::Error<<msgPrefix<<"Caught AhuException: "<<e.reason<<"; Sending ServFail!"<<endl;
+  catch (PDNSException &e) {
+    L<<Logger::Error<<msgPrefix<<"Caught PDNSException: "<<e.reason<<"; Sending ServFail!"<<endl;
     di.backend->abortTransaction();
     return RCode::ServFail;
   }
@@ -908,7 +908,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
     foundSOA=true;
   }
   if (!foundSOA) {
-    throw AhuException("SOA-Serial update failed because there was no SOA. Wowie.");
+    throw PDNSException("SOA-Serial update failed because there was no SOA. Wowie.");
   }
   SOAData soa2Update;
   fillSOAData(rec.content, soa2Update);
