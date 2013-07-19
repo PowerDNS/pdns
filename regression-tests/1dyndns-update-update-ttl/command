@@ -1,0 +1,22 @@
+#!/bin/sh
+cleandig ttl.test.dyndns A
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add ttl.test.dyndns. 31337 A 127.0.0.1
+send
+answer
+!
+
+cleandig ttl.test.dyndns A
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add ttl.test.dyndns. 3600 A 127.0.0.1
+send
+answer
+!
+
+cleandig ttl.test.dyndns A

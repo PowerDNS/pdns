@@ -1,0 +1,27 @@
+#!/bin/sh
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test2.dyndns. 3600 SOA ns2.test.dyndns. ahu.example.dyndns. 2050100999 28800 7200 604800 86400
+send
+answer
+!
+
+cleannsupdate <<!
+server $nameserver $port
+zone test2.dyndns
+update add test2.dyndns. 3600 SOA ns2.test.dyndns. ahu.example.dyndns. 2050100999 28800 7200 604800 86400
+send
+answer
+!
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test2.dyndns. 3600 SOA ns2.test.dyndns. ahu.example.dyndns. 2050100999 28800 7200 604800 86400
+send
+answer
+!
+
+cleandig test2.dyndns SOA hidesoadetails

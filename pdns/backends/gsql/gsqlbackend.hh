@@ -54,6 +54,7 @@ public:
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 
   bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
+  bool listSubZone(const string &zone, int domain_id);
   int addDomainKey(const string& name, const KeyData& key);
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
@@ -105,6 +106,7 @@ private:
   string d_setOrderAuthQuery;
   string d_nullifyOrderNameAndUpdateAuthQuery;
   string d_nullifyOrderNameAndAuthQuery;
+  string d_nullifyOrderNameAndAuthENTQuery;
   string d_setAuthOnDsRecordQuery;
   string d_removeEmptyNonTerminalsFromZoneQuery;
   string d_insertEmptyNonTerminalQuery;

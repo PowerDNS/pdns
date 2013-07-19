@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# check if add-delete.test.dyndns exists. It should not.
+cleandig abc.add-delete.test.dyndns ANY hidesoadetails
+
+# add a record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq nxrrset *.add-delete.test.dyndns TXT
+update add *.add-delete.test.dyndns. 3600 TXT "Wildcard with non-empty terminal"
+send
+answer
+!
+
+# query if the record now exists
+cleandig abc.add-delete.test.dyndns ANY
+cleandig abc1.add-delete.test.dyndns ANY
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq yxrrset *.add-delete.test.dyndns TXT
+update delete *.add-delete.test.dyndns.
+send
+answer
+!
+
+# check if the record was deleted.
+cleandig abc.add-delete.test.dyndns ANY hidesoadetails

@@ -1,0 +1,2 @@
+This test is skipped in narrow mode as we cannot set narrow via nsec3param.
+So, this test could impact other tests, as after this test has run, narrow mode would be off.

@@ -1,0 +1,45 @@
+#!/bin/sh
+
+cleandig test.dyndns NS
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. NS
+send
+answer
+!
+
+cleandig test.dyndns NS
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. 3600 NS ns1.test.dyndns.
+update delete test.dyndns. 3600 NS ns2.test.dyndns.
+send
+answer
+!
+
+cleandig test.dyndns NS
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns. 3600 NS ns1.test.dyndns.
+send
+answer
+!
+
+cleandig test.dyndns NS
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns. 3600 NS ns1.test.dyndns.
+send
+answer
+!
+
+cleandig test.dyndns NS
+

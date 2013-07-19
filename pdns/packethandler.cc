@@ -1121,7 +1121,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       r=p->replyPacket();  // generate an empty reply packet
       if(d_logDNSDetails)
         L<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
-      r->setRcode(RCode::NotAuth);
+      // RFC3007 describes that a non-secure message should be sending Refused for DNS Updates
+      if (p->d.opcode == Opcode::Update)
+        r->setRcode(RCode::Refused);
+      else
+        r->setRcode(RCode::NotAuth);
       return r;
     }
     p->setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
@@ -1143,10 +1147,15 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     if(p->d.opcode) { // non-zero opcode (again thanks RA!)
       if(p->d.opcode==Opcode::Update) {
-        if(::arg().mustDo("log-failed-updates"))
-          L<<Logger::Notice<<"Received an UPDATE opcode from "<<p->getRemote()<<" for "<<p->qdomain<<", sending NOTIMP"<<endl;
-        r->setRcode(RCode::NotImp); // notimp;
-        return r; 
+        S.inc("rfc2136-queries");
+        int res=processUpdate(p);
+        if (res == RCode::Refused)
+          S.inc("rfc2136-refused");
+        else if (res != RCode::ServFail)
+          S.inc("rfc2136-answers");
+        r->setRcode(res);
+        r->setOpcode(Opcode::Update);
+        return r;
       }
       else if(p->d.opcode==Opcode::Notify) {
         int res=processNotify(p);

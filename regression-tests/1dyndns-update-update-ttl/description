@@ -1,0 +1,1 @@
+A test for RFC2136 which checks section 3.4.2.2 - Update the TTL, which occurs if the record + content is the same.

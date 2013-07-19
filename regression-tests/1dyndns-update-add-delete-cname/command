@@ -1,0 +1,28 @@
+#!/bin/sh
+
+#check if the cname exists
+cleandig cname3.test.dyndns CNAME hidesoadetails
+
+# add mx record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add cname3.test.dyndns. 3600 CNAME cname1.test.dyndns.
+send
+answer
+!
+
+# check if record was really added
+cleandig cname3.test.dyndns CNAME
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete cname3.test.dyndns. 3600 CNAME cname1.test.dyndns.
+send
+answer
+!
+
+# check if the record was deleted.
+cleandig cname3.test.dyndns CNAME hidesoadetails

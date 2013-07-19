@@ -1,0 +1,34 @@
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if delegates are added.
+--- Start: diff start step.1 ---
+> a.b.c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600	'fi5nt3dpalvptnlkbb25sv7djomuifnt'	0
+> c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600	'2elc1d8b68jmq8dre36l63jvh927bgdi'	0
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if c.delegate.test.dyndns. was removed correctly.
+--- Start: diff start step.2 ---
+> a.b.c.delegate.test.dyndns	NS	0	ns1.test.dyndns	3600	'fi5nt3dpalvptnlkbb25sv7djomuifnt'	0
+--- End: diff start step.2 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if records are all removed
+--- Start: diff start step.3 ---
+no difference
+--- End: diff start step.3 ---
+

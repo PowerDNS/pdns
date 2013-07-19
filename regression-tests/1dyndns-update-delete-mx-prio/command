@@ -1,0 +1,38 @@
+#!/bin/sh
+cleandig test.dyndns MX hidesoadetails
+
+# Insert a MX record for the test.
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add test.dyndns 3600 MX 100 mx1.google.com.
+send
+answer
+!
+
+#check if it exists
+cleandig test.dyndns MX
+
+# remove a MX record, with the wrong priority, so this should not match.
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns 3600 MX 50 mx1.google.com.
+send
+answer
+!
+
+#check that we didn't delete it.
+cleandig test.dyndns MX
+
+# Finally delete it for real.
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete test.dyndns 3600 MX 100 mx1.google.com.
+send
+answer
+!
+
+#check that it's gone.
+cleandig test.dyndns MX hidesoadetails

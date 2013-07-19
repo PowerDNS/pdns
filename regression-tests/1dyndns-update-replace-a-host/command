@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# query current value.
+cleandig replace.test.dyndns A
+
+# replace the value
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete replace.test.dyndns. A
+update add replace.test.dyndns. 3600 A 127.0.0.2
+send
+answer
+!
+
+cleandig replace.test.dyndns A
+
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq yxrrset replace.test.dyndns. A
+update delete replace.test.dyndns. A
+update add replace.test.dyndns. 3600 A 127.0.0.1
+send
+answer
+!
+
+cleandig replace.test.dyndns A

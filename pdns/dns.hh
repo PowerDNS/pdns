@@ -57,7 +57,7 @@ struct SOAData
 class RCode
 {
 public:
-  enum rcodes_ { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, NotAuth=9 };
+  enum rcodes_ { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, YXDomain=6, YXRRSet=7, NXRRSet=8, NotAuth=9, NotZone=10};
 };
 
 class Opcode
@@ -71,7 +71,11 @@ class DNSResourceRecord
 {
 public:
   DNSResourceRecord() : qclass(1), priority(0), signttl(0), last_modified(0), d_place(ANSWER), auth(1), scopeMask(0) {};
+  DNSResourceRecord(const struct DNSRecord&);
   ~DNSResourceRecord(){};
+
+  void setContent(const string& content);
+  string getZoneRepresentation();
 
   // data
   
@@ -106,6 +110,8 @@ public:
     ar & d_place;
     ar & auth;
   }
+
+  bool operator==(const DNSResourceRecord& rhs);
 
   bool operator<(const DNSResourceRecord &b) const
   {

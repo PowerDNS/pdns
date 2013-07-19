@@ -1,0 +1,31 @@
+$TTL 3600
+$ORIGIN test.dyndns.
+@		IN	SOA	ns1.test.dyndns.	ahu.example.dyndns. (  2012060701
+			8H ; refresh
+			2H ; retry
+			1W ; expire
+			1D ; default_ttl
+			)
+
+@			IN	NS	ns1.test.dyndns.
+@			IN	NS	ns2.test.dyndns.
+@			IN	MX	10 host-1.test.dyndns.
+@			IN	MX	20 host-2.test.dyndns.
+ns1			IN	A	127.0.0.1
+ns2			IN	A	127.0.0.2
+cname1			IN	CNAME	host-1.test.dyndns.
+cname2			IN	CNAME	host-2.test.dyndns.
+txt			IN	TXT	"This is some text"
+host-1			IN	A	127.0.0.101
+host-2			IN	A	127.0.0.102
+host-3			IN	A	127.0.0.103
+multi			IN	A	127.0.0.1
+multi			IN	A	127.0.0.2
+multi			IN	A	127.0.0.3
+replace			IN	A	127.0.0.1
+delete-add		IN	A	127.0.0.108
+delete-add		IN	TXT	"Should be gone after a while"
+ttl			IN	A	127.0.0.1
+*.wild			IN	A	127.0.1.255
+a.host			IN	A	1.1.1.1
+e.host			IN	A	1.1.1.1
