@@ -1,0 +1,4 @@
+#!/bin/sh
+cleandig host-invalid.test.dyndns ANY hidesoadetails
+$testname/sendupdate.pl $nameserver $port
+cleandig host-invalid.test.dyndns ANY hidesoadetails

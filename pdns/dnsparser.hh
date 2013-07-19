@@ -151,6 +151,7 @@ class DNSRecordContent
 {
 public:
   static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr);
+  static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
   static DNSRecordContent* mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
 
   virtual std::string getZoneRepresentation() const = 0;

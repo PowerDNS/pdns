@@ -1,0 +1,2 @@
+#!/bin/sh
+../pdns/sdig $nameserver $port $1 SOA | LC_ALL=C sort | grep ^0 | cut -d ' ' -f 3

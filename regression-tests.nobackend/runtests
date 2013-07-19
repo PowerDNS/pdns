@@ -3,3 +3,11 @@ set -ex
 export testsdir=$(pwd)
 ../regression-tests/runtests
 ../regression-tests/toxml
+
+failed_tests=`wc -l failed_tests | cut -f 1 -d ' '`
+if [ $failed_tests = 0 ];
+then
+        exit 0;
+else
+        exit 1;
+fi

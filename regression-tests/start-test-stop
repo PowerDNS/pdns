@@ -91,6 +91,10 @@ port=$1
 context=$2
 [ -z "$context" ] && context=bind-dnssec
 wait=$3
+[ -z "$wait" ] && wait=nowait
+cachettl=$4
+[ -z "$cachettl" ] && cachettl=0
+spectest=$5
 
 testsdir=.
 
@@ -99,7 +103,7 @@ then
 	set +x
 	grep -v '^#' << '__EOF__'
 
-Usage: ./start-test-stop <port> [<context>] [wait]
+Usage: ./start-test-stop <port> [<context>] [wait|nowait] [<cachettl>] [<specifictest>]
 
 context is one of:
 bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
@@ -114,18 +118,29 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
-add -presigned to any bind, gmysql or gsqlite3 test (except narrow)
-to test presigned operation
+* Add -presigned to any gmysql test (except narrow) to
+  test presigned operation
 
-add 'wait' (literally) after the context to not kill 
-pdns_server immediately after testing
+* Add 'wait' (literally) after the context to not kill
+  pdns_server immediately after testing. 'nowait' will kill it.
+
+* A cachettl can be supplied if you want to run tests with a
+  ttl setting set. The default cachettl is 0.
+
+* Specifictest can be used to run only one single test.
 __EOF__
 	exit 1
 fi
 
 make -C ../pdns sdig nsec3dig || exit 1
+# Copy zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
+for zone in $(grep zone named.conf  | cut -f2 -d\")
+do
+       cp $zone $zone.backup
+done
 
 rm -f pdns*.pid
+rm -f *_tests
 
 presigned=no
 
@@ -148,9 +163,10 @@ case $context in
 		bind)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
-				--fancy-records --send-root-referral    \
-				--cache-ttl=0 --no-config &
-			skipreasons=nodnssec
+				--send-root-referral    \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--cache-ttl=$cachettl --no-config &
+			skipreasons="nodnssec nodyndns"
 			bindwait
 			;;
 
@@ -172,24 +188,26 @@ case $context in
 			if [ $context = bind-dnssec-nsec3 ]
 			then
 				extracontexts="bind dnssec nsec3"
-				skipreasons="nsec3"
+				skipreasons="nsec3 nodyndns"
 			elif [ $context = bind-dnssec-nsec3-optout ]
 			then
 				extracontexts="bind dnssec nsec3 nsec3-optout"
-				skipreasons="optout"
+				skipreasons="optout nodyndns"
 			elif [ $context = bind-dnssec-nsec3-narrow ]
 			then
 				extracontexts="bind dnssec narrow"
-				skipreasons="narrow"
+				skipreasons="narrow nodyndns"
 			else
 				extracontexts="bind dnssec"
+				skipreasons="nodyndns"
 			fi
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--send-root-referral \
-				--cache-ttl=0 --no-config &
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--cache-ttl=$cachettl --no-config &
 			bindwait
 			;;
 
@@ -224,7 +242,8 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--master --send-root-referral \
-				--cache-ttl=0 --no-config \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
@@ -262,7 +281,7 @@ __EOF__
 				--mydns-user="$MYDNSUSER" \
 				--mydns-host="$MYDNSHOST" \
 				--mydns-password="$MYDNSPASSWD" &
-			skipreasons="nodnssec noent"
+			skipreasons="nodnssec noent nodyndns"
 			;;
 
 		gmysql | gmysql-nsec3 | gmysql-nsec3-optout |gmysql-nsec3-narrow)
@@ -308,8 +327,9 @@ __EOF__
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch --launch+=random --launch+=gmysql --gmysql-dnssec \
-				--fancy-records --send-root-referral \
-				--cache-ttl=0 --no-config \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
@@ -360,8 +380,9 @@ __EOF__
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
-				--fancy-records --send-root-referral \
-				--cache-ttl=0 --no-config \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--cache-ttl=$cachettl --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
 			if [ $context = gpgsql-nsec3 ]
@@ -376,6 +397,7 @@ __EOF__
 			else
 				extracontexts="dnssec"
 			fi
+			skipreasons="nodyndns"
 
 			;;
 		gpgsql-nodnssec)
@@ -401,11 +423,12 @@ __EOF__
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql \
-				--fancy-records --send-root-referral \
-				--cache-ttl=0 --no-config \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--cache-ttl=$cachettl --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
 				--gpgsql-user="$GPGSQLUSER" &
-			skipreasons=nodnssec
+			skipreasons="nodnssec nodyndns"
 			;;	
 
 
@@ -426,10 +449,11 @@ __EOF__
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 \
-				--fancy-records --send-root-referral \
-				--cache-ttl=0 --no-config \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--cache-ttl=$cachettl --no-config \
 				--gsqlite3-database=pdns.sqlite3 &
-			skipreasons=nodnssec
+			skipreasons="nodnssec nodyndns"
 
 			;;
 		opendbx-sqlite3)
@@ -442,11 +466,11 @@ __EOF__
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=opendbx \
-				--fancy-records --send-root-referral \
-				--cache-ttl=0 --no-config \
+				--send-root-referral \
+				--cache-ttl=$cachettl --no-config \
 				--opendbx-backend=sqlite3 --opendbx-host-read=./ --opendbx-host-write=./ \
 				--opendbx-database=pdns-opendbx.sqlite3 &
-			skipreasons="nodnssec noent"
+			skipreasons="nodnssec noent nodyndns"
 
 			;;									
 		gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
@@ -473,8 +497,9 @@ __EOF__
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
-				--fancy-records --send-root-referral \
-				--cache-ttl=0 --no-config \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--cache-ttl=$cachettl --no-config \
 				--gsqlite3-database=pdns.sqlite3 &
 			if [ $context = gsqlite3-nsec3 ]
 			then
@@ -485,14 +510,16 @@ __EOF__
 			else
 				extracontexts="dnssec"
 			fi
+			skipreasons="nodyndns"
 			;;
 		tinydns)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=tinydns \
-			 --cache-ttl=0 --no-config \
+			 --cache-ttl=$cachettl --no-config \
 				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
-			skipreasons="nodnssec noent"
+			skipreasons="nodnssec noent nodyndns"
 			;;
 		remotebackend-*)
 			remotetype=$(echo $context | cut -d- -f 2)
@@ -535,16 +562,16 @@ __EOF__
 				;;
 			esac
 
-			skipreasons="nodnssec"
+			skipreasons="nodnssec nodyndns"
 
 			if [ "$remotesec" = "nsec3" ]; then
 				remotedosec="yes"
 				if [ "$narrow" = "narrow" ]; then
-									extracontexts="dnssec nsec3 narrow"
-					skipreasons="narrow nsec3"
-					else 
+					extracontexts="dnssec nsec3 narrow"
+					skipreasons="narrow nsec3 nodyndns"
+			else
 					extracontexts="dnssec nsec3"
-					skipreasons="nsec3"
+					skipreasons="nsec3 nodyndns"
 				fi
 							remote_add_param="--remote-dnssec=yes"
 						else 
@@ -552,7 +579,7 @@ __EOF__
 					remotedosec="yes"
 					remote_add_param="--remote-dnssec=yes"
 					extracontexts="dnssec"
-					skipreasons="nonsec3 nonarrow"
+					skipreasons="nonsec3 nonarrow nodyndns"
 				fi
 			fi
 
@@ -564,8 +591,9 @@ EOF
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=remote \
-				--query-logging --loglevel=9 --cache-ttl=0 --no-config \
+				--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
 				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--remote-connection-string="$connstr" $remote_add_param &
 						
 			echo "Setting up test database..."
@@ -612,9 +640,12 @@ export context
 export extracontexts
 export skipreasons
 export testsdir
+export optout
 
 if [ $presigned = yes ]
 then
+	skipreasons="$skipreasons nodyndns"
+
 	if [ ${context:0:6} = gmysql ]
 	then
 		context=${context}-presigned
@@ -642,8 +673,9 @@ then
 
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=gmysql --gmysql-dnssec \
-			--fancy-records --send-root-referral \
-			--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=4 \
+			--send-root-referral \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--cache-ttl=$cachettl --query-cache-ttl=$cachettl --no-config --slave --retrieval-threads=4 \
 			--gmysql-dbname="$GMYSQL2DB" \
 			--gmysql-user="$GMYSQL2USER" \
 			--gmysql-host="$GMYSQL2HOST" \
@@ -723,7 +755,8 @@ then
 		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave         \
 			--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
-			--cache-ttl=0 --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--cache-ttl=$cachettl --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave
 	fi
@@ -731,7 +764,7 @@ fi
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
-nameserver=127.0.0.1 ./runtests
+nameserver=127.0.0.1 ./runtests $spectest
 ./toxml
 ./totar
 if [ "$wait" = "wait" ]
@@ -741,6 +774,11 @@ then
 fi
 kill $(cat pdns*.pid)
 rm pdns*.pid
+
+for zone in $(grep zone named.conf  | cut -f2 -d\")
+do
+	mv $zone.backup $zone
+done
 
 if [ -s "./failed_tests" ]
 then

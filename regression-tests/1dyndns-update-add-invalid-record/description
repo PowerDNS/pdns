@@ -1,0 +1,3 @@
+This test tries to add a bogus record. It's an invalid record because not all the
+specifications have been met. (no type, etc). The test is using DNS::Update from perl
+because nsupdate does not allow you to send bogus records.

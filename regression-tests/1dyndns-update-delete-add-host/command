@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# check that the record does not exist.
+cleandig delete-add.test.dyndns ANY
+
+# add the record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete delete-add.test.dyndns. 3600 A 127.0.0.108
+send
+answer
+!
+
+# check if the record is gone
+cleandig delete-add.test.dyndns ANY
+
+# add the record again
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add delete-add.test.dyndns. 3600 A 127.0.0.108
+send
+answer
+!
+
+# check if the record is added.
+cleandig delete-add.test.dyndns ANY

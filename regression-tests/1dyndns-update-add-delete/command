@@ -1,0 +1,29 @@
+#!/bin/sh
+
+mysqldiff
+
+# add a record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq nxrrset add-delete.test.dyndns A
+update add add-delete.test.dyndns. 3600 A 127.0.0.108
+send
+answer
+!
+
+# check if the record was added
+mysqldiff 1 "Check if add-delete.test.dyndns. 3600 A 127.0.0.108 exists"
+
+# delete the just added record
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq yxrrset add-delete.test.dyndns A
+update delete add-delete.test.dyndns.
+send
+answer
+!
+
+# check if the record was deleted
+mysqldiff 2 "Check if record is gone" 1

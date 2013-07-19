@@ -253,7 +253,7 @@ void *TCPNameserver::doConnection(void *data)
   pthread_detach(pthread_self());
   Utility::setNonBlocking(fd);
   try {
-    char mesg[512];
+    char mesg[65535];
     
     DLOG(L<<"TCP Connection accepted on fd "<<fd<<endl);
     bool logDNSQueries= ::arg().mustDo("log-dns-queries");
@@ -271,7 +271,7 @@ void *TCPNameserver::doConnection(void *data)
       else
         pktlen=ntohs(pktlen);
 
-      if(pktlen>511) {
+      if(pktlen>sizeof(mesg)) {
         L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
         break;
       }

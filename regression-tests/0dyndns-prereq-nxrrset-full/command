@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# query to see if the records that we need, are actually there.
+cleandig multi.test.dyndns ANY
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq yxrrset multi.test.dyndns IN A 127.0.0.1
+prereq yxrrset multi.test.dyndns IN A 127.0.0.2
+send
+answer
+!
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq yxrrset multi.test.dyndns IN A 127.0.0.1
+prereq yxrrset multi.test.dyndns IN A 127.0.0.2
+prereq yxrrset multi.test.dyndns IN A 127.0.0.3
+send
+answer
+!
+
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+prereq yxrrset multi.test.dyndns IN A 127.0.0.1
+prereq yxrrset multi.test.dyndns IN A 127.0.0.2
+prereq yxrrset multi.test.dyndns IN A 127.0.0.3
+prereq yxrrset multi.test.dyndns IN A 127.0.0.3
+send
+answer
+!
