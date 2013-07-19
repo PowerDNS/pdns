@@ -68,6 +68,7 @@ void CommunicatorClass::mainloop(void)
     signal(SIGPIPE,SIG_IGN);
 #endif // WIN32
     L<<Logger::Error<<"Master/slave communicator launching"<<endl;
+
     PacketHandler P;
     d_tickinterval=::arg().asNum("slave-cycle-interval");
     makeNotifySockets();

@@ -80,6 +80,7 @@ void declareArguments()
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   ::arg().set("disable-axfr","Do not allow zone transfers")="no";
+  ::arg().set("notify-only", "If set, PowerDNS will only send NOTIFY to these networks")="";
   
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
 

@@ -56,8 +56,26 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
       ips.insert(*k);
   }
   
-  // make calls to d_nq.add(domain, ip);
+
+  // Check notify-only and add to nofity queue
+  NetmaskGroup notifyOnly;
+  vector<string> parts;
+  B->getDomainMetadata(domain, "NOTIFY-ONLY", parts);
+  if (!(::arg()["notify-only"].empty())) {
+    stringtok(parts, ::arg()["notify-only"], ", \t");
+  }
+  for (vector<string>::const_iterator i=parts.begin(); i!=parts.end(); ++i)
+    notifyOnly.addMask(*i);
+
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
+    if ( ! notifyOnly.empty()) {
+      ComboAddress addr = ComboAddress(*j);
+      if ( ! notifyOnly.match(&addr)) {
+        L<<Logger::Warning<<"Skipping notification of domain '"<<domain<<"' to "<<*j<<" because it does not match notify-only."<<endl;
+        continue;
+      }
+    }
+
     L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
   }
