@@ -14,11 +14,13 @@ bool SMySQL::s_dolog;
 pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user, 
-               const string &password, const string &group)
+               const string &password, const string &group, bool setIsolation)
 {
-  {
-    Lock l(&s_myinitlock);
-    mysql_init(&d_db);
+  int retry=1;
+
+  Lock l(&s_myinitlock);
+  mysql_init(&d_db);
+  do {
 
   #if MYSQL_VERSION_ID >= 50013
     my_bool reconnect = 1;
@@ -31,21 +33,32 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
     mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
   #endif
 
+    if (setIsolation && (retry == 1))
+      mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
+
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, group.c_str());
-    
-    if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(), 
-          		  user.empty() ? NULL : user.c_str(), 
-          		  password.empty() ? NULL : password.c_str(),
-          		  database.empty() ? NULL : database.c_str(),
-          		  port,
-          		  msocket.empty() ? NULL : msocket.c_str(),
-          		  CLIENT_MULTI_RESULTS)) {
 
-      throw sPerrorException("Unable to connect to database");
+    if (!mysql_real_connect(&d_db, host.empty() ? NULL : host.c_str(),
+                          user.empty() ? NULL : user.c_str(),
+                          password.empty() ? NULL : password.c_str(),
+                          database.empty() ? NULL : database.c_str(),
+                          port,
+                          msocket.empty() ? NULL : msocket.c_str(),
+                          CLIENT_MULTI_RESULTS)) {
+
+      if (retry == 0)
+        throw sPerrorException("Unable to connect to database");
+      --retry;
+    } else {
+      if (retry == 0) {
+        mysql_close(&d_db);
+        throw sPerrorException("Please add 'innodb-read-committed=no' to your configuration, and reconsider your storage engine if it does not support transactions.");
+      }
+      retry=-1;
     }
+  } while (retry >= 0);
 
-    d_rres=0;
-  }
+  d_rres=0;
 }
 
 void SMySQL::setLog(bool state)

@@ -13,7 +13,8 @@ class SMySQL : public SSql
 public:
   SMySQL(const string &database, const string &host="", uint16_t port=0,
          const string &msocket="",const string &user="",
-         const string &password="", const string &group="");
+         const string &password="", const string &group="",
+         bool setIsolation=false);
 
   ~SMySQL();
   
