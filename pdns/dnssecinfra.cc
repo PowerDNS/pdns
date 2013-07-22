@@ -475,7 +475,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   DNSPacketWriter dw(signVect, "", 0);
   if(!timersonly) {
     dw.xfrLabel(keyname, false);
-    dw.xfr16BitInt(0xff); // class
+    dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
     dw.xfrLabel(toLower(trc.d_algoName), false);
   }
@@ -514,7 +514,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
   DNSPacketWriter dw(signVect, "", 0);
   if(!timersonly) {
     dw.xfrLabel(tsigkeyname, false);
-    dw.xfr16BitInt(0xff); // class
+    dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
     dw.xfrLabel(trc->d_algoName, false);
   }  
@@ -533,7 +533,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
 
   trc->d_mac = calculateMD5HMAC(tsigsecret, toSign);
   //  d_trc->d_mac[0]++; // sabotage
-  pw.startRecord(tsigkeyname, QType::TSIG, 0, 0xff, DNSPacketWriter::ADDITIONAL); 
+  pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
   trc->toPacket(pw);
   pw.commit();
 }
