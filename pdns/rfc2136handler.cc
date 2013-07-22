@@ -86,7 +86,7 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
 
 // Implements section 3.4.2 of RFC2136
-uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
+uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
 
   string rrLabel = stripDot(rr->d_label);
   rrLabel = toLower(rrLabel);
@@ -108,7 +108,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
   }
 
 
-  uint16_t changedRecords = 0;
+  uint changedRecords = 0;
   DNSResourceRecord rec;
   vector<DNSResourceRecord> rrset, recordsToDelete;
   set<string> delnonterm, insnonterm; // used to (at the end) fix ENT records.
@@ -828,7 +828,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
   // 3.4 - Prescan & Add/Update/Delete records - is all done within a try block.
   try {
-    uint16_t changedRecs = 0;
+    uint changedRecords = 0;
     // 3.4.1 - Prescan section
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
@@ -858,7 +858,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && stripDot(rr->d_label) == di.zone)
           nsRRtoDelete.push_back(rr);
         else
-          changedRecs += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+          changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
       }
     }
     if (nsRRtoDelete.size()) {
@@ -872,32 +872,32 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         for (vector<DNSResourceRecord>::iterator inZone=nsRRInZone.begin(); inZone != nsRRInZone.end(); inZone++) {
           for (vector<const DNSRecord *>::iterator rr=nsRRtoDelete.begin(); rr != nsRRtoDelete.end(); rr++) {
             if (inZone->getZoneRepresentation() == (*rr)->d_content->getZoneRepresentation())
-              changedRecs += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+              changedRecords += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
           }
         }
       }
     }
 
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
-    if (changedRecs > 0 && !updatedSerial) {
+    if (changedRecords > 0 && !updatedSerial) {
       increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
-      changedRecs++;
+      changedRecords++;
     }
 
-    if (changedRecs > 0) {
+    if (changedRecords > 0) {
       if (!di.backend->commitTransaction()) {
        L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
         return RCode::ServFail;
       }
 
-      S.deposit("rfc2136-changes", changedRecs);
+      S.deposit("rfc2136-changes", changedRecords);
 
       // Purge the records!
       string zone(di.zone);
       zone.append("$");
       PC.purge(zone);
 
-      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecs<<" changed records commited."<<endl;
+      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
     } else {
       //No change, no commit, we perform abort() because some backends might like this more.
       L<<Logger::Info<<msgPrefix<<"Update completed, 0 changes, rolling back."<<endl;
