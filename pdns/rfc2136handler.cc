@@ -177,6 +177,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     }
 
     if (foundRecord) {
+
       if (rrType == QType::SOA) { // SOA updates require the serial to be higher than the current
         SOAData sdOld, sdUpdate;
         DNSResourceRecord *oldRec = &rrset.front();
@@ -188,60 +189,77 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           *updatedSerial = true;
           changedRecords++;
           L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
-        }
-        else
+        } else {
           L<<Logger::Notice<<msgPrefix<<"Provided serial ("<<sdUpdate.serial<<") is older than the current serial ("<<sdOld.serial<<"), ignoring SOA update."<<endl;
+        }
 
       // It's not possible to have multiple CNAME's with the same NAME. So we always update.
       } else if (rrType == QType::CNAME) {
+        int changedCNames = 0;
         for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
-          i->ttl = rr->d_ttl;
-          i->setContent(rr->d_content->getZoneRepresentation());
-          changedRecords++;
+          if (i->ttl != rr->d_ttl || i->content != rr->d_content->getZoneRepresentation()) {
+            i->ttl = rr->d_ttl;
+            i->setContent(rr->d_content->getZoneRepresentation());
+            changedCNames++;
+          }
         }
-        di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
-        L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+        if (changedCNames > 0) {
+          di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
+          L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+          changedRecords += changedCNames;
+        } else {
+          L<<Logger::Notice<<msgPrefix<<"Replace for record "<<rrLabel<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
+        }
 
       // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectily means a update of TTL)
       } else {
+        int updateTTL=0;
         foundRecord = false;
         for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
           string content = rr->d_content->getZoneRepresentation();
           if (rrType == i->qtype.getCode() && i->getZoneRepresentation() == content) {
-            foundRecord = true;
-            i->ttl = rr->d_ttl;
-            changedRecords++;
+            foundRecord=true;
+            if (i->ttl != rr->d_ttl)  {
+              i->ttl = rr->d_ttl;
+              updateTTL++;
+            }
           }
         }
-        if (foundRecord) {
+        if (updateTTL > 0) {
           di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
           L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+          changedRecords += updateTTL;
+        } else {
+          L<<Logger::Notice<<msgPrefix<<"Replace for record "<<rrLabel<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
         }
       }
 
-      // ReplaceRRSet dumps our ordername and auth flag, so we need to correct it.
+      // ReplaceRRSet dumps our ordername and auth flag, so we need to correct it if we have changed records.
       // We can take the auth flag from the first RR in the set, as the name is different, so should the auth be.
-      bool auth = rrset.front().auth;
-      if(*haveNSEC3) {
-        string hashed;
-        if(! *narrow)
-          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
+      if (changedRecords > 0) {
+        bool auth = rrset.front().auth;
 
-        if (*narrow)
-          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
-        else
-          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
-        if(!auth || rrType == QType::DS) {
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
-        }
+        if(*haveNSEC3) {
+          string hashed;
+          if(! *narrow)
+            hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
 
-      } else { // NSEC
-        di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, rrLabel, auth);
-        if(!auth || rrType == QType::DS) {
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+          if (*narrow)
+            di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
+          else
+            di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
+          if(!auth || rrType == QType::DS) {
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+          }
+
+        } else { // NSEC
+          di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, rrLabel, auth);
+          if(!auth || rrType == QType::DS) {
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+          }
         }
       }
 
