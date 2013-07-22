@@ -52,7 +52,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
     } else {
       if (retry == 0) {
         mysql_close(&d_db);
-        throw sPerrorException("Please add 'innodb-read-committed=no' to your configuration, and reconsider your storage engine if it does not support transactions.");
+        throw sPerrorException("Please add '(gmysql-)innodb-read-committed=no' to your PowerDNS configuration, and reconsider your storage engine if it does not support transactions.");
       }
       retry=-1;
     }
