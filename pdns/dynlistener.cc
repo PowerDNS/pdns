@@ -246,7 +246,7 @@ string DynListener::getLine()
       errno=0;
       if(!fgets(&mesg[0], mesg.size(), fp.get())) {
         if(errno)
-	  L<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
+          L<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
         close(d_client);
         continue;
       }
@@ -268,9 +268,9 @@ string DynListener::getLine()
     else if(len==0)
       throw PDNSException("Guardian exited - going down as well");
 
-    if(len == (int)mesg.size()) {
+    if(len == (int)mesg.size())
       throw PDNSException("Line on control console was too long");
-    }
+
     mesg[len]=0;
   }
   
@@ -292,8 +292,7 @@ void DynListener::sendlines(const string &l)
       sent+=ret;
     }
     close(d_client);
-  }
-  else {
+  } else {
     string lines=l;
     if(!lines.empty() && lines[lines.length()-1] != '\n')
       lines.append("\n");
@@ -342,22 +341,18 @@ void DynListener::theListener()
         sendlines("Unknown command: '"+parts[0]+"'");
     }
   }
-  catch(PDNSException &AE)
-    {
-      L<<Logger::Error<<"Fatal error in control listener: "<<AE.reason<<endl;
-    }
-  catch(string &E)
-    {
-      L<<Logger::Error<<"Fatal error 2 in control listener: "<<E<<endl;
-    }
-  catch(std::exception& e)
-    {
-      L<<Logger::Error<<"Fatal STL error: "<<e.what()<<endl;
-    }
-  catch(...)
-    {
-      L<<Logger::Error<<"Fatal: unknown exception occured"<<endl;
-    }
+  catch(PDNSException &AE) {
+    L<<Logger::Error<<"Fatal error in control listener: "<<AE.reason<<endl;
+  }
+  catch(string &E) {
+    L<<Logger::Error<<"Fatal error 2 in control listener: "<<E<<endl;
+  }
+  catch(std::exception& e) {
+    L<<Logger::Error<<"Fatal STL error: "<<e.what()<<endl;
+  }
+  catch(...) {
+    L<<Logger::Error<<"Fatal: unknown exception occured"<<endl;
+  }
 }
 
 
@@ -379,8 +374,7 @@ string DynListener::getHelp()
 
   const boost::format fmter("%|-32| %||");
 
-  for(g_funkdb_t::const_iterator i=s_funcdb.begin();i!=s_funcdb.end();++i)
-  {
+  for(g_funkdb_t::const_iterator i=s_funcdb.begin();i!=s_funcdb.end();++i) {
     funcs.push_back(str(boost::format(fmter) % (toLower(i->first)+" "+i->second.args) % i->second.usage));
   }
   sort(funcs.begin(), funcs.end());
@@ -389,4 +383,3 @@ string DynListener::getHelp()
   funcs.resize(unique(funcs.begin(), funcs.end()) - funcs.begin());
   return boost::join(funcs, "\n");
 }
-
