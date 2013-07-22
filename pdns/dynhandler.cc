@@ -28,6 +28,7 @@
 #include "dnsseckeeper.hh"
 
 static bool s_pleasequit;
+static string d_status;
 
 bool DLQuitPlease()
 {
@@ -49,6 +50,11 @@ string DLQuitHandler(const vector<string>&parts, Utility::pid_t ppid)
 static void dokill(int)
 {
   exit(1);
+}
+
+string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  return ::arg().configstring(true);
 }
 
 string DLRQuitHandler(const vector<string>&parts, Utility::pid_t ppid)
@@ -89,7 +95,6 @@ string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid)
   return ret;
 }
 
-static string d_status;
 
 void setStatus(const string &str)
 {
@@ -265,3 +270,4 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   L<<Logger::Error<<"Reload was requested"<<endl;
   return "Ok";
 }
+

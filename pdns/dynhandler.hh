@@ -35,13 +35,13 @@
 
 
 bool DLQuitPlease();
+void setStatus(const string &str);
 string DLQuitHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLRQuitHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLPingHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid);
-void setStatus(const string &str);
 string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid);
@@ -51,4 +51,5 @@ string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLVersionHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid);
+string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid);
 #endif /* PDNS_DYNHANDLER_HH */
