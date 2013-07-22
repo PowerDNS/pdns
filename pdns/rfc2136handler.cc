@@ -862,19 +862,25 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       changedRecords++;
     }
 
-    if (!di.backend->commitTransaction()) {
-      L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
-      return RCode::ServFail;
+    if (changedRecords) {
+      if (!di.backend->commitTransaction()) {
+       L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
+        return RCode::ServFail;
+      }
+
+      S.deposit("rfc2136-changes", changedRecords);
+
+      // Purge the records!
+      string zone(di.zone);
+      zone.append("$");
+      PC.purge(zone);
+
+      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
+    } else {
+      //No change, no commit, we perform abort() because some backends might like this more.
+      L<<Logger::Info<<msgPrefix<<"Update completed, 0 changes, rolling back."<<endl;
+      di.backend->abortTransaction();
     }
-
-    S.deposit("rfc2136-changes", changedRecords);
-
-    // Purge the records!
-    string zone(di.zone);
-    zone.append("$");
-    PC.purge(zone);
-
-    L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
     return RCode::NoError; //rfc 2136 3.4.2.5
   }
   catch (SSqlException &e) {
