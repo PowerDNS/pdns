@@ -184,9 +184,9 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         oldRec->setContent(rr->d_content->getZoneRepresentation());
         fillSOAData(oldRec->content, sdUpdate);
         if (rfc1982LessThan(sdOld.serial, sdUpdate.serial)) {
-          changedRecords++;
           di->backend->replaceRRSet(di->id, oldRec->qname, oldRec->qtype, rrset);
           *updatedSerial = true;
+          changedRecords++;
           L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
         }
         else
