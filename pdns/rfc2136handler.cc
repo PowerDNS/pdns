@@ -86,7 +86,7 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
 
 // Implements section 3.4.2 of RFC2136
-uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
+uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
 
   string rrLabel = stripDot(rr->d_label);
   rrLabel = toLower(rrLabel);
@@ -108,7 +108,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
   }
 
 
-  uint16_t changedRecords = 0;
+  uint changedRecords = 0;
   DNSResourceRecord rec;
   vector<DNSResourceRecord> rrset, recordsToDelete;
   set<string> delnonterm, insnonterm; // used to (at the end) fix ENT records.
@@ -177,6 +177,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     }
 
     if (foundRecord) {
+
       if (rrType == QType::SOA) { // SOA updates require the serial to be higher than the current
         SOAData sdOld, sdUpdate;
         DNSResourceRecord *oldRec = &rrset.front();
@@ -184,64 +185,81 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         oldRec->setContent(rr->d_content->getZoneRepresentation());
         fillSOAData(oldRec->content, sdUpdate);
         if (rfc1982LessThan(sdOld.serial, sdUpdate.serial)) {
-          changedRecords++;
           di->backend->replaceRRSet(di->id, oldRec->qname, oldRec->qtype, rrset);
           *updatedSerial = true;
+          changedRecords++;
           L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
-        }
-        else
+        } else {
           L<<Logger::Notice<<msgPrefix<<"Provided serial ("<<sdUpdate.serial<<") is older than the current serial ("<<sdOld.serial<<"), ignoring SOA update."<<endl;
+        }
 
       // It's not possible to have multiple CNAME's with the same NAME. So we always update.
       } else if (rrType == QType::CNAME) {
+        int changedCNames = 0;
         for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
-          i->ttl = rr->d_ttl;
-          i->setContent(rr->d_content->getZoneRepresentation());
-          changedRecords++;
+          if (i->ttl != rr->d_ttl || i->content != rr->d_content->getZoneRepresentation()) {
+            i->ttl = rr->d_ttl;
+            i->setContent(rr->d_content->getZoneRepresentation());
+            changedCNames++;
+          }
         }
-        di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
-        L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+        if (changedCNames > 0) {
+          di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
+          L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+          changedRecords += changedCNames;
+        } else {
+          L<<Logger::Notice<<msgPrefix<<"Replace for record "<<rrLabel<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
+        }
 
       // In any other case, we must check if the TYPE and RDATA match to provide an update (which effectily means a update of TTL)
       } else {
+        int updateTTL=0;
         foundRecord = false;
         for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
           string content = rr->d_content->getZoneRepresentation();
           if (rrType == i->qtype.getCode() && i->getZoneRepresentation() == content) {
-            foundRecord = true;
-            i->ttl = rr->d_ttl;
-            changedRecords++;
+            foundRecord=true;
+            if (i->ttl != rr->d_ttl)  {
+              i->ttl = rr->d_ttl;
+              updateTTL++;
+            }
           }
         }
-        if (foundRecord) {
+        if (updateTTL > 0) {
           di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
           L<<Logger::Notice<<msgPrefix<<"Replacing record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+          changedRecords += updateTTL;
+        } else {
+          L<<Logger::Notice<<msgPrefix<<"Replace for record "<<rrLabel<<"|"<<rrType.getName()<<" requested, but no changes made."<<endl;
         }
       }
 
-      // ReplaceRRSet dumps our ordername and auth flag, so we need to correct it.
+      // ReplaceRRSet dumps our ordername and auth flag, so we need to correct it if we have changed records.
       // We can take the auth flag from the first RR in the set, as the name is different, so should the auth be.
-      bool auth = rrset.front().auth;
-      if(*haveNSEC3) {
-        string hashed;
-        if(! *narrow)
-          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
+      if (changedRecords > 0) {
+        bool auth = rrset.front().auth;
 
-        if (*narrow)
-          di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
-        else
-          di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
-        if(!auth || rrType == QType::DS) {
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
-        }
+        if(*haveNSEC3) {
+          string hashed;
+          if(! *narrow)
+            hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
 
-      } else { // NSEC
-        di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, rrLabel, auth);
-        if(!auth || rrType == QType::DS) {
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
-          di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+          if (*narrow)
+            di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
+          else
+            di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, rrLabel, hashed, auth);
+          if(!auth || rrType == QType::DS) {
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "NS");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+          }
+
+        } else { // NSEC
+          di->backend->updateDNSSECOrderAndAuth(di->id, di->zone, rrLabel, auth);
+          if(!auth || rrType == QType::DS) {
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "A");
+            di->backend->nullifyDNSSECOrderNameAndAuth(di->id, rrLabel, "AAAA");
+          }
         }
       }
 
@@ -417,7 +435,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           di->backend->setDNSSECAuthOnDsRecord(di->id, qname);
       }
       return 1;
-    }
+    } // end of NSEC3PARAM delete block
 
 
     di->backend->lookup(rrType, rrLabel);
@@ -434,15 +452,16 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         else
           rrset.push_back(rec);
       }
-
     }
-    di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
-    L<<Logger::Notice<<msgPrefix<<"Deleting record "<<rrLabel<<"|"<<rrType.getName()<<endl;
-
-
+  
     if (recordsToDelete.size()) {
-      // We're removing a delegate, so we need to reset ordername/auth for some records.
-      if (rrType == QType::NS && rrLabel != di->zone) {
+      di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
+      L<<Logger::Notice<<msgPrefix<<"Deleting record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+      changedRecords += recordsToDelete.size();
+
+
+      // If we've removed a delegate, we need to reset ordername/auth for some records.
+      if (rrType == QType::NS && rrLabel != di->zone) { 
         vector<string> belowOldDelegate, nsRecs, updateAuthFlag;
         di->backend->listSubZone(rrLabel, di->id);
         while (di->backend->get(rec)) {
@@ -523,8 +542,11 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             break;
         }
       }
+    } else { // if (recordsToDelete.size())
+      L<<Logger::Notice<<msgPrefix<<"Deletion for record "<<rrLabel<<"|"<<rrType.getName()<<" requested, but not found."<<endl;
     }
-  }
+  } // (End of delete block d_class == ANY || d_class == NONE
+  
 
 
   //Insert and delete ENT's
@@ -543,7 +565,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     }
   }
 
-  return recordsToDelete.size() + changedRecords;
+  return changedRecords;
 }
 
 int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di) {
@@ -806,7 +828,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
   // 3.4 - Prescan & Add/Update/Delete records - is all done within a try block.
   try {
-    uint16_t changedRecords = 0;
+    uint changedRecords = 0;
     // 3.4.1 - Prescan section
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
@@ -862,19 +884,25 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       changedRecords++;
     }
 
-    if (!di.backend->commitTransaction()) {
-      L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
-      return RCode::ServFail;
+    if (changedRecords > 0) {
+      if (!di.backend->commitTransaction()) {
+       L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
+        return RCode::ServFail;
+      }
+
+      S.deposit("rfc2136-changes", changedRecords);
+
+      // Purge the records!
+      string zone(di.zone);
+      zone.append("$");
+      PC.purge(zone);
+
+      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
+    } else {
+      //No change, no commit, we perform abort() because some backends might like this more.
+      L<<Logger::Info<<msgPrefix<<"Update completed, 0 changes, rolling back."<<endl;
+      di.backend->abortTransaction();
     }
-
-    S.deposit("rfc2136-changes", changedRecords);
-
-    // Purge the records!
-    string zone(di.zone);
-    zone.append("$");
-    PC.purge(zone);
-
-    L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
     return RCode::NoError; //rfc 2136 3.4.2.5
   }
   catch (SSqlException &e) {
