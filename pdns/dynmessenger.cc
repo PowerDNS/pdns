@@ -116,7 +116,7 @@ string DynMessenger::receive() const
       throw AhuException("Error from remote: "+string(strerror(errno)));
 
     answer.append(buffer,retlen);
-    if(retlen!=sizeof(buffer))
+    if (retlen == 0)
       break;
   }
 
