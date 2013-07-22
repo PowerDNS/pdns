@@ -435,7 +435,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
           di->backend->setDNSSECAuthOnDsRecord(di->id, qname);
       }
       return 1;
-    }
+    } // end of NSEC3PARAM delete block
 
 
     di->backend->lookup(rrType, rrLabel);
@@ -452,15 +452,16 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
         else
           rrset.push_back(rec);
       }
-
     }
-    di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
-    L<<Logger::Notice<<msgPrefix<<"Deleting record "<<rrLabel<<"|"<<rrType.getName()<<endl;
-
-
+  
     if (recordsToDelete.size()) {
-      // We're removing a delegate, so we need to reset ordername/auth for some records.
-      if (rrType == QType::NS && rrLabel != di->zone) {
+      di->backend->replaceRRSet(di->id, rrLabel, rrType, rrset);
+      L<<Logger::Notice<<msgPrefix<<"Deleting record "<<rrLabel<<"|"<<rrType.getName()<<endl;
+      changedRecords += recordsToDelete.size();
+
+
+      // If we've removed a delegate, we need to reset ordername/auth for some records.
+      if (rrType == QType::NS && rrLabel != di->zone) { 
         vector<string> belowOldDelegate, nsRecs, updateAuthFlag;
         di->backend->listSubZone(rrLabel, di->id);
         while (di->backend->get(rec)) {
@@ -541,8 +542,11 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
             break;
         }
       }
+    } else { // if (recordsToDelete.size())
+      L<<Logger::Notice<<msgPrefix<<"Deletion for record "<<rrLabel<<"|"<<rrType.getName()<<" requested, but not found."<<endl;
     }
-  }
+  } // (End of delete block d_class == ANY || d_class == NONE
+  
 
 
   //Insert and delete ENT's
@@ -561,7 +565,7 @@ uint16_t PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *
     }
   }
 
-  return recordsToDelete.size() + changedRecords;
+  return changedRecords;
 }
 
 int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di) {
@@ -824,7 +828,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
   // 3.4 - Prescan & Add/Update/Delete records - is all done within a try block.
   try {
-    uint16_t changedRecords = 0;
+    uint16_t changedRecs = 0;
     // 3.4.1 - Prescan section
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
@@ -854,7 +858,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && stripDot(rr->d_label) == di.zone)
           nsRRtoDelete.push_back(rr);
         else
-          changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+          changedRecs += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
       }
     }
     if (nsRRtoDelete.size()) {
@@ -868,32 +872,32 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         for (vector<DNSResourceRecord>::iterator inZone=nsRRInZone.begin(); inZone != nsRRInZone.end(); inZone++) {
           for (vector<const DNSRecord *>::iterator rr=nsRRtoDelete.begin(); rr != nsRRtoDelete.end(); rr++) {
             if (inZone->getZoneRepresentation() == (*rr)->d_content->getZoneRepresentation())
-              changedRecords += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+              changedRecs += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
           }
         }
       }
     }
 
     // Section 3.6 - Update the SOA serial - outside of performUpdate because we do a SOA update for the complete update message
-    if (changedRecords > 0 && !updatedSerial) {
+    if (changedRecs > 0 && !updatedSerial) {
       increaseSerial(msgPrefix, &di, haveNSEC3, narrow, &ns3pr);
-      changedRecords++;
+      changedRecs++;
     }
 
-    if (changedRecords) {
+    if (changedRecs > 0) {
       if (!di.backend->commitTransaction()) {
        L<<Logger::Error<<msgPrefix<<"Failed to commit updates!"<<endl;
         return RCode::ServFail;
       }
 
-      S.deposit("rfc2136-changes", changedRecords);
+      S.deposit("rfc2136-changes", changedRecs);
 
       // Purge the records!
       string zone(di.zone);
       zone.append("$");
       PC.purge(zone);
 
-      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
+      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecs<<" changed records commited."<<endl;
     } else {
       //No change, no commit, we perform abort() because some backends might like this more.
       L<<Logger::Info<<msgPrefix<<"Update completed, 0 changes, rolling back."<<endl;
