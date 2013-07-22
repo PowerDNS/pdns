@@ -38,3 +38,4 @@ lt~obsolete.m4
 pdns-*.tar.gz
 .*DS_Store
 *~
+pdns.pid
