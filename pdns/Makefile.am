@@ -20,6 +20,7 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 SUBDIRS= $(POLARSSL_SUBDIR) backends
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h
+CLEANFILES=version_generated.h
 
 noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
