@@ -232,21 +232,22 @@ case $context in
 				ext-nsd)
 					tonsd unsigned
 					extracontexts="extnsd"
-					skipreasons=nodnssec
+					skipreasons="nodnssec nodyndns"
 					;;
 				ext-nsd-nsec)
 					tonsd nsec
 					extracontexts="extnsd dnssec"
+					skipreasons=nodyndns
 					;;
 				ext-nsd-nsec3)
 					tonsd nsec3
 					extracontexts="extnsd dnssec nsec3"
-					skipreasons="nsec3"
+					skipreasons="nsec3 nodyndns"
 					;;
 				ext-nsd-nsec3-optout)
 					tonsd nsec3-optout
 					extracontexts="extnsd dnssec nsec3 nsec3-optout"
-					skipreasons="optout"
+					skipreasons="optout nodyndns"
 					;;
 			esac
 			nsd -c nsd.conf -P pdns.pid -d &
