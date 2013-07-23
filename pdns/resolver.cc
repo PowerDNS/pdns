@@ -460,8 +460,11 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes)
   int n=0;
   int numread;
   while(n<bytes) {
-    if(waitForData(d_sock, 10-(time(0)-start))<0)
+    int res=waitForData(d_sock, 10-(time(0)-start));
+    if(res<0)
       throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
+    if(!res)
+      throw ResolverException("Timeout while reading data from remote nameserver over TCP");
 
     numread=recv(d_sock, d_buf.get()+n, bytes-n, 0);
     if(numread<0)
