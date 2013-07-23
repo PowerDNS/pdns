@@ -1,4 +1,3 @@
-#ifdef HAVE_LIBPOLARSSLSSL
 #include <polarssl/rsa.h>
 #include <polarssl/base64.h>
 #include <polarssl/sha1.h>
@@ -6,15 +5,6 @@
 #include <polarssl/sha4.h>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
-#else
-#include "ext/polarssl-1.1.2/include/polarssl/rsa.h"
-#include "ext/polarssl-1.1.2/include/polarssl/base64.h"
-#include "ext/polarssl-1.1.2/include/polarssl/sha1.h"
-#include "ext/polarssl-1.1.2/include/polarssl/sha2.h"
-#include "ext/polarssl-1.1.2/include/polarssl/sha4.h"
-#include "ext/polarssl-1.1.2/include/polarssl/entropy.h"
-#include "ext/polarssl-1.1.2/include/polarssl/ctr_drbg.h"
-#endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/foreach.hpp>
 #include "dnssecinfra.hh"

@@ -3,11 +3,7 @@
 
 #include <string>
 #include <stdint.h>
-#ifdef HAVE_LIBPOLARSSLSSL
 #include <polarssl/md5.h>
-#else
-#include "ext/polarssl-1.1.2/include/polarssl/md5.h"
-#endif
 
 class MD5Summer
 {

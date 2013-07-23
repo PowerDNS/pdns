@@ -1,5 +1,5 @@
 noinst_LTLIBRARIES = libbind2backend.la
-AM_CPPFLAGS=-I../.. $(BOOST_CPPFLAGS) @THREADFLAGS@
+AM_CPPFLAGS=-I../.. $(BOOST_CPPFLAGS) $(POLARSSL_CFLAGS) @THREADFLAGS@
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h bindparser.h
 
@@ -43,25 +43,13 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 ../../aes/aestab.c ../../aes/aestab.h ../../aes/brg_endian.h ../../aes/brg_types.h # ../../dbdnsseckeeper.cc
 
 zone2ldap_LDFLAGS=@THREADFLAGS@
-if HAVE_LIBPOLARSSL
-zone2ldap_LDADD=
-else
-zone2ldap_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a
-endif
+zone2ldap_LDADD= $(POLARSSL_LIBS)
 
 zone2sql_LDFLAGS=@THREADFLAGS@
-if HAVE_LIBPOLARSSL
-zone2sql_LDADD=
-else
-zone2sql_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a 
-endif
+zone2sql_LDADD= $(POLARSSL_LIBS)
 
 zone2json_LDFLAGS=@THREADFLAGS@
-if HAVE_LIBPOLARSSL
-zone2json_LDADD=
-else
-zone2json_LDADD= ../../ext/polarssl-1.1.2/library/libpolarssl.a
-endif
+zone2json_LDADD= $(POLARSSL_LIBS)
 
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
