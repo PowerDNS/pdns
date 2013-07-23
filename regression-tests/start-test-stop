@@ -3,9 +3,10 @@
 PDNS=${PDNS:-../pdns/pdns_server}
 PDNS2=${PDNS2:-../pdns/pdns_server}
 
-cleanlongtxt ()
+nsdfix ()
 {
-	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.shorttxt
+	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.nsd
+	sed '/EUI/s/^/;/g' < example.com > example.com.nsd
 }
 
 tonsd ()
@@ -18,7 +19,7 @@ server:
 	username: ""
 __EOF__
 
-	cleanlongtxt
+	nsdfix
 	rm -f K*
 	for zone in $(grep zone named.conf  | cut -f2 -d\")
 	do
@@ -29,9 +30,9 @@ __EOF__
 			ksk="secure-delegated.dnssec-parent.com"
 		fi
 		zsk=$(ldns-keygen -r /dev/urandom -a RSASHA256 $zone)
-		if [ $zone = test.com ]
+		if [ -f $zone.nsd ]
 		then
-			zonefile=test.com.shorttxt
+			zonefile=${zone}.nsd
 		else
 			zonefile=${zone}
 		fi
@@ -232,22 +233,22 @@ case $context in
 				ext-nsd)
 					tonsd unsigned
 					extracontexts="extnsd"
-					skipreasons="nodnssec nodyndns"
+					skipreasons="nsd nodnssec nodyndns"
 					;;
 				ext-nsd-nsec)
 					tonsd nsec
 					extracontexts="extnsd dnssec"
-					skipreasons=nodyndns
+					skipreasons="nsd nodyndns"
 					;;
 				ext-nsd-nsec3)
 					tonsd nsec3
 					extracontexts="extnsd dnssec nsec3"
-					skipreasons="nsec3 nodyndns"
+					skipreasons="nsd nsec3 nodyndns"
 					;;
 				ext-nsd-nsec3-optout)
 					tonsd nsec3-optout
 					extracontexts="extnsd dnssec nsec3 nsec3-optout"
-					skipreasons="optout nodyndns"
+					skipreasons="nsd optout nodyndns"
 					;;
 			esac
 			nsd -c nsd.conf -P pdns.pid -d &
