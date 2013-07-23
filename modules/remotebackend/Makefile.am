@@ -39,9 +39,9 @@ libtestremotebackend_la_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAG
 
 test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc 
 test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc
-test_remotebackend_http_SOURCES=test-remotebackend.cc test-remotebackend-http.cc ../../config.h
-test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc ../../config.h
-test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc ../../config.h
+test_remotebackend_http_SOURCES=test-remotebackend.cc test-remotebackend-http.cc
+test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc
+test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc
 
 test_remotebackend_pipe_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 test_remotebackend_pipe_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
