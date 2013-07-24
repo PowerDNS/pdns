@@ -133,10 +133,13 @@ __EOF__
 fi
 
 make -C ../pdns sdig nsec3dig || exit 1
-# Copy zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
+# Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do
-       cp $zone $zone.backup
+	if [ -f $zone.orig ]
+	then
+		cp -f $zone.orig $zone
+	fi
 done
 
 rm -f pdns*.pid
@@ -774,11 +777,6 @@ then
 fi
 kill $(cat pdns*.pid)
 rm pdns*.pid
-
-for zone in $(grep zone named.conf  | cut -f2 -d\")
-do
-	mv $zone.backup $zone
-done
 
 if [ -s "./failed_tests" ]
 then
