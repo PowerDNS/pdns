@@ -13384,7 +13384,6 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
   <chapter id="rfc2136"><title>RFC2136 Support (Dynamic DNS Update)</title>
     <para>Starting with the PowerDNS Authoritative Server 3.4, RFC2136 support is available. There are a number of items NOT supported:
       <itemizedlist>
-        <listitem><para>When operating as slave for a zone, forwarding to master is not supported. (Chapter 6 of RFC2136);</para></listitem>
         <listitem><para>There is no support for GSS-TSIG and SIG (TSIG is supported);</para></listitem>
         <listitem><para>WKS records are specifically mentioned in the RFC, we don't specifically care about WKS records;</para></listitem>
         <listitem><para>Anything we forgot....</para></listitem>
@@ -13424,9 +13423,10 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
           <term>forward-2136 [=yes]</term>
           <listitem>
             <para>
-              Tell PowerDNS to forward 2136 to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table.
+              Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table.
               The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the <command>allow-2136-from</command> and
               <command>TSIG-2136-ALLOW</command> are processed first, so those permissions apply before the <command>forward-2136</command> is used.
+              It will try all masters that you have configured until one is succesful.
             </para>
           </listitem>
         </varlistentry>
