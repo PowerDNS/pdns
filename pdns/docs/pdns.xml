@@ -17901,8 +17901,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
       </sect2>
       <sect2><title>Native operation</title>
 	<para>
-	  For native operation, either drop the FOREIGN KEY on the domain_id field, or (recommended), make sure
-	  the <command>domains</command> table is filled properly. To add a domain, issue the following:
+    To add a domain, issue the following:
 	  <programlisting>
 	    insert into domains (name,type) values ('powerdns.com','NATIVE');
 	  </programlisting>
