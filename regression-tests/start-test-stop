@@ -326,7 +326,7 @@ __EOF__
 			done
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
-				--no-shuffle --launch --launch+=random --launch+=gmysql --gmysql-dnssec \
+				--no-shuffle --launch --launch+=random --launch+=gmysql --launch+=random --gmysql-dnssec \
 				--send-root-referral \
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
