@@ -16873,12 +16873,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
   <chapter id="analysis"><title>Tools to analyse DNS traffic</title>
     <para>
       DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since version 2.9.18, PowerDNS comes
-      with three tools to aid in analysis:
-      <warning>
-	<para>
-	  As of 2.9.18 these tools are somewhat rough - they have no help messages for example. They do work though.
-	</para>
-      </warning>
+      with various tools to aid in analysis. These tools are best documented by their manpages, and their --help output.
       <variablelist>
 	<varlistentry>
 	  <term>dnsreplay pcapfile [ipaddress] [port number]</term>
@@ -16902,7 +16897,32 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <term>dnsscope pcapfile</term>
 	  <listitem>
 	    <para>
-	      Calculates statistics without replaying traffic
+	      Calculates statistics without replaying traffic. 
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>dnsbulktest</term>
+	  <listitem>
+	    <para>
+	      Send out thousands of queries in parallel from Alexa top list to stress out resolvers.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>dnsdist</term>
+	  <listitem>
+	    <para>
+	      Simple but high performance UDP and TCP DNS load balancer/distributor.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>dnstcpbench</term>
+	  <listitem>
+	    <para>
+	      Stress out DNS servers with TCP based queries, as read from a file. 
 	    </para>
 	  </listitem>
 	</varlistentry>
