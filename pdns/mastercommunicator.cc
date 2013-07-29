@@ -39,6 +39,7 @@
 
 void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
 {
+  bool hasQueuedItem=false;
   set<string> ips;
   FindNS fns;
   
@@ -60,6 +61,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
     L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
+    hasQueuedItem=true;
   }
   set<string>alsoNotify;
   B->alsoNotifies(domain, &alsoNotify);
@@ -67,7 +69,11 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
     L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
+    hasQueuedItem=true;
   }
+  if (!hasQueuedItem)
+    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no nameservers or also-notify's found. Not notifying!"<<endl;
+
 }
 
 bool CommunicatorClass::notifyDomain(const string &domain)
