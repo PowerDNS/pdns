@@ -1430,7 +1430,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       g_stats.serverParseError++; 
       if(g_logCommonErrors)
         L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< fromaddr.toString() <<
-          ": packet smalller than DNS header"<<endl;
+          ": packet smaller than DNS header"<<endl;
     }
 
     t_udpclientsocks->returnSocket(fd);
