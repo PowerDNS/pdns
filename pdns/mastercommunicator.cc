@@ -72,7 +72,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     hasQueuedItem=true;
   }
   if (!hasQueuedItem)
-    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no nameservers or also-notify's found. Not notifying!"<<endl;
+    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 
 }
 
