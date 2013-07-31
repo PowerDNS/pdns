@@ -19,7 +19,7 @@ try
   reportAllTypes();
 
   if(argc < 5) {
-    cerr<<"Syntax: sdig IP-address port question question-type [dnssec|dnssec-tcp|recurse|hidesoadetails] [showflags]\n";
+    cerr<<"Syntax: sdig IP-address port question question-type [dnssec] [recurse] [showflags] [hidesoadetails] [tcp]\n";
     exit(EXIT_FAILURE);
   }
 
@@ -29,18 +29,14 @@ try
         dnssec=true;
       if (strcmp(argv[i], "recurse") == 0)
         recurse=true;
+      if (strcmp(argv[i], "showflags") == 0)
+        showflags=true;
       if (strcmp(argv[i], "hidesoadetails") == 0)
         hidesoadetails=true;
-      if (strcmp(argv[i], "dnssec-tcp") == 0) {
-        dnssec=true;
+      if (strcmp(argv[i], "tcp") == 0) {
         tcp=true;
       }
     }
-  }
-
-  if((argc > 5 && strcmp(argv[5], "showflags")==0) || (argc > 6 && strcmp(argv[6], "showflags")==0))
-  {
-    showflags=true;
   }
 
   vector<uint8_t> packet;
