@@ -22,7 +22,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include "misc.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 
 extern bool g_singleThreaded;
 

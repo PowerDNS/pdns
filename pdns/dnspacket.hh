@@ -51,7 +51,7 @@
 #include "misc.hh"
 #include "utility.hh"
 #include "logger.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "dnsrecords.hh"
 
 #ifdef HAVE_CONFIG_H

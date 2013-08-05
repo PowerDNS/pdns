@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h> 
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "logger.hh"
 #include "misc.hh"
 #include <pwd.h>

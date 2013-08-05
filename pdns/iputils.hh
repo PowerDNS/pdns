@@ -30,7 +30,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <functional>
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "misc.hh"
 #include <sys/socket.h>
 #include <netdb.h>

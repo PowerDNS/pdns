@@ -30,7 +30,7 @@
 #include "dnsseckeeper.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "dnspacket.hh"
 #include "logger.hh"
 #include "arguments.hh"

@@ -33,7 +33,7 @@
 # undef res_mkquery
 #endif // WIN32
 
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "dns.hh"
 #include "namespaces.hh"
 #include "dnsbackend.hh"

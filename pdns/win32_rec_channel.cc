@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <iostream>
 
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 
 #include "namespaces.hh"
 

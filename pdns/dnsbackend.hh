@@ -26,7 +26,7 @@ class DNSPacket;
 #include <vector>
 #include <map>
 #include <sys/types.h>
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include <set>
 #include <iostream>
 

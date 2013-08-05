@@ -35,7 +35,7 @@
 
 #endif // WIN32
 #include "iputils.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 
 class SessionException: public PDNSException
 {

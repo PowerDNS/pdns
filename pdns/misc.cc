@@ -39,7 +39,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include <sys/types.h>
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>

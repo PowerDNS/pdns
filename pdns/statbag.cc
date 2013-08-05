@@ -19,7 +19,7 @@
 
 #include "utility.hh"
 #include "statbag.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
