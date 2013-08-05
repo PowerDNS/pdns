@@ -22,3 +22,4 @@ real_result
 /named-slave.conf
 */start
 */step.*
+/test.dyndns
