@@ -30,8 +30,9 @@ string compilerVersion()
   return string("gcc "__VERSION__);
 #elif defined(_MSC_VER)
   return string("MSVC "<<_MSC_VER);
-#endif // add other compilers here
+#else  // add other compilers here
   return string("Unknown compiler");
+#endif
 }
 
 void showProductVersion()
