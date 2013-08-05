@@ -649,7 +649,7 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
   if(!d_dnssecQueries)
     return false;
   char output[1024];  
-  snprintf(output,sizeof(output)-1,d_GetDomainMetadataQuery.c_str(), sqlEscape(name).c_str(), sqlEscape(kind).c_str());
+  snprintf(output,sizeof(output)-1,d_GetDomainMetadataQuery.c_str(), sqlEscape(toLower(name)).c_str(), sqlEscape(kind).c_str());
 
   try {
     d_db->doQuery(output);
@@ -674,9 +674,9 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
 
   if(!meta.empty())
     snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
-      sqlEscape(kind).c_str(), sqlEscape(*meta.begin()).c_str(), sqlEscape(name).c_str());
+      sqlEscape(kind).c_str(), sqlEscape(*meta.begin()).c_str(), sqlEscape(toLower(name)).c_str());
 
-  string clearQuery = (boost::format(d_ClearDomainMetadataQuery) % sqlEscape(name) % sqlEscape(kind)).str();
+  string clearQuery = (boost::format(d_ClearDomainMetadataQuery) % sqlEscape(toLower(name)) % sqlEscape(kind)).str();
 
   try {
     d_db->doCommand(clearQuery);
