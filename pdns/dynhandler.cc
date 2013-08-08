@@ -168,15 +168,39 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLQTypesHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
+  typedef map<uint16_t, uint64_t> qtypenums_t;
+  qtypenums_t qtypenums = g_rs.getQTypeResponseCounts();
   ostringstream os;
-  typedef map<uint16_t, uint64_t> qtmap;
-  qtmap stats = g_rs.getQTypeResponseCounts();
-  BOOST_FOREACH(qtmap::value_type &i, stats)
-  {
-    os<<QType(i.first).getName()<<"("<<i.first<<"):"<<i.second<<"; ";
+  boost::format fmt("%d\t%d\n");
+  BOOST_FOREACH(const qtypenums_t::value_type& val, qtypenums) {
+    os << (fmt %DNSRecordContent::NumberToType( val.first) % val.second).str();
   }
-  os<<endl;
   return os.str();
+}
+
+string DLRSizesHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  typedef map<uint16_t, uint64_t> respsizes_t;
+  respsizes_t respsizes = g_rs.getSizeResponseCounts();
+  ostringstream os;
+  boost::format fmt("%d\t%d\n");
+  BOOST_FOREACH(const respsizes_t::value_type& val, respsizes) {
+    os << (fmt % val.first % val.second).str();
+  }
+  return os.str();
+}
+
+string DLRemotesHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  extern StatBag S;
+  typedef vector<pair<string, unsigned int> > totals_t;
+  totals_t totals = S.getRing("remotes");
+  string ret;
+  boost::format fmt("%s\t%d\n");
+  BOOST_FOREACH(totals_t::value_type& val, totals) {
+    ret += (fmt % val.first % val.second).str();
+  }
+  return ret;
 }
 
 string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid)
