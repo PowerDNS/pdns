@@ -23,6 +23,7 @@
 #include <iostream>
 #include <string>
 #include <sys/types.h>
+#include "responsestats.hh"
 #include <boost/shared_ptr.hpp>
 #include "dns.hh"
 #include "dnsbackend.hh"
@@ -235,10 +236,15 @@ UDPNameserver::UDPNameserver()
   if(::arg()["local-address"].empty() && ::arg()["local-ipv6"].empty()) 
     L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
 }
+
+ResponseStats g_rs;
+
 void UDPNameserver::send(DNSPacket *p)
 {
   const string& buffer=p->getString();
   
+  g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
+
   struct msghdr msgh;
   struct cmsghdr *cmsg;
   struct iovec iov;
@@ -313,7 +319,7 @@ void UDPNameserver::send(DNSPacket *p)
   }
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
-    cerr<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
+    L<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
     L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
