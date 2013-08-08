@@ -79,7 +79,6 @@ void declareArguments()
   ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
-  ::arg().set("disable-axfr","Do not allow zone transfers")="no";
   
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
 
