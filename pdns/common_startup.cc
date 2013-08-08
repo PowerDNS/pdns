@@ -155,6 +155,7 @@ void declareStats(void)
   S.declare("udp-queries","Number of UDP queries received");
   S.declare("udp-do-queries","Number of UDP queries received with DO bit");
   S.declare("udp-answers","Number of answers sent out over UDP");
+  S.declare("udp-answers-bytes","Total size of answers sent out over UDP");
 
   S.declare("udp4-answers","Number of IPv4 answers sent out over UDP");
   S.declare("udp4-queries","Number of IPv4 UDP queries received");
@@ -204,7 +205,6 @@ int isGuarded(char **argv)
 
   return !!p;
 }
-
 
 void sendout(const DNSDistributor::AnswerData &AD)
 {

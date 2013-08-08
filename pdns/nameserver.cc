@@ -245,8 +245,9 @@ void UDPNameserver::send(DNSPacket *p)
   static unsigned int &numanswered=*S.getPointer("udp-answers");
   static unsigned int &numanswered4=*S.getPointer("udp4-answers");
   static unsigned int &numanswered6=*S.getPointer("udp6-answers");
+  static unsigned int &bytesanswered=*S.getPointer("udp-answers-bytes");
 
-    g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
+  g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
 
   struct msghdr msgh;
   struct cmsghdr *cmsg;
@@ -264,6 +265,7 @@ void UDPNameserver::send(DNSPacket *p)
 
   /* Count responses (total/v4/v6) and byte counts */
   numanswered++;
+  bytesanswered+=buffer.length();
   if(p->d_remote.sin4.sin_family==AF_INET)
     numanswered4++;
   else
