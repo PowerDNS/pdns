@@ -256,7 +256,8 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsr
 	test-base64_cc.cc test-iputils_hh.cc test-dns_random_hh.cc aes/dns_random.cc \
 	aes/aescpp.h \
 	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h test-rcpgenerator_cc.cc
+	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h test-rcpgenerator_cc.cc \
+	responsestats.cc
 
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(POLARSSL_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
