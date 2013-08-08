@@ -4,7 +4,7 @@
 
 ResponseStats::ResponseStats()
 {
-  d_qtypecounters.resize(std::numeric_limits<uint16_t>::max());
+  d_qtypecounters.resize(std::numeric_limits<uint16_t>::max()+1);
   d_sizecounters.push_back(make_pair(20,0));
   d_sizecounters.push_back(make_pair(40,0));
   d_sizecounters.push_back(make_pair(60,0));
