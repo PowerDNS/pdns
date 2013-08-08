@@ -208,20 +208,10 @@ int isGuarded(char **argv)
 
 void sendout(const DNSDistributor::AnswerData &AD)
 {
-  static unsigned int &numanswered=*S.getPointer("udp-answers");
-  static unsigned int &numanswered4=*S.getPointer("udp4-answers");
-  static unsigned int &numanswered6=*S.getPointer("udp6-answers");
-
   if(!AD.A)
     return;
   
   N->send(AD.A);
-  numanswered++;
-
-  if(AD.A->d_remote.getSocklen()==sizeof(sockaddr_in))
-    numanswered4++;
-  else
-    numanswered6++;
 
   int diff=AD.A->d_dt.udiff();
   avg_latency=(int)(1023*avg_latency/1024+diff/1024);
@@ -239,13 +229,10 @@ void *qthread(void *number)
 
   unsigned int &numreceived=*S.getPointer("udp-queries");
   unsigned int &numreceiveddo=*S.getPointer("udp-do-queries");
-  unsigned int &numanswered=*S.getPointer("udp-answers");
 
   unsigned int &numreceived4=*S.getPointer("udp4-queries");
-  unsigned int &numanswered4=*S.getPointer("udp4-answers");
 
   unsigned int &numreceived6=*S.getPointer("udp6-queries");
-  unsigned int &numanswered6=*S.getPointer("udp6-answers");
 
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
@@ -309,12 +296,6 @@ void *qthread(void *number)
       diff=P->d_dt.udiff();                                                    
       avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
       
-      numanswered++;
-      if(P->d_remote.sin4.sin_family==AF_INET)
-        numanswered4++;
-      else
-        numanswered6++;
-
       continue;
     }
     

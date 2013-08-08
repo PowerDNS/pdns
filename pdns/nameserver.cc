@@ -242,8 +242,11 @@ ResponseStats g_rs;
 void UDPNameserver::send(DNSPacket *p)
 {
   const string& buffer=p->getString();
-  
-  g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
+  static unsigned int &numanswered=*S.getPointer("udp-answers");
+  static unsigned int &numanswered4=*S.getPointer("udp4-answers");
+  static unsigned int &numanswered6=*S.getPointer("udp6-answers");
+
+    g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
 
   struct msghdr msgh;
   struct cmsghdr *cmsg;
@@ -258,6 +261,13 @@ void UDPNameserver::send(DNSPacket *p)
     S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
     S.ringAccount("remotes-unauth",p->getRemote());
   }
+
+  /* Count responses (total/v4/v6) and byte counts */
+  numanswered++;
+  if(p->d_remote.sin4.sin_family==AF_INET)
+    numanswered4++;
+  else
+    numanswered6++;
 
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
