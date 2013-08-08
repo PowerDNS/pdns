@@ -26,6 +26,7 @@
 #include "misc.hh"
 #include "communicator.hh"
 #include "dnsseckeeper.hh"
+#include "nameserver.hh"
 
 static bool s_pleasequit;
 static string d_status;
@@ -165,6 +166,18 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
   return os.str();
 }
 
+string DLQTypesHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  ostringstream os;
+  typedef map<uint16_t, uint64_t> qtmap;
+  qtmap stats = g_rs.getQTypeResponseCounts();
+  BOOST_FOREACH(qtmap::value_type &i, stats)
+  {
+    os<<QType(i.first).getName()<<"("<<i.first<<"):"<<i.second<<"; ";
+  }
+  os<<endl;
+  return os.str();
+}
 
 string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid)
 {

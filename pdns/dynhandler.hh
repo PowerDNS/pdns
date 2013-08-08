@@ -43,6 +43,7 @@ string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLSettingsHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid);
+string DLQTypesHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid);
