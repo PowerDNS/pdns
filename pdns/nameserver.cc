@@ -23,6 +23,7 @@
 #include <iostream>
 #include <string>
 #include <sys/types.h>
+#include "responsestats.hh"
 #include <boost/shared_ptr.hpp>
 #include "dns.hh"
 #include "dnsbackend.hh"
@@ -235,10 +236,19 @@ UDPNameserver::UDPNameserver()
   if(::arg()["local-address"].empty() && ::arg()["local-ipv6"].empty()) 
     L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
 }
+
+ResponseStats g_rs;
+
 void UDPNameserver::send(DNSPacket *p)
 {
   const string& buffer=p->getString();
-  
+  static unsigned int &numanswered=*S.getPointer("udp-answers");
+  static unsigned int &numanswered4=*S.getPointer("udp4-answers");
+  static unsigned int &numanswered6=*S.getPointer("udp6-answers");
+  static unsigned int &bytesanswered=*S.getPointer("udp-answers-bytes");
+
+  g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
+
   struct msghdr msgh;
   struct cmsghdr *cmsg;
   struct iovec iov;
@@ -252,6 +262,14 @@ void UDPNameserver::send(DNSPacket *p)
     S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
     S.ringAccount("remotes-unauth",p->getRemote());
   }
+
+  /* Count responses (total/v4/v6) and byte counts */
+  numanswered++;
+  bytesanswered+=buffer.length();
+  if(p->d_remote.sin4.sin_family==AF_INET)
+    numanswered4++;
+  else
+    numanswered6++;
 
   /* Set up iov and msgh structures. */
   memset(&msgh, 0, sizeof(struct msghdr));
@@ -313,7 +331,7 @@ void UDPNameserver::send(DNSPacket *p)
   }
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
-    cerr<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
+    L<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
     L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;

@@ -60,7 +60,7 @@ randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnsseci
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc \
 md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns.cc lua-auth.cc lua-auth.hh serialtweaker.cc \
 ednssubnet.cc ednssubnet.hh cachecleaner.hh json.cc json.hh \
-version.hh version.cc rfc2136handler.cc
+version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
@@ -158,7 +158,10 @@ nsec3dig_LDADD= $(POLARSSL_LIBS)
 toysdig_SOURCES=toysdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc \
-	ednssubnet.cc ednssubnet.hh
+	ednssubnet.cc ednssubnet.hh aes/aescpp.h \
+	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
+	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
+	randomhelper.cc 
 
 
 #tcptorture_SOURCES=tcptorture.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
@@ -253,7 +256,8 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsr
 	test-base64_cc.cc test-iputils_hh.cc test-dns_random_hh.cc aes/dns_random.cc \
 	aes/aescpp.h \
 	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h test-rcpgenerator_cc.cc
+	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h test-rcpgenerator_cc.cc \
+	responsestats.cc
 
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(POLARSSL_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
