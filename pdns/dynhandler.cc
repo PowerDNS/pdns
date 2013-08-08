@@ -171,7 +171,7 @@ string DLQTypesHandler(const vector<string>&parts, Utility::pid_t ppid)
   typedef map<uint16_t, uint64_t> qtypenums_t;
   qtypenums_t qtypenums = g_rs.getQTypeResponseCounts();
   ostringstream os;
-  boost::format fmt("%d\t%d\n");
+  boost::format fmt("%s\t%d\n");
   BOOST_FOREACH(const qtypenums_t::value_type& val, qtypenums) {
     os << (fmt %DNSRecordContent::NumberToType( val.first) % val.second).str();
   }
