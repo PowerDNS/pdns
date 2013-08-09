@@ -23,3 +23,7 @@ real_result
 */start
 */step.*
 /test.dyndns
+/bulktest.results
+/recursor-bulktest/
+/recursor.log
+/top-1m.csv
