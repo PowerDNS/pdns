@@ -32,7 +32,7 @@ For now, only enabled if the 'experimental-json-interface' parameter is configur
  * pdns-control  
    Allows you to issue pdns_control commands, as found in a JSON post, in the field 'parameters'
  * zone-rest  
-   RESTful querying and modifying of a zone, for example, request:  http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
+   RESTful querying and modifying of a zone, for example, request:  http://servername/jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
    Supports POST, DELETE, and GET
 
 API calls for the PowerDNS Recursor
