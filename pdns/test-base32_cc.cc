@@ -15,12 +15,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   // RFC test vectors
   cases_t cases = boost::assign::list_of
     (case_t(std::string(""), std::string("")))
-    (case_t(std::string("f"), std::string("CO======")))
-    (case_t(std::string("fo"), std::string("CPNG====")))
-    (case_t(std::string("foo"), std::string("CPNMU===")))
-    (case_t(std::string("foob"), std::string("CPNMUOG=")))
-    (case_t(std::string("fooba"), std::string("CPNMUOJ1")))
-    (case_t(std::string("foobar"), std::string("CPNMUOJ1E8======")))
+    (case_t(std::string("f"), std::string("co======")))
+    (case_t(std::string("fo"), std::string("cpng====")))
+    (case_t(std::string("foo"), std::string("cpnmu===")))
+    (case_t(std::string("foob"), std::string("cpnmuog=")))
+    (case_t(std::string("fooba"), std::string("cpnmuoj1")))
+    (case_t(std::string("foobar"), std::string("cpnmuoj1e8======")))
   ;
 
   BOOST_FOREACH(const case_t& val, cases) {

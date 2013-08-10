@@ -149,7 +149,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         } while(chopOff(shorter));
 
         if (! *narrow && (ddepth == 0 || (ddepth == 1 && nssets.count(qname)))) {
-          hashed = toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, qname)));
+          hashed = toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, qname));
           di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, qname, hashed, (ddepth == 0));
 
           if (nssets.count(qname)) {
@@ -242,7 +242,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         if(*haveNSEC3) {
           string hashed;
           if(! *narrow)
-            hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
+            hashed=toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel));
 
           if (*narrow)
             di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
@@ -309,7 +309,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       {
         string hashed;
         if(! *narrow)
-          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel)));
+          hashed=toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rrLabel));
 
         if (*narrow)
           di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
@@ -355,7 +355,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           if(*haveNSEC3)  {
             string hashed;
             if(! *narrow)
-              hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname)));
+              hashed=toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname));
 
             if (*narrow)
               di->backend->nullifyDNSSECOrderNameAndUpdateAuth(di->id, rrLabel, auth);
@@ -488,7 +488,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           if(*haveNSEC3)  {
             string hashed;
             if(! *narrow)
-              hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *changeRec)));
+              hashed=toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *changeRec));
 
             di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *changeRec, hashed, true);
           }
@@ -559,7 +559,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       {
         string hashed;
         if(! *narrow)
-          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *i)));
+          hashed=toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *i));
         di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, *i, hashed, true);
       }
     }
@@ -998,7 +998,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   else if (haveNSEC3) {
     string hashed;
     if (!narrow)
-      hashed = toLower(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, newRec.qname)));
+      hashed = toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, newRec.qname));
 
     di->backend->updateDNSSECOrderAndAuthAbsolute(di->id, newRec.qname, hashed, true);
   }

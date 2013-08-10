@@ -736,7 +736,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
               inext = nsecxrepo.begin();
           }
           n3rc.d_nexthash = inext->first;
-          rr.qname = dotConcat(toLower(toBase32Hex(iter->first)), sd.qname);
+          rr.qname = dotConcat(toBase32Hex(iter->first), sd.qname);
 
           rr.ttl = sd.default_ttl;
           rr.content = n3rc.getZoneRepresentation();

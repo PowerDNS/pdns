@@ -300,7 +300,7 @@ void RecordTextWriter::xfrBase32HexBlob(const string& val)
   if(!d_string.empty())
     d_string.append(1,' ');
 
-  d_string.append(toBase32Hex(val));
+  d_string.append(toUpper(toBase32Hex(val)));
 }
 
 
