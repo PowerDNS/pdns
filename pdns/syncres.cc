@@ -463,17 +463,34 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
   ret_t ret;
 
   QType type;
-  for(int j=0; j<1+s_doIPv6; j++)
+  for(int j=1-s_doIPv6; j<2+s_doIPv6; j++)
   {
-    type = j ? QType::AAAA : QType::A;
+    bool done=false;
+    // j=0: ANY
+    // j=1: A
+    // j=2: AAAA
+
+    switch(j) {
+      case 0:
+        type = QType::ANY;
+        break;
+      case 1:
+        type = QType::A;
+        break;
+      case 2:
+        type = QType::AAAA;
+        break;
+    }
 
     if(!doResolve(qname, type, res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
       for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
         if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
-  	ret.push_back(ComboAddress(i->content, 53));
+          ret.push_back(ComboAddress(i->content, 53));
+          if(!j) done=true;
         }
       }
     }
+    if(done) break;
   }
 
   if(ret.size() > 1) {
