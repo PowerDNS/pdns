@@ -19695,7 +19695,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       </sect2>
       <sect2 id="remotebackend-usage"><title>Usage</title>
         <para>
-          The only configuration optionss for backend are remote-connection-string and remote-dnssec.
+          The only configuration options for backend are remote-connection-string and remote-dnssec.
         </para>
         <para>
           <programlisting>
