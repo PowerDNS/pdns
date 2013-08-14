@@ -785,6 +785,11 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
         return;
       }
+      if(dc->d_mdp.d_header.opcode) {
+        delete dc;
+        L<<Logger::Error<<"Ignoring non-query opcode on server socket!"<<endl;
+        return;
+      }
       else {
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
@@ -904,6 +909,10 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(dh->qr) {
         if(g_logCommonErrors)
           L<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
+      }
+      else if(dh->opcode) {
+        if(g_logCommonErrors)
+          L<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
 	string question(data, len);
