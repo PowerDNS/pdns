@@ -22,7 +22,7 @@ fi
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
-sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh ahuexception.hh \
+sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh pdnsexception.hh \
 mplexer.hh win32_mtasker.hh win32_utility.cc ntservice.hh singleton.hh \
 recursorservice.hh dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
 recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh"
