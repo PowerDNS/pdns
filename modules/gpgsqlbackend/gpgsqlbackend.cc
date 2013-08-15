@@ -8,7 +8,7 @@
 #include "gpgsqlbackend.hh"
 #include "pdns/dnspacket.hh"
 #include "pdns/ueberbackend.hh"
-#include "pdns/ahuexception.hh"
+#include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 

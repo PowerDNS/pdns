@@ -9,7 +9,7 @@
 #include <sys/wait.h>
 #include <sys/un.h>
 #include <pdns/misc.hh>
-#include <pdns/ahuexception.hh>
+#include <pdns/pdnsexception.hh>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp>

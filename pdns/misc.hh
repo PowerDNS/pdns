@@ -311,36 +311,35 @@ inline bool operator<(const struct timeval& lhs, const struct timeval& rhs)
 }
 
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b) 
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
 {
-  string::size_type aLen = a.length(), bLen = b.length(), n;
   const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
-  int result;
-  
-  for(n = 0 ; n < aLen && n < bLen ; ++n) {
-      if((result = dns_tolower(*aPtr++) - dns_tolower(*bPtr++))) {
-        return result < 0;
-      }
+
+  while(*aPtr && *bPtr) {
+    if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) - dns_tolower(*bPtr)))
+      return (dns_tolower(*aPtr) - dns_tolower(*bPtr)) < 0;
+    aPtr++;
+    bPtr++;
   }
-  if(n == aLen && n == bLen) // strings are equal (in length)
-    return 0; 
-  if(n == aLen) // first string was shorter
-    return true; 
-  return false;
+  if(!*aPtr && !*bPtr) // strings are equal (in length)
+    return false;
+  return !*aPtr; // true if first string was shorter
 }
 
 inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
-
-inline bool pdns_iequals(const std::string& a, const std::string& b) 
+inline bool pdns_iequals(const std::string& a, const std::string& b)
 {
-  string::size_type aLen = a.length(), bLen = b.length(), n;
+  if (a.length() != b.length())
+    return false;
+
   const char *aPtr = a.c_str(), *bPtr = b.c_str();
-  
-  for(n = 0 ; n < aLen && n < bLen ; ++n) {
-      if(dns_tolower(*aPtr++) != dns_tolower(*bPtr++))
-        return false;
+  while(*aPtr) {
+    if((*aPtr != *bPtr) && (dns_tolower(*aPtr) != dns_tolower(*bPtr)))
+      return false;
+    aPtr++;
+    bPtr++;
   }
-  return aLen == bLen; // strings are equal (in length)
+  return true;
 }
 
 // lifted from boost, with thanks

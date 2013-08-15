@@ -35,7 +35,7 @@
 #include "logger.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "arguments.hh"
 #include "statbag.hh"
 

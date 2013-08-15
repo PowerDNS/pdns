@@ -38,7 +38,7 @@ toysdig dnsdemog dnswasher dnsscan nproxy notify pdnssec dnsbulktest nsec3dig # 
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
-packetcache.cc statbag.cc ahuexception.hh arguments.hh distributor.hh \
+packetcache.cc statbag.cc pdnsexception.hh arguments.hh distributor.hh \
 dns.hh dnsbackend.hh dnsbackend.cc dnspacket.hh dynmessenger.hh lock.hh logger.hh \
 nameserver.hh packetcache.hh packethandler.hh qtype.hh statbag.hh \
 ueberbackend.hh pdns.conf-dist ws.hh ws.cc webserver.cc webserver.hh \

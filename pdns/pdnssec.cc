@@ -240,7 +240,7 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
     if(haveNSEC3)
     {
       if(!narrow) {
-        hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname)));
+        hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname));
         if(g_verbose)
           cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
         sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
@@ -1263,7 +1263,7 @@ try
       cerr<<"The '"<<zone<<"' zone uses narrow NSEC3, but calculating hash anyhow"<<endl;
     }
       
-    cout<<toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, record)))<<endl;
+    cout<<toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, record))<<endl;
   }
   else if(cmds[0]=="unset-nsec3") {
     if(cmds.size() < 2) {

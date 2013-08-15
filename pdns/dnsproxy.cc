@@ -18,7 +18,7 @@
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dnsproxy.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include <sys/types.h>
 #include <errno.h>
 #include "dns.hh"

@@ -450,7 +450,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
 
 void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
-//  cerr<<"We should emit NSEC3 '"<<toLower(toBase32Hex(begin))<<"' - ('"<<toNSEC3<<"') - '"<<toLower(toBase32Hex(end))<<"' (unhashed: '"<<unhashed<<"')"<<endl;
+//  cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
   n3rc.d_salt=ns3prc.d_salt;
   n3rc.d_flags = ns3prc.d_flags;
@@ -476,7 +476,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
   
   n3rc.d_nexthash=end;
 
-  rr.qname=dotConcat(toLower(toBase32Hex(begin)), sd.qname);
+  rr.qname=dotConcat(toBase32Hex(begin), sd.qname);
   rr.ttl = sd.default_ttl;
   rr.qtype=QType::NSEC3;
   rr.content=n3rc.getZoneRepresentation();
@@ -568,7 +568,7 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
       before.clear();
     else
       before=' ';
-    ret=db->getBeforeAndAfterNamesAbsolute(id, toLower(toBase32Hex(hashed)), unhashed, before, after);
+    ret=db->getBeforeAndAfterNamesAbsolute(id, toBase32Hex(hashed), unhashed, before, after);
     before=fromBase32Hex(before);
     after=fromBase32Hex(after);
   }
@@ -914,7 +914,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     // now get the NSEC3 and NSEC3PARAM
     string hashed=hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, unhashed);
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
-    unhashed=dotConcat(toLower(toBase32Hex(before)), sd.qname);
+    unhashed=dotConcat(toBase32Hex(before), sd.qname);
 
     n3rc.d_set=nrc.d_set; // Copy d_set from NSEC
     n3rc.d_algorithm=ns3pr.d_algorithm;

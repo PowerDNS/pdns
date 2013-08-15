@@ -21,7 +21,7 @@
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dnspacket.hh"
-#include "pdns/ahuexception.hh"
+#include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include <boost/algorithm/string.hpp>
 

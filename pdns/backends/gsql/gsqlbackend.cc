@@ -31,7 +31,7 @@
 #include "gsqlbackend.hh"
 #include "pdns/dnspacket.hh"
 #include "pdns/ueberbackend.hh"
-#include "pdns/ahuexception.hh"
+#include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 #include "pdns/base32.hh"
@@ -968,7 +968,7 @@ bool GSQLBackend::feedEnts3(int domain_id, const string &domain, set<string> &no
       output = (boost::format(d_InsertEntQuery) % domain_id % toLower(sqlEscape(qname))).str();
     } else {
       ordername=toBase32Hex(hashQNameWithSalt(times, salt, qname));
-      output = (boost::format(d_InsertEntOrderQuery) % domain_id % toLower(sqlEscape(qname)) % toLower(sqlEscape(ordername))).str();
+      output = (boost::format(d_InsertEntOrderQuery) % domain_id % toLower(sqlEscape(qname)) % sqlEscape(ordername)).str();
     }
 
     try {

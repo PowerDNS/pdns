@@ -17,7 +17,7 @@
 */
 #include "rec_channel.hh"
 #include <iostream>
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "arguments.hh"
 #include "config.h"
 
