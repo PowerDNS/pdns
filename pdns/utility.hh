@@ -208,7 +208,8 @@ public:
   static void usleep( unsigned long usec );
 
   static time_t timegm(struct tm *tm);
-  
+
+  static void gmtime_r(const time_t *timer, struct tm *tmbuf);
 };
 
 
