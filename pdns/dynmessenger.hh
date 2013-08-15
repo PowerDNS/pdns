@@ -36,7 +36,7 @@
 
 #include <errno.h>
 #include "iputils.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 
 #include "namespaces.hh"
 

@@ -15,7 +15,7 @@ typedef set<nsec3> nsec3set;
 
 string nsec3Hash(const string &qname, const string &salt, unsigned int iters)
 {
-  return toLower(toBase32Hex(hashQNameWithSalt(iters, salt, qname)));
+  return toBase32Hex(hashQNameWithSalt(iters, salt, qname));
 }
 
 void proveOrDeny(const nsec3set &nsec3s, const string &qname, const string &salt, unsigned int iters, set<string> &proven, set<string> &denied)
@@ -130,7 +130,7 @@ try
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
       vector<string> parts;
       boost::split(parts, i->first.d_label, boost::is_any_of("."));
-      nsec3s.insert(make_pair(toLower(parts[0]), toLower(toBase32Hex(r.d_nexthash))));
+      nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r.d_nexthash)));
       nsec3salt = r.d_salt;
       nsec3iters = r.d_iterations;
     }

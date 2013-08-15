@@ -8,7 +8,7 @@
 #include <utility>
 #include <errno.h>
 #include "misc.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "namespaces.hh"
 #define YYDEBUG 1
 extern int yydebug;

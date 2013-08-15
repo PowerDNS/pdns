@@ -277,7 +277,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       if (dnssecZone && rr.qtype.getCode() != QType::RRSIG) {
         if (haveNSEC3) {
           // NSEC3
-          ordername=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+          ordername=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
           if(!narrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!gotOptOutFlag || secured.count(ordername))))) {
             di.backend->feedRecord(rr, &ordername);
           } else

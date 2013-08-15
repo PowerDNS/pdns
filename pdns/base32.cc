@@ -73,7 +73,7 @@ static int unbase32hex(char c)
 /* convert a binary string to base32hex */
 string toBase32Hex(const std::string& input)
 {
-  static const char base32hex[] = "0123456789ABCDEFGHIJKLMNOPQRSTUV=";
+  static const char base32hex[] = "0123456789abcdefghijklmnopqrstuv=";
   string ret;
   ret.reserve(4+ 8*input.length()/5); // optimization
   // process input in groups of 5 8-bit chunks, emit 8 5-bit chunks 

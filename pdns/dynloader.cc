@@ -30,7 +30,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include <sys/stat.h>
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "misc.hh"
 #include "dynmessenger.hh"
 #include "arguments.hh"

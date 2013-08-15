@@ -30,7 +30,7 @@
 #include <vector>
 #include "dns.hh"
 #include "qtype.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "arguments.hh"
 #include "sstuff.hh"
 #include "syncres.hh"

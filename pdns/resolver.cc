@@ -33,7 +33,7 @@
 #include "dns.hh"
 #include "qtype.hh"
 #include "tcpreceiver.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "statbag.hh"
 #include "arguments.hh"
 #include "base64.hh"

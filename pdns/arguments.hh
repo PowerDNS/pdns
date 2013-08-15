@@ -26,7 +26,7 @@
 #include <fstream>
 #include <iostream>
 #include "misc.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #ifndef WIN32
 # include <sys/types.h>
 # include <pwd.h>

@@ -638,7 +638,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
   {
     rr.qname=qname+"."+bb2.d_name+".";
     if(nsec3zone)
-      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+      hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
     insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
   }
 }
@@ -741,7 +741,7 @@ void Bind2Backend::loadConfig(string* status)
 
               if(nsec3zone) {
                 if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
-                  hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+                  hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
                 else
                   hashed="";
               }
@@ -872,7 +872,7 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
 
       if(nsec3zone) {
         if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
-          hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+          hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
         else
           hashed="";
       }

@@ -18,7 +18,7 @@
 */
 #include "utility.hh"
 #include "session.hh"
-#include "ahuexception.hh"
+#include "pdnsexception.hh"
 #include "misc.hh"
 #include <cstring>
 #include <iostream>
