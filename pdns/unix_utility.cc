@@ -277,6 +277,8 @@ time_t Utility::timegm(struct tm *const t)
   return ((day + t->tm_hour) * i + t->tm_min) * i + t->tm_sec;
 }
 
+// we have our own gmtime_r because the one in GNU libc violates POSIX/SuS
+// by supporting leap seconds when TZ=right/UTC
 void Utility::gmtime_r(const time_t *timer, struct tm *tmbuf) {
 
   int monthdays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
