@@ -49,6 +49,7 @@ public:
     declare(suffix,"innodb-read-committed","Use InnoDB READ-COMMITTED transaction isolation level","yes");
 
     declare(suffix,"dnssec","Assume DNSSEC Schema is in place","no");
+    declare(suffix,"extended","Assume Extended Schema is in place","no");
 
     declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'");
     declare(suffix,"id-query","Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d");

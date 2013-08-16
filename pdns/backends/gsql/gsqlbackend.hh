@@ -147,5 +147,6 @@ private:
   string d_getAllDomainsQuery;
 
 protected:
+  bool d_extendedQueries;
   bool d_dnssecQueries;
 };
