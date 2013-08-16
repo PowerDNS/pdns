@@ -12979,10 +12979,10 @@ $ pdnssec rectify-zone powerdnssec.org
     present for this purpose. Do note that the DS record for a secure delegation should be authoritative!
   </para>
   <para>
-    The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. When running in NSEC3 'Narrow' mode,
-    the ordername field is ignored and best left empty. In NSEC mode, the ordername field should be NULL for any glue but filled in
-    for delegation NS records and all authoritative records. In NSEC3 opt-out mode (the only NSEC3 mode PowerDNS currently
-    supports), any non-authoritative records (as described for the 'auth' field) should have ordername set to NULL.
+    The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. When running in NSEC3 'Narrow' mode, the
+    ordername field is ignored and best left empty. In NSEC/NSEC3 mode, the ordername field should be NULL for any glue but filled in
+    for all delegation NS records and all authoritative records. In NSEC3 opt-out mode, ordername is NULL for any glue and insecure
+    delegation NS records, but filled in for secure delegation NS records and all authoritative records.
   </para>
   <para>
     In 'NSEC' mode, it should contain the <emphasis>relative</emphasis> part of a domain name, in reverse order, with dots replaced
