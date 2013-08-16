@@ -62,6 +62,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
         d_rrwhere=(mustDo("rr-active")?"active = 1 and ":"")+getArg("rr-where");
         d_soawhere=(mustDo("soa-active")?"active = 1 and ":"")+getArg("soa-where");
         d_useminimalttl=mustDo("use-minimal-ttl");
+        d_minimum=0;
 
         L<<Logger::Warning<<backendName<<" Connection successful"<<endl;
 }
