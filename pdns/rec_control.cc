@@ -41,6 +41,7 @@ static void initArguments(int argc, char** argv)
   arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
   arg().set("process","When controlling multiple recursors, the target process number")="";
   arg().set("timeout", "Number of seconds to wait for the recursor to respond")="5";
+  arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   arg().setCmd("help","Provide this helpful message");
 
   arg().laxParse(argc,argv);  
@@ -49,7 +50,11 @@ static void initArguments(int argc, char** argv)
     cerr<<arg().helpstring(arg()["help"])<<endl;
     exit(99);
   }
+
   string configname=::arg()["config-dir"]+"/recursor.conf";
+  if (::arg()["config-name"] != "")
+    configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
+  
   cleanSlashes(configname);
 
   if(!::arg().preParseFile(configname.c_str(), "socket-dir", LOCALSTATEDIR)) 
@@ -62,7 +67,11 @@ try
 {
   initArguments(argc, argv);
   RecursorControlChannel rccS;
-  string sockname="pdns_recursor";
+  string sockname="recursor";
+
+  if (arg()["config-name"] != "")
+    sockname+="-"+arg()["config-name"];
+
   if(!arg()["process"].empty())
     sockname+="."+arg()["process"];
 

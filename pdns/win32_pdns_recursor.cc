@@ -36,7 +36,7 @@
 #include <fstream>
 #include "recursorservice.hh"
 
-string s_programname="pdns_recursor";
+string s_programname="recursor";
 
 #ifndef WIN32
 extern "C" {

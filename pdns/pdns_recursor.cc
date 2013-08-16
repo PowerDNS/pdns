@@ -109,7 +109,7 @@ static __thread NetmaskGroup* t_allowFrom;
 static NetmaskGroup* g_initialAllowFrom; // new thread needs to be setup with this
 
 NetmaskGroup* g_dontQuery;
-string s_programname="pdns_recursor";
+string s_programname="recursor";
 
 typedef vector<int> tcpListenSockets_t;
 tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
@@ -695,7 +695,7 @@ void startDoResolve(void *p)
 
 void makeControlChannelSocket(int processNum=-1)
 {
-  string sockname=::arg()["socket-dir"]+"/pdns_recursor";
+  string sockname=::arg()["socket-dir"]+"/"+s_programname;
   if(processNum >= 0)
     sockname += "."+lexical_cast<string>(processNum);
   sockname+=".controlsocket";
@@ -1669,7 +1669,9 @@ void parseACLs()
 
 int serviceMain(int argc, char*argv[])
 {
-  L.setName("pdns_recursor");
+
+
+  L.setName(s_programname);
 
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 
@@ -2027,6 +2029,7 @@ int main(int argc, char **argv)
     ::arg().set("network-timeout", "Wait this nummer of milliseconds for network i/o")="1500";
     ::arg().set("threads", "Launch this number of threads")="2";
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1";
+    ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
 #ifdef WIN32
     ::arg().set("quiet","Suppress logging of questions and answers")="off";
     ::arg().setSwitch( "register-service", "Register the service" )= "no";
@@ -2092,13 +2095,17 @@ int main(int argc, char **argv)
     L.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
 
+    if(::arg()["config-name"]!="") 
+      s_programname+="-"+::arg()["config-name"];
+
+
     if(::arg().mustDo("config")) {
       cout<<::arg().configstring()<<endl;
       exit(0);
     }
 
 
-    string configname=::arg()["config-dir"]+"/recursor.conf";
+    string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
 
     if(!::arg().file(configname.c_str())) 
