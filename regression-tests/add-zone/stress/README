@@ -1,0 +1,5 @@
+Requires: dnsperf, pdns_server, pdns_control
+
+Stress test for bind-add-zone command. Uses dnsperf.
+
+Start from regression-tests folder having pdns build.
