@@ -181,7 +181,8 @@ public:
   // for supermaster support
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
   bool createSlaveDomain(const string &ip, const string &domain, const string &account);
-  
+
+
 private:
   void setupDNSSEC();
   shared_ptr<SSQLite3> d_dnssecdb;
@@ -229,6 +230,8 @@ private:
 
   set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
 
+  BB2DomainInfo& createDomain(const string &domain, const string &filename);
+
   int d_transaction_id;
   string d_transaction_tmpname;
 
@@ -241,6 +244,7 @@ private:
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
   static void fixupAuth(shared_ptr<recordstorage_t> records);
   static void doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
   void loadConfig(string *status=0);
