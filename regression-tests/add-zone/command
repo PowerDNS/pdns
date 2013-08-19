@@ -1,4 +1,9 @@
-#!/bin/sh
+#!/bin/bash
+
+if [ "${context:0:4}" != "bind" ]; then
+    exit 0
+fi
+
 cleandig ns1.addzone.com A
 cleandig ns1.test.com A
 sleep 2
