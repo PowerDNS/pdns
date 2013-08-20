@@ -1355,13 +1355,13 @@ class Bind2Factory : public BackendFactory
 
       void declareArguments(const string &suffix="")
       {
-        declare(suffix,"ignore-broken-records","Ignore records that are out-of-bound or the zone.", "yes");
-        declare(suffix,"config","Location of named.conf","");
-        declare(suffix,"check-interval","Interval for zonefile changes","0");
-        declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
-        declare(suffix,"supermasters","List of IP-addresses of supermasters","");
-        declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
-        declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");         
+         declare(suffix,"ignore-broken-records","Ignore records that are out-of-bound for the zone.","yes");
+         declare(suffix,"config","Location of named.conf","");
+         declare(suffix,"check-interval","Interval for zonefile changes","0");
+         declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
+         declare(suffix,"supermasters","List of IP-addresses of supermasters","");
+         declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
+         declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");         
       }
 
       DNSBackend *make(const string &suffix="")
