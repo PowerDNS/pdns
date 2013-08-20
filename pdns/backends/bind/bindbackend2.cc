@@ -534,7 +534,7 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
 string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   if(parts.size() < 3)
-    return "Not enough arguments";
+    return "ERROR: Domain name and zone filename are required";
 
   string domainname = canonic(parts[1]);
   const string &filename = parts[2];
