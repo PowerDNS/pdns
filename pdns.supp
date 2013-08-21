@@ -1,0 +1,89 @@
+# internal SQLite stuff
+{
+   sqlite_sb
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/x86_64-linux-gnu/libsqlite3.so.0.8.6
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libsqlite3.so.0.8.6
+   fun:_ZN8SSQLite3C1ERKSsb
+   ...
+}
+{
+   sqlite_create_function
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/x86_64-linux-gnu/libsqlite3.so.0.8.6
+   ...
+   obj:/usr/lib/x86_64-linux-gnu/libsqlite3.so.0.8.6
+   fun:sqlite3_create_function_v2
+   ...
+}
+
+# Backend constructors, which might never get cleaned up.
+{
+   backendmaker_launch
+   Memcheck:Leak
+   ...
+   fun:_ZN17BackendMakerClass6launchERKSs
+   fun:main
+}
+{
+   backendfactory_makemetadataonly
+   Memcheck:Leak
+   ...
+   fun:_ZN14BackendFactory16makeMetadataOnlyERKSs
+   fun:_ZN17BackendMakerClass3allEb
+   fun:_ZN12UeberBackendC1ERKSs
+}
+{
+   packethandler_makebackend
+   Memcheck:Leak
+   ...
+   fun:_ZN17BackendMakerClass3allEb
+   fun:_ZN12UeberBackendC1ERKSs
+   fun:_ZN13PacketHandlerC1Ev
+}
+
+# Dynlistener, arguments and stats are never cleaned up.
+{
+   main_declarearguments
+   Memcheck:Leak
+   ...
+   fun:_Z16declareArgumentsv
+   fun:main
+}
+{
+   main_declarestats
+   Memcheck:Leak
+   ...
+   fun:_Z12declareStatsv
+   fun:main
+}
+{
+   dynlistener
+   Memcheck:Leak
+   ...
+   fun:_ZN11DynListenerC1ERKSs
+   fun:main
+}
+
+# Global objects.
+{
+   cxx_globals
+   Memcheck:Leak
+   ...
+   fun:__libc_csu_init
+   fun:(below main)
+}
+
+# TLS
+{
+   thread_local_state
+   Memcheck:Leak
+   ...
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   ...
+}
+
