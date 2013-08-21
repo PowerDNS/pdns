@@ -107,8 +107,8 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
 
 bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
-  /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
-     id,name,master IP,serial */
+  /* fill DomainInfo from database info:
+     id,name,master IP(s),last_check,notified_serial,type */
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
 	   sqlEscape(domain).c_str());
@@ -127,29 +127,29 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   di.zone=d_result[0][1];
   stringtok(di.masters, d_result[0][2], " ,\t");
   di.last_check=atol(d_result[0][3].c_str());
+  di.notified_serial = atol(d_result[0][4].c_str());
   di.backend=this;
-  
-  string type=d_result[0][5];
-  if(pdns_iequals(type,"SLAVE")) {
-    di.serial=0;
-    try {
-      SOAData sd;
-      if(!getSOA(domain,sd)) 
-        L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
-      else
-        di.serial=sd.serial;
-    }
-    catch(PDNSException &ae){
-      L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
-    }
-    
-    di.kind=DomainInfo::Slave;
+
+  di.serial = 0;
+  try {
+    SOAData sd;
+    if(!getSOA(domain,sd))
+      L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+    else
+      di.serial = sd.serial;
   }
+  catch(PDNSException &ae){
+    L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+  }
+
+  string type=d_result[0][5];
+  if(pdns_iequals(type,"SLAVE"))
+    di.kind=DomainInfo::Slave;
   else if(pdns_iequals(type,"MASTER"))
     di.kind=DomainInfo::Master;
   else 
     di.kind=DomainInfo::Native;
-  
+
   return true;
 }
 
