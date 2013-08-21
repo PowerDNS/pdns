@@ -43,6 +43,7 @@ StatWebServer::StatWebServer()
   d_start=time(0);
   d_min10=d_min5=d_min1=0;
   d_ws = 0;
+  d_tid = 0;
   if(arg().mustDo("webserver"))
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
 }
@@ -92,9 +93,13 @@ void *StatWebServer::threadHelper(void *p)
 
 void printtable(ostringstream &ret, const string &ringname, const string &title, int limit=10)
 {
+  vector<pair <string,unsigned int> >ring=S.getRing(ringname);
+  if (ring.size() == 0) {
+    return;
+  }
+
   int tot=0;
   int entries=0;
-  vector<pair <string,unsigned int> >ring=S.getRing(ringname);
 
   for(vector<pair<string, unsigned int> >::const_iterator i=ring.begin(); i!=ring.end();++i) {
     tot+=i->second;
