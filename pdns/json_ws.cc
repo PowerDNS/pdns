@@ -50,39 +50,62 @@ void JWebserver::readRequest(int fd)
     return;
   }
   buffer[res]=0;
-  
+
+  // Note: this code makes it impossible to read the request body.
+  // We'll at least need to wait for two \r\n sets to arrive, parse the
+  // headers, and then read the body (using the supplied Content-Length).
   char * p = strchr(buffer, '\r');
   if(p) *p = 0;
-  if(strstr(buffer, "GET ") != buffer) {
-    d_fdm->removeReadFD(fd);
-    close(fd);
-    return;
+  vector<string> parts;
+  stringtok(parts, buffer);
+  string method, uri;
+  if(parts.size()>1) {
+    method=parts[0];
+    uri=parts[1];
   }
 
-    
-  map<string, string> varmap;
-  if((p = strchr(buffer, '?'))) {
-    vector<string> variables;
-    string line(p+1);
-    line.resize(line.length() - strlen(" HTTP/1.0"));
-    
-    stringtok(variables, line, "&");
-    BOOST_FOREACH(const string& var, variables) {
-      varmap.insert(splitField(var, '='));
+  string content;
+
+  string status = "200 OK";
+  string headers = "Date: Wed, 30 Nov 2012 22:01:15 GMT\r\n"
+  "Server: PowerDNS Recursor/"VERSION"\r\n"
+  "Connection: keep-alive\r\n";
+
+  if (method != "GET") {
+    status = "400 Bad Request";
+    content = "Your client sent a request this server does not understand.\n";
+  } else {
+    parts.clear();
+    stringtok(parts, uri, "?");
+    map<string, string> varmap;
+    if(parts.size()>1) {
+      vector<string> variables;
+      stringtok(variables, parts[1], "&");
+      BOOST_FOREACH(const string& var, variables) {
+        varmap.insert(splitField(var, '='));
+      }
     }
-  }
-  
-  string callback=varmap["callback"];
 
-  char response[]="HTTP/1.1 200 OK\r\n"
-  "Date: Wed, 30 Nov 2011 22:01:15 GMT\r\n"
-  "Server: PowerDNS Recursor "VERSION"\r\n"
-  "Connection: keep-alive\r\n"
-  "Content-Length: %d\r\n"
-  "Access-Control-Allow-Origin: *\r\n"
-  "Content-Type: application/json\r\n"
-  "\r\n" ;
-  
+    content = handleRequest(method, uri, varmap, headers);
+  }
+
+  const char *headers_append = "Content-Length: %d\r\n\r\n";
+  string reply = "HTTP/1.1 " + status + "\r\n" + headers +
+    (boost::format(headers_append) % content.length()).str() +
+    content;
+
+  Utility::setBlocking(fd);
+  writen2(fd, reply.c_str(), reply.length());
+  Utility::setNonBlocking(fd);
+}
+
+string JWebserver::handleRequest(const string &method, const string &uri, const map<string,string> &rovarmap, string &headers)
+{
+  map<string,string> varmap = rovarmap;
+  string callback = varmap["callback"];
+
+  headers += "Access-Control-Allow-Origin: *\r\n";
+  headers += "Content-Type: application/json\r\n";
 
   string content;
   if(!callback.empty())
@@ -154,11 +177,7 @@ void JWebserver::readRequest(int fd)
   if(!callback.empty())
     content += ");";
 
-  string tot = (boost::format(response) % content.length()).str();
-  tot += content;
-  Utility::setBlocking(fd);
-  writen2(fd, tot.c_str(), tot.length());
-  Utility::setNonBlocking(fd);
+  return content;
 }
 
 void JWebserver::newConnection()
