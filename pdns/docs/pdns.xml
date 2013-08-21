@@ -19605,7 +19605,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       <para>
         <warning>
 	        <para>
-            The Remote Backend is available since PowerDNS Authoritative Server 3.2. This backend is marked as experimental!
+            The Remote Backend is available since PowerDNS Authoritative Server 3.2. This backend is stable on version 3.3, not before.
 	        </para>
 	      </warning>
       </para>
@@ -19624,10 +19624,10 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
      	  </tgroup>
      	</table>
       <para>
-        * If provided by the underlying backend.
+        * If provided by the responder (your script).
       </para>
       <para>
-        This backend provides unix socket / pipe / http remoting for powerdns.
+        This backend provides unix socket / pipe / http remoting for powerdns. You should think this as normal RPC thin client, which converts native C++ calls into JSON/RPC and passes them to you via connector. 
       </para>
      <sect2 id="remotebackend-notices"><title>Important notices</title>
       <para>Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.</para>
@@ -19648,12 +19648,12 @@ remote-connection-string=&lt;type&gt;:&lt;param&gt;=&lt;value&gt;,&lt;param&gt;=
 </programlisting>
         </para>
         <para>
-          You can pass as many parameters as you want. For unix and pipe backends, these
+          You can pass as many parameters as you want. For unix and pipe connectors, these
           are passed along to the remote end as initialization. See <xref linkend="remotebackend-api" />.
-          Initialize is not called for http backend. 
+          Initialize is not called for http connector. 
         </para>
 
-      <sect3 id="remotebackend-unix"><title>Unix backend</title>
+      <sect3 id="remotebackend-unix"><title>Unix connector</title>
         <para>
           parameters: path, timeout (default 2000ms)
         </para>
@@ -19664,7 +19664,7 @@ remote-connection-string=unix:path=/path/to/socket
         </para>
       </sect3>
 
-            <sect3 id="remotebackend-pipe"><title>Pipe backend</title>
+            <sect3 id="remotebackend-pipe"><title>Pipe connector</title>
         <para>
           parameters: command,timeout (default 2000ms)
         </para>
@@ -19676,7 +19676,7 @@ remote-connection-string=unix:command=/path/to/executable,timeout=2000
       </sect3>
 
 
-      <sect3 id="remotebackend-http"><title>HTTP backend</title>
+      <sect3 id="remotebackend-http"><title>HTTP connector</title>
         <para>
           parameters: url, url-suffix, post, post_json, cafile, capath, timeout (default 2000)
         </para>
@@ -19686,7 +19686,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
 </programlisting>
         </para>
         <para>
-          HTTP backend tries to do RESTful requests to your server. See examples. You can also
+          HTTP connector tries to do RESTful requests to your server. See examples. You can also
           use post to change behaviour so that it will send POST request to url/method + url_suffix
           with parameters=json-formatted-parameters. If you use post and post_json, it will POST
           url with text/javascript containing JSON formatted RPC request, just like for pipe and unix. 
@@ -19696,7 +19696,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
           URL should not end with /, and url-suffix is optional, but if you define it, it's
           up to you to write the ".php" or ".json". Lack of dot causes lack of dot in
           URL. Timeout is divided by 1000 because libcurl only supports seconds, but this is
-          given in milliseconds for consistency with other backends. 
+          given in milliseconds for consistency with other connectors. 
         </para>
         <para>
           You can use HTTPS requests. If cafile and capath is left empty, remote SSL certificate is not checked. 
@@ -19708,19 +19708,19 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
       <sect2 id="remotebackend-api"><title>API</title>
         <sect3 id="remotebackend-api-queries"><title>Queries</title>
           <para>
-            Unix and Pipe backend sends JSON formatted string to the remote end. Each 
+            Unix and Pipe connector sends JSON formatted string to the remote end. Each 
             JSON query has two sections, 'method' and 'parameters'. 
           </para>
           <para>
-            HTTP backend calls methods based on URL and has parameters in the query string.
-            Most calls are GET; see the methods listing for details.
+            HTTP connector calls methods based on URL and has parameters in the query string.
+            Most calls are GET; see the methods listing for details. You can change this with post and post_json attributes. 
           </para>
         </sect3>
         <sect3 id="remotebackend-api-replies"><title>Replies</title>
           <para>
             You *must* always reply with JSON hash with at least one key, 'result'. This 
             must be boolean false if the query failed. Otherwise it must conform to the expected
-            result. For HTTP backend, to signal bare success, you can just reply with HTTP 200 OK, and omit any output. This will result in same outcome as sending {"result":true}.
+            result. For HTTP connector, to signal bare success, you can just reply with HTTP 200 OK, and omit any output. This will result in same outcome as sending {"result":true}.
           </para>
           <para>
             You can optionally add 'log' array, each line in this array will be logged in
@@ -19733,7 +19733,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
 <variablelist>
  <varlistentry>
    <term>Mandatory:</term>
-   <listitem><para>Yes (except HTTP backend)</para></listitem>
+   <listitem><para>Yes (except HTTP connector)</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Parameters:</term>
@@ -19745,7 +19745,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
  </varlistentry>
  <varlistentry>
   <term>Description</term>
-  <listitem><para>Called to initialize the backend. This is not called for HTTP backend. You should
+  <listitem><para>Called to initialize the backend. This is not called for HTTP connector. You should
 do your initializations here.</para></listitem>
  </varlistentry>
  <varlistentry>
@@ -21286,7 +21286,7 @@ Content-Type: text/javascript; charset=utf-8
 
 <sect2 id="remotebackend-examples"><title>Examples</title>
 <para>
-  Scenario: SOA lookup via pipe or unix
+  Scenario: SOA lookup via pipe or unix connector
 </para>
 <para>
 Query:
@@ -21319,7 +21319,7 @@ Reply:
 </programlisting>
 </para>
 <para>
-Scenario: SOA lookup via HTTP backend
+Scenario: SOA lookup with HTTP connector
 </para>
 <para>
 Query:
