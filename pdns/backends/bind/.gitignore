@@ -6,6 +6,7 @@
 /bindlexer.c
 /bindparser.cc
 /bindparser.h
+/bindparser.hh
 /bindparser.output
 /dnslabeltext.cc
 /bind-dnssec.schema.sqlite3.sql.h
