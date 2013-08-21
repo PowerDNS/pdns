@@ -57,6 +57,12 @@ struct DomainInfo
   {
     return zone < rhs.zone;
   }
+
+  const char *getKindString() const
+  {
+    const char *kinds[]={"Master", "Slave", "Native"};
+    return kinds[kind];
+  }
 };
 
 class DNSPacket;

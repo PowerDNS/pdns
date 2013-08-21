@@ -485,7 +485,6 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     ret += makeLogGrepJSON(ourvarmap, ::arg()["experimental-logfile"], " pdns[");
   }
  
-  const char *kinds[]={"Master", "Slave", "Native"};
   if(command=="domains") {
     UeberBackend B;
     vector<DomainInfo> domains;
@@ -501,7 +500,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       Value jdi;
       jdi.SetObject();
       jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
-      jdi.AddMember("kind", kinds[di.kind], doc.GetAllocator());
+      jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
       string masters = boost::join(di.masters, " ");
       Value jmasters;
       jmasters.SetString(masters.c_str(), masters.size(), doc.GetAllocator());
