@@ -25,6 +25,7 @@ class JWebserver : public boost::noncopyable
     explicit JWebserver(FDMultiplexer* fdm);
     void newConnection();
     void readRequest(int fd);
+    string handleRequest(const string &method, const string &uri, const map<string,string> &varmap, string &headers);
   private:
     FDMultiplexer* d_fdm;
     int d_socket;
