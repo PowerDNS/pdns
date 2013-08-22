@@ -101,9 +101,6 @@ public:
   ComboAddress d_local;
 private:
   int s;
-  int port;
-  int backlog;
-
 };
 
 class Exception
