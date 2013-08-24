@@ -11551,7 +11551,7 @@ GRANT ALL ON records TO pdns;
 	lists of remote hosts sending queries, hosts sending corrupt queries etc. The webserver does not allow
 	remote management of the daemon.
 
-	The following nameserver related configuration items are available:
+	The following webserver related configuration items are available:
 	<variablelist>
 	  <varlistentry>
 	    <term>webserver</term>
