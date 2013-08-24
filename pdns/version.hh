@@ -22,6 +22,7 @@
 
 string compilerVersion();
 void showProductVersion();
+void showBuildConfiguration();
 string fullVersionString();
 void versionSetProduct(string product);
 

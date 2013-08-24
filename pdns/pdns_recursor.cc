@@ -2115,6 +2115,7 @@ int main(int argc, char **argv)
     }
     if(::arg().mustDo("version")) {
       showProductVersion();
+      showBuildConfiguration();
       exit(99);
     }
 

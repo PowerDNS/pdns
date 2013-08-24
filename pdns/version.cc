@@ -46,6 +46,37 @@ void showProductVersion()
     "according to the terms of the GPL version 2." << endl;
 }
 
+void showBuildConfiguration()
+{
+  theL()<<Logger::Warning<<"Features: "<<
+#ifdef HAVE_BOTAN110
+    "botan1.10 " <<
+#endif
+#ifdef HAVE_BOTAN18
+    "botan1.8" <<
+#endif
+#ifdef HAVE_CRYPTOPP
+    "cryptopp " <<
+#endif
+#ifdef HAVE_LIBDL
+    "libdl " <<
+#endif
+#ifdef HAVE_LUA
+    "lua " <<
+#endif
+#ifdef REMOTEBACKEND_HTTP
+    "remotebackend-http" <<
+#endif
+#ifdef VERBOSELOG
+    "verboselog" <<
+#endif
+    endl;
+#ifdef PDNS_MODULES
+  // Auth only
+  theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
+#endif
+}
+
 string fullVersionString()
 {
   ostringstream s;
