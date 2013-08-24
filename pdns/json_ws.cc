@@ -32,9 +32,14 @@ JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
 {
   RecursorControlParser rcp; // inits
   d_socket = socket(AF_INET6, SOCK_STREAM, 0);
+  if(d_socket<0) {
+    throw PDNSException("Making webserver socket: "+stringerror());
+  }
   setSocketReusable(d_socket);
   ComboAddress local("::", 8082);
-  bind(d_socket, (struct sockaddr*)&local, local.getSocklen());
+  if(bind(d_socket, (struct sockaddr*)&local, local.getSocklen())<0) {
+    throw PDNSException("Binding webserver socket: "+stringerror());
+  }
   listen(d_socket, 5);
   
   d_fdm->addReadFD(d_socket, boost::bind(&JWebserver::newConnection, this));
@@ -54,14 +59,17 @@ void JWebserver::readRequest(int fd)
   // Note: this code makes it impossible to read the request body.
   // We'll at least need to wait for two \r\n sets to arrive, parse the
   // headers, and then read the body (using the supplied Content-Length).
-  char * p = strchr(buffer, '\r');
+  char *p = strchr(buffer, '\r');
   if(p) *p = 0;
+
   vector<string> parts;
-  stringtok(parts, buffer);
   string method, uri;
-  if(parts.size()>1) {
-    method=parts[0];
-    uri=parts[1];
+  if(strlen(buffer) < 2048) {
+    stringtok(parts, buffer);
+    if(parts.size()>1) {
+      method=parts[0];
+      uri=parts[1];
+    }
   }
 
   string content;
@@ -73,7 +81,7 @@ void JWebserver::readRequest(int fd)
 
   if (method != "GET") {
     status = "400 Bad Request";
-    content = "Your client sent a request this server does not understand.\n";
+    content = "Your client sent a request this server could not understand.\n";
   } else {
     parts.clear();
     stringtok(parts, uri, "?");

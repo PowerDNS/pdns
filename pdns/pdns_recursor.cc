@@ -1892,7 +1892,13 @@ try
   if(!t_id) {
     if(::arg().mustDo("experimental-json-interface")) {
       L<<Logger::Warning << "Enabling JSON interface" << endl;
-      new JWebserver(t_fdm);
+      try {
+        new JWebserver(t_fdm);
+      }
+      catch(PDNSException &e) {
+        L<<Logger::Error<<"Exception: "<<e.reason<<endl;
+        exit(99);
+      }
     }
     L<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
