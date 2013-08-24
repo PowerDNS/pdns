@@ -59,14 +59,17 @@ void JWebserver::readRequest(int fd)
   // Note: this code makes it impossible to read the request body.
   // We'll at least need to wait for two \r\n sets to arrive, parse the
   // headers, and then read the body (using the supplied Content-Length).
-  char * p = strchr(buffer, '\r');
+  char *p = strchr(buffer, '\r');
   if(p) *p = 0;
+
   vector<string> parts;
-  stringtok(parts, buffer);
   string method, uri;
-  if(parts.size()>1) {
-    method=parts[0];
-    uri=parts[1];
+  if(strlen(buffer) < 2048) {
+    stringtok(parts, buffer);
+    if(parts.size()>1) {
+      method=parts[0];
+      uri=parts[1];
+    }
   }
 
   string content;
@@ -78,7 +81,7 @@ void JWebserver::readRequest(int fd)
 
   if (method != "GET") {
     status = "400 Bad Request";
-    content = "Your client sent a request this server does not understand.\n";
+    content = "Your client sent a request this server could not understand.\n";
   } else {
     parts.clear();
     stringtok(parts, uri, "?");
