@@ -236,47 +236,6 @@ bool dottedEndsOn(const string &domain, const string &suffix)
   return true;
 }
 
-int sendData(const char *buffer, int replen, int outsock)
-{
-  uint16_t nlen=htons(replen);
-  Utility::iovec iov[2];
-  iov[0].iov_base=(char*)&nlen;
-  iov[0].iov_len=2;
-  iov[1].iov_base=(char*)buffer;
-  iov[1].iov_len=replen;
-  int ret=Utility::writev(outsock,iov,2);
-
-  if(ret <= 0)  // "EOF is error" - we can't deal with EAGAIN errors at this stage yet
-    return -1;
-
-  if(ret!=replen+2) {
-    // we can safely assume ret > 2, as 2 is < PIPE_BUF
-    
-    buffer += (ret - 2);
-    replen -= (ret - 2);
-
-    while (replen) {
-      ret = write(outsock, buffer, replen);
-      if(ret < 0) {
-        if(errno==EAGAIN) { // wait, we might've exhausted the window
-          while(waitForRWData(outsock, false, 1, 0)==0)
-            ;
-          continue;
-        }
-        return ret;
-      }
-      if(!ret)
-        return -1; // "EOF == error"
-      replen -= ret;
-      buffer += ret;
-    }
-    if(!replen)
-      return 0;
-    return -1;
-  }
-  return 0;
-}
-
 static void parseService4(const string &descr, ServiceTuple &st)
 {
   vector<string>parts;

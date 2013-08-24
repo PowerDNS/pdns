@@ -202,8 +202,6 @@ private:
   struct timeval d_set;
 };
 
-int sendData(const char *buffer, int replen, int outsock);
-
 inline void DTime::set()
 {
   Utility::gettimeofday(&d_set,0);
