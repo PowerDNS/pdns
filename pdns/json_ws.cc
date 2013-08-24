@@ -32,9 +32,14 @@ JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
 {
   RecursorControlParser rcp; // inits
   d_socket = socket(AF_INET6, SOCK_STREAM, 0);
+  if(d_socket<0) {
+    throw PDNSException("Making webserver socket: "+stringerror());
+  }
   setSocketReusable(d_socket);
   ComboAddress local("::", 8082);
-  bind(d_socket, (struct sockaddr*)&local, local.getSocklen());
+  if(bind(d_socket, (struct sockaddr*)&local, local.getSocklen())<0) {
+    throw PDNSException("Binding webserver socket: "+stringerror());
+  }
   listen(d_socket, 5);
   
   d_fdm->addReadFD(d_socket, boost::bind(&JWebserver::newConnection, this));
