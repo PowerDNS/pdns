@@ -181,7 +181,7 @@ void expireOldNotifications()
   }
 }
 
-void daemonize();
+void daemonize(int null_fd);
 
 int main(int argc, char** argv)
 try
@@ -260,8 +260,12 @@ try
 
   g_fdm.addReadFD(g_pdnssocket, handleInsideUDPPacket);
 
+  int null_fd=open("/dev/null",O_RDWR); /* open stdin */
+  if(null_fd < 0)
+    throw runtime_error("Unable to open /dev/null: "+stringerror());
+
   if(g_vm.count("chroot")) {
-    if(chroot(g_vm["chroot"].as<string>().c_str()) < 0)
+    if(chroot(g_vm["chroot"].as<string>().c_str()) < 0 || chdir("/") < 0)
       throw runtime_error("while chrooting to "+g_vm["chroot"].as<string>());
     syslogFmt(boost::format("Changed root to directory '%s'") % g_vm["chroot"].as<string>());
   }
@@ -282,8 +286,9 @@ try
 
   if(g_vm["daemon"].as<bool>()) {
     syslogFmt(boost::format("Daemonizing"));
-    daemonize();
+    daemonize(null_fd);
   }
+  close(null_fd);
   syslogFmt(boost::format("Program operational"));
 
 
@@ -309,20 +314,14 @@ catch(AhuException& e)
   syslogFmt(boost::format("Fatal: %s") % e.reason);
 }
 
-void daemonize(void)
+void daemonize(int null_fd)
 {
   if(fork())
     exit(0); // bye bye
-  
-  setsid(); 
 
-  int i=open("/dev/null",O_RDWR); /* open stdin */
-  if(i < 0) 
-    cerr<<"Unable to open /dev/null: "<<stringerror()<<endl;
-  else {
-    dup2(i,0); /* stdin */
-    dup2(i,1); /* stderr */
-    dup2(i,2); /* stderr */
-    close(i);
-  }
+  setsid();
+
+  dup2(null_fd,0); /* stdin */
+  dup2(null_fd,1); /* stderr */
+  dup2(null_fd,2); /* stderr */
 }
