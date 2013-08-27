@@ -45,6 +45,8 @@ int RecursorControlChannel::listen(const string& fname)
 
   memset(&d_local,0,sizeof(d_local));
   d_local.sun_family=AF_UNIX;
+  if(fname.length()+1 > sizeof(d_local.sun_path))
+    throw PDNSException("Unable to bind to controlsocket, path '"+fname+"' too long.");
   strcpy(d_local.sun_path, fname.c_str());
     
   if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0) 

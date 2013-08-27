@@ -96,7 +96,11 @@ bool DynListener::testLive(const string& fname)
 
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, fname.c_str(), fname.length());
+  if(fname.length()+1 > sizeof(addr.sun_path)) {
+    L<<Logger::Critical<<"Unable to open controlsocket, path '"<<fname<<"' too long."<<endl;
+    exit(1);
+  }
+  strcpy(addr.sun_path, fname.c_str());
 
   int status = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
   close(fd);
@@ -118,7 +122,11 @@ void DynListener::listenOnUnixDomain(const string& fname)
   struct sockaddr_un local;
   memset(&local,0,sizeof(local));
   local.sun_family=AF_UNIX;
-  strncpy(local.sun_path, fname.c_str(), fname.length());
+  if(fname.length()+1 > sizeof(local.sun_path)) {
+    L<<Logger::Critical<<"Unable to bind to controlsocket, path '"<<fname<<"' too long."<<endl;
+    exit(1);
+  }
+  strcpy(local.sun_path, fname.c_str());
   
   createSocketAndBind(AF_UNIX, (struct sockaddr*)& local, sizeof(local));
   d_socketname=fname;

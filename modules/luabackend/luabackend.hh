@@ -70,7 +70,7 @@ public:
     //! get a list of IP addresses that should also be notified for a domain
     void alsoNotifies(const string &domain, set<string> *ips);
     bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-    bool setDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
+    bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
 
     bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
     bool removeDomainKey(const string& name, unsigned int id);
