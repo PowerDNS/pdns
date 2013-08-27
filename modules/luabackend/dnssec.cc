@@ -479,7 +479,7 @@ bool LUABackend::getTSIGKey(const string& name, string* algorithm, string* conte
     return true;
 }
 
-bool LUABackend::setDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) {
+bool LUABackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {
 
     if(f_lua_setdomainmetadata == 0) 
 	return false;
@@ -493,7 +493,8 @@ bool LUABackend::setDomainMetadata(const string& name, const std::string& kind, 
     lua_pushstring(lua, kind.c_str());
 
     lua_newtable(lua);
-    std::vector<std::string>::iterator i;
+
+    std::vector<std::string>::const_iterator i;
 
     int c = 0;
     
