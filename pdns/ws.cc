@@ -513,10 +513,13 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       jdi.SetObject();
       jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
       jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
-      string masters = boost::join(di.masters, " ");
-      Value jmasters;
-      jmasters.SetString(masters.c_str(), masters.size(), doc.GetAllocator());
-      jdi.AddMember("masters", jmasters, doc.GetAllocator()); // ^^^ this makes an actual copy, otherwise the zerocopy behaviour bites us!
+      Value masters;
+      masters.SetArray();
+      BOOST_FOREACH(const string& master, di.masters) {
+        Value value(master.c_str(), doc.GetAllocator());
+        masters.PushBack(value, doc.GetAllocator());
+      }
+      jdi.AddMember("masters", masters, doc.GetAllocator());
       jdi.AddMember("serial", di.serial, doc.GetAllocator());
       jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
       jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
