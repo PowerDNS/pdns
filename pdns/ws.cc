@@ -494,6 +494,76 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       return ret+post;
     }  
   }
+  else if(command == "zone") {
+    string zonename = ourvarmap["zone"];
+    if (zonename.empty()) {
+      map<string, string> err;
+      err["error"] = "Must give zone parameter";
+      return ret+returnJSONObject(err);
+    }
+
+    if(method == "GET") {
+      // get current zone
+      UeberBackend B;
+      SOAData sd;
+      DomainInfo di;
+      sd.db = (DNSBackend*)-1;
+      if(!B.getSOA(zonename, sd) || !sd.db || !B.getDomainInfo(zonename, di)) {
+        map<string, string> err;
+        err["error"] = "Could not find domain '"+zonename+"'";
+        return ret+returnJSONObject(err);
+      }
+
+      Document doc;
+      doc.SetObject();
+
+      Value root;
+      root.SetObject();
+      root.AddMember("name", zonename.c_str(), doc.GetAllocator());
+      root.AddMember("type", "Zone", doc.GetAllocator());
+      root.AddMember("kind", di.getKindString(), doc.GetAllocator());
+      Value masters;
+      masters.SetArray();
+      BOOST_FOREACH(const string& master, di.masters) {
+        Value value(master.c_str(), doc.GetAllocator());
+        masters.PushBack(value, doc.GetAllocator());
+      }
+      root.AddMember("masters", masters, doc.GetAllocator());
+      root.AddMember("serial", di.serial, doc.GetAllocator());
+      root.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
+      root.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
+
+      DNSResourceRecord rr;
+      Value records;
+      records.SetArray();
+      sd.db->list(zonename, sd.domain_id);
+      while(sd.db->get(rr)) {
+        if (!rr.qtype.getCode())
+          continue; // skip empty non-terminals
+
+        Value object;
+        object.SetObject();
+        Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+        object.AddMember("name", jname, doc.GetAllocator());
+        Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
+        object.AddMember("type", jtype, doc.GetAllocator());
+        object.AddMember("ttl", rr.ttl, doc.GetAllocator());
+        object.AddMember("priority", rr.priority, doc.GetAllocator());
+        Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+        object.AddMember("content", jcontent, doc.GetAllocator());
+        records.PushBack(object, doc.GetAllocator());
+      }
+      root.AddMember("records", records, doc.GetAllocator());
+
+      doc.AddMember("zone", root, doc.GetAllocator());
+      return ret + makeStringFromDocument(doc);
+
+    } else {
+      map<string, string> err;
+      err["error"] = "Method not allowed";
+      return ret+returnJSONObject(err);
+    }
+  }
   else if(command=="log-grep") {
     ret += makeLogGrepJSON(ourvarmap, ::arg()["experimental-logfile"], " pdns[");
   }
