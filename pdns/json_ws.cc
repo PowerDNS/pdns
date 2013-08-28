@@ -27,6 +27,11 @@
 #include "misc.hh"
 #include "syncres.hh"
 #include "config.h"
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+
+using namespace rapidjson;
 
 JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
 {
@@ -168,6 +173,54 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
       }
     }
     content += "]";
+  }
+  else if(command == "zone") {
+    SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
+    if (ret != t_sstorage->domainmap->end()) {
+      Document doc;
+      doc.SetObject();
+      Value root;
+      root.SetObject();
+
+      const SyncRes::AuthDomain& zone = ret->second;
+      Value zonename(ret->first.c_str(), doc.GetAllocator());
+      root.AddMember("name", zonename, doc.GetAllocator());
+      root.AddMember("type", "Zone", doc.GetAllocator());
+      root.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
+      Value servers;
+      servers.SetArray();
+      BOOST_FOREACH(const ComboAddress& server, zone.d_servers) {
+        Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
+        servers.PushBack(value, doc.GetAllocator());
+      }
+      root.AddMember("servers", servers, doc.GetAllocator());
+      bool rdbit = zone.d_servers.empty() ? false : zone.d_rdForward;
+      root.AddMember("rdbit", rdbit, doc.GetAllocator());
+
+      Value records;
+      records.SetArray();
+      BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
+        Value object;
+        object.SetObject();
+        Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+        object.AddMember("name", jname, doc.GetAllocator());
+        Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
+        object.AddMember("type", jtype, doc.GetAllocator());
+        object.AddMember("ttl", rr.ttl, doc.GetAllocator());
+        object.AddMember("priority", rr.priority, doc.GetAllocator());
+        Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+        object.AddMember("content", jcontent, doc.GetAllocator());
+        records.PushBack(object, doc.GetAllocator());
+      }
+      root.AddMember("records", records, doc.GetAllocator());
+
+      doc.AddMember("zone", root, doc.GetAllocator());
+      content += makeStringFromDocument(doc);
+    } else {
+      map<string, string> err;
+      err["error"] = "Could not find domain '"+varmap["zone"]+"'";
+      content += returnJSONObject(err);
+    }
   }
   else if(command == "flush-cache") {
     string canon=toCanonic("", varmap["domain"]);
