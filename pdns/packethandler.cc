@@ -1206,6 +1206,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
   retargeted:;
     if(retargetcount > 10) {    // XXX FIXME, retargetcount++?
+      L<<Logger::Warning<<"Abort CNAME chain resolution after "<<--retargetcount<<" redirects, sending out servfail. Initial query: '"<<p->qdomain<<"'"<<endl;
+      delete r;
+      r=p->replyPacket();
       r->setRcode(RCode::ServFail);
       return r;
     }
