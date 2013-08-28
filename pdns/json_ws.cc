@@ -110,7 +110,16 @@ void JWebserver::readRequest(int fd)
 string JWebserver::handleRequest(const string &method, const string &uri, const map<string,string> &rovarmap, string &headers)
 {
   map<string,string> varmap = rovarmap;
-  string callback = varmap["callback"];
+  string callback;
+  if (varmap.count("callback")) {
+    callback = varmap["callback"];
+    varmap.erase("callback");
+  }
+  string command;
+  if (varmap.count("command")) {
+    command = varmap["command"];
+    varmap.erase("command");
+  }
 
   headers += "Access-Control-Allow-Origin: *\r\n";
   headers += "Content-Type: application/json\r\n";
@@ -120,7 +129,7 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
     content=callback+"(";
 
   map<string, string> stats; 
-  if(varmap["command"] =="domains") {
+  if(command == "domains") {
     content += "[";
     bool first=1;
     BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
@@ -139,7 +148,7 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
     }
     content += "]";
   }
-  else if(varmap["command"] =="get-zone") {
+  else if(command == "get-zone") {
     SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
     
     content += "[";
@@ -159,25 +168,25 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
       }
     }
     content += "]";
-  }  
-  else if(varmap["command"]=="flush-cache") {
+  }
+  else if(command == "flush-cache") {
     string canon=toCanonic("", varmap["domain"]);
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
     stats["number"]=lexical_cast<string>(count);
     content += returnJSONObject(stats);  
   }
-  else if(varmap["command"] == "config") {
+  else if(command == "config") {
     vector<string> items = ::arg().list();
     BOOST_FOREACH(const string& var, items) {
       stats[var] = ::arg()[var];
     }
     content += returnJSONObject(stats);  
   }
-  else if(varmap["command"]=="log-grep") {
+  else if(command == "log-grep") {
     content += makeLogGrepJSON(varmap, ::arg()["experimental-logfile"], " pdns_recursor[");
   }
-  else { //  if(varmap["command"] == "stats") {
+  else { //  if(command == "stats") {
     stats = getAllStatsMap();
     content += returnJSONObject(stats);  
   } 
