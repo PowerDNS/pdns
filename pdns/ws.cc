@@ -39,6 +39,8 @@ using namespace rapidjson;
 
 extern StatBag S;
 
+typedef map<string,string> varmap_t;
+
 StatWebServer::StatWebServer()
 {
   d_start=time(0);
@@ -258,53 +260,25 @@ static int int_from_json(const Value& val) {
   }
 }
 
-string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
-{
-  *custom=1; // indicates we build the response
-  string ret="HTTP/1.1 200 OK\r\n"
-  "Server: PowerDNS/"VERSION"\r\n"
-  "Connection: close\r\n"
-  "Access-Control-Allow-Origin: *\r\n"
-  "Content-Type: application/json\r\n"
-  "\r\n" ;
-
-  typedef map<string,string> varmap_t;
-  varmap_t ourvarmap=varmap;
-  string callback;
-  string command;
-
-  if(ourvarmap.count("callback")) {
-    callback=ourvarmap["callback"];
-    ourvarmap.erase("callback");
-  }
-  
-  if(ourvarmap.count("command")) {
-    command=ourvarmap["command"];
-    ourvarmap.erase("command");
-  }
-  
-  ourvarmap.erase("_");
-  if(!callback.empty())
-      ret += callback+"(";
-    
+static string json_dispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
   if(command=="get") {
-    if(ourvarmap.empty()) {
+    if(varmap.empty()) {
       vector<string> entries = S.getEntries();
       BOOST_FOREACH(string& ent, entries) {
-        ourvarmap[ent];
+        varmap[ent];
       }
-      ourvarmap["version"];
-      ourvarmap["uptime"];
+      varmap["version"];
+      varmap["uptime"];
     }
 
     string variable, value;
     
     Document doc;
     doc.SetObject();
-    for(varmap_t::const_iterator iter = ourvarmap.begin(); iter != ourvarmap.end() ; ++iter) {
+    for(varmap_t::const_iterator iter = varmap.begin(); iter != varmap.end() ; ++iter) {
       variable = iter->first;
       if(variable == "version") {
-        value =VERSION;
+        value = VERSION;
       }
       else if(variable == "uptime") {
         value = lexical_cast<string>(time(0) - s_starttime);
@@ -315,7 +289,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       jval.SetString(value.c_str(), value.length(), doc.GetAllocator());
       doc.AddMember(variable.c_str(), jval, doc.GetAllocator());
     }
-    ret+=makeStringFromDocument(doc);
+    return makeStringFromDocument(doc);
   }
   else if(command=="config") {
     vector<string> items = ::arg().list();
@@ -335,33 +309,33 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       kv.PushBack(value, doc.GetAllocator());
       doc.PushBack(kv, doc.GetAllocator());
     }
-    ret += makeStringFromDocument(doc);
+    return makeStringFromDocument(doc);
   }
   else if(command == "flush-cache") {
     extern PacketCache PC;
     int number; 
-    if(ourvarmap["domain"].empty())
+    if(varmap["domain"].empty())
       number = PC.purge();
     else
-      number = PC.purge(ourvarmap["domain"]);
+      number = PC.purge(varmap["domain"]);
       
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
-    //cerr<<"Flushed cache for '"<<ourvarmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
-    ret += returnJSONObject(object);
+    //cerr<<"Flushed cache for '"<<varmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
+    return returnJSONObject(object);
   }
   else if(command=="get-zone") {
     UeberBackend B;
     SOAData sd;
     sd.db= (DNSBackend*)-1;
-    if(!B.getSOA(ourvarmap["zone"], sd) || !sd.db) {
-      cerr<<"Could not find domain '"<<ourvarmap["zone"]<<"'\n";
+    if(!B.getSOA(varmap["zone"], sd) || !sd.db) {
+      cerr<<"Could not find domain '"<<varmap["zone"]<<"'\n";
       return "";
     }
-    sd.db->list(ourvarmap["zone"], sd.domain_id);
+    sd.db->list(varmap["zone"], sd.domain_id);
     DNSResourceRecord rr;
-    
-    ret+="[";
+
+    string ret ="[";
     map<string, string> object;
     bool first=1;
     while(sd.db->get(rr)) {
@@ -377,17 +351,18 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
 
     ret += "]";
+    return ret;
   }
   else if(command == "pdns-control") {
     if(method!="POST") {
       map<string, string> m;
       m["error"]="pdns-control requires a POST";
-      return ret + returnJSONObject(m);
+      return returnJSONObject(m);
     }
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
     if(document.Parse<0>(post.c_str()).HasParseError()) {
-      return ret+"{\"error\": \"Unable to parse JSON\"";
+      return "{\"error\": \"Unable to parse JSON\"}";
     }
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
@@ -403,21 +378,20 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     } else {
       m["error"]="No such function "+toUpper(parameters[0]);
     }
-    ret+= returnJSONObject(m);
-      
+    return returnJSONObject(m);
   }
   else if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
     vector<string> parts;
-    stringtok(parts, ourvarmap["rest"], "/");
+    stringtok(parts, varmap["rest"], "/");
     if(parts.size() != 3) 
-      return ret+"{\"error\": \"Could not parse rest parameter\"}";
+      return "{\"error\": \"Could not parse rest parameter\"}";
     UeberBackend B;
     SOAData sd;
     sd.db = (DNSBackend*)-1;
     if(!B.getSOA(parts[0], sd) || !sd.db) {
       map<string, string> err;
       err["error"]= "Could not find domain '"+parts[0]+"'";
-      return ret+returnJSONObject(err);
+      return returnJSONObject(err);
     }
     
     QType qtype;
@@ -431,7 +405,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       B.lookup(qtype, parts[1], 0, sd.domain_id);
       
       DNSResourceRecord rr;
-      ret+="{ \"records\": [";
+      string ret = "{ \"records\": [";
       map<string, string> object;
       bool first=1;
       
@@ -447,6 +421,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
         ret+=returnJSONObject(object);
       }
       ret+="]}";
+      return ret;
     }
     else if(method=="DELETE") {
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
@@ -455,7 +430,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     else if(method=="POST") {
       rapidjson::Document document;
       if(document.Parse<0>(post.c_str()).HasParseError()) {
-        return ret+"{\"error\": \"Unable to parse JSON\"";
+        return "{\"error\": \"Unable to parse JSON\"";
       }
       
       DNSResourceRecord rr;
@@ -484,22 +459,22 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
         {
           map<string, string> err;
           err["error"]= "Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what();
-          return ret+returnJSONObject(err);
+          return returnJSONObject(err);
         }
       }
       // but now what
       sd.db->startTransaction(qname);
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
       sd.db->commitTransaction();
-      return ret+post;
+      return post;
     }  
   }
   else if(command == "zone") {
-    string zonename = ourvarmap["zone"];
+    string zonename = varmap["zone"];
     if (zonename.empty()) {
       map<string, string> err;
       err["error"] = "Must give zone parameter";
-      return ret+returnJSONObject(err);
+      return returnJSONObject(err);
     }
 
     if(method == "GET") {
@@ -511,7 +486,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       if(!B.getSOA(zonename, sd) || !sd.db || !B.getDomainInfo(zonename, di)) {
         map<string, string> err;
         err["error"] = "Could not find domain '"+zonename+"'";
-        return ret+returnJSONObject(err);
+        return returnJSONObject(err);
       }
 
       Document doc;
@@ -556,16 +531,16 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       root.AddMember("records", records, doc.GetAllocator());
 
       doc.AddMember("zone", root, doc.GetAllocator());
-      return ret + makeStringFromDocument(doc);
+      return makeStringFromDocument(doc);
 
     } else {
       map<string, string> err;
       err["error"] = "Method not allowed";
-      return ret+returnJSONObject(err);
+      return returnJSONObject(err);
     }
   }
   else if(command=="log-grep") {
-    ret += makeLogGrepJSON(ourvarmap, ::arg()["experimental-logfile"], " pdns[");
+    return makeLogGrepJSON(varmap, ::arg()["experimental-logfile"], " pdns[");
   }
   else if(command=="domains") {
     UeberBackend B;
@@ -596,13 +571,44 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       jdomains.PushBack(jdi, doc.GetAllocator());
     }
     doc.AddMember("domains", jdomains, doc.GetAllocator());
-    ret.append(makeStringFromDocument(doc));
-  } else {
-    map<string, string> err;
-    err["error"] = "No or unknown command given";
-    return ret+returnJSONObject(err);
+    return makeStringFromDocument(doc);
+  }
+
+  map<string, string> err;
+  err["error"] = "No or unknown command given";
+  return returnJSONObject(err);
+}
+
+string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
+{
+  *custom=1; // indicates we build the response
+  string ret="HTTP/1.1 200 OK\r\n"
+  "Server: PowerDNS/"VERSION"\r\n"
+  "Connection: close\r\n"
+  "Access-Control-Allow-Origin: *\r\n"
+  "Content-Type: application/json\r\n"
+  "\r\n" ;
+
+  varmap_t ourvarmap=varmap;
+  string callback;
+  string command;
+
+  if(ourvarmap.count("callback")) {
+    callback=ourvarmap["callback"];
+    ourvarmap.erase("callback");
   }
   
+  if(ourvarmap.count("command")) {
+    command=ourvarmap["command"];
+    ourvarmap.erase("command");
+  }
+
+  ourvarmap.erase("_");
+  if(!callback.empty())
+      ret += callback+"(";
+
+  ret += json_dispatch(method, post, ourvarmap, command);
+
   if(!callback.empty()) {
     ret += ");";
   }
