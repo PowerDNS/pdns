@@ -317,8 +317,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
     ret+=makeStringFromDocument(doc);
   }
- 
-  if(command=="config") {
+  else if(command=="config") {
     vector<string> items = ::arg().list();
     Document doc;
     doc.SetArray();
@@ -338,8 +337,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
     ret += makeStringFromDocument(doc);
   }
-
-  if(command == "flush-cache") {
+  else if(command == "flush-cache") {
     extern PacketCache PC;
     int number; 
     if(ourvarmap["domain"].empty())
@@ -352,7 +350,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     //cerr<<"Flushed cache for '"<<ourvarmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
     ret += returnJSONObject(object);
   }
-  if(command=="get-zone") {
+  else if(command=="get-zone") {
     UeberBackend B;
     SOAData sd;
     sd.db= (DNSBackend*)-1;
@@ -380,7 +378,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
 
     ret += "]";
   }
-  if(command == "pdns-control") {
+  else if(command == "pdns-control") {
     if(method!="POST") {
       map<string, string> m;
       m["error"]="pdns-control requires a POST";
@@ -408,7 +406,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     ret+= returnJSONObject(m);
       
   }
-  if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
+  else if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
     vector<string> parts;
     stringtok(parts, ourvarmap["rest"], "/");
     if(parts.size() != 3) 
@@ -496,11 +494,10 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
       return ret+post;
     }  
   }
-  if(command=="log-grep") {
+  else if(command=="log-grep") {
     ret += makeLogGrepJSON(ourvarmap, ::arg()["experimental-logfile"], " pdns[");
   }
- 
-  if(command=="domains") {
+  else if(command=="domains") {
     UeberBackend B;
     vector<DomainInfo> domains;
     B.getAllDomains(&domains);
@@ -527,6 +524,10 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
     }
     doc.AddMember("domains", jdomains, doc.GetAllocator());
     ret.append(makeStringFromDocument(doc));
+  } else {
+    map<string, string> err;
+    err["error"] = "No or unknown command given";
+    return ret+returnJSONObject(err);
   }
   
   if(!callback.empty()) {
