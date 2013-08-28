@@ -33,6 +33,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "version.hh"
+#include "session.hh"
 
 using namespace rapidjson;
 
@@ -247,6 +248,15 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
   return ret.str();
 }
 
+static int int_from_json(const Value& val) {
+  if (val.IsInt()) {
+    return val.GetInt();
+  } else if (val.IsString()) {
+    return atoi(val.GetString());
+  } else {
+    throw Exception("Value not an Integer");
+  }
+}
 
 string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
 {
@@ -460,8 +470,8 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
         rr.qtype=record["type"].GetString();
         rr.domain_id = sd.domain_id;
         rr.auth=0;
-        rr.ttl=atoi(record["ttl"].GetString());
-        rr.priority=atoi(record["priority"].GetString());
+        rr.ttl=int_from_json(record["ttl"]);
+        rr.priority=int_from_json(record["priority"]);
         
         rrset.push_back(rr);
         
