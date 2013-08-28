@@ -23,6 +23,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <netinet/in.h>
+#include <sys/un.h>
 #include <unistd.h>
 #endif // WIN32
 
@@ -713,7 +714,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   return 0;
 }
 
-int makeIPv4sockaddr(const string &str, struct sockaddr_in* ret)
+int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
 {
   if(str.empty()) {
     return -1;
@@ -744,6 +745,19 @@ int makeIPv4sockaddr(const string &str, struct sockaddr_in* ret)
   return -1;
 }
 
+int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret)
+{
+  if (path.empty())
+    return -1;
+
+  memset(ret, 0, sizeof(struct sockaddr_un));
+  ret->sun_family = AF_UNIX;
+  if (path.length() >= sizeof(ret->sun_path))
+    return -1;
+
+  path.copy(ret->sun_path, sizeof(ret->sun_path), 0);
+  return 0;
+}
 
 //! read a line of text from a FILE* to a std::string, returns false on 'no data'
 bool stringfgets(FILE* fp, std::string& line)

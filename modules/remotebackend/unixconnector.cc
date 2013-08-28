@@ -133,9 +133,12 @@ void UnixsocketConnector::reconnect() {
       L<<Logger::Error<<"Cannot create socket: " << strerror(errno) << std::endl;;
       return;
    }
-   sock.sun_family = AF_UNIX;
-   memset(sock.sun_path, 0, UNIX_PATH_MAX);
-   path.copy(sock.sun_path, UNIX_PATH_MAX, 0);
+
+   if (makeUNsockaddr(path, &sock)) {
+      L<<Logger::Error<<"Unable to create UNIX domain socket: Path '"<<path<<"' is not a valid UNIX socket path."<<std::endl;
+      return;
+   }
+
    if (fcntl(fd, F_SETFL, O_NONBLOCK, &fd)) {
       connected = false;
       L<<Logger::Error<<"Cannot manipulate socket: " << strerror(errno) << std::endl;;
