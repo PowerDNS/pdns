@@ -80,7 +80,7 @@ uint32_t calculateEditSoa(SOAData sd, const string& kind) {
     return time(0);
   }
   else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {
-    time_t inception = getStartOfWeek();
+    uint32_t inception = getStartOfWeek();
     if (sd.serial < inception)
       return inception;
   }
