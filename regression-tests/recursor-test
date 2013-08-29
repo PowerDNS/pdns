@@ -7,7 +7,7 @@ limit=$2
 ../pdns/pdns_recursor --daemon=no --local-port=$port --socket-dir=./ --trace=fail --config-dir=. --query-local-address6=:: > recursor.log 2>&1 &
 sleep 3
 ../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < top-1m.csv > bulktest.results
-kill $(cat recursor.pid)
+kill $(cat pdns_recursor.pid)
 
 . ./bulktest.results
 

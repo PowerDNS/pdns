@@ -67,7 +67,7 @@ try
 {
   initArguments(argc, argv);
   RecursorControlChannel rccS;
-  string sockname="recursor";
+  string sockname="pdns_recursor";
 
   if (arg()["config-name"] != "")
     sockname+="-"+arg()["config-name"];
