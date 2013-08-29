@@ -1789,7 +1789,7 @@ int serviceMain(int argc, char*argv[])
       break;
   }
   
-  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
+  s_pidfname=::arg()["socket-dir"]+"/pdns_"+s_programname+".pid";
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file 
   
