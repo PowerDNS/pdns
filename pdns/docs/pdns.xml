@@ -13872,7 +13872,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
       <para>
 	At startup, the recursing nameserver reads the file <filename>recursor.conf</filename> from the configuration directory,
 	often <filename>/etc/powerdns</filename> or <filename>/usr/local/etc</filename>. Each setting below can appear on the command line,
-	prefixed by '--', or in the configuration file. The command line overrides the configuration file.
+	prefixed by '--', or in the configuration file. The command line overrides the configuration file. 
       </para>
       <para>
 	A switch can be set to on simply by passing it, like '--daemon', and turned off explicitly by '--daemon=off' or '--daemon=no'.
@@ -15558,7 +15558,8 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
   </chapter>
   <chapter id="all-settings"><title>Index of all Authoritative Server settings</title>
     <para>
-      All PDNS Authoritative Server settings are listed here, excluding those that originate from backends, which are documented in the relevant chapters.
+      All PDNS Authoritative Server settings are listed here, excluding those that originate from backends, which are documented in the relevant chapters. You can use += syntax to set some
+      variables incrementally, but this requires you to have at least one non-incremental setting for the variable to act as base setting. This is mostly useful for include-dir directive. 
       <variablelist>
 	<varlistentry>
 	  <term><anchor id="allow-axfr-ips"/>allow-axfr-ips=...</term>
@@ -15653,6 +15654,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		Provide a helpful message
 	      </para></listitem></varlistentry>
+          <varlistentry><term>include-dir</term>
+            <listitem><para>
+                Directory to scan for additional config files. All files that end with .conf are loaded in order. 
+              </para></listitem></varlistentry>
 	  <varlistentry><term>launch=...</term>
 	    <listitem><para>
 		Which backends to launch and order to query them in. See <xref linkend="modules"/>.
