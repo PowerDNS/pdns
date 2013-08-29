@@ -106,7 +106,7 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   strcpy(remote.sun_path,(path+"/"+fname).c_str());
   if(::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0) {
     unlink(d_local.sun_path);
-    throw PDNSException("Unable to connect to remote '"+path+fname+"': "+string(strerror(errno)));
+    throw PDNSException("Unable to connect to remote '"+string(remote.sun_path)+"': "+string(strerror(errno)));
   }
 }
 
