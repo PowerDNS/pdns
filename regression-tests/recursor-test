@@ -4,9 +4,21 @@ port=$1
 limit=$2
 [ -z "$limit" ] && limit=100000
 
-../pdns/pdns_recursor --daemon=no --local-port=$port --socket-dir=./ --trace=fail --config-dir=. --query-local-address6=:: > recursor.log 2>&1 &
+: ${RECURSOR:="../pdns/pdns_recursor"}
+: ${CSV:="top-1m.csv"}
+: ${IPv6:="1"}
+
+if [ $IPv6 = 1 ]
+then
+	QLA6="::"
+else
+	QLA6=""
+fi
+
+rm -f recursor.pid pdns_recursor.pid
+time ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=fail --config-dir=. --query-local-address6="${QLA6}" > recursor.log 2>&1 &
 sleep 3
-../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < top-1m.csv > bulktest.results
+../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill $(cat pdns_recursor.pid)
 
 . ./bulktest.results
