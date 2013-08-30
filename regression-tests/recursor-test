@@ -36,6 +36,7 @@ fi
 
 echo "$DBT_OKPERCENTAGE% of domains resolved" > recursor-bulktest/diff
 echo "<measurement><name>% domains resolved</name><value>$DBT_OKPERCENTAGE</value></measurement>" > recursor-bulktest/stdout
+egrep 'PowerDNS.COM|maxresident|pagefaults' recursor.log >> recursor-bulktest/stdout
 
 : ${context:="recursor-bulktest"}
 
