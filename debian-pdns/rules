@@ -70,7 +70,8 @@ build stamp-build: configure
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
 		--with-dynmodules="$(backends)" \
-		--with-modules="geo" 
+		--with-modules="geo" \
+		--enable-tools
 	make
 	touch stamp-build
 
