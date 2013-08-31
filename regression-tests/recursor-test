@@ -16,7 +16,15 @@ else
 fi
 
 rm -f recursor.pid pdns_recursor.pid
-time ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=fail --config-dir=. --query-local-address6="${QLA6}" > recursor.log 2>&1 &
+/usr/bin/time --format '%Uuser %Ssystem %Eelapsed %PCPU (%Xtext+%Ddata %Mmax)k
+%Iinputs+%Ooutputs (%Fmajor+%Rminor)pagefaults %Wswaps
+<measurement><name>user CPU seconds</name><value>%U</value></measurement>
+<measurement><name>system CPU seconds</name><value>%S</value></measurement>
+<measurement><name>wallclock seconds</name><value>%e</value></measurement>
+<measurement><name>%% CPU used</name><value>%P</value></measurement>
+<measurement><name>msgs sent</name><value>%r</value></measurement>
+<measurement><name>msgs received</name><value>%s</value></measurement>
+'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=fail --config-dir=. --query-local-address6="${QLA6}" > recursor.log 2>&1 &
 sleep 3
 ../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill $(cat pdns_recursor.pid)
@@ -35,8 +43,8 @@ else
 fi
 
 echo "$DBT_OKPERCENTAGE% of domains resolved" > recursor-bulktest/diff
-echo "<measurement><name>% domains resolved</name><value>$DBT_OKPERCENTAGE</value></measurement>" > recursor-bulktest/stdout
-egrep 'PowerDNS.COM|maxresident|pagefaults' recursor.log >> recursor-bulktest/stdout
+egrep 'PowerDNS.com|^<measurement' recursor.log > recursor-bulktest/stdout
+echo "<measurement><name>% domains resolved</name><value>$DBT_OKPERCENTAGE</value></measurement>" >> recursor-bulktest/stdout
 
 : ${context:="recursor-bulktest"}
 
