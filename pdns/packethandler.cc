@@ -671,7 +671,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
 
   if (mode == 2) {
     // wildcard NO-DATA
-    before='.';
+    before.clear();
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, wildcard, before, after);
     emitNSEC(before, after, target, sd, r, mode);
   }

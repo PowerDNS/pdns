@@ -93,7 +93,8 @@ text0			IN	TXT	"k=rsa; p=one"
 text1			IN	TXT	"k=rsa\; p=one"
 text2			IN	TXT	"k=rsa\\; p=one"
 text3			IN	TXT	"k=rsa\\\; p=one"
-
+;
+host.*.sub		IN	A	192.168.6.1
 ;
 ipv6			IN	AAAA	2001:6A8:0:1:210:4BFF:FE4B:4C61
 ;
