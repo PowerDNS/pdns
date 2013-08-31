@@ -20017,7 +20017,7 @@ Cexternal.example.com:somewhere.else.net.:120
 +host-9998.example.com:192.168.1.14:120
 +host-9999.example.com:192.168.1.15:120
 :hwinfo.example.com:13:\003abc\003def:120
-3ipv6.example.com:200106a80000000102104bfffe4b4c61:120
+:ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
 &italy.example.com::italy-ns1.example.com.:120
 &italy.example.com::italy-ns2.example.com.:120
 +italy-ns1.example.com:192.168.5.1:120
@@ -20047,6 +20047,7 @@ Cstart1.example.com:start2.example.com.:120
 Cstart2.example.com:start3.example.com.:120
 Cstart3.example.com:start4.example.com.:120
 +start4.example.com:192.168.2.2:120
++host.\052.sub.example.com:192.168.6.1:120
 :text.example.com:16:\025Hi\054\040this\040is\040some\040text:120
 :text0.example.com:16:\014k\075rsa\073\040p\075one:120
 :text1.example.com:16:\014k\075rsa\073\040p\075one:120
@@ -20169,6 +20170,30 @@ C\052.test.test.com:server1.test.com.:3600
 :very-long-txt.test.com:16:\377A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\030\040won\047t\040believe\040how\040long\041:3600
 Cwithin-server.test.com:outpost.example.com.:3600
 Cwww.test.com:server1.test.com.:3600
+#2012060701 auto axfr-get
+Ztest.dyndns:ns1.test.dyndns.:ahu.example.dyndns.:2012060701:28800:7200:604800:86400:3600
+&test.dyndns::ns1.test.dyndns.:3600
+&test.dyndns::ns2.test.dyndns.:3600
+@test.dyndns::host-1.test.dyndns.:10:3600
+@test.dyndns::host-2.test.dyndns.:20:3600
+Ccname1.test.dyndns:host-1.test.dyndns.:3600
+Ccname2.test.dyndns:host-2.test.dyndns.:3600
++delete-add.test.dyndns:127.0.0.108:3600
+:delete-add.test.dyndns:16:\034Should\040be\040gone\040after\040a\040while:3600
++a.host.test.dyndns:1.1.1.1:3600
++e.host.test.dyndns:1.1.1.1:3600
++host-1.test.dyndns:127.0.0.101:3600
++host-2.test.dyndns:127.0.0.102:3600
++host-3.test.dyndns:127.0.0.103:3600
++multi.test.dyndns:127.0.0.1:3600
++multi.test.dyndns:127.0.0.2:3600
++multi.test.dyndns:127.0.0.3:3600
++ns1.test.dyndns:127.0.0.1:3600
++ns2.test.dyndns:127.0.0.2:3600
++replace.test.dyndns:127.0.0.1:3600
++ttl.test.dyndns:127.0.0.1:3600
+:txt.test.dyndns:16:\021This\040is\040some\040text:3600
++\052.wild.test.dyndns:127.0.1.255:3600
 #2005092501 auto axfr-get
 Zwtest.com:ns1.wtest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +wtest.com:9.9.9.9:3600
