@@ -589,11 +589,13 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   // cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
   
   string unhashed, hashed, before, after;
-  string closest=(mode == 3 || mode == 4) ? wildcard : target;
+  string closest;
   
   if (mode == 2 || mode == 3 || mode == 4) {
+    closest=wildcard;
     chopOff(closest);
-  }
+  } else
+    closest=target;
   
   if (mode == 1) {
     DNSResourceRecord rr;
