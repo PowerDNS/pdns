@@ -9,7 +9,6 @@ real_result
 /trustedkeys
 /test-results
 /*.pid
-/*.backup
 /passed_tests
 /failed_tests*
 /powerdns.sqlite3
