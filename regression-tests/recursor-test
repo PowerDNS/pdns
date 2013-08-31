@@ -22,8 +22,6 @@ rm -f recursor.pid pdns_recursor.pid
 <measurement><name>system CPU seconds</name><value>%S</value></measurement>
 <measurement><name>wallclock seconds</name><value>%e</value></measurement>
 <measurement><name>%% CPU used</name><value>%P</value></measurement>
-<measurement><name>msgs sent</name><value>%r</value></measurement>
-<measurement><name>msgs received</name><value>%s</value></measurement>
 '         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=fail --config-dir=. --query-local-address6="${QLA6}" > recursor.log 2>&1 &
 sleep 3
 ../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
