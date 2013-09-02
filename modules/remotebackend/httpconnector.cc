@@ -152,7 +152,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, nsize);
         curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, postfields);
         curl_free(tmpstr);
-        delete postfields;
+        delete [] postfields;
     } else if (method == "superMasterBackend") {
         std::stringstream ss2;
         addUrlComponent(parameters, "ip", ss);
