@@ -12290,6 +12290,14 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
     <para>
       The `ip' field in the supermasters table (for the various gsql backends) has been stretched to 64 characters
       to support IPv6.
+      For MySQL:
+      <screen>
+	      alter table supermasters modify ip VARCHAR(64);
+      </screen>
+      For PostgreSQL:
+      <screen>
+	      alter table supermasters alter column ip type VARCHAR(64);
+      </screen>
     </para>
     <para>
       pdnssec secure-zone now creates one KSK and one ZSK, instead of two ZSKs.
