@@ -30,3 +30,6 @@ real_result
 /nsd.*
 /*.nsd
 /*.signed
+/*.bind
+/dsset-*
+/bind.conf
