@@ -82,6 +82,7 @@ tobind ()
 options {
 	dnssec-enable yes;
 	listen-on port $port { 127.0.0.1; };
+	minimal-responses yes;
 	pid-file "pdns.pid";
 };
 __EOF__
@@ -93,6 +94,12 @@ __EOF__
 
 	for zone in $(grep zone named.conf  | cut -f2 -d\")
 	do
+
+		if [ ! -f $zone.bind ]
+		then
+			cp $zone $zone.bind
+		fi
+
 		if [ "$1" != "unsigned" ]
 		then
 			if [ ! "${zone: 0:16}" = "secure-delegated" ]
@@ -104,15 +111,10 @@ __EOF__
 				ksk="Ksecure-delegated.dnssec-parent.com.+008+54319"
 			fi
 			zsk=$(dnssec-keygen -r/dev/urandom -a RSASHA256 -b 1024 -n ZONE $zone)
-		fi
 
-		if [ ! -f $zone.bind ]
-		then
-			cp $zone $zone.bind
+			echo "\$include $ksk.key ; KSK" >> $zone.bind
+			echo "\$include $zsk.key ; ZSK" >> $zone.bind
 		fi
-
-		echo "\$include $ksk.key ; KSK" >> $zone.bind
-		echo "\$include $zsk.key ; ZSK" >> $zone.bind
 
 		case $1 in
 			nsec)
@@ -129,12 +131,13 @@ __EOF__
 				fi
 				;;
 			unsigned)
-				cp ${zonefile} ${zone}.signed
+				cp ${zone}.bind ${zone}.signed
 				;;
 			*)
 				echo 'tonsd called with wrong param'
 				exit 1
 		esac
+
 		echo "" >> bind.conf
 		echo "zone \"${zone}\" {" >> bind.conf
 		echo "	type master;" >> bind.conf
@@ -1018,7 +1021,6 @@ rm pdns*.pid || true
 
 if [ -s "./failed_tests" ]
 then
-	set +x
 	for t in `cat failed_tests`
 	do
 		echo -e "\n\n$t"
