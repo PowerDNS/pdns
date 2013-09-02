@@ -611,6 +611,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     buffer.append(forwardPacket.getString());
     if(write(sock, buffer.c_str(), buffer.length()) < 0) {
       L<<Logger::Error<<msgPrefix<<"Unable to forward update message to "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      Utility::closesocket(sock);
       continue;
     }
 
