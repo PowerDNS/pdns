@@ -27,6 +27,7 @@ rm -f recursor.pid pdns_recursor.pid
 sleep 3
 ../pdns/dnsbulktest -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill $(cat pdns_recursor.pid)
+sleep 5
 
 . ./bulktest.results
 
