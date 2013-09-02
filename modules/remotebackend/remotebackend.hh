@@ -13,7 +13,6 @@
 #include <boost/lexical_cast.hpp>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
-#include "../pipebackend/coprocess.hh"
 #include "pdns/json.hh"
 
 #ifdef REMOTEBACKEND_HTTP
