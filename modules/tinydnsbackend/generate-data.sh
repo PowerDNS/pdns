@@ -47,6 +47,7 @@ do
 	cat $zone.out >> data
 	rm $zone.out
 done
-$tinydnsdata
+
+$tinydnsdata  
 
 kill $(cat ../../regression-tests/pdns.pid)

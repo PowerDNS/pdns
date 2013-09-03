@@ -452,72 +452,51 @@ string calculateMD5HMAC(const std::string& key_, const std::string& text)
   return md5_2.get();
 }
 
-string calculateSHAHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hasher)
+string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher)
 {
-  unsigned char key[64] = {0};
-  key_.copy((char*)key,64); 
-  unsigned char keyIpad[64];
-  unsigned char keyOpad[64];
+  std::string res;
+  unsigned char hash[64];
 
-  //~ cerr<<"Key: "<<makeHexDump(key_)<<endl;
-  //~ cerr<<"txt: "<<makeHexDump(text)<<endl;
-
-  for(unsigned int n=0; n < 64; ++n) {
-    if(n < key_.length()) {
-      keyIpad[n] = (unsigned char)(key[n] ^ 0x36);
-      keyOpad[n] = (unsigned char)(key[n] ^ 0x5c);
-    }
-    else  {
-      keyIpad[n]=0x36;
-      keyOpad[n]=0x5c;
-    }
-  }
-  
   switch(hasher) {
   case TSIG_SHA1:
   {
-      SHA1Summer s1,s2;
-      s1.feed((const char*)keyIpad, 64);
-      s1.feed(text);
-      s2.feed((const char*)keyOpad, 64);
-      s2.feed(s1.get());
-      return s2.get();
+      sha1_context ctx;
+      sha1_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size());
+      sha1_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha1_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 20);
   };
   case TSIG_SHA224:
   {
-      SHA224Summer s1,s2;
-      s1.feed((const char*)keyIpad, 64);
-      s1.feed(text);
-      s2.feed((const char*)keyOpad, 64);
-      s2.feed(s1.get());
-      return s2.get();
+      sha2_context ctx;
+      sha2_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
+      sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha2_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 32);
   };
   case TSIG_SHA256:
   {
-      SHA256Summer s1,s2;
-      s1.feed((const char*)keyIpad, 64);
-      s1.feed(text);
-      s2.feed((const char*)keyOpad, 64);
-      s2.feed(s1.get());
-      return s2.get();
+      sha2_context ctx;
+      sha2_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 0);
+      sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha2_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 32);
   };
   case TSIG_SHA384:
   {
-      SHA384Summer s1,s2;
-      s1.feed((const char*)keyIpad, 64);
-      s1.feed(text);
-      s2.feed((const char*)keyOpad, 64);
-      s2.feed(s1.get());
-      return s2.get();
+      sha4_context ctx;
+      sha4_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
+      sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha4_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 64);
   };
   case TSIG_SHA512:
   {
-      SHA512Summer s1,s2;
-      s1.feed((const char*)keyIpad, 64);
-      s1.feed(text);
-      s2.feed((const char*)keyOpad, 64);
-      s2.feed(s1.get());
-      return s2.get();
+      sha4_context ctx;
+      sha4_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 0);
+      sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha4_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 64);
   };
   default:
     throw new PDNSException("Unknown hash algorithm requested for SHA");

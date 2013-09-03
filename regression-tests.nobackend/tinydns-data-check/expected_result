@@ -6,5 +6,5 @@ a2dd754820cb88fdd3d80b54a212a270  ../regression-tests/test.com
 42dd3a56c7d268e75836371878819ec4  ../regression-tests/delegated.dnssec-parent.com
 a63dc120391d9df0003f2ec4f461a6af  ../regression-tests/secure-delegated.dnssec-parent.com
 24514dc104b22206daeb973ff9303545  ../regression-tests/minimal.com
-f77817aafda5cd6a8e3d4ac998be6fff  ../modules/tinydnsbackend/data.cdb
 0b20d7a0250576451135483b863750bf  ../regression-tests/tsig.com
+3dfdde25a811ab2d769b6e0838280e61  ../modules/tinydnsbackend/data.cdb
