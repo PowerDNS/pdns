@@ -33,40 +33,38 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   if(d_s<0) {
     throw PDNSException(string("socket")+strerror(errno));
   }
-  
-  memset(&d_local,0,sizeof(d_local));
 
   string localname=localdir;
 
   localname+="/lsockXXXXXX";
-  d_local.sun_family=AF_UNIX;
-  strcpy(d_local.sun_path,localname.c_str());
+  if (makeUNsockaddr(localname, &d_local))
+    throw PDNSException("Unable to bind to local temporary file, path '"+localname+"' is not a valid UNIX socket path.");
 
   if(mkstemp(d_local.sun_path)<0)
-    throw PDNSException("Unable to generate local temporary file: "+string(strerror(errno)));
+    throw PDNSException("Unable to generate local temporary file: "+stringerror());
   
   unlink(d_local.sun_path);
-  
-  if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0) {
-    unlink(d_local.sun_path);
-    throw PDNSException("Unable to bind to local temporary file: "+string(strerror(errno)));
-  }
-  
-  if(chmod(d_local.sun_path,0666)<0) { // make sure that pdns can reply!
-    unlink(d_local.sun_path);
-    perror("fchmod");
-    exit(1);
-  }
 
-  memset(&d_remote,0,sizeof(d_remote));
-  
-  d_remote.sun_family=AF_UNIX;
-  strcpy(d_remote.sun_path,fname.c_str());
-  if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0) {
+  try {
+    if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0)
+      throw PDNSException("Unable to bind to local temporary file: "+stringerror());
+
+    // make sure that pdns can reply!
+    if(chmod(d_local.sun_path,0666)<0)
+      throw PDNSException("Unable to chmod local temporary file: "+stringerror());
+
+    if(makeUNsockaddr(fname, &d_remote))
+      throw PDNSException("Unable to connect to remote '"+fname+"': Path is not a valid UNIX socket path.");
+
+    if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0)
+      throw PDNSException("Unable to connect to remote '"+fname+"': "+stringerror());
+
+  } catch(...) {
+    close(d_s);
+    d_s=-1;
     unlink(d_local.sun_path);
-    throw PDNSException("Unable to connect to remote '"+fname+"': "+string(strerror(errno)));
+    throw;
   }
-  
 }
 
 DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
@@ -81,6 +79,7 @@ DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
   
   if(connect(d_s, (sockaddr*)&remote, remote.getSocklen())<0) {
     close(d_s);
+    d_s=-1;
     throw PDNSException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
   }
 
@@ -90,9 +89,10 @@ DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
 
 DynMessenger::~DynMessenger()
 {
+  if (d_s > 0)
+    close(d_s);
   if(*d_local.sun_path && unlink(d_local.sun_path)<0)
     cerr<<"Warning: unable to unlink local unix domain endpoint: "<<strerror(errno)<<endl;
-  close(d_s);
 }   
 
 int DynMessenger::send(const string &msg) const

@@ -65,12 +65,10 @@ private:
   void listenOnTCP(const ComboAddress&);
   void createSocketAndBind(int family, struct sockaddr*local, size_t len);
 
-#ifndef WIN32
-  struct sockaddr_un d_remote;
-#else
+#ifdef WIN32
   HANDLE m_pipeHandle;
 #endif // WIN32
-  
+
   Utility::socklen_t d_addrlen;
   NetmaskGroup d_tcprange;
   int d_s;

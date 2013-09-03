@@ -33,24 +33,21 @@ int RecursorControlChannel::listen(const string& fname)
   Utility::setCloseOnExec(d_fd);
 
   if(d_fd < 0) 
-    throw PDNSException("Creating UNIX domain socket: "+string(strerror(errno)));
+    throw PDNSException("Creating UNIX domain socket: "+stringerror());
   
   int tmp=1;
   if(setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
-    throw PDNSException(string("Setsockopt failed: ")+strerror(errno));
+    throw PDNSException("Setsockopt failed: "+stringerror());
   
   int err=unlink(fname.c_str());
   if(err < 0 && errno!=ENOENT)
-    throw PDNSException("Can't remove (previous) controlsocket '"+fname+"': "+string(strerror(errno)) + " (try --socket-dir)");
+    throw PDNSException("Can't remove (previous) controlsocket '"+fname+"': "+stringerror() + " (try --socket-dir)");
 
-  memset(&d_local,0,sizeof(d_local));
-  d_local.sun_family=AF_UNIX;
-  if(fname.length()+1 > sizeof(d_local.sun_path))
-    throw PDNSException("Unable to bind to controlsocket, path '"+fname+"' too long.");
-  strcpy(d_local.sun_path, fname.c_str());
+  if(makeUNsockaddr(fname, &d_local))
+    throw PDNSException("Unable to bind to controlsocket, path '"+fname+"' is not a valid UNIX socket path.");
     
   if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0) 
-    throw PDNSException("Unable to bind to controlsocket '"+fname+"': "+string(strerror(errno)));
+    throw PDNSException("Unable to bind to controlsocket '"+fname+"': "+stringerror());
 
   return d_fd;
 }
@@ -64,49 +61,41 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
 
   if(d_fd < 0) 
     throw PDNSException("Creating UNIX domain socket: "+string(strerror(errno)));
-  
-  int tmp=1;
-  if(setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
-    close(d_fd);
-    d_fd=-1;
-    throw PDNSException(string("Setsockopt failed: ")+strerror(errno));
-  }
-  
-  string localname=path+"/lsockXXXXXX";
-  strcpy(d_local.sun_path, localname.c_str());
 
-  if(mkstemp(d_local.sun_path) < 0) {
+  try {
+    int tmp=1;
+    if(setsockopt(d_fd, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
+      throw PDNSException("Setsockopt failed: "+stringerror());
+  
+    string localname=path+"/lsockXXXXXX";
+    if (makeUNsockaddr(localname, &d_local))
+      throw PDNSException("Unable to bind to local temporary file, path '"+localname+"' is not a valid UNIX socket path.");
+
+    if(mkstemp(d_local.sun_path) < 0)
+      throw PDNSException("Unable to generate local temporary file in directory '"+path+"': "+stringerror());
+
+    int err=unlink(d_local.sun_path);
+    if(err < 0 && errno!=ENOENT)
+      throw PDNSException("Unable to remove local controlsocket: "+stringerror());
+
+    if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0)
+      throw PDNSException("Unable to bind to local temporary file: "+stringerror());
+
+    if(chmod(d_local.sun_path,0666)<0) // make sure that pdns can reply!
+      throw PDNSException("Unable to chmod local temporary socket: "+stringerror());
+
+    string remotename=path+"/"+fname;
+    if (makeUNsockaddr(remotename, &remote))
+      throw PDNSException("Unable to connect to controlsocket, path '"+remotename+"' is not a valid UNIX socket path.");
+
+    if(::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0)
+      throw PDNSException("Unable to connect to remote '"+string(remote.sun_path)+"': "+stringerror());
+
+  } catch (...) {
     close(d_fd);
     d_fd=-1;
     d_local.sun_path[0]=0;
-    throw PDNSException("Unable to generate local temporary file in directory '"+path+"': "+string(strerror(errno)));
-  }
-
-  d_local.sun_family=AF_UNIX;
-
-  int err=unlink(d_local.sun_path);
-  if(err < 0 && errno!=ENOENT)
-    throw PDNSException("Unable to remove local controlsocket: "+string(strerror(errno)));
-
-  if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0) {
-    unlink(d_local.sun_path);
-    close(d_fd);
-    d_fd=-1;
-    throw PDNSException("Unable to bind to local temporary file: "+string(strerror(errno)));
-  }
-
-  if(chmod(d_local.sun_path,0666)<0) { // make sure that pdns can reply!
-    unlink(d_local.sun_path);
-    throw PDNSException("Unable to chmnod local temporary socket: "+string(strerror(errno)));
-  }
-
-  memset(&remote,0,sizeof(remote));
-  
-  remote.sun_family=AF_UNIX;
-  strcpy(remote.sun_path,(path+"/"+fname).c_str());
-  if(::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0) {
-    unlink(d_local.sun_path);
-    throw PDNSException("Unable to connect to remote '"+string(remote.sun_path)+"': "+string(strerror(errno)));
+    throw;
   }
 }
 
