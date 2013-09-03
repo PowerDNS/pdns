@@ -175,7 +175,7 @@ bindwait ()
 	loopcount=0
 
 	while [ $loopcount -lt 20 ]; do
-		sleep 10
+		sleep 5
 		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]; then
 			return
@@ -300,12 +300,20 @@ rm -f pdns*.pid
 rm -f *_tests
 
 presigned=no
+both=no
 
 if [ "${context: -10}" = "-presigned" ]
 then
 	presigned=yes
 	port=$((port-100))
 	context=${context%-presigned}
+fi
+
+if [ "${context: -5}" = "-both" ]
+then
+	both=yes
+	port=$((port-100))
+	context=${context%-both}
 fi
 
 optout=0
@@ -861,16 +869,9 @@ esac
 
 check_process
 
-export port
-export context
-export extracontexts
-export skipreasons
-export testsdir
-export optout
-
-if [ $presigned = yes ]
-then
-        skipreasons="$skipreasons presigned nodyndns"
+startslave ()
+{
+	skipreasons="$skipreasons presigned nodyndns"
 	if [ ${context:0:6} = gmysql ] || [ ${context:0:7} = ext-nsd ] || [ ${context:0:8} = ext-bind ]
 	then
 		context=${context}-presigned
@@ -920,7 +921,7 @@ then
 		loopcount=0
 		while [ $loopcount -lt 20 ]
 		do
-			sleep 10
+			sleep 5
 			todo=$(mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQl2HOST" \
 				   "$GMYSQL2DB" -ss -e 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
 			if [ $todo = 0 ]
@@ -965,7 +966,7 @@ then
 		loopcount=0
 		while [ $loopcount -lt 20 ]
 		do
-			sleep 10
+			sleep 5
 			todo=$(sqlite3 pdns.sqlite31 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
 			if [ $todo -eq 0 ]
 			then
@@ -1013,27 +1014,59 @@ then
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave
 	fi
-fi
+}
+
+dotests () {
+	nameserver=127.0.0.1 ./runtests $spectest
+	./toxml
+	./totar
+
+	if [ -s "./failed_tests" ]
+	then
+		for t in `cat failed_tests`
+		do
+			echo -e "\n\n$t"
+			cat $t/diff
+		done
+		eval "$1=1"
+	fi
+}
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
-nameserver=127.0.0.1 ./runtests $spectest
-./toxml
-./totar
+
+RETVAL=0
+
+export port
+export context
+export extracontexts
+export skipreasons
+export testsdir
+export optout
+
+
+if [ $presigned = no ] || [ $both = yes ]
+then
+	dotests $RETVAL
+fi
+
+if [ $presigned = yes ] || [ $both = yes ]
+then
+	startslave
+
+	export port
+	export context
+	export skipreasons
+
+	dotests $RETVAL
+fi
+
 if [ "$wait" = "wait" ]
 then
 	echo tests done! push enter to terminate instance
 	read l
 fi
+
 kill $(cat pdns*.pid)
 rm pdns*.pid || true
-
-if [ -s "./failed_tests" ]
-then
-	for t in `cat failed_tests`
-	do
-		echo -e "\n\n$t"
-		cat $t/diff
-	done
-	exit 1
-fi
+exit $RETVAL
