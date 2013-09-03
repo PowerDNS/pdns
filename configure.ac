@@ -269,6 +269,11 @@ then
         AC_DEFINE(HAVE_BOTAN18,1,[If we have botan 1.8])
 fi
 
+if test "x$enable_cryptopp" = "xyes"
+then
+        AC_DEFINE(HAVE_CRYPTOPP,1,[If we have cryptopp])
+fi
+
 AC_ARG_ENABLE(remotebackend_http, AC_HELP_STRING([--enable-remotebackend-http],[enable HTTP connector for remotebackend]),[enable_remotebackend_http=yes], [enable_remotebackend_http=no])
 AC_MSG_CHECKING(whether to enable http connector in remotebackend)
 AC_MSG_RESULT($enable_remotebackend_http)
@@ -327,6 +332,7 @@ AC_ARG_WITH(socketdir, AC_HELP_STRING([--with-socketdir],[where the controlsocke
 AC_SUBST(moduledirs)
 AC_SUBST(moduleobjects)
 AC_SUBST(modulelibs)
+AC_DEFINE_UNQUOTED(PDNS_MODULES,"$modules", [Built-in modules])
 
 AC_MSG_CHECKING(whether we will be building the server)
 AC_ARG_ENABLE(pdns-server,
