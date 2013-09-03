@@ -171,10 +171,8 @@ UnixRemote::UnixRemote(const string& path, int timeout)
     throw PDNSException("Unable to create UNIX domain socket: "+string(strerror(errno)));
 
   struct sockaddr_un remote;
-  memset(&remote, 0, sizeof(remote));
-  remote.sun_family = AF_UNIX;
-  memset(remote.sun_path, 0, sizeof(remote.sun_path));
-  path.copy(remote.sun_path, sizeof(remote.sun_path), 0);
+  if (makeUNsockaddr(path, &remote))
+    throw PDNSException("Unable to create UNIX domain socket: Path '"+path+"' is not a valid UNIX socket path.");
 
   // fcntl(fd, F_SETFL, O_NONBLOCK, &sock);
 

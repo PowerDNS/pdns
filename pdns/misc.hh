@@ -476,7 +476,8 @@ string makeRelative(const std::string& fqdn, const std::string& zone);
 string labelReverse(const std::string& qname);
 std::string dotConcat(const std::string& a, const std::string &b);
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret);
-int makeIPv4sockaddr(const string &str, struct sockaddr_in* ret);
+int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret);
+int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret);
 bool stringfgets(FILE* fp, std::string& line);
 
 template<typename Index>
