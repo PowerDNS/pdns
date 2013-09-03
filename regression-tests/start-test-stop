@@ -25,22 +25,30 @@ server:
 	username: ""
 __EOF__
 
-	nsdfix
 	rm -f K*
+	rm -f *.nsd
+
+	nsdfix
+
 	for zone in $(grep zone named.conf  | cut -f2 -d\")
 	do
-		if [ ! "${zone: 0:16}" = "secure-delegated" ]
-		then
-			ksk=$(ldns-keygen -r /dev/urandom -a RSASHA256 -k $zone)
-		else
-			ksk="secure-delegated.dnssec-parent.com"
-		fi
-		zsk=$(ldns-keygen -r /dev/urandom -a RSASHA256 $zone)
+
 		if [ -f $zone.nsd ]
 		then
 			zonefile=${zone}.nsd
 		else
 			zonefile=${zone}
+		fi
+
+		if [ "$1" != "unsigned" ]
+		then
+			if [ ! "${zone: 0:16}" = "secure-delegated" ]
+			then
+				ksk=$(ldns-keygen -r /dev/urandom -a RSASHA256 -k $zone)
+			else
+				ksk="secure-delegated.dnssec-parent.com"
+			fi
+			zsk=$(ldns-keygen -r /dev/urandom -a RSASHA256 $zone)
 		fi
 
 		case $1 in
@@ -64,6 +72,7 @@ __EOF__
 				echo 'tonsd called with wrong param'
 				exit 1
 		esac
+
 		echo "" >> nsd.conf
 		echo "zone:" >> nsd.conf
 		echo "  name: \"${zone}\"" >> nsd.conf
@@ -860,7 +869,7 @@ export optout
 if [ $presigned = yes ]
 then
         skipreasons="$skipreasons presigned nodyndns"
-	if [ ${context:0:6} = gmysql ] | [ ${context:0:7} = ext-nsd ] | [ ${context:0:8} = ext-bind ]
+	if [ ${context:0:6} = gmysql ] || [ ${context:0:7} = ext-nsd ] || [ ${context:0:8} = ext-bind ]
 	then
 		context=${context}-presigned
 		[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
