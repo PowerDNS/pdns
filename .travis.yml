@@ -9,7 +9,7 @@ before_script:
  - sudo restart mysql
 script:
  - ./bootstrap
- - ./configure --with-modules='pipe remote gmysql tinydns random mydns' --with-sqlite3 --enable-unit-tests --enable-remotebackend-http
+ - ./configure --with-modules='gmysql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http
  - make dist
  - make -j 4
  - make check
@@ -26,7 +26,7 @@ script:
  - ./start-test-stop 5300 bind-dnssec-nsec3
  - ./start-test-stop 5300 bind-dnssec-nsec3-presigned
  - ./start-test-stop 5300 bind-dnssec-nsec3-optout
- - ./start-test-stop 5300 bind-dnssec-nsec3-optout-presigned 
+ - ./start-test-stop 5300 bind-dnssec-nsec3-optout-presigned
  - ./start-test-stop 5300 gmysql-nodnssec
  - ./start-test-stop 5300 gmysql-nodnssec-presigned
  - ./start-test-stop 5300 gmysql
@@ -34,19 +34,21 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3
  - ./start-test-stop 5300 gmysql-nsec3-presigned
  - ./start-test-stop 5300 gmysql-nsec3-optout
- - ./start-test-stop 5300 gmysql-nsec3-optout-presigned 
+ - ./start-test-stop 5300 gmysql-nsec3-optout-presigned
  - ./start-test-stop 5300 gmysql-nsec3-narrow
- - ./start-test-stop 5300 tinydns 
+ - ./start-test-stop 5300 gsqlite3-nodnssec
+ - ./start-test-stop 5300 gsqlite3-nodnssec-presigned
+ - ./start-test-stop 5300 gsqlite3
+ - ./start-test-stop 5300 gsqlite3-presigned
+ - ./start-test-stop 5300 gsqlite3-nsec3
+ - ./start-test-stop 5300 gsqlite3-nsec3-presigned
+ - ./start-test-stop 5300 gsqlite3-nsec3-optout
+ - ./start-test-stop 5300 gsqlite3-nsec3-optout-presigned
+ - ./start-test-stop 5300 gsqlite3-nsec3-narrow
+ - ./start-test-stop 5300 mydns
+ - ./start-test-stop 5300 tinydns
  - ./start-test-stop 5300 remotebackend-pipe
  - ./start-test-stop 5300 remotebackend-pipe-dnssec
- - ./start-test-stop 5300 gmysql nowait 3600
- - ./start-test-stop 5300 gmysql-presigned nowait 3600
- - ./start-test-stop 5300 gmysql-nsec3 nowait 3600
- - ./start-test-stop 5300 gmysql-nsec3-presigned nowait 3600
- - ./start-test-stop 5300 gmysql-nsec3-narrow nowait 3600
- - ./start-test-stop 5300 gmysql-nsec3-optout nowait 3600
- - ./start-test-stop 5300 gmysql-nsec3-optout-presigned nowait 3600
- - ./start-test-stop 5300 mydns
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
