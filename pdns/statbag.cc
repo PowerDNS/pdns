@@ -189,26 +189,28 @@ void StatRing::resize(unsigned int newsize)
     return;
   Lock l(d_lock);
 
+  // this is the hard part, shrink
+  if(newsize<d_size) {
+    unsigned int startpos=0;
+    if (d_pos>newsize)
+      startpos=d_pos-newsize;
+
+    vector<string>newring;
+    for(unsigned int i=startpos;i<d_pos;++i) {
+      newring.push_back(d_items[i%d_size]);
+    }
+
+    d_items=newring;
+    d_size=newring.size();
+    d_pos=min(d_pos,newsize);
+  }
+
   if(newsize>d_size) {
     d_size=newsize;
     d_items.resize(d_size);
-    return;
   }
-
-  // this is the hard part, shrink
-  int startpos=d_pos-newsize;
-  int rpos;
-  vector<string>newring;
-  for(unsigned int i=startpos;i<d_pos;++i) {
-    rpos= i;
-
-    newring.push_back(d_items[rpos%d_size]);
-  }
-  d_items=newring;
-  d_size=newsize;
-  d_pos=d_size-1;
-
 }
+
 StatRing::~StatRing()
 {
   // do not clean up d_lock, it is shared
