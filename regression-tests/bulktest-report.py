@@ -25,7 +25,7 @@ selected.sort()
 
 names.discard('tag')
 
-fmt=''.join('%%%ds' % (i+4) for i in [3]+map(len, sorted(names)))
+fmt=''.join('%%%ds' % max(15, i+4) for i in [3]+map(len, sorted(names)))
 print fmt % tuple(['tag']+sorted(names))
 for tag, stats in selected:
-	print fmt % tuple(['tag'] + [stats.get(s) for s in sorted(names)])
+	print fmt % tuple([tag] + [stats.get(s) for s in sorted(names)])
