@@ -10,9 +10,8 @@
 # chkconfig: - 80 75
 # description: pdns_recursor is a versatile high performance recursing nameserver
 
-prefix=/usr/
-BINARYPATH=/usr/bin/
-SBINARYPATH=/usr/sbin/
+BINARYPATH=/usr/bin
+SBINARYPATH=/usr/sbin
 SOCKETPATH=/var/run
 
 pdns_server=$SBINARYPATH/pdns_recursor
