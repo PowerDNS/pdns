@@ -327,15 +327,16 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
   else if(command=="get-zone") {
     UeberBackend B;
     SOAData sd;
-    sd.db= (DNSBackend*)-1;
+    sd.db = (DNSBackend*)-1;
     if(!B.getSOA(varmap["zone"], sd) || !sd.db) {
-      cerr<<"Could not find domain '"<<varmap["zone"]<<"'\n";
-      return "";
+      map<string, string> err;
+      err["error"] = "Could not find domain '"+varmap["zone"]+"'";
+      return returnJSONObject(err);
     }
     sd.db->list(varmap["zone"], sd.domain_id);
     DNSResourceRecord rr;
 
-    string ret ="[";
+    string ret = "[";
     map<string, string> object;
     bool first=1;
     while(sd.db->get(rr)) {
