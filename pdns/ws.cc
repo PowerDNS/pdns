@@ -324,36 +324,6 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
     //cerr<<"Flushed cache for '"<<varmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
     return returnJSONObject(object);
   }
-  else if(command=="get-zone") {
-    UeberBackend B;
-    SOAData sd;
-    sd.db = (DNSBackend*)-1;
-    if(!B.getSOA(varmap["zone"], sd) || !sd.db) {
-      map<string, string> err;
-      err["error"] = "Could not find domain '"+varmap["zone"]+"'";
-      return returnJSONObject(err);
-    }
-    sd.db->list(varmap["zone"], sd.domain_id);
-    DNSResourceRecord rr;
-
-    string ret = "[";
-    map<string, string> object;
-    bool first=1;
-    while(sd.db->get(rr)) {
-      if(!first) ret += ", ";
-      first=false;
-      object.clear();
-      object["name"] = rr.qname;
-      object["type"] = rr.qtype.getName();
-      object["ttl"] = lexical_cast<string>(rr.ttl);
-      object["priority"] = lexical_cast<string>(rr.priority);
-      object["content"] = rr.content;
-      ret+=returnJSONObject(object);
-    }
-
-    ret += "]";
-    return ret;
-  }
   else if(command == "pdns-control") {
     if(method!="POST") {
       map<string, string> m;

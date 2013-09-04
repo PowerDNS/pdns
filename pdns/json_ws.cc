@@ -160,27 +160,6 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
     }
     content += makeStringFromDocument(doc);
   }
-  else if(command == "get-zone") {
-    SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
-    
-    content += "[";
-    bool first=1;
-    
-    if(ret != t_sstorage->domainmap->end()) {
-      BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& val, ret->second.d_records) {
-	if(!first) content+= ", ";
-	first=false;
-	stats.clear();
-	stats["name"] = val.qname;
-	stats["type"] = val.qtype.getName();
-	stats["ttl"] = lexical_cast<string>(val.ttl);
-	stats["priority"] = lexical_cast<string>(val.priority);
-	stats["content"] = val.content;
-	content += returnJSONObject(stats);
-      }
-    }
-    content += "]";
-  }
   else if(command == "zone") {
     SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
     if (ret != t_sstorage->domainmap->end()) {
