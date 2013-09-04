@@ -22013,7 +22013,7 @@ static RandomLoader randomloader;
 		<function>get()</function> method.
 		</para>
 		<para>
-		  Should throw an AhuException if an error occurred accessing the database. Returning otherwise indicates that the query 
+		  Should throw an PDNSException if an error occurred accessing the database. Returning otherwise indicates that the query 
 		  was started successfully. If it is known that no data is available, no exception should be thrown! An exception indicates
 		  that the backend considers itself broken - not that no answers are available for a question.
 		</para>
@@ -22032,7 +22032,7 @@ static RandomLoader randomloader;
 	      </para>
 	      <para>
 		Should return false if the backend does not consider itself authoritative for this zone.
-		Should throw an AhuException if an error occurred accessing the database. Returning true indicates that data is or should be available.
+		Should throw an PDNSException if an error occurred accessing the database. Returning true indicates that data is or should be available.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -22052,7 +22052,7 @@ static RandomLoader randomloader;
 		  should contain 'CaSe.yourdomain.com'!
 		</para>
 	      <para>
-		Should throw an AhuException in case a database error occurred.
+		Should throw an PDNSException in case a database error occurred.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -22063,7 +22063,7 @@ static RandomLoader randomloader;
 	      <para>
 		If the backend considers itself authoritative over domain <function>name</function>, this method should fill out
 		the passed <command>SOAData</command> structure and return a positive number. If the backend is functioning correctly, but
-		does not consider itself authoritative, it should return 0. In case of errors, an AhuException should be thrown.
+		does not consider itself authoritative, it should return 0. In case of errors, an PDNSException should be thrown.
 	      </para>
 	    </listitem>
 	    </varlistentry>
