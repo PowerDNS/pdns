@@ -135,23 +135,30 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
 
   map<string, string> stats; 
   if(command == "domains") {
-    content += "[";
-    bool first=1;
+    Document doc;
+    doc.SetArray();
     BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
-      if(!first) content+= ", ";
-      first=false;
-      stats.clear();
-      stats["name"] = val.first;
-      stats["type"] = val.second.d_servers.empty() ? "Native" : "Forwarded";
-      stats["servers"];
-      BOOST_FOREACH(const ComboAddress& server, val.second.d_servers) {
-        stats["servers"]+= server.toStringWithPort() + " ";
+      Value jzone;
+      jzone.SetObject();
+
+      const SyncRes::AuthDomain& zone = val.second;
+      Value zonename(val.first.c_str(), doc.GetAllocator());
+      jzone.AddMember("name", zonename, doc.GetAllocator());
+      jzone.AddMember("type", "Zone", doc.GetAllocator());
+      jzone.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
+      Value servers;
+      servers.SetArray();
+      BOOST_FOREACH(const ComboAddress& server, zone.d_servers) {
+        Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
+        servers.PushBack(value, doc.GetAllocator());
       }
-      stats["rdbit"] = lexical_cast<string>(val.second.d_servers.empty() ? 0 : val.second.d_rdForward);
-      // fill out forwarders too one day, and rdrequired
-      content += returnJSONObject(stats);
+      jzone.AddMember("servers", servers, doc.GetAllocator());
+      bool rdbit = zone.d_servers.empty() ? false : zone.d_rdForward;
+      jzone.AddMember("rdbit", rdbit, doc.GetAllocator());
+
+      doc.PushBack(jzone, doc.GetAllocator());
     }
-    content += "]";
+    content += makeStringFromDocument(doc);
   }
   else if(command == "get-zone") {
     SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
