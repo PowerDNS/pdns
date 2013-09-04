@@ -4,7 +4,7 @@ AC_INIT([pdns], [git])
 dnl AC_SUBST([DIST_HOST], [TO_BE_PATCHED])
 dnl End patch area.
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
-AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability])
+AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability subdir-objects])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CANONICAL_HOST
 LT_INIT
