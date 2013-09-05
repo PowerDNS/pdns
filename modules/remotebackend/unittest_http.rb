@@ -65,7 +65,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
              "id" => url.shift.to_i,
              "name" => url.shift
         } 
-     when "adddomainkey", "gettsigkey", "getdomaininfo"
+     when "adddomainkey", "gettsigkey", "getdomaininfo", "settsigkey", "deletetsigkey"
         {
              "name" => url.shift
         }

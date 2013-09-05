@@ -134,7 +134,10 @@ public:
   bool deactivateDomainKey(const string& name, unsigned int id);
 
   bool getTSIGKey(const string& name, string* algorithm, string* content);
-  
+  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
+  bool deleteTSIGKey(const string& name);
+  bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+
   void alsoNotifies(const string &domain, set<string> *ips); 
   void rediscover(string* status=0);
   void reload();

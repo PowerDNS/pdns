@@ -123,12 +123,36 @@ BOOST_AUTO_TEST_CASE(test_method_getBeforeAndAfterNamesAbsolute) {
    BOOST_CHECK_EQUAL(after, "stop");
 }
 
+BOOST_AUTO_TEST_CASE(test_method_setTSIGKey) {
+   std::string algorithm, content;
+   BOOST_TEST_MESSAGE("Testing setTSIGKey method");
+   BOOST_CHECK_MESSAGE(be->setTSIGKey("unit.test","hmac-md5","kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="), "did not return true");
+}
+
 BOOST_AUTO_TEST_CASE(test_method_getTSIGKey) {
    std::string algorithm, content;
    BOOST_TEST_MESSAGE("Testing getTSIGKey method");
    be->getTSIGKey("unit.test",&algorithm,&content);
-   BOOST_CHECK_EQUAL(algorithm, "NULL");
-   BOOST_CHECK_EQUAL(content, "NULL");
+   BOOST_CHECK_EQUAL(algorithm, "hmac-md5");
+   BOOST_CHECK_EQUAL(content, "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=");
+}
+
+BOOST_AUTO_TEST_CASE(test_method_deleteTSIGKey) {
+   std::string algorithm, content;
+   BOOST_TEST_MESSAGE("Testing deleteTSIGKey method");
+   BOOST_CHECK_MESSAGE(be->deleteTSIGKey("unit.test"), "did not return true");
+}
+
+BOOST_AUTO_TEST_CASE(test_method_getTSIGKeys) {
+   std::vector<struct TSIGKey> keys;
+   BOOST_TEST_MESSAGE("Testing getTSIGKeys method");
+   be->getTSIGKeys(keys);
+   BOOST_CHECK(keys.size() > 0);
+   if (keys.size() > 0) {
+     BOOST_CHECK_EQUAL(keys[0].name, "test");
+     BOOST_CHECK_EQUAL(keys[0].algorithm, "NULL");
+     BOOST_CHECK_EQUAL(keys[0].key, "NULL");
+   }
 }
 
 BOOST_AUTO_TEST_CASE(test_method_setNotified) {

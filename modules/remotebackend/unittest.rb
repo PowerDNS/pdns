@@ -23,6 +23,8 @@ $meta = {}
 
 $keys = {}
 
+$tsigkeys = { "test" => {:name => "test", :algorithm => "NULL", :content => "NULL"} }
+
 class Handler
    def initialize
    end
@@ -134,8 +136,8 @@ class Handler
    end
 
    def do_gettsigkey(args) 
-     if args["name"] == "unit.test"
-       return [{:algorithm => "NULL", :content => "NULL"}]
+     if $tsigkeys.has_key? args["name"]
+       return [{:algorithm => $tsigkeys[args["name"]][:algorithm], :content => $tsigkeys[args["name"]][:content] }]
      end
      [false] 
    end
@@ -202,6 +204,20 @@ class Handler
 
    def do_feedents3(args)
       [true]
+   end
+
+   def do_settsigkey(args) 
+      $tsigkeys[args["name"]] = { :name => args["name"], :algorithm => args["algorithm"], :content => args["content"] }
+      [true]
+   end
+
+   def do_deletetsigkey(args)
+      $tsigkeys.delete args["name"] if $tsigkeys.has_key? args["name"]
+      [true]
+   end
+
+   def do_gettsigkeys(*args)
+      return [$tsigkeys.values]
    end
 
    def do_starttransaction(args) 
