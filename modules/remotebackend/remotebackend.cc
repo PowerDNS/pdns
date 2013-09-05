@@ -479,6 +479,70 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
    return true;
 }
 
+bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algorithm, const std::string& content) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   // no point doing dnssec if it's not supported
+   if (d_dnssec == false) return false;
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "setTSIGKey", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "algorithm", algorithm.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "content", content.c_str(), query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+
+   return true;
+}
+
+bool RemoteBackend::deleteTSIGKey(const std::string& name) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   // no point doing dnssec if it's not supported
+   if (d_dnssec == false) return false;
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "deleteTSIGKey", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+
+   return true;
+}
+
+bool RemoteBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   // no point doing dnssec if it's not supported
+   if (d_dnssec == false) return false;
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "getTSIGKeys", query.GetAllocator());
+   parameters.SetObject();
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (connector->send(query) == false || connector->recv(answer) == false)
+     return false;
+
+   // expect array
+   if (answer["result"].IsArray()) {
+      for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
+         struct TSIGKey key;
+         key.name = (*iter)["name"].GetString();
+         key.algorithm = (*iter)["algorithm"].GetString();
+         key.key = (*iter)["content"].GetString();
+         keys.push_back(key);
+      }
+   }
+
+   return true;
+}
+
 bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;

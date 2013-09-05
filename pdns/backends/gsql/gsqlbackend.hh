@@ -65,6 +65,10 @@ public:
   bool deactivateDomainKey(const string& name, unsigned int id);
   
   bool getTSIGKey(const string& name, string* algorithm, string* content);
+  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
+  bool deleteTSIGKey(const string& name);
+  bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+
 private:
   string d_qname;
   QType d_qtype;
@@ -123,6 +127,9 @@ private:
   string d_DeactivateDomainKeyQuery;
   
   string d_getTSIGKeyQuery;
+  string d_setTSIGKeyQuery;
+  string d_deleteTSIGKeyQuery;
+  string d_getTSIGKeysQuery;
 
   string d_getAllDomainsQuery;
 

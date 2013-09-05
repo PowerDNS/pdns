@@ -177,6 +177,33 @@ bool UeberBackend::getTSIGKey(const string& name, string* algorithm, string* con
 }
 
 
+bool UeberBackend::setTSIGKey(const string& name, const string& algorithm, const string& content)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->setTSIGKey(name, algorithm, content))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::deleteTSIGKey(const string& name)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->deleteTSIGKey(name))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    db->getTSIGKeys(keys);
+  }
+  return true;
+}
+
+
 void UeberBackend::reload()
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )

@@ -12711,6 +12711,15 @@ $ pdnssec rectify-zone powerdnssec.org
 	      </para>
 	    </listitem>
 	</varlistentry>
+        <varlistentry>
+            <term>generate-zone-key [ksk|zsk] [algorithm] [bits]</term>
+            <listitem>
+              <para>
+                 Generate and display a zone key. Can be used when you need to generate a key for some script backend.
+                 Does not store the key. 
+              </para>
+            </listitem>
+        </varlistentry>
 	<varlistentry>
 	    <term>rectify-zone ZONE [ZONE ..]</term>
 	    <listitem>
@@ -12789,6 +12798,54 @@ $ pdnssec rectify-zone powerdnssec.org
 	      </para>
 	    </listitem>
 	</varlistentry>
+        <varlistentry>
+            <term>import-tsig-key name algorithm key</term>
+            <listitem>
+              <para>
+                 Imports a named TSIG key. Use enable/disable-tsig-key to map it to a zone.
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>create-tsig-key name algorithm</term>
+            <listitem>
+              <para>
+                 Creates and stores a named tsig key.
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>delete-tsig-key name</term>
+            <listitem>
+              <para>
+                 Deletes a named TSIG key. WARNING! Does not unmap it from zones. 
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>list-tsig-keys</term>
+            <listitem>
+              <para>
+                 Shows all TSIG keys from all backends. 
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>enable-tsig-key zone name [master|slave]</term>
+            <listitem>
+              <para>
+                 Enables TSIG key for a zone. Use master on master server, slave on slave server.
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>disable-tsig-key zone name [master|slave]</term>
+            <listitem>
+              <para>
+                 Disabled TSIG key for a zone. Use master on master server, slave on slave server.
+              </para>
+            </listitem>
+        </varlistentry>
       </variablelist>
     </para>
   </section>

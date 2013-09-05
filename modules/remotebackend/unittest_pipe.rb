@@ -18,7 +18,7 @@ begin
     begin
       input = JSON.parse(line)
       method = "do_#{input["method"].downcase}"
-      args = input["parameters"]
+      args = input["parameters"] || []
 
       if h.respond_to?(method.to_sym) == false
          res = false

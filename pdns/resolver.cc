@@ -124,6 +124,8 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
     TSIGRecordContent trc;
     if (tsigalgorithm == "hmac-md5")  
       trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+    else
+      trc.d_algoName = tsigalgorithm;
     trc.d_time = time(0);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(d_randomid);
@@ -332,7 +334,10 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     pw.getHeader()->id = dns_random(0xffff);
   
     if(!tsigkeyname.empty()) {
-      d_trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+      if (tsigalgorithm == "hmac-md5")
+        d_trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+      else
+        d_trc.d_algoName = tsigalgorithm;
       d_trc.d_time = time(0);
       d_trc.d_fudge = 300;
       d_trc.d_origID=ntohs(pw.getHeader()->id);

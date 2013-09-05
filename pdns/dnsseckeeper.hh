@@ -86,7 +86,7 @@ public:
   bool isPresigned(const std::string& zname);
   bool setPresigned(const std::string& zname);
   bool unsetPresigned(const std::string& zname);
-  
+
   bool TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm);
   bool getTSIGForAccess(const string& zone, const string& master, string* keyname);
   

@@ -14,6 +14,7 @@
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
 #include "md5.hh"
+#include "sha.hh"
 #include "namespaces.hh"
 using namespace boost::assign;
 
@@ -422,7 +423,8 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
 
 string calculateMD5HMAC(const std::string& key_, const std::string& text)
 {
-  const unsigned char* key=(const unsigned char*)key_.c_str();
+  unsigned char key[64] = {0};
+  key_.copy((char*)key,64); 
   unsigned char keyIpad[64];
   unsigned char keyOpad[64];
 
@@ -448,6 +450,67 @@ string calculateMD5HMAC(const std::string& key_, const std::string& text)
   md5_2.feed(md5_1.get());
 
   return md5_2.get();
+}
+
+string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher)
+{
+  std::string res;
+  unsigned char hash[64];
+
+  switch(hasher) {
+  case TSIG_SHA1:
+  {
+      sha1_context ctx;
+      sha1_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size());
+      sha1_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha1_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 20);
+  };
+  case TSIG_SHA224:
+  {
+      sha2_context ctx;
+      sha2_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
+      sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha2_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 32);
+  };
+  case TSIG_SHA256:
+  {
+      sha2_context ctx;
+      sha2_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 0);
+      sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha2_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 32);
+  };
+  case TSIG_SHA384:
+  {
+      sha4_context ctx;
+      sha4_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
+      sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha4_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 64);
+  };
+  case TSIG_SHA512:
+  {
+      sha4_context ctx;
+      sha4_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 0);
+      sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
+      sha4_hmac_finish(&ctx, hash);
+      res.assign(reinterpret_cast<const char*>(hash), 64);
+  };
+  default:
+    throw new PDNSException("Unknown hash algorithm requested for SHA");
+  };
+
+  return std::string("");
+}
+
+string calculateHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hash) {
+  if (hash == TSIG_MD5) return calculateMD5HMAC(key_, text);
+  
+  // add other algorithms here
+
+  return calculateSHAHMAC(key_, text, hash);
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
@@ -491,9 +554,25 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
-  if (trc->d_algoName != "hmac-md5.sig-alg.reg.int.") {
-    L<<Logger::Error<<"Unsupported HMAC TSIG algorithm " << trc->d_algoName << endl;
-    return;
+  TSIGHashEnum algo;
+
+  if (*(trc->d_algoName.rbegin()) != '.') trc->d_algoName.append(".");
+
+  if (trc->d_algoName == "hmac-md5.sig-alg.reg.int.")
+  algo = TSIG_MD5;
+  else if (trc->d_algoName == "hmac-sha1.")
+  algo = TSIG_SHA1;
+  else if (trc->d_algoName == "hmac-sha224.")
+  algo = TSIG_SHA224;
+  else if (trc->d_algoName == "hmac-sha256.")
+  algo = TSIG_SHA256;
+  else if (trc->d_algoName == "hmac-sha384.")
+  algo = TSIG_SHA384;
+  else if (trc->d_algoName == "hmac-sha512.")
+  algo = TSIG_SHA512;
+  else {
+     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+     return;
   }
 
   string toSign;
@@ -527,7 +606,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
   const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
   toSign.append(&*signRecord.begin(), &*signRecord.end());
 
-  trc->d_mac = calculateMD5HMAC(tsigsecret, toSign);
+  trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
   //  d_trc->d_mac[0]++; // sabotage
   pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
   trc->toPacket(pw);

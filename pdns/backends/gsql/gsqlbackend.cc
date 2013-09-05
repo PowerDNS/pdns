@@ -314,6 +314,9 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
     
     d_getTSIGKeyQuery = getArg("get-tsig-key-query");
+    d_setTSIGKeyQuery = getArg("set-tsig-key-query");
+    d_deleteTSIGKeyQuery = getArg("delete-tsig-key-query");
+    d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
   }
 }
 
@@ -600,6 +603,66 @@ bool GSQLBackend::getTSIGKey(const string& name, string* algorithm, string* cont
   }
 
   return !content->empty();
+}
+
+bool GSQLBackend::setTSIGKey(const string& name, const string& algorithm, const string& content)
+{
+  if(!d_dnssecQueries)
+    return false;
+
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_setTSIGKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), sqlEscape(toLower(algorithm)).c_str(), sqlEscape(content).c_str());
+  try {
+    d_db->doCommand(output);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::deleteTSIGKey(const string& name)
+{
+  if(!d_dnssecQueries)
+    return false;
+
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_deleteTSIGKeyQuery.c_str(), sqlEscape(toLower(name)).c_str());
+  try {
+    d_db->doCommand(output);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
+{
+  if(!d_dnssecQueries)
+    return false;
+
+  char output[1024];
+  snprintf(output,sizeof(output)-1,"%s",d_getTSIGKeysQuery.c_str());
+
+  try {
+    d_db->doQuery(output);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to retrieve TSIG keys: "+e.txtReason());
+  }
+
+  SSql::row_t row;
+
+  while(d_db->getRow(row)) {
+     struct TSIGKey key;
+     key.name = row[0];
+     key.algorithm = row[1];
+     key.key = row[2];
+     keys.push_back(key);
+  }
+
+  return keys.empty();
 }
 
 bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
