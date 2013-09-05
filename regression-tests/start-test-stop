@@ -384,7 +384,6 @@ case $context in
 		bind-dnssec | bind-dnssec-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
 			rm -f dnssec.sqlite3
 			../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
-			../pdns/pdnssec --config-dir=. import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
 
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
@@ -415,7 +414,8 @@ case $context in
 				skipreasons="nodyndns"
 			fi
 
-                        ../pdns/pdnssec --config-dir=. enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=bind --bind-config=./named.conf \
@@ -540,7 +540,7 @@ __EOF__
 
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
 			../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
@@ -596,8 +596,8 @@ __EOF__
 				fi
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-                        ../pdns/pdnssec --config-dir=. --config-name=gpgsql enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gpgsql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
@@ -716,8 +716,8 @@ __EOF__
 				fi
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-                        ../pdns/pdnssec --config-dir=. --config-name=gsqlite3 enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
@@ -749,10 +749,10 @@ __EOF__
 			remotetype=$(echo $context | cut -d- -f 2)
 			remotesec=$(echo $context | cut -d- -f 3)
 			narrow=$(echo $context | cut -d- -f 4)
-						testsdir=../modules/remotebackend/regression-tests/
+			testsdir=../modules/remotebackend/regression-tests/
 
-						# cleanup unbound-host.conf to avoid failures
-						rm -f unbound-host.conf
+			# cleanup unbound-host.conf to avoid failures
+			rm -f unbound-host.conf
 
 			case $remotetype in
 			http)
@@ -892,15 +892,13 @@ then
 			-e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
 		done
 
-                set +e
-                echo $skipreasons | grep -q nodnssec
-                if [ $? -ne 0 ]; then
-			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-	                "$GMYSQL2DB" \
-	                -e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
-        	        mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-	                "$GMYSQL2DB" \
-	                -e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+		set +e
+		echo $skipreasons | grep -q nodnssec
+		if [ $? -ne 0 ]; then
+			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
+			-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
+			-e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 		fi
 		set -e
 
@@ -943,12 +941,12 @@ then
 		do
 			sqlite3 pdns.sqlite31 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
 		done
-                
-                set +e
-                echo $skipreasons | grep -q nodnssec
-                if [ $? -ne 0 ]; then
-	                sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
-        	        sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+
+		set +e
+		echo $skipreasons | grep -q nodnssec
+		if [ $? -ne 0 ]; then
+			sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 		fi
 		set -e
 
@@ -996,11 +994,11 @@ then
 		../pdns/pdnssec --config-dir=. create-bind-db dnssec-slave.sqlite3
 
 		set +e
-                echo $skipreasons | grep -q nodnssec
-                if [ $? -ne 0 ]; then
-                   sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
-                   sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
-                fi
+		echo $skipreasons | grep -q nodnssec
+		if [ $? -ne 0 ]; then
+			sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
+		fi
 		set -e
 
 		port=$((port+100))
