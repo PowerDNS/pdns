@@ -106,3 +106,18 @@ zone minimal.com/IN: loaded serial 2000081501 (DNSSEC signed)
 OK
 RETVAL: 0
 
+--- ldns-verify-zone -V2 tsig.com
+RETVAL: 0
+
+--- validns tsig.com
+RETVAL: 0
+
+--- jdnssec-verifyzone tsig.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone tsig.com
+zone tsig.com/IN: loaded serial 2000081501 (DNSSEC signed)
+OK
+RETVAL: 0
+
