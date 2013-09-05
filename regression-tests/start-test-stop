@@ -195,22 +195,26 @@ bindwait ()
 	check_process
 	configname=$1
 	domcount=$(grep -c ^zone named.conf)
-	if [ ! -x ../pdns/pdns_control ]; then
+	if [ ! -x ../pdns/pdns_control ]
+	then
 		echo "No pdns_control found"
 		exit 1
 	fi
 	loopcount=0
 
-	while [ $loopcount -lt 20 ]; do
+	while [ $loopcount -lt 20 ]
+	do
 		sleep 5
 		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
-		if [ $done = $domcount ]; then
+		if [ $done = $domcount ]
+		then
 			return
 		fi
 		let loopcount=loopcount+1
 	done
 
-	if [ $done != $domcount ]; then
+	if [ $done != $domcount ]
+	then
 		echo "Domain parsing failed" >> failed_tests
 	fi
 }
@@ -243,9 +247,11 @@ check_process ()
 	while [ $loopcount -lt 5 ]; do
 		sleep 1
 		pids=$(cat pdns*.pid 2>/dev/null)
-		if [ ! -z "$pids" ]; then
+		if [ ! -z "$pids" ]
+		then
 			kill -0 $pids >/dev/null 2>&1
-			if [ $? -eq 0 ]; then
+			if [ $? -eq 0 ]
+			then
 				set -e
 				return
 			fi
@@ -256,12 +262,14 @@ check_process ()
 	exit 1
 }
 
-if [ ! -x $PDNS ]; then
+if [ ! -x $PDNS ]
+ then
 	echo "$PDNS is not executable binary"
 	exit 1
 fi
 
-if [ ! -x $PDNS2 ]; then
+if [ ! -x $PDNS2 ]
+then
 	echo "$PDNS2 is not executable binary"
 	exit 1
 fi
@@ -301,6 +309,9 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 
 * Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
   to test presigned operation.
+
+* Add -both to any bind or gmysql test (except narrow) to
+  test normal and presigned operation.
 
 * Add 'wait' (literally) after the context to not kill
   pdns_server immediately after testing. 'nowait' will kill it.
@@ -735,7 +746,7 @@ __EOF__
 				--opendbx-database=pdns-opendbx.sqlite3 &
 			skipreasons="nodnssec noent nodyndns"
 
-			;;									
+			;;
 		gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
 			rm -f pdns.sqlite3
 			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
@@ -807,10 +818,13 @@ __EOF__
 				# make sure it runs before continuing
 				loopcount=0
 				while [ $loopcount -lt 20 ]; do
-				     res=$(curl http://localhost:62434/ping 2>/dev/null)
-				     if [ "x$res" == "xpong" ]; then break; fi
-				     sleep 1
-				     let loopcount=loopcount+1
+					res=$(curl http://localhost:62434/ping 2>/dev/null)
+					if [ "x$res" == "xpong" ]
+					then
+						break
+					fi
+					sleep 1
+					let loopcount=loopcount+1
 				done
 				set -e
 				;;
@@ -830,23 +844,25 @@ __EOF__
 
 			skipreasons="nodnssec nodyndns"
 
-			if [ "$remotesec" = "nsec3" ]; then
+			if [ "$remotesec" = "nsec3" ]
+			then
 				remotedosec="yes"
-				if [ "$narrow" = "narrow" ]; then
+				if [ "$narrow" = "narrow" ]
+				then
 					extracontexts="dnssec nsec3 narrow"
 					skipreasons="narrow nsec3 nodyndns"
-			else
+				else
 					extracontexts="dnssec nsec3"
 					skipreasons="nsec3 nodyndns"
 				fi
-							remote_add_param="--remote-dnssec=yes"
-						else 
-				if [ "$remotesec" = "dnssec" ]; then
-					remotedosec="yes"
-					remote_add_param="--remote-dnssec=yes"
-					extracontexts="dnssec"
-					skipreasons="nonsec3 nonarrow nodyndns"
-				fi
+				
+				remote_add_param="--remote-dnssec=yes"
+			elif [ "$remotesec" = "dnssec" ]
+			then
+				remotedosec="yes"
+				remote_add_param="--remote-dnssec=yes"
+				extracontexts="dnssec"
+				skipreasons="nonsec3 nonarrow nodyndns"
 			fi
 
 			# generate pdns.conf for pdnssec
@@ -861,35 +877,36 @@ EOF
 				--send-root-referral \
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--remote-connection-string="$connstr" $remote_add_param &
-						
+
 			echo "Setting up test database..."
 			# setup test database
 			rm -f $testsdir/remote.sqlite3
 			sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
 			chmod 0666 $testsdir/remote.sqlite3
-			if [ "$remotedosec" = "yes" ]; then
-								echo "remote-dnssec=yes" >> pdns-remote.conf
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
-								../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
 
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
-								../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+			if [ "$remotedosec" = "yes" ]
+			then
+				echo "remote-dnssec=yes" >> pdns-remote.conf
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
+				../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
 
-				if [ "$remotesec" = "nsec3" ]; then
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
+				../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+
+				if [ "$remotesec" = "nsec3" ]
+				then
 					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 example.com
-										../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
+					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
 				fi
-
 			fi
-
 			;;
 		*)
 			echo unknown context $context
