@@ -388,8 +388,8 @@ __EOF__
 				fi
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-                        ../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
+                        ../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+                        ../pdns/pdnssec --config-dir=. --config-name=gpgsql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
