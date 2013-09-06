@@ -465,6 +465,7 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
       sha1_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
       sha1_hmac_finish(&ctx, hash);
       res.assign(reinterpret_cast<const char*>(hash), 20);
+      break;
   };
   case TSIG_SHA224:
   {
@@ -472,7 +473,8 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
       sha2_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
       sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
       sha2_hmac_finish(&ctx, hash);
-      res.assign(reinterpret_cast<const char*>(hash), 32);
+      res.assign(reinterpret_cast<const char*>(hash), 28);
+      break;
   };
   case TSIG_SHA256:
   {
@@ -481,6 +483,7 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
       sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
       sha2_hmac_finish(&ctx, hash);
       res.assign(reinterpret_cast<const char*>(hash), 32);
+      break;
   };
   case TSIG_SHA384:
   {
@@ -488,7 +491,8 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
       sha4_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
       sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
       sha4_hmac_finish(&ctx, hash);
-      res.assign(reinterpret_cast<const char*>(hash), 64);
+      res.assign(reinterpret_cast<const char*>(hash), 48);
+      break;
   };
   case TSIG_SHA512:
   {
@@ -497,12 +501,13 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
       sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
       sha4_hmac_finish(&ctx, hash);
       res.assign(reinterpret_cast<const char*>(hash), 64);
+      break;
   };
   default:
     throw new PDNSException("Unknown hash algorithm requested for SHA");
   };
 
-  return std::string("");
+  return res;
 }
 
 string calculateHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hash) {
