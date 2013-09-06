@@ -10,7 +10,16 @@ do
 		then
 			named-checkzone -i local $zone $TFILE 2>&1 | grep -v 'addnode: NSEC node already exists'
 		else
-			$validator $TFILE 2>&1
+			if [ ! -e ${testsdir}/${testname}/allow-missing ] || [[ $(type -P "$validator") ]]
+			then
+				$validator $TFILE 2>&1
+			else
+				#fake output for missing validators
+				if [ "$validator" = "jdnssec-verifyzone" ]
+				then
+					echo zone verified.
+				fi
+			fi
 		fi
 		RETVAL=$?
 		echo RETVAL: $RETVAL

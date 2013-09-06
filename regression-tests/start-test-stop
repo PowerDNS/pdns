@@ -1047,7 +1047,7 @@ export optout
 
 if [ $presigned = no ] || [ $both = yes ]
 then
-	dotests $RETVAL
+	dotests RETVAL
 fi
 
 if [ $presigned = yes ] || [ $both = yes ]
@@ -1058,7 +1058,7 @@ then
 	export context
 	export skipreasons
 
-	dotests $RETVAL
+	dotests RETVAL
 fi
 
 if [ "$wait" = "wait" ]
