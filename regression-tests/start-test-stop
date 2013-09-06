@@ -23,6 +23,11 @@ server:
 	database: ./nsd.db
 	zonesdir: .
 	username: ""
+
+key:
+	name: test
+	algorithm: hmac-md5
+	secret: "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="
 __EOF__
 
 	rm -f K*
@@ -77,8 +82,14 @@ __EOF__
 		echo "zone:" >> nsd.conf
 		echo "  name: \"${zone}\"" >> nsd.conf
 		echo "  zonefile: \"${zone}.signed\"" >> nsd.conf
-		echo "  provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
-		echo "  provide-xfr: ::0/0 NOKEY" >> nsd.conf
+		if [ "${zone}" == "tsig.com" ]
+		then
+			echo "  provide-xfr: 0.0.0.0/0 test" >> nsd.conf
+			echo "  provide-xfr: ::0/0 test" >> nsd.conf
+		else
+			echo "  provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
+			echo "  provide-xfr: ::0/0 NOKEY" >> nsd.conf
+		fi
 	done
 	nsdc -c nsd.conf rebuild
 }
